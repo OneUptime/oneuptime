@@ -458,7 +458,11 @@ describe("Infrastructure AI Agents docs", (): void => {
         }),
       ).toEqual(["- **Insights**", "- **Logs**", "- **AI agent**"]);
       expect(bullets[0]).toContain(
-        "what OneUptime AI has learned about the resource from its own work there in the last 30 days, and what deserves your attention",
+        "what OneUptime AI found out about the resource in the last 30 days: the problems that keep coming back and why",
+      );
+      // What AI did is the footnote, not the headline.
+      expect(bullets[0]).toContain(
+        "with what AI itself did there as a footnote",
       );
       expect(bullets[0]).toContain(
         "[What AI learned on a cluster](/docs/ai/ai-sre#what-ai-learned-on-a-cluster)",

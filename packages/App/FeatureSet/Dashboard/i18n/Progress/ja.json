@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 26121,
-    "untranslated": 514
+    "keys": 28012,
+    "untranslated": 816
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -21,6 +21,7 @@
     "-----BEGIN OPENSSH PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+    "0 (kiss-o'-death {{kissCode}})",
     "10.0.1.5 - - [10/Oct/2023:13:55:36 -0700] \"GET /health HTTP/1.1\" 200 1234",
     "10.0.1.5 - GET /health 200",
     "10s",
@@ -281,6 +282,9 @@
     "you@company.com",
     "z",
     "{\"version\": \"...\", \"records\": [...]}",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{format}} JSON",
     "{{inRate}} / {{outRate}} Mbps",
     "{{itemName}} ID",

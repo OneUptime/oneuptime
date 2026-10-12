@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  ClaudeCodeUsageAttributeKeys,
   LlmAgentNameAttributeKeys,
   LlmAttributeNamespacePrefixes,
+  LlmCacheReadTokenAttributeKeys,
+  LlmCacheWriteTokenAttributeKeys,
   LlmCompletionEventNames,
   LlmCompletionIndexedMessageConventions,
   LlmCompletionJsonAttributeKeys,
@@ -9,8 +12,20 @@ import {
   LlmCostAttributeKeys,
   LlmEndUserAttributeKeys,
   LlmEndUserBaseAttributeKeys,
+  LlmErrorTypeAttributeKeys,
+  LlmEvaluationExplanationAttributeKey,
+  LlmEvaluationNameAttributeKey,
+  LlmEvaluationResultEventName,
+  LlmEvaluationScoreLabelAttributeKey,
+  LlmEvaluationScoreValueAttributeKey,
   LlmFinishReasonAttributeKeys,
   LlmIndexedMessageConvention,
+  LlmInferenceDetailsEventName,
+  LlmResponseToolCallsAttributeKeys,
+  LlmSystemInstructionsAttributeKeys,
+  LlmToolCallArgumentsAttributeKeys,
+  LlmToolCallIdAttributeKeys,
+  LlmToolCallResultAttributeKeys,
   LlmInputTokenAttributeKeys,
   LlmMaxTokensAttributeKeys,
   LlmOperationAttributeKeys,
@@ -47,6 +62,8 @@ const PER_CALL_LISTS: Record<string, Array<string>> = {
   LlmInputTokenAttributeKeys,
   LlmOutputTokenAttributeKeys,
   LlmTotalTokenAttributeKeys,
+  LlmCacheReadTokenAttributeKeys,
+  LlmCacheWriteTokenAttributeKeys,
   LlmCostAttributeKeys,
   LlmConversationIdAttributeKeys,
   LlmAgentNameAttributeKeys,
@@ -57,6 +74,12 @@ const PER_CALL_LISTS: Record<string, Array<string>> = {
   LlmFinishReasonAttributeKeys,
   LlmPromptJsonAttributeKeys,
   LlmCompletionJsonAttributeKeys,
+  LlmErrorTypeAttributeKeys,
+  LlmSystemInstructionsAttributeKeys,
+  LlmToolCallIdAttributeKeys,
+  LlmToolCallArgumentsAttributeKeys,
+  LlmToolCallResultAttributeKeys,
+  LlmResponseToolCallsAttributeKeys,
 };
 
 interface IdentityTier {
@@ -256,6 +279,8 @@ describe("list hygiene", () => {
       LlmInputTokenAttributeKeys,
       LlmOutputTokenAttributeKeys,
       LlmTotalTokenAttributeKeys,
+      LlmCacheReadTokenAttributeKeys,
+      LlmCacheWriteTokenAttributeKeys,
       LlmCostAttributeKeys,
       LlmConversationIdAttributeKeys,
       LlmAgentNameAttributeKeys,
@@ -268,6 +293,47 @@ describe("list hygiene", () => {
 
     for (const list of coreLists) {
       expect(list[0]!.startsWith("gen_ai.")).toBe(true);
+    }
+  });
+});
+
+describe("prompt-cache and Claude Code token keys", () => {
+  test("the cache lists name the conventions' keys first, then OpenLLMetry's and OpenInference's", () => {
+    expect(LlmCacheReadTokenAttributeKeys[0]).toBe(
+      "gen_ai.usage.cache_read.input_tokens",
+    );
+    expect(LlmCacheWriteTokenAttributeKeys.slice(0, 2)).toEqual([
+      "gen_ai.usage.cache_write.input_tokens",
+      // The conventions' older name for a write, which OpenLLMetry still sends.
+      "gen_ai.usage.cache_creation.input_tokens",
+    ]);
+  });
+
+  test("no cache key is also an input, output or total key", () => {
+    for (const key of [
+      ...LlmCacheReadTokenAttributeKeys,
+      ...LlmCacheWriteTokenAttributeKeys,
+    ]) {
+      expect(LlmInputTokenAttributeKeys).not.toContain(key);
+      expect(LlmOutputTokenAttributeKeys).not.toContain(key);
+      expect(LlmTotalTokenAttributeKeys).not.toContain(key);
+    }
+  });
+
+  test("Claude Code's bare usage keys are in no convention's list, so no convention reads them", () => {
+    const bareKeys: Array<string> = Object.values(ClaudeCodeUsageAttributeKeys);
+
+    expect(bareKeys).toEqual([
+      "input_tokens",
+      "output_tokens",
+      "cache_read_tokens",
+      "cache_creation_tokens",
+    ]);
+
+    for (const list of Object.values(ALL_STRING_LISTS)) {
+      for (const key of bareKeys) {
+        expect(list).not.toContain(key);
+      }
     }
   });
 });
@@ -487,9 +553,88 @@ describe("prompt vs completion content sources", () => {
     }
   });
 
-  test("the assistant's own message is a completion, never a prompt", () => {
-    expect(LlmCompletionEventNames).toContain("gen_ai.assistant.message");
-    expect(LlmPromptEventNames).not.toContain("gen_ai.assistant.message");
+  /*
+   * The deprecated per-role events describe chat history SENT to the model:
+   * gen_ai.assistant.message is an earlier answer replayed as context, and
+   * the model's own answer is gen_ai.choice. Reading an assistant message
+   * event as the answer put old answers in the conversation view twice, at
+   * the wrong moment.
+   */
+  test("an assistant message event is history; the answer is gen_ai.choice", () => {
+    expect(LlmPromptEventNames).toContain("gen_ai.assistant.message");
     expect(LlmPromptEventNames).toContain("gen_ai.user.message");
+    expect(LlmCompletionEventNames).toEqual(["gen_ai.choice"]);
+  });
+});
+
+describe("the conversation keys the view and the answer checks read", () => {
+  test("the Vercel AI SDK's chat id is a conversation id, after every standard key", () => {
+    expect(LlmConversationIdAttributeKeys).toContain(
+      "ai.telemetry.metadata.sessionId",
+    );
+    expect(
+      LlmConversationIdAttributeKeys.indexOf("ai.telemetry.metadata.sessionId"),
+    ).toBe(LlmConversationIdAttributeKeys.length - 1);
+  });
+
+  test("the Vercel AI SDK's tool span names a tool, so it is recognized as an AI call", () => {
+    expect(LlmToolNameAttributeKeys).toContain("ai.toolCall.name");
+  });
+
+  test("the Vercel AI SDK's prompt and answer are content sources", () => {
+    expect(LlmPromptJsonAttributeKeys).toContain("ai.prompt.messages");
+    expect(LlmCompletionJsonAttributeKeys).toContain("ai.response.text");
+    expect(LlmResponseToolCallsAttributeKeys).toEqual([
+      "ai.response.toolCalls",
+    ]);
+    expect(LlmFinishReasonAttributeKeys).toContain("ai.response.finishReason");
+  });
+
+  test("tool runs: the conventions' keys come first, then the SDK spellings", () => {
+    expect(LlmToolCallIdAttributeKeys[0]).toBe("gen_ai.tool.call.id");
+    expect(LlmToolCallArgumentsAttributeKeys[0]).toBe(
+      "gen_ai.tool.call.arguments",
+    );
+    expect(LlmToolCallResultAttributeKeys[0]).toBe("gen_ai.tool.call.result");
+    // OpenInference TOOL spans carry the tool's input and output here.
+    expect(LlmToolCallArgumentsAttributeKeys).toContain("input.value");
+    expect(LlmToolCallResultAttributeKeys).toContain("output.value");
+  });
+
+  test("the event and attribute names of the current conventions", () => {
+    expect(LlmInferenceDetailsEventName).toBe(
+      "gen_ai.client.inference.operation.details",
+    );
+    expect(LlmEvaluationResultEventName).toBe("gen_ai.evaluation.result");
+    expect(LlmEvaluationNameAttributeKey).toBe("gen_ai.evaluation.name");
+    expect(LlmEvaluationScoreLabelAttributeKey).toBe(
+      "gen_ai.evaluation.score.label",
+    );
+    expect(LlmEvaluationScoreValueAttributeKey).toBe(
+      "gen_ai.evaluation.score.value",
+    );
+    expect(LlmEvaluationExplanationAttributeKey).toBe(
+      "gen_ai.evaluation.explanation",
+    );
+    expect(LlmSystemInstructionsAttributeKeys).toEqual([
+      "gen_ai.system_instructions",
+    ]);
+    expect(LlmErrorTypeAttributeKeys).toEqual(["error.type"]);
+  });
+
+  test("every indexed convention names the style the rest of its keys follow", () => {
+    expect(
+      [
+        ...LlmPromptIndexedMessageConventions,
+        ...LlmCompletionIndexedMessageConventions,
+      ].map((convention: LlmIndexedMessageConvention) => {
+        return `${convention.prefix}:${convention.style}`;
+      }),
+    ).toEqual([
+      "gen_ai.prompt:openllmetry",
+      "llm.input_messages:openinference",
+      "gen_ai.completion:openllmetry",
+      "llm.output_messages:openinference",
+    ]);
   });
 });

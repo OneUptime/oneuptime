@@ -2,6 +2,7 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import DatabaseService from "../../Services/DatabaseService";
 import UserService from "../../Services/UserService";
 import { mdText, MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
 
@@ -68,57 +69,21 @@ export default class SloFeedUtil {
   }
 
   /*
-   * The caller's query pinned to the caller's project, for the reads a feed
-   * hook makes in onBeforeUpdate / onBeforeDelete.
-   *
-   * Both hooks run BEFORE DatabaseService applies the caller's permissions to
-   * the query, so the raw query read as root there can match rows in a
-   * project the caller cannot see. Those rows are never described - the
-   * writers only post for the ids the permission-checked write touched - but
-   * they should not be read either. Without a tenant (a root automation) the
-   * query already is the whole truth and is left exactly as it is.
-   */
-  public static getTenantPinnedQuery<TQuery>(data: {
-    query: TQuery;
-    tenantId: ObjectID | undefined | null;
-  }): TQuery {
-    if (!data.tenantId) {
-      return data.query;
-    }
-
-    return {
-      ...(data.query as unknown as Record<string, unknown>),
-      projectId: data.tenantId,
-    } as unknown as TQuery;
-  }
-
-  /*
    * The rows a delete hook read up front, narrowed to the ones the delete
    * really removed.
    *
-   * onBeforeDelete reads before permissions are applied, and onDeleteSuccess
-   * still runs when the permission-checked delete matched nothing. Describing
-   * every row read up front would let a delete that names another project's
-   * row - and so deletes nothing - post "removed" onto that project's SLO
-   * feed in the caller's name. DatabaseService hands onDeleteSuccess the ids
-   * it actually deleted, so only those rows are described.
+   * onBeforeDelete reads the rows the delete removes and holds the delete to
+   * them (DatabaseService.findRowsAndHoldDeleteToThem), but the delete asks
+   * the caller's permission once more and may find fewer of them - a row
+   * removed in between, a permission taken away - and onDeleteSuccess still
+   * runs when it matched nothing. DatabaseService hands onDeleteSuccess the
+   * ids it actually deleted, so only those rows are described.
    */
   public static getRowsActuallyDeleted<TModel extends DatabaseBaseModel>(data: {
     rows: Array<TModel>;
     deletedIds: Array<ObjectID>;
   }): Array<TModel> {
-    // Postgres renders uuids lower-case whatever case a caller wrote them in.
-    const deletedIds: Set<string> = new Set<string>(
-      data.deletedIds.map((id: ObjectID): string => {
-        return id.toString().toLowerCase();
-      }),
-    );
-
-    return data.rows.filter((row: TModel): boolean => {
-      const id: string | undefined = row.id?.toString().toLowerCase();
-
-      return id !== undefined && deletedIds.has(id);
-    });
+    return DatabaseService.getRowsDeleted(data);
   }
 
   /*

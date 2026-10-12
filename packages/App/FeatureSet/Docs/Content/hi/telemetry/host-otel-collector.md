@@ -1,385 +1,94 @@
-# Host OpenTelemetry Collector (Linux, macOS, Windows)
+# होस्ट OpenTelemetry कलेक्टर
 
-## अवलोकन
+किसी Linux, macOS या Windows मशीन पर OpenTelemetry Collector चलाएँ ताकि उसके मेट्रिक्स, प्रक्रियाएँ, लॉग और सेवाओं की स्थिति OneUptime को भेजी जा सके। मशीन **उत्पाद → बुनियादी ढांचा → होस्ट** के अंतर्गत अपने पेजों के साथ दिखती है, और कोई OneUptime एजेंट इंस्टॉल नहीं करना पड़ता: कलेक्टर upstream की `otelcol-contrib` रिलीज़ ही है। [होस्ट मॉनिटर](/docs/monitor/host-monitor) उसके भेजे डेटा पर अलर्ट करते हैं।
 
-आप होस्ट टेलीमेट्री को OTLP के माध्यम से OneUptime तक भेजने के लिए अपने Linux, macOS, या Windows होस्ट पर सीधे **OpenTelemetry Collector** को एक सेवा के रूप में चला सकते हैं। यह पृष्ठ collector को इंस्टॉल करने, इसे प्रत्येक OS के लिए कॉन्फ़िगर करने, और आप जो एकत्र करना चाहते हैं उसके लिए सही receivers चुनने के बारे में मार्गदर्शन करता है:
+:::cards
+- [कलेक्टर इंस्टॉल करें](#कलेक्टर-इंस्टॉल-करें): Linux, macOS या Windows पर तीन चरण।
+- [चुनें कि क्या इकट्ठा करना है](#चुनें-कि-क्या-इकट्ठा-करना-है): मेट्रिक्स, फ़ाइल लॉग, जर्नल, इवेंट लॉग और सेवाओं की स्थिति।
+- [इन्वेंटरी एट्रिब्यूट](#इन्वेंटरी-एट्रिब्यूट-ip-mac-सीरियल-नंबर-निर्माता-मॉडल-फ़र्मवेयर): आपके CMDB के लिए IP, MAC, सीरियल नंबर, निर्माता, मॉडल और फ़र्मवेयर।
+- [कम डेटा भेजें](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना): कम लॉग लाइनें, मोटे अंतराल, कम सीरीज़।
+:::
 
-- हर OS पर **होस्ट मेट्रिक्स** (CPU, memory, disk, filesystem, network, load, processes)
-- [`filelogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver) के माध्यम से `/var/log/**` के अंतर्गत **फ़ाइल-आधारित logs** (Linux, macOS)
-- [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver) के माध्यम से **systemd journal** (Linux)
-- [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) के माध्यम से **systemd unit state** (जो होस्ट **Systemd Units** टैब को शक्ति प्रदान करता है) — **v0.142.0** से अपस्ट्रीम `otelcol-contrib` बिल्ड में बंडल किया गया है, और **v0.143.0** से आगे उपयोग योग्य है (नीचे "Linux Services (systemd units)" देखें)
-- एक tailed `log stream` आउटपुट को लपेटते हुए [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) के माध्यम से **Apple Unified Log** (macOS)
-- [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) के माध्यम से **Windows Event Logs**
-- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) के माध्यम से **Windows service status** (जो होस्ट **सेवाएं** टैब को शक्ति प्रदान करता है) — **v0.155.0** से आगे अपस्ट्रीम `otelcol-contrib` बिल्ड में बंडल किया गया है (नीचे "Windows Services (मेट्रिक्स)" देखें)
+## यह कैसे काम करता है
 
-> **OneUptime Infrastructure Agent के बारे में क्या?** वह agent एक अलग, हल्का Go daemon है जो बुनियादी मेट्रिक्स और _Server / VM Monitor_ फ़ीचर (status, processes, alerting) पर केंद्रित है। यहाँ वर्णित OpenTelemetry Collector स्वतंत्र है और तब सही उपकरण है जब आप logs (फ़ाइल logs, journald, Windows Event Logs) या मानक OTLP के रूप में ग्रहण किए गए समृद्ध होस्ट मेट्रिक्स चाहते हैं। दोनों एक ही होस्ट पर बिना हस्तक्षेप किए चल सकते हैं।
+कलेक्टर अपने रिसीवरों के ज़रिए मशीन को पढ़ता है, हर रिकॉर्ड पर मशीन की पहचान लगाता है, और उसे आपकी इंजेशन कुंजी के साथ OTLP पर OneUptime को भेजता है। OneUptime पहले मेट्रिक्स से होस्ट को रजिस्टर करता है और डेटा आने के साथ उसके पेज भरता है।
 
-## पूर्वापेक्षाएँ
-
-- एक **OneUptime Telemetry Ingestion Token** — _प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक बनाएँ और `x-oneuptime-token` मान कॉपी करें।
-- **OpenTelemetry Collector Contrib** वितरण (`otelcol-contrib`)। डिफ़ॉल्ट `otelcol` बिल्ड में `windowseventlogreceiver`, `journaldreceiver`, या `hostmetrics` अतिरिक्त जैसे receivers **शामिल नहीं** हैं — सुनिश्चित करें कि आप `contrib` वितरण का उपयोग करें। alpha `windowsservicereceiver` जो Windows **सेवाएं** टैब को शक्ति प्रदान करता है, **v0.155.0** से आगे `otelcol-contrib` में बंडल किया गया है, और alpha `systemdreceiver` जो Linux **Systemd Units** टैब को शक्ति प्रदान करता है, **v0.143.0** से आगे, इसलिए एक वर्तमान रिलीज़ इंस्टॉल करें; नीचे "Windows Services (मेट्रिक्स)" और "Linux Services (systemd units)" देखें।
-- collector को एक सेवा के रूप में इंस्टॉल करने और (जहाँ लागू हो) विशेषाधिकार प्राप्त log स्रोतों को पढ़ने के लिए होस्ट पर Root / Administrator।
-
-## चरण 1 — OpenTelemetry Collector इंस्टॉल करें
-
-अपने OS के लिए अनुभाग चुनें। सभी उदाहरण [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) से `otelcol-contrib` **v0.161.0** इंस्टॉल करते हैं: वह रिलीज़ जिसे OneUptime तय करता है, और जिसे चरण 2 के कॉन्फ़िग होस्ट के एजेंट संस्करण के रूप में बताते हैं (नीचे "Collector को अपग्रेड करना" देखें)।
-
-### Linux (Debian / Ubuntu)
-
-```bash
-ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.161.0                      # the release OneUptime pins
-
-curl -L -o otelcol-contrib.deb \
-  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
-
-sudo dpkg -i otelcol-contrib.deb
+```mermaid title="एक मशीन से उसके होस्ट पेजों तक"
+flowchart TB
+    subgraph machine["आपकी मशीन"]
+        direction LR
+        kernel["कर्नेल और<br/>प्रक्रियाएँ"]
+        logs["लॉग फ़ाइलें, जर्नल,<br/>इवेंट लॉग"]
+        services["systemd यूनिट या<br/>Windows सेवाएँ"]
+    end
+    machine --> collector["otelcol-contrib:<br/>receivers, resourcedetection"]
+    collector -->|"HTTPS पर OTLP"| oneuptime["OneUptime"]
+    oneuptime --> pages["होस्ट: अवलोकन, मेट्रिक्स,<br/>प्रक्रियाएँ, लॉग, Inventory"]
 ```
 
-Debian पैकेज बाइनरी को `/usr/bin/otelcol-contrib` पर, डिफ़ॉल्ट कॉन्फ़िग को `/etc/otelcol-contrib/config.yaml` पर, और एक systemd यूनिट को `/etc/systemd/system/otelcol-contrib.service` पर इंस्टॉल करता है।
+| होस्ट पर आप क्या देखते हैं | यह कहाँ से आता है |
+| --- | --- |
+| **अवलोकन** और **मेट्रिक्स** | `hostmetrics` रिसीवर: CPU, मेमोरी, डिस्क, फ़ाइल सिस्टम, नेटवर्क, लोड, पेजिंग। |
+| **प्रक्रियाएँ** | `hostmetrics` का `process` स्क्रैपर: हर प्रक्रिया के लिए सीरीज़ का एक सेट। |
+| **लॉग** | `filelog`, `journald` और `windowseventlog` रिसीवर। |
+| **Systemd Units** (Linux) | `systemd` रिसीवर। |
+| **सेवाएं** (Windows) | `windows_service` रिसीवर। |
+| इन्वेंटरी आइटम | `resourcedetection` प्रोसेसर, साथ में [आपके लगाए एट्रिब्यूट](#इन्वेंटरी-एट्रिब्यूट-ip-mac-सीरियल-नंबर-निर्माता-मॉडल-फ़र्मवेयर)। |
+| **एजेंट संस्करण** | `resource` प्रोसेसर में `oneuptime.agent.version`। |
 
-### Linux (RHEL / CentOS / Fedora / Amazon Linux)
+कोई होस्ट तब रजिस्टर होता है जब `host.name` वाले किसी बैच में `hostmetrics` या `process` मेट्रिक्स, या `os.type` एट्रिब्यूट भी हो। `resourcedetection` प्रोसेसर ये सब सेट करता है, इसीलिए हर कॉन्फ़िगरेशन उसे सबसे पहले रखता है। सिर्फ़ `host.id` या `host.arch` से कोई होस्ट रजिस्टर नहीं होता, और Kubernetes पहचान वाली टेलीमेट्री (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`) इसके बजाय अपने क्लस्टर के अंतर्गत दर्ज होती है: Kubernetes नोड की निगरानी [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) से करें।
 
-```bash
-ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.161.0
+## शुरू करने से पहले
 
-sudo rpm -ivh \
-  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
-```
+- एक इंजेशन कुंजी। **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** के अंतर्गत एक बनाएँ और उसका मान कॉपी करें। कलेक्टर इसे `x-oneuptime-token` हेडर में भेजता है।
+- मशीन पर एडमिन अधिकार: Linux और macOS पर `sudo`, Windows पर एलिवेटेड PowerShell प्रॉम्प्ट।
+- मशीन से आपके OneUptime URL तक आउटबाउंड HTTPS।
+- कलेक्टर का contrib डिस्ट्रीब्यूशन, `otelcol-contrib`। कोर `otelcol` बिल्ड में वे रिसीवर और प्रोसेसर नहीं हैं जिनका ये कॉन्फ़िगरेशन उपयोग करते हैं। `systemd` रिसीवर (Linux) v0.143.0 से और `windows_service` रिसीवर (Windows) v0.155.0 से काम करता है; नीचे दिए कमांड v0.161.0 इंस्टॉल करते हैं, वह रिलीज़ जिसे OneUptime पिन करता है।
 
-पथ Debian पैकेज से मेल खाते हैं (`/usr/bin/otelcol-contrib`, `/etc/otelcol-contrib/config.yaml`, systemd यूनिट `otelcol-contrib`)।
+## कलेक्टर इंस्टॉल करें
 
-### macOS
+:::steps
+### कॉन्फ़िगरेशन सहेजें
 
-```bash
-ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.161.0
+इसे उस फ़ोल्डर में `config.yaml` के रूप में सहेजें जहाँ से आप इंस्टॉल कमांड चलाएँगे, और `YOUR_TELEMETRY_INGESTION_TOKEN` को अपनी इंजेशन कुंजी से बदलें (और अगर आप सेल्फ़-होस्ट करते हैं तो एंडपॉइंट को अपने URL से)।
 
-curl -L -o otelcol-contrib.tar.gz \
-  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
-
-sudo mkdir -p /usr/local/otelcol-contrib
-sudo tar -xzf otelcol-contrib.tar.gz -C /usr/local/otelcol-contrib
-sudo ln -sf /usr/local/otelcol-contrib/otelcol-contrib /usr/local/bin/otelcol-contrib
-sudo mkdir -p /etc/otelcol-contrib
-```
-
-आप चरण 2 में `/etc/otelcol-contrib/config.yaml` और चरण 3 में एक `launchd` plist बनाएँगे।
-
-### Windows
-
-Windows पर, अपस्ट्रीम **`otelcol-contrib`** रिलीज़ डाउनलोड करें — यह `windows_service` receiver को बंडल करता है जो होस्ट **सेवाएं** टैब को शक्ति प्रदान करता है (**v0.155.0** से आगे)।
-
-**`contrib` आर्टिफ़ैक्ट डाउनलोड करें, core वाला नहीं।** हर रिलीज़ Windows के लिए दो आर्काइव प्रकाशित करती है जिनके नाम केवल एक शब्द से भिन्न हैं, और ग़लत वाला चुनना इस इंस्टॉलेशन के विफल होने का सबसे आम कारण है:
-
-| रिलीज़ आर्टिफ़ैक्ट | अनपैक करता है | यही इस्तेमाल करें? |
-| ------------------ | ------------- | ------------------ |
-| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **हाँ** — contrib वितरण |
-| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | नहीं — core बिल्ड, जिसमें नीचे उपयोग किए गए Windows receiver नहीं हैं |
-
-आर्टिफ़ैक्ट का नाम **`otelcol-contrib_` से शुरू होना चाहिए**। core `otelcol_` बिल्ड में `windowseventlog` या `windows_service` receiver नहीं होता, और `otelcol.exe` का नाम बदलकर `otelcol-contrib.exe` करने से वे जुड़ते नहीं हैं — इससे बस एक स्टार्टअप विफलता की जगह दूसरी आ जाती है (देखें [समस्या निवारण](#समस्या-निवारण))।
-
-एक **elevated** PowerShell प्रॉम्प्ट से पूरा ब्लॉक एक साथ चलाएँ — हर पंक्ति उसके ऊपर सेट किए गए चरों पर निर्भर है:
-
-```powershell
-$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
-$ARCH    = "amd64"                            # use "arm64" on ARM hosts
-$dest    = "C:\Program Files\otelcol-contrib"
-$tar     = "$env:TEMP\otelcol-contrib.tar.gz"
-
-# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
-$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
-
-New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Invoke-WebRequest -Uri $url -OutFile $tar
-tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
-
-Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
-```
-
-एक अकेली पंक्ति निकालने के बजाय पूरा ब्लॉक चलाएँ: URL `$VERSION` और `$ARCH` से बनता है, इसलिए किसी नए सत्र में अकेले चिपकाया गया `Invoke-WebRequest` खाली `-Uri` के कारण विफल हो जाता है और कुछ भी डाउनलोड नहीं करता। URL को अलग पंक्ति में `$url` के रूप में बनाना जानबूझकर है — संस्करण को सीधे `Invoke-WebRequest` के तर्क में रखने पर एक अपरिभाषित चर चुपचाप 404 बन जाता है।
-
-यह `otelcol-contrib.exe` को — **न कि** `otelcol.exe` को — `C:\Program Files\otelcol-contrib` में अनपैक करता है; ऊपर की `Get-ChildItem` पंक्ति पुष्टि करती है कि आपको कौन-सा मिला। आप चरण 2 में उसी फ़ोल्डर में `config.yaml` बनाएँगे और चरण 3 में एक Windows सेवा पंजीकृत करेंगे।
-
-> एक native installer पसंद करते हैं? OpenTelemetry उसी [releases page](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) पर एक हस्ताक्षरित **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) भी प्रकाशित करता है, जो आपके लिए collector को एक Windows सेवा के रूप में पंजीकृत करता है। यदि आप इसका उपयोग करते हैं, तो इसे चरण 2 से `config.yaml` पर इंगित करें और सुनिश्चित करें कि सेवा `LocalSystem` के रूप में चलती है ताकि **सेवाएं** टैब Service Control Manager पढ़ सके।
-
-## चरण 2 — collector कॉन्फ़िगर करें
-
-कॉन्फ़िगरेशन फ़ाइल यहाँ रहती है:
-
-| OS      | पथ                                                    |
-| ------- | ----------------------------------------------------- |
-| Linux   | `/etc/otelcol-contrib/config.yaml`                    |
-| macOS   | `/etc/otelcol-contrib/config.yaml`                    |
-| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
-
-प्रत्येक कॉन्फ़िग एक ही आकार का अनुसरण करता है — आप जो receivers चाहते हैं उन्हें चुनें, एक `batch` और `resource` processor जोड़ें, और OTLP HTTP के माध्यम से OneUptime में निर्यात करें। नीचे दिए गए उदाहरण प्रति OS एक पूर्ण, कॉपी-पेस्ट करने योग्य कॉन्फ़िग दिखाते हैं, फिर प्रत्येक receiver ब्लॉक के माध्यम से मार्गदर्शन करते हैं ताकि आप मिक्स-एंड-मैच कर सकें।
-
-अपने वातावरण के अनुरूप `YOUR_TELEMETRY_INGESTION_TOKEN` और `service.name` मान को बदलें।
-
-### सामान्य टुकड़े (हर OS द्वारा उपयोग किए जाते हैं)
-
-```yaml
-processors:
-  batch:
-    send_batch_size: 512
-    timeout: 5s
-
-  resource:
-    attributes:
-      - key: service.name
-        value: host-telemetry
-        action: upsert
-      - key: oneuptime.agent.version
-        value: "0.161.0"
-        action: upsert
-
-exporters:
-  otlphttp:
-    endpoint: https://oneuptime.com/otlp
-    headers:
-      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
-```
-
-- **`batch`** निर्यात से पहले रिकॉर्ड को समूहित करता है ताकि आप प्रति रिकॉर्ड एक HTTP राउंड ट्रिप का भुगतान न करें।
-- **`resource`** प्रत्येक रिकॉर्ड को `service.name` के साथ चिह्नित करता है। यदि आप चाहते हैं कि प्रत्येक मशीन OneUptime में अपनी स्वयं की टेलीमेट्री सेवा के रूप में दिखाई दे तो प्रति होस्ट एक अलग मान (उदा. `prod-web-01`) का उपयोग करें।
-- **`oneuptime.agent.version`** collector की वह रिलीज़ है जिसके लिए यह कॉन्फ़िग है। OneUptime इसे होस्ट के **एजेंट संस्करण** के रूप में दिखाता है; इसे केवल उस collector के साथ बदलें जिसे आप इंस्टॉल करते हैं (नीचे "Collector को अपग्रेड करना" देखें)।
-- **`otlphttp`** संलग्न ingestion token के साथ HTTPS के माध्यम से OneUptime को भेजता है।
-
-### होस्ट मेट्रिक्स (Linux, macOS, Windows)
-
-हर OS पर काम करता है। होस्ट कर्नेल से CPU, memory, disk, filesystem, network, load, paging, और process मेट्रिक्स उठाता है:
-
-```yaml
+:::tabs
+@tab Linux
+```yaml title="config.yaml"
 receivers:
   hostmetrics:
     collection_interval: 30s
     scrapers:
       cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
       memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
       disk:
       filesystem:
-      network:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
       load:
+      network:
       paging:
       processes:
       process:
         mute_process_name_error: true
-```
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.memory.utilization:
+            enabled: true
 
-> Linux पर, collector `/proc` और `/sys` पढ़ता है। जब collector एक container में चलता है, तो होस्ट के `/proc` और `/sys` को माउंट करें और `HOST_PROC` / `HOST_SYS` एनवायरनमेंट वैरिएबल सेट करें। जब यह सीधे एक systemd सेवा के रूप में चलता है (जैसा ऊपर इंस्टॉल किया गया है), तो किसी अतिरिक्त सेटअप की आवश्यकता नहीं है।
-
-### फ़ाइल logs (Linux, macOS)
-
-डिस्क पर किसी भी log फ़ाइल को tail करें। नीचे एक सामान्य प्रारंभिक सेट है:
-
-```yaml
-receivers:
-  filelog/syslog:
-    include:
-      - /var/log/syslog
-      - /var/log/messages
-    start_at: end
-
-  filelog/auth:
-    include:
-      - /var/log/auth.log
-      - /var/log/secure
-    start_at: end
-```
-
-`start_at: end` का अर्थ है collector के शुरू होने के क्षण से नई लाइनें; पहली बार चलने पर backfill करने के लिए `beginning` में बदलें। collector फ़ाइल ऑफ़सेट को ट्रैक करता है, इसलिए यह पुनरारंभ के बीच सही ढंग से फिर से शुरू होता है।
-
-**होस्ट log stack traces को Exceptions में बदलना।** OneUptime स्वचालित रूप से stack traces के लिए error और fatal log लाइनों को स्कैन करता है और उन्हें इस होस्ट के लिए जिम्मेदार **अपवाद** (Issues) दृश्य में रोल अप करता है — किसी अतिरिक्त कॉन्फ़िगरेशन की आवश्यकता नहीं है। इसके अच्छी तरह से समूहित होने के लिए, एक मल्टी-लाइन stack trace (Java, Python, .NET, Ruby) को **एक** log रिकॉर्ड के रूप में आना चाहिए, प्रति लाइन एक रिकॉर्ड नहीं। `filelog` receiver पर multiline recombination सक्षम करें ताकि एक trace और उसके frames एक साथ रहें:
-
-```yaml
-receivers:
-  filelog/app:
-    include:
-      - /var/log/myapp/*.log
-    start_at: end
-    multiline:
-      # A new log entry starts with a timestamp; continuation lines (the
-      # "at ...", "File ...", "Caused by: ..." frames) are folded into it.
-      line_start_pattern: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
-```
-
-recombination के बिना, प्रत्येक frame एक अलग log के रूप में ग्रहण किया जाता है और exception एक-लाइन, खराब-समूहित issue के रूप में दिखाई देगा। यदि आपका एप्लिकेशन सीधे OpenTelemetry `exception.type` / `exception.message` / `exception.stacktrace` log विशेषताओं को उत्सर्जित कर सकता है, तो इसके बजाय वह करें — यह सबसे विश्वसनीय मार्ग है और multiline parsing से स्वतंत्र है।
-
-### systemd journal (Linux)
-
-यदि आपका होस्ट systemd का उपयोग करता है, तो `journald` receiver अक्सर `/var/log/*` को tail करने की तुलना में बेहतर फिट होता है — यह सब कुछ एक जगह कैप्चर करता है और संरचित फ़ील्ड को संरक्षित करता है:
-
-```yaml
-receivers:
-  journald:
-    directory: /var/log/journal
-    units:
-      # Drop this list to ingest everything; restrict it to limit volume.
-      - ssh.service
-      - cron.service
-      - nginx.service
-    priority: info
-```
-
-collector बाइनरी को `journalctl` निष्पादित करने में सक्षम होना चाहिए (Debian / RPM पैकेज पहले से ही इसे एक निर्भरता के रूप में शामिल करते हैं)।
-
-### Linux Services (systemd units, मेट्रिक्स)
-
-होस्ट **Systemd Units** टैब को [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (कॉन्फ़िग प्रकार `systemd`) द्वारा शक्ति प्रदान की जाती है, जो systemd units की सक्रिय स्थिति को मेट्रिक्स के रूप में रिपोर्ट करता है — Windows पर **सेवाएं** टैब का Linux समकक्ष।
-
-**यह receiver सबसे पहले अपस्ट्रीम `otelcol-contrib` बाइनरी में v0.142.0 में शिप हुआ था, और v0.143.0 पहला ऐसा रिलीज़ है जिसे चलाना सार्थक है** — इससे पुराने किसी भी रिलीज़ पर, `systemd` जोड़ने पर वह स्टार्टअप पर `'receivers' unknown type: "systemd"` के साथ विफल हो जाता है, और केवल v0.142.0 में इसकी CPU मेट्रिक का नाम `systemd.unit.cpu.time` है और वह हर unit पर cgroup आँकड़े खोजता है, जिससे हर गैर-`.service` unit के लिए एक scrape त्रुटि लॉग होती है। v0.143.0 ने उस मेट्रिक का नाम बदलकर `systemd.service.cpu.time` कर दिया और उस खोज को सेवाओं तक सीमित कर दिया। एक वर्तमान रिलीज़ इंस्टॉल करें (चरण 1), फिर इसे अपने `config.yaml` में सक्षम करें और इसे metrics pipeline में जोड़ें:
-
-```yaml
-receivers:
-  systemd:
-    collection_interval: 30s
-    # The service manager to read: "system" (default) or "user".
-    scope: system
-    # Which units to scrape, as systemctl unit patterns. The default is
-    # every service; widen it to include timers, sockets or mounts, or
-    # narrow it to cut volume on hosts with hundreds of units:
-    units: ["*.service"]
-    # units: [nginx.service, postgresql.service, "*.timer"]
-    metrics:
-      # Per-service CPU time is on by default and doubles this receiver's
-      # datapoint count. The Systemd Units tab does not use it, so turn it
-      # off unless you chart it. On v0.142.0 the key is
-      # systemd.unit.cpu.time — naming a metric the running build does not
-      # have stops the collector at startup.
-      systemd.service.cpu.time:
-        enabled: false
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, batch]
-```
-
-receiver `systemd.unit.state` को एक **state set** के रूप में उत्सर्जित करता है: हर scrape पर प्रत्येक unit को हर संभव स्थिति (`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`) के लिए एक डेटा बिंदु मिलता है, जिसका मान उस स्थिति पर `1` होता है जिसमें unit वास्तव में है और बाकी पर `0`। unit का नाम resource विशेषता `systemd.unit.name` के रूप में जाता है और स्थिति datapoint विशेषता `systemd.unit.active_state` के रूप में। चूँकि unit का नाम एक _resource_ विशेषता है, इसलिए **`resourcedetection` को metrics pipeline में बना रहना चाहिए** — यही वह है जो प्रत्येक unit के resource पर `host.name` चिह्नित करता है, और इसके बिना नमूने कभी किसी होस्ट से नहीं जुड़ते और टैब खाली रह जाता है।
-
-collector unit की स्थिति **system D-Bus** पर पढ़ता है, ठीक वही केवल-पढ़ने वाली कॉल करते हुए जो `systemctl list-units` करता है। systemd इन्हें बिना विशेषाधिकार के अनुमति देता है, इसलिए पैकेज की गई सेवा — जो `otelcol-contrib` उपयोगकर्ता के रूप में चलती है, root के रूप में नहीं — बिना अतिरिक्त विशेषाधिकारों के units को scrape कर सकती है। इसे जिस चीज़ की ज़रूरत है वह है एक पहुँच योग्य bus: किसी container में चलने वाले collector के पास `/run/dbus/system_bus_socket` तब तक नहीं होता जब तक आप होस्ट वाले को bind-mount न करें, और इसीलिए यह receiver native इंस्टॉल के लिए है। यह receiver **alpha** और **केवल-Linux** है — यह macOS या Windows पर बिल्ड नहीं होता।
-
-> **कई units वाले होस्ट पर मात्रा का ध्यान रखें।** state set प्रति scrape प्रति unit आठ डेटा बिंदु उत्सर्जित करता है, और डिफ़ॉल्ट रूप से चालू `systemd.service.cpu.time` दो और जोड़ती है (`user` और `system`), इसलिए दस का अनुमान रखें। 30s पर 300 units ट्रैक करने वाला एक होस्ट अकेले इस receiver से ~6k डेटा बिंदु प्रति मिनट देता है, या ऊपर दिखाए अनुसार CPU मेट्रिक बंद होने पर ~4.8k। इसे पूरे fleet में सक्षम करने से पहले, `units:` को उन सेवाओं तक संकीर्ण करें जिन पर आप वास्तव में अलर्ट करते हैं, या `collection_interval` बढ़ाएँ।
-
-### Apple Unified Log (macOS)
-
-macOS ने Apple Unified Log के पक्ष में `/var/log/system.log` को अप्रचलित कर दिया, जिसे `log show` / `log stream` के साथ क्वेरी किया जाता है। इसे ग्रहण करने का सबसे सरल तरीका एक छोटे रैपर के साथ `filelog` receiver के माध्यम से `log` आउटपुट को stream करना है। `/usr/local/otelcol-contrib/log-stream.sh` बनाएँ:
-
-```bash
-#!/bin/bash
-exec /usr/bin/log stream --style ndjson --level info \
-  --predicate 'subsystem != "com.apple.cfnetwork"' \
-  >> /var/log/apple-unified.log
-```
-
-इसे निष्पादन योग्य बनाएँ, इसे launchd के अंतर्गत चलाएँ (या एक त्वरित परीक्षण के लिए `nohup`), फिर collector को फ़ाइल पर इंगित करें:
-
-```yaml
-receivers:
-  filelog/apple-unified:
-    include:
-      - /var/log/apple-unified.log
-    start_at: end
-    operators:
-      - type: json_parser
-        timestamp:
-          parse_from: attributes.timestamp
-          layout: "%Y-%m-%d %H:%M:%S.%f%j"
-```
-
-(यदि आपको unified log की आवश्यकता नहीं है, तो इसे छोड़ दें — Mac fleets अक्सर केवल होस्ट मेट्रिक्स + कुछ फ़ाइल logs के साथ ठीक चलते हैं।)
-
-### Windows Event Logs
-
-मूल `wevtapi` के माध्यम से उन चैनलों की सदस्यता लें जिनकी आप परवाह करते हैं:
-
-```yaml
-receivers:
-  windowseventlog/system:
-    channel: System
-    start_at: end
-
-  windowseventlog/application:
-    channel: Application
-    start_at: end
-
-  windowseventlog/security:
-    channel: Security
-    start_at: end
-```
-
-उच्च-मात्रा वाले `Security` चैनल को विशिष्ट event IDs तक सीमित करने के लिए:
-
-```yaml
-windowseventlog/security:
-  channel: Security
-  start_at: end
-  query: "*[System[(EventID=4625 or EventID=4740)]]"
-```
-
-किसी कस्टम या एप्लिकेशन-विशिष्ट चैनल को पढ़ने के लिए (कुछ भी जो आप _Event Viewer → Applications and Services Logs_ के अंतर्गत देख सकते हैं), इसके सटीक प्रदर्शन नाम का उपयोग करें:
-
-```yaml
-windowseventlog/iis:
-  channel: Microsoft-IIS-Logging/Logs
-  start_at: end
-```
-
-### Windows Services (मेट्रिक्स)
-
-होस्ट **सेवाएं** टैब को [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (कॉन्फ़िग प्रकार `windows_service`) द्वारा शक्ति प्रदान की जाती है, जो Windows सेवाओं की चालू स्थिति और स्टार्टअप प्रकार को मेट्रिक्स के रूप में रिपोर्ट करता है।
-
-**यह receiver v0.155.0 से आगे अपस्ट्रीम `otelcol-contrib` बाइनरी में शिप होता है** — पुराने रिलीज़ पर, `windows_service` जोड़ने पर वह स्टार्टअप पर `'receivers' unknown type: "windows_service"` के साथ विफल हो जाता है। एक वर्तमान रिलीज़ इंस्टॉल करें (चरण 1), फिर इसे अपने `config.yaml` में सक्षम करें और इसे metrics pipeline में जोड़ें:
-
-```yaml
-receivers:
-  windows_service:
-    collection_interval: 30s
-    # Collect every service by default. To cut volume — and avoid the
-    # "access denied" noise from services the collector can't open —
-    # list just the ones you care about:
-    # include_services: [Spooler, W3SVC, MSSQLSERVER]
-    # Or collect everything except a few:
-    # exclude_services: [TrustedInstaller]
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics, windows_service]
-```
-
-receiver प्रति सेवा एक `windows.service.status` gauge उत्सर्जित करता है — पूर्णांक Win32 सेवा स्थिति है (`4` = running, `1` = stopped) — `name` और `startup_mode` विशेषताओं के साथ। collector को `LocalSystem` के रूप में चलाएँ (`sc.exe` डिफ़ॉल्ट) ताकि यह हर सेवा पढ़ सके; जिसे भी यह नहीं खोल सकता उसे छोड़ दिया जाता है। यह receiver **alpha** और **केवल-Windows** है; ज्ञात समस्याओं में एक scrape त्रुटि शामिल है जो collector को क्रैश कर सकती है और एक सेवा पर `access denied` दूसरों को प्रभावित कर सकता है — यदि आप इनका सामना करते हैं तो `include_services` तक सीमित रखें।
-
-> **`include_services` का कोई प्रभाव नहीं?** फ़िल्टर केवल सेट को *संकीर्ण* कर सकता है, इसलिए यदि आप सेवाएँ सूचीबद्ध करते हैं और फिर भी हर एक देखते हैं, तो संपादित कॉन्फ़िग लगभग निश्चित रूप से चल रहे collector तक नहीं पहुँचा है। संपादन के बाद सेवा को पुनरारंभ करें (चरण 3); सुनिश्चित करें कि `include_services` `collection_interval` के समान इंडेंट पर एक भरी हुई सूची है (टिप्पणी की गई या खाली नहीं छोड़ी गई); और **सेवाएं** टैब को कुछ मिनट दें ताकि परिवर्तन से पहले रिपोर्ट की गई सेवाएँ इसकी रोलिंग विंडो से पुरानी होकर बाहर हो जाएँ। नाम सटीक, केस-संवेदी Windows सेवा _key_ नाम हैं (उदा. `Spooler`, `W3SVC`), जिन्हें आप `Get-Service | Select-Object Name` के साथ सूचीबद्ध कर सकते हैं।
-
-### पूर्ण उदाहरण — Linux होस्ट
-
-`/etc/otelcol-contrib/config.yaml`:
-
-```yaml
-receivers:
-  hostmetrics:
-    collection_interval: 30s
-    scrapers:
-      cpu:
-      memory:
-      disk:
-      filesystem:
-      network:
-      load:
-      paging:
-      processes:
-
-  filelog/syslog:
-    include:
-      - /var/log/syslog
-      - /var/log/messages
-      - /var/log/auth.log
-    start_at: end
-
+  # The systemd journal: every unit's logs, info and above.
   journald:
     directory: /var/log/journal
     priority: info
@@ -388,44 +97,44 @@ receivers:
   systemd:
     collection_interval: 30s
     units: ["*.service"]
+    metrics:
+      systemd.service.cpu.time:
+        enabled: false
 
 processors:
-  batch:
-    send_batch_size: 512
-    timeout: 5s
-  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
-  # telemetry to a host. Without it the host tabs stay empty.
+  # Stamps host.name, host.id and os.type: this is how OneUptime attaches
+  # telemetry to the host. Without it the host's pages stay empty.
   resourcedetection:
     detectors: [system, env]
     system:
       hostname_sources: [os]
-      # Only host.name and os.type are on by default. The four below
-      # are opt-in; OneUptime shows them on the host's Network card and
-      # on its Inventory item, which is what a CMDB export reads.
       resource_attributes:
-        host.arch:
+        host.name:
           enabled: true
         host.id:
+          enabled: true
+        host.arch:
           enabled: true
         host.ip:
           enabled: true
         host.mac:
           enabled: true
+        os.type:
+          enabled: true
         os.description:
           enabled: true
         os.version:
           enabled: true
+  # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
-      - key: service.name
-        value: linux-host
-        action: upsert
       - key: oneuptime.agent.version
         value: "0.161.0"
         action: upsert
+  batch:
 
 exporters:
-  otlphttp:
+  otlphttp/oneuptime:
     endpoint: https://oneuptime.com/otlp
     headers:
       x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
@@ -435,30 +144,46 @@ service:
     metrics:
       receivers: [hostmetrics, systemd]
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
     logs:
-      receivers: [filelog/syslog, journald]
+      receivers: [journald]
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
 ```
-
-### पूर्ण उदाहरण — macOS होस्ट
-
-`/etc/otelcol-contrib/config.yaml`:
-
-```yaml
+@tab macOS
+```yaml title="config.yaml"
 receivers:
   hostmetrics:
     collection_interval: 30s
     scrapers:
       cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
       memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
       disk:
       filesystem:
-      network:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
       load:
+      network:
       paging:
       processes:
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.memory.utilization:
+            enabled: true
 
   filelog/system:
     include:
@@ -467,42 +192,39 @@ receivers:
     start_at: end
 
 processors:
-  batch:
-    send_batch_size: 512
-    timeout: 5s
-  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
-  # telemetry to a host. Without it the host tabs stay empty.
+  # Stamps host.name, host.id and os.type: this is how OneUptime attaches
+  # telemetry to the host. Without it the host's pages stay empty.
   resourcedetection:
     detectors: [system, env]
     system:
       hostname_sources: [os]
-      # Only host.name and os.type are on by default. The four below
-      # are opt-in; OneUptime shows them on the host's Network card and
-      # on its Inventory item, which is what a CMDB export reads.
       resource_attributes:
-        host.arch:
+        host.name:
           enabled: true
         host.id:
+          enabled: true
+        host.arch:
           enabled: true
         host.ip:
           enabled: true
         host.mac:
           enabled: true
+        os.type:
+          enabled: true
         os.description:
           enabled: true
         os.version:
           enabled: true
+  # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
-      - key: service.name
-        value: macos-host
-        action: upsert
       - key: oneuptime.agent.version
         value: "0.161.0"
         action: upsert
+  batch:
 
 exporters:
-  otlphttp:
+  otlphttp/oneuptime:
     endpoint: https://oneuptime.com/otlp
     headers:
       x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
@@ -512,31 +234,46 @@ service:
     metrics:
       receivers: [hostmetrics]
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
     logs:
       receivers: [filelog/system]
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
 ```
-
-### पूर्ण उदाहरण — Windows होस्ट
-
-`C:\Program Files\otelcol-contrib\config.yaml`:
-
-```yaml
+@tab Windows
+```yaml title="config.yaml"
 receivers:
   hostmetrics:
     collection_interval: 30s
     scrapers:
       cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
       memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
       disk:
       filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      load:
       network:
-      # On Windows the 'load' scraper only emulates an average from the
-      # Processor Queue Length counter (it starts at 0) — omitted here.
       paging:
       processes:
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.memory.utilization:
+            enabled: true
 
   windowseventlog/system:
     channel: System
@@ -555,42 +292,39 @@ receivers:
     collection_interval: 30s
 
 processors:
-  batch:
-    send_batch_size: 512
-    timeout: 5s
-  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
-  # telemetry to a host. Without it the host tabs stay empty.
+  # Stamps host.name, host.id and os.type: this is how OneUptime attaches
+  # telemetry to the host. Without it the host's pages stay empty.
   resourcedetection:
     detectors: [system, env]
     system:
       hostname_sources: [os]
-      # Only host.name and os.type are on by default. The four below
-      # are opt-in; OneUptime shows them on the host's Network card and
-      # on its Inventory item, which is what a CMDB export reads.
       resource_attributes:
-        host.arch:
+        host.name:
           enabled: true
         host.id:
+          enabled: true
+        host.arch:
           enabled: true
         host.ip:
           enabled: true
         host.mac:
           enabled: true
+        os.type:
+          enabled: true
         os.description:
           enabled: true
         os.version:
           enabled: true
+  # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
-      - key: service.name
-        value: windows-host
-        action: upsert
       - key: oneuptime.agent.version
         value: "0.161.0"
         action: upsert
+  batch:
 
 exporters:
-  otlphttp:
+  otlphttp/oneuptime:
     endpoint: https://oneuptime.com/otlp
     headers:
       x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
@@ -600,40 +334,73 @@ service:
     metrics:
       receivers: [hostmetrics, windows_service]
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
 ```
+:::
 
-## चरण 3 — collector को एक सेवा के रूप में चलाएँ
+हर कॉन्फ़िगरेशन वही है जो डैशबोर्ड **उत्पाद → बुनियादी ढांचा → होस्ट → दस्तावेज़ीकरण** के अंतर्गत लिखता है, बस एक लॉग पाइपलाइन जोड़ी गई है: इसके प्रोसेसर `resourcedetection`, `resource` और `batch` हैं, और इसका एक्सपोर्टर `otlphttp/oneuptime` है। यह कोई `service.name` सेट नहीं करता, इसलिए होस्ट की टेलीमेट्री होस्ट की ही होती है और `host/<hostname>` के रूप में दर्ज होती है। `resource` प्रोसेसर में `service.name` तभी जोड़ें जब आप चाहते हों कि यह उस नाम की किसी टेलीमेट्री सेवा के अंतर्गत दर्ज हो।
 
-### Linux (systemd)
+### कलेक्टर इंस्टॉल करें और शुरू करें
 
-Debian / RPM पैकेज पहले से ही एक systemd यूनिट इंस्टॉल करते हैं। बस इसे सक्षम करें और शुरू करें:
+:::tabs
+@tab Linux
+Debian या Ubuntu पर:
 
 ```bash
-sudo systemctl enable --now otelcol-contrib
+VERSION=0.161.0                      # the release OneUptime pins
+ARCH=$(dpkg --print-architecture)   # amd64 or arm64
+
+curl -fL -o /tmp/otelcol-contrib.deb \
+  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
+sudo dpkg -i /tmp/otelcol-contrib.deb
+```
+
+RHEL, CentOS, Fedora या Amazon Linux पर:
+
+```bash
+VERSION=0.161.0
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+curl -fL -o /tmp/otelcol-contrib.rpm \
+  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
+sudo rpm -Uvh /tmp/otelcol-contrib.rpm
+```
+
+पैकेज `/usr/bin/otelcol-contrib` और एक systemd यूनिट इंस्टॉल करता है, और उसे एक डिफ़ॉल्ट कॉन्फ़िगरेशन के साथ शुरू करता है। उसकी जगह अपना कॉन्फ़िगरेशन रखें, कलेक्टर के उपयोगकर्ता को जर्नल पढ़ने दें, और उसे फिर से शुरू करें:
+
+```bash
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
+sudo usermod -aG systemd-journal otelcol-contrib
+sudo systemctl enable otelcol-contrib
+sudo systemctl restart otelcol-contrib
 sudo systemctl status otelcol-contrib
 ```
 
-collector के अपने logs का अनुसरण करने के लिए:
-
+पैकेज वाली यूनिट कलेक्टर को बिना विशेषाधिकार वाले `otelcol-contrib` उपयोगकर्ता के रूप में चलाती है। `systemd-journal` समूह उसे जर्नल पढ़ने देता है; `/var/log` की फ़ाइलें फ़ॉलो करने के लिए (जिन्हें Debian और Ubuntu पर `adm` समूह पढ़ सकता है) वह समूह भी जोड़ें। `process` स्क्रैपर को दूसरे उपयोगकर्ताओं की प्रक्रियाएँ दिखें, इसके लिए उसे `CAP_SYS_PTRACE` क्षमता दें।
+@tab macOS
 ```bash
-sudo journalctl -u otelcol-contrib -f
+VERSION=0.161.0
+ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
+
+curl -fL -o /tmp/otelcol-contrib.tar.gz \
+  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
+
+sudo mkdir -p /usr/local/otelcol-contrib /usr/local/bin /etc/otelcol-contrib
+sudo tar -xzf /tmp/otelcol-contrib.tar.gz -C /usr/local/otelcol-contrib
+sudo ln -sf /usr/local/otelcol-contrib/otelcol-contrib /usr/local/bin/otelcol-contrib
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
 ```
 
-पैकेज किया गया unit collector को अविशेषाधिकृत `otelcol-contrib` उपयोगकर्ता के रूप में चलाता है। `systemd` receiver के लिए इतना पर्याप्त है — यह केवल वही केवल-पढ़ने वाली D-Bus कॉल करता है जिनकी systemd पहले से ही किसी भी उपयोगकर्ता को अनुमति देता है, वही जो `systemctl list-units` उपयोग करता है।
+`/Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plist` बनाएँ, ताकि launchd कलेक्टर को Mac के साथ शुरू करे और रुकने पर उसे फिर से शुरू करे:
 
-### macOS (launchd)
-
-`/Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plist` बनाएँ:
-
-```xml
+```xml title="/Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -659,77 +426,491 @@ sudo launchctl load -w /Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plis
 sudo launchctl list | grep otelcol-contrib
 ```
 
-### Windows (Services)
-
-एक **elevated** PowerShell प्रॉम्प्ट से:
+इस tarball का उपयोग करें, Homebrew का नहीं: Homebrew फ़ॉर्मूला कोर बिल्ड है, जो इस कॉन्फ़िगरेशन के साथ शुरू होने से मना कर देता है।
+@tab Windows
+एलिवेटेड PowerShell प्रॉम्प्ट से, उस फ़ोल्डर में जिसमें `config.yaml` है, यह पूरा ब्लॉक एक साथ चलाएँ: हर लाइन अपने ऊपर के वेरिएबल पर निर्भर है।
 
 ```powershell
-sc.exe create "otelcol-contrib" `
-  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
-  start= auto `
-  DisplayName= "OpenTelemetry Collector (OneUptime)"
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
+$dest    = "C:\Program Files\otelcol-contrib"
+$tar     = "$env:TEMP\otelcol-contrib.tar.gz"
 
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Invoke-WebRequest -Uri $url -OutFile $tar
+tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
+Copy-Item config.yaml "$dest\config.yaml" -Force
+
+# --% hands the rest of the line to sc.exe unchanged, so its quoting
+# survives PowerShell — keep the command on one line.
+sc.exe --% create "otelcol-contrib" binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" start= auto DisplayName= "OpenTelemetry Collector (OneUptime)"
 sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
-
 sc.exe start "otelcol-contrib"
 sc.exe query "otelcol-contrib"
 ```
 
-सेवा डिफ़ॉल्ट रूप से `LocalSystem` के अंतर्गत चलती है, जिसके पास `Security` Windows Event Log चैनल को पढ़ने के लिए आवश्यक विशेषाधिकार हैं।
+सेवा `LocalSystem` के रूप में चलती है, जो `Security` इवेंट लॉग और हर Windows सेवा को पढ़ सकता है। Windows पर `load` स्क्रैपर *Processor Queue Length* काउंटर से सिर्फ़ एक लोड औसत का अनुकरण करता है, जो 0 से शुरू होता है।
 
-## चरण 4 — OneUptime में सत्यापित करें
+रिलीज़ फ़ाइल का नाम `otelcol-contrib_` से शुरू होना चाहिए। कोर `otelcol_<version>_windows_amd64.tar.gz` आर्काइव `otelcol.exe` खोलता है, जिसमें `windowseventlog` या `windows_service` रिसीवर नहीं है; इसका नाम बदलकर `otelcol-contrib.exe` करने से वे जुड़ते नहीं। इंस्टॉलर पसंद है? उसी [रिलीज़ पेज](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) पर एक हस्ताक्षरित `otelcol-contrib_<version>_windows_x64.msi` है, जो सेवा आपके लिए रजिस्टर करता है: उसे इस `config.yaml` की ओर इंगित करें और सेवा को `LocalSystem` पर रखें।
+:::
 
-1. होस्ट पर कुछ सिग्नल उत्पन्न करें:
-   - **Linux / macOS:** `logger "hello from oneuptime"` (syslog / journald में लिखता है)।
-   - **Windows:** एक elevated प्रॉम्प्ट से `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`।
-2. OneUptime डैशबोर्ड में, **उत्पाद → सेवाएं** खोलें और आपके द्वारा कॉन्फ़िगर किया गया `service.name` चुनें।
-3. **मेट्रिक्स** खोलें — होस्ट मेट्रिक्स (CPU, memory, filesystem, आदि) एक मिनट के भीतर दिखाई देने चाहिए।
-4. **लॉग** खोलें — आपके फ़ाइल logs / journald प्रविष्टियाँ / Windows Event Logs स्ट्रीमिंग होनी चाहिए। उपयोगी खोजने योग्य विशेषताओं में `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, और `winlog.provider.name` शामिल हैं।
-5. यदि आपने `systemd` (Linux) या `windows_service` (Windows) receiver सक्षम किया है, तो **बुनियादी ढांचा → होस्ट्स** खोलें, होस्ट चुनें, और **Systemd Units** / **सेवाएं** टैब देखें — प्रत्येक scrape किया गया unit अपनी वर्तमान स्थिति के साथ सूचीबद्ध होना चाहिए।
+### जाँचें कि होस्ट दिखता है
 
-## Collector को अपग्रेड करना
+**उत्पाद → बुनियादी ढांचा → होस्ट → सभी होस्ट** खोलें। पहले मेट्रिक्स आते ही, आम तौर पर 30 सेकंड के भीतर, होस्ट अपने होस्टनाम के अंतर्गत दिखता है, और उसके **अवलोकन**, **मेट्रिक्स**, **प्रक्रियाएँ** और **लॉग** पेज भर जाते हैं। अगर ऐसा न हो, तो कलेक्टर के अपने लॉग पढ़ें:
 
-इस पृष्ठ का हर कॉन्फ़िग अपने `resource` processor में, collector की उस रिलीज़ को जिसके लिए वह है, `oneuptime.agent.version` के रूप में अंकित करता है। OneUptime इसे होस्ट के **अवलोकन** पर **एजेंट संस्करण** के रूप में दिखाता है, और जब OneUptime कोई नई रिलीज़ तय करता है तो उसके पास एक चेतावनी चिह्न लगाता है। जिस तरह आपने इंस्टॉल किया था उसी तरह अपग्रेड करने का तरीका देखने के लिए चिह्न चुनें: कॉन्फ़िग फिर से सहेजें, फिर नई रिलीज़ को पुरानी के ऊपर इंस्टॉल करें।
+:::tabs
+@tab Linux
+```bash
+sudo journalctl -u otelcol-contrib -f
+```
+@tab macOS
+```bash
+tail -f /var/log/otelcol-contrib.err.log
+```
+@tab Windows
+```powershell
+Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq "otelcol-contrib"
+```
+:::
+:::
 
-हाथ से अपग्रेड करने के लिए, नई रिलीज़ को उसी तरह इंस्टॉल करें जैसे आपने यह इंस्टॉल की थी (चरण 1, नए `VERSION` के साथ), अपने कॉन्फ़िग में `oneuptime.agent.version` को उसी संस्करण पर सेट करें, और collector को फिर से शुरू करें (चरण 3)। जिस collector का कॉन्फ़िग कोई संस्करण अंकित नहीं करता, वह कोई संस्करण नहीं दिखाता, और कभी कोई चिह्न नहीं।
+टेस्ट लॉग लाइन बनाने के लिए `logger "hello from oneuptime"` (Linux, macOS) या `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` (Windows, एलिवेटेड) चलाएँ, फिर होस्ट का **लॉग** पेज देखें।
 
-## एकत्र किए गए डेटा की मात्रा कम करना
+## चुनें कि क्या इकट्ठा करना है
 
-चूँकि collector कॉन्फ़िग आपके पास है, आप ठीक-ठीक तय करते हैं कि होस्ट से क्या बाहर जाता है — कुछ भी एकत्र नहीं किया जाता जब तक कि आपके द्वारा जोड़ा गया कोई receiver उसकी माँग न करे। यदि कोई होस्ट आपकी इच्छा से अधिक भेज रहा है (जो अधिक ingest मात्रा के रूप में, और OneUptime Cloud पर, अधिक लागत के रूप में दिखाई देता है), तो इसे यहाँ ट्यून करें। दो सबसे बड़े लीवर हैं **आप किन log स्रोतों को tail करते हैं** और **आप कितनी बार मेट्रिक्स scrape करते हैं**; बाकी को एक `filter` processor संभालता है।
+हर कॉन्फ़िगरेशन का ढाँचा एक जैसा है: क्या पढ़ना है उसके लिए रिसीवर, `resourcedetection`, `resource` और `batch` प्रोसेसर, और `otlphttp/oneuptime` एक्सपोर्टर। नीचे दिए रिसीवर `receivers:` में और उनकी पाइपलाइन में जोड़ें, फिर कलेक्टर को फिर से शुरू करें (`sudo systemctl restart otelcol-contrib`, Mac पर `launchctl unload` और `load`, Windows पर `Restart-Service otelcol-contrib`)। हर स्निपेट को अपने कॉन्फ़िगरेशन के मौजूदा सेक्शन में मिलाएँ: दूसरी `processors:` या `service:` कुंजी पहली की जगह ले लेती है।
 
-सिद्धांत कॉन्फ़िग की तरह ही है: **केवल वे receivers जोड़ें जिनके डेटा को आप देखेंगे**, फिर उनके भीतर छँटाई करें। नीचे दिया गया प्रत्येक परिवर्तन `config.yaml` में एक संपादन है — इसे लागू करें और collector को पुनरारंभ करें (चरण 3)।
+### होस्ट मेट्रिक्स
+
+`hostmetrics` हर OS पर काम करता है। यह हर `collection_interval` पर कर्नेल से CPU, मेमोरी, डिस्क, फ़ाइल सिस्टम, नेटवर्क, लोड, पेजिंग और प्रक्रियाएँ पढ़ता है। `*.utilization` मेट्रिक्स और `system.cpu.logical.count` रिसीवर में डिफ़ॉल्ट रूप से बंद हैं, और होस्ट के चार्ट और Host अलर्ट टेम्पलेट उन्हें पढ़ते हैं, इसलिए उन्हें ऊपर के कॉन्फ़िगरेशन की तरह चालू रखें। `process` स्क्रैपर **प्रक्रियाएँ** पेज भरता है; यह सीरीज़ का सबसे बड़ा स्रोत भी है ([कम डेटा भेजें](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना) देखें)।
+
+Linux पर कलेक्टर `/proc` और `/sys` पढ़ता है। कंटेनर में चल रहे कलेक्टर को होस्ट वाले माउंट करने होंगे और `HOST_PROC` और `HOST_SYS` सेट करने होंगे ([Docker कंटेनर में](#docker-कंटेनर-में) देखें); नेटिव इंस्टॉल को कुछ नहीं चाहिए।
+
+### फ़ाइल लॉग
+
+डिस्क पर किसी भी लॉग फ़ाइल को `filelog` रिसीवर से फ़ॉलो करें, और उसे `logs` पाइपलाइन में जोड़ें:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    multiline:
+      # A new entry starts with a timestamp; continuation lines (the
+      # "at ...", "File ...", "Caused by: ..." frames) are folded into it.
+      line_start_pattern: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+```
+
+`start_at: end` सिर्फ़ नई लाइनें पढ़ता है; पहली बार चलाने पर फ़ाइलें शुरू से पढ़ने के लिए `beginning` का उपयोग करें। कलेक्टर हर फ़ाइल में अपनी जगह याद रखता है, इसलिए फिर से शुरू होने के बाद सही जगह से आगे बढ़ता है।
+
+OneUptime एरर और फ़ेटल लॉग लाइनों में स्टैक ट्रेस खोजता है और उन्हें होस्ट के अंतर्गत **अपवाद** में समूहित करता है। इसके लिए कई लाइनों वाला स्टैक ट्रेस (Java, Python, .NET, Ruby) एक रिकॉर्ड के रूप में आना चाहिए, और `multiline` यही करता है; इसके बिना हर फ़्रेम अलग लॉग बन जाता है। अगर आपका एप्लिकेशन खुद OpenTelemetry के `exception.type`, `exception.message` और `exception.stacktrace` एट्रिब्यूट लिख सकता है, तो यह और भी भरोसेमंद है।
+
+systemd होस्ट पर `/var/log/syslog` और `/var/log/messages` वही दोहराते हैं जो जर्नल में पहले से है, इसलिए दोनों में से एक ही पढ़ें।
+
+### systemd जर्नल
+
+systemd होस्ट पर `journald` रिसीवर हर यूनिट के लॉग उनके संरचित फ़ील्ड के साथ एक ही जगह पढ़ता है। ऊपर का Linux कॉन्फ़िगरेशन इन सबको `info` और उससे ऊपर के स्तर पर पढ़ता है; इसे कुछ यूनिट तक सीमित करें:
+
+```yaml
+receivers:
+  journald:
+    directory: /var/log/journal
+    units:
+      # Drop this list to ingest everything; restrict it to limit volume.
+      - ssh.service
+      - cron.service
+      - nginx.service
+    priority: info
+```
+
+रिसीवर `journalctl` चलाता है, जो हर systemd होस्ट पर होता है, और कलेक्टर का उपयोगकर्ता `systemd-journal` समूह में होना चाहिए।
+
+### Linux सेवाएँ (systemd यूनिट, मेट्रिक्स)
+
+होस्ट का **Systemd Units** पेज हर यूनिट और उसकी स्थिति [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (कॉन्फ़िगरेशन टाइप `systemd`) से दिखाता है, जो Windows के **सेवाएं** पेज का Linux समकक्ष है। ऊपर का Linux कॉन्फ़िगरेशन इसे चालू करता है:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # The service manager to read: "system" (default) or "user".
+    scope: system
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; widen it to include timers, sockets or mounts, or
+    # narrow it to cut volume on hosts with hundreds of units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count. The Systemd Units tab does not use it, so turn it
+      # off unless you chart it. On v0.142.0 the key is
+      # systemd.unit.cpu.time — naming a metric the running build does not
+      # have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, resource, batch]
+```
+
+यह रिसीवर पहली बार `otelcol-contrib` v0.142.0 में आया, और v0.143.0 पहली रिलीज़ है जिसे चलाना सार्थक है। इससे पुरानी किसी भी रिलीज़ पर `systemd` जोड़ने से स्टार्टअप `'receivers' unknown type: "systemd"` के साथ विफल हो जाता है; अकेले v0.142.0 अपने CPU मेट्रिक को `systemd.unit.cpu.time` नाम देता है और हर यूनिट पर cgroup आँकड़े खोजता है, जिससे हर उस यूनिट के लिए स्क्रैप त्रुटि लॉग होती है जो `.service` नहीं है।
+
+यह `systemd.unit.state` को एक स्टेट सेट के रूप में भेजता है: हर स्क्रैप पर हर यूनिट को हर संभव स्थिति (`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`) के लिए एक डेटापॉइंट मिलता है, जिस स्थिति में वह है उसके लिए `1` और बाकी के लिए `0`। यूनिट का नाम रिसोर्स एट्रिब्यूट `systemd.unit.name` है और स्थिति डेटापॉइंट एट्रिब्यूट `systemd.unit.active_state`। क्योंकि यूनिट का नाम एक रिसोर्स एट्रिब्यूट है, `resourcedetection` को मेट्रिक्स पाइपलाइन में रहना होगा: यह हर यूनिट के रिसोर्स पर `host.name` लगाता है, और इसके बिना सैंपल कभी किसी होस्ट से नहीं जुड़ते।
+
+यह सिस्टम D-Bus पर यूनिट की स्थिति उन्हीं केवल-पढ़ने वाली कॉल से पढ़ता है जो `systemctl list-units` करता है और जिन्हें systemd बिना विशेषाधिकार के अनुमति देता है। इसलिए पैकेज वाली सेवा, जो root नहीं बल्कि `otelcol-contrib` उपयोगकर्ता के रूप में चलती है, को कोई अतिरिक्त अधिकार नहीं चाहिए। हाँ, उसे सिस्टम बस ज़रूर चाहिए: कंटेनर में चल रहे कलेक्टर के पास तब तक कोई `/run/dbus/system_bus_socket` नहीं होता जब तक आप होस्ट वाला माउंट न करें, इसलिए नेटिव इंस्टॉल का उपयोग करें। यह रिसीवर alpha है और सिर्फ़ Linux के लिए है।
+
+> [!WARNING]
+> स्टेट सेट हर यूनिट पर हर स्क्रैप में आठ डेटापॉइंट लेता है, और डिफ़ॉल्ट रूप से चालू `systemd.service.cpu.time` दो और जोड़ता है (`user` और `system`): हर यूनिट पर हर स्क्रैप में 10 डेटापॉइंट। हर 30 सेकंड में 300 यूनिट ट्रैक करने वाला होस्ट अकेले इस रिसीवर से लगभग 6,000 डेटापॉइंट प्रति मिनट भेजता है, या CPU मेट्रिक बंद होने पर लगभग 4,800। इसे पूरे फ़्लीट पर चालू करने से पहले `units:` को उन सेवाओं तक सीमित करें जिन पर आप अलर्ट करते हैं, या `collection_interval` बढ़ाएँ।
+
+### Apple Unified Log
+
+macOS अपने सिस्टम लॉग `/var/log/system.log` के बजाय Apple Unified Log में लिखता है, जिसे `log show` और `log stream` से पढ़ा जाता है। इसे इकट्ठा करने के लिए एक छोटी स्क्रिप्ट `/usr/local/otelcol-contrib/log-stream.sh` से इसे एक फ़ाइल में स्ट्रीम करें:
+
+```bash title="/usr/local/otelcol-contrib/log-stream.sh"
+#!/bin/bash
+exec /usr/bin/log stream --style ndjson --level info \
+  --predicate 'subsystem != "com.apple.cfnetwork"' \
+  >> /var/log/apple-unified.log
+```
+
+इसे एक्ज़ीक्यूटेबल बनाएँ और launchd के अंतर्गत चलाएँ (या जल्दी जाँच के लिए `nohup` से), फिर एक `filelog` रिसीवर को उस फ़ाइल की ओर इंगित करें:
+
+```yaml
+receivers:
+  filelog/apple-unified:
+    include:
+      - /var/log/apple-unified.log
+    start_at: end
+    operators:
+      - type: json_parser
+        timestamp:
+          parse_from: attributes.timestamp
+          layout: "%Y-%m-%d %H:%M:%S.%f%j"
+```
+
+कई Mac फ़्लीट unified log के बिना, होस्ट मेट्रिक्स और कुछ फ़ाइल लॉग से ही अच्छा काम चला लेते हैं।
+
+### Windows इवेंट लॉग
+
+ऊपर का Windows कॉन्फ़िगरेशन `System`, `Application` और `Security` चैनलों की सदस्यता लेता है। ज़्यादा वॉल्यूम वाले `Security` चैनल को कुछ इवेंट ID तक सीमित करने के लिए:
+
+```yaml
+windowseventlog/security:
+  channel: Security
+  start_at: end
+  query: "*[System[(EventID=4625 or EventID=4740)]]"
+```
+
+कोई दूसरा चैनल पढ़ने के लिए (*Event Viewer → Applications and Services Logs* के अंतर्गत कुछ भी), उसका सटीक नाम उपयोग करें:
+
+```yaml
+windowseventlog/iis:
+  channel: Microsoft-IIS-Logging/Logs
+  start_at: end
+```
+
+### Windows सेवाएँ (मेट्रिक्स)
+
+होस्ट का **सेवाएं** पेज हर Windows सेवा को उसकी स्थिति और स्टार्टअप प्रकार के साथ [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (कॉन्फ़िगरेशन टाइप `windows_service`) से दिखाता है। यह v0.155.0 से `otelcol-contrib` में आता है: पुरानी रिलीज़ पर `windows_service` जोड़ने से स्टार्टअप `'receivers' unknown type: "windows_service"` के साथ विफल हो जाता है। ऊपर का Windows कॉन्फ़िगरेशन इसे चालू करता है:
+
+```yaml
+receivers:
+  windows_service:
+    collection_interval: 30s
+    # Collect every service by default. To cut volume — and avoid the
+    # "access denied" noise from services the collector can't open —
+    # list just the ones you care about:
+    # include_services: [Spooler, W3SVC, MSSQLSERVER]
+    # Or collect everything except a few:
+    # exclude_services: [TrustedInstaller]
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, windows_service]
+```
+
+यह हर सेवा के लिए एक `windows.service.status` गेज भेजता है, जो Win32 सेवा की स्थिति है (`4` यानी चल रही है, `1` यानी रुकी हुई), `name` और `startup_mode` एट्रिब्यूट के साथ। कलेक्टर हर सेवा को `LocalSystem` के रूप में पढ़ता है और जिसे खोल नहीं पाता उसे छोड़ देता है। यह रिसीवर alpha है और सिर्फ़ Windows के लिए है; अगर किसी एक सेवा पर स्क्रैप त्रुटि या `access denied` बाकी सेवाओं को प्रभावित करे, तो इसे `include_services` से सीमित करें।
+
+`include_services` सिर्फ़ सेट को छोटा कर सकता है। अगर आपने सेवाएँ सूचीबद्ध की हैं और फिर भी सभी दिख रही हैं, तो संपादित कॉन्फ़िगरेशन चल रहे कलेक्टर तक नहीं पहुँचा है: सेवा फिर से शुरू करें, जाँचें कि `include_services` एक भरी हुई सूची है जो `collection_interval` जितने ही इंडेंट पर है, और **सेवाएं** पेज को कुछ मिनट दें, जब तक बदलाव से पहले रिपोर्ट हुई सेवाएँ उसकी रोलिंग विंडो से बाहर न हो जाएँ। नाम सेवा कुंजी के सटीक, केस-संवेदी नाम हैं (`Spooler`, `W3SVC`), जिन्हें `Get-Service | Select-Object Name` सूचीबद्ध करता है।
+
+### लेबल
+
+`oneuptime.label.` से शुरू होने वाला हर रिसोर्स एट्रिब्यूट होस्ट पर एक प्रोजेक्ट लेबल बन जाता है: `oneuptime.label.<dimension>=<value>` लेबल `<dimension>:<value>` है। इनके लिए एक प्रोसेसर जोड़ें और पाइपलाइन में उसका नाम दें:
+
+```yaml
+processors:
+  resource/oneuptime-labels:
+    attributes:
+      - key: oneuptime.label.team
+        value: payments
+        action: upsert
+      - key: oneuptime.label.env
+        value: production
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource, resource/oneuptime-labels, batch]
+```
+
+लेबल केस-असंवेदी रूप से मिलाए जाते हैं, इसलिए मौजूदा `Production` लेबल दोबारा उपयोग होता है, उसकी नकल नहीं बनती, और OneUptime में जोड़े गए लेबल कलेक्टर कभी नहीं हटाता।
+
+### इन्वेंटरी एट्रिब्यूट (IP, MAC, सीरियल नंबर, निर्माता, मॉडल, फ़र्मवेयर)
+
+हर होस्ट को एक इन्वेंटरी आइटम भी मिलता है: वह रिकॉर्ड जिसे CMDB एक्सपोर्ट पढ़ता है। इसके विवरण आपके भेजे टेलीमेट्री के रिसोर्स एट्रिब्यूट से सीधे भरे जाते हैं, इसलिए जो आता है वही CMDB सिंक ले सकता है।
+
+| आपको क्या चाहिए | एट्रिब्यूट | यह कहाँ से आता है |
+| --- | --- | --- |
+| IP पते | `host.ip` | `resourcedetection`, मशीन के कई पते होने पर कॉमा से जुड़े |
+| MAC पते | `host.mac` | `resourcedetection`, हर चालू इंटरफ़ेस का एक, कॉमा से जुड़े |
+| आर्किटेक्चर | `host.arch` | `resourcedetection` |
+| मशीन ID | `host.id` | `resourcedetection`: Windows पर मशीन GUID, Linux पर `/etc/machine-id` |
+| OS | `os.type`, `os.description`, `os.version` | `resourcedetection` |
+| सीरियल नंबर | `host.serial_number` | आपके द्वारा लगाया गया, WMI या DMI से |
+| निर्माता | `device.manufacturer` | आपके द्वारा लगाया गया, WMI या DMI से |
+| मॉडल | `device.model.name` | आपके द्वारा लगाया गया, WMI या DMI से |
+| फ़र्मवेयर (BIOS या UEFI) संस्करण | `device.firmware.version` | आपके द्वारा लगाया गया, WMI या DMI से |
+
+ऊपर के कॉन्फ़िगरेशन हर पहचाने गए एट्रिब्यूट को चालू करते हैं: system डिटेक्टर में डिफ़ॉल्ट रूप से सिर्फ़ `host.name` और `os.type` चालू होते हैं, इसीलिए वे बाकी को `resource_attributes` के अंतर्गत सूचीबद्ध करते हैं। अगर आप अपना कॉन्फ़िगरेशन बनाते हैं, तो वह `resourcedetection` ब्लॉक रखें: इसके बिना कोई `host.name` नहीं होता, इसलिए न कोई होस्ट होता है और न कोई इन्वेंटरी आइटम।
+
+#### सीरियल नंबर, निर्माता, मॉडल और फ़र्मवेयर संस्करण का कोई डिटेक्टर नहीं है
+
+ये मशीन के फ़र्मवेयर में होते हैं, जिसे कलेक्टर नहीं पढ़ता। Linux पर यह कोई सेटिंग नहीं है जिसे आप बदल सकें: पैकेज वाला कलेक्टर बिना विशेषाधिकार वाले `otelcol-contrib` उपयोगकर्ता के रूप में चलता है, और `/sys/class/dmi/id/product_serial` को सिर्फ़ root पढ़ सकता है। इसलिए मशीन प्रोविज़न होते समय इन्हें एक बार पढ़ें, और एक अलग प्रोसेसर से इन्हें रिसोर्स पर लगाएँ:
+
+```yaml
+processors:
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: "7XYZ123"
+        action: upsert
+      - key: device.manufacturer
+        value: "Dell Inc."
+        action: upsert
+      - key: device.model.name
+        value: "OptiPlex 7090"
+        action: upsert
+      - key: device.firmware.version
+        value: "1.21.0"
+        action: upsert
+
+service:
+  pipelines:
+    metrics:
+      processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]
+```
+
+`resource/oneuptime-hardware` को अपनी मौजूदा प्रोसेसर सूची में जोड़ें, इस लाइन को उसके ऊपर पेस्ट न करें: `resource` हटाते ही होस्ट अपना **एजेंट संस्करण** खो देता है। हर हाल में `resourcedetection` को पहले रखें: यही बैच को होस्ट से जोड़ता है।
+
+`host.manufacturer`, `host.model.name`, `host.firmware.version` और `host.bios.version` वैकल्पिक वर्तनी के रूप में स्वीकार किए जाते हैं और ऊपर की `device.*` कुंजियों के अंतर्गत सहेजे जाते हैं, इसलिए किसी भी तरह लिखा कॉन्फ़िगरेशन एक ही जगह पहुँचता है; जब दोनों हों, तो `device.*` मान मान्य होता है। सीरियल नंबर उल्टी दिशा में जाता है: `device.serial_number` स्वीकार किया जाता है और `host.serial_number` के रूप में सहेजा जाता है।
+
+> [!NOTE]
+> जिस रिसोर्स पर होस्ट की पहचान नहीं है, उस पर `device.manufacturer` का अर्थ है "मोबाइल ऐप": यह उन एट्रिब्यूट में से एक है जो किसी बैच को मोबाइल Real User Monitoring के रूप में चिह्नित करते हैं। होस्ट के रिसोर्स में हमेशा `host.name` या `host.id` होता है, इसलिए ऊपर जैसा कलेक्टर कॉन्फ़िगरेशन कभी फ़ोन नहीं समझा जाता, लेकिन यही ब्लॉक किसी मोबाइल ऐप के SDK कॉन्फ़िगरेशन में दोबारा उपयोग न करें।
+
+#### मान पढ़ना
+
+Windows पर, एलिवेटेड PowerShell प्रॉम्प्ट से। यह उस मशीन का YAML ब्लॉक छापता है जिस पर आप इसे चलाते हैं:
+
+```powershell
+$bios = Get-CimInstance -ClassName Win32_BIOS
+$cs   = Get-CimInstance -ClassName Win32_ComputerSystem
+
+# Quote for YAML: trim, escape any embedded quote, wrap in single quotes.
+# The cast to string first is what keeps this working on machines whose
+# firmware leaves a field empty — .Trim() on $null throws.
+function Format-YamlValue($value) {
+  "'" + ("$value".Trim() -replace "'", "''") + "'"
+}
+
+@"
+  resource/oneuptime-hardware:
+    attributes:
+      - key: host.serial_number
+        value: $(Format-YamlValue $bios.SerialNumber)
+        action: upsert
+      - key: device.manufacturer
+        value: $(Format-YamlValue $cs.Manufacturer)
+        action: upsert
+      - key: device.model.name
+        value: $(Format-YamlValue $cs.Model)
+        action: upsert
+      - key: device.firmware.version
+        value: $(Format-YamlValue $bios.SMBIOSBIOSVersion)
+        action: upsert
+"@
+```
+
+यह एक प्रोसेसर प्रविष्टि छापता है, पहले से इंडेंट की हुई: इसे अपने मौजूदा `processors:` ब्लॉक के भीतर जोड़ें, दूसरी `processors:` कुंजी के रूप में नहीं। `Get-CimInstance` का उपयोग करें, अप्रचलित `Get-WmiObject` का नहीं, जो PowerShell 7 और उसके बाद के संस्करणों में नहीं है। जो फ़ील्ड फ़र्मवेयर खाली छोड़ता है वह `''` के रूप में छपता है: खाली मान भेजने के बजाय वह एट्रिब्यूट हटा दें। वर्चुअल मशीनों में अक्सर कोई सीरियल नंबर होता ही नहीं।
+
+Linux पर, root के रूप में:
+
+```bash
+cat /sys/class/dmi/id/product_serial   # host.serial_number
+cat /sys/class/dmi/id/sys_vendor       # device.manufacturer
+cat /sys/class/dmi/id/product_name     # device.model.name
+cat /sys/class/dmi/id/bios_version     # device.firmware.version
+```
+
+`bios_version` इन चारों में से वह है जिसे कोई भी उपयोगकर्ता पढ़ सकता है। जिन मशीनों पर `/sys/class/dmi` नहीं है, उन पर `dmidecode -s system-serial-number`, `-s system-manufacturer`, `-s system-product-name` और `-s bios-version` वही मान लौटाते हैं। वर्चुअल मशीनें यहाँ अपना हाइपरवाइज़र बताती हैं (`QEMU`, `VMware, Inc.`, `Amazon EC2`), जो आम तौर पर CMDB में आपको चाहिए भी होता है।
+
+Mac पर:
+
+```bash
+ioreg -l | awk -F'"' '/IOPlatformSerialNumber/{print $4}'   # host.serial_number
+sysctl -n hw.model                                          # device.model.name
+system_profiler SPHardwareDataType | awk -F': ' '/System Firmware Version/{print $2}'   # device.firmware.version
+```
+
+निर्माता `Apple Inc.` है। `hw.model` मॉडल पहचानकर्ता लौटाता है, जैसे `Mac14,7` या `MacBookPro18,3`, मार्केटिंग नाम नहीं, जिसे Mac बताता ही नहीं: अगर आपको नाम चाहिए तो अपने CMDB में पहचानकर्ता को मैप करें। फिर भी इसे `device.model.name` में रखें: `device.model.identifier` किसी बैच को, उसमें और कुछ भी हो, मोबाइल ऐप के रूप में चिह्नित करता है, इसलिए उससे चिह्नित Mac फ़ोन के रूप में दर्ज होता है और अपने होस्ट से अलग हो जाता है।
+
+#### इसके बजाय एनवायरनमेंट वेरिएबल का उपयोग करना
+
+`env` डिटेक्टर चालू है, इसलिए प्रोसेसर के बजाय `OTEL_RESOURCE_ATTRIBUTES` भी काम करता है:
+
+```text
+OTEL_RESOURCE_ATTRIBUTES=host.serial_number=7XYZ123,device.manufacturer=Dell%20Inc.,device.model.name=OptiPlex%207090
+```
+
+हर मान को प्रतिशत-एन्कोड करें। वेरिएबल को `key=value` की W3C Baggage सूची के रूप में पढ़ा जाता है, जिसमें `,` और `=` प्रविष्टियों को अलग करते हैं और स्पेस कलेक्टर संस्करणों के बीच भरोसेमंद नहीं हैं; उद्धरण चिह्न मदद नहीं करते, और `device.manufacturer="Dell Inc."` मान के भीतर उद्धरण चिह्नों के साथ पहुँच सकता है। Windows पर `[System.Uri]::EscapeDataString($value)` किसी मान को एन्कोड करता है।
+
+इसे कलेक्टर की अपनी सेवा पर सेट करें, कभी पूरी मशीन पर नहीं:
+
+- **Linux:** `sudo systemctl edit otelcol-contrib`, फिर `Environment="OTEL_RESOURCE_ATTRIBUTES=…"` के साथ एक `[Service]` सेक्शन।
+- **Windows:** `HKLM\SYSTEM\CurrentControlSet\Services\otelcol-contrib` के अंतर्गत `Environment` मान (टाइप `REG_MULTI_SZ`)। `sc.exe create` सेवा के एनवायरनमेंट वेरिएबल सेट नहीं कर सकता, और `setx` ऐसा वेरिएबल सेट करता है जिसे चल रही सेवा दोबारा कभी नहीं पढ़ती।
+
+> [!WARNING]
+> इसे पूरी मशीन पर सेट न करें (`setx /M`, `/etc/environment`)। मशीन पर हर OpenTelemetry SDK प्रक्रिया `OTEL_RESOURCE_ATTRIBUTES` विरासत में लेती है, इसलिए आपके एप्लिकेशन मशीन का `device.manufacturer` अपना बताने लगेंगे, और `device.manufacturer` वाला लेकिन `host.name` या `host.id` के बिना एप्लिकेशन रिसोर्स मोबाइल ऐप माना जाता है, जिससे वह अपनी सेवा से अलग हो जाता है।
+
+प्रोसेसर को सही रखना आसान है: बनावट से ही वह कलेक्टर तक सीमित है, और किसी मशीन के लिए मान कभी नहीं बदलते। जब तक आप पहले से एनवायरनमेंट फ़ाइलें टेम्पलेट से नहीं बनाते, इसी को चुनें।
+
+#### MAC पता लगाया जाने वाला मान नहीं है
+
+`host.mac`, `host.ip` की तरह `system` डिटेक्टर से आता है: हर चालू नेटवर्क इंटरफ़ेस का एक पता, loopback को छोड़कर, उस IEEE रूप में जिसे OpenTelemetry तय करता है (`AC-DE-48-23-45-67`)। Docker या Hyper-V चलाने वाली मशीन अपने वर्चुअल स्विच भी बताती है, इसीलिए मान एक सूची है। जो इंटरफ़ेस सिर्फ़ शून्य वाला प्लेसहोल्डर (`00-00-00-00-00-00`) बताता है, उसे छोड़ दिया जाता है।
+
+मशीन पर कुछ भी अपग्रेड के रूप में उपलब्ध फ़र्मवेयर संस्करण नहीं बताता, इसलिए OneUptime इंस्टॉल किया गया संस्करण दर्ज करता है।
+
+#### जाँचना कि यह काम कर गया
+
+**उत्पाद → Inventory** के अंतर्गत होस्ट का आइटम खोलें और उसका **एसेट विवरण** कार्ड देखें। मान अगले बैच के कुछ मिनट के भीतर दिखते हैं; जो विवरण कलेक्टर ने अभी तक नहीं बताया वह अज्ञात दिखता है, इस सेक्शन पर वापस आने वाले लिंक के साथ। क्योंकि ये लगाए जाते हैं, पहचाने नहीं जाते, इसलिए खुद अपडेट नहीं होते: मदरबोर्ड बदलने, फ़र्मवेयर अपडेट करने या फिर से इमेज करने के बाद इन्हें फिर से लगाएँ।
+
+## कलेक्टर चलाने के अन्य तरीके
+
+### Docker कंटेनर में
+
+कलेक्टर को ऐसे कंटेनर में चलाएँ जो होस्ट की प्रक्रियाएँ और फ़ाइल सिस्टम देखता हो, उस फ़ोल्डर से जिसमें `config.yaml` है:
+
+```bash
+docker run -d \
+  --name otel-collector \
+  --restart unless-stopped \
+  --network host \
+  --pid host \
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
+  --volume /:/hostfs:ro,rslave \
+  -e HOST_PROC=/hostfs/proc \
+  -e HOST_SYS=/hostfs/sys \
+  -e HOST_ETC=/hostfs/etc \
+  -e HOST_VAR=/hostfs/var \
+  -e HOST_RUN=/hostfs/run \
+  -e HOST_DEV=/hostfs/dev \
+  otel/opentelemetry-collector-contrib:0.161.0 \
+  --config /etc/otelcol-contrib/config.yaml
+```
+
+`--network host`, `--pid host`, `/hostfs` माउंट और `HOST_*` वेरिएबल `hostmetrics` और `process` को कंटेनर के बजाय होस्ट का कर्नेल पढ़ने देते हैं। कॉन्फ़िगरेशन की सिर्फ़ मेट्रिक्स पाइपलाइन का उपयोग करें: इमेज में कोई `journalctl` नहीं है, और `systemd` रिसीवर को होस्ट का D-Bus चाहिए।
+
+### रिलीज़ tarball से
+
+जहाँ पैकेज विकल्प नहीं हैं, वहाँ स्टैटिक बाइनरी खोलें और उसे अपनी एक systemd यूनिट दें:
+
+```bash
+VERSION=0.161.0
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+curl -fL -o /tmp/otelcol.tar.gz \
+  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz"
+sudo mkdir -p /opt/otelcol-contrib
+sudo tar -xzf /tmp/otelcol.tar.gz -C /opt/otelcol-contrib
+sudo install -m 0644 config.yaml /opt/otelcol-contrib/config.yaml
+```
+
+```ini title="/etc/systemd/system/otelcol-contrib.service"
+[Unit]
+Description=OpenTelemetry Collector
+After=network.target
+
+[Service]
+ExecStart=/opt/otelcol-contrib/otelcol-contrib --config /opt/otelcol-contrib/config.yaml
+Restart=on-failure
+RestartSec=5s
+User=root
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now otelcol-contrib
+```
+
+`User=root` इस यूनिट को हर लॉग फ़ाइल और हर प्रक्रिया पढ़ने देता है; ऊपर का पैकेज इंस्टॉल बिना विशेषाधिकार वाला विकल्प है।
+
+### Kubernetes नोड पर
+
+Kubernetes नोड OneUptime में होस्ट नहीं हैं: उनकी टेलीमेट्री में Kubernetes पहचान होती है और वह क्लस्टर के अंतर्गत दर्ज होती है। [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) इंस्टॉल करें: हर नोड अपने क्लस्टर के **नोड** पेज पर, अपने पॉड के बगल में दिखता है।
+
+## कलेक्टर अपग्रेड करना
+
+इस पेज का हर कॉन्फ़िगरेशन जिस कलेक्टर रिलीज़ के लिए बना है, उसे अपने `resource` प्रोसेसर में `oneuptime.agent.version` के रूप में लगाता है। OneUptime इसे होस्ट के **अवलोकन** पर **एजेंट संस्करण** के रूप में दिखाता है, और जब OneUptime कोई नई रिलीज़ पिन करता है तो उसके बगल में एक चेतावनी चिह्न दिखाता है। जिस तरह आपने इंस्टॉल किया था उसी तरह अपग्रेड करने का तरीका देखने के लिए चिह्न चुनें।
+
+हाथ से अपग्रेड करने के लिए, नई रिलीज़ को उसी तरह इंस्टॉल करें जैसे यह इंस्टॉल की थी, नए `VERSION` के साथ (Debian और Ubuntu पर `sudo dpkg -i --force-confold` बिना पूछे आपका कॉन्फ़िगरेशन रखता है), `config.yaml` में `oneuptime.agent.version` को उसी संस्करण पर सेट करें, और कलेक्टर को फिर से शुरू करें। जिस कलेक्टर का कॉन्फ़िगरेशन कोई संस्करण नहीं लगाता, वह कोई संस्करण नहीं दिखाता, और कभी कोई चिह्न नहीं।
+
+## इकट्ठा होने वाले डेटा की मात्रा कम करना
+
+कॉन्फ़िगरेशन आपका है, इसलिए जब तक आपका जोड़ा कोई रिसीवर उसे न पढ़े, मशीन से कुछ बाहर नहीं जाता। अगर कोई होस्ट आपकी चाहत से ज़्यादा भेजता है (जो ज़्यादा इंजेशन के रूप में, और OneUptime Cloud पर ज़्यादा लागत के रूप में दिखता है), तो उसे यहाँ घटाएँ। दो सबसे बड़े लीवर ये हैं कि आप कौन-से लॉग पढ़ते हैं और मेट्रिक्स कितनी बार स्क्रैप करते हैं; बाकी काम एक `filter` प्रोसेसर करता है। एक बार में एक लीवर बदलें, और हर बदलाव के बाद कलेक्टर फिर से शुरू करें।
 
 ### मात्रा कहाँ से आती है
 
-| सिग्नल                  | सबसे बड़ा चालक                                            | इसे कम करने का उपाय                                                           |
-| ----------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Logs**                | हर फ़ाइल / journald unit / चैनल से हर लाइन                | receivers को संकीर्ण करें; `query:` फ़िल्टर; गंभीरता पर एक `filter` processor |
-| **होस्ट मेट्रिक्स**     | Scrape आवृत्ति × series की संख्या                         | `collection_interval`; `process` scraper को छोड़ें; scraper चयन               |
-| **मेट्रिक cardinality** | प्रति-प्रक्रिया मेट्रिक्स (प्रति प्रक्रिया एक series सेट) | `process` scraper को छोड़ें या स्कोप करें                                     |
-| **systemd units**       | प्रति scrape प्रति unit 10 डेटा बिंदु (state set + CPU)   | `units:` को संकीर्ण करें; CPU मेट्रिक बंद करें; `collection_interval` बढ़ाएँ  |
+| सिग्नल | सबसे बड़ा कारण | इससे घटाएँ |
+| --- | --- | --- |
+| लॉग | हर फ़ाइल, जर्नल यूनिट या इवेंट चैनल की हर लाइन | कम रिसीवर, संकरा `units:` या `query:`, गंभीरता पर एक `filter` |
+| होस्ट मेट्रिक्स | आप कितनी बार स्क्रैप करते हैं, गुणा सीरीज़ की संख्या | लंबा `collection_interval`, कम स्क्रैपर |
+| मेट्रिक कार्डिनैलिटी | प्रति-प्रक्रिया मेट्रिक्स: हर प्रक्रिया के लिए सीरीज़ का एक सेट | `process` स्क्रैपर को छोड़ना या सीमित करना |
+| systemd यूनिट | हर यूनिट पर हर स्क्रैप में 10 डेटापॉइंट (स्टेट सेट और CPU) | संकरा `units:`, CPU मेट्रिक बंद, लंबा `collection_interval` |
 
-### लीवर 1 — केवल उन log स्रोतों को tail करें जिनकी आपको आवश्यकता है
+### सिर्फ़ ज़रूरी लॉग पढ़ें
 
-Logs लगभग हमेशा सबसे बड़ा हिस्सा होते हैं। collector केवल वही पढ़ता है जो आप सूचीबद्ध करते हैं, इसलिए समाधान कम सूचीबद्ध करना है:
+लॉग लगभग हमेशा सबसे बड़ा हिस्सा होते हैं, और कलेक्टर सिर्फ़ वही पढ़ता है जो आप सूचीबद्ध करते हैं, इसलिए कम सूचीबद्ध करें:
 
-- **फ़ाइलें** — `filelog` को विशिष्ट पथों पर इंगित करें, व्यापक globs पर नहीं। `/var/log/**` के बजाय `/var/log/myapp/error.log`।
-- **journald** — `units:` को उन सेवाओं तक सीमित करें जिनकी आप परवाह करते हैं और `priority:` बढ़ाएँ ताकि आप स्रोत पर बातूनी `info`/`debug` प्रविष्टियों को छोड़ दें:
+- `filelog` को चौड़े ग्लोब नहीं, विशिष्ट फ़ाइलों की ओर इंगित करें: `/var/log/**` के बजाय `/var/log/myapp/error.log`।
+- `journald` को उन यूनिट तक सीमित करें जिनकी आपको परवाह है, और `priority` बढ़ाएँ ताकि `info` और `debug` मशीन छोड़ने से पहले ही हट जाएँ:
 
-  ```yaml
-  receivers:
-    journald:
-      directory: /var/log/journal
-      units:
-        - ssh.service
-        - nginx.service
-      priority: warning # info and debug are dropped before export
-  ```
+```yaml
+receivers:
+  journald:
+    directory: /var/log/journal
+    units:
+      - ssh.service
+      - nginx.service
+    priority: warning # info and debug are dropped before export
+```
 
-- **Windows Event Logs** — `Security` चैनल अब तक सबसे अधिक-मात्रा वाला है। इसे उन event IDs तक संकीर्ण करें जिनका आप वास्तव में ऑडिट करते हैं, एक `query:` के साथ (जैसा ऊपर [Windows Event Logs](#windows-event-logs) में दिखाया गया है), या यदि आपको इसकी आवश्यकता नहीं है तो चैनल को पूरी तरह से छोड़ दें।
+- ज़्यादा वॉल्यूम वाले `Security` इवेंट चैनल को `query:` से उन इवेंट ID तक सीमित करें जिनका आप ऑडिट करते हैं ([Windows इवेंट लॉग](#windows-इवेंट-लॉग) की तरह), या चैनल हटा दें।
 
-### लीवर 2 — मेट्रिक्स अंतराल को धीमा करें
+### मेट्रिक्स कम बार स्क्रैप करें
 
-`hostmetrics` मात्रा सीधे `collection_interval` के साथ स्केल करती है। यदि आपको 30-सेकंड के रिज़ॉल्यूशन की आवश्यकता नहीं है, तो 60s डेटा बिंदुओं की संख्या को आधा कर देता है:
+`hostmetrics` की मात्रा `collection_interval` के साथ बढ़ती-घटती है: अगर 30 सेकंड का रिज़ॉल्यूशन आपकी ज़रूरत से ज़्यादा है, तो 60 सेकंड डेटापॉइंट आधे कर देता है।
 
 ```yaml
 receivers:
@@ -737,9 +918,9 @@ receivers:
     collection_interval: 60s
 ```
 
-### लीवर 3 — प्रति-प्रक्रिया scraper को छोड़ें (cardinality चालक)
+### प्रति-प्रक्रिया स्क्रैपर सीमित करें
 
-`process` scraper होस्ट पर **चल रही हर प्रक्रिया के लिए** series का एक अलग सेट उत्सर्जित करता है — एक व्यस्त मशीन पर यह मेट्रिक cardinality का एकमात्र सबसे बड़ा स्रोत है। जब तक आपको प्रति-प्रक्रिया CPU/memory की आवश्यकता न हो, इसे `scrapers:` सूची से बाहर छोड़ दें। `processes` को रखें (जो केवल कुछ समग्र प्रक्रिया-गणना मेट्रिक्स हैं) — यह सस्ता है। यदि आप प्रति-प्रक्रिया मेट्रिक्स चाहते हैं, तो उन्हें उन प्रक्रियाओं तक स्कोप करें जो मायने रखती हैं:
+`process` स्क्रैपर हर चल रही प्रक्रिया के लिए सीरीज़ का एक सेट भेजता है, इसलिए व्यस्त मशीन पर यह सीरीज़ का सबसे बड़ा स्रोत है। अगर आपको **प्रक्रियाएँ** पेज नहीं चाहिए तो इसे छोड़ दें, या इसे ज़रूरी प्रक्रियाओं तक सीमित करें (हर हाल में `processes` रखें, जो कुछ प्रक्रिया गिनतियाँ हैं):
 
 ```yaml
 receivers:
@@ -754,18 +935,20 @@ receivers:
       load:
       paging:
       processes: # aggregate counts only — cheap
-      # 'process:' (per-process series) intentionally omitted.
-      # If you need it, scope it instead of collecting every process:
-      # process:
-      #   mute_process_name_error: true
-      #   include:
-      #     names: [nginx, postgres, node]
-      #     match_type: strict
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        include:
+          names: [nginx, postgres, node]
+          match_type: strict
 ```
 
-### लीवर 4 — systemd unit सेट को संकीर्ण करें
+यह रिसीवर को उसके डिफ़ॉल्ट मेट्रिक्स तक घटा देता है: अगर आप होस्ट के चार्ट और Host अलर्ट टेम्पलेट उपयोग करते हैं, तो ऊपर के कॉन्फ़िगरेशन के `metrics:` ब्लॉक `cpu`, `memory`, `filesystem` और `process` के अंतर्गत वापस रखें।
 
-`systemd` receiver हर scrape पर **प्रति unit प्रति स्थिति** एक डेटा बिंदु उत्सर्जित करता है — प्रति unit आठ — और डिफ़ॉल्ट रूप से चालू `systemd.service.cpu.time` के लिए दो और, इसलिए इसकी मात्रा इस बात से तय होती है कि `units:` कितने units से मेल खाता है। डिफ़ॉल्ट `["*.service"]` होस्ट पर हर सेवा को उठा लेता है, उन दर्जनों one-shot units सहित जो कभी स्थिति नहीं बदलतीं। उन units को सूचीबद्ध करें जिन पर आप वास्तव में अलर्ट करते हैं, और CPU मेट्रिक को बंद कर दें जब तक कि आप उसका चार्ट न बनाते हों:
+### systemd यूनिट सीमित करें
+
+`systemd` रिसीवर हर स्क्रैप पर हर यूनिट की हर स्थिति के लिए एक डेटापॉइंट भेजता है, यानी हर यूनिट पर आठ, और डिफ़ॉल्ट रूप से चालू `systemd.service.cpu.time` के लिए दो और, इसलिए इसकी मात्रा इस पर निर्भर है कि `units:` कितनी यूनिट से मेल खाता है। डिफ़ॉल्ट `["*.service"]` में दर्जनों एक-बार चलने वाली यूनिट शामिल हैं जिनकी स्थिति कभी नहीं बदलती। जिन यूनिट पर आप अलर्ट करते हैं उन्हें सूचीबद्ध करें, और अगर आप CPU मेट्रिक का चार्ट नहीं बनाते तो उसे बंद करें:
 
 ```yaml
 receivers:
@@ -778,13 +961,13 @@ receivers:
         enabled: false
 ```
 
-मिलकर ये दोनों 300 units वाले होस्ट को ~6k डेटा बिंदु प्रति मिनट से घटाकर 100 से काफ़ी नीचे ले आते हैं। सूची से हटाए गए units कुछ मिनट बाद **Systemd Units** टैब पर दिखना बंद कर देते हैं, एक बार जब उनके अंतिम नमूने इसकी रोलिंग विंडो से पुराने होकर बाहर हो जाते हैं।
+ये दोनों मिलकर 300 यूनिट वाले होस्ट को लगभग 6,000 डेटापॉइंट प्रति मिनट से 100 से काफ़ी नीचे ले आते हैं। सूची से हटाई गई यूनिट कुछ मिनट बाद **Systemd Units** पेज से हट जाती हैं, जब उनके आखिरी सैंपल उसकी रोलिंग विंडो से बाहर हो जाते हैं।
 
-### लीवर 5 — एक `filter` processor के साथ कम-मूल्य वाले रिकॉर्ड छोड़ें
+### filter प्रोसेसर से रिकॉर्ड हटाएँ
 
-जब आप receiver चाहते हैं लेकिन उसके सभी आउटपुट नहीं, तो एक [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) processor जोड़ें — यह एक [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) स्थिति का मूल्यांकन करता है और **किसी भी मेल खाते रिकॉर्ड को छोड़ देता है**, इससे पहले कि कुछ भी निर्यात हो।
+जब आपको कोई रिसीवर चाहिए पर उसका सारा आउटपुट नहीं, तो एक [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) प्रोसेसर जोड़ें। यह एक [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) शर्त जाँचता है और कुछ भी भेजे जाने से पहले हर मेल खाने वाला रिकॉर्ड हटा देता है।
 
-गंभीरता सीमा से नीचे के logs छोड़ें:
+किसी गंभीरता से नीचे के लॉग हटाएँ:
 
 ```yaml
 processors:
@@ -797,9 +980,10 @@ processors:
         - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-> **`UNSPECIFIED` गार्ड को न हटाएँ।** `SEVERITY_NUMBER_UNSPECIFIED` `0` है और `SEVERITY_NUMBER_WARN` `13` है, इसलिए एक नंगा `severity_number < SEVERITY_NUMBER_WARN` `0 < 13` है — **हर उस रिकॉर्ड के लिए सत्य जिसकी गंभीरता कभी पार्स ही नहीं की गई**। एक सादा `filelog` receiver log line से गंभीरता पार्स नहीं करता: इस पृष्ठ के किसी भी `filelog` उदाहरण में `operators:` सेट नहीं है, इसलिए वे रिकॉर्ड फ़िल्टर पर `severity_number: 0` के साथ पहुँचते हैं। गार्ड के बिना, वह स्थिति चुपचाप `/var/log/syslog`, `/var/log/messages`, और `/var/log/auth.log` का **100% हटा देती है** — कहीं भी कोई त्रुटि नहीं। गार्ड के साथ, अवर्गीकृत रिकॉर्ड रखे जाते हैं और आप उन्हें OneUptime में गंभीरता `Unspecified` के रूप में आते हुए देखेंगे, जो आपको बताता है कि वास्तव में आपको एक severity parser की आवश्यकता है।
+> [!WARNING]
+> `UNSPECIFIED` गार्ड रखें। `SEVERITY_NUMBER_UNSPECIFIED` का मान `0` है और `SEVERITY_NUMBER_WARN` का `13`, इसलिए अकेला `severity_number < SEVERITY_NUMBER_WARN` हर उस रिकॉर्ड के लिए सही है जिसकी गंभीरता कभी पार्स नहीं हुई। साधारण `filelog` रिसीवर लाइन से कोई गंभीरता पार्स नहीं करता, इसलिए गार्ड के बिना शर्त हर पढ़ी गई लाइन चुपचाप हटा देती है, और कहीं कोई त्रुटि नहीं आती। गार्ड के साथ बिना पार्स हुए रिकॉर्ड रखे जाते हैं और गंभीरता `Unspecified` के साथ पहुँचते हैं, जो आपको बताता है कि आपको एक गंभीरता पार्सर चाहिए।
 
-फ़ाइल logs को गंभीरता द्वारा *सही ढंग से* फ़िल्टर करने के लिए, पहले receiver पर एक [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) operator के साथ एक गंभीरता पार्स करें, ताकि रिकॉर्ड फ़िल्टर तक पहुँचने से पहले एक वास्तविक स्तर धारण करें:
+फ़ाइल लॉग को गंभीरता के आधार पर ठीक से फ़िल्टर करने के लिए, पहले रिसीवर पर एक [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) ऑपरेटर से उसे पार्स करें:
 
 ```yaml
 receivers:
@@ -824,9 +1008,9 @@ receivers:
           fatal: panic
 ```
 
-systemd होस्ट पर आपको इसमें से किसी की आवश्यकता नहीं है — `journald` का `priority:` (लीवर 1) स्वयं `journalctl` में स्तर द्वारा फ़िल्टर करता है, किसी OTel रिकॉर्ड के अस्तित्व में आने से पहले।
+systemd होस्ट पर जर्नल को इनमें से कुछ नहीं चाहिए: `journald` का `priority:` खुद `journalctl` में स्तर के आधार पर फ़िल्टर करता है।
 
-वे मेट्रिक्स छोड़ें जिन्हें आप चार्ट नहीं करते — सटीक नाम, या एक पैटर्न:
+जिन मेट्रिक्स का आप चार्ट नहीं बनाते उन्हें सटीक नाम या पैटर्न से हटाएँ:
 
 ```yaml
 processors:
@@ -841,7 +1025,7 @@ processors:
         - 'IsMatch(name, "^system\\.paging\\.")'
 ```
 
-शर्त को उल्टा करके **केवल** मेट्रिक्स का एक निश्चित सेट भेजें (एक allowlist) — `filter` जो मेल खाता है उसे गिराता है, इसलिए `not (...)` उन सब कुछ को गिरा देता है जिन्हें आपने नाम नहीं दिया:
+सिर्फ़ मेट्रिक्स का एक तय सेट भेजने के लिए शर्त उलट दें: `filter` मेल खाने वाली चीज़ें हटाता है, इसलिए `not (...)` वह सब हटा देता है जिसका आपने नाम नहीं लिया। शर्त को एक लाइन में रखें:
 
 ```yaml
 processors:
@@ -852,93 +1036,88 @@ processors:
         - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
 ```
 
-उस शर्त को **एक ही line** पर रखें। एक allowlist एक बड़ा हथौड़ा है: जिसे भी आप नाम देना भूल जाते हैं वह चला जाता है, उस पर बने monitors के साथ। उन कुछ मेट्रिक्स को गिराना पसंद करें जिन्हें आप नहीं चाहते, या बस उस scraper को छोड़ दें जो उन्हें उत्पन्न करता है (लीवर 3) — कभी एकत्र न किए गए metric को फ़िल्टर करने की कोई लागत नहीं होती।
+अलाउलिस्ट एक भारी हथौड़ा है: जिसका नाम लेना आप भूल गए वह चला जाता है, उस पर बने मॉनिटर के साथ। बेहतर है कि आप वे कुछ मेट्रिक्स हटाएँ जो आपको नहीं चाहिए, या उन्हें बनाने वाला स्क्रैपर छोड़ दें: जो मेट्रिक कभी इकट्ठा ही नहीं होता, उसे फ़िल्टर करने में कोई लागत नहीं।
 
-फिर processor को संबंधित pipeline में जोड़ें — क्रम मायने रखता है, इसलिए `filter` को `batch` से पहले रखें:
+फिर प्रोसेसर को उसकी पाइपलाइन में `batch` से पहले जोड़ें:
 
 ```yaml
 service:
   pipelines:
-    logs:
-      receivers: [journald]
-      processors: [filter/drop-low-severity, resource, batch]
-      exporters: [otlphttp]
     metrics:
       receivers: [hostmetrics]
-      processors: [filter/drop-metrics, resource, batch]
-      exporters: [otlphttp]
+      processors: [filter/drop-metrics, resourcedetection, resource, batch]
+      exporters: [otlphttp/oneuptime]
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resourcedetection, resource, batch]
+      exporters: [otlphttp/oneuptime]
 ```
 
-> **OneUptime द्वारा आपके लिए उत्पन्न किए गए कॉन्फ़िग को संपादित कर रहे हैं?** ऊपर दी गई pipeline इस पृष्ठ के पूर्ण उदाहरणों से मेल खाती है। डैशबोर्ड से मिलने वाला कॉन्फ़िग (Hosts → Documentation) चीज़ों को अलग नाम देता है: उसके processors `resourcedetection`, `resource` और `batch` हैं और उसका exporter `otlphttp/oneuptime` है। ऐसे processor या exporter का संदर्भ देना जो परिभाषित नहीं है, collector को स्टार्टअप पर रोक देता है। इस ब्लॉक को उसके ऊपर चिपकाने के बजाय filter को उसमें जोड़ें जो पहले से मौजूद है:
->
-> ```yaml
-> service:
->   pipelines:
->     metrics:
->       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, resource, batch]
->       exporters: [otlphttp/oneuptime]
-> ```
->
-> `resourcedetection` को रखें — OneUptime टेलीमेट्री को किसी होस्ट से उस `host.name` / `host.id` का उपयोग करके मिलाता है जिसे यह सेट करता है — और `resource` को भी, जो collector का संस्करण बताता है। वह उत्पन्न कॉन्फ़िग **केवल-मेट्रिक्स** भी है: जब तक आप एक न जोड़ें तब तक उसमें कोई `logs:` pipeline नहीं है, इसलिए जब तक आप उसके साथ एक `filelog` या `journald` receiver न जोड़ें तब तक `filter/drop-low-severity` के पास फ़िल्टर करने को कुछ नहीं है।
+जो पाइपलाइन किसी ऐसे प्रोसेसर या एक्सपोर्टर का नाम लेती है जिसे कॉन्फ़िगरेशन परिभाषित नहीं करता, वह स्टार्टअप पर कलेक्टर को रोक देती है। `resourcedetection` रखें, जो टेलीमेट्री को होस्ट से जोड़ता है, और `resource`, जो कलेक्टर का संस्करण बताता है। `filter` एक contrib प्रोसेसर है, इसलिए कोर बिल्ड यह कॉन्फ़िगरेशन अस्वीकार करता है।
 
-> **macOS पर, Homebrew नहीं, tarball का उपयोग करें।** Homebrew formula **core** collector शिप करता है, और `filter` एक contrib-केवल processor है — आपका YAML सही है या नहीं, इससे कोई फ़र्क नहीं पड़ता, collector शुरू होने से इनकार कर देगा।
+### एक हल्का शुरुआती बिंदु
 
-### एक न्यूनतम प्रारंभिक बिंदु
+सिर्फ़ मेट्रिक्स वाला होस्ट, मोटे अंतराल और बिना प्रति-प्रक्रिया सीरीज़ के, सबसे छोटा उपयोगी फ़ुटप्रिंट है:
 
-एक **केवल-मेट्रिक्स** होस्ट — कोई logs नहीं, मोटा अंतराल, कोई प्रति-प्रक्रिया series नहीं — सबसे छोटा उपयोगी फ़ुटप्रिंट है:
-
-```yaml
+```yaml title="config.yaml"
 receivers:
   hostmetrics:
     collection_interval: 60s
     scrapers:
       cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
       memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
       disk:
       filesystem:
-      network:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
       load:
+      network:
       paging:
       processes:
 
 processors:
-  batch:
-    send_batch_size: 512
-    timeout: 5s
-  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
-  # telemetry to a host. Without it the host tabs stay empty.
+  # Stamps host.name, host.id and os.type: this is how OneUptime attaches
+  # telemetry to the host. Without it the host's pages stay empty.
   resourcedetection:
     detectors: [system, env]
     system:
       hostname_sources: [os]
-      # Only host.name and os.type are on by default. The four below
-      # are opt-in; OneUptime shows them on the host's Network card and
-      # on its Inventory item, which is what a CMDB export reads.
       resource_attributes:
-        host.arch:
+        host.name:
           enabled: true
         host.id:
+          enabled: true
+        host.arch:
           enabled: true
         host.ip:
           enabled: true
         host.mac:
           enabled: true
+        os.type:
+          enabled: true
         os.description:
           enabled: true
         os.version:
           enabled: true
+  # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
-      - key: service.name
-        value: linux-host
-        action: upsert
       - key: oneuptime.agent.version
         value: "0.161.0"
         action: upsert
+  batch:
 
 exporters:
-  otlphttp:
+  otlphttp/oneuptime:
     endpoint: https://oneuptime.com/otlp
     headers:
       x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
@@ -948,59 +1127,97 @@ service:
     metrics:
       receivers: [hostmetrics]
       processors: [resourcedetection, resource, batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp/oneuptime]
 ```
 
-जब आपको इसकी आवश्यकता हो तो एक संकीर्ण-स्कोप वाले `filelog` या `journald` receiver के साथ एक `logs` pipeline वापस जोड़ें।
+जब ज़रूरत हो, एक संकरे `filelog` या `journald` रिसीवर के साथ `logs` पाइपलाइन वापस जोड़ें।
 
-> **जो आप काटते हैं उस पर ध्यान दें।** Log-आधारित अलर्ट के लिए logs का आना आवश्यक है: यदि आप किसी गंभीरता या किसी चैनल को फ़िल्टर कर देते हैं, तो उस पर निर्भर monitors शांत हो जाते हैं। उन स्रोतों को छाँटें जिन पर आप कार्रवाई नहीं करते, न कि उन्हें जिन्हें कोई monitor देख रहा है। एक बार में एक लीवर बदलें और अगले पर जाने से पहले **प्रोजेक्ट सेटिंग्स → उपयोग इतिहास** के अंतर्गत गिरावट की पुष्टि करें (उपयोग दैनिक रूप से एकत्रित होता है, इसलिए इसे एक या दो दिन दें)।
+> [!CAUTION]
+> ध्यान दें कि आप क्या काट रहे हैं। लॉग मॉनिटर को अपने लॉग आने चाहिए, इसलिए किसी गंभीरता या चैनल को फ़िल्टर करने से उसे देखने वाले मॉनिटर चुप हो जाते हैं, और Host अलर्ट टेम्पलेट को `*.utilization` मेट्रिक्स चाहिए। वह डेटा घटाएँ जिस पर आप कार्रवाई नहीं करते, वह नहीं जिसे कोई मॉनिटर देखता है, और अगला लीवर खींचने से पहले एक-दो दिन बाद **प्रोजेक्ट सेटिंग्स → उपयोग इतिहास** के अंतर्गत गिरावट जाँचें (उपयोग प्रति दिन गिना जाता है)।
 
-## स्व-होस्टेड OneUptime
+## सेल्फ़-होस्टेड OneUptime और प्रॉक्सी
 
-यदि आप OneUptime को स्व-होस्ट कर रहे हैं, तो exporter को अपने स्वयं के होस्ट पर इंगित करें:
+सेल्फ़-होस्टेड OneUptime पर एक्सपोर्टर को अपने इंस्टेंस की ओर इंगित करें; अगर वह सिर्फ़ HTTP पर है तो `http://` और उसका पोर्ट उपयोग करें:
 
 ```yaml
 exporters:
-  otlphttp:
+  otlphttp/oneuptime:
     endpoint: https://your-oneuptime-host.example.com/otlp
     headers:
       x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
 ```
 
-यदि आपका इंस्टेंस केवल-HTTP है, तो स्कीम को `http://` में बदलें और उपयुक्त पोर्ट का उपयोग करें।
+प्रॉक्सी के पीछे कलेक्टर मानक `HTTPS_PROXY`, `HTTP_PROXY` और `NO_PROXY` वेरिएबल उपयोग करता है। इन्हें उसकी सेवा पर सेट करें:
 
-## एक proxy के पीछे
+- **Linux:** एक ड्रॉप-इन, `/etc/systemd/system/otelcol-contrib.service.d/proxy.conf`, जिसमें `[Service]` सेक्शन और `Environment="HTTPS_PROXY=http://proxy.example.com:3128"` हो; फिर `sudo systemctl daemon-reload` और कलेक्टर को फिर से शुरू करें।
+- **macOS:** plist में एक `EnvironmentVariables` डिक्शनरी।
+- **Windows:** `HKLM\SYSTEM\CurrentControlSet\Services\otelcol-contrib` के अंतर्गत `Environment` मान।
 
-OpenTelemetry Collector मानक `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` एनवायरनमेंट वैरिएबल का सम्मान करता है। इन्हें सेवा पर सेट करें:
+## AI एजेंट
 
-- **systemd (Linux):** `[Service]\nEnvironment="HTTPS_PROXY=http://proxy.example.com:3128"` के साथ `/etc/systemd/system/otelcol-contrib.service.d/proxy.conf` में ड्रॉप इन करें, फिर `sudo systemctl daemon-reload && sudo systemctl restart otelcol-contrib`।
-- **launchd (macOS):** plist में एक `<EnvironmentVariables>` dict जोड़ें।
-- **Windows service:** `sc.exe config` के माध्यम से या रजिस्ट्री में `HKLM\SYSTEM\CurrentControlSet\Services\otelcol-contrib\Environment` के अंतर्गत सेवा पर एनवायरनमेंट वैरिएबल सेट करें।
+कलेक्टर वह भेजता है जो होस्ट बताता है; **होस्ट AI एजेंट** OneUptime AI को किसी घटना या अलर्ट की जाँच करते समय खुद होस्ट से पूछने देता है। यह केवल-पढ़ने वाले कमांड चलाता है — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — और सिर्फ़ आपकी अनुमति होने पर किसी नामित systemd यूनिट को फिर से शुरू करने जैसे सुधार लागू करता है। यह एक Linux कंटेनर है (इमेज `oneuptime/resource-ai-agent:release`) जिसका अपना इंस्टॉलर है, और उसे Docker (सिस्टम इंजन, rootless Docker नहीं) और Docker Compose प्लगइन चाहिए:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+sudo bash install.sh
+```
+
+- **AI जाँच डिफ़ॉल्ट रूप से चालू है।** एजेंट के कनेक्ट होते ही OneUptime AI इस होस्ट की घटनाओं और अलर्ट की जाँच इसके साथ करता है, और होस्ट का **अवलोकन** एजेंट की स्थिति दिखाता है। रोकने के लिए, जहाँ एजेंट चलता है वहाँ `ONEUPTIME_AI_INVESTIGATION=false` सेट करें (AI एजेंट पेज पर **AI क्या कर सकता है** के अंतर्गत **बदलें** तरीका दिखाता है), या एजेंट हटा दें।
+- यह `HOST_NAME` के अंतर्गत रजिस्टर होता है; होस्ट का अपना होस्टनाम उपयोग करने के लिए इसे खाली छोड़ें, जिसे यह कलेक्टर `host.name` के रूप में बताता है, जब तक आप कोई दूसरा नाम सेट न करें। दोनों मेल खाने चाहिए, ताकि एजेंट उसी होस्ट की सेवा करे जिसे इस कलेक्टर ने बनाया। यह OneUptime में होस्ट के **AI एजेंट** पेज पर दिखता है।
+- यह होस्ट के अपने प्रोग्राम चलाता है, `nsenter` से होस्ट के नेमस्पेस में जाकर, इसलिए यह विशेषाधिकार के साथ, root के रूप में, `pid: host` के साथ चलता है: होस्ट पर यह root है। एजेंट की कमांड नीति ही सीमा है: जब तक आप `ONEUPTIME_AI_ALLOW_WRITES=true` सेट न करें तब तक केवल-पढ़ने वाले कमांड, कभी कोई शेल, `sudo` या उसकी सूची से बाहर का प्रोग्राम नहीं, और कभी खुद को, इस कलेक्टर की यूनिट को या `ONEUPTIME_AI_PROTECTED_TARGETS` में की किसी चीज़ को नहीं।
+- `ONEUPTIME_AI_ALLOW_WRITES=true` के साथ, `ONEUPTIME_AI_WRITE_TARGETS` (पूरे यूनिट नाम, जैसे `nginx.service,app-*`) सीमित करता है कि कोई सुधार किन यूनिट को छू सकता है। `ONEUPTIME_AI_FIXES` बताता है कि सुधार कैसे चलते हैं — `ask-for-approval` (हर एक को एक व्यक्ति मंज़ूरी देता है), `automatic` या `bypass-approval` — और AI एजेंट पेज इसे केवल-पढ़ने के रूप में दिखाता है; इंस्टॉलर दोनों को अपने एनवायरनमेंट से एजेंट की `.env` में लिखता है ([AI क्या कर सकता है, एजेंट द्वारा सेट](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))।
+
+यह क्या चला सकता है, सुधार कैसे काम करते हैं और इसकी समस्याएँ कैसे सुलझाएँ: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts)।
 
 ## समस्या निवारण
 
-- **OneUptime में कोई टेलीमेट्री दिखाई नहीं देती**
-  - वर्बोज़ आउटपुट के लिए कॉन्फ़िग में `service.telemetry.logs.level: debug` जोड़ें और collector को पुनरारंभ करें।
-  - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) या `tail -f /var/log/otelcol-contrib.err.log` (macOS)।
-  - **Windows:** स्रोत `otelcol-contrib` के लिए _Event Viewer → Windows Logs → Application_ के अंतर्गत देखें।
-  - पुष्टि करें कि होस्ट `https://oneuptime.com/otlp` (या आपका स्व-होस्टेड endpoint) तक पहुँच सकता है: उसी मशीन से `curl -v https://oneuptime.com/otlp`।
-- **exporter से HTTP 401** — ingestion token अमान्य या निरस्त है। _प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक नया बनाएँ।
-- **`Security` Windows Event Log access denied लौटाता है** — सेवा पर्याप्त विशेषाधिकारों के साथ नहीं चल रही है। इसे `LocalSystem` के अंतर्गत फिर से बनाएँ (`sc.exe create` के साथ डिफ़ॉल्ट) या सेवा खाते को _Manage auditing and security log_ उपयोगकर्ता अधिकार प्रदान करें।
-- **Windows सेवा `Error 2: The system cannot find the file specified` के साथ शुरू नहीं होती** — Service Control Manager को वह निष्पादन योग्य फ़ाइल नहीं मिल रही जिसके विरुद्ध सेवा पंजीकृत की गई थी। `sc.exe qc "otelcol-contrib"` चलाएँ और `BINARY_PATH_NAME` की तुलना उससे करें जो वास्तव में `C:\Program Files\otelcol-contrib` में मौजूद है। लगभग हमेशा core आर्काइव `otelcol_<version>_windows_amd64.tar.gz` डाउनलोड किया गया होता है — जो `otelcol.exe` अनपैक करता है — जबकि चरण 3 सेवा को `otelcol-contrib.exe` के विरुद्ध पंजीकृत करता है, जो केवल `otelcol-contrib_<version>_...` आर्काइव में होता है। चरण 1 से `contrib` आर्टिफ़ैक्ट फिर से डाउनलोड करें; `otelcol.exe` का नाम **न** बदलें, इससे नीचे वाला `1064` मिलता है। दूसरा कारण बिना उद्धरण चिह्नों वाला `binPath=` है: `C:\Program Files` से गुज़रने वाला पथ स्पेस पर टूट जाता है, जब तक कि उसे ठीक वैसे ही उद्धृत न किया जाए जैसा चरण 3 दिखाता है।
-- **Windows सेवा `Error 1064: An exception occurred in the service when handling the control request` के साथ शुरू नहीं होती** — SCM ने बाइनरी लॉन्च कर दी, लेकिन कलेक्टर स्टार्टअप के दौरान बाहर निकल गया। `otelcol.exe` का नाम बदलकर `otelcol-contrib.exe` करने से पथ तो हल हो जाता है, पर बाइनरी के भीतर जो है वह नहीं बदलता: core बिल्ड में `windowseventlog` और `windows_service` receiver नहीं हैं, इसलिए वह चरण 2 के कॉन्फ़िग को अस्वीकार कर देता है और सेवा के चालू होने की सूचना देने से पहले ही मर जाता है। बिना उद्धरण चिह्नों वाला `--config` पथ सही बाइनरी के साथ भी वही `1064` देता है: भीतरी उद्धरण चिह्नों के बिना तर्क `Program Files` के स्पेस पर टूट जाता है और कलेक्टर एक ऐसी कॉन्फ़िग फ़ाइल के कारण बाहर निकल जाता है जिसे वह पढ़ नहीं सकता। जाँचें कि आपके पास वास्तव में क्या है:
-  - `otelcol-contrib.exe --version` को `otelcol-contrib version ...` छापना चाहिए। यदि यह `otelcol version ...` छापता है, तो यह नाम बदला हुआ core बिल्ड है — चरण 1 से `contrib` आर्टिफ़ैक्ट फिर से डाउनलोड करें।
-  - `otelcol-contrib.exe components` को receiver में `windowseventlog` और `windows_service` सूचीबद्ध करने चाहिए। `hostmetrics` को कसौटी न बनाएँ — वह core बिल्ड में भी होता है, इसलिए उसका दिखना कुछ सिद्ध नहीं करता। कॉन्फ़िग जिस भी चीज़ का संदर्भ देता है पर यह कमांड उसे सूचीबद्ध नहीं करता, वह कलेक्टर को स्टार्टअप पर रोक देगी।
-  - सामान्य `1064` के बजाय असली त्रुटि देखने के लिए इसे फ़ोरग्राउंड में चलाएँ: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`।
-  - _Event Viewer → Windows Logs → Application_ में स्रोत `otelcol-contrib` देखें, जो उस स्टार्टअप त्रुटि को दर्ज करता है जिसे SCM निगल गया।
-- **`journald` receiver शुरू होने में विफल रहता है** — सुनिश्चित करें कि `journalctl` collector के `PATH` पर है और कि `/var/log/journal` मौजूद है (यदि नहीं तो `sudo systemd-tmpfiles --create --prefix /var/log/journal` चलाएँ)।
-- **`systemd` receiver एक D-Bus कनेक्शन त्रुटि रिपोर्ट करता है** — collector system bus तक नहीं पहुँच सकता। पुष्टि करें कि `/run/dbus/system_bus_socket` मौजूद है और कि collector का उपयोगकर्ता उसे खोल सकता है; उस उपयोगकर्ता के रूप में `systemctl list-units` चलाना सबसे तेज़ जाँच है। root आवश्यक नहीं है। किसी container के भीतर चलने वाले collector को कोई bus दिखता ही नहीं जब तक आप होस्ट के socket को bind-mount न करें, इसलिए इस receiver के लिए native इंस्टॉल को प्राथमिकता दें।
-- **`systemd` receiver प्रति unit एक scrape त्रुटि लॉग करता है, या collector किसी अज्ञात मेट्रिक के कारण शुरू होने से मना कर देता है** — दोनों ही संस्करण के बेमेल होने के कारण हैं। v0.142.0 हर unit पर cgroup आँकड़े खोजता है (प्रति scrape हर गैर-`.service` unit के लिए एक त्रुटि) और अपनी CPU मेट्रिक को `systemd.unit.cpu.time` कहता है; v0.143.0 और बाद के संस्करण उस खोज को सेवाओं तक सीमित करते हैं और उन्होंने मेट्रिक का नाम बदलकर `systemd.service.cpu.time` कर दिया। v0.143.0+ पर अपग्रेड करें, और सुनिश्चित करें कि कोई भी `metrics:` ओवरराइड उसी कुंजी का नाम ले जो आपके बिल्ड में वास्तव में मौजूद है।
-- **receiver चलने के बावजूद Systemd Units टैब खाली है** — जाँचें कि `resourcedetection` उसी metrics pipeline में है। receiver प्रत्येक unit के resource पर केवल `systemd.unit.name` संलग्न करता है, इसलिए `resourcedetection` के बिना कोई `host.name` नहीं होता और नमूने कभी किसी होस्ट से नहीं जुड़ते।
-- **उच्च मात्रा / लागत** — [एकत्र किए गए डेटा की मात्रा कम करना](#एकत्र-किए-गए-डेटा-की-मात्रा-कम-करना) देखें: receivers को संकीर्ण करें (विशिष्ट Windows चैनल, systemd units, log फ़ाइलें), मेट्रिक्स `collection_interval` बढ़ाएँ, प्रति-प्रक्रिया scraper को छोड़ें, या निर्यात से पहले कम-गंभीरता वाले रिकॉर्ड छोड़ने के लिए एक `filter` processor जोड़ें।
+:::details OneUptime में कोई होस्ट नहीं दिखता
+1. एक्सपोर्ट त्रुटियों के लिए कलेक्टर के लॉग पढ़ें ([जाँचें कि होस्ट दिखता है](#जाँचें-कि-होस्ट-दिखता-है) देखें)। ज़्यादा विवरण के लिए कॉन्फ़िगरेशन में `service.telemetry.logs.level: debug` जोड़ें।
+2. HTTP `401` का अर्थ है कि इंजेशन कुंजी गायब, गलत या समाप्त है; `422` का अर्थ है कि वह अक्षम कर दी गई है, या एक ब्राउज़र कुंजी है, जो होस्ट टेलीमेट्री नहीं भेज सकती। **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** के अंतर्गत एक कुंजी बनाएँ और `x-oneuptime-token` अपडेट करें।
+3. जाँचें कि मशीन OneUptime तक पहुँचती है: उसी मशीन से `curl -v https://oneuptime.com/otlp` (या आपका सेल्फ़-होस्टेड URL)।
+4. `resourcedetection` को मेट्रिक्स पाइपलाइन में रखें: यह `host.name` सेट करता है, जिससे OneUptime होस्ट को पहचानता है।
+:::
 
-## अगले चरण
+:::details कलेक्टर जर्नल या कोई लॉग फ़ाइल नहीं पढ़ पाता
+पैकेज वाला कलेक्टर बिना विशेषाधिकार वाले `otelcol-contrib` उपयोगकर्ता के रूप में चलता है। उसे उस समूह में जोड़ें जो लॉग पढ़ सकता है, फिर उसे फिर से शुरू करें: जर्नल के लिए `sudo usermod -aG systemd-journal otelcol-contrib`, और Debian और Ubuntu पर `/var/log` के ज़्यादातर हिस्से के लिए `adm` समूह। `journald` के लिए `journalctl` कलेक्टर के `PATH` में होना चाहिए और `/var/log/journal` मौजूद होना चाहिए (`sudo systemd-tmpfiles --create --prefix /var/log/journal` उसे बनाता है)।
+:::
 
-- विशिष्ट log पैटर्न पर अलर्ट करने के लिए **Logs Monitors** जोड़ें (उदाहरण के लिए, जब 5-मिनट की विंडो में 5 से अधिक `winlog.event_id = 4625` विफल लॉगऑन होते हैं तब अलर्ट करें)।
-- होस्ट मेट्रिक्स पर **Metrics Monitors** जोड़ें (CPU संतृप्ति, कम डिस्क स्थान, swap उपयोग)।
-- एंड-टू-एंड होस्ट दृश्यता के लिए इसे [Server / VM Monitor](/docs/monitor/server-monitor) और [OneUptime Infrastructure Agent](/docs/monitor/server-monitor) के साथ संयोजित करें।
-- Ansible / Chef / Puppet / Group Policy / Intune / अपने मौजूदा कॉन्फ़िगरेशन प्रबंधन टूलिंग के माध्यम से हर होस्ट को समान कॉन्फ़िगरेशन भेजें।
+:::details Windows सेवा Error 2: The system cannot find the file specified के साथ विफल होती है
+सर्विस कंट्रोल मैनेजर वह प्रोग्राम नहीं ढूँढ पाता जिसके साथ सेवा रजिस्टर हुई थी। `sc.exe qc "otelcol-contrib"` चलाएँ और `BINARY_PATH_NAME` की तुलना `C:\Program Files\otelcol-contrib` में मौजूद चीज़ से करें। लगभग हमेशा कोर `otelcol_<version>_windows_amd64.tar.gz` आर्काइव डाउनलोड हुआ होता है: वह `otelcol.exe` खोलता है, जबकि सेवा `otelcol-contrib.exe` का नाम लेती है, जो सिर्फ़ `otelcol-contrib_<version>_...` आर्काइव में है। contrib फ़ाइल फिर से डाउनलोड करें; `otelcol.exe` का नाम न बदलें, जिससे इसके बजाय नीचे वाली `1064` आती है। दूसरा कारण बिना उद्धरण चिह्नों वाला `binPath=` है: `C:\Program Files` से होकर जाने वाला पथ स्पेस पर टूट जाता है, जब तक वह ठीक वैसे उद्धरण चिह्नों में न हो जैसा इंस्टॉल चरण दिखाता है।
+:::
+
+:::details Windows सेवा Error 1064 के साथ विफल होती है
+सेवा मैनेजर ने प्रोग्राम शुरू किया, लेकिन कलेक्टर स्टार्टअप के दौरान बंद हो गया। नाम बदला हुआ `otelcol.exe` यही करता है: कोर बिल्ड में `windowseventlog` या `windows_service` रिसीवर नहीं है, इसलिए वह कॉन्फ़िगरेशन अस्वीकार करता है। बिना उद्धरण चिह्नों वाला `--config` पथ भी यही करता है, जो `Program Files` के स्पेस पर टूट जाता है। जाँचें कि आपके पास क्या है:
+
+- `otelcol-contrib.exe --version` को `otelcol-contrib version ...` छापना चाहिए; `otelcol version ...` नाम बदला हुआ कोर बिल्ड है।
+- `otelcol-contrib.exe components` को रिसीवरों में `windowseventlog` और `windows_service` सूचीबद्ध करने चाहिए (`hostmetrics` नहीं, जो कोर बिल्ड में भी है)।
+- असली त्रुटि देखने के लिए इसे फ़ोरग्राउंड में चलाएँ: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`।
+- *Event Viewer → Windows Logs → Application*, स्रोत `otelcol-contrib`, वह स्टार्टअप त्रुटि दर्ज करता है जिसे सेवा मैनेजर ने निगल लिया।
+:::
+
+:::details Security इवेंट लॉग पहुँच अस्वीकृत लौटाता है
+सेवा के पास अधिकार नहीं हैं। इसे `LocalSystem` के रूप में चलाएँ (`sc.exe create` का डिफ़ॉल्ट), या उसके खाते को *Manage auditing and security log* उपयोगकर्ता अधिकार दें।
+:::
+
+:::details systemd रिसीवर D-Bus त्रुटि बताता है, या Systemd Units पेज खाली है
+- कलेक्टर सिस्टम बस तक नहीं पहुँच पाता: जाँचें कि `/run/dbus/system_bus_socket` मौजूद है और कलेक्टर का उपयोगकर्ता उसे खोल सकता है; उस उपयोगकर्ता के रूप में चलाया गया `systemctl list-units` सबसे तेज़ जाँच है। root ज़रूरी नहीं है। कंटेनर में चल रहे कलेक्टर को तब तक कोई बस नहीं दिखती जब तक आप होस्ट का सॉकेट माउंट न करें।
+- रिसीवर चलते हुए भी पेज खाली है: `resourcedetection` को उसी मेट्रिक्स पाइपलाइन में रखें। रिसीवर हर यूनिट के रिसोर्स से सिर्फ़ `systemd.unit.name` जोड़ता है, इसलिए `resourcedetection` के बिना कोई `host.name` नहीं होता और सैंपल कभी किसी होस्ट से नहीं जुड़ते।
+- हर यूनिट पर स्क्रैप त्रुटि, या किसी अज्ञात मेट्रिक की वजह से कलेक्टर का शुरू होने से मना करना, संस्करण का अंतर है: v0.142.0 हर यूनिट पर cgroup आँकड़े पढ़ता है और अपने CPU मेट्रिक को `systemd.unit.cpu.time` कहता है; v0.143.0 और बाद के संस्करण सिर्फ़ सेवाएँ पढ़ते हैं और उसे `systemd.service.cpu.time` कहते हैं। v0.143.0 या बाद का संस्करण चलाएँ, और किसी भी `metrics:` ओवरराइड में वही कुंजी लिखें जो आपके बिल्ड में है।
+:::
+
+:::details CPU और मेमोरी चार्ट या Host अलर्ट टेम्पलेट कोई डेटा नहीं दिखाते
+ये `system.cpu.utilization`, `system.memory.utilization` और `system.filesystem.utilization` पढ़ते हैं, जिन्हें `hostmetrics` तब तक बंद रखता है जब तक आप उन्हें चालू न करें। ऊपर के कॉन्फ़िगरेशन से `cpu`, `memory` और `filesystem` के अंतर्गत के `metrics:` ब्लॉक अपने कॉन्फ़िगरेशन में कॉपी करें, और कलेक्टर फिर से शुरू करें।
+:::
+
+:::details बहुत ज़्यादा डेटा, या बहुत ज़्यादा बिल
+[इकट्ठा होने वाले डेटा की मात्रा कम करना](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना) देखें: रिसीवर सीमित करें (Windows चैनल, systemd यूनिट, लॉग फ़ाइलें), कम बार स्क्रैप करें, प्रति-प्रक्रिया स्क्रैपर सीमित करें, या भेजे जाने से पहले `filter` प्रोसेसर से रिकॉर्ड हटाएँ।
+:::
+
+## अगले कदम
+
+:::cards
+- [होस्ट मॉनिटर](/docs/monitor/host-monitor): CPU, मेमोरी, डिस्क और प्रक्रियाओं पर अलर्ट करें।
+- [लॉग मॉनिटर](/docs/monitor/logs-monitor): लॉग पैटर्न पर अलर्ट करें, जैसे 5 मिनट की विंडो में विफल लॉगऑन।
+- [CMDB में निर्यात करना](/docs/inventory/cmdb-sync): इन्वेंटरी एट्रिब्यूट अपने CMDB तक भेजें।
+- [सर्वर / VM मॉनिटर](/docs/monitor/server-monitor): किसी सर्वर की पहुँच बाहर से भी देखें।
+:::

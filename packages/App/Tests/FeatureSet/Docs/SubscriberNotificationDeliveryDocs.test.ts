@@ -19,6 +19,7 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import SubscriberNotificationInterruption from "Common/Types/StatusPage/SubscriberNotificationInterruption";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
+import { dashboardLabel, drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -36,7 +37,10 @@ import path from "path";
  * "Interrupted:" prefix, the badge wording, the test-send limit. Markdown is
  * not compiled, so nothing else notices when one of them changes. Each test
  * reads the source of truth and checks every page, in English and Persian,
- * still says the same.
+ * still says the same. A page names a Dashboard label as its language's
+ * Dashboard draws it: the status pages with drawnActionLabel, Persian
+ * included (StatusPageDocsTranslations), the incident pages with
+ * dashboardLabel, which keeps Persian in English (IncidentDocsTranslations).
  *
  * Two claims are about behaviour rather than wording, and are pinned the same
  * way: which subscriber jobs count their messages (the incident and episode
@@ -67,8 +71,15 @@ const PAGES: ReadonlyArray<string> = [
   STATES_PAGE,
 ];
 
-// `fa` is the only translated corpus; every other language falls back to English.
+/*
+ * English, and Persian, whose pages these checks were first written for. The
+ * status pages' other translations are held to their Dashboards by
+ * StatusPageDocsTranslations and OneStatusPagePerAudienceDocs.
+ */
 const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
+
+// The pages that draw the Dashboard's labels in every language, Persian included.
+const DRAWN_LABEL_PAGES: ReadonlyArray<string> = [SUBSCRIBERS_PAGE, GUIDE_PAGE];
 
 // The section every other page sends readers to, in each language.
 const CHECKING_SECTION: { [language: string]: string } = {
@@ -82,6 +93,23 @@ const ANY_HEADING: RegExp = /^(#{1,6}) (.*)$/;
 const PERSIAN_LETTER: RegExp = /[؀-ۿ]/;
 
 const MINUTE_IN_MS: number = 60 * 1000;
+
+type NamedFunction = (
+  page: string,
+  language: string,
+  english: string,
+) => string;
+
+// What a page in this language calls the Dashboard label written in English.
+const named: NamedFunction = (
+  page: string,
+  language: string,
+  english: string,
+): string => {
+  return DRAWN_LABEL_PAGES.includes(page)
+    ? drawnActionLabel(language, english)
+    : dashboardLabel(language, english);
+};
 
 type ReadPageFunction = (relative: string, language?: string) => string;
 
@@ -642,9 +670,11 @@ describe("Subscriber notification delivery docs", () => {
       );
 
       for (const language of LANGUAGES) {
-        expect(boldText(readPage(SUBSCRIBERS_PAGE, language)).has(label)).toBe(
-          true,
-        );
+        expect(
+          boldText(readPage(SUBSCRIBERS_PAGE, language)).has(
+            named(SUBSCRIBERS_PAGE, language, label),
+          ),
+        ).toBe(true);
       }
     });
   });
@@ -764,24 +794,36 @@ describe("Subscriber notification delivery docs", () => {
             ),
           );
 
+          const statusLabel: string = named(
+            SUBSCRIBERS_PAGE,
+            language,
+            label as string,
+          );
+          const statusBadge: string = named(SUBSCRIBERS_PAGE, language, badge);
+
           expect({
             language: language,
             status: status,
             row: subscribersRows.some((cells: Array<string>): boolean => {
-              return cells[0] === `**${label}**` && cells[1] === `**${badge}**`;
+              return (
+                cells[0] === `**${statusLabel}**` &&
+                cells[1] === `**${statusBadge}**`
+              );
             }),
           }).toEqual({ language: language, status: status, row: true });
 
           // The notes page's badge table.
+          const notesBadge: string = named(NOTES_PAGE, language, badge);
+
           expect({
             language: language,
-            badge: badge,
+            badge: notesBadge,
             row: tableRows(readPage(NOTES_PAGE, language)).some(
               (cells: Array<string>): boolean => {
-                return cells[0] === `**${badge}**`;
+                return cells[0] === `**${notesBadge}**`;
               },
             ),
-          }).toEqual({ language: language, badge: badge, row: true });
+          }).toEqual({ language: language, badge: notesBadge, row: true });
         }
       }
     });
@@ -863,15 +905,17 @@ describe("Subscriber notification delivery docs", () => {
           const bold: Set<string> = boldText(readPage(page, language));
 
           for (const name of names) {
+            const drawn: string = named(page, language, name);
+
             expect({
               language: language,
               page: page,
-              name: name,
-              quoted: bold.has(name),
+              name: drawn,
+              quoted: bold.has(drawn),
             }).toEqual({
               language: language,
               page: page,
-              name: name,
+              name: drawn,
               quoted: true,
             });
           }
@@ -891,11 +935,13 @@ describe("Subscriber notification delivery docs", () => {
           SubscriberNotificationResendCopy.resendNoteNotificationButton,
           SubscriberNotificationResendCopy.resendToAllStatusPagesButton,
         ]) {
+          const drawn: string = named(SUBSCRIBERS_PAGE, language, name);
+
           expect({
             language: language,
-            name: name,
-            quoted: bold.has(name),
-          }).toEqual({ language: language, name: name, quoted: true });
+            name: drawn,
+            quoted: bold.has(drawn),
+          }).toEqual({ language: language, name: drawn, quoted: true });
         }
       }
     });
@@ -1080,7 +1126,10 @@ describe("Subscriber notification delivery docs", () => {
       );
       expect(tableRows(persian)).toHaveLength(tableRows(english).length);
 
-      // Screen names stay in English; anything else left in English is a leftover.
+      /*
+       * Screen names are drawn as the Persian Dashboard draws them, which
+       * leaves some in English; anything else left in English is a leftover.
+       */
       const englishNames: Set<string> = boldText(english);
 
       for (const name of Array.from(boldText(persian)).filter(

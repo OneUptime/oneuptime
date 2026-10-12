@@ -16,8 +16,11 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * The ImproveInstrumentation trigger: an INCONCLUSIVE AI investigation
  * enqueues a CodeFix AIRun that opens an instrumentation PR — but ONLY for
  * projects with the setting on for the investigation's incident or alert
- * lane (both columns default FALSE; new projects get them on), only when a
- * GitHub-App repo exists to open the PR
+ * lane AND that lane's fixing switch on ("Fix new incidents automatically"
+ * or alerts): the pull request is part of fixing
+ * (Types/AI/AutomaticFixSwitches). All four columns default FALSE, and new
+ * projects start with them off. Only when a GitHub-App repo exists to open
+ * the PR
  * against, and at most one non-terminal run per incident/alert. The trigger
  * runs inside postAnalysis, so it must NEVER throw.
  */
@@ -28,12 +31,19 @@ const alertId: ObjectID = ObjectID.generate();
 
 function fakeProject(data?: {
   enableAi?: boolean;
+  enableAutomaticIncidentRemediation?: boolean;
+  enableAutomaticAlertRemediation?: boolean;
   enableIncidentInstrumentationFixTasks?: boolean;
   enableAlertInstrumentationFixTasks?: boolean;
 }): Project {
   return {
     id: projectId,
     enableAi: data?.enableAi ?? true,
+    // Fixing on: the pull requests are part of it.
+    enableAutomaticIncidentRemediation:
+      data?.enableAutomaticIncidentRemediation ?? true,
+    enableAutomaticAlertRemediation:
+      data?.enableAutomaticAlertRemediation ?? true,
     enableIncidentInstrumentationFixTasks:
       data?.enableIncidentInstrumentationFixTasks ?? true,
     enableAlertInstrumentationFixTasks:
@@ -68,6 +78,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
     const project: Project = {
       id: projectId,
       enableAi: true,
+      enableAutomaticIncidentRemediation: true,
       // enableIncidentInstrumentationFixTasks deliberately absent.
     } as unknown as Project;
 
@@ -82,6 +93,83 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/not opted in/);
+  });
+
+  test("the fixing switch is strict too: unset (a row read without it) never enqueues", () => {
+    const project: Project = {
+      id: projectId,
+      enableAi: true,
+      // enableAutomaticIncidentRemediation deliberately absent.
+      enableIncidentInstrumentationFixTasks: true,
+    } as unknown as Project;
+
+    const decision: ReturnType<
+      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
+    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+      project,
+      incidentId,
+      hasConnectedRepository: true,
+      existingRun: null,
+    });
+
+    expect(decision.enqueue).toBe(false);
+    expect(decision.reason).toMatch(/fixing new incidents automatically off/);
+  });
+
+  test.each([
+    ["incident", { incidentId }, { enableAutomaticIncidentRemediation: false }],
+    ["alert", { alertId }, { enableAutomaticAlertRemediation: false }],
+  ] as Array<
+    [
+      string,
+      { incidentId?: ObjectID; alertId?: ObjectID },
+      Record<string, boolean>,
+    ]
+  >)(
+    "%s: fixing off means no telemetry pull request, though its own switch is on",
+    (
+      label: string,
+      subject: { incidentId?: ObjectID; alertId?: ObjectID },
+      fixOff: Record<string, boolean>,
+    ) => {
+      const decision: ReturnType<
+        typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
+      > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(fixOff),
+        ...subject,
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
+
+      expect(decision.enqueue).toBe(false);
+      expect(decision.reason).toBe(
+        `project has fixing new ${label}s automatically off, and its telemetry pull requests open only while it is on`,
+      );
+    },
+  );
+
+  test("one lane's fixing does not open the other lane's telemetry pull requests", () => {
+    const project: Project = fakeProject({
+      enableAutomaticIncidentRemediation: false,
+      enableAutomaticAlertRemediation: true,
+    });
+
+    expect(
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project,
+        incidentId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(false);
+    expect(
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project,
+        alertId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(true);
   });
 
   test("incident and alert opt-ins are independent: incident enabled does not enable alerts", () => {
@@ -274,6 +362,44 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     expect(create).not.toHaveBeenCalled();
   });
 
+  test.each([
+    ["incident", { incidentId }, { enableAutomaticIncidentRemediation: false }],
+    ["alert", { alertId }, { enableAutomaticAlertRemediation: false }],
+  ] as Array<
+    [
+      string,
+      { incidentId?: ObjectID; alertId?: ObjectID },
+      Record<string, boolean>,
+    ]
+  >)(
+    "%s: a project with fixing off skips cheaply — no budget, repository or dedupe read, no run created",
+    async (
+      _label: string,
+      subject: { incidentId?: ObjectID; alertId?: ObjectID },
+      fixOff: Record<string, boolean>,
+    ) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(fakeProject(fixOff));
+      const countBy: jest.SpyInstance = jest.spyOn(
+        CodeRepositoryService,
+        "countBy",
+      );
+      const findOneBy: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+      await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+        projectId,
+        ...subject,
+      });
+
+      expect(FixRunBudget.getBudgetStatus).not.toHaveBeenCalled();
+      expect(countBy).not.toHaveBeenCalled();
+      expect(findOneBy).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
+
   test("the alert opt-in cannot enable an incident instrumentation task", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
       fakeProject({
@@ -313,10 +439,12 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       incidentId,
     });
 
+    // Enable AI, the incident fixing switch and its instrumentation switch.
     expect(findProject).toHaveBeenCalledWith(
       expect.objectContaining({
         select: {
           enableAi: true,
+          enableAutomaticIncidentRemediation: true,
           enableIncidentInstrumentationFixTasks: true,
         },
       }),
@@ -372,6 +500,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       expect.objectContaining({
         select: {
           enableAi: true,
+          enableAutomaticAlertRemediation: true,
           enableAlertInstrumentationFixTasks: true,
         },
       }),

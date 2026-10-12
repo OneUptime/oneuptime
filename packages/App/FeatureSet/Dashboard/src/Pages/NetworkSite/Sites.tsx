@@ -11,6 +11,10 @@ import {
 } from "../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
+import {
+  SITE_MORE_FIELDS,
+  SITE_TYPE_FIELD_DESCRIPTION,
+} from "./SiteFormSections";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
 import {
   SiteSummaryTile,
@@ -420,13 +424,17 @@ const NetworkSites: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        // "Add Site": inside Network, a site needs no "Network" in front of it.
+        createVerb="Add"
+        singularName="Site"
+        pluralName="Sites"
         showRefreshButton={true}
         name="Network Sites"
         searchableFields={["name", "description"]}
         cardProps={{
-          title: "Network Sites",
+          title: "Sites",
           description:
-            "Group your network devices into a drill-down hierarchy — regions, franchisees, markets, units. Each site rolls up the health of everything below it.",
+            "The places your devices are in - offices, stores, data centers - grouped as deep as you like. Each site shows the health of everything in it.",
           buttons: [
             /*
              * OUTLINE, not NORMAL/PRIMARY: BaseModelTable promotes the first
@@ -478,10 +486,16 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Date,
           },
         ]}
+        /*
+         * Three steps, down from four: what the site is (its type and name,
+         * with the description and location folded under More fields),
+         * where it sits, and what the devices added to it start with. The
+         * hierarchy keeps a step of its own because the parents it offers
+         * are worked out from the type picked on the step before.
+         */
         formSteps={[
           { title: "Site Details", id: "site-details" },
           { title: "Hierarchy", id: "hierarchy" },
-          { title: "Location", id: "location" },
           { title: "Monitoring Defaults", id: "monitoring-defaults" },
         ]}
         formFields={[
@@ -491,8 +505,7 @@ const NetworkSites: FunctionComponent<
             },
             title: "Site Type",
             stepId: "site-details",
-            description:
-              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
+            description: SITE_TYPE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
             onChange: (
@@ -526,9 +539,47 @@ const NetworkSites: FunctionComponent<
             },
             title: "Description",
             stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
+          },
+          {
+            field: {
+              address: true,
+            },
+            title: "Address",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "742 Evergreen Terrace, Springfield, IL",
+          },
+          {
+            field: {
+              latitude: true,
+            },
+            title: "Latitude",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description:
+              "Between -90 and 90. Needed to pin this site on the network map.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "39.7817",
+          },
+          {
+            field: {
+              longitude: true,
+            },
+            title: "Longitude",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description:
+              "Between -180 and 180. Needed to pin this site on the network map.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "-89.6501",
           },
           {
             field: {
@@ -545,40 +596,6 @@ const NetworkSites: FunctionComponent<
             fetchDropdownOptions: fetchParentNetworkSiteOptions,
             required: false,
             placeholder: "No parent site (top level)",
-          },
-          {
-            field: {
-              address: true,
-            },
-            title: "Address",
-            stepId: "location",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "742 Evergreen Terrace, Springfield, IL",
-          },
-          {
-            field: {
-              latitude: true,
-            },
-            title: "Latitude",
-            stepId: "location",
-            description:
-              "Between -90 and 90. Needed to pin this site on the network map.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "39.7817",
-          },
-          {
-            field: {
-              longitude: true,
-            },
-            title: "Longitude",
-            stepId: "location",
-            description:
-              "Between -180 and 180. Needed to pin this site on the network map.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "-89.6501",
           },
           {
             field: {

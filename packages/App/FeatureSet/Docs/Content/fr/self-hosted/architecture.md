@@ -1,125 +1,85 @@
-# Architecture auto-hébergée de OneUptime
+# Architecture
 
-Ce diagramme montre à quoi ressemble généralement OneUptime lorsqu'il est auto-hébergé dans votre environnement (par exemple, dans votre cluster Kubernetes), y compris comment les sondes surveillent les ressources internes et externes.
+Une installation auto-hébergée de OneUptime tient en quelques conteneurs : un ingress par lequel entre chaque requête, une image d'application qui fait le travail, des sondes qui exécutent les vérifications de vos moniteurs, et trois magasins de données. Cette page montre comment ils s'assemblent, ce que fait chacun et quelles connexions traversent votre réseau.
 
-```mermaid
+```mermaid title="Une installation auto-hébergée de OneUptime"
 flowchart TB
-  %% DISPOSITION
-  %% Haut : Utilisateurs -> Ingress -> Web / API
-  %% Milieu : Services core + Pipeline d'ingestion
-  %% Bas : Stockages de données
-
-  %% UTILISATEURS / PÉRIPHÉRIE
-  U["Utilisateurs finaux / Navigateurs"]
-
-  %% FRONTIÈRE DU CLUSTER
-  subgraph C["Réseau client (Cluster Kubernetes auto-hébergé)"]
-    direction TB
-
-    subgraph Edge["Ingress & Routage"]
-      NGINX["Ingress NGINX (TLS)"]
+    People["Personnes et navigateurs"]
+    Senders["Émetteurs de télémétrie :<br/>OpenTelemetry, Fluent Bit,<br/>syslog, agents"]
+    Targets["Ce que vous surveillez :<br/>interne et public"]
+    subgraph Install["Votre réseau"]
+        direction TB
+        Ingress["Ingress<br/>(Nginx, TLS)"]
+        App["Application<br/>tableaux de bord, pages de statut,<br/>API, ingestion, tâches de fond"]
+        Probe["Sondes"]
+        Runner["Runner"]
+        subgraph Data["Magasins de données"]
+            direction LR
+            Postgres[("PostgreSQL<br/>configuration<br/>et état")]
+            ClickHouse[("ClickHouse<br/>logs, métriques,<br/>traces")]
+            Valkey[("Valkey<br/>cache et<br/>files d'attente")]
+        end
     end
-
-    subgraph Web["Web & API"]
-      direction TB
-      HOME["Accueil / Tableau de bord (UI)"]
-      STATUS["Pages de statut (UI)"]
-      API["Serveur API"]
-      WORKER["Worker en arrière-plan"]
-    end
-
-    subgraph Ingest["Pipeline d'ingestion"]
-      direction TB
-      PROBEINGEST["Ingestion des sondes"]
-      OTELINGEST["Ingestion OpenTelemetry"]
-      FLUENTLOGS["Ingestion des journaux (Fluent Bit)"]
-      SERVERMONINGEST["Ingestion du moniteur de serveur"]
-      INCOMINGREQINGEST["Ingestion des requêtes entrantes"]
-    end
-
-    subgraph Probes["Sondes OneUptime"]
-      direction TB
-      P1["Pod(s) de sonde dans votre cluster"]
-      P2["VM/Conteneur de sonde optionnel sur votre réseau"]
-    end
-
-    %% STOCKAGES DE DONNÉES
-    subgraph Data["Stockages de données"]
-      direction LR
-      PG[("PostgreSQL\n(config, état, métadonnées)")]
-      CH[("ClickHouse\n(métriques, traces, journaux)")]
-      REDIS[("Valkey\n(cache, files, sessions)")]
-    end
-
-  end
-
-  %% CIBLES EXTERNES / INTERNES
-  EXT["Ressources externes\n(sites web/API publics, SaaS)"]
-  INT["Ressources internes\n(apps privées, BDD, services)"]
-
-  %% FLUX : Périphérie
-  U -->|HTTPS| NGINX
-  NGINX --> HOME
-  NGINX --> STATUS
-  HOME -->|REST/gRPC| API
-  STATUS -->|REST/gRPC| API
-  NGINX --> API
-
-  %% FLUX : Services core -> Données
-  API --> PG
-  API --> REDIS
-  API --> CH
-  WORKER --> PG
-  WORKER --> REDIS
-  WORKER --> CH
-
-  %% FLUX : Ingestion
-  P1 -->|résultats de surveillance| PROBEINGEST
-  P2 -->|résultats de surveillance| PROBEINGEST
-
-  EXT <-->|HTTPS/TCP/Ping/DNS/Personnalisé| P1
-  INT <-->|HTTPS/TCP/Ping/DNS/Personnalisé| P1
-  EXT <-->|HTTPS/TCP/Ping/DNS/Personnalisé| P2
-  INT <-->|HTTPS/TCP/Ping/DNS/Personnalisé| P2
-
-  OTELCOLL["Collecteur/Agents OTel"] --> OTELINGEST
-  FLUENT["Fluentd / Fluent Bit"] --> FLUENTLOGS
-  SERVERAGENTS["Agents de surveillance serveur"] --> SERVERMONINGEST
-
-  %% Flux d'ingestion vers le traitement core
-  PROBEINGEST --> REDIS
-  OTELINGEST --> CH
-  FLUENTLOGS --> CH
-  SERVERMONINGEST --> CH
-  INCOMINGREQINGEST --> CH
-
-  %% Les workers consomment depuis les files et écrivent dans les stockages
-  REDIS --> WORKER
-
-  %% Notes / Légende
-  classDef store fill:#fef6e4,stroke:#d4a373,color:#333;
-  classDef edge fill:#e3f2fd,stroke:#64b5f6,color:#333;
-  classDef web fill:#e8f5e9,stroke:#81c784,color:#333;
-  classDef ingest fill:#f3e5f5,stroke:#ba68c8,color:#333;
-  classDef probe fill:#fff3e0,stroke:#ffb74d,color:#333;
-  classDef outside fill:#f5f5f5,stroke:#bdbdbd,color:#333,stroke-dasharray: 3 3;
-
-  class NGINX edge;
-  class HOME,STATUS,API,WORKER web;
-  class PROBEINGEST,OTELINGEST,FLUENTLOGS,SERVERMONINGEST,INCOMINGREQINGEST ingest;
-  class P1,P2 probe;
-  class PG,CH,REDIS store;
-  class EXT,INT,OTELCOLL,FLUENT,SERVERAGENTS outside;
+    People -->|"HTTPS"| Ingress
+    Senders -->|"OTLP, HTTPS"| Ingress
+    Ingress --> App
+    Probe -->|"récupérer le travail,<br/>envoyer les résultats"| App
+    Runner -->|"prendre les tâches,<br/>envoyer les résultats"| App
+    Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
+    App --> Postgres
+    App --> ClickHouse
+    App --> Valkey
 ```
 
 ## Ce que cela montre
 
-- Les utilisateurs finaux accèdent à OneUptime via l'Ingress de votre cluster (NGINX), qui achemine vers l'UI et l'API.
-- Les services core lisent/écrivent l'état dans PostgreSQL, Valkey (le fork sous licence BSD de Redis 7.2) et ClickHouse.
-- Les sondes peuvent s'exécuter dans votre cluster (recommandé) et/ou ailleurs sur votre réseau. Elles peuvent surveiller :
+- Les personnes accèdent à OneUptime par l'**ingress**, qui termine TLS et achemine chaque requête vers l'application : le Dashboard, les pages de statut, l'API et chaque point d'ingestion vers lequel la télémétrie est envoyée.
+- L'**application** lit et écrit son état dans PostgreSQL, conserve la télémétrie dans ClickHouse et utilise Valkey (le fork sous licence BSD de Redis 7.2) pour le cache et pour les files d'attente que traitent ses tâches de fond.
+- Les **sondes** peuvent s'exécuter dans votre cluster (recommandé) et/ou ailleurs sur votre réseau. Elles peuvent surveiller :
   - Les services internes/privés derrière votre pare-feu.
   - Les ressources externes/publiques sur Internet.
-- Les résultats des sondes sont envoyés à l'ingestion des sondes dans votre cluster, mis en file d'attente via Valkey, et traités par le worker en arrière-plan dans vos stockages de données.
-- La télémétrie (métriques/traces/journaux) et les données de serveur/agent peuvent être ingérées via des services d'ingestion dédiés et stockées dans ClickHouse.
+- Les résultats des sondes sont envoyés à l'application, mis en file d'attente dans Valkey, puis traités par les tâches de fond vers vos magasins de données. Une sonde située ailleurs sur votre réseau joint l'application par l'ingress, à votre URL OneUptime.
+- La télémétrie (métriques, traces, logs et plus) est ingérée par la même application et stockée dans ClickHouse.
 
-> Remarque : Si vous utilisez PostgreSQL, Redis ou ClickHouse externes au lieu des versions intégrées, les connexions depuis API/Worker/Ingest pointent vers vos points d'accès externes. Le flux logique reste le même.
+> [!NOTE]
+> Si vous utilisez un PostgreSQL, un Valkey (ou Redis) ou un ClickHouse externe au lieu de ceux fournis, l'application se connecte à vos points de terminaison externes à la place. Le flux logique reste le même.
+
+## Les composants
+
+| Composant | Service Docker Compose | Chart Helm | Ce qu'il fait |
+| --- | --- | --- | --- |
+| Ingress | `ingress` | `nginx` | Termine TLS, sert votre nom d'hôte et les domaines de vos pages de statut, et achemine chaque requête vers l'application. |
+| Application | `app` | `app` | Le Dashboard, les pages de statut, les points d'API et d'ingestion et, à moins que vous ne les sépariez, les tâches de fond. |
+| Worker | Fait partie de `app` | `worker` (désactivé par défaut) | Les tâches de fond, dans leurs propres pods, pour que le traitement lourd des files d'attente ne concurrence jamais les requêtes d'API. |
+| Telemetry writer | Fait partie de `app` | `telemetryWriter` (désactivé par défaut) | Un niveau de taille fixe qui effectue chaque insertion ClickHouse, pour que les insertions restent bornées quel que soit le nombre de workers. |
+| Sonde | `probe-1` | `probes` | Exécute les vérifications des moniteurs et renvoie les résultats. Chaque sonde fournie est une sonde globale que tous les projets peuvent utiliser. |
+| Runner | `runner` | `runner` | Le Runner propre à l'instance, qui peut exécuter les corrections de code par IA pour chaque projet. Les étapes des runbooks s'exécutent sur les [Runners](/docs/runbooks/agents) que vous installez là où elles doivent s'exécuter. |
+| PostgreSQL | `postgres` | `postgresql`, ou `postgresOperator.cnpg` | Les projets, moniteurs, incidents, utilisateurs et tous les autres paramètres et états. |
+| ClickHouse | `clickhouse` | `clickhouse`, ou `clickhouseOperator.altinity` | Les logs, métriques, traces, exceptions, profils et logs de moniteurs. |
+| Valkey | `valkey` | `valkey` | Le cache, les files de tâches et l'état de courte durée, comme les accusés de push en attente. |
+
+Tous les rôles de l'application utilisent la même image : Docker Compose les exécute dans un seul conteneur `app`, et le chart Helm peut exécuter le worker et le telemetry writer dans leurs propres déploiements. Pour dimensionner chaque niveau, consultez [Dimensionnement et planification de capacité](/docs/installation/sizing).
+
+## Connexions sortant de votre réseau
+
+L'application ne se connecte vers l'extérieur que pour ce que vous activez. Chacune de ces connexions est facultative, et chacune a une page qui indique les adresses exactes à autoriser :
+
+| Connexion sortante | Utilisée pour | Pour en savoir plus |
+| --- | --- | --- |
+| E-mail (SMTP, ou l'API de SendGrid) | Notifications et invitations | [SMTP](/docs/emails/smtp) |
+| Twilio | SMS et appels téléphoniques | [Intégration Twilio](/docs/self-hosted/twilio-integration) |
+| Le relais push de OneUptime, ou Expo | Notifications push mobiles | [Notifications push](/docs/self-hosted/push-notifications) |
+| Slack et Microsoft Teams | Notifications et actions dans l'espace de travail | [Intégration Slack](/docs/self-hosted/slack-integration) |
+| Un fournisseur de LLM, comme OpenAI, Anthropic, Microsoft Foundry ou un modèle que vous exécutez vous-même | OneUptime AI | [Fournisseurs de LLM](/docs/ai/llm-provider) |
+| `oneuptime.com` | Activer une licence Enterprise en ligne | [Édition Enterprise](/docs/self-hosted/enterprise) |
+
+Les connexions dans l'autre sens – SendGrid qui livre les e-mails entrants, Slack et Microsoft Teams qui rappellent – exigent que l'ingress soit joignable depuis Internet. Les adresses privées que l'application et les sondes peuvent joindre, c'est vous qui les choisissez : voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
+
+## Étapes suivantes
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): Installer tous les composants sur une seule machine.
+- [Dimensionnement et planification de capacité](/docs/installation/sizing): Combien de CPU, de mémoire et de disque chaque niveau nécessite.
+- [Sondes personnalisées](/docs/probe/custom-probe): Exécuter une sonde dans un autre réseau.
+- [Édition Enterprise](/docs/self-hosted/enterprise): Ce qu'ajoutent les images Enterprise, et comment fonctionnent les licences.
+:::

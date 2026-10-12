@@ -52,6 +52,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * MonitorService.onBeforeUpdate guards writes to
@@ -181,6 +186,14 @@ beforeEach(() => {
 
       return Promise.resolve(targetRows);
     }) as unknown as SpyLike;
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: the monitors the update targets.
+   */
+  stubRowsCallerMayWrite(MonitorService, () => {
+    return targetRows;
+  });
 });
 
 afterEach(() => {
@@ -351,8 +364,8 @@ describe("which monitors may take a custom name", () => {
     });
 
     expect(storedValue(result)).toBe("nightly-backups");
-    // No target, so no uniqueness lookup either.
-    expect(findByCalls()).toHaveLength(1);
+    // No target, so nothing more is read: no uniqueness lookup either.
+    expect(findByCalls()).toHaveLength(0);
   });
 
   test("scopes the target lookup to the caller's project", async () => {
@@ -360,10 +373,15 @@ describe("which monitors may take a custom name", () => {
       data: { incomingEmailCustomLocalPart: "nightly-backups" },
     });
 
-    const targetLookup: FindByArgs = findByCalls()[0]!;
+    // The monitors the caller may write, found in their project.
+    const writable: RowsCallerMayWriteRead =
+      readsOfRowsCallerMayWrite(MonitorService)[0]!;
+    expect(writable.query["_id"]).toBe(MONITOR_ID.toString());
+    expect(String(writable.query["projectId"])).toBe(PROJECT_ID.toString());
 
+    // Then those, by id, as root.
+    const targetLookup: FindByArgs = findByCalls()[0]!;
     expect(targetLookup.query["_id"]).toBe(MONITOR_ID.toString());
-    expect(String(targetLookup.query["projectId"])).toBe(PROJECT_ID.toString());
     expect(targetLookup.props["isRoot"]).toBe(true);
   });
 

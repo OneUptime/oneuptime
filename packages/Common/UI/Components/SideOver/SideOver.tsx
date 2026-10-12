@@ -1,5 +1,6 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
+import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import React, {
@@ -252,7 +253,13 @@ const SideOver: FunctionComponent<ComponentProps> = (
                * the very top and brings its own spacing.
                */}
               <div className="space-y-6 px-5 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:pt-0">
-                {props.children}
+                {/*
+                 * A panel is a surface of its own: a card drawn in it is
+                 * never a section of the card it was opened from.
+                 */}
+                <CardSurfaceContext.Provider value={CardSurface.Page}>
+                  {props.children}
+                </CardSurfaceContext.Provider>
               </div>
             </div>
             <div

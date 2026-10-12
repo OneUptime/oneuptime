@@ -183,7 +183,7 @@ const Call: () => JSX.Element = (): ReactElement => {
         cardProps={{
           title: "Phone Numbers for Call Notifications",
           description:
-            "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS needs no code here.",
+            "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS is verified for calls too, with no new code.",
         }}
         noItemsMessage={
           isChannelOff

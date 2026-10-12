@@ -1,13 +1,14 @@
 import {
   AI_ACTIVITY_INSIGHTS_RECENT_WINDOW_IN_DAYS,
-  AiActivityAttentionItem,
-  AiActivityAttentionKind,
-  AiActivityAttentionSeverity,
+  AI_ACTIVITY_INSIGHTS_RECURRING_ATTENTION_MIN,
   AiActivityCoverage,
   AiActivityFinding,
   AiActivityFixOutcomes,
   AiActivityFixTaskOutcomes,
   AiActivityHotspot,
+  AiActivityInsight,
+  AiActivityInsightKind,
+  AiActivityInsightTone,
   AiActivityInsights,
   AiActivityInsightsTotals,
   AiActivityNamedResource,
@@ -16,6 +17,7 @@ import {
   AiActivityProblem,
   AiActivityResourceHotspot,
   AiActivitySubject,
+  AiActivityTimeOfDay,
   AiActivityTrendDay,
 } from "Common/Types/AI/AiActivityInsights";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
@@ -36,37 +38,47 @@ import {
 /*
  * The pure half of an AI Insights page (AiActivityInsightsPage): how the
  * page reads the insights route's body (AiActivityInsights, from POST
- * /kubernetes-cluster/ai-access/insights or /resource-ai-access/insights)
- * and the words for each part of it. The server sends numbers and keys,
- * never prose; every sentence is built here, in the reader's language.
+ * /kubernetes-cluster/ai-access/insights, /resource-ai-access/insights or
+ * /ai-activity/{incident|alert}/insights) and the words for each part of
+ * it. The server sends numbers, keys and the names and titles the system
+ * holds, never prose of its own; every sentence is built here, in the
+ * reader's language. The only words from the server are an investigation's
+ * own (a finding, a suggested step), and the page says whose they are.
+ *
+ * What the page says first is what is worth knowing about the reader's
+ * system (the insights): the problem that keeps coming back and why, the
+ * part behind most of the trouble, what AI fixed on its own and what it
+ * would fix if allowed, the risks it spotted before anything paged. How much
+ * AI did comes last, as a footnote with its own health notes.
  *
  * Shared by every scope's Insights page — a cluster, each resource with a
  * resource AI agent, and a project's incidents and its alerts — so nothing
- * here knows which scope it is about beyond the noun it is given, and the
- * sections only the incidents' and alerts' pages have (coverage, monitors
- * and services, fix pull requests) are worded only when the body has them.
+ * here knows which scope it is about beyond the noun and the subject kind it
+ * is given, and the sections only the incidents' and alerts' pages have
+ * (coverage, monitors and services, fix pull requests) are worded only when
+ * the body has them.
  *
  * Import-clean on purpose (Common types and the translation helpers only),
  * so the suites read it without a browser. Server text — titles, findings,
- * label values — is only ever rendered as plain text.
+ * suggested steps, label values — is only ever rendered as plain text.
  */
 
 export const AI_INSIGHTS_PAGE_TITLE: string = translationKey("AI Insights");
 
 export const AI_INSIGHTS_EMPTY_TITLE: string = translationKey(
-  "No AI activity in the last 30 days",
+  "Nothing to show yet",
 );
 
 export function getAiInsightsPageSubtitle(noun: string): string {
   return translateTemplate(
-    "What OneUptime AI has learned about this {{noun}} in the last 30 days, and what deserves your attention.",
+    "What OneUptime AI found out about this {{noun}} in the last 30 days: what keeps going wrong and why, and what to do about it.",
     { noun: translatableTerm(noun, { inSentence: true }) },
   );
 }
 
 export function getAiInsightsEmptyDescription(noun: string): string {
   return translateTemplate(
-    "When OneUptime AI investigates incidents and alerts on this {{noun}}, what it learns shows up here: the problems that keep coming back, the parts of the {{noun}} they hit, what the investigations found and how fixes turned out.",
+    "When an alert or incident fires on this {{noun}}, OneUptime AI investigates it. This page then tells you what keeps coming back and why, what is behind most of the trouble, what AI fixed on its own, and the risks it spots before anything pages.",
     { noun: translatableTerm(noun, { inSentence: true }) },
   );
 }
@@ -164,10 +176,13 @@ function readResourceHotspot(value: unknown): AiActivityResourceHotspot | null {
   }
 
   const lastSeenAt: string | null = readString(value["lastSeenAt"]);
+  const subjectCount: number = readCount(value["subjectCount"]);
 
   return {
     ...resource,
-    subjectCount: readCount(value["subjectCount"]),
+    // A body from before occurrences were counted: its investigated ones.
+    occurrenceCount: readCount(value["occurrenceCount"]) || subjectCount,
+    subjectCount,
     investigationCount: readCount(value["investigationCount"]),
     problemCount: readCount(value["problemCount"]),
     ...(lastSeenAt ? { lastSeenAt } : {}),
@@ -216,8 +231,11 @@ function readObject(value: unknown): AiActivityObject | null {
 
   const name: string | null = readString(value["name"]);
   const objectValue: string | null = readString(value["value"]);
+  const key: string | null = readString(value["key"]);
 
-  return name && objectValue ? { name, value: objectValue } : null;
+  return name && objectValue
+    ? { name, value: objectValue, ...(key ? { key } : {}) }
+    : null;
 }
 
 function readFinding(value: unknown): AiActivityFinding | null {
@@ -242,6 +260,30 @@ function readFinding(value: unknown): AiActivityFinding | null {
   };
 }
 
+function readTimeOfDay(value: unknown): AiActivityTimeOfDay | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const startHourUtc: number | undefined = readOptionalCount(
+    value["startHourUtc"],
+  );
+  const hours: number = readCount(value["hours"]);
+
+  if (startHourUtc === undefined || startHourUtc > 23 || hours === 0) {
+    return null;
+  }
+
+  return {
+    startHourUtc,
+    hours: Math.min(hours, 24),
+    count: readCount(value["count"]),
+    total: readCount(value["total"]),
+    days: readCount(value["days"]),
+    totalDays: readCount(value["totalDays"]),
+  };
+}
+
 function readProblem(value: unknown): AiActivityProblem | null {
   if (!isObject(value)) {
     return null;
@@ -261,15 +303,25 @@ function readProblem(value: unknown): AiActivityProblem | null {
     : {};
   const fixes: JSONObject = isObject(value["fixes"]) ? value["fixes"] : {};
   const finding: AiActivityFinding | null = readFinding(value["latestFinding"]);
+  const nextStep: string | null = readString(value["latestNextStep"]);
+  const timeOfDay: AiActivityTimeOfDay | null = readTimeOfDay(
+    value["timeOfDay"],
+  );
   const firstSeenAt: string | null = readString(value["firstSeenAt"]);
   const lastSeenAt: string | null = readString(value["lastSeenAt"]);
   const investigationCount: number = readCount(value["investigationCount"]);
+  const subjectCount: number = readCount(value["subjectCount"]);
 
   return {
     key,
     title: readString(value["title"]) || "",
+    // A body from before occurrences were counted: its investigated ones.
+    occurrenceCount:
+      readCount(value["occurrenceCount"]) || Math.max(subjectCount, 1),
+    recentOccurrenceCount: readCount(value["recentOccurrenceCount"]),
+    previousOccurrenceCount: readCount(value["previousOccurrenceCount"]),
     investigationCount,
-    subjectCount: readCount(value["subjectCount"]),
+    subjectCount,
     isRecurring: value["isRecurring"] === true,
     ...(firstSeenAt ? { firstSeenAt } : {}),
     ...(lastSeenAt ? { lastSeenAt } : {}),
@@ -287,6 +339,8 @@ function readProblem(value: unknown): AiActivityProblem | null {
       ? { monitors: readList(value["monitors"], readNamedResource) }
       : {}),
     ...(finding ? { latestFinding: finding } : {}),
+    ...(nextStep ? { latestNextStep: nextStep } : {}),
+    ...(timeOfDay ? { timeOfDay } : {}),
     verdicts: {
       confirmed: readCount(verdicts["confirmed"]),
       rejected: readCount(verdicts["rejected"]),
@@ -312,10 +366,13 @@ function readHotspot(value: unknown): AiActivityHotspot | null {
   }
 
   const lastSeenAt: string | null = readString(value["lastSeenAt"]);
+  const investigationCount: number = readCount(value["investigationCount"]);
 
   return {
     ...object,
-    investigationCount: readCount(value["investigationCount"]),
+    // A body from before occurrences were counted: its investigations.
+    occurrenceCount: readCount(value["occurrenceCount"]) || investigationCount,
+    investigationCount,
     problemCount: readCount(value["problemCount"]),
     ...(lastSeenAt ? { lastSeenAt } : {}),
   };
@@ -368,22 +425,22 @@ function readPreventiveInsight(
   };
 }
 
-const ATTENTION_KINDS: ReadonlyArray<string> = Object.values(
-  AiActivityAttentionKind,
+const INSIGHT_KINDS: ReadonlyArray<string> = Object.values(
+  AiActivityInsightKind,
 );
-const ATTENTION_SEVERITIES: ReadonlyArray<string> = Object.values(
-  AiActivityAttentionSeverity,
+const INSIGHT_TONES: ReadonlyArray<string> = Object.values(
+  AiActivityInsightTone,
 );
 
-function readAttentionItem(value: unknown): AiActivityAttentionItem | null {
+function readInsight(value: unknown): AiActivityInsight | null {
   if (!isObject(value)) {
     return null;
   }
 
-  // A kind or severity a newer server added cannot be worded: skipped.
+  // A kind or tone a newer server added cannot be worded: skipped.
   if (
-    !ATTENTION_KINDS.includes(String(value["kind"])) ||
-    !ATTENTION_SEVERITIES.includes(String(value["severity"]))
+    !INSIGHT_KINDS.includes(String(value["kind"])) ||
+    !INSIGHT_TONES.includes(String(value["tone"]))
   ) {
     return null;
   }
@@ -392,31 +449,76 @@ function readAttentionItem(value: unknown): AiActivityAttentionItem | null {
   const recentCount: number | undefined = readOptionalCount(
     value["recentCount"],
   );
+  const previousCount: number | undefined = readOptionalCount(
+    value["previousCount"],
+  );
+  const problemCount: number | undefined = readOptionalCount(
+    value["problemCount"],
+  );
+  const evidenceCount: number | undefined = readOptionalCount(
+    value["evidenceCount"],
+  );
+  const verifiedCount: number | undefined = readOptionalCount(
+    value["verifiedCount"],
+  );
   const problemKey: string | null = readString(value["problemKey"]);
   const title: string | null = readString(value["title"]);
+  const firstSeenAt: string | null = readString(value["firstSeenAt"]);
+  const lastSeenAt: string | null = readString(value["lastSeenAt"]);
+  const fixedAt: string | null = readString(value["fixedAt"]);
+  const finding: AiActivityFinding | null = readFinding(value["finding"]);
+  const nextStep: string | null = readString(value["nextStep"]);
+  const timeOfDay: AiActivityTimeOfDay | null = readTimeOfDay(
+    value["timeOfDay"],
+  );
   const object: AiActivityObject | null = readObject(value["object"]);
-  const subject: AiActivitySubject | null = readSubject(value["subject"]);
-  const insightId: string | null = readString(value["insightId"]);
-  const insightSeverity: string | null = readString(value["insightSeverity"]);
-  const reason: string | null = readString(value["reason"]);
   const monitor: AiActivityNamedResource | null = readNamedResource(
     value["monitor"],
   );
+  const service: AiActivityNamedResource | null = readNamedResource(
+    value["service"],
+  );
+  const subject: AiActivitySubject | null = readSubject(value["subject"]);
+  const insightId: string | null = readString(value["insightId"]);
+  const insightSeverity: string | null = readString(value["insightSeverity"]);
+  const insightType: string | null = readString(value["insightType"]);
+  const reason: string | null = readString(value["reason"]);
 
   return {
-    kind: value["kind"] as AiActivityAttentionKind,
-    severity: value["severity"] as AiActivityAttentionSeverity,
+    kind: value["kind"] as AiActivityInsightKind,
+    tone: value["tone"] as AiActivityInsightTone,
     count: readCount(value["count"]),
     ...(total !== undefined ? { total } : {}),
     ...(recentCount !== undefined ? { recentCount } : {}),
+    ...(previousCount !== undefined ? { previousCount } : {}),
     ...(problemKey ? { problemKey } : {}),
     ...(title ? { title } : {}),
+    ...(firstSeenAt ? { firstSeenAt } : {}),
+    ...(lastSeenAt ? { lastSeenAt } : {}),
+    ...(fixedAt ? { fixedAt } : {}),
+    ...(finding ? { finding } : {}),
+    ...(nextStep ? { nextStep } : {}),
+    ...(timeOfDay ? { timeOfDay } : {}),
     ...(object ? { object } : {}),
+    ...(Array.isArray(value["objects"])
+      ? { objects: readList(value["objects"], readObject) }
+      : {}),
+    ...(monitor ? { monitor } : {}),
+    ...(service ? { service } : {}),
+    ...(Array.isArray(value["monitors"])
+      ? { monitors: readList(value["monitors"], readNamedResource) }
+      : {}),
+    ...(problemCount !== undefined ? { problemCount } : {}),
     ...(subject ? { subject } : {}),
+    ...(Array.isArray(value["evidence"])
+      ? { evidence: readList(value["evidence"], readSubject) }
+      : {}),
+    ...(evidenceCount !== undefined ? { evidenceCount } : {}),
+    ...(verifiedCount !== undefined ? { verifiedCount } : {}),
     ...(insightId ? { insightId } : {}),
     ...(insightSeverity ? { insightSeverity } : {}),
+    ...(insightType ? { insightType } : {}),
     ...(reason ? { reason: reason as InvestigationNotStartedCode } : {}),
-    ...(monitor ? { monitor } : {}),
   };
 }
 
@@ -441,10 +543,13 @@ export function parseAiActivityInsights(
   const fixesHidden: unknown = value["fixesHidden"];
 
   const readTotals: AiActivityInsightsTotals = {
+    occurrences: readCount(totals["occurrences"]),
     investigations: readCount(totals["investigations"]),
     completedInvestigations: readCount(totals["completedInvestigations"]),
     failedInvestigations: readCount(totals["failedInvestigations"]),
     activeInvestigations: readCount(totals["activeInvestigations"]),
+    confirmedFindings: readCount(totals["confirmedFindings"]),
+    rejectedFindings: readCount(totals["rejectedFindings"]),
     problems: readCount(totals["problems"]),
     recurringProblems: readCount(totals["recurringProblems"]),
     fixes: readCount(totals["fixes"]),
@@ -474,7 +579,7 @@ export function parseAiActivityInsights(
     windowStart: readString(value["windowStart"]) || "",
     generatedAt: readString(value["generatedAt"]) || "",
     totals: readTotals,
-    attention: readList(value["attention"], readAttentionItem),
+    insights: readList(value["insights"], readInsight),
     problems: readList(value["problems"], readProblem),
     hotspots: readList(value["hotspots"], readHotspot),
     fixOutcomes: readFixOutcomes,
@@ -505,8 +610,8 @@ export function parseAiActivityInsights(
 }
 
 /*
- * Whether the window holds anything to show. With nothing, the page shows
- * one empty state instead of a row of zeros.
+ * Whether the window holds anything AI did or found. With nothing, the
+ * page shows one empty state instead of a row of zeros.
  */
 export function hasAiActivity(insights: AiActivityInsights): boolean {
   return (
@@ -520,38 +625,53 @@ export function hasAiActivity(insights: AiActivityInsights): boolean {
 
 /*
  * ------------------------------------------------------------------------
- * The words.
+ * How an insight looks.
  * ------------------------------------------------------------------------
  */
 
-export interface AiInsightsLook {
-  color: Color;
+export interface AiInsightLook {
   icon: IconProp;
+  // The round badge behind the icon, and the icon's colour (Theme.css remaps both).
+  badgeClassName: string;
+  // What the tone means, for a screen reader.
   label: string;
 }
 
-const ATTENTION_LOOKS: Record<AiActivityAttentionSeverity, AiInsightsLook> = {
-  [AiActivityAttentionSeverity.High]: {
-    color: Red500,
-    icon: IconProp.ExclaimationCircle,
-    label: translationKey("Needs attention now"),
-  },
-  [AiActivityAttentionSeverity.Medium]: {
-    color: Yellow500,
-    icon: IconProp.Alert,
-    label: translationKey("Worth a look"),
-  },
-  [AiActivityAttentionSeverity.Low]: {
-    color: Gray500,
-    icon: IconProp.Info,
-    label: translationKey("Good to know"),
-  },
+const TONE_CLASS_NAMES: Record<AiActivityInsightTone, string> = {
+  [AiActivityInsightTone.Critical]: "bg-red-50 text-red-600",
+  [AiActivityInsightTone.Warning]: "bg-amber-50 text-amber-600",
+  [AiActivityInsightTone.Pattern]: "bg-indigo-50 text-indigo-600",
+  [AiActivityInsightTone.Positive]: "bg-green-50 text-green-600",
 };
 
-export function getAttentionLook(
-  severity: AiActivityAttentionSeverity,
-): AiInsightsLook {
-  return ATTENTION_LOOKS[severity] || ATTENTION_LOOKS.Low;
+const TONE_LABELS: Record<AiActivityInsightTone, string> = {
+  [AiActivityInsightTone.Critical]: translationKey("Needs attention now"),
+  [AiActivityInsightTone.Warning]: translationKey("Worth acting on"),
+  [AiActivityInsightTone.Pattern]: translationKey("Worth knowing"),
+  [AiActivityInsightTone.Positive]: translationKey("Good news"),
+};
+
+const KIND_ICONS: Record<AiActivityInsightKind, IconProp> = {
+  [AiActivityInsightKind.RecurringProblem]: IconProp.ArrowPath,
+  [AiActivityInsightKind.Hotspot]: IconProp.MapPin,
+  [AiActivityInsightKind.ProblemStopped]: IconProp.CheckCircle,
+  [AiActivityInsightKind.FixedAutomatically]: IconProp.WrenchScrewdriver,
+  [AiActivityInsightKind.FixesDidNotHelp]: IconProp.ExclaimationCircle,
+  [AiActivityInsightKind.FixesAwaitingApproval]: IconProp.HandRaised,
+  [AiActivityInsightKind.ReadyForAutomaticFixes]: IconProp.Bolt,
+  [AiActivityInsightKind.NotInvestigated]: IconProp.EyeSlash,
+  [AiActivityInsightKind.RiskSpotted]: IconProp.Eye,
+};
+
+export function getInsightLook(insight: AiActivityInsight): AiInsightLook {
+  return {
+    icon: KIND_ICONS[insight.kind] || IconProp.LightBulb,
+    badgeClassName:
+      TONE_CLASS_NAMES[insight.tone] ||
+      TONE_CLASS_NAMES[AiActivityInsightTone.Pattern],
+    label:
+      TONE_LABELS[insight.tone] || TONE_LABELS[AiActivityInsightTone.Pattern],
+  };
 }
 
 const PREVENTIVE_SEVERITY_COLORS: Record<string, Color> = {
@@ -563,6 +683,12 @@ const PREVENTIVE_SEVERITY_COLORS: Record<string, Color> = {
 export function getPreventiveSeverityColor(severity: string): Color {
   return PREVENTIVE_SEVERITY_COLORS[severity] || Gray500;
 }
+
+/*
+ * ------------------------------------------------------------------------
+ * Names.
+ * ------------------------------------------------------------------------
+ */
 
 /*
  * How a subject is named in a sentence or a link: "Incident #42: Checkout
@@ -629,6 +755,25 @@ export function describeSubject(subject: AiActivitySubject): string {
 }
 
 /*
+ * A subject named by its number alone — "Alert #812", "Incident INC-42" —
+ * for the short links under an insight; its title when it has no number.
+ */
+export function describeSubjectShort(subject: AiActivitySubject): string {
+  if (subject.numberWithPrefix || subject.number !== undefined) {
+    return describeSubject({
+      kind: subject.kind,
+      id: subject.id,
+      ...(subject.numberWithPrefix
+        ? { numberWithPrefix: subject.numberWithPrefix }
+        : {}),
+      ...(subject.number !== undefined ? { number: subject.number } : {}),
+    });
+  }
+
+  return describeSubject(subject);
+}
+
+/*
  * A problem's heading: its title as the server stripped it of the series
  * identity, else what its latest incident or alert is called.
  */
@@ -641,40 +786,792 @@ export function describeObject(object: AiActivityObject): string {
   return `${translateTerm(object.name)}: ${object.value}`;
 }
 
+// "Node gke-pool-3" — a part as a sentence names it.
+export function describeObjectInSentence(object: AiActivityObject): string {
+  return translateTemplate("{{name}} {{value}}", {
+    name: translatableTerm(object.name),
+    value: object.value,
+  });
+}
+
+// "last seen 2 hours ago", or null without a readable date.
+export function describeLastSeen(at: string | undefined): string | null {
+  if (!at) {
+    return null;
+  }
+
+  const date: Date = OneUptimeDate.fromString(at);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return translateTemplate("last seen {{when}}", {
+    when: OneUptimeDate.fromNow(date),
+  });
+}
+
+// "2 hours ago", or null without a readable date.
+function describeWhen(at: string | undefined): string | null {
+  if (!at) {
+    return null;
+  }
+
+  const date: Date = OneUptimeDate.fromString(at);
+
+  return Number.isNaN(date.getTime()) ? null : OneUptimeDate.fromNow(date);
+}
+
+// "Oct 1" in the reader's own time, or null without a readable date.
+function describeDay(at: string | undefined): string | null {
+  if (!at) {
+    return null;
+  }
+
+  const date: Date = OneUptimeDate.fromString(at);
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : OneUptimeDate.getDateAsLocalDayMonthString(date);
+}
+
 /*
- * A problem's line under its title: how often it was investigated, across
- * how many incidents and alerts (or, on the incidents' or alerts' own page,
- * how many incidents, or alerts), and when last.
+ * ------------------------------------------------------------------------
+ * The insights.
+ * ------------------------------------------------------------------------
  */
-export function describeProblemCount(
-  problem: AiActivityProblem,
-  subjectKind?: "incident" | "alert" | undefined,
+
+// What every sentence about an insight needs to know about the page.
+export interface AiInsightWordingContext {
+  windowInDays: number;
+  // The incidents' or alerts' own page's product; none for a cluster or a resource.
+  subjectKind?: "incident" | "alert" | undefined;
+  // The scope in sentences, for a cluster's or a resource's page.
+  noun: string;
+  // When the insights were made: what "this week" and "new" are measured from.
+  generatedAt?: string | undefined;
+}
+
+// A short badge beside an insight's or a problem's heading.
+export interface AiInsightBadge {
+  label: string;
+  tone: AiActivityInsightTone;
+}
+
+/*
+ * Whether a problem started within the last 7 days of the window: it is
+ * new.
+ */
+export function isNewProblem(
+  firstSeenAt: string | undefined,
+  generatedAt: string | undefined,
+): boolean {
+  if (!firstSeenAt || !generatedAt) {
+    return false;
+  }
+
+  const first: number = Date.parse(firstSeenAt);
+  const now: number = Date.parse(generatedAt);
+
+  return (
+    Number.isFinite(first) &&
+    Number.isFinite(now) &&
+    now - first < AI_ACTIVITY_INSIGHTS_RECENT_WINDOW_IN_DAYS * 24 * 3600 * 1000
+  );
+}
+
+/*
+ * Whether a problem is getting worse: it came up at least
+ * AI_ACTIVITY_INSIGHTS_RECURRING_ATTENTION_MIN times in the last 7 days, and
+ * more than in the 7 days before.
+ */
+export function isGettingWorse(recent: number, previous: number): boolean {
+  return (
+    recent >= AI_ACTIVITY_INSIGHTS_RECURRING_ATTENTION_MIN && recent > previous
+  );
+}
+
+/*
+ * The badge beside a problem that keeps coming back: "New" when it started
+ * this week, else "Getting worse" when this week was worse than the last.
+ */
+export function getRecurringBadge(data: {
+  firstSeenAt?: string | undefined;
+  recentCount: number;
+  previousCount: number;
+  generatedAt?: string | undefined;
+}): AiInsightBadge | null {
+  if (isNewProblem(data.firstSeenAt, data.generatedAt)) {
+    return {
+      label: translationKey("New this week"),
+      tone: AiActivityInsightTone.Warning,
+    };
+  }
+
+  if (isGettingWorse(data.recentCount, data.previousCount)) {
+    return {
+      label: translationKey("Getting worse"),
+      tone: AiActivityInsightTone.Critical,
+    };
+  }
+
+  return null;
+}
+
+export function getInsightBadge(
+  insight: AiActivityInsight,
+  context: AiInsightWordingContext,
+): AiInsightBadge | null {
+  if (insight.kind !== AiActivityInsightKind.RecurringProblem) {
+    return null;
+  }
+
+  return getRecurringBadge({
+    firstSeenAt: insight.firstSeenAt,
+    recentCount: insight.recentCount || 0,
+    previousCount: insight.previousCount || 0,
+    generatedAt: context.generatedAt,
+  });
+}
+
+/*
+ * "the incidents and alerts on this cluster", "the incidents", "the alerts":
+ * what everything that came up is, in the sentences that count it.
+ */
+function describeEverything(
+  count: number,
+  context: AiInsightWordingContext,
+  shown: number,
 ): string {
+  if (context.subjectKind === "incident") {
+    return translatePlural(
+      {
+        one: "That is {{shown}} of the {{count}} incident created in the last {{days}} days.",
+        other:
+          "That is {{shown}} of the {{count}} incidents created in the last {{days}} days.",
+      },
+      count,
+      { shown, days: context.windowInDays },
+    );
+  }
+
+  if (context.subjectKind === "alert") {
+    return translatePlural(
+      {
+        one: "That is {{shown}} of the {{count}} alert created in the last {{days}} days.",
+        other:
+          "That is {{shown}} of the {{count}} alerts created in the last {{days}} days.",
+      },
+      count,
+      { shown, days: context.windowInDays },
+    );
+  }
+
+  return translatePlural(
+    {
+      one: "That is {{shown}} of the {{count}} incident or alert on this {{noun}} in the last {{days}} days.",
+      other:
+        "That is {{shown}} of the {{count}} incidents and alerts on this {{noun}} in the last {{days}} days.",
+    },
+    count,
+    {
+      shown,
+      days: context.windowInDays,
+      noun: translatableTerm(context.noun, { inSentence: true }),
+    },
+  );
+}
+
+// An insight's heading: what is worth knowing, in one line.
+export function describeInsightHeadline(
+  insight: AiActivityInsight,
+  context: AiInsightWordingContext,
+): string {
+  switch (insight.kind) {
+    case AiActivityInsightKind.RecurringProblem:
+      return insight.title
+        ? translateTemplate("{{title}} keeps coming back", {
+            title: insight.title,
+          })
+        : translateTemplate("A problem keeps coming back");
+
+    case AiActivityInsightKind.Hotspot: {
+      if (insight.service) {
+        return translatePlural(
+          {
+            one: "The {{name}} service is behind {{count}} problem",
+            other:
+              "The {{name}} service is behind {{count}} different problems",
+          },
+          insight.problemCount || 0,
+          { name: insight.service.name },
+        );
+      }
+
+      if (insight.monitor) {
+        return translatePlural(
+          {
+            one: "The {{name}} monitor is behind {{count}} problem",
+            other:
+              "The {{name}} monitor is behind {{count}} different problems",
+          },
+          insight.problemCount || 0,
+          { name: insight.monitor.name },
+        );
+      }
+
+      return translatePlural(
+        {
+          one: "{{name}} is behind {{count}} problem",
+          other: "{{name}} is behind {{count}} different problems",
+        },
+        insight.problemCount || 0,
+        {
+          name: insight.object
+            ? describeObjectInSentence(insight.object)
+            : translateTerm("One part"),
+        },
+      );
+    }
+
+    case AiActivityInsightKind.ProblemStopped:
+      return insight.title
+        ? translateTemplate("{{title}} has stopped", { title: insight.title })
+        : translateTemplate("A problem that kept coming back has stopped");
+
+    case AiActivityInsightKind.FixedAutomatically:
+      return translatePlural(
+        {
+          one: "OneUptime AI applied a fix on its own",
+          other: "OneUptime AI applied {{count}} fixes on its own",
+        },
+        insight.count,
+      );
+
+    case AiActivityInsightKind.FixesDidNotHelp:
+      return translatePlural(
+        {
+          one: "A fix did not solve the problem it was for",
+          other: "{{count}} fixes did not solve the problems they were for",
+        },
+        insight.count,
+      );
+
+    case AiActivityInsightKind.FixesAwaitingApproval:
+      return translatePlural(
+        {
+          one: "A fix is waiting for your approval",
+          other: "{{count}} fixes are waiting for your approval",
+        },
+        insight.count,
+      );
+
+    case AiActivityInsightKind.ReadyForAutomaticFixes:
+      return translateTemplate(
+        "Your team approved every fix OneUptime AI proposed here",
+      );
+
+    case AiActivityInsightKind.NotInvestigated:
+      return context.subjectKind === "alert"
+        ? translatePlural(
+            {
+              one: "OneUptime AI did not look into {{count}} alert",
+              other: "OneUptime AI did not look into {{count}} alerts",
+            },
+            insight.count,
+          )
+        : translatePlural(
+            {
+              one: "OneUptime AI did not look into {{count}} incident",
+              other: "OneUptime AI did not look into {{count}} incidents",
+            },
+            insight.count,
+          );
+
+    case AiActivityInsightKind.RiskSpotted:
+      return translateTemplate("Spotted before anything paged: {{title}}", {
+        title: insight.title || "",
+      });
+
+    default:
+      return "";
+  }
+}
+
+/*
+ * The sentences under an insight's heading: the numbers behind it, in
+ * order. Each is a whole sentence of its own.
+ */
+export function describeInsightFacts(
+  insight: AiActivityInsight,
+  context: AiInsightWordingContext,
+): Array<string> {
+  const facts: Array<string> = [];
+
+  switch (insight.kind) {
+    case AiActivityInsightKind.RecurringProblem: {
+      const recent: number = insight.recentCount || 0;
+      const previous: number = insight.previousCount || 0;
+
+      facts.push(
+        translatePlural(
+          {
+            one: "It happened {{count}} time in the last {{days}} days.",
+            other: "It happened {{count}} times in the last {{days}} days.",
+          },
+          insight.count,
+          { days: context.windowInDays },
+        ),
+      );
+
+      const started: string | null = describeWhen(insight.firstSeenAt);
+
+      if (recent >= insight.count && started) {
+        facts.push(
+          translateTemplate("It started {{when}}.", { when: started }),
+        );
+      } else if (recent > 0 && recent > previous) {
+        facts.push(
+          translatePlural(
+            {
+              one: "{{count}} of them was in the last 7 days, up from {{previous}} the 7 days before.",
+              other:
+                "{{count}} of them were in the last 7 days, up from {{previous}} the 7 days before.",
+            },
+            recent,
+            { previous },
+          ),
+        );
+      } else if (recent > 0 && recent < previous) {
+        facts.push(
+          translatePlural(
+            {
+              one: "{{count}} of them was in the last 7 days, down from {{previous}} the 7 days before.",
+              other:
+                "{{count}} of them were in the last 7 days, down from {{previous}} the 7 days before.",
+            },
+            recent,
+            { previous },
+          ),
+        );
+      } else if (recent > 0) {
+        facts.push(
+          translatePlural(
+            {
+              one: "{{count}} of them was in the last 7 days.",
+              other: "{{count}} of them were in the last 7 days.",
+            },
+            recent,
+          ),
+        );
+      }
+
+      // Half of everything or more: worth saying how much.
+      if (
+        insight.total &&
+        insight.total > insight.count &&
+        insight.count * 2 >= insight.total
+      ) {
+        facts.push(describeEverything(insight.total, context, insight.count));
+      }
+
+      return facts;
+    }
+
+    case AiActivityInsightKind.Hotspot:
+      if (insight.total) {
+        facts.push(
+          context.subjectKind === "incident"
+            ? translatePlural(
+                {
+                  one: "It was part of {{shown}} of the {{count}} incident created in the last {{days}} days.",
+                  other:
+                    "It was part of {{shown}} of the {{count}} incidents created in the last {{days}} days.",
+                },
+                insight.total,
+                { shown: insight.count, days: context.windowInDays },
+              )
+            : context.subjectKind === "alert"
+              ? translatePlural(
+                  {
+                    one: "It was part of {{shown}} of the {{count}} alert created in the last {{days}} days.",
+                    other:
+                      "It was part of {{shown}} of the {{count}} alerts created in the last {{days}} days.",
+                  },
+                  insight.total,
+                  { shown: insight.count, days: context.windowInDays },
+                )
+              : translatePlural(
+                  {
+                    one: "It was part of {{shown}} of the {{count}} incident or alert on this {{noun}} in the last {{days}} days.",
+                    other:
+                      "It was part of {{shown}} of the {{count}} incidents and alerts on this {{noun}} in the last {{days}} days.",
+                  },
+                  insight.total,
+                  {
+                    shown: insight.count,
+                    days: context.windowInDays,
+                    noun: translatableTerm(context.noun, { inSentence: true }),
+                  },
+                ),
+        );
+      }
+
+      facts.push(
+        translateTemplate(
+          "Problems that share one place often share one cause: look there first.",
+        ),
+      );
+
+      return facts;
+
+    case AiActivityInsightKind.ProblemStopped: {
+      const fixedOn: string | null = describeDay(insight.fixedAt);
+
+      facts.push(
+        fixedOn
+          ? translatePlural(
+              {
+                one: "It happened {{count}} time, and not once since the fix on {{date}}.",
+                other:
+                  "It happened {{count}} times, and not once since the fix on {{date}}.",
+              },
+              insight.count,
+              { date: fixedOn },
+            )
+          : translatePlural(
+              {
+                one: "It happened {{count}} time, and not once since its fix.",
+                other:
+                  "It happened {{count}} times, and not once since its fix.",
+              },
+              insight.count,
+            ),
+      );
+      facts.push(
+        translateTemplate(
+          "OneUptime AI checked the fix afterwards: the problem was gone.",
+        ),
+      );
+
+      return facts;
+    }
+
+    case AiActivityInsightKind.FixedAutomatically: {
+      const verified: number = insight.verifiedCount || 0;
+
+      if (verified > 0 && verified >= insight.count) {
+        facts.push(
+          translatePlural(
+            {
+              one: "It checked afterwards: the problem was gone.",
+              other:
+                "It checked each one afterwards: the problem was gone every time.",
+            },
+            insight.count,
+          ),
+        );
+      } else if (verified > 0) {
+        facts.push(
+          translatePlural(
+            {
+              one: "{{count}} of them was checked afterwards and solved the problem.",
+              other:
+                "{{count}} of them were checked afterwards and solved the problem.",
+            },
+            verified,
+          ),
+        );
+      }
+
+      facts.push(
+        translatePlural(
+          {
+            one: "Nobody had to approve it first.",
+            other: "Nobody had to approve them first.",
+          },
+          insight.count,
+        ),
+      );
+
+      return facts;
+    }
+
+    case AiActivityInsightKind.FixesDidNotHelp:
+      facts.push(
+        translatePlural(
+          {
+            one: "OneUptime AI checked after it was applied: the problem was still there.",
+            other:
+              "OneUptime AI checked after they were applied: the problems were still there.",
+          },
+          insight.count,
+        ),
+      );
+
+      if (insight.total && insight.total > insight.count) {
+        facts.push(
+          translatePlural(
+            {
+              one: "That is {{shown}} of the {{count}} fix applied in the last {{days}} days.",
+              other:
+                "That is {{shown}} of the {{count}} fixes applied in the last {{days}} days.",
+            },
+            insight.total,
+            { shown: insight.count, days: context.windowInDays },
+          ),
+        );
+      }
+
+      return facts;
+
+    case AiActivityInsightKind.FixesAwaitingApproval:
+      facts.push(
+        translatePlural(
+          {
+            one: "OneUptime AI has it ready: it runs as soon as someone approves it.",
+            other:
+              "OneUptime AI has them ready: each runs as soon as someone approves it.",
+          },
+          insight.count,
+        ),
+      );
+
+      return facts;
+
+    case AiActivityInsightKind.ReadyForAutomaticFixes: {
+      facts.push(
+        translatePlural(
+          {
+            one: "That is {{count}} fix in the last {{days}} days, and none dismissed.",
+            other:
+              "That is {{count}} fixes in the last {{days}} days, and none dismissed.",
+          },
+          insight.count,
+          { days: context.windowInDays },
+        ),
+      );
+
+      if ((insight.verifiedCount || 0) > 0) {
+        facts.push(
+          translatePlural(
+            {
+              one: "{{count}} of them was checked afterwards and solved the problem.",
+              other:
+                "{{count}} of them were checked afterwards and solved the problem.",
+            },
+            insight.verifiedCount || 0,
+          ),
+        );
+      }
+
+      facts.push(
+        translateTemplate(
+          "Let OneUptime AI apply fixes like these on its own, and they run the moment the problem starts.",
+        ),
+      );
+
+      return facts;
+    }
+
+    case AiActivityInsightKind.NotInvestigated: {
+      const kind: "incident" | "alert" =
+        context.subjectKind === "alert" ? "alert" : "incident";
+
+      facts.push(describeNotInvestigatedReason(kind, insight.reason));
+
+      if (insight.total) {
+        facts.push(
+          kind === "alert"
+            ? translatePlural(
+                {
+                  one: "That is {{shown}} of the {{count}} alert created in the last {{days}} days.",
+                  other:
+                    "That is {{shown}} of the {{count}} alerts created in the last {{days}} days.",
+                },
+                insight.total,
+                { shown: insight.count, days: context.windowInDays },
+              )
+            : translatePlural(
+                {
+                  one: "That is {{shown}} of the {{count}} incident created in the last {{days}} days.",
+                  other:
+                    "That is {{shown}} of the {{count}} incidents created in the last {{days}} days.",
+                },
+                insight.total,
+                { shown: insight.count, days: context.windowInDays },
+              ),
+        );
+      }
+
+      return facts;
+    }
+
+    case AiActivityInsightKind.RiskSpotted: {
+      const lastSeen: string | null = describeWhen(insight.lastSeenAt);
+
+      facts.push(
+        lastSeen
+          ? translatePlural(
+              {
+                one: "Seen {{count}} time so far, last {{when}}.",
+                other: "Seen {{count}} times so far, last {{when}}.",
+              },
+              insight.count,
+              { when: lastSeen },
+            )
+          : translatePlural(
+              {
+                one: "Seen {{count}} time so far.",
+                other: "Seen {{count}} times so far.",
+              },
+              insight.count,
+            ),
+      );
+      facts.push(
+        translateTemplate(
+          "OneUptime AI's watch on the telemetry found it; nothing has paged anyone for it yet.",
+        ),
+      );
+
+      return facts;
+    }
+
+    default:
+      return facts;
+  }
+}
+
+/*
+ * An hour of the UTC day as the reader's own clock reads it today:
+ * "1:00 AM", "13:00".
+ */
+export function formatUtcHour(hourUtc: number, reference: Date): string {
+  const at: Date = new Date(
+    Date.UTC(
+      reference.getUTCFullYear(),
+      reference.getUTCMonth(),
+      reference.getUTCDate(),
+      ((hourUtc % 24) + 24) % 24,
+      0,
+      0,
+    ),
+  );
+
+  return OneUptimeDate.getLocalTimeString(at, {
+    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+  });
+}
+
+/*
+ * When a problem tends to happen, in the reader's own time: "It usually
+ * starts between 1:00 AM and 4:00 AM (UTC): on 9 of the 10 days it
+ * happened." — or, when it kept to that time every day it happened, "on
+ * every one of the 10 days it happened".
+ */
+export function describeTimeOfDay(
+  timeOfDay: AiActivityTimeOfDay,
+  generatedAt?: string | undefined,
+): string {
+  const parsed: number = generatedAt ? Date.parse(generatedAt) : NaN;
+  const reference: Date = Number.isFinite(parsed)
+    ? new Date(parsed)
+    : new Date();
+  const startsAt: Date = new Date(
+    Date.UTC(
+      reference.getUTCFullYear(),
+      reference.getUTCMonth(),
+      reference.getUTCDate(),
+      timeOfDay.startHourUtc,
+    ),
+  );
+
+  const values: {
+    start: string;
+    end: string;
+    zone: string;
+    days: number;
+  } = {
+    start: formatUtcHour(timeOfDay.startHourUtc, reference),
+    end: formatUtcHour(timeOfDay.startHourUtc + timeOfDay.hours, reference),
+    zone: OneUptimeDate.getLocalZoneAbbr(startsAt),
+    days: timeOfDay.days,
+  };
+
+  if (timeOfDay.days >= timeOfDay.totalDays) {
+    return translatePlural(
+      {
+        one: "It starts between {{start}} and {{end}} ({{zone}}) on the {{count}} day it happened.",
+        other:
+          "It starts between {{start}} and {{end}} ({{zone}}) on every one of the {{count}} days it happened.",
+      },
+      timeOfDay.totalDays,
+      values,
+    );
+  }
+
+  return translatePlural(
+    {
+      one: "It usually starts between {{start}} and {{end}} ({{zone}}): on {{days}} of the {{count}} day it happened.",
+      other:
+        "It usually starts between {{start}} and {{end}} ({{zone}}): on {{days}} of the {{count}} days it happened.",
+    },
+    timeOfDay.totalDays,
+    values,
+  );
+}
+
+/*
+ * The label over an investigation's own words, and a note when they come
+ * from its report because its TL;DR could not be written.
+ */
+export const AI_INSIGHTS_FINDING_LABEL: string = translationKey(
+  "What OneUptime AI found",
+);
+export const AI_INSIGHTS_NEXT_STEP_LABEL: string =
+  translationKey("What it suggests");
+export const AI_INSIGHTS_FROM_REPORT_NOTE: string = translationKey(
+  "(from the investigation's report)",
+);
+
+/*
+ * ------------------------------------------------------------------------
+ * The problems and the parts behind them.
+ * ------------------------------------------------------------------------
+ */
+
+/*
+ * A problem's line under its title: how often it came up, how much of it
+ * in the last 7 days, and when last — separate phrases, joined like a list.
+ */
+export function describeProblemCount(problem: AiActivityProblem): string {
   const parts: Array<string> = [
     translatePlural(
-      {
-        one: "Investigated {{count}} time",
-        other: "Investigated {{count}} times",
-      },
-      problem.investigationCount,
+      { one: "{{count}} time", other: "{{count}} times" },
+      problem.occurrenceCount,
     ),
   ];
 
-  if (problem.subjectCount > 1) {
+  if (
+    problem.recentOccurrenceCount > 0 &&
+    problem.recentOccurrenceCount < problem.occurrenceCount
+  ) {
     parts.push(
-      subjectKind === "incident"
-        ? translatePlural(
-            { one: "{{count}} incident", other: "{{count}} incidents" },
-            problem.subjectCount,
-          )
-        : subjectKind === "alert"
-          ? translatePlural(
-              { one: "{{count}} alert", other: "{{count}} alerts" },
-              problem.subjectCount,
-            )
-          : translateTemplate("{{count}} incidents and alerts", {
-              count: problem.subjectCount,
-            }),
+      translateTemplate("{{count}} in the last 7 days", {
+        count: problem.recentOccurrenceCount,
+      }),
+    );
+  }
+
+  if (problem.investigationCount > 0) {
+    parts.push(
+      translatePlural(
+        {
+          one: "investigated {{count}} time",
+          other: "investigated {{count}} times",
+        },
+        problem.investigationCount,
+      ),
     );
   }
 
@@ -823,14 +1720,14 @@ export function describeProblemVerdicts(
 }
 
 /*
- * A hotspot's line: how many investigations and problems it showed up in,
- * and when last — separate phrases, joined like a list.
+ * A part's line: how many incidents and alerts it was part of, in how many
+ * problems, and when last — separate phrases, joined like a list.
  */
 export function describeHotspot(hotspot: AiActivityHotspot): string {
   const parts: Array<string> = [
     translatePlural(
-      { one: "{{count}} investigation", other: "{{count}} investigations" },
-      hotspot.investigationCount,
+      { one: "{{count}} time", other: "{{count}} times" },
+      hotspot.occurrenceCount,
     ),
     translatePlural(
       { one: "{{count}} problem", other: "{{count}} problems" },
@@ -846,21 +1743,135 @@ export function describeHotspot(hotspot: AiActivityHotspot): string {
   return parts.join(" · ");
 }
 
-// "last seen 2 hours ago", or null without a readable date.
-export function describeLastSeen(at: string | undefined): string | null {
-  if (!at) {
+/*
+ * A monitor's or service's line: in how many of the window's incidents (or
+ * alerts), across how many problems, and when last.
+ */
+export function describeResourceHotspot(
+  hotspot: AiActivityResourceHotspot,
+  subjectKind: "incident" | "alert",
+): string {
+  const parts: Array<string> = [
+    subjectKind === "alert"
+      ? translatePlural(
+          { one: "{{count}} alert", other: "{{count}} alerts" },
+          hotspot.occurrenceCount,
+        )
+      : translatePlural(
+          { one: "{{count}} incident", other: "{{count}} incidents" },
+          hotspot.occurrenceCount,
+        ),
+    translatePlural(
+      { one: "{{count}} problem", other: "{{count}} problems" },
+      hotspot.problemCount,
+    ),
+  ];
+  const lastSeen: string | null = describeLastSeen(hotspot.lastSeenAt);
+
+  if (lastSeen) {
+    parts.push(lastSeen);
+  }
+
+  return parts.join(" · ");
+}
+
+/*
+ * ------------------------------------------------------------------------
+ * What AI did: the page's footnote.
+ * ------------------------------------------------------------------------
+ */
+
+export enum AiActivityHealthKind {
+  // Investigations that ended in an error or timed out.
+  InvestigationsFailed = "InvestigationsFailed",
+  // Commands the agent never picked up.
+  CommandsTimedOut = "CommandsTimedOut",
+  // Findings people rejected, or the grader found wrong.
+  FindingsRejected = "FindingsRejected",
+}
+
+// A note on how AI's own work went: said under what it did, with a link.
+export interface AiActivityHealthNote {
+  kind: AiActivityHealthKind;
+  sentence: string;
+}
+
+/*
+ * What went wrong with AI's own work, worth a line under what it did:
+ * investigations that failed, commands no agent ran, findings people
+ * rejected. Never the page's headline — it is about AI, not the system.
+ */
+export function getActivityHealthNotes(
+  totals: AiActivityInsightsTotals,
+  context: { windowInDays: number },
+): Array<AiActivityHealthNote> {
+  const notes: Array<AiActivityHealthNote> = [];
+
+  if (totals.failedInvestigations > 0) {
+    notes.push({
+      kind: AiActivityHealthKind.InvestigationsFailed,
+      sentence: translatePlural(
+        {
+          one: "{{count}} investigation failed or timed out in the last {{days}} days.",
+          other:
+            "{{count}} investigations failed or timed out in the last {{days}} days.",
+        },
+        totals.failedInvestigations,
+        { days: context.windowInDays },
+      ),
+    });
+  }
+
+  if (totals.timedOutCommands > 0) {
+    notes.push({
+      kind: AiActivityHealthKind.CommandsTimedOut,
+      sentence: translatePlural(
+        {
+          one: "{{count}} command OneUptime AI sent was never picked up by the agent.",
+          other:
+            "{{count}} commands OneUptime AI sent were never picked up by the agent.",
+        },
+        totals.timedOutCommands,
+      ),
+    });
+  }
+
+  if (totals.rejectedFindings > 0) {
+    notes.push({
+      kind: AiActivityHealthKind.FindingsRejected,
+      sentence: translatePlural(
+        {
+          one: "{{count}} finding was rejected by your team or did not match the root cause recorded later.",
+          other:
+            "{{count}} findings were rejected by your team or did not match the root cause recorded later.",
+        },
+        totals.rejectedFindings,
+      ),
+    });
+  }
+
+  return notes;
+}
+
+/*
+ * What people and the grader thought of AI's findings, or null when nobody
+ * said: "Your team confirmed 9 findings and rejected 1."
+ */
+export function describeFindingsTrust(
+  totals: AiActivityInsightsTotals,
+): string | null {
+  if (totals.confirmedFindings <= 0) {
     return null;
   }
 
-  const date: Date = OneUptimeDate.fromString(at);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return translateTemplate("last seen {{when}}", {
-    when: OneUptimeDate.fromNow(date),
-  });
+  return translatePlural(
+    {
+      one: "{{count}} finding was confirmed by your team or matched the root cause recorded later.",
+      other:
+        "{{count}} findings were confirmed by your team or matched the root cause recorded later.",
+    },
+    totals.confirmedFindings,
+  );
 }
 
 /*
@@ -963,174 +1974,8 @@ export function describeNotInvestigatedReason(
 }
 
 /*
- * The sentence an attention item says, in the reader's language. The link
- * next to it (the incident or alert, the insight, the logs) is the page's.
- * subjectKind is the incidents' or alerts' own page's product.
- */
-export function describeAttentionItem(
-  item: AiActivityAttentionItem,
-  context: {
-    windowInDays: number;
-    subjectKind?: "incident" | "alert" | undefined;
-  },
-): string {
-  switch (item.kind) {
-    case AiActivityAttentionKind.FixesFailed:
-      return translatePlural(
-        {
-          one: "{{count}} fix OneUptime AI applied did not resolve the problem it was for.",
-          other:
-            "{{count}} fixes OneUptime AI applied did not resolve the problems they were for.",
-        },
-        item.count,
-      );
-
-    case AiActivityAttentionKind.RecurringProblem: {
-      const recurring: string = translatePlural(
-        {
-          one: "{{title}} keeps coming back: OneUptime AI investigated it {{count}} time in the last {{days}} days.",
-          other:
-            "{{title}} keeps coming back: OneUptime AI investigated it {{count}} times in the last {{days}} days.",
-        },
-        item.count,
-        {
-          title: item.title || translateTerm("A problem"),
-          days: context.windowInDays,
-        },
-      );
-
-      if (!item.recentCount) {
-        return recurring;
-      }
-
-      return `${recurring} ${translatePlural(
-        {
-          one: "{{count}} of those was in the last {{days}} days.",
-          other: "{{count}} of those were in the last {{days}} days.",
-        },
-        item.recentCount,
-        { days: AI_ACTIVITY_INSIGHTS_RECENT_WINDOW_IN_DAYS },
-      )}`;
-    }
-
-    case AiActivityAttentionKind.PreventiveInsight:
-      return translateTemplate("An open preventive insight: {{title}}", {
-        title: item.title || "",
-      });
-
-    case AiActivityAttentionKind.FixesAwaitingApproval:
-      return translatePlural(
-        {
-          one: "{{count}} fix OneUptime AI proposed is waiting for approval.",
-          other:
-            "{{count}} fixes OneUptime AI proposed are waiting for approval.",
-        },
-        item.count,
-      );
-
-    case AiActivityAttentionKind.InvestigationsFailed:
-      return translatePlural(
-        {
-          one: "{{count}} investigation failed or timed out in the last {{days}} days.",
-          other:
-            "{{count}} investigations failed or timed out in the last {{days}} days.",
-        },
-        item.count,
-        { days: context.windowInDays },
-      );
-
-    case AiActivityAttentionKind.CommandsTimedOut:
-      return translatePlural(
-        {
-          one: "{{count}} command OneUptime AI sent was never picked up by the agent.",
-          other:
-            "{{count}} commands OneUptime AI sent were never picked up by the agent.",
-        },
-        item.count,
-      );
-
-    case AiActivityAttentionKind.FindingsRejected:
-      return translatePlural(
-        {
-          one: "{{count}} finding was rejected by your team or did not match the root cause recorded later.",
-          other:
-            "{{count}} findings were rejected by your team or did not match the root cause recorded later.",
-        },
-        item.count,
-      );
-
-    case AiActivityAttentionKind.Hotspot:
-      return translatePlural(
-        {
-          one: "{{object}} shows up in {{shown}} of the {{count}} investigation here.",
-          other:
-            "{{object}} shows up in {{shown}} of the {{count}} investigations here.",
-        },
-        item.total || item.count,
-        {
-          object: item.object ? describeObject(item.object) : "",
-          shown: item.count,
-        },
-      );
-
-    case AiActivityAttentionKind.InvestigationsNotStarted:
-      return context.subjectKind === "alert"
-        ? translatePlural(
-            {
-              one: "{{count}} alert created in the last {{days}} days was not investigated.",
-              other:
-                "{{count}} alerts created in the last {{days}} days were not investigated.",
-            },
-            item.count,
-            { days: context.windowInDays },
-          )
-        : translatePlural(
-            {
-              one: "{{count}} incident created in the last {{days}} days was not investigated.",
-              other:
-                "{{count}} incidents created in the last {{days}} days were not investigated.",
-            },
-            item.count,
-            { days: context.windowInDays },
-          );
-
-    case AiActivityAttentionKind.MonitorHotspot:
-      return translatePlural(
-        {
-          one: "{{name}} was behind {{shown}} of the {{count}} investigation here.",
-          other:
-            "{{name}} was behind {{shown}} of the {{count}} investigations here.",
-        },
-        item.total || item.count,
-        { name: item.monitor?.name || "", shown: item.count },
-      );
-
-    default:
-      return "";
-  }
-}
-
-/*
- * The line under an attention item's sentence, when it has one: why the
- * incidents (or alerts) were not investigated.
- */
-export function describeAttentionDetail(
-  item: AiActivityAttentionItem,
-  context: { subjectKind?: "incident" | "alert" | undefined },
-): string | null {
-  if (item.kind === AiActivityAttentionKind.InvestigationsNotStarted) {
-    return describeNotInvestigatedReason(
-      context.subjectKind === "alert" ? "alert" : "incident",
-      item.reason,
-    );
-  }
-
-  return null;
-}
-
-/*
  * Investigations in the last seven days of the trend, and in the seven
- * before them: the trend card's one-line summary.
+ * before them: the trend's one-line summary.
  */
 export function getTrendWeeks(trend: Array<AiActivityTrendDay>): {
   thisWeek: number;
@@ -1203,7 +2048,7 @@ export interface AiInsightsFixSegment {
 }
 
 /*
- * The fixes of the window by where they ended up, for the fixes card's bar:
+ * The fixes of the window by where they ended up, for the fixes bar:
  * applied first, then waiting, then the ones that went nowhere.
  */
 export function getFixSegments(
@@ -1228,7 +2073,7 @@ export function getFixSegments(
     {
       label: translationKey("Planning"),
       value: outcomes.planning,
-      color: "bg-sky-300",
+      color: "bg-sky-400",
     },
     {
       label: translationKey("Dismissed"),
@@ -1275,8 +2120,8 @@ export const AI_INSIGHTS_FIXES_HIDDEN_NOTE: string = translationKey(
 
 /*
  * The fix pull requests of the window by where they ended up, for the fixes
- * card's second bar: opened first, then the ones still running, then the
- * ones that went nowhere.
+ * second bar: opened first, then the ones still running, then the ones
+ * that went nowhere.
  */
 export function getFixTaskSegments(
   outcomes: AiActivityFixTaskOutcomes,
@@ -1290,7 +2135,7 @@ export function getFixTaskSegments(
     {
       label: translationKey("In progress"),
       value: outcomes.inProgress,
-      color: "bg-sky-300",
+      color: "bg-sky-400",
     },
     {
       label: translationKey("No fix found"),
@@ -1310,44 +2155,6 @@ export function getFixTaskSegments(
   ].filter((segment: AiInsightsFixSegment): boolean => {
     return segment.value > 0;
   });
-}
-
-/*
- * A monitor's or service's line: in how many of the incidents (or alerts)
- * AI investigated, across how many problems, and when last.
- */
-export function describeResourceHotspot(
-  hotspot: AiActivityResourceHotspot,
-  subjectKind: "incident" | "alert",
-): string {
-  const parts: Array<string> = [
-    subjectKind === "alert"
-      ? translatePlural(
-          {
-            one: "{{count}} alert investigated",
-            other: "{{count}} alerts investigated",
-          },
-          hotspot.subjectCount,
-        )
-      : translatePlural(
-          {
-            one: "{{count}} incident investigated",
-            other: "{{count}} incidents investigated",
-          },
-          hotspot.subjectCount,
-        ),
-    translatePlural(
-      { one: "{{count}} problem", other: "{{count}} problems" },
-      hotspot.problemCount,
-    ),
-  ];
-  const lastSeen: string | null = describeLastSeen(hotspot.lastSeenAt);
-
-  if (lastSeen) {
-    parts.push(lastSeen);
-  }
-
-  return parts.join(" · ");
 }
 
 /*

@@ -1,6 +1,7 @@
 import SessionReplayWireEncoding, {
   SESSION_REPLAY_ENVELOPE_TERMINATOR,
 } from "../../../Utils/Rum/SessionReplayWireEncoding";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * The encoding exists for what a firewall sees (SessionReplayWafCompatibility
@@ -15,18 +16,6 @@ function parseLikeTheServer(line: string): unknown {
   const newline: number = bytes.indexOf(0x0a);
 
   return JSON.parse(bytes.subarray(0, newline).toString("utf-8"));
-}
-
-function mulberry32(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 describe("SessionReplayWireEncoding", () => {
@@ -120,7 +109,7 @@ describe("SessionReplayWireEncoding", () => {
         "u",
       ];
 
-      const random: () => number = mulberry32(42);
+      const random: () => number = seededRandom(42);
 
       for (let iteration: number = 0; iteration < 2000; iteration++) {
         let text: string = "";

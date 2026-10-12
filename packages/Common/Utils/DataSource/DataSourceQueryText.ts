@@ -2,6 +2,7 @@ import DashboardVariable from "../../Types/Dashboard/DashboardVariable";
 import DashboardVariableInterpolation, {
   ResolvedVariableValue,
 } from "../Dashboard/VariableInterpolation";
+import escapeRegExp from "../RegExpEscape";
 
 /*
  * Pure text utilities for external Data Source queries: dashboard-variable
@@ -53,10 +54,7 @@ export default class DataSourceQueryText {
        * {{ name }} with optional inner whitespace. Variable names come
        * from user config — escape regex metacharacters.
        */
-      const escapedName: string = variable.name.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        "\\$&",
-      );
+      const escapedName: string = escapeRegExp(variable.name);
       const token: RegExp = new RegExp(
         `\\{\\{\\s*${escapedName}\\s*\\}\\}`,
         "g",

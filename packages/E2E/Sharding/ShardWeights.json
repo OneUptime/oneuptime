@@ -155,6 +155,10 @@
     "chromium": 1,
     "firefox": 1
   },
+  "Dashboard/DashboardStoredInAnotherShape.spec.ts": {
+    "chromium": 45,
+    "firefox": 1
+  },
   "Dashboard/DockerSwarmProduct.spec.ts": {
     "chromium": 1,
     "firefox": 1

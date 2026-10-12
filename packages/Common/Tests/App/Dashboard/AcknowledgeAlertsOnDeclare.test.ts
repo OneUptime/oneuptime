@@ -13,8 +13,8 @@ import {
   getAcknowledgeAlertsTitle,
   getAlertsKeepEscalatingNote,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/AcknowledgeAlertsOnDeclare";
-import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate, {
@@ -28,16 +28,14 @@ import { AlertsToAcknowledge } from "../../../Utils/Incident/IncidentFromAlerts"
  * The wording and the permission gate of the "acknowledge the alerts" box on
  * the create-incident page. The box's label and description say exactly
  * which alerts are acknowledged, the note says which alerts keep escalating
- * when the box is not ticked, and the gate asks for the same two permissions
- * the server checks before it acknowledges an alert: create a state timeline
- * row, then update the alert.
+ * when the box is not ticked, and the gate asks for the one permission the
+ * server checks before it acknowledges an alert, on the declare form as on
+ * the alert's own page: create a state timeline row. Acknowledging takes no
+ * permission to edit the alert.
  */
 
 const TIMELINE_CREATE_REASON: string =
   "You do not have permission to acknowledge this alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert State Timeline.";
-
-const ALERT_UPDATE_REASON: string =
-  "You do not have permission to acknowledge this alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Edit Alert.";
 
 const SINGULAR_DESCRIPTION: string =
   "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.";
@@ -150,8 +148,11 @@ describe("AcknowledgeAlertsOnDeclare", () => {
         `${SINGULAR_DESCRIPTION} 2 alerts are already acknowledged or resolved and are left as they are. ${TIMELINE_CREATE_REASON}`,
       );
       expect(
-        getAcknowledgeAlertsDescription(toAcknowledge(1), ALERT_UPDATE_REASON),
-      ).toBe(`${SINGULAR_DESCRIPTION} ${ALERT_UPDATE_REASON}`);
+        getAcknowledgeAlertsDescription(
+          toAcknowledge(1),
+          TIMELINE_CREATE_REASON,
+        ),
+      ).toBe(`${SINGULAR_DESCRIPTION} ${TIMELINE_CREATE_REASON}`);
     });
 
     test("ignores an empty reason", () => {
@@ -245,6 +246,14 @@ describe("AcknowledgeAlertsOnDeclare", () => {
         [Permission.CreateAlertStateTimeline, Permission.EditAlert],
       ],
       [
+        "somebody who may create alert state timelines and read alerts, but not edit them",
+        [Permission.CreateAlertStateTimeline, Permission.ReadAlert],
+      ],
+      [
+        "a viewer who may create alert state timelines",
+        [Permission.Viewer, Permission.CreateAlertStateTimeline],
+      ],
+      [
         "somebody who may edit all operational resources and create timelines",
         [
           Permission.CreateAlertStateTimeline,
@@ -257,7 +266,7 @@ describe("AcknowledgeAlertsOnDeclare", () => {
       expect(getAcknowledgeAlertsGate()).toEqual({ isAllowed: true });
     });
 
-    test("checks the state timeline create first, then the alert update, both as 'acknowledge this alert'", () => {
+    test("checks the state timeline create alone, as 'acknowledge this alert': acknowledging takes no permission to edit the alert", () => {
       const checkSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
         PermissionGate,
         "check",
@@ -265,7 +274,7 @@ describe("AcknowledgeAlertsOnDeclare", () => {
 
       expect(getAcknowledgeAlertsGate()).toEqual({ isAllowed: true });
 
-      expect(checkSpy).toHaveBeenCalledTimes(2);
+      expect(checkSpy).toHaveBeenCalledTimes(1);
 
       const calls: Array<Array<unknown>> = checkSpy.mock.calls as Array<
         Array<unknown>
@@ -277,12 +286,50 @@ describe("AcknowledgeAlertsOnDeclare", () => {
         verb: "acknowledge",
         singularName: "alert",
       });
-      expect(calls[1]![0]).toBeInstanceOf(Alert);
-      expect(calls[1]![1]).toBe(ModelAction.Update);
-      expect(calls[1]![2]).toEqual({
-        verb: "acknowledge",
-        singularName: "alert",
-      });
+    });
+
+    // The rows a project member with one block holds, as the snapshot stores them.
+    const withBlockOn: (blocked: Permission) => void = (
+      blocked: Permission,
+    ): void => {
+      permissionsForTest = [Permission.ProjectMember];
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue({
+        projectId: ObjectID.generate(),
+        permissions: [
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [],
+            isBlockPermission: false,
+            _type: "UserPermission",
+          },
+          {
+            permission: blocked,
+            labelIds: [],
+            isBlockPermission: true,
+            _type: "UserPermission",
+          },
+        ],
+        _type: "UserTenantAccessPermission",
+      } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>);
+    };
+
+    test("a team's block on Edit Alert leaves the box unlocked: changing a state is not editing the alert", () => {
+      withBlockOn(Permission.EditAlert);
+
+      expect(getAcknowledgeAlertsGate()).toEqual({ isAllowed: true });
+    });
+
+    test("a team's block on Create Alert State Timeline locks the box, and says a team blocks it", () => {
+      withBlockOn(Permission.CreateAlertStateTimeline);
+
+      const gate: PermissionGateResult = getAcknowledgeAlertsGate();
+
+      expect(gate.isAllowed).toBe(false);
+      expect(gate.disabledReason).toContain(
+        "You do not have permission to acknowledge this alert.",
+      );
+      expect(gate.disabledReason).toContain("A team you are on blocks");
+      expect(gate.disabledReason).toContain("Create Alert State Timeline");
     });
 
     test("stops at the state timeline when that is missing, and names its permissions", () => {
@@ -304,7 +351,7 @@ describe("AcknowledgeAlertsOnDeclare", () => {
       );
     });
 
-    test("names the state timeline even when the alert update is missing too", () => {
+    test("names the state timeline for somebody who may only read alerts", () => {
       permissionsForTest = [Permission.AlertViewer, Permission.ReadAlert];
 
       expect(getAcknowledgeAlertsGate()).toEqual({
@@ -338,16 +385,20 @@ describe("AcknowledgeAlertsOnDeclare", () => {
       });
     });
 
-    test("names the alert update when only that is missing", () => {
-      permissionsForTest = [
-        Permission.Viewer,
-        Permission.CreateAlertStateTimeline,
-      ];
+    test("never names Edit Alert: the alert update is not asked about", () => {
+      for (const permissions of [
+        [Permission.Viewer],
+        [Permission.AlertViewer, Permission.ReadAlert],
+        [Permission.Viewer, Permission.EditAlert],
+      ]) {
+        permissionsForTest = permissions;
+        PermissionGate.clearPermissionPropsCache();
 
-      expect(getAcknowledgeAlertsGate()).toEqual({
-        isAllowed: false,
-        disabledReason: ALERT_UPDATE_REASON,
-      });
+        const gate: PermissionGateResult = getAcknowledgeAlertsGate();
+
+        expect(gate.isAllowed).toBe(false);
+        expect(gate.disabledReason).not.toContain("Edit Alert");
+      }
     });
 
     test("gives no reason while the permission snapshot has not loaded", () => {

@@ -84,6 +84,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import CronTab from "../../../Utils/CronTab";
+import MattermostWebhook from "../../../Server/Utils/Mattermost/MattermostWebhook";
 
 const templates: Array<WorkflowTemplate> = getWorkflowTemplates();
 
@@ -796,6 +797,71 @@ describe("workflow template variables", () => {
         expect(variable.name).not.toContain(".");
         expect(variable.name).not.toMatch(/\s/);
       }
+    }
+  });
+
+  /*
+   * Two fields of one Configure step under the same title read as one
+   * question asked twice. The Jira templates that link an issue ask for the
+   * site people open Jira at and for the address their API calls go to -
+   * often the same URL, and not always - so the titles tell them apart.
+   */
+  test("no two settings of a template share a title", () => {
+    for (const template of templates) {
+      const titles: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.title.trim().toLowerCase();
+        },
+      );
+
+      expect({
+        template: template.id,
+        repeated: titles.filter((title: string, index: number): boolean => {
+          return titles.indexOf(title) !== index;
+        }),
+      }).toEqual({ template: template.id, repeated: [] });
+    }
+  });
+
+  /*
+   * A setting prefilled from another takes what is typed there until it is
+   * typed into, so the other has to come first: the wizard asks in the
+   * template's order. Where the template does not ask for it, nothing fills
+   * the field in.
+   */
+  test("a setting prefilled from another follows it in its template, or names one the template does not ask for", () => {
+    for (const template of templates) {
+      const names: Array<string> = template.variables.map(
+        (variable: WorkflowTemplateVariable): string => {
+          return variable.name;
+        },
+      );
+
+      template.variables.forEach(
+        (variable: WorkflowTemplateVariable, index: number): void => {
+          if (!variable.prefilledFrom) {
+            return;
+          }
+
+          const from: number = names.indexOf(variable.prefilledFrom);
+
+          expect({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: from === -1 || from < index,
+            notItself: variable.prefilledFrom !== variable.name,
+            // Filling in goes one step: from a setting someone types into, never through another.
+            fromATypedSetting:
+              from === -1 || !template.variables[from]?.prefilledFrom,
+          }).toEqual({
+            template: template.id,
+            variable: variable.name,
+            fromAnEarlierSetting: true,
+            notItself: true,
+            fromATypedSetting: true,
+          });
+        },
+      );
     }
   });
 
@@ -2009,5 +2075,313 @@ describe.each(
         }),
       ).toContain("in");
     }
+  });
+});
+
+/*
+ * The IRC template has no webhook URL to ask for: the step connects to a
+ * server and joins a channel, so those are its two fields. What they accept
+ * is what the step can use - a host name, a channel with its "#" - and what
+ * people get wrong first is refused in the wizard rather than at the first
+ * incident.
+ */
+describe("the IRC template", () => {
+  const ircTemplate: WorkflowTemplate = getWorkflowTemplate(
+    "incident-created-irc",
+  ) as WorkflowTemplate;
+
+  type FieldFunction = (name: string) => WorkflowTemplateVariable;
+
+  const field: FieldFunction = (name: string): WorkflowTemplateVariable => {
+    return ircTemplate.variables.find((variable: WorkflowTemplateVariable) => {
+      return variable.name === name;
+    }) as WorkflowTemplateVariable;
+  };
+
+  test("is an incident template that asks for a server and a channel, neither secret", () => {
+    expect(ircTemplate.category).toBe(WorkflowTemplateCategory.Incidents);
+    expect(
+      ircTemplate.variables.map((variable: WorkflowTemplateVariable) => {
+        return [variable.name, variable.required, variable.isSecret];
+      }),
+    ).toEqual([
+      ["ircServer", true, false],
+      ["ircChannel", true, false],
+    ]);
+  });
+
+  test.each(["irc.libera.chat", "irc.oftc.net", "irc-internal", "203.0.113.5"])(
+    "IRC Server takes %j",
+    (value: string) => {
+      expect(field("ircServer").format?.pattern.test(value)).toBe(true);
+    },
+  );
+
+  test.each([
+    "ircs://irc.libera.chat",
+    "irc.libera.chat:6697",
+    "irc.libera.chat/#ops",
+    "irc libera",
+    "-irc.example.com",
+  ])("IRC Server refuses %j", (value: string) => {
+    expect(field("ircServer").format?.pattern.test(value)).toBe(false);
+  });
+
+  test.each(["#ops", "##libera-overflow", "&local", "#部署"])(
+    "IRC Channel takes %j",
+    (value: string) => {
+      expect(field("ircChannel").format?.pattern.test(value)).toBe(true);
+    },
+  );
+
+  test.each(["ops", "#ops team", "#ops,#dev", "#"])(
+    "IRC Channel refuses %j",
+    (value: string) => {
+      expect(field("ircChannel").format?.pattern.test(value)).toBe(false);
+    },
+  );
+
+  test("its IRC step takes the server and the channel from those fields", () => {
+    const step: TemplateNodeSpec | undefined = specOf(
+      "incident-created-irc",
+    ).nodes.find((node: TemplateNodeSpec) => {
+      return node.metadataId === ComponentID.IRCSendMessageToChannel;
+    });
+
+    expect(step?.args?.["server"]).toBe("{{local.variables.ircServer}}");
+    expect(step?.args?.["channel"]).toBe("{{local.variables.ircChannel}}");
+    // Two lines: IRC sends each as a message of its own.
+    expect(String(step?.args?.["text"]).split("\n")).toHaveLength(2);
+  });
+});
+
+/*
+ * The Mattermost templates: the jobs the Slack templates do most, for a
+ * team whose chat is a Mattermost of its own. Each asks for the one thing
+ * it needs - the incoming webhook's URL, a secret - and refuses what people
+ * paste by mistake before the first incident does: the server's address, a
+ * page of its System Console, a Slack webhook.
+ */
+describe("the Mattermost templates", () => {
+  const MATTERMOST_TEMPLATE_IDS: Array<string> = [
+    "incident-created-mattermost",
+    "incident-state-changed-mattermost",
+    "alert-created-mattermost",
+    "monitor-status-changed-mattermost",
+    "maintenance-scheduled-mattermost",
+  ];
+
+  const ID: string = "3fd8pjcne7ry5bauiz8kpfo3hy";
+
+  type MattermostStepFunction = (templateId: string) => TemplateNodeSpec;
+
+  const mattermostStep: MattermostStepFunction = (
+    templateId: string,
+  ): TemplateNodeSpec => {
+    const steps: Array<TemplateNodeSpec> = specOf(templateId).nodes.filter(
+      (node: TemplateNodeSpec) => {
+        return node.metadataId === ComponentID.MattermostSendMessageToChannel;
+      },
+    );
+
+    expect(steps).toHaveLength(1);
+
+    return steps[0] as TemplateNodeSpec;
+  };
+
+  test("are the ones that use the Mattermost step, one for each job, in the categories they belong to", () => {
+    const usingMattermost: Array<string> = templates
+      .filter((template: WorkflowTemplate) => {
+        return specOf(template.id).nodes.some((node: TemplateNodeSpec) => {
+          return node.metadataId === ComponentID.MattermostSendMessageToChannel;
+        });
+      })
+      .map((template: WorkflowTemplate): string => {
+        return template.id;
+      });
+
+    expect([...usingMattermost].sort()).toEqual(
+      [...MATTERMOST_TEMPLATE_IDS].sort(),
+    );
+
+    expect(
+      MATTERMOST_TEMPLATE_IDS.map((id: string) => {
+        return getWorkflowTemplate(id)?.category;
+      }),
+    ).toEqual([
+      WorkflowTemplateCategory.Incidents,
+      WorkflowTemplateCategory.Incidents,
+      WorkflowTemplateCategory.Alerts,
+      WorkflowTemplateCategory.Monitors,
+      WorkflowTemplateCategory.ScheduledMaintenance,
+    ]);
+  });
+
+  test("each is named for Mattermost, so a search for it finds them all", () => {
+    for (const id of MATTERMOST_TEMPLATE_IDS) {
+      const template: WorkflowTemplate = getWorkflowTemplate(
+        id,
+      ) as WorkflowTemplate;
+
+      expect(template.name).toContain("Mattermost");
+      expect(template.workflowName).toContain("Mattermost");
+      // Not mistaken for a Slack, Discord or Teams template in a search.
+      expect(
+        `${template.name} ${template.description} ${template.workflowName}`,
+      ).not.toMatch(/slack|discord|teams|telegram|irc/i);
+    }
+  });
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s asks only for the webhook's URL: required, secret, and checked",
+    (id: string) => {
+      const template: WorkflowTemplate = getWorkflowTemplate(
+        id,
+      ) as WorkflowTemplate;
+
+      expect(
+        template.variables.map((variable: WorkflowTemplateVariable) => {
+          return [
+            variable.name,
+            variable.title,
+            variable.required,
+            variable.isSecret,
+            Boolean(variable.format),
+          ];
+        }),
+      ).toEqual([
+        [
+          "mattermostWebhookUrl",
+          "Mattermost Incoming Webhook URL",
+          true,
+          true,
+          true,
+        ],
+      ]);
+    },
+  );
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s posts through that URL, as the webhook, to the webhook's own channel",
+    (id: string) => {
+      const step: TemplateNodeSpec = mattermostStep(id);
+
+      expect(step.componentId).toBe("mattermost-1");
+      expect(Object.keys(step.args || {}).sort()).toEqual([
+        "text",
+        "webhook-url",
+      ]);
+      expect(step.args?.["webhook-url"]).toBe(
+        "{{local.variables.mattermostWebhookUrl}}",
+      );
+    },
+  );
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s writes Mattermost's Markdown: an emoji and a bold heading, then a bold label on each line",
+    (id: string) => {
+      const lines: Array<string> = String(
+        mattermostStep(id).args?.["text"],
+      ).split("\n");
+
+      expect(lines.length).toBeGreaterThanOrEqual(3);
+      expect(lines[0]).toMatch(/^:[a-z0-9_+-]+: \*\*[^*\n]+\*\*$/);
+
+      for (const line of lines.slice(1)) {
+        expect(line).toMatch(/^\*\*[A-Z][A-Za-z ()]+:\*\* \{\{[^{}]+\}\}$/);
+      }
+
+      // Slack's *bold* is plain text with asterisks in Mattermost.
+      for (const line of lines) {
+        expect(line.replace(/\*\*/g, "")).not.toContain("*");
+      }
+    },
+  );
+
+  test.each(MATTERMOST_TEMPLATE_IDS)(
+    "%s logs Mattermost's reason when the message does not get through",
+    (id: string) => {
+      const spec: TemplateSpec = specOf(id);
+      const errorEdges: Array<TemplateEdgeSpec> = spec.edges.filter(
+        (edge: TemplateEdgeSpec) => {
+          return (
+            edge.fromComponentId === "mattermost-1" && edge.fromPort === "error"
+          );
+        },
+      );
+
+      expect(errorEdges).toHaveLength(1);
+
+      const log: TemplateNodeSpec | undefined = spec.nodes.find(
+        (node: TemplateNodeSpec) => {
+          return node.componentId === errorEdges[0]?.toComponentId;
+        },
+      );
+
+      expect(log?.metadataId).toBe(ComponentID.Log);
+      expect(String(log?.args?.["value"])).toMatch(
+        /^❌ Mattermost could not deliver the [a-z ]+: \{\{local\.components\.mattermost-1\.returnValues\.error\}\}$/,
+      );
+    },
+  );
+
+  describe("the URL field", () => {
+    const field: WorkflowTemplateVariable = (
+      getWorkflowTemplate(
+        MATTERMOST_TEMPLATE_IDS[0] as string,
+      ) as WorkflowTemplate
+    ).variables[0] as WorkflowTemplateVariable;
+
+    const accepts: Array<string> = [
+      `https://mattermost.example.com/hooks/${ID}`,
+      `https://acme.cloud.mattermost.com/hooks/${ID}`,
+      `https://chat.example.com:8443/hooks/${ID}`,
+      `https://example.com/mattermost/hooks/${ID}`,
+      `http://mattermost.internal:8065/hooks/${ID}`,
+      `http://10.20.30.40:8065/hooks/${ID}`,
+      field.placeholder,
+    ];
+
+    const refuses: Array<string> = [
+      "https://mattermost.example.com",
+      "https://mattermost.example.com/",
+      "https://mattermost.example.com/acme/integrations/incoming_webhooks",
+      "https://mattermost.example.com/admin_console/integrations/integration_management",
+      `https://mattermost.example.com/hooks/${ID}/`,
+      `https://mattermost.example.com/hooks/${ID}?channel=ops`,
+      `https://mattermost.example.com/hooks/${ID.toUpperCase()}`,
+      `https://mattermost.example.com/hooks/${ID.slice(1)}`,
+      `mattermost.example.com/hooks/${ID}`,
+      `https://user:password@mattermost.example.com/hooks/${ID}`,
+      "https://hooks.slack.com/services/T000/B000/XXXX",
+      "https://discord.com/api/webhooks/123/abc",
+      "{{global.variables.MATTERMOST_WEBHOOK_URL}}",
+    ];
+
+    test.each(accepts)("takes %s", (value: string) => {
+      expect(field.format?.pattern.test(value)).toBe(true);
+    });
+
+    test.each(refuses)("refuses %s", (value: string) => {
+      expect(field.format?.pattern.test(value)).toBe(false);
+    });
+
+    test("agrees with the step on every one of them, so what the wizard takes the step can post to", () => {
+      for (const value of [...accepts, ...refuses]) {
+        expect({
+          value,
+          wizard: field.format?.pattern.test(value),
+        }).toEqual({
+          value,
+          wizard: MattermostWebhook.getWebhookUrlProblem(value) === null,
+        });
+      }
+    });
+
+    test("says where to find the URL, and what to type when it is refused", () => {
+      expect(field.description).toContain("Integrations");
+      expect(field.description).toContain("Incoming Webhooks");
+      expect(field.format?.message).toContain("/hooks/");
+    });
   });
 });

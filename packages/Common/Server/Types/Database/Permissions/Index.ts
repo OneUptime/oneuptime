@@ -14,6 +14,7 @@ import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import RelationListPermission from "./RelationListPermission";
 import TablePermission from "./TablePermission";
 import UpdatePermission from "./UpdatePermission";
+import UpdateScopePermission from "./UpdateScopePermission";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -336,11 +337,13 @@ export default class ModelPermission {
   }
 
   /*
-   * The records a create or an update lists - an incident's monitors, a
-   * maintenance event's status pages - are records its caller may read
-   * (RelationListPermission.checkNamedLists). Asked by DatabaseService before
-   * the hooks run, on what the caller sent; for an update, with what each
-   * record it writes lists already, which is not asked about again.
+   * The records a create or an update names - an incident's monitors, a
+   * maintenance event's status pages, an alert's monitor - are records its
+   * caller may read (RelationListPermission.checkNamedLists). Asked by
+   * DatabaseService before the hooks run, on what the caller sent, and again
+   * after them on the records a hook named besides (a template's monitors);
+   * for an update, with what each record it writes lists or names already,
+   * which is not asked about again.
    */
   @CaptureSpan()
   public static async checkNamedListsPermission(data: {
@@ -350,6 +353,7 @@ export default class ModelPermission {
     heldIdsByColumn?: Dictionary<Array<Array<string>>> | undefined;
     findReadableIds: RecordIdsFinder;
     findIdsInProject: RecordIdsFinder;
+    findSharedIds?: RecordIdsFinder | undefined;
     referencesCheckedInProject: boolean;
     namedIds?: Dictionary<Array<string>> | undefined;
   }): Promise<void> {
@@ -385,6 +389,34 @@ export default class ModelPermission {
 
     try {
       return await CreateScopePermission.checkCreateScope(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
+  }
+
+  /*
+   * A change leaves a record within the caller's permission to update it: one
+   * limited to labels, a record still carrying one of them; a block with
+   * labels, no record given one of them (UpdateScopePermission
+   * .checkUpdateScope). Asked by DatabaseService of an update that writes the
+   * labels a record carries, on the rows it writes, before the update hooks
+   * run and again after them should a hook change the labels.
+   */
+  @CaptureSpan()
+  public static async checkUpdateScopePermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    data: unknown;
+    rows: Array<BaseModel>;
+    props: DatabaseCommonInteractionProps;
+    findRecordLabels: RecordLabelsFinder;
+    findLabelNames: LabelNamesFinder;
+  }): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      return await UpdateScopePermission.checkUpdateScope(data);
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, data.props);
     }

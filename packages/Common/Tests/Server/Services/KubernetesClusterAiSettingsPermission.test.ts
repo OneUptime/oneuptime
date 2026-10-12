@@ -18,6 +18,10 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import CallerPermission from "../../../Server/Utils/Permission/CallerPermission";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -36,6 +40,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -285,6 +293,15 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
     clusterLookup = jest
       .spyOn(KubernetesClusterService, "findBy")
       .mockResolvedValue([cluster()]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
@@ -483,6 +500,139 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ).resolves.toBeDefined();
       },
     );
+  });
+
+  /*
+   * ONE RULE FOR PEOPLE AND STEPS. Binding a credential asks
+   * RunbookCredentialReaders - RunbookCredential's own read list - whoever
+   * binds it. A workflow's step acts as a Project Admin, who may read
+   * credentials, but that read is never lent to it: the binding is refused,
+   * with a refusal that says a person has to make it, and nobody is looked
+   * up to answer it.
+   */
+  describe("binding a credential from a workflow's step", () => {
+    const WORKFLOW_ID: ObjectID = new ObjectID(
+      "12121212-1212-4121-8121-121212121212",
+    );
+
+    function step(): DatabaseCommonInteractionProps {
+      return WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: PROJECT_ID,
+        workflowId: WORKFLOW_ID,
+        workflowName: "Point the cluster at the new credential",
+      });
+    }
+
+    it("is refused, though the step acts as a Project Admin, and says a person has to bind it", async () => {
+      const lookUp: jest.SpyInstance = jest.spyOn(
+        AccessTokenService,
+        "getDatabaseCommonInteractionPropsByUserAndProject",
+      );
+
+      for (const data of [
+        { aiAccessCredentialId: CREDENTIAL_ID },
+        { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
+      ]) {
+        const refusal: Promise<unknown> = hooks().onBeforeUpdate(
+          updateBy(data, step()),
+        );
+
+        await expect(refusal).rejects.toThrow(NotAuthorizedException);
+        await expect(refusal).rejects.toThrow(getAiAccessCredentialRefusal());
+        await expect(refusal).rejects.toThrow(
+          "Workflow steps never have this permission, so a person who has it has to make this change.",
+        );
+      }
+
+      expect(lookUp).not.toHaveBeenCalled();
+    });
+
+    it("is refused whatever the step's props carry, even Read Runbook Credential", async () => {
+      const props: DatabaseCommonInteractionProps = step();
+
+      props.userTenantAccessPermission![
+        PROJECT_ID.toString()
+      ]!.permissions.push(
+        permissionRow(Permission.ReadRunbookCredential),
+        permissionRow(Permission.ProjectOwner),
+      );
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, props),
+        ),
+      ).rejects.toThrow(getAiAccessCredentialRefusal());
+    });
+
+    it("asks nothing of a write that binds no credential", async () => {
+      for (const data of LOOSENING_WRITES_WITHOUT_CREDENTIAL.map(
+        ([, write]: [string, Record<string, unknown>]) => {
+          return write;
+        },
+      )) {
+        await expect(
+          hooks().onBeforeUpdate(updateBy(data, step())),
+        ).resolves.toBeDefined();
+      }
+    });
+
+    it("leaves a person's binding to their own permissions", async () => {
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy(
+            { aiAccessCredentialId: CREDENTIAL_ID },
+            propsWith(Permission.ProjectAdmin),
+          ),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it("asks RunbookCredentialReaders for people and steps alike, and no second list", async () => {
+      const mayRead: jest.SpyInstance = jest.spyOn(
+        RunbookCredentialReaders,
+        "mayRead",
+      );
+      const holdsAnyOf: jest.SpyInstance = jest.spyOn(
+        CallerPermission,
+        "holdsAnyOf",
+      );
+
+      const person: DatabaseCommonInteractionProps = propsWith(
+        Permission.EditAutoRemediationRule,
+        Permission.ReadRunbookCredential,
+      );
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, person),
+        ),
+      ).resolves.toBeDefined();
+
+      await expect(
+        hooks().onBeforeUpdate(
+          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
+        ),
+      ).rejects.toThrow(getAiAccessCredentialRefusal());
+
+      const asked: Array<DatabaseCommonInteractionProps> =
+        mayRead.mock.calls.map(
+          (call: Array<unknown>): DatabaseCommonInteractionProps => {
+            return call[0] as DatabaseCommonInteractionProps;
+          },
+        );
+
+      expect(asked).toContain(person);
+      expect(
+        asked.some((props: DatabaseCommonInteractionProps): boolean => {
+          return WorkflowPrincipal.isWorkflow(props);
+        }),
+      ).toBe(true);
+
+      // CallerPermission answers only who may loosen AI access, never who may read credentials.
+      for (const call of holdsAnyOf.mock.calls) {
+        expect(call[1]).toEqual(KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS);
+      }
+    });
   });
 
   describe("judged against the cluster's current settings", () => {
@@ -934,6 +1084,75 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ).rejects.toThrow(NotAuthorizedException);
     });
+
+    /*
+     * The credential read is asked in the project of the cluster the write
+     * binds it on - the project the admin check two lines above asks about
+     * - not in whichever project the request named, or none.
+     */
+    describe("the credential read", () => {
+      function holding(
+        tenantId: ObjectID | null,
+        rows: Array<[ObjectID, Array<Permission>]>,
+      ): DatabaseCommonInteractionProps {
+        const access: Record<string, UserTenantAccessPermission> = {};
+
+        for (const [projectId, permissions] of rows) {
+          access[projectId.toString()] = {
+            _type: "UserTenantAccessPermission",
+            projectId: projectId,
+            permissions: permissions.map((permission: Permission) => {
+              return permissionRow(permission);
+            }),
+          };
+        }
+
+        return {
+          userId: ObjectID.generate(),
+          ...(tenantId ? { tenantId } : {}),
+          userTenantAccessPermission: access,
+        } as DatabaseCommonInteractionProps;
+      }
+
+      beforeEach(() => {
+        clusterLookup.mockResolvedValue([
+          cluster({ projectId: OTHER_PROJECT_ID }),
+        ]);
+      });
+
+      it("is the cluster's project's, when the request names no project", async () => {
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy(
+              { aiAccessCredentialId: CREDENTIAL_ID },
+              holding(null, [
+                [
+                  OTHER_PROJECT_ID,
+                  [
+                    Permission.EditAutoRemediationRule,
+                    Permission.ReadRunbookCredential,
+                  ],
+                ],
+              ]),
+            ),
+          ),
+        ).resolves.toBeDefined();
+      });
+
+      it("is not one held in the project the request names, when the cluster is another's", async () => {
+        await expect(
+          hooks().onBeforeUpdate(
+            updateBy(
+              { aiAccessCredentialId: CREDENTIAL_ID },
+              holding(PROJECT_ID, [
+                [OTHER_PROJECT_ID, [Permission.EditAutoRemediationRule]],
+                [PROJECT_ID, [Permission.ReadRunbookCredential]],
+              ]),
+            ),
+          ),
+        ).rejects.toThrow(getAiAccessCredentialRefusal());
+      });
+    });
   });
 
   describe("callers the check does not apply to", () => {
@@ -1098,10 +1317,13 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         props: DatabaseCommonInteractionProps;
       };
 
-      expect(args.query).toEqual({
-        _id: CLUSTER_ID.toString(),
-        projectId: PROJECT_ID,
-      });
+      expect(args.query).toEqual({ _id: CLUSTER_ID.toString() });
+      // Within the caller's project: the clusters they may write are found there.
+      expect(
+        readsOfRowsCallerMayWrite(KubernetesClusterService)[0]!.query[
+          "projectId"
+        ],
+      ).toEqual(PROJECT_ID);
       expect(args.props.isRoot).toBe(true);
       for (const column of [
         "projectId",

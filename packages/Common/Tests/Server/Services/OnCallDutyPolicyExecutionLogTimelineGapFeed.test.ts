@@ -11,6 +11,7 @@ import ObjectID from "../../../Types/ObjectID";
 import URL from "../../../Types/API/URL";
 import logger from "../../../Server/Utils/Logger";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
+import { htmlAsText } from "../../Helpers/HtmlText";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import { Token, Tokens, marked } from "marked";
 
@@ -369,13 +370,7 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
     }
 
     function readText(markdown: string): string {
-      return (marked.parse(markdown, { async: false }) as string)
-        .replace(/<[^>]+>/g, "")
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&amp;/g, "&")
+      return htmlAsText(marked.parse(markdown, { async: false }) as string)
         .split(WORD_JOINER)
         .join("");
     }

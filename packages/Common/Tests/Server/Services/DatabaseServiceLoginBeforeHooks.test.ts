@@ -8,8 +8,8 @@ import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequ
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import Probe from "../../../Models/DatabaseModels/Probe";
 import Project from "../../../Models/DatabaseModels/Project";
+import Reseller from "../../../Models/DatabaseModels/Reseller";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallShiftReminder from "../../../Models/DatabaseModels/UserOnCallShiftReminder";
@@ -702,15 +702,15 @@ describe("DatabaseService's login check honours Permission.Public per request ty
     jest.restoreAllMocks();
   });
 
-  describe("Probe - publicly readable, not publicly writable", () => {
+  describe("Reseller - publicly readable, not publicly writable", () => {
     let service: DatabaseService<BaseModel>;
     let hooks: HookSpies;
     let getRepository: jest.SpyInstance;
 
     beforeEach(() => {
       jest.restoreAllMocks();
-      service = new DatabaseService<Probe>(
-        Probe,
+      service = new DatabaseService<Reseller>(
+        Reseller,
       ) as unknown as DatabaseService<BaseModel>;
       hooks = stubHooksWithSentinel(service);
       getRepository = stubRepositoryToFailLoudly(service);
@@ -718,12 +718,12 @@ describe("DatabaseService's login check honours Permission.Public per request ty
     });
 
     it("is public for read and for nothing else", () => {
-      const probe: Probe = new Probe();
+      const reseller: Reseller = new Reseller();
 
-      expect(probe.readRecordPermissions).toContain(Permission.Public);
-      expect(probe.createRecordPermissions).not.toContain(Permission.Public);
-      expect(probe.updateRecordPermissions).not.toContain(Permission.Public);
-      expect(probe.deleteRecordPermissions).not.toContain(Permission.Public);
+      expect(reseller.readRecordPermissions).toContain(Permission.Public);
+      expect(reseller.createRecordPermissions).not.toContain(Permission.Public);
+      expect(reseller.updateRecordPermissions).not.toContain(Permission.Public);
+      expect(reseller.deleteRecordPermissions).not.toContain(Permission.Public);
     });
 
     ["findBy", "findOneBy", "findOneById"].forEach(
@@ -758,7 +758,7 @@ describe("DatabaseService's login check honours Permission.Public per request ty
         await expectNotAuthenticated(
           operation.run(service, { tenantId: PROJECT_ID }),
           operation.requestType,
-          "Probe",
+          "Reseller",
         );
 
         expect(hooks[operation.hook]).not.toHaveBeenCalled();

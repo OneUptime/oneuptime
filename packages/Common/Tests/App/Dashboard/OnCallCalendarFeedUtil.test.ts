@@ -70,7 +70,20 @@ import { MaterializedShiftJson } from "../../../Types/OnCallDutyPolicy/Materiali
 const HTTPS_URL: string =
   "https://oneuptime.example.com/api/on-call-calendar/user/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG/shifts.ics";
 
+const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcal:");
+
 const BASE_URLS: FeedUrls = {
+  https: HTTPS_URL,
+  webcal: WEBCAL_URL,
+  googleAdd: `${GOOGLE_CALENDAR_ADD_URL_PREFIX}${encodeURIComponent(WEBCAL_URL)}`,
+};
+
+/*
+ * What an API from before the Google Calendar fix sends: a webcals:// link
+ * (iOS will not open it) and Google's cid carrying the https:// address
+ * (Google answers "Unable to add calendar. Check the URL.").
+ */
+const LEGACY_URLS: FeedUrls = {
   https: HTTPS_URL,
   webcal: HTTPS_URL.replace("https:", "webcals:"),
   googleAdd: `${GOOGLE_CALENDAR_ADD_URL_PREFIX}${encodeURIComponent(HTTPS_URL)}`,
@@ -97,6 +110,7 @@ const makeStatus: MakeStatusFunction = (
     urls: BASE_URLS,
     hostWarning: null,
     protocolWarning: null,
+    privateHost: null,
     ...overrides,
   };
 };
@@ -164,7 +178,7 @@ describe("calendar feed API paths", () => {
 });
 
 describe("buildGoogleAddUrl", () => {
-  test("url-encodes the whole https link behind Google's cid parameter", () => {
+  test("url-encodes the feed's webcal:// address, whole, behind Google's cid parameter", () => {
     const result: string = buildGoogleAddUrl(HTTPS_URL);
 
     expect(
@@ -175,9 +189,25 @@ describe("buildGoogleAddUrl", () => {
      * break Google's parameter parsing.
      */
     expect(result).not.toContain(HTTPS_URL);
+    expect(result).not.toContain(WEBCAL_URL);
     expect(decodeURIComponent(result.split("cid=")[1] as string)).toBe(
-      HTTPS_URL,
+      WEBCAL_URL,
     );
+  });
+
+  /*
+   * Regression: cid carried the https:// address, and Google Calendar opened
+   * with "Unable to add calendar. Check the URL." - the error a customer saw
+   * on the dashboard's Google Calendar button.
+   */
+  test("never puts the https:// address in cid", () => {
+    const cid: string | null = new URL(
+      buildGoogleAddUrl(HTTPS_URL),
+    ).searchParams.get("cid");
+
+    expect(cid?.startsWith("https:")).toBe(false);
+    expect(cid?.startsWith("webcal://")).toBe(true);
+    expect(buildGoogleAddUrl(HTTPS_URL)).not.toBe(LEGACY_URLS.googleAdd);
   });
 });
 
@@ -210,12 +240,24 @@ describe("addScheduleFilter / applyScheduleFilter", () => {
     const filtered: FeedUrls = applyScheduleFilter(BASE_URLS, "sched-9");
 
     expect(filtered.https).toBe(`${HTTPS_URL}?schedule=sched-9`);
-    expect(filtered.webcal).toBe(`${BASE_URLS.webcal}?schedule=sched-9`);
+    expect(filtered.webcal).toBe(`${WEBCAL_URL}?schedule=sched-9`);
     expect(filtered.googleAdd).toBe(
       buildGoogleAddUrl(`${HTTPS_URL}?schedule=sched-9`),
     );
+    expect(new URL(filtered.googleAdd).searchParams.get("cid")).toBe(
+      `${WEBCAL_URL}?schedule=sched-9`,
+    );
     // The input is left untouched.
     expect(BASE_URLS.https).toBe(HTTPS_URL);
+  });
+
+  test("applyScheduleFilter builds every form from the narrowed https, even from a payload with broken forms", () => {
+    const filtered: FeedUrls = applyScheduleFilter(LEGACY_URLS, "sched-9");
+
+    expect(filtered.webcal).toBe(`${WEBCAL_URL}?schedule=sched-9`);
+    expect(new URL(filtered.googleAdd).searchParams.get("cid")).toBe(
+      `${WEBCAL_URL}?schedule=sched-9`,
+    );
   });
 });
 
@@ -565,23 +607,34 @@ describe("parseFeedUrls", () => {
     expect(parseFeedUrls({ webcal: "webcals://x" })).toBeNull();
   });
 
-  test("keeps every server-provided URL verbatim", () => {
+  test("a payload with today's forms reads back unchanged", () => {
     expect(parseFeedUrls(BASE_URLS as unknown as JSONObject)).toEqual(
       BASE_URLS,
     );
   });
 
-  test("repairs a missing webcal and googleAdd from the https link", () => {
+  /*
+   * The dashboard can be a release ahead of the API during a rolling
+   * upgrade, and an older API sends both subscribe forms broken. They are
+   * rebuilt from the https address rather than trusted.
+   */
+  test("rebuilds webcal and googleAdd from the https link, whatever the payload says", () => {
+    expect(parseFeedUrls(LEGACY_URLS as unknown as JSONObject)).toEqual(
+      BASE_URLS,
+    );
+  });
+
+  test("derives a missing webcal and googleAdd from the https link, as webcal://", () => {
     const parsed: FeedUrls | null = parseFeedUrls({ https: HTTPS_URL });
 
     expect(parsed).not.toBeNull();
     /*
-     * webcalS, not webcal: an https feed subscribed over plain webcal:// would
-     * make Apple Calendar fetch the token in the clear from an https-only host
-     * (the server builds webcals:// for https - spec 2.2).
+     * webcal://, never webcals://: iOS refuses to open webcals:// ("the
+     * address is invalid"), and Apple Calendar and Google both fetch a
+     * webcal:// address over https when the server serves https.
      */
-    expect(parsed!.webcal).toBe(HTTPS_URL.replace("https:", "webcals:"));
-    expect(parsed!.webcal.startsWith("webcals://")).toBe(true);
+    expect(parsed!.webcal).toBe(WEBCAL_URL);
+    expect(parsed!.webcal.startsWith("webcals://")).toBe(false);
     expect(parsed!.googleAdd).toBe(buildGoogleAddUrl(HTTPS_URL));
   });
 
@@ -685,6 +738,7 @@ describe("parseFeedStatus", () => {
       urls: BASE_URLS as unknown as JSONObject,
       hostWarning: "Set HOST",
       protocolWarning: "Plain http",
+      privateHost: "oneuptime.internal",
     });
 
     expect(status).toEqual({
@@ -703,7 +757,13 @@ describe("parseFeedStatus", () => {
       urls: BASE_URLS,
       hostWarning: "Set HOST",
       protocolWarning: "Plain http",
+      privateHost: "oneuptime.internal",
     });
+  });
+
+  test("an API from before privateHost existed reads as no private host", () => {
+    expect(parseFeedStatus({ exists: true }).privateHost).toBeNull();
+    expect(parseFeedStatus({ privateHost: "" }).privateHost).toBeNull();
   });
 
   test("booleans must be real booleans - a truthy string does not enable a feed", () => {

@@ -1,27 +1,60 @@
-# Syslog-gegevens naar OneUptime sturen
+# Syslog
 
-## Overzicht
+OneUptime neemt syslog aan via HTTPS. Stuur berichten volgens RFC 5424 of RFC 3164 met je ingestiesleutel naar `/syslog/v1/logs`, en elk bericht wordt een doorzoekbare log, met prioriteit, facility, niveau, host, applicatie en gestructureerde gegevens als attributen. Gebruik het om door te sturen vanuit rsyslog, syslog-ng of elke relay die HTTP-requests kan doen.
 
-De OpenTelemetry Ingest-dienst accepteert nu native Syslog-payloads. U kunt berichten van elke RFC3164- of RFC5424-compatibele bron rechtstreeks naar OneUptime sturen via HTTPS. OneUptime parseert de syslog-prioriteit, faciliteit, ernst, gestructureerde gegevens en berichtinhoud voordat alles als doorzoekbare logboeken wordt opgeslagen.
+:::cards
+- [Een testbericht sturen](#een-testbericht-sturen): Eén `curl`-request.
+- [Doorsturen vanuit rsyslog](#doorsturen-vanuit-rsyslog): Alles sturen wat een server of relay ontvangt.
+- [Uitgelezen attributen](#uitgelezen-attributen): Wat OneUptime uit elk bericht haalt.
+- [Problemen oplossen](#problemen-oplossen): Geweigerde requests en onverwachte services.
+:::
 
-## Vereisten
+## Hoe het werkt
 
-- **Telemetrie-ingestietoken** — maak er een aan via _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en kopieer de `x-oneuptime-token`-waarde.
-- **Syslog-forwarder** — elk hulpmiddel dat HTTP POST-verzoeken kan sturen (bijvoorbeeld `curl`, `rsyslog` via `omhttp`, of `syslog-ng` met de HTTP-bestemmingsplugin).
-- **Dienstnaam (optioneel)** — stel de `x-oneuptime-service-name`-header in om inkomende logboeken te groeperen onder een specifieke telemetriedienst. Indien weggelaten valt OneUptime terug op de syslog `APP-NAME`, hostnaam of `Syslog`.
-
-## Eindpunt
-
+```mermaid title="Van syslog-bronnen naar OneUptime"
+flowchart TB
+    subgraph sources["Syslog-bronnen"]
+        direction LR
+        servers["Linux-servers"]
+        devices["Firewalls en switches"]
+    end
+    servers --> relay["rsyslog of syslog-ng"]
+    devices -->|"Syslog via UDP of TCP"| relay
+    relay -->|"HTTPS-POST + ingestiesleutel"| endpoint["OneUptime /syslog/v1/logs"]
+    endpoint --> parse["Prioriteit, header en gestructureerde<br/>gegevens uitgelezen"]
+    parse --> logs["Logs"]
 ```
+
+OneUptime antwoordt zodra het de berichten uit het request heeft gelezen, en leest en bewaart ze een moment later. De berichttekst blijft in de inhoud van de log; al het andere wordt een attribuut.
+
+> [!TIP]
+> Netwerkapparaten die je met een OneUptime-probe bewaakt, kunnen hun syslog via UDP rechtstreeks naar de probe sturen, zonder relay; de logs verschijnen dan bij het apparaat in OneUptime. Zie [Handleidingen per netwerkleverancier](/docs/monitor/network-vendor-guides).
+
+## Voordat je begint
+
+- **Een OneUptime-project**: in OneUptime Cloud wordt telemetrie per opgenomen GB gefactureerd, en een project op het Free-abonnement heeft een betaalmethode nodig voordat het telemetrie kan sturen.
+- **Telemetrie-ingestiesleutel**: maak een **Server**-sleutel onder **Producten → Projectinstellingen → Telemetrie & APM → Ingestiesleutels** en kopieer de **Geheime sleutel**. Je stuurt die in de header `x-oneuptime-token`.
+- **Syslog-doorstuurder**: elk hulpmiddel dat HTTP POST-requests kan sturen (bijvoorbeeld `curl`, `rsyslog` via `omhttp`, of `syslog-ng` met zijn HTTP-bestemming).
+- **Servicenaam (optioneel)**: zet de header `x-oneuptime-service-name` om binnenkomende logs onder een bepaalde telemetrieservice te groeperen. Laat je hem weg, dan valt OneUptime terug op de syslog-`APP-NAME`, de hostnaam of `Syslog`.
+
+## Endpoint
+
+```http
 POST https://oneuptime.com/syslog/v1/logs
 ```
 
-- Vervang `oneuptime.com` door uw host als u OneUptime zelf host.
-- Voeg altijd de `x-oneuptime-token`-header toe aan het verzoek.
+| Header | Verplicht | Waarde |
+| --- | --- | --- |
+| `x-oneuptime-token` | Ja | Je ingestiesleutel. |
+| `Content-Type` | Ja, voor JSON-inhoud | `application/json` |
+| `x-oneuptime-service-name` | Nee | De service waartoe de logs horen. |
+| `Content-Encoding` | Nee | `gzip`, voor gecomprimeerde inhoud. |
 
-## Verzoeklichaam
+Vervang `oneuptime.com` door je eigen host als je OneUptime zelf host.
 
-Stuur door regeleinden gescheiden Syslog-tekenreeksen of een JSON-payload met een `messages`-array. Zowel RFC3164 (BSD)- als RFC5424-formaten worden ondersteund.
+## Inhoud van het request
+
+Stuur een JSON-payload met een array `messages`. Zowel RFC 5424 als RFC 3164 (BSD) worden ondersteund, en je kunt ze in één request door elkaar gebruiken:
 
 ```json
 {
@@ -32,13 +65,18 @@ Stuur door regeleinden gescheiden Syslog-tekenreeksen of een JSON-payload met ee
 }
 ```
 
-### Ondersteunde inhoudstypen
+### Ondersteunde inhoudsformaten
 
-- `application/json` — aanbevolen.
-- `text/plain` — door regeleinden gescheiden berichten.
-- `application/octet-stream` — ruwe payloads. Gzip-compressie (`Content-Encoding: gzip`) wordt ook geaccepteerd.
+| Inhoud | Hoe je hem stuurt |
+| --- | --- |
+| Een JSON-object met een array `messages` | `Content-Type: application/json`, aanbevolen. |
+| Een JSON-array van berichten | `Content-Type: application/json`. |
+| Een JSON-object met één `message` | `Content-Type: application/json`. Een waarde met meerdere regels wordt als meerdere berichten gelezen. |
+| Berichten gescheiden door regeleinden | Met gzip gecomprimeerd en verstuurd met `Content-Encoding: gzip`. |
 
-## Snelle test met curl
+Platte tekst die niet met gzip is gecomprimeerd wordt niet gelezen, en het request wordt geweigerd met `400`. Met gzip gecomprimeerde inhoud wordt altijd gelezen als berichten gescheiden door regeleinden, dus comprimeer geen JSON-inhoud. Houd elk request onder 1 MB: de ingress van OneUptime verhoogt de standaardlimiet van nginx voor de requestinhoud niet voor dit endpoint.
+
+## Een testbericht sturen
 
 ```bash
 curl \
@@ -53,140 +91,165 @@ curl \
   }'
 ```
 
+Een `200` betekent dat het bericht is aangenomen. Open **Producten → Logboeken**: de log verschijnt in de service `production-web` met de inhoud `502 on /api/login`, het niveau `Error` en de attributen uit [Uitgelezen attributen](#uitgelezen-attributen).
+
 ## Doorsturen vanuit rsyslog
 
-1. Installeer de HTTP-uitvoermodule:
-   ```bash
-   sudo apt-get install rsyslog-omhttp
-   ```
-2. Voeg de bestemming toe aan `/etc/rsyslog.d/oneuptime.conf`:
+rsyslog stuurt naar OneUptime met zijn HTTP-uitvoermodule, `omhttp`.
 
-   ```
-   module(load="omhttp")
+:::steps
+### Zorgen dat `omhttp` beschikbaar is
 
-   template(name="OneUptimeJson" type="list") {
-     constant(value="{\"messages\":[\"")
-     property(name="rawmsg")
-     constant(value="\"]}")
-   }
+De configuratie hieronder laadt hem met `module(load="omhttp")`. Meldt rsyslog dat het de module niet kan laden, installeer dan het pakket dat `omhttp` voor je distributie levert.
 
-   action(
-     type="omhttp"
-     server="oneuptime.com"
-     serverport="443"
-     usehttps="on"
-     endpoint="/syslog/v1/logs"
-     header="Content-Type: application/json"
-     header="x-oneuptime-token: YOUR_TELEMETRY_KEY"
-     header="x-oneuptime-service-name: rsyslog-demo"
-     template="OneUptimeJson"
-   )
-   ```
+### De OneUptime-bestemming toevoegen
 
-3. Herstart rsyslog:
-   ```bash
-   sudo systemctl restart rsyslog
-   ```
+Maak `/etc/rsyslog.d/oneuptime.conf` aan. De template bouwt elk bericht opnieuw op als RFC 5424-regel en verpakt het in de JSON-inhoud die OneUptime verwacht:
 
-## Veelgebruikte toepassingen die we al zien
-
-### 1. Netwerk- en beveiligingsapparaten
-
-De meeste netwerkapparatuur stelt configuratiewijzigingen, ACL-treffers en bedreigingsdetecties nog steeds uitsluitend beschikbaar via syslog. Wijs uw bestaande relay (Palo Alto, Fortinet, Cisco ASA, Juniper, pfSense en meer) rechtstreeks naar OneUptime, of houd een interne relay aan en stuur door via HTTPS:
-
-```bash
-# rsyslog-fragment dat berichten batcht in JSON en naar OneUptime post
+```text title="/etc/rsyslog.d/oneuptime.conf"
 module(load="omhttp")
 
-template(name="OneUptimeJSON" type="list") {
-  constant(value="{\"messages\":[\"")
-  property(name="rawmsg")
-  constant(value="\"]}")
-}
+template(name="OneUptimeJson" type="string"
+         string="{\"messages\":[\"<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %MSGID% - %msg:::json%\"]}")
 
 action(
   type="omhttp"
   server="oneuptime.com"
   serverport="443"
   usehttps="on"
-  endpoint="/syslog/v1/logs"
-  header="Content-Type: application/json"
-  header="x-oneuptime-token: <TOKEN>"
-  header="x-oneuptime-service-name: perimeter-firewall"
-  template="OneUptimeJSON"
+  restpath="syslog/v1/logs"
+  httpheaders=[
+    "x-oneuptime-token: YOUR_TELEMETRY_KEY",
+    "x-oneuptime-service-name: rsyslog-demo"
+  ]
+  template="OneUptimeJson"
 )
 ```
 
-### 2. Linux-servers en cron-taken
+`restpath` krijgt het pad zonder de schuine streep vooraan. `omhttp` stuurt standaard een JSON-`Content-Type`, en dat is precies wat deze template oplevert.
 
-Veel cron-taken en verouderde daemons loggen nog uitsluitend via de kernel/syslog-faciliteit. Het doorsturen van `/var/log/syslog` of journald-vermeldingen houdt operationele sporen op één plek. Systemd-hosts kunnen vertrouwen op de journald → syslog-brug:
+### De configuratie controleren en rsyslog herstarten
 
 ```bash
-# /etc/rsyslog.d/oneuptime.conf
-module(load="imjournal" StateFile="imjournal.state")
-module(load="omhttp")
+sudo rsyslogd -N1
+sudo systemctl restart rsyslog
+```
+
+`rsyslogd -N1` controleert de configuratie zonder rsyslog te starten. Na de herstart verschijnen nieuwe berichten onder **Producten → Logboeken** in de service `rsyslog-demo`.
+:::
+
+De actie stuurt elk bericht door dat rsyslog verwerkt: lokale programma's, het systemd-journal als rsyslog het leest, en alles wat het van het netwerk ontvangt.
+
+### Syslog van netwerkapparaten doorgeven
+
+Firewalls, switches en andere appliances sturen syslog vaak alleen via UDP of TCP. Richt ze op een rsyslog-relay en laat de relay via HTTPS doorsturen. Voeg in de configuratie van de relay vóór de `action` een listener toe:
+
+```text title="/etc/rsyslog.d/oneuptime.conf"
+module(load="imudp")
+input(type="imudp" port="514")
+```
+
+Zet `x-oneuptime-service-name` op een naam zoals `perimeter-firewall`, of laat de header weg zodat de logs van elk apparaat op hostnaam worden gegroepeerd. Veel appliances schrijven hun bericht als `key=value`-paren; een [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) maakt er attributen van.
+
+:::details In batches sturen in plaats van één request per bericht
+rsyslog kan berichten bundelen en met gzip comprimeren, wat OneUptime leest als berichten gescheiden door regeleinden. Vervang de template en de actie door:
+
+```text title="/etc/rsyslog.d/oneuptime.conf"
+template(name="OneUptimeLine" type="string"
+         string="<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %MSGID% - %msg%")
 
 action(
   type="omhttp"
   server="oneuptime.com"
   serverport="443"
   usehttps="on"
-  endpoint="/syslog/v1/logs"
-  header="Content-Type: application/json"
-  header="x-oneuptime-token: <TOKEN>"
-  header="x-oneuptime-service-name: linux-fleet"
-  template="OneUptimeJSON"
+  restpath="syslog/v1/logs"
+  httpheaders=["x-oneuptime-token: YOUR_TELEMETRY_KEY"]
+  template="OneUptimeLine"
+  batch="on"
+  batch.format="newline"
+  compress="on"
 )
 ```
 
-Omdat we ernstnummers mappen, kunt u meldingen instellen voor `syslog.severity.name = "error"` of filteren op `syslog.hostname` om lawaaierige servers snel te isoleren.
+Houd `compress="on"` aan: OneUptime leest berichten gescheiden door regeleinden alleen uit inhoud die met gzip is gecomprimeerd.
+:::
 
-### 3. Kubernetes ingress controllers en edge-nodes
+### Andere doorstuurders
 
-Als u al FluentBit of Fluentd gebruikt, houd die dan voor containerlogboeken en voeg een lichtgewicht syslog-sink toe voor hosts of apparaten aan de rand. FluentBit's `syslog`-invoer werkt goed samen met de HTTP-uitvoer:
+- **syslog-ng**: gebruik zijn HTTP-bestemming met dezelfde URL, dezelfde headers en dezelfde JSON-inhoud.
+- **Fluent Bit**: ontvang syslog met de `syslog`-input van Fluent Bit en stuur het door zoals elke andere log. Zie [Fluent Bit](/docs/telemetry/fluentbit).
 
-```ini
-[INPUT]
-    Name              syslog
-    Mode              tcp
-    Listen            0.0.0.0
-    Port              5140
+## Uitgelezen attributen
 
-[OUTPUT]
-    Name              http
-    Match             *
-    Host              oneuptime.com
-    Port              443
-    URI               /syslog/v1/logs
-    Format            json
-    json_date_key     time
-    Header            Content-Type application/json
-    Header            x-oneuptime-token <TOKEN>
-    Header            x-oneuptime-service-name edge-ingress
-    tls               On
-```
+OneUptime voegt automatisch de volgende attributen aan elke logregel toe:
 
-Deze instelling stelt u in staat syslog te verwerken van bare-metal workers of hardware load balancers zonder een extra logging-stack aan te maken.
+| Attribuut | Waarde | Uit het testbericht |
+| --- | --- | --- |
+| `syslog.priority` | De prioriteit, `<PRI>` | `34` |
+| `syslog.facility.code`, `syslog.facility.name` | De facility, uit de prioriteit | `4`, `security` |
+| `syslog.severity.code`, `syslog.severity.name` | Het niveau, uit de prioriteit | `2`, `critical` |
+| `syslog.version` | De RFC 5424-versie | `1` |
+| `syslog.hostname` | `HOSTNAME` | `web-01` |
+| `syslog.appName` | `APP-NAME`, of de RFC 3164-tag | `nginx` |
+| `syslog.processId` | `PROCID` | `7421` |
+| `syslog.messageId` | `MSGID` | `ID47` |
+| `syslog.structured.raw` | De gestructureerde RFC 5424-gegevens, zoals verstuurd | `[env@32473 host="web-01"]` |
+| `syslog.structured.*` | Elke parameter van de gestructureerde gegevens, platgemaakt | `syslog.structured.env_32473.host` = `web-01` |
+| `syslog.raw` | Het oorspronkelijke bericht, voor herleidbaarheid | de hele regel |
 
-### 4. Compliance-archieven zonder het wachten
+Deze attributen worden doorzoekbaar in de explorer **Producten → Logboeken**, bijvoorbeeld `@syslog.severity.name:error` of `@syslog.hostname:web-01`. Zie [Zoeksyntaxis](/docs/telemetry/search-syntax).
 
-Moet u firewalllogboeken bewaren voor PCI of SOX? Stuur ze rechtstreeks naar OneUptime, pas een lang bewaarbeleid toe op de telemetriedienst en exporteer naar koude opslag vanuit één plek. Geen exporteren meer vanuit meerdere syslog-relays.
+Het bericht zelf blijft in de inhoud van de log. Firewalls zoals Sophos XGS en Fortinet FortiGate schrijven het als `key=value`-paren (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); voeg in een [logboekpipeline](/docs/telemetry/log-pipelines#keyvalue-parser) een processor **Key=Value Parser** toe om ook die paren in attributen om te zetten.
 
-## Geparseerde attributen
+### Niveau
 
-OneUptime voegt automatisch de volgende attributen toe aan elk logboekvermeldingen:
+| Syslog-niveau | Code | Niveau in OneUptime |
+| --- | --- | --- |
+| Emergency, Alert | `0`, `1` | `Fatal` |
+| Critical, Error | `2`, `3` | `Error` |
+| Warning | `4` | `Warning` |
+| Notice, Informational | `5`, `6` | `Information` |
+| Debug | `7` | `Debug` |
+| Geen prioriteit in het bericht | — | `Unspecified` |
 
-- `syslog.priority`, `syslog.facility.code`, `syslog.facility.name`
-- `syslog.severity.code`, `syslog.severity.name`
-- `syslog.hostname`, `syslog.appName`, `syslog.processId`, `syslog.messageId`
-- `syslog.structured.*` (afgevlakte RFC5424 gestructureerde gegevens)
-- `syslog.raw` (origineel bericht voor traceerbaarheid)
+Een bericht zonder tijdstempel wordt opgeslagen met het moment waarop OneUptime het ontving.
 
-Deze attributen worden doorzoekbaar in de Producten → Logboeken verkenner.
+### Service
 
-## Probleemoplossing
+Elke log wordt opgeslagen onder een telemetrieservice, die OneUptime aanmaakt zodra die voor het eerst stuurt. De service is de eerste die aanwezig is van:
 
-- **HTTP 401 of lege resultaten** — verifieer dat de `x-oneuptime-token`-header behoort tot het project dat de logboeken ontvangt.
-- **Geen logboeken verschijnen** — bevestig dat het verzoeklichaam daadwerkelijk syslog-regels bevat. Lege lichamen worden geweigerd met HTTP 400.
-- **Onverwachte dienstnaam** — stel `x-oneuptime-service-name` in om de standaarddetectielogica te overschrijven.
-- **Grote bursts** — batching tot 1.000 regels per verzoek wordt ondersteund. Grotere bursts worden in de wachtrij geplaatst en asynchroon verwerkt.
+1. de header `x-oneuptime-service-name`;
+2. de `APP-NAME` (of tag) van het bericht;
+3. de hostnaam van het bericht;
+4. `Syslog`.
+
+## Problemen oplossen
+
+:::details HTTP 401
+De sleutel ontbreekt, is onbekend of verlopen. Controleer of de header `x-oneuptime-token` de **Geheime sleutel** bevat van een ingestiesleutel uit het project dat de logs moet ontvangen.
+:::
+
+:::details HTTP 402 of 422
+`402`: in OneUptime Cloud zit het project op het Free-abonnement en heeft het geen betaalmethode. Voeg er een toe onder **Projectinstellingen → Facturering en facturen → Facturering**. `422`: de sleutel is uitgeschakeld, of het is een browsersleutel. Zet **Ingeschakeld** weer aan in de instellingen van de sleutel, of maak een **Server**-sleutel.
+:::
+
+:::details HTTP 400, of er verschijnen geen logs
+Controleer of de requestinhoud echt syslog-regels bevat, als JSON met `Content-Type: application/json`. Lege inhoud, en platte tekst die niet met gzip is gecomprimeerd, wordt geweigerd met HTTP 400.
+:::
+
+:::details HTTP 413
+Het request is groter dan de ingress aanneemt. Stuur minder berichten per request.
+:::
+
+:::details Logs komen binnen onder een onverwachte servicenaam
+Zet `x-oneuptime-service-name` om de standaardherkenning te overschrijven, die eerst de `APP-NAME` en dan de hostnaam gebruikt.
+:::
+
+## Volgende stappen
+
+:::cards
+- [Logboekpipelines](/docs/telemetry/log-pipelines): `key=value`-berichten in attributen omzetten.
+- [Opnameregels voor logboeken](/docs/telemetry/log-recording-rules): De getallen in je syslog in metrics omzetten.
+- [Logs-monitor](/docs/monitor/logs-monitor): Waarschuwen wanneer overeenkomende syslog-berichten binnenkomen.
+:::

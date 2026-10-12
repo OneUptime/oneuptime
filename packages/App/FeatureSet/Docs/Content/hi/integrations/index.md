@@ -47,10 +47,12 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | इनबाउंड              | Alertmanager notifications को incidents में बदलें।                                        |
 | [Grafana](/docs/integrations/grafana)                                 | इनबाउंड              | Grafana alerts को incidents में बदलें।                                                    |
 | [Datadog](/docs/integrations/datadog)                                 | इनबाउंड              | Datadog monitor alerts को incidents में बदलें।                                            |
+| [Huntress](/docs/integrations/huntress)                               | इनबाउंड              | Huntress घटना रिपोर्टों के लिए ऑन-कॉल को पेज करें, और रिपोर्ट बंद होने पर घटना सुलझाएं। |
 | [GitHub](/docs/integrations/github)                                   | आउटबाउंड             | किसी incident के लिए एक GitHub issue खोलें।                                               |
 | [GitLab](/docs/integrations/gitlab)                                   | आउटबाउंड             | किसी incident के लिए एक GitLab issue खोलें।                                               |
 | [Discord](/docs/integrations/discord)                                 | आउटबाउंड             | Discord चैनल पर incident updates पोस्ट करें।                                              |
 | [Telegram](/docs/integrations/telegram)                               | आउटबाउंड             | Telegram chat में incident updates भेजें।                                                 |
+| [IRC](/docs/integrations/irc)                                         | आउटबाउंड             | IRC चैनल पर incident updates पोस्ट करें।                                                  |
 | [Slack](/docs/workspace-connections/slack)                            | दोनों                | Native workspace connection — channels, alerts, और on-call।                               |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | दोनों                | Native workspace connection।                                                              |
 

@@ -240,6 +240,14 @@ Alcune regole rapide:
 
 La maggior parte delle dashboard mescola alcuni di essi — un grafico in alto, uno o due valori a fianco, un divisore di testo e uno o due elenchi sotto.
 
+## Quando un widget non può essere mostrato
+
+Un widget che non può essere disegnato mostra **Impossibile mostrare questo widget** al suo posto, e il resto della dashboard continua a funzionare. Succede quando OneUptime non ha un widget di quel tipo (uno rimosso, uno il cui tipo è stato scritto male creando la dashboard tramite l'API o uno aggiunto da una versione più recente), oppure quando il widget non riesce a essere disegnato, ad esempio perché le sue impostazioni salvate sono incomplete.
+
+Se puoi modificare la dashboard, fai clic su **Modifica widget** sul widget. La dashboard passa in modalità modifica con le impostazioni di quel widget aperte: correggile, oppure fai clic su **Elimina widget** e poi su **Salva modifiche**. Un widget che non è riuscito a essere disegnato offre anche **Riprova**, e viene ridisegnato al successivo aggiornamento automatico o quando cambi l'intervallo di tempo.
+
+I visitatori di una dashboard pubblica vedono solo che il widget non è stato mostrato.
+
 ## Letture successive
 
 - [Variabili e filtri](/docs/dashboards/variables) — rendere i widget riutilizzabili per molti servizi o clienti.

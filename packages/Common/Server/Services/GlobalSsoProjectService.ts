@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/GlobalSsoProject";
 import Team from "../../Models/DatabaseModels/Team";
@@ -6,7 +7,6 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import GlobalSsoService from "./GlobalSsoService";
-import Query from "../Types/Database/Query";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -121,9 +121,19 @@ export class Service extends DatabaseService<Model> {
      * attachments decide - so nothing after the lock here can fail and keep
      * it.
      */
+    const providerIds: Array<ObjectID | null> =
+      await this.readProviderIds(deleteBy);
+
+    /*
+     * Right before the delete, the lock is kept once more and kept alive
+     * while it is written: one lost by now refuses the delete, and is given
+     * back (GlobalSsoProviderChanges.holdForWrite).
+     */
+    await GlobalSsoProviderChanges.holdForWrite(deleteBy);
+
     return {
       deleteBy,
-      carryForward: await this.readProviderIds(deleteBy.query),
+      carryForward: providerIds,
     };
   }
 
@@ -162,14 +172,23 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onDeleteError(
     error: Exception,
     onDelete?: OnDelete<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onDelete) {
-      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(
+        onDelete.deleteBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;
@@ -204,16 +223,29 @@ export class Service extends DatabaseService<Model> {
    * An attachment is checked, under the lock on the server's sign-in rules,
    * once every permission and clash check has passed (onCreatePermitted).
    * The lock is given back once it is written (onCreateSuccess), and here
-   * whatever happened after the check: a create that fails at the INSERT,
-   * or in a step just before it, runs no other hook.
+   * when the create fails once its check ran - refused after it, at the
+   * INSERT, or in onCreateSuccess before it gave the lock back:
+   * DatabaseService.create hands every failure after onBeforeCreate to this
+   * hook, with the create's one OnCreate - the very object onCreatePermitted
+   * kept the lock by. A create the database may still apply - its COMMIT
+   * went unanswered - keeps the lock until it would have cancelled it
+   * (GlobalSsoProviderChanges.afterFailedCreate).
    */
   @CaptureSpan()
-  public override async create(createBy: CreateBy<Model>): Promise<Model> {
-    try {
-      return await super.create(createBy);
-    } finally {
-      await GlobalSsoProviderChanges.afterWrite(createBy);
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    if (onCreate) {
+      await GlobalSsoProviderChanges.afterFailedCreate(
+        onCreate,
+        error,
+        failedStatement,
+      );
     }
+
+    return error;
   }
 
   /*
@@ -228,9 +260,8 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     // Written: the lock is given back before anything else.
-    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
-      onCreate.createBy,
-    );
+    const changedReach: boolean =
+      await GlobalSsoProviderChanges.afterWrite(onCreate);
 
     clearGlobalSsoAuthorizationCaches();
 
@@ -277,14 +308,23 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  /*
+   * Failed, or refused, once its hooks ran: the lock it held is given back -
+   * or, when the database may still apply the write, kept until it would
+   * have cancelled it (GlobalSsoProviderChanges.afterFailedWrite).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+      await GlobalSsoProviderChanges.afterFailedWrite(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;
@@ -308,18 +348,19 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  // The providers of the attachments `query` names; a failed read cannot tell.
+  /*
+   * The providers of the attachments a delete removes - the ones
+   * GlobalSsoProviderChanges held it to, read again with the delete held to
+   * them (findRowsAndHoldDeleteToThem); a failed read cannot tell.
+   */
   private async readProviderIds(
-    query: Query<Model>,
+    deleteBy: DeleteBy<Model>,
   ): Promise<Array<ObjectID | null>> {
     try {
-      const rows: Array<Model> = await this.findBy({
-        query: query,
-        select: { _id: true, globalSsoId: true },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: { isRoot: true },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        { _id: true, globalSsoId: true },
+      );
 
       return rows.map((row: Model): ObjectID | null => {
         return row.globalSsoId || null;
@@ -380,7 +421,7 @@ export class Service extends DatabaseService<Model> {
    * project to this one, refused when that would leave a project that
    * requires SSO with no provider to sign in with
    * (Utils/GlobalSsoProviderChanges). The lock it holds is given back once
-   * the attachment is written, or the create fails (create).
+   * the attachment is written, or the create fails (onCreateError).
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -388,7 +429,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<void> {
     await GlobalSsoProviderChanges.beforeAttachmentCreate({
       providerType: SsoProviderType.GlobalSSO,
-      createBy: onCreate.createBy as unknown as CreateBy<BaseModel>,
+      create: onCreate as unknown as OnCreate<BaseModel>,
     });
   }
 
@@ -416,13 +457,10 @@ export class Service extends DatabaseService<Model> {
         });
       } else {
         // projectId is immutable here; resolve it from the row(s) being updated.
-        const rows: Array<Model> = await this.findBy({
-          query: updateBy.query,
-          select: { _id: true, projectId: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        });
+        const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+          updateBy,
+          { _id: true, projectId: true },
+        );
 
         for (const row of rows) {
           await validateGlobalProviderProjectTeams({

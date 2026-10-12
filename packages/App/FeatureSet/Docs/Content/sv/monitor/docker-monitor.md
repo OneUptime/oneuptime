@@ -1,190 +1,232 @@
-# Docker-monitor
+# Docker-övervakning
 
-Docker-övervakning gör det möjligt att övervaka hälsan och prestandan hos dina Docker-värdar och de containers som körs på dem. OneUptime samlar in mätvärden och containerloggar via en förkonfigurerad OpenTelemetry Collector (**OneUptime Docker Agent**) och utvärderar dem mot dina konfigurerade kriterier.
+En Docker-monitor övervakar containrarna på en Docker-värd och säger till när en container går varm, får slut på minne eller hamnar i en kraschloop. Den läser de mätvärden som OneUptimes Docker-agent skickar från värden, så ingenting undersöks utifrån: installera agenten och skapa sedan monitorn från en mall eller din egen fråga.
 
-## Översikt
+:::cards
+- [Skapa monitorn](#skapa-en-docker-monitor): Sex steg i instrumentpanelen.
+- [Mallar](#färdiga-varningsmallar): Sex färdiga varningar, en incident per container.
+- [Mätvärden](#insamlade-mätvärden): Vad agenten samlar in och vad varje mätvärde betyder.
+- [Loggar](#insamlade-loggar): Containerloggar och den loggdrivrutin de behöver.
+:::
 
-Docker-monitorer använder mätvärden och loggar från dina värdar för att ge insyn i dina containerarbetsbelastningar. Detta gör det möjligt att:
+## Så fungerar det
 
-- Övervaka Docker-värd och per-containerhälsa
-- Spåra CPU, minne, nätverk, block-I/O och processantal för containers
-- Identifiera containeromstarter, krascher och CPU-begränsning
-- Strömma strukturerade containerloggar i ursprungligt OpenTelemetry-format
-- Varna om hög CPU, högt minne, omstartsloops och mer
+OneUptimes Docker-agent körs som en container på värden. Var 30:e sekund läser den containerstatistik från Docker Engine-API:t, följer containrarnas loggfiler och skickar båda till OneUptime över OTLP. De första data från en värd registrerar den i OneUptime.
+
+En Docker-monitor är knuten till en värd. Varje minut kör den sin fråga över värdens containermått och jämför resultatet med sina kriterier.
+
+```mermaid title="Från en Docker-värd till en incident"
+flowchart TB
+    subgraph host["Din Docker-värd"]
+        direction LR
+        containers["Containrar"] --> agent["OneUptimes Docker-agent"]
+    end
+    agent -->|"mått och loggar över OTLP"| oneuptime["OneUptime"]
+    oneuptime -->|"första data"| registered["Docker-värd registrerad"]
+    oneuptime --> monitor["Docker-monitor"]
+    monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
+    criteria -->|"ja"| incident["Incident eller varning"]
+    criteria -->|"nej"| online["Monitor online"]
+```
+
+## Innan du börjar
+
+- **Installera Docker-agenten** på värden. [Guiden för Docker-agenten](/docs/telemetry/docker-host) beskriver installation, uppgradering och kontroll.
+- **Kontrollera att värden är registrerad.** Den visas under **Produkter → Infrastruktur → Docker → Alla värdar**, namngiven efter agentens `DOCKER_HOST_NAME`, så snart dess första data kommer.
+- **För containerloggar** kör du containrarna med Dockers loggdrivrutin `json-file`. Se [Krav på loggdrivrutin](#krav-på-loggdrivrutin).
 
 ## Skapa en Docker-monitor
 
-1. Gå till **Övervakare** i OneUptime-instrumentpanelen
-2. Klicka på **Skapa monitor**
-3. Välj **Docker** som monitortyp
-4. Välj Docker-värden och resursomfånget att övervaka
-5. Konfigurera mätvärdesförfrågningar och aggregering
-6. Konfigurera övervakningskriterier efter behov
+:::steps
+### Starta en ny monitor
 
-## Konfigurationsalternativ
+Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Docker-värd
+### Välj Docker Container
 
-Välj Docker-värden att övervaka. Värdar registreras automatiskt första gången OneUptime Docker Agent skickar telemetri från dem – du behöver inte skapa dem manuellt.
+Klicka på **Fler monitortyper** under **Monitortyp** och välj **Docker Container** under **Infrastruktur**, eller skriv `docker` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och varningar – och klicka på **Nästa**.
 
-### Resursomfång
+### Välj värden
 
-Välj nivån att övervaka resurser på:
+Välj värden i **Docker-värd** under **Docker-monitorkonfiguration**. Varje värd som har skickat data finns i listan.
 
-| Omfång    | Beskrivning                                                 |
-| --------- | ----------------------------------------------------------- |
-| Värd      | Övervaka hela Docker-värden, aggregerat för alla containers |
-| Container | Övervaka en specifik container efter namn eller bild        |
+### Välj vad som ska övervakas
 
-### Mätvärdesförfrågningar
+Välj en av de tre flikarna:
 
-Konfigurera en eller flera mätvärdesförfrågningar att utvärdera. Varje förfrågan anger:
+- **Quick Setup** – klicka på en [mall](#färdiga-varningsmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
+- **Custom Metric** – välj ett mätvärde i **Docker-mått** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
+- **Avancerad** – bygg frågor och formler själv under **Välj mått**. Använd **Group by** `resource.container.name` för att bedöma varje container för sig.
 
-- **Mätvärdets namn** – Det containermätvärde att fråga
-- **Aggregering** – Hur man aggregerar mätvärden (Medel, Summa, Max, Min)
-- **Filter** – Ytterligare attributbaserad filtrering (t.ex. efter containernamn, bild eller värd)
-- **Gruppera efter** – Valfritt gruppering efter `resource.container.name` så att varje container utvärderas oberoende
+### Kontrollera kriterierna
 
-Du kan också skapa **formler** som kombinerar flera mätvärdesförfrågningar med matematiska uttryck.
+Öppna varje kriterium under **Monitorkriterier** och kontrollera dess **Mätvärde**, **Aggregering**, **Villkor** och **Threshold**. En mall fyller i dem. Med **Custom Metric** eller **Avancerad** börjar monitorn med [standardkriterierna](#standardkriterier), som bara märker att ett mätvärde sjunker till noll, så ange din egen tröskel.
 
-### Rullande tidsfönster
+### Skapa monitorn
 
-Välj tidsfönstret för mätvärdesutvärdering:
+Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar den varje minut. Incidenter och varningar som den öppnar visas också på värdens sidor **Incidenter** och **Varningar**.
+:::
 
-- Senaste 1 minuten
-- Senaste 5 minuterna
-- Senaste 10 minuterna
-- Senaste 15 minuterna
-- Senaste 30 minuterna
-- Senaste 60 minuterna
+> [!TIP]
+> För att ställa in flera mallar på en gång öppnar du värden från **Produkter → Infrastruktur → Docker** och går till **Recommendations**. Välj de mallar du vill ha och vem som ska larmas, så skapar OneUptime en monitor per mall.
+
+## Monitorinställningar
+
+| Fält | Flik | Vad det gör |
+| --- | --- | --- |
+| **Docker-värd** | Alla | Krävs. Begränsar varje fråga till värdens `resource.host.name`. OneUptime lägger också till `resource.container.runtime = docker` i varje fråga. |
+| **Docker-mått** | Custom Metric | Ett mätvärde från agentens katalog, grupperat som CPU, minne, nätverk, block-I/O och container. |
+| **Containernamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.name`, till exempel `my-container`. |
+| **Container-avbildning** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.image.name`, till exempel `nginx:latest`. |
+| **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
+| **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+
+## Färdiga varningsmallar
+
+**Quick Setup** erbjuder sex mallar. Varje mall bygger en komplett monitor: en fråga grupperad efter `resource.container.name`, ett kriterium som utlöses och ett som återställer. Varje container bedöms för sig, så att en upptagen container inte döljer en annan, och varje container över tröskeln får en egen incident och en egen varning. Trösklarna är utgångspunkter som du kan redigera.
+
+Om inte tabellen säger något annat utlöses ett kriterium bara när villkoret gäller varje minut i fönstret, och det återställs 10 % förbi tröskeln, så att ett värde som pendlar vid gränsen inte fladdrar.
+
+| Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
+| --- | --- | --- | --- | --- |
+| High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
+| High Container Memory Usage | Warning | `container.memory.percent`, Max per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
+| Container Restart Loop | Kritisk | Ökning av `container.restarts` per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
+| Container CPU Throttling | Warning | Ökning av `container.cpu.throttling_data.throttled_time` i ms per container, senaste 5 minuterna | Mer än 1000 ms i fönstret (Summa) | 900 ms eller mindre |
+| High Container Process Count | Warning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
+| Container Down (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Lika med 0 | Över 0 |
+
+**Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och varningen som en mall skapar börjar på projektets allvarligaste incident- och varningsgrad; ändra dem i kriterierna.
+
+> [!NOTE]
+> `container.cpu.utilization` är talet som `docker stats` skriver ut: 100 % är en hel CPU-kärna, inte hela värden, så en container som använder två kärnor visar 200. På en värd med flera kärnor är tröskeln 80 en CPU-budget, inte en andel av maskinen.
+
+> [!NOTE]
+> `container.memory.percent` delar med containerns minnesgräns när en sådan är satt, och annars med **värdens** totala minne. Kontrollera om containern startades med `--memory` innan du behandlar en överskridning som ett nära förestående avslut på grund av minnesbrist.
+
+> [!WARNING]
+> `container.restarts` och `container.cpu.throttling_data.throttled_time` bara växer, så de två mallarna varnar på hur mycket de växte i fönstret: en Maximum- och en Minimum-fråga per minut, subtraherade av en formel och summerade. Med agentens insamling var 30:e sekund ser det ungefär hälften av den verkliga aktiviteten, och trösklarna tar redan hänsyn till det. Om du höjer agentens `collection_interval` till 60 sekunder eller mer innehåller varje minut en mätning, och båda mallarna slutar varna.
+
+> [!CAUTION]
+> **Container Down (Low Uptime)** kan inte fånga en container som stannar och förblir stoppad. Agenten rapporterar bara körande containrar, så en stoppad container skickar inga data alls och dess drifttid visar aldrig 0. För en tjänst som måste vara igång bör du också övervaka det den levererar – till exempel med en [API-övervakning](/docs/monitor/api-monitor).
 
 ## Insamlade mätvärden
 
-Docker Agent använder OpenTelemetry `docker_stats`-mottagaren som läser Docker Engine API med konfigurerbart intervall (standard var 30:e sekund).
+Agenten använder OpenTelemetry-mottagaren `docker_stats` mot Docker-socketen var 30:e sekund. Varje containers mätvärden bär dess identitet som resursattribut: `resource.container.name`, `resource.container.image.name`, `resource.container.id`, `resource.container.runtime` (`docker`) och `resource.host.name`.
 
 ### CPU
 
-| Mätvärde                                          | Beskrivning                                    |
-| ------------------------------------------------- | ---------------------------------------------- |
-| `container.cpu.utilization`                       | CPU-utnyttjande som procentandel av värd-CPU   |
-| `container.cpu.usage.total`                       | Kumulativ CPU-tid som konsumeras av containern |
-| `container.cpu.throttling_data.throttled_time`    | Tid som containern begränsades av cgroups      |
-| `container.cpu.throttling_data.throttled_periods` | Antal begränsningsperioder                     |
+| Mätvärde | Beskrivning |
+| --- | --- |
+| `container.cpu.utilization` | CPU-utnyttjande, där 100 % är en hel CPU-kärna (kolumnen CPU% i `docker stats`). |
+| `container.cpu.usage.total` | Använd CPU-tid sedan containern startade, i nanosekunder. En räknare över hela livstiden. |
+| `container.cpu.throttling_data.throttled_time` | Nanosekunder som containern har strypts av sin CPU-gräns sedan den startade. En räknare över hela livstiden. |
+| `container.cpu.throttling_data.throttled_periods` | Strypningsperioder sedan containern startade. En räknare över hela livstiden. |
 
 ### Minne
 
-| Mätvärde                       | Beskrivning                                  |
-| ------------------------------ | -------------------------------------------- |
-| `container.memory.usage.total` | Aktuell minnesanvändning i bytes             |
-| `container.memory.usage.limit` | Minnesgräns i bytes                          |
-| `container.memory.percent`     | Minnesanvändning som procentandel av gränsen |
+| Mätvärde | Beskrivning |
+| --- | --- |
+| `container.memory.usage.total` | Minne som används, i byte. |
+| `container.memory.usage.limit` | Minnesgräns, i byte. |
+| `container.memory.percent` | Minnesanvändning som procentandel av containerns gräns, eller av värdens totala minne när containern inte har någon gräns. |
 
 ### Nätverk
 
-| Mätvärde                              | Beskrivning           |
-| ------------------------------------- | --------------------- |
-| `container.network.io.usage.rx_bytes` | Totalt mottagna bytes |
-| `container.network.io.usage.tx_bytes` | Totalt skickade bytes |
+| Mätvärde | Beskrivning |
+| --- | --- |
+| `container.network.io.usage.rx_bytes` | Mottagna byte. En räknare över hela livstiden. |
+| `container.network.io.usage.tx_bytes` | Skickade byte. En räknare över hela livstiden. |
 
 ### Block-I/O
 
-| Mätvärde                                             | Beskrivning                     |
-| ---------------------------------------------------- | ------------------------------- |
-| `container.blockio.io_service_bytes_recursive.read`  | Bytes lästa från blockenheter   |
-| `container.blockio.io_service_bytes_recursive.write` | Bytes skrivna till blockenheter |
+| Mätvärde | Beskrivning |
+| --- | --- |
+| `container.blockio.io_service_bytes_recursive.read` | Byte lästa från blockenheter. |
+| `container.blockio.io_service_bytes_recursive.write` | Byte skrivna till blockenheter. |
 
-### Containerinformation
+### Container
 
-| Mätvärde               | Beskrivning                             |
-| ---------------------- | --------------------------------------- |
-| `container.uptime`     | Containerns drifttid i sekunder         |
-| `container.restarts`   | Antal gånger containern har startats om |
-| `container.pids.count` | Antal processer inuti containern        |
+| Mätvärde | Beskrivning |
+| --- | --- |
+| `container.uptime` | Sekunder sedan containern startade. Bara körande containrar rapporterar det. |
+| `container.restarts` | Antal gånger containern har startats om sedan den skapades. En räknare över hela livstiden. |
+| `container.pids.count` | Uppgifter i containern. Cgroupens pids-kontrollant räknar trådar lika väl som processer. |
+
+Listan **Docker-mått** erbjuder också `container.cpu.usage.percpu`, `container.memory.rss`, `container.memory.cache` och räknarna för nätverkspaket. Den medföljande agentkonfigurationen slår inte på dem, så kontrollera värdens sida **Mätvärden** innan du bygger på dem. `container.cpu.throttling_data.throttled_periods` finns inte i listan; fråga efter det från **Avancerad**.
 
 ## Övervakningskriterier
 
-### Tillgängliga kontrolltyper
+Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En Docker-monitors kriterier har ingen **Filtertyp**: varje regel kontrollerar mätvärdet, med de här fälten.
 
-| Kontrolltyp | Beskrivning                                                  |
-| ----------- | ------------------------------------------------------------ |
-| Mätvärde    | Värdet av den konfigurerade mätvärdesförfrågan eller formeln |
+| Fält | Vad det gör |
+| --- | --- |
+| **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
+| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha) eller **Any Value** (ett räcker). |
+| **Villkor** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** eller **Equal To** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Threshold** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
+| **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
+| **Baslinjefönster** | Bara avvikelsevillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
+| **Om ingen data** | Under **Fler fält**. Vad som händer när fönstret saknar mätningar: **Ignore** (standard), **Treat As Zero** eller **Utlösare**. |
 
-### Aggregeringstyper
+Avvikelsevillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i ett "Learning"-läge och ger ingenting förrän baslinjefönstret innehåller tillräckligt med historik.
 
-| Aggregering    | Beskrivning                          |
-| -------------- | ------------------------------------ |
-| Medelvärde     | Medelvärde under tidsfönstret        |
-| Summa          | Summan av alla värden                |
-| Maxvärde       | Högsta värdet i tidsfönstret         |
-| Minvärde       | Lägsta värdet i tidsfönstret         |
-| Alla värden    | Alla värden måste matcha kriterierna |
-| Valfritt värde | Minst ett värde måste matcha         |
+Varje kriterium anger också vad som ska hända när det matchar: ändra monitorns status, skapa en varning eller deklarera en incident. Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör.
 
-### Filtertyper
+### Standardkriterier
 
-- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**
+En monitor som du inte bygger från en mall börjar med två kriterier:
 
-Baslinjebaserad avvikelsedetektering (inget tröskelvärde – formuläret visar i stället **Känslighet** och **Baslinjefönster** och jämför varje mätvärde med baslinjen för samma timme i veckan):
+| Ordning | Kriterium | Matchar när | Sedan |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | Något värde i den första frågan är `0` | Markerar monitorn som **Offline** och deklarerar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Check if _monitor name_ is online | Något värde är över `0` | Markerar monitorn som **Fungerar**. |
 
-- **Onormalt högt** — Värdet stiger över det förväntade intervallet
-- **Onormalt lågt** — Värdet sjunker under det förväntade intervallet
-- **Onormalt** — Värdet lämnar det förväntade intervallet i någon riktning
-
-Avvikelsevillkor ger inga varningar förrän det finns minst det valda baslinjefönstret av historik (Learning-tillstånd).
-
-## Förbyggda varningsmallar
-
-OneUptime tillhandahåller mallar för vanliga Docker-övervakningsscenarier:
-
-| Mall                  | Beskrivning                                  | Tröskel | Aggregering         |
-| --------------------- | -------------------------------------------- | ------- | ------------------- |
-| Hög container-CPU     | CPU-utnyttjande per container                | > 90%   | Max (per container) |
-| Högt containerminne   | Minnesanvändning som procentandel av gränsen | > 85%   | Max (per container) |
-| Hög CPU-begränsning   | Begränsade CPU-perioder                      | > 0     | Max (per container) |
-| Containeromstartsloop | Antal containeromstarter                     | > 3     | Summa               |
-| Container nere        | Containerns drifttid återställd till 0       | = 0     | Min                 |
-
-> Observera: CPU-, minnes- och begränsningsmallarna använder **Max**-aggregering grupperad efter `resource.container.name`. Detta förhindrar att en enstaka het containers signal späs ut av många overksamma containers på samma värd.
+> [!IMPORTANT]
+> Tystnad matchar inget av kriterierna: en värd som slutar skicka data lämnar monitorn som den var. För att få veta när data slutar komma ställer du in **Om ingen data** på **Utlösare** i ett kriterium. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Insamlade loggar
 
-Utöver mätvärden läser Docker Agent varje containers `*-json.log`-fil via OpenTelemetry filelog-mottagaren och skickar loggposter i ursprungligt OTLP-loggformat. Varje loggpost berikas med:
+Agenten följer också varje containers fil `*-json.log` och skickar varje rad som en OpenTelemetry-loggpost med:
 
-- `resource.host.name` – Docker-värd-identifieraren
-- `resource.container.id` – Fullständigt container-ID
-- `resource.container.runtime` – Alltid `docker`
-- `attributes["log.iostream"]` – `stdout` eller `stderr`
-- `severityText` / `severityNumber` – Läses från ett nivånyckelord i raden (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`); rader utan en igenkännbar nivå faller tillbaka på strömmen: `stderr` → `ERROR`, `stdout` → `INFO`
-- `body` – Den råa loggraden som containerprocessen skickade ut
-- `time` – Docker-daemonens tidsstämpel för raden
+| Fält | Värde |
+| --- | --- |
+| `resource.host.name` | Värden, från `DOCKER_HOST_NAME`. |
+| `resource.container.id` | Det fullständiga container-ID:t. |
+| `resource.container.runtime` | Alltid `docker`. |
+| `attributes["log.iostream"]` | `stdout` eller `stderr`. |
+| `severityText` / `severityNumber` | Läses från ett nivånyckelord där en nivå står i raden (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). En rad utan nivå faller tillbaka på sin ström: `stderr` är `ERROR`, `stdout` är `INFO`. |
+| `body` | Raden som containern skrev. Rader som börjar med blanksteg eller en avslutande parentes, som rader i en stackspårning, läggs till raden före. |
+| `time` | Docker-daemonens tidsstämpel för raden. |
 
-Loggar visas på Docker-värdens **Loggar**-flik och på varje containers detaljsida.
+Loggar visas på värdens sida **Loggar** och på varje containers sida.
 
 ### Krav på loggdrivrutin
 
-**Docker Agent läser bara in loggar från containers som använder Dockers `json-file`-loggdrivrutin.** Detta är Dockers standard, men det kan åsidosättas per container eller globalt:
+Agenten kan bara läsa loggar från containrar som använder Dockers loggdrivrutin `json-file`. Det är Dockers standard, men en container eller hela daemonen kan använda en annan:
 
-- **`local`**-drivrutin – skriver binära protobuf-chunks till `/var/lib/docker/containers/<id>/local-logs/container.log`. Filelog-mottagaren kan inte tolka detta format.
-- **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`** etc. – skickar loggar till ett fjärrmål; ingen fil att läsa.
-- **`none`** – kastar bort loggar helt.
+| Drivrutin | Vad agenten ser |
+| --- | --- |
+| `json-file` | Varje rad. |
+| `local` | Ingenting: filen är binär och agenten kan inte tolka den. |
+| `journald`, `syslog`, `fluentd`, `gelf`, `awslogs`, `splunk`, … | Ingenting: loggarna går någon annanstans, så det finns ingen fil att följa. |
+| `none` | Ingenting: loggarna kastas. |
 
-Om något av ovanstående används ser du mätvärden på Docker-värdsidan men **Loggar**-fliken är tom (eller innehåller bara Docker Agents egna loggar).
-
-**Kontrollera en specifik containers loggdrivrutin:**
+Kontrollera en containers drivrutin och daemonens standard:
 
 ```bash
 docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
-```
-
-**Kontrollera daemonens standard:**
-
-```bash
 docker info --format '{{.LoggingDriver}}'
 ```
 
-**Byt en Docker Compose-tjänst till `json-file` med rimlig rotation:**
+Byt till `json-file`. Docker bestämmer en containers loggdrivrutin när containern skapas, så återskapa varje container efter ändringen – en omstart behåller den gamla drivrutinen.
 
-```yaml
+:::tabs
+@tab Docker Compose
+Ange drivrutinen för varje tjänst, med rotation:
+
+```yaml title="docker-compose.yml"
 services:
   my-app:
     image: my-app:latest
@@ -195,9 +237,15 @@ services:
         max-file: "5"
 ```
 
-**Byt daemonens standard** (gäller varje container som skapas därefter) genom att redigera `/etc/docker/daemon.json`:
+Återskapa sedan tjänsten:
 
-```json
+```bash
+docker compose up -d --force-recreate <service>
+```
+@tab Docker-daemon
+Gör `json-file` till standard för varje container som skapas efteråt:
+
+```json title="/etc/docker/daemon.json"
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -207,45 +255,45 @@ services:
 }
 ```
 
-Starta sedan om Docker-daemonen och **återskapa** de berörda containrarna. Docker binder loggdrivrutinen vid containerskapande, så en befintlig container behåller sin gamla drivrutin tills den tas bort och återskapas:
+Starta om Docker-daemonen och ta sedan bort och återskapa varje container:
 
 ```bash
-# Docker Compose
-docker compose up -d --force-recreate <service>
-
-# Vanlig docker
 docker rm -f <container>
 docker run ... <image>
 ```
-
-## Konfigurationskrav
-
-För att använda Docker-övervakning behöver du:
-
-1. Installera OneUptime Docker Agent på varje Docker-värd du vill övervaka
-2. Skicka `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` och `DOCKER_HOST_NAME` som miljövariabler
-3. Se till att de containers du vill observera använder `json-file`-loggdrivrutinen (se ovan)
-
-Agenten publiceras som `oneuptime/docker-agent:release` på Docker Hub. Se [installationsguiden för Docker Agent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) för fullständiga `docker run`- och `docker compose`-exempel.
+:::
 
 ## Felsökning
 
-### Mätvärden visas men fliken Loggar är tom
+:::details Värden finns inte i listan Docker-värd
+Värdar registrerar sig själva utifrån agentens data. Kontrollera att agentcontainern körs och att värden finns under **Produkter → Infrastruktur → Docker → Alla värdar**. [Guiden för Docker-agenten](/docs/telemetry/docker-host) har kontrollerna du kan köra på värden.
+:::
 
-Dina containers använder troligen inte `json-file`-loggdrivrutinen. Kör diagnoskommandona i avsnittet [Krav på loggdrivrutin](#krav-på-loggdrivrutin) ovan och byt ut containers som behöver sina loggar skickade.
+:::details Mätvärden kommer men sidan Loggar är tom
+Containrarna använder nästan säkert inte loggdrivrutinen `json-file`. Kontrollera dem med kommandona i [Krav på loggdrivrutin](#krav-på-loggdrivrutin), byt drivrutin på dem vars loggar du vill ha och återskapa dem.
+:::
 
-### Filelog-mottagaren loggar `no files match the configured criteria`
+:::details Agenten loggar "no files match the configured criteria"
+Agenten letar efter `/var/lib/docker/containers/*/*-json.log` och hittade ingenting. Antingen använder ingen container på värden `json-file`, eller så saknas agentens montering av `/var/lib/docker/containers` (`-v /var/lib/docker/containers:/var/lib/docker/containers:ro`) eller är tom, eller så körs agenten på Docker Desktop för macOS, där containerfilerna ligger i dess Linux-VM.
+:::
 
-Detta innebär att include-globen `/var/lib/docker/containers/*/*-json.log` inte matchade några filer när agenten startade. Antingen:
+:::details Data kommer under fel värdnamn
+OneUptime identifierar en värd med `resource.host.name`, som agenten tar från `DOCKER_HOST_NAME`. Om du ändrar `DOCKER_HOST_NAME` efter de första data skapas en andra värd i stället för att den första byter namn, och en monitor förblir knuten till namnet den skapades med.
+:::
 
-1. Ingen container på den här värden använder `json-file`, eller
-2. Bindmontageringen `-v /var/lib/docker/containers:/var/lib/docker/containers:ro` saknas eller pekar på en tom katalog, eller
-3. Agenten körs på Docker Desktop för macOS utan Linux VM:ens containerkatalog exponerad.
+:::details En CPU-varning utlöses aldrig
+Gruppera frågan efter `resource.container.name` och aggregera med **Maximum**, som mallen **High Container CPU Usage** gör. Ett genomsnitt över alla containrar på en upptagen värd dras ned av de inaktiva. Kom ihåg att 100 % betyder en hel kärna, så en container som får använda flera kärnor behöver en högre tröskel.
+:::
 
-### Loggar anländer men grupperas under fel värdnamn
+:::details Mallen för omstartsloop eller strypning slutade varna
+Båda mäter hur mycket en räknare växte mellan två mätningar under samma minut. Om agentens `collection_interval` är 60 sekunder eller mer innehåller varje minut en mätning, ökningen är alltid 0 och ingen av mallarna utlöses. Behåll agentens standard på 30 sekunder.
+:::
 
-OneUptime registrerar automatiskt Docker-värdar efter `resource.host.name`, som tas från `DOCKER_HOST_NAME`-miljövariabeln. Att ändra `DOCKER_HOST_NAME` efter den första telemetribatchen skapar en ny värdrad istället för att byta namn på den befintliga.
+## Nästa steg
 
-### Incidenter utlöses inte för "Hög CPU"
-
-Se till att mätvärdesförfrågans aggregering är **Max** (inte Medel) och att den grupperar efter `resource.container.name`. Ett medelvärde för alla containers på en aktiv värd späds ut av overksamma containers och överstiger sällan tröskeln.
+:::cards
+- [Docker-agent](/docs/telemetry/docker-host): Installera, uppgradera och felsök agenten som den här monitorn läser.
+- [Podman-övervakning](/docs/monitor/podman-monitor): Samma monitor för Podman-värdar.
+- [Docker Swarm-övervakning](/docs/monitor/docker-swarm-monitor): Övervaka uppgifterna i ett Swarm-kluster.
+- [Incidenter – Översikt](/docs/incidents/index): Vad som händer efter att ett kriterium har deklarerat en incident.
+:::

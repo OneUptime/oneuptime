@@ -39,6 +39,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 /*
  * The resource services' half of "synced with the agent, and I should not
  * be able to manually edit it": while a resource's AI agent sets
@@ -287,6 +288,15 @@ describe.each(WIRING)(
       resourceLookup = jest
         .spyOn(wiring.service, "findBy")
         .mockResolvedValue([resource()]);
+
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(
+        wiring.service,
+        jest.spyOn(wiring.service, "findBy"),
+      );
       agentLookup = jest
         .spyOn(ResourceAiAgentService, "findAgentsForResources")
         .mockResolvedValue(agentReporting(CONFIGURED, wiring.resourceType));

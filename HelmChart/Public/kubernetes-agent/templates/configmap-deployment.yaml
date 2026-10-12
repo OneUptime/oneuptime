@@ -12,7 +12,7 @@ data:
         endpoint: "0.0.0.0:13133"
 
     receivers:
-      {{- if .Values.ebpf.enabled }}
+      {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
       # Accept OTLP traffic from the eBPF DaemonSet (and any other in-cluster
       # OTLP senders). The eBPF DaemonSet ships its captured HTTP/gRPC/SQL
       # spans here so the collector's k8sattributes processor can enrich them
@@ -424,8 +424,8 @@ data:
              the API tailer's MIN_SEVERITY.
              The traces pipeline only exists when ebpf.enabled, so span rules
              are only emitted when there is a pipeline to run them in. */}}
-      {{- $signals := ternary (list "metrics" "traces") (list "metrics") (.Values.ebpf.enabled | default false) }}
-      {{- if or (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
+      {{- $signals := ternary (list "metrics" "traces") (list "metrics") (eq (include "kubernetes-agent.ebpfEnabled" .) "true") }}
+      {{- if or (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
       {{- end }}
 
@@ -545,7 +545,7 @@ data:
         metrics:
           receivers:
             - k8s_cluster
-            {{- if .Values.ebpf.enabled }}
+            {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
             # OBI emits application/network/stats metrics on the same OTLP
             # receiver that handles its traces — pull them into the same
             # metrics pipeline so they ride the existing batch/retry/auth
@@ -583,7 +583,7 @@ data:
             - batch
           exporters:
             - otlphttp
-        {{- if .Values.ebpf.enabled }}
+        {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
         # Traces pipeline: accept OTLP spans from the eBPF DaemonSet, enrich
         # with k8s attributes, stamp cluster name, and forward to OneUptime.
         #
@@ -617,7 +617,7 @@ data:
             # a span filter/ebpf-unlinked-db does, so their order is free.
             - filter/ebpf-unlinked-client
             {{- end }}
-            {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
+            {{- if and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
             # k8sattributes resolves the sending pod to a namespace, so this
             # must stay after it — before it, every span looks namespace-less.
             - filter/telemetry

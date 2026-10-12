@@ -26,9 +26,11 @@ import {
   getWorkflowTemplatesByCategory,
 } from "Common/Types/Workflow/Templates";
 import {
+  TemplateVariableEdit,
   applyTemplateVariableValuesToGraph,
   buildWorkflowFromTemplate,
   buildWorkflowVariables,
+  editTemplateVariable,
   referenceForVariable,
   templateVariableNamesAreValid,
   templateVariablesToFill,
@@ -164,6 +166,151 @@ describe("templateVariableNamesAreValid", () => {
         ],
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * What typing into a setting does to the Configure step's values. The Jira
+ * API URL is filled in from the Jira Site URL (prefilledFrom) until someone
+ * types into it, trimmed and without the slashes a site may end with: the
+ * requests append /rest/api/3/... to it.
+ */
+describe("editTemplateVariable", () => {
+  const LINKING_TEMPLATE_ID: string = "jira-comment-to-incident-private-note";
+
+  type TypeFunction = (
+    edit: TemplateVariableEdit,
+    variableName: string,
+    value: string,
+  ) => TemplateVariableEdit;
+
+  const typeInto: TypeFunction = (
+    edit: TemplateVariableEdit,
+    variableName: string,
+    value: string,
+  ): TemplateVariableEdit => {
+    return editTemplateVariable({
+      template: getWorkflowTemplate(LINKING_TEMPLATE_ID) as WorkflowTemplate,
+      values: edit.values,
+      typedVariableNames: edit.typedVariableNames,
+      variableName: variableName,
+      value: value,
+    });
+  };
+
+  const START: TemplateVariableEdit = {
+    values: {},
+    typedVariableNames: [],
+    changedVariableNames: [],
+  };
+
+  test("typing the Jira Site URL fills in the Jira API URL, and nothing else", () => {
+    const edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraSiteUrl",
+      "https://acme.atlassian.net",
+    );
+
+    expect(edit).toEqual({
+      values: {
+        jiraSiteUrl: "https://acme.atlassian.net",
+        jiraBaseUrl: "https://acme.atlassian.net",
+      },
+      typedVariableNames: ["jiraSiteUrl"],
+      changedVariableNames: ["jiraSiteUrl", "jiraBaseUrl"],
+    });
+  });
+
+  test("the Jira API URL is filled in trimmed and without the slashes the site ends with", () => {
+    for (const [typed, filled] of [
+      ["https://acme.atlassian.net/", "https://acme.atlassian.net"],
+      ["  https://example.com/jira//  ", "https://example.com/jira"],
+      ["https://", "https:"],
+      ["", ""],
+    ]) {
+      const edit: TemplateVariableEdit = typeInto(
+        START,
+        "jiraSiteUrl",
+        typed as string,
+      );
+
+      expect({ typed, site: edit.values["jiraSiteUrl"] }).toEqual({
+        typed,
+        site: typed,
+      });
+      expect({ typed, api: edit.values["jiraBaseUrl"] }).toEqual({
+        typed,
+        api: filled,
+      });
+    }
+  });
+
+  test("once typed into, the Jira API URL keeps what was typed there", () => {
+    let edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraSiteUrl",
+      "https://acme.atlassian.net",
+    );
+
+    edit = typeInto(
+      edit,
+      "jiraBaseUrl",
+      "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+    );
+    edit = typeInto(edit, "jiraSiteUrl", "https://jira.acme.example");
+
+    expect(edit.values).toEqual({
+      jiraSiteUrl: "https://jira.acme.example",
+      jiraBaseUrl: "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+    });
+    expect(edit.changedVariableNames).toEqual(["jiraSiteUrl"]);
+    expect(edit.typedVariableNames.sort()).toEqual(
+      ["jiraBaseUrl", "jiraSiteUrl"].sort(),
+    );
+  });
+
+  test("emptying the Jira API URL lets it follow the Jira Site URL again", () => {
+    let edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraBaseUrl",
+      "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+    );
+
+    edit = typeInto(edit, "jiraBaseUrl", "");
+
+    expect(edit.typedVariableNames).toEqual([]);
+
+    edit = typeInto(edit, "jiraSiteUrl", "https://acme.atlassian.net");
+
+    expect(edit.values["jiraBaseUrl"]).toBe("https://acme.atlassian.net");
+  });
+
+  test("a template that asks for no Jira Site URL fills its Jira API URL in from nothing", () => {
+    const edit: TemplateVariableEdit = editTemplateVariable({
+      template: getWorkflowTemplate(
+        "jira-create-issue-for-incident",
+      ) as WorkflowTemplate,
+      values: {},
+      typedVariableNames: [],
+      variableName: "jiraProjectKey",
+      value: "OPS",
+    });
+
+    expect(edit.values).toEqual({ jiraProjectKey: "OPS" });
+    expect(edit.changedVariableNames).toEqual(["jiraProjectKey"]);
+  });
+
+  // A loop, not a pattern: a megabyte of slashes is read at once.
+  test("a site that is a megabyte of slashes is filled in at once", () => {
+    const started: number = Date.now();
+    const edit: TemplateVariableEdit = typeInto(
+      START,
+      "jiraSiteUrl",
+      `https://${"/".repeat(1024 * 1024)}`,
+    );
+
+    expect(edit.values["jiraBaseUrl"]).toBe("https:");
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 });
 
@@ -833,19 +980,31 @@ const JIRA_TEMPLATE_ROLES: Array<JiraTemplateRole> = [
   "issueChangesToNote",
 ];
 
-/** Every other template that calls Jira only needs to know where and as whom. */
-const JIRA_SITE_AND_TOKEN_ROLES: Array<JiraTemplateRole> = [
+/*
+ * Every other OneUptime -> Jira template calls Jira and links nothing in
+ * OneUptime, so it only needs to know where Jira's API is and as whom.
+ */
+const JIRA_API_ONLY_ROLES: Array<JiraTemplateRole> = [
   "transition",
   "privateNoteToComment",
   "publicNoteToComment",
   "updateComment",
+];
+
+/*
+ * Jira -> OneUptime templates that link the issue in what they write, and
+ * call Jira: the site the link goes to first, then the API and the token.
+ */
+const JIRA_LINKING_AND_CALLING_ROLES: Array<JiraTemplateRole> = [
   "createFromIssue",
   "commentToNote",
 ];
 
 /*
- * A webhook in and OneUptime's own database out: neither calls Jira, so
- * neither has anything to ask for.
+ * A webhook in and OneUptime's own database out: neither calls Jira. The
+ * status template links nothing either, so it asks for nothing; the
+ * issue-changes template links the issue in its note, so it asks for the
+ * site alone.
  */
 const JIRA_WEBHOOK_ONLY_ROLES: Array<JiraTemplateRole> = [
   "statusToState",
@@ -957,6 +1116,37 @@ const JIRA_VALUES: Record<string, string> = {
   oneuptimeUrl: "https://oneuptime.com",
 };
 
+/*
+ * The Jira Site URL the templates that link the issue ask for: the address
+ * people open Jira at. Another address than the API URL here, as it is with
+ * a scoped token, so a test can tell the two apart.
+ */
+const JIRA_SITE_URL_VALUE: string = "https://jira.acme.example";
+
+/** Every Jira setting as typed, to fill in whichever a template asks for. */
+const ALL_JIRA_VALUES: Record<string, string> = {
+  ...JIRA_VALUES,
+  jiraSiteUrl: JIRA_SITE_URL_VALUE,
+};
+
+/*
+ * What someone at another company would type: every setting differs from
+ * ALL_JIRA_VALUES, so a graph built from each shows whether anything typed
+ * reached it.
+ */
+const OTHER_JIRA_VALUES: Record<string, string> = {
+  jiraBaseUrl: "https://globex.atlassian.net",
+  jiraBasicAuthToken: "c2FtQGdsb2JleC5leGFtcGxlOm5vdC1hLXJlYWwtdG9rZW4=",
+  jiraProjectKey: "SUP",
+  jiraIssueType: "Bug",
+  oneuptimeUrl: "https://status.globex.example",
+  jiraSiteUrl: "https://jira.globex.example",
+};
+
+/* The message under a Jira Site URL that is not a site's address. */
+const JIRA_SITE_URL_MESSAGE: string =
+  "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.";
+
 type TemplateByIdFunction = (templateId: string) => WorkflowTemplate;
 
 const templateById: TemplateByIdFunction = (
@@ -1010,9 +1200,38 @@ const buildJiraWorkflow: BuildJiraWorkflowFunction = (
     description: template.workflowDescription,
     projectId: projectId,
     template: template,
-    values: filledValuesFor(template, JIRA_VALUES),
+    values: filledValuesFor(template, ALL_JIRA_VALUES),
     generateId: generateId,
   });
+};
+
+type JiraGraphFunction = (
+  template: WorkflowTemplate,
+  known: Record<string, string>,
+) => JSONObject;
+
+/*
+ * The graph the wizard builds for a Jira template from the settings in
+ * `known`. Node ids count from one again on every build, so two builds can
+ * differ only where the settings changed the graph.
+ */
+const jiraGraphWith: JiraGraphFunction = (
+  template: WorkflowTemplate,
+  known: Record<string, string>,
+): JSONObject => {
+  let built: number = 0;
+
+  return buildWorkflowFromTemplate({
+    name: template.workflowName,
+    description: template.workflowDescription,
+    projectId: projectId,
+    template: template,
+    values: filledValuesFor(template, known),
+    generateId: (): string => {
+      built++;
+      return `node-${built}`;
+    },
+  }).graph as JSONObject;
 };
 
 interface BuiltNode {
@@ -1102,7 +1321,7 @@ const buildJiraRows: BuildJiraRowsFunction = (
 ): Array<WorkflowVariable> => {
   return buildWorkflowVariables({
     template: template,
-    values: values || filledValuesFor(template, JIRA_VALUES),
+    values: values || filledValuesFor(template, ALL_JIRA_VALUES),
     workflowId: workflowId,
     projectId: projectId,
   });
@@ -1220,8 +1439,8 @@ describe("Jira templates", () => {
   /*
    * isSecret decides two things: the field is masked in the wizard, and the
    * stored value is scrubbed from run logs. The token is a reusable Jira
-   * credential, so it is secret wherever it is asked for. The site URL and
-   * project key are not, and masking them would only hide typos.
+   * credential, so it is secret wherever it is asked for. The site and API
+   * URLs and the project key are not, and masking them would only hide typos.
    */
   test("the API token is secret in every Jira template, and nothing else is", () => {
     for (const template of jiraTemplates()) {
@@ -1367,19 +1586,22 @@ describe("Jira templates", () => {
       }
     });
 
+    /*
+     * What was typed goes into the workflow's variables, and the graph only
+     * refers to them, so the graph is the same whatever was typed. Comparing
+     * the whole graphs built from two different sets of settings also catches
+     * a value that reached the graph in another form, such as only its host,
+     * which a search for the typed text would miss.
+     */
     test("what was typed never reaches the graph", () => {
       for (const template of jiraTemplates()) {
-        const serialized: string = JSON.stringify(
-          buildJiraWorkflow(template).graph,
-        );
-
         expect({
           template: template.id,
-          token: serialized.includes(
-            JIRA_VALUES[JIRA_TOKEN_VARIABLE] as string,
-          ),
-          site: serialized.includes(JIRA_VALUES["jiraBaseUrl"] as string),
-        }).toEqual({ template: template.id, token: false, site: false });
+          graph: jiraGraphWith(template, OTHER_JIRA_VALUES),
+        }).toEqual({
+          template: template.id,
+          graph: jiraGraphWith(template, ALL_JIRA_VALUES),
+        });
       }
     });
 
@@ -1541,23 +1763,96 @@ describe("Jira templates", () => {
         ).toEqual([JIRA_TOKEN_VARIABLE]);
       });
 
-      test("the webhook-only templates demand nothing", () => {
-        const templateIds: Array<string> = templateIdsOf(
+      test("the status template demands nothing, and the issue-changes template only the Jira Site URL", () => {
+        const [statusId, changesId] = templateIdsOf(
           kind,
           JIRA_WEBHOOK_ONLY_ROLES,
+        ) as [string, string];
+        const status: WorkflowTemplate = templateById(statusId);
+        const changes: WorkflowTemplate = templateById(changesId);
+
+        expect({
+          toFill: templateVariablesToFill(status),
+          errors: validateTemplateVariableValues(status, {}),
+        }).toEqual({ toFill: [], errors: {} });
+
+        expect(variableNamesOf(changes)).toEqual(["jiraSiteUrl"]);
+        expect(validateTemplateVariableValues(changes, {})).toEqual({
+          jiraSiteUrl: "Jira Site URL is required.",
+        });
+        expect(
+          validateTemplateVariableValues(changes, {
+            jiraSiteUrl: JIRA_SITE_URL_VALUE,
+          }),
+        ).toEqual({});
+      });
+
+      /*
+       * A link built on the Jira Site URL goes to that site and nowhere
+       * else, so the wizard takes a site's address only - refusing it here,
+       * where it is typed, says what to type, and nothing is created.
+       */
+      test.each([
+        ["a page of Jira Cloud", "https://acme.atlassian.net/jira/your-work"],
+        ["an issue's page", "https://acme.atlassian.net/browse/OPS-17"],
+        [
+          "a page of Jira Data Center",
+          "https://jira.example.com/secure/Dashboard.jspa",
+        ],
+        [
+          "the API gateway's address",
+          "https://api.atlassian.com/ex/jira/7a3c1b2e-cloud-id",
+        ],
+        ["no scheme", "acme.atlassian.net"],
+        ["a query", "https://acme.atlassian.net/?next=/browse"],
+        [
+          "a user name and a password",
+          "https://user:secret@acme.atlassian.net",
+        ],
+        ["markup after the host", "https://a.example)<img src=x>"],
+        ["a space in the host", "https://acme .atlassian.net"],
+        ["another scheme", "javascript:alert(1)"],
+      ])(
+        "a Jira Site URL that is %s is refused, saying what to type instead",
+        (_case: string, typed: string) => {
+          for (const role of [
+            "createFromIssue",
+            "commentToNote",
+            "issueChangesToNote",
+          ] as Array<JiraTemplateRole>) {
+            const template: WorkflowTemplate = templateById(
+              kind.templateIds[role] as string,
+            );
+
+            expect(
+              validateTemplateVariableValues(template, {
+                ...filledValuesFor(template, ALL_JIRA_VALUES),
+                jiraSiteUrl: typed,
+              }),
+            ).toEqual({ jiraSiteUrl: JIRA_SITE_URL_MESSAGE });
+          }
+        },
+      );
+
+      test.each([
+        ["Jira Cloud", "https://acme.atlassian.net"],
+        ["Jira Cloud, with a slash at the end", "https://acme.atlassian.net/"],
+        ["Jira Data Center on a port", "https://jira.example.com:8443"],
+        ["Jira Data Center under a context path", "https://example.com/jira"],
+        ["an address on a port", "http://10.0.0.5:8080"],
+        ["spaces around it, which are trimmed", "  https://example.com/jira  "],
+        ["a scheme in capitals", "HTTPS://acme.atlassian.net"],
+      ])("a Jira Site URL of %s is taken", (_case: string, typed: string) => {
+        const template: WorkflowTemplate = templateById(
+          kind.templateIds.commentToNote as string,
         );
 
-        expect(templateIds).toHaveLength(2);
-
-        for (const templateId of templateIds) {
-          const template: WorkflowTemplate = templateById(templateId);
-
-          expect({
-            template: templateId,
-            toFill: templateVariablesToFill(template),
-            errors: validateTemplateVariableValues(template, {}),
-          }).toEqual({ template: templateId, toFill: [], errors: {} });
-        }
+        expect(
+          validateTemplateVariableValues(template, {
+            ...filledValuesFor(template, ALL_JIRA_VALUES),
+            jiraSiteUrl: typed,
+          }),
+        ).toEqual({});
       });
     });
 
@@ -1646,7 +1941,7 @@ describe("Jira templates", () => {
 
       /*
        * base64 ends its output with a line break, and a stray space in the
-       * site URL lands in the middle of every request URL built from it.
+       * API URL lands in the middle of every request URL built from it.
        * Either one surviving into the row breaks every call the workflow
        * makes.
        */
@@ -1690,10 +1985,10 @@ describe("Jira templates", () => {
         expect(row?.description).not.toContain(kind.otherNoun);
       });
 
-      test("the other Jira-calling templates write the site URL and the secret token", () => {
+      test("the other OneUptime -> Jira templates write the API URL and the secret token", () => {
         const templateIds: Array<string> = templateIdsOf(
           kind,
-          JIRA_SITE_AND_TOKEN_ROLES,
+          JIRA_API_ONLY_ROLES,
         );
 
         expect(templateIds.length).toBeGreaterThan(0);
@@ -1730,12 +2025,112 @@ describe("Jira templates", () => {
         }
       });
 
-      test("the webhook-only templates write no rows", () => {
-        for (const templateId of templateIdsOf(kind, JIRA_WEBHOOK_ONLY_ROLES)) {
+      test("the templates that link the issue and call Jira write the Jira Site URL, the API URL and the secret token", () => {
+        const templateIds: Array<string> = templateIdsOf(
+          kind,
+          JIRA_LINKING_AND_CALLING_ROLES,
+        );
+
+        expect(templateIds).toHaveLength(2);
+
+        for (const templateId of templateIds) {
           expect({
             template: templateId,
-            rows: buildJiraRows(templateById(templateId)),
-          }).toEqual({ template: templateId, rows: [] });
+            rows: buildJiraRows(templateById(templateId)).map(
+              (row: WorkflowVariable) => {
+                return {
+                  name: row.name,
+                  content: row.content,
+                  isSecret: isSecretOf(row),
+                };
+              },
+            ),
+          }).toEqual({
+            template: templateId,
+            rows: [
+              {
+                name: "jiraSiteUrl",
+                content: JIRA_SITE_URL_VALUE,
+                isSecret: false,
+              },
+              {
+                name: "jiraBaseUrl",
+                content: JIRA_VALUES["jiraBaseUrl"],
+                isSecret: false,
+              },
+              {
+                name: JIRA_TOKEN_VARIABLE,
+                content: JIRA_VALUES[JIRA_TOKEN_VARIABLE],
+                isSecret: true,
+              },
+            ],
+          });
+        }
+      });
+
+      test("the status template writes no rows, and the issue-changes template only the Jira Site URL", () => {
+        const [statusId, changesId] = templateIdsOf(
+          kind,
+          JIRA_WEBHOOK_ONLY_ROLES,
+        ) as [string, string];
+
+        expect(buildJiraRows(templateById(statusId))).toEqual([]);
+        expect(
+          buildJiraRows(templateById(changesId)).map(
+            (row: WorkflowVariable) => {
+              return [row.name, row.content, isSecretOf(row)];
+            },
+          ),
+        ).toEqual([["jiraSiteUrl", JIRA_SITE_URL_VALUE, false]]);
+      });
+
+      /*
+       * Saved trimmed, as every setting is, and with the slash a browser's
+       * address bar ends a site with: the scripts drop it when they link.
+       */
+      test("the Jira Site URL row is saved as typed, trimmed, with the help text that says what it is", () => {
+        const template: WorkflowTemplate = templateById(
+          kind.templateIds.issueChangesToNote as string,
+        );
+        const rows: Array<WorkflowVariable> = buildJiraRows(template, {
+          jiraSiteUrl: " https://example.com/jira/\n",
+        });
+        const row: WorkflowVariable = rows[0] as WorkflowVariable;
+
+        expect(rows).toHaveLength(1);
+        expect(row.name).toBe("jiraSiteUrl");
+        expect(row.content).toBe("https://example.com/jira/");
+        expect(isSecretOf(row)).toBe(false);
+        expect(row.description).toBe(
+          (template.variables[0] as WorkflowTemplateVariable).description,
+        );
+        expect(row.description).toContain("The address you open Jira at");
+      });
+
+      /*
+       * The scripts that link the issue are handed the site by reference,
+       * never by value: the value lives in the variable row alone, where it
+       * can be changed without editing the workflow.
+       */
+      test("each script that links the issue is handed the Jira Site URL by reference", () => {
+        for (const [role, scriptId] of [
+          ["createFromIssue", `prepare-${kind.noun}-1`],
+          ["commentToNote", "read-comment-1"],
+          ["issueChangesToNote", "read-changes-1"],
+        ] as Array<[JiraTemplateRole, string]>) {
+          const workflow: Workflow = buildJiraWorkflow(
+            templateById(kind.templateIds[role] as string),
+          );
+          const given: JSONObject = JSON.parse(
+            argumentsOfComponent(workflow.graph as JSONObject, scriptId)[
+              "arguments"
+            ] as string,
+          ) as JSONObject;
+
+          expect({ role, site: given["jiraSiteUrl"] }).toEqual({
+            role,
+            site: "{{local.variables.jiraSiteUrl}}",
+          });
         }
       });
     });

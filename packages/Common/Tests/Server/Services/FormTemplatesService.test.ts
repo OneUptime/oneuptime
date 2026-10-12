@@ -31,6 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * What FormService lets into a form's templates (Form.templates), whoever
@@ -211,6 +212,11 @@ beforeEach(() => {
   > => {
     return storedForms;
   }) as never);
+  // The forms a teammate's update may write: the stored ones.
+  stubRowsCallerMayWriteLikeFindBy(
+    FormService,
+    jest.spyOn(FormService, "findBy"),
+  );
 
   buildPublicFormFor = jest.spyOn(
     FormService,
@@ -556,6 +562,221 @@ describe("changing a form's templates", () => {
 
     expect(error?.message).toBe(
       `Template 1 ("A"): ${title.label} cannot be more than 100 characters.`,
+    );
+  });
+});
+
+/*
+ * How a template asks each question (fieldSettings, issue #4563), as
+ * FormService lets it be written: a setting is Required, Optional or Hidden,
+ * for a question the form asks - hidden ones too - and never one that makes
+ * a question the target cannot be created without optional or hidden. On an
+ * update, what a template already held is not judged again: every change on
+ * the Templates page saves the whole list, and a question removed since
+ * must not keep an admin from saving another template.
+ */
+describe("templates that ask the questions their own way", () => {
+  const PLANNED: JSONObject = {
+    id: "planned",
+    name: "Planned Maintenance",
+    answers: { title: "Planned maintenance" },
+    // The description is hidden on the form: this template asks it.
+    fieldSettings: {
+      description: "Required",
+      office: "Optional",
+      impact: "Hidden",
+      type: "Hidden",
+    },
+  };
+
+  // What a question removed since left behind in a template.
+  const STALE: JSONObject = {
+    id: "stale",
+    name: "Stale",
+    answers: { removed: "x", office: "Paris" },
+    fieldSettings: { removed: "Hidden" },
+  };
+
+  function findByReads(): Array<{ select: Record<string, unknown> }> {
+    return (
+      FormService.findBy as unknown as {
+        mock: { calls: Array<Array<{ select: Record<string, unknown> }>> };
+      }
+    ).mock.calls.map(
+      (
+        call: Array<{ select: Record<string, unknown> }>,
+      ): { select: Record<string, unknown> } => {
+        return call[0]!;
+      },
+    );
+  }
+
+  test("accepts a setting for any of the form's questions, hidden ones too, and stores it exactly as sent", async () => {
+    const templates: JSONArray = [OUTAGE, PLANNED] as unknown as JSONArray;
+
+    const created: Form = (await create(newForm({ templates }))).createBy.data;
+
+    expect(created.templates).toBe(templates);
+    expect(created.templates).toEqual([OUTAGE, PLANNED]);
+  });
+
+  test("refuses a setting that is not one before anything is read", async () => {
+    const error: Error | undefined = await refusal(
+      create(
+        newForm({
+          templates: [
+            { ...PLANNED, fieldSettings: { office: "Mandatory" } },
+          ] as unknown as JSONArray,
+        }),
+      ),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe(
+      'Template 1 ("Planned Maintenance"): each field setting must be Required, Optional or Hidden.',
+    );
+    expect(buildPublicFormFor).not.toHaveBeenCalled();
+  });
+
+  test("refuses a setting for a question the form does not ask, naming the template and the question", async () => {
+    const error: Error | undefined = await refusal(
+      create(
+        newForm({
+          templates: [
+            OUTAGE,
+            { ...PLANNED, fieldSettings: { window: "Required" } },
+          ] as unknown as JSONArray,
+        }),
+      ),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe(
+      'Template 2 ("Planned Maintenance") has a setting for a question the form does not ask (window).',
+    );
+  });
+
+  test("a maintenance form: no template can hide when the work starts, or make it optional", async () => {
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.ScheduledMaintenance,
+    );
+    const starts: FormField = fields.find((field: FormField): boolean => {
+      return field.targetField === "startsAt";
+    })!;
+    const ends: FormField = fields.find((field: FormField): boolean => {
+      return field.targetField === "endsAt";
+    })!;
+
+    const error: Error | undefined = await refusal(
+      create(
+        newForm({
+          targetType: FormTargetType.ScheduledMaintenance,
+          fields: fields as unknown as JSONArray,
+          templates: [
+            {
+              id: "night",
+              name: "Night Work",
+              answers: {},
+              fieldSettings: {
+                [starts.id]: "Hidden",
+                [ends.id]: "Optional",
+              },
+            },
+          ] as unknown as JSONArray,
+        }),
+      ),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe(
+      'Template 1 ("Night Work"): Starts At cannot be hidden: a scheduled maintenance event cannot be created without it. Template 1 ("Night Work"): Ends At cannot be optional: a scheduled maintenance event cannot be created without it.',
+    );
+
+    // Required is what they always are.
+    await expect(
+      create(
+        newForm({
+          targetType: FormTargetType.ScheduledMaintenance,
+          fields: fields as unknown as JSONArray,
+          templates: [
+            {
+              id: "night",
+              name: "Night Work",
+              answers: {},
+              fieldSettings: { [starts.id]: "Required" },
+            },
+          ] as unknown as JSONArray,
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("an update reads the templates the form holds - and only when it writes templates", async () => {
+    await update({ templates: [OUTAGE] as unknown as JSONArray });
+
+    expect(findByReads()[0]!.select["templates"]).toBe(true);
+
+    jest.clearAllMocks();
+
+    await update({ fields: FIELDS as unknown as JSONArray });
+
+    expect(findByReads()[0]!.select).not.toHaveProperty("templates");
+  });
+
+  test("a template that went stale since it was saved keeps nobody from saving another", async () => {
+    storedForms = [storedForm({ templates: [STALE] as unknown as JSONArray })];
+
+    await expect(
+      update({ templates: [STALE, PLANNED] as unknown as JSONArray }),
+    ).resolves.toBeDefined();
+
+    // Moving it, deleting another: the same list, saved again.
+    await expect(
+      update({ templates: [PLANNED, STALE] as unknown as JSONArray }),
+    ).resolves.toBeDefined();
+  });
+
+  test("what went stale is refused in a template that did not hold it", async () => {
+    storedForms = [storedForm({ templates: [STALE] as unknown as JSONArray })];
+
+    const error: Error | undefined = await refusal(
+      update({
+        templates: [
+          STALE,
+          { ...STALE, id: "copy", name: "Copy" },
+        ] as unknown as JSONArray,
+      }),
+    );
+
+    expect(error?.message).toBe(
+      'Template 2 ("Copy") answers a question the form does not ask (removed). Template 2 ("Copy"): Office must be one of the options the form lists. Template 2 ("Copy") has a setting for a question the form does not ask (removed).',
+    );
+  });
+
+  test("a held answer or setting that changes is judged whole", async () => {
+    storedForms = [storedForm({ templates: [STALE] as unknown as JSONArray })];
+
+    const error: Error | undefined = await refusal(
+      update({
+        templates: [
+          { ...STALE, fieldSettings: { removed: "Required" } },
+        ] as unknown as JSONArray,
+      }),
+    );
+
+    expect(error?.message).toBe(
+      'Template 1 ("Stale") has a setting for a question the form does not ask (removed).',
+    );
+  });
+
+  test("a create holds nothing: a copy of a form judges every template whole", async () => {
+    const error: Error | undefined = await refusal(
+      create(newForm({ templates: [STALE] as unknown as JSONArray })),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toContain(
+      "answers a question the form does not ask (removed)",
     );
   });
 });

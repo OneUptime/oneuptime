@@ -2,9 +2,6 @@ import DatabaseService from "./DatabaseService";
 import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceOidTemplate";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
-import Query from "../Types/Database/Query";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -113,25 +110,16 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const templatesToDelete: Array<Model> = await this.findBy({
-      /*
-       * This hook runs BEFORE DatabaseService permission-checks the query, so
-       * a raw isRoot read of deleteBy.query would hand back other tenants'
-       * templates. Re-apply the caller's tenant, exactly as NetworkSiteService
-       * does for the same reason.
-       */
-      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
-      select: {
+    /*
+     * The templates the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them.
+     */
+    const templatesToDelete: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         name: true,
         projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const template of templatesToDelete) {
       if (!template.id || !template.projectId) {
@@ -201,25 +189,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     return count.toNumber();
-  }
-
-  /*
-   * See NetworkSiteService for the full explanation: hooks run before
-   * ModelPermission scopes the caller's query, so anything a hook reads with
-   * isRoot has to be re-scoped by hand or it spans projects.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
   }
 }
 

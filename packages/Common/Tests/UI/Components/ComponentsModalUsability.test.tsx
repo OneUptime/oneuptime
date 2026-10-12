@@ -19,6 +19,7 @@ import {
   RenderResult,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
@@ -260,7 +261,18 @@ describe("the search box", () => {
 
     await user.type(searchBox(), "send message");
     await settled();
-    expect(screen.getByRole("status")).toHaveTextContent("5 matches.");
+
+    /*
+     * Every chat a workflow can post to matches, so the count grows with
+     * each one added (IRC made it six): what is announced must be what the
+     * list shows.
+     */
+    const shown: number = within(
+      document.getElementById(SEARCH_RESULTS_ID)!,
+    ).getAllByRole("option").length;
+
+    expect(shown).toBeGreaterThan(1);
+    expect(screen.getByRole("status").textContent).toBe(`${shown} matches.`);
   });
 });
 

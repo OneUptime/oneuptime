@@ -2295,3 +2295,86 @@ describe("a case linked to one kind is never taken for the other", () => {
     }
   });
 });
+
+/* ------------------- A case whose description is rich text ------------------- */
+
+/*
+ * A case's description is HTML where the case form has Dynamics 365's
+ * rich-text editor, or where an email became the case. The whole template
+ * - the webhook, the read of the case, the script, the substitution into the
+ * create step - writes the text it shows into the record
+ * (DynamicsCaseDescription.test.ts reads many more).
+ */
+describe.each(KINDS)(
+  "%s: Create from a Dynamics 365 case whose description is rich text",
+  (_name: string, kind: SimulatedKind) => {
+    const descriptionOf: (description: string) => Promise<string> = async (
+      description: string,
+    ): Promise<string> => {
+      const trace: SimulationTrace = await run({
+        templateId: kind.templates.createRecord,
+        trigger: delivery(webhookContext({ messageName: "Create" })),
+        dataverse: new FakeDataverse({ cases: [{ description: description }] }),
+        database: {
+          [kind.components.severityFindMany]: many(kind.severities),
+          [kind.components.createOne]: createdWithId(NEW_RECORD_ID),
+        },
+      });
+      const create: DatabaseCall | undefined = trace.databaseCalls.find(
+        (call: DatabaseCall) => {
+          return call.metadataId === kind.components.createOne;
+        },
+      );
+
+      expect(lastLog(trace)).toBe(
+        `✅ ${kind.Created} an ${kind.noun} with severity ${kind.mostSevereName} for Dynamics 365 case ${CASE_NUMBER}, and linked the case to it.`,
+      );
+
+      return String((create?.args["json"] as JSONObject)["description"]);
+    };
+
+    const header: string = [
+      `${kind.Created} from Dynamics 365 case [${CASE_NUMBER}](${DYNAMICS_URL}/main.aspx?pagetype=entityrecord&etn=incident&id=${CASE_ID}).`,
+      "Priority: High",
+      "Customer: Contoso Pharmaceuticals",
+    ].join("\n");
+
+    test("the record's description reads as the text the editor shows", async () => {
+      expect(
+        await descriptionOf(
+          '<div class="ck-content" data-wrapper="true" dir="ltr"><p>Checkout fails since <strong>09:40 UTC</strong>.</p><p>&lt;!channel&gt; please look &amp; retry</p></div>',
+        ),
+      ).toBe(
+        [
+          header,
+          "",
+          "Checkout fails since 09:40 UTC.",
+          "<\u2060!channel> please look & retry",
+        ].join("\n"),
+      );
+    });
+
+    test("an email's style is never shown", async () => {
+      expect(
+        await descriptionOf(
+          '<html><head><style type="text/css" style="display:none;"> P {margin-top:0;margin-bottom:0;} </style></head><body dir="ltr"><div>The VPN drops for the Berlin office.</div></body></html>',
+        ),
+      ).toBe([header, "", "The VPN drops for the Berlin office."].join("\n"));
+    });
+
+    test("a plain-text description is written exactly as before", async () => {
+      expect(
+        await descriptionOf(
+          "From: Jane Doe <jane@contoso.com>\nThe portal is down.",
+        ),
+      ).toBe(
+        [
+          header,
+          "",
+          "From: Jane Doe <\u2060jane@contoso.com>",
+          "The portal is down.",
+        ].join("\n"),
+      );
+    });
+  },
+);

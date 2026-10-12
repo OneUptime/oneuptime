@@ -25,6 +25,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -297,17 +301,25 @@ describe("monitor update payment admission", () => {
     expectPaymentCheckedFor(otherProjectId);
   });
 
-  test("scopes non-root update lookups to their tenant", async () => {
+  test("reads a teammate's update among the monitors they may write, in their project", async () => {
+    // The monitors the update path finds the caller may write: what findBy answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      MonitorService,
+      jest.spyOn(MonitorService, "findBy"),
+    );
     const input: UpdateBy<Monitor> = updateInput({
       disableActiveMonitoring: false,
     });
     input.props = { tenantId: projectId };
+    const query: UpdateBy<Monitor>["query"] = input.query;
+
     await hooks.onBeforeUpdate(input);
-    expect(MonitorService.findBy).toHaveBeenCalledWith(
+
+    expect(readsOfRowsCallerMayWrite(MonitorService)[0]).toEqual(
       expect.objectContaining({
-        query: { ...input.query, projectId },
-        limit: input.limit,
-        skip: input.skip,
+        query: { ...query, projectId },
+        limit: 10,
+        skip: 0,
       }),
     );
   });

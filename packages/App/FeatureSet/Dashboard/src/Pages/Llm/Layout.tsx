@@ -8,7 +8,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 
-const getActiveLlmTab: (path: string) => LlmTabKey = (
+/*
+ * Which tab a page belongs to, from its route pattern. A conversation's own
+ * page belongs to Conversations; anything unknown does too, since that is
+ * the product's home.
+ */
+export const getActiveLlmTab: (path: string) => LlmTabKey = (
   path: string,
 ): LlmTabKey => {
   if (path.includes("/llm/usage")) {
@@ -16,6 +21,9 @@ const getActiveLlmTab: (path: string) => LlmTabKey = (
   }
   if (path.includes("/llm/calls")) {
     return "calls";
+  }
+  if (path.includes("/llm/alerts")) {
+    return "alerts";
   }
   if (path.includes("/llm/budgets")) {
     return "budgets";
@@ -26,7 +34,7 @@ const getActiveLlmTab: (path: string) => LlmTabKey = (
   if (path.includes("/llm/documentation")) {
     return "setup";
   }
-  return "overview";
+  return "conversations";
 };
 
 const LlmLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -34,7 +42,7 @@ const LlmLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   if (path.endsWith("llm") || path.endsWith("llm/*")) {
     Navigation.navigate(
-      RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_OVERVIEW]!),
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_CONVERSATIONS]!),
     );
 
     return <></>;

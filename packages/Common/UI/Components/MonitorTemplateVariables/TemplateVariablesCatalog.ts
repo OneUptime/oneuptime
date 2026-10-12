@@ -1,4 +1,6 @@
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import { translateTemplate } from "../../Utils/TranslateTemplate";
 import {
   TemplateVariable as EditorTemplateVariable,
@@ -38,11 +40,11 @@ export default class TemplateVariablesCatalog {
     monitorType: MonitorType;
     /**
      * Attribute keys the user has configured on the metric query
-     * (e.g. ["host.name", "region"]). For metric/kubernetes/docker/
-     * proxmox/vmware/ceph/storage array monitors, these become per-series
-     * template variables — one incident fires per unique value combination,
-     * and each incident can reference the label values via `{{host.name}}`
-     * etc.
+     * (e.g. ["host.name", "region"]). For a monitor evaluated as metric
+     * series (MonitorTypeHelper.isMetricBackedMonitor), these become
+     * per-series template variables — one incident fires per unique value
+     * combination, and each incident can reference the label values via
+     * `{{host.name}}` etc.
      */
     seriesAttributeKeys?: Array<string> | undefined;
   }): Array<TemplateVariableGroup> {
@@ -57,18 +59,8 @@ export default class TemplateVariablesCatalog {
       groups.push(perTypeGroup);
     }
 
-    if (
-      input.monitorType === MonitorType.Metrics ||
-      input.monitorType === MonitorType.Kubernetes ||
-      input.monitorType === MonitorType.Docker ||
-      input.monitorType === MonitorType.Host ||
-      input.monitorType === MonitorType.Podman ||
-      input.monitorType === MonitorType.DockerSwarm ||
-      input.monitorType === MonitorType.Proxmox ||
-      input.monitorType === MonitorType.VMware ||
-      input.monitorType === MonitorType.Ceph ||
-      input.monitorType === MonitorType.StorageArray
-    ) {
+    // The same list MonitorTemplateUtil sets {{metricName}} and the labels for.
+    if (MonitorTypeHelper.isMetricBackedMonitor(input.monitorType)) {
       groups.push(
         TemplateVariablesCatalog.seriesLabelsGroup(input.seriesAttributeKeys),
       );
@@ -244,9 +236,34 @@ export default class TemplateVariablesCatalog {
     };
   }
 
+  /*
+   * A metric a monitor of this type reads, for {{metricName}}'s Example
+   * column. An IoT Device monitor reads what the IoT agent sends, such as the
+   * Device Offline template's iot_device_up, never a container's metrics.
+   */
+  private static exampleMetricName(monitorType: MonitorType): string {
+    return monitorType === MonitorType.IoTDevice
+      ? "iot_device_up"
+      : "container.cpu.time";
+  }
+
   private static perTypeGroup(
     monitorType: MonitorType,
   ): TemplateVariableGroup | null {
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
+      return {
+        title: "Metric",
+        variables: [
+          {
+            key: "metricName",
+            description:
+              "The name of the metric the monitor's first query reads.",
+            example: TemplateVariablesCatalog.exampleMetricName(monitorType),
+          },
+        ],
+      };
+    }
+
     switch (monitorType) {
       case MonitorType.API:
       case MonitorType.Website:
@@ -729,6 +746,96 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
+      case MonitorType.NTP:
+        return {
+          title: "NTP",
+          variables: [
+            {
+              key: "isOnline",
+              description: "True if the time server answered.",
+              example: "true",
+            },
+            {
+              key: "isSynchronized",
+              description:
+                "True if it answered at stratum 1 to 15 without the leap alarm.",
+              example: "false",
+            },
+            {
+              key: "stratum",
+              description:
+                "Stratum the server reported: 1 is a primary server, 16 is not synchronized, 0 is a kiss-o'-death.",
+              example: "2",
+            },
+            {
+              key: "clockOffsetInMs",
+              description:
+                "How far the server's clock is from the probe's, in milliseconds. Positive is ahead, negative behind.",
+              example: "-12.4",
+            },
+            {
+              key: "referenceId",
+              description:
+                "What the server synchronizes to: a source such as GPS at stratum 1, or its upstream server's address.",
+              example: "GPS",
+            },
+            {
+              key: "leapIndicator",
+              description:
+                "0 to 2 is fine; 3 means the server says its clock is not synchronized.",
+              example: "0",
+            },
+            {
+              key: "kissCode",
+              description:
+                "With stratum 0, the kiss code the server sent instead of the time.",
+              example: "RATE",
+            },
+            {
+              key: "responseTimeInMs",
+              description: "Time from the request to the reply.",
+              example: "18",
+            },
+            {
+              key: "roundTripDelayInMs",
+              description:
+                "Network round trip of the exchange, without the server's own time.",
+            },
+            {
+              key: "rootDelayInMs",
+              description: "Round trip from the server to its reference clock.",
+            },
+            {
+              key: "rootDispersionInMs",
+              description: "The server's own estimate of its maximum error.",
+            },
+            {
+              key: "serverTime",
+              description: "The server's time when it sent the reply.",
+              example: "2026-07-14T09:55:00.000Z",
+            },
+            {
+              key: "referenceTime",
+              description: "When the server's clock was last set or corrected.",
+            },
+            {
+              key: "serverAddress",
+              description: "The address the request went to.",
+              example: "192.0.2.10",
+            },
+            { key: "port", description: "The UDP port the request went to." },
+            {
+              key: "isTimeout",
+              description: "True if no reply came before the timeout.",
+            },
+            {
+              key: "failureCause",
+              description:
+                "Why the server did not answer, or is not synchronized.",
+            },
+          ],
+        };
+
       case MonitorType.Database:
         return {
           title: "Database Health",
@@ -809,28 +916,6 @@ export default class TemplateVariablesCatalog {
             },
             { key: "responseTimeInMs", description: "Fetch time." },
             { key: "failureCause", description: "Failure reason." },
-          ],
-        };
-
-      case MonitorType.Metrics:
-      case MonitorType.Kubernetes:
-      case MonitorType.Docker:
-      case MonitorType.Host:
-      case MonitorType.Podman:
-      case MonitorType.DockerSwarm:
-      case MonitorType.Proxmox:
-      case MonitorType.VMware:
-      case MonitorType.Ceph:
-      case MonitorType.StorageArray:
-        return {
-          title: "Metric",
-          variables: [
-            {
-              key: "metricName",
-              description:
-                "The OTel metric name the monitor is watching (e.g. container.cpu.time).",
-              example: "container.cpu.time",
-            },
           ],
         };
 

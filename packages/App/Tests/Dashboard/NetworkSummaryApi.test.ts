@@ -622,6 +622,7 @@ describe("fetchNetworkOverview", () => {
         down: 612,
         pending: 178,
         interfacesDown: 1544,
+        snmpFailing: 23,
       },
       siteCount: 1200,
       unhealthySiteCount: 37,
@@ -730,6 +731,7 @@ describe("fetchNetworkOverview", () => {
       down: 612,
       pending: 178,
       interfacesDown: 1544,
+      snmpFailing: 23,
     });
     expect(overview.siteCount).toBe(1200);
     expect(overview.unhealthySiteCount).toBe(37);
@@ -775,6 +777,7 @@ describe("fetchNetworkOverview", () => {
         down: "612",
         pending: "178",
         interfacesDown: "1544",
+        snmpFailing: "23",
       },
       siteCount: "1200",
       unhealthySiteCount: "37",
@@ -791,6 +794,7 @@ describe("fetchNetworkOverview", () => {
       down: 612,
       pending: 178,
       interfacesDown: 1544,
+      snmpFailing: 23,
     });
     expectRealNumbers([
       overview.fleet.total,
@@ -798,6 +802,7 @@ describe("fetchNetworkOverview", () => {
       overview.fleet.down,
       overview.fleet.pending,
       overview.fleet.interfacesDown,
+      overview.fleet.snmpFailing,
       overview.siteCount,
       overview.unhealthySiteCount,
       overview.endpointCount,
@@ -812,7 +817,14 @@ describe("fetchNetworkOverview", () => {
     const overview: NetworkOverviewSummary = await fetchNetworkOverview();
 
     expect(overview).toEqual({
-      fleet: { total: 0, up: 0, down: 0, pending: 0, interfacesDown: 0 },
+      fleet: {
+        total: 0,
+        up: 0,
+        down: 0,
+        pending: 0,
+        interfacesDown: 0,
+        snmpFailing: 0,
+      },
       siteCount: 0,
       unhealthySiteCount: 0,
       endpointCount: 0,
@@ -833,6 +845,7 @@ describe("fetchNetworkOverview", () => {
       down: 0,
       pending: 0,
       interfacesDown: 0,
+      snmpFailing: 0,
     });
     expectRealNumbers([overview.fleet.total, overview.fleet.up]);
   });
@@ -848,6 +861,7 @@ describe("fetchNetworkOverview", () => {
       down: 0,
       pending: 0,
       interfacesDown: 0,
+      snmpFailing: 0,
     });
   });
 
@@ -862,6 +876,7 @@ describe("fetchNetworkOverview", () => {
       down: 0,
       pending: 0,
       interfacesDown: 0,
+      snmpFailing: 0,
     });
   });
 
@@ -876,6 +891,7 @@ describe("fetchNetworkOverview", () => {
       down: 0,
       pending: 0,
       interfacesDown: 0,
+      snmpFailing: 0,
     });
   });
 
@@ -890,6 +906,7 @@ describe("fetchNetworkOverview", () => {
       down: 0,
       pending: 0,
       interfacesDown: 0,
+      snmpFailing: 0,
     });
   });
 
@@ -904,6 +921,7 @@ describe("fetchNetworkOverview", () => {
       down: 0,
       pending: 0,
       interfacesDown: 0,
+      snmpFailing: 0,
     });
   });
 
@@ -1237,6 +1255,7 @@ describe("fetchNetworkOverview", () => {
       "down",
       "interfacesDown",
       "pending",
+      "snmpFailing",
       "total",
       "up",
     ]);

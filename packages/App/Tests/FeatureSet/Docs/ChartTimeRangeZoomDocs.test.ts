@@ -405,7 +405,7 @@ const PAGE_ZOOM_SURFACES: Array<ZoomSurface> = [
     phrase: "network devices' metrics and traffic",
     sources: [
       `${DASHBOARD_SRC}/Components/NetworkDevice/DeviceHealthCharts.tsx`,
-      `${DASHBOARD_SRC}/Components/NetworkDevice/FlowTopTalkers.tsx`,
+      `${DASHBOARD_SRC}/Components/NetworkTraffic/NetworkTrafficView.tsx`,
     ],
   },
   {
@@ -1085,7 +1085,7 @@ describe("Zooming Into a Time Range docs: what zooms, and how far", () => {
     ).toContain("<DeviceHealthCharts");
     expect(
       readCode(`${DASHBOARD_SRC}/Pages/NetworkDevice/View/Traffic.tsx`),
-    ).toContain("<FlowTopTalkers");
+    ).toContain("<NetworkTrafficView");
 
     expect(readSection(ZOOM_PAGE, "Where it works")).toContain(
       "- network devices' metrics and traffic;",

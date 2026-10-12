@@ -9,7 +9,7 @@ import path from "path";
  * theme, and nothing fails.
  *
  * So this reads the products menu's folding pieces - the category row
- * (icon, name, the products it holds, count, chevron, and the cursor's and
+ * (name, the products it holds, count, chevron, and the cursor's and
  * the hover's colours on it), the phone menu's list, the frame of the
  * desktop menu's list of categories and the plain headings above it - and
  * holds every colour class they draw with to what Theme.css remaps.
@@ -159,17 +159,11 @@ describe("the category row's colours", () => {
         "text-gray-600",
         "text-gray-400",
         "bg-gray-100",
-        // The icon's tile.
-        "bg-gray-50",
-        "ring-gray-200",
         // The hover, and the keyboard cursor on the row.
         "hover:bg-gray-50",
         "bg-indigo-50",
-        "bg-white",
-        "ring-indigo-200",
         "bg-indigo-100",
         "text-indigo-700",
-        "text-indigo-600",
         "text-indigo-500",
       ]),
     );
@@ -183,7 +177,7 @@ describe("the category row's colours", () => {
   test("the plain headings of the desktop menu use only remapped colours too", () => {
     const modal: string = readCode("NavBarMenuModal.tsx");
 
-    // The plain heading that lines up with the icons of the category rows.
+    // The plain heading that lines up with the names of the category rows.
     expect(modal).toContain("border border-transparent px-3");
     for (const token of ["border-transparent", "text-gray-500"]) {
       expect(isRemapped(token)).toBe(true);

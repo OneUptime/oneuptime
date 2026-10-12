@@ -4,7 +4,9 @@ import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import API from "Common/Utils/API";
-import LLMService from "Common/Server/Utils/LLM/LLMService";
+import LLMService, {
+  LLMCompletionRequest,
+} from "Common/Server/Utils/LLM/LLMService";
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
@@ -570,6 +572,204 @@ describe("every LLM provider guide recommends the models OneUptime defaults to",
       ).toEqual([]);
     },
   );
+});
+
+describe("every LLM provider guide says what OneUptime does with a current Claude model", () => {
+  /*
+   * Issue #4583: current Claude models refuse temperature, top_p and top_k,
+   * and think before they answer. The Anthropic section says what OneUptime
+   * does about both and how to make the models think less, and names, in
+   * inline code, the settings involved. Those names are a promise about
+   * LLMService, so they are held to it here, and every translation has to
+   * name the same ones.
+   */
+  startEachTestOnSelfHostedEgressPolicy();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const INLINE_CODE: RegExp = /`([^`]+)`/g;
+
+  const EFFORT_EXAMPLE: string = '{"output_config": {"effort": "low"}}';
+
+  const SAMPLING_PARAMETERS: Array<string> = ["temperature", "top_p", "top_k"];
+
+  const FIELDS_ONEUPTIME_KEEPS: Array<string> = [
+    "model",
+    "messages",
+    "system",
+    "tools",
+    "tool_choice",
+    "stream",
+  ];
+
+  // The inline code of the Anthropic section after its example configuration.
+  function currentModelSettings(markdown: string): Array<string> {
+    const section: string = sectionOf(markdown, "### Anthropic");
+    const afterExample: string = section.slice(section.lastIndexOf("```") + 3);
+
+    return [...afterExample.matchAll(INLINE_CODE)]
+      .map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      })
+      .sort();
+  }
+
+  // The body LLMService sends Anthropic for this request.
+  async function anthropicRequestBody(
+    modelName: string,
+    request: Partial<LLMCompletionRequest>,
+  ): Promise<JSONObject> {
+    const post: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(API, "post")
+      .mockResolvedValue({
+        jsonData: {
+          content: [{ type: "text", text: "OK" }],
+          stop_reason: "end_turn",
+        },
+      } as unknown as HTTPResponse<JSONObject>) as ReturnType<
+      typeof jest.spyOn
+    >;
+
+    await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Anthropic,
+        apiKey: "sk-ant-test",
+        // A private address, which a self-hosted install reaches.
+        baseUrl: "http://10.0.0.12:8000/v1",
+        modelName: modelName,
+      },
+      messages: [
+        { role: "system", content: "be brief" },
+        { role: "user", content: "which incidents are active?" },
+      ],
+      ...request,
+    });
+
+    const body: JSONObject = (post.mock.calls[0]![0] as { data: JSONObject })
+      .data;
+
+    jest.restoreAllMocks();
+
+    return body;
+  }
+
+  test("the English page names the sampling parameters, the effort setting and the fields OneUptime keeps", () => {
+    expect(currentModelSettings(readPage("en"))).toEqual(
+      [
+        ...SAMPLING_PARAMETERS,
+        EFFORT_EXAMPLE,
+        ...FIELDS_ONEUPTIME_KEEPS,
+      ].sort(),
+    );
+  });
+
+  test.each(TRANSLATIONS)("%s names the same settings", (language: string) => {
+    expect(currentModelSettings(readPage(language))).toEqual(
+      currentModelSettings(readPage("en")),
+    );
+  });
+
+  test("a current model never gets the sampling parameters the page names", async () => {
+    const body: JSONObject = await anthropicRequestBody(
+      listedModels(readPage("en"), "Anthropic")[0]!,
+      {
+        temperature: 0.2,
+        additionalParams: { temperature: 0.2, top_p: 0.9, top_k: 40 },
+      },
+    );
+
+    for (const parameter of SAMPLING_PARAMETERS) {
+      expect({ parameter, sent: body[parameter] }).toEqual({
+        parameter,
+        sent: undefined,
+      });
+    }
+  });
+
+  test("the effort setting it suggests is JSON that reaches every request, a protected one included", async () => {
+    const effort: JSONObject = JSON.parse(EFFORT_EXAMPLE) as JSONObject;
+
+    for (const protectRequestParameters of [false, true]) {
+      const body: JSONObject = await anthropicRequestBody("claude-opus-5-5", {
+        protectRequestParameters,
+        additionalParams: effort,
+      });
+
+      expect({
+        protectRequestParameters,
+        outputConfig: body["output_config"],
+      }).toEqual({
+        protectRequestParameters,
+        outputConfig: effort["output_config"],
+      });
+    }
+  });
+
+  test("the fields it says OneUptime keeps cannot be replaced from Additional Parameters, and other settings can be set", async () => {
+    for (const field of FIELDS_ONEUPTIME_KEEPS) {
+      const body: JSONObject = await anthropicRequestBody("claude-opus-5-5", {
+        additionalParams: { [field]: "replaced" },
+      });
+
+      expect({ field, replaced: body[field] === "replaced" }).toEqual({
+        field,
+        replaced: false,
+      });
+    }
+
+    const body: JSONObject = await anthropicRequestBody("claude-opus-5-5", {
+      additionalParams: { metadata: { user_id: "oneuptime" } },
+    });
+
+    expect(body["metadata"]).toEqual({ user_id: "oneuptime" });
+  });
+});
+
+describe("every LLM provider form suggests the Anthropic model OneUptime defaults to", () => {
+  /*
+   * The Model Name field's placeholder and description give an example per
+   * provider. They said claude-sonnet-5 after the default had moved on, and
+   * the forms in the Dashboard (create and edit) and the Admin Dashboard
+   * (global providers) each carry their own copy.
+   */
+  const MODEL_NAME_FORMS: Array<string> = [
+    PROVIDER_FORM,
+    "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviderView.tsx",
+    "App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index.tsx",
+  ];
+
+  const CLAUDE_MODEL_ID: RegExp = /claude-[a-z0-9.-]*[a-z0-9]/g;
+
+  // The Model Name field of a form, from its key to the next field's.
+  function modelNameField(file: string): string {
+    const form: string = fs.readFileSync(
+      path.join(PACKAGES_ROOT, file),
+      "utf8",
+    );
+    const start: number = form.search(/field: \{\s*modelName: true,/);
+    const next: number = form.indexOf("field: {", start + 1);
+
+    return start === -1
+      ? ""
+      : form.slice(start, next === -1 ? undefined : next);
+  }
+
+  test.each(MODEL_NAME_FORMS)("%s", (file: string) => {
+    const field: string = modelNameField(file);
+
+    expect(field).toContain("placeholder:");
+    expect(field).toContain("description:");
+
+    const suggested: Array<string> = [
+      ...new Set(field.match(CLAUDE_MODEL_ID) || []),
+    ];
+
+    // One Claude model, named in both the placeholder and the description.
+    expect(suggested).toEqual([LLMService.ANTHROPIC_DEFAULT_MODEL]);
+    expect(field.split(LLMService.ANTHROPIC_DEFAULT_MODEL).length - 1).toBe(2);
+  });
 });
 
 describe("no LLM provider guide says AI fix tasks cannot use the global provider", () => {

@@ -205,3 +205,68 @@ describe("requestPermissionsAndGetToken", () => {
     expect(loggedLines()).toContain("obtained push token");
   });
 });
+
+/*
+ * The app registers its push token again whenever it comes back from the
+ * background, so a phone the server stopped sending to (Expo said its token
+ * was gone) comes back when its app is opened. Only the start of the app
+ * asks for notification permission: switching back to the app must never
+ * bring the prompt back.
+ */
+describe("requestPermissionsAndGetToken asks for permission only when told to", () => {
+  let getPermissions: jest.SpyInstance;
+  let requestPermissions: jest.SpyInstance;
+  let getToken: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.spyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+
+    getPermissions = jest.spyOn(Notifications, "getPermissionsAsync");
+    requestPermissions = jest
+      .spyOn(Notifications, "requestPermissionsAsync")
+      .mockResolvedValue({ status: "granted", ios: {} } as never);
+    getToken = jest
+      .spyOn(Notifications, "getExpoPushTokenAsync")
+      .mockResolvedValue({
+        data: "ExponentPushToken[asked]",
+        type: "expo",
+      } as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("by default - when the app starts - it asks, and returns the token once granted", async () => {
+    getPermissions.mockResolvedValue({ status: "undetermined" } as never);
+
+    await expect(requestPermissionsAndGetToken()).resolves.toBe(
+      "ExponentPushToken[asked]",
+    );
+    expect(requestPermissions).toHaveBeenCalledTimes(1);
+  });
+
+  test("told not to ask, it does not, and has no token to register", async () => {
+    getPermissions.mockResolvedValue({ status: "denied" } as never);
+
+    await expect(
+      requestPermissionsAndGetToken({ askForPermission: false }),
+    ).resolves.toBeNull();
+    expect(requestPermissions).not.toHaveBeenCalled();
+    expect(getToken).not.toHaveBeenCalled();
+  });
+
+  test("told not to ask, a permission already granted - in the system settings, say - still gets the token", async () => {
+    getPermissions.mockResolvedValue({ status: "granted" } as never);
+
+    await expect(
+      requestPermissionsAndGetToken({ askForPermission: false }),
+    ).resolves.toBe("ExponentPushToken[asked]");
+    expect(requestPermissions).not.toHaveBeenCalled();
+  });
+});

@@ -18,7 +18,8 @@ import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
 import IncidentGroupingConfig, {
   IncidentGroupingConfigSchema,
 } from "./IncomingMonitor/IncidentGroupingConfig";
-import MonitorType from "./MonitorType";
+import MonitorType, { MonitorTypeHelper } from "./MonitorType";
+import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
@@ -43,7 +44,28 @@ export interface MonitorCriteriaInstanceType {
   id: string;
 }
 
+/*
+ * The criteria fromJSON gave an id because the JSON had none. A caller that
+ * writes criteria without ids - the Terraform provider, or any API client -
+ * gets a fresh id on every parse, so on an update that id says nothing about
+ * which stored criteria this one is. MonitorStepsIdentityUtil reads this to
+ * hand such a criteria the stored criteria's id instead. A WeakSet, so the
+ * mark costs nothing, never reaches JSON, and a copy of the criteria (which
+ * no longer came from a parse) counts as carrying a real id.
+ */
+const criteriaWithIdGeneratedOnParse: WeakSet<MonitorCriteriaInstance> =
+  new WeakSet<MonitorCriteriaInstance>();
+
 export default class MonitorCriteriaInstance extends DatabaseProperty {
+  /*
+   * Whether this criteria's id was made up by fromJSON rather than sent.
+   */
+  public static isIdGeneratedOnParse(
+    criteria: MonitorCriteriaInstance,
+  ): boolean {
+    return criteriaWithIdGeneratedOnParse.has(criteria);
+  }
+
   /*
    * Keyword the out-of-the-box criteria for the two incoming monitor types
    * (Incoming Request and Incoming Email) look for in the payload body.
@@ -87,6 +109,17 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
   public static readonly DEFAULT_SSL_CERTIFICATE_EXPIRY_WARNING_DAYS: number = 14;
   public static readonly DEFAULT_DOMAIN_EXPIRY_WARNING_DAYS: number = 30;
 
+  /*
+   * When a new AI / LLM monitor says the AI is answering badly: more than
+   * DEFAULT_LLM_BAD_ANSWER_PERCENT of its answers in the window were bad,
+   * and at least DEFAULT_LLM_MIN_BAD_ANSWERS of them. The share is what
+   * matters for an AI that answers thousands of times an hour - a few
+   * refusals are normal there - and the floor keeps one bad answer out of
+   * two from paging anyone at 3 a.m.
+   */
+  public static readonly DEFAULT_LLM_BAD_ANSWER_PERCENT: number = 5;
+  public static readonly DEFAULT_LLM_MIN_BAD_ANSWERS: number = 3;
+
   public data: MonitorCriteriaInstanceType | undefined = undefined;
 
   public constructor() {
@@ -118,37 +151,6 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       name: "",
       description: "",
     };
-  }
-
-  /*
-   * The monitor types whose criteria MonitorCriteriaEvaluator hands to
-   * MetricMonitorCriteria. That evaluator reads exactly one thing -
-   * CheckOn.MetricValue - so these types share a single pair of defaults:
-   * a metric that is reporting a value means online, a metric that has
-   * gone to zero means offline.
-   *
-   * Kept in step with the routing list in MonitorCriteriaEvaluator and
-   * with the check-on narrowing in the dashboard's CriteriaFilter util,
-   * which offers these types the metric value and nothing else. A type
-   * missing here falls through to `new MonitorCriteriaInstance()` and
-   * ships an unnamed criteria whose "Is Online" filter no evaluator on
-   * this path reads - a rule that can never fire and cannot be saved,
-   * since getValidationError requires a name.
-   */
-  public static isMetricBackedMonitorType(monitorType: MonitorType): boolean {
-    return (
-      monitorType === MonitorType.Metrics ||
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.StorageArray ||
-      monitorType === MonitorType.IoTDevice
-    );
   }
 
   public static getDefaultOnlineMonitorCriteriaInstance(arg: {
@@ -208,6 +210,45 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
         description: `This criteria checks if the email body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.Llm) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * The complement of the offline default below, so every check lands
+       * on one of the two: a share of bad answers at or under the limit, or
+       * fewer bad answers than the floor, is healthy. A window with no
+       * answers at all is healthy too (0%) - quiet is not broken; "the AI
+       * stopped answering" is a criteria on AI Answers of its own.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.LlmBadAnswerPercent,
+            filterType: FilterType.LessThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+          {
+            checkOn: CheckOn.LlmBadAnswerCount,
+            filterType: FilterType.LessThan,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: "AI answers are fine",
+        description: `This criteria checks that no more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts were bad`,
       };
 
       return monitorCriteriaInstance;
@@ -300,7 +341,18 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
+    /*
+     * The metric-backed types: MonitorCriteriaEvaluator hands their criteria
+     * to MetricMonitorCriteria, which reads exactly one thing -
+     * CheckOn.MetricValue - so they share one pair of defaults: a metric
+     * that is reporting a value means online, a metric that has gone to zero
+     * means offline. A type missing from the list would fall through to
+     * `new MonitorCriteriaInstance()` and ship an unnamed criteria whose
+     * "Is Online" filter no evaluator on this path reads - a rule that can
+     * never fire and cannot be saved, since getValidationError requires a
+     * name.
+     */
+    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
@@ -703,6 +755,50 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: false,
         name: `Check if ${arg.monitorName} DNSSEC chain is valid`,
         description: `This criteria checks if the ${arg.monitorName} DNSSEC chain is valid end-to-end`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
+    if (arg.monitorType === MonitorType.NTP) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * Up means serving good time, not merely answering: the server replied,
+       * at stratum 1 to 15 without the leap alarm, and its clock is within
+       * DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS of the probe's. The offline
+       * criteria is the exact complement, so every check lands in one of the
+       * two.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.NtpIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpIsSynchronized,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpClockOffset,
+            filterType: FilterType.LessThan,
+            value: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        createAlerts: false,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} serves good time`,
+        description: `This criteria checks if the ${arg.monitorName} time server answers, is synchronized, and its clock is within ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms of the probe's`,
       };
 
       return monitorCriteriaInstance;
@@ -1168,6 +1264,62 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
+    if (arg.monitorType === MonitorType.NTP) {
+      /*
+       * Named for the outcome rather than "is offline": a server that
+       * answers with stratum 16, or two seconds off, is up and still breaks
+       * every clock that follows it. The incident's root cause says which of
+       * the three it was.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.NtpIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpIsSynchronized,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.NtpClockOffset,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName} is not serving good time`,
+            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: true,
+        createAlerts: false,
+        alerts: [
+          {
+            title: `${arg.monitorName} is not serving good time`,
+            description: `${arg.monitorName} did not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        name: `Check if ${arg.monitorName} is not serving good time`,
+        description: `This criteria checks if the ${arg.monitorName} time server does not answer, is not synchronized, or its clock is ${DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS} ms or more away from the probe's`,
+      };
+    }
+
     if (arg.monitorType === MonitorType.ExternalStatusPage) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
@@ -1292,6 +1444,56 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
+    if (arg.monitorType === MonitorType.Llm) {
+      /*
+       * An alert, not an incident: answers going wrong is a quality
+       * problem worth a look, rarely an outage. Teams that want to page on
+       * it switch incidents on in the criteria.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.LlmBadAnswerPercent,
+            filterType: FilterType.GreaterThan,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT,
+          },
+          {
+            checkOn: CheckOn.LlmBadAnswerCount,
+            filterType: FilterType.GreaterThanOrEqualTo,
+            value: MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS,
+          },
+        ],
+        incidents: [
+          {
+            title: `${arg.monitorName}: too many bad AI answers`,
+            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            incidentSeverityId: arg.incidentSeverityId,
+            autoResolveIncident: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        alerts: [
+          {
+            title: `${arg.monitorName}: too many bad AI answers`,
+            description: `More than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the AI's answers were bad.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: true,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: "Too many bad AI answers",
+        description: `This criteria fires when more than ${MonitorCriteriaInstance.DEFAULT_LLM_BAD_ANSWER_PERCENT}% of the answers ${arg.monitorName} counts, and at least ${MonitorCriteriaInstance.DEFAULT_LLM_MIN_BAD_ANSWERS} of them, were bad`,
+      };
+    }
+
     if (arg.monitorType === MonitorType.SecurityEvents) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
@@ -1403,7 +1605,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(arg.monitorType)) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(arg.monitorType)) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,
@@ -2111,8 +2313,14 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
+    const sentId: string = (json["id"] as string) || "";
+
+    if (!sentId) {
+      criteriaWithIdGeneratedOnParse.add(monitorCriteriaInstance);
+    }
+
     monitorCriteriaInstance.data = JSONFunctions.deserialize({
-      id: (json["id"] as string) || ObjectID.generate().toString(),
+      id: sentId || ObjectID.generate().toString(),
       monitorStatusId,
       filterCondition,
       changeMonitorStatus: (json["changeMonitorStatus"] as boolean) || false,

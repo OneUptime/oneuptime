@@ -8,6 +8,7 @@ import TemplateVariablesCatalog, {
   TemplateVariableGroup,
 } from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { INCOMING_EMAIL_SCHEDULED_CHECK_LABEL } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -246,9 +247,7 @@ describe("What the section tells readers to click", () => {
 
   // A list item bolds its label with the colon: "- **From:** The sender".
   function boldLabel(label: string): RegExp {
-    return new RegExp(
-      `\\*\\*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:?\\*\\*`,
-    );
+    return new RegExp(`\\*\\*${escapeRegExp(label)}:?\\*\\*`);
   }
 
   for (const entry of LABELS) {

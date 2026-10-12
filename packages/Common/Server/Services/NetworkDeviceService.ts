@@ -13,6 +13,12 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import { fillDeviceNameOnCreate } from "../../Utils/NetworkDevice/DeviceNameDefault";
+import NetworkDeviceOtherAddressesUtil from "../../Utils/NetworkDevice/NetworkDeviceOtherAddresses";
+import {
+  DEVICE_NAME_SOURCES_BEST_FIRST,
+  readDeviceNameSource,
+} from "../../Types/NetworkDevice/DeviceNameSource";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -158,6 +164,112 @@ function normalizeMacAddressOnWrite(data: Record<string, unknown>): void {
 
   data["macAddress"] = normalized;
   data["isMacAddressLearned"] = false;
+}
+
+/*
+ * The device's Other Addresses, normalised on the way in: IP addresses only,
+ * canonical, each once (NetworkDeviceOtherAddressesUtil). A value with
+ * something that is not an address is refused with what was wrong, rather
+ * than stored to match nothing; blank clears the column. Like the MAC above,
+ * a SQL-expression function is left alone.
+ */
+function normalizeOtherAddressesOnWrite(data: Record<string, unknown>): void {
+  if (!("otherAddresses" in data)) {
+    return;
+  }
+
+  const raw: unknown = data["otherAddresses"];
+
+  if (raw === undefined || raw === null || typeof raw === "function") {
+    return;
+  }
+
+  if (typeof raw !== "string") {
+    throw new BadDataException("Other Addresses must be text.");
+  }
+
+  try {
+    data["otherAddresses"] = NetworkDeviceOtherAddressesUtil.normalize(raw);
+  } catch (err) {
+    throw new BadDataException((err as Error).message);
+  }
+}
+
+/*
+ * The source a write gives a device's discovered name (OneUptime issue
+ * #4518), checked on every write shape: only the four sources the naming rule
+ * knows, or nothing. A value nobody can read would make the device look named
+ * by discovery to some readers and not to others; refusing it is clearer than
+ * quietly storing it. Null and undefined pass (no source, or not written), and
+ * so does a SQL-expression function, which nothing writes here and which is
+ * left alone for the reason normalizeMacAddressOnWrite gives.
+ *
+ * Blank text is no source, written as null, the way a client clears any
+ * optional text field — so an import that sends "" creates its device rather
+ * than failing on it. A known source with spaces around it is stored without
+ * them.
+ */
+function normalizeDiscoveredNameSourceOnWrite(
+  data: Record<string, unknown>,
+): void {
+  if (!("discoveredNameSource" in data)) {
+    return;
+  }
+
+  const raw: unknown = data["discoveredNameSource"];
+
+  if (raw === undefined || raw === null || typeof raw === "function") {
+    return;
+  }
+
+  if (typeof raw === "string" && raw.trim().length === 0) {
+    data["discoveredNameSource"] = null;
+    return;
+  }
+
+  const source: string | undefined = readDeviceNameSource(
+    typeof raw === "string" ? raw.trim() : raw,
+  );
+
+  if (!source) {
+    throw new BadDataException(
+      `Discovered Name Source must be one of: ${DEVICE_NAME_SOURCES_BEST_FIRST.join(", ")}.`,
+    );
+  }
+
+  data["discoveredNameSource"] = source;
+}
+
+/*
+ * A device a discovery scan creates carries the source of its name; this
+ * records the name it is created UNDER as its discovered name (OneUptime issue
+ * #4518). Server-side, rather than trusted from the payload, so the pair can
+ * only ever say "the device was created with this name, from this source" —
+ * the condition a later scan's rename depends on. It also covers the import's
+ * collision retry, which renames the device after the first create fails.
+ *
+ * A payload with no source gets no discovered name either: a device made by
+ * hand, or through the API without a source, is a person's to name.
+ *
+ * Runs after fillDeviceNameOnCreate, so a nameless create's address-name is
+ * the name recorded.
+ */
+function recordDiscoveredNameOnCreate(data: Record<string, unknown>): void {
+  normalizeDiscoveredNameSourceOnWrite(data);
+
+  const source: string | undefined = readDeviceNameSource(
+    data["discoveredNameSource"],
+  );
+  const name: string =
+    typeof data["name"] === "string" ? data["name"].trim() : "";
+
+  if (!source || !name) {
+    data["discoveredNameSource"] = undefined;
+    data["discoveredName"] = undefined;
+    return;
+  }
+
+  data["discoveredName"] = name;
 }
 
 function normalizeIdentityValue(value: unknown): string {
@@ -521,6 +633,17 @@ export class Service extends ProjectReferencesService<Model> {
    * and labels - is checked by ProjectReferencesService.
    */
   protected override getRelationsCheckedByService(): Array<string> {
+    return ["probe"];
+  }
+
+  /*
+   * A device put in a site with no probe of its own takes the site's
+   * default probe (onBeforeCreate, and a move to another site): copied from
+   * the site the write names, which its caller may read, and set on the
+   * site by someone allowed to. A probe the caller names is asked about as
+   * theirs (DatabaseService.checkNamedLists).
+   */
+  protected override getReferencesFilledFromNamedRecords(): Array<string> {
     return ["probe"];
   }
 
@@ -912,23 +1035,18 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const authorizedQuery: Query<Model> =
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
-    const devices: Array<Model> = await this.findBy({
-      query: authorizedQuery,
-      select: {
+    /*
+     * The devices the delete removes - the ones the caller may delete, in the
+     * delete's own window - and the delete held to them, so the monitors
+     * cleaned up below are those of the devices that go.
+     */
+    const devices: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: { isRoot: true },
-    });
+    );
 
     const countAutomaticMonitors: (
       query: Query<Monitor>,
@@ -1071,18 +1189,9 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    // Held to the devices read above (findRowsAndHoldDeleteToThem).
     return {
-      deleteBy: {
-        ...deleteBy,
-        query: {
-          _id: QueryHelper.any(
-            devices.flatMap((device: Model): Array<ObjectID> => {
-              return device.id ? [device.id] : [];
-            }),
-          ),
-        },
-        skip: 0,
-      },
+      deleteBy: deleteBy,
       carryForward: null,
     };
   }
@@ -1170,25 +1279,6 @@ export class Service extends ProjectReferencesService<Model> {
     return inheritedProbeId;
   }
 
-  /*
-   * onBeforeUpdate runs before DatabaseService permission-checks the query,
-   * so reading the raw client query as root would hand the hook rows from
-   * other projects. Re-apply the caller's tenant here.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
-  }
-
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -1204,6 +1294,24 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     normalizeMacAddressOnWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    normalizeOtherAddressesOnWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
+     * A device added without a name is named after its address. The Add
+     * Device form asks for the address first and leaves the name optional,
+     * and the same rule here means a device created through the API is named
+     * the same way rather than refused (the required-name check runs after
+     * this hook). A payload with neither is left for that check to name.
+     */
+    fillDeviceNameOnCreate(createBy.data);
+
+    // The name a discovery import created the device under, and from where.
+    recordDiscoveredNameOnCreate(
       createBy.data as unknown as Record<string, unknown>,
     );
 
@@ -1463,6 +1571,20 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data as unknown as Record<string, unknown>,
     );
 
+    normalizeOtherAddressesOnWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
+     * Above the early return too, for the same reason. Only the server
+     * writes these columns after create (the rename pass, as root; see
+     * NetworkDevice.discoveredName), but a root write is held to the same
+     * four sources.
+     */
+    normalizeDiscoveredNameSourceOnWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
     /*
      * Switching a device to monitor-backed turns polling off with it. The
      * two are one decision, not two: a monitor-backed device's health is
@@ -1632,9 +1754,8 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const previousDevices: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const previousDevices: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         siteId: true,
@@ -1655,13 +1776,7 @@ export class Service extends ProjectReferencesService<Model> {
         snmpOids: true,
         // The polling guard and the method transition both need the OLD method.
         monitoringMethod: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     if (isPollingTurnOn) {
       const isTargetMonitorBacked: boolean = previousDevices.some(

@@ -17,6 +17,7 @@ import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
+import LlmMonitorCriteria from "./Criteria/LlmMonitorCriteria";
 import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
@@ -27,6 +28,9 @@ import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
 import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
 import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
+import NtpMonitorCriteria from "./Criteria/NtpMonitorCriteria";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
 import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
@@ -64,7 +68,9 @@ import SqlMonitorResponse from "../../../Types/Monitor/SqlMonitor/SqlMonitorResp
 import DatabaseMonitorResponse, {
   DatabaseMetricGroupStatus,
 } from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import {
   CheckOn,
   CriteriaFilter,
@@ -577,7 +583,7 @@ ${contextBlock}
       );
     }
 
-    if (MonitorCriteriaInstance.isMetricBackedMonitorType(monitorType)) {
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
       return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
     }
 
@@ -796,16 +802,8 @@ ${contextBlock}
       });
     }
 
-    /*
-     * Same list as MonitorCriteriaInstance.isMetricBackedMonitorType,
-     * which is where it now lives so the two cannot drift apart.
-     */
-    if (
-      !input.monitor.monitorType ||
-      !MonitorCriteriaInstance.isMetricBackedMonitorType(
-        input.monitor.monitorType,
-      )
-    ) {
+    // The metric-backed types, from the one list (MonitorTypeHelper).
+    if (!MonitorTypeHelper.isMetricBackedMonitor(input.monitor.monitorType)) {
       return [];
     }
 
@@ -1339,19 +1337,19 @@ ${contextBlock}
       }
     }
 
-    if (
-      input.monitor.monitorType === MonitorType.Metrics ||
-      input.monitor.monitorType === MonitorType.Kubernetes ||
-      input.monitor.monitorType === MonitorType.Docker ||
-      input.monitor.monitorType === MonitorType.Host ||
-      input.monitor.monitorType === MonitorType.Podman ||
-      input.monitor.monitorType === MonitorType.DockerSwarm ||
-      input.monitor.monitorType === MonitorType.Proxmox ||
-      input.monitor.monitorType === MonitorType.VMware ||
-      input.monitor.monitorType === MonitorType.Ceph ||
-      input.monitor.monitorType === MonitorType.StorageArray ||
-      input.monitor.monitorType === MonitorType.IoTDevice
-    ) {
+    if (input.monitor.monitorType === MonitorType.Llm) {
+      const llmMonitorResult: string | null =
+        await LlmMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (llmMonitorResult) {
+        return llmMonitorResult;
+      }
+    }
+
+    if (MonitorTypeHelper.isMetricBackedMonitor(input.monitor.monitorType)) {
       const metricMonitorResult: string | null =
         await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
@@ -1449,6 +1447,19 @@ ${contextBlock}
 
       if (dnssecMonitorResult) {
         return dnssecMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.NTP) {
+      const ntpMonitorResult: string | null =
+        await NtpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (ntpMonitorResult) {
+        return ntpMonitorResult;
       }
     }
 
@@ -1634,6 +1645,20 @@ ${contextBlock}
      */
     if (probeResponse?.totalAttempts !== undefined) {
       responseDetails.push(mdText`- Attempts: ${probeResponse.totalAttempts}`);
+    }
+
+    /*
+     * A time server that answered is judged on what it said, so its own
+     * facts belong in the root cause: an incident that only says "offline"
+     * leaves the on-call engineer to find out whether the server lost its
+     * reference, refused the probe, or is serving the wrong time.
+     */
+    if (probeResponse?.ntpResponse?.isOnline) {
+      responseDetails.push(
+        ...MonitorCriteriaEvaluator.getNtpResponseDetails(
+          probeResponse.ntpResponse,
+        ),
+      );
     }
 
     // Add Request Failed Details if available
@@ -5921,6 +5946,58 @@ ${contextBlock}
     }
 
     return null;
+  }
+
+  // The lines an answering NTP server adds to a root cause's response snapshot.
+  public static getNtpResponseDetails(
+    ntpResponse: NtpMonitorResponse,
+  ): Array<MarkdownText> {
+    const lines: Array<MarkdownText> = [
+      mdText`- Synchronized: ${ntpResponse.isSynchronized ? "Yes" : "No"}`,
+    ];
+
+    if (ntpResponse.stratum !== undefined) {
+      lines.push(
+        mdText`- Stratum: ${NtpMonitorUtil.describeStratum(
+          ntpResponse.stratum,
+          ntpResponse.kissCode,
+        )}`,
+      );
+    }
+
+    if (ntpResponse.clockOffsetInMs !== undefined) {
+      lines.push(
+        mdText`- Clock Offset: ${NtpMonitorUtil.describeClockOffset(
+          ntpResponse.clockOffsetInMs,
+        )}`,
+      );
+    }
+
+    if (ntpResponse.leapIndicator !== undefined) {
+      lines.push(
+        mdText`- Leap Indicator: ${ntpResponse.leapIndicator} (${NtpMonitorUtil.describeLeapIndicator(
+          ntpResponse.leapIndicator,
+        )})`,
+      );
+    }
+
+    if (ntpResponse.referenceId) {
+      lines.push(mdText`- Reference: ${ntpResponse.referenceId}`);
+    }
+
+    if (ntpResponse.rootDispersionInMs !== undefined) {
+      lines.push(
+        mdText`- Root Dispersion: ${NtpMonitorUtil.formatMilliseconds(
+          ntpResponse.rootDispersionInMs,
+        )}`,
+      );
+    }
+
+    if (ntpResponse.serverAddress) {
+      lines.push(mdText`- Server Address: ${ntpResponse.serverAddress}`);
+    }
+
+    return lines;
   }
 
   private static getMonitorPortString(input: {

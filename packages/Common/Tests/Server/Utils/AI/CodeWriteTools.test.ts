@@ -23,6 +23,7 @@ import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTas
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
@@ -78,6 +79,14 @@ beforeEach(() => {
   jest
     .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
     .mockResolvedValue("12345");
+
+  /*
+   * The person may change the repository (findOneUpdatableById). Who may
+   * not is below, in "the person's own update of the repository".
+   */
+  jest
+    .spyOn(CodeRepositoryService, "findOneUpdatableById")
+    .mockResolvedValue(buildRepository() as never);
 });
 
 afterEach(() => {
@@ -487,6 +496,93 @@ describe("change validation (all of this is untrusted LLM output)", () => {
     expect(commitSpy).toHaveBeenCalled();
   });
 
+  /*
+   * The model reads a file with its embedded data left out: a data: URL in
+   * a stylesheet reads as "[image omitted: PNG, 2 KB]" (PromptText). Written
+   * back whole, that note would replace the image in the pull request.
+   */
+  test.each([
+    [
+      "an image",
+      ".logo { background: url([image omitted: PNG, 2 KB]); }",
+      "[image omitted: PNG, 2 KB]",
+    ],
+    [
+      "a file",
+      "const pdf = '[file omitted: application/pdf, 12 KB]';",
+      "[file omitted: application/pdf, 12 KB]",
+    ],
+    [
+      "encoded data",
+      'export const fixture = "[encoded data omitted: 4 KB]";',
+      "[encoded data omitted: 4 KB]",
+    ],
+  ])(
+    "refuses a file that would write the note it was shown in place of %s",
+    async (_kind: string, content: string, note: string) => {
+      const commitSpy: jest.SpiedFunction<
+        typeof GitHubUtil.commitFilesToBranch
+      > = jest.spyOn(GitHubUtil, "commitFilesToBranch");
+
+      await expect(
+        CommitCodeToBranchTool.execute(
+          {
+            branchName: "feature",
+            commitMessage: "m",
+            changes: [{ filePath: "src/style.css", content }],
+          },
+          ctx,
+        ),
+      ).rejects.toThrow(
+        `The new contents of "src/style.css" contain "${note}". You were shown that note in place of an image or other data embedded in the file`,
+      );
+
+      await expect(
+        OpenCodePullRequestTool.execute(
+          {
+            title: "t",
+            description: "d",
+            changes: [{ filePath: "src/style.css", content }],
+          },
+          ctx,
+        ),
+      ).rejects.toThrow(/Leave this file to a person/);
+
+      expect(commitSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("writes a file that only talks about images", async () => {
+    jest.spyOn(GitHubUtil, "getBranch").mockResolvedValue({
+      name: "feature",
+      headSha: "abc",
+      isProtected: false,
+    });
+    const commitSpy: jest.SpiedFunction<typeof GitHubUtil.commitFilesToBranch> =
+      jest.spyOn(GitHubUtil, "commitFilesToBranch").mockResolvedValue({
+        commitSha: "c1",
+        branchName: "feature",
+        htmlUrl: "u",
+      });
+
+    await CommitCodeToBranchTool.execute(
+      {
+        branchName: "feature",
+        commitMessage: "m",
+        changes: [
+          {
+            filePath: "README.md",
+            content:
+              "Images are [image omitted: …] in prompts.\n![logo](data:image/png;base64,iVBORw0KGgo=)\n",
+          },
+        ],
+      },
+      ctx,
+    );
+
+    expect(commitSpy).toHaveBeenCalled();
+  });
+
   test("strips a leading slash rather than failing", async () => {
     jest.spyOn(GitHubUtil, "getBranch").mockResolvedValue({
       name: "feature",
@@ -512,6 +608,104 @@ describe("change validation (all of this is untrusted LLM output)", () => {
     const call: { changes: Array<{ filePath: string }> } = commitSpy.mock
       .calls[0]![0] as { changes: Array<{ filePath: string }> };
     expect(call.changes[0]!.filePath).toBe("src/a.ts");
+  });
+});
+
+/*
+ * Reading a repository is not enough to write to it: writing code is gated on
+ * the CodeRepository update permission, and held to THIS repository as an
+ * update of it is held - the person's labels and their team's blocks. A
+ * repository they may read but not change is refused before anything is
+ * written to GitHub or recorded in OneUptime.
+ */
+describe("the person's own update of the repository", () => {
+  function refuseUpdate(): jest.SpiedFunction<
+    typeof CodeRepositoryService.findOneUpdatableById
+  > {
+    return jest
+      .spyOn(CodeRepositoryService, "findOneUpdatableById")
+      .mockResolvedValue(null as never);
+  }
+
+  test("commit_code_to_branch asks with the person's own props, for the repository it writes", async () => {
+    const updatableSpy: jest.SpiedFunction<
+      typeof CodeRepositoryService.findOneUpdatableById
+    > = jest
+      .spyOn(CodeRepositoryService, "findOneUpdatableById")
+      .mockResolvedValue(buildRepository() as never);
+    jest.spyOn(GitHubUtil, "getBranch").mockResolvedValue({
+      name: "feature/x",
+      headSha: "abc123",
+      isProtected: false,
+    } as never);
+    jest.spyOn(GitHubUtil, "commitFilesToBranch").mockResolvedValue({
+      commitSha: "def4567890",
+      htmlUrl: "https://github.com/acme/checkout/commit/def4567890",
+    } as never);
+
+    await CommitCodeToBranchTool.execute(
+      { branchName: "feature/x", commitMessage: "fix", changes: CHANGES },
+      ctx,
+    );
+
+    expect(updatableSpy).toHaveBeenCalledTimes(1);
+    const args: { id: ObjectID; props: unknown } = updatableSpy.mock
+      .calls[0]![0] as unknown as { id: ObjectID; props: unknown };
+    expect(args.id.toString()).toBe(REPO_ID.toString());
+    expect(args.props).toBe(ctx.props);
+  });
+
+  test("commit_code_to_branch writes nothing to a repository the person may only read", async () => {
+    refuseUpdate();
+    const branchLookup: jest.SpiedFunction<typeof GitHubUtil.getBranch> =
+      jest.spyOn(GitHubUtil, "getBranch");
+    const commitSpy: jest.SpiedFunction<typeof GitHubUtil.commitFilesToBranch> =
+      jest.spyOn(GitHubUtil, "commitFilesToBranch");
+
+    const attempt: Promise<ToolExecutionResult> =
+      CommitCodeToBranchTool.execute(
+        { branchName: "feature/x", commitMessage: "fix", changes: CHANGES },
+        ctx,
+      );
+
+    await expect(attempt).rejects.toThrow(NotAuthorizedException);
+    await expect(attempt).rejects.toThrow(
+      "You do not have permission to change the repository acme/checkout in OneUptime, so chat cannot write code to it for you.",
+    );
+    expect(branchLookup).not.toHaveBeenCalled();
+    expect(commitSpy).not.toHaveBeenCalled();
+  });
+
+  test("open_code_pull_request opens nothing, and records nothing, on a repository the person may only read", async () => {
+    refuseUpdate();
+    const branchSpy: jest.SpiedFunction<typeof GitHubUtil.createBranch> =
+      jest.spyOn(GitHubUtil, "createBranch");
+    const commitSpy: jest.SpiedFunction<typeof GitHubUtil.commitFilesToBranch> =
+      jest.spyOn(GitHubUtil, "commitFilesToBranch");
+    const pullRequestSpy: jest.SpiedFunction<
+      typeof GitHubUtil.createPullRequestWithToken
+    > = jest.spyOn(GitHubUtil, "createPullRequestWithToken");
+    const recordSpy: jest.SpiedFunction<
+      typeof AIAgentTaskPullRequestService.create
+    > = jest.spyOn(AIAgentTaskPullRequestService, "create");
+
+    await expect(
+      OpenCodePullRequestTool.execute(
+        {
+          title: "Fix charge bug",
+          description: "The charge path double-counts.",
+          changes: CHANGES,
+        },
+        ctx,
+      ),
+    ).rejects.toThrow(
+      "You do not have permission to change the repository acme/checkout in OneUptime, so chat cannot write code to it for you.",
+    );
+
+    expect(branchSpy).not.toHaveBeenCalled();
+    expect(commitSpy).not.toHaveBeenCalled();
+    expect(pullRequestSpy).not.toHaveBeenCalled();
+    expect(recordSpy).not.toHaveBeenCalled();
   });
 });
 

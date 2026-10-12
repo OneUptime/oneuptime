@@ -467,13 +467,10 @@ export class Service extends DatabaseService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const idFromQuery: unknown = (updateBy.query as JSONObject)["_id"];
-    const connectionId: string | undefined =
-      typeof idFromQuery === "string"
-        ? idFromQuery
-        : idFromQuery instanceof ObjectID
-          ? idFromQuery.toString()
-          : undefined;
+    // The one connection an update names by its id.
+    const connectionId: string | undefined = Service.getOneRowIdNamedBy(
+      updateBy.query,
+    )?.toString();
 
     if (!connectionId || !ObjectID.isValidUUID(connectionId)) {
       throw new BadDataException(

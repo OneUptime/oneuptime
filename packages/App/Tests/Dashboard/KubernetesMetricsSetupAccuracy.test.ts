@@ -164,8 +164,15 @@ function blockAfter(marker: string): string {
   throw new Error(`No end for ${marker}`);
 }
 
+/*
+ * A section of the English agent page by its H3. The page writes headings in
+ * sentence case ("Enable control plane monitoring"); the anchor the hints link
+ * to is the same either way, so the heading is matched without regard to case.
+ */
 function docsSection(heading: string): string {
-  const start: number = DOCS.indexOf(`### ${heading}\n`);
+  const start: number = DOCS.toLowerCase().indexOf(
+    `### ${heading.toLowerCase()}\n`,
+  );
   if (start < 0) {
     throw new Error(`No docs section "${heading}"`);
   }

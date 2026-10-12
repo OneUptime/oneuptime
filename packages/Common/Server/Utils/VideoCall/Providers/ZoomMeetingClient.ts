@@ -6,6 +6,7 @@ import VideoCallProvider from "../../../../Types/VideoCall/VideoCallProvider";
 import {
   ZOOM_CLASSIC_MEETING_SCOPE,
   ZOOM_MEETING_SCOPE,
+  ZOOM_OAUTH_MEETING_SCOPE,
 } from "../../../../Types/VideoCall/VideoCallProviderCatalog";
 import VideoCallHttpClient, {
   VideoCallHttpResponse,
@@ -28,6 +29,11 @@ import { VideoCallMeetingRequest } from "../VideoCallMeetingRequest";
  * The host is a service account that never joins, so people join before
  * the host and no waiting room holds them for a host who is not coming.
  * https://developers.zoom.us/docs/api/meetings/#tag/meetings/POST/users/{userId}/meetings
+ *
+ * A connection made by signing in (VideoCallAuthMethod.OAuth) creates the
+ * same meeting with the signed-in user's own token, as "me"
+ * (createMeetingWithToken). Only the token and the advice in an error
+ * differ.
  */
 
 export interface ZoomMeetingClientSettings {
@@ -35,6 +41,24 @@ export interface ZoomMeetingClientSettings {
   clientId: string;
   clientSecret: string;
   hostEmail: string;
+}
+
+// Who a meeting is created for, and how an error names them.
+export interface ZoomMeetingHost {
+  // The user in the request path: an email or a user id, or "me" for the signed-in user.
+  userId: string;
+  label: string;
+  /*
+   * Whether the token is a person's sign-in to this server's Zoom app
+   * rather than the project's own Server-to-Server OAuth app: what fixes a
+   * refusal differs.
+   */
+  isSignIn: boolean;
+}
+
+export interface ZoomAccessToken {
+  accessToken: string;
+  apiBaseUrl: string;
 }
 
 export const ZOOM_TOKEN_URL: string = "https://zoom.us/oauth/token";
@@ -69,9 +93,25 @@ export default class ZoomMeetingClient {
   public async createMeeting(
     request: VideoCallMeetingRequest,
   ): Promise<VideoCallMeeting> {
-    const token: { accessToken: string; apiBaseUrl: string } =
-      await this.getAccessToken();
+    const token: ZoomAccessToken = await this.getAccessToken();
+    const hostEmail: string = this.settings.hostEmail.trim();
 
+    return await ZoomMeetingClient.createMeetingWithToken({
+      http: this.http,
+      token,
+      host: { userId: hostEmail, label: hostEmail, isSignIn: false },
+      request,
+    });
+  }
+
+  public static async createMeetingWithToken(data: {
+    http: VideoCallHttpClient;
+    token: ZoomAccessToken;
+    host: ZoomMeetingHost;
+    request: VideoCallMeetingRequest;
+  }): Promise<VideoCallMeeting> {
+    const request: VideoCallMeetingRequest = data.request;
+    const token: ZoomAccessToken = data.token;
     const startTime: Date = request.startTime || new Date();
 
     const body: JSONObject = {
@@ -98,8 +138,8 @@ export default class ZoomMeetingClient {
       );
     }
 
-    const response: VideoCallHttpResponse = await this.http.request({
-      url: `${token.apiBaseUrl}/users/${encodeURIComponent(this.settings.hostEmail.trim())}/meetings`,
+    const response: VideoCallHttpResponse = await data.http.request({
+      url: `${token.apiBaseUrl}/users/${encodeURIComponent(data.host.userId)}/meetings`,
       method: "POST",
       headers: {
         Authorization: `Bearer ${token.accessToken}`,
@@ -111,7 +151,7 @@ export default class ZoomMeetingClient {
     });
 
     if (!response.ok) {
-      throw this.getMeetingError(response);
+      throw ZoomMeetingClient.getMeetingError(response, data.host);
     }
 
     const joinUrl: JSONValue | undefined = response.json?.["join_url"];
@@ -136,10 +176,7 @@ export default class ZoomMeetingClient {
     };
   }
 
-  public async getAccessToken(): Promise<{
-    accessToken: string;
-    apiBaseUrl: string;
-  }> {
+  public async getAccessToken(): Promise<ZoomAccessToken> {
     const basic: string = Buffer.from(
       `${this.settings.clientId.trim()}:${this.settings.clientSecret}`,
       "utf8",
@@ -266,7 +303,10 @@ export default class ZoomMeetingClient {
     );
   }
 
-  private getMeetingError(response: VideoCallHttpResponse): Error {
+  private static getMeetingError(
+    response: VideoCallHttpResponse,
+    host: ZoomMeetingHost,
+  ): Error {
     const errorCode: string = VideoCallHttpClient.readErrorCode(response.json);
     const summary: string = VideoCallHttpClient.summarizeErrorBody(response);
 
@@ -274,6 +314,12 @@ export default class ZoomMeetingClient {
       errorCode === ZOOM_MISSING_SCOPES_CODE ||
       ZOOM_MISSING_SCOPES_PATTERN.test(summary)
     ) {
+      if (host.isSignIn) {
+        return new BadDataException(
+          `This OneUptime server's Zoom app is missing the ${ZOOM_OAUTH_MEETING_SCOPE} scope. Ask your server administrator to add it on the app's Scopes page, then reconnect Zoom. (${summary})`,
+        );
+      }
+
       return new BadDataException(
         `The Zoom app is missing the ${ZOOM_MEETING_SCOPE} scope (or ${ZOOM_CLASSIC_MEETING_SCOPE} on an older app). Add it on the app's Scopes page and activate the app again. (${summary})`,
       );
@@ -283,8 +329,14 @@ export default class ZoomMeetingClient {
       errorCode === ZOOM_USER_DOES_NOT_EXIST_CODE ||
       response.status === 404
     ) {
+      if (host.isSignIn) {
+        return new BadDataException(
+          `Zoom no longer has the user ${host.label} that OneUptime signed in as. Reconnect Zoom in Project Settings > Video Calls. (${summary})`,
+        );
+      }
+
       return new BadDataException(
-        `Zoom has no user ${this.settings.hostEmail.trim()} in the account this app belongs to. Set the meeting host to a licensed user of that account. (${summary})`,
+        `Zoom has no user ${host.label} in the account this app belongs to. Set the meeting host to a licensed user of that account. (${summary})`,
       );
     }
 
@@ -292,6 +344,12 @@ export default class ZoomMeetingClient {
       errorCode === ZOOM_INVALID_ACCESS_TOKEN_CODE ||
       response.status === 401
     ) {
+      if (host.isSignIn) {
+        return new BadDataException(
+          `Zoom no longer accepts OneUptime's sign-in for ${host.label}. Reconnect Zoom in Project Settings > Video Calls. (${summary})`,
+        );
+      }
+
       return new BadDataException(
         `Zoom rejected the access token for this app. Check that the Server-to-Server OAuth app is still activated. (${summary})`,
       );

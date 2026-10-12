@@ -140,6 +140,8 @@ describe("the start view leads with what people use", () => {
       "API Patch (JSON)",
       "API Delete (JSON)",
       "Send Message to Telegram",
+      "Send Message to IRC",
+      "Send Message to Mattermost",
       "JSON to Text",
       "Text to JSON",
       "Merge JSON",

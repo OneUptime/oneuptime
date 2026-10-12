@@ -1,134 +1,169 @@
 # Monitors and Monitor Rules
 
-An SLO measures the uptime of the monitors attached to it. You can attach monitors by hand, let monitor rules attach every monitor that matches, or both. This page covers the SLO's **Monitors** and **Monitor Rules** pages.
+An SLO measures the uptime of the monitors attached to it. Attach them by hand, let monitor rules attach every monitor that matches, or do both. This page covers an SLO's **Monitors** and **Monitor Rules** pages, both under **Configuration** in its side menu.
 
-If you have not read it yet, start with the [SLOs Overview](/docs/slo/introduction).
+:::cards
+- [Pick monitors by hand](#attach-monitors-by-hand): Best for a small, fixed set.
+- [Attach monitors with a rule](#attach-monitors-with-a-rule): "Every monitor labelled Production", kept in sync for you.
+- [Match criteria](#match-criteria): The fields and operators a rule can match on.
+:::
 
 ## Which monitors an SLO measures
 
-An SLO measures the union of:
+An SLO measures the union of the monitors you attached by hand and every monitor that at least one of its enabled monitor rules matches.
 
-- the monitors you attached by hand, and
-- every monitor that at least one of its **enabled** monitor rules matches.
+```mermaid title="Where an SLO's monitors come from"
+flowchart TB
+    hand["Monitors attached by hand"] --> union["The SLO's monitors"]
+    rules["Enabled monitor rules"] --> match["Every monitor a rule matches"]
+    match --> union
+    union --> sli["SLI and error budget"]
+```
 
-A new SLO starts with no monitors, because the create form does not ask for them. Until it has at least one, it cannot be evaluated: its pages show a **No monitors attached** notice, and its Overview offers the two ways to attach monitors.
+A new SLO has no monitors, because the create form does not ask for them. Until it has one, it cannot be evaluated: its pages show **No monitors attached**, and its **Overview** offers both ways to attach monitors.
 
-## The Monitors page
+## Attach monitors by hand
 
-The SLO's **Monitors** page lists every monitor the SLO measures, with:
+You need permission to edit the SLO.
 
-- **Current Status** — the monitor's status right now, or **Disabled**, **Probes Not Enabled** or **Probes Disconnected** when the monitor is not being checked.
-- **Source** — **Rule** if one of the SLO's monitor rules attached it, **Manual** if someone attached it by hand.
-- **Labels** — the monitor's labels.
+:::steps
+### Open the Monitors page
 
-To change the list by hand:
+Open the SLO and go to **Monitors**.
 
-- **Add Monitors** — pick monitors from the project. Only monitors that are not already attached are offered.
-- **Remove** — takes a hand-attached monitor off the SLO. The monitor itself is not changed; it only stops counting towards the SLO's SLI and error budget.
+### Pick the monitors
 
-Monitors a rule attached keep a locked **Remove** button whose tooltip explains why: change or disable the rule instead. Adding and removing monitors needs permission to edit the SLO.
+Click **Add Monitors** and pick monitors from the project. Only monitors that are not attached yet are listed.
 
-While at least one monitor rule is enabled, a banner at the top of the page says the SLO's monitors are managed by its monitor rules, with a **Manage Monitor Rules** link, and **Add Monitors** is turned off.
+### Save the list
 
-## Monitor rules
+Click **Add Monitors**. The monitors appear in the list with the source **Manual**, and count toward the SLI from the next evaluation.
+:::
 
-A monitor rule describes the monitors an SLO should measure — "every monitor labelled Production", "every monitor whose name matches `api-*`" — so nobody has to pick them one by one, or remember to add the monitor someone creates next month.
+To take a monitor off the SLO, click **Remove** on its row. The monitor itself does not change; it only stops counting toward the SLO's SLI and error budget.
 
-### Creating a rule
+The **Monitors** page shows, for each monitor:
 
-1. Open the SLO and go to **Monitor Rules**
-2. Click **Create SLO Monitor Rule**
-3. Work through the steps:
+| Column | What it shows |
+| --- | --- |
+| **Current Status** | The monitor's status now, or **Archived**, **Disabled**, **Probes Not Enabled**, **Probes Disconnected** or **Unknown** when it is not being checked or has not reported yet. |
+| **Source** | **Rule** if one of the SLO's monitor rules attached it, **Manual** if someone attached it by hand. |
+| **Labels** | The monitor's labels. |
 
-| Step               | What you set                                                                                                                            |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic Info**     | The **name**, an optional **description** (why these monitors belong to this SLO), and whether the rule is **enabled** (on by default). |
-| **Match Criteria** | The conditions a monitor must meet to be attached.                                                                                      |
+## Attach monitors with a rule
 
-The rules table shows each rule's name, its match criteria in plain words, and whether it is enabled. **View Monitors** opens the SLO's **Monitors** page.
+A monitor rule describes the monitors an SLO should measure, such as "every monitor labelled Production" or "every monitor whose name starts with api-". Every monitor that matches is attached, now and whenever monitors are created or change, so nobody has to remember the monitor someone adds next month.
 
-### Viewing and running a rule
+:::steps
+### Open Monitor Rules
 
-Select **View** on a rule's row to open the rule's own page, with its details (editable with the same form), **Run Now** and **Delete**.
+Open the SLO, go to **Monitor Rules** and click **Create SLO Monitor Rule**.
 
-Rules already re-sync the SLO whenever they are saved, so **Run Now** is for picking up anything the SLO missed. It is on the rule's page, on each row, and in the table's bulk actions. Because an SLO measures every monitor that any of its enabled rules matches, running one rule re-evaluates **all** of the SLO's enabled monitor rules together: it attaches the monitors they match and detaches monitors a rule attached that no enabled rule matches any more. Monitors attached by hand are never touched, and a disabled rule does not run. When it finishes, the dialog says how many monitors were attached and detached.
+### Name the rule
 
-Running a rule needs permission to edit SLO monitor rules. See [Run Rules on Existing Resources](/docs/configuration/run-rules-now).
+On **Basic Info**, enter a **Name** and, optionally, a **Description** of why these monitors belong to this SLO.
+
+### Choose what it matches
+
+On **Match Criteria**, click **Add condition**, pick a field and an operator, and enter or pick the value. With two or more conditions, choose **Match all** or **Match any**. A monitor rule needs at least one condition.
+
+### Save the rule
+
+Click **Create SLO Monitor Rule**. The rule starts enabled, and the SLO's monitors are re-evaluated straight away: every monitor that matches is attached with the source **Rule**.
+:::
+
+The rules table shows each rule's name, its match criteria in words, and whether it is enabled. To pause a rule, switch **Enabled** off on its edit form. **View Monitors** opens the SLO's **Monitors** page.
 
 ### Match criteria
 
-Add one or more conditions, then choose how they combine:
+Each condition compares one field of a monitor:
 
-- **Match all (AND)** — a monitor must meet every condition.
-- **Match any (OR)** — meeting one condition is enough.
+| Field | Compared with | Operators |
+| --- | --- | --- |
+| **Monitor Labels** | The monitor's labels. | **Has any of**, **Has all of**, **Has none of** |
+| **Monitor Type** | The monitor's type, picked from the list of types. | **Equals**, **Does not equal** |
+| **Monitor Name** | The monitor's name. | **Contains**, **Does not contain**, **Equals**, **Does not equal**, **Starts with**, **Ends with**, **Matches pattern**, **Does not match pattern** |
+| **Monitor Description** | The monitor's description. | The same as **Monitor Name** |
 
-Each condition compares one field of the monitor:
+A pattern is a regular expression, such as `^api-.*`, or a `*` wildcard, such as `*checkout*`, and ignores case. A pattern that is neither, such as `api-(01`, is refused when you save rather than silently matching nothing. To attach every monitor in the project, add a **Monitor Name** condition that matches the pattern `.*`.
 
-| Field                   | Compared with                                           |
-| ----------------------- | ------------------------------------------------------- |
-| **Monitor Labels**      | The monitor's labels.                                   |
-| **Monitor Type**        | The monitor's type, such as _Website_, _API_ or _Ping_. |
-| **Monitor Name**        | The monitor's name.                                     |
-| **Monitor Description** | The monitor's description.                              |
-
-The operators on offer depend on the field. They can include equality (**Equals**, **Does not equal**), text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**. **Monitor Type** offers only **Equals** and **Does not equal**, and you pick its value from the list of monitor types.
-
-Patterns accept a regular expression (`^api-.*`) or a `*` wildcard (`*checkout*`). A pattern that is neither — `api-(01` — is rejected when you save, rather than silently matching nothing.
-
-A rule needs at least one condition. To attach every monitor in the project, add a name condition that matches the pattern `.*`.
-
-Some examples:
-
-| You want                                  | Conditions                                                                                                       |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Every production monitor                  | **Monitor Labels** has any of _Production_                                                                       |
-| Every API monitor                         | **Monitor Type** equals _API_                                                                                    |
-| Every monitor except Manual ones          | **Monitor Type** does not equal _Manual_                                                                         |
-| Every monitor whose name starts with api- | **Monitor Name** matches pattern `^api-`                                                                         |
-| Checkout monitors, but not staging ones   | **Match all (AND)**: **Monitor Name** matches pattern `*checkout*`, and **Monitor Labels** has none of _Staging_ |
+| You want | Conditions |
+| --- | --- |
+| Every production monitor | **Monitor Labels** has any of _Production_ |
+| Every API monitor | **Monitor Type** equals _API_ |
+| Every monitor except manual ones | **Monitor Type** does not equal _Manual_ |
+| Every monitor whose name starts with api- | **Monitor Name** matches pattern `^api-` |
+| Checkout monitors, but not staging ones | **Match all**: **Monitor Name** matches pattern `*checkout*`, and **Monitor Labels** has none of _Staging_ |
 
 ### When rules run
 
-- When you create, edit, enable, disable or delete a rule, the SLO's monitors are re-evaluated straight away.
-- When a monitor is created, or its labels, name or description change, every monitor rule in the project is checked against it — including labels your monitor label rules give it. A monitor's type is set when the monitor is created, so **Monitor Type** conditions are checked then.
+- When you create, edit, turn on, turn off or delete a rule, the SLO's monitors are re-evaluated straight away.
+- When a monitor is created, or its labels, name or description change, every monitor rule in the project checks it, including the labels your monitor label rules give it.
 - When a label is deleted, the SLOs whose rules used it are re-evaluated.
-- Rules keep an SLO's monitor list current even while the SLO is disabled or archived, so it resumes with the right monitors.
+- Rules keep an SLO's monitor list current while the SLO is turned off or archived, so it resumes with the right monitors.
+
+Rules re-sync whenever they are saved, so **Run Now** is for catching anything the SLO missed. It is on each row, on the rule's own page (**View**) and in the table's bulk actions. Running one rule re-evaluates all of the SLO's enabled monitor rules together, and the dialog then says how many monitors were attached and detached. Running a rule needs permission to edit SLO monitor rules. See [Run Rules on Existing Resources](/docs/configuration/run-rules-now).
 
 ### Which monitors a rule owns
 
-- A monitor is attached while **any** enabled rule matches it, and detached once none does.
-- Disabling or deleting a rule detaches the monitors only that rule matched. Monitors another enabled rule still matches stay attached.
-- Rules only ever detach monitors a rule attached. A monitor you attached by hand is never taken over by a rule when it happens to match, and never detached when it stops matching or when a rule is deleted. Its **Source** stays **Manual**.
+- A monitor stays attached while any enabled rule matches it, and is detached once none does.
+- Turning off or deleting a rule detaches only the monitors that no other enabled rule still matches.
+- Rules only ever detach monitors a rule attached. A monitor you attached by hand is never taken over by a rule that happens to match it, and never detached when it stops matching. Its source stays **Manual**.
 
-### Picking monitors by hand while rules are enabled
+## Picking by hand while rules are on
 
 While at least one rule is enabled, the rules manage the SLO's monitors:
 
-- monitors cannot be added by hand;
-- monitors a rule attached cannot be removed by hand, because the rule would attach them again;
-- monitors attached by hand before the rules were enabled can still be removed.
+- monitors cannot be added by hand: **Add Monitors** is turned off, and a banner says **This SLO's monitors are managed by its monitor rules**, with a **Manage Monitor Rules** link;
+- monitors a rule attached cannot be removed by hand, because the rule would attach them again: their **Remove** button is locked, and its tooltip says why;
+- monitors attached by hand before the rules were turned on can still be removed.
 
-This holds for the API too, not only the dashboard. Disable every rule to go back to picking monitors yourself.
+This holds for the API too. Turn every rule off to pick monitors yourself again.
 
-### Coming from Auto-Add Monitors With Labels
+## The SLOs a monitor counts toward
 
-Earlier versions had an **Auto-Add Monitors With Labels** setting on the SLO form. When you upgrade, every SLO that used it gets an enabled monitor rule named **Auto-add monitors with labels** that matches the same labels, so the SLO keeps measuring exactly the monitors it did.
+A monitor's own page lists the SLOs that measure it: open the monitor and go to **SLOs** in its side menu. Check it before you pause or change a monitor, to see which objectives depend on it. Archived SLOs are left out, because they are not evaluated.
 
-The old setting can still be saved while the upgrade rolls out: from a dashboard tab opened before the upgrade, or by an API client or workflow written for the earlier version. So that an SLO does not quietly lose monitors that way:
+## Coming from Auto-Add Monitors With Labels
 
-- **An SLO with no monitor rules** turns the saved labels into an **Auto-add monitors with labels** rule, and its monitors are re-evaluated straight away. Saving an empty list detaches the monitors the setting attached, as it used to.
-- **An SLO that already has monitor rules**, enabled or disabled, ignores labels saved through the old setting, because its rules decide what it measures. Change its monitor rules instead.
-- **Creating the first monitor rule** of an SLO whose monitors the old setting attached converts the setting into a rule first, so the new rule is added alongside it rather than replacing it.
+Earlier versions had an **Auto-Add Monitors With Labels** setting on the SLO form. When you upgrade, every SLO that used it gets an enabled monitor rule named **Auto-add monitors with labels** that matches the same labels, so it keeps measuring exactly the monitors it did. The `monitorLabels` field of the SLO API is deprecated: use SLO monitor rules instead.
 
-A converted rule you delete normally stays deleted. Creating another rule does not bring it back, and neither does saving an out-of-date form with the labels it loaded. Only changing the labels on that form, for an SLO with no monitor rules, does. The exception is a rule whose monitors are still attached after the delete, for example because a server still running the earlier version attached them again during the upgrade: the next monitor change, or the next new rule, converts the labels again. Delete that rule again once the upgrade has finished.
+:::details What if something still saves the old setting?
+A dashboard tab opened before the upgrade, or an API client or workflow written for the earlier version, can still save the old setting. So that an SLO does not quietly lose monitors that way:
 
-The `monitorLabels` field of the SLO API is deprecated. Use SLO Monitor Rules instead.
+- **An SLO with no monitor rules** turns the saved labels into an **Auto-add monitors with labels** rule, and its monitors are re-evaluated straight away. Saving an empty list detaches the monitors the setting attached, as before.
+- **An SLO that has monitor rules**, turned on or off, ignores labels saved through the old setting, because its rules decide what it measures.
+- **Creating the first monitor rule** of an SLO whose monitors the old setting attached converts the setting into a rule first, so the new rule is added beside it rather than replacing it.
+
+A converted rule you delete stays deleted, unless its monitors are still attached afterwards, for example because a server still running the earlier version attached them again during the upgrade: the next monitor change or new rule then converts the labels again. Delete that rule again once the upgrade has finished.
+:::
 
 ## History
 
-Every attach and detach, and every rule that is created, changed or deleted, is posted to the SLO's **Feed**. Rule changes are also recorded in the SLO's **Audit Logs**. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs).
+Every attach and detach, and every rule that is created, changed or deleted, is posted to the SLO's **Feed**. Rule changes are also recorded in its **Audit Logs**. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs).
 
-## Where to read next
+## Troubleshooting
 
-- [SLOs Overview](/docs/slo/introduction) — how downtime on several monitors combines, and every page an SLO has.
-- [Error Budgets](/docs/slo/error-budget) — what the monitors' downtime spends.
+:::details Add Monitors is turned off
+At least one of the SLO's monitor rules is enabled, so the rules manage its monitors. Change the rules, or turn every rule off to pick monitors by hand.
+:::
+
+:::details A monitor's Remove button is locked
+A monitor rule attached that monitor, and would attach it again. Change or turn off the rule that matches it.
+:::
+
+:::details A monitor a rule should match is not attached
+Check that the rule is enabled and that every condition holds under **Match all**. Labels a monitor label rule adds count too. Click **Run Now** on the rule to re-sync the SLO.
+:::
+
+:::details Saving a rule fails with a pattern error
+The value is neither a regular expression nor a `*` wildcard, for example an unclosed bracket. Fix the pattern, or use **Contains** instead.
+:::
+
+## Next steps
+
+:::cards
+- [SLOs Overview](/docs/slo/introduction): How downtime on several monitors combines.
+- [Error Budgets](/docs/slo/error-budget): What the monitors' downtime spends.
+- [Run Rules on Existing Resources](/docs/configuration/run-rules-now): How Run Now works for every kind of rule.
+:::

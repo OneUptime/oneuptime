@@ -1,7 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TraceScrubRule";
 import CreateBy from "../Types/Database/CreateBy";
-import FindBy from "../Types/Database/FindBy";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import {
@@ -49,8 +49,10 @@ export class Service extends DatabaseService<Model> {
   ): Promise<void> {
     await validateScrubRuleUpdate<Model>({
       updateBy: updateBy,
-      findBy: async (findBy: FindBy<Model>): Promise<Array<Model>> => {
-        return await this.findBy(findBy);
+      findRowsAndHoldUpdateToThem: async (
+        select: Select<Model>,
+      ): Promise<Array<Model>> => {
+        return await this.findRowsAndHoldUpdateToThem(updateBy, select);
       },
       options: VALIDATION_OPTIONS,
     });

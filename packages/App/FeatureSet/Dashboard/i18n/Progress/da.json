@@ -1,15 +1,43 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16649
+    "keys": 28012,
+    "untranslated": 16960
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
+    "AI / LLM",
+    "Agent",
+    "Alarm",
+    "App",
+    "Apps",
+    "Budget",
     "CloudWatch Metric Streams",
+    "Diagram",
+    "Embedding",
+    "Filter:",
+    "Filter: {{expression}}",
+    "Find",
+    "Interface",
+    "Model",
     "Offline",
+    "Pause",
+    "Reference",
+    "Revision",
     "Runbook: {{name}}",
     "Runner",
+    "Start import",
+    "Status",
+    "Stratum",
+    "Team",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
-    "{{count}} match"
+    "teams",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
+    "{{count}} alarm",
+    "{{count}} match",
+    "{{count}} rotation",
+    "{{tokens}} tokens"
   ]
 }

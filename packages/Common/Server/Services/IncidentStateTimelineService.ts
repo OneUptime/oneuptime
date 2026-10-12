@@ -50,6 +50,8 @@ import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -268,28 +270,24 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       }
 
       /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
+       * Where the incident may move, by the one rule every state timeline
+       * asks (Common/Utils/StateMove): not into the state it is in, not
+       * back up the project's list of states, and not into the state of the
+       * row after a back-dated one.
        */
-
-      if (
-        stateBeforeThis &&
-        stateBeforeThis.incidentStateId &&
-        incidentStateId
-      ) {
-        if (
-          stateBeforeThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Incident state cannot be same as previous state.",
-          );
-        }
-      }
-
-      if (stateBeforeThis && stateBeforeThis.incidentState?.order) {
-        const newIncidentState: IncidentState | null =
-          await IncidentStateService.findOneBy({
+      await StateMoveCheck.assertTimelineRowAllowed({
+        record: StateMoveRecord.Incident,
+        previousState: stateBeforeThis
+          ? {
+              id: stateBeforeThis.incidentStateId,
+              name: stateBeforeThis.incidentState?.name,
+              order: stateBeforeThis.incidentState?.order,
+            }
+          : null,
+        newStateId: incidentStateId,
+        nextStateId: stateAfterThis?.incidentStateId,
+        readNewState: async (): Promise<StateMoveState | null> => {
+          return await IncidentStateService.findOneBy({
             query: {
               _id: incidentStateId,
             },
@@ -301,41 +299,12 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
               isRoot: true,
             },
           });
-
-        if (newIncidentState && newIncidentState.order) {
-          // check if the new incident state is in order is greater than the previous state order
-          if (
-            stateBeforeThis &&
-            stateBeforeThis.incidentState &&
-            stateBeforeThis.incidentState.order &&
-            newIncidentState.order <= stateBeforeThis.incidentState.order
-          ) {
-            throw new BadDataException(
-              `Incident cannot transition to ${newIncidentState.name} state from ${stateBeforeThis.incidentState.name} state because ${newIncidentState.name} is before ${stateBeforeThis.incidentState.name} in the order of incident states.`,
-            );
-          }
-        }
-      }
+        },
+      });
 
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
         createBy.data.endsAt = stateAfterThis.startsAt;
-      }
-
-      /*
-       * check if this new state and the previous state are same.
-       * if yes, then throw bad data exception.
-       */
-
-      if (stateAfterThis && stateAfterThis.incidentStateId && incidentStateId) {
-        if (
-          stateAfterThis.incidentStateId.toString() ===
-          incidentStateId.toString()
-        ) {
-          throw new BadDataException(
-            "Incident state cannot be same as next state.",
-          );
-        }
       }
 
       logger.debug("State After this", {
@@ -918,18 +887,10 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
   private async getIncidentIdsForTimelineQuery(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<Array<ObjectID>> {
-    const timelines: Array<IncidentStateTimeline> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const timelines: Array<IncidentStateTimeline> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         incidentId: true,
-      },
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
     return this.getIncidentIdsFromTimelines(timelines);
   }
@@ -1236,19 +1197,36 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<IncidentStateTimeline>,
   ): Promise<OnDelete<IncidentStateTimeline>> {
-    if (deleteBy.query._id) {
+    /*
+     * OneUptime's own deletes of entries - a retention purge, a cleanup -
+     * move no neighbour unless they name one entry by its id.
+     */
+    if (deleteBy.props.isRoot && !Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
+
+    /*
+     * The one entry the delete removes, and the delete held to it: its
+     * neighbours close the gap it leaves. A delete of several entries - a
+     * workflow's delete of many, say - has no one gap to close: it is left
+     * as it is, and moves no neighbour.
+     */
+    const toBeDeleted: {
+      row: IncidentStateTimeline | null;
+      deletesMore: boolean;
+    } = await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+      incidentId: true,
+      startsAt: true,
+      endsAt: true,
+    });
+
+    if (toBeDeleted.deletesMore) {
+      return { deleteBy, carryForward: null };
+    }
+
+    if (toBeDeleted.row) {
       const incidentStateTimelineToBeDeleted: IncidentStateTimeline | null =
-        await this.findOneById({
-          id: new ObjectID(deleteBy.query._id as string),
-          select: {
-            incidentId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        toBeDeleted.row;
 
       const incidentId: ObjectID | undefined =
         incidentStateTimelineToBeDeleted?.incidentId;
@@ -1283,7 +1261,9 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
         const stateBeforeThis: IncidentStateTimeline | null =
           await this.findOneBy({
             query: {
-              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              _id: QueryHelper.notEquals(
+                incidentStateTimelineToBeDeleted.id!.toString(),
+              ),
               incidentId: incidentId,
               startsAt: QueryHelper.lessThanEqualTo(
                 incidentStateTimelineToBeDeleted.startsAt!,

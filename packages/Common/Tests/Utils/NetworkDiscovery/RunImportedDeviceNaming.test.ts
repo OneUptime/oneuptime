@@ -1,9 +1,14 @@
 import {
   MAX_DISCOVERED_HOST_ADDRESS_LENGTH,
+  RenameOrderKey,
   RunImportedDeviceRename,
   RunImportedDeviceRow,
+  buildRenameCandidateNames,
+  compareRenameOrder,
+  getDnsNameToFill,
   getNamedHostsByAddress,
   planRunImportedDeviceRenames,
+  readTrimmedString,
   toEpochMilliseconds,
 } from "../../../Utils/NetworkDiscovery/RunImportedDeviceNaming";
 import {
@@ -14,6 +19,7 @@ import {
   buildFallbackDeviceName,
 } from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { DeviceNameSource } from "../../../Types/NetworkDevice/DeviceNameSource";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -108,9 +114,61 @@ describe("planRunImportedDeviceRenames", () => {
         hostname: ADDRESS,
         fromName: ADDRESS,
         candidateNames: [PTR_NAME, `${PTR_NAME} (${ADDRESS})`],
+        // Recorded with the new name, so a later scan can improve it (#4518).
+        discoveredNameSource: DeviceNameSource.DnsName,
         dnsName: PTR_NAME,
       },
     ]);
+  });
+
+  describe("devices that record how discovery named them (issue #4518)", () => {
+    /*
+     * Every device a discovery import creates since #4518 records the source
+     * of its name, and DiscoveredNameUpgrade.ts improves those — on any scan,
+     * from any worse source. Planning one here as well would rename it twice
+     * in one pass.
+     */
+    test.each([
+      DeviceNameSource.Address,
+      DeviceNameSource.DnsName,
+      DeviceNameSource.NetbiosName,
+      DeviceNameSource.SystemName,
+    ])(
+      "skips a device whose recorded source is %s, however else it matches",
+      (source: DeviceNameSource) => {
+        expect(
+          plan({ devices: [row({ discoveredNameSource: source })] }),
+        ).toEqual([]);
+      },
+    );
+
+    test("still plans a device whose recorded source is unreadable, as one that records none", () => {
+      for (const unreadable of [null, "", "Address", "dns", "system name"]) {
+        expect(
+          plan({ devices: [row({ discoveredNameSource: unreadable })] }),
+        ).toHaveLength(1);
+      }
+    });
+
+    test("records the source of whichever name it plans", () => {
+      expect(
+        plan({
+          hosts: [host({ sysName: "kds01-snmp", netbiosName: "KDS01-WIN" })],
+        })[0]?.discoveredNameSource,
+      ).toBe(DeviceNameSource.SystemName);
+      expect(
+        plan({ hosts: [host({ netbiosName: "KDS01-WIN" })] })[0]
+          ?.discoveredNameSource,
+      ).toBe(DeviceNameSource.NetbiosName);
+      expect(plan()[0]?.discoveredNameSource).toBe(DeviceNameSource.DnsName);
+    });
+
+    test("names the device by its NetBIOS name ahead of its PTR name, as an import would", () => {
+      expect(
+        plan({ hosts: [host({ netbiosName: "KDS01-WIN" })] })[0]
+          ?.candidateNames,
+      ).toEqual(["KDS01-WIN", `KDS01-WIN (${ADDRESS})`]);
+    });
   });
 
   describe("(a) the scan's project only", () => {
@@ -305,12 +363,26 @@ describe("planRunImportedDeviceRenames", () => {
     });
 
     test("does not plan a device whose host's only 'name' is its own address", () => {
-      expect(plan({ hosts: [host({ sysName: ADDRESS })] })).toEqual([]);
+      expect(
+        plan({ hosts: [host({ sysName: ADDRESS, dnsHostname: undefined })] }),
+      ).toEqual([]);
       expect(
         plan({
           hosts: [host({ sysName: ` ${ADDRESS} `, dnsHostname: undefined })],
         }),
       ).toEqual([]);
+    });
+
+    test("a sysName that only restates the address no longer hides the PTR name (issue #4518)", () => {
+      /*
+       * The naming rule reads a sysName that is an IP address as no name at
+       * all, so the PTR record names the host — and the device the run
+       * imported by address is renamed to it, as an import would name it.
+       */
+      expect(plan({ hosts: [host({ sysName: ADDRESS })] })[0]).toMatchObject({
+        candidateNames: [PTR_NAME, `${PTR_NAME} (${ADDRESS})`],
+        discoveredNameSource: DeviceNameSource.DnsName,
+      });
     });
 
     test("does not treat an unusable PTR answer as a name", () => {
@@ -634,6 +706,166 @@ describe("getNamedHostsByAddress", () => {
   test("returns nothing for a value that is not an array", () => {
     expect(getNamedHostsByAddress(undefined, FULL_NAMES).size).toBe(0);
     expect(getNamedHostsByAddress({}, FULL_NAMES).size).toBe(0);
+  });
+});
+
+describe("planRunImportedDeviceRenames with the result already read", () => {
+  test("plans from the map it is handed, without reading the hosts again", () => {
+    expect(
+      planRunImportedDeviceRenames({
+        projectId: PROJECT_ID,
+        // Never read when the map is given.
+        hosts: "not a host list",
+        namedHosts: getNamedHostsByAddress([host()], FULL_NAMES),
+        devices: [row()],
+        scan: FULL_NAMES,
+        runStartedAt: RUN_STARTED_AT,
+        runCompletedAt: RUN_COMPLETED_AT,
+      }),
+    ).toEqual(plan());
+  });
+
+  test("a device list that is not a list plans nothing, and never throws", () => {
+    expect(
+      plan({ devices: "rows" as unknown as Array<RunImportedDeviceRow> }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The helpers both rename planners share (this one and
+ * DiscoveredNameUpgrade.ts, issue #4518), so the two cannot drift apart on
+ * what a rename is called, which DNS Name it fills, or which device goes first.
+ */
+describe("buildRenameCandidateNames", () => {
+  test("is the import's own two names, in order", () => {
+    expect(
+      buildRenameCandidateNames({ host: host(), scan: FULL_NAMES }),
+    ).toEqual([
+      buildDeviceName(host(), FULL_NAMES),
+      buildFallbackDeviceName(host(), FULL_NAMES),
+    ]);
+    expect(
+      buildRenameCandidateNames({ host: host(), scan: FULL_NAMES }),
+    ).toEqual([PTR_NAME, `${PTR_NAME} (${ADDRESS})`]);
+  });
+
+  test("follows the scan's naming choice", () => {
+    expect(
+      buildRenameCandidateNames({ host: host(), scan: SHORT_NAMES }),
+    ).toEqual(["kds01", `kds01 (${ADDRESS})`]);
+  });
+
+  test("leaves out the name it is told to, whatever its case or spacing", () => {
+    expect(
+      buildRenameCandidateNames({
+        host: host(),
+        scan: FULL_NAMES,
+        exceptName: `  ${PTR_NAME.toUpperCase()} `,
+      }),
+    ).toEqual([`${PTR_NAME} (${ADDRESS})`]);
+  });
+
+  test("lists a name once, and never a blank one", () => {
+    // No address to tell the fallback apart by: it is the same name again.
+    expect(
+      buildRenameCandidateNames({
+        host: host({ ipAddress: "" }),
+        scan: FULL_NAMES,
+      }),
+    ).toEqual([PTR_NAME]);
+
+    // Nothing names the host at all: nothing to try.
+    expect(
+      buildRenameCandidateNames({
+        host: host({ ipAddress: "", dnsHostname: undefined }),
+        scan: FULL_NAMES,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("getDnsNameToFill", () => {
+  test("is the host's usable PTR name when the device has none", () => {
+    for (const current of [undefined, null, "", "   ", 42]) {
+      expect(getDnsNameToFill(current, host())).toBe(PTR_NAME);
+    }
+  });
+
+  test("is nothing when the device already has a DNS Name, which is never overwritten", () => {
+    expect(getDnsNameToFill("other.wbhq.com", host())).toBeUndefined();
+  });
+
+  test("is nothing for a host with no usable PTR name", () => {
+    expect(
+      getDnsNameToFill(undefined, host({ dnsHostname: undefined })),
+    ).toBeUndefined();
+    expect(
+      getDnsNameToFill(
+        undefined,
+        host({ dnsHostname: "51.166.18.10.in-addr.arpa" }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("is the builder's value, without the root dot and within the column", () => {
+    expect(
+      getDnsNameToFill(undefined, host({ dnsHostname: `${PTR_NAME}.` })),
+    ).toBe(PTR_NAME);
+
+    const longName: string = [
+      "a".repeat(63),
+      "b".repeat(63),
+      "c".repeat(63),
+      "d".repeat(61),
+    ].join(".");
+
+    expect(
+      getDnsNameToFill(undefined, host({ dnsHostname: longName }))?.length,
+    ).toBeLessThanOrEqual(MAX_DEVICE_DNS_NAME_LENGTH);
+  });
+});
+
+describe("compareRenameOrder", () => {
+  function key(overrides: Partial<RenameOrderKey> = {}): RenameOrderKey {
+    return {
+      createdAt: 1000,
+      hostname: "10.0.0.5",
+      deviceId: "device-5",
+      ...overrides,
+    };
+  }
+
+  test("oldest first, then by address, then by id", () => {
+    const sorted: Array<RenameOrderKey> = [
+      key({ createdAt: 2000, hostname: "10.0.0.1", deviceId: "a" }),
+      key({ createdAt: 1000, hostname: "10.0.0.9", deviceId: "b" }),
+      key({ createdAt: 1000, hostname: "10.0.0.2", deviceId: "d" }),
+      key({ createdAt: 1000, hostname: "10.0.0.2", deviceId: "c" }),
+    ].sort(compareRenameOrder);
+
+    expect(
+      sorted.map((entry: RenameOrderKey): string => {
+        return entry.deviceId;
+      }),
+    ).toEqual(["c", "d", "b", "a"]);
+  });
+
+  test("is zero only for the same key", () => {
+    expect(compareRenameOrder(key(), key())).toBe(0);
+    expect(compareRenameOrder(key(), key({ deviceId: "device-6" }))).toBe(-1);
+    expect(compareRenameOrder(key({ deviceId: "device-6" }), key())).toBe(1);
+  });
+});
+
+describe("readTrimmedString", () => {
+  test("trims text, and reads anything else as empty", () => {
+    expect(readTrimmedString("  device-1 ")).toBe("device-1");
+    expect(readTrimmedString("")).toBe("");
+
+    for (const value of [undefined, null, 42, {}, [], true]) {
+      expect(readTrimmedString(value)).toBe("");
+    }
   });
 });
 

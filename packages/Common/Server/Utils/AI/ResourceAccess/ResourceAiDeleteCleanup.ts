@@ -87,11 +87,12 @@ export function getResourceAiDeleteCarryForward(
 export default class ResourceAiDeleteCleanup {
   /*
    * For a resource service's onBeforeDelete: the in-flight rounds of every
-   * resource the delete matches, and those resources' names. onBeforeDelete
-   * runs before the framework scopes the query to the caller's project, so
-   * scope it here. A failed read is only logged: the delete goes ahead and
-   * its agents are still removed; the rounds then fail on their next
-   * command, as the resource is gone.
+   * resource the delete removes, and those resources' names. The resources
+   * are the rows the delete removes, read with the delete held to them
+   * (DatabaseService.findRowsAndHoldDeleteToThem). A failed read of their
+   * rounds is only logged: the delete goes ahead and its agents are still
+   * removed; the rounds then fail on their next command, as the resource is
+   * gone.
    */
   @CaptureSpan()
   public static async beforeDelete<TBaseModel extends BaseModel>(data: {
@@ -102,20 +103,13 @@ export default class ResourceAiDeleteCleanup {
     let inFlightRounds: Array<AutoRemediationSuggestion> = [];
     const resourceNames: Record<string, string> = {};
 
-    try {
-      const resources: Array<TBaseModel> = await data.service.findBy({
-        query: {
-          ...data.deleteBy.query,
-          ...(data.deleteBy.props.tenantId
-            ? { projectId: data.deleteBy.props.tenantId }
-            : {}),
-        } as never,
-        select: RESOURCE_SELECT as never,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    const resources: Array<TBaseModel> =
+      await data.service.findRowsAndHoldDeleteToThem(
+        data.deleteBy,
+        RESOURCE_SELECT as never,
+      );
 
+    try {
       const resourceIds: Array<ObjectID> = [];
 
       for (const resource of resources) {

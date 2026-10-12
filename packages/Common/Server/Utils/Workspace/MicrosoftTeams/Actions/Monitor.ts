@@ -1,8 +1,4 @@
-import { ExpressRequest, ExpressResponse } from "../../../Express";
-import Response from "../../../Response";
-import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import { MicrosoftTeamsMonitorActionType } from "./ActionTypes";
-import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -26,45 +22,6 @@ export default class MicrosoftTeamsMonitorActions {
   }
 
   @CaptureSpan()
-  public static async handleMonitorAction(data: {
-    teamsRequest: MicrosoftTeamsRequest;
-    action: MicrosoftTeamsAction;
-    req: ExpressRequest;
-    res: ExpressResponse;
-  }): Promise<void> {
-    const { action } = data;
-
-    logger.debug("Handling Microsoft Teams monitor action:", {
-      projectId: data.teamsRequest.projectId.toString(),
-      actionType: action.actionType,
-    });
-    logger.debug(action);
-
-    try {
-      switch (action.actionType) {
-        case MicrosoftTeamsMonitorActionType.ViewMonitor:
-          // This is handled by opening the URL directly
-          break;
-
-        default:
-          logger.debug("Unhandled monitor action: " + action.actionType, {
-            projectId: data.teamsRequest.projectId.toString(),
-            actionType: action.actionType,
-          });
-          break;
-      }
-    } catch (error) {
-      logger.error("Error handling Microsoft Teams monitor action:", {
-        projectId: data.teamsRequest.projectId.toString(),
-        actionType: action.actionType,
-      });
-      logger.error(error);
-    }
-
-    Response.sendTextResponse(data.req, data.res, "");
-  }
-
-  @CaptureSpan()
   public static async handleBotMonitorAction(data: {
     actionType: string;
     actionValue: string;
@@ -85,6 +42,10 @@ export default class MicrosoftTeamsMonitorActions {
         return;
       }
 
+      /*
+       * Read as the member who asked, with their own permissions: a monitor
+       * outside their read is answered like one the project does not have.
+       */
       const monitor: Monitor | null = await MonitorService.findOneBy({
         query: {
           _id: actionValue,
@@ -101,9 +62,7 @@ export default class MicrosoftTeamsMonitorActions {
           disableActiveMonitoring: true,
           createdAt: true,
         },
-        props: {
-          isRoot: true,
-        },
+        props: databaseProps,
       });
 
       if (!monitor) {
@@ -156,11 +115,12 @@ export default class MicrosoftTeamsMonitorActions {
       return;
     }
 
-    // Default fallback for unimplemented actions
+    /*
+     * Default fallback for unimplemented actions
+     * The action's name is placed as text: it comes from the card.
+     */
     await turnContext.sendActivity(
-      "Sorry, but the action " +
-        actionType +
-        " you requested is not implemented yet.",
+      mdText`Sorry, but the action ${actionType} you requested is not implemented yet.`.toString(),
     );
   }
 

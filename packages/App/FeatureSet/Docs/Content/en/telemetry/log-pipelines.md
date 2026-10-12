@@ -2,14 +2,37 @@
 
 Log pipelines transform logs as OneUptime ingests them, before they are stored. A pipeline has a **filter** that decides which logs it applies to and an ordered list of **processors** that each change those logs: pull fields out of the message, fix the severity, rename an attribute, or tag the log with a category.
 
-Pipelines live under **Logs > Settings > Pipelines**.
+Pipelines live under **Logs → Settings → Pipelines**.
+
+:::cards
+- [How a pipeline runs](#how-a-pipeline-runs): Where pipelines sit in ingest, and in what order they run.
+- [Create a pipeline](#create-a-pipeline): Match some logs and add processors to them.
+- [Key=Value Parser](#keyvalue-parser): Turn firewall and logfmt lines into attributes.
+- [Example: Sophos XGS firewall](#example-sophos-xgs-firewall): Parse firewall syslog end to end.
+:::
 
 ## How a Pipeline Runs
 
-- Pipelines run in order. A pipeline only touches the logs its filter matches, using the same filter syntax as the [log search](/docs/telemetry/search-syntax) (`attributes.service.name = 'api'`, `body LIKE 'timeout'`, `severityText = 'Error'`).
-- Inside a pipeline, processors run in order and each one sees what the previous one produced, so a parser has to come before a processor that reads the fields it extracts.
-- Processing happens at ingest. Changing a pipeline affects the logs that arrive afterwards; logs already stored are not reprocessed.
-- A processor never drops or blanks a log. A line a parser cannot read passes through unchanged.
+Pipelines run on every log OneUptime ingests — OpenTelemetry logs, syslog and Fluentd alike — after drop filters and scrub rules, and before the log is stored:
+
+```mermaid title="Where pipelines run while a log is ingested"
+flowchart TB
+    arrive["Log arrives"] --> drop{"Matches a drop filter?"}
+    drop -->|"yes"| discarded["Discarded"]
+    drop -->|"no"| scrub["Scrub rules mask data"]
+    scrub --> filter{"Next pipeline's filter matches?"}
+    filter -->|"yes"| processors["Run its processors in order"]
+    filter -->|"no"| more{"More pipelines?"}
+    processors --> more
+    more -->|"yes"| filter
+    more -->|"no"| stored["Log is stored"]
+```
+
+- **Pipelines run in order** — the order of the list, which you change by dragging rows. A pipeline only touches the logs its filter matches, and every pipeline whose filter matches runs, not just the first.
+- **Processors run in order too**, and each one sees what the previous one produced, so a parser has to come before a processor that reads the fields it extracts. A later pipeline's filter also sees what earlier pipelines changed.
+- **Processing happens at ingest.** Changing a pipeline affects the logs that arrive afterwards, within about a minute; logs already stored are not reprocessed.
+- **A processor never drops or blanks a log.** A line a parser cannot read passes through unchanged. To discard logs, use **Logs → Settings → Drop Filters**.
+- **Only enabled pipelines and processors run.** Turn one off on its page to pause it without losing its setup.
 
 ## Processor Types
 
@@ -20,6 +43,44 @@ Pipelines live under **Logs > Settings > Pipelines**.
 | Severity Remapper  | Maps a raw level such as `warn` from an attribute onto the log's standard severity.              |
 | Attribute Remapper | Renames or copies an attribute, for example `src_ip` to `source_ip`.                             |
 | Category Processor | Tags a log with a category name when it matches a filter, for example "Payment Error".           |
+
+## Before you begin
+
+- Logs arriving in OneUptime — over [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) or a probe.
+- Permission to change pipelines. Project owners and admins have it; anyone else needs the **Create Log Pipeline** and **Create Log Pipeline Processor** permissions.
+
+## Create a pipeline
+
+:::steps
+### Create the pipeline
+
+Go to **Logs → Settings → Pipelines** and click **Create Log Pipeline**. Give it a **Name**, such as *Parse firewall logs*, and create it. The pipeline's page opens.
+
+### Choose which logs it applies to
+
+Under **Filter Conditions**, click **Edit** and add conditions on **Severity**, **Log Body**, **Service ID** or a custom attribute. Join them with **All conditions** or **Any condition**, then click **Save Changes**. A pipeline with no conditions applies to every log.
+
+### Add processors
+
+Under **Processors**, click **Add Processor**, enter a **Processor Name**, pick a **Processor Type** and fill in its settings. The Grok and Key=Value parsers have a tester: paste a sample line to see what they would extract. Click **Create Processor**.
+
+### Put them in order
+
+Drag processors to change the order they run in, and drag pipelines on the **Pipelines** list the same way. New logs are processed within about a minute.
+:::
+
+### Filter conditions
+
+Each condition compares a field with a value. Behind the builder, the filter is a query such as `severityText = 'Error' AND body LIKE 'timeout'`, which **Preview query** shows.
+
+| Operator | In the query | Notes |
+| --- | --- | --- |
+| equals | `=` | Exact and case-sensitive. |
+| does not equal | `!=` | Exact and case-sensitive. |
+| contains | `LIKE` | Ignores case. `%` in the value is a wildcard. |
+| is one of | `IN` | A comma-separated list of exact values. |
+
+Severity values are `Fatal`, `Error`, `Warning`, `Information`, `Debug`, `Trace` and `Unspecified` — so `severityText = 'Error'` matches and `'ERROR'` never will. A custom attribute is written `attributes.<key>`, for example `attributes.networkDevice.name = 'hq-firewall'`.
 
 ## Key=Value Parser
 
@@ -35,7 +96,7 @@ Firewalls and other network appliances log every event as one line of `key=value
 | Key-Value Delimiter  | `=`            | What separates a key from its value, for example `:` for `status:up`.                                                                                                                                        |
 | Override on Conflict | off            | Whether a key may replace an attribute the log already has. Off by default: the keys come from the line itself, so a line could otherwise rewrite attributes set at ingest, such as the device it came from. |
 
-The two delimiters must be different, must not contain one another, and cannot contain quotes or backslashes. The processor form checks this before saving, and its tester shows the exact attributes a sample line would produce.
+The two delimiters must be different, must not contain one another, and cannot contain quotes or backslashes; each is at most 8 characters long. The processor form checks this before saving, and its tester, **Test With a Sample Line**, shows the exact attributes a sample line would produce.
 
 ### Parsing Rules
 
@@ -49,12 +110,21 @@ The two delimiters must be different, must not contain one another, and cannot c
 
 ### Example: Sophos XGS Firewall
 
-When a Sophos XGS firewall sends syslog to a [probe](/docs/monitor/network-device-monitor), each message is stored as a log of the network device with the whole line as its body. To parse it:
+When a Sophos XGS firewall sends syslog to a [probe](/docs/monitor/network-device-monitor), each message is stored as a log of the network device, with the syslog message as its body. To parse it:
 
-1. Go to **Logs > Settings > Pipelines** and create a pipeline. Give it a filter that matches the firewall's logs, for example `attributes.networkDevice.name = 'hq-firewall'`, or `body LIKE 'log_component='` to match every Sophos line.
-2. Open the pipeline and click **Add Processor**.
-3. Choose **Key=Value Parser**, keep **Source Field** as `body`, and set **Target Prefix** to `sophos` (optional, but it keeps the firewall's fields together).
-4. Paste a line from the firewall into the tester to check the result, then save.
+:::steps
+#### Create a pipeline for the firewall
+
+Go to **Logs → Settings → Pipelines** and create a pipeline. Give it a filter that matches the firewall's logs, for example the custom attribute `networkDevice.name` equals `hq-firewall` (`attributes.networkDevice.name = 'hq-firewall'`), or **Log Body** contains `log_component=` to match every Sophos line.
+
+#### Add the parser
+
+Open the pipeline and click **Add Processor**. Choose **Key=Value Parser**, keep **Source Field** as `body`, and set **Target Prefix** to `sophos` (optional, but it keeps the firewall's fields together).
+
+#### Test it and save
+
+Paste a line from the firewall into **Test With a Sample Line** to check the result, then click **Create Processor**.
+:::
 
 A Sophos IPsec event:
 
@@ -80,6 +150,8 @@ log_id=158825619025 log_type="SD-WAN" log_component="SLA" profile_name="Branch-I
 
 gives `sophos.gw_name = WAN2`, `sophos.latency = 11`, `sophos.packet_loss = 0`, `sophos.gw_status = up` and `sophos.sla_status = SLA met`. Older SFOS releases log a legacy format (`device="SFW" date=2017-01-31 time=18:02:03 timezone="IST" ... connectionname="Tunnel A"`); it parses the same way, with the tunnel name in `connectionname` instead of `con_name`.
 
+To turn those SLA lines into latency, jitter and packet-loss metrics per gateway, see the [Log Recording Rules](/docs/telemetry/log-recording-rules) example.
+
 ### Example: Fortinet FortiGate
 
 FortiGate logs use the same style:
@@ -96,7 +168,15 @@ With the fields parsed, a [Logs monitor](/docs/monitor/logs-monitor) can count t
 
 ## Grok Parser
 
-Pulls structured fields out of a line with a fixed shape. A grok pattern is a regular expression with named references: `%{IPV4:client_ip}` means "match an IPv4 address and store it as `client_ip`". The pattern does not have to match the whole line, a line that does not match is left unchanged, and `%{NUMBER:status:int}` stores a capture as a number. The processor form lists the available patterns and has a tester for sample lines.
+Pulls structured fields out of a line with a fixed shape. A grok pattern is a regular expression with named references: `%{IPV4:client_ip}` means "match an IPv4 address and store it as `client_ip`". The pattern does not have to match the whole line, and a line that does not match is left unchanged.
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| **Source Field** | `body` | The field to parse, like the Key=Value Parser's. |
+| **Target Prefix** | none | A namespace for the extracted fields, added the same way. |
+| **Grok Pattern** | — | The pattern. The form lists the available named patterns. |
+
+A capture is stored as text unless you give it a type: `%{NUMBER:status:int}` stores it as a number. The types are `int`, `long`, `float`, `double`, `boolean` and `string`. Check a pattern against a sample line in **Test Your Pattern** before you save it.
 
 | Log body                     | Pattern                                                                    | Attributes added                |
 | ---------------------------- | -------------------------------------------------------------------------- | ------------------------------- |
@@ -106,12 +186,26 @@ Use the Key=Value Parser instead when the line is made of `key=value` pairs whos
 
 ## Severity Remapper
 
-Reads a raw value from an attribute (for example `level`) and maps it to a standard severity. Each mapping pairs a value your application emits, such as `warn`, with a severity, such as Warning. Matching ignores case.
+Reads a raw value from an attribute and maps it to a standard severity. Set **Source Attribute** to the attribute that holds the level (`level` by default), then add **Mappings**: each pairs a value your application emits, such as `warn`, with a severity, such as Warning. Matching ignores case. A value with no mapping leaves the log's severity as it was.
 
 ## Attribute Remapper
 
-Copies the value of one attribute to another key. Turn off **Preserve Source** to rename instead of copy, and turn off **Override on Conflict** to leave the target alone when it already exists.
+Moves the value of one attribute (**Source Key**) to another (**Target Key**), for example `src_ip` to `source_ip`.
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| **Preserve Source** | off | Off renames the attribute: the source key is removed. On copies it and keeps the source key. |
+| **Override on Conflict** | on | On replaces the target when it already exists. Off leaves the target alone and skips the remap. |
 
 ## Category Processor
 
-Evaluates a list of rules in order and stores the name of the first rule whose filter matches under a target attribute (for example `category`), so you can search for every "Payment Error" log at once.
+Evaluates a list of rules in order and stores the name of the first rule whose filter matches under a target attribute, so you can search for every "Payment Error" log at once. Set **Target Attribute** (`category` by default), then add **Category Rules**: a **Category name** and the conditions under **When logs match**. The first matching rule wins; a log that matches none is left unchanged.
+
+## Next steps
+
+:::cards
+- [Logs Monitor](/docs/monitor/logs-monitor): Alert on the attributes your pipelines extract.
+- [Log Recording Rules](/docs/telemetry/log-recording-rules): Turn parsed log fields into metrics.
+- [Syslog](/docs/telemetry/syslog): Send firewall and server syslog to OneUptime.
+- [Search Syntax](/docs/telemetry/search-syntax): Search on the new attributes in the Logs explorer.
+:::

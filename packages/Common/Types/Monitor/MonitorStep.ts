@@ -16,6 +16,9 @@ import MonitorStepLogMonitor, {
 import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "./MonitorStepSecurityEventsMonitor";
+import MonitorStepLlmMonitor, {
+  MonitorStepLlmMonitorUtil,
+} from "./MonitorStepLlmMonitor";
 import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
@@ -185,6 +188,9 @@ export interface MonitorStepType {
   // Security events monitor type.
   securityEventsMonitor?: MonitorStepSecurityEventsMonitor | undefined;
 
+  // AI / LLM monitor type: what makes an answer bad, and where to look.
+  llmMonitor?: MonitorStepLlmMonitor | undefined;
+
   // trace monitor type.
   traceMonitor?: MonitorStepTraceMonitor | undefined;
 
@@ -283,6 +289,7 @@ export default class MonitorStep extends DatabaseProperty {
       retryCount: undefined,
       logMonitor: undefined,
       securityEventsMonitor: undefined,
+      llmMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
       exceptionMonitor: undefined,
@@ -354,6 +361,10 @@ export default class MonitorStep extends DatabaseProperty {
       securityEventsMonitor:
         arg.monitorType === MonitorType.SecurityEvents
           ? MonitorStepSecurityEventsMonitorUtil.getDefault()
+          : undefined,
+      llmMonitor:
+        arg.monitorType === MonitorType.Llm
+          ? MonitorStepLlmMonitorUtil.getDefault()
           : undefined,
       traceMonitor:
         arg.monitorType === MonitorType.Traces
@@ -551,7 +562,12 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
-  public setPort(monitorDestinationPort: Port): MonitorStep {
+  /*
+   * `undefined` clears it, which an NTP step needs: its port is optional,
+   * and an emptied field must go back to the default (123) rather than keep
+   * the port typed before.
+   */
+  public setPort(monitorDestinationPort: Port | undefined): MonitorStep {
     this.data!.monitorDestinationPort = monitorDestinationPort;
     return this;
   }
@@ -603,6 +619,11 @@ export default class MonitorStep extends DatabaseProperty {
     securityEventsMonitor: MonitorStepSecurityEventsMonitor,
   ): MonitorStep {
     this.data!.securityEventsMonitor = securityEventsMonitor;
+    return this;
+  }
+
+  public setLlmMonitor(llmMonitor: MonitorStepLlmMonitor): MonitorStep {
+    this.data!.llmMonitor = llmMonitor;
     return this;
   }
 
@@ -780,6 +801,7 @@ export default class MonitorStep extends DatabaseProperty {
         retryCount: undefined,
         logMonitor: undefined,
         securityEventsMonitor: undefined,
+        llmMonitor: undefined,
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
@@ -880,6 +902,29 @@ export default class MonitorStep extends DatabaseProperty {
       !value.data.monitorDestinationPort
     ) {
       return "Port is required";
+    }
+
+    /*
+     * An NTP step needs only the server. Its port is optional - 123 when
+     * empty - but one that is set has to be a port a request can go to.
+     */
+    if (monitorType === MonitorType.NTP) {
+      if (!value.data.monitorDestination) {
+        return "NTP server is required";
+      }
+
+      if (value.data.monitorDestination instanceof URL) {
+        return "Enter the NTP server as a host name or IP address, without a scheme like udp://";
+      }
+
+      const port: Port | undefined = value.data.monitorDestinationPort;
+
+      if (
+        port &&
+        (port.toNumber() < 1 || port.toNumber() > 65535 || !port.toNumber())
+      ) {
+        return "NTP port must be a number from 1 to 65535";
+      }
     }
 
     /*
@@ -1146,6 +1191,9 @@ export default class MonitorStep extends DatabaseProperty {
                 this.data.securityEventsMonitor,
               )
             : undefined,
+          llmMonitor: this.data.llmMonitor
+            ? MonitorStepLlmMonitorUtil.toJSON(this.data.llmMonitor)
+            : undefined,
           metricMonitor: this.data.metricMonitor
             ? MonitorStepMetricMonitorUtil.toJSON(this.data.metricMonitor)
             : undefined,
@@ -1343,6 +1391,18 @@ export default class MonitorStep extends DatabaseProperty {
         ? (json["securityEventsMonitor"] as JSONObject)
         : undefined,
       /*
+       * Normalized on the way in, like domainMonitor below: a step written
+       * by the API, a template or by hand need not carry every field, and
+       * the check reads each one.
+       */
+      llmMonitor: json["llmMonitor"]
+        ? MonitorStepLlmMonitorUtil.toJSON(
+            MonitorStepLlmMonitorUtil.fromJSON(
+              json["llmMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
+      /*
        * Normalize rather than pass the raw JSON straight through. Steps saved
        * by older builds can carry a metricMonitor with no metricViewConfig,
        * and every consumer downstream assumes the type's contract holds.
@@ -1486,6 +1546,7 @@ export default class MonitorStep extends DatabaseProperty {
         retryCount: Zod.number().optional(),
         logMonitor: Zod.any().optional(),
         securityEventsMonitor: Zod.any().optional(),
+        llmMonitor: Zod.any().optional(),
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),
         profileMonitor: Zod.any().optional(),

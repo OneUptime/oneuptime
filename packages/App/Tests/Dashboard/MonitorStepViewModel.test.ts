@@ -17,6 +17,7 @@ import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
+import { LlmAnswerIssue } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { IoTResourceScope } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { KubernetesResourceScope } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
@@ -166,6 +167,12 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
         monitorDestination: new Hostname("db.example.com"),
         monitorDestinationPort: new Port(5432),
       });
+    case MonitorType.NTP:
+      return buildStep({
+        monitorDestination: new Hostname("time.example.com"),
+        requestTimeoutInMs: 2000,
+        retryCount: 1,
+      });
     case MonitorType.SSLCertificate:
       return buildStep({
         monitorDestination: URL.fromString("https://secure.example.com"),
@@ -297,6 +304,18 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           entityKeys: ["pod:checkout-1"],
           lastXSecondsOfSpans: 120,
           spanName: "POST /checkout",
+        },
+      });
+    case MonitorType.Llm:
+      return buildStep({
+        llmMonitor: {
+          telemetryServiceIds: [
+            new ObjectID("55555555-5555-4555-8555-555555555555"),
+          ],
+          issues: [LlmAnswerIssue.Refused, LlmAnswerIssue.Failed],
+          slowAnswerSeconds: 30,
+          model: "gpt-4o",
+          lastXSecondsOfCalls: 1800,
         },
       });
     case MonitorType.Exceptions:
@@ -578,6 +597,60 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
     expect(getRow(MonitorType.Port, "monitorDestinationPort")?.value).toBe(
       "5432",
     );
+  });
+
+  it("shows an NTP monitor's server, its port, timeout and retries", () => {
+    expect(
+      getRows(MonitorType.NTP).map((row: MonitorStepViewRow) => {
+        return [row.key, row.title, row.value];
+      }),
+    ).toEqual([
+      ["monitorDestination", "NTP Server", "time.example.com"],
+      ["monitorDestinationPort", "Port", "123"],
+      ["requestTimeoutInMs", "Request Timeout", "2000 ms"],
+      ["retryCount", "Retry Count", 1],
+    ]);
+  });
+
+  it("an NTP step left at its defaults shows the port and timeout the probe uses", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        monitorDestination: new IP("192.0.2.10"),
+      }),
+      monitorType: MonitorType.NTP,
+    });
+
+    const byKey: (key: string) => MonitorStepViewRow | undefined = (
+      key: string,
+    ): MonitorStepViewRow | undefined => {
+      return rows.find((row: MonitorStepViewRow) => {
+        return row.key === key;
+      });
+    };
+
+    expect(byKey("monitorDestination")?.value).toBe("192.0.2.10");
+    expect(byKey("monitorDestinationPort")?.value).toBe("123");
+    expect(byKey("requestTimeoutInMs")?.value).toBe("5000 ms");
+    expect(byKey("retryCount")).toMatchObject({
+      value: undefined,
+      placeholder: "Probe default (usually 3)",
+    });
+  });
+
+  it("an NTP step with its own port shows that port", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        monitorDestination: new Hostname("time.example.com"),
+        monitorDestinationPort: new Port(1123),
+      }),
+      monitorType: MonitorType.NTP,
+    });
+
+    expect(
+      rows.find((row: MonitorStepViewRow) => {
+        return row.key === "monitorDestinationPort";
+      })?.value,
+    ).toBe("1123");
   });
 
   it("shows the SSL certificate monitor's destination, which used to render nothing", () => {
@@ -1647,5 +1720,188 @@ describe("MonitorStepViewModel.getRows — a grouped Logs monitor", () => {
         ),
       ).toBeUndefined();
     }
+  });
+});
+
+describe("MonitorStepViewModel.getRows — an AI / LLM monitor", () => {
+  function llmRows(
+    llmMonitor: MonitorStepType["llmMonitor"] | undefined,
+  ): Array<MonitorStepViewRow> {
+    return MonitorStepViewModel.getRows({
+      monitorStep: buildStep({ llmMonitor: llmMonitor }),
+      monitorType: MonitorType.Llm,
+    });
+  }
+
+  function row(
+    rows: Array<MonitorStepViewRow>,
+    key: string,
+  ): MonitorStepViewRow | undefined {
+    return rows.find((candidate: MonitorStepViewRow) => {
+      return candidate.key === key;
+    });
+  }
+
+  it("says what counts as a bad answer, in display order, how slow, which model, how far back and which apps", () => {
+    const rows: Array<MonitorStepViewRow> = getRows(MonitorType.Llm);
+
+    expect(
+      rows.map((candidate: MonitorStepViewRow) => {
+        return candidate.key;
+      }),
+    ).toEqual([
+      "llmBadAnswerIssues",
+      "llmSlowAnswerSeconds",
+      "llmModel",
+      "lastXSecondsOfCalls",
+      "llmTelemetryServices",
+    ]);
+    expect(row(rows, "llmBadAnswerIssues")?.value).toEqual([
+      "Failed",
+      "Refused",
+    ]);
+    expect(row(rows, "llmBadAnswerIssues")?.valueType).toBe(
+      MonitorStepViewValueType.ArrayOfText,
+    );
+    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("30 seconds");
+    expect(row(rows, "llmModel")?.value).toBe("gpt-4o");
+    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("30 minutes");
+    expect(row(rows, "llmTelemetryServices")?.valueType).toBe(
+      MonitorStepViewValueType.TelemetryServices,
+    );
+    expect(row(rows, "llmTelemetryServices")?.value).toEqual([
+      "55555555-5555-4555-8555-555555555555",
+    ]);
+  });
+
+  it("a step saved without settings shows what the check really uses", () => {
+    const rows: Array<MonitorStepViewRow> = llmRows(undefined);
+
+    // Every problem counts, over the last 15 minutes, in every app.
+    expect(row(rows, "llmBadAnswerIssues")?.value).toEqual([
+      "Failed",
+      "Refused",
+      "Cut off",
+      "Empty",
+      "Flagged",
+    ]);
+    expect(row(rows, "lastXSecondsOfCalls")?.value).toBe("15 minutes");
+    expect(row(rows, "llmSlowAnswerSeconds")).toBeUndefined();
+    expect(row(rows, "llmModel")).toBeUndefined();
+    expect(row(rows, "llmTelemetryServices")).toBeUndefined();
+  });
+
+  it("with no problem picked and a slow limit, says only slow answers count", () => {
+    const rows: Array<MonitorStepViewRow> = llmRows({
+      telemetryServiceIds: [],
+      issues: [],
+      slowAnswerSeconds: 45,
+      model: "",
+      lastXSecondsOfCalls: 900,
+    });
+
+    expect(row(rows, "llmBadAnswerIssues")?.value).toEqual([]);
+    expect(row(rows, "llmBadAnswerIssues")?.placeholder).toBe(
+      "Only slow answers count",
+    );
+    expect(row(rows, "llmSlowAnswerSeconds")?.value).toBe("45 seconds");
+  });
+
+  it("with no problem picked and no slow limit, every problem counts", () => {
+    expect(
+      row(
+        llmRows({
+          telemetryServiceIds: [],
+          issues: [],
+          slowAnswerSeconds: 0,
+          model: "",
+          lastXSecondsOfCalls: 900,
+        }),
+        "llmBadAnswerIssues",
+      )?.value,
+    ).toHaveLength(5);
+  });
+
+  it("the problems are words of the interface, shown in the reader's language", () => {
+    const rows: Array<MonitorStepViewRow> = getRows(MonitorType.Llm);
+
+    expect(row(rows, "llmBadAnswerIssues")?.translateValue).toBe(true);
+
+    // Data the customer typed is not.
+    for (const key of [
+      "llmModel",
+      "llmSlowAnswerSeconds",
+      "lastXSecondsOfCalls",
+    ]) {
+      expect(row(rows, key)?.translateValue).toBeFalsy();
+    }
+  });
+});
+
+describe("MonitorStepViewModel.translateRowValue", () => {
+  const GERMAN: Record<string, string> = {
+    Failed: "Fehlgeschlagen",
+    Refused: "Verweigert",
+  };
+
+  function translate(text: string): string | undefined {
+    return GERMAN[text];
+  }
+
+  function rowOf(translateValue: boolean | undefined): MonitorStepViewRow {
+    return {
+      key: "k",
+      title: "t",
+      description: "d",
+      valueType: MonitorStepViewValueType.ArrayOfText,
+      value: [],
+      placeholder: "p",
+      translateValue: translateValue,
+    };
+  }
+
+  it("translates each word of a translateValue row", () => {
+    expect(
+      MonitorStepViewModel.translateRowValue(
+        rowOf(true),
+        ["Failed", "Refused"],
+        translate,
+      ),
+    ).toEqual(["Fehlgeschlagen", "Verweigert"]);
+    expect(
+      MonitorStepViewModel.translateRowValue(rowOf(true), "Failed", translate),
+    ).toBe("Fehlgeschlagen");
+  });
+
+  it("keeps the English for a word without a translation", () => {
+    expect(
+      MonitorStepViewModel.translateRowValue(
+        rowOf(true),
+        ["Failed", "Flagged"],
+        translate,
+      ),
+    ).toEqual(["Fehlgeschlagen", "Flagged"]);
+  });
+
+  it("leaves every other row as it is", () => {
+    expect(
+      MonitorStepViewModel.translateRowValue(
+        rowOf(undefined),
+        ["Failed"],
+        translate,
+      ),
+    ).toEqual(["Failed"]);
+    expect(
+      MonitorStepViewModel.translateRowValue(rowOf(false), "Failed", translate),
+    ).toBe("Failed");
+  });
+
+  it("a value that is not words is returned untouched", () => {
+    expect(
+      MonitorStepViewModel.translateRowValue(rowOf(true), 42, translate),
+    ).toBe(42);
+    expect(
+      MonitorStepViewModel.translateRowValue(rowOf(true), undefined, translate),
+    ).toBeUndefined();
   });
 });

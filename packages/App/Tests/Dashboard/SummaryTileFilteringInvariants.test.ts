@@ -293,7 +293,12 @@ describe("the Devices page wires its table to the facet bar", () => {
    */
   test("an empty filtered table explains itself", () => {
     expect(destructured).toContain("emptyState: facetEmptyState,");
-    expect(DEVICES_PAGE).toContain("emptyState={facetEmptyState}");
+    /*
+     * Merged into the page's own empty state (its "Discover Devices"
+     * action), the chips' state last so a filter that hides every row wins.
+     */
+    expect(DEVICES_PAGE).toContain("emptyState={devicesEmptyState}");
+    expect(DEVICES_PAGE).toContain(squash("...facetEmptyState, };"));
     expect(DEVICES_PAGE).not.toContain("No network device matches");
   });
 });

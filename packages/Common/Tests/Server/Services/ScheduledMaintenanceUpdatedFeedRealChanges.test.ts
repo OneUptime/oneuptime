@@ -10,6 +10,7 @@ import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/S
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import ScheduledMaintenanceFieldChange from "../../../Server/Utils/ScheduledMaintenance/ScheduledMaintenanceFieldChange";
 import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -36,6 +37,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubRowsCallerMayWrite,
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A SCHEDULED MAINTENANCE EVENT'S "UPDATED" FEED ITEM RECORDS WHAT AN EDIT
@@ -381,6 +387,19 @@ beforeEach(() => {
   jest
     .spyOn(ScheduledMaintenanceService, "findBy")
     .mockImplementation(reads as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(
+    ScheduledMaintenanceService,
+    (read: RowsCallerMayWriteRead) => {
+      return matching(storedEvents, read.query).map((record: StoredEvent) => {
+        return { _id: record.id };
+      });
+    },
+  );
 
   // The event as it reads after the write.
   jest
@@ -860,6 +879,44 @@ describe("each real change adds its own line, once", () => {
     expect(markdown).toContain(STARTS_AT_HEADING);
     expect(markdown).not.toContain(ENDS_AT_HEADING);
     expect(markdown).not.toContain(TITLE_HEADING);
+  });
+
+  test("moving the start asks the reminder schedule to follow it, once, saying where the start was", async () => {
+    await runUpdate(
+      detailsCardSave({ startsAt: new Date("2026-11-02T08:30:00.000Z") }),
+    );
+
+    expect(refreshReminders).toHaveBeenCalledTimes(1);
+    expect(refreshReminders.mock.calls[0]![0]).toEqual({
+      scheduledMaintenanceId: new ObjectID(EVENT_ID),
+      projectId: PROJECT_ID,
+      // Followed only where the first reminder is counted from the start.
+      startMovedFrom: { startsAtBefore: new Date(STORED_STARTS_AT) },
+    });
+  });
+
+  test("moving the start along with the labels refreshes once, in full: the labels match the rule again", async () => {
+    await runUpdate(
+      detailsCardSave({
+        startsAt: new Date("2026-11-02T08:30:00.000Z"),
+        labels: [{ _id: EU_WEST }],
+      }),
+    );
+
+    expect(refreshReminders).toHaveBeenCalledTimes(1);
+    expect(
+      (refreshReminders.mock.calls[0]![0] as Record<string, unknown>)[
+        "startMovedFrom"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("moving the end alone asks the reminder schedule nothing", async () => {
+    await runUpdate(
+      detailsCardSave({ endsAt: new Date("2026-11-02T12:30:00.000Z") }),
+    );
+
+    expect(onlyFeedItem()).toContain(ENDS_AT_HEADING);
     expect(refreshReminders).not.toHaveBeenCalled();
   });
 
@@ -1009,14 +1066,56 @@ describe("each real change adds its own line, once", () => {
     expect(markdown).not.toContain(MONITOR_STATUS_HEADING);
   });
 
-  test("the last resource taken off leaves no list to show, as before", async () => {
+  /*
+   * The last of what the event affects besides its monitors - here its one
+   * host - taken off leaves no list to show. It used to leave the feed
+   * silent about the edit; now one line says nothing else is affected.
+   */
+  test("the last resource taken off besides monitors says so, in one line", async () => {
     storedEvents = [storedEvent({ monitorIds: [] })];
 
     await runUpdate({ hosts: [] });
 
     // What the event now affects is read back - and is nothing.
     expect(resourceReads).toHaveBeenCalled();
-    expect(feed).not.toHaveBeenCalled();
+
+    const markdown: string = onlyFeedItem();
+
+    expect(markdown).toContain(RESOURCES_HEADING);
+    expect(
+      markdown.split(ScheduledMaintenanceFieldChange.noOtherResourcesLine),
+    ).toHaveLength(2);
+    expect(markdown).toContain("No other affected resources.");
+  });
+
+  test("a host taken off while monitors remain lists the monitors, with no 'nothing else' line", async () => {
+    storedEvents = [storedEvent({ monitorIds: [MONITOR_A] })];
+
+    resourceReads.mockImplementation(async (): Promise<Array<JSONObject>> => {
+      return [
+        {
+          _id: EVENT_ID,
+          projectId: PROJECT_ID as unknown as JSONObject,
+          monitors: [
+            {
+              _id: MONITOR_A,
+              name: "Checkout API",
+              projectId: PROJECT_ID as unknown as JSONObject,
+            },
+          ],
+        },
+      ];
+    });
+
+    await runUpdate({ hosts: [] });
+
+    const markdown: string = onlyFeedItem();
+
+    expect(markdown).toContain(RESOURCES_HEADING);
+    expect(markdown).toContain("Checkout API");
+    expect(markdown).not.toContain(
+      ScheduledMaintenanceFieldChange.noOtherResourcesLine,
+    );
   });
 
   test.each([
@@ -1182,9 +1281,14 @@ describe("the read before the write", () => {
       props: DatabaseCommonInteractionProps;
     } = storedReads()[0]!;
 
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(read.query["_id"]).toBe(EVENT_ID);
-    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    // Within the caller's project: the rows they may write are found there.
+    expect(
+      readsOfRowsCallerMayWrite(ScheduledMaintenanceService)[0]!.query[
+        "projectId"
+      ],
+    ).toBe(PROJECT_ID);
   });
 
   test("is not made for an update that writes none of those columns", async () => {

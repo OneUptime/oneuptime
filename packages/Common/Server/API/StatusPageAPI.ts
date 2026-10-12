@@ -135,6 +135,7 @@ import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import StatusPageSubscriberUnsubscribe, {
@@ -2464,12 +2465,14 @@ export default class StatusPageAPI extends BaseAPI<
       endsAt: true,
       startsAt: true,
       currentScheduledMaintenanceState: {
+        _id: true,
         name: true,
         color: true,
-        isScheduledState: true,
-        isResolvedState: true,
-        isOngoingState: true,
         order: true,
+        isScheduledState: true,
+        isOngoingState: true,
+        isEndedState: true,
+        isResolvedState: true,
       },
       monitors: {
         _id: true,
@@ -2501,35 +2504,111 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
 
-    let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
+    /*
+     * The project's states, in their order, with their built-in flags: what
+     * tells which events are in progress (Common/Utils/
+     * ScheduledMaintenanceStart), here and on the page that sorts them into
+     * ongoing, upcoming and completed.
+     */
+    const scheduledEventStates: Array<ScheduledMaintenanceState> =
+      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+        projectId: statusPage.projectId!,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // An event read by two of the reads below is listed once.
+    const addEvents: (events: Array<ScheduledMaintenance>) => void = (
+      events: Array<ScheduledMaintenance>,
+    ): void => {
+      for (const event of events) {
+        const eventId: string | undefined = event.id?.toString();
+
+        if (
+          eventId &&
+          scheduledMaintenanceEvents.some(
+            (listed: ScheduledMaintenance): boolean => {
+              return listed.id?.toString() === eventId;
+            },
+          )
+        ) {
+          continue;
+        }
+
+        scheduledMaintenanceEvents.push(event);
+      }
+    };
 
     // If there is no scheduledMaintenanceId, then fetch all future scheduled events.
     if (!scheduledMaintenanceId) {
-      futureScheduledMaintenanceEvents =
-        await ScheduledMaintenanceService.findBy({
-          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceState: {
-              isScheduledState: true,
-            } as any,
-            statusPages: [statusPageId] as any,
-            projectId: statusPage.projectId!,
-          }),
-          select: scheduledEventsSelect,
-          sort: {
-            createdAt: SortOrder.Ascending,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
+      /*
+       * Every event still to come: waiting for its start, in the scheduled
+       * state or a state of the project's own placed after Scheduled and
+       * before Ongoing, such as "Confirmed" (Common/Utils/
+       * ScheduledMaintenanceStart.isWaitingToStart). Asked for by the
+       * scheduled flag alone, an event moved on to "Confirmed" dropped off
+       * the page - and its RSS and Atom feeds - until it started.
+       */
+      const waitingStateIds: Array<ObjectID> =
+        ScheduledMaintenanceStartUtil.getWaitingToStartStateIds({
+          states: scheduledEventStates,
         });
 
-      futureScheduledMaintenanceEvents.forEach(
-        (event: ScheduledMaintenance) => {
-          scheduledMaintenanceEvents.push(event);
-        },
-      );
+      if (waitingStateIds.length > 0) {
+        addEvents(
+          await ScheduledMaintenanceService.findBy({
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(waitingStateIds),
+              statusPages: [statusPageId] as any,
+              projectId: statusPage.projectId!,
+            }),
+            select: scheduledEventsSelect,
+            sort: {
+              createdAt: SortOrder.Ascending,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
+      }
+
+      /*
+       * And every event in progress, however long ago it started: a long
+       * window - or one started early, by hand - is ongoing now, as the
+       * overview shows it, while the history window above would leave it
+       * out of this list and the RSS and Atom feeds built from it.
+       */
+      const inProgressStateIds: Array<ObjectID> =
+        ScheduledMaintenanceStartUtil.getInProgressStateIds({
+          states: scheduledEventStates,
+        });
+
+      if (inProgressStateIds.length > 0) {
+        addEvents(
+          await ScheduledMaintenanceService.findBy({
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(inProgressStateIds),
+              statusPages: [statusPageId] as any,
+              projectId: statusPage.projectId!,
+            }),
+            select: scheduledEventsSelect,
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
+      }
     }
 
     const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
@@ -2587,11 +2666,14 @@ export default class StatusPageAPI extends BaseAPI<
             startsAt: true,
             scheduledMaintenanceId: true,
             scheduledMaintenanceState: {
+              _id: true,
               name: true,
               color: true,
+              order: true,
               isScheduledState: true,
-              isResolvedState: true,
               isOngoingState: true,
+              isEndedState: true,
+              isResolvedState: true,
             },
           },
 
@@ -2648,26 +2730,6 @@ export default class StatusPageAPI extends BaseAPI<
 
       monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
     }
-
-    // get scheduled event states.
-    const scheduledEventStates: Array<ScheduledMaintenanceState> =
-      await ScheduledMaintenanceStateService.findBy({
-        query: {
-          projectId: statusPage.projectId!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-          isEndedState: true,
-          isOngoingState: true,
-          isScheduledState: true,
-        },
-      });
 
     const response: JSONObject = {
       scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
@@ -3789,27 +3851,53 @@ export default class StatusPageAPI extends BaseAPI<
         req.body.data["isUnsubscribed"],
       );
 
-      await StatusPageSubscriberService.updateOneById({
-        id: statusPageSubscriber.id!,
-        data: {
-          statusPageResources: statusPageSubscriber.statusPageResources!,
-          isSubscribedToAllResources:
-            statusPageSubscriber.isSubscribedToAllResources!,
-          statusPageEventTypes: statusPageSubscriber.statusPageEventTypes!,
-          isSubscribedToAllEventTypes:
-            statusPageSubscriber.isSubscribedToAllEventTypes!,
-          /*
-           * Cancelling goes through unsubscribe() below, like the unsubscribe
-           * link: it records when, once, and tells the team about a
-           * subscriber it added. Only turning the subscription back on is
-           * written here (which clears Unsubscribed At).
-           */
-          ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
-        } as any,
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * A visitor's change: the resources it adds are ones this page shows
+       * them, like a sign-up's (StatusPageSubscriberService holds every
+       * write of a subscription to its own page's resources). And it changes
+       * only the choices the page offers: on a page that does not let
+       * subscribers choose resources, or event types, those are left as
+       * they are, as a sign-up there may not make them. A list is written
+       * as the visitor sent it - an empty one clears what was picked - and
+       * left as it is when they sent none.
+       */
+      const sentResources: unknown = req.body.data["statusPageResources"];
+      const sentEventTypes: unknown = req.body.data["statusPageEventTypes"];
+
+      const change: Record<string, unknown> = {
+        ...(statusPage.allowSubscribersToChooseResources
+          ? {
+              ...(Array.isArray(sentResources)
+                ? { statusPageResources: sentResources }
+                : {}),
+              isSubscribedToAllResources:
+                statusPageSubscriber.isSubscribedToAllResources!,
+            }
+          : {}),
+        ...(statusPage.allowSubscribersToChooseEventTypes
+          ? {
+              ...(Array.isArray(sentEventTypes)
+                ? { statusPageEventTypes: sentEventTypes }
+                : {}),
+              isSubscribedToAllEventTypes:
+                statusPageSubscriber.isSubscribedToAllEventTypes!,
+            }
+          : {}),
+        /*
+         * Cancelling goes through unsubscribe() below, like the unsubscribe
+         * link: it records when, once, and tells the team about a
+         * subscriber it added. Only turning the subscription back on is
+         * written here (which clears Unsubscribed At).
+         */
+        ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
+      };
+
+      if (Object.keys(change).length > 0) {
+        await StatusPageSubscriberService.updateFromManageSubscriptionPage({
+          subscriberId: statusPageSubscriber.id!,
+          data: change as any,
+        });
+      }
 
       if (wantsToUnsubscribe) {
         await StatusPageSubscriberService.unsubscribe({
@@ -3822,7 +3910,10 @@ export default class StatusPageAPI extends BaseAPI<
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
         getLogAttributesFromRequest(req as any),
       );
-      // A sign-up, not a subscriber the team added (Is Added By Team stays off).
+      /*
+       * A sign-up, not a subscriber the team added (Is Added By Team stays
+       * off); the resources it names are ones this page shows a visitor.
+       */
       await StatusPageSubscriberService.createFromStatusPageSignUp(
         statusPageSubscriber,
       );
@@ -5798,11 +5889,14 @@ export default class StatusPageAPI extends BaseAPI<
       endsAt: true,
       startsAt: true,
       currentScheduledMaintenanceState: {
+        _id: true,
         name: true,
         color: true,
+        order: true,
         isScheduledState: true,
-        isResolvedState: true,
         isOngoingState: true,
+        isEndedState: true,
+        isResolvedState: true,
       },
       monitors: {
         _id: true,
@@ -5821,36 +5915,79 @@ export default class StatusPageAPI extends BaseAPI<
 
     let scheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
 
+    /*
+     * The project's states, in their order, with their built-in flags: what
+     * tells which events are in progress (Common/Utils/
+     * ScheduledMaintenanceStart). Shipped too, so the page marks a state
+     * change into one of them as the event's work going on.
+     */
+    let scheduledMaintenanceStates: Array<ScheduledMaintenanceState> = [];
+
     if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
-      scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-          currentScheduledMaintenanceState: {
-            isOngoingState: true,
-          } as any,
-          statusPages: statusPageId as any,
-          projectId: statusPage.projectId!,
-        }),
-        select: scheduledEventsSelect,
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
+      scheduledMaintenanceStates =
+        await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: statusPage.projectId!,
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+      /*
+       * Every event in progress: in the project's ongoing state, or in a
+       * state of the project's own placed between Ongoing and Ended, such as
+       * "Verifying". Asked for by the ongoing flag alone, an event moved on
+       * to such a state dropped off the overview mid-window.
+       */
+      const inProgressStateIds: Array<ObjectID> =
+        ScheduledMaintenanceStartUtil.getInProgressStateIds({
+          states: scheduledMaintenanceStates,
+        });
+
+      if (inProgressStateIds.length > 0) {
+        scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
+            currentScheduledMaintenanceStateId:
+              QueryHelper.any(inProgressStateIds),
+            statusPages: statusPageId as any,
+            projectId: statusPage.projectId!,
+          }),
+          select: scheduledEventsSelect,
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
 
     let futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> = [];
 
-    if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
+    /*
+     * Every event still to come: waiting for its start, in the scheduled
+     * state or a state of the project's own placed after Scheduled and
+     * before Ongoing, such as "Confirmed" (Common/Utils/
+     * ScheduledMaintenanceStart.isWaitingToStart).
+     */
+    const waitingStateIds: Array<ObjectID> =
+      ScheduledMaintenanceStartUtil.getWaitingToStartStateIds({
+        states: scheduledMaintenanceStates,
+      });
+
+    if (
+      statusPage.showScheduledMaintenanceEventsOnStatusPage &&
+      waitingStateIds.length > 0
+    ) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
           query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceState: {
-              isScheduledState: true,
-            } as any,
+            currentScheduledMaintenanceStateId:
+              QueryHelper.any(waitingStateIds),
             statusPages: statusPageId as any,
             projectId: statusPage.projectId!,
           }),
@@ -5928,9 +6065,11 @@ export default class StatusPageAPI extends BaseAPI<
               _id: true,
               color: true,
               name: true,
+              order: true,
               isScheduledState: true,
-              isResolvedState: true,
               isOngoingState: true,
+              isEndedState: true,
+              isResolvedState: true,
             },
           },
 
@@ -6110,6 +6249,10 @@ export default class StatusPageAPI extends BaseAPI<
       scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
         scheduledMaintenanceStateTimelines,
         ScheduledMaintenanceStateTimeline,
+      ),
+      scheduledMaintenanceStates: BaseModel.toJSONArray(
+        scheduledMaintenanceStates,
+        ScheduledMaintenanceState,
       ),
 
       monitorGroupCurrentStatuses: JSONFunctions.serialize(

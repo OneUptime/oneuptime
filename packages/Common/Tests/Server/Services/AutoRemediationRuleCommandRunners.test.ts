@@ -9,8 +9,13 @@ import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationR
 import Runner from "../../../Models/DatabaseModels/Runner";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Contract under test — an auto-remediation rule's Command Runners (the
@@ -142,13 +147,38 @@ async function update(data: {
     payload["commandRunners"] = data.commandRunners;
   }
 
+  const tenantId: ObjectID | undefined =
+    data.tenantId === undefined ? PROJECT_ID : data.tenantId || undefined;
+
   try {
     await hooks.onBeforeUpdate({
       query: data.query || { _id: RULE_ID.toString() },
       data: payload,
       props: {
-        tenantId:
-          data.tenantId === undefined ? PROJECT_ID : data.tenantId || undefined,
+        tenantId: tenantId,
+        /*
+         * A project admin, who may read runbook credentials: the rule's
+         * other check on these columns - who may let a rule run AI commands
+         * without asking (AutoRemediationRuleUnattendedCommands) - then
+         * asks nothing, so what this file pins is the Runner check alone.
+         */
+        ...(tenantId
+          ? {
+              userTenantAccessPermission: {
+                [tenantId.toString()]: {
+                  _type: "UserTenantAccessPermission",
+                  projectId: tenantId,
+                  permissions: [
+                    {
+                      _type: "UserPermission",
+                      permission: Permission.ProjectAdmin,
+                      labelIds: [],
+                    },
+                  ],
+                },
+              },
+            }
+          : {}),
       },
     } as unknown as UpdateBy<AutoRemediationRule>);
     return null;
@@ -190,6 +220,11 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
       .mockImplementation(async (): Promise<Array<AutoRemediationRule>> => {
         return storedRules as Array<AutoRemediationRule>;
       });
+
+    // The editor may write the rules stored.
+    stubRowsCallerMayWrite(AutoRemediationRuleService, () => {
+      return storedRules;
+    });
   });
 
   afterEach(() => {
@@ -326,9 +361,17 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
       ).toBeInstanceOf(BadDataException);
     });
 
-    it("reads the rules being written, scoped to the caller's project, with the Runners they hold", async () => {
+    it("reads the rules being written among those the caller may write in their project, with the Runners they hold", async () => {
       await update({ commandRunners: [AGENT_RUNNER_ID.toString()] });
 
+      // The rules the caller may write, found in their project.
+      expect(
+        readsOfRowsCallerMayWrite(AutoRemediationRuleService)[0]!.query[
+          "projectId"
+        ],
+      ).toBe(PROJECT_ID);
+
+      // Then those, by id.
       expect(ruleFind).toHaveBeenCalledTimes(1);
       const args: {
         query: Record<string, unknown>;
@@ -339,8 +382,7 @@ describe("AutoRemediationRule Command Runners never include a kubernetes-agent R
         select: Record<string, unknown>;
         props: { isRoot?: boolean };
       };
-      expect(args.query["_id"]).toBe(RULE_ID.toString());
-      expect(args.query["projectId"]).toBe(PROJECT_ID);
+      expect(args.query).toEqual({ _id: RULE_ID.toString() });
       expect(args.select["commandRunners"]).toEqual({ _id: true });
       expect(args.props.isRoot).toBe(true);
     });

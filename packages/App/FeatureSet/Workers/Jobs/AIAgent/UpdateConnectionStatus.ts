@@ -1,10 +1,10 @@
-import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import AIAgentService from "Common/Server/Services/AIAgentService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
+import ReceivingCoverage from "Common/Server/Utils/Telemetry/ReceivingCoverage";
 import AIAgent, {
   AIAgentConnectionStatus,
 } from "Common/Models/DatabaseModels/AIAgent";
@@ -31,9 +31,16 @@ RunCron(
       service: "workers",
     });
 
-    const staleCutoff: Date = OneUptimeDate.getSomeMinutesAgo(
-      STALE_CUTOFF_IN_MINUTES,
-    );
+    /*
+     * Three minutes of silence while OneUptime was receiving: an AI agent
+     * cannot check in while OneUptime itself is restarting, upgrading or
+     * catching up on its ingest queue, so that time does not make it
+     * Disconnected (issue #2825). With no such time it is exactly three
+     * minutes ago.
+     */
+    const staleCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: STALE_CUTOFF_IN_MINUTES,
+    });
 
     /*
      * Fetch ONLY the agents whose stored status disagrees with what their

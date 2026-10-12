@@ -49,6 +49,7 @@ import API from "Common/Utils/API";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactorBackupCodeService";
@@ -822,7 +823,7 @@ router.post(
 
         MailService.sendMail({
           toEmail: partialUser.email as Email,
-          subject: "Welcome to OneUptime. Please verify your email.",
+          subject: `Welcome to ${ProductBrandingText.getProductName()}. Please verify your email.`,
           isSubjectLiteral: true,
           templateType: EmailTemplateType.SignupWelcomeEmail,
           vars: {
@@ -1041,7 +1042,7 @@ router.post(
 
         MailService.sendMail({
           toEmail: user.email!,
-          subject: "Password Reset Request for OneUptime",
+          subject: `Password Reset Request for ${ProductBrandingText.getProductName()}`,
           isSubjectLiteral: true,
           templateType: EmailTemplateType.ForgotPassword,
           vars: {

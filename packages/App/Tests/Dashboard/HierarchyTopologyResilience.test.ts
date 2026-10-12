@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   DeviceHealthCounts,
   emptyDeviceHealthCounts,
@@ -91,21 +92,13 @@ const makeSite: MakeSiteFunction = (
   };
 };
 
-/*
- * A seeded generator, so a failure is reproducible. Math.random would make
- * this suite report a different level on every run, which turns a real
- * regression into "it failed once on CI".
- */
-function makeRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-}
-
 function randomLevel(seed: number, size: number): Array<SiteChildView> {
-  const random: () => number = makeRandom(seed);
+  /*
+   * Seeded, so a failure is reproducible. Math.random would make this suite
+   * report a different level on every run, which turns a real regression
+   * into "it failed once on CI".
+   */
+  const random: () => number = seededRandom(seed);
   const sites: Array<SiteChildView> = [];
   for (let index: number = 0; index < size; index++) {
     const down: number = random() < 0.15 ? Math.floor(random() * 4) : 0;

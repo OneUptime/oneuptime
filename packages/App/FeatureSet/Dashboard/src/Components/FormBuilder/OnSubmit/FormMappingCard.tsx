@@ -41,6 +41,7 @@ import PermissionGate, {
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * "How a Submission Becomes an Incident" (or a maintenance event): every
@@ -65,6 +66,7 @@ export interface ComponentProps {
 const FormMappingCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const { translateString } = useTranslateValue();
 
   const tx: (text: string) => string = (text: string): string => {
@@ -282,7 +284,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
     });
 
     return (
-      <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
+      <div className={ruledBodyClassName}>
         <dl
           className="divide-y divide-gray-100"
           data-testid="form-mapping-rows"

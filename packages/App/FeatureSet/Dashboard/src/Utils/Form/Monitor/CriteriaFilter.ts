@@ -16,10 +16,30 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
+import {
+  TRANSCEIVER_READING_TITLES,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { translatePlural } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatePlural,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The labels of the numbers an AI / LLM monitor's criteria compare: the
+ * CheckOn values getCheckOnOptionsByMonitorType offers for MonitorType.Llm,
+ * in that order. The dropdown draws each option's label in the reader's
+ * language; spelling them out here is what puts them in the locale files.
+ */
+export const LLM_CHECK_ON_LABELS: ReadonlyArray<string> = [
+  translationKey("Bad AI Answers (in %)"),
+  translationKey("Bad AI Answers"),
+  translationKey("AI Answers"),
+];
 
 export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeMinutesOptions(): Array<DropdownOption> {
@@ -55,13 +75,17 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
-      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent;
+      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
       criteriaFilter?.checkOn === CheckOn.Jitter ||
       criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
-      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime;
+      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime ||
+      criteriaFilter?.checkOn === CheckOn.NtpClockOffset ||
+      criteriaFilter?.checkOn === CheckOn.NtpResponseTime ||
+      criteriaFilter?.checkOn === CheckOn.NtpRootDispersion;
 
     /*
      * A Database Health filter names its series in databaseMonitorOptions,
@@ -153,6 +177,29 @@ export default class CriteriaFilterUtil {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
       }
 
+      const resultValuePath: string | undefined =
+        criteriaFilter?.customCodeMonitorOptions?.resultValuePath?.trim();
+
+      if (resultValuePath && criteriaFilter?.checkOn === CheckOn.ResultValue) {
+        text += "at " + resultValuePath + " ";
+      }
+
+      const transceiverReading: string | undefined =
+        criteriaFilter?.snmpMonitorOptions?.transceiverReading;
+
+      if (
+        criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+        transceiverReading &&
+        TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
+      ) {
+        text +=
+          "(" +
+          TRANSCEIVER_READING_TITLES[
+            transceiverReading as TransceiverReadingKind
+          ] +
+          ") ";
+      }
+
       if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
         text +=
           "on interface " +
@@ -207,9 +254,22 @@ export default class CriteriaFilterUtil {
           ? ` ${databaseMetric.unit}`
           : "";
 
+        // A transceiver reading is in its own unit: dBm, °C, V or mA.
+        const transceiverUnit: string | undefined =
+          criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+          criteriaFilter?.snmpMonitorOptions?.transceiverReading
+            ? TRANSCEIVER_READING_UNITS[
+                criteriaFilter.snmpMonitorOptions
+                  .transceiverReading as TransceiverReadingKind
+              ]
+            : undefined;
+        const transceiverUnitSuffix: string = transceiverUnit
+          ? ` ${transceiverUnit}`
+          : "";
+
         text += `${criteriaFilter?.value.toString()}${
           isPercentage ? "%" : ""
-        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix} `;
+        }${isMilliseconds ? "ms" : ""}${thresholdUnitSuffix}${databaseUnitSuffix}${transceiverUnitSuffix} `;
       }
     }
 
@@ -394,19 +454,28 @@ export default class CriteriaFilterUtil {
     }
 
     /*
-     * Every monitor type whose criteria the server hands to
-     * MetricMonitorCriteria: the metric-only types this form already pins
-     * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
-     * types Docker / Host / Podman / Docker Swarm / Proxmox / VMware /
-     * Ceph / Storage Array), plus
-     * IoT Device, which MonitorCriteriaEvaluator routes down the same path
-     * but which is not metric-only here, so it still draws the full
-     * criteria UI. All of them alert on one thing - an ingested metric.
+     * AI / LLM monitors compare their answers: the share that was bad
+     * first, since that is what most alerts on an AI want, then the count
+     * of bad answers and the count of answers ("the AI stopped answering").
      */
-    if (
-      CriteriaFilterUtil.isMetricOnlyMonitorType(monitorType) ||
-      monitorType === MonitorType.IoTDevice
-    ) {
+    if (monitorType === MonitorType.Llm) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.LlmBadAnswerPercent ||
+          i.value === CheckOn.LlmBadAnswerCount ||
+          i.value === CheckOn.LlmAnswerCount
+        );
+      });
+    }
+
+    /*
+     * Every monitor type whose criteria the server hands to
+     * MetricMonitorCriteria (MonitorTypeHelper's one list): the metric-only
+     * types this form already pins to CheckOn.MetricValue, plus IoT Device,
+     * which is not metric-only here, so it still draws the full criteria UI.
+     * All of them alert on one thing - an ingested metric.
+     */
+    if (MonitorTypeHelper.isMetricBackedMonitor(monitorType)) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.MetricValue;
       });
@@ -444,6 +513,12 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpInterfaceIsDown ||
           i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
           i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
+          // Optics (SFP, SFP+, QSFP), port by port.
+          i.value === CheckOn.SnmpTransceiverNotDetected ||
+          i.value === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+          i.value === CheckOn.SnmpTransceiverPastWarningThreshold ||
+          i.value === CheckOn.SnmpTransceiverRxPowerDrop ||
+          i.value === CheckOn.SnmpTransceiverReading ||
           i.value === CheckOn.SnmpTableValue ||
           i.value === CheckOn.SnmpTableRowIsUnhealthy ||
           i.value === CheckOn.SnmpTableRowCount ||
@@ -461,6 +536,25 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.DnsRecordValue ||
           i.value === CheckOn.DnssecIsValid ||
           i.value === CheckOn.DnsRecordExists
+        );
+      });
+    }
+
+    /*
+     * In CheckOn order, which puts online and synchronized - the two an NTP
+     * monitor starts with - first, and a new filter on "NTP Is Online". The
+     * stratum, offset and root dispersion are there for the thresholds
+     * people add: "stratum at most 2", "offset over 100 ms".
+     */
+    if (monitorType === MonitorType.NTP) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.NtpIsOnline ||
+          i.value === CheckOn.NtpIsSynchronized ||
+          i.value === CheckOn.NtpClockOffset ||
+          i.value === CheckOn.NtpStratum ||
+          i.value === CheckOn.NtpRootDispersion ||
+          i.value === CheckOn.NtpResponseTime
         );
       });
     }
@@ -599,6 +693,40 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    /*
+     * The AI / LLM numbers are compared by LlmMonitorCriteria with
+     * CompareCriteria.compareCriteriaNumbers: these six conditions, and no
+     * anomaly baseline behind any of them. Greater Than leads, so a new
+     * filter reads "more than 5% of answers were bad" rather than "exactly
+     * 5%".
+     */
+    if (
+      checkOn === CheckOn.LlmBadAnswerPercent ||
+      checkOn === CheckOn.LlmBadAnswerCount ||
+      checkOn === CheckOn.LlmAnswerCount
+    ) {
+      const llmComparisons: Array<FilterType> = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ];
+
+      options = llmComparisons
+        .map((filterType: FilterType): DropdownOption | undefined => {
+          return options.find((i: DropdownOption) => {
+            return i.value === filterType;
+          });
+        })
+        .filter(
+          (option: DropdownOption | undefined): option is DropdownOption => {
+            return Boolean(option);
+          },
+        );
+    }
+
     if (
       checkOn === CheckOn.ExceptionCount ||
       checkOn === CheckOn.ProfileCount
@@ -732,7 +860,9 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.True ||
+          i.value === FilterType.False
         );
       });
     }
@@ -814,10 +944,31 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpOidExists ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
-      checkOn === CheckOn.SnmpTableRowIsUnhealthy
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold
     ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * A transceiver reading or the drop in received power is a number: dBm,
+     * degrees C, volts, milliamps or dB.
+     */
+    if (
+      checkOn === CheckOn.SnmpTransceiverReading ||
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo
+        );
       });
     }
 
@@ -1126,6 +1277,55 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * Measurements in milliseconds, so the four comparisons; Greater Than
+     * leads because "offset over 100 ms" is the rule people mean.
+     */
+    if (
+      checkOn === CheckOn.NtpClockOffset ||
+      checkOn === CheckOn.NtpResponseTime ||
+      checkOn === CheckOn.NtpRootDispersion
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    /*
+     * A whole number from 1 to 16, so equality is a real rule too
+     * ("stratum equal to 1" for a GPS server). Greater Than leads: "stratum
+     * greater than 2" is the alert most people write.
+     */
+    if (checkOn === CheckOn.NtpStratum) {
+      options = [
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+      ].map((filterType: FilterType): DropdownOption => {
+        return {
+          label: filterType.toString(),
+          value: filterType,
+        };
+      });
+    }
+
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -1271,19 +1471,15 @@ export default class CriteriaFilterUtil {
    * Monitor types whose criteria are expressed purely as metric
    * thresholds. Their criteria form hides the "Filter Type" dropdown
    * entirely and pins every filter to CheckOn.MetricValue.
+   *
+   * Every metric-backed type (MonitorTypeHelper's one list) but IoT Device,
+   * which is left out on purpose: its criteria form keeps the full filter
+   * UI, so its criteria stay filters, not alert rules.
    */
   public static isMetricOnlyMonitorType(monitorType: MonitorType): boolean {
     return (
-      monitorType === MonitorType.Kubernetes ||
-      monitorType === MonitorType.Docker ||
-      monitorType === MonitorType.Host ||
-      monitorType === MonitorType.Podman ||
-      monitorType === MonitorType.DockerSwarm ||
-      monitorType === MonitorType.Proxmox ||
-      monitorType === MonitorType.VMware ||
-      monitorType === MonitorType.Ceph ||
-      monitorType === MonitorType.StorageArray ||
-      monitorType === MonitorType.Metrics
+      MonitorTypeHelper.isMetricBackedMonitor(monitorType) &&
+      monitorType !== MonitorType.IoTDevice
     );
   }
 
@@ -1475,6 +1671,18 @@ export default class CriteriaFilterUtil {
       return "1";
     }
 
+    if (checkOn === CheckOn.LlmBadAnswerPercent) {
+      return "5";
+    }
+
+    if (checkOn === CheckOn.LlmBadAnswerCount) {
+      return "3";
+    }
+
+    if (checkOn === CheckOn.LlmAnswerCount) {
+      return "0";
+    }
+
     if (checkOn === CheckOn.ServerProcessCommand) {
       return "node index.js";
     }
@@ -1625,6 +1833,15 @@ export default class CriteriaFilterUtil {
       return "tunnel is down";
     }
 
+    // RX power in dBm - the reading most criteria are written on.
+    if (checkOn === CheckOn.SnmpTransceiverReading) {
+      return "-14";
+    }
+
+    if (checkOn === CheckOn.SnmpTransceiverRxPowerDrop) {
+      return "2";
+    }
+
     if (checkOn === CheckOn.DnsResponseTime) {
       return "5000";
     }
@@ -1655,6 +1872,22 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ExternalStatusPageResponseTime) {
       return "5000";
+    }
+
+    if (checkOn === CheckOn.NtpClockOffset) {
+      return "100";
+    }
+
+    if (checkOn === CheckOn.NtpStratum) {
+      return "2";
+    }
+
+    if (checkOn === CheckOn.NtpRootDispersion) {
+      return "500";
+    }
+
+    if (checkOn === CheckOn.NtpResponseTime) {
+      return "1000";
     }
 
     if (checkOn === CheckOn.ExternalStatusPageOverallStatus) {

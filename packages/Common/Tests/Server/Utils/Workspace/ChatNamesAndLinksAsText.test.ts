@@ -9,6 +9,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import API from "../../../../Utils/API";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
+import { htmlAsText } from "../../../Helpers/HtmlText";
 import {
   afterEach,
   beforeEach,
@@ -56,15 +57,7 @@ function linksIn(markdown: string): Array<{ href: string; text: string }> {
     (match: RegExpMatchArray): { href: string; text: string } => {
       return {
         href: match[1]!,
-        text: match[2]!
-          .replace(/<[^>]+>/g, "")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&amp;/g, "&")
-          .split(WORD_JOINER)
-          .join(""),
+        text: htmlAsText(match[2]!).split(WORD_JOINER).join(""),
       };
     },
   );

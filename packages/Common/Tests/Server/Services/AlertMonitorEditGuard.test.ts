@@ -10,6 +10,10 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A manual alert's monitor can be set, changed or cleared after the alert is
@@ -145,6 +149,14 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Array<Alert>> => {
       return stored;
     }) as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(AlertService, () => {
+    return stored;
+  });
 
   validateReferences = jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
@@ -491,17 +503,25 @@ describe("AlertService.onBeforeUpdate: what the guard reads", () => {
       props: DatabaseCommonInteractionProps;
     };
 
-    expect(read.query["_id"]).toBe(ALERT_ID);
-    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    // The alerts the member may write: found in their project, by the update's query.
+    const mayWrite: JSONObject = readsOfRowsCallerMayWrite(AlertService)[0]!
+      .query as JSONObject;
+
+    expect(mayWrite["projectId"]).toBe(PROJECT_ID);
     // The self-privacy clause the hook added for a non-admin member.
-    expect(read.query["isPrivate"]).toBeDefined();
+    expect(mayWrite["isPrivate"]).toBeDefined();
+
+    // The guard reads those alerts, by id, with the privacy filter kept.
+    expect(read.query["_id"]).toBe(ALERT_ID);
+    expect(read.query["isPrivate"]).toEqual(mayWrite["isPrivate"]);
+    expect(Object.keys(read.query).sort()).toEqual(["_id", "isPrivate"]);
     expect(read.select).toEqual({
       _id: true,
       isCreatedAutomatically: true,
       monitorId: true,
     });
     // Root, so a role that can edit but not read these columns is not refused.
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
     // The update's own query is left for the permission layer to scope.
     expect(query["projectId"]).toBeUndefined();
   });

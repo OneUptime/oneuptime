@@ -1,6 +1,7 @@
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import { toStoredBoolean } from "Common/Types/Database/BooleanColumnValue";
 import { isOAuth2WorkflowVariable } from "Common/Types/Workflow/WorkflowVariableOAuth";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 
 /**
  * Redaction of workflow-variable secrets out of anything that gets persisted
@@ -98,7 +99,7 @@ export const redactSecretsFromString: RedactSecretsFromStringFunction = (
   }
 
   const escapedSecrets: Array<string> = secrets.map((secret: string) => {
-    return secret.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return escapeRegExp(secret);
   });
 
   /*

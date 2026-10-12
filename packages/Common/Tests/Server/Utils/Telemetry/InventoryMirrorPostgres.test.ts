@@ -16,9 +16,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import { DataSource } from "typeorm";
 
 /*
- * The inventory mirror's reconcile EXECUTED on Postgres (issue #4107).
+ * The inventory mirror's reconcile EXECUTED on Postgres (issues #4107,
+ * #4569).
  *
- * Two things only a real database shows:
+ * Three things only a real database shows:
  *
  *   1. A mirrored network device's Attributes card now carries its serial,
  *      MAC, make, model and firmware. The unit suites prove `describe`
@@ -33,14 +34,21 @@ import { DataSource } from "typeorm";
  *      doing it all along; the richer network-device bag would have joined
  *      it. The unit suite simulates jsonb's ordering; this uses jsonb.
  *
+ *   3. Its asset details reach across tables (issue #4569): the site it is
+ *      assigned to, the role an operator gave it, and the project's own
+ *      names for the roles the classifier finds - joined and looked up by
+ *      the real queries, against the real NetworkSite and NetworkDeviceRole
+ *      tables.
+ *
  * Opt in with RUN_POSTGRES_INVENTORY_MIRROR_TESTS=true against a Postgres
  * migrated to the current head — the Postgres Schema Drift workflow's
- * database right after its drift check. The NetworkDevice, CloudResource
- * and InventoryItem STRUCTURES are cloned into a unique schema (search_path
- * holds only that schema) that is dropped afterwards. Credentials from
- * DATABASE_USERNAME / DATABASE_PASSWORD, database from
- * INVENTORY_MIRROR_TEST_DATABASE_NAME or DATABASE_NAME, endpoint from
- * INVENTORY_MIRROR_TEST_DATABASE_HOST / _PORT (default localhost:5400).
+ * database right after its drift check. The NetworkDevice, NetworkSite,
+ * NetworkDeviceRole, CloudResource and InventoryItem STRUCTURES are cloned
+ * into a unique schema (search_path holds only that schema) that is dropped
+ * afterwards. Credentials from DATABASE_USERNAME / DATABASE_PASSWORD,
+ * database from INVENTORY_MIRROR_TEST_DATABASE_NAME or DATABASE_NAME,
+ * endpoint from INVENTORY_MIRROR_TEST_DATABASE_HOST / _PORT (default
+ * localhost:5400).
  */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_INVENTORY_MIRROR_TESTS"] === "true"
@@ -49,6 +57,8 @@ const describePostgres: typeof describe =
 
 const TABLES: Array<string> = [
   "NetworkDevice",
+  "NetworkSite",
+  "NetworkDeviceRole",
   "CloudResource",
   "InventoryItem",
 ];
@@ -215,14 +225,19 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
     expect(await mirroredBag()).toEqual({
       "net.device.hostname": "10.20.0.1",
       "net.device.dns_name": "core-sw-01.corp.example.com",
+      // No sysName yet: its DNS name names it - never the IP address.
+      "host.name": "core-sw-01.corp.example.com",
+      "host.ip": "10.20.0.1",
       "host.mac": "00-1B-54-C2-7A-01",
       "device.manufacturer": "Cisco",
       "device.model.name": "WS-C3850-48P",
       "host.serial_number": "FOC1840X0AB",
       "device.firmware.version": "16.12.4",
+      "os.name": "Cisco IOS",
       "os.version": "16.12.04",
       "os.description":
         "Cisco IOS Software, Catalyst L3 Switch Software, Version 16.12.4",
+      "device.type": "Switch",
     });
   });
 
@@ -235,6 +250,7 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
     await syncNetwork();
 
     const device: NetworkDevice = new NetworkDevice();
+    device.name = "core-sw-01";
     device.hostname = "10.20.0.1";
     device.dnsName = "core-sw-01.corp.example.com";
     device.macAddress = "00:1b:54:c2:7a:01";
@@ -327,7 +343,7 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
     expect((await syncNetwork()).updated).toBe(1);
     const bag: JSONObject = await mirroredBag();
     expect(Object.keys(bag)).not.toContain("host.mac");
-    expect(Object.keys(bag)).toHaveLength(8);
+    expect(Object.keys(bag)).toHaveLength(12);
   });
 
   test("a device that was mirrored before its first walk fills in", async () => {
@@ -339,7 +355,12 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
       [DEVICE_ID.toString(), PROJECT_ID.toString()],
     );
     await syncNetwork();
-    expect(await mirroredBag()).toEqual({ "net.device.hostname": "10.20.0.1" });
+    expect(await mirroredBag()).toEqual({
+      "net.device.hostname": "10.20.0.1",
+      "host.ip": "10.20.0.1",
+      // The naming convention ("-sw-") is all there is to type it by yet.
+      "device.type": "Switch",
+    });
 
     await setDeviceColumn("vendor", "Cisco");
     await setDeviceColumn("serialNumber", "FOC1840X0AB");
@@ -347,9 +368,122 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
     expect((await syncNetwork()).updated).toBe(1);
     expect(await mirroredBag()).toEqual({
       "net.device.hostname": "10.20.0.1",
+      "host.ip": "10.20.0.1",
       "device.manufacturer": "Cisco",
       "host.serial_number": "FOC1840X0AB",
+      "device.type": "Switch",
     });
+  });
+
+  // --- issue #4569: the asset details that live in other tables ---
+
+  async function insertSite(name: string): Promise<ObjectID> {
+    const siteId: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."NetworkSite" ("_id", "projectId", "name", "version")
+       VALUES ($1, $2, $3, 1)`,
+      [siteId.toString(), PROJECT_ID.toString(), name],
+    );
+    return siteId;
+  }
+
+  async function insertRole(
+    key: string,
+    name: string,
+    projectId: ObjectID = PROJECT_ID,
+  ): Promise<ObjectID> {
+    const roleId: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."NetworkDeviceRole" ("_id", "projectId", "key", "name", "version")
+       VALUES ($1, $2, $3, $4, 1)`,
+      [roleId.toString(), projectId.toString(), key, name],
+    );
+    return roleId;
+  }
+
+  async function insertMerakiMx(): Promise<void> {
+    await database.query(
+      `INSERT INTO "${schema}"."NetworkDevice"
+         ("_id", "projectId", "name", "slug", "hostname", "sysName",
+          "sysDescr", "sysObjectId", "vendor", "isArchived", "version")
+       VALUES ($1, $2, 'UN0362WANRTR01', 'un0362wanrtr01', '10.241.124.1',
+               'UN0362WANRTR01', 'Meraki MX85', '1.3.6.1.4.1.29671.2.110',
+               'Cisco Meraki', false, 1)`,
+      [DEVICE_ID.toString(), PROJECT_ID.toString()],
+    );
+  }
+
+  test("the issue's Meraki MX is mirrored with its name, address, maker, model and type", async () => {
+    await insertMerakiMx();
+    await syncNetwork();
+
+    expect(await mirroredBag()).toEqual({
+      "net.device.hostname": "10.241.124.1",
+      "host.name": "UN0362WANRTR01",
+      "host.ip": "10.241.124.1",
+      "device.manufacturer": "Cisco Meraki",
+      "device.model.name": "MX85",
+      "os.description": "Meraki MX85",
+      "device.type": "Firewall",
+    });
+  });
+
+  test("the site the device is assigned to is joined in", async () => {
+    await insertMerakiMx();
+    const siteId: ObjectID = await insertSite("Store 0362");
+    await setDeviceColumn("siteId", siteId.toString());
+    await setDeviceColumn("sysLocation", "Back office");
+
+    await syncNetwork();
+
+    const bag: JSONObject = await mirroredBag();
+    expect(bag["oneuptime.site.name"]).toBe("Store 0362");
+    expect(bag["device.location"]).toBe("Back office");
+  });
+
+  test("the role an operator assigned names the device type", async () => {
+    await insertMerakiMx();
+    const roleId: ObjectID = await insertRole("router", "WAN Router");
+    await setDeviceColumn("networkDeviceRoleId", roleId.toString());
+
+    await syncNetwork();
+
+    expect((await mirroredBag())["device.type"]).toBe("WAN Router");
+  });
+
+  test("the project's name for the classified role names the device type", async () => {
+    await insertMerakiMx();
+    await insertRole("firewall", "Security Appliance");
+    // Another project's name for the same key never reaches this device.
+    await insertRole("firewall", "Their Firewall", ObjectID.generate());
+
+    await syncNetwork();
+
+    expect((await mirroredBag())["device.type"]).toBe("Security Appliance");
+  });
+
+  test("a renamed site reaches the item on the next pass, and a steady one writes nothing", async () => {
+    await insertMerakiMx();
+    const siteId: ObjectID = await insertSite("Store 0362");
+    await setDeviceColumn("siteId", siteId.toString());
+    await syncNetwork();
+
+    expect(await syncNetwork()).toEqual({
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      archived: 0,
+    });
+
+    await database.query(
+      `UPDATE "${schema}"."NetworkSite" SET "name" = 'Store 0362 (Riverside)' WHERE "_id" = $1`,
+      [siteId.toString()],
+    );
+
+    expect((await syncNetwork()).updated).toBe(1);
+    expect((await mirroredBag())["oneuptime.site.name"]).toBe(
+      "Store 0362 (Riverside)",
+    );
   });
 
   test("the mirrored row is still read back through the service", async () => {

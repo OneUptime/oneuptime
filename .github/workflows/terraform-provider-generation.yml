@@ -54,7 +54,20 @@ jobs:
         with:
           working-directory: Scripts/TerraformProvider
 
+      # Type-checks the generator - Core/, Tests/, GenerateProvider.ts - and
+      # all it imports: ../OpenAPI/GenerateSpec.ts and, through the Common/*
+      # alias, Common's sources, with Common's own compiler options (its
+      # tsconfig.json extends packages/Common's). Nothing else checks that
+      # whole program: ts-jest checks the files a test loads, and generation
+      # below compiles only what it runs, under the root's tsconfig. It needs
+      # the three installs above: Common's for Common's imports, Scripts' for
+      # GenerateSpec's @readme/openapi-parser, the generator's for TypeScript.
+      - name: Type-check the generator
+        run: cd Scripts/TerraformProvider && npm run compile
+
+      # Runs even when the type check failed, so one run reports both.
       - name: Run generator unit tests
+        if: ${{ !cancelled() }}
         run: cd Scripts/TerraformProvider && npm test
 
       - name: Generate Terraform provider

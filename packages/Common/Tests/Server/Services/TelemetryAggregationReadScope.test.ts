@@ -577,6 +577,8 @@ describe("the aggregation services read the service filter in one place", () => 
     "MetricAggregationService.ts",
     "ProfileAggregationService.ts",
     "TelemetryAttributeService.ts",
+    // The Traffic pages' reads, scoped on networkDeviceId.
+    "NetworkTrafficAggregationService.ts",
   ];
 
   test.each(SERVICE_FILES)("%s", (file: string) => {

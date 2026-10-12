@@ -16,7 +16,6 @@ import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
@@ -113,16 +112,11 @@ export class Service extends ProjectReferencesService<Model> {
         .toString()
         .toLowerCase();
 
-      const existingUsers: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const existingUsers: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           email: true,
-        },
-        props: updateBy.props,
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+        });
 
       for (const user of existingUsers) {
         if (!user.id) {
@@ -130,8 +124,7 @@ export class Service extends ProjectReferencesService<Model> {
         }
 
         /*
-         * A row whose `email` did not come back is treated as changed -- that
-         * only happens when the caller could not read the column, and on a
+         * A row with no `email` stored is treated as changed: on a
          * credential the safe assumption is the one that expires the token.
          */
         const currentEmail: string | undefined = user.email

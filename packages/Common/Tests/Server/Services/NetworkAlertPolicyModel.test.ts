@@ -44,6 +44,22 @@ import Permission, {
   PermissionProps,
 } from "../../../Types/Permission";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkAlertPolicyService,
+    jest.spyOn(NetworkAlertPolicyService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -1327,7 +1343,7 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
     expect(policiesSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { _id: POLICY_ID.toString() },
-        props: { isRoot: true },
+        props: { isRoot: true, ignoreHooks: true },
       }),
     );
     // One distinct project among the matched rows: one template lookup.
@@ -1457,13 +1473,13 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
   });
 
   /*
-   * onBeforeUpdate runs before DatabaseService permission-checks the query,
-   * so the matched-row read — root, because it must see projectId — is
-   * re-scoped to the caller's tenant first. A guessed id from another
-   * project matches nothing here rather than becoming an oracle through the
-   * checks that follow.
+   * The matched rows are the ones the caller may write - found in the
+   * caller's project - read again by id, as root because the checks need
+   * projectId (DatabaseService.findRowsAndHoldUpdateToThem). A guessed id
+   * from another project matches nothing here rather than becoming an
+   * oracle through the checks that follow.
    */
-  test("scopes the matched-row read to the caller's tenant", async () => {
+  test("reads the matched rows among those the caller may write, in the caller's project", async () => {
     mockTemplateOwnedBy(PROJECT_ID);
 
     const spies: { policies: jest.SpyInstance; rules: jest.SpyInstance } =
@@ -1471,10 +1487,13 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
 
     await runOnBeforeUpdate(makeUpdateBy({ monitorTemplateId: TEMPLATE_ID }));
 
+    expect(
+      readsOfRowsCallerMayWrite(NetworkAlertPolicyService)[0]!.query,
+    ).toEqual({ _id: POLICY_ID.toString(), projectId: PROJECT_ID });
     expect(spies.policies).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { _id: POLICY_ID.toString(), projectId: PROJECT_ID },
-        props: { isRoot: true },
+        query: { _id: POLICY_ID.toString() },
+        props: { isRoot: true, ignoreHooks: true },
       }),
     );
   });

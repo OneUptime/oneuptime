@@ -6,6 +6,8 @@ enum ComponentID {
   MicrosoftTeamsSendMessageToChannel = "microsoft-teams-send-message-to-channel",
   DiscordSendMessageToChannel = "discord-send-message-to-channel",
   TelegramSendMessageToChat = "telegram-send-message-to-chat",
+  IRCSendMessageToChannel = "irc-send-message-to-channel",
+  MattermostSendMessageToChannel = "mattermost-send-message-to-channel",
   SMSEagleSendSms = "smseagle-send-sms",
   SMSEagleMakeCall = "smseagle-make-call",
   Schedule = "schedule",

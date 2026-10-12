@@ -87,6 +87,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "5e000000-0000-4000-8000-000000000001",
@@ -444,37 +445,49 @@ interface StubbedDatabase {
 
 let database: StubbedDatabase;
 
+/*
+ * The providers, as the hook reads them (findRowsAndHoldUpdateToThem): its
+ * read of the rows an update writes - by id, or by the update's query - and,
+ * for a teammate whose update reached the hook without the update path, the
+ * read of the rows they may write first, answered the same way
+ * (stubRowsCallerMayWriteLikeFindBy) without counting as a read here.
+ */
 function stubProviderReads(
   service: unknown,
   modelType: { new (): BaseModel },
 ): ReturnType<typeof getJestSpyOn> {
-  return getJestSpyOn(service, "findAllBy").mockImplementation(
-    async (findBy: unknown): Promise<Array<BaseModel>> => {
-      const query: Record<string, unknown> = (
-        findBy as { query: Record<string, unknown> }
-      ).query;
-      const ids: Array<string> | null = idsIn(query["_id"]);
+  const reads: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+    service,
+    "findBy",
+  ).mockImplementation(async (findBy: unknown): Promise<Array<BaseModel>> => {
+    const query: Record<string, unknown> = (
+      findBy as { query: Record<string, unknown> }
+    ).query;
+    const ids: Array<string> | null = idsIn(query["_id"]);
 
-      return providers
-        .filter((provider: FakeProvider): boolean => {
-          return (
-            (!ids || ids.includes(provider.id.toString().toLowerCase())) &&
-            (query["projectId"] === undefined ||
-              sameId(query["projectId"], provider.projectId))
-          );
-        })
-        .map((provider: FakeProvider): BaseModel => {
-          const model: BaseModel = new modelType();
-          Object.assign(model, provider.fields || {});
-          model.id = provider.id;
-          (model as unknown as Record<string, unknown>)["projectId"] =
-            provider.projectId;
-          (model as unknown as Record<string, unknown>)["teams"] =
-            provider.teams.map(toTeamModel);
-          return model;
-        });
-    },
-  );
+    return providers
+      .filter((provider: FakeProvider): boolean => {
+        return (
+          (!ids || ids.includes(provider.id.toString().toLowerCase())) &&
+          (query["projectId"] === undefined ||
+            sameId(query["projectId"], provider.projectId))
+        );
+      })
+      .map((provider: FakeProvider): BaseModel => {
+        const model: BaseModel = new modelType();
+        Object.assign(model, provider.fields || {});
+        model.id = provider.id;
+        (model as unknown as Record<string, unknown>)["projectId"] =
+          provider.projectId;
+        (model as unknown as Record<string, unknown>)["teams"] =
+          provider.teams.map(toTeamModel);
+        return model;
+      });
+  });
+
+  stubRowsCallerMayWriteLikeFindBy(service as never, reads);
+
+  return reads;
 }
 
 function teamPermissionRowsFor(findBy: unknown): Array<TeamPermission> {
@@ -1141,7 +1154,7 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       expect(database.teamReads).not.toHaveBeenCalled();
     });
 
-    test("reads the provider's teams by its id alone, so a filter cannot hide some of them", async () => {
+    test("reads the provider once, with its teams whole and what it holds in every column the update writes, when the query sets no condition on its teams", async () => {
       storeProvider([ADMIN]);
 
       await update(providerCase, { name: "Renamed" }, propsFor(ADMIN_CALLER));
@@ -1150,22 +1163,61 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
         providerCase.key,
       )!.mock.calls as Array<Array<unknown>>;
 
-      expect(reads).toHaveLength(2);
-      // The rows the caller may update, by the scoped query...
+      // The provider the caller may update, by the query its permission check narrowed.
+      expect(reads).toHaveLength(1);
       expect(
         (reads[0]![0] as { query: Record<string, unknown> }).query,
       ).toEqual({
         _id: PROVIDER_ID.toString(),
         projectId: PROJECT_ID,
       });
-      /*
-       * ...then each of them again, by id only, with its teams and what it
-       * holds in every column the update writes.
-       */
+      expect(
+        (reads[0]![0] as { select: Record<string, unknown> }).select,
+      ).toEqual({
+        _id: true,
+        projectId: true,
+        teams: { _id: true },
+        name: true,
+      });
+    });
+
+    test("reads the provider's teams by its id alone when the query sets a condition on them, so a filter cannot hide some of them", async () => {
+      // Members is beyond the caller's access: a read that saw Admin alone would let the save through.
+      storeProvider([ADMIN, MEMBERS]);
+
+      const updateBy: UpdateBy<BaseModel> = {
+        query: {
+          _id: PROVIDER_ID.toString(),
+          teams: { _id: ADMIN.id.toString() },
+        },
+        data: { name: "Renamed" },
+        props: propsFor(ADMIN_CALLER),
+        skip: 0,
+        limit: 1,
+      } as unknown as UpdateBy<BaseModel>;
+
+      const error: Error | null = await refusal(
+        callHook(providerCase.service, "onBeforeUpdate", updateBy),
+      );
+
+      // Weighed with every team it has: Members refuses the save.
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error?.message).toContain(MEMBERS.name);
+
+      const reads: Array<Array<unknown>> = database.providerReads.get(
+        providerCase.key,
+      )!.mock.calls as Array<Array<unknown>>;
+
+      // Found by the query, its id alone...
+      expect(reads).toHaveLength(2);
+      expect(
+        (reads[0]![0] as { select: Record<string, unknown> }).select,
+      ).toEqual({ _id: true });
+      // ...then its teams, by that id alone: the filter on teams is not in this read.
       expect(
         (reads[1]![0] as { query: Record<string, unknown> }).query,
       ).toEqual({
-        _id: { anyOf: [PROVIDER_ID.toString().toLowerCase()] },
+        _id: PROVIDER_ID.toString(),
       });
       expect(
         (reads[1]![0] as { select: Record<string, unknown> }).select,
@@ -1186,11 +1238,13 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
         propsFor(ADMIN_CALLER),
       );
 
+      // The one provider weighed, by its id, in the caller's project.
       expect(result.updateBy.query).toEqual({
-        _id: { anyOf: [PROVIDER_ID.toString().toLowerCase()] },
+        _id: PROVIDER_ID.toString(),
         projectId: PROJECT_ID,
       });
       expect(result.updateBy.skip).toBe(0);
+      expect(result.updateBy.limit).toBe(1);
     });
 
     test("that matches no provider weighs nothing and writes nothing", async () => {
@@ -1246,9 +1300,9 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
           propsFor(caller),
         );
 
-        // Held to the rows whose project was checked.
+        // Held to the rows whose project was checked: the one it names by id.
         expect(result.updateBy.query).toEqual({
-          _id: { anyOf: [PROVIDER_ID.toString().toLowerCase()] },
+          _id: PROVIDER_ID.toString(),
         });
         expect(result.updateBy.skip).toBe(0);
         expect(database.updatePermissionChecks).not.toHaveBeenCalled();
@@ -1340,9 +1394,9 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
 
       expect(database.teamReads).not.toHaveBeenCalled();
       expect(database.permissionReads).not.toHaveBeenCalled();
-      // Still held to the rows that were checked.
+      // Still held to the rows that were checked: the one it names by id.
       expect(result.updateBy.query).toEqual({
-        _id: { anyOf: [PROVIDER_ID.toString().toLowerCase()] },
+        _id: PROVIDER_ID.toString(),
         projectId: PROJECT_ID,
       });
     });
@@ -1542,11 +1596,16 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
         teams: [OTHER_PROJECTS_TEAM],
       });
 
-      // A permission check that (wrongly) let the row through.
+      // Permission checks that (wrongly) let the row through, both of them.
       database.updatePermissionChecks.mockImplementation(
         async (_modelType: unknown, query: unknown): Promise<unknown> => {
           return query;
         },
+      );
+      getJestSpyOn(ModelPermission, "getUpdatableQuery").mockImplementation(
+        (async (_modelType: unknown, query: unknown): Promise<unknown> => {
+          return query;
+        }) as never,
       );
 
       const error: Error | null = await refusal(
@@ -1555,6 +1614,33 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
 
       expect(error).toBeInstanceOf(NotAuthorizedException);
       expect(error?.message).not.toContain(OTHER_PROJECTS_TEAM.name);
+    });
+
+    test("of a provider in another project, which the caller may not write, is neither weighed nor written", async () => {
+      providers.push({
+        id: PROVIDER_ID,
+        projectId: OTHER_PROJECT_ID,
+        teams: [OTHER_PROJECTS_TEAM],
+      });
+
+      // The hook's own check (wrongly) lets it through; the rows the caller may write do not.
+      database.updatePermissionChecks.mockImplementation(
+        async (_modelType: unknown, query: unknown): Promise<unknown> => {
+          return query;
+        },
+      );
+
+      const result: OnUpdate<BaseModel> = await update(
+        providerCase,
+        { name: "Renamed" },
+        propsFor(OWNER),
+      );
+
+      expect(database.permissionReads).not.toHaveBeenCalled();
+      // Held to no row.
+      expect((result.updateBy.query as Record<string, unknown>)["_id"]).toEqual(
+        { anyOf: [] },
+      );
     });
   });
 });

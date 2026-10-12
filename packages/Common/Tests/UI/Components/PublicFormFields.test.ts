@@ -9,11 +9,13 @@ import {
 } from "../../../UI/Components/PublicForm/PublicFormFields";
 import {
   getFormTemplateAnswers,
+  getPublicFormForTemplate,
   PublicForm,
   PublicFormFieldType,
   PublicFormTemplate,
   validateFormSubmission,
 } from "../../../Types/Form/FormPublic";
+import { FormTemplateFieldSetting } from "../../../Types/Form/FormTemplate";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
@@ -481,5 +483,117 @@ describe("a template's answers as the form's inputs hold them", () => {
 
     expect(Object.getPrototypeOf(values)).toBe(Object.prototype);
     expect(values["answer___proto__"]).toBe("x");
+  });
+});
+
+/*
+ * A template that asks the questions its own way (issue #4563): the inputs
+ * drawn, and what the form starts with, follow the form as the template
+ * asks it (getPublicFormForTemplate) - on the public page and in the
+ * builder's preview alike.
+ */
+describe("the inputs, as a template asks the questions", () => {
+  const ASKED_FORM: PublicForm = {
+    name: "Report a Problem",
+    fields: [
+      {
+        id: "title",
+        label: "What is wrong?",
+        type: PublicFormFieldType.Text,
+        isRequired: true,
+      },
+      {
+        id: "severity",
+        label: "How bad?",
+        type: PublicFormFieldType.Dropdown,
+        isRequired: false,
+        options: [
+          { value: SEVERITY_ID, label: "Critical" },
+          { value: "minor", label: "Minor" },
+        ],
+        defaultValue: SEVERITY_ID,
+      },
+      {
+        id: "window",
+        label: "Window",
+        type: PublicFormFieldType.Text,
+        isRequired: false,
+        isHidden: true,
+      },
+    ],
+    isCaptchaRequired: false,
+  };
+
+  const PLANNED: PublicFormTemplate = {
+    id: "planned",
+    name: "Planned",
+    answers: { title: "Planned work", window: "Saturday" },
+    fieldSettings: {
+      severity: FormTemplateFieldSetting.Hidden,
+      window: FormTemplateFieldSetting.Required,
+      title: FormTemplateFieldSetting.Optional,
+    },
+  };
+
+  function requiredOf(fields: Array<Field<JSONObject>>): Array<unknown> {
+    return fields.map((field: Field<JSONObject>): unknown => {
+      return [field.dataTestId, field.required];
+    });
+  }
+
+  test("drawn from the form as the template asks it: what it requires is required, what it hides is not drawn", () => {
+    expect(
+      requiredOf(
+        buildPublicFormFields(
+          getPublicFormForTemplate({ form: ASKED_FORM, template: PLANNED }),
+        ),
+      ),
+    ).toEqual([
+      ["form-field-title", false],
+      ["form-field-window", true],
+    ]);
+
+    expect(
+      requiredOf(
+        buildPublicFormFields(getPublicFormForTemplate({ form: ASKED_FORM })),
+      ),
+    ).toEqual([
+      ["form-field-title", true],
+      ["form-field-severity", false],
+    ]);
+  });
+
+  test("a required answer the template asks for is checked in the browser like any other", () => {
+    const window: Field<JSONObject> = buildPublicFormFields(
+      getPublicFormForTemplate({ form: ASKED_FORM, template: PLANNED }),
+    ).find((field: Field<JSONObject>): boolean => {
+      return field.dataTestId === "form-field-window";
+    })!;
+
+    expect(window.customValidation!({ answer_window: "   " })).toBe(
+      "Window is required.",
+    );
+  });
+
+  test("the form starts with the template's answers to the questions it asks - and no default for one it hides", () => {
+    expect(getPublicFormInitialValues(ASKED_FORM, PLANNED)).toEqual({
+      answer_title: "Planned work",
+      answer_window: "Saturday",
+    });
+  });
+
+  test("without the template, a question the form hides starts with nothing", () => {
+    expect(getPublicFormInitialValues(ASKED_FORM)).toEqual({
+      answer_severity: SEVERITY_ID,
+    });
+    expect(
+      getPublicFormInitialValues(ASKED_FORM, {
+        ...PLANNED,
+        fieldSettings: undefined,
+      }),
+    ).toEqual({
+      answer_title: "Planned work",
+      answer_severity: SEVERITY_ID,
+    });
   });
 });

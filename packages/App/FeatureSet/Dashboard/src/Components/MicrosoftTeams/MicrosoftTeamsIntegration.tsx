@@ -5,7 +5,8 @@ import React, {
   useEffect,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import CardSections from "Common/UI/Components/Card/CardSections";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
@@ -54,6 +55,18 @@ import {
   ConnectProvider,
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
+
+// The full setup guide, folded at the bottom of a self-hosted install's page.
+export const MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID: string =
+  "microsoft-teams-setup-guide";
+
+export const MICROSOFT_TEAMS_SETUP_GUIDE_TITLE: string = translationKey(
+  "Full Microsoft Teams setup guide",
+);
+
+export const MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION: string = translationKey(
+  "Azure app registration, Azure Bot resource, permissions and app manifest upload — every step, including the ones that are easy to miss.",
+);
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -760,17 +773,26 @@ If you prefer to manually sideload the app:
        * and the "upload this deployment's manifest" step became unreachable from
        * the product. That is exactly when an admin goes looking for them, because
        * that is when things start failing. Keep it here, collapsed, for self-hosted.
+       *
+       * Folded the way a page's More settings is, and one card the way it is:
+       * the guide's card is a section of the fold (CardSections), not a card
+       * inside a card.
        */}
       {!BILLING_ENABLED && (
-        <div className="mt-6">
-          <CollapsibleSection
-            title="Full Microsoft Teams setup guide"
-            description="Azure app registration, Azure Bot resource, permissions and app manifest upload — every step, including the ones that are easy to miss."
-            variant="card"
+        <div className="mb-5" data-testid={MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID}>
+          <FoldedSection
+            title={MICROSOFT_TEAMS_SETUP_GUIDE_TITLE}
+            icon={IconProp.Book}
+            description={MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION}
+            summary={MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION}
             defaultCollapsed={true}
+            isElevated={true}
+            isBodyFlush={true}
           >
-            <MicrosoftTeamsIntegrationDocumentation />
-          </CollapsibleSection>
+            <CardSections>
+              <MicrosoftTeamsIntegrationDocumentation />
+            </CardSections>
+          </FoldedSection>
         </div>
       )}
 

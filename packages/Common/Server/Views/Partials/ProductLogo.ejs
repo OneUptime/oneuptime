@@ -1,0 +1,19 @@
+<%#
+  The product's logo at the top of a page the server renders itself (a
+  sign-in message, an on-call acknowledgement): the installation's own logo
+  when it has one, its name when it goes by another name and has no logo,
+  and OneUptime's logo otherwise. The values come from
+  Server/Utils/ProductBrandingViewVariables.ts through Response.render; a page
+  rendered without them shows OneUptime's.
+%>
+<%
+  var productLogoName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
+  var productLogoSource = (typeof productLogoUrl !== 'undefined' && productLogoUrl) ? productLogoUrl : '';
+%>
+<% if (productLogoSource) { %>
+<img class="mx-auto h-12 w-auto max-w-full object-contain" src="<%= productLogoSource %>" alt="<%= productLogoName %>" />
+<% } else if (productLogoName !== 'OneUptime') { %>
+<div class="text-center text-2xl font-semibold tracking-tight text-gray-900"><%= productLogoName %></div>
+<% } else { %>
+<img class="mx-auto h-12 w-auto" src="/oneuptime-assets/brand/oneuptime-logo.svg" alt="OneUptime" />
+<% } %>

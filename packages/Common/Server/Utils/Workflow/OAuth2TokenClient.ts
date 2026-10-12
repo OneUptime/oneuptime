@@ -2,6 +2,12 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
+import {
+  HtmlMarkupReading,
+  HtmlMarkupReplacer,
+  isWhitespace,
+  replaceHtmlMarkup,
+} from "../../../Types/HtmlMarkup";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   DEFAULT_OAUTH2_CLIENT_AUTHENTICATION_METHOD,
@@ -47,6 +53,25 @@ const MIN_REDACTABLE_SECRET_LENGTH: number = 4;
 
 // A form-encoded token response, which older endpoints send whatever Accept says.
 const FORM_ENCODED_TOKEN_BODY: RegExp = /^(access_token|error)=/;
+
+// A tag, a comment or a whole element, as a space: the words either side stay apart.
+const MARKUP_AS_SPACE: HtmlMarkupReplacer = (): string => {
+  return " ";
+};
+
+/*
+ * How the answer is read (see HtmlMarkupReading). It may be plain text
+ * rather than HTML - an error's description, an address, a gateway's
+ * message - so a "<" is read as a browser reads it: "expires_in must be <
+ * 3600" keeps its "<". And a page's script and style elements go whole,
+ * what they hold included: code and rules, not words anybody reads. The
+ * walk finds them, so a "<script" in a comment, in a quoted value or
+ * inside a style element starts nothing.
+ */
+const ANSWER_READING: HtmlMarkupReading = {
+  lessThanAsText: true,
+  rawTextElements: true,
+};
 
 export interface OAuth2TokenRequestConfig {
   grantType: OAuth2GrantType;
@@ -150,28 +175,106 @@ const redactSecrets: RedactFunction = (
   return result;
 };
 
-type ExcerptFunction = (text: string) => string;
+type IsGapFunction = (code: number) => boolean;
+
+// Whether a character is a control character or whitespace (as \s reads it).
+const isGap: IsGapFunction = (code: number): boolean => {
+  return code <= 0x1f || code === 0x7f || isWhitespace(code);
+};
+
+type CollapseGapsFunction = (text: string, longest: number) => string;
 
 /*
- * A readable, bounded quote of a response body for an error message. HTML
- * error pages are reduced to their text, and whitespace is collapsed so a
- * pretty-printed page does not become forty blank lines in a log.
+ * The words of the text, one space between each: every run of whitespace
+ * and control characters is one space, and there is none at either end -
+ * read only until more than `longest` characters are kept, which is all a
+ * quote needs to know it must be cut. A loop rather than a pattern with a
+ * quantifier, which an answer a megabyte long must not be read with
+ * (AGENTS.md, "Megabyte-long values").
  */
-const toExcerpt: ExcerptFunction = (text: string): string => {
-  const plain: string = (text || "")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+const collapseGaps: CollapseGapsFunction = (
+  text: string,
+  longest: number,
+): string => {
+  let collapsed: string = "";
+  let wordStart: number = -1;
 
-  if (plain.length <= RESPONSE_EXCERPT_MAX_LENGTH) {
-    return plain;
+  for (let index: number = 0; index <= text.length; index++) {
+    if (index === text.length || isGap(text.charCodeAt(index))) {
+      if (wordStart !== -1) {
+        collapsed += `${collapsed ? " " : ""}${text.slice(wordStart, index)}`;
+        wordStart = -1;
+
+        if (collapsed.length > longest) {
+          return collapsed;
+        }
+      }
+    } else if (wordStart === -1) {
+      wordStart = index;
+    }
   }
 
-  return `${plain.substring(0, RESPONSE_EXCERPT_MAX_LENGTH)}…`;
+  return collapsed;
+};
+
+type ExcerptFunction = (
+  text: string,
+  secrets: Array<string | undefined>,
+) => string;
+
+/*
+ * A readable, bounded quote of what a token endpoint answered - its body,
+ * the error and description it sent, or where it redirected - for an error
+ * message. HTML error pages are reduced to their text, and whitespace is
+ * collapsed so a pretty-printed page does not become forty blank lines in a
+ * log.
+ *
+ * Secrets are taken out of the answer first, before anything else changes
+ * it: a server that echoes the request echoes the client secret or the
+ * refresh token, and once markup or whitespace around or inside one had
+ * been taken out, the secret would no longer be found to take out.
+ *
+ * The answer comes from whatever server the Token URL names, and the message
+ * is kept on the variable (its Access Token card), returned by the API and
+ * written to the workflow run log. Every tag and comment is read out by
+ * replaceHtmlMarkup (Common/Types/HtmlMarkup), the walk the rest of the
+ * product reads HTML with: a tag ends at the first ">" outside a quoted
+ * attribute value, a comment at its "-->", a script or style element at
+ * its end tag, and a "<" that starts markup that never ends is dropped on
+ * its own. A "<" that starts nothing - "x < 3600", "<= 5" - is text, as in
+ * a browser (ANSWER_READING), and stays. It used to be one pass of
+ * /<[^>]*>/, which kept an unclosed tag ("<img src=x ..." with no ">" after
+ * it) as it came, and the rest of an attribute value or a comment after a
+ * ">" inside it; and a pattern for script and style elements, run first,
+ * that took a "<script" in a comment or a quoted value for one. So no "<"
+ * that starts markup reaches the message, whatever shows it. Entities are
+ * left as they are: they are text, and nothing here reads them into
+ * markup. The message is plain text, shown as text; a chat mention in it
+ * ("<@U123>") is text too, and Markdown that ever places it into a feed or
+ * a chat does so with mdText, which breaks one in every value it places
+ * (AGENTS.md, "Feed and chat Markdown").
+ *
+ * An answer may be up to a megabyte (OAUTH2_TOKEN_RESPONSE_MAX_BYTES), and
+ * every step reads it in time that grows with its length alone: the single
+ * pass took time that grew with the square of the length, minutes for a
+ * megabyte of tags that never close.
+ */
+const toExcerpt: ExcerptFunction = (
+  text: string,
+  secrets: Array<string | undefined>,
+): string => {
+  const plain: string = collapseGaps(
+    replaceHtmlMarkup(
+      redactSecrets(text || "", secrets),
+      MARKUP_AS_SPACE,
+      ANSWER_READING,
+    ),
+    RESPONSE_EXCERPT_MAX_LENGTH,
+  );
+
+  return plain.length <= RESPONSE_EXCERPT_MAX_LENGTH
+    ? plain
+    : `${plain.substring(0, RESPONSE_EXCERPT_MAX_LENGTH)}…`;
 };
 
 type GetOAuthErrorHintFunction = (
@@ -395,7 +498,7 @@ export default class OAuth2TokenClient {
       throw new OAuth2TokenRequestException(
         redactSecrets(
           `The token endpoint answered with a redirect (HTTP ${status})${
-            location ? ` to ${toExcerpt(location)}` : ""
+            location ? ` to ${toExcerpt(location, secrets)}` : ""
           }. OneUptime does not follow redirects on token requests; set the Token URL to the address the token endpoint actually answers on.`,
           secrets,
         ),
@@ -424,11 +527,12 @@ export default class OAuth2TokenClient {
         const parts: Array<string> = [
           `The token endpoint refused the request (HTTP ${status}): ${toExcerpt(
             errorCode,
+            secrets,
           )}`,
         ];
 
         if (typeof description === "string" && description.trim()) {
-          parts[0] += ` - ${toExcerpt(description)}`;
+          parts[0] += ` - ${toExcerpt(description, secrets)}`;
         }
 
         parts[0] += ".";
@@ -444,7 +548,7 @@ export default class OAuth2TokenClient {
       }
 
       if (status < 200 || status >= 300) {
-        const excerpt: string = toExcerpt(response.bodyText);
+        const excerpt: string = toExcerpt(response.bodyText, secrets);
 
         throw new OAuth2TokenRequestException(
           redactSecrets(
@@ -462,7 +566,7 @@ export default class OAuth2TokenClient {
             ? "The token endpoint answered without an access_token. Check that the Token URL is your identity provider's token endpoint and not its authorization or discovery endpoint."
             : `The token endpoint did not answer with JSON${
                 response.bodyText
-                  ? `: ${toExcerpt(response.bodyText)}`
+                  ? `: ${toExcerpt(response.bodyText, secrets)}`
                   : " (the body was empty)"
               }. Check the Token URL.`,
           secrets,

@@ -3,7 +3,6 @@ import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogS
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -26,8 +25,6 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import { FindWhere } from "../../Types/BaseDatabase/Query";
-import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
@@ -723,53 +720,48 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicy>,
   ): Promise<OnDelete<OnCallDutyPolicy>> {
-    if (deleteBy.query._id) {
-      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined =
-        deleteBy.query.projectId || deleteBy.props.tenantId;
+    /*
+     * A delete that names one policy by its id - the policy's own Delete -
+     * archives the policy's workspace channels. A delete that names no
+     * single policy, such as a cleanup of several, archives none, and is
+     * left as it is.
+     */
+    if (!Service.getOneRowIdNamedBy(deleteBy.query)) {
+      return { deleteBy, carryForward: null };
+    }
 
-      if (!projectId) {
-        // fetch this onCallDutyPolicy from the database to get the projectId.
-        const onCallDutyPolicy: OnCallDutyPolicy | null =
-          await this.findOneById({
-            id: new ObjectID(deleteBy.query._id as string) as ObjectID,
-            select: {
-              projectId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+    /*
+     * The policy, and the delete held to it. Its channels are found through
+     * it, so they are archived before it is gone.
+     */
+    const found: { row: OnCallDutyPolicy | null; deletesMore: boolean } =
+      await this.findOneRowAndHoldDeleteToIt(deleteBy, {
+        _id: true,
+        projectId: true,
+      });
 
-        if (!onCallDutyPolicy) {
-          throw new BadDataException("OnCallDutyPolicy not found.");
-        }
+    const policy: OnCallDutyPolicy | null = found.row;
 
-        if (!onCallDutyPolicy.id) {
-          throw new BadDataException("OnCallDutyPolicy id not found.");
-        }
+    if (!policy || !policy.id || !policy.projectId) {
+      return { deleteBy, carryForward: null };
+    }
 
-        projectId = onCallDutyPolicy.projectId!;
-      }
-
-      try {
-        await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
-          projectId: projectId as ObjectID,
-          notificationFor: {
-            onCallDutyPolicyId: new ObjectID(
-              deleteBy.query._id as string,
-            ) as ObjectID,
-          },
-          sendMessageBeforeArchiving: {
-            _type: "WorkspacePayloadMarkdown",
-            text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
-          },
-        });
-      } catch (error) {
-        logger.error(
-          `Error while archiving workspace channels for onCallDutyPolicy ${deleteBy.query._id}: ${error}`,
-          { projectId: (projectId as ObjectID)?.toString() } as LogAttributes,
-        );
-      }
+    try {
+      await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: policy.projectId,
+        notificationFor: {
+          onCallDutyPolicyId: policy.id,
+        },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error while archiving workspace channels for onCallDutyPolicy ${policy.id.toString()}: ${error}`,
+        { projectId: policy.projectId.toString() } as LogAttributes,
+      );
     }
 
     return { deleteBy, carryForward: null };
@@ -896,7 +888,6 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       select: {
         _id: true,
         projectId: true,
-        isArchived: true,
       },
       props: {
         isRoot: true,
@@ -910,26 +901,20 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     }
 
     /*
-     * An archived policy pages no one. Its execution log is still written -
-     * with the reason, and without the hooks that would start escalating or
-     * post "started executing" to the incident - so the incident's on-call
+     * The policy's execution log. An archived policy pages no one: the log
+     * service's create writes its log as not executed, with the reason, and
+     * starts nothing after it - for this execution as for every other way
+     * one is asked for (OnCallDutyPolicyArchive) - so the incident's on-call
      * tab says why nobody was paged instead of showing nothing.
      */
-    const isPolicyArchived: boolean = policy.isArchived === true;
-
-    // add policy log.
     const log: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
 
     log.projectId = policy.projectId!;
     log.onCallDutyPolicyId = policyId;
     log.userNotificationEventType = options.userNotificationEventType;
-    log.statusMessage = isPolicyArchived
-      ? ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE
-      : "Scheduled.";
-    log.status = isPolicyArchived
-      ? OnCallDutyPolicyStatus.Error
-      : OnCallDutyPolicyStatus.Scheduled;
+    log.statusMessage = "Scheduled.";
+    log.status = OnCallDutyPolicyStatus.Scheduled;
 
     if (options.triggeredByIncidentId) {
       log.triggeredByIncidentId = options.triggeredByIncidentId;
@@ -945,26 +930,6 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
 
     if (options.triggeredByIncidentEpisodeId) {
       log.triggeredByIncidentEpisodeId = options.triggeredByIncidentEpisodeId;
-    }
-
-    if (isPolicyArchived) {
-      logger.debug(
-        `On-call policy ${policyId.toString()} is archived. Recording a skipped execution instead of paging.`,
-        { projectId: policy.projectId?.toString() } as LogAttributes,
-      );
-
-      // The repeat counter onBeforeCreate would otherwise have seeded.
-      log.onCallPolicyExecutionRepeatCount = 1;
-
-      await OnCallDutyPolicyExecutionLogService.create({
-        data: log,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
-      return;
     }
 
     await OnCallDutyPolicyExecutionLogService.create({

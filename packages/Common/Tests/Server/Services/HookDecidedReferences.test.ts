@@ -28,6 +28,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncomingCallPolicyEscalationRuleService,
+    jest.spyOn(IncomingCallPolicyEscalationRuleService, "findBy"),
+  );
+});
 
 /*
  * A reference a hook decides itself - the person a record is by, the policy
@@ -454,13 +467,17 @@ describe("an incoming call rule rings a user or a schedule, under either name of
   });
 
   test("an update that sets the user as the relation clears the schedule under both names", async () => {
+    // The rule as stored, read as the rows the update writes.
     getJestSpyOn(
       IncomingCallPolicyEscalationRuleService,
-      "findOneBy",
-    ).mockResolvedValue({
-      userId: null,
-      onCallDutyPolicyScheduleId: new ObjectID(ID_B),
-    });
+      "findBy",
+    ).mockResolvedValue([
+      {
+        _id: RECORD_ID,
+        userId: null,
+        onCallDutyPolicyScheduleId: new ObjectID(ID_B),
+      },
+    ]);
 
     const data: Record<string, unknown> = {
       user: { _id: ID_A },

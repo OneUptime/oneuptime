@@ -27,6 +27,12 @@ import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../../TestingUtils/ProjectDirectory";
+import { meetsCondition } from "../../TestingUtils/QueryConditions";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../../TestingUtils/RowsCallerMayWrite";
 import {
   afterEach,
   beforeEach,
@@ -479,6 +485,15 @@ describe("ProjectReferenceCheck.validateUpdate", () => {
       .mockImplementation((async (): Promise<Array<HostOwnerRule>> => {
         return storedRules;
       }) as never);
+    // The rules a teammate's update may write: those of their own project.
+    stubRowsCallerMayWrite(
+      HostOwnerRuleService,
+      (read: RowsCallerMayWriteRead): Array<HostOwnerRule> => {
+        return storedRules.filter((rule: HostOwnerRule): boolean => {
+          return meetsCondition(read.query["projectId"], rule.projectId);
+        });
+      },
+    );
   });
 
   function update(
@@ -597,6 +612,15 @@ describe("ProjectReferenceCheck with a JSON reference column", () => {
       .mockImplementation((async (): Promise<Array<HostOwnerRule>> => {
         return storedRules;
       }) as never);
+    // The rules a teammate's update may write: those of their own project.
+    stubRowsCallerMayWrite(
+      HostOwnerRuleService,
+      (read: RowsCallerMayWriteRead): Array<HostOwnerRule> => {
+        return storedRules.filter((rule: HostOwnerRule): boolean => {
+          return meetsCondition(read.query["projectId"], rule.projectId);
+        });
+      },
+    );
   });
 
   test("checks the column's references with the lists, in one answer", async () => {
@@ -657,22 +681,26 @@ describe("ProjectReferenceCheck with a JSON reference column", () => {
       refusal("host owner rule", [`Criteria Teams "${SECOND_FOREIGN_TEAM}"`]),
     );
 
-    // What the rules hold is read pinned to the caller's project.
-    for (const call of storedRead.mock.calls as Array<Array<unknown>>) {
-      expect(
-        String(
-          (call[0] as { query: Record<string, unknown> }).query["projectId"],
-        ),
-      ).toBe(PROJECT_ID.toString());
+    // What the rules hold is read among those the caller may write, in their project.
+    const reads: Array<RowsCallerMayWriteRead> =
+      readsOfRowsCallerMayWrite(HostOwnerRuleService);
+    expect(reads.length).toBeGreaterThan(0);
+    for (const read of reads) {
+      expect(String(read.query["projectId"])).toBe(PROJECT_ID.toString());
     }
+    expect(storedRead).toHaveBeenCalled();
   });
 });
 
 describe("ProjectReferenceCheck reading what an update's records hold", () => {
-  test("pins the read to the caller's tenant", async () => {
+  test("reads them among the records the caller may write, in their project", async () => {
     const storedRead: ReturnType<typeof jest.spyOn> = jest
       .spyOn(HostOwnerRuleService, "findBy")
       .mockResolvedValue([] as never);
+    // None the caller may write here.
+    stubRowsCallerMayWrite(HostOwnerRuleService, () => {
+      return [];
+    });
 
     await refusalOf(
       ProjectReferenceCheck.validateUpdate({
@@ -681,14 +709,15 @@ describe("ProjectReferenceCheck reading what an update's records hold", () => {
       }),
     );
 
-    expect(storedRead).toHaveBeenCalledTimes(1);
+    // The update's own query, in the caller's project.
+    const reads: Array<RowsCallerMayWriteRead> =
+      readsOfRowsCallerMayWrite(HostOwnerRuleService);
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.query["_id"]).toBe(RULE_ID);
+    expect(String(reads[0]!.query["projectId"])).toBe(PROJECT_ID.toString());
 
-    const query: Record<string, unknown> = (
-      storedRead.mock.calls[0]![0] as { query: Record<string, unknown> }
-    ).query;
-
-    expect(query["_id"]).toBe(RULE_ID);
-    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+    // No record found: nothing it holds is read, so nothing is exempt.
+    expect(storedRead).not.toHaveBeenCalled();
   });
 });
 
@@ -741,6 +770,10 @@ describe("ProjectReferenceCheck with lists a service checks itself", () => {
 
   test("an update is checked on every other list", async () => {
     jest.spyOn(HostOwnerRuleService, "findBy").mockResolvedValue([] as never);
+    // None the caller may write here: nothing the rule holds is exempt.
+    stubRowsCallerMayWrite(HostOwnerRuleService, () => {
+      return [];
+    });
 
     await expect(
       ProjectReferenceCheck.validateUpdate({

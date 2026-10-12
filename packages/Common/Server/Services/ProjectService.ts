@@ -1,4 +1,5 @@
 import ResellerPlan from "../../Models/DatabaseModels/ResellerPlan";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import {
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateProject,
@@ -177,18 +178,18 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * applyNewProjectAiDefaults). Every boolean AI feature switch on Project
  * belongs here; Enable AI is not listed because its column already defaults
  * to true. A switch added to Project later is added here too, or new
- * projects get it off - which is what the two automatic-fix switches
- * (enableAutomaticIncidentRemediation, enableAutomaticAlertRemediation)
- * want: fixing changes infrastructure, so a project turns it on itself.
+ * projects get it off - which is what fixing wants: the two automatic-fix
+ * switches (enableAutomaticIncidentRemediation,
+ * enableAutomaticAlertRemediation) change infrastructure, so a project turns
+ * them on itself, and the pull-request switches under them
+ * (enableAutomaticIncidentCodeFixes, enableIncidentInstrumentationFixTasks
+ * and their alert twins) are part of fixing: they open pull requests only
+ * while fixing is on, and come on with it (Types/AI/AutomaticFixSwitches).
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
   | "enableAutomaticAlertInvestigation"
   | "enableAutomaticPostmortemDraft"
-  | "enableIncidentInstrumentationFixTasks"
-  | "enableAlertInstrumentationFixTasks"
-  | "enableAutomaticIncidentCodeFixes"
-  | "enableAutomaticAlertCodeFixes"
   | "enableAiInsights"
   | "enableInsightFixTasks"
   | "autoArchiveNonActionableExceptions";
@@ -198,10 +199,6 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAutomaticIncidentInvestigation",
     "enableAutomaticAlertInvestigation",
     "enableAutomaticPostmortemDraft",
-    "enableIncidentInstrumentationFixTasks",
-    "enableAlertInstrumentationFixTasks",
-    "enableAutomaticIncidentCodeFixes",
-    "enableAutomaticAlertCodeFixes",
     "enableAiInsights",
     "enableInsightFixTasks",
     "autoArchiveNonActionableExceptions",
@@ -312,10 +309,23 @@ export const widensAuditLogging: (
  */
 export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 
+/*
+ * Where a project created from a reseller's promo code was bought: the
+ * reseller, the plan it sold and the license, as the promo code holds them.
+ * OneUptime writes them (onCreatePermitted); no caller may.
+ */
+export interface ProjectResellerFromPromoCode {
+  resellerId?: ObjectID | undefined;
+  resellerPlanId?: ObjectID | undefined;
+  resellerLicenseId?: string | undefined;
+}
+
 // What onBeforeCreate hands the hooks after it: who is creating the project.
 export interface ProjectCreateCarryForward {
   // The creator is a master admin, whom the server's Require SSO for Login does not hold.
   isCreatorMasterAdmin: boolean;
+  // Where it was bought, when it is created from a reseller's promo code.
+  resellerFromPromoCode?: ProjectResellerFromPromoCode | undefined;
 }
 
 export class ProjectService extends ProjectReferencesService<Model> {
@@ -524,6 +534,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
       },
     });
 
+    // Where the project was bought, from a reseller's promo code. See below.
+    let resellerFromPromoCode: ProjectResellerFromPromoCode | undefined =
+      undefined;
+
     logger.debug("Creating project for user " + data.props.userId, {
       userId: data.props.userId?.toString(),
     } as LogAttributes);
@@ -650,30 +664,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
             );
           }
 
-          if (promoCode.resellerLicenseId) {
-            data.data.resellerLicenseId = promoCode.resellerLicenseId;
-          }
-
           /*
-           * The promo code's reseller and plan, under their ID columns
-           * alone: a relation the request sent beside one would otherwise
-           * be stored in its place.
+           * Where the project was bought - the promo code's reseller, its
+           * plan and the license - is OneUptime's to write, and no caller's:
+           * the columns take no caller's create, so it is written once the
+           * creator has passed every check of the create
+           * (onCreatePermitted), not here, where the create's column check
+           * would hold it against the creator.
            */
-          if (promoCode.resellerId) {
-            RelationIdUtil.stamp(
-              data.data as unknown as Record<string, unknown>,
-              ["resellerId", "reseller"],
-              promoCode.resellerId,
-            );
-          }
-
-          if (promoCode.resellerPlanId) {
-            RelationIdUtil.stamp(
-              data.data as unknown as Record<string, unknown>,
-              ["resellerPlanId", "resellerPlan"],
-              promoCode.resellerPlanId,
-            );
-          }
+          resellerFromPromoCode = {
+            resellerId: promoCode.resellerId || undefined,
+            resellerPlanId: promoCode.resellerPlanId || undefined,
+            resellerLicenseId: promoCode.resellerLicenseId || undefined,
+          };
         }
       }
 
@@ -759,6 +762,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     const carryForward: ProjectCreateCarryForward = {
       isCreatorMasterAdmin: user.isMasterAdmin === true,
+      resellerFromPromoCode: resellerFromPromoCode,
     };
 
     return Promise.resolve({ createBy: data, carryForward: carryForward });
@@ -766,12 +770,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
   /*
    * The last step before a project is written, once its creator has passed
-   * every permission and plan check: a project that would require SSO -
-   * itself, or because the whole server does - needs a provider that signs
-   * people in to it, as an update to Require SSO for Login does
-   * (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
-   * lock on the server's sign-in rules, held until the project is written
-   * (onCreateSuccess) or its create fails (onCreateError).
+   * every permission and plan check:
+   *
+   *   - a project created from a reseller's promo code records where it was
+   *     bought - the reseller, its plan and the license, as the promo code
+   *     holds them (onBeforeCreate read it). No caller may write them: they
+   *     are written here, after the create's column check, under their ID
+   *     columns alone;
+   *   - a project that would require SSO - itself, or because the whole
+   *     server does - needs a provider that signs people in to it, as an
+   *     update to Require SSO for Login does
+   *     (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
+   *     lock on the server's sign-in rules, held until the project is
+   *     written (onCreateSuccess) or its create fails (onCreateError) - kept
+   *     by the create's one OnCreate, the very object those hooks are handed
+   *     too, so it is given back however the create ends.
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -780,26 +793,79 @@ export class ProjectService extends ProjectReferencesService<Model> {
     const carryForward: ProjectCreateCarryForward | null =
       (onCreate.carryForward as ProjectCreateCarryForward | null) || null;
 
+    this.writeResellerFromPromoCode(
+      onCreate.createBy.data,
+      carryForward?.resellerFromPromoCode,
+    );
+
     await SsoRequirementChanges.beforeProjectCreate({
-      createBy: onCreate.createBy,
+      create: onCreate,
       isCreatorExemptFromServerRule:
         carryForward?.isCreatorMasterAdmin === true,
     });
   }
 
   /*
+   * Writes where a project was bought onto the project being created, from
+   * the reseller's promo code it is created with (onBeforeCreate), under the
+   * columns' ID names alone: a relation beside one would be stored in its
+   * place. Nothing for a project created without one.
+   */
+  public writeResellerFromPromoCode(
+    project: Model,
+    reseller: ProjectResellerFromPromoCode | undefined,
+  ): void {
+    if (!reseller) {
+      return;
+    }
+
+    const row: Record<string, unknown> = project as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (reseller.resellerId) {
+      RelationIdUtil.stamp(
+        row,
+        ["resellerId", "reseller"],
+        reseller.resellerId,
+      );
+    }
+
+    if (reseller.resellerPlanId) {
+      RelationIdUtil.stamp(
+        row,
+        ["resellerPlanId", "resellerPlan"],
+        reseller.resellerPlanId,
+      );
+    }
+
+    if (reseller.resellerLicenseId) {
+      project.resellerLicenseId = reseller.resellerLicenseId;
+    }
+  }
+
+  /*
    * A create that fails once its sign-in check holds the lock - in a step
    * just before the INSERT, at the INSERT, or in onCreateSuccess before it
    * gave the lock back - reaches no other hook: the lock is given back here,
-   * whatever happened (SsoRequirementChanges). DatabaseService.create hands
-   * every failure after onBeforeCreate to this hook.
+   * whatever happened - or, when the database may still commit the project
+   * (its COMMIT went unanswered), kept until it would have cancelled it
+   * (SsoRequirementChanges). DatabaseService.create hands every failure
+   * after onBeforeCreate to this hook, with the create's one OnCreate - the
+   * very object onCreatePermitted kept the lock by.
    */
   @CaptureSpan()
   protected override async onCreateError(
     error: Exception,
     onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
-    await SsoRequirementChanges.afterProjectCreate(onCreate?.createBy);
+    await SsoRequirementChanges.afterFailedProjectCreate(
+      onCreate,
+      error,
+      failedStatement,
+    );
 
     return error;
   }
@@ -828,15 +894,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * An update that failed - refused or thrown, an auto recharge charge
    * included - once a stricter sign-in rule held its locks: they are given
-   * back (SsoRequirementChanges).
+   * back - or, when the database may still apply the write, kept until it
+   * would have cancelled it (SsoRequirementChanges).
    */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+      await SsoRequirementChanges.afterFailedUpdate(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;
@@ -1029,7 +1101,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         Array<StoredProjectAuditLogSettings>
       > => {
         return this.findAuditLogSettingsInCallerScope({
-          query: updateBy.query,
+          updateBy: updateBy,
           props: updateBy.props,
         });
       },
@@ -1054,14 +1126,24 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * The last steps before an update is written, once the caller has passed
    * every permission check:
    *
-   *   - turning Require SSO for Login on, or requiring another provider,
+   *   - writing Require SSO for Login on, or naming the provider the
+   *     project requires - turning it on, or saving back the rule it has -
    *     needs an SSO provider that signs people in to the project
    *     (Utils/SsoRequirementChanges). Checked under the project's lock -
    *     and, when the project would rely on more than its own providers that
    *     are on, the lock on the server's sign-in rules - held until the
    *     write is done (onUpdateSuccess) or fails (onUpdateError, a charge
-   *     below that fails included), and before anything is charged below;
-   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn).
+   *     below that fails included), and before anything is charged below.
+   *     An update that names its projects by a filter writes only the
+   *     projects read under those locks;
+   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn);
+   *   - last, right before the write, the locks of the check are kept once
+   *     more, and kept alive while it is written. One lost by now - the
+   *     charge took long, or Valkey lost it - is taken again and the check
+   *     run again under it: the write is refused only when the lock cannot
+   *     be taken or the check now fails, never for the time the charge took
+   *     (SsoRequirementChanges.beforeWrite). A charge made already stays:
+   *     the balance it bought is credited in its own write.
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -1073,6 +1155,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
 
     await this.chargeAutoRechargeTurnedOn(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
   /*
@@ -1096,23 +1180,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     // The same rows, and the same window of them, the update writes.
-    const projects: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
       },
-      limit:
-        updateBy.limit instanceof PositiveNumber
-          ? updateBy.limit.toNumber()
-          : updateBy.limit,
-      skip:
-        updateBy.skip instanceof PositiveNumber
-          ? updateBy.skip.toNumber()
-          : updateBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const project of projects) {
       if (!project.id) {
@@ -1290,21 +1363,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * check that follows anyway.
    */
   private async findAuditLogSettingsInCallerScope(data: {
-    query: Query<Model>;
+    updateBy: UpdateBy<Model>;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<StoredProjectAuditLogSettings>> {
-    const projects: Array<Model> = await this.findBy({
-      query: data.query,
-      select: {
+    // The projects the update writes, and the update held to them.
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      data.updateBy,
+      {
         _id: true,
         enableAuditLogs: true,
         storeSystemEventsInAuditLogs: true,
         auditLogsRetentionInDays: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     const callerProjectIds: Array<string> = data.props.isMasterAdmin
       ? []
@@ -2144,7 +2215,7 @@ These are no longer recorded against the project and have to be cancelled by han
     createdItem: Model,
   ): Promise<Model> {
     // Written: the lock its sign-in check held is given back before anything else.
-    await SsoRequirementChanges.afterProjectCreate(onCreate?.createBy);
+    await SsoRequirementChanges.afterProjectCreate(onCreate);
 
     // Create billing.
 
@@ -3355,14 +3426,9 @@ These are no longer recorded against the project and have to be cancelled by han
      * The extra columns beyond the billing ones are the snapshot that goes
      * into DeletedProject for customer outreach.
      */
-    const projects: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    const projects: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         paymentProviderSubscriptionId: true,
         paymentProviderMeteredSubscriptionId: true,
@@ -3387,7 +3453,7 @@ These are no longer recorded against the project and have to be cancelled by han
           jobRole: true,
         },
       },
-    });
+    );
 
     return { deleteBy, carryForward: projects };
   }

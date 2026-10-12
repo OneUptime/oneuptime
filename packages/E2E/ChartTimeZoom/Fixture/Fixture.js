@@ -2654,6 +2654,16 @@ async function handleApi(method, options) {
     });
   }
 
+  /*
+   * The availability charts of the host and cluster overviews ask when
+   * OneUptime itself was not receiving data in their window (issue #2825),
+   * to shade it "Not monitored". Never, here: answered as the server answers
+   * for an instance that was receiving throughout.
+   */
+  if (method === "POST" && parsed.pathname.endsWith("/receiving-gaps")) {
+    return ok({ gaps: [] });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({});
 }

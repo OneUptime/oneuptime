@@ -41,6 +41,11 @@ import DocsNav, {
   NavGroup,
   NavLink,
 } from "../../../FeatureSet/Docs/Utils/Nav";
+import {
+  DOCS_DEFAULT_ICON,
+  getDocsNavIcon,
+  hasDocsNavIcon,
+} from "../../../FeatureSet/Docs/Utils/NavIcons";
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import Form from "Common/Models/DatabaseModels/Form";
@@ -89,10 +94,14 @@ import {
   FORM_LOGO_TYPE_MESSAGE,
 } from "Common/Types/Form/FormBranding";
 import { validateFormIpAllowlist } from "Common/Types/Form/FormIpAllowlist";
+import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import {
+  BuiltPublicForm,
+  buildPublicForm,
   FORM_MULTI_SELECT_MAX_CHOICES,
   FORM_PAGE_HEADER,
   FORM_PAGE_HEADER_VALUE,
+  validateFormTemplateAnswers,
 } from "Common/Types/Form/FormPublic";
 import {
   FORM_DESCRIPTION_MAX_LENGTH,
@@ -104,9 +113,11 @@ import {
 import FormTargetType from "Common/Types/Form/FormTargetType";
 import {
   FORM_MAX_TEMPLATES,
+  FORM_TEMPLATE_FIELD_SETTINGS,
   FORM_TEMPLATE_NAME_MAX_LENGTH,
   FORM_TEMPLATE_QUERY_PARAMETER,
   FormTemplate,
+  getFormQuestionAsked,
   validateFormTemplates,
 } from "Common/Types/Form/FormTemplate";
 import { convertLegacyIncidentForm } from "Common/Types/Form/LegacyIncidentFormConversion";
@@ -145,7 +156,6 @@ import path from "path";
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 const DOCS_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs");
 const CONTENT_DIR: string = path.join(DOCS_DIR, "Content");
-const NAV_PARTIAL_FILE: string = path.join(DOCS_DIR, "Views/Partials/Nav.ejs");
 const RATE_LIMIT_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Middleware/FormRateLimit.ts",
@@ -337,6 +347,23 @@ function sectionOf(
   });
 
   return lines.slice(start + 1).join("\n");
+}
+
+/*
+ * The body of a troubleshooting entry - a ":::details <summary>" block - up
+ * to the ":::" that closes it.
+ */
+function detailsOf(markdown: string, summary: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(`:::details ${summary}`);
+
+  expect({ summary, found: start !== -1 }).toEqual({ summary, found: true });
+
+  const end: number = lines.indexOf(":::", start + 1);
+
+  expect(end).toBeGreaterThan(start);
+
+  return lines.slice(start + 1, end).join("\n");
 }
 
 // Every **bold** span in the prose: how the docs name what is on screen.
@@ -578,7 +605,10 @@ describe("Forms docs", () => {
     );
 
     it("has an icon in the docs menu", () => {
-      expect(readSource(NAV_PARTIAL_FILE)).toMatch(/'Forms':\s*'<path /);
+      expect(hasDocsNavIcon("Forms")).toBe(true);
+      expect(getDocsNavIcon("Forms")).toMatch(/^<path /);
+      expect(getDocsNavIcon("Forms")).not.toBe(DOCS_DEFAULT_ICON);
+      expect(formsGroup().title).toBe("Forms");
     });
   });
 
@@ -1433,9 +1463,17 @@ describe("Forms docs", () => {
         "Text a submitter writes",
       );
 
-      // Mentions get an invisible character after the bracket.
-      for (const mention of ["<!channel>", "<!here>", "<@U0123ABC>"]) {
-        expect(section).toContain(mention.replace(/[<>]/g, "\\$&"));
+      /*
+       * Mentions get an invisible character after the bracket. The page
+       * writes each with its angle brackets escaped, so it shows as typed.
+       */
+      for (const [mention, written] of [
+        ["<!channel>", "\\<!channel\\>"],
+        ["<!here>", "\\<!here\\>"],
+        ["<@U0123ABC>", "\\<@U0123ABC\\>"],
+      ] as Array<[string, string]>) {
+        expect(section).toContain(written);
+        expect(visibleText(await DocsRender.render(written))).toBe(mention);
         expect(neutralizeChatControlSequences(mention)).toBe(
           `<⁠${mention.slice(1)}`,
         );
@@ -1761,5 +1799,225 @@ describe("Forms docs: templates, hidden questions and Duplicate Form", () => {
         }),
       }).toEqual({ page, anchor, linked: true });
     }
+  });
+});
+
+/*
+ * How a template asks each question (issue #4563), as the pages describe
+ * it against what the product does: the four choices of the editor's
+ * Questions rows, by the names the editor gives them; that a question
+ * added later starts on the form's default; that a maintenance event's
+ * start and end cannot be changed, as the server's check says; and the
+ * API's fieldSettings, an example the server accepts.
+ */
+describe("Forms docs: how a template asks each question", () => {
+  const SECTION: string = sectionOf(
+    readPage(BUILDING_PAGE),
+    3,
+    "How a template asks each question",
+  );
+
+  it("name the editor's four choices as the editor names them", () => {
+    const choices: Array<string> = firstTable(SECTION).map(
+      (row: Array<string>): string => {
+        return row[0] as string;
+      },
+    );
+
+    expect(choices).toEqual([
+      "**Form default**",
+      `**${FormsCopy.settingRequired}**`,
+      `**${FormsCopy.settingOptional}**`,
+      `**${FormsCopy.settingHidden}**`,
+    ]);
+
+    // The settings the server stores, in the editor's order.
+    expect([...FORM_TEMPLATE_FIELD_SETTINGS]).toEqual([
+      FormsCopy.settingRequired,
+      FormsCopy.settingOptional,
+      FormsCopy.settingHidden,
+    ]);
+
+    // The picker's own words for the form's default, quoted as it shows them.
+    expect(SECTION).toContain(`**${FormsCopy.settingFormDefaultHidden}**`);
+    expect(FormsCopy.settingFormDefaultHidden).toBe("Form default (Hidden)");
+  });
+
+  it("show the issue's case: one form, two templates that ask it differently", () => {
+    const rows: Array<Array<string>> = tableBody(
+      SECTION.slice(SECTION.indexOf("| Question")),
+    ).slice(0, 3);
+
+    expect(rows).toEqual([
+      ["Application Name", "Required", "Required"],
+      ["Affected Facilities", "Required", "Optional"],
+      ["Scheduled Maintenance Date", "Hidden", "Required"],
+    ]);
+
+    for (const row of rows) {
+      for (const setting of row.slice(1)) {
+        expect(FORM_TEMPLATE_FIELD_SETTINGS).toContain(setting);
+      }
+    }
+  });
+
+  it("say a question added later starts on the form's default, as a template that lists nothing asks it", () => {
+    expect(SECTION).toContain(
+      "so does every question you add to the form later, in every template",
+    );
+    expect(getFormQuestionAsked({ isRequired: true, isHidden: false })).toEqual(
+      { isAsked: true, isRequired: true },
+    );
+  });
+
+  it("say a maintenance event's start and end cannot be changed, as the server's check says", () => {
+    expect(SECTION).toContain(
+      "A maintenance event's **Starts At** and **Ends At** are always asked and always required: no template can change them.",
+    );
+
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.ScheduledMaintenance,
+    );
+    const built: BuiltPublicForm = buildPublicForm({
+      form: {
+        name: "Request Maintenance",
+        fields,
+        targetType: FormTargetType.ScheduledMaintenance,
+      },
+      customFields: [],
+      recordOptions: {},
+      isCaptchaRequired: false,
+    });
+    const starts: FormField = fields.find((field: FormField): boolean => {
+      return field.targetField === "startsAt";
+    })!;
+
+    expect(
+      validateFormTemplateAnswers({
+        templates: [
+          {
+            id: "night",
+            name: "Night Work",
+            answers: {},
+            fieldSettings: { [starts.id]: "Hidden" },
+          },
+        ],
+        fields: built.allFields,
+        lockedFieldIds: built.lockedFieldIds,
+        targetType: FormTargetType.ScheduledMaintenance,
+      }),
+    ).toContain("Starts At cannot be hidden");
+  });
+
+  it("say what the server holds a submission to, on the page that says what a submission creates", () => {
+    const section: string = sectionOf(
+      readPage(ON_SUBMIT_PAGE),
+      2,
+      "Hidden questions and templates",
+    );
+
+    expect(section).toContain(
+      "the server holds the submission to the questions as the template it names asks them",
+    );
+    expect(section).toContain(
+      "one the template requires must be answered, or the submission is refused and nothing is created",
+    );
+  });
+
+  it("give the API's fieldSettings with every setting the server takes, in an example it accepts", () => {
+    const api: string = sectionOf(
+      readPage(OVERVIEW_PAGE),
+      3,
+      "Templates in the API",
+    );
+
+    expect(api).toContain(
+      `\`${FORM_TEMPLATE_FIELD_SETTINGS[0]}\`, \`${FORM_TEMPLATE_FIELD_SETTINGS[1]}\` or \`${FORM_TEMPLATE_FIELD_SETTINGS[2]}\``,
+    );
+
+    const example: Array<FormTemplate> = (
+      JSON.parse(splitMarkdown(api).codeBlocks[0] as string) as {
+        data: { templates: Array<FormTemplate> };
+      }
+    ).data.templates;
+
+    expect(validateFormTemplates(example)).toBeNull();
+    expect(example[0]!.fieldSettings).toEqual({
+      office: "Required",
+      email: "Optional",
+    });
+
+    /*
+     * And for the form the page documents just above: every answer and
+     * setting is for one of its questions, as the server's write check
+     * holds them - not only the templates' shape.
+     */
+    const questions: Array<FormField> = (
+      JSON.parse(
+        splitMarkdown(
+          sectionOf(readPage(OVERVIEW_PAGE), 3, "Questions and settings"),
+        ).codeBlocks[0] as string,
+      ) as { data: { fields: Array<FormField> } }
+    ).data.fields;
+
+    const built: BuiltPublicForm = buildPublicForm({
+      form: {
+        name: "Report a Problem",
+        fields: questions,
+        targetType: FormTargetType.Incident,
+      },
+      customFields: [],
+      recordOptions: {},
+      isCaptchaRequired: false,
+    });
+
+    expect(
+      built.allFields.map((field: { id: string }): string => {
+        return field.id;
+      }),
+    ).toEqual(["what", "office", "email"]);
+    expect(
+      validateFormTemplateAnswers({
+        templates: example,
+        fields: built.allFields,
+        lockedFieldIds: built.lockedFieldIds,
+        targetType: FormTargetType.Incident,
+      }),
+    ).toBeNull();
+  });
+
+  it("link the new section from the pages that send readers to it", () => {
+    for (const [page, section] of [
+      [BUILDING_PAGE, "Hidden questions"],
+      [ON_SUBMIT_PAGE, "Hidden questions and templates"],
+      [SHARING_PAGE, "A question is not on the form"],
+    ] as Array<[string, string]>) {
+      // Sharing & Security answers it in a troubleshooting entry.
+      const text: string =
+        page === SHARING_PAGE
+          ? detailsOf(readPage(page), section)
+          : sectionOf(readPage(page), 2, section);
+
+      expect({
+        page,
+        section,
+        linked: docsLinks(text)
+          .concat(
+            inPageLinks(text).map((anchor: string): DocsLink => {
+              return { page: BUILDING_PAGE, anchor };
+            }),
+          )
+          .some((link: DocsLink): boolean => {
+            return (
+              link.page === BUILDING_PAGE &&
+              link.anchor === "how-a-template-asks-each-question"
+            );
+          }),
+      }).toEqual({ page, section, linked: true });
+    }
+
+    expect(slugify("How a template asks each question")).toBe(
+      "how-a-template-asks-each-question",
+    );
   });
 });

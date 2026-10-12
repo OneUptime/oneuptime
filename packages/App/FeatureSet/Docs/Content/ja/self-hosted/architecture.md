@@ -1,125 +1,85 @@
-# OneUptimeセルフホストのアーキテクチャ
+# アーキテクチャ
 
-以下の図は、OneUptimeが自社環境（例：Kubernetesクラスター）にセルフホストされる場合の一般的な構成と、プローブが内部・外部リソースを監視する方法を示しています。
+セルフホストの OneUptime は、いくつかのコンテナで構成されます。すべてのリクエストが入ってくる ingress が 1 つ、処理を担うアプリのイメージが 1 つ、モニターのチェックを実行するプローブ、そして 3 つのデータストアです。このページでは、それらがどう組み合わさるか、それぞれが何をするか、どの接続がネットワークの境界を越えるかを説明します。
 
-```mermaid
+```mermaid title="セルフホストの OneUptime"
 flowchart TB
-  %% LAYOUT
-  %% 上部: ユーザー -> イングレス -> Web / API
-  %% 中部: コアサービス + インジェストパイプライン
-  %% 下部: データストア
-
-  %% ユーザー / エッジ
-  U["エンドユーザー / ブラウザ"]
-
-  %% クラスター境界
-  subgraph C["カスタマーネットワーク（セルフホストKubernetesクラスター）"]
-    direction TB
-
-    subgraph Edge["イングレス & ルーティング"]
-      NGINX["NGINXイングレス（TLS）"]
+    People["利用者とブラウザ"]
+    Senders["テレメトリーの送信元:<br/>OpenTelemetry、Fluent Bit、<br/>syslog、エージェント"]
+    Targets["監視対象:<br/>内部と公開"]
+    subgraph Install["あなたのネットワーク"]
+        direction TB
+        Ingress["Ingress<br/>(Nginx、TLS)"]
+        App["アプリ<br/>ダッシュボード、ステータスページ、<br/>API、取り込み、バックグラウンドジョブ"]
+        Probe["プローブ"]
+        Runner["Runner"]
+        subgraph Data["データストア"]
+            direction LR
+            Postgres[("PostgreSQL<br/>設定<br/>と状態")]
+            ClickHouse[("ClickHouse<br/>ログ、メトリクス、<br/>トレース")]
+            Valkey[("Valkey<br/>キャッシュと<br/>キュー")]
+        end
     end
-
-    subgraph Web["Web & API"]
-      direction TB
-      HOME["ホーム / ダッシュボード（UI）"]
-      STATUS["ステータスページ（UI）"]
-      API["APIサーバー"]
-      WORKER["バックグラウンドワーカー"]
-    end
-
-    subgraph Ingest["インジェストパイプライン"]
-      direction TB
-      PROBEINGEST["プローブインジェスト"]
-      OTELINGEST["OpenTelemetryインジェスト"]
-      FLUENTLOGS["ログインジェスト（Fluent Bit）"]
-      SERVERMONINGEST["サーバーモニターインジェスト"]
-      INCOMINGREQINGEST["受信リクエストインジェスト"]
-    end
-
-    subgraph Probes["OneUptimeプローブ"]
-      direction TB
-      P1["クラスター内のプローブPod"]
-      P2["ネットワーク上のオプションのプローブVM/コンテナ"]
-    end
-
-    %% データストア
-    subgraph Data["データストア"]
-      direction LR
-      PG[("PostgreSQL\n（設定、状態、メタデータ）")]
-      CH[("ClickHouse\n（メトリクス、トレース、ログ）")]
-      REDIS[("Valkey\n（キャッシュ、キュー、セッション）")]
-    end
-
-  end
-
-  %% 外部 / 内部ターゲット
-  EXT["外部リソース\n（公開ウェブサイト/API、SaaS）"]
-  INT["内部リソース\n（プライベートアプリ、DB、サービス）"]
-
-  %% フロー: エッジ
-  U -->|HTTPS| NGINX
-  NGINX --> HOME
-  NGINX --> STATUS
-  HOME -->|REST/gRPC| API
-  STATUS -->|REST/gRPC| API
-  NGINX --> API
-
-  %% フロー: コアサービス -> データ
-  API --> PG
-  API --> REDIS
-  API --> CH
-  WORKER --> PG
-  WORKER --> REDIS
-  WORKER --> CH
-
-  %% フロー: インジェスト
-  P1 -->|監視結果| PROBEINGEST
-  P2 -->|監視結果| PROBEINGEST
-
-  EXT <-->|HTTPS/TCP/Ping/DNS/カスタム| P1
-  INT <-->|HTTPS/TCP/Ping/DNS/カスタム| P1
-  EXT <-->|HTTPS/TCP/Ping/DNS/カスタム| P2
-  INT <-->|HTTPS/TCP/Ping/DNS/カスタム| P2
-
-  OTELCOLL["OTelコレクター/エージェント"] --> OTELINGEST
-  FLUENT["Fluentd / Fluent Bit"] --> FLUENTLOGS
-  SERVERAGENTS["サーバーモニターエージェント"] --> SERVERMONINGEST
-
-  %% インジェストフロー -> コア処理
-  PROBEINGEST --> REDIS
-  OTELINGEST --> CH
-  FLUENTLOGS --> CH
-  SERVERMONINGEST --> CH
-  INCOMINGREQINGEST --> CH
-
-  %% ワーカーはキューから消費してストアに書き込む
-  REDIS --> WORKER
-
-  %% 注意 / 凡例
-  classDef store fill:#fef6e4,stroke:#d4a373,color:#333;
-  classDef edge fill:#e3f2fd,stroke:#64b5f6,color:#333;
-  classDef web fill:#e8f5e9,stroke:#81c784,color:#333;
-  classDef ingest fill:#f3e5f5,stroke:#ba68c8,color:#333;
-  classDef probe fill:#fff3e0,stroke:#ffb74d,color:#333;
-  classDef outside fill:#f5f5f5,stroke:#bdbdbd,color:#333,stroke-dasharray: 3 3;
-
-  class NGINX edge;
-  class HOME,STATUS,API,WORKER web;
-  class PROBEINGEST,OTELINGEST,FLUENTLOGS,SERVERMONINGEST,INCOMINGREQINGEST ingest;
-  class P1,P2 probe;
-  class PG,CH,REDIS store;
-  class EXT,INT,OTELCOLL,FLUENT,SERVERAGENTS outside;
+    People -->|"HTTPS"| Ingress
+    Senders -->|"OTLP, HTTPS"| Ingress
+    Ingress --> App
+    Probe -->|"作業の取得、<br/>結果の送信"| App
+    Runner -->|"ジョブの取得、<br/>結果の送信"| App
+    Probe -->|"HTTP、TCP、ping、<br/>DNS、SNMP"| Targets
+    App --> Postgres
+    App --> ClickHouse
+    App --> Valkey
 ```
 
-## 図の説明
+## この図が示すこと
 
-- エンドユーザーはクラスターのイングレス（NGINX）経由でOneUptimeにアクセスし、UIとAPIにルーティングされます。
-- コアサービスはPostgreSQL、Valkey（Redis 7.2のBSDライセンスのフォーク）、ClickHouseで状態を読み書きします。
-- プローブはクラスター内（推奨）や、ネットワーク上の別の場所でも実行できます。プローブは以下を監視できます：
-  - ファイアウォールの内側にある内部/プライベートサービス。
+- 利用者は **ingress** を通じて OneUptime にアクセスします。ingress は TLS を終端し、各リクエストをアプリに振り分けます。対象は Dashboard、ステータスページ、API、そしてテレメトリーの送信先となるすべての取り込みエンドポイントです。
+- **アプリ** は状態を PostgreSQL に読み書きし、テレメトリーを ClickHouse に保存し、キャッシュとバックグラウンドジョブが処理するキューに Valkey (Redis 7.2 の BSD ライセンスのフォーク) を使います。
+- **プローブ** はクラスター内 (推奨) やネットワーク内の別の場所で実行できます。プローブで監視できるのは次のものです。
+  - ファイアウォールの内側にある内部/プライベートのサービス。
   - インターネット上の外部/公開リソース。
-- プローブの結果はクラスター内のプローブインジェストに送信され、Valkeyを通じてキューに入れられ、バックグラウンドワーカーによってデータストアに処理されます。
-- テレメトリー（メトリクス/トレース/ログ）とサーバー/エージェントデータは専用のインジェストサービス経由で取り込まれ、ClickHouseに保存されます。
+- プローブの結果はアプリに送られ、Valkey のキューに入り、バックグラウンドジョブによってデータストアに書き込まれます。ネットワーク内の別の場所にあるプローブは、ingress を経由して OneUptime の URL でアプリに到達します。
+- テレメトリー (メトリクス、トレース、ログなど) は同じアプリが取り込み、ClickHouse に保存します。
 
-> 注意：内蔵のPostgreSQL、Redis、ClickHouseの代わりに外部のものを使用する場合、API/ワーカー/インジェストからの接続は外部エンドポイントを指します。論理的なフローは同じです。
+> [!NOTE]
+> 同梱のものではなく外部の PostgreSQL、Valkey (または Redis)、ClickHouse を使う場合、アプリは代わりに外部のエンドポイントに接続します。論理的な流れは変わりません。
+
+## コンポーネント
+
+| コンポーネント | Docker Compose のサービス | Helm チャート | 役割 |
+| --- | --- | --- | --- |
+| Ingress | `ingress` | `nginx` | TLS を終端し、ホスト名とステータスページのドメインを提供し、すべてのリクエストをアプリに振り分けます。 |
+| アプリ | `app` | `app` | Dashboard、ステータスページ、API と取り込みのエンドポイント、そして分離しない限りバックグラウンドジョブも担います。 |
+| Worker | `app` の一部 | `worker` (既定ではオフ) | バックグラウンドジョブを専用の Pod で実行し、重いキュー処理が API リクエストと競合しないようにします。 |
+| Telemetry writer | `app` の一部 | `telemetryWriter` (既定ではオフ) | ClickHouse へのすべての挿入を行う固定サイズの層で、ワーカーがどれだけスケールしても挿入数を一定の範囲に保ちます。 |
+| プローブ | `probe-1` | `probes` | モニターのチェックを実行し、結果を送り返します。同梱のプローブはすべて、全プロジェクトが使えるグローバルプローブです。 |
+| Runner | `runner` | `runner` | インスタンス自身の Runner で、すべてのプロジェクトの AI によるコード修正を実行できます。Runbook のステップは、実行すべき場所にインストールした [Runner](/docs/runbooks/agents) で実行されます。 |
+| PostgreSQL | `postgres` | `postgresql`、または `postgresOperator.cnpg` | プロジェクト、モニター、インシデント、ユーザー、その他すべての設定と状態。 |
+| ClickHouse | `clickhouse` | `clickhouse`、または `clickhouseOperator.altinity` | ログ、メトリクス、トレース、例外、プロファイル、モニターのログ。 |
+| Valkey | `valkey` | `valkey` | キャッシュ、ジョブのキュー、保留中のプッシュの受領確認のような短期間の状態。 |
+
+アプリの役割はすべて同じイメージです。Docker Compose はそれらを 1 つの `app` コンテナで実行し、Helm チャートでは worker と telemetry writer をそれぞれ独立したデプロイメントとして実行できます。各層のサイズの決め方は [サイジングとキャパシティプランニング](/docs/installation/sizing) を参照してください。
+
+## ネットワークの外への接続
+
+アプリが外部に接続するのは、有効にした機能のためだけです。いずれも任意で、それぞれに許可すべき正確なアドレスを示したページがあります。
+
+| 外向きの接続 | 用途 | 詳細 |
+| --- | --- | --- |
+| メール (SMTP、または SendGrid の API) | 通知と招待 | [SMTP](/docs/emails/smtp) |
+| Twilio | SMS と電話 | [Twilio 連携](/docs/self-hosted/twilio-integration) |
+| OneUptime のプッシュリレー、または Expo | モバイルのプッシュ通知 | [プッシュ通知](/docs/self-hosted/push-notifications) |
+| Slack と Microsoft Teams | ワークスペースへの通知と操作 | [Slack 連携](/docs/self-hosted/slack-integration) |
+| OpenAI、Anthropic、Microsoft Foundry、自分で動かすモデルなどの LLM プロバイダー | OneUptime AI | [LLM プロバイダー](/docs/ai/llm-provider) |
+| `oneuptime.com` | Enterprise ライセンスのオンラインでの有効化 | [エンタープライズ版](/docs/self-hosted/enterprise) |
+
+逆向きの接続、つまり SendGrid による受信メールの配信や、Slack と Microsoft Teams からのコールバックには、ingress にインターネットから到達できる必要があります。アプリとプローブがどのプライベートアドレスに到達してよいかは、あなたが決めます。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access) を参照してください。
+
+## 次のステップ
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): すべてのコンポーネントを 1 台のマシンにインストールします。
+- [サイジングとキャパシティプランニング](/docs/installation/sizing): 各層に必要な CPU、メモリー、ディスクの量。
+- [カスタムプローブ](/docs/probe/custom-probe): 別のネットワークの中でプローブを実行します。
+- [エンタープライズ版](/docs/self-hosted/enterprise): Enterprise イメージで追加されるものと、ライセンスの仕組み。
+:::

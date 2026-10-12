@@ -20,6 +20,7 @@ import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
+import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
 import NetworkSiteType from "./NetworkSiteType";
@@ -61,6 +62,7 @@ import StorageArrayResource from "./StorageArrayResource";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
+import VMwareVCenterConnectionTest from "./VMwareVCenterConnectionTest";
 import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
@@ -113,6 +115,7 @@ import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
 import InstanceHealthLog from "./InstanceHealthLog";
+import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import GreenlockCertificate from "./GreenlockCertificate";
 // Greenlock
 import GreenlockChallenge from "./GreenlockChallenge";
@@ -147,6 +150,10 @@ import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
+import ToolImportRun from "./ToolImportRun";
+import ToolImportRecord from "./ToolImportRecord";
+import HuntressConnection from "./HuntressConnection";
+import HuntressIncidentReport from "./HuntressIncidentReport";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -541,6 +548,10 @@ const AllModelTypes: Array<{
   DetectionRule,
   SecurityEventConnection,
   SecurityEventConnectionRun,
+  ToolImportRun,
+  ToolImportRecord,
+  HuntressConnection,
+  HuntressIncidentReport,
   ThreatIntelFeed,
   LogScrubRule,
   MetricPipelineRule,
@@ -828,6 +839,7 @@ const AllModelTypes: Array<{
 
   GlobalConfig,
   InstanceHealthLog,
+  InstanceReceivingPeriod,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,
@@ -963,6 +975,7 @@ const AllModelTypes: Array<{
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
   NetworkDeviceDiagnostic,
+  PacketCapture,
   NetworkInterface,
   NetworkSite,
   NetworkSiteType,
@@ -1004,6 +1017,7 @@ const AllModelTypes: Array<{
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,
+  VMwareVCenterConnectionTest,
   VMwareResource,
   Host,
   HostOwnerTeam,

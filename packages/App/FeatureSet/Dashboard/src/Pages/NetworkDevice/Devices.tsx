@@ -12,10 +12,39 @@ import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSn
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
-  HOSTNAME_FIELD_DESCRIPTION,
-  PROBE_FIELD_DESCRIPTION,
-  SNMP_STEP_DESCRIPTION,
-} from "../../Components/NetworkDevice/MonitoringMethodFormFields";
+  ADD_DEVICE_CREATE_VERB,
+  ADD_DEVICE_CREDENTIAL_PROFILE_DESCRIPTION,
+  ADD_DEVICE_CREDENTIAL_PROFILE_PLACEHOLDER,
+  ADD_DEVICE_HOSTNAME_DESCRIPTION,
+  ADD_DEVICE_MORE_FIELDS,
+  ADD_DEVICE_NAME_DESCRIPTION,
+  ADD_DEVICE_NAME_PLACEHOLDER,
+  ADD_DEVICE_PING_MONITOR_DESCRIPTION,
+  ADD_DEVICE_PING_MONITOR_TITLE,
+  ADD_DEVICE_PING_PROBES_DESCRIPTION,
+  ADD_DEVICE_PLURAL_NAME,
+  ADD_DEVICE_PROBE_DESCRIPTION,
+  ADD_DEVICE_SINGULAR_NAME,
+  ADD_DEVICE_SITE_DESCRIPTION,
+  ADD_DEVICE_SITE_PLACEHOLDER,
+  ADD_DEVICE_SNMP_SECTION,
+  getDeviceNameForCreate,
+} from "./AddDeviceForm";
+import {
+  getDefaultProbeId,
+  getProbeDropdownOptions,
+} from "../../Components/NetworkDevice/ProbeOptions";
+import {
+  AddDevicePrefill,
+  NetworkQuickAction,
+  clearNetworkQuickAction,
+  getNetworkQuickActionRoute,
+  getRequestedAddDevicePrefill,
+  isNetworkQuickActionRequested,
+} from "../../Components/Network/NetworkQuickActions";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
+import { TableEmptyStateActionStyle } from "Common/UI/Components/Table/TableEmptyState";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   pingMonitorProvisionedMessage,
   provisionPingMonitorForDevice,
@@ -33,7 +62,6 @@ import {
   DEVICE_ROLE_FIELD_TITLE,
   getDeviceRoleSettingsLink,
 } from "../../Components/NetworkDevice/DeviceRoleFormFields";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
   Fragment,
   FunctionComponent,
@@ -52,6 +80,9 @@ import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCre
 import useBulkSwitchToProbePolling from "../../Components/NetworkDevice/useBulkSwitchToProbePolling";
 import useBulkSnmpCredentialProfileActions from "../../Components/NetworkDevice/useBulkSnmpCredentialProfileActions";
 import useBulkShortenDeviceNames from "../../Components/NetworkDevice/useBulkShortenDeviceNames";
+import useBulkSiteActions from "../../Components/NetworkDevice/useBulkSiteActions";
+import useBulkDeviceRoleActions from "../../Components/NetworkDevice/useBulkDeviceRoleActions";
+import useBulkApplyVendorTemplate from "../../Components/NetworkDevice/useBulkApplyVendorTemplate";
 import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -127,6 +158,10 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import { getMacAddressFormField } from "./MacAddressFormField";
+import {
+  NetworkDeviceAssetFacts,
+  getNetworkDeviceAssetFacts,
+} from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -232,6 +267,33 @@ const NetworkDevices: FunctionComponent<
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Opened from an "Add Device" link elsewhere (the Overview, say): the form
+   * opens as soon as the table is drawn - after the probes are in, because
+   * the Probe field is built from them. Read once, at mount, and the action
+   * leaves the address at once so a refresh does not open it again.
+   */
+  const [isAddDeviceRequested] = useState<boolean>((): boolean => {
+    return isNetworkQuickActionRequested(NetworkQuickAction.AddDevice);
+  });
+
+  /*
+   * What the link filled in: the address and probe of an exporter the
+   * Traffic page saw sending flows before it was a device. Read with the
+   * action, once.
+   */
+  const [addDevicePrefill] = useState<AddDevicePrefill>(
+    (): AddDevicePrefill => {
+      return isAddDeviceRequested ? getRequestedAddDevicePrefill() : {};
+    },
+  );
+
+  useEffect(() => {
+    if (isAddDeviceRequested) {
+      clearNetworkQuickAction();
+    }
+  }, [isAddDeviceRequested]);
 
   /*
    * Bumped after a Ping monitor is created (or fails) for a device the form
@@ -656,6 +718,27 @@ const NetworkDevices: FunctionComponent<
     useBulkShortenDeviceNames();
 
   /*
+   * Where a device is, what it is and what it collects, for a whole
+   * selection: thirty discovered switches filed into a customer's site,
+   * given the "Access Switch" role and their vendor's health template, each
+   * in one dialog instead of thirty Settings pages. They lead the menu,
+   * ahead of labels, because they are what onboarding a discovered estate
+   * is made of.
+   */
+  const { bulkActions: siteBulkActions, modals: siteBulkActionModals } =
+    useBulkSiteActions();
+
+  const {
+    bulkActions: deviceRoleBulkActions,
+    modals: deviceRoleBulkActionModals,
+  } = useBulkDeviceRoleActions();
+
+  const {
+    bulkActions: vendorTemplateBulkActions,
+    modals: vendorTemplateBulkActionModals,
+  } = useBulkApplyVendorTemplate();
+
+  /*
    * The probe the create form starts on before a site is picked.
    *
    * A probe is REQUIRED to register a device — nothing polls one without it —
@@ -665,21 +748,69 @@ const NetworkDevices: FunctionComponent<
    * RFC1918 address, so pre-selecting one would hand the operator a device
    * that is guaranteed to read Down. Ambiguity is left to the operator: with
    * two custom probes there is no "the" probe, and with none the box stays
-   * empty and the form asks for one.
+   * empty and the form asks for one (getDefaultProbeId).
    */
   const defaultProbeId: string = useMemo(() => {
-    const customProbes: Array<Probe> = probes.filter(
-      (probe: Probe): boolean => {
-        return probe.isGlobalProbe !== true;
-      },
-    );
-
-    if (customProbes.length !== 1) {
-      return "";
-    }
-
-    return customProbes[0]?._id?.toString() || "";
+    return getDefaultProbeId(probes);
   }, [probes]);
+
+  /*
+   * The probes as options, built once per fetch. A probe with no name is
+   * listed by its id rather than blanking the page (getProbeDropdownOptions).
+   */
+  const probeOptions: Array<{ label: string; value: string }> = useMemo(() => {
+    return getProbeDropdownOptions(probes);
+  }, [probes]);
+
+  /*
+   * The prefilled address, and the probe it was received by when that is a
+   * probe the form offers (else the form's own default probe stands).
+   */
+  const addDeviceInitialValues: FormValues<NetworkDevice> | undefined =
+    useMemo(() => {
+      if (!addDevicePrefill.address) {
+        return undefined;
+      }
+
+      const values: FormValues<NetworkDevice> = {
+        hostname: addDevicePrefill.address,
+      } as FormValues<NetworkDevice>;
+
+      if (
+        addDevicePrefill.probeId &&
+        probeOptions.some((option: { value: string }): boolean => {
+          return option.value === addDevicePrefill.probeId;
+        })
+      ) {
+        (values as Record<string, unknown>)["probe"] = addDevicePrefill.probeId;
+      }
+
+      return values;
+    }, [addDevicePrefill, probeOptions]);
+
+  /*
+   * What an empty list offers besides Add Device: the other way in, a scan
+   * that finds the devices for you. Only when the list is truly empty - a
+   * chip that hides every row gets "Clear Filters" instead, from the facet
+   * bar's own empty state.
+   */
+  const devicesEmptyState: EmptyStateOptions = {
+    actions: [
+      {
+        title: "Discover Devices",
+        icon: IconProp.Search,
+        style: TableEmptyStateActionStyle.Button,
+        dataTestId: "network-devices-empty-discover",
+        onClick: (): void => {
+          Navigation.navigate(
+            getNetworkQuickActionRoute(NetworkQuickAction.DiscoverDevices),
+          );
+        },
+      },
+    ],
+    // The chips' own state last, so a filter that hides every row wins.
+    ...facetEmptyState,
+  };
 
   type ResolveSiteProbeIdFunction = (siteId: string) => Promise<string>;
 
@@ -852,10 +983,19 @@ const NetworkDevices: FunctionComponent<
          * an empty project. The chips are the bar's own state, so the table is
          * told about them: it says nothing matches and offers to clear them.
          */
-        emptyState={facetEmptyState}
+        emptyState={devicesEmptyState}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        /*
+         * "Add Device": the device is what is being added, and inside Network
+         * it needs no "Network" in front of it.
+         */
+        createVerb={ADD_DEVICE_CREATE_VERB}
+        singularName={ADD_DEVICE_SINGULAR_NAME}
+        pluralName={ADD_DEVICE_PLURAL_NAME}
+        showCreateForm={isAddDeviceRequested}
+        createInitialValues={addDeviceInitialValues}
         showRefreshButton={true}
         /*
          * Bulk "Delete" is not listed here - ModelTable adds it to every table
@@ -867,7 +1007,10 @@ const NetworkDevices: FunctionComponent<
          */
         bulkActions={{
           buttons: [
+            ...siteBulkActions,
+            ...deviceRoleBulkActions,
             ...labelBulkActions,
+            ...vendorTemplateBulkActions,
             ...oidTemplateBulkActions,
             ...snmpCredentialProfileBulkActions,
             ...switchToProbePollingBulkActions,
@@ -941,9 +1084,9 @@ const NetworkDevices: FunctionComponent<
           },
         ]}
         cardProps={{
-          title: "Network Devices",
+          title: "Devices",
           description:
-            "Switches, routers, firewalls, and any other gear on your network. Each device is pinged by the probe you assign, and walked over SNMP as well once it has credentials; a device with a bound monitor is reported on by that monitor instead.",
+            "Switches, routers, firewalls and anything else with an address. Each device is pinged by its probe, unless a monitor reports on it instead; add SNMP credentials to also see its interfaces and health.",
         }}
         showViewIdButton={true}
         onBeforeCreate={async (
@@ -954,6 +1097,13 @@ const NetworkDevices: FunctionComponent<
            * Only a TRUTHY checkbox reaches miscDataProps (ModelForm drops
            * false), which is exactly the "off unless ticked" this needs.
            */
+          /*
+           * Name is optional on this form: a device added without one is
+           * named after its hostname - the same rule the server applies, so
+           * the Ping monitor below is named after the name the device gets.
+           */
+          item.name = getDeviceNameForCreate(item.name, item.hostname);
+
           pendingPingMonitorRequest.current = {
             wantsPingMonitor: Boolean(
               miscDataProps[CREATE_PING_MONITOR_FIELD_KEY],
@@ -1023,85 +1173,51 @@ const NetworkDevices: FunctionComponent<
           return createdDevice;
         }}
         /*
-         * Three steps, and no "how is this device monitored?" question among
-         * them. Registering a device is a statement about the device — what
-         * it is called, where it lives, which probe can reach it — and every
-         * device registered here is probe-polled. The bound-monitor override
-         * is a rare answer to "this one thing cannot be polled", and it lives
-         * on the device's Settings page where the operator meets it already
+         * One page, four questions, and no "how is this device monitored?"
+         * among them. Adding a device is a statement about the device: its
+         * address, what it is called, where it is, and which probe can reach
+         * it. Only the address has no answer the form can give - the name
+         * defaults to it, the site is optional, and the probe is filled in
+         * wherever there is one answer (the site's, or the project's only
+         * custom probe).
+         *
+         * SNMP and the rarely needed fields fold away under their own
+         * headers (AddDeviceForm.ts says why), so the form ends in Add Device
+         * with nothing to walk through first. The bound-monitor override is
+         * a rare answer to "this one thing cannot be polled", and it lives on
+         * the device's Settings page where the operator meets it already
          * knowing what their device is.
          */
-        formSteps={[
-          {
-            title: "Device Details",
-            id: "device-details",
-          },
-          {
-            title: "Probe & Site",
-            id: "probe-and-site",
-          },
-          {
-            /*
-             * Shown for every device and required by none of them: with no
-             * credentials the probe pings the device and it has a status from
-             * its first poll; with them it is walked as well. The step's own
-             * heading (on the first field below) is where that is said.
-             */
-            title: "SNMP (Optional)",
-            id: "snmp",
-          },
-        ]}
         formFields={[
           {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "device-details",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "core-switch-01",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "device-details",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Core switch in the US East datacenter",
-          },
-          {
-            field: {
-              networkDeviceRole: true,
-            },
-            title: DEVICE_ROLE_FIELD_TITLE,
-            stepId: "device-details",
-            description: DEVICE_ROLE_FIELD_DESCRIPTION,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: DEVICE_ROLE_DROPDOWN_MODAL,
-            sideLink: getDeviceRoleSettingsLink(),
-            required: false,
-            placeholder: DEVICE_ROLE_FIELD_PLACEHOLDER,
-          },
-          {
+            /*
+             * First: the one thing only the person adding the device knows,
+             * and the thing everything else (the default name, the Ping
+             * monitor) is built from.
+             */
             field: {
               hostname: true,
             },
             title: "Hostname",
-            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description: HOSTNAME_FIELD_DESCRIPTION,
+            description: ADD_DEVICE_HOSTNAME_DESCRIPTION,
           },
-          /*
-           * Beside the hostname because it is the device's other address:
-           * the one a switch's forwarding table knows it by, which is how a
-           * ping-only device lands on its switch port on the map.
-           */
-          getMacAddressFormField({ stepId: "device-details" }),
+          {
+            /*
+             * Optional: left empty, the device is named after its hostname
+             * (onBeforeCreate here, and NetworkDeviceService for the API).
+             */
+            field: {
+              name: true,
+            },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: ADD_DEVICE_NAME_PLACEHOLDER,
+            description: ADD_DEVICE_NAME_DESCRIPTION,
+          },
           {
             /*
              * Asked BEFORE the probe, because it answers it: a site carries
@@ -1112,9 +1228,7 @@ const NetworkDevices: FunctionComponent<
               site: true,
             },
             title: "Site",
-            stepId: "probe-and-site",
-            description:
-              "The network site this device belongs to. Site health rolls up from its devices, and the site's default probe is filled in below when you pick one. Assignment rules can also set this automatically.",
+            description: ADD_DEVICE_SITE_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkSite,
@@ -1123,23 +1237,20 @@ const NetworkDevices: FunctionComponent<
             },
             onChange: onSiteSelected,
             required: false,
-            placeholder: "Select Site (optional)",
+            placeholder: ADD_DEVICE_SITE_PLACEHOLDER,
           },
           {
             field: {
               probe: true,
             },
             title: "Probe",
-            stepId: "probe-and-site",
             /*
              * Required, for every device this form creates. A probe-polled
              * device with no probe is nothing at all: nothing pings it,
              * nothing walks it, and it sits on Pending wearing "No probe"
-             * until somebody notices. The old form only asked SNMP devices
-             * for one because a monitor-backed device is not polled — and
-             * this form no longer creates those.
+             * until somebody notices.
              */
-            description: PROBE_FIELD_DESCRIPTION,
+            description: ADD_DEVICE_PROBE_DESCRIPTION,
             sideLink: {
               text: "Create a custom probe",
               url: RouteUtil.populateRouteParams(
@@ -1148,21 +1259,88 @@ const NetworkDevices: FunctionComponent<
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
-            }),
+            dropdownOptions: probeOptions,
             required: true,
             // "" when the project has no single obvious probe — see above.
             defaultValue: defaultProbeId,
             placeholder: "Probe",
           },
+          /*
+           * SNMP, folded. A device without it is pinged: it has a status and
+           * a response time from its first poll. With a community string (or
+           * a v3 user, or a saved credential profile) the same probe walks it
+           * as well - interfaces, traffic, hardware and health. The folded
+           * header says that in one sentence instead of asking nine
+           * questions.
+           */
+          ...getSnmpConfigFormFields({
+            collapsibleSection: ADD_DEVICE_SNMP_SECTION,
+          }),
+          {
+            /*
+             * Last in the fold: the shared set a fleet points at. The
+             * device's own credentials above win when both are set, and the
+             * site can carry a default set too.
+             */
+            field: {
+              snmpCredentialProfile: true,
+            },
+            title: "SNMP Credential Profile",
+            collapsibleSection: ADD_DEVICE_SNMP_SECTION,
+            description: ADD_DEVICE_CREDENTIAL_PROFILE_DESCRIPTION,
+            sideLink: {
+              text: "Manage credential profiles",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
+                ] as Route,
+              ),
+              openLinkInNewTab: true,
+            },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSnmpCredentialProfile,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: ADD_DEVICE_CREDENTIAL_PROFILE_PLACEHOLDER,
+          },
+          /*
+           * More fields: what most devices never need, listed by name on the
+           * folded header.
+           */
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            collapsibleSection: ADD_DEVICE_MORE_FIELDS,
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Core switch in the US East datacenter",
+          },
+          {
+            field: {
+              networkDeviceRole: true,
+            },
+            title: DEVICE_ROLE_FIELD_TITLE,
+            collapsibleSection: ADD_DEVICE_MORE_FIELDS,
+            description: DEVICE_ROLE_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: DEVICE_ROLE_DROPDOWN_MODAL,
+            sideLink: getDeviceRoleSettingsLink(),
+            required: false,
+            placeholder: DEVICE_ROLE_FIELD_PLACEHOLDER,
+          },
+          /*
+           * The device's other address: the one a switch's forwarding table
+           * knows it by, which is how a ping-only device lands on its switch
+           * port on the map. A router's ARP table usually fills it in.
+           */
+          getMacAddressFormField({
+            collapsibleSection: ADD_DEVICE_MORE_FIELDS,
+          }),
           {
             /*
              * Not a NetworkDevice column — see CREATE_PING_MONITOR_FIELD_KEY.
@@ -1176,11 +1354,10 @@ const NetworkDevices: FunctionComponent<
             },
             overrideFieldKey: CREATE_PING_MONITOR_FIELD_KEY,
             showEvenIfPermissionDoesNotExist: true,
-            title: "Also create a Ping monitor for incidents (optional)",
-            stepId: "probe-and-site",
+            title: ADD_DEVICE_PING_MONITOR_TITLE,
+            collapsibleSection: ADD_DEVICE_MORE_FIELDS,
             showIf: shouldOfferPingMonitor,
-            description:
-              "The probe above already pings this device and gives it a status, so it needs no monitor to read Up or Down. A monitor is what turns those failed pings into an incident: tick this and a Ping monitor is created on the hostname above and bound to this device when you save. It counts towards your plan, and incidents are off on it until you turn them on from the monitor's page.",
+            description: ADD_DEVICE_PING_MONITOR_DESCRIPTION,
             fieldType: FormFieldSchemaType.Checkbox,
             required: false,
           },
@@ -1191,7 +1368,7 @@ const NetworkDevices: FunctionComponent<
             overrideFieldKey: PING_PROBES_FIELD_KEY,
             showEvenIfPermissionDoesNotExist: true,
             title: "Ping from probes",
-            stepId: "probe-and-site",
+            collapsibleSection: ADD_DEVICE_MORE_FIELDS,
             /*
              * Only once the opt-in is ticked, and only when there is a probe
              * to offer. Global probes sit on the public internet and cannot
@@ -1209,59 +1386,12 @@ const NetworkDevices: FunctionComponent<
                 probes.length > 0
               );
             },
-            description:
-              "The probes the new Ping monitor checks from. They have to be able to reach the device's network — a probe on the public internet cannot ping a private address. Leave it empty to use the project's default probes.",
+            description: ADD_DEVICE_PING_PROBES_DESCRIPTION,
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
-            }),
+            dropdownOptions: probeOptions,
             required: false,
             placeholder: "Project default probes",
           },
-          {
-            /*
-             * The same either/or the Settings page offers, worded the same
-             * way: a profile is the credential set a fleet shares, the
-             * fields below are this one device's own, and the device's own
-             * win when both are set. First on the step, so it carries the
-             * step's heading — which is where an operator learns that
-             * leaving all of it empty is a valid answer.
-             */
-            field: {
-              snmpCredentialProfile: true,
-            },
-            title: "SNMP Credential Profile",
-            stepId: "snmp",
-            sectionTitle: "SNMP",
-            sectionDescription: SNMP_STEP_DESCRIPTION,
-            description:
-              "A reusable credential set shared by devices of one kind. The device's own credentials below win when both are set; leave those empty to use the profile. The device's site can carry a default profile too, which applies when neither of these is set.",
-            sideLink: {
-              text: "Manage credential profiles",
-              url: RouteUtil.populateRouteParams(
-                RouteMap[
-                  PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES
-                ] as Route,
-              ),
-              openLinkInNewTab: true,
-            },
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSnmpCredentialProfile,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "No profile — use the credentials below",
-          },
-          ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
         columns={[
           {
@@ -1467,23 +1597,33 @@ const NetworkDevices: FunctionComponent<
             title: "Vendor / Model",
             type: FieldType.Element,
             hideOnMobile: true,
+            /*
+             * The device's asset facts (issue #4569), so the list names the
+             * same maker and model as the device's page and its Inventory
+             * item: ENTITY-MIB's, else what the sysDescr names - a Meraki MX
+             * implements no ENTITY-MIB and reports "Meraki MX85".
+             */
             getElement: (item: NetworkDevice): ReactElement => {
-              if (!item.vendor && !item.deviceModel) {
+              const facts: NetworkDeviceAssetFacts =
+                getNetworkDeviceAssetFacts(item);
+
+              if (!facts.manufacturer && !facts.model) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
 
               return (
                 <div>
                   <div className="text-sm text-gray-900">
-                    {item.vendor || "—"}
+                    {facts.manufacturer || "—"}
                   </div>
-                  {item.deviceModel && (
-                    <div className="text-xs text-gray-500">
-                      {item.deviceModel}
-                    </div>
+                  {facts.model && (
+                    <div className="text-xs text-gray-500">{facts.model}</div>
                   )}
                 </div>
               );
+            },
+            getExportValue: (item: NetworkDevice): string => {
+              return getNetworkDeviceAssetFacts(item).manufacturer || "";
             },
           },
           {
@@ -1495,6 +1635,12 @@ const NetworkDevices: FunctionComponent<
             title: "Template",
             type: FieldType.Entity,
             hideOnMobile: true,
+            /*
+             * Off until someone asks for it (Customize Columns): most devices
+             * collect their vendor's health template or none, and a column of
+             * dashes is one more thing to read on every row.
+             */
+            isHiddenByDefault: true,
             /*
              * `selectedProperty` and `getElement` do two different jobs and
              * both are needed. Without the first, the column key is the
@@ -1518,6 +1664,8 @@ const NetworkDevices: FunctionComponent<
             title: "Role",
             type: FieldType.Entity,
             hideOnMobile: true,
+            // Off until asked for: most rows read "Auto", worked out by SNMP.
+            isHiddenByDefault: true,
             /*
              * Same pair as the Template column above and for the same reason:
              * `selectedProperty` keeps the CSV exporter (which never calls
@@ -1592,6 +1740,12 @@ const NetworkDevices: FunctionComponent<
             title: "Probe",
             type: FieldType.Entity,
             hideOnMobile: true,
+            /*
+             * Off until asked for: most projects poll every device from the
+             * same probe, so the column says one name on every row. The
+             * Probe chip still filters by it.
+             */
+            isHiddenByDefault: true,
             getElement: (item: NetworkDevice): ReactElement => {
               /*
                * A monitor-backed device is never walked, so it has no probe
@@ -1792,6 +1946,22 @@ const NetworkDevices: FunctionComponent<
           name: true,
           hostname: true,
           dnsName: true,
+          /*
+           * What the site, role and vendor template actions read off a row:
+           * whether "Clear Site" / "Clear Device Role" would clear anything,
+           * and the vendor template dialog's preview of which template each
+           * device gets (its SNMP identity, and whether an OID Collection
+           * Template already decides what it collects). Selected here rather
+           * than left to the Site, Role and Template columns, which a viewer
+           * can hide - and two of which are hidden by default. The SNMP
+           * identity is also what the Vendor / Model cell reads a maker and a
+           * model from when ENTITY-MIB gave none (issue #4569).
+           */
+          siteId: true,
+          networkDeviceRoleId: true,
+          oidTemplateId: true,
+          sysObjectId: true,
+          sysDescr: true,
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(
@@ -1806,7 +1976,10 @@ const NetworkDevices: FunctionComponent<
           );
         }}
       />
+      {siteBulkActionModals}
+      {deviceRoleBulkActionModals}
       {labelBulkActionModals}
+      {vendorTemplateBulkActionModals}
       {oidTemplateBulkActionModals}
       {snmpCredentialProfileBulkActionModals}
       {switchToProbePollingBulkActionModals}

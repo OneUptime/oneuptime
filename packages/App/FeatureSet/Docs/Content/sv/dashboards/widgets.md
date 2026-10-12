@@ -240,6 +240,14 @@ Några snabba regler:
 
 De flesta instrumentpaneler blandar några — ett diagram högst upp, ett värde eller två bredvid, en text-avgränsare och en lista eller två nedanför.
 
+## När en widget inte kan visas
+
+En widget som inte kan ritas visar **Den här widgeten kunde inte visas** på sin egen plats, och resten av instrumentpanelen fortsätter att fungera. Det händer när OneUptime inte har någon widget av den typen (en som har tagits bort, en vars typ stavades fel när instrumentpanelen skrevs via API:et eller en från en nyare version), eller när widgeten misslyckas medan den ritas, till exempel för att dess sparade inställningar är ofullständiga.
+
+Om du får redigera instrumentpanelen klickar du på **Redigera widget** på den. Instrumentpanelen går över till redigeringsläge med den widgetens inställningar öppna: rätta dem, eller klicka på **Radera widget** och sedan på **Spara ändringar**. En widget som misslyckades medan den ritades erbjuder också **Försök igen** och ritas om vid nästa automatiska uppdatering eller när du ändrar tidsintervallet.
+
+Besökare på en offentlig instrumentpanel får bara veta att widgeten inte kunde visas.
+
 ## Läs vidare
 
 - [Variabler & filter](/docs/dashboards/variables) — göra widgetar återanvändbara för många tjänster eller kunder.

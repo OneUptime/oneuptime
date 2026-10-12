@@ -7,6 +7,7 @@ import {
   neutralizeUntrustedValue,
 } from "../../../Utils/Markdown/UntrustedMarkdown";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
 import { hrefsOf, renderAsDashboard } from "./DashboardMarkdownRenderer";
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, Tokens, marked } from "marked";
@@ -37,7 +38,6 @@ const SLACK_MENTION_PATTERN: RegExp = /<[!@#][A-Za-z0-9]/;
 const SLACK_LINK_PATTERN: RegExp = /<(https?:\/\/[^|>]+)\|([^>]*)>/g;
 const HTML_IMAGE_PATTERN: RegExp = /<img/;
 const HTML_ANCHOR_PATTERN: RegExp = /<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
-const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
 const MERMAID_CLASS_PATTERN: RegExp = /language-mermaid/i;
 
 function withoutJoiners(text: string): string {
@@ -110,7 +110,7 @@ function hidingLinksIn(markdown: string, html: string): Array<string> {
   )
     .filter((match: RegExpMatchArray): boolean => {
       return !showsItsAddress(
-        match[2]!.replace(HTML_TAG_PATTERN, ""),
+        removeHtmlMarkup(match[2]!),
         hrefsOf(match[0])[0]!,
       );
     })

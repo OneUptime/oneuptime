@@ -194,12 +194,14 @@ const makePlugin: (testId: string) => EnterprisePluginComponent = (
 };
 
 /*
- * The admin plugin keys that hold a page. LicenseManager is the one that does
- * not: it is the edition dialog's license manager, with props of its own.
+ * The admin plugin keys that hold a page. LicenseManager does not: it is the
+ * edition dialog's license manager, with props of its own. Nor do the
+ * settings keys: SettingsPages is a list of pages with their paths, and
+ * SettingsSideMenuItems draws menu entries.
  */
 type PagePluginKey = Exclude<
   AdminDashboardEnterprisePluginKey,
-  "LicenseManager"
+  "LicenseManager" | "SettingsPages" | "SettingsSideMenuItems"
 >;
 
 const installPlugin: (key: PagePluginKey) => string = (

@@ -556,7 +556,7 @@ describe("IncidentEpisodePublicNoteService addNote (Slack)", () => {
       );
 
     await IncidentEpisodePublicNoteService.addNote({
-      userId: USER_ID,
+      props: noteCreatorProps(),
       incidentEpisodeId: EPISODE_ID,
       projectId: PROJECT_ID,
       note: "Posted from the episode channel.",
@@ -583,7 +583,9 @@ describe("IncidentEpisodePublicNoteService addNote (Slack)", () => {
       EPISODE_ID.toString(),
     );
     expect(createBy.data.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(createBy.props).toEqual({ isRoot: true });
+    // Created with the member's own props: the note is theirs.
+    expect(createBy.props.userId).toEqual(USER_ID);
+    expect(createBy.props.isRoot).toBeUndefined();
   });
 
   test("a note posted on a quiet episode stays quiet", async () => {
@@ -675,6 +677,8 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(save.mock.calls[0]![0]).toBe(saved);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
@@ -769,13 +773,15 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
 
     const saved: IncidentEpisodePublicNote =
       await IncidentEpisodePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         incidentEpisodeId: EPISODE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the episode channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );
@@ -789,13 +795,15 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
 
     const saved: IncidentEpisodePublicNote =
       await IncidentEpisodePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         incidentEpisodeId: EPISODE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the episode channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,

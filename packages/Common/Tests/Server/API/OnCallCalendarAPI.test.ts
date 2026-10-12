@@ -20,7 +20,8 @@ import {
  * HTTP server: the properties that matter most -- the one response rule (404
  * vs empty VCALENDAR vs 503), the header set and the header that must be
  * absent, 304 through req.fresh, HEAD being served without being counted,
- * the http->https 301 -- are Express behaviours layered on the route's own,
+ * the absence of any redirect -- are Express behaviours layered on the
+ * route's own,
  * and a fake `res` object would only prove what the fake was written to do.
  *
  * The renderer, the rate-limit counter, the caches, the lock and every
@@ -257,7 +258,6 @@ import {
   isPreviousTokenInGrace,
   readMyShiftsWindow,
   readScheduleFilter,
-  resolveTrustedForwardedProto,
   shouldRecordFetch,
 } from "../../../Server/API/OnCallCalendarAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
@@ -1045,7 +1045,13 @@ afterEach(() => {
 // -- Registration -----------------------------------------------------------
 
 describe("OnCallCalendarAPI: route registration", () => {
-  test("registers the three public capability routes as GET with kill switch, scheme guard and rate limiter in that order", () => {
+  /*
+   * Kill switch, then rate limiter - and nothing that could redirect. A
+   * scheme guard used to sit between the two; on an install whose TLS ends
+   * in front of Nginx (OneUptime Cloud) it answered every feed URL with a
+   * 301 to itself. OnCallCalendarGoogleFetcher.test.ts covers the topology.
+   */
+  test("registers the three public capability routes as GET with the kill switch and the rate limiter, in that order, and no scheme guard", () => {
     for (const uri of [
       PERSONAL_FEED_ROUTE,
       SCHEDULE_FEED_ROUTE,
@@ -1053,10 +1059,13 @@ describe("OnCallCalendarAPI: route registration", () => {
     ]) {
       const route: RegisteredRoute = routeFor("GET", uri);
 
-      expect(route.middlewares).toHaveLength(3);
+      expect(route.middlewares).toHaveLength(2);
       expect(route.middlewares[0]?.name).toBe("killSwitchMiddleware");
-      expect(route.middlewares[1]?.name).toBe("schemeGuardMiddleware");
-      expect(typeof route.middlewares[2]).toBe("function");
+      expect(typeof route.middlewares[1]).toBe("function");
+
+      for (const middleware of route.middlewares) {
+        expect(middleware.name).not.toBe("schemeGuardMiddleware");
+      }
     }
   });
 
@@ -1239,85 +1248,6 @@ describe("OnCallCalendarAPI: route registration", () => {
 });
 
 // -- Pure helpers -----------------------------------------------------------
-
-describe("resolveTrustedForwardedProto", () => {
-  function requestWith(
-    value: string | Array<string> | undefined,
-  ): ExpressRequest {
-    return {
-      headers: value === undefined ? {} : { "x-forwarded-proto": value },
-    } as unknown as ExpressRequest;
-  }
-
-  test("with no trusted proxy hops there is no trustworthy header, so undefined", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith("http"), {
-        trustedProxyHops: 0,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("one hop reads the rightmost entry (the one our proxy wrote)", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith("https, http"), {
-        trustedProxyHops: 1,
-      }),
-    ).toBe("http");
-  });
-
-  test("two hops reads the second entry from the right", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith("http, https, http"), {
-        trustedProxyHops: 2,
-      }),
-    ).toBe("https");
-  });
-
-  test("a caller-supplied leftmost entry cannot be reached with one hop", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith("http, https"), {
-        trustedProxyHops: 1,
-      }),
-    ).toBe("https");
-  });
-
-  test("fewer entries than hops means our proxy wrote none, so undefined", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith("http"), {
-        trustedProxyHops: 2,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("a missing or blank header is undefined", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith(undefined), {
-        trustedProxyHops: 1,
-      }),
-    ).toBeUndefined();
-    expect(
-      resolveTrustedForwardedProto(requestWith("   "), {
-        trustedProxyHops: 1,
-      }),
-    ).toBeUndefined();
-  });
-
-  test("array-valued headers are joined, and the value is trimmed and lower-cased", () => {
-    expect(
-      resolveTrustedForwardedProto(requestWith(["https", " HTTP "]), {
-        trustedProxyHops: 1,
-      }),
-    ).toBe("http");
-  });
-
-  test("defaults to the configured TRUSTED_PROXY_HOPS", () => {
-    setEnv({ trustedProxyHops: 1 });
-    expect(resolveTrustedForwardedProto(requestWith("http"))).toBe("http");
-
-    setEnv({ trustedProxyHops: 0 });
-    expect(resolveTrustedForwardedProto(requestWith("http"))).toBeUndefined();
-  });
-});
 
 describe("readScheduleFilter", () => {
   function requestWithQuery(query: Record<string, unknown>): ExpressRequest {
@@ -1729,6 +1659,7 @@ describe("buildAbsentFeedStatus", () => {
       urls: null,
       hostWarning: null,
       protocolWarning: null,
+      privateHost: null,
     });
   });
 
@@ -1759,6 +1690,40 @@ describe("buildAbsentFeedStatus", () => {
 
     expect(status.hostWarning).toBe(HOST_WARNING);
     expect(status.protocolWarning).toBe(PROTOCOL_WARNING);
+    expect(status.privateHost).toBeNull();
+  });
+
+  /*
+   * A private HOST is not a broken link - apps on the same network fetch it
+   * - but Google Calendar and Outlook on the web never can, so the status
+   * names it for the settings page to say so.
+   */
+  test("a private HOST is named, before and after a link exists", () => {
+    setEnv({ host: "10.20.0.15:8080", httpProtocol: Protocol.HTTPS });
+
+    expect(
+      buildAbsentFeedStatus(OnCallCalendarFeedKind.Schedule).privateHost,
+    ).toBe("10.20.0.15");
+
+    const token: string = CalendarFeedToken.mint();
+
+    const status: FeedStatus = buildFeedStatus({
+      kind: OnCallCalendarFeedKind.Schedule,
+      feed: scheduleRow({ tokenHash: CalendarFeedToken.hash(token) }),
+      plaintextToken: token,
+    });
+
+    expect(status.privateHost).toBe("10.20.0.15");
+    expect(status.hostWarning).toBeNull();
+    expect(status.urls?.https.startsWith("https://10.20.0.15:8080/")).toBe(
+      true,
+    );
+
+    setEnv({ host: "oneuptime.example.com" });
+
+    expect(
+      buildAbsentFeedStatus(OnCallCalendarFeedKind.Schedule).privateHost,
+    ).toBeNull();
   });
 });
 
@@ -1788,7 +1753,12 @@ describe("buildFeedStatus", () => {
     expect(status.urls?.https).toContain(
       `/api/on-call-calendar/user/${token}/`,
     );
-    expect(status.urls?.webcal.startsWith("webcals://")).toBe(true);
+    expect(status.urls?.webcal.startsWith("webcal://")).toBe(true);
+    expect(status.urls?.googleAdd).toBe(
+      `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
+        status.urls?.webcal || "",
+      )}`,
+    );
     expect(status.tokenHint).toBe(row.tokenHint);
     expect(status.rotatedAt).toBe(row.rotatedAt?.toISOString());
     expect(status.settings).toEqual({
@@ -2470,12 +2440,21 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
     expect(result.status).toBe(200);
   });
 
-  describe("scheme guard", () => {
-    test("https instance + trusted X-Forwarded-Proto: http -> 301 to the https URL built from HOST, before any lookup", async () => {
+  /*
+   * The feed is served on whatever scheme reached the app. The routes used to
+   * 301 plain http to https when HTTP_PROTOCOL=https, PROVISION_SSL=true and
+   * the trusted X-Forwarded-Proto said http - but the shipped Nginx writes
+   * `X-Forwarded-Proto $scheme`, the scheme of the hop INTO Nginx, so on an
+   * install whose TLS ends in front of Nginx (OneUptime Cloud) every request
+   * said http and the 301 pointed at the URL the client had asked for.
+   */
+  describe("no scheme redirect", () => {
+    test("OneUptime Cloud: https, PROVISION_SSL on, TLS ended before Nginx -> 200, not a 301 to the same URL", async () => {
       setEnv({
         httpProtocol: Protocol.HTTPS,
-        host: "oneuptime.example.com",
+        host: "oneuptime.com",
         trustedProxyHops: 1,
+        provisionSsl: true,
       });
 
       const requestPath: string = `${feedPath(
@@ -2484,39 +2463,19 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       )}?schedule=${ObjectID.generate().toString()}`;
 
       const result: HttpResult = await request(requestPath, {
-        headers: { "X-Forwarded-Proto": "http", Host: "evil.example.net" },
+        headers: { "X-Forwarded-Proto": "http" },
       });
 
-      expect(result.status).toBe(301);
-      expect(header(result, "location")).toBe(
-        `https://oneuptime.example.com${requestPath}`,
+      expect(result.status).toBe(200);
+      expect(header(result, "location")).toBeUndefined();
+      expect(header(result, "content-type")).toBe(
+        "text/calendar; charset=utf-8",
       );
-      expect(header(result, "cache-control")).toBe("no-store");
-      expect(personalFindOneBy).not.toHaveBeenCalled();
-      expect(consumeSpy).not.toHaveBeenCalled();
+      expect(result.body).toContain("BEGIN:VCALENDAR");
+      expect(personalFindOneBy).toHaveBeenCalled();
+      expect(consumeSpy).toHaveBeenCalledTimes(1);
     });
 
-    test("the redirect target never comes from the request's Host header", async () => {
-      setEnv({ httpProtocol: Protocol.HTTPS, trustedProxyHops: 1 });
-
-      const result: HttpResult = await request(
-        feedPath(OnCallCalendarFeedKind.Personal, token),
-        { headers: { "X-Forwarded-Proto": "http", Host: "evil.example.net" } },
-      );
-
-      expect(header(result, "location")).not.toContain("evil.example.net");
-    });
-
-    /*
-     * Regression: the guard used to fire on the trusted X-Forwarded-Proto
-     * alone. Every proxying location in the shipped Nginx config sets
-     * `X-Forwarded-Proto $scheme`, REPLACING whatever an outer proxy sent, so
-     * on an install that terminates TLS on an external reverse proxy
-     * (PROVISION_SSL=false with HTTP_PROTOCOL=https, which config.example.env
-     * documents) Nginx always reported `http`. The 301 went to the very URL
-     * the client had just asked for: an endless redirect loop, and all three
-     * feed routes unusable while the dashboard handed out those same URLs.
-     */
     test("an install whose TLS is terminated outside Nginx serves the feed instead of looping", async () => {
       setEnv({
         httpProtocol: Protocol.HTTPS,
@@ -2534,17 +2493,6 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       expect(header(result, "location")).toBeUndefined();
     });
 
-    test("with no trusted proxy hops the header is not trusted and the feed is served", async () => {
-      setEnv({ httpProtocol: Protocol.HTTPS, trustedProxyHops: 0 });
-
-      const result: HttpResult = await request(
-        feedPath(OnCallCalendarFeedKind.Personal, token),
-        { headers: { "X-Forwarded-Proto": "http" } },
-      );
-
-      expect(result.status).toBe(200);
-    });
-
     test("a request that already arrived over https is served", async () => {
       setEnv({ httpProtocol: Protocol.HTTPS, trustedProxyHops: 1 });
 
@@ -2556,7 +2504,7 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       expect(result.status).toBe(200);
     });
 
-    test("an http instance never redirects", async () => {
+    test("an http instance is served too", async () => {
       setEnv({ httpProtocol: Protocol.HTTP, trustedProxyHops: 1 });
 
       const result: HttpResult = await request(
@@ -2567,7 +2515,7 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       expect(result.status).toBe(200);
     });
 
-    test("an https instance with an empty HOST cannot build a target and serves the feed", async () => {
+    test("an https instance with an empty HOST serves the feed", async () => {
       setEnv({ httpProtocol: Protocol.HTTPS, trustedProxyHops: 1, host: "" });
 
       const result: HttpResult = await request(
@@ -2576,6 +2524,25 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       );
 
       expect(result.status).toBe(200);
+    });
+
+    test("the module source holds no redirect at all", () => {
+      const source: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Server",
+          "API",
+          "OnCallCalendarAPI.ts",
+        ),
+        "utf8",
+      );
+
+      expect(source).not.toContain(".redirect(");
+      expect(source).not.toContain("schemeGuardMiddleware");
+      expect(source).not.toContain("x-forwarded-proto");
     });
   });
 
@@ -3080,7 +3047,7 @@ describe("GET /on-call-calendar/schedule/:token/schedule.ics", () => {
     expect(update.data["fetchCount"]).toBe(1);
   });
 
-  test("the kill switch and the scheme guard apply here too", async () => {
+  test("the kill switch applies here too, and a request forwarded as http is served, not redirected", async () => {
     setEnv({ disableFeed: true });
 
     const off: HttpResult = await request(
@@ -3093,13 +3060,15 @@ describe("GET /on-call-calendar/schedule/:token/schedule.ics", () => {
       disableFeed: false,
       httpProtocol: Protocol.HTTPS,
       trustedProxyHops: 1,
+      provisionSsl: true,
     });
 
-    const redirected: HttpResult = await request(
+    const served: HttpResult = await request(
       feedPath(OnCallCalendarFeedKind.Schedule, token),
       { headers: { "X-Forwarded-Proto": "http" } },
     );
-    expect(redirected.status).toBe(301);
+    expect(served.status).toBe(200);
+    expect(header(served, "location")).toBeUndefined();
   });
 });
 
@@ -3235,6 +3204,7 @@ describe("GET /on-call-calendar/feed/current", () => {
       ...buildAbsentFeedStatus(OnCallCalendarFeedKind.Personal),
       hostWarning: HOST_WARNING,
       protocolWarning: PROTOCOL_WARNING,
+      privateHost: null,
     });
 
     const lookup: CapturedFindOneBy = callsOf<CapturedFindOneBy>(
@@ -3282,6 +3252,7 @@ describe("GET /on-call-calendar/feed/current", () => {
     expect(status["lastFetchedClient"]).toBe("Google Calendar");
     expect(status["hostWarning"]).toBeNull();
     expect(status["protocolWarning"]).toBeNull();
+    expect(status["privateHost"]).toBeNull();
 
     const urls: Record<string, string> = status["urls"] as Record<
       string,
@@ -3292,9 +3263,18 @@ describe("GET /on-call-calendar/feed/current", () => {
       `https://oneuptime.example.com/api/on-call-calendar/user/${token}/shifts.ics`,
     );
     expect(urls["webcal"]).toBe(
-      `webcals://oneuptime.example.com/api/on-call-calendar/user/${token}/shifts.ics`,
+      `webcal://oneuptime.example.com/api/on-call-calendar/user/${token}/shifts.ics`,
     );
-    expect(urls["googleAdd"]).toContain(
+    /*
+     * Google's add-by-URL link takes the webcal:// form; with the https://
+     * form Google answers "Unable to add calendar. Check the URL."
+     */
+    expect(urls["googleAdd"]).toBe(
+      `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(
+        urls["webcal"] || "",
+      )}`,
+    );
+    expect(urls["googleAdd"]).not.toContain(
       encodeURIComponent(urls["https"] || ""),
     );
 

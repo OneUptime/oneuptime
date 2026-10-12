@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -11,7 +12,8 @@ import path from "path";
  * The authoring page told people the opposite in places: that new blocks all
  * land in one spot and must be dragged clear, that every problem is a red
  * badge, and it quoted a placeholder text the canvas stopped drawing. This
- * reads every language's copy of the page and holds it to the builder.
+ * reads every language's copy of the page and holds it to the builder, each
+ * quoting the canvas's words as its own Dashboard draws them.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -71,7 +73,9 @@ describe("docs for adding a step to a workflow", () => {
     (language: string) => {
       const page: string = readAuthoringPage(language);
 
-      expect(page).toContain(`**${PLACEHOLDER_TEXT}**`);
+      expect(page).toContain(
+        `**${drawnDashboardLabel(language, PLACEHOLDER_TEXT)}**`,
+      );
       expect(page).not.toContain("Please click here to add trigger");
     },
   );
@@ -79,7 +83,12 @@ describe("docs for adding a step to a workflow", () => {
   test.each(LANGUAGES)(
     "%s: the setup prompt is named where blocks are added, in the checks, and in the first workflow",
     (language: string) => {
-      expect(countOf(readAuthoringPage(language), `**${SETUP_TEXT}**`)).toBe(3);
+      expect(
+        countOf(
+          readAuthoringPage(language),
+          `**${drawnDashboardLabel(language, SETUP_TEXT)}**`,
+        ),
+      ).toBe(3);
     },
   );
 
@@ -89,7 +98,7 @@ describe("docs for adding a step to a workflow", () => {
       const page: string = readAuthoringPage(language);
 
       expect(page).toContain("**Tab**");
-      expect(page).toMatch(/\*\*(Enter|Entrée|Invio)\*\*/);
+      expect(page).toContain(`**${drawnDashboardLabel(language, "Enter")}**`);
     },
   );
 

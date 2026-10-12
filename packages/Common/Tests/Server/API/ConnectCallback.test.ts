@@ -16,7 +16,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
-import {
+import ConnectCallbackUtil, {
   ConnectCallbackError,
   ConnectProvider,
   ConnectStartPage,
@@ -304,6 +304,34 @@ describe("the page a connection goes back to", () => {
       ).toBe(pageOf(path));
     },
   );
+
+  test.each([
+    [ConnectProvider.Zoom, "zoom"],
+    [ConnectProvider.GoogleMeet, "google-meet"],
+    [ConnectProvider.MicrosoftTeamsMeetings, "microsoft-teams-meetings"],
+  ])(
+    "%s goes back to Video Calls, which is told which provider it was",
+    (provider: ConnectProvider, name: string) => {
+      for (const startPage of Object.values(ConnectStartPage)) {
+        expect(
+          ConnectCallback.getPageUrl({
+            provider: provider,
+            record: record({ startPage: startPage }),
+          }).toString(),
+        ).toBe(`${pageOf("/settings/video-calls")}?provider=${name}`);
+      }
+    },
+  );
+
+  test("only the video call providers' pages are told which provider it was", () => {
+    for (const provider of [
+      ConnectProvider.Slack,
+      ConnectProvider.MicrosoftTeams,
+      ConnectProvider.GitHub,
+    ]) {
+      expect(ConnectCallbackUtil.getPageQuery(provider)).toEqual({});
+    }
+  });
 
   test.each(Object.values(ConnectProvider))(
     "with no project to trust, %s goes to the Dashboard's connect-return page",

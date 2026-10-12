@@ -73,7 +73,7 @@ Some things a device keeps as a **list** rather than a value: one row per IPsec 
 
 A table lists the **column OIDs** to collect and, optionally, the columns that **name each row** (a tunnel's connection name, a radio's band). Enumerations take **value labels** (\`0=inactive, 1=active\`) and the **healthy values** that mean "fine" (\`1\`), which colour the device's SNMP Tables tab and drive the **SNMP Table Row Is Unhealthy** criteria. Every numeric cell is recorded as a metric, and **SNMP Table Value** criteria compare a column row by row — with Row set to \`*\`, one alert per row.
 
-Up to **${MAX_TABLES_PER_TEMPLATE} tables per template**. The vendor templates for Sophos, Extreme (EXOS and Fabric Engine) and Cambium (Wi-Fi and cnMatrix) ship ready-made tables.
+Up to **${MAX_TABLES_PER_TEMPLATE} tables per template**. The vendor templates for Sophos, Extreme (EXOS, Fabric Engine, IQ Engine access points and wireless controllers), Cambium (Wi-Fi and cnMatrix), HPE Aruba (Instant and Mobility Controllers) and Ubiquiti UniFi access points ship ready-made tables.
 
 ### Vendor Profiles
 

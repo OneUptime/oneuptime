@@ -30,7 +30,11 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
   const label: string =
     translateString(props.label || "Copy") || props.label || "Copy";
   const title: string | undefined = translateString(props.title);
-  const copiedLabel: string = props.copiedLabel || "Copied!";
+  // Said in the reader's language, like the label it stands in for.
+  const copiedLabel: string =
+    translateString(props.copiedLabel || "Copied!") ||
+    props.copiedLabel ||
+    "Copied!";
 
   const handleCopy: MouseEventHandler<HTMLButtonElement> = async (
     event: React.MouseEvent<HTMLButtonElement, MouseEvent>,

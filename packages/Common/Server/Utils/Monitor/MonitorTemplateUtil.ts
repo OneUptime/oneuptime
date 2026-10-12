@@ -1,4 +1,6 @@
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
@@ -28,6 +30,7 @@ import DnsMonitorResponse, {
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
 import DomainMonitorResponse from "../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../../../Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
 import DatabaseMonitorResponse, {
   DatabaseMetricGroupStatus,
 } from "../../../Types/Monitor/DatabaseMonitor/DatabaseMonitorResponse";
@@ -514,6 +517,40 @@ export default class MonitorTemplateUtil {
         }
       }
 
+      if (data.monitorType === MonitorType.NTP) {
+        const probeResponse: ProbeMonitorResponse =
+          data.dataToProcess as ProbeMonitorResponse;
+        const ntpResponse: NtpMonitorResponse | undefined =
+          probeResponse.ntpResponse;
+
+        /*
+         * The time server's own facts, so a title can say what is wrong:
+         * "{{monitorName}} is at stratum {{stratum}}" or "... is
+         * {{clockOffsetInMs}} ms off". clockOffsetInMs keeps its sign:
+         * positive is ahead of the probe, negative behind.
+         */
+        storageMap = {
+          isOnline: probeResponse.isOnline,
+          isSynchronized: ntpResponse?.isSynchronized,
+          responseTimeInMs:
+            ntpResponse?.responseTimeInMs ?? probeResponse.responseTimeInMs,
+          failureCause: ntpResponse?.failureCause ?? probeResponse.failureCause,
+          isTimeout: ntpResponse?.isTimeout ?? probeResponse.isTimeout,
+          serverAddress: ntpResponse?.serverAddress,
+          port: ntpResponse?.port,
+          stratum: ntpResponse?.stratum,
+          kissCode: ntpResponse?.kissCode,
+          leapIndicator: ntpResponse?.leapIndicator,
+          referenceId: ntpResponse?.referenceId,
+          clockOffsetInMs: ntpResponse?.clockOffsetInMs,
+          roundTripDelayInMs: ntpResponse?.roundTripDelayInMs,
+          rootDelayInMs: ntpResponse?.rootDelayInMs,
+          rootDispersionInMs: ntpResponse?.rootDispersionInMs,
+          serverTime: ntpResponse?.serverTime,
+          referenceTime: ntpResponse?.referenceTime,
+        } as JSONObject;
+      }
+
       if (data.monitorType === MonitorType.Domain) {
         const domainResponse: DomainMonitorResponse | undefined = (
           data.dataToProcess as ProbeMonitorResponse
@@ -599,18 +636,12 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
-      if (
-        data.monitorType === MonitorType.Metrics ||
-        data.monitorType === MonitorType.Kubernetes ||
-        data.monitorType === MonitorType.Docker ||
-        data.monitorType === MonitorType.Host ||
-        data.monitorType === MonitorType.Podman ||
-        data.monitorType === MonitorType.DockerSwarm ||
-        data.monitorType === MonitorType.Proxmox ||
-        data.monitorType === MonitorType.VMware ||
-        data.monitorType === MonitorType.Ceph ||
-        data.monitorType === MonitorType.StorageArray
-      ) {
+      /*
+       * Every monitor type evaluated as metric series, IoT Device included:
+       * the one list (MonitorTypeHelper), which TemplateVariablesCatalog
+       * reads too, so the editor offers exactly what is set here.
+       */
+      if (MonitorTypeHelper.isMetricBackedMonitor(data.monitorType)) {
         const metricResponse: MetricMonitorResponse =
           data.dataToProcess as MetricMonitorResponse;
 

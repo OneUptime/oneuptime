@@ -7,6 +7,7 @@ import RunnerJobService from "../../../Services/RunnerJobService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import InvestigationReportSummary, {
+  InvestigationReportConclusion,
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
 import AiActivityInsightsBuilder, {
@@ -50,13 +51,15 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  * else, the way the scope's AI Logs page does:
  *
  *   - incidents and alerts are read under the caller's own props (tenant,
- *     labels, private incidents) — to find the ones linked to the scope and
- *     to read each investigated subject's title, number and series
- *     identity — and an investigation whose incident or alert the caller
- *     cannot read is left out altogether, from the totals too;
- *   - an investigation's finding (TL;DR, or its report's own Summary) is
- *     only ever read next to such a readable subject — its incident's or
- *     alert's own AI panel shows the same analysis to the same people;
+ *     labels, private incidents) — the window's ones linked to the scope,
+ *     with what raised them, for how often each problem came up and where,
+ *     and each investigated subject's title, number and series identity —
+ *     and an investigation whose incident or alert the caller cannot read
+ *     is left out altogether, from the totals too;
+ *   - an investigation's finding (TL;DR, or its report's own Summary) and
+ *     the first step its report suggests are only ever read next to such a
+ *     readable subject — its incident's or alert's own AI panel shows the
+ *     same report to the same people;
  *   - preventive AIInsight findings are read under the caller's props
  *     (their table is narrower than the scope's: no Viewer);
  *   - AI runs, suggestions, Runner jobs, report feed items, the incidents'
@@ -64,11 +67,13 @@ import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
  *     narrower read ACLs of their own (an investigation run is private to
  *     its author), reading them under the caller's props would empty the
  *     page for exactly the people it is for, and nothing from them leaves
- *     except statuses, dates, counts and opaque groupings.
+ *     except statuses, dates, counts, opaque groupings and — next to an
+ *     incident or alert the caller may read — the report's own words.
  *
  * Bounded: the window's newest AI_ACTIVITY_INSIGHTS_MAX_INVESTIGATIONS
- * investigations and AI_ACTIVITY_INSIGHTS_MAX_FIXES fixes, and its newest
- * JOB_SCAN_LIMIT commands; reaching a bound marks the insights partial.
+ * investigations and AI_ACTIVITY_INSIGHTS_MAX_FIXES fixes, its newest
+ * JOB_SCAN_LIMIT commands and LINKED_SUBJECT_LIMIT incidents and alerts;
+ * reaching a bound marks the insights partial.
  */
 
 // What the reader needs to know about the scope.
@@ -111,6 +116,27 @@ const EXCEPTION_INSIGHT_TYPES: Array<AIInsightType> = [
   AIInsightType.NewException,
   AIInsightType.ExceptionSpike,
 ];
+
+// What an incident is read with, wherever the page names one.
+const INCIDENT_SELECT: Record<string, boolean> = {
+  _id: true,
+  createdAt: true,
+  title: true,
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+  seriesLabels: true,
+};
+
+// What an alert is read with: its monitor is a column of its own.
+const ALERT_SELECT: Record<string, boolean> = {
+  _id: true,
+  createdAt: true,
+  title: true,
+  alertNumber: true,
+  alertNumberWithPrefix: true,
+  monitorId: true,
+  seriesLabels: true,
+};
 
 // What a merge of several reads needs from every row.
 interface BaseRow {
@@ -171,6 +197,41 @@ function getUniqueIds(
   }
 
   return Array.from(byId.values());
+}
+
+// An incident as the builder takes it, with the monitors that raised it.
+function toIncidentSubject(
+  incident: Incident,
+  monitorIds: Array<string>,
+): AiActivitySubjectInput {
+  return {
+    kind: "incident",
+    id: incident.id!.toString(),
+    title: incident.title || undefined,
+    number:
+      typeof incident.incidentNumber === "number"
+        ? incident.incidentNumber
+        : undefined,
+    numberWithPrefix: incident.incidentNumberWithPrefix || undefined,
+    monitorIds,
+    seriesLabels: incident.seriesLabels || undefined,
+    createdAt: incident.createdAt ? new Date(incident.createdAt) : undefined,
+  };
+}
+
+// An alert as the builder takes it: its monitor raised it.
+function toAlertSubject(alert: Alert): AiActivitySubjectInput {
+  return {
+    kind: "alert",
+    id: alert.id!.toString(),
+    title: alert.title || undefined,
+    number:
+      typeof alert.alertNumber === "number" ? alert.alertNumber : undefined,
+    numberWithPrefix: alert.alertNumberWithPrefix || undefined,
+    monitorIds: alert.monitorId ? [alert.monitorId.toString()] : [],
+    seriesLabels: alert.seriesLabels || undefined,
+    createdAt: alert.createdAt ? new Date(alert.createdAt) : undefined,
+  };
 }
 
 /*
@@ -268,7 +329,10 @@ export default class AiActivityInsightsReader {
       }
     }
 
-    // 2. The incidents and alerts of the window linked to the scope (caller).
+    /*
+     * 2. The incidents and alerts of the window linked to the scope
+     * (caller), with what raised them: everything that came up here.
+     */
     const linkedQuery: Record<string, unknown> = {
       projectId,
       [scope.subjectRelation]: QueryHelper.inRelationArray([scope.scopeId]),
@@ -280,7 +344,7 @@ export default class AiActivityInsightsReader {
         readIfPermitted<Incident>(() => {
           return IncidentService.findBy({
             query: linkedQuery as never,
-            select: { _id: true },
+            select: INCIDENT_SELECT as never,
             sort: { createdAt: SortOrder.Descending },
             limit: AI_ACTIVITY_INSIGHTS_LINKED_SUBJECT_LIMIT,
             skip: 0,
@@ -290,7 +354,7 @@ export default class AiActivityInsightsReader {
         readIfPermitted<Alert>(() => {
           return AlertService.findBy({
             query: linkedQuery as never,
-            select: { _id: true },
+            select: ALERT_SELECT as never,
             sort: { createdAt: SortOrder.Descending },
             limit: AI_ACTIVITY_INSIGHTS_LINKED_SUBJECT_LIMIT,
             skip: 0,
@@ -366,9 +430,17 @@ export default class AiActivityInsightsReader {
     const runGroups: Array<Array<AIRun>> = await Promise.all(runReads);
     const candidateRuns: Array<AIRun> = mergeNewest(runGroups);
 
-    // 4. The subjects of those runs, as the caller may read them.
+    /*
+     * 4. The subjects of those runs and the linked ones, as the caller may
+     * read them, with what raised them.
+     */
     const subjects: Map<string, AiActivitySubjectInput> =
-      await this.readSubjects({ scope, runs: candidateRuns });
+      await this.readSubjects({
+        scope,
+        runs: candidateRuns,
+        linkedIncidents,
+        linkedAlerts,
+      });
 
     // A run whose incident or alert the caller cannot read is left out.
     const runs: Array<AIRun> = candidateRuns.filter((run: AIRun): boolean => {
@@ -379,6 +451,22 @@ export default class AiActivityInsightsReader {
         (!subjectId || subjects.has(subjectId.toString()))
       );
     });
+
+    // Everything that came up here: the linked incidents and alerts.
+    const occurrences: Array<AiActivitySubjectInput> = [
+      ...linkedIncidentIds,
+      ...linkedAlertIds,
+    ]
+      .map((id: ObjectID): AiActivitySubjectInput | undefined => {
+        return subjects.get(id.toString());
+      })
+      .filter(
+        (
+          subject: AiActivitySubjectInput | undefined,
+        ): subject is AiActivitySubjectInput => {
+          return Boolean(subject);
+        },
+      );
 
     // 5. The window's fixes on the scope (root).
     const suggestionIdsFromJobs: Array<ObjectID> = getUniqueIds(
@@ -448,6 +536,9 @@ export default class AiActivityInsightsReader {
             status: suggestion.status,
             verificationStatus: suggestion.verificationStatus,
             createdAt: new Date(suggestion.createdAt!),
+            approvedAt: suggestion.approvedAt
+              ? new Date(suggestion.approvedAt)
+              : undefined,
             incidentId: suggestion.incidentId?.toString(),
             alertId: suggestion.alertId?.toString(),
           };
@@ -458,61 +549,93 @@ export default class AiActivityInsightsReader {
       scopeLabelKeys: scope.scopeLabelKeys,
       scopeNames: scope.scopeNames,
       isPartial,
+      occurrences,
+      subjects,
     };
 
-    // 6. A finding whose TL;DR call failed comes from its report.
-    const needingSummary: Set<string> = new Set<string>(
-      AiActivityInsightsBuilder.getRunsNeedingReportSummary(input),
-    );
-
-    if (needingSummary.size > 0) {
-      const summaryRuns: Array<InvestigationReportSummaryRun> = [];
-
-      for (const investigation of input.investigations) {
-        if (
-          !needingSummary.has(investigation.aiRunId) ||
-          !investigation.subject
-        ) {
-          continue;
-        }
-
-        summaryRuns.push({
-          aiRunId: new ObjectID(investigation.aiRunId),
-          ...(investigation.subject.kind === "incident"
-            ? { incidentId: new ObjectID(investigation.subject.id) }
-            : { alertId: new ObjectID(investigation.subject.id) }),
-        });
-      }
-
-      const summaries: Map<string, string> =
-        await InvestigationReportSummary.getForRuns({
-          projectId,
-          runs: summaryRuns,
-        });
-
-      for (const investigation of input.investigations) {
-        const summary: string | undefined = summaries.get(
-          investigation.aiRunId,
-        );
-
-        if (summary) {
-          investigation.reportSummary = summary;
-        }
-      }
-    }
+    /*
+     * 6. What each problem's newest completed investigation concluded: the
+     * step its report suggests, and — when its TL;DR call failed — the
+     * Summary its report opens with.
+     */
+    await this.readReportConclusions({ projectId, input });
 
     return AiActivityInsightsBuilder.build(input);
   }
 
   /*
-   * The incidents and alerts the runs investigated, read under the caller's
-   * props, with what raised them: an alert's monitor (its own column), an
-   * incident's monitors (a relation, read as root for the incidents the
-   * caller could read — they only ever become an opaque grouping).
+   * The report conclusions of the runs the builder will show a finding for
+   * (AiActivityInsightsBuilder.getRunsNeedingReport): every one of them is
+   * about an incident or alert the caller may read.
+   */
+  public static async readReportConclusions(data: {
+    projectId: ObjectID;
+    input: AiActivityInsightsInput;
+  }): Promise<void> {
+    const needingReport: Set<string> = new Set<string>(
+      AiActivityInsightsBuilder.getRunsNeedingReport(data.input),
+    );
+
+    if (needingReport.size === 0) {
+      return;
+    }
+
+    const reportRuns: Array<InvestigationReportSummaryRun> = [];
+
+    for (const investigation of data.input.investigations) {
+      if (!needingReport.has(investigation.aiRunId) || !investigation.subject) {
+        continue;
+      }
+
+      reportRuns.push({
+        aiRunId: new ObjectID(investigation.aiRunId),
+        ...(investigation.subject.kind === "incident"
+          ? { incidentId: new ObjectID(investigation.subject.id) }
+          : { alertId: new ObjectID(investigation.subject.id) }),
+      });
+    }
+
+    if (reportRuns.length === 0) {
+      return;
+    }
+
+    const conclusions: Map<string, InvestigationReportConclusion> =
+      await InvestigationReportSummary.getConclusionsForRuns({
+        projectId: data.projectId,
+        runs: reportRuns,
+      });
+
+    for (const investigation of data.input.investigations) {
+      const conclusion: InvestigationReportConclusion | undefined =
+        conclusions.get(investigation.aiRunId);
+
+      if (!conclusion) {
+        continue;
+      }
+
+      if (conclusion.summary) {
+        investigation.reportSummary = conclusion.summary;
+      }
+
+      if (conclusion.nextStep) {
+        investigation.nextStep = conclusion.nextStep;
+      }
+    }
+  }
+
+  /*
+   * The incidents and alerts the page names, read under the caller's props:
+   * the window's ones linked to the scope (already read) and the ones the
+   * runs investigated, with what raised them — an alert's monitor (its own
+   * column), an incident's monitors (a relation, read as root for the
+   * incidents the caller could read — they only ever become an opaque
+   * grouping).
    */
   private static async readSubjects(data: {
     scope: AiActivityInsightsScope;
     runs: Array<AIRun>;
+    linkedIncidents: Array<Incident>;
+    linkedAlerts: Array<Alert>;
   }): Promise<Map<string, AiActivitySubjectInput>> {
     const { scope } = data;
     const subjects: Map<string, AiActivitySubjectInput> = new Map<
@@ -520,19 +643,37 @@ export default class AiActivityInsightsReader {
       AiActivitySubjectInput
     >();
 
+    const known: Set<string> = new Set<string>(
+      [...data.linkedIncidents, ...data.linkedAlerts]
+        .map((row: Incident | Alert): string => {
+          return row.id?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    // The runs' incidents and alerts not already read as linked ones.
     const incidentIds: Array<ObjectID> = getUniqueIds(
       data.runs.map((run: AIRun): ObjectID | undefined => {
-        return run.triggeredByIncidentId;
+        return run.triggeredByIncidentId &&
+          !known.has(run.triggeredByIncidentId.toString())
+          ? run.triggeredByIncidentId
+          : undefined;
       }),
     );
     const alertIds: Array<ObjectID> = getUniqueIds(
       data.runs.map((run: AIRun): ObjectID | undefined => {
         // A run about both is the incident's.
-        return run.triggeredByIncidentId ? undefined : run.triggeredByAlertId;
+        return !run.triggeredByIncidentId &&
+          run.triggeredByAlertId &&
+          !known.has(run.triggeredByAlertId.toString())
+          ? run.triggeredByAlertId
+          : undefined;
       }),
     );
 
-    const [incidents, alerts]: [Array<Incident>, Array<Alert>] =
+    const [runIncidents, runAlerts]: [Array<Incident>, Array<Alert>] =
       await Promise.all([
         incidentIds.length > 0
           ? readIfPermitted<Incident>(() => {
@@ -541,12 +682,7 @@ export default class AiActivityInsightsReader {
                   projectId: scope.projectId,
                   _id: QueryHelper.any(incidentIds),
                 },
-                select: {
-                  _id: true,
-                  title: true,
-                  incidentNumber: true,
-                  seriesLabels: true,
-                },
+                select: INCIDENT_SELECT as never,
                 limit: incidentIds.length,
                 skip: 0,
                 props: scope.props,
@@ -560,13 +696,7 @@ export default class AiActivityInsightsReader {
                   projectId: scope.projectId,
                   _id: QueryHelper.any(alertIds),
                 },
-                select: {
-                  _id: true,
-                  title: true,
-                  alertNumber: true,
-                  monitorId: true,
-                  seriesLabels: true,
-                },
+                select: ALERT_SELECT as never,
                 limit: alertIds.length,
                 skip: 0,
                 props: scope.props,
@@ -574,6 +704,18 @@ export default class AiActivityInsightsReader {
             })
           : Promise.resolve([]),
       ]);
+
+    const incidents: Array<Incident> = [
+      ...data.linkedIncidents,
+      ...runIncidents,
+    ].filter((incident: Incident): boolean => {
+      return Boolean(incident.id);
+    });
+    const alerts: Array<Alert> = [...data.linkedAlerts, ...runAlerts].filter(
+      (alert: Alert): boolean => {
+        return Boolean(alert.id);
+      },
+    );
 
     const readableIncidentIds: Array<ObjectID> = getUniqueIds(
       incidents.map((incident: Incident): ObjectID | null | undefined => {
@@ -618,37 +760,22 @@ export default class AiActivityInsightsReader {
     }
 
     for (const incident of incidents) {
-      if (!incident.id) {
-        continue;
-      }
+      const id: string = incident.id!.toString();
 
-      subjects.set(incident.id.toString(), {
-        kind: "incident",
-        id: incident.id.toString(),
-        title: incident.title || undefined,
-        number:
-          typeof incident.incidentNumber === "number"
-            ? incident.incidentNumber
-            : undefined,
-        monitorIds: monitorsByIncident.get(incident.id.toString()) || [],
-        seriesLabels: incident.seriesLabels || undefined,
-      });
+      if (!subjects.has(id)) {
+        subjects.set(
+          id,
+          toIncidentSubject(incident, monitorsByIncident.get(id) || []),
+        );
+      }
     }
 
     for (const alert of alerts) {
-      if (!alert.id) {
-        continue;
-      }
+      const id: string = alert.id!.toString();
 
-      subjects.set(alert.id.toString(), {
-        kind: "alert",
-        id: alert.id.toString(),
-        title: alert.title || undefined,
-        number:
-          typeof alert.alertNumber === "number" ? alert.alertNumber : undefined,
-        monitorIds: alert.monitorId ? [alert.monitorId.toString()] : [],
-        seriesLabels: alert.seriesLabels || undefined,
-      });
+      if (!subjects.has(id)) {
+        subjects.set(id, toAlertSubject(alert));
+      }
     }
 
     return subjects;
@@ -671,6 +798,7 @@ export default class AiActivityInsightsReader {
         status: true,
         verificationStatus: true,
         createdAt: true,
+        approvedAt: true,
         incidentId: true,
         alertId: true,
       },

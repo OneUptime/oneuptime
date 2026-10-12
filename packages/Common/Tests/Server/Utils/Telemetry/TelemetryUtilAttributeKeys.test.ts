@@ -38,6 +38,7 @@ import TelemetryUtil, {
 } from "../../../../Server/Utils/Telemetry/Telemetry";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -235,12 +236,7 @@ describe("TelemetryUtil.mergeAttributeKeysWithSortedBase", () => {
      * key alphabets, each checked element-for-element against the
      * reference derivation the old per-datapoint code used.
      */
-    let seed: number = 42;
-    const nextRandom: () => number = (): number => {
-      // Park-Miller minimal standard PRNG — deterministic across runs.
-      seed = (seed * 16807) % 2147483647;
-      return seed / 2147483647;
-    };
+    const nextRandom: SeededRandom = seededRandom(42);
 
     const alphabet: Array<string> = [
       "a",

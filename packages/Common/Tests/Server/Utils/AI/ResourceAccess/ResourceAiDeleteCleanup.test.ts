@@ -57,9 +57,12 @@ const SUGGESTED_ID: ObjectID = new ObjectID(
   "66666666-6666-4666-8666-666666666666",
 );
 
-// A stand-in for a resource's DatabaseService: the read is all it is asked.
+/*
+ * A stand-in for a resource's DatabaseService: the read of the rows the
+ * delete removes, with the delete held to them, is all it is asked.
+ */
 interface FakeService {
-  findBy: jest.Mock;
+  findRowsAndHoldDeleteToThem: jest.Mock;
 }
 
 function fakeService(
@@ -67,7 +70,7 @@ function fakeService(
     { id: RESOURCE_ID, _id: RESOURCE_ID.toString(), name: "web-1" },
   ],
 ): FakeService {
-  return { findBy: jest.fn().mockResolvedValue(rows) };
+  return { findRowsAndHoldDeleteToThem: jest.fn().mockResolvedValue(rows) };
 }
 
 function asService(service: FakeService): DatabaseService<BaseModel> {
@@ -213,27 +216,29 @@ describe("ResourceAiDeleteCleanup", () => {
   }
 
   describe("beforeDelete", () => {
-    it("reads the matched resources in the caller's project, then their in-flight rounds of that type", async () => {
+    it("reads the resources the delete removes, holding the delete to them, then their in-flight rounds of that type", async () => {
+      const request: DeleteBy<BaseModel> = deleteBy();
+
       const carryForward: ResourceAiDeleteCarryForward =
         await ResourceAiDeleteCleanup.beforeDelete({
           resourceType: AiResourceType.DockerHost,
           service: asService(service),
-          deleteBy: deleteBy(),
+          deleteBy: request,
         });
 
-      const resourceRead: {
-        query: Record<string, unknown>;
-        select: Record<string, unknown>;
-        props: Record<string, unknown>;
-      } = service.findBy.mock.calls[0]![0] as {
-        query: Record<string, unknown>;
-        select: Record<string, unknown>;
-        props: Record<string, unknown>;
-      };
-      expect(resourceRead.query["_id"]).toBe(RESOURCE_ID.toString());
-      expect(resourceRead.query["projectId"]).toBe(PROJECT_ID);
-      expect(resourceRead.select["name"]).toBe(true);
-      expect(resourceRead.props["isRoot"]).toBe(true);
+      // The delete itself, so the rows read are the rows it removes.
+      expect(service.findRowsAndHoldDeleteToThem).toHaveBeenCalledTimes(1);
+      expect(service.findRowsAndHoldDeleteToThem.mock.calls[0]![0]).toBe(
+        request,
+      );
+      expect(
+        (
+          service.findRowsAndHoldDeleteToThem.mock.calls[0]![1] as Record<
+            string,
+            unknown
+          >
+        )["name"],
+      ).toBe(true);
 
       const suggestionQuery: Record<string, unknown> = (
         suggestionFind.mock.calls[0]![0] as { query: Record<string, unknown> }
@@ -256,21 +261,25 @@ describe("ResourceAiDeleteCleanup", () => {
       expect(deleteAgents).not.toHaveBeenCalled();
     });
 
-    it("a root delete (no project) reads by the delete's own query", async () => {
+    it("a root delete reads its rows the same way, by the delete itself", async () => {
+      const request: DeleteBy<BaseModel> = deleteBy({
+        isRoot: true,
+      } as DatabaseCommonInteractionProps);
+
       await ResourceAiDeleteCleanup.beforeDelete({
         resourceType: AiResourceType.DockerHost,
         service: asService(service),
-        deleteBy: deleteBy({ isRoot: true } as DatabaseCommonInteractionProps),
+        deleteBy: request,
       });
 
-      const query: Record<string, unknown> = (
-        service.findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
-      ).query;
-      expect(query).toEqual({ _id: RESOURCE_ID.toString() });
+      expect(service.findRowsAndHoldDeleteToThem.mock.calls[0]![0]).toBe(
+        request,
+      );
+      expect(request.query).toEqual({ _id: RESOURCE_ID.toString() });
     });
 
     it("negative control: a delete that matches no resource reads no round", async () => {
-      service.findBy.mockResolvedValue([]);
+      service.findRowsAndHoldDeleteToThem.mockResolvedValue([]);
 
       const carryForward: ResourceAiDeleteCarryForward =
         await ResourceAiDeleteCleanup.beforeDelete({
@@ -283,8 +292,24 @@ describe("ResourceAiDeleteCleanup", () => {
       expect(carryForward.inFlightRounds).toEqual([]);
     });
 
-    it("never blocks the delete: a failed read is logged and hands over nothing", async () => {
-      service.findBy.mockRejectedValue(new Error("db down"));
+    it("refuses the delete when the resources it removes cannot be read: the delete is held to the rows read", async () => {
+      service.findRowsAndHoldDeleteToThem.mockRejectedValue(
+        new Error("db down"),
+      );
+
+      await expect(
+        ResourceAiDeleteCleanup.beforeDelete({
+          resourceType: AiResourceType.CephCluster,
+          service: asService(service),
+          deleteBy: deleteBy(),
+        }),
+      ).rejects.toThrow("db down");
+
+      expect(suggestionFind).not.toHaveBeenCalled();
+    });
+
+    it("never blocks the delete on its rounds: a failed read of them is logged and hands over nothing", async () => {
+      suggestionFind.mockRejectedValue(new Error("db down"));
 
       const carryForward: ResourceAiDeleteCarryForward =
         await ResourceAiDeleteCleanup.beforeDelete({
@@ -296,7 +321,7 @@ describe("ResourceAiDeleteCleanup", () => {
       expect(carryForward).toEqual({
         resourceType: AiResourceType.CephCluster,
         inFlightRounds: [],
-        resourceNames: {},
+        resourceNames: { [RESOURCE_ID.toString()]: "web-1" },
       });
       expect(String(loggedError.mock.calls[0]![0])).toContain(
         "could not read the in-flight AI remediation rounds of the Ceph cluster(s) being deleted",
@@ -354,7 +379,7 @@ describe("ResourceAiDeleteCleanup", () => {
     });
 
     it("settles only the rounds of resources that were actually deleted, and deletes only their agents", async () => {
-      service.findBy.mockResolvedValue([
+      service.findRowsAndHoldDeleteToThem.mockResolvedValue([
         { id: RESOURCE_ID, name: "web-1" },
         { id: OTHER_RESOURCE_ID, name: "web-2" },
       ]);
@@ -482,7 +507,9 @@ describe("ResourceAiDeleteCleanup", () => {
     });
 
     it("a resource without a name is still named by its type", async () => {
-      service.findBy.mockResolvedValue([{ id: RESOURCE_ID, name: "  " }]);
+      service.findRowsAndHoldDeleteToThem.mockResolvedValue([
+        { id: RESOURCE_ID, name: "  " },
+      ]);
 
       await deleteResource();
 

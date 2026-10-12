@@ -372,6 +372,118 @@ test.describe("Create a workflow", () => {
     await expect(nextButton(dialog)).toHaveCount(0);
   });
 
+  /*
+   * A Jira template that links the issue in what it writes asks first for
+   * the site that link goes to: the address people open Jira at, apart from
+   * the Jira API URL the requests go to. A page's address pasted from the
+   * address bar is refused where it is typed, saying what to type, and
+   * nothing is created; a site's address, with the slash an address bar
+   * ends it with, is saved as typed.
+   */
+  test("a Jira template that links the issue asks for the Jira Site URL first, refuses a page's address there, and saves a site's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openDialog(page);
+
+    await dialog
+      .getByTestId("workflow-template-view-select")
+      .selectOption("Jira");
+    await templateRow(
+      dialog,
+      "Add Jira comments to the incident as private notes",
+    ).click();
+    await nextButton(dialog).click();
+    await expect(dialog.getByTestId("workflow-name-input")).toHaveValue(
+      "Copy Jira comments to incident",
+    );
+    await nextButton(dialog).click();
+
+    const site: Locator = dialog.getByTestId("workflow-variable-jiraSiteUrl");
+    const api: Locator = dialog.getByTestId("workflow-variable-jiraBaseUrl");
+    const token: Locator = dialog.getByTestId(
+      "workflow-variable-jiraBasicAuthToken",
+    );
+    const message: string =
+      "Enter only your Jira site's address, such as https://your-company.atlassian.net, not a page in it. On Jira Data Center, enter its base URL, such as https://example.com/jira.";
+
+    // The site first, and focused: the address people know best.
+    await expect(site).toBeFocused();
+    await expect(
+      dialog.locator('label[for="workflow-variable-jiraSiteUrl"]'),
+    ).toHaveText("Jira Site URL");
+    await expect(
+      dialog.locator('label[for="workflow-variable-jiraBaseUrl"]'),
+    ).toHaveText("Jira API URL");
+    expect((await boxOf(site)).y).toBeLessThan((await boxOf(api)).y);
+    expect((await boxOf(api)).y).toBeLessThan((await boxOf(token)).y);
+    await expect(site).toHaveAttribute("type", "text");
+
+    /*
+     * Typed once: the Jira API URL takes the site's address until it is
+     * typed into, without the slash the site may end with.
+     */
+    await site.fill("https://acme.atlassian.net/");
+    await expect(api).toHaveValue("https://acme.atlassian.net");
+    await site.fill("https://acme.atlassian.net/jira/your-work");
+    await expect(api).toHaveValue("https://acme.atlassian.net/jira/your-work");
+    await api.fill("https://acme.atlassian.net");
+    await token.fill("cHJpeWFAYWNtZS5jb206QVRBVFQzeEZmR0YwUzNjcjN0");
+    await submitButton(dialog).click();
+
+    await expect(dialog).toContainText(message);
+    await expect(site).toHaveAttribute("aria-invalid", "true");
+    expect(await createdRecords(page)).toEqual([]);
+
+    // The Configure step fits a phone's width as well as a laptop's.
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBeLessThanOrEqual(0);
+
+    await site.fill("https://acme.atlassian.net/");
+    await expect(dialog).not.toContainText(message);
+    // Typed into, the Jira API URL keeps what was typed there.
+    await expect(api).toHaveValue("https://acme.atlassian.net");
+    await submitButton(dialog).click();
+
+    await expect(page.getByTestId("created-workflow")).toHaveText(
+      "Opened the builder for Copy Jira comments to incident",
+    );
+
+    const records: Array<CreatedRecord> = await createdRecords(page);
+
+    expect(
+      records.map((record: CreatedRecord): string => {
+        return `${record.kind} ${record.name}`;
+      }),
+    ).toEqual([
+      "workflow Copy Jira comments to incident",
+      "variable jiraSiteUrl",
+      "variable jiraBaseUrl",
+      "variable jiraBasicAuthToken",
+    ]);
+    expect(records[1]).toEqual({
+      kind: "variable",
+      name: "jiraSiteUrl",
+      content: "https://acme.atlassian.net/",
+      isSecret: false,
+      workflowId: CREATED_WORKFLOW_ID,
+    });
+    // The script that writes the note is handed the site by reference.
+    expect(JSON.stringify(records[0]?.graph)).toContain(
+      "{{local.variables.jiraSiteUrl}}",
+    );
+    expect(JSON.stringify(records[0]?.graph)).not.toContain(
+      "acme.atlassian.net",
+    );
+  });
+
   test("Back from Name keeps the template picked, its details open, and the focus on the list", async ({
     page,
   }: {

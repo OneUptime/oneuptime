@@ -26,6 +26,16 @@ import { FORM_DESCRIPTION_MAX_LENGTH } from "./FormTargetCatalog";
  * The form opens with its default template, when it has one: a form whose
  * only template is its default is a pre-filled form.
  *
+ * A template can also ask the form's questions its own way (fieldSettings):
+ * make a question Required, Optional or Hidden for the case it is for -
+ * "Application Outage" requires the affected application and hides the
+ * maintenance window, "Planned Maintenance" requires the window - so one
+ * form serves cases that need different questions. A question a template
+ * says nothing about is asked as the form asks it (getFormQuestionAsked),
+ * which is how every template asks a question added to the form later. A
+ * question the form's target cannot be created without is asked, and
+ * required, whatever a template says.
+ *
  * This module holds what a template is and the list operations the
  * dashboard's Templates page makes; how an answer is checked against its
  * question is FormPublic's (getFormTemplateAnswers,
@@ -37,6 +47,38 @@ import { FORM_DESCRIPTION_MAX_LENGTH } from "./FormTargetCatalog";
  * Pure, with no database or React imports.
  */
 
+/*
+ * How a template asks one of the form's questions, in place of how the form
+ * asks it (FormField.isRequired, FormField.isHidden):
+ *
+ *   - Required: asked, and the form cannot be submitted without an answer;
+ *   - Optional: asked, and may be left empty;
+ *   - Hidden: not asked - the template's own answer, if it has one, is the
+ *     answer, as for a question the form hides.
+ *
+ * "Use the form's default" is no setting at all: the question is left out of
+ * the template's fieldSettings. The values are stored, so they never change
+ * once released.
+ */
+export enum FormTemplateFieldSetting {
+  Required = "Required",
+  Optional = "Optional",
+  Hidden = "Hidden",
+}
+
+// Every setting, in the order a picker lists them.
+export const FORM_TEMPLATE_FIELD_SETTINGS: ReadonlyArray<FormTemplateFieldSetting> =
+  [
+    FormTemplateFieldSetting.Required,
+    FormTemplateFieldSetting.Optional,
+    FormTemplateFieldSetting.Hidden,
+  ];
+
+export type FormTemplateFieldSettings = Record<
+  string,
+  FormTemplateFieldSetting
+>;
+
 export interface FormTemplate {
   // Never changes once the template exists: links name it.
   id: string;
@@ -46,6 +88,12 @@ export interface FormTemplate {
   isDefault?: boolean | undefined;
   // Keyed by question id.
   answers: JSONObject;
+  /*
+   * How the template asks the questions it asks its own way, keyed by
+   * question id. A question it does not list is asked as the form asks it.
+   * Left out when it lists none.
+   */
+  fieldSettings?: FormTemplateFieldSettings | undefined;
 }
 
 // The most templates one form has.
@@ -99,6 +147,116 @@ export const generateFormTemplateId: GenerateFormTemplateIdFunction =
     return ObjectID.generate().toString();
   };
 
+export type IsFormTemplateFieldSettingFunction = (
+  value: unknown,
+) => value is FormTemplateFieldSetting;
+
+// Whether a value is one of the settings, spelled exactly as stored.
+export const isFormTemplateFieldSetting: IsFormTemplateFieldSettingFunction = (
+  value: unknown,
+): value is FormTemplateFieldSetting => {
+  return (
+    typeof value === "string" &&
+    (FORM_TEMPLATE_FIELD_SETTINGS as ReadonlyArray<string>).includes(value)
+  );
+};
+
+/*
+ * How one question is asked: whether the submitter is asked it at all, and
+ * whether it must then be answered.
+ */
+export interface FormQuestionAsked {
+  isAsked: boolean;
+  // Never true for a question that is not asked.
+  isRequired: boolean;
+}
+
+export type GetFormQuestionAskedFunction = (data: {
+  // How the form asks it (FormField.isRequired, FormField.isHidden).
+  isRequired: boolean;
+  isHidden: boolean;
+  /*
+   * A question the form's target cannot be created without: asked, and
+   * required, whatever a template says.
+   */
+  isLocked?: boolean | undefined;
+  // The template's setting for it; none to ask it as the form does.
+  setting?: FormTemplateFieldSetting | null | undefined;
+}) => FormQuestionAsked;
+
+/**
+ * How a question is asked once the template a submission starts from has
+ * had its say - the one rule the public page, the dashboard's preview and
+ * the server's submit check all follow:
+ *
+ *   - a question the target cannot do without is asked and required;
+ *   - otherwise the template's setting decides: Required, Optional or
+ *     Hidden;
+ *   - with no setting (or no template), the form's own: asked unless it is
+ *     hidden, required when it says so - and a hidden question is never
+ *     required, since nobody is asked it.
+ */
+export const getFormQuestionAsked: GetFormQuestionAskedFunction = (data: {
+  isRequired: boolean;
+  isHidden: boolean;
+  isLocked?: boolean | undefined;
+  setting?: FormTemplateFieldSetting | null | undefined;
+}): FormQuestionAsked => {
+  if (data.isLocked) {
+    return { isAsked: true, isRequired: true };
+  }
+
+  switch (data.setting) {
+    case FormTemplateFieldSetting.Required:
+      return { isAsked: true, isRequired: true };
+    case FormTemplateFieldSetting.Optional:
+      return { isAsked: true, isRequired: false };
+    case FormTemplateFieldSetting.Hidden:
+      return { isAsked: false, isRequired: false };
+    default:
+      return data.isHidden
+        ? { isAsked: false, isRequired: false }
+        : { isAsked: true, isRequired: data.isRequired === true };
+  }
+};
+
+export type GetFormTemplateFieldSettingFunction = (
+  template:
+    | { fieldSettings?: FormTemplateFieldSettings | null | undefined }
+    | null
+    | undefined,
+  fieldId: string,
+) => FormTemplateFieldSetting | undefined;
+
+/*
+ * The template's setting for one question, or nothing when it asks the
+ * question as the form does. Read as an own key only: a question id such as
+ * "constructor" never finds Object.prototype's.
+ */
+export const getFormTemplateFieldSetting: GetFormTemplateFieldSettingFunction =
+  (
+    template:
+      | { fieldSettings?: FormTemplateFieldSettings | null | undefined }
+      | null
+      | undefined,
+    fieldId: string,
+  ): FormTemplateFieldSetting | undefined => {
+    const settings: FormTemplateFieldSettings | null | undefined =
+      template?.fieldSettings;
+
+    if (
+      !settings ||
+      typeof settings !== "object" ||
+      !Object.prototype.hasOwnProperty.call(settings, fieldId)
+    ) {
+      return undefined;
+    }
+
+    const setting: unknown = settings[fieldId];
+
+    return isFormTemplateFieldSetting(setting) ? setting : undefined;
+  };
+
 type IsAnswerScalarFunction = (value: unknown) => boolean;
 
 const isAnswerScalar: IsAnswerScalarFunction = (value: unknown): boolean => {
@@ -137,21 +295,24 @@ const isAnswerValue: IsAnswerValueFunction = (value: unknown): boolean => {
   return isAnswerScalar(value);
 };
 
-type DefineFunction = (
-  target: JSONObject,
+export type DefineOwnValueFunction = <TValue>(
+  target: Record<string, TValue>,
   key: string,
-  value: JSONValue,
+  value: TValue,
 ) => void;
 
 /*
- * Defined, not assigned: a key such as "__proto__" would set the object's
- * prototype instead of storing the answer. (Question ids cannot be such a
- * key, but the value read here may come from anywhere.)
+ * Stores a value under a key of a form's own - a question id, a template's
+ * answer or setting - as the object's own property. Defined, not assigned:
+ * a key such as "__proto__" would set the object's prototype instead of
+ * storing the value. (Question ids cannot be such a key, but what forms read
+ * may come from anywhere: a stranger's request, a stored row.) Every forms
+ * module that keys an object by question id stores through this.
  */
-const define: DefineFunction = (
-  target: JSONObject,
+export const defineOwnValue: DefineOwnValueFunction = <TValue>(
+  target: Record<string, TValue>,
   key: string,
-  value: JSONValue,
+  value: TValue,
 ): void => {
   Object.defineProperty(target, key, {
     value: value,
@@ -184,7 +345,7 @@ const readAnswers: ReadAnswersFunction = (value: unknown): JSONObject => {
       continue;
     }
 
-    define(
+    defineOwnValue<JSONValue>(
       answers,
       key,
       Array.isArray(answer)
@@ -197,14 +358,58 @@ const readAnswers: ReadAnswersFunction = (value: unknown): JSONObject => {
   return answers;
 };
 
+export type ReadFormTemplateFieldSettingsFunction = (
+  value: unknown,
+) => FormTemplateFieldSettings;
+
+/**
+ * A template's settings, as read - stored, sent by the server to the public
+ * page, or held by the dashboard's editor: a copy, in which an entry keyed by
+ * something that cannot be a question id, or set to anything but a setting
+ * (null included: the form's default), is dropped. Never throws. Which
+ * questions a setting may be for is the reader's to narrow (the page's
+ * questions, the editor's).
+ */
+export const readFormTemplateFieldSettings: ReadFormTemplateFieldSettingsFunction =
+  (value: unknown): FormTemplateFieldSettings => {
+    const settings: FormTemplateFieldSettings = {};
+
+    if (!isPlainObject(value)) {
+      return settings;
+    }
+
+    let count: number = 0;
+
+    for (const key of Object.keys(value)) {
+      if (count >= FORM_MAX_FIELDS) {
+        break;
+      }
+
+      const setting: unknown = value[key];
+
+      if (
+        !FORM_FIELD_ID_PATTERN.test(key) ||
+        !isFormTemplateFieldSetting(setting)
+      ) {
+        continue;
+      }
+
+      defineOwnValue<FormTemplateFieldSetting>(settings, key, setting);
+      count++;
+    }
+
+    return settings;
+  };
+
 export type ReadFormTemplatesFunction = (value: unknown) => Array<FormTemplate>;
 
 /**
  * A form's stored templates, in order, as the dashboard and the server read
  * them: an entry with no usable id or name is dropped, and so is a second
  * template with an id already listed; an answer that cannot be one is
- * dropped from its template; only the first default is a default. Never
- * throws.
+ * dropped from its template, and so is a setting that cannot be one (a
+ * template left with none has no fieldSettings); only the first default is a
+ * default. Never throws.
  */
 export const readFormTemplates: ReadFormTemplatesFunction = (
   value: unknown,
@@ -237,6 +442,13 @@ export const readFormTemplates: ReadFormTemplatesFunction = (
       name: name.slice(0, FORM_TEMPLATE_NAME_MAX_LENGTH),
       answers: readAnswers(entry["answers"]),
     };
+
+    const fieldSettings: FormTemplateFieldSettings =
+      readFormTemplateFieldSettings(entry["fieldSettings"]);
+
+    if (Object.keys(fieldSettings).length > 0) {
+      template.fieldSettings = fieldSettings;
+    }
 
     if (entry["isDefault"] === true && !hasDefault) {
       template.isDefault = true;
@@ -273,6 +485,59 @@ export const describeFormTemplate: DescribeFormTemplateFunction = (data: {
     : `Template ${data.index + 1}`;
 };
 
+type GetFieldSettingsProblemFunction = (data: {
+  value: unknown;
+  // How the problem names the template: describeFormTemplate.
+  label: string;
+}) => string | null;
+
+// What is wrong with a template's fieldSettings, as stored; null for nothing.
+const getFieldSettingsProblem: GetFieldSettingsProblemFunction = (data: {
+  value: unknown;
+  label: string;
+}): string | null => {
+  if (data.value === undefined || data.value === null) {
+    return null;
+  }
+
+  if (!isPlainObject(data.value)) {
+    return `${data.label}: its field settings must be an object keyed by question.`;
+  }
+
+  const settings: Record<string, unknown> = data.value;
+  const keys: Array<string> = Object.keys(settings);
+
+  if (keys.length > FORM_MAX_FIELDS) {
+    return `${data.label} cannot set more than ${FORM_MAX_FIELDS} questions.`;
+  }
+
+  if (
+    keys.some((key: string): boolean => {
+      return !FORM_FIELD_ID_PATTERN.test(key);
+    })
+  ) {
+    return `${data.label}: its field settings must be keyed by question id.`;
+  }
+
+  if (
+    keys.some((key: string): boolean => {
+      return (
+        settings[key] !== null && !isFormTemplateFieldSetting(settings[key])
+      );
+    })
+  ) {
+    return `${data.label}: each field setting must be ${FIELD_SETTINGS_IN_WORDS}.`;
+  }
+
+  return null;
+};
+
+// "Required, Optional or Hidden", as a refusal names the settings.
+const FIELD_SETTINGS_IN_WORDS: string = [
+  FORM_TEMPLATE_FIELD_SETTINGS.slice(0, -1).join(", "),
+  FORM_TEMPLATE_FIELD_SETTINGS[FORM_TEMPLATE_FIELD_SETTINGS.length - 1],
+].join(" or ");
+
 export type ValidateFormTemplatesFunction = (value: unknown) => string | null;
 
 /**
@@ -285,11 +550,15 @@ export type ValidateFormTemplatesFunction = (value: unknown) => string | null;
  *     of the form has (whatever the case);
  *   - Default true or false, and at most one default;
  *   - answers, when given, an object keyed by question ids, each answer
- *     text, a number, a yes/no or a list of those.
+ *     text, a number, a yes/no or a list of those;
+ *   - fieldSettings, when given, an object keyed by question ids, each
+ *     setting Required, Optional or Hidden (or null: the form's default).
  *
  * Whether each answer suits its question - an option the question offers,
- * a number where a number is asked - needs the questions as the public page
- * asks them, so the server checks that too (validateFormTemplateAnswers).
+ * a number where a number is asked - and whether each setting is for a
+ * question the form asks, and one a template may change, needs the
+ * questions as the public page asks them, so the server checks that too
+ * (validateFormTemplateAnswers).
  */
 export const validateFormTemplates: ValidateFormTemplatesFunction = (
   value: unknown,
@@ -361,6 +630,15 @@ export const validateFormTemplates: ValidateFormTemplatesFunction = (
       problems.push(`${label}: Default must be true or false.`);
     } else if (isDefault === true) {
       defaults++;
+    }
+
+    const fieldSettingsProblem: string | null = getFieldSettingsProblem({
+      value: entry["fieldSettings"],
+      label: label,
+    });
+
+    if (fieldSettingsProblem) {
+      problems.push(fieldSettingsProblem);
     }
 
     const answers: unknown = entry["answers"];
@@ -529,8 +807,8 @@ export type SaveFormTemplateFunction = (data: {
 /**
  * Adds a template at the end, or - when one with its id is listed - puts it
  * in that one's place. A template saved as the default takes the default
- * from any other. A form that already has FORM_MAX_TEMPLATES templates gets
- * no new one.
+ * from any other, and one that sets no question carries no fieldSettings. A
+ * form that already has FORM_MAX_TEMPLATES templates gets no new one.
  */
 export const saveFormTemplate: SaveFormTemplateFunction = (data: {
   templates: Array<FormTemplate>;
@@ -540,6 +818,11 @@ export const saveFormTemplate: SaveFormTemplateFunction = (data: {
 
   if (saved.isDefault !== true) {
     delete saved.isDefault;
+  }
+
+  // A template that asks every question as the form does lists no settings.
+  if (!saved.fieldSettings || Object.keys(saved.fieldSettings).length === 0) {
+    delete saved.fieldSettings;
   }
 
   const exists: boolean = data.templates.some(
@@ -580,9 +863,10 @@ export type DuplicateFormTemplateFunction = (data: {
 }) => FormTemplatesChange;
 
 /**
- * Copies a template right after it, with a new id and the next name of its
- * series ("Outage 2"), and never as the default: a form has one. A form
- * that is full, or a template that is not listed, is returned as it was.
+ * Copies a template right after it - its answers, and how it asks each
+ * question - with a new id and the next name of its series ("Outage 2"),
+ * and never as the default: a form has one. A form that is full, or a
+ * template that is not listed, is returned as it was.
  */
 export const duplicateFormTemplate: DuplicateFormTemplateFunction = (data: {
   templates: Array<FormTemplate>;
@@ -611,11 +895,77 @@ export const duplicateFormTemplate: DuplicateFormTemplateFunction = (data: {
     answers: JSON.parse(JSON.stringify(original.answers)) as JSONObject,
   };
 
+  if (
+    original.fieldSettings &&
+    Object.keys(original.fieldSettings).length > 0
+  ) {
+    copy.fieldSettings = {
+      ...original.fieldSettings,
+    };
+  }
+
   const templates: Array<FormTemplate> = [...data.templates];
   templates.splice(index + 1, 0, copy);
 
   return { templates, templateId: copy.id };
 };
+
+export type LimitFormTemplatesToQuestionsFunction = (data: {
+  // The stored templates (Form.templates).
+  templates: unknown;
+  // The ids of the questions the form has (Form.fields).
+  fieldIds: Array<string>;
+}) => Array<FormTemplate>;
+
+/**
+ * The templates as read (readFormTemplates), each keeping only its answers
+ * to, and settings for, the questions listed. For a copy of a form: the
+ * server judges a new form's templates whole, and an answer or setting
+ * left behind by a question removed since was never used by the original.
+ */
+export const limitFormTemplatesToQuestions: LimitFormTemplatesToQuestionsFunction =
+  (data: {
+    templates: unknown;
+    fieldIds: Array<string>;
+  }): Array<FormTemplate> => {
+    const fieldIds: Set<string> = new Set<string>(data.fieldIds);
+
+    return readFormTemplates(data.templates).map(
+      (template: FormTemplate): FormTemplate => {
+        const limited: FormTemplate = { ...template, answers: {} };
+
+        for (const key of Object.keys(template.answers)) {
+          if (fieldIds.has(key)) {
+            defineOwnValue<JSONValue>(
+              limited.answers,
+              key,
+              template.answers[key] as JSONValue,
+            );
+          }
+        }
+
+        const settings: FormTemplateFieldSettings = {};
+
+        for (const key of Object.keys(template.fieldSettings || {})) {
+          if (fieldIds.has(key)) {
+            defineOwnValue<FormTemplateFieldSetting>(
+              settings,
+              key,
+              template.fieldSettings![key]!,
+            );
+          }
+        }
+
+        if (Object.keys(settings).length > 0) {
+          limited.fieldSettings = settings;
+        } else {
+          delete limited.fieldSettings;
+        }
+
+        return limited;
+      },
+    );
+  };
 
 export type RemoveFormTemplateFunction = (data: {
   templates: Array<FormTemplate>;

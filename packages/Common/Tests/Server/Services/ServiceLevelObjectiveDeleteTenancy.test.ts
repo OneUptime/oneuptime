@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
+import { meetsCondition } from "../TestingUtils/QueryConditions";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -255,13 +256,28 @@ function projectAdminProps(): DatabaseCommonInteractionProps {
 }
 
 /*
- * Plain equality on the columns these paths filter on. Anything else - a find
- * operator above all - throws, so a query this fake cannot really answer fails
- * the test instead of silently matching every row.
+ * Plain equality on the columns these paths filter on, and the rows a write
+ * is held to by id ("any of" them, as the delete path names the rows its
+ * hooks read). Anything else - any other find operator above all - throws,
+ * so a query this fake cannot really answer fails the test instead of
+ * silently matching every row.
  */
 function matchesQuery(row: unknown, query: Record<string, unknown>): boolean {
   for (const key of Object.keys(query)) {
     const expected: unknown = query[key];
+
+    if (key === "_id" && typeof expected === "object" && expected !== null) {
+      if (
+        !(expected instanceof ObjectID) &&
+        !meetsCondition(expected, (row as Record<string, unknown>)["_id"])
+      ) {
+        return false;
+      }
+
+      if (!(expected instanceof ObjectID)) {
+        continue;
+      }
+    }
 
     if (!(typeof expected === "string" || expected instanceof ObjectID)) {
       throw new Error(

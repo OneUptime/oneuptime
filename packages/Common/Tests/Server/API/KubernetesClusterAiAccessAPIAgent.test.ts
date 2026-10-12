@@ -1072,10 +1072,13 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       windowStart: "2026-08-24T00:00:00.000Z",
       generatedAt: "2026-09-22T10:00:00.000Z",
       totals: {
+        occurrences: 1,
         investigations: 1,
         completedInvestigations: 1,
         failedInvestigations: 0,
         activeInvestigations: 0,
+        confirmedFindings: 0,
+        rejectedFindings: 0,
         problems: 1,
         recurringProblems: 0,
         fixes: 0,
@@ -1083,7 +1086,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         failedCommands: 0,
         timedOutCommands: 0,
       },
-      attention: [],
+      insights: [],
       problems: [],
       hotspots: [],
       fixOutcomes: {
@@ -1270,6 +1273,18 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         .spyOn(AutoRemediationSuggestionService, "findBy")
         .mockResolvedValue([]);
       jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+      jest.spyOn(IncidentFeedService, "findBy").mockResolvedValue([]);
+      // The investigation's report: what it suggests doing.
+      const feedFind: jest.SpyInstance = jest
+        .spyOn(AlertFeedService, "findBy")
+        .mockResolvedValue([
+          {
+            aiRunId: RUN_ID,
+            alertId: ALERT_ID,
+            feedInfoInMarkdown:
+              "**Summary** — No node has 4 free CPUs.\n\n**Suggested next steps**\n- Add a node with 8 CPUs to the default pool [C1].",
+          },
+        ] as never);
 
       await callRoute(INSIGHTS_ROUTE);
 
@@ -1283,7 +1298,16 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       expect(insights.problems[0]!.latestFinding!.text).toBe(
         "No node has 4 free CPUs.",
       );
+      expect(insights.problems[0]!.latestNextStep).toBe(
+        "Add a node with 8 CPUs to the default pool.",
+      );
+      expect(insights.insights).toEqual([]);
       expect(insights.trend).toHaveLength(30);
+      // The report is read as root, for that run only.
+      expect(
+        (feedFind.mock.calls[0]![0] as { props: Record<string, unknown> })
+          .props,
+      ).toEqual({ isRoot: true });
     });
   });
 });

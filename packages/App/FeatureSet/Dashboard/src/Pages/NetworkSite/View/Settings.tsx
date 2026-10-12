@@ -17,6 +17,10 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import {
+  SITE_MORE_FIELDS,
+  SITE_TYPE_FIELD_DESCRIPTION,
+} from "../SiteFormSections";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -44,6 +48,11 @@ const NetworkSiteSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        /*
+         * The Add Site form's three steps, so a field sits under the same
+         * step on both: the description and location fold under More fields
+         * on Site Details rather than walking a step of their own.
+         */
         formSteps={[
           {
             title: "Site Details",
@@ -52,10 +61,6 @@ const NetworkSiteSettings: FunctionComponent<
           {
             title: "Hierarchy",
             id: "hierarchy",
-          },
-          {
-            title: "Location",
-            id: "location",
           },
           {
             title: "Monitoring Defaults",
@@ -69,8 +74,7 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Site Type",
             stepId: "site-details",
-            description:
-              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
+            description: SITE_TYPE_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
             onChange: (
@@ -104,9 +108,47 @@ const NetworkSiteSettings: FunctionComponent<
             },
             title: "Description",
             stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
+          },
+          {
+            field: {
+              address: true,
+            },
+            title: "Address",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "742 Evergreen Terrace, Springfield, IL",
+          },
+          {
+            field: {
+              latitude: true,
+            },
+            title: "Latitude",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description:
+              "Between -90 and 90. Needed to pin this site on the network map.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "39.7817",
+          },
+          {
+            field: {
+              longitude: true,
+            },
+            title: "Longitude",
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description:
+              "Between -180 and 180. Needed to pin this site on the network map.",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "-89.6501",
           },
           {
             field: {
@@ -125,40 +167,6 @@ const NetworkSiteSettings: FunctionComponent<
             },
             required: false,
             placeholder: "No parent site (top level)",
-          },
-          {
-            field: {
-              address: true,
-            },
-            title: "Address",
-            stepId: "location",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "742 Evergreen Terrace, Springfield, IL",
-          },
-          {
-            field: {
-              latitude: true,
-            },
-            title: "Latitude",
-            stepId: "location",
-            description:
-              "Between -90 and 90. Needed to pin this site on the network map.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "39.7817",
-          },
-          {
-            field: {
-              longitude: true,
-            },
-            title: "Longitude",
-            stepId: "location",
-            description:
-              "Between -180 and 180. Needed to pin this site on the network map.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "-89.6501",
           },
           {
             field: {

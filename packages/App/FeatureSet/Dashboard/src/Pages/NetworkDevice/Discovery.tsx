@@ -40,6 +40,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ModelField, {
   CustomElementProps,
+  FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -65,14 +66,25 @@ import {
 import ScanModeUtil, {
   ScanMethodLabel,
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getDefaultProbeId,
+  getProbeDropdownOptions,
+} from "../../Components/NetworkDevice/ProbeOptions";
+import {
+  NetworkQuickAction,
+  clearNetworkQuickAction,
+  isNetworkQuickActionRequested,
+} from "../../Components/Network/NetworkQuickActions";
 import {
   buildDeviceName,
   buildFallbackDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
   getDiscoveredHostFullName,
+  getDiscoveredHostNameSource,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
-import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
 import {
   DiscoveredHostNamingExplanation,
   explainUnnamedDiscoveredHost,
@@ -88,6 +100,7 @@ import ObjectID from "Common/Types/ObjectID";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE } from "../../Components/NetworkDevice/BulkDeviceActionTitles";
 import {
   DiscoveryScanOutcome,
   getDiscoveredHosts,
@@ -138,13 +151,25 @@ interface ReviewRequest {
 }
 
 /*
- * The scan's optional name — the first field of the create wizard, and the
- * first field of the Edit dialog.
+ * More fields on the new-scan form: the name, how hosts are named, and the
+ * schedule. A scan is defined by three questions - what to sweep, from
+ * which probe, and whether to read what answers over SNMP - and those are
+ * all the form shows. Everything else has a default that suits a first
+ * scan, and the folded header lists it by name, its set values as chips,
+ * so nothing is hidden. Built once: BasicForm and FormStepsScan both join
+ * consecutive fields into one fold by this one object.
+ */
+const DISCOVERY_SCAN_MORE_FIELDS: FormFieldCollapsibleSection<NetworkDeviceDiscoveryScan> =
+  getAdvancedFormSection<NetworkDeviceDiscoveryScan>();
+
+/*
+ * The scan's optional name, under More fields.
  *
- * It carries a `stepId` because the wizard is stepped. The Edit dialog is not,
- * and simply does not read it: BasicForm renders every field when a form
- * declares no steps, and Validation skips its step guard for the same reason.
- * See Common/UI/Components/Forms/BasicForm.
+ * Not required, and no longer the first thing asked (issue #3391 made it
+ * the first field so a scan could be told apart in the list): someone
+ * sweeping one subnet needs no name, and the list shows the scan target
+ * when there is none. Someone running many scans opens More fields, where
+ * it is the first field.
  */
 const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   field: {
@@ -152,30 +177,26 @@ const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
   },
   title: "Name",
   stepId: "scan-target",
+  collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
   fieldType: FormFieldSchemaType.Text,
   required: false,
   placeholder: "Router Discovery - Region 1100",
-  /*
-   * Deliberately the FIRST thing the wizard asks for, and deliberately not
-   * required. A scan is identified in the list by whatever is here, falling
-   * back to its target — so the question is worth asking before the target is
-   * typed, and worth not insisting on for the operator sweeping one subnet
-   * once (issue #3391).
-   */
   description:
-    "Optional. What this scan is for - 'Router Discovery - Region 1100' - so you can tell it apart from other scans without matching address ranges by eye. The list shows the scan target instead when this is empty.",
+    "What this scan is for, so you can tell it apart from other scans. The list shows the scan target when this is empty.",
   customValidation: validateScanName,
 };
 
 /*
- * The three questions a discovery scan is defined by, in the order they are
- * asked. Declared once and handed to BOTH the create wizard on the table and
- * the Edit dialog below, because a step the edit form does not have is a
- * setting that can be created and then never corrected — which is the whole
- * of OneUptime issue #3444. Both walk them: long forms are stepped, edit
- * forms included, and an edit dialog saves from any step and opens any step
- * from its step list, so the toggle an operator came to flip is one click
- * away rather than behind every step before it.
+ * The steps of a scan, declared once and handed to BOTH the create wizard on
+ * the table and the Edit dialog below, because a step the edit form does not
+ * have is a setting that can be created and then never corrected — which is
+ * the whole of OneUptime issue #3444.
+ *
+ * Two, and only one for a ping sweep. What to scan comes first, with its
+ * More fields fold (name, naming, and the schedule that used to be a third
+ * step of its own); the credentials come second, and only when the scan
+ * reads SNMP. An edit dialog opens any step from its step list, so the
+ * setting an operator came to change is one click away.
  */
 const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
   { title: "Scan Target", id: "scan-target" },
@@ -191,7 +212,6 @@ const DISCOVERY_SCAN_FORM_STEPS: Array<FormStep<NetworkDeviceDiscoveryScan>> = [
    * and an inline arrow could carry a `]}` that truncates its match.
    */
   { title: "SNMP Credentials", id: "snmp", showIf: isSnmpStepNeeded },
-  { title: "Schedule", id: "schedule" },
 ];
 
 export type GetDiscoveryScanFormFieldsFunction = (
@@ -212,7 +232,6 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
   probes: Array<Probe>,
 ): Array<ModelField<NetworkDeviceDiscoveryScan>> => {
   return [
-    SCAN_NAME_FORM_FIELD,
     {
       field: {
         cidr: true,
@@ -229,7 +248,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * /24s" without creating hundreds of separate scans.
        */
       description: translateTemplate(
-        "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. A single scan may cover at most {{max}} addresses.",
+        "A subnet such as 192.168.1.0/24, or a range where any part may be low-high: 10.16-22.0-255.51-66 scans .51 to .66 in every /24 from 10.16 to 10.22. One scan covers up to {{max}} addresses.",
         { max: ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US") },
       ),
       /*
@@ -296,7 +315,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * a probe in another network and wait for an empty result.
        */
       description:
-        "The probe that sweeps this subnet. It has to be able to reach the subnet directly — a probe in another network, or outside the firewall, will scan and find nothing. If you have no probe deployed on this network yet, create a custom probe and run it there; it appears in this list once it connects.",
+        "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing.",
       sideLink: {
         text: "Create a custom probe",
         url: RouteUtil.populateRouteParams(
@@ -315,21 +334,16 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * unnamed probe row — a global probe, or one registered before it
        * was named — did not degrade the dropdown: it threw during render
        * and blanked the entire Discovery Scans page, including the list
-       * of existing scans.
+       * of existing scans. The Add Device form shares the helper now.
        */
-      dropdownOptions: probes
-        .filter((probe: Probe) => {
-          return Boolean(probe._id);
-        })
-        .map((probe: Probe) => {
-          return {
-            label:
-              probe.name ||
-              translateTemplate("Probe {{id}}", { id: String(probe._id) }),
-            value: probe._id!,
-          };
-        }),
+      dropdownOptions: getProbeDropdownOptions(probes),
       required: true,
+      /*
+       * The project's one custom probe, when it has exactly one: a question
+       * with one answer is not a question. An Edit dialog reads the scan's
+       * own probe - a default only fills an empty field.
+       */
+      defaultValue: getDefaultProbeId(probes),
       placeholder: "Probe",
     },
     /*
@@ -353,11 +367,13 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * FieldLabel appends "(Optional)" to every non-required field.
        */
       hideOptionalLabel: true,
-      sectionTitle: "What to check",
-      sectionDescription:
-        "Every scan pings each address in the range to find what is alive. SNMP is the second question: it is what gives a device its name and vendor, and what lets OneUptime poll it for interfaces and health.",
+      /*
+       * Name and vendor, NOT model or interfaces: the sweep reads the SNMP
+       * system group (sysName / sysDescr / sysObjectId); a device's model
+       * and its interfaces arrive later, from the device's own polls.
+       */
       description:
-        "Leave this on to identify what answers, using the credentials on the next step. Turn it off for an ICMP-only sweep: no SNMP packet is sent, no credentials are asked for, and the SNMP step is skipped. Everything an ICMP-only scan finds imports as a device pinged by the scan's probe; add SNMP credentials later for inventory.",
+        "Every scan pings each address in the range to find what is alive. Leave this on to also read the name and vendor of what answers over SNMP, with the credentials on the next step. Turn it off for an ICMP-only sweep: no credentials are asked for, and everything found is added as a device pinged by the scan's probe - add SNMP credentials later to read its details.",
       /*
        * Clear the credentials on the way past. Hiding the fields is not enough
        * on its own: ModelForm builds the request body from every DECLARED field
@@ -412,16 +428,23 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       },
     },
     /*
-     * Whether the probe asks still-unnamed hosts for their NetBIOS name
+     * More fields starts here: the name, the naming switches and the
+     * schedule, one fold at the end of the first step (and nothing after
+     * them on it - a fold holds consecutive fields).
+     */
+    SCAN_NAME_FORM_FIELD,
+    /*
+     * Whether the probe asks hosts SNMP did not name for their NetBIOS name
      * (OneUptime issue #3677): the Windows machines that otherwise sit in the
      * Review dialog as bare addresses, because they have no PTR record and no
-     * SNMP.
+     * SNMP — and, since issue #4518, the ones reverse DNS did name, because a
+     * Windows host's own computer name (WB0024KDS04) names the device ahead
+     * of whatever its reverse zone says (wb-0024-kds04.wbhq.com).
      *
-     * UNDER "What to check", with no heading of its own, because unlike the
-     * naming toggle below it IS a packet the scan puts on the wire — one UDP
-     * datagram to port 137 of each such host, plus a retry — and that is
-     * exactly what the heading is about. It must come BEFORE the "Device
-     * names" heading, or BasicForm would draw it under that heading instead.
+     * Under More fields, with the other naming switch: most scans leave it
+     * as it is. It IS a packet the scan puts on the wire - one UDP datagram
+     * to port 137 of each such host, plus a retry - which its description
+     * says.
      *
      * On the scan-target step and with no `showIf`, for the naming toggle's
      * reason: an ICMP-only scan removes the SNMP step, and a host with no SNMP
@@ -444,37 +467,44 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
      * The Edit dialog's footer says so.
      *
      * The description carries what an operator needs before turning it on or
-     * leaving it on: that it is best-effort, which hosts are asked, the hard
-     * limits the probe enforces whatever this says (private addresses only,
-     * never from a global probe), the firewall rule it needs, and when to turn
-     * it off. The name is self-reported, which the Review dialog marks on each
-     * row it names.
+     * leaving it on: that it is best-effort, which hosts are asked, that the
+     * name it finds wins over the reverse-DNS name, the hard limits the probe
+     * enforces whatever this says (private addresses only, never from a global
+     * probe), the firewall rule it needs, and when to turn it off. The Review
+     * dialog marks each row it names.
      */
     {
       field: {
         isNetbiosLookupEnabled: true,
       },
-      title: "Look up NetBIOS names for hosts DNS doesn't name",
+      title: "Look up Windows names (NetBIOS)",
       stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      /*
+       * A small heading inside the fold, over the two naming switches:
+       * how a host is named, in order, so the NetBIOS lookup reads as the
+       * step it is in that order — the device's own names first (#4518).
+       */
+      sectionTitle: "Device names",
+      sectionDescription:
+        "What each device imported from this scan is called. A host is named by its own name first: the name it reports over SNMP, then the NetBIOS name a Windows host reports if the scan looks one up. Then by its reverse-DNS name, then by its address.",
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: true,
       // A toggle is always answered one way or the other; see isSnmpEnabled.
       hideOptionalLabel: true,
       description:
-        "Best-effort: after the sweep, the probe asks each host that has no SNMP name and no reverse-DNS name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.",
+        "Best-effort: after the sweep, the probe asks each host that has no SNMP name for its NetBIOS name over UDP 137. Windows and Samba hosts usually answer, and the name is the one the host reports for itself (its Windows computer name), so it is used ahead of the host's reverse-DNS name. Only private addresses are asked, and global probes never send these queries. Hosts must allow UDP 137 from the probe. Turn this off if your intrusion detection system flags NetBIOS queries.",
     },
     /*
      * How the hosts this scan finds are NAMED when they import (OneUptime
      * issue #3678): "core-sw-01" rather than "core-sw-01.corp.example.com".
      *
-     * Its own section, directly after the "What to check" questions (the
-     * method toggle and the NetBIOS lookup), for two reasons. "What to check"
-     * is about what the probe SENDS, and this sends nothing — filing it under
-     * that heading would read as another packet the scan puts on the wire. And it must stay on the scan-target step, never on
-     * the SNMP step: an ICMP-only scan removes that step, and a host with no
-     * SNMP is exactly the host named by its reverse-DNS FQDN, so the setting
-     * would vanish for the scans it matters most to.
+     * Under More fields, after the NetBIOS lookup. It must stay on the
+     * scan-target step, never on the SNMP step: an ICMP-only scan removes
+     * that step, and a host with no SNMP is exactly the host named by its
+     * reverse-DNS FQDN, so the setting would vanish for the scans it matters
+     * most to.
      *
      * No `showIf`, for the same reason: every scan names its hosts, whatever
      * it checks.
@@ -499,16 +529,67 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       },
       title: "Name devices by their short hostname",
       stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       defaultValue: false,
       // A toggle is always answered one way or the other; see isSnmpEnabled.
       hideOptionalLabel: true,
-      sectionTitle: "Device names",
-      sectionDescription:
-        "What each device imported from this scan is called. A host is named by the name it reports over SNMP, then by its reverse-DNS name, then by the NetBIOS name it reports if the scan looked one up, then by its address.",
       description:
         "Name imported devices by the first part of a fully qualified hostname - 'core-sw-01' instead of 'core-sw-01.corp.example.com'. The full DNS name is kept on the device as its DNS Name (a name the device reports over SNMP stays in full as its System Name), and names that are not fully qualified, such as addresses, are left as they are. It changes only what devices are called, so no rescan is needed: Review Results uses it the next time it opens, and so do auto-import rules. Devices already imported keep their names. Label and owner rules whose name patterns were written against full names (such as *.corp.example.com) will not match the new short names.",
+    },
+    {
+      field: {
+        isRecurring: true,
+      },
+      title: "Repeat this scan",
+      /*
+       * On the first step, under More fields: the schedule used to be a
+       * step of its own that every scan walked through to reach the button,
+       * for a switch most first scans leave off. Its own small heading in
+       * the fold, after the naming switches.
+       */
+      stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      sectionTitle: "Schedule",
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
+      hideOptionalLabel: true,
+      description:
+        "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
+    },
+    /*
+     * Only meaningful together with the toggle above, so it reveals
+     * itself the same way the v3 credential fields do in
+     * SnmpConfigFormFields.ts: showIf on the controlling value.
+     */
+    {
+      field: {
+        rescanIntervalInMinutes: true,
+      },
+      title: "Rescan Interval (Minutes)",
+      stepId: "scan-target",
+      collapsibleSection: DISCOVERY_SCAN_MORE_FIELDS,
+      fieldType: FormFieldSchemaType.Number,
+      required: true,
+      placeholder: "60",
+      description: translateTemplate(
+        "How often to re-run this scan, in minutes. Minimum {{minutes}} minutes.",
+        { minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES },
+      ),
+      /*
+       * One validator rather than a `validation: { minValue }` beside it:
+       * the built-in minimum runs the value through parseInt, so "20.5"
+       * reads as 20 and clears a floor of 15 before failing the INSERT
+       * against an integer column — and customValidation runs last, so a
+       * minValue declared alongside would only have its message
+       * overwritten. See DiscoveryScanFormValidation.
+       */
+      customValidation: validateRescanInterval,
+      showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
+        return Boolean(item.isRecurring);
+      },
     },
     /*
      * The scan's ORDERED LIST of SNMP credential sets, first match wins.
@@ -578,50 +659,6 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
             }
           />
         );
-      },
-    },
-    {
-      field: {
-        isRecurring: true,
-      },
-      title: "Repeat this scan",
-      stepId: "schedule",
-      fieldType: FormFieldSchemaType.Toggle,
-      required: false,
-      // "Repeat this scan (Optional)" is noise on a toggle. Same as the method toggle above.
-      hideOptionalLabel: true,
-      description:
-        "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
-    },
-    /*
-     * Only meaningful together with the toggle above, so it reveals
-     * itself the same way the v3 credential fields do in
-     * SnmpConfigFormFields.ts: showIf on the controlling value.
-     */
-    {
-      field: {
-        rescanIntervalInMinutes: true,
-      },
-      title: "Rescan Interval (Minutes)",
-      stepId: "schedule",
-      fieldType: FormFieldSchemaType.Number,
-      required: true,
-      placeholder: "60",
-      description: translateTemplate(
-        "How often to re-run this scan, in minutes. Minimum {{minutes}} minutes.",
-        { minutes: MINIMUM_RESCAN_INTERVAL_IN_MINUTES },
-      ),
-      /*
-       * One validator rather than a `validation: { minValue }` beside it:
-       * the built-in minimum runs the value through parseInt, so "20.5"
-       * reads as 20 and clears a floor of 15 before failing the INSERT
-       * against an integer column — and customValidation runs last, so a
-       * minValue declared alongside would only have its message
-       * overwritten. See DiscoveryScanFormValidation.
-       */
-      customValidation: validateRescanInterval,
-      showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
-        return Boolean(item.isRecurring);
       },
     },
   ];
@@ -708,6 +745,22 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  /*
+   * Opened from a "Discover Devices" link (the Overview, the Devices list's
+   * empty state): the new-scan form opens as soon as the table is drawn,
+   * after the probes are in. Read once, and the action leaves the address
+   * at once so a refresh does not open the form again.
+   */
+  const [isNewScanRequested] = useState<boolean>((): boolean => {
+    return isNetworkQuickActionRequested(NetworkQuickAction.DiscoverDevices);
+  });
+
+  useEffect(() => {
+    if (isNewScanRequested) {
+      clearNetworkQuickAction();
+    }
+  }, [isNewScanRequested]);
+
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const liveUpdates: DiscoveryScanLiveUpdates = useDiscoveryScanLiveUpdates();
 
@@ -747,6 +800,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
    * import behaves exactly as it always has.
    */
   const [createPingMonitors, setCreatePingMonitors] = useState<boolean>(false);
+  /*
+   * Whether each SNMP host this import creates gets its vendor's health
+   * template on its first poll - the health OIDs and SNMP tables the device's
+   * Settings offers as "Vendor Health Template", picked from what the walk
+   * reports, exactly as an auto import rule's devices get them.
+   *
+   * ON by default: it is what the vendor banner on every such device would
+   * recommend, one device at a time, and an MSP importing thirty Cambium
+   * switches should not have to open thirty Settings pages - or remember a
+   * bulk action - to get their health. It only ever fills an EMPTY list, and
+   * the toggle is in the dialog, so leaving a batch without is one click.
+   */
+  const [applyVendorTemplates, setApplyVendorTemplates] =
+    useState<boolean>(true);
   /*
    * Imports made since this review's inventory lookup. Each successful fresh
    * read replaces that scan's record, so a deleted device becomes selectable
@@ -843,6 +910,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
      * nothing about the next scan, which may be a rack of switches.
      */
     setCreatePingMonitors(false);
+    setApplyVendorTemplates(true);
     setShowReviewModal(true);
 
     try {
@@ -948,6 +1016,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
     setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
     setCreatePingMonitors(false);
+    setApplyVendorTemplates(true);
     /*
      * Keep the import record until a successful fresh inventory read replaces
      * it. A failed request must never make remembered imports selectable.
@@ -1055,6 +1124,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
            */
           const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
             projectId: ProjectUtil.getCurrentProjectId()!,
+            /*
+             * The dialog's "Apply each SNMP host's vendor template" toggle.
+             * The builder sets it on SNMP hosts only: a ping-only host has
+             * no sysObjectID to match a template by. (Ahead of host and scan,
+             * which DiscoveryReviewHostname reads as the call's last two.)
+             */
+            autoApplyVendorHealthTemplate: applyVendorTemplates,
             host: entry,
             scan: scanToReview,
           });
@@ -1349,6 +1425,19 @@ const NetworkDeviceDiscovery: FunctionComponent<
   ).length;
 
   /*
+   * The hosts the vendor-template toggle is about: the importable ones that
+   * answered SNMP. Across the whole scan, like noSnmpHostCount, so the toggle
+   * does not come and go as the operator switches filters.
+   */
+  const importableSnmpHostCount: number = reviewEntries.filter(
+    (entry: DiscoveredDeviceEntry) => {
+      return (
+        isSelectableDiscoveredHost(entry) && !isPingOnlyDiscoveredHost(entry)
+      );
+    },
+  ).length;
+
+  /*
    * Whether the scan under review asked anything about SNMP. Null-safe on
    * purpose: this is computed on every render, including the ones where no
    * scan is being reviewed at all, and a scan with no method column — every
@@ -1399,6 +1488,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={false}
+        /*
+         * "Start Scan": a scan starts as soon as it is saved, and inside
+         * Network it needs no "Network Device Discovery" in front of it.
+         */
+        createVerb="Start"
+        singularName="Scan"
+        pluralName="Scans"
+        showCreateForm={isNewScanRequested}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
         onFetchSuccess={liveUpdates.onRowsLoaded}
@@ -1503,10 +1600,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
         cardProps={{
           title: "Discovery Scans",
           description:
-            "Sweep a subnet or octet range from a probe - ping only, or ping plus SNMP - then review what answered and import the devices you want to monitor.",
+            "Scan an address range to find the devices on it, then pick the ones to add. A scan pings every address, and reads the ones that answer over SNMP when you give it credentials.",
         }}
         noItemsMessage={
-          "No discovery scans yet. Start one to sweep a subnet or octet range and see what answers."
+          "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add."
         }
         formSteps={DISCOVERY_SCAN_FORM_STEPS}
         formFields={getDiscoveryScanFormFields(probes)}
@@ -2285,6 +2382,35 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * decision, not a side effect of recording inventory. Shown only
              * when this scan actually found hosts it applies to.
              */}
+            {/*
+             * Before the Ping monitor option: it is about the devices most
+             * scans are run for, and it is on by default.
+             */}
+            {/*
+             * No rule of its own above it: the filter row over it already
+             * ends in one. The Ping monitor option below keeps its rule, which
+             * then sits between the two switches.
+             */}
+            {importableSnmpHostCount > 0 && (
+              <div className="pt-1">
+                <Toggle
+                  title={translator.translatePlural(
+                    IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE,
+                    importableSnmpHostCount,
+                    {
+                      count: importableSnmpHostCount.toLocaleString("en-US"),
+                    },
+                  )}
+                  description="Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings."
+                  initialValue={applyVendorTemplates}
+                  value={applyVendorTemplates}
+                  dataTestId="discovered-device-apply-vendor-templates"
+                  onChange={(value: boolean) => {
+                    setApplyVendorTemplates(value);
+                  }}
+                />
+              </div>
+            )}
             {noSnmpHostCount > 0 && (
               <div className="mt-4 border-t border-gray-100 pt-4">
                 <Toggle
@@ -2452,42 +2578,34 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     ? normalizedDnsHostname
                     : undefined;
                 /*
-                 * Whether the name line is a NetBIOS name (issue #3677), so
-                 * the row can say so beside the address.
+                 * Whether the name line is a NetBIOS name (issues #3677,
+                 * #4518), so the row can say so beside the address.
                  *
-                 * Said because the name is SELF-REPORTED. A sysName is at least
-                 * configured by whoever runs the device and a PTR record by
-                 * whoever runs DNS; a NetBIOS name is whatever the machine on
-                 * the other end of a UDP datagram chose to answer, on a subnet
-                 * this project may not administer. The operator deciding to
-                 * import it deserves to know which of those they are trusting.
+                 * Said because a NetBIOS name is the Windows computer name the
+                 * host reported for itself, and since #4518 it names the row
+                 * AHEAD of the host's reverse-DNS name: an operator who knows
+                 * the estate by its DNS names sees "WB0024KDS04" where the
+                 * zone says "wb-0024-kds04.wbhq.com", and the hint (with the
+                 * PTR name after it on the same line) says why.
                  *
-                 * Derived from the naming order rather than from "the host has
-                 * a netbiosName": NetBIOS names a host only when it has no
-                 * sysName and no usable PTR name, and only a name that
-                 * normalises to exactly the name line counts. The sysName test
-                 * mirrors the builder's own (a string with something left after
-                 * trimming), and the PTR test reuses the re-normalised value
-                 * above. So a row named by SNMP or DNS never carries the hint
-                 * even if its jsonb also holds a NetBIOS answer, and a NetBIOS
+                 * Asked of the naming rule itself — the source the builder
+                 * names the row from — rather than worked out here, so the
+                 * hint can never disagree with the name line: a row named by
+                 * SNMP never carries it even if its jsonb also holds a NetBIOS
+                 * answer, a fifteen-character NetBIOS stump of the PTR name
+                 * loses to the PTR name and carries no hint, and a NetBIOS
                  * answer the rules reject leaves the row on its address with no
-                 * hint beside it. Re-normalised here, like the PTR name, rather
-                 * than trusted from the column.
+                 * hint beside it. The rule re-normalises every value rather
+                 * than trusting the column.
                  *
                  * Rendered as plain secondary text beside the address, not as a
                  * badge: it says where the name line came from, and a badge on
                  * the right would read as a state of the host alongside "No
                  * SNMP" and "Already added".
                  */
-                const normalizedNetbiosName: string | undefined =
-                  normalizeNetbiosName(entry.netbiosName);
                 const isNamedByNetbios: boolean =
-                  !(
-                    typeof entry.sysName === "string" && entry.sysName.trim()
-                  ) &&
-                  !normalizedDnsHostname &&
-                  Boolean(normalizedNetbiosName) &&
-                  normalizedNetbiosName === displayName;
+                  getDiscoveredHostNameSource(entry) ===
+                  DeviceNameSource.NetbiosName;
                 return (
                   <div
                     /*
@@ -2597,7 +2715,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                             <span
                               className="text-gray-400"
                               title={translator.translateText(
-                                "The host reported this name itself over NetBIOS. It has no SNMP name and no reverse-DNS name to confirm it.",
+                                "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.",
                               )}
                             >
                               {" · "}

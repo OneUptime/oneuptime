@@ -69,6 +69,13 @@ export interface ComponentProps {
   onToggle?: ((isCollapsed: boolean) => void) | undefined;
   // A block of its own on a page, among cards: a card's shadow.
   isElevated?: boolean | undefined;
+  /*
+   * The body holds sections (Card/CardSections) that pad themselves and draw
+   * the divider above each one: the body adds no padding and no rule of its
+   * own, and its bottom is rounded with the frame's, so the last section -
+   * a table's grey footer too - ends on the frame's curve.
+   */
+  isBodyFlush?: boolean | undefined;
   className?: string | undefined;
   dataTestId?: string | undefined;
   children: ReactNode;
@@ -352,13 +359,23 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
           isCollapsed
             ? "max-h-0 opacity-0 invisible transition-all"
             : "max-h-[5000px] opacity-100 transition-[max-height,opacity]"
+        }${
+          props.isBodyFlush
+            ? props.isElevated
+              ? " rounded-b-xl"
+              : " rounded-b-lg"
+            : ""
         }`}
         data-testid="folded-section-body"
       >
         <div
-          className={`border-t border-gray-200 ${
-            props.isElevated ? "px-5 py-5 md:px-6" : "px-4 py-4"
-          }`}
+          className={
+            props.isBodyFlush
+              ? ""
+              : `border-t border-gray-200 ${
+                  props.isElevated ? "px-5 py-5 md:px-6" : "px-4 py-4"
+                }`
+          }
         >
           {props.children}
         </div>

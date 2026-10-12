@@ -47,6 +47,7 @@ import MonitorType, {
 } from "../../Types/Monitor/MonitorType";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
+import { DEFAULT_NTP_PORT } from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import ObjectID from "../../Types/ObjectID";
 
 import EventFieldChange, {
@@ -116,6 +117,7 @@ import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
+import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
@@ -290,6 +292,24 @@ export class Service extends ProjectReferencesService<Model> {
              * address — a DIFFERENT host from the one being monitored, named
              * in an alert somebody is about to act on.
              */
+            monitorDestination = HostAddressUtil.formatHostAndPort({
+              host: monitorDestination,
+              port: port,
+            });
+          }
+        }
+
+        /*
+         * For NTP monitors, the server, with its port only when it is not
+         * NTP's own 123 - the field is optional and usually left empty.
+         */
+        if (
+          monitorType === MonitorType.NTP &&
+          firstStep?.data?.monitorDestinationPort
+        ) {
+          const port: string = firstStep.data.monitorDestinationPort.toString();
+
+          if (monitorDestination && port && port !== String(DEFAULT_NTP_PORT)) {
             monitorDestination = HostAddressUtil.formatHostAndPort({
               host: monitorDestination,
               port: port,
@@ -529,16 +549,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const monitorsPendingDeletion: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    /*
+     * The monitors the delete removes, and the delete held to them: only
+     * their status page resources go and only their channels are archived.
+     */
+    const monitorsPendingDeletion: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
-      },
-      props: deleteBy.props,
-    });
+      });
 
     for (const monitor of monitorsPendingDeletion) {
       if (!monitor.id) {
@@ -771,25 +790,16 @@ export class Service extends ProjectReferencesService<Model> {
        * refuses a monitor that was stored broken before the guard existed. See
        * MonitorStepsProjectValidator.
        */
-      const monitors: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: {
+      const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           projectId: true,
           monitorType: true,
           monitorSteps: true,
           monitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      );
 
       const writtenMonitorTemplateId: ObjectID | null =
         RelationIdUtil.readConsistent(
@@ -797,6 +807,17 @@ export class Service extends ProjectReferencesService<Model> {
           MONITOR_TEMPLATE_RELATION_KEYS,
           "Monitor Template",
         );
+
+      if (isMonitorStepsWritten && updateBy.data.monitorSteps) {
+        (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+          await this.assignWrittenMonitorStepIds({
+            monitorSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject,
+            matchedMonitors: monitors,
+            tenantId: updateBy.props.tenantId,
+          });
+      }
 
       for (const monitor of monitors) {
         if (isMonitorStepsWritten) {
@@ -806,11 +827,11 @@ export class Service extends ProjectReferencesService<Model> {
                 monitorSteps: updateBy.data.monitorSteps as
                   | MonitorSteps
                   | JSONObject,
-                /*
-                 * Root/API updates do not always carry a tenantId, so fall back
-                 * to the project of the monitor being updated.
-                 */
-                projectId: updateBy.props.tenantId || monitor.projectId,
+                // The project the monitor being updated is checked in.
+                projectId: Service.getProjectToCheckRowIn(
+                  updateBy.props,
+                  monitor.projectId,
+                ),
                 alreadyStoredMonitorSteps: monitor.monitorSteps,
               },
             );
@@ -845,7 +866,10 @@ export class Service extends ProjectReferencesService<Model> {
           if (writtenMonitorTemplateId) {
             await this.validateMonitorTemplateReference({
               monitorTemplateId: writtenMonitorTemplateId,
-              projectId: updateBy.props.tenantId || monitor.projectId,
+              projectId: Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ),
               monitorType: monitor.monitorType,
               props: updateBy.props,
             });
@@ -854,10 +878,24 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * The projects the update's references are checked in
+     * (findProjectsToCheckUpdateIn), read once for every check below that
+     * needs them.
+     */
+    let projectsToCheckIn: Array<ObjectID> | null = null;
+    const getProjectsToCheckIn: () => Promise<
+      Array<ObjectID>
+    > = async (): Promise<Array<ObjectID>> => {
+      if (!projectsToCheckIn) {
+        projectsToCheckIn = await this.findProjectsToCheckUpdateIn(updateBy);
+      }
+
+      return projectsToCheckIn;
+    };
+
     if (currentMonitorStatusReferences.length > 0) {
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.getProjectIdsForUpdateQuery(updateBy);
+      const projectIds: Array<ObjectID> = await getProjectsToCheckIn();
 
       for (const projectId of projectIds) {
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
@@ -872,11 +910,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.validateLinkedResourcesBelongToProject({
       payload: updateBy.data,
-      getProjectIds: async (): Promise<Array<ObjectID>> => {
-        return updateBy.props.tenantId
-          ? [updateBy.props.tenantId]
-          : await this.getProjectIdsForUpdateQuery(updateBy);
-      },
+      getProjectIds: getProjectsToCheckIn,
     });
 
     if (
@@ -892,25 +926,21 @@ export class Service extends ProjectReferencesService<Model> {
        * all targets — not once per monitor (a bulk update could match
        * thousands).
        */
-      const monitorsToValidate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const monitorsToValidate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+        });
 
       await this.validateDependencyConfiguration({
         targets: monitorsToValidate.map((monitor: Model) => {
           return {
             monitorId: monitor.id || null,
-            projectId: updateBy.props.tenantId || monitor.projectId || null,
+            projectId:
+              Service.getProjectToCheckRowIn(
+                updateBy.props,
+                monitor.projectId,
+              ) || null,
           };
         }),
         proposedParents: updateBy.data.dependsOnMonitors,
@@ -931,16 +961,10 @@ export class Service extends ProjectReferencesService<Model> {
         updateBy.data.disableActiveMonitoring === false ||
         updateBy.data.isArchived === false)
     ) {
-      const monitors: Array<Model> = await this.findBy({
-        query:
-          !updateBy.props.isRoot && updateBy.props.tenantId
-            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-            : updateBy.query,
-        select: { projectId: true, monitorType: true },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { projectId: true, monitorType: true },
+      );
       const checkedProjects: Set<string> = new Set<string>();
 
       for (const monitor of monitors) {
@@ -990,10 +1014,11 @@ export class Service extends ProjectReferencesService<Model> {
    * workflow may write the whole monitor back, so their being there is no
    * news.
    *
-   * Read as root - the answer only decides what the feed says - but held to
-   * the caller's project, like the other reads here: the update's own
-   * permission check narrows it only after this hook runs. Keyed by monitor
-   * id; null, with nothing read, when the update writes none of the three.
+   * Read as root - the answer only decides what the feed says - from the
+   * monitors the update writes (findRowsAndHoldUpdateToThem): for a
+   * teammate, the ones they may write, with the update held to them. Keyed
+   * by monitor id; null, with nothing read, when the update writes none of
+   * the three.
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -1007,22 +1032,13 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    const monitors: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> = {};
 
@@ -1344,33 +1360,23 @@ export class Service extends ProjectReferencesService<Model> {
     data["incomingEmailCustomLocalPart"] = localPart;
 
     /*
-     * Two rows are enough to know the write targets more than one monitor,
-     * which is itself the error: one address cannot route to two monitors.
+     * The monitor the update writes. More than one is itself the error - one
+     * address cannot route to two monitors - and the update is refused
+     * before it writes any of them; two monitors read are enough to tell.
      */
-    const targets: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const written: { row: Model | null; writesMore: boolean } =
+      await this.findOneRowAndHoldUpdateToIt(updateBy, {
         _id: true,
         monitorType: true,
-      },
-      limit: 2,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+      });
 
-    if (targets.length > 1) {
+    if (written.writesMore) {
       throw new BadDataException(
         "A custom email address can only be set on one monitor at a time.",
       );
     }
 
-    const target: Model | undefined = targets[0];
+    const target: Model | null = written.row;
 
     // Nothing matched: the update writes nothing, so there is nothing to guard.
     if (!target) {
@@ -1453,33 +1459,6 @@ export class Service extends ProjectReferencesService<Model> {
         }),
       });
     }
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const monitors: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const monitor of monitors) {
-      if (monitor.projectId) {
-        projectIds[monitor.projectId.toString()] = monitor.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -1953,7 +1932,80 @@ export class Service extends ProjectReferencesService<Model> {
       monitorStatus.id,
     );
 
+    /*
+     * The ids inside monitorSteps are the server's to give (an API client such
+     * as the Terraform provider sends none), and steps with no default status
+     * fall back to this one, as the dashboard preselects it.
+     */
+    if (createBy.data.monitorSteps) {
+      createBy.data.monitorSteps = MonitorStepsIdentityUtil.assignIds({
+        monitorSteps: MonitorSteps.fromJSON(
+          createBy.data.monitorSteps as MonitorSteps | JSONObject,
+        ),
+        defaultMonitorStatusId: monitorStatus.id,
+      });
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * The written monitorSteps with their ids filled in, keeping the stored ids
+   * wherever the caller sent none - so a `terraform apply` that resends the
+   * steps keeps the criteria ids its open incidents point at (see
+   * MonitorStepsIdentityUtil). Only a write to a single monitor has stored
+   * steps to keep ids from; a bulk write gives every matched monitor the same
+   * steps, so it only fills in what is missing.
+   */
+  private async assignWrittenMonitorStepIds(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    matchedMonitors: Array<Model>;
+    tenantId?: ObjectID | undefined;
+  }): Promise<MonitorSteps> {
+    const monitorSteps: MonitorSteps = MonitorSteps.fromJSON(data.monitorSteps);
+    const storedMonitorSteps: MonitorSteps | undefined =
+      data.matchedMonitors.length === 1
+        ? data.matchedMonitors[0]!.monitorSteps
+        : undefined;
+
+    let defaultMonitorStatusId: ObjectID | null = null;
+
+    if (
+      !monitorSteps.data?.defaultMonitorStatusId &&
+      !storedMonitorSteps?.data?.defaultMonitorStatusId
+    ) {
+      const projectIds: Set<string> = new Set<string>(
+        data.matchedMonitors
+          .map((monitor: Model) => {
+            return monitor.projectId?.toString() || "";
+          })
+          .filter(Boolean),
+      );
+      /*
+       * The default status of the monitors' own project. Monitors of more
+       * than one project - a write of OneUptime's or a master admin's -
+       * share none, so none is filled in.
+       */
+      const projectId: string | undefined =
+        projectIds.size === 1
+          ? Array.from(projectIds)[0]
+          : projectIds.size === 0
+            ? data.tenantId?.toString()
+            : undefined;
+
+      if (projectId) {
+        defaultMonitorStatusId =
+          await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
+            new ObjectID(projectId),
+          );
+      }
+    }
+
+    return MonitorStepsIdentityUtil.assignIds({
+      monitorSteps,
+      storedMonitorSteps,
+      defaultMonitorStatusId,
+    });
   }
 
   @CaptureSpan()

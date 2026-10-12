@@ -1462,6 +1462,16 @@ enum Permission {
   EditNetworkDeviceDiagnostic = "EditNetworkDeviceDiagnostic",
   ReadNetworkDeviceDiagnostic = "ReadNetworkDeviceDiagnostic",
 
+  /*
+   * Packet captures run on the project's probes (PacketCapture). Starting
+   * one and downloading its file are separate permissions on purpose: the
+   * file holds the traffic itself.
+   */
+  CreatePacketCapture = "CreatePacketCapture",
+  DeletePacketCapture = "DeletePacketCapture",
+  ReadPacketCapture = "ReadPacketCapture",
+  DownloadPacketCapture = "DownloadPacketCapture",
+
   CreateNetworkSite = "CreateNetworkSite",
   DeleteNetworkSite = "DeleteNetworkSite",
   EditNetworkSite = "EditNetworkSite",
@@ -9008,6 +9018,46 @@ export class PermissionHelper {
           "This permission can read Network Device Diagnostic of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreatePacketCapture,
+        title: "Start Packet Capture",
+        description:
+          "This permission can start and stop packet captures on this project's probes. A capture records the network traffic itself, so give it only to people who need it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeletePacketCapture,
+        title: "Delete Packet Capture",
+        description:
+          "This permission can delete packet captures of this project, and their files.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadPacketCapture,
+        title: "Read Packet Capture",
+        description:
+          "This permission can see the packet captures of this project: when they ran, on which probe and with which filter. It cannot download their files.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DownloadPacketCapture,
+        title: "Download Packet Capture",
+        description:
+          "This permission can download the pcap files of this project's packet captures. The files hold the captured network traffic, which can include passwords and personal data.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Monitor,
       },

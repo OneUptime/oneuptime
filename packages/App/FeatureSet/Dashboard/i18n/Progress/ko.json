@@ -1,12 +1,19 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16120
+    "keys": 28012,
+    "untranslated": 16428
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
+    "AI / LLM",
+    "Grafana OnCall API URL",
     "Runner",
+    "Splunk On-Call API ID",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
     "{{itemName}} ID"
   ]
 }

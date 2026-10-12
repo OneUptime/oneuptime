@@ -44,6 +44,7 @@ import {
   parseInsightSeenWithin,
   parseInsightSort,
 } from "../../Components/AIInsights/InsightListOrdering";
+import InsightHighlights from "../../Components/AIInsights/InsightHighlights";
 import InsightListItem from "../../Components/AIInsights/InsightListItem";
 import InsightListSkeleton from "../../Components/AIInsights/InsightListSkeleton";
 import InsightStatusSummary, {
@@ -143,10 +144,13 @@ const readFilterParam: ReadFilterParamFunction = (
 };
 
 /*
- * The AI insights inbox: a triage strip of per-status counts (which is also
- * the status filter), one search/type/severity toolbar, and a single aligned
- * list where every finding reads as title-first with its status, detection
- * count and freshness in fixed right-hand columns.
+ * The AI insights inbox. It leads with what to look at first — the open
+ * finding that matters most, with what OneUptime AI's triage concluded, the
+ * service behind most of them, and what is new this week
+ * (InsightHighlights) — then a triage strip of per-status counts (which is
+ * also the status filter), one search/type/severity toolbar, and a single
+ * aligned list where every finding reads as title-first with its status,
+ * detection count and freshness in fixed right-hand columns.
  */
 const AIInsightsPage: FunctionComponent<
   PageComponentProps
@@ -688,12 +692,14 @@ const AIInsightsPage: FunctionComponent<
 
       <p className="max-w-3xl text-sm leading-6 text-gray-500">
         {translator.translateText(
-          "Proactive findings from OneUptime AI's deterministic telemetry sensors — new or spiking exceptions, error-log spikes, latency regressions and metric drift. Insights never page and never open incidents.",
+          "OneUptime AI watches your telemetry around the clock and tells you about problems before anyone is paged: new or spiking exceptions, error-log spikes, slower requests and metrics that drift. Insights never page and never open incidents.",
         )}{" "}
         {translator.translateText(
           "To be alerted when a finding happens again, open it and choose Create Monitor.",
         )}
       </p>
+
+      <InsightHighlights />
 
       <InsightStatusSummary
         buckets={statusBuckets}

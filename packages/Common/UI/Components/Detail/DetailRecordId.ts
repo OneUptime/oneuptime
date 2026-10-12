@@ -1,5 +1,4 @@
 import FieldType from "../Types/FieldType";
-import DatabaseProperty from "../../../Types/Database/DatabaseProperty";
 
 /*
  * "Raw IDs move out of the main detail grids into a small copy line."
@@ -64,33 +63,9 @@ export const isRecordIdField: (field: RecordIdFieldLike) => boolean = (
  * an ObjectID, or the { _type: "ObjectID", value } shape a JSON item carries.
  * Anything else - nothing, an empty string, an object with no value - is "",
  * which draws no line at all rather than an "ID" with nothing to copy.
+ *
+ * One reader for every place that shows a record's ID, so it lives with the
+ * other ID pieces (ObjectID/RecordIdText.ts); the Show ID dialog reads IDs
+ * through it too.
  */
-export const getRecordIdText: (value: unknown) => string = (
-  value: unknown,
-): string => {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  if (value instanceof DatabaseProperty) {
-    return value.toString().trim();
-  }
-
-  if (typeof value === "string") {
-    return value.trim();
-  }
-
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  if (typeof value === "object") {
-    const inner: unknown = (value as { value?: unknown }).value;
-
-    if (typeof inner === "string") {
-      return inner.trim();
-    }
-  }
-
-  return "";
-};
+export { getRecordIdText } from "../ObjectID/RecordIdText";

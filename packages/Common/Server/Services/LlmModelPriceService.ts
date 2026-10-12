@@ -1,5 +1,4 @@
 import Model from "../../Models/DatabaseModels/LlmModelPrice";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
@@ -98,18 +97,11 @@ export class Service extends DatabaseService<Model> {
 
     // Renaming a prefix must not collide with another entry of the project.
     if (validatedPrefix) {
-      const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        select: {
+      const itemsToUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        });
 
       for (const item of itemsToUpdate) {
         if (!item.projectId) {

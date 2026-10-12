@@ -1,159 +1,297 @@
-# Recursos y grupos
+# Recursos y grupos de la página de estado
 
-Un recurso es una fila de tu página de estado: un monitor (o un grupo de monitores) con un nombre que los visitantes entienden, un estado actual y, si quieres, un porcentaje de tiempo de actividad y un gráfico de historial. Un grupo es una sección que contiene recursos, de modo que una página con cuarenta monitores se lea como "API", "Aplicación web" y "Canalización de datos" en vez de como una lista interminable.
+Un recurso es una fila de tu página de estado: un monitor o un grupo de monitores, con un nombre que tus clientes entienden, su estado actual y, si quieres, su tiempo de actividad y su historial. Los grupos son secciones que contienen recursos, de modo que una página con cuarenta monitores se lee como «API», «Aplicación web» y «Canalización de datos» en lugar de como una lista interminable. Construyes ambos en una sola pantalla: abre una página de estado y elige **Recursos** en su menú lateral.
 
-Ambas cosas se montan en una sola pantalla. Abre una página de estado y elige **Recursos** en el menú lateral (el elemento pone **Monitores** en los proyectos que no tienen habilitados los grupos de monitores). Antes los grupos tenían página propia; ya no, y la antigua URL `/groups` redirige aquí sin más.
+:::cards
+- [Añadir un monitor](#añadir-un-monitor): Pon un monitor en la página, con el nombre que leen los visitantes.
+- [Grupos](#grupos): Divide la página en secciones y anídalas.
+- [Reglas de monitores](#añadir-monitores-automáticamente-con-reglas-de-monitores): Deja que una regla añada por ti cada monitor que coincida.
+- [Importar grupos desde CSV](#importar-grupos-desde-csv): Construye una jerarquía profunda de una vez.
+:::
 
-Acierta con esta parte y el resto de la página de estado es decoración. Los visitantes deciden "¿es cosa mía o suya?" a partir de estas filas, así que ponles el nombre con el que tus clientes hablan de tu producto: **Checkout API**, no `prod-checkout-lb-healthcheck-us-east-1`.
+Los visitantes juzgan «¿es cosa mía o de ellos?» a partir de estas filas, así que nómbralas como tus clientes hablan de tu producto: **Checkout API**, no `prod-checkout-lb-healthcheck-us-east-1`.
 
-## La pantalla de recursos
+## Cómo sube un estado por la página
 
-La pantalla está partida en dos. A la izquierda hay un navegador que lista todos los grupos de la página; a la derecha, el contenido del grupo que hayas seleccionado.
+Cada fila muestra el estado actual de su monitor. Cada nivel por encima muestra el peor estado de todo lo que hay debajo, siendo el peor estado el de mayor prioridad entre los estados de monitor de tu proyecto.
 
-- **El navegador de grupos (izquierda)** — un árbol de grupos, con un buscador (**Search groups...**) encima y un recuento debajo, del estilo de `3 groups · 12 resources`. Cuando una página tiene más grupos de los que caben, un botón **Show N more of M** revela el resto.
-- **Top of page** — la primera fila del navegador. Contiene los recursos que no están en ningún grupo, y su información sobre herramientas dice exactamente lo que eso significa: los visitantes los ven primero, por encima de todos los grupos. Si la página no tiene grupos, el panel derecho se titula **All resources**.
-- **El panel de recursos (derecha)** — se titula con el grupo que hayas seleccionado. Su cabecera lleva **Edit Group**, el botón principal **Añadir monitor** y un menú desbordado **More actions**.
+```mermaid title="Cómo llega el estado de un monitor a lo alto de la página"
+flowchart TB
+    subgraph Rows["Filas de recursos"]
+        direction LR
+        M["Monitor:<br/>su propio estado"]
+        MG["Grupo de monitores:<br/>el peor de sus monitores"]
+    end
+    Rows --> G["Encabezado del grupo:<br/>peor estado por debajo"]
+    G --> P["Grupo padre:<br/>peor estado por debajo"]
+    Rows --> O["Banner del estado general:<br/>peor estado de la página"]
+```
 
-En la cabecera de la propia tarjeta hay dos botones: **New Group** y un menú de tres puntos con **Import groups from CSV** y **Actualizar**.
+Un recurso decide más que el color de su fila:
 
-La descripción de la tarjeta cambia según la forma de tu página. Con grupos, dice que esto es todo lo que ven los visitantes y que elijas un grupo a la izquierda para editar su contenido. Si aún no hay grupos, te empuja a crear uno para partir una página larga en secciones.
+- **Los monitores archivados no se muestran.** Un monitor archivado ya no se comprueba, así que su último estado queda congelado; la página omite su fila (y lo deja fuera del estado de un grupo de monitores) en lugar de mostrar ese estado congelado como si fuera actual. La fila se conserva, así que desarchivar el monitor la recupera al instante.
+- **Los recursos deciden qué incidentes muestra la página.** Un incidente aparece aquí, y los suscriptores de la página se enteran, cuando uno de los monitores del incidente es un recurso de la página, directamente o a través de un grupo de monitores. Pon el mismo monitor en varias páginas y sus incidentes llegan a todas, salvo que un incidente se limite a algunas de ellas. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
+- **La fila de un grupo de monitores representa a cada monitor que contiene, también para los suscriptores.** En una página que permite a los suscriptores elegir recursos, quien se suscribe a un grupo de monitores se entera de los incidentes, los mantenimientos programados y los anuncios de cualquier monitor del grupo, como si hubiera elegido ese monitor. Consulta [Suscriptores y anuncios](/docs/status-pages/subscribers#dejar-que-los-suscriptores-elijan-recursos-y-tipos-de-eventos).
 
-**Los estados vacíos te dicen qué hacer.** Un grupo vacío muestra **No monitors here yet** con **Añadir monitor**, **Add Multiple** y —solo cuando la página de estado no tiene ningún grupo— **Create a Group**. Una búsqueda sin resultados muestra **No resources match your search**. Un navegador vacío explica que los grupos parten una página de estado larga en secciones y que se pueden anidar.
+## La pantalla Recursos
+
+La entrada se llama **Recursos** en los proyectos con los grupos de monitores activados, y **Monitores** en los demás; es la misma pantalla. Antes los grupos tenían su propia página, y la antigua dirección `/groups` abre ahora esta pantalla.
+
+La pantalla está dividida en dos:
+
+| Parte | Qué contiene |
+| ---- | ------------- |
+| **Navegador de grupos** (izquierda) | Todos los grupos de la página, en árbol, con un cuadro **Buscar grupos...** encima y un recuento debajo, como `3 groups · 12 resources`. Una lista larga termina con un botón **Mostrar N más de M**. |
+| **Parte superior de la página** | La primera fila del navegador: los recursos sin grupo, que los visitantes ven primero, por encima de todos los grupos. En una página sin grupos, el panel derecho se titula en su lugar **Todos los recursos**. |
+| **Panel de recursos** (derecha) | Los recursos del grupo seleccionado. Su cabecera contiene **Editar grupo**, el botón principal **Añadir monitor** y un menú **Más acciones**. |
+| Cabecera de la tarjeta | **Nuevo grupo** y un menú de tres puntos con **Importar grupos desde CSV** y **Actualizar**. |
+
+**Los estados vacíos te dicen qué hacer.** Un grupo vacío muestra **Aún no hay monitores aquí** con **Añadir monitor**, **Añadir varios** y, solo mientras la página no tenga ningún grupo, **Crear un grupo**. Una búsqueda sin resultados muestra **Ningún recurso coincide con tu búsqueda**.
 
 ## Añadir un monitor
 
-Selecciona el grupo en el que quieres que aterrice el recurso (o **Top of page** para una fila sin grupo) y pulsa **Añadir monitor**. El diálogo se titula **Add a monitor to {group}** y es una sola página que pide una única cosa: el monitor.
+:::steps
+### Elegir dónde va la fila
 
-- **Monitor** — el desplegable con los monitores de tu proyecto, marcador de posición **Seleccionar monitor**. Obligatorio.
-- **Nombre para mostrar** — el texto que leen los visitantes. Se rellena con el nombre del monitor al elegirlo, y lo sigue si eliges otro monitor, hasta que escribes un nombre propio. Se guarda aparte del nombre propio del monitor, así que puedes renombrarlo aquí sin tocar la monitorización.
-- **Más campos** — plegado. Contiene **Descripción** (markdown opcional que se muestra bajo la fila, útil para una frase que explique qué hace realmente el servicio) y las [opciones de visualización](#opciones-de-visualización-de-un-recurso). Si lo dejas cerrado, el recurso recibe sus valores predeterminados.
+En el navegador de grupos, selecciona el grupo al que pertenece el recurso, o **Parte superior de la página** para una fila sin grupo.
 
-Elige un monitor, pulsa **Añadir monitor** y la fila ya está en la página. En un grupo en cuadrícula, el diálogo también pide, por encima de **Más campos**, la fila y la columna donde va el monitor: consulta [Diseño de lista frente a diseño de cuadrícula](#diseño-de-lista-frente-a-diseño-de-cuadrícula).
+### Hacer clic en Añadir monitor
 
-Si tu proyecto tiene habilitados los grupos de monitores, un enlace bajo el desplegable pone **Add a Monitor Group instead.** — púlsalo y el desplegable **Monitor** se cambia por uno de **Monitor Grupo** (**Seleccionar grupo de monitores**). El enlace pasa entonces a **Add a Monitor instead.** para que puedas volver. Usa un grupo de monitores cuando quieras que una fila de la página represente varias comprobaciones agregadas.
+Se abre el cuadro de diálogo **Add a monitor to {group}**. Ocupa una sola página.
 
-### Añadir varios de golpe
+### Elegir el monitor
 
-**Add Multiple** (también **Add multiple monitors** en el menú **More actions**) abre **Add Multiple Monitors**. También es una sola página: un selector múltiple **Monitores** en lugar de un desplegable único y, debajo, la misma sección plegada **Más campos**, cuyas opciones de visualización se aplican a todos los monitores que hayas marcado. Cada recurso toma su nombre para mostrar y su descripción de su monitor, y **Añadir monitores** los añade: no hay pasos que recorrer. Es la forma más rápida de sembrar una página nueva.
+Elígelo en **Monitor** (texto de ejemplo **Seleccionar monitor**). **Nombre para mostrar**, el texto que leen los visitantes, se rellena con el nombre del monitor y lo sigue si eliges otro monitor, hasta que escribas un nombre propio. Se guarda aparte del nombre del monitor, así que cambiarlo aquí no cambia nada de la monitorización.
+
+### Configurar las opciones de visualización, si quieres
+
+**Más campos** está plegado. Contiene **Descripción** (Markdown opcional que se muestra bajo la fila, ideal para una frase que explique qué hace realmente el servicio; una imagen incluida se muestra a todos los visitantes) y las [opciones de visualización](#opciones-de-visualización-de-un-recurso). Si lo dejas cerrado, el recurso recibe sus valores predeterminados.
+
+### Guardar el recurso
+
+Haz clic en **Añadir monitor**. La fila aparece en el grupo y en la página de estado.
+:::
+
+En un grupo de cuadrícula, el cuadro de diálogo también pide la fila y la columna donde va el monitor, por encima de **Más campos**; consulta [Diseño de lista o de cuadrícula](#diseño-de-lista-o-de-cuadrícula).
+
+> [!TIP]
+> Para mostrar varias comprobaciones como una sola fila, añade un grupo de monitores. Con el interruptor **Grupos de monitores** activado (**Ajustes del proyecto** > **Avanzado** > **Feature flags**, que se guarda en cuanto lo cambias), un enlace bajo la lista desplegable dice **Añade un grupo de monitores en su lugar.** Haz clic en él y **Monitor** pasa a ser **Grupo de monitores** (**Seleccionar grupo de monitores**); **Añade un monitor en su lugar.** vuelve atrás.
+
+### Añadir varios a la vez
+
+**Añadir varios** (también **Añadir varios monitores** en el menú **Más acciones**) abre **Añadir varios monitores**. También ocupa una sola página: una selección múltiple **Monitores** y luego los mismos **Más campos** plegados, cuyas opciones de visualización se aplican a cada monitor que elijas. Cada recurso toma el nombre para mostrar y la descripción de su monitor, y **Añadir monitores** los añade todos. Es la forma más rápida de llenar una página nueva.
+
+La selección múltiple tiene una pestaña **Etiquetas**: haz clic en una etiqueta y se seleccionan a la vez todos los monitores que la llevan.
+
+### Añadir dos veces por etiqueta es seguro
+
+Una página de estado lista un monitor una sola vez. Añadir es idempotente, así que elegir de nuevo la misma etiqueta después de etiquetar unos cuantos monitores nuevos solo añade los nuevos: los monitores que ya estaban en la página se quedan exactamente como están, con el nombre para mostrar y las opciones que les diste.
+
+El resumen al final de la adición masiva lo dice: los monitores añadidos aparecen en **Añadido**, y los que ya estaban en **Already Added**. Nada se notifica como fallo y no se escribe nada para ellos.
+
+La misma regla se aplica en cualquier otro lugar donde se crea un recurso. Añadir un monitor que ya está en la página desde el formulario de adición individual, o apuntar a él un recurso existente desde el formulario de edición, se rechaza con *«This monitor is already added to this status page»*, también cuando el recurso existente está en otro grupo, porque un visitante seguiría viendo el monitor dos veces. Para mostrar un monitor en otro grupo, elimina el recurso que ya tiene y añádelo donde lo quieras.
 
 ## Opciones de visualización de un recurso
 
-La sección **Más campos** es idéntica en el formulario de alta individual y en el modal masivo. Empieza plegada en ambos, y también en **Editar recurso**, donde su cabecera plegada muestra lo que dentro no está en su valor predeterminado. Todo lo de aquí es por recurso: dos filas del mismo grupo pueden estar configuradas de forma distinta.
+La sección **Más campos** es la misma en el formulario de adición individual y en el cuadro de diálogo masivo. Empieza plegada en ambos, y también en **Editar recurso**, donde su cabecera plegada muestra lo que no está en su valor predeterminado. Todo aquí es por recurso: dos filas del mismo grupo pueden configurarse de forma distinta.
 
-| Campo                                                                     | Para qué sirve                                                                                                       |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Información sobre herramientas** (`displayTooltip`)                     | Texto extra que se muestra junto al recurso en tu página de estado. Úsalo para acotar el alcance: "Clientes de EE. UU. y UE". |
-| **Mostrar estado actual del recurso** (`showCurrentStatus`)               | Activado de forma predeterminada. Muestra el estado en vivo —operativo, degradado, caído— junto a la fila.            |
-| **Mostrar % de tiempo de actividad** (`showUptimePercent`)                | Desactivado de forma predeterminada. Muestra un porcentaje de tiempo de actividad junto al recurso.                   |
-| **Seleccionar precisión de tiempo de actividad** (`uptimePercentPrecision`) | Solo aparece cuando **Mostrar % de tiempo de actividad** está activado. Obligatorio, con un decimal de forma predeterminada. |
-| **Mostrar gráfico de historial de estado** (`showStatusHistoryChart`)     | Activado de forma predeterminada. Muestra el gráfico de barras del historial diario de tiempo de actividad del recurso. |
+| Campo | Predeterminado | Qué hace |
+| ----- | ------- | ------------ |
+| **Información sobre herramientas** (`displayTooltip`) | Vacío | Se muestra como información emergente junto al recurso en tu página de estado. Úsalo para el alcance: «Clientes de EE. UU. y de la UE». |
+| **Mostrar estado actual del recurso** (`showCurrentStatus`) | Activado | Muestra el estado actual, como operativo, degradado o fuera de línea, junto a la fila. |
+| **Mostrar % de tiempo de actividad** (`showUptimePercent`) | Desactivado | Muestra un porcentaje de tiempo de actividad junto al recurso. |
+| **Seleccionar precisión de tiempo de actividad** (`uptimePercentPrecision`) | Un decimal | Aparece cuando **Mostrar % de tiempo de actividad** está activado, y entonces es obligatorio. |
+| **Mostrar gráfico de historial de estado** (`showStatusHistoryChart`) | Activado | Muestra las barras diarias del historial de tiempo de actividad del recurso. |
 
-**Nombre para mostrar** (`displayName`) y **Descripción** (`displayDescription`) son también de visualización: nunca cambian el monitor en sí.
+**Nombre para mostrar** (`displayName`) y **Descripción** (`displayDescription`) también son solo de visualización: nunca cambian el propio monitor.
 
 ## Porcentajes de tiempo de actividad y gráficos de historial
 
-Tanto **Mostrar % de tiempo de actividad** como **Mostrar gráfico de historial de estado** dependen de un ajuste que vive en otro sitio. La ventana que cubren es **Historial de tiempo de actividad**, en la tarjeta **Lo que muestra su página de estado** de **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**. Acepta de 1 a 90 días y su valor predeterminado es 90.
+**Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** leen un mismo ajuste de toda la página: cuántos días abarcan. Es **Historial de tiempo de actividad** en la tarjeta **Lo que muestra tu página de estado** de **Páginas de estado → tu página → Avanzado → Ajustes avanzados**. Acepta de 1 a 90 días y su valor predeterminado es 90. Así que activa los interruptores recurso por recurso y define la ventana una sola vez para toda la página.
 
-Así que la secuencia es: activas los interruptores recurso a recurso y luego fijas la ventana una vez para toda la página.
+**La precisión es cuestión de criterio.** **Seleccionar precisión de tiempo de actividad** ofrece `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` y `99.999% (Three Decimal)`. Más decimales parecen precisos e invitan a discutir el tercero; si publicas un SLA de tres nueves, ajústate a él y no más.
 
-**La precisión es cuestión de criterio.** El desplegable **Seleccionar precisión de tiempo de actividad** ofrece `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` y `99.999% (Three Decimal)`. Más decimales dan sensación de precisión e invitan a discutir por el tercero; si publicas un SLA de tres nueves, iguálalo y no vayas más allá.
+Los grupos tienen sus propias copias de estos interruptores (ver más abajo), así que un grupo puede mostrar un porcentaje acumulado mientras los monitores que contiene no muestran nada, o al revés.
 
-Los grupos tienen sus propias copias de estos interruptores —lo vemos abajo—, de modo que un grupo puede mostrar un porcentaje agregado mientras los monitores de dentro se mantienen callados, o al revés.
-
-Los colores de las barras del gráfico de historial, y qué estados de monitor cuentan como "caído", se fijan en la pantalla de marca **Página de Vista General**, que se explica en [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
+Los colores de las barras del gráfico de historial se definen en **Más ajustes** de la página **Marca**, y qué estados de monitor cuentan como «caído», en **Cuenta como tiempo de inactividad**, en la tarjeta **Lo que muestra tu página de estado** de **Ajustes avanzados**; ambos se explican en [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
 
 ## Grupos
 
-Pulsa **New Group** para abrir **Create New Status Page Group**. Es una sola página: dos campos y, debajo, dos secciones plegadas.
+La mayoría de los grupos solo necesitan un nombre.
 
-- **Nombre del grupo** (`name`) — obligatorio. Es el encabezado de sección que ven los visitantes.
-- **Parent Group** (`parentStatusPageGroupId`) — opcional. Déjalo en **No parent group (top level)** para mantener el grupo en el nivel superior. **Add a sub group** lo rellena por ti.
-- **Diseño** — plegado, y su cabecera dice **List** o **Grid**. Contiene el **Modo de visualización** y los ejes de una cuadrícula (consulta [Diseño de lista frente a diseño de cuadrícula](#diseño-de-lista-frente-a-diseño-de-cuadrícula)), y se abre solo en un grupo en cuadrícula.
-- **Más campos** — plegado. Contiene el resto y replica a nivel de grupo las opciones del recurso:
-  - **Descripción del grupo** (`description`) — markdown opcional, mostrado bajo el encabezado.
-  - **Expandir en la Página de estado de forma predeterminada** (`isExpandedByDefault`) — activado de forma predeterminada: si la sección arranca abierta o plegada para los visitantes.
-  - **Mostrar estado actual del grupo** (`showCurrentStatus`) — activado de forma predeterminada. Muestra un estado junto al encabezado del grupo.
-  - **Mostrar % de tiempo de actividad** (`showUptimePercent`) — desactivado de forma predeterminada, con **Seleccionar precisión de tiempo de actividad** apareciendo en cuanto lo activas.
+:::steps
+### Hacer clic en Nuevo grupo
 
-La mayoría de los grupos solo necesitan un nombre: escríbelo y pulsa **Crear grupo de la página de estado**.
+Se abre **Crear nuevo grupo de la página de estado**: dos campos y luego dos secciones plegadas.
 
-La edición funciona igual: **Edit Group** en la cabecera del panel, o **Edit group** en el menú de la fila del navegador, abre **Edit Status Page Group** con un botón **Guardar Cambios**.
+### Nombrar el grupo
 
-La cabecera del panel muestra etiquetas con los ajustes que están activos —**Grid**, **Collapsed by default**, **Uptime %**— para que veas cómo está configurado un grupo sin abrir el formulario.
+Escribe el **Nombre del grupo**: el encabezado de sección que ven los visitantes.
+
+### Anidarlo, si pertenece a otro grupo
+
+Elige un **Grupo padre**, o déjalo en **Sin grupo padre (nivel superior)**. **Añadir un subgrupo** en los menús de un grupo lo rellena por ti.
+
+### Crear el grupo
+
+Haz clic en **Crear grupo de la página de estado**. El grupo aparece en el navegador, listo para recibir monitores.
+:::
+
+Los dos campos son **Nombre del grupo** (`name`) y **Grupo padre** (`parentStatusPageGroupId`). Las dos secciones plegadas contienen todo lo demás:
+
+- **Diseño**: su cabecera plegada dice **Lista** o **Cuadrícula**. Contiene **Modo de visualización** y los ejes de una cuadrícula (consulta [Diseño de lista o de cuadrícula](#diseño-de-lista-o-de-cuadrícula)), y se abre sola en un grupo de cuadrícula.
+- **Más campos**: las copias, a nivel de grupo, de las opciones de recurso:
+  - **Descripción del grupo** (`description`): Markdown opcional que se muestra bajo el encabezado. Una imagen incluida se muestra a todos los visitantes.
+  - **Expandir en la página de estado de forma predeterminada** (`isExpandedByDefault`): activado de forma predeterminada; indica si la sección empieza abierta o plegada para los visitantes.
+  - **Mostrar estado actual del grupo** (`showCurrentStatus`): activado de forma predeterminada. Muestra un estado junto al encabezado del grupo.
+  - **Mostrar % de tiempo de actividad** (`showUptimePercent`): desactivado de forma predeterminada, con **Seleccionar precisión de tiempo de actividad** cuando está activado.
+
+Para cambiar un grupo, usa **Editar grupo** en la cabecera del panel, o **Editar grupo** en el menú de fila del navegador: se abre **Editar grupo de la página de estado**, con un botón **Guardar cambios**. La cabecera del panel muestra etiquetas para los ajustes activados (**Cuadrícula**, **Contraído de forma predeterminada**, **% de tiempo de actividad**), para que veas cómo está configurado un grupo sin abrir el formulario.
 
 ### Gestionar un grupo
 
-El menú por fila del navegador contiene **Edit group**, **Move up**, **Move down**, **Mostrar ID** y **Delete group**. El menú desbordado **More actions** del panel tiene los equivalentes en versión larga: **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Actualizar** y **Delete this group**. Un grupo guardado sin nombre se muestra como **Untitled group**, que es una buena señal de que querías escribir algo.
+| Dónde | Acciones |
+| ----- | ------- |
+| El menú de fila del navegador | **Editar grupo**, **Subir**, **Bajar**, **Mostrar ID**, **Eliminar grupo** |
+| El menú **Más acciones** del panel | **Editar este grupo**, **Añadir un subgrupo**, **Subir grupo**, **Bajar grupo**, **Mostrar ID del grupo**, **Actualizar**, **Eliminar este grupo** |
+
+Un grupo guardado sin nombre se muestra como **Grupo sin título**, buena señal de que querías escribir algo.
 
 ## Anidar grupos
 
-Los grupos se anidan: fija **Parent Group** en el hijo, o usa la acción **Add a sub group inside this group** del navegador. El propio texto de ayuda del formulario describe la forma para la que está pensado —algo como Unidades corporativas › Región › Mercado— y señala que cada nivel muestra el estado y el tiempo de actividad agregados de todo lo que tiene debajo.
+Los grupos se anidan: define **Grupo padre** en el hijo, o usa **Añadir un subgrupo dentro de este grupo** en el navegador. El texto de ayuda del formulario describe la forma para la que está pensado (algo como Unidades corporativas › Región › Mercado), y cada nivel muestra el estado y el tiempo de actividad acumulados de todo lo que hay debajo.
 
-Cuando un grupo tiene hijos, el panel de recursos muestra una fila de etiquetas **Sub groups** que enlaza directamente con cada hijo, así puedes recorrer la jerarquía sin volver al navegador.
+Cuando un grupo tiene hijos, el panel de recursos muestra una fila de etiquetas **Subgrupos** que enlaza directamente con cada uno, para que recorras la jerarquía sin volver al navegador.
 
-El anidamiento se gana el sueldo en páginas grandes: un proveedor de alojamiento con regiones dentro de productos, o un minorista con mercados dentro de unidades de negocio. En una página con doce monitores, un solo nivel plano es más amable.
+El anidamiento compensa en páginas grandes: un proveedor de hosting con regiones dentro de productos, o un minorista con mercados dentro de unidades de negocio. En una página con doce monitores, un solo nivel plano es más amable.
 
-## Diseño de lista frente a diseño de cuadrícula
+## Diseño de lista o de cuadrícula
 
-La sección **Diseño** del formulario del grupo fija el **Modo de visualización** (`viewMode`) del grupo, y cambia cómo se muestra el grupo de cara al público.
+La sección **Diseño** del formulario del grupo define el **Modo de visualización** (`viewMode`) del grupo, que cambia cómo se muestra el grupo en la página de estado.
 
-| Si quieres…                                                                | Elige                    |
-| -------------------------------------------------------------------------- | ------------------------ |
-| Mostrar una lista vertical simple de servicios, uno por fila               | **List** (el predeterminado) |
-| Mostrar el mismo servicio en varias regiones o inquilinos, como una matriz | **Grid**                 |
+| Si quieres… | Elige |
+| --------------- | ---- |
+| Mostrar una simple lista vertical de servicios, uno por fila | **Lista** (el predeterminado) |
+| Mostrar el mismo servicio en varias regiones o inquilinos como una matriz | **Cuadrícula** |
 
-Elige **Grid** y aparecen cuatro campos más:
+Elige **Cuadrícula** y aparecen cuatro campos más:
 
-- **Etiqueta del eje de filas** — el nombre de la dimensión de filas, marcador de posición `Service`.
-- **Valores del eje de filas** — las filas en sí, añadidas de una en una con **Add Row** (marcador de posición `e.g. Auth`).
-- **Etiqueta del eje de columnas** — la dimensión de columnas, marcador de posición `Region`.
-- **Valores del eje de columnas** — se añaden con **Add Column** (marcador de posición `e.g. US-East`).
+| Campo | Qué escribir |
+| ----- | ------------- |
+| **Etiqueta del eje de filas** | El nombre de la dimensión de las filas, texto de ejemplo `Service`. |
+| **Valores del eje de filas** | Las filas, añadidas de una en una con **Add Row** (texto de ejemplo `e.g. Auth`). |
+| **Etiqueta del eje de columnas** | La dimensión de las columnas, texto de ejemplo `Region`. |
+| **Valores del eje de columnas** | Las columnas, añadidas con **Add Column** (texto de ejemplo `e.g. US-East`). |
 
-Cada monitor de un grupo en cuadrícula se coloca entonces en una celda, así que **Añadir monitor** y el modal masivo piden la fila y la columna junto al monitor, usando tus propias etiquetas de eje.
+Cada monitor de un grupo de cuadrícula ocupa una celda, así que **Añadir monitor** y el cuadro de diálogo masivo piden la fila y la columna además del monitor, con tus propias etiquetas de ejes.
 
-**Configura los ejes antes de añadir monitores.** Un grupo en cuadrícula sin filas ni columnas muestra un aviso ámbar que dice que no hay dónde poner un monitor hasta que existan los ejes, con un botón **Set up the grid** que abre el formulario del grupo en su sección **Diseño**; y el botón **Añadir monitor** desaparece hasta que lo hagas.
+> [!IMPORTANT]
+> Configura los ejes antes de añadir monitores. Un grupo de cuadrícula sin filas ni columnas muestra un aviso de que aún no hay dónde colocar un monitor, con un botón **Configurar la cuadrícula** que abre el formulario del grupo en su sección **Diseño**, y su botón **Añadir monitor** desaparece hasta que lo hagas.
 
 ## Ordenar lo que ven los visitantes
 
-El orden es explícito, no alfabético, y se fija en tres sitios:
+El orden lo decides tú, no el alfabeto:
 
-- **Recursos dentro de un grupo** — arrastra una fila. El panel lo dice: **Drag a row to change the order visitors see**.
-- **Grupos entre sí** — **Move up** / **Move down** en el menú de fila del navegador, o **Move group up** / **Move group down** en el menú desbordado del panel.
-- **Recursos sin grupo** — viven en **Top of page** y siempre se muestran por encima de todos los grupos, así que pon ahí eso que todo el mundo mira primero.
+| Qué | Cómo reordenarlo |
+| ---- | ------------------ |
+| Los recursos dentro de un grupo | Arrastra una fila. El panel lo dice: **Arrastra una fila para cambiar el orden que ven los visitantes**. |
+| Los grupos entre sí | **Subir** / **Bajar** en el menú de fila del navegador, o **Subir grupo** / **Bajar grupo** en **Más acciones**. |
+| Los recursos sin grupo | Están en **Parte superior de la página** y siempre se muestran por encima de todos los grupos, así que pon ahí lo que todo el mundo mira primero. |
 
-**Dos casos en los que arrastrar está desactivado.** Filtrar el panel con la caja **Search in {group}...** deshabilita la reordenación —el panel te avisa con `N of M shown · drag to reorder is off while filtering`—, así que limpia la búsqueda primero. Y los grupos en cuadrícula nunca admiten ordenar arrastrando, porque la posición sale de los ejes de filas y columnas.
+**Dos casos en los que no se puede arrastrar.** Buscar en el cuadro **Search in {group}...** desactiva el reordenamiento (el panel dice `N of M shown · drag to reorder is off while filtering`), así que borra primero la búsqueda. Y los grupos de cuadrícula nunca se reordenan arrastrando, porque el lugar de un monitor viene de su fila y su columna.
 
-Pon arriba el servicio por el que más te preguntan. Quien llega a la página durante una caída suele dejar de leer después de la primera pantalla.
+Pon arriba el servicio por el que más te preguntan. Los visitantes que llegan a la página durante una caída suelen dejar de leer después de la primera pantalla.
+
+## Añadir monitores automáticamente con reglas de monitores
+
+Una regla de monitores añade monitores a la página por ti: describe los monitores una vez, y cada monitor que coincida acaba en el grupo que elegiste. Las reglas están en **Recursos → Reglas de monitores**, junto a la pantalla Recursos.
+
+:::steps
+### Abrir Reglas de monitores
+
+Abre la página de estado, elige **Reglas de monitores** en la sección **Recursos** de su menú lateral y haz clic en **Crear Regla de monitores de la página de estado**.
+
+### Nombrar la regla
+
+En **Información básica**, escribe un **Nombre**. **Habilitado** está activado de forma predeterminada.
+
+### Indicar con qué monitores coincide
+
+En **Criterios de coincidencia**, rellena al menos uno de **Etiquetas del monitor** (coincide un monitor que lleve cualquiera de ellas), **Nombre del monitor** y **Descripción del monitor**. Un monitor tiene que cumplir todos los criterios que rellenes. Los dos patrones admiten una expresión regular que no distingue mayúsculas y minúsculas (`^api-.*`) o un comodín `*` (`*checkout*`); `.*` coincide con todos los monitores.
+
+### Elegir el grupo
+
+En **Grupo**, elige **Añadir monitores al grupo**, o déjalo vacío para añadir los monitores sin grupo. Siguen las mismas opciones de visualización que en un recurso; en una regla, **Mostrar % de tiempo de actividad** empieza activado.
+
+### Guardar la regla
+
+La regla se ejecuta al momento sobre todos los monitores que ya existen, y la lista muestra el grupo al que añade monitores en **Añade monitores a**.
+:::
+
+Después, una regla vuelve a ejecutarse para un monitor cada vez que se crea uno o cambian sus etiquetas, su nombre o su descripción. Una regla solo quita los recursos que añadió: desactivarla o eliminarla los quita de la página, y un monitor que añadiste a mano nunca se toca. Un monitor que ya está en la página nunca se añade dos veces.
 
 ## Importar grupos desde CSV
 
-Construir una jerarquía profunda a mano es tedioso. El menú de tres puntos de la cabecera de la tarjeta tiene **Import groups from CSV**, que abre el modal **Import Groups from CSV**.
+Construir a mano una jerarquía profunda es tedioso. **Importar grupos desde CSV**, en el menú de tres puntos de la cabecera de la tarjeta, abre el cuadro de diálogo **Importar grupos desde CSV**.
 
-El flujo es: **Download CSV Template** para obtener `status-page-groups-template.csv`, lo rellenas, **Choose CSV File** y luego **Preview Import** para comprobar qué se va a crear antes de escribir nada. Después, una tabla **Import results** enumera cada fila como **Created**, **Failed** o **Skipped** junto con el motivo, de modo que una fila defectuosa no se desvanece en silencio.
+:::steps
+### Descargar la plantilla
 
-Solo `name` es obligatorio. Las columnas aceptadas son:
+Haz clic en **Descargar plantilla CSV** para obtener `status-page-groups-template.csv`.
 
-| Columna                  | Qué fija                                                       |
-| ------------------------ | ---------------------------------------------------------------- |
-| `name`                   | El nombre del grupo. Obligatorio.                                |
-| `parentName`             | El nombre del grupo dentro del que se anida este.                |
-| `description`            | La descripción del grupo.                                        |
-| `isExpandedByDefault`    | Si la sección arranca abierta para los visitantes.                |
-| `showCurrentStatus`      | Si se muestra un estado junto al encabezado del grupo.            |
-| `showUptimePercent`      | Si se muestra un porcentaje de tiempo de actividad junto al grupo. |
-| `uptimePercentPrecision` | Cuántos decimales usa ese porcentaje.                            |
-| `viewMode`               | `List` o `Grid`.                                                 |
-| `rowAxisLabel`           | Nombre de la dimensión de filas de un grupo en cuadrícula.        |
-| `rowAxisValues`          | Los valores de fila de un grupo en cuadrícula.                    |
-| `columnAxisLabel`        | Nombre de la dimensión de columnas de un grupo en cuadrícula.     |
-| `columnAxisValues`       | Los valores de columna de un grupo en cuadrícula.                 |
+### Rellenarla
 
-La importación crea grupos, no recursos: añade los monitores después con **Añadir monitor** o **Add Multiple**.
+Una fila por grupo. Solo `name` es obligatorio; las columnas se enumeran más abajo.
 
-## Qué leer a continuación
+### Subir y previsualizar
 
-- [Visión general de las páginas de estado](/docs/status-pages/index) — qué es una página de estado y cómo encajan sus piezas.
-- [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains) — logotipo, favicon, colores del gráfico y poner la página en tu propio dominio.
-- [Suscriptores y anuncios](/docs/status-pages/subscribers) — a quién se avisa cuando estos recursos cambian.
-- [API pública](/docs/status-pages/public-api) — leer los datos de la página de estado mediante programación.
-- [Estados y severidades de incidentes](/docs/incidents/states-and-severities) — qué hace que un incidente aparezca en la página y qué lo hace desaparecer.
+Haz clic en **Elegir archivo CSV**, elige tu archivo y después **Previsualizar importación** para comprobar qué se va a crear antes de escribir nada.
+
+### Importar
+
+Ejecuta la importación. Una tabla **Resultados de la importación** lista cada fila como **Creado**, **Fallido** u **Omitido**, con el motivo, para que una fila incorrecta nunca desaparezca sin avisar.
+:::
+
+| Columna | Qué define |
+| ------ | ------------ |
+| `name` | El nombre del grupo. Obligatorio. |
+| `parentName` | El nombre del grupo dentro del cual se anida este. |
+| `description` | La descripción del grupo. |
+| `isExpandedByDefault` | Si la sección empieza abierta para los visitantes. |
+| `showCurrentStatus` | Si se muestra un estado junto al encabezado del grupo. |
+| `showUptimePercent` | Si se muestra un porcentaje de tiempo de actividad junto al grupo. |
+| `uptimePercentPrecision` | Cuántos decimales usa ese porcentaje. |
+| `viewMode` | `List` o `Grid`. |
+| `rowAxisLabel` | El nombre de la dimensión de las filas, para un grupo de cuadrícula. |
+| `rowAxisValues` | Los valores de las filas, para un grupo de cuadrícula. |
+| `columnAxisLabel` | El nombre de la dimensión de las columnas, para un grupo de cuadrícula. |
+| `columnAxisValues` | Los valores de las columnas, para un grupo de cuadrícula. |
+
+La importación crea grupos, no recursos: añade después los monitores con **Añadir monitor**, **Añadir varios** o una regla de monitores.
+
+## Solución de problemas
+
+:::details «This monitor is already added to this status page»
+Una página lista cada monitor una sola vez, también entre grupos. El monitor ya tiene un recurso, quizá en otro grupo o añadido por una regla de monitores. Búscalo en el navegador, elimina ese recurso y añade el monitor donde lo quieras.
+:::
+
+:::details Un monitor que añadí no aparece en la página de estado
+Comprueba si el monitor está archivado: la fila de un monitor archivado se omite hasta que lo desarchives. Comprueba también el grupo: un grupo configurado para empezar plegado (**Expandir en la página de estado de forma predeterminada** desactivado) oculta sus filas hasta que un visitante lo abre.
+:::
+
+:::details No hay botón Añadir monitor en un grupo de cuadrícula
+La cuadrícula aún no tiene filas ni columnas. Haz clic en **Configurar la cuadrícula**, añade los valores de los ejes en la sección **Diseño** y **Añadir monitor** vuelve.
+:::
+
+:::details No puedo arrastrar las filas
+Borra el cuadro **Search in {group}...**: el reordenamiento se desactiva mientras el panel está filtrado. Los grupos de cuadrícula nunca se reordenan arrastrando.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains): Logotipo, favicon, colores del gráfico de historial y tu propio dominio.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers): A quién se avisa cuando cambian estos recursos.
+- [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience): El mismo monitor en muchas páginas, y un incidente que solo llega a algunas.
+- [API pública](/docs/status-pages/public-api): Lee recursos, grupos y tiempo de actividad como JSON.
+:::

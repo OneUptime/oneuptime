@@ -120,8 +120,9 @@ const INCIDENT_EVENT_TYPES: ReadonlyArray<StatusPageSubscriberNotificationEventT
  *
  * This is a promise to template authors: the worker that sends an event must
  * pass every one of these to the template, on every channel, or the
- * placeholder renders as an empty string. The worker tests hold each worker to
- * this list, and the dashboard's variable reference is tested against it.
+ * placeholder is left in the message as written, braces and all
+ * (SubscriberNotificationTemplateCompiler). The worker tests hold each worker
+ * to this list, and the dashboard's variable reference is tested against it.
  *
  * Kept free of database dependencies so both of those can import it.
  */

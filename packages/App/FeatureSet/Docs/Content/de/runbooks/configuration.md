@@ -1,59 +1,129 @@
 # Runbook-Konfiguration & Sicherheit
 
-## Wie Bash und JavaScript tatsächlich laufen
+Dies ist die Referenz für Betreiber und Sicherheitsprüfer: wo jede Art von Schritt läuft, welche Limits und Timeouts für einen Schritt gelten, wer was darf und wie Runbooks gehärtet sind.
 
-Bash- und JavaScript-Schritte werden **niemals auf dem OneUptime-Worker ausgeführt**. Sie werden als Jobs an einen bestimmten [Runbook-Agent](/docs/runbooks/agents) verteilt — einen kleinen Prozess, den Sie auf einem Host in Ihrer eigenen Infrastruktur installieren.
+:::cards
+- [Wo jeder Schritttyp läuft](#wo-jeder-schritttyp-läuft): Der Worker, ein Runner oder eine Person.
+- [Ausgabegrenzen und Timeouts](#ausgabegrenzen-und-timeouts): Jedes Limit, das für einen Schritt gilt.
+- [Berechtigungen](#berechtigungen): Granulare Berechtigungen, die drei Runbook-Rollen und welche Runbooks eine Rolle erreicht.
+- [Härtungshinweise](#härtungshinweise): Sandboxing, Netzzugang und Authentifizierung von Runnern.
+:::
 
-Das Dispatch-Modell:
+## Wo jeder Schritttyp läuft
 
-1. Der Autor des Runbook-Schritts wählt beim Verfassen des Schritts einen Runbook-Agent aus dem Dropdown.
-2. Wenn der Schritt läuft, fügt der Worker eine Zeile in `RunnerJob` mit `targetAgentId` auf die ID dieses Agents gesetzt und Status `Pending` ein.
-3. Dieser spezielle Agent (und nur dieser Agent) beansprucht den Job atomar, führt das Skript lokal aus — Bash über `bash -c <Skript>`, JavaScript in einer `isolated-vm`-Sandbox — und schickt das Ergebnis zurück.
+```mermaid title="Welche Schritte wo laufen"
+flowchart TB
+    subgraph ou["OneUptime"]
+        direction LR
+        worker["Worker"]
+        http["HTTP-Anfrage-Schritte"]
+        ai["KI-Schritte"]
+    end
+    subgraph yours["Ihre Infrastruktur"]
+        direction LR
+        runner["Runner"]
+        scripts["JavaScript- und Bash-Schritte"]
+        remote["SSH- und Kubernetes-Schritte"]
+    end
+    person["Eine Person"]
+    worker --> http
+    worker --> ai
+    worker -->|"Manual-Schritte und Freigaben"| person
+    worker -->|"reiht einen Job für den Runner des Schritts ein"| runner
+    runner --> scripts
+    runner --> remote
+```
+
+| Schritttyp | Läuft auf | Wie |
+| --- | --- | --- |
+| Manual | Einer Person | Der Lauf wartet, bis jemand den Schritt abschließt oder überspringt. |
+| JavaScript | Einem Runner | In einer `isolated-vm`-Sandbox. |
+| HTTP request | Dem OneUptime Worker | Ein ausgehender HTTP-Aufruf. |
+| Bash | Einem Runner | `bash -c <script>`. |
+| SSH | Einem Runner | Eine SSH-Verbindung, mit [Anmeldedaten](/docs/runbooks/credentials). |
+| Kubernetes | Einem Runner | Ein Aufruf des API-Servers des Clusters, mit Anmeldedaten. |
+| AI | Dem OneUptime Worker | Ein Aufruf des LLM-Anbieters des Projekts. |
+
+## Wie Runner-Schritte verteilt werden
+
+JavaScript-, Bash-, SSH- und Kubernetes-Schritte **laufen nie auf dem OneUptime Worker**. Sie werden als Jobs an einen bestimmten [Runbook-Agent](/docs/runbooks/agents) verteilt: einen kleinen Prozess, den Sie auf einem Host in Ihrer eigenen Infrastruktur installieren.
+
+Das Verteilungsmodell:
+
+1. Wer den Runbook-Schritt schreibt, wählt beim Schreiben einen Runner aus der Dropdown-Liste.
+2. Wenn der Schritt läuft, fügt der Worker eine Zeile in `RunnerJob` ein, deren `targetAgentId` die ID dieses Runners ist und deren Status `Pending` lautet.
+3. Genau dieser Runner (und nur er) übernimmt den Job atomar, führt ihn lokal aus — Bash über `bash -c <script>`, JavaScript in einer `isolated-vm`-Sandbox, SSH und Kubernetes mit den Anmeldedaten des Schritts — und meldet das Ergebnis zurück.
 4. Der Worker setzt das Runbook mit dem Ergebnis fort.
 
-Es gibt kein `RUNBOOK_BASH_ENABLED`-Umgebungsflag mehr. Ob Bash- oder JavaScript-Schritte in einem Deployment funktionieren, hängt einzig davon ab, ob mindestens ein verbundener Runbook-Agent im Projekt existiert.
+Es gibt kein Umgebungs-Flag `RUNBOOK_BASH_ENABLED` mehr. Ob diese Schritte in einer Installation funktionieren, hängt allein davon ab, ob das Projekt einen verbundenen Runner mit eingeschaltetem **Führt Runbooks aus** hat.
 
-## Ausgabe-Limits und Timeouts
+## Ausgabegrenzen und Timeouts
 
-- Ausgabe pro Schritt: **50&nbsp;KB**. Größere Ausgaben werden mit einer Markierung abgeschnitten.
-- Standard-Ausführungs-Timeout pro Schritt: **30 Sekunden** für JavaScript, Bash und HTTP. Setzen Sie ihn pro Schritt auf der **Schritte**-Seite des Runbooks — lassen Sie das Feld leer, um den Standard zu behalten.
-- **Claim-Timeout** pro Schritt für Bash- und JavaScript-Schritte: **2 Minuten** — wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job aufnimmt, bevor er fehlschlägt. Ebenfalls pro Schritt einstellbar.
-- Beide Timeouts akzeptieren **1 Sekunde bis 1 Stunde**. Ein Wert außerhalb dieses Bereichs wird beim Ausführen des Schritts auf diesen Bereich begrenzt, sodass ein Tippfehler in der Konfiguration den Timeout weder abschalten noch einen Worker-Slot unbegrenzt offen halten kann.
+| Limit | Wert | Gilt für |
+| --- | --- | --- |
+| Ausgabe pro Schritt | **50 KB**. Längere Ausgabe wird mit einer Markierung abgeschnitten. | Jeden automatisierten Schritt |
+| Ausführungs-Timeout | Standardmäßig **30 Sekunden** | JavaScript-, Bash-, SSH- und Kubernetes-Schritte |
+| Anfrage-Timeout | Standardmäßig **30 Sekunden** | HTTP-Anfrage-Schritte |
+| Übernahme-Timeout | Standardmäßig **2 Minuten**: wie lange der Worker darauf wartet, dass der gewählte Runner den Job übernimmt, bevor er ihn fehlschlagen lässt | JavaScript-, Bash-, SSH- und Kubernetes-Schritte |
+| Timeout-Bereich | **1 Sekunde bis 1 Stunde** | Jedes Timeout |
+| Warten auf eine Person | Kein Limit | Manual-Schritte und Freigaben |
+
+Setzen Sie die Timeouts pro Schritt auf der Seite **Schritte** des Runbooks; lassen Sie ein Feld leer, um den Standard zu behalten. Ein Wert außerhalb des Bereichs wird beim Ausführen des Schritts begrenzt, sodass eine vertippte Konfiguration das Timeout weder abschalten noch einen Worker-Platz unbegrenzt belegen kann.
 
 ## Berechtigungen
 
-Runbook-Berechtigungen liegen in der `Runbook`-Berechtigungsgruppe:
+Runbook-Berechtigungen liegen in der Berechtigungsgruppe `Runbook`:
 
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — Runbook-Vorlagen verwalten.
-- `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — Ausführungen starten, abhaken und lesen.
-- `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — Auto-Trigger-Regeln verwalten.
-- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Runbook-Agents verwalten, die Bash- und JavaScript-Schritte in Ihrer eigenen Infrastruktur ausführen.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — `RunbookAdmin` baut Runbooks, ihre Regeln und die Runner, auf denen sie laufen, und führt sie aus. `RunbookMember` öffnet Runbooks und ihre Ausführungen und führt sie aus — startet eine Ausführung, schließt ihre Schritte ab oder überspringt sie und bricht sie ab —, erstellt, ändert und löscht aber weder Runbooks noch Runner. `RunbookViewer` liest Runbooks und ihre Ausführungen und führt nichts aus. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
+- `CreateRunbookExecution`, `EditRunbookExecution`, `DeleteRunbookExecution`, `ReadRunbookExecution` — Ausführungen starten, abhaken, löschen und lesen.
+- `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — Regeln für automatische Auslösung verwalten.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Runner verwalten, die Schritte in Ihrer eigenen Infrastruktur ausführen. (Vor der Umbenennung in Runner hießen sie `*RunbookAgent`; bestehende Zuweisungen wurden migriert, es muss also nichts neu zugewiesen werden.)
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — `RunbookAdmin` baut Runbooks, ihre Regeln und die Runner, auf denen sie laufen, und führt sie aus. `RunbookMember` öffnet Runbooks und ihre Läufe und führt sie aus — es startet einen Lauf, schließt seine Schritte ab oder überspringt sie und bricht ihn ab —, erstellt, ändert und löscht aber kein Runbook und keinen Runner. `RunbookViewer` liest Runbooks und ihre Läufe und führt nichts aus. `RunbookAdmin` bündelt alle granularen Berechtigungen oben.
 
-Eine Rolle führt die Runbooks aus, die ihr Geltungsbereich erreicht. Eine auf einige Labels beschränkte Zuweisung von `RunbookMember`, `RunbookAdmin` oder `ProjectMember` startet und steuert Ausführungen der Runbooks, die diese Labels tragen, eine auf **Eigene** beschränkte die der Runbooks, die ihrem Team gehören, und die Sperre eines Teams auf ein Label nimmt diese Runbooks weg. `CreateRunbookExecution` und `EditRunbookExecution` betreffen Ausführungen, die keine Labels tragen, und erreichen daher jedes Runbook im Projekt. Das Freigeben eines Behebungsvorschlags, der ein Runbook startet, wird genauso geprüft.
+Eine Rolle führt die Runbooks aus, die ihr Geltungsbereich erreicht. Eine Zuweisung von `RunbookMember`, `RunbookAdmin` oder `ProjectMember`, die auf bestimmte Beschriftungen begrenzt ist, startet und bewegt Läufe der Runbooks mit diesen Beschriftungen, eine auf **Owned** begrenzte die der Runbooks, die ihrem Team gehören, und die Sperre eines Teams auf eine Beschriftung nimmt ihm diese Runbooks weg. `CreateRunbookExecution` und `EditRunbookExecution` betreffen Läufe, die keine Beschriftungen tragen, und erreichen daher jedes Runbook im Projekt. Das Genehmigen eines Behebungsvorschlags, der ein Runbook startet, wird genauso geprüft.
 
-## Queue & Worker
+Anmeldedaten und Geheimnisse liegen außerhalb von `RunbookAdmin`. Sie zu verwalten, erfordert `ProjectOwner` oder `ProjectAdmin` oder die Berechtigungen `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` und `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Siehe [Runbook-Anmeldedaten](/docs/runbooks/credentials).
 
-Runbook-Ausführungen laufen auf der `Runbook`-BullMQ-Queue. Die Worker-Parallelität liegt bei 25 — passen Sie sie in Ihrem Deployment an, wenn Sie viele gleichzeitige Läufe haben.
+Auch die Eigentümer- und Beschriftungsregeln unter **Runbooks → Einstellungen** liegen außerhalb von `RunbookAdmin`. Sie zu verwalten, erfordert `ProjectOwner` oder `ProjectAdmin` oder die Berechtigungen `CreateRunbookOwnerRule` und `CreateRunbookLabelRule` samt ihren Gegenstücken zum Bearbeiten, Löschen und Lesen.
 
-Wenn ein manueller Schritt über die API abgehakt wird, wird die Ausführung erneut in die Queue gestellt, um vom nächsten Schritt aus weiterzulaufen. Das hält den Worker für den Rest des Runbooks warm.
+Wie Rollen und granulare Berechtigungen zusammenwirken, lesen Sie unter [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+
+## Warteschlange & Worker
+
+Runbook-Ausführungen laufen in der BullMQ-Warteschlange `Runbook`. Jeder Worker-Prozess führt bis zu 25 Ausführungen gleichzeitig aus; die Zahl ist im Code festgelegt, nicht über eine Umgebungsvariable.
+
+Wenn ein manueller Schritt über die API abgehakt wird, wird die Ausführung erneut eingereiht, um mit dem nächsten Schritt fortzufahren. Sie wartet als `Scheduled`, bis ein Worker sie wieder übernimmt, und eine eingereihte Ausführung schlägt nie wegen Wartens fehl.
 
 ## Härtungshinweise
 
-- **JavaScript und Bash** laufen auf einem Runbook-Agent-Host, den Sie kontrollieren, nicht auf dem OneUptime-Worker. JavaScript ist in eine `isolated-vm`-Sandbox mit dem üblichen Prelude eingewickelt (kappt Prototypketten, entfernt `Function`/`eval`, friert eingebaute Prototypen ein). Bash läuft über `bash -c` mit Timeout-Durchsetzung auf dem Agent.
-- **HTTP-Schritte** verwenden einen permissiven Status-Validator, sodass eine 4xx- oder 5xx-Antwort als fehlgeschlagener Schritt protokolliert wird, statt geworfen zu werden. So spiegelt die festgehaltene Ausgabe wider, was die Gegenstelle tatsächlich zurückgegeben hat.
-- **Agent-Auth** erfolgt über ID + Secret-Key, die als Env-Variablen am Agent-Container gesetzt werden. Serverseitig kommt die maßgebliche Agent-Identität aus der DB-Zeile, die per präsentierter ID/Schlüssel adressiert wird — Clients können selbst mit kompromittiertem Schlüssel keinen anderen Agent imitieren.
+- **JavaScript, Bash, SSH und Kubernetes** laufen auf einem Runner-Host, den Sie kontrollieren, nicht auf dem OneUptime Worker. JavaScript läuft in einem eigenen `isolated-vm`-Isolat mit 128 MB Arbeitsspeicher und ohne Zugriff auf Dateisystem oder Prozesse des Runners; es kann mit `axios` HTTP-Anfragen stellen, aber Anfragen an private Netze, Loopback- und Link-Local-Adressen werden abgelehnt. Bash läuft über `bash -c`, mit einem Timeout, das auf dem Runner durchgesetzt wird.
+- **HTTP-Schritte** nutzen eine nachsichtige Statusprüfung, sodass eine 4xx- oder 5xx-Antwort als fehlgeschlagener Schritt aufgezeichnet statt als Ausnahme geworfen wird, und die erfasste Ausgabe zeigt, was die Gegenseite tatsächlich zurückgegeben hat. Weiterleitungen werden nicht verfolgt. Der Worker ruft nie Loopback- oder Link-Local-Adressen auf, etwa einen Cloud-Metadaten-Endpunkt; in OneUptime Cloud lehnt er auch private Netzadressen ab, und ein selbst gehostetes OneUptime lehnt sie mit `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` ab.
+- **KI-Schritte** sehen nie private Vorfallnotizen oder Nachrichten aus Slack und Microsoft Teams, und die Ausgabe früherer Schritte wird nach Geheimnissen durchsucht, die geschwärzt werden, bevor sie das Modell erreicht. Eingebettete Bilder und lange kodierte Daten werden aus dem Prompt weggelassen. Siehe [AI](/docs/runbooks/authoring#ai).
+- **Runner-Authentifizierung** erfolgt über ID und geheimen Schlüssel, die am Runner-Container als Umgebungsvariablen gesetzt sind. Auf dem Server stammt die maßgebliche Runner-Identität aus der Datenbankzeile zu der vorgelegten ID und dem Schlüssel: Ein Client kann sich selbst mit einem kompromittierten Schlüssel nicht als ein anderer Runner ausgeben.
+- **Anmeldedaten und Geheimnisse** sind im Ruhezustand verschlüsselt, werden von der API nie zurückgegeben und nur an die Runner übergeben, denen sie zugewiesen sind, wenn diese einen Schritt übernehmen.
 
-## Datenbank-Tabellen
+## Datenbanktabellen
 
-- `Runbook` — Vorlage (name, slug, description, isEnabled, steps JSON).
-- `RunbookExecution` — eine Zeile pro Lauf, mit nullable `incidentId`-, `alertId`- und `scheduledMaintenanceId`-Fremdschlüsseln und einem JSON-`stepExecutions`-Array, das die Schritte und den Pro-Schritt-Zustand snapshottet.
-- `RunbookRule` — Auto-Trigger-Regeln mit einem `triggerEntityType`-Diskriminator (Incident, Alert, ScheduledMaintenance) und einer Many-to-Many-Beziehung zu zu startenden Runbooks.
-- `Runner` — eine Zeile pro installiertem Agent: Name, Secret-Key, `lastAlive`, `connectionStatus`, Host-Info.
-- `RunnerJob` — eine Zeile pro versandtem Bash- oder JavaScript-Schritt: `targetAgentId` (der vom Schrittautor ausgewählte Agent), Schritttyp, Skript, Status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), Claim-Deadline, Lease, Ausgabe, Exit-Code.
+| Tabelle | Was sie enthält |
+| --- | --- |
+| `Runbook` | Die Vorlage: Name, Slug, Beschreibung, `isEnabled`, Beschriftungen und die Schritte als JSON. |
+| `RunbookExecution` | Eine Zeile pro Lauf, mit den optionalen Fremdschlüsseln `incidentId`, `alertId` und `scheduledMaintenanceId` und einem JSON-Array `stepExecutions`, das die Schritte und den Zustand jedes Schritts festhält. |
+| `RunbookRule` | Regeln für automatische Auslösung, mit einem Unterscheidungsfeld `triggerEntityType` (Incident, Alert, ScheduledMaintenance), einer Viele-zu-viele-Beziehung zu den zu startenden Runbooks und dem, worauf sie abgleichen: einer JSON-Spalte `criteria` (die Bedingungen) sowie Viele-zu-viele-Verknüpfungen zu Monitoren, Vorfallsschweregraden, Warnungsschweregraden, Beschriftungen und Monitor-Beschriftungen und Muster für Titel, Beschreibung, Monitorname und Monitorbeschreibung. |
+| `Runner` | Eine Zeile pro installiertem Runner: Name, geheimer Schlüssel, `lastAlive`, `connectionStatus`, Host-Informationen und Fähigkeiten. |
+| `RunnerJob` | Eine Zeile pro an einen Runner verteiltem Schritt: `targetAgentId` (der Runner, den die Autorin oder der Autor des Schritts gewählt hat), Schritttyp, Skript oder Nutzdaten, Status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` oder `Cancelled`), Übernahmefrist, Lease, Ausgabe und Exit-Code. |
+| `RunbookCredential` | SSH- und Kubernetes-Anmeldedaten, mit verschlüsselten geheimen Feldern, und die Runner, denen sie zugewiesen sind. |
+| `RunbookSecret` | Runbook-Geheimnisse, verschlüsselt, und die Runner, die sie erhalten dürfen. |
 
 ## Betriebstipps
 
-- **Sorgen Sie dafür, dass der bei einem Schritt ausgewählte Agent gesund ist.** Wenn Sie Redundanz brauchen, betreiben Sie einen zweiten Agent und teilen Ihre Schritte zwischen ihnen auf, oder halten Sie ein Backup-Runbook bereit, das auf den anderen Agent zielt.
-- **URLs festhalten, keine Blobs.** Wenn ein Schritt mehr als ein paar KB an Ausgabe erzeugt, schreiben Sie sie nach S3 oder in Ihren Logging-Stack und geben Sie die URL zurück.
-- **Idempotenz zählt.** Automatisierte Schritte (HTTP, JavaScript, Bash) können mehr als einmal laufen, wenn der Worker mitten im Schritt neu startet oder ein Agent-Lease abläuft, während ein Skript noch läuft; entwerfen Sie sie so, dass sie sicher wiederholbar sind.
+- **Stellen Sie sicher, dass der Runner, den Sie an einem Schritt wählen, gesund ist.** Wenn Sie Redundanz brauchen, betreiben Sie einen zweiten Runner und teilen Ihre Schritte zwischen beiden auf, oder halten Sie ein Ersatz-Runbook bereit, das auf den anderen Runner zielt.
+- **URLs erfassen, keine Blobs.** Erzeugt ein Schritt mehr als ein paar KB Ausgabe, schreiben Sie sie in einen Objektspeicher oder Ihren Logging-Stack und geben Sie die URL zurück.
+- **Idempotenz ist wichtig.** Ein HTTP-Anfrage- oder KI-Schritt läuft erneut, wenn der Worker mitten im Schritt neu startet und der Lauf fortgesetzt wird. Ein Schritt auf einem Runner wird pro Ausführung höchstens einmal verteilt, aber ein Skript kann vor einem Fehler teilweise gelaufen sein, und Sie führen das Runbook vielleicht erneut aus. Gestalten Sie Schritte so, dass sie sicher wiederholt werden können.
+
+## Nächste Schritte
+
+:::cards
+- [Runbook-Agents](/docs/runbooks/agents): Runner installieren, betreiben und Fehler beheben.
+- [Runbook-Anmeldedaten](/docs/runbooks/credentials): Verwalteter SSH- und Kubernetes-Zugang und Geheimnisse für Skripte.
+- [Benutzer, Teams & Berechtigungen](/docs/permissions/index): Wie Rollen, Beschriftungen und Teams entscheiden, wer was ausführt.
+:::

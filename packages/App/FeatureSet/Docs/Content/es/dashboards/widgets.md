@@ -240,6 +240,14 @@ Algunas reglas rápidas:
 
 La mayoría de los paneles mezclan varios: un gráfico en la parte superior, uno o dos valores al lado, un divisor de texto y una o dos listas debajo.
 
+## Cuando un widget no se puede mostrar
+
+Un widget que no se puede dibujar muestra **No se pudo mostrar este widget** en su lugar, y el resto del panel sigue funcionando. Ocurre cuando OneUptime no tiene ningún widget de ese tipo (uno que se eliminó, uno cuyo tipo se escribió mal al crear el panel con la API o uno añadido por una versión más reciente), o cuando el widget falla al dibujarse, por ejemplo porque sus ajustes guardados están incompletos.
+
+Si puedes editar el panel, haz clic en **Editar widget** en el widget. El panel pasa al modo de edición con los ajustes de ese widget abiertos: corrígelos, o haz clic en **Eliminar widget** y después en **Guardar cambios**. Un widget que falló al dibujarse también ofrece **Volver a intentar**, y se vuelve a dibujar en la siguiente actualización automática o cuando cambias el intervalo de tiempo.
+
+Los visitantes de un panel público solo ven que el widget no se pudo mostrar.
+
 ## Dónde seguir leyendo
 
 - [Variables y Filtros](/docs/dashboards/variables) — hacer que los widgets sean reutilizables para muchos servicios o clientes.

@@ -20,14 +20,15 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Getting Started tells a new user how to find any page with Search
- * (Cmd/Ctrl+K). It names pages, their breadcrumbs, the words Search knows
- * for them and the Delete Project action; these read the same names from
- * the page index Search uses, and fail when the page and Search drift
- * apart.
+ * Home Page & Shortcuts (introduction/home; Getting Started until the docs
+ * overhaul gave the dashboard's own ways around a page of their own) tells a
+ * new user how to find any page with Search (Cmd/Ctrl+K). It names pages,
+ * their breadcrumbs, the words Search knows for them and the Delete Project
+ * action; these read the same names from the page index Search uses, and
+ * fail when the page and Search drift apart.
  */
 
-const GETTING_STARTED: string = fs.readFileSync(
+const HOME_PAGE: string = fs.readFileSync(
   path.join(
     __dirname,
     "..",
@@ -38,7 +39,7 @@ const GETTING_STARTED: string = fs.readFileSync(
     "Content",
     "en",
     "introduction",
-    "getting-started.md",
+    "home.md",
   ),
   "utf8",
 );
@@ -46,10 +47,10 @@ const GETTING_STARTED: string = fs.readFileSync(
 const HEADING: string = "## Searching for a page, a setting or an action";
 
 const SECTION: string = ((): string => {
-  const start: number = GETTING_STARTED.indexOf(HEADING);
+  const start: number = HOME_PAGE.indexOf(HEADING);
   expect(start).toBeGreaterThan(-1);
-  const next: number = GETTING_STARTED.indexOf("\n## ", start + 1);
-  return GETTING_STARTED.slice(start, next === -1 ? undefined : next);
+  const next: number = HOME_PAGE.indexOf("\n## ", start + 1);
+  return HOME_PAGE.slice(start, next === -1 ? undefined : next);
 })();
 
 const AREAS: Array<PageSearchArea> = getPageSearchAreas();
@@ -70,7 +71,7 @@ function findEntry(title: string, areaId?: string): PageSearchIndexEntry {
   return entry!;
 }
 
-describe("Getting Started explains Search", () => {
+describe("Home Page & Shortcuts explains Search", () => {
   test("it says how to open Search", () => {
     expect(SECTION).toContain("**Cmd+K**");
     expect(SECTION).toContain("**Ctrl+K**");

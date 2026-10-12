@@ -1,12 +1,92 @@
-# Upgrading OneUptime
+# Upgrading
 
-This guide covers how to safely upgrade your self-hosted OneUptime installation.
+Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — to a newer release. Follow the procedure below, and read the notes for every major version between the one you run and the one you are moving to.
 
-## General Guidance
+:::cards
+- [How to upgrade](#how-to-upgrade): The procedure, for Docker Compose and Kubernetes.
+- [Notes for each version](#find-the-notes-for-your-version): What each major version asks of you, at a glance.
+- [Community and Enterprise Edition images](#community-and-enterprise-edition-images): Which image to run from 14 on.
+- [Upgrading from OneUptime 13 → 14](#upgrading-from-oneuptime-13-14): The newest major version.
+:::
 
-- Upgrade step-by-step across major versions (for example, 6 → 7 → 8). Do not skip major versions.
-- You can leapfrog minor/patch versions (for example, 8.1 → 8.4) as long as you follow the release notes.
-- Always take backups before upgrading, and validate you can restore them.
+## How to upgrade
+
+Three rules keep an upgrade safe:
+
+- **Upgrade one major version at a time** (for example 6 → 7 → 8). Do not skip a major version.
+- **Skip minor and patch releases as you like** (for example 8.1 → 8.4), as long as you follow their release notes.
+- **Back up before every upgrade**, and check that you can restore the backup.
+
+```mermaid title="Upgrade one major version at a time"
+flowchart TB
+    Find["Find your version"] --> Backup["Back up your data"]
+    Backup --> Read["Read the next version's notes"]
+    Read --> Upgrade["Upgrade to that version"]
+    Upgrade --> Check["Check the new version"]
+    Check --> Target{"Reached your target?"}
+    Target -->|No| Backup
+    Target -->|Yes| Done["Done"]
+```
+
+:::steps
+### Find your current version
+
+As a master admin, open the edition label in the Admin Dashboard's header: **This installation** shows the version you run. The instance also reports it at `/version`:
+
+```bash
+curl http://localhost/version
+```
+
+Replace `http://localhost` with your instance's address. The answer is JSON, such as `{"version":"14.0.22","commit":"..."}`.
+
+### Back up your data
+
+Back up PostgreSQL, and ClickHouse if you need its telemetry. On Docker Compose, see [Back up and restore](/docs/installation/docker-compose#back-up-and-restore). On Kubernetes, use your volume snapshots or the chart's CloudNativePG backups.
+
+### Read the notes for the next major version
+
+Find them in [the table below](#find-the-notes-for-your-version), and do what they ask before you upgrade: some steps, such as renaming Helm values, have to happen first.
+
+### Run the upgrade
+
+:::tabs
+@tab Docker Compose
+```bash
+git checkout release
+git pull
+npm run update
+```
+`npm run update` adds new settings to your `config.env` without changing yours, pulls the new images and restarts OneUptime.
+@tab Kubernetes
+```bash
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+Use your own release name and values file. The chart runs the database migrations in a Job of its own before the new pods serve traffic.
+:::
+
+### Check the new version
+
+On Docker Compose, `npm run update` ends with **OneUptime is up!** On Kubernetes, wait until every pod is `Running` and ready:
+
+```bash
+kubectl get pods -n <namespace>
+```
+
+Then check your version again, as in the first step. If you have not reached your target version yet, go back to [Back up your data](#back-up-your-data) and take the next major version.
+:::
+
+### Find the notes for your version
+
+| Upgrade | What you must do |
+| --- | --- |
+| [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. |
+| [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
+| [11 → 12](#upgrading-from-oneuptime-11-12) | Redeploy Runbook Agents as Runners. On Docker Compose, set `ONEUPTIME_RUNNER_KEY`. On Helm, rename `aiAgent:` to `runner:`. Re-grant Runner permissions that API keys held directly. |
+| [10 → 11](#upgrading-from-oneuptime-10-11) | SCIM and team compliance settings need the Enterprise Edition. To keep your telemetry history, rename the old ClickHouse tables before you upgrade. |
+| [9 → 10](#upgrading-from-oneuptime-9-10) | Nothing. |
+| [8 → 9](#upgrading-from-oneuptime-8-9) | On Helm, remove `oneuptimeIngress` overrides from your values. |
+| [7 → 8](#upgrading-from-oneuptime-7-8) | On Helm, move to the new values structure for Postgres, Redis and ClickHouse. Back up first. |
 
 ## Community and Enterprise Edition images
 
@@ -218,7 +298,7 @@ for the full state table.
 
 ### Docker Compose: pick the image tag
 
-```
+```bash
 git checkout release # Please make sure you're on release branch.
 git pull
 npm run update
@@ -239,7 +319,7 @@ npm run update
 
 ### Helm: pick the image type
 
-```
+```bash
 helm repo update
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
@@ -264,6 +344,12 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ### Other changes in 14
 
+These change how OneUptime behaves after the upgrade, and most need no
+action. Read them if you use custom roles or API keys built from single
+permissions, custom incident, alert or maintenance states, Terraform or the
+API, SSO, or the Slack and Microsoft Teams apps.
+
+:::details Read the other changes in 14
 - **OTLP ingest acknowledges a batch only after the queue accepts it.** 13
   replied `200` first and enqueued afterwards, so a batch the queue rejected was
   lost silently. 14 answers `503` with `Telemetry queue unavailable. Please
@@ -348,6 +434,46 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   Projects whose custom states all sit above the acknowledged state see no
   change. See
   [What acknowledging does](/docs/incidents/states-and-severities#what-acknowledging-does).
+- **Episodes move through their states by the rule incidents and alerts
+  follow.** An incident or alert episode could be moved back up its list of
+  states — a resolved episode back to **Acknowledged**, say — from the
+  dashboard's state timeline, Slack, Microsoft Teams, the API or Terraform,
+  and the move went on to its incidents or alerts. Now a move into a state
+  earlier in the order than the episode's current one is refused with the
+  error an incident gets ("Episode cannot transition to Acknowledged state
+  from Resolved state because Acknowledged is before Resolved in the order
+  of incident states."), and nothing changes. A grouping rule's **Reopen
+  recently resolved episodes** still reopens an episode, as OneUptime's own
+  move. To put right a state set by mistake, delete its row from the
+  episode's state timeline, as for an incident; the episode goes back to
+  the state of its latest remaining row, and deleting the row that
+  resolved it clears its resolved time. An episode moves each of its
+  incidents or alerts only where theirs would move: one already in that
+  state, or past it, is left where it is.
+- **A write of a record's current state follows the same rule.** Updating
+  an incident's, alert's, episode's or scheduled maintenance event's
+  current state through the API or Terraform (`currentIncidentStateId`,
+  `currentAlertStateId`, `currentScheduledMaintenanceStateId`) is refused
+  before anything is saved when it moves the record back up its list,
+  with the same error. Before, the write landed on the record and the
+  state timeline then refused it, leaving the record in a state its
+  timeline never held. Writing an incident episode's state now records it
+  on the episode's state timeline and moves its incidents, as writing an
+  alert episode's already did. A Terraform plan that sets an earlier state
+  fails at apply; set states in their order, or change the state with a
+  state timeline row.
+- **Change State in Slack and Microsoft Teams offers only the states a
+  record may move into next.** A record in the last state it can reach is
+  answered "There is no later state to move this incident to." instead of
+  a form whose every choice would be refused. The **Change state to** menu
+  in the dashboard header asks the same rule.
+- **The error for a scheduled maintenance event moved back up its list
+  reads like the others:** "Scheduled Maintenance cannot transition to
+  Scheduled state from Ongoing state because Scheduled is before Ongoing in
+  the order of scheduled maintenance states." (it said `ScheduledMaintenance`
+  and `scheduledMaintenance states`). A script that matched the old text
+  needs the new one. See
+  [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference).
 - **Resolving an incident gives back only the monitors it holds.**
   OneUptime now records whether an incident holds its monitors' status. An
   incident resolved once already and then reopened no longer returns its
@@ -436,10 +562,88 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   description or labels, is recorded now, and a monitor's name,
   description and label names show as typed instead of being read as
   Markdown. An event moved from **Scheduled** straight into a state of
-  your own placed after **Ongoing** now starts the way **Ongoing** does:
-  its monitors change to its **Change Monitor Status to**, where until now
-  they were left as they were. See
+  your own placed between **Ongoing** and **Ended** now starts the way
+  **Ongoing** does: its monitors change to its **Change Monitor Status
+  to**, where until now they were left as they were. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **A maintenance event in a state of your own before Ongoing starts at
+  its time, and is listed as coming up.** A scheduled maintenance event
+  moved on from **Scheduled** to a state of your own placed above
+  **Ongoing** - a "Confirmed" step, say - was never started at its
+  **Starts At**: its monitors were not put into maintenance and its
+  owners and subscribers were not told, until someone moved it on by
+  hand. It also dropped off its status pages' upcoming events and their
+  RSS and Atom feeds, off the Microsoft Teams app's scheduled maintenance,
+  and its subscribers' reminders before the event were dropped. It now
+  starts at its time the way an event left in **Scheduled** does, and
+  until then it is listed and reminded about as one to come. An event
+  already past its start in such a state is started within a minute of
+  the upgrade - and ended a minute later when its **Ends At** has passed
+  too - with its owners and subscribers told as for any start and end, so
+  before upgrading, move on or delete any such event that was left
+  behind. A state of your own placed before **Scheduled** - a draft or an
+  approval step - is left to a person, as before. Four smaller changes come with
+  it. Every change of an event's state works out the status of the
+  network sites it covers at once, also when it moves back because the
+  entry of the state it is in was deleted from its **State Timeline**,
+  where until now a move back waited for the five-minute sweep. An event
+  is complete in **Completed** and in every state of your own placed after
+  it - "Archived": its owners' reminders are no longer planned again for
+  it after a reminder rule change, Microsoft Teams treats it as closed
+  when it looks for reactions to turn into notes, and its feed and status
+  page timeline mark it as done. The event's **Measurements** card
+  treats an event in a state of your own placed after **Ended** as over,
+  as its header does, and "the ended state entered" and "the completed
+  state entered" are the moves into a state where the event is over or
+  complete, so an event completed straight from **Ongoing** records its
+  end there. And a state carrying more than one of the four built-in flags
+  now reads the same on the event's header as on the server. Projects
+  with no states of their own see only the network site and measurement
+  changes. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **A maintenance event in a state of your own after Ongoing counts as
+  in progress everywhere.** A scheduled maintenance event moved on from
+  **Ongoing** to a state of your own placed above **Ended** - a
+  "Verifying" step, say - kept its monitors in maintenance, but nothing
+  else took it for in progress: its status pages' overview left it out
+  altogether, the network sites and telemetry series it covers were no
+  longer silenced, SLO burn-rate alerts on its monitors fired, the
+  **Ongoing** lists under **Scheduled Maintenance** and **Home**, their
+  menu badges and the **Ongoing maintenance** tile left it out, the
+  Microsoft Teams app did not list it, and nothing ended it at its **Ends
+  At**: it stayed in that state, with its monitors in maintenance, until
+  someone moved it on. Every one of them now asks one rule: an event is
+  in progress in the ongoing state and in every state of your own placed
+  between **Ongoing** and **Ended**. Such an event is ended at its **Ends
+  At** like an ongoing one, telling its subscribers if **When the event
+  ends** is on, so an event left in "Verifying" past its end is ended
+  within a minute of the upgrade. A state of your own placed after
+  **Ended** - "Reviewing" - is over: moving an event into it from
+  **Ongoing** or "Verifying" now ends it the way **Ended** does, where
+  until now its monitors stayed in maintenance for good, and the event's
+  header no longer offers **Mark as Ended** for it. A state placed before
+  **Ongoing** still waits for the start. Moving an event by hand into a
+  state of your own that starts or ends it starts **Notify Status Page
+  Subscribers** the way **Mark as Ongoing** or **Mark as Ended** would.
+  The status page's scheduled events page and its RSS and Atom feeds also
+  list an event in progress that started before the page's history
+  window. Projects whose own states all sit before **Ongoing** see no
+  change. Three smaller fixes come with it: moving an event's **Starts
+  At** moves its first reminder with it when its reminder rule waits for
+  the start; taking off its last affected resource besides the monitors
+  is recorded in its feed as "No other affected resources."; and a
+  **Starts At** or **Ends At** written without a time zone is compared as
+  UTC, as it is stored, so a server not running in UTC no longer records a
+  move that was not one. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **Saving a secret back as it is changes nothing.** A monitor secret, a
+  workflow variable, a runbook secret or credential, an LLM provider's
+  API key, an OIDC client secret and the other values OneUptime stores
+  encrypted are encrypted afresh on every save, so a save that sent one
+  back unchanged looked like a change: it ran the record's **On Update**
+  workflows, pushed the record to open dashboards and added an audit log
+  entry. A value written back as it is now counts as unchanged; a new
+  value still does all three, and is still stored encrypted.
 - **On OneUptime Cloud, API keys stop working below their plan, and SCIM
   only removes people.** A project's API keys need **Growth** and its SCIM
   connections - the project's and its status pages' - need **Scale**.
@@ -560,6 +764,16 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
+- **Saving Require SSO for Login on again is checked as turning it on is.**
+  A save that sends Require SSO for Login on - for a project or for the
+  whole server - or names the provider a project requires is now checked
+  even when the setting has that value already, as the API, Terraform and
+  other tools that send every setting with each save do. While no provider
+  would sign people in there, or the provider a project requires is off,
+  such a save is refused with the message turning it on gives, whatever
+  else it changes: turn a provider on, or turn the setting off, first.
+  Turning it off and clearing the required provider are never refused. See
+  [SSO](/docs/identity/sso#requiring-sso-for-your-project).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
@@ -655,6 +869,110 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   their permission to add it does not reach - restricted to labels the new
   record does not carry, for one - refuses the create, and nothing is
   saved. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **The one record a write names, and a change of a record's labels, keep to
+  the caller's permissions too.** The one record a create or a change names
+  in a field of its own - an alert's monitor, the monitor a status page
+  resource shows, a cost budget's service, the incident a runbook run is
+  linked to - follows the rule the records a write lists follow, under either
+  of its names: one outside the caller's permission to read that kind of
+  record, or carrying a label a block on reading it takes away, is refused
+  with the `400` that names the field and the ID, and nothing is written. A
+  change checks it only when it names another record. OneUptime's global
+  probes and AI agents stay open to every project. The records a service
+  fills in for its caller - the monitors, status pages and on-call policies
+  an incident template adds to an incident declared from it - are checked
+  the same way, before anything is saved and before the incident takes its
+  number. A change of the labels a record carries keeps it within the
+  caller's permission to change it: restricted to labels, the record keeps
+  one of them, and a block with labels on changing it refuses giving it one
+  of its labels; either is refused with a `422` that names the labels. A
+  creator whose permission to create reaches only what they own is made the
+  owner right after the save, before anything else happens to the record,
+  and when that fails the record is removed again and the create is refused
+  with a `500`. The owners of monitors, incidents, alerts, scheduled
+  maintenance events and their templates are now read through the record
+  they own, as a status page's and a service's are. Roles and API keys whose
+  permissions reach the whole project work as before; give a custom role or
+  an API key restricted to labels the read of the records it names. See
+  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **What a subscription, a rule's Run Now, an LLM provider list and an AI
+  plan's approval reach stays within what they are allowed.**
+  - A status page subscription names only resources of its own status page.
+    A sign-up or a change on the status page names only the resources the
+    page shows, so not one whose monitor is archived, and a create or a
+    change by the team, an API key or a workflow names only resources of the
+    subscriber's page; any other resource is refused with the `400` that
+    names the field and the ID, as one that does not exist is. A change asks
+    only about the resources it adds, so a subscription keeps what it names
+    already. A subscription saved before this that names another page's
+    resource is left as it is: it is told about events only through the
+    resources of its own page, as it always was.
+  - **Run Now** on a network's site assignment, device label and auto import
+    rules takes permissions that reach the whole project, as every other
+    rule's **Run Now** does: editing the rule, and `EditNetworkDevice` - or,
+    for an auto import rule, `CreateNetworkDevice`, and `CreateProjectMonitor`
+    when the rule has a Monitor Template. A permission restricted to labels
+    or to owned resources is refused with a `422`, and so is a team's block
+    with labels on the resources a run changes, for every rule's **Run Now**:
+    the run would change the resources carrying those labels too. Give a
+    role or an API key that runs rules these permissions scoped to all
+    resources in the project.
+  - LLM providers are read only by the project's members who may read its
+    settings (`ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `Viewer`,
+    `SettingsAdmin`, `SettingsMember`, `SettingsViewer` and `ReadProjectLlm`);
+    a request that is not signed in gets a `401`. The list of global LLM
+    providers on **Project Settings → AI → LLM Providers** shows their name,
+    description and price to anyone signed in.
+  - Approving an AI command plan with an SSH command needs permission to
+    read runbook credentials (`ReadRunbookCredential`, or `ProjectOwner` or
+    `ProjectAdmin`), as naming a credential in a runbook step does; without
+    it the approval is refused with a `422` and nothing runs. Saving an auto
+    remediation rule that lets OneUptime AI run its commands without asking -
+    OneUptime AI composing commands, **Fix without asking** and a command
+    allowlist - needs the same permission when the save turns that on
+    (switching such a rule on included) or adds allowlist patterns or
+    Runners. Rules that already run that way keep running, and narrowing
+    them or turning that off needs nothing more. Turning on **Runs AI
+    Remediation Commands** for a Runner that holds SSH credentials needs the
+    same permission; a Runner that runs them already keeps doing so.
+    `ProjectMember` and the runbook roles approve such plans once
+    `ReadRunbookCredential` is added to their team.
+  See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),
+  [Run Rules on Existing Resources](/docs/configuration/run-rules-now#before-you-begin)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **Who owns a resource, and a setting that holds credentials, are named
+  only by someone who may read them.** The owners of every resource - on-call
+  policies and schedules, monitor groups, dashboards, incoming call
+  policies, workflows, runbooks, probes, hosts and clusters, SLOs and the
+  rest - are now listed, read, added and removed through the resource they
+  own, as a monitor's, a status page's and a service's are: a role or an API
+  key restricted to labels reaches the owners of the resources carrying its
+  labels, a block with labels on reading the resource leaves out their
+  owners, and a permission on owners alone reaches none. The owners of
+  incoming call policies now take the policy's own roles (`SettingsAdmin`,
+  `SettingsMember`, `SettingsViewer`) instead of the on-call ones. A create or
+  a change that names an SMTP server, a call and SMS provider, a runbook
+  credential, SNMP credentials, a video call connection or an API key - a
+  status page's SMTP server or call and SMS provider, an incoming call
+  policy's provider, the credential a Kubernetes cluster gives OneUptime AI,
+  a network device's or site's SNMP credentials, a video call's connection,
+  an API key permission's key, the credential of a runbook's SSH and
+  Kubernetes steps - needs a permission to read that kind of setting, and
+  is otherwise refused with the `400` that names the field and the ID; a
+  change that keeps the setting a record names already is not asked about.
+  A role that edits status pages but cannot read the project's SMTP servers
+  or call and SMS providers, such as `StatusPageAdmin`, no longer picks one
+  for a status page; a runbook author needs `ReadRunbookCredential` to name a
+  credential in a step. Searching for numbers to buy, and listing the numbers
+  a call and SMS provider owns, take the same read of the provider they
+  name. Where a project was bought - its reseller, its reseller plan and its
+  license - is set by OneUptime alone: a create of a project that sends
+  `resellerId`, `resellerPlanId`, `resellerLicenseId` or their relations is
+  refused with a `400` that names the field, as a change of them already was.
+  See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
@@ -785,10 +1103,183 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   ahead at once, where it used to wait about ten seconds and then go ahead
   without the lock that keeps two changes from crossing. See
   [Changing a state](/docs/permissions/index#changing-a-state).
+- **Acknowledging alerts as you declare an incident takes what acknowledging
+  them takes anywhere else.** Declaring an incident from alerts with the box
+  to acknowledge them ticked - `acknowledgeAlertsToLink` in the API - used to
+  take **Edit Alert** as well as **Create Alert State Timeline** for each
+  alert it acknowledged, more than acknowledging the same alerts one by one
+  on their own pages. It now takes **Create Alert State Timeline** alone,
+  narrowed by your labels, owners and each alert's privacy as it is on the
+  alert's page, so a custom role with that permission but without
+  **Edit Alert** - or a team with a block on **Edit Alert** - acknowledges
+  the alerts as it declares. A block on **Create Alert State Timeline**
+  still keeps a team from it, and the built-in roles see no change. The
+  dashboard's box asks for the same, and Terraform does not declare
+  incidents from alerts, so nothing changes there. See
+  [Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).
+- **An incoming call policy's phone numbers follow the policy's roles.**
+  Looking numbers up - `POST /api/notification/phone-number/search` and
+  `/list-owned` - needs permission to read incoming call policies and to
+  read call and SMS configs, so **Viewer** and the **Settings** roles can
+  look numbers up now, and a custom role with **Read Incoming Call Policy**
+  alone, which was let in and then told the config was not found, is refused
+  with "Looking up phone numbers needs permission to read incoming call
+  policies and call and SMS settings." Buying, attaching and releasing a
+  number - `/purchase`, `/assign-existing` and `/release` - need permission
+  to edit incoming call policies, which **Settings Admin** and **Settings
+  Member** have here now, as they do on the policy itself. A team's block
+  with no labels on either permission takes it away, where it used to be
+  ignored. The dashboard's **Add Phone Number** and **Release** buttons
+  stay on screen, locked, for anyone the API would refuse. Buying a number
+  still charges your own Twilio account and needs no billing permission.
+  Terraform does not manage phone numbers, so nothing changes there. See
+  [Who Can Add and Release Phone Numbers](/docs/on-call/incoming-call-policy#who-can-add-and-release-phone-numbers).
+- **Slack and Microsoft Teams forms act as the OneUptime member who uses
+  them.** Slack's `/incident` and `/maintenance`, Microsoft Teams' `create
+  incident` and `create maintenance` cards, and the **Execute On-Call
+  Policy** pickers used to list every severity, monitor, monitor status,
+  on-call policy and label of the project, and Slack's `/incident` was open
+  to anyone in the workspace, connected or not. Now someone whose chat
+  account is not connected to OneUptime is asked to connect it, someone who
+  may not declare an incident, create an event or execute a policy is told
+  so before any form opens, each list holds only what that member may read,
+  and the submit is made with the member's own permissions: a record they
+  may not read, or one of another project, is refused like one the project
+  does not have, and nothing is created. Teams' monitor and on-call policy
+  views read as the member as well, and escalating a policy from a card
+  needs the permission to execute one. No project setting brings back
+  declaring from Slack without a connected account. The REST API and
+  Terraform do not change. See
+  [Slack](/docs/workspace-connections/slack#creating-incidents-and-maintenance-from-slack)
+  and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#creating-incidents-and-maintenance-from-microsoft-teams).
+- **Slack and Microsoft Teams buttons act as the OneUptime member who
+  presses them.** **Acknowledge**, **Resolve**, **Change State**, **Mark as
+  Ongoing**, **Mark as Complete**, **Add Note** and **Execute On-Call
+  Policy** on incidents, alerts, episodes and scheduled maintenance events,
+  and notes saved from a message with a reaction, now make the change the
+  dashboard makes for the same action, with the member's own permissions,
+  and credit it to them. A member who may not make that change in
+  OneUptime, a record outside their labels or of another project, and a
+  change the project's plan doesn't include are refused, and nothing
+  changes. Microsoft Teams' **Acknowledge** and **Resolve** used to need
+  permission to edit the incident or alert; like the dashboard's state
+  panel, they now need permission to change its state (**Create Incident
+  State Timeline**, **Create Alert State Timeline**), so look over custom
+  roles that hold one of the two and not the other. **Change State** lists
+  only the states the member may read. Teams' **Escalate** executes its
+  policy for the incident, alert or episode its card is about, and a card
+  about none of them is answered instead. Executing an archived on-call
+  policy, from a record's **Execute On-Call Policy** or through the API
+  too, pages no one, and its execution log says why, as declaring an
+  incident with one already did. See
+  [Slack](/docs/workspace-connections/slack#acting-on-incidents-alerts-and-events-from-slack)
+  and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#acting-on-incidents-alerts-and-events-from-microsoft-teams).
+- **Ask AI's actions are made as the person who asked.** Acknowledging or
+  resolving an incident or an alert, paging an on-call policy, running a
+  runbook, changing an incident's severity, starting an AI investigation and
+  writing code to a repository from Ask AI now make the change the dashboard
+  makes for the same action, with the asking person's own permissions,
+  labels and owners, and credit it to them. Acknowledging and resolving used
+  to need permission to edit the incident or alert; like the dashboard's
+  state panel, they now need permission to change its state (**Create
+  Incident State Timeline**, **Create Alert State Timeline**). Paging used to
+  need permission to edit incidents and now needs permission to execute
+  on-call policies (**Create On-Call Duty Policy Execution Log**), and
+  running a runbook used to need permission to edit runbooks and now needs
+  permission to start runbook executions (**Create Runbook Execution**), so
+  look over custom roles that hold the old permission and not the new one.
+  A refused action changes nothing, and Ask AI says why. The AI's answers in
+  Slack and Microsoft Teams, and autonomous AI investigations, take none of
+  these actions. See [Ask AI](/docs/ai/ask-ai#actions-are-made-as-you).
+- **An SSH credential reaches a Runner that runs OneUptime AI's commands only
+  through someone who may read runbook credentials.** Creating an SSH runbook
+  credential with a Runner that has **Runs AI Remediation Commands** on, or
+  adding such a Runner to one, now needs permission to read runbook
+  credentials (`ReadRunbookCredential`, or `ProjectOwner` or `ProjectAdmin`),
+  as turning that switch on for a Runner that holds SSH credentials already
+  does; without it the save is refused with a `422` that names the Runner.
+  Credentials keep the Runners they were assigned before the upgrade, and
+  removing Runners, saving a credential with the Runners it has and
+  Kubernetes credentials need nothing more. Creating such a credential and
+  turning the switch on by someone without that permission are saved one at
+  a time in a project: such a save that waits too long for another, or that
+  cannot reach Valkey, is refused with a `400` asking to try again in a
+  moment. Saving a Runner without changing its switch - editing its
+  description, say - never waits and needs no Valkey, whoever saves it. A
+  workflow's steps act as a Project Admin but are never lent the read of
+  runbook credentials, or of any other setting that holds credentials: a
+  step that would let OneUptime AI's commands use a runbook credential, or
+  that names an SMTP server, a call and SMS provider, SNMP credentials, a
+  video call connection, an API key or a runbook credential, is refused, and
+  its run log says a person who may read them has to make the change.
+  Upgrading from 14.0.26 to 14.0.31: those releases asked instead about the
+  person who last saved a workflow's steps, recorded in a read-only
+  `lastSavedByUserId` column on workflows. That column is dropped on start,
+  the API and Terraform no longer return it, and a step is refused whoever
+  saved the workflow. See
+  [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
+  and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+- **An LLM provider's Additional Parameters are read like its API key,
+  and its Base URL is changed only by those who may read them.** A
+  provider's **Additional Parameters** are sent to the provider with every
+  request and can carry a token or a header, so they are now read only by
+  project owners and admins (`ProjectOwner`, `ProjectAdmin`), as the **API
+  Key** already was. Other members, and API keys holding their roles, get a
+  `422` when they ask for `additionalParams`; they can read the new
+  read-only `hasAdditionalParams` field instead, which says whether any
+  parameters are saved and is worked out from them on every read. Members
+  who may edit a provider can still replace its API key and its parameters.
+  The API key and the parameters are sent to the provider's **Base URL**,
+  so changing `baseUrl` now needs `ProjectOwner` or `ProjectAdmin` as well;
+  anyone else gets a `422` that names who may change it. The Terraform
+  provider and the MCP server leave out what an API key may not read, so a
+  Terraform API key that manages `additional_params` or `base_url` needs
+  `ProjectOwner` or `ProjectAdmin`. Everyone who reads a provider reads its
+  **Base URL**, so keep keys and tokens out of it. See
+  [Who can see a provider](/docs/ai/llm-provider#setting-up-an-llm-provider).
+- **Probes and AI agents are read only by members of their project.**
+  Reading a project's probes or AI agents takes a role that may read them,
+  such as **Viewer**, **Settings Viewer**, **Read Probe** or **Read AI
+  Agent** (and the monitor roles, for probes), and a request without a
+  signed-in user or an API key is answered with a `401`. Whoever may read,
+  create or edit monitors, a monitor's probes, network devices, their
+  discovery scans or network sites reads what a probe picker shows of the
+  project's probes - name, description, icon, status and whether new
+  monitors start with it - but not a probe's key, version, labels or packet
+  capture report. A probe's key stays with project owners and admins. The
+  lists of global probes and global AI agents answer signed-in users only.
+- **An update or a delete names its project.** A signed-in user's update
+  or delete of a project's records that names no project (no `tenantid`
+  header), or that asks across all of their projects (the
+  `is-multi-tenant-query` header), is refused with a `400` that says to pass
+  the project ID. Such a request used to fail with a `500`. API keys act in
+  their own project, and the Dashboard and the mobile app always send the
+  project with a change, so neither is affected. See
+  [Changes are made in one project at a time](/docs/api-reference/api-reference#changes-are-made-in-one-project-at-a-time).
+- **A database statement the app stops waiting for is cancelled.** When a
+  statement runs past `DATABASE_QUERY_TIMEOUT_MS` (35 seconds by default),
+  the app now cancels it on the database and closes the connection it ran
+  on, instead of only giving up on it. Behind PgBouncer such a statement
+  used to keep running, and a create it was part of could be committed by
+  the next request to use that connection, after the first had been told it
+  failed. A request whose statement runs that long now waits up to 5
+  seconds more, for the database to confirm the cancel, and then fails as
+  before. The chart's PgBouncer now refuses a statement that waited 30
+  seconds in its queue for a free server connection
+  (`pgbouncer.queryWaitTimeoutSeconds`; PgBouncer's own default is 120
+  seconds), so it never starts after the app gave up on it. If you run your
+  own PgBouncer or a managed pooled endpoint, set its `query_wait_timeout`
+  below `DATABASE_QUERY_TIMEOUT_MS`, and keep `statement_timeout` set on the
+  app's database role: it still ends a statement whose cancel cannot reach
+  the database. A change to SSO sign-in settings, or to the Runners and
+  credentials OneUptime AI may use, whose write was cancelled now gives its
+  lock back at once instead of holding other such changes for up to a
+  minute.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
   self-hosted installs no longer serve.
+:::
 
 ### Workflow steps act as a Project Admin
 
@@ -800,6 +1291,7 @@ What changes for an existing workflow:
 - A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
 - A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Pick the template under the step's **Incident Template** setting instead, and take `createdIncidentTemplateId` out of its **JSON Object**. The step then declares the incident from the template the way the dashboard does — everything the step sets wins, a state included — adds the template's owners, and records the template. The run log of a step still sending the column points to the setting. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 - A step that selects who created a probe or an AI agent is refused.
+- A step that names an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key or a runbook credential is refused - one that sets a status page's SMTP server, say, or grants an API key a permission. A step is never lent the read of settings that hold credentials: a person who may read them has to make that change. A step that keeps the one a record names already, or clears it, is not refused.
 - On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
 - An Update step no longer writes the project: a record stays in its project, as before.
 
@@ -946,10 +1438,12 @@ Terraform configurations that set `enableAutoRemediation` or
 ### New projects start with every AI feature on
 
 A project created after the upgrade starts with every AI feature switched on,
-not only automatic incident and alert investigation: postmortem drafts,
-automatic code fixes and instrumentation fixes (Incidents or Alerts →
-AI → Settings), and AI Insights with its fix pull requests and auto-archiving
-of expected-denial exceptions (AI → Insights → Settings).
+not only automatic incident and alert investigation: postmortem drafts
+(Incidents → AI → Settings), and AI Insights with its fix pull requests and
+auto-archiving of expected-denial exceptions (AI → Insights → Settings). The
+pull requests OneUptime AI opens for incidents and alerts are part of fixing,
+which starts off; see [The pull-request switches are part of
+fixing](#the-pull-request-switches-are-part-of-fixing).
 
 Projects that already exist keep the settings they have; the upgrade switches
 nothing on. On also does not mean running: each feature still needs an LLM
@@ -1080,6 +1574,39 @@ with in its `remediationAction` (`OneUptimeAI` or `Runbooks`). A rule created
 without one, with runbooks and no AI setting, is a **Runbooks** rule, as it
 would have run before.
 
+### The pull-request switches are part of fixing
+
+**Open a fix pull request when an investigation finds a code change** and
+**Open a pull request that adds missing telemetry** (Incidents or Alerts →
+AI → Settings) now sit under **Fix new incidents automatically** (or
+**Fix new alerts automatically**). They are shown only while fixing is on,
+turning fixing on turns both on, and turning it off turns both off. While
+fixing is on, either one can be turned off on its own.
+
+What changes after the upgrade:
+
+- A pull request opens on its own only while fixing is on as well as its
+  own switch. A project that had a pull-request switch on and fixing off
+  stops opening those pull requests by itself. Turn fixing on to get them
+  back. To keep OneUptime AI from changing your clusters or hosts, keep
+  **Fixes** off on their **AI agent** pages (the default) and add no auto
+  remediation rule.
+- The upgrade changes no stored setting. A pull-request switch that was on
+  under fixing that was off stays on and waits; the settings page shows it
+  once fixing is turned on, and turning fixing on turns it on anyway.
+- A new project starts with the pull-request switches off, like fixing.
+  Investigations, postmortem drafts and AI Insights still start on.
+- **Open Fix PR from this analysis** on an investigation is unchanged: it
+  needs neither switch.
+
+API clients and Terraform configurations keep their fields
+(`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,
+`enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, or
+`enable_automatic_incident_code_fixes` and the rest in Terraform). The
+server stores what they write, and does not turn the pull-request fields on
+or off with `enableAutomaticIncidentRemediation` (or the alert field): set
+all three in one request to turn fixing on with its pull requests.
+
 ### Verify the edition and the license
 
 - The **edition label in the Admin Dashboard header** names the edition that is
@@ -1105,7 +1632,8 @@ would have run before.
 - Your enterprise configuration is not touched by running 14, so a rollback
   finds it as it was.
 
-> Tip: on the Enterprise Edition, activate the license on the day you upgrade
+> [!TIP]
+> On the Enterprise Edition, activate the license on the day you upgrade
 > rather than at the end of the trial. Activation is what keeps SCIM
 > provisioning and audit logging running, and the trial is counted from this
 > upgrade, not from your original install date.
@@ -1171,7 +1699,7 @@ matter to you.
 
 The standard update is all you need:
 
-```
+```bash
 git checkout release # Please make sure you're on release branch.
 git pull
 npm run update
@@ -1194,7 +1722,7 @@ npm run update
 
 ### Helm upgrades
 
-```
+```bash
 helm repo update
 helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
@@ -1246,8 +1774,8 @@ service. What changes is the name of the block that configures it.
 
 ### Verify the upgrade
 
-- **Admin Dashboard → Health → Valkey** should read Connected, with a memory
-  figure. This is the same reachability check the health warning emails use.
+- **Admin Dashboard → OneUptime Health → Valkey** should read Connected, with a
+  memory figure. This is the same reachability check the health warning emails use.
 - **Compose:** `docker compose ps` lists a `valkey` service and no `redis`
   container.
 - **Helm:** `kubectl get pods,svc -n <namespace>` shows `<release>-valkey-0`
@@ -1389,10 +1917,12 @@ The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
+:::steps
 1. Create a Runner under **Runbooks → Runners** and install it with the
    command from **Show setup instructions**.
 2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
    heartbeat.
+:::
 
 Old AI Agent credentials still boot the new `oneuptime/runner` image
 through a legacy fallback (code fixes only, with a logged warning telling
@@ -1496,7 +2026,8 @@ command execution** setting and the per-Runner **Runs AI Remediation Commands**
 capability must both be enabled, and only runbooks/rules you configure for
 it participate. Upgrading changes nothing here.
 
-> Tip: as with every major upgrade, back up Postgres before upgrading (a
+> [!TIP]
+> As with every major upgrade, back up Postgres before upgrading (a
 > rollback to v11 means restoring that backup), test in staging first, and
 > upgrade step-by-step — 11 → 12, do not skip from older majors.
 
@@ -1573,13 +2104,14 @@ ingested after the upgrade lands in them immediately, and history fills
 back in naturally as time passes. The old tables are **dropped
 automatically** during the upgrade to reclaim their disk — if you want
 the option of carrying history forward, rename them **before**
-upgrading (Step 0 below).
+upgrading ([Before upgrading, rename the old tables](#before-upgrading-rename-the-old-tables)).
 
+> [!IMPORTANT]
 > **Already on 11.0.0 or 11.0.1?** Those releases kept the old tables
 > (they drained via TTL, and the copy could be run "any time after the
 > upgrade"). Any later update **drops them at boot**. If you still want
-> the history copy and have not done it yet, run Step 0 below before
-> applying the update.
+> the history copy and have not done it yet, rename the old tables
+> ([Before upgrading, rename the old tables](#before-upgrading-rename-the-old-tables)) before applying the update.
 
 ### Who needs to do anything
 
@@ -1588,7 +2120,7 @@ upgrading (Step 0 below).
   do. Telemetry pages simply show data from the upgrade moment onward;
   the old tables are dropped during the upgrade.
 - **Upgrades that want pre-upgrade telemetry visible:** rename the old
-  tables **before** the upgrade (Step 0 below), then run the manual copy
+  tables **before** the upgrade ([Before upgrading, rename the old tables](#before-upgrading-rename-the-old-tables)), then run the manual copy
   any time after it.
 
 As always: upgrade major versions step-by-step (10 → 11, do not skip),
@@ -1596,7 +2128,7 @@ and take backups of Postgres and ClickHouse before upgrading.
 
 ### Optional: carry telemetry history forward
 
-Step 0 runs **before the upgrade**; everything from Step 1 on runs
+The first step runs **before the upgrade**; every step after it runs
 **after the upgrade has fully booted** (the new tables and their
 materialized views must exist). Connect directly on your ClickHouse
 host — the native protocol has no HTTP timeouts, so multi-hour statements
@@ -1621,7 +2153,9 @@ Good to know before starting:
   automatically (each copied row re-feeds the rollup materialized views)
   — this makes the metric copy slower than the others; run it last.
 
-#### Step 0 — before upgrading, rename the old tables
+:::details The copy, step by step
+:::steps
+#### Before upgrading, rename the old tables
 
 The upgrade drops the old tables at boot, so move the ones you want to
 copy from out of its reach first. Stop OneUptime (scale the deployment
@@ -1645,13 +2179,14 @@ RENAME TABLE IF EXISTS MetricItemAggMV1mByHost TO MetricItemAggMV1mByHost_backup
 
 Then upgrade and let OneUptime boot fully before continuing.
 
+> [!WARNING]
 > If you roll back to v10 after renaming (v10 recreates empty old-name
 > tables at boot), rename the `_backup` tables back to their original
 > names before restarting v10 — otherwise telemetry ingested during the
 > rollback lands in the recreated tables and is dropped at the eventual
 > upgrade.
 
-#### Step 1 — list the source partitions
+#### List the source partitions
 
 Each old table has at most 16 partitions. For each source table:
 
@@ -1659,13 +2194,13 @@ Each old table has at most 16 partitions. For each source table:
 SELECT DISTINCT _partition_id FROM LogItemV2_backup ORDER BY _partition_id;
 ```
 
-#### Step 2 — generate the copy statement
+#### Generate the copy statement
 
 Column sets can differ slightly between installations (older deployments
 may lack recently added columns), so generate the statement from your
 live schema rather than copy-pasting a fixed one. Set `src` and `dst` in
 the `WITH` clause to one of the table pairs from the table above (the
-source carries the `_backup` suffix from Step 0), and run:
+source carries the `_backup` suffix from the first step), and run:
 
 ```sql
 WITH 'LogItemV2_backup' AS src, 'LogItemV3' AS dst
@@ -1695,26 +2230,27 @@ fly, orders rows deterministically so a retry produces identical,
 deduplicatable blocks, and lifts the execution-time and partition-count
 limits that a statement this size needs.
 
-#### Step 3 — run it, one partition at a time
+#### Run it, one partition at a time
 
 Take the generated statement and substitute `{PARTITION}` (it appears
-twice — in the `WHERE` and in the token) with each partition id from
-Step 1. Run the statements one at a time, then repeat Steps 1–3 for each
-table pair.
+twice — in the `WHERE` and in the token) with each partition id you
+listed. Run the statements one at a time, then list, generate and run
+again for each table pair.
 
-> Note: if a source table was skipped in Step 0 because it did not exist
-> on your installation, Step 1 fails with `UNKNOWN_TABLE` for that pair —
+> [!NOTE]
+> If a source table did not exist on your installation, the first step
+> skipped it, and listing its partitions fails with `UNKNOWN_TABLE` —
 > simply skip the pair; there is no history of that type to copy.
 
 If a statement fails partway, re-run the **same** statement promptly —
 already-committed blocks deduplicate. If re-running much later, compare
-row counts first (Step 5).
+row counts first ([Verify the copy](#verify-the-copy)).
 
-#### Step 4 (optional) — per-host metric rollup history
+#### Optional: copy the per-host metric rollups
 
 Copied raw metric rows rebuild the service-level rollups automatically,
 but not the **per-host** rollup (old rows have no host entity key). The
-renamed old rollup table from Step 0 is the only source for this
+old rollup table you renamed in the first step is the only source for this
 history; carry it forward by computing the new key from the hostname:
 
 ```sql
@@ -1741,7 +2277,7 @@ be silently skipped or double-counted. (Edge case: hostnames containing
 a different key than the application; ignore unless you know you have
 such hosts.)
 
-#### Step 5 — verify
+#### Verify the copy
 
 Compare totals per table pair (the new table also contains post-upgrade
 rows, so it should be greater than or equal to the old one):
@@ -1752,7 +2288,7 @@ SELECT
   (SELECT count() FROM LogItemV3) AS new_rows;
 ```
 
-#### Step 6 — drop the backups
+#### Drop the backups
 
 The renamed tables keep their retention TTL, so they drain and shrink by
 themselves — but once you are satisfied with the copy, drop them to
@@ -1772,14 +2308,17 @@ DROP TABLE IF EXISTS MetricItemAggMV1mByHost_backup SETTINGS max_table_size_to_d
 
 (`max_table_size_to_drop = 0` lifts the server's 50 GB drop protection
 for that one statement.)
+:::
+:::
 
-> Tip: as with every major upgrade, test in a staging environment first
+> [!TIP]
+> As with every major upgrade, test in a staging environment first
 > and confirm telemetry is flowing into the new tables before relying on
 > the copy in production.
 
 ## Upgrading from OneUptime 9 → 10
 
-No changes that require manual action. Just follow the standard upgrade process.
+No changes need manual action: follow [How to upgrade](#how-to-upgrade).
 
 ## Upgrading from OneUptime 8 → 9
 
@@ -1798,4 +2337,14 @@ If you're running on Kubernetes, there are important breaking changes:
 - These changes are not backward compatible. You must follow the new structure in the Helm chart `values.yaml`.
 - Backup your data (Postgres, ClickHouse, and any persistent volumes) before upgrading.
 
-> Tip: Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
+> [!TIP]
+> Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
+
+## Next steps
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): Install, back up and update a single-server instance.
+- [Enterprise Edition](/docs/self-hosted/enterprise): The editions, the license and switching between them.
+- [Sizing & Capacity Planning](/docs/installation/sizing): Plan resources before your install grows.
+- [Self-Hosted Architecture](/docs/self-hosted/architecture): How the components fit together.
+:::

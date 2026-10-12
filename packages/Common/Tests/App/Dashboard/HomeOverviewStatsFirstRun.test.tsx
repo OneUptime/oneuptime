@@ -33,8 +33,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * in-memory evaluator of the very query objects the component builds, so a
  * test about "archived SLOs are not set up" checks the query's meaning, not
  * just its shape. The unresolved incident and alert states come through the
- * real IncidentStateUtil / AlertStateUtil, over a stubbed ModelListCache.
- * react-i18next is answered from the REAL locale files.
+ * real IncidentStateUtil / AlertStateUtil, and the in-progress scheduled
+ * maintenance states through the real ScheduledMaintenanceStateUtil, over a
+ * stubbed ModelListCache. react-i18next is answered from the REAL locale
+ * files.
  */
 
 const LOCALES_DIR: string = path.join(
@@ -153,6 +155,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
@@ -192,12 +195,70 @@ function stateRows(): Array<StateRow> {
   ];
 }
 
+/*
+ * The project's scheduled maintenance states in their order: the four
+ * built-in ones, with a state of the project's own between Ongoing and Ended
+ * ("Verifying": still in progress) and one after Ended ("Reviewing": over).
+ */
+const SM_SCHEDULED_STATE_ID: string = "65f000000000000000000011";
+const SM_ONGOING_STATE_ID: string = "65f000000000000000000012";
+const SM_VERIFYING_STATE_ID: string = "65f000000000000000000013";
+const SM_ENDED_STATE_ID: string = "65f000000000000000000014";
+const SM_REVIEWING_STATE_ID: string = "65f000000000000000000015";
+const SM_COMPLETED_STATE_ID: string = "65f000000000000000000016";
+
+interface ScheduledMaintenanceStateRow {
+  id: ObjectID;
+  _id: string;
+  order: number;
+  isScheduledState: boolean;
+  isOngoingState: boolean;
+  isEndedState: boolean;
+  isResolvedState: boolean;
+}
+
+function scheduledMaintenanceStateRow(
+  id: string,
+  order: number,
+  flag:
+    | "isScheduledState"
+    | "isOngoingState"
+    | "isEndedState"
+    | "isResolvedState"
+    | null,
+): ScheduledMaintenanceStateRow {
+  return {
+    id: new ObjectID(id),
+    _id: id,
+    order,
+    isScheduledState: flag === "isScheduledState",
+    isOngoingState: flag === "isOngoingState",
+    isEndedState: flag === "isEndedState",
+    isResolvedState: flag === "isResolvedState",
+  };
+}
+
+function scheduledMaintenanceStateRows(): Array<ScheduledMaintenanceStateRow> {
+  return [
+    scheduledMaintenanceStateRow(SM_SCHEDULED_STATE_ID, 1, "isScheduledState"),
+    scheduledMaintenanceStateRow(SM_ONGOING_STATE_ID, 2, "isOngoingState"),
+    scheduledMaintenanceStateRow(SM_VERIFYING_STATE_ID, 3, null),
+    scheduledMaintenanceStateRow(SM_ENDED_STATE_ID, 4, "isEndedState"),
+    scheduledMaintenanceStateRow(SM_REVIEWING_STATE_ID, 5, null),
+    scheduledMaintenanceStateRow(SM_COMPLETED_STATE_ID, 6, "isResolvedState"),
+  ];
+}
+
+let smStateRows: Array<ScheduledMaintenanceStateRow> =
+  scheduledMaintenanceStateRows();
+
 // What the project holds. Every count is evaluated against this.
 interface Dataset {
   incidentStateIds: Array<string>;
   alertStateIds: Array<string>;
   monitors: Array<{ isOperational: boolean }>;
-  maintenance: Array<{ isOngoing: boolean }>;
+  // Each event's current state.
+  maintenanceStateIds: Array<string>;
   slos: Array<{ isEnabled: boolean; isArchived: boolean; status: SloStatus }>;
 }
 
@@ -206,7 +267,7 @@ function emptyProject(): Dataset {
     incidentStateIds: [],
     alertStateIds: [],
     monitors: [],
-    maintenance: [],
+    maintenanceStateIds: [],
     slos: [],
   };
 }
@@ -290,13 +351,11 @@ function evaluate(request: CountRequest): number {
     case "totalMonitors":
       return dataset.monitors.length;
     case "ongoingMaintenance": {
-      const wanted: boolean = (
-        query["currentScheduledMaintenanceState"] as {
-          isOngoingState: boolean;
-        }
-      ).isOngoingState;
-      return dataset.maintenance.filter((event: { isOngoing: boolean }) => {
-        return event.isOngoing === wanted;
+      const inProgress: Array<string> = idsIn(
+        query["currentScheduledMaintenanceStateId"],
+      );
+      return dataset.maintenanceStateIds.filter((id: string): boolean => {
+        return inProgress.includes(id);
       }).length;
     }
     case "slosAtRisk":
@@ -395,10 +454,19 @@ beforeEach(() => {
   activeLocale = EN;
   currentProjectId = new ObjectID(PROJECT_ID);
   dataset = emptyProject();
+  smStateRows = scheduledMaintenanceStateRows();
   countRequests = [];
   answerFromDataset();
   listMock.mockImplementation((...args: Array<unknown>) => {
     const request: { modelType: unknown } = args[0] as { modelType: unknown };
+    if (request.modelType === ScheduledMaintenanceState) {
+      return Promise.resolve({
+        data: smStateRows,
+        count: smStateRows.length,
+        skip: 0,
+        limit: smStateRows.length,
+      });
+    }
     if (
       request.modelType !== IncidentState &&
       request.modelType !== AlertState
@@ -643,13 +711,166 @@ describe("incidents, alerts and maintenance", () => {
   });
 
   test("ongoing maintenance is in progress", async () => {
-    dataset.maintenance = [{ isOngoing: true }, { isOngoing: false }];
+    dataset.maintenanceStateIds = [SM_ONGOING_STATE_ID, SM_SCHEDULED_STATE_ID];
     await renderStats();
 
     expect(
       screen.getByTestId("home-stat-ongoing-maintenance"),
     ).toHaveTextContent("1");
     expect(statusOf("ongoing-maintenance")).toHaveTextContent("In progress");
+  });
+
+  test("an event in a state of the project's own between Ongoing and Ended is in progress", async () => {
+    // "Verifying": the event's work is done, not its window.
+    dataset.maintenanceStateIds = [SM_VERIFYING_STATE_ID];
+    await renderStats();
+
+    expect(
+      screen.getByTestId("home-stat-ongoing-maintenance"),
+    ).toHaveTextContent("1");
+    expect(statusOf("ongoing-maintenance")).toHaveTextContent("In progress");
+  });
+
+  test("an event in a state of its own after Ended is over, as is one in Ended or Completed", async () => {
+    dataset.maintenanceStateIds = [
+      SM_REVIEWING_STATE_ID,
+      SM_ENDED_STATE_ID,
+      SM_COMPLETED_STATE_ID,
+      SM_SCHEDULED_STATE_ID,
+    ];
+    await renderStats();
+
+    expect(
+      screen.getByTestId("home-stat-ongoing-maintenance"),
+    ).toHaveTextContent("0");
+    expect(statusOf("ongoing-maintenance")).toHaveTextContent("None ongoing");
+  });
+
+  test("Ongoing, Verifying and the rest together: the in-progress ones count", async () => {
+    dataset.maintenanceStateIds = [
+      SM_ONGOING_STATE_ID,
+      SM_VERIFYING_STATE_ID,
+      SM_VERIFYING_STATE_ID,
+      SM_REVIEWING_STATE_ID,
+      SM_SCHEDULED_STATE_ID,
+    ];
+    await renderStats();
+
+    expect(
+      screen.getByTestId("home-stat-ongoing-maintenance"),
+    ).toHaveTextContent("3");
+  });
+
+  test("the states' place decides, not their position in the answer", async () => {
+    // The same states answered out of order: their own `order` places them.
+    smStateRows = [...scheduledMaintenanceStateRows()].reverse();
+    dataset.maintenanceStateIds = [
+      SM_VERIFYING_STATE_ID,
+      SM_REVIEWING_STATE_ID,
+    ];
+    await renderStats();
+
+    expect(
+      screen.getByTestId("home-stat-ongoing-maintenance"),
+    ).toHaveTextContent("1");
+  });
+});
+
+describe("the ongoing maintenance count", () => {
+  test("asks for events by the in-progress state ids, not by the ongoing flag", async () => {
+    await renderStats();
+
+    const [request]: Array<CountRequest> = requestsOf("ongoingMaintenance");
+    expect(requestsOf("ongoingMaintenance")).toHaveLength(1);
+    expect(Object.keys(request!.query).sort()).toEqual([
+      "currentScheduledMaintenanceStateId",
+      "projectId",
+    ]);
+    expect(request!.query["currentScheduledMaintenanceStateId"]).toBeInstanceOf(
+      Includes,
+    );
+    expect(
+      idsIn(request!.query["currentScheduledMaintenanceStateId"]).sort(),
+    ).toEqual([SM_ONGOING_STATE_ID, SM_VERIFYING_STATE_ID].sort());
+  });
+
+  test("the project's states are read once, through the list cache, for this project", async () => {
+    await renderStats();
+
+    const smListRequests: Array<Array<unknown>> = listMock.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: unknown }).modelType ===
+          ScheduledMaintenanceState
+        );
+      },
+    );
+    expect(smListRequests).toHaveLength(1);
+    const request: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = smListRequests[0]![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    };
+    expect(String(request.query["projectId"])).toBe(PROJECT_ID);
+    // The place and every built-in flag: what the rule reads.
+    for (const column of [
+      "_id",
+      "order",
+      "isScheduledState",
+      "isOngoingState",
+      "isEndedState",
+      "isResolvedState",
+    ]) {
+      expect([column, request.select[column]]).toEqual([column, true]);
+    }
+  });
+
+  test("a project without an ongoing state counts none, and asks nothing for it", async () => {
+    smStateRows = scheduledMaintenanceStateRows().filter(
+      (state: ScheduledMaintenanceStateRow): boolean => {
+        return !state.isOngoingState;
+      },
+    );
+    dataset.maintenanceStateIds = [SM_VERIFYING_STATE_ID];
+    await renderStats();
+
+    expect(requestsOf("ongoingMaintenance")).toHaveLength(0);
+    expect(countRequests).toHaveLength(6);
+    expect(
+      screen.getByTestId("home-stat-ongoing-maintenance"),
+    ).toHaveTextContent("0");
+    expect(statusOf("ongoing-maintenance")).toHaveTextContent("None ongoing");
+  });
+
+  test("a failed read of the states hides the whole row, like a failed count", async () => {
+    listMock.mockImplementation((...args: Array<unknown>) => {
+      const request: { modelType: unknown } = args[0] as {
+        modelType: unknown;
+      };
+      if (request.modelType === ScheduledMaintenanceState) {
+        return Promise.reject(new Error("states failed"));
+      }
+      const rows: Array<StateRow> = stateRows();
+      return Promise.resolve({
+        data: rows,
+        count: rows.length,
+        skip: 0,
+        limit: rows.length,
+      });
+    });
+
+    await act(async () => {
+      render(<OverviewStats projectId={new ObjectID(PROJECT_ID)} />);
+    });
+
+    await waitFor(() => {
+      expect(countRequests.length).toBeGreaterThanOrEqual(6);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("home-overview-stats")).toBeNull();
+    });
   });
 });
 
@@ -892,7 +1113,7 @@ describe("in German", () => {
     activeLocale = DE;
     dataset.incidentStateIds = [OPEN_STATE_ID];
     dataset.monitors = [{ isOperational: false }];
-    dataset.maintenance = [{ isOngoing: true }];
+    dataset.maintenanceStateIds = [SM_ONGOING_STATE_ID];
     dataset.slos = [sloRow(SloStatus.AtRisk)];
     await renderStats();
 

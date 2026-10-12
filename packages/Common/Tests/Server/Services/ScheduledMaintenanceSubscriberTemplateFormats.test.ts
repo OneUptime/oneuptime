@@ -371,6 +371,33 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
     expect(sentSlack()).toEqual([`Slack ${DESCRIPTION}`]);
   });
 
+  /*
+   * With the real plain text, not the stand-in the other tests here use: the
+   * HTML typed in a description comes out of the SMS and the subject
+   * completely - where taking a tag out joins the text either side into
+   * another one, that one goes too - and a "<" typed as text stays.
+   */
+  test("gives a custom SMS and subject the description with its typed markup out completely", async () => {
+    jest.spyOn(Markdown, "convertToPlainText").mockRestore();
+
+    const event: ScheduledMaintenance = scheduledEvent();
+    const description: string =
+      "Failing over the **primary**. <scr<script>ipt>alert(1)</script> Latency stays < 200 ms.";
+    const text: string =
+      "Failing over the primary. alert(1) Latency stays < 200 ms.";
+
+    event.description = description;
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      event,
+    ]);
+
+    expect(sentSms()).toEqual([`SMS ${text}`]);
+    expect(sentMail()[0]!.subject).toBe(`${TITLE}: ${text}`);
+    // Slack is given the Markdown as written, as before.
+    expect(sentSlack()).toEqual([`Slack ${description}`]);
+  });
+
   test("hands each channel's template the description in that channel's format", async () => {
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
       scheduledEvent(),

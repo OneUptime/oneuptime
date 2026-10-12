@@ -1,7 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import {
   StorageArrayResourceFilters,
   StorageArrayResourceScope,
@@ -621,13 +623,36 @@ describe("the criteria form treats storage array monitors as metric monitors", (
       "public static isMetricOnlyMonitorType(",
     );
     const body: string = criteriaFilterUtil.slice(start, start + 800);
-    expect(body).toContain("monitorType === MonitorType.StorageArray ||");
+
+    // The metric-backed list, minus IoT Device; storage arrays are on it.
+    expect(body).toContain(
+      "MonitorTypeHelper.isMetricBackedMonitor(monitorType) &&",
+    );
+    expect(body).toContain("monitorType !== MonitorType.IoTDevice");
+    expect(
+      MonitorTypeHelper.getMetricBackedMonitorTypes().includes(
+        MonitorType.StorageArray,
+      ),
+    ).toBe(true);
   });
 
+  /*
+   * The wording follows isMetricOnlyMonitorType - the list the test above
+   * pins storage arrays into - instead of three copies of that list.
+   */
   test("it says rule, not filter, in all three places the Ceph monitor does", () => {
-    expect(
-      criteriaFilters.split("props.monitorType === MonitorType.StorageArray ||")
-        .length - 1,
-    ).toBe(3);
+    expect(criteriaFilters).toContain(
+      "const isMetricOnly: boolean = CriteriaFilterUtil.isMetricOnlyMonitorType( props.monitorType, );",
+    );
+    expect(criteriaFilters).toContain(
+      'title={isMetricOnly ? "Add Rule" : "Add Filter"}',
+    );
+    expect(criteriaFilters).toContain(
+      "description={ isMetricOnly ? `At least one alert rule is required.",
+    );
+    expect(criteriaFilters).toContain(
+      "title={ isMetricOnly ? `Cannot delete last remaining rule.`",
+    );
+    expect(criteriaFilters).not.toContain("MonitorType.StorageArray");
   });
 });

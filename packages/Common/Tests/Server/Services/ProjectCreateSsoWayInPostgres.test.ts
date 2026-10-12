@@ -349,7 +349,7 @@ describePostgres("a project created with a way in, on Postgres", () => {
       onCreate: OnCreate<Project>,
       createdItem: Project,
     ): Promise<Project> => {
-      await SsoRequirementChanges.afterProjectCreate(onCreate.createBy);
+      await SsoRequirementChanges.afterProjectCreate(onCreate);
       return createdItem;
     }) as never);
 

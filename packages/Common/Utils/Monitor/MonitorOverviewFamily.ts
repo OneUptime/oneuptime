@@ -72,6 +72,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.CustomJavaScriptCode:
       case MonitorType.DNS:
       case MonitorType.DNSSEC:
+      case MonitorType.NTP:
       case MonitorType.Domain:
       case MonitorType.SQLQuery:
       case MonitorType.Database:
@@ -91,6 +92,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.Exceptions:
       case MonitorType.Profiles:
       case MonitorType.SecurityEvents:
+      case MonitorType.Llm:
         return MonitorOverviewFamily.TelemetrySignal;
 
       case MonitorType.Kubernetes:

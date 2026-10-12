@@ -3,9 +3,12 @@ import path from "path";
 import ts from "typescript";
 
 /*
- * Where a state's built-in flag (isResolvedState, isAcknowledgedState) is
- * read to decide something, for the guards that keep those decisions in one
- * helper each (OneResolvedRuleGuard, OneAcknowledgedRuleGuard).
+ * Where a state's built-in flag (isResolvedState, isAcknowledgedState, the
+ * scheduled maintenance flags) is read to decide something, for the guards
+ * that keep those decisions in one helper each (OneResolvedRuleGuard,
+ * OneAcknowledgedRuleGuard, OneInProgressRuleGuard,
+ * OneMaintenancePhaseRuleGuard) - and, at the end of this file, where two
+ * states' places are compared to decide it.
  *
  * A read is:
  *
@@ -308,4 +311,117 @@ export function scanStateFlagReads(flag: string): Array<FlagRead> {
   }
 
   return reads;
+}
+
+/*
+ * Where two states' places are compared to decide something: a `<`, `<=`,
+ * `>` or `>=` with a state's `order` on either side (`a.order`, `a?.order`,
+ * `a!.order`, `a["order"]`) - "is it past Ended", "has it moved on". For the
+ * guard that keeps where a scheduled maintenance event is in its life in
+ * one helper (OneMaintenancePhaseRuleGuard). Sorting a list by place
+ * (`a.order - b.order`) is no comparison; nor is assigning a place.
+ */
+const ORDER_COMPARISON_OPERATORS: Set<ts.SyntaxKind> = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.LessThanToken,
+  ts.SyntaxKind.LessThanEqualsToken,
+  ts.SyntaxKind.GreaterThanToken,
+  ts.SyntaxKind.GreaterThanEqualsToken,
+]);
+
+// `x.order`, `x?.order`, `x!.order`, `(x.order)`, `x["order"]`.
+function isOrderOperand(node: ts.Expression): boolean {
+  let current: ts.Expression = node;
+
+  while (
+    ts.isParenthesizedExpression(current) ||
+    ts.isNonNullExpression(current) ||
+    ts.isAsExpression(current)
+  ) {
+    current = current.expression;
+  }
+
+  if (ts.isPropertyAccessExpression(current)) {
+    return current.name.text === "order";
+  }
+
+  return (
+    ts.isElementAccessExpression(current) &&
+    ts.isStringLiteralLike(current.argumentExpression) &&
+    current.argumentExpression.text === "order"
+  );
+}
+
+// Every comparison of a state's place in one source file's text.
+export function findStateOrderComparisons(
+  file: string,
+  text: string,
+): Array<FlagRead> {
+  if (!text.includes("order")) {
+    return [];
+  }
+
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+
+  const comparisons: Array<FlagRead> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isBinaryExpression(node) &&
+      ORDER_COMPARISON_OPERATORS.has(node.operatorToken.kind) &&
+      (isOrderOperand(node.left) || isOrderOperand(node.right))
+    ) {
+      comparisons.push({
+        file: file,
+        line:
+          source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+        text: node.getText(source).replace(/\s+/g, " ").slice(0, 160),
+      });
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return comparisons;
+}
+
+/*
+ * Every comparison of a state's place in the readers' directories, by path
+ * from the root - in the files whose text matches `mentions` (the states of
+ * one kind, say).
+ */
+export function scanStateOrderComparisons(mentions: RegExp): Array<FlagRead> {
+  const comparisons: Array<FlagRead> = [];
+
+  for (const relativeDirectory of SCANNED_DIRECTORIES) {
+    const directory: string = path.join(REPOSITORY_ROOT, relativeDirectory);
+
+    if (!fs.existsSync(directory)) {
+      continue;
+    }
+
+    for (const file of listSourceFiles(directory)) {
+      const text: string = fs.readFileSync(file, "utf8");
+
+      if (!mentions.test(text)) {
+        continue;
+      }
+
+      comparisons.push(
+        ...findStateOrderComparisons(
+          path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/"),
+          text,
+        ),
+      );
+    }
+  }
+
+  return comparisons;
 }

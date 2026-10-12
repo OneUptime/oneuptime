@@ -30,6 +30,7 @@ const networkModelPageRoutes: Array<string> = [
   PageMap.NETWORK_SITE_VIEW_DEVICES,
   PageMap.NETWORK_SITE_VIEW_CHILD_SITES,
   PageMap.NETWORK_SITE_VIEW_ENDPOINTS,
+  PageMap.NETWORK_SITE_VIEW_TRAFFIC,
   PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE,
   PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
   PageMap.NETWORK_SITE_VIEW_SETTINGS,
@@ -47,6 +48,8 @@ const networkModelPageRoutes: Array<string> = [
 ].map((page: string): string => {
   return RouteUtil.getRouteString(page);
 });
+
+export const NETWORK_PAGE_TITLE: string = "Network";
 
 const NetworkLayout: FunctionComponent = (): ReactElement => {
   const location: ReturnType<typeof useLocation> = useLocation();
@@ -67,9 +70,15 @@ const NetworkLayout: FunctionComponent = (): ReactElement => {
     return routeContent;
   }
 
+  /*
+   * One product, one name: the heading reads "Network" on every page, as the
+   * products menu calls it - never "Network Devices" on the Overview and
+   * "Network Sites" on the Map, which named the route family a page happens
+   * to be served from rather than anything the user picked.
+   */
   return (
     <Page
-      title={isNetworkSitePage ? "Network Sites" : "Network Devices"}
+      title={NETWORK_PAGE_TITLE}
       sideMenu={<NetworkSideMenu />}
       breadcrumbLinks={breadcrumbLinks}
     >

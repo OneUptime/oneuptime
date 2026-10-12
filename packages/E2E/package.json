@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.22",
+  "version": "14.0.45",
   "description": "",
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
     "test-code-editor-ui": "playwright test --config playwright.code-editor-ui.config.ts",
     "test-value-picker-ui": "playwright test --config playwright.value-picker-ui.config.ts",
     "test-color-picker-ui": "playwright test --config playwright.color-picker-ui.config.ts",
+    "test-custom-field-options-ui": "playwright test --config playwright.custom-field-options-ui.config.ts",
     "test-diagrams-ui": "playwright test --config playwright.diagrams-ui.config.ts",
     "test-topology-ui": "playwright test --config playwright.topology.config.ts",
     "test-workflow-builder-ui": "playwright test --config playwright.workflow-builder-ui.config.ts",
@@ -41,7 +42,9 @@
     "test-sharding": "playwright test --config playwright.sharding.config.ts",
     "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
     "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts",
-    "test-push-registration-ui": "playwright test --config playwright.push-registration-ui.config.ts"
+    "test-push-registration-ui": "playwright test --config playwright.push-registration-ui.config.ts",
+    "test-packet-capture-ui": "playwright test --config playwright.packet-capture-ui.config.ts",
+    "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

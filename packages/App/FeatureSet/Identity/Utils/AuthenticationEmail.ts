@@ -13,6 +13,7 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE } from "Common/Server/Middleware/IdentityRateLimit";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger from "Common/Server/Utils/Logger";
 import UserRegistrationToken, {
   REGISTRATION_TOKEN_EXPIRY_IN_DAYS,
@@ -222,7 +223,7 @@ export default class AuthenticationEmail {
 
     await MailService.sendMail({
       toEmail: data.user.email,
-      subject: "A backup code was used to sign in to your OneUptime account",
+      subject: `A backup code was used to sign in to your ${ProductBrandingText.getProductName()} account`,
       isSubjectLiteral: true,
       templateType: EmailTemplateType.TwoFactorBackupCodeUsed,
       vars: {
@@ -273,7 +274,7 @@ export default class AuthenticationEmail {
     try {
       await MailService.sendMail({
         toEmail: data.email,
-        subject: "Finish setting up your OneUptime account",
+        subject: `Finish setting up your ${ProductBrandingText.getProductName()} account`,
         isSubjectLiteral: true,
         templateType: EmailTemplateType.CompleteRegistration,
         vars: {

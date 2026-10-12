@@ -7,6 +7,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -57,8 +59,9 @@ import {
   getScheduledMaintenanceStateKind,
   getScheduledMaintenanceTiming,
   getScheduledMaintenanceTimingRefreshDelayInMs,
-  getTimelineDateForState,
+  getStartedAndCompletedAt,
   isScheduledMaintenanceTimingLive,
+  placeScheduledMaintenanceStates,
   shouldRecheckScheduledMaintenanceState,
 } from "../../Utils/ScheduledMaintenanceTiming";
 
@@ -210,17 +213,6 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     setSelectedScheduledMaintenanceState,
   ] = useState<ScheduledMaintenanceState | undefined>(undefined);
 
-  /*
-   * Worked out for the state the form moves the event to. openModalForState
-   * sets that state and opens the form in the same handler, so the form's
-   * first render already sees it.
-   */
-  const notifySubscribersByDefault: boolean =
-    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
-      props.subscriberNotificationSettings,
-      selectedScheduledMaintenanceState,
-    );
-
   const [
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
@@ -303,6 +295,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           isEndedState: true,
           name: true,
           color: true,
+          // The state's place: what tells where a state of the project's own is.
+          order: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -387,6 +381,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       (state: ScheduledMaintenanceState): ScheduledMaintenanceStateFlags => {
         return {
           id: state.id?.toString() || "",
+          order: state.order,
           isScheduledState: state.isScheduledState,
           isOngoingState: state.isOngoingState,
           isEndedState: state.isEndedState,
@@ -409,18 +404,28 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       })
     : undefined;
 
+  /*
+   * The project's ongoing state: the one Mark as Ongoing moves the event
+   * into (ScheduledMaintenanceStartUtil.getOngoingState).
+   */
   const ongoingState: ScheduledMaintenanceState | undefined =
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isOngoingState);
-    });
+    ScheduledMaintenanceStartUtil.getOngoingState({
+      states: scheduledMaintenanceStates,
+    }) || undefined;
 
+  /*
+   * Where Mark as Ended moves the event: the project's ended state, or its
+   * completed state in a project without one (ScheduledMaintenanceStartUtil
+   * .getEndedState / getCompletedState).
+   */
   const endState: ScheduledMaintenanceState | undefined =
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isEndedState);
+    ScheduledMaintenanceStartUtil.getEndedState({
+      states: scheduledMaintenanceStates,
     }) ||
-    scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-      return Boolean(state.isResolvedState);
-    });
+    ScheduledMaintenanceStartUtil.getCompletedState({
+      states: scheduledMaintenanceStates,
+    }) ||
+    undefined;
 
   const stateKind: ScheduledMaintenanceStateKind =
     getScheduledMaintenanceStateKind({
@@ -428,22 +433,47 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
       currentStateId: currentScheduledMaintenanceState?.id?.toString(),
     });
 
+  /*
+   * When the event really started and was completed: its first start (into
+   * Ongoing, or straight into a state of the project's own between Ongoing
+   * and Ended) and its last end (into Ended or Completed, or a state of its
+   * own after Ended).
+   */
+  const startedAndCompletedAt: {
+    startedAt: Date | undefined;
+    completedAt: Date | undefined;
+  } = getStartedAndCompletedAt({
+    states: stateFlags,
+    timelines: timelineEntries,
+  });
+
   const timing: ScheduledMaintenanceTiming = getScheduledMaintenanceTiming({
     stateKind: stateKind,
     startsAt: props.eventStartsAt,
     endsAt: props.eventEndsAt,
-    startedAt: getTimelineDateForState({
-      timelines: timelineEntries,
-      stateId: ongoingState?.id?.toString(),
-      pick: "first",
-    }),
-    completedAt: getTimelineDateForState({
-      timelines: timelineEntries,
-      stateId: endState?.id?.toString(),
-      pick: "last",
-    }),
+    startedAt: startedAndCompletedAt.startedAt,
+    completedAt: startedAndCompletedAt.completedAt,
     now: now,
   });
+
+  /*
+   * Worked out for the state the form moves the event to, from the state it
+   * is in: a move that starts the event or ends it - into Ongoing or Ended,
+   * or into a state of the project's own that does the same - follows the
+   * event's "Event Ongoing" / "Event Ended" setting. openModalForState sets
+   * the target and opens the form in the same handler, so the form's first
+   * render already sees it.
+   */
+  const notifySubscribersByDefault: boolean =
+    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+      props.subscriberNotificationSettings,
+      selectedScheduledMaintenanceState,
+      {
+        // Placed as the header places them (its kind and its timing).
+        states: placeScheduledMaintenanceStates(stateFlags),
+        currentState: currentScheduledMaintenanceState,
+      },
+    );
 
   const isTimingLive: boolean =
     !isLoading && !error && isScheduledMaintenanceTimingLive(timing);
@@ -634,9 +664,11 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
               id: state.id?.toString() || "",
               name: state.name || "",
               color: state.color || Black,
+              order: state.order,
             };
           },
         )}
+        stateList={StateListType.ScheduledMaintenanceState}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}

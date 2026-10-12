@@ -3,7 +3,6 @@ import Model from "../../Models/DatabaseModels/LogPipelineProcessor";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import { validateLogPipelineProcessor } from "../Utils/LogPipelineProcessorValidation";
 
@@ -68,19 +67,15 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const existingRows: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      skip: 0,
-      limit: LIMIT_MAX,
-      select: {
+    // The rows the update writes, and the update held to them.
+    const existingRows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         processorType: true,
         configuration: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const existing of existingRows) {
       validateLogPipelineProcessor({

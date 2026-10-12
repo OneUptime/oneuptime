@@ -49,6 +49,7 @@ import Route from "Common/Types/API/Route";
 import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
 import { getDevicePollingFormFields } from "../DevicePollingFormFields";
 import { getMacAddressFormField } from "../MacAddressFormField";
+import { getOtherAddressesFormField } from "../OtherAddressesFormField";
 import ProbeUtil from "../../../Utils/Probe";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
@@ -418,6 +419,12 @@ const NetworkDeviceSettings: FunctionComponent<
            * router will ever learn.
            */
           getMacAddressFormField({ stepId: "address" }),
+          /*
+           * The addresses besides the hostname that the device's flow
+           * records, traps and syslog come from. The Traffic page's "It is
+           * one of my devices" adds to it as well.
+           */
+          getOtherAddressesFormField({ stepId: "address" }),
           {
             field: {
               snmpCredentialProfile: true,
@@ -505,6 +512,10 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Description",
               fieldType: FieldType.Text,
+              // Hidden while empty, like the Overview's Description row.
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.description);
+              },
             },
             {
               field: {
@@ -546,6 +557,17 @@ const NetworkDeviceSettings: FunctionComponent<
                */
               showIf: (item: NetworkDevice): boolean => {
                 return Boolean(item.macAddress);
+              },
+            },
+            {
+              field: {
+                otherAddresses: true,
+              },
+              title: "Other Addresses",
+              fieldType: FieldType.Text,
+              // Hidden while empty, like the MAC Address row above.
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.otherAddresses);
               },
             },
             {
@@ -599,6 +621,20 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Monitor",
               fieldType: FieldType.Text,
+              /*
+               * Shown when a monitor is bound, or when the device is on the
+               * bound-monitor override (where an empty row says nothing is
+               * bound yet). A probe-polled device with no monitor - most of
+               * them - has no blank Monitor row to wonder about.
+               */
+              showIf: (item: NetworkDevice): boolean => {
+                return (
+                  Boolean(item.monitor?.name) ||
+                  NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                    item.monitoringMethod,
+                  )
+                );
+              },
             },
             {
               /*

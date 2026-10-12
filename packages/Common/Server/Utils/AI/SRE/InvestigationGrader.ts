@@ -14,6 +14,7 @@ import AIService, {
   AI_INVESTIGATION_GRADING_FEATURE,
 } from "../../../Services/AIService";
 import logger from "../../Logger";
+import PromptText from "../../../../Utils/AI/PromptText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -251,7 +252,7 @@ export default class InvestigationGrader {
             content: [
               "Human-recorded root cause:",
               '"""',
-              rootCause.substring(0, MAX_ROOT_CAUSE_CHARS),
+              PromptText.field(rootCause, { maxLength: MAX_ROOT_CAUSE_CHARS }),
               '"""',
               "",
               "AI investigation analysis:",

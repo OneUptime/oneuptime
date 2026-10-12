@@ -6,6 +6,9 @@
  * holds - so a device the page managed to register is listed after a reload,
  * and one it did not is not. Registering and sending a test go through the
  * Dashboard's own API client to the fixture server, as JSON over the wire.
+ *
+ * On every start it tells OneUptime's service worker, if the browser has
+ * one, the server's push key, as the Dashboard's Index.tsx does.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -18,6 +21,8 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import Push from "../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Push";
+import { sendPushConfigurationToRegisteredServiceWorker } from "../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration";
+import { VAPID_PUBLIC_KEY } from "Common/UI/Config";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import Permission from "Common/Types/Permission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -57,12 +62,20 @@ ModelAPI.getList = async (options) => {
     device._id = stored.id;
     device.deviceName = stored.deviceName;
     device.isCriticalAlertEnabled = false;
+    device.isVerified = stored.isVerified !== false;
     device.createdAt = new Date(stored.createdAt);
     return device;
   });
 
   return { data: devices, count: devices.length, skip: 0, limit: 10 };
 };
+
+if ("serviceWorker" in navigator) {
+  void sendPushConfigurationToRegisteredServiceWorker({
+    container: navigator.serviceWorker,
+    vapidPublicKey: VAPID_PUBLIC_KEY,
+  });
+}
 
 await i18next.use(initReactI18next).init({
   lng: "en",

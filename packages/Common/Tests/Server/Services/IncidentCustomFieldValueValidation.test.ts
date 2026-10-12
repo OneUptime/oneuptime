@@ -30,6 +30,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * IncidentService checks the custom field values a write puts on an incident
  * against the project's incident custom fields (CustomFieldValueValidator).
@@ -148,6 +152,14 @@ beforeEach(() => {
     .spyOn(IncidentService, "findBy")
     .mockImplementation(incidentFindBy as never);
 
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(IncidentService, () => {
+    return storedIncidents;
+  });
+
   definitionFindBy = getJestMockFunction();
   definitionFindBy.mockImplementation(() => {
     return Promise.resolve(DEFINITIONS);
@@ -247,7 +259,10 @@ describe("IncidentService.onBeforeUpdate: custom field values", () => {
 
     const read: JSONObject = incidentFindBy.mock.calls[0]![0] as JSONObject;
 
-    expect((read["query"] as JSONObject)["projectId"]).toBe(projectId);
+    // Within the caller's project: the rows they may write are found there.
+    expect(
+      readsOfRowsCallerMayWrite(IncidentService)[0]!.query["projectId"],
+    ).toBe(projectId);
     expect((read["select"] as JSONObject)["customFields"]).toBe(true);
     expect((read["props"] as JSONObject)["isRoot"]).toBe(true);
 

@@ -74,8 +74,24 @@ export interface OpenAPISpec {
   }>;
 }
 
+/*
+ * The resource or data source a relation attribute points at, from the
+ * spec's x-oneuptime-relation: `name` is its Terraform name (without the
+ * provider prefix).
+ */
+export interface TerraformRelation {
+  name: string;
+  isList: boolean;
+}
+
 export interface TerraformResource {
   name: string;
+  /*
+   * The name this resource had before type names kept mixed-case words whole
+   * (io_t_fleet for iot_fleet). Still registered, as a deprecated alias, so
+   * configurations that use it keep working.
+   */
+  legacyName?: string | undefined;
   goTypeName: string;
   description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {
@@ -95,6 +111,8 @@ export interface TerraformResource {
 
 export interface TerraformDataSource {
   name: string;
+  // See TerraformResource.legacyName.
+  legacyName?: string | undefined;
   goTypeName: string;
   description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {
@@ -126,6 +144,17 @@ export interface TerraformAttribute {
    */
   elementKind?: "entity" | "scalar";
   elementType?: string; // OpenAPI type of scalar elements ("string" | "number" | ...)
+  /*
+   * What a relation id (or a list of them) points at, when the spec says.
+   * Set by the parser once every resource and data source is known.
+   */
+  relationTag?: string | undefined;
+  relation?: TerraformRelation | undefined;
+  /*
+   * Data sources: a lookup argument. Set in configuration, it filters the
+   * list the data source must find exactly one match in.
+   */
+  isLookupFilter?: boolean;
 }
 
 export interface GoType {

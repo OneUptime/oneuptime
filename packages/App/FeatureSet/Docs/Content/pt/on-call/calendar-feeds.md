@@ -1,241 +1,347 @@
-# Feeds de calendário (turnos de plantão no Google Agenda, Outlook e Calendário da Apple)
+# Feeds de calendário
 
-Os feeds de calendário colocam seus turnos de plantão no calendário que você já consulta. O OneUptime publica um link iCalendar (`.ics`) secreto por pessoa, por escala e por projeto; Google Agenda, Outlook, Calendário da Apple, Thunderbird e qualquer outro aplicativo capaz de assinar um calendário por URL consultam esse link e mostram um evento por turno. Nada é instalado e nenhuma conta é conectada: o link é toda a integração.
+Os feeds de calendário levam seus turnos de plantão para o calendário que você já usa. O OneUptime publica um link iCalendar (`.ics`) secreto para cada pessoa, cada agendamento e cada projeto; o Google Agenda, o Outlook, o Calendário da Apple, o Thunderbird e qualquer outro app que assine um calendário por URL consultam esse link e mostram um evento por turno. Nada é instalado e nenhuma conta é conectada: o link é toda a integração.
 
-> **Note:** Um calendário assinado serve para **planejamento**. Os aplicativos de calendário releem os feeds no próprio ritmo — o Google Agenda apenas a cada 8 a 24 horas —, então uma troca feita uma hora antes de um turno chega até você pelos lembretes, avisos de reatribuição e notificações de plantão do OneUptime, não pelo calendário.
+```mermaid title="Apps de calendário consultam um link secreto; alguns a partir dos próprios servidores"
+flowchart TB
+    subgraph links["Links .ics secretos"]
+        direction LR
+        personal["Feed pessoal"]
+        schedule["Feed do agendamento"]
+        project["Feed do projeto"]
+    end
+    shifts["Agendamentos, rotações<br/>e substituições"] --> links
+    links -->|"lidos dos servidores deles"| serverApps["Google Agenda, Outlook na web"]
+    links -->|"lidos do seu dispositivo"| deviceApps["Calendário da Apple, Thunderbird, Outlook clássico"]
+```
+
+> [!NOTE]
+> Um calendário assinado serve para **planejar**. Os apps de calendário releem os feeds no próprio ritmo — o Google Agenda só a cada 8 a 24 horas —, então uma troca feita uma hora antes de um turno chega até você pelos lembretes, avisos de reatribuição e acionamentos do próprio OneUptime, não pelo calendário.
 
 ## O que você recebe
 
-- Um evento por turno, intitulado `On-call · <Schedule>` (com ` · <Policy>` acrescentado quando a escala está vinculada a exatamente uma política de escalonamento) no seu feed pessoal e `<Name> · On-call · <Schedule>` em um feed compartilhado. A descrição indica quem está de plantão, a escala e seu fuso horário, a camada, o turno no fuso da escala, em UTC e no seu, quais políticas de escalonamento acionam você por essa escala e um link para a escala no painel.
-- As substituições são respeitadas. Quando alguém cobre você, o evento passa para essa pessoa (`(covering for <Name>)` é acrescentado) e continua sendo o mesmo evento no seu aplicativo, atualizando no lugar em vez de duplicar. Uma substituição parcial divide o turno em eventos contíguos.
-- Dois dias de histórico e 90 dias à frente por padrão. Você pode ampliar para 60 dias atrás e 180 dias à frente; um feed que ultrapassaria 5.000 eventos é encurtado e informa isso na descrição do calendário.
-- Os eventos são marcados como livres (`TRANSP:TRANSPARENT`), então um feed assinado nunca bloqueia sua disponibilidade, e nada é marcado como privado, de modo que um calendário de equipe compartilhado mostra os títulos a todos que podem vê-lo.
-- Os horários são enviados em UTC e convertidos pelo seu aplicativo; a descrição informa o horário local no fuso da escala e no seu. Defina seu fuso em **Configurações do usuário** > **Perfil** e o da escala na aba **Configurações** dela. Uma escala sem fuso é calculada no fuso do servidor, como no acionamento, e o evento informa isso.
+- Um evento por turno, com o título `On-call · <Schedule>` (com ` · <Policy>` acrescentado quando o agendamento está ligado a exatamente uma política de escalonamento) no feed pessoal e `<Name> · On-call · <Schedule>` em um feed compartilhado. A descrição mostra quem está de plantão, o agendamento e o fuso horário dele, a camada, o turno no fuso do agendamento, em UTC e no seu fuso, quais políticas de escalonamento acionam você por meio deste agendamento e um link para o agendamento no painel.
+- As substituições são respeitadas. Quando alguém cobre você, o evento passa para essa pessoa (`(covering for <Name>)` é acrescentado) e continua sendo o mesmo evento no seu app de calendário, então é atualizado no lugar em vez de duplicado. Uma substituição parcial divide o turno em eventos contíguos.
+- Dois dias de histórico e 90 dias à frente por padrão. Você pode ampliar para 60 dias para trás e 180 para frente; um feed que passaria de 5.000 eventos é encurtado e avisa isso na descrição do calendário.
+- Os eventos são marcados como livres (`TRANSP:TRANSPARENT`), então um feed assinado nunca bloqueia sua disponibilidade, e nada é marcado como privado, então um calendário de equipe compartilhado mostra os títulos para todos que podem vê-lo.
+- Os horários são enviados em UTC e convertidos pelo seu app de calendário; a descrição traz o horário local no fuso do agendamento e no seu. Defina o seu fuso como **Fuso horário** no seu **Perfil** (sua foto no canto superior direito do painel), e o do agendamento no cartão **Schedule timezone** da página **Camadas** dele. Um agendamento sem fuso horário é calculado no fuso do servidor, como nos acionamentos, e o evento avisa isso.
 
-Atribuições fixas — um usuário ou equipe nomeados diretamente em uma regra de política de escalonamento — não têm início nem fim e não aparecem em nenhum feed. No OneUptime Cloud, os feeds seguem o mesmo plano das escalas de plantão (Growth); um projeto abaixo desse plano recebe um calendário vazio em vez de um erro.
+Atribuições fixas — um usuário ou uma equipe citado diretamente em uma regra de política de escalonamento — não têm início nem fim e não aparecem em nenhum feed. No OneUptime Cloud, os feeds seguem o mesmo plano dos agendamentos de plantão (Growth); um projeto abaixo desse plano recebe um calendário vazio em vez de um erro.
 
 ## Três tipos de link
 
-| Link                | Quem cria                                                                | O que contém                                                                                     | Onde                                                  |
-| ------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| **Feed pessoal**    | Cada usuário, um por projeto                                             | Seus turnos em todas as escalas do projeto, mais os turnos em que você cobre alguém (opcional)   | **Configurações do usuário** > **Feed de calendário** |
-| **Feed de escala**  | Quem pode editar a escala; quem pode lê-la pode copiar o link            | Os turnos de todos em uma escala, com eventos opcionais de lacunas de cobertura                  | A página da escala, cartão **Assinar esta escala**    |
-| **Feed de projeto** | Quem pode editar escalas de plantão; quem pode lê-las pode copiar o link | Os turnos de todos em todas as escalas do projeto, com eventos opcionais de lacunas de cobertura | **Plantão** > **Feeds de calendário**                 |
+| Link | Quem cria | O que contém | Onde |
+| --- | --- | --- | --- |
+| **Feed pessoal** | Cada usuário, um por projeto | Seus turnos em todos os agendamentos desse projeto, mais os turnos em que você cobre alguém (opcional) | **Configurações do usuário** > **Calendário** > **Feed de calendário** |
+| **Feed do agendamento** | Quem pode editar o agendamento; quem pode lê-lo pode copiar o link | Os turnos de todos em um agendamento, com eventos opcionais de lacunas de cobertura | A página do agendamento, cartão **Subscrever esta escala** |
+| **Feed do projeto** | Quem pode editar agendamentos de plantão; quem pode lê-los pode copiar o link | Os turnos de todos em todos os agendamentos do projeto, com eventos opcionais de lacunas de cobertura | **Plantão** > **Feeds de calendário** |
 
-Os links têm este formato:
+Os links são assim:
 
+```text
+https://<your host>/api/on-call-calendar/user/<token>/shifts.ics
+https://<your host>/api/on-call-calendar/schedule/<token>/schedule.ics
+https://<your host>/api/on-call-calendar/project/<token>/project.ics
 ```
-https://<seu host>/api/on-call-calendar/user/<token>/shifts.ics
-https://<seu host>/api/on-call-calendar/schedule/<token>/schedule.ics
-https://<seu host>/api/on-call-calendar/project/<token>/project.ics
-```
 
-O token de 43 caracteres no caminho é a única credencial — não há login, cookie nem chave de API. Trate cada um desses links como uma senha.
+> [!WARNING]
+> O token de 43 caracteres no caminho é a única credencial — não há login, cookie nem chave de API. Trate cada um desses links como uma senha.
 
 ## Seu feed pessoal
 
-1. Abra **Configurações do usuário** > **Feed de calendário** no projeto cujos turnos você quer. Os feeds pessoais são por projeto: um segundo projeto tem um segundo link e um segundo calendário.
-2. Clique em **Gerar link de calendário**. O cartão **Assine seus turnos de plantão** passa a mostrar o link `https://` e três botões:
-   - **Google Agenda** abre o Google Agenda com o link preenchido.
-   - **Apple / outros aplicativos** abre a forma `webcals://` do link, que macOS, iOS e a maioria dos aplicativos de desktop entregam direto à caixa de assinatura.
-   - **Copiar link webcal** copia esse mesmo link `webcal(s)://` — o que o Outlook clássico para Windows precisa.
-3. Assine no seu aplicativo de calendário seguindo os passos por aplicativo abaixo.
+Os feeds pessoais são por projeto: um segundo projeto tem um segundo link e um segundo calendário.
 
-Configurações no mesmo cartão:
+:::steps
+### Abra seu feed de calendário
 
-- **Incluir turnos que cubro por outros** (ativado por padrão) acrescenta os turnos que uma substituição lhe dá em escalas das quais você não é membro.
-- **Dias de turnos passados** (padrão 2, no máximo 60) e **Dias à frente** (padrão 90, entre 7 e 180).
+Abra **Configurações do usuário** > **Calendário** > **Feed de calendário** no projeto cujos turnos você quer. **Calendário** é uma seção do menu lateral que começa recolhida.
 
-A linha de status mostra quando o link foi lido pela última vez, por qual aplicativo, quantas vezes e os quatro últimos caracteres do token para distinguir links. Se nada leu o link após dois dias, a página pergunta se o servidor está acessível pela internet (veja Solução de problemas).
+### Gere o link
 
-A página também lista seus **Próximos turnos** (os próximos 30 dias), cada um com um link **Conseguir cobertura** que abre as substituições de usuário preenchidas para aquele turno, e o cartão **Lembrar-me antes dos turnos** descrito mais abaixo.
+Clique em **Gerar link do calendário**. O cartão **Subscrever os seus turnos de prevenção** agora oferece um único fluxo de assinatura:
 
-Ações:
+- **Adicionar ao seu calendário**: **Google Agenda** abre o Google Agenda, que pergunta se deve adicionar o calendário. **Calendário da Apple / Outlook** abre a forma `webcal://` do link no app com que seu computador ou celular assina: o Calendário da Apple no Mac, iPhone ou iPad, o Outlook no Windows.
+- **Ou copie o link**: **Copiar link** copia o link `https://` para qualquer outro app que assine um calendário por URL. O link fica oculto na página até você clicar para mostrá-lo.
 
-- **Regenerar link** cria um novo token. Todo aplicativo assinado no link antigo para de atualizar: por 30 dias o link antigo serve um calendário vazio para que esses aplicativos limpem sua cópia, depois responde 404. Assine de novo com o novo link.
-- **Desativar** mantém o link, mas serve um calendário vazio até você reativá-lo.
-- **Excluir** remove o link. Aplicativos que ainda o consultam recebem 404 e continuam mostrando o que carregaram por último — desative primeiro se quiser que eles esvaziem.
+### Assine o link
 
-O mesmo link pessoal, filtrado para uma escala com `?schedule=<id>`, é oferecido como **Somente meus turnos nesta escala** em cada página de escala, e o banner de plantão e a página **Minhas políticas de plantão** trazem um link **Adicionar seus turnos ao seu calendário** para a página acima.
+Siga os passos do seu app em "Assine no seu app de calendário", abaixo. Seus turnos aparecem como eventos na próxima vez que o app ler o link: veja "Com que frequência os calendários atualizam".
+:::
 
-No aplicativo móvel: **Plantão** > **Adicionar turnos ao meu calendário** (também em **Configurações** > **Feed de calendário**), com um link por projeto. No iPhone, **Abrir no Calendário** abre a folha de assinatura nativa. No Android não há como assinar uma URL no telefone, então a tela oferece **Compartilhar link** e **Copiar link https** e orienta a adicionar o link em um computador, após o que ele sincroniza para o telefone. A lista **Seus turnos** do aplicativo vem dos mesmos dados e tem a mesma ação **Conseguir cobertura**.
+### Configurações do feed
 
-## Assinar no seu aplicativo de calendário
+Clique em **Editar definições** no cartão **Definições do feed de calendário** para mudar o que o link inclui:
 
-Use o link `https://` a menos que o aplicativo peça `webcal`; a seção sobre esquemas abaixo explica a diferença.
+| Configuração | O que faz |
+| --- | --- |
+| **Incluir turnos que cubro por outros** | Ligada por padrão. Acrescenta os turnos que uma substituição dá a você em agendamentos dos quais você não é membro de outra forma. |
+| **Dias de turnos passados** | Até onde o calendário volta (2 por padrão, no máximo 60). |
+| **Dias futuros** | Até onde o calendário vai à frente (90 por padrão, entre 7 e 180). |
 
-### Google Agenda (web)
+A linha de status mostra quando o link foi lido pela última vez, por qual app de calendário, quantas vezes, e os quatro últimos caracteres do token para você distinguir os links. Se nada tiver lido o link depois de dois dias, a página pergunta se o servidor está acessível pela internet (veja Solução de problemas).
 
-1. No Google Agenda na web, ao lado de **Outras agendas** clique em **+** > **Usando URL**.
-2. Cole o link `https://` e clique em **Adicionar agenda**. O botão **Google Agenda** no OneUptime faz o mesmo com o link preenchido.
+### Gerencie o link
 
-O Google lê o feed **a partir dos servidores do Google**, aproximadamente a cada 8 a 24 horas e às vezes mais. Não há botão de atualização para agendas assinadas, e o Google ignora as dicas de atualização do feed. O nome e o fuso horário da agenda são lidos **apenas na primeira assinatura**: renomear uma escala depois não renomeia a agenda no Google — remova e adicione de novo se o nome importar. O Google descarta lembretes contidos em arquivos de calendário; defina notificações padrão para essa agenda nas configurações do Google ou, melhor, use os lembretes do próprio OneUptime. Se o Google informar que não conseguiu buscar a URL, confira se você colou a forma `https://` e não `webcal://`, e acrescente `?nocache=1` para fazê-lo tentar de novo (o OneUptime ignora parâmetros de consulta desconhecidos, o feed não muda). O aplicativo Google Agenda no Android e iOS não consegue assinar por URL; adicione o link em um computador e ele aparece no telefone.
+| Ação | O que acontece |
+| --- | --- |
+| **Regenerar link** | Cria um token novo. Todo app que assinou o link antigo para de atualizar: por 30 dias o link antigo serve um calendário vazio para que esses apps esvaziem a cópia deles; depois responde 404. Assine de novo com o link novo. |
+| **Desativar** | Mantém o link, mas serve um calendário vazio até você reativá-lo. |
+| **Excluir** | Remove o link. Os apps que ainda o consultam recebem 404 e continuam mostrando o que leram por último — desative antes se quiser que eles se esvaziem. |
 
-### Outlook na web e Outlook.com
+### Próximos turnos e cobertura
 
+A página também lista seus **Upcoming shifts** (os próximos 30 dias) e o cartão **Lembrar-me antes dos turnos**, descrito mais abaixo. Cada um dos seus turnos tem um link **Obter cobertura**: ele abre as substituições de usuário no projeto do turno com uma nova substituição já preenchida para esse turno, você como **Quem está ausente?** e os horários do turno como **Começa** e **Termina** (a partir de agora, se o turno já começou), então só falta **Quem cobre?**. A substituição envia todos os seus acionamentos desses horários para quem cobre você, a partir de todas as políticas de plantão; um turno que só existe dentro de uma política é coberto na página de substituições de usuário dessa política. Um turno em que você cobre outra pessoa não tem **Obter cobertura**: as substituições não se encadeiam, então cobrir uma cobertura não mudaria nada.
+
+O mesmo link pessoal, filtrado para um agendamento com `?schedule=<id>`, é oferecido como **Apenas os meus turnos nesta escala** na página de cada agendamento, e o banner de plantão e a página **Minhas Políticas de Plantão** trazem um link **Adicionar os seus turnos ao seu calendário** para a página acima.
+
+### No app para celular
+
+No app para celular: **On-Call** > **Add shifts to my calendar** (também em **Settings** > **Calendar feed**), com um link por projeto. No iPhone, **Open in Calendar** abre a tela de assinatura nativa. No Android não há como assinar uma URL no celular, então a tela oferece **Share link** e **Copy https link** e pede que você adicione o link em um computador; depois ele sincroniza com o celular. A lista **Your shifts** do app vem dos mesmos dados e tem a mesma ação **Get cover**.
+
+## Assine no seu app de calendário
+
+Use **Google Agenda** ou **Calendário da Apple / Outlook** no OneUptime quando o seu app tiver um botão; qualquer outro app usa o link `https://` que **Copiar link** dá. "Links https e webcal", abaixo, explica as duas formas.
+
+:::tabs
+@tab Google Agenda
+1. Clique em **Google Agenda** no OneUptime. O Google Agenda abre e pergunta se deve adicionar o calendário; clique em **Adicionar**.
+2. Ou, no Google Agenda na web, ao lado de **Outras agendas**, clique em **+** > **Do URL**, cole o link (**Copiar link** no OneUptime) e clique em **Adicionar agenda**.
+
+O botão **Google Agenda** abre a página do Google para adicionar por URL, `https://calendar.google.com/calendar/r?cid=` seguido da forma `webcal://` do link, codificada com porcentagem. Essa página só aceita a forma `webcal://`: com a forma `https://`, o Google responde "Unable to add calendar. Check the URL.". **Do URL** aceita as duas formas.
+
+O Google lê o feed **dos servidores do Google**, então o servidor do OneUptime precisa estar acessível pela internet — o OneUptime Cloud sempre está; para uma instalação auto-hospedada, veja Solução de problemas. A primeira leitura costuma acontecer poucos minutos depois da assinatura; depois o Google atualiza mais ou menos a cada 8 a 24 horas, às vezes mais. Não há botão de atualizar para calendários assinados, e o Google ignora as dicas de atualização do feed. A linha de status da página do feed mostra **Última obtenção … por Google Calendar** assim que o Google lê o link.
+
+O nome e o fuso horário do calendário são lidos **só na primeira assinatura**: renomear um agendamento depois não renomeia o calendário no Google — remova e adicione de novo se o nome importar. O Google descarta os lembretes contidos em arquivos de calendário, então configure notificações padrão para esse calendário nas configurações do Google ou, melhor, use os lembretes do OneUptime. O Google se lembra de um endereço que não conseguiu ler: depois de corrigir o que o impedia, adicione o link de novo com `?nocache=1` no final (o OneUptime ignora parâmetros de consulta desconhecidos, então o feed não muda) ou regenere o link. O app do Google Agenda no Android e no iOS não assina por URL; adicione o link em um computador e ele aparece no celular.
+@tab Outlook na web
 1. Abra **Calendário** > **Adicionar calendário** > **Assinar da Web**.
-2. Cole o link `https://`, dê um nome ao calendário e clique em **Importar**.
+2. Cole o link `https://` (**Copiar link** no OneUptime), dê um nome ao calendário e clique em **Importar**.
 
-O Outlook lê **a partir dos servidores da Microsoft**: cerca de a cada 3 horas no Outlook.com e a cada 4 a 6 horas em contas corporativas ou de estudante, às vezes mais de um dia. O intervalo é fixo e não há atualização manual. Assine aqui em vez de no aplicativo de desktop se quiser o calendário também no telefone e no Outlook na web — assinaturas criadas no Outlook clássico para Windows ficam naquele PC. O novo Outlook para Windows e o Outlook para Mac usam a mesma caixa **Adicionar calendário** > **Assinar da Web**.
+Funciona igual no Outlook.com, no Outlook na web para contas corporativas ou de estudante, no novo Outlook para Windows e no Outlook para Mac. O Outlook lê **dos servidores da Microsoft**: mais ou menos a cada 3 horas no Outlook.com e a cada 4 a 6 horas em contas corporativas ou de estudante, às vezes mais de um dia. O intervalo é fixo e não há atualização manual.
 
-### Outlook clássico para Windows
+Assine aqui em vez de no app para desktop se quiser o calendário também no celular e no Outlook na web — as assinaturas criadas no Outlook clássico para Windows ficam naquele PC.
+@tab Outlook clássico para Windows
+1. Em um PC com o Outlook instalado, clique em **Calendário da Apple / Outlook** no OneUptime. O Windows passa o link `webcal://` para o Outlook, que pergunta se deve adicionar o calendário da internet. Sem o Outlook, o Windows não tem um manipulador de `webcal`.
+2. Ou, no Outlook, abra **Arquivo** > **Configurações de Conta** > **Configurações de Conta** > **Calendários da Internet** > **Novo**, cole o link (**Copiar link** no OneUptime) e clique em **Adicionar**.
 
-1. No OneUptime clique em **Copiar link webcal**.
-2. No Outlook, abra **Arquivo** > **Configurações de Conta** > **Configurações de Conta** > **Calendários da Internet** > **Novo**, cole o link `webcals://` e clique em **Adicionar**. Abrir um link `webcal` no navegador também funciona em um PC com o Outlook instalado; sem o Outlook, o Windows não tem manipulador `webcal`.
+**Não** abra o próprio link `https://…/shifts.ics` no Outlook clássico: ele importa um instantâneo único que nunca atualiza. Abrir o link `webcal://`, ou adicionar o endereço em **Calendários da Internet**, cria uma assinatura.
 
-**Não** abra o próprio link `https://…/shifts.ics` no Outlook clássico: ele importa um instantâneo único que nunca atualiza. Somente `webcal://` e `webcals://` criam uma assinatura.
+O feed é atualizado a cada **Enviar/Receber** (F9, ou o intervalo dos grupos de envio/recebimento). As configurações da assinatura têm uma caixa **Limite de atualização**: marcada, o Outlook não atualiza mais rápido que o intervalo sugerido pelo publicador. O OneUptime sugere uma hora (`X-PUBLISHED-TTL:PT1H`), então o feed atualiza mais ou menos de hora em hora. Feeds sem essa dica nunca atualizam enquanto a caixa estiver marcada; os do OneUptime têm a dica, então você pode deixar a caixa marcada. O Outlook clássico lê o feed **do seu PC** e valida o certificado do servidor.
+@tab Calendário da Apple (macOS)
+1. Clique em **Calendário da Apple / Outlook** no OneUptime, ou no Calendário escolha **Arquivo** > **Nova Assinatura de Calendário** e cole o link.
+2. Na tela de assinatura, ajuste **Atualizar automaticamente** — a cada 5 minutos, 15 minutos, hora, dia ou semana (de hora em hora por padrão) — e escolha **iCloud** em **Localização** para que o calendário também apareça no seu iPhone e iPad e continue atualizando nesse ritmo.
 
-O feed é atualizado em cada **Enviar/Receber** (F9, ou o intervalo dos grupos de envio/recebimento). As configurações da assinatura têm uma caixa **Limite de atualização**: marcada, o Outlook não atualiza mais rápido do que o intervalo sugerido pelo publicador. O OneUptime sugere uma hora (`X-PUBLISHED-TTL:PT1H`), então o feed atualiza aproximadamente de hora em hora. Feeds sem essa dica nunca atualizam enquanto a caixa está marcada; os do OneUptime a incluem, então você pode deixá-la marcada. O Outlook clássico lê o feed **a partir do seu PC** e valida o certificado do servidor.
+O macOS lê o feed **do seu Mac**, então funciona com uma instalação em rede privada desde que o Mac consiga alcançá-la. Um certificado autoassinado ou de uma CA interna precisa antes ser marcado como confiável nas Chaves do macOS. **Remover alertas** vem marcado por padrão nessa tela; aqui não faz diferença, porque o feed não traz alarmes.
+@tab iPhone e iPad
+Para assinar no aparelho, toque em **Open in Calendar** no app para celular do OneUptime, ou vá em **Ajustes** > **Calendário** > **Contas** > **Adicionar Conta** > **Outra** > **Adicionar Calendário Assinado** e cole o link.
 
-### Calendário da Apple no macOS
-
-1. Clique em **Apple / outros aplicativos** no OneUptime, ou no Calendário escolha **Arquivo** > **Nova Assinatura de Calendário** e cole o link.
-2. Na folha de assinatura, defina **Atualizar automaticamente** — a cada 5 minutos, 15 minutos, hora, dia ou semana (de hora em hora por padrão) — e escolha **iCloud** em **Localização** para que o calendário apareça também no seu iPhone e iPad e continue atualizando nesse ritmo.
-
-O macOS lê o feed **a partir do seu Mac**, então funciona com uma instalação em rede privada desde que o Mac a alcance. Um certificado autoassinado ou de uma CA interna precisa ser confiado primeiro nas Chaves do macOS. **Remover alertas** vem marcado por padrão nessa folha; aqui não faz diferença, porque o feed não traz alarmes.
-
-### iPhone e iPad
-
-Assinaturas criadas no próprio dispositivo atualizam conforme **Ajustes** > **Calendário** > **Contas** > **Obter Novos Dados** — **Automaticamente** por padrão, que busca principalmente ao carregar no Wi-Fi. Para uma atualização confiável, assine em um Mac com **iCloud** como localização, ou defina **Obter Novos Dados** para um intervalo fixo. Para assinar no dispositivo, toque em **Abrir no Calendário** no aplicativo móvel do OneUptime, ou vá em **Ajustes** > **Calendário** > **Contas** > **Adicionar Conta** > **Outra** > **Adicionar Calendário Assinado** e cole o link.
-
-### Thunderbird
-
-Escolha **Arquivo** > **Novo** > **Calendário** > **Na rede** > **iCalendar (ICS)**, cole o link `https://` e escolha um intervalo de atualização nas propriedades do calendário: 1, 5, 15, 30 ou 60 minutos. O Thunderbird lê **a partir do seu computador** e precisa confiar no certificado do servidor.
-
-### Fastmail, Proton e outros serviços
-
-O Fastmail atualiza aproximadamente de hora em hora e **desativa uma assinatura após cinco leituras consecutivas com falha**; se isso acontecer, adicione-a de novo quando o servidor estiver saudável. O Proton Calendar atualiza a cada 4 a 16 horas e rejeita feeds muito grandes — reduza **Dias à frente** se ele reclamar. O Confluence Team Calendars aceita o feed de escala; seu limite de 28 caracteres para nomes de calendário é respeitado.
-
-### Android
-
-Nem o aplicativo Google Agenda nem o Samsung Calendar conseguem assinar uma URL. Adicione o link `https://` ao Google Agenda em um computador (**Outras agendas** > **+** > **Usando URL**); a agenda então sincroniza para o telefone com todo o resto daquela conta Google. O aplicativo móvel do OneUptime no Android oferece **Compartilhar link** e **Copiar link https** exatamente para isso.
+As assinaturas criadas no próprio aparelho atualizam conforme **Ajustes** > **Calendário** > **Contas** > **Obter Novos Dados** — **Automaticamente** por padrão, o que lê principalmente enquanto carrega no Wi-Fi. Para uma atualização confiável, assine em um Mac com **iCloud** como localização, ou ajuste **Obter Novos Dados** para um intervalo fixo.
+@tab Thunderbird
+Escolha **Arquivo** > **Novo** > **Agenda** > **Na rede** > **iCalendar (ICS)**, cole o link `https://` e escolha um intervalo de atualização nas propriedades da agenda: 1, 5, 15, 30 ou 60 minutos. O Thunderbird lê **do seu computador** e precisa confiar no certificado do servidor.
+@tab Android
+Nem o app do Google Agenda nem o Samsung Calendar assinam uma URL. Adicione o link `https://` ao Google Agenda em um computador (**Outras agendas** > **+** > **Do URL**); o calendário então sincroniza com o celular junto com o resto daquela conta do Google. O app para celular do OneUptime no Android oferece **Share link** e **Copy https link** exatamente para isso.
+@tab Outros serviços
+O Fastmail atualiza mais ou menos de hora em hora e **desativa uma assinatura depois de cinco leituras com falha seguidas**; se isso acontecer, adicione de novo quando o servidor estiver bem. O Proton Calendar atualiza a cada 4 a 16 horas e recusa feeds muito grandes — reduza **Dias futuros** se ele reclamar. O Confluence Team Calendars aceita o feed do agendamento; o limite de 28 caracteres para nomes de calendário dele é respeitado.
+:::
 
 ## Com que frequência os calendários atualizam
 
-| Aplicativo de calendário          | Atualização típica                                                     | Lê a partir de          | Observações                                                                           |
-| --------------------------------- | ---------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
-| Google Agenda (Usando URL)        | 8–24 horas, às vezes mais                                              | Servidores do Google    | Sem atualização manual; ignora dicas; nome e fuso lidos apenas na primeira assinatura |
-| Outlook.com                       | Cerca de 3 horas                                                       | Servidores da Microsoft | Fixo; pode ultrapassar 24 horas                                                       |
-| Outlook na web (trabalho, escola) | Cerca de 4–6 horas                                                     | Servidores da Microsoft | Fixo; sem controle do usuário                                                         |
-| Outlook clássico para Windows     | Em Enviar/Receber; cerca de hora em hora com **Limite de atualização** | Seu PC                  | Precisa de um link `webcal`; não sincroniza com telefone ou web                       |
-| Calendário da Apple (macOS)       | De 5 minutos a semanal, de hora em hora por padrão                     | Seu Mac                 | Guarde no iCloud para alcançar iPhone e iPad                                          |
-| Calendário da Apple (somente iOS) | Conforme **Obter Novos Dados**, limitado pela bateria                  | Seu telefone            | Assine em um Mac para maior confiabilidade                                            |
-| Thunderbird                       | 1–60 minutos                                                           | Seu computador          |                                                                                       |
-| Fastmail                          | Cerca de hora em hora                                                  | Servidores do Fastmail  | Desativado após cinco leituras com falha                                              |
-| Proton Calendar                   | 4–16 horas                                                             | Servidores do Proton    | Rejeita feeds grandes                                                                 |
+| App de calendário | Atualização típica | Lê de | Observações |
+| --- | --- | --- | --- |
+| Google Agenda (Do URL) | 8–24 horas, às vezes mais | Os servidores do Google | Sem atualização manual; ignora as dicas; nome e fuso horário lidos só na primeira assinatura |
+| Outlook.com | Cerca de 3 horas | Os servidores da Microsoft | Fixo; pode passar de 24 horas |
+| Outlook na web (trabalho, estudante) | Cerca de 4–6 horas | Os servidores da Microsoft | Fixo; sem controle do usuário |
+| Outlook clássico para Windows | A cada Enviar/Receber; mais ou menos de hora em hora com **Limite de atualização** | O seu PC | Assinatura pelo link `webcal`; não sincroniza com o celular nem com a web |
+| Calendário da Apple (macOS) | De 5 minutos a semanal, de hora em hora por padrão | O seu Mac | Guarde no iCloud para chegar ao iPhone e ao iPad |
+| Calendário da Apple (só iOS) | Conforme **Obter Novos Dados**, limitado pela bateria | O seu celular | Assine em um Mac para mais confiabilidade |
+| Thunderbird | 1–60 minutos | O seu computador | |
+| Fastmail | Mais ou menos de hora em hora | Os servidores do Fastmail | Desativado depois de cinco leituras com falha |
+| Proton Calendar | 4–16 horas | Os servidores do Proton | Recusa feeds grandes |
 
-O próprio OneUptime serve dados atuais: uma edição em uma camada, rotação, substituição ou vínculo de política invalida o feed na hora, e as respostas ficam em cache por no máximo cinco minutos. A espera que você vê é do aplicativo de calendário, não do servidor. O OneUptime sugere atualização de hora em hora via `REFRESH-INTERVAL` e `X-PUBLISHED-TTL`; só o Outlook clássico segue a dica, e apenas com o **Limite de atualização** ligado — Calendário da Apple, Thunderbird e os demais atualizam no intervalo que você define em cada calendário.
+O próprio OneUptime serve dados atualizados: uma mudança em uma camada, uma rotação, uma substituição ou uma ligação de política invalida o feed na hora, e as respostas ficam em cache no máximo cinco minutos. A espera que você vê é do app de calendário, não do servidor. O OneUptime sugere atualizar de hora em hora por meio de `REFRESH-INTERVAL` e `X-PUBLISHED-TTL`; só o Outlook clássico segue a dica, e só com **Limite de atualização** ligado — o Calendário da Apple, o Thunderbird e os demais atualizam no intervalo que você define para cada calendário.
 
-## https, webcal e webcals
+## Links https e webcal
 
-Os três apontam para o mesmo feed. `webcal://` e `webcals://` são o link `http://` e `https://` com o esquema renomeado, para que o sistema operacional abra um aplicativo de calendário em vez de um navegador; `webcals` é a variante criptografada e é a que o OneUptime oferece quando `HTTP_PROTOCOL` é `https`.
+Os dois apontam para o mesmo feed. `webcal://` é o link com o esquema renomeado, para que o sistema operacional abra um app de calendário em vez de um navegador; o app então lê o feed por `https://` quando o servidor serve https, como fazem o Calendário da Apple e o Google Agenda.
 
-- Google Agenda, Outlook na web, Thunderbird e Fastmail querem a forma `https://`.
-- Calendário da Apple e Outlook clássico para Windows assinam a partir de um link `webcal(s)://`; no Outlook clássico a forma `https://` é uma importação única.
-- `webcal://` sem o `s` não é criptografado e envia o token em texto claro a cada leitura. Se sua instalação ainda roda em `http` simples, o painel mostra um aviso ao lado do link; mude para `https` antes de compartilhar links amplamente.
+- **Copiar link** dá a forma `https://`. O **Do URL** do Google Agenda, o Outlook na web, o Thunderbird e o Fastmail aceitam essa forma.
+- **Calendário da Apple / Outlook** abre a forma `webcal://`: o Calendário da Apple e o Outlook clássico para Windows assinam por ela. No Outlook clássico, abrir a forma `https://` em vez disso é uma importação única.
+- **Google Agenda** leva a forma `webcal://` dentro do link do Google para adicionar por URL, a única forma que essa página aceita.
+- O OneUptime não fornece mais `webcals://`: o iOS não o abre ("o endereço é inválido") e o Google também não o aceita. Um calendário que você já assinou com um link `webcals://` continua funcionando.
+- Se a sua instalação ainda usa `http` simples, o feed é lido sem criptografia, token incluído, e o painel mostra um aviso ao lado do link; mude para `https` antes de compartilhar links amplamente.
+
+As URLs dos feeds nunca redirecionam. Elas respondem `200` em qualquer esquema que chegue ao OneUptime, porque o aplicativo não consegue saber qual esquema o app de calendário usou quando o TLS termina antes dele — no OneUptime Cloud, ou atrás do seu próprio balanceador de carga ou CDN —, e um redirecionamento ali apontaria de volta para a mesma URL. Redirecione o `http` simples para `https` no proxy que termina o TLS, o único ponto que sabe.
 
 ## Lembretes e avisos de reatribuição
 
-Os aplicativos de calendário não entregam alarmes de feeds assinados — o Google os descarta, a Apple os remove por padrão, o Outlook os achata —, então o OneUptime envia os seus.
+Os apps de calendário não entregam os alarmes de feeds assinados — o Google os descarta, a Apple os remove por padrão, o Outlook os achata —, então o OneUptime envia os seus.
 
-Em **Configurações do usuário** > **Feed de calendário**, o cartão **Lembrar-me antes dos turnos** permite escolher antecedências: **1 semana**, **1 dia**, **1 hora**, **15 min** ou um valor personalizado entre 15 minutos e 14 dias, várias ao mesmo tempo. Cada lembrete é enviado uma vez por turno pelos métodos de entrega escolhidos para **Antes do início do meu turno de plantão** em **Configurações do usuário** > **Configurações de notificação** (aba Plantão; e-mail e push ativados por padrão). A mensagem indica a escala, as políticas pelas quais ela aciona e o horário de início no seu fuso.
+:::steps
+1. Abra **Configurações do usuário** > **Calendário** > **Feed de calendário**.
+2. No cartão **Lembrar-me antes dos turnos**, escolha as antecedências: **1 semana**, **1 dia**, **1 hora**, **15 min** ou, com **Personalizado**, um valor próprio entre 15 minutos e 14 dias. Você pode escolher várias ao mesmo tempo.
+3. Escolha como os lembretes chegam até você em **Antes de o meu turno de prevenção começar**, em **Configurações do usuário** > **Configurações de notificação** (aba Plantão). E-mail e push vêm ligados por padrão.
+:::
 
-- Um turno que cai dentro de uma das suas antecedências por causa de uma substituição tardia — alguém lhe passa um turno 20 minutos antes de começar — recebe imediatamente um único lembrete de recuperação.
-- Se um turno sobre o qual você foi lembrado é passado a outra pessoa, você recebe **Meu próximo turno de plantão foi reatribuído**, um tipo de evento separado que pode ser silenciado à parte.
-- Lembretes nunca são enviados depois que um turno começou, nem para escalas que não estão vinculadas a nenhuma política de escalonamento, porque essas não acionam ninguém.
-- No WhatsApp, um lembrete chega pelo modelo de plantão pré-aprovado da Meta, que cita a escala e a política de escalonamento e liga para a escala, mas não traz o horário de início, e que o WhatsApp entrega apenas em inglês. Avisos de reatribuição não têm modelo aprovado no WhatsApp, então chegam pelos seus outros canais.
+Cada lembrete é enviado uma vez por turno. A mensagem cita o agendamento, as políticas pelas quais ele aciona e o horário de início no seu fuso.
 
-## Links compartilhados para uma escala ou um projeto
+- Um turno que entra em uma das suas antecedências por causa de uma substituição tardia — alguém passa um turno para você 20 minutos antes de ele começar — recebe na hora um único lembrete de recuperação.
+- Se um turno sobre o qual você foi lembrado passar para outra pessoa, você recebe **O meu próximo turno de prevenção é reatribuído**, um tipo de evento separado para que possa ser silenciado à parte.
+- Os lembretes nunca são enviados depois que um turno começa, nem para agendamentos que não estão ligados a nenhuma política de escalonamento, porque esses não podem acionar ninguém.
+- No WhatsApp, um lembrete chega no modelo de plantão pré-aprovado pela Meta, que cita o agendamento e a política de escalonamento e traz o link do agendamento, mas não traz o horário de início, e que o WhatsApp só envia em inglês. Os avisos de reatribuição não têm modelo aprovado no WhatsApp, então chegam até você pelos seus outros canais.
 
-Um link compartilhado pertence ao **projeto**, não a quem o copiou, e mostra os nomes das pessoas, nunca seus endereços de e-mail.
+## Links compartilhados de um agendamento ou de um projeto
 
-**Feed de escala.** Na página de uma escala, o cartão **Assinar esta escala** tem duas metades: **Somente meus turnos nesta escala** (seu link pessoal com filtro de escala) e **Turnos de todos nesta escala (link de equipe compartilhado)**. Quem tem a permissão **Editar** em escalas pode **Publicar link compartilhado**, **Regenerá-lo** ou **Desativá-lo**; quem pode ler a escala pode copiá-lo. O cartão mostra quando o link foi rotacionado pela última vez.
+Um link compartilhado pertence ao **projeto**, não a quem o copiou, e mostra o nome das pessoas, nunca o endereço de e-mail delas. Coloque o link do agendamento em um calendário de equipe compartilhado — Google, Outlook ou Confluence — e uma única assinatura atende a equipe toda.
 
-**Feed de projeto.** **Plantão** > **Feeds de calendário** contém o cartão **Turnos de todos neste projeto (link compartilhado)** — um link compartilhado que cobre todas as escalas do projeto — com as mesmas ações de publicar, regenerar e desativar, e um link para a página do seu feed pessoal.
+### Feed do agendamento
 
-Configurações em ambos:
+Na página de um agendamento, o cartão **Subscrever esta escala** tem duas metades: **Apenas os meus turnos nesta escala** (o seu link pessoal com um filtro de agendamento) e **Turnos de todos nesta escala (link de equipa partilhado)**. Quem tem a permissão **Editar** nos agendamentos pode publicá-lo com **Publicar link partilhado**, renová-lo com **Regenerar link** ou pará-lo com **Desativar**; quem pode ler o agendamento pode copiá-lo. O cartão mostra quando o link foi renovado pela última vez.
 
-- **Mostrar lacunas de cobertura** (desativado por padrão) adiciona um evento `No coverage · <Schedule>` onde uma camada _deveria_ cobrir mas ninguém está de plantão: uma camada vazia, uma camada cuja data de início está no futuro, camadas desalinhadas ou qualquer lacuna em uma escala 24×7. As horas fora do expediente de uma escala de horário comercial nunca são reportadas. **Lacuna mínima a mostrar (minutos)** (padrão 60) oculta lacunas mais curtas; no máximo 100 eventos de lacuna são emitidos, os mais antigos primeiro.
-- **Regenerar quando alguém sair do projeto** (desativado por padrão) regenera o link automaticamente quando alguém sai da última equipe no projeto, para que o calendário de um ex-colega pare de atualizar. Todos os demais precisam assinar de novo depois, por isso é opcional.
-- **Dias de turnos passados** e **Dias à frente**, como no feed pessoal.
+### Feed do projeto
 
-Coloque o link de escala em um calendário de equipe compartilhado — Google, Outlook ou Confluence — e uma única assinatura atende toda a equipe. Rotacione-o quando alguém que o tinha sair, ou ative a rotação automática acima.
+**Plantão** > **Feeds de calendário** tem o cartão **Turnos de todos neste projeto (link partilhado)** — um único link compartilhado que cobre todos os agendamentos do projeto — com as mesmas ações de publicar, regenerar e desativar, e um link para a sua página de feed pessoal.
 
-Quando uma pessoa sai da última equipe em um projeto, o OneUptime também a remove das camadas de escala e das regras de escalonamento daquele projeto, exclui as substituições em andamento e futuras do projeto que a mencionam (como pessoa substituída ou como substituta), desativa seu feed pessoal do projeto e exclui seus lembretes ali. Um link pessoal mostra turnos apenas enquanto o dono for membro do projeto: isso é verificado cada vez que o link é buscado, então quem saiu recebe um calendário vazio, e a lista de próximos turnos no aplicativo móvel cobre apenas os projetos dos quais a pessoa ainda é membro.
+### Configurações dos links compartilhados
+
+Clique em **Editar definições** no cartão **Definições do link partilhado**:
+
+| Configuração | O que faz |
+| --- | --- |
+| **Mostrar lacunas de cobertura** | Desligada por padrão. Acrescenta um evento `No coverage · <Schedule>` sempre que uma camada _deveria_ cobrir mas ninguém está de plantão: uma camada vazia, uma camada com data de início no futuro, camadas que não se encaixam ou qualquer buraco em um agendamento 24×7. As horas fora do expediente de um agendamento de horário comercial nunca são relatadas, e no máximo 100 eventos de lacuna são emitidos, os mais antigos primeiro. |
+| **Lacuna mínima a mostrar (minutos)** | 60 por padrão. Esconde lacunas menores. |
+| **Regenerar quando alguém sair do projeto** | Desligada por padrão. Regenera o link automaticamente quando alguém sai da última equipe que tem no projeto, para que o calendário de um ex-colega pare de atualizar. Todos os outros precisam assinar de novo depois, por isso ela só é ligada de propósito. |
+| **Dias de turnos passados**, **Dias futuros** | Como no feed pessoal. |
+
+Renove um link compartilhado quando alguém que o tinha sair, ou ligue a rotação automática acima.
+
+Quando uma pessoa sai da última equipe que tem em um projeto, o OneUptime também a remove das camadas de agendamento e das regras de escalonamento desse projeto, exclui as substituições ativas e futuras do projeto que a citam (como pessoa substituída ou como substituta), desativa o feed pessoal dela no projeto e exclui ali os lembretes dela. Um link pessoal mostra turnos apenas enquanto o dono dele é membro do projeto: isso é verificado a cada leitura do link, então quem saiu recebe um calendário vazio, e a lista de próximos turnos no app para celular cobre só os projetos dos quais a pessoa ainda é membro.
 
 ## Os eventos em detalhe
 
-- Cada turno tem uma identidade estável formada pela escala e pelo início do turno, de modo que o mesmo turno é o mesmo evento no seu feed pessoal, no feed de escala e após regenerar um link. Os aplicativos o atualizam no lugar; uma alteração incrementa o número de sequência do evento.
-- Uma substituição que troca o turno inteiro mantém o evento e muda a pessoa; uma substituição que cobre parte de um turno produz três eventos contíguos, por exemplo A 09:00–12:00, B 12:00–13:00, A 13:00–17:00.
-- Quando uma escala está vinculada a duas ou mais políticas de escalonamento e uma substituição se aplica a apenas uma delas, as pessoas acionadas diferem por política. O feed mostra isso em vez de esconder: o turno mantém seu evento para a pessoa acionada pelas outras políticas, com uma nota indicando a política que aciona outra pessoa, e o substituto recebe um evento extra intitulado `On-call · <Schedule> · <Policy> (covering for <Name>)`.
-- Turnos passados trazem na descrição a linha "Past shifts reflect the current rotation, not who was actually paged".
-- Uma escala não vinculada a nenhuma política de escalonamento ainda é mostrada, com uma nota de que não acionará ninguém.
+- Cada turno tem uma identidade estável formada pelo agendamento e pelo início do turno, então o mesmo turno é o mesmo evento no seu feed pessoal, no feed do agendamento e depois de regenerar um link. Os apps de calendário o atualizam no lugar; uma mudança incrementa o número de sequência do evento.
+- Uma substituição que troca o turno inteiro mantém o evento e troca a pessoa; uma substituição de parte de um turno gera três eventos contíguos, por exemplo A 09:00–12:00, B 12:00–13:00, A 13:00–17:00.
+- Quando um agendamento está ligado a duas ou mais políticas de escalonamento e uma substituição vale só para uma delas, as pessoas acionadas mudam conforme a política. O feed mostra isso em vez de esconder: o turno mantém o evento para a pessoa acionada pelas outras políticas, com uma nota citando a política que aciona outra pessoa, e quem substitui recebe um evento extra com o título `On-call · <Schedule> · <Policy> (covering for <Name>)`.
+- Os turnos passados trazem na descrição a linha "Past shifts reflect the current rotation, not who was actually paged".
+- Um agendamento que não está ligado a nenhuma política de escalonamento aparece mesmo assim, com uma nota de que ele não vai acionar ninguém.
 
 ## Planejamento, não auditoria
 
-O feed mostra a rotação **como está configurada agora**, inclusive para dias passados: uma substituição inserida depois reescreve o histórico no calendário. Para horas realmente passadas de plantão, revisões de equidade e remuneração, use **Plantão** > **Relatórios** > **Tempo de plantão por usuário**, que é escrito a partir do que o pager realmente fez.
+O feed mostra a rotação **como está configurada agora**, inclusive para os dias passados: uma substituição registrada depois reescreve a história no calendário. Para as horas realmente passadas de plantão, revisões de equidade e remuneração, use **Plantão** > **Relatórios** > **Tempo de plantão do usuário**, que é registrado a partir do que os acionamentos de fato fizeram.
 
 ## Segurança
 
-- O token no link é a única credencial. Quem tem o link vê os turnos — nomes, escalas, políticas — até que seja regenerado. Não cole links em salas de chat ou tickets; quando uma equipe precisar de um calendário, compartilhe o link de escala ou de projeto em vez do pessoal.
-- Os links são por projeto. Um link pessoal vazado expõe os turnos de um projeto, não de todos os projetos aos quais você pertence.
-- **Regenerar** move o token antigo para um período de carência de 30 dias (calendário vazio, depois 404). **Desativar** serve um calendário vazio. Um link desconhecido ou expirado responde com um simples 404 sem pistas. Calendários vazios fazem os aplicativos assinados limparem sua cópia; um 404 os faz mantê-la, e é por isso que desativar e regenerar servem calendários vazios.
-- Os tokens são armazenados com hash; a cópia mostrada na página de configurações é criptografada com `ENCRYPTION_SECRET`. Defina essa variável com um segredo real em uma instalação auto-hospedada — o servidor avisa na inicialização quando ela não está definida ou ainda é um dos espaços reservados que este repositório traz (`secret`, ou o `please-change-this-to-random-value` que o `config.example.env` define). Se você a alterar depois, a página oferece **Regenerar link** porque a cópia armazenada não pode mais ser lida; o feed continua funcionando até você fazer isso.
-- As respostas dos feeds são marcadas `Cache-Control: private`, excluídas dos mecanismos de busca (`X-Robots-Tag: noindex`) e limitadas por link e por endereço do cliente.
-- O Nginx do próprio OneUptime mantém as requisições de feed fora de seus logs:
+- O token no link é a única credencial. Quem tem o link vê os turnos — nomes, agendamentos, políticas — até ele ser regenerado. Não cole links em salas de chat nem em tickets; quando uma equipe precisar de um calendário, compartilhe o link do agendamento ou do projeto em vez do seu link pessoal.
+- Os links são por projeto. Um link pessoal vazado expõe os turnos de um projeto, não de todos os projetos dos quais você faz parte.
+- Regenerar um link coloca o token antigo em um período de carência de 30 dias (calendário vazio, depois 404). **Desativar** serve um calendário vazio. Um link desconhecido ou expirado responde com um 404 simples, sem pistas. Calendários vazios fazem os apps assinantes esvaziarem a cópia; um 404 faz com que a mantenham, por isso desativar e regenerar servem calendários vazios.
+- Os tokens são guardados com hash; a cópia mostrada na página de configurações é criptografada com `ENCRYPTION_SECRET`. Defina essa variável com um segredo de verdade em uma instalação auto-hospedada — o servidor avisa na inicialização quando ela não está definida ou ainda é um dos valores de exemplo que este repositório traz (`secret`, ou o `please-change-this-to-random-value` que o `config.example.env` define). Se você a mudar depois, a página oferece **Regenerar link** porque a cópia guardada não pode mais ser lida; o feed continua funcionando até você fazer isso.
+- As respostas dos feeds são marcadas com `Cache-Control: private`, excluídas dos buscadores (`X-Robots-Tag: noindex`) e têm limite de taxa por link e por endereço de cliente.
 
-  ```
-  location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
-      access_log off;
-      error_log /dev/null crit;
-      proxy_max_temp_file_size 0;
-      ...
-  }
-  ```
+O Nginx do próprio OneUptime mantém as requisições dos feeds fora dos logs:
 
-  assim um token nunca acaba em um arquivo de log ao lado de um endereço de cliente; a aplicação também nunca o registra. `access_log off` remove a linha por requisição, `error_log` remove as linhas que o Nginx grava quando uma chamada à aplicação falha — sem ela, todo cliente que busca o feed durante uma reinicialização tem seu token registrado — e `proxy_max_temp_file_size 0` mantém um feed grande fora de um arquivo temporário. **Qualquer proxy, WAF ou CDN que você coloque na frente do OneUptime ainda registra a URI completa, tanto no log de acesso quanto no de erros** a menos que seja configurado para não fazê-lo — verifique isso antes de disponibilizar os feeds.
+```nginx title="default.conf.template"
+location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+    access_log off;
+    error_log /dev/null crit;
+    proxy_max_temp_file_size 0;
+    ...
+}
+```
+
+Assim, um token nunca vai parar em um arquivo de log ao lado do endereço de um cliente; o aplicativo também nunca o registra. `access_log off` remove a linha por requisição, `error_log` remove as linhas que o Nginx escreve quando uma chamada ao aplicativo falha — sem isso, o token de todo cliente que consulta durante um reinício é registrado — e `proxy_max_temp_file_size 0` mantém um feed grande fora de um arquivo temporário.
+
+> [!WARNING]
+> **Qualquer proxy, WAF ou CDN que você coloque na frente do OneUptime ainda registra a URI completa, tanto no log de acesso quanto no de erros,** a menos que você o configure para não fazer isso — verifique antes de liberar os feeds.
 
 ## Configuração auto-hospedada
 
-Nada precisa ser ativado: os feeds funcionam em toda instalação. Quatro variáveis de ambiente os controlam, definidas em `config.env` no Docker Compose ou em `onCallCalendarFeed` nos valores do Helm (veja a [referência de configuração](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) do chart):
+Não é preciso ligar nada: os feeds funcionam em qualquer instalação. Quatro variáveis de ambiente os controlam, definidas no `config.env` para o Docker Compose ou em `onCallCalendarFeed` nos valores do Helm (veja a [referência de configuração](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) do chart):
 
-| Variável                                                | Valor Helm                                       | Padrão  | Efeito                                                                                                                                                               |
-| ------------------------------------------------------- | ------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DISABLE_ON_CALL_CALENDAR_FEED`                         | `onCallCalendarFeed.disabled`                    | `false` | Interruptor de emergência. Toda URL de feed responde `503` com `Retry-After: 3600`; aplicativos assinados mantêm sua cópia e tentam de novo depois. Nada é excluído. |
-| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS`       | `onCallCalendarFeed.rateLimit.windowSeconds`     | `60`    | Duração da janela de limitação.                                                                                                                                      |
-| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW` | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | `60`    | Leituras que um link pode fazer a partir de um endereço de cliente por janela.                                                                                       |
-| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`    | `onCallCalendarFeed.rateLimit.perIpPerWindow`    | `3000`  | Leituras que um endereço de cliente pode fazer em todos os links por janela — o teto para um escritório inteiro atrás de um único endereço.                          |
+| Variável | Valor do Helm | Padrão | Efeito |
+| --- | --- | --- | --- |
+| `DISABLE_ON_CALL_CALENDAR_FEED` | `onCallCalendarFeed.disabled` | `false` | Chave de emergência. Toda URL de feed responde `503` com `Retry-After: 3600`; os apps assinantes mantêm a cópia que têm e tentam de novo mais tarde. Nada é excluído. |
+| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS` | `onCallCalendarFeed.rateLimit.windowSeconds` | `60` | Duração da janela do limite de taxa. |
+| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW` | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | `60` | Leituras que um link pode fazer a partir de um endereço de cliente por janela. |
+| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` | `onCallCalendarFeed.rateLimit.perIpPerWindow` | `3000` | Leituras que um endereço de cliente pode fazer em todos os links por janela — o teto para um escritório inteiro atrás de um endereço. |
 
-Também relevante:
+Também importa:
 
-- **`HOST` e `HTTP_PROTOCOL`** constroem os links. Se `HOST` estiver vazio ou for `localhost`, ou `HTTP_PROTOCOL` for `http`, a página do feed mostra um aviso e os links não funcionarão de fora.
-- **`TRUSTED_PROXY_HOPS`** decide qual endereço o limite por endereço conta. O padrão `1` é correto para as configurações padrão de Docker Compose e Helm; some um para cada proxy seu — CDN, WAF ou balanceador — que acrescenta a `X-Forwarded-For`, caso contrário todo cliente de calendário parece o mesmo endereço e todos dividem um único orçamento. Veja [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) na documentação do chart.
-- **Redis** sustenta os caches e o limitador. Ambos degradam de forma controlada: sem Redis os feeds ainda são gerados, apenas mais devagar, e o limitador deixa as requisições passarem.
-- No modo dividido do chart Helm (`worker.enabled: true`) os feeds são gerados na camada de API; dimensione essa camada para uma rajada de clientes de calendário consultando na hora cheia.
-- A exceção do log de acesso do Nginx mostrada acima faz parte do `packages/Nginx/default.conf.template` distribuído; mantenha-a se personalizar o template.
+- **`HOST` e `HTTP_PROTOCOL`** montam os links. Se `HOST` estiver vazio ou for `localhost`, ou se `HTTP_PROTOCOL` for `http`, a página do feed mostra um aviso e os links não vão funcionar de fora. Se `HOST` for um endereço privado — `10.x`, `172.16–31.x`, `192.168.x`, um nome sem ponto como o de um contêiner, ou um nome sob `.internal`, `.local`, `.lan` e similares —, a página avisa que o Google Agenda e o Outlook na web não conseguem alcançar o link; apps em um computador da mesma rede ainda conseguem.
+- **`TRUSTED_PROXY_HOPS`** decide qual endereço conta para o limite por endereço. O padrão `1` é o certo para os layouts padrão do Docker Compose e do Helm; some um para cada proxy seu — CDN, WAF ou balanceador de carga — que acrescente a `X-Forwarded-For`; caso contrário, todo cliente de calendário parece o mesmo endereço e todos dividem um único orçamento. Veja [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) na documentação do chart.
+- O **Redis** sustenta os caches e o limite de taxa. Os dois degradam com suavidade: sem o Redis, os feeds continuam sendo gerados, só que mais devagar, e o limite deixa as requisições passarem.
+- No modo dividido do chart do Helm (`worker.enabled: true`), os feeds são gerados na camada de API, então dimensione essa camada para uma rajada de clientes de calendário consultando no início de cada hora.
+- A exceção do log de acesso do Nginx mostrada acima faz parte do `packages/Nginx/default.conf.template` distribuído; mantenha-a se você personalizar o modelo.
 
 ## Solução de problemas
 
-**Nada leu o link, ou "Não foi possível buscar a URL".** Google Agenda, Outlook na web, Fastmail e Proton leem **a partir dos próprios servidores**, então o host do OneUptime precisa estar acessível pela internet pública com um certificado em que eles confiem. Uma instalação em rede privada, atrás de uma VPN ou com uma autoridade certificadora interna é inacessível para eles, não importa o que você cole. Calendário da Apple, Thunderbird e Outlook clássico leem a partir do dispositivo, então funcionam onde o dispositivo consiga abrir o painel — depois de confiar no certificado naquele dispositivo, se for autoassinado. A linha de status da página do feed diz se algo já leu o link; `curl -I` no link de fora da sua rede é a verificação mais rápida. Permitir que o OneUptime _alcance_ redes privadas — [Acesso a redes privadas](/docs/self-hosted/private-network-access) — é outro assunto e não ajuda aqui.
+:::details O Google Agenda diz "Unable to add calendar. Check the URL."
+Versões antigas do OneUptime colocavam a forma `https://` do link no botão **Google Agenda**, e a página do Google para adicionar por URL só aceita a forma `webcal://`. Recarregue a página do feed e clique de novo em **Google Agenda**, ou adicione o link em **Outras agendas** > **+** > **Do URL**.
+:::
 
-**O calendário está desatualizado.** Leia primeiro a tabela de atualização: no Google o atraso é normal. Para fazer o Google olhar de novo, remova e adicione a agenda novamente ou acrescente `?nocache=1` ao link (parâmetros desconhecidos são ignorados, o feed é o mesmo, mas o Google o trata como novo). No Outlook clássico pressione F9 e confira a configuração **Limite de atualização**. No Calendário da Apple use **Visualizar** > **Atualizar Calendários**. Se uma mudança do mesmo dia importa, confie nos lembretes e avisos de reatribuição do OneUptime em vez do calendário.
+:::details O Google Agenda mostra o calendário, mas nenhum turno
+Verifique primeiro a linha de status da página do feed. **Última obtenção … por Google Calendar** significa que o Google leu o link: abra o link em um navegador e veja o que ele serve — um calendário vazio informa o motivo em `X-WR-CALDESC` (veja "O calendário está vazio" abaixo).
 
-**O calendário está vazio.** Um calendário vazio é proposital. Significa que o link está desativado, é um link antigo dentro do período de carência de 30 dias após regenerar, o projeto está abaixo do plano que inclui escalas de plantão, ou você não está mais em nenhuma escala daquele projeto. Abra o link em um navegador: a descrição do calendário (`X-WR-CALDESC`) informa o motivo. Se você saiu do projeto, o link continua vazio: ele mostra turnos apenas enquanto você é membro.
+**Ainda não obtido** significa que o Google não conseguiu lê-lo: de uma máquina fora da sua rede, `curl -sI <link>` precisa responder `200` com `Content-Type: text/calendar` na hora. Um redirecionamento, uma página de login, um firewall ou uma verificação antibots na frente do OneUptime barra o leitor do Google; um loop de redirecionamento das versões antigas do OneUptime também barrava, em instalações com `PROVISION_SSL=true` cujo TLS termina antes do Nginx. Quando ele responder `200`, adicione o link de novo com `?nocache=1` no final para o Google lê-lo outra vez.
+:::
 
-**404.** O link é desconhecido, foi excluído ou seu período de carência terminou. Gere um novo e assine de novo.
+:::details Nada leu o link, ou "Não foi possível buscar a URL"
+O Google Agenda, o Outlook na web, o Fastmail e o Proton leem **dos próprios servidores**, então o host do OneUptime precisa estar acessível pela internet pública com um certificado em que eles confiem. Uma instalação em rede privada, atrás de uma VPN ou com uma autoridade certificadora interna fica inacessível para eles, não importa o que você cole.
 
-**503.** Ou `DISABLE_ON_CALL_CALENDAR_FEED` está definido, ou o servidor está ocupado: no máximo alguns feeds são gerados ao mesmo tempo, e uma escala que demora demais para ser calculada é interrompida. Quando existe uma cópia anterior do feed, o servidor a serve no lugar com um cabeçalho `Warning: 110`, então um 503 significa que não havia nada para recorrer. Os clientes mantêm a última cópia e tentam de novo após o intervalo `Retry-After`. O Fastmail desativa uma assinatura após cinco falhas seguidas; adicione-a de novo quando o servidor estiver saudável. A métrica `oncall_calendar_render_duration_ms` mostra aos operadores quais feeds são lentos.
+O Calendário da Apple, o Thunderbird e o Outlook clássico leem do dispositivo, então funcionam onde quer que o dispositivo consiga abrir o painel — depois de confiar no certificado nesse dispositivo, se for autoassinado. A linha de status da página do feed diz se algo já leu o link; `curl -I` no link de fora da sua rede é a verificação mais rápida:
 
-**429 ou "muitas requisições".** Muitos clientes atrás de um mesmo endereço — um NAT de escritório, um gateway VPN — dividem o orçamento por endereço. Aumente `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` e confira `TRUSTED_PROXY_HOPS`: se estiver baixo demais, todo cliente é atribuído ao seu próprio proxy e todos dividem um único orçamento.
+```bash
+curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"
+```
 
-**Erros de certificado no Calendário da Apple, Thunderbird ou Outlook.** Esses aplicativos validam TLS no dispositivo. Importe sua CA interna para o repositório de confiança do dispositivo — as Chaves do macOS, o repositório de certificados do Windows, o gerenciador de certificados do Thunderbird — ou use um certificado de confiança pública. Leitores do lado do servidor como Google e Microsoft não podem ser levados a confiar em uma CA privada.
+Permitir que o OneUptime _alcance_ redes privadas — [Acesso a redes privadas](/docs/self-hosted/private-network-access) — é outro assunto e não ajuda aqui.
+:::
 
-**Os horários estão errados.** Todos os horários no arquivo estão em UTC; o aplicativo de calendário converte para o próprio fuso. Se os turnos parecem deslocados por um intervalo fixo, confira o fuso da escala (aba **Configurações**) e o seu (**Configurações do usuário** > **Perfil**). Uma escala sem fuso é calculada no fuso do servidor e o evento informa isso.
+:::details O calendário está desatualizado
+Leia primeiro a tabela de atualização: no Google, o atraso é normal. Para o Google olhar de novo, remova e adicione o calendário outra vez ou acrescente `?nocache=1` ao link (parâmetros desconhecidos são ignorados, então o feed não muda, mas o Google o trata como novo). No Outlook clássico, aperte F9 e confira a configuração **Limite de atualização**. No Calendário da Apple, use **Visualizar** > **Atualizar Calendários**. Se uma mudança no mesmo dia importar, confie nos lembretes e avisos de reatribuição do OneUptime, não no calendário.
+:::
 
-**O feed diz que foi encurtado.** Mais de 5.000 eventos caíram dentro da janela. Reduza **Dias à frente**, ou assine **Somente meus turnos nesta escala** em vez de um projeto inteiro.
+:::details O calendário está vazio
+Um calendário vazio é proposital. Significa que o link está desativado, que é um link antigo dentro do período de carência de 30 dias depois de uma regeneração, que o projeto está abaixo do plano que inclui os agendamentos de plantão ou que você não está mais em nenhum agendamento desse projeto. Abra o link em um navegador: a descrição do calendário (`X-WR-CALDESC`) informa o motivo. Se você saiu do projeto, o link continua vazio: ele só mostra turnos enquanto você é membro.
+:::
 
-**O Google mostra um nome de agenda antigo.** O Google lê o nome apenas na primeira assinatura; remova e adicione a agenda de novo.
+:::details O link responde 404
+O link é desconhecido, foi excluído ou o período de carência dele terminou. Gere um novo e assine de novo.
+:::
 
-**A página de configurações diz que o link precisa ser regenerado.** `ENCRYPTION_SECRET` mudou desde que o link foi criado, então o servidor não consegue mais mostrá-lo. A assinatura existente continua funcionando; regenerar lhe dá um link que pode ser copiado de novo e aposenta o antigo após 30 dias.
+:::details O link responde 503
+Ou `DISABLE_ON_CALL_CALENDAR_FEED` está definido, ou o servidor está ocupado: no máximo alguns feeds são gerados ao mesmo tempo, e um agendamento que demora muito para ser calculado é interrompido. Quando existe uma cópia anterior do feed, o servidor serve essa cópia, com um cabeçalho `Warning: 110`, então um 503 significa que não havia nada em que se apoiar. Os clientes mantêm a última cópia e tentam de novo depois do intervalo `Retry-After`. O Fastmail desativa uma assinatura depois de cinco falhas seguidas; adicione de novo quando o servidor estiver bem. A métrica `oncall_calendar_render_duration_ms` mostra aos operadores quais feeds estão lentos.
+:::
 
-**Um turno está faltando no meu feed.** Só turnos de escala aparecem; atribuições diretas de usuário ou equipe em uma regra de política são fixas e não têm eventos. Um turno assumido por outra pessoa por substituição sai do seu feed porque agora está no dela. Ative **Incluir turnos que cubro por outros** para ver turnos obtidos por substituições em escalas das quais você não é membro.
+:::details 429 ou "muitas requisições"
+Muitos clientes atrás de um mesmo endereço — um NAT de escritório, um gateway de VPN — dividem o orçamento por endereço. Aumente `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` e confira `TRUSTED_PROXY_HOPS`: se ele estiver baixo demais, todo cliente é atribuído ao seu próprio proxy e todos dividem um único orçamento.
+:::
+
+:::details Erros de certificado no Calendário da Apple, no Thunderbird ou no Outlook
+Esses apps validam o TLS no dispositivo. Importe a sua CA interna para o repositório de confiança do dispositivo — as Chaves do macOS, o repositório de certificados do Windows, o gerenciador de certificados do Thunderbird — ou use um certificado de confiança pública. Leitores do lado do servidor, como o Google e a Microsoft, não podem ser levados a confiar em uma CA privada.
+:::
+
+:::details Os horários estão errados
+Todos os horários do arquivo estão em UTC; o app de calendário os converte para o próprio fuso. Se os turnos parecerem deslocados por um valor fixo, confira o fuso do agendamento (**Schedule timezone** na página **Camadas** dele) e o seu (**Fuso horário** no seu **Perfil**). Um agendamento sem fuso horário é calculado no fuso do servidor, e o evento avisa isso.
+:::
+
+:::details O feed diz que foi encurtado
+Mais de 5.000 eventos caíram dentro da janela. Reduza **Dias futuros**, ou assine **Apenas os meus turnos nesta escala** em vez de um projeto inteiro.
+:::
+
+:::details O Google mostra um nome de calendário antigo
+O Google lê o nome só na primeira assinatura; remova o calendário e adicione de novo.
+:::
+
+:::details A página de configurações diz que o link precisa ser regenerado
+O `ENCRYPTION_SECRET` mudou desde que o link foi criado, então o servidor não consegue mais mostrá-lo. A assinatura existente continua funcionando; regenerar dá a você um link que pode ser copiado de novo e aposenta o antigo depois de 30 dias.
+:::
+
+:::details Falta um turno no meu feed
+Só aparecem os turnos dos agendamentos; atribuições diretas de usuário ou equipe em uma regra de política são fixas e não têm eventos. Um turno assumido por outra pessoa por meio de uma substituição sai do seu feed porque agora está no dela. Ligue **Incluir turnos que cubro por outros** para ver os turnos que você ganhou por substituições em agendamentos dos quais não é membro.
+:::
+
+## Próximos passos
+
+:::cards
+- [Agendamentos de plantão](/docs/on-call/schedules): Configure as rotações que seus feeds mostram.
+- [Linha do tempo de plantões](/docs/on-call/schedule-timeline): Veja todos os agendamentos lado a lado no painel.
+- [Regras de escalonamento](/docs/on-call/escalation-rules): Ligue agendamentos a políticas para que os turnos deles acionem pessoas.
+:::

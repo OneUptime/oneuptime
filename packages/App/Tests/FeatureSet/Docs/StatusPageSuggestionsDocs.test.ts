@@ -14,8 +14,7 @@ import path from "path";
  * itself. Markdown is not compiled, so this holds the guides to the line
  * the dashboard draws: the English guide quotes it for both forms, and the
  * guide in every other language quotes it as that language's dashboard
- * shows it, with its own Add all (Persian keeps the English labels, as its
- * guide does throughout).
+ * shows it, with its own Add all, Persian included.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -32,7 +31,7 @@ const LOCALES_DIR: string = path.join(
 
 const GUIDE: string = "status-pages/subscribers.md";
 
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
+const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en"];
 
 function readGuide(language: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, GUIDE), "utf8");

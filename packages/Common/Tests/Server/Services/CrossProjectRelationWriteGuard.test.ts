@@ -76,6 +76,7 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Incidents, alerts and scheduled maintenance events carry many-to-many
@@ -903,6 +904,14 @@ describe("cross-project relation guard on write", () => {
       jest.spyOn(IncidentService, "findBy").mockImplementation((async () => {
         return matchedIncidents;
       }) as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the
+       * update path makes before the hooks (stubRowsCallerMayWrite).
+       */
+      stubRowsCallerMayWrite(IncidentService, () => {
+        return matchedIncidents;
+      });
     });
 
     function storedIncident(data: {
@@ -1534,6 +1543,14 @@ describe("cross-project relation guard on write", () => {
       jest.spyOn(AlertService, "findBy").mockImplementation((async () => {
         return matchedAlerts;
       }) as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the
+       * update path makes before the hooks (stubRowsCallerMayWrite).
+       */
+      stubRowsCallerMayWrite(AlertService, () => {
+        return matchedAlerts;
+      });
     });
 
     function storedAlert(data: {
@@ -2013,6 +2030,14 @@ describe("cross-project relation guard on write", () => {
         .mockImplementation((async () => {
           return matchedEvents;
         }) as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the
+       * update path makes before the hooks (stubRowsCallerMayWrite).
+       */
+      stubRowsCallerMayWrite(ScheduledMaintenanceService, () => {
+        return matchedEvents;
+      });
     });
 
     function storedEvent(data: {
@@ -2348,6 +2373,14 @@ describe("cross-project relation guard on write", () => {
           .mockImplementation((async () => {
             return matchedTemplates;
           }) as never);
+
+        /*
+         * The read of the rows the caller's update may write, which the
+         * update path makes before the hooks (stubRowsCallerMayWrite).
+         */
+        stubRowsCallerMayWrite(templateCase.service, () => {
+          return matchedTemplates;
+        });
       });
 
       function storedTemplate(data: {

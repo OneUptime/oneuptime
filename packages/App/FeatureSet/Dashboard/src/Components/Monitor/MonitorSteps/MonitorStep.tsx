@@ -42,6 +42,8 @@ import MonitorStepViewModel, {
   MonitorStepViewValue,
   MonitorStepViewValueType,
 } from "../../../Utils/MonitorStepViewModel";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -114,6 +116,8 @@ const getNetworkDeviceId: (
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   /*
    * The single source of truth for what this page shows. Every monitor type
    * goes through it, so a type can no longer fall through to a blank
@@ -269,10 +273,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
      * stored id then beats showing nothing, because it is what the criteria
      * are still pointed at.
      */
-    item[row.key] =
+    item[row.key] = MonitorStepViewModel.translateRowValue(
+      row,
       row.valueType === MonitorStepViewValueType.NetworkDevice
         ? networkDeviceName || row.value
-        : row.value;
+        : row.value,
+      (text: string): string | undefined => {
+        return translator.translateText(text);
+      },
+    );
 
     fields.push({
       key: row.key,

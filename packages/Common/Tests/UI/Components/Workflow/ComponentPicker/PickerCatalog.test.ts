@@ -122,7 +122,16 @@ describe("what the picker leads with", () => {
       ACTIONS.otherBuiltInGroups.map((group: PickerBuiltInGroup): string => {
         return group.name;
       }),
-    ).toEqual(["AI", "API", "Telegram", "SMSEagle", "JSON", "Utils"]);
+    ).toEqual([
+      "AI",
+      "API",
+      "Telegram",
+      "IRC",
+      "Mattermost",
+      "SMSEagle",
+      "JSON",
+      "Utils",
+    ]);
 
     const others: Array<string> = ACTIONS.otherBuiltInGroups.flatMap(
       (group: PickerBuiltInGroup): Array<string> => {
@@ -136,6 +145,8 @@ describe("what the picker leads with", () => {
       "API Patch (JSON)",
       "API Delete (JSON)",
       "Send Message to Telegram",
+      "Send Message to IRC",
+      "Send Message to Mattermost",
       "Send SMS via SMSEagle",
       "Make a Call via SMSEagle",
       "JSON to Text",

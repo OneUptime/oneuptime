@@ -32,6 +32,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -68,6 +69,7 @@ export interface ComponentProps {
 const ProbeAgreementCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const translator: Translator = useTranslator();
   const id: string = useId();
   const errorId: string = `probe-agreement-error-${id}`;
@@ -217,7 +219,7 @@ const ProbeAgreementCard: FunctionComponent<ComponentProps> = (
        * Monitoring Interval card.
        */}
       <div
-        className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6"
+        className={ruledBodyClassName}
         data-testid={`${PROBE_AGREEMENT_TEST_ID}-card`}
       >
         <div className="px-5 py-4 md:px-6">

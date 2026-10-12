@@ -21,6 +21,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * "This particular thing should be synced with the agent, and I should not
@@ -234,6 +235,15 @@ beforeEach(() => {
   clusterLookup = jest
     .spyOn(KubernetesClusterService, "findBy")
     .mockResolvedValue([cluster()]);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks: what the read above answers.
+   */
+  stubRowsCallerMayWriteLikeFindBy(
+    KubernetesClusterService,
+    jest.spyOn(KubernetesClusterService, "findBy"),
+  );
   agentLookup = jest
     .spyOn(KubernetesAiAgentService, "findForClusters")
     .mockResolvedValue(agents(agentReporting(CONFIGURED)));

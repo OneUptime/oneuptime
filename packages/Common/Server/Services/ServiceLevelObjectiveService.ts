@@ -7,7 +7,7 @@ import ServiceLevelObjectiveOwnerUser from "../../Models/DatabaseModels/ServiceL
 import User from "../../Models/DatabaseModels/User";
 import URL from "../../Types/API/URL";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -594,23 +594,14 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The SLOs the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> = [];
 
@@ -1262,19 +1253,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        // Pinned: this hook runs before DatabaseService applies permissions.
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: this.getFeedSelect(columns),
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        this.getFeedSelect(columns),
+      );
 
       const rowsById: Dictionary<Model> = {};
 
@@ -1852,10 +1834,10 @@ export class Service extends ProjectReferencesService<Model> {
    * out-of-date SLO form re-sends every field it loaded, labels included, on
    * every save.
    *
-   * Pinned to the caller's tenant like the feed snapshot, since this runs
-   * before DatabaseService applies the update's permissions. A failed read
-   * never blocks the update; its SLOs then count as re-submitting their list,
-   * the reading that can never bring a deleted rule back.
+   * Read as the rows the update writes, like the feed snapshot
+   * (findRowsAndHoldUpdateToThem). A failed read never blocks the update; its
+   * SLOs then count as re-submitting their list, the reading that can never
+   * bring a deleted rule back.
    */
   private async readDeprecatedMonitorLabelsBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -1867,23 +1849,15 @@ export class Service extends ProjectReferencesService<Model> {
     const labelIdsBySloId: Dictionary<Array<string>> = {};
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: {
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           monitorLabels: {
             _id: true,
           },
         },
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       for (const row of rows) {
         if (row.id) {
@@ -1916,10 +1890,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Root writes pass untouched: the rule engine itself writes `monitors` as
    * root, and it must never be refused by the guard that protects its output.
    *
-   * This hook runs before DatabaseService's update permission check, so the
-   * caller's raw query is pinned to the caller's tenant before anything is
-   * read - a validation read must not answer questions about another
-   * project's SLOs.
+   * The SLOs judged are the ones the update writes - for a teammate, the SLOs
+   * they may write - and the update is held to them
+   * (findRowsAndHoldUpdateToThem): a validation read must not answer
+   * questions about another project's SLOs, and no SLO may be written
+   * unjudged.
    */
   private async assertMonitorEditRespectsMonitorRules(
     updateBy: UpdateBy<Model>,
@@ -1930,17 +1905,9 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const query: Record<string, unknown> = {
-      ...(updateBy.query as Record<string, unknown>),
-    };
-
-    if (updateBy.props.tenantId) {
-      query["projectId"] = updateBy.props.tenantId;
-    }
-
-    const slos: Array<Model> = await this.findBy({
-      query: query as UpdateBy<Model>["query"],
-      select: {
+    const slos: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         monitors: {
           _id: true,
@@ -1949,12 +1916,7 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
         },
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const sloIds: Array<ObjectID> = slos
       .map((slo: Model): ObjectID | null => {

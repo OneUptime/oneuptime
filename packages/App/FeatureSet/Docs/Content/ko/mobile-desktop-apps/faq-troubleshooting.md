@@ -38,7 +38,8 @@ OneUptime 모바일 및 데스크톱 앱에 대한 자주 묻는 질문과 해�
 2. 배터리 최적화가 비활성화되어 있고 백그라운드 활동이 허용됩니다 (Android).
 3. 방해 금지 모드 또는 집중 모드가 꺼져 있거나 앱이 예외 목록에 있습니다.
 4. 로그인되어 있습니다 — 푸시 토큰은 로그인 후에만 서버에 등록됩니다.
-5. **자체 호스팅 전용:** OneUptime 인스턴스에 푸시 알림이 구성되어 있습니다. [Push Notifications](/docs/self-hosted/push-notifications) 가이드를 참조하세요.
+5. OneUptime의 **User Settings > Notification Methods > Push**에서 이 휴대폰이 **알림을 받지 못하고 있습니다**로 표시되어 있지 않습니다. 표시되어 있다면 로그인한 상태에서 휴대폰의 앱을 열어 다시 등록하세요.
+6. **자체 호스팅 전용:** OneUptime 인스턴스에 푸시 알림이 구성되어 있습니다. [Push Notifications](/docs/self-hosted/push-notifications) 가이드를 참조하세요.
 
 ### 휴대폰의 데이터는 안전한가요?
 

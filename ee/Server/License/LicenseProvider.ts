@@ -96,6 +96,8 @@ const describeError: (err: unknown) => string = (err: unknown): string => {
 interface ComputedSnapshot {
   inputs: LicenseInputs;
   trustedKeys: ReadonlyArray<TrustedLicenseKey>;
+  // The full classification the snapshot was made from (ee's own callers).
+  classification: LicenseTokenClassification;
   snapshot: EnterpriseLicenseSnapshot;
   computedAtInMs: number;
   validUntilInMs: number;
@@ -169,6 +171,18 @@ const copySnapshot: (
   return copy;
 };
 
+// The same, for a classification: its own fields copied too.
+const copyClassification: (
+  classification: LicenseTokenClassification,
+) => LicenseTokenClassification = (
+  classification: LicenseTokenClassification,
+): LicenseTokenClassification => {
+  return {
+    ...classification,
+    ...copySnapshot(classification),
+  };
+};
+
 export class LicenseProvider implements EnterpriseLicensingProvider {
   private readonly dependencies: LicenseProviderDependencies;
 
@@ -226,6 +240,22 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
     }
 
     return this.computeSnapshot(this.inputs);
+  }
+
+  /*
+   * The synchronous twin of getClassification, for ee's own synchronous
+   * checks (white-labelling is asked while a page or an email is rendered).
+   * Same inputs and same reuse rules as getCachedSnapshot - one
+   * classification serves both - and null until the first read finished.
+   */
+  public getCachedClassification(): LicenseTokenClassification | null {
+    this.startBackgroundLoadIfStale();
+
+    if (!this.inputs) {
+      return null;
+    }
+
+    return copyClassification(this.computeClassification(this.inputs));
   }
 
   // Re-reads the inputs now. Never throws: a failed read keeps the last good ones.
@@ -340,6 +370,21 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
    * been reached. Every caller gets its own copy.
    */
   private computeSnapshot(inputs: LicenseInputs): EnterpriseLicenseSnapshot {
+    return copySnapshot(this.computeComputedSnapshot(inputs).snapshot);
+  }
+
+  // The classification behind computeSnapshot, under the same reuse rules.
+  private computeClassification(
+    inputs: LicenseInputs,
+  ): LicenseTokenClassification {
+    return this.computeComputedSnapshot(inputs).classification;
+  }
+
+  /*
+   * The one place inputs are classified for the cached reads. Callers copy
+   * what they hand out; this keeps the original.
+   */
+  private computeComputedSnapshot(inputs: LicenseInputs): ComputedSnapshot {
     const now: Date = this.dependencies.now();
     const nowInMs: number = now.getTime();
     const trustedKeys: ReadonlyArray<TrustedLicenseKey> =
@@ -353,18 +398,20 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
       nowInMs >= computed.computedAtInMs &&
       nowInMs < computed.validUntilInMs
     ) {
-      return copySnapshot(computed.snapshot);
+      return computed;
     }
 
     this.classificationCount++;
 
-    const snapshot: EnterpriseLicenseSnapshot = LicenseInputsUtil.toSnapshot(
-      LicenseInputsUtil.classify(inputs, now),
-    );
+    const classification: LicenseTokenClassification =
+      LicenseInputsUtil.classify(inputs, now);
+    const snapshot: EnterpriseLicenseSnapshot =
+      LicenseInputsUtil.toSnapshot(classification);
 
-    this.computedSnapshot = {
+    const next: ComputedSnapshot = {
       inputs,
       trustedKeys,
+      classification,
       snapshot,
       computedAtInMs: nowInMs,
       validUntilInMs: getSnapshotReusableUntilInMs(
@@ -374,7 +421,9 @@ export class LicenseProvider implements EnterpriseLicensingProvider {
       ),
     };
 
-    return copySnapshot(snapshot);
+    this.computedSnapshot = next;
+
+    return next;
   }
 
   private nowInMs(): number {

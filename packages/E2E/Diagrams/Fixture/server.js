@@ -104,6 +104,56 @@ const INTERACTIVE = [
   '  click B "javascript:window.diagramLinkRan=true" "A javascript link"',
 ].join("\n");
 
+/*
+ * ?diagrams=persian (docs only): diagrams as the Persian docs write them,
+ * each titled, so the page draws its caption: lines that open with a Latin
+ * word, end in a Persian comma, or hold Latin words only, in a flowchart's
+ * node and link labels, a sequence diagram's message and note (SVG text),
+ * a state diagram's transition label, and the captions.
+ */
+const PERSIAN_DIAGRAMS = [
+  {
+    title: "OneUptime چگونه حساب شما را می‌خواند",
+    code: [
+      "flowchart LR",
+      '  key["OneUptime حساب<br/>را می‌خواند،"] -->|"OTLP به<br/>localhost:4318"| col["کالکتور"]',
+    ].join("\n"),
+  },
+  {
+    title: "ورود با SAML، گام به گام",
+    code: [
+      "sequenceDiagram",
+      "  participant P as شخص",
+      "  participant O as OneUptime",
+      "  P->>O: OTLP به OneUptime",
+      "  Note over P,O: امضا را بررسی می‌کند،",
+    ].join("\n"),
+  },
+  {
+    title: "وضعیت یک منبع ابری",
+    code: [
+      "stateDiagram-v2",
+      '  state "گزارش‌دهی" as Reporting',
+      "  [*] --> Reporting",
+      "  Reporting --> Archived: OTLP نیست",
+    ].join("\n"),
+  },
+];
+
+/*
+ * ?diagrams=rules (docs only): an English diagram whose lines end in a
+ * colon, which a line laid out right to left draws first (":Rule 1").
+ */
+const RULE_DIAGRAMS = [
+  {
+    title: "Rule 1: the first match",
+    code: [
+      "flowchart LR",
+      '  first["Rule 1:<br/>first match"] --> second["Rule 2:"]',
+    ].join("\n"),
+  },
+];
+
 // The same five characters the docs' and the blog's renderers escape.
 function escapeHtml(text) {
   return String(text)
@@ -132,6 +182,20 @@ function diagramsFor(url) {
   }
 }
 
+// The docs page's diagrams, with the title each is captioned with.
+function docsDiagramsFor(url) {
+  switch (url.searchParams.get("diagrams")) {
+    case "persian":
+      return PERSIAN_DIAGRAMS;
+    case "rules":
+      return RULE_DIAGRAMS;
+    default:
+      return diagramsFor(url).map((code) => {
+        return { title: null, code: code };
+      });
+  }
+}
+
 // The docs' t() in a language: "ui.x" is that language's string.
 function docsT(lang) {
   const strings = docsStrings(lang);
@@ -145,8 +209,10 @@ function docsT(lang) {
 
 /*
  * What Common/Server/Types/Markdown.ts writes for a ```mermaid fence on a
- * docs page. ?lang= picks the page's language (English by default; fa is
- * right to left).
+ * docs page, a titled one with its caption under it. ?lang= picks the
+ * page's language (English by default; fa is right to left), and
+ * &content=en serves its article as the English copy of an untranslated
+ * page, marked English and left to right as Partials/Content.ejs marks it.
  */
 function docsPage(url) {
   const lang = url.searchParams.get("lang") === "fa" ? "fa" : "en";
@@ -160,13 +226,20 @@ function docsPage(url) {
     },
     { filename: docsHead },
   );
-  const diagrams = diagramsFor(url)
-    .map((code) => {
-      return `<div class="docs-diagram"><div class="mermaid">${escapeHtml(code)}</div></div>`;
+  const diagrams = docsDiagramsFor(url)
+    .map((diagram) => {
+      const caption = diagram.title
+        ? `<p class="docs-diagram__caption">${escapeHtml(diagram.title)}</p>`
+        : "";
+      return `<div class="docs-diagram"><div class="mermaid">${escapeHtml(diagram.code)}</div>${caption}</div>`;
     })
     .join("\n");
+  const englishCopy =
+    lang !== "en" && url.searchParams.get("content") === "en"
+      ? ' lang="en" dir="ltr"'
+      : "";
 
-  return `<!doctype html><html lang="${lang}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"><div class="docs-content"><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
+  return `<!doctype html><html lang="${lang}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"><div class="docs-content"${englishCopy}><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
 }
 
 /*

@@ -192,8 +192,23 @@ export const COMPONENT_KEYWORDS: Readonly<
   ],
   [ComponentID.DiscordSendMessageToChannel]: [...MESSAGE_KEYWORDS],
   [ComponentID.TelegramSendMessageToChat]: [...MESSAGE_KEYWORDS, "bot"],
+  // "Internet Relay Chat", and the networks most people use it on.
+  [ComponentID.IRCSendMessageToChannel]: [
+    ...MESSAGE_KEYWORDS,
+    "internet",
+    "relay",
+    "libera",
+    "oftc",
+  ],
+  [ComponentID.MattermostSendMessageToChannel]: [...MESSAGE_KEYWORDS, "post"],
   [ComponentID.SMSEagleSendSms]: [...MESSAGE_KEYWORDS, "sms", "text", "phone"],
-  [ComponentID.SMSEagleMakeCall]: [...MESSAGE_KEYWORDS, "call", "phone", "voice", "tts"],
+  [ComponentID.SMSEagleMakeCall]: [
+    ...MESSAGE_KEYWORDS,
+    "call",
+    "phone",
+    "voice",
+    "tts",
+  ],
   [ComponentID.SendEmail]: [
     "mail",
     "smtp",

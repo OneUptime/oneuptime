@@ -124,9 +124,9 @@ resource "oneuptime_monitor" "website" {
 
 | صفت | نوع | به کار رفته توسط | یادداشت |
 |-----------|------|---------|-------|
-| `monitor_destination` | رشته | Website، API، Ping، Port، IP، SSL Certificate | نشانی، نام میزبان یا IPای که پروب شود. به `monitor_destination_type` نیاز دارد. |
-| `monitor_destination_type` | رشته | همان | `URL`، `Hostname` یا `IP` — باید با نوع مانیتور بخواند (نشانی برای Website/API/SSL Certificate؛ نام میزبان یا IP برای Ping/Port/IP). |
-| `port` | عدد | Port | درگاه TCPای که پروب شود، مثلاً `443`. |
+| `monitor_destination` | رشته | Website، API، Ping، Port، IP، SSL Certificate، NTP | نشانی، نام میزبان یا IPای که پروب شود. به `monitor_destination_type` نیاز دارد. |
+| `monitor_destination_type` | رشته | همان | `URL`، `Hostname` یا `IP` — باید با نوع مانیتور بخواند (نشانی برای Website/API/SSL Certificate؛ نام میزبان یا IP برای Ping/Port/IP/NTP). |
+| `port` | عدد | Port، NTP | درگاه TCPای که پروب شود، مثلاً `443`. برای NTP، درگاه UDPای که سرور زمان روی آن پاسخ می‌دهد؛ اگر تنظیم نشود `123`. |
 | `request_type` | رشته | Website، API | روش HTTP: `GET`، `POST`، `PUT`، `DELETE`، `HEAD`، `PATCH`. پیش‌فرض کارساز `GET` است. |
 | `request_headers` | map(string) | API | نگاشت رشته ساده: `{ "Accept" = "application/json" }`. |
 | `request_body` | رشته | API | رشته بدنه خام درخواست. |
@@ -143,7 +143,7 @@ resource "oneuptime_monitor" "website" {
 | `retry_count_on_error` | عدد | Synthetic | تلاش دوباره هنگام خطای اسکریپت. |
 | `criteria` | فهرست (الزامی) | همه | درخت تصمیم — پایین را ببینید. |
 
-نوع‌های مانیتور تله‌متری و زیرساخت پیکربندی پرس‌وجویشان را در صفت‌های **دریچه فرار** به ازای هر نوع حمل می‌کنند — رشته‌هایی اختیاری که JSON خام زیرپیکربندی را نگه می‌دارند و با `jsonencode()` نوشته می‌شوند: `log_monitor`، `trace_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `vmware_monitor`، `ceph_monitor`، `storage_array_monitor`، `iot_monitor`. نمونه‌ای برای مانیتور Logs:
+نوع‌های مانیتور تله‌متری و زیرساخت پیکربندی پرس‌وجویشان را در صفت‌های **دریچه فرار** به ازای هر نوع حمل می‌کنند — رشته‌هایی اختیاری که JSON خام زیرپیکربندی را نگه می‌دارند و با `jsonencode()` نوشته می‌شوند: `log_monitor`، `trace_monitor`، `llm_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `vmware_monitor`، `ceph_monitor`، `storage_array_monitor`، `iot_monitor`. نمونه‌ای برای مانیتور Logs:
 
 ```hcl
 monitor_steps = [{
@@ -248,11 +248,12 @@ criteria = [
 | Incoming Request | `Incoming Request`، `Request Body`، `Request Header` |
 | Server | `CPU Usage (in %)`، `Memory Usage (in %)`، `Disk Usage (in %)` (به `disk_path` نیاز دارد)، `Server Process Name` |
 | Logs / Traces / Exceptions / Metrics | `Log Count`، `Span Count`، `Exception Count`، `Metric Value` (پالایه‌های سنجه می‌توانند JSON‏ `metric_monitor_options` را حمل کنند) |
-| Custom Code / Synthetic | `Result Value`، `Error`، `Execution Time (in ms)` |
+| Custom Code / Synthetic | `Result Value` (می‌تواند یک فیلد از داده بازگشتی را مقایسه کند که در JSON‏ `custom_code_monitor_options` نام برده می‌شود، مثلاً `jsonencode({ resultValuePath = "status" })` — پایین را ببینید)، `Error`، `Execution Time (in ms)` |
 | DNS / Domain / DNSSEC | `DNS Is Online`، `DNS Record Value`، `Domain Is Expired`، `DNSSEC Chain Is Valid` |
 | SQL Query | `SQL Is Online`، `SQL Query Row Count`، `SQL Query Scalar Value` |
 | Database Health | `Database Is Online`، `Database Metric` (به JSON‏ `database_monitor_options`ای نیاز دارد که سری را نام ببرد، مثلاً `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`)، `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`، `External Status Page Active Incidents`، `External Status Page Component Status` |
+| NTP | `NTP Is Online`، `NTP Is Synchronized`، `NTP Stratum`، `NTP Clock Offset (in ms)`، `NTP Response Time (in ms)`، `NTP Root Dispersion (in ms)` (`NTP Is Online` و `NTP Is Synchronized` مقدار `value` نمی‌گیرند) |
 | Network Device (SNMP) | `SNMP Device Is Online` (با ping یا SNMP دست‌یافتنی)، `SNMP Walk Is Succeeding` (نادرست یعنی دست‌یافتنی اما غیرقابل پیمایش)، `SNMP OID Value` (پالایه‌های SNMP می‌توانند JSON‏ `snmp_monitor_options` را حمل کنند) |
 
 مقادیر رایج `filter_type`:
@@ -279,6 +280,43 @@ filters = [
 ```
 
 ارائه‌دهنده `check_on`، `filter_type` و دیگر صفت‌های شمارشی را هنگام plan اعتبارسنجی می‌کند، پس غلط تایپی پیش از فرستاده شدن چیزی به API شکست می‌خورد. فهرست‌های کامل در ویرایشگر معیار داشبورد دیدنی‌اند؛ هر چیزی که داشبورد بپذیرد اینجا معتبر است، دقیقاً با همان برچسبی که داشبورد نشان می‌دهد.
+
+### مقایسه یک فیلد از نتیجه اسکریپت
+
+اسکریپت مانیتور Custom Code یا Synthetic مقدار `data` را برمی‌گرداند و پالایه `Result Value` آن را مقایسه می‌کند. وقتی `data` شیء یا آرایه است، `custom_code_monitor_options` همان یک فیلدی از آن را نام می‌برد که مقایسه می‌شود — همان **مسیر فیلد** پالایه Result Value در داشبورد. برای فیلدهای تودرتو از نقطه و برای عنصرهای آرایه از `[n]` استفاده کنید، و برای مقایسه کل مقدار این صفت را حذف کنید:
+
+```hcl
+monitor_steps = [{
+  custom_code = <<-EOT
+    const response = await axios.get("https://api.example.com/health");
+    // For example { status: "UP", checks: [{ name: "db", latency: 12 }] }
+    return { data: response.data };
+  EOT
+
+  criteria = [
+    {
+      name             = "Unhealthy"
+      filter_condition = "Any"
+      filters = [
+        {
+          check_on                    = "Result Value"
+          filter_type                 = "Not Equal To"
+          value                       = "UP"
+          custom_code_monitor_options = jsonencode({ resultValuePath = "status" })
+        },
+        {
+          check_on                    = "Result Value"
+          filter_type                 = "Greater Than"
+          value                       = "500"
+          custom_code_monitor_options = jsonencode({ resultValuePath = "checks[0].latency" })
+        }
+      ]
+    }
+  ]
+}]
+```
+
+‏`Greater Than` و دیگر شرط‌های عددی فقط با فیلدی تطبیق می‌یابند که عدد باشد، و فیلدی که در داده بازگشتی نباشد فقط با `Is Empty` تطبیق می‌یابد. برای اینکه مسیرها و شرط‌ها چگونه کار می‌کنند، [هشدار روی داده بازگشتی](/docs/monitor/custom-code-monitor#هشدار-روی-داده-بازگشتی) را ببینید.
 
 ## اشتباه‌های رایج
 

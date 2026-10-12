@@ -67,17 +67,15 @@ import Permission, {
  * refuse it the way the Bot Connector does, with a RestError that carries the
  * HTTP status and Teams' error code. Pinned:
  *
- * - In a personal chat, where the sender is the only one who can submit the
- *   form, the sender is checked before any list is read: no AAD object id, no
- *   connected account (with the settings link), not a project member, and -
- *   for maintenance only, since only its submit checks it - no permission to
- *   create the event (also with the real permission model deciding). A check
- *   that itself fails gets a reply of its own.
- * - In a channel or group chat anyone there may submit the form, and the
- *   submit checks whoever does, so the form is posted for everyone and nobody
- *   is looked up, not even a sender every check would refuse.
- * - Creating an incident asks for no incident-create permission, on purpose
- *   (see "create incident" for where that decision lives).
+ * - The form is filled in as whoever asked for it, in a personal chat, a
+ *   channel or a group chat alike: the sender is checked before any list is
+ *   read - no AAD object id, no connected account (with the settings link),
+ *   not a project member, no permission to create the thing (to declare an
+ *   incident, to create a maintenance event; also with the real permission
+ *   model deciding) - and a check that itself fails gets a reply of its own.
+ *   The lists are then read as the sender, with their own props, so the form
+ *   offers only what they may read. In a channel anyone there may submit the
+ *   form, and the submit is checked as whoever does.
  * - Lists that cannot be read, and an incident form with no severity to pick,
  *   get a reply instead of a form; the second links the page where incident
  *   severities are added.
@@ -932,11 +930,19 @@ function failChoices(profile: CommandProfile, error: Error): void {
 
 function choicesSpyOf(
   profile: CommandProfile,
-): SpyInstance<(projectId: ObjectID) => Promise<unknown>> {
+): SpyInstance<
+  (
+    projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ) => Promise<unknown>
+> {
   return (profile.kind === "incident"
     ? incidentChoicesSpy
     : maintenanceChoicesSpy) as unknown as SpyInstance<
-    (projectId: ObjectID) => Promise<unknown>
+    (
+      projectId: ObjectID,
+      props: DatabaseCommonInteractionProps,
+    ) => Promise<unknown>
   >;
 }
 
@@ -1059,8 +1065,8 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
       expect(card).toEqual(formFor("small", FIRST_BUDGET, profile.typedTitle));
 
       /*
-       * In a personal chat, as here, the sender is checked as who they are in
-       * this project, then the lists are read.
+       * The sender is checked as who they are in this project, then the
+       * lists are read as them: only what they may read is offered.
        */
       expect(senderLookupSpy).toHaveBeenCalledTimes(1);
       expect(senderLookupSpy).toHaveBeenCalledWith({
@@ -1073,8 +1079,16 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
         projectId: PROJECT_ID,
       });
       expect(choicesSpyOf(profile)).toHaveBeenCalledTimes(1);
-      expect(choicesSpyOf(profile)).toHaveBeenCalledWith(PROJECT_ID);
+      expect(choicesSpyOf(profile)).toHaveBeenCalledWith(
+        PROJECT_ID,
+        MEMBER_PROPS,
+      );
       expect(memberPropsSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+        choicesSpyOf(profile).mock.invocationCallOrder[0]!,
+      );
+      // ... after the permission its submit needs was asked.
+      expect(assertCanCreateSpy).toHaveBeenCalledTimes(1);
+      expect(assertCanCreateSpy.mock.invocationCallOrder[0]!).toBeLessThan(
         choicesSpyOf(profile).mock.invocationCallOrder[0]!,
       );
 
@@ -1313,33 +1327,16 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
   });
 
   /*
-   * Anyone in a channel or group chat may submit the form, and the submit
-   * checks whoever does (a linked project member, and for maintenance one who
-   * may create the event), so a check of whoever asked for it would only
-   * refuse the form to everyone else there.
+   * Anyone in a channel or group chat may submit the form, and the submit is
+   * checked as whoever does. The form itself is filled in as whoever asked
+   * for it: the sender is checked as in a personal chat, and the lists are
+   * the ones the sender may read - never the whole project's for everyone
+   * there.
    */
   describe("in a channel or group chat", (): void => {
     test.each(SHARED_CONVERSATIONS)(
-      "in a $name, the form is posted for everyone there and nobody is looked up",
+      "in a $name, the sender is checked and the form posted for everyone there lists what the sender may read",
       async (conversation: SharedConversation): Promise<void> => {
-        /*
-         * Every check a personal chat makes would refuse this sender, so any
-         * one of them running here would answer with a refusal, not the form.
-         */
-        senderLookupSpy.mockRejectedValue(
-          new MicrosoftTeamsAccountNotLinkedException("No linked user."),
-        );
-        memberPropsSpy.mockRejectedValue(
-          new NotAuthorizedException(
-            WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-          ),
-        );
-        assertCanCreateSpy.mockRejectedValue(
-          new NotAuthorizedException(
-            `You do not have permission to create ${profile.form.what}.`,
-          ),
-        );
-
         const teams: FakeTeams = await runCommand({
           profile: profile,
           activity: sharedConversationMessage(profile, conversation),
@@ -1350,11 +1347,14 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
         expect(theDeliveredCard(teams)).toEqual(
           formFor("small", FIRST_BUDGET, profile.typedTitle),
         );
-        expect(senderLookupSpy).not.toHaveBeenCalled();
-        expect(memberPropsSpy).not.toHaveBeenCalled();
-        expect(assertCanCreateSpy).not.toHaveBeenCalled();
+        expect(senderLookupSpy).toHaveBeenCalledTimes(1);
+        expect(memberPropsSpy).toHaveBeenCalledTimes(1);
+        expect(assertCanCreateSpy).toHaveBeenCalledTimes(1);
         expect(choicesSpyOf(profile)).toHaveBeenCalledTimes(1);
-        expect(choicesSpyOf(profile)).toHaveBeenCalledWith(PROJECT_ID);
+        expect(choicesSpyOf(profile)).toHaveBeenCalledWith(
+          PROJECT_ID,
+          MEMBER_PROPS,
+        );
         expect(budgetsBuilt(profile)).toEqual([FIRST_BUDGET]);
         expect(warnLogSpy).not.toHaveBeenCalled();
         expect(errorLogSpy).not.toHaveBeenCalled();
@@ -1362,7 +1362,47 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
     );
 
     test.each(SHARED_CONVERSATIONS)(
-      "in a $name, a message without the sender's AAD object id gets the form too: who asked for it does not decide who may submit it",
+      "in a $name, a sender without a connected account is told where to connect it, and no form is posted",
+      async (conversation: SharedConversation): Promise<void> => {
+        senderLookupSpy.mockRejectedValue(
+          new MicrosoftTeamsAccountNotLinkedException("No linked user."),
+        );
+
+        const teams: FakeTeams = await runCommand({
+          profile: profile,
+          activity: sharedConversationMessage(profile, conversation),
+        });
+
+        expectSends(teams, { attempted: 1, delivered: 1 });
+        expect(theDeliveredText(teams)).toBe(profile.replies.accountNotLinked);
+        expect(memberPropsSpy).not.toHaveBeenCalled();
+        expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
+        expect(errorLogSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each(SHARED_CONVERSATIONS)(
+      "in a $name, a sender who may not create it is told so, and no form is posted",
+      async (conversation: SharedConversation): Promise<void> => {
+        const refusal: string = `You do not have permission to ${profile.kind === "incident" ? "declare an incident" : "create a scheduled maintenance event"}.`;
+        assertCanCreateSpy.mockRejectedValue(
+          new NotAuthorizedException(refusal),
+        );
+
+        const teams: FakeTeams = await runCommand({
+          profile: profile,
+          activity: sharedConversationMessage(profile, conversation),
+        });
+
+        expectSends(teams, { attempted: 1, delivered: 1 });
+        expect(theDeliveredText(teams)).toBe(refusal);
+        expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
+        expect(errorLogSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each(SHARED_CONVERSATIONS)(
+      "in a $name, a message without the sender's AAD object id gets no form: whose lists it would show is not known",
       async (conversation: SharedConversation): Promise<void> => {
         const teams: FakeTeams = await runCommand({
           profile: profile,
@@ -1372,10 +1412,10 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
         });
 
         expectSends(teams, { attempted: 1, delivered: 1 });
-        expect(theDeliveredCard(teams)).toEqual(formFor("small", FIRST_BUDGET));
+        expect(theDeliveredText(teams)).toBe(profile.replies.senderUnknown);
         expect(senderLookupSpy).not.toHaveBeenCalled();
-        // Nobody had to be told apart, so there is nothing to warn about.
-        expect(warnLogSpy).not.toHaveBeenCalled();
+        expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
+        expect(warnLogSpy).toHaveBeenCalledTimes(1);
         expect(errorLogSpy).not.toHaveBeenCalled();
       },
     );
@@ -1836,48 +1876,53 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
 
 describe("create incident", (): void => {
   /*
-   * DELIBERATE, not an oversight: creating an incident from Microsoft Teams
-   * asks for no incident-create permission, only a linked account of a
-   * current project member. It is the product's rule for incidents raised
-   * from chat - Slack lets "anyone in the company" create one
-   * (slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime
-   * in Server/Utils/Workspace/Slack/Actions/Auth.ts) - and commit 7ac7a3a03f,
-   * which made every other chat write check the linked member's own
-   * permissions, left incident creation out of it. Membership is still
-   * required: by this command in a personal chat (a non-member is refused,
-   * see "the sender check, in a personal chat") and by every submit
-   * (MicrosoftTeamsUtil.handleBotInvokeActivity). Change these two tests only
-   * together with that product decision.
+   * The form is filled in as the member who asked for it, with their own
+   * permissions, as the incident form in OneUptime is: the permission to
+   * declare an incident is asked before any list is read. (This used to ask
+   * for a linked member only, by an earlier product decision, which the
+   * maintainer has since changed: a chat form follows the same roles as
+   * everywhere else.) The submit asks it again, as whoever submits the form.
    */
-  test("never asks for a create permission: its submit only needs a project member", async (): Promise<void> => {
-    assertCanCreateSpy.mockRejectedValue(
-      new NotAuthorizedException(
-        "You do not have permission to create an incident.",
-      ),
-    );
-
+  test("asks for the permission to declare an incident, with the member's own props, before reading any list", async (): Promise<void> => {
     const teams: FakeTeams = await runCommand({ profile: INCIDENT });
 
     expectSends(teams, { attempted: 1, delivered: 1 });
-    expect(theDeliveredCard(teams)["type"]).toBe("AdaptiveCard");
-    expect(assertCanCreateSpy).not.toHaveBeenCalled();
+    expect(assertCanCreateSpy).toHaveBeenCalledTimes(1);
+    const check: Parameters<
+      typeof WorkspaceActionAuthorization.assertCanCreate
+    >[0] = assertCanCreateSpy.mock.calls[0]![0];
+    expect(check.props).toBe(MEMBER_PROPS);
+    expect(check.modelType).toBe(Incident);
+    expect(check.action).toBe("declare an incident");
+    expect(memberPropsSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      assertCanCreateSpy.mock.invocationCallOrder[0]!,
+    );
+    expect(assertCanCreateSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      incidentChoicesSpy.mock.invocationCallOrder[0]!,
+    );
   });
 
-  test("a linked member the permission model would not let create an incident still gets the form, as the policy above says", async (): Promise<void> => {
+  test("a linked member the permission model would not let declare an incident is refused in its own words, and gets no form", async (): Promise<void> => {
     assertCanCreateSpy.mockImplementation(realAssertCanCreate);
     const viewer: DatabaseCommonInteractionProps = memberWith([
       Permission.Viewer,
     ]);
     memberPropsSpy.mockResolvedValue(viewer);
 
-    // Asked, the permission model itself would refuse this member an incident.
-    await expect(
-      realAssertCanCreate({
-        props: viewer,
-        modelType: Incident,
-        action: "create an incident",
-      }),
-    ).rejects.toBeInstanceOf(NotAuthorizedException);
+    // What the permission model itself says to this member about an incident.
+    const refusal: unknown = await realAssertCanCreate({
+      props: viewer,
+      modelType: Incident,
+      action: "declare an incident",
+    }).then(
+      (): null => {
+        return null;
+      },
+      (error: unknown): unknown => {
+        return error;
+      },
+    );
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
 
     const teams: FakeTeams = await runCommand({
       profile: INCIDENT,
@@ -1885,19 +1930,33 @@ describe("create incident", (): void => {
     });
 
     expectSends(teams, { attempted: 1, delivered: 1 });
-    expect(theDeliveredCard(teams)).toEqual(
-      expectedForm(INCIDENT, {
-        size: "small",
-        budgetInBytes: FIRST_BUDGET,
-        initialTitle: INCIDENT.typedTitle,
-        createInOneUptimeUrl: CREATE_INCIDENT_LINK,
-      }),
-    );
-    // Checked as a member of the project, and for nothing more.
-    expect(memberPropsSpy).toHaveBeenCalledTimes(1);
-    expect(assertCanCreateSpy).not.toHaveBeenCalled();
+    const reply: string = theDeliveredText(teams);
+    expect(reply).toBe((refusal as NotAuthorizedException).message);
+    expect(
+      reply.startsWith("You do not have permission to declare an incident."),
+    ).toBe(true);
+    expect(incidentChoicesSpy).not.toHaveBeenCalled();
     expect(errorLogSpy).not.toHaveBeenCalled();
   });
+
+  test.each([
+    Permission.IncidentMember,
+    Permission.CreateProjectIncident,
+    Permission.ProjectMember,
+  ])(
+    "a member with %s gets the form, its lists read as them",
+    async (permission: Permission): Promise<void> => {
+      assertCanCreateSpy.mockImplementation(realAssertCanCreate);
+      const member: DatabaseCommonInteractionProps = memberWith([permission]);
+      memberPropsSpy.mockResolvedValue(member);
+
+      const teams: FakeTeams = await runCommand({ profile: INCIDENT });
+
+      expectSends(teams, { attempted: 1, delivered: 1 });
+      expect(theDeliveredCard(teams)["type"]).toBe("AdaptiveCard");
+      expect(incidentChoicesSpy).toHaveBeenCalledWith(PROJECT_ID, member);
+    },
+  );
 
   test("offers the severities, which are never shortened, even on the card without lists", async (): Promise<void> => {
     giveChoices(INCIDENT, "big");
@@ -2006,9 +2065,9 @@ describe("create incident", (): void => {
 
 describe("create maintenance", (): void => {
   /*
-   * In a personal chat the sender is the only one who can submit the form,
-   * so the permission its submit checks is checked first. In a channel or
-   * group chat it is not (see "in a channel or group chat" above).
+   * The permission its submit checks is checked first, as the member who
+   * asked for the form, wherever they asked (see "in a channel or group
+   * chat" above for the shared conversations).
    */
   describe("in a personal chat", (): void => {
     test("asks for the permission its submit needs, with the member's own props, before reading any list", async (): Promise<void> => {

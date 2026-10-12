@@ -1,6 +1,8 @@
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import Label from "./Label";
+import Probe from "./Probe";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -23,6 +25,14 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import VMwareCollectionErrorCode from "../../Types/VMware/VMwareCollectionError";
+import VMwareCollectionMethod from "../../Types/VMware/VMwareCollectionMethod";
+import VMwareCollectionStatus from "../../Types/VMware/VMwareCollectionStatus";
+import {
+  VMwareCollectionSummary,
+  VMwarePresentedCertificate,
+} from "../../Types/VMware/VMwareProbeCollection";
+import { DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES } from "../../Utils/VMware/VMwareCollectionSettings";
 import {
   Column,
   Entity,
@@ -33,6 +43,75 @@ import {
   ManyToOne,
 } from "typeorm";
 
+/*
+ * Who reads, creates and edits a vCenter - the lists of the table below,
+ * named for the probe collection columns, which hold to them too.
+ */
+const VCENTER_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+  Permission.ReadVMwareVCenter,
+];
+
+const VCENTER_CREATORS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.CreateVMwareVCenter,
+];
+
+const VCENTER_EDITORS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.EditVMwareVCenter,
+];
+
+/*
+ * The columns ingest and the probe rewrite on their own, every collection.
+ * The audit log records what people change; recording these would bury it.
+ */
+export const VMWARE_VCENTER_BOOKKEEPING_COLUMNS: Array<string> = [
+  "otelCollectorStatus",
+  "agentVersion",
+  "lastSeenAt",
+  "datacenterCount",
+  "clusterCount",
+  "hostCount",
+  "vmCount",
+  "poweredOnVmCount",
+  "datastoreCount",
+  "resourcePoolCount",
+  "datastoreCapacityBytes",
+  "datastoreUsedBytes",
+  "aiAccessLastVerifiedAt",
+  "aiAccessLastError",
+  "collectionStatus",
+  "collectionErrorCode",
+  "collectionError",
+  "presentedCertificate",
+  "collectionSummary",
+  "nextCollectionAt",
+  "lastCollectionAt",
+  "lastSuccessfulCollectionAt",
+  "collectionSettingsVersion",
+];
+
+@EnableAuditLog({
+  create: true,
+  update: true,
+  delete: true,
+  ignoreColumns: VMWARE_VCENTER_BOOKKEEPING_COLUMNS,
+})
 @AccessControlColumn("labels")
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -84,6 +163,11 @@ import {
 @Index(["projectId", "name"], { unique: true })
 @Index(["projectId", "isArchived"])
 /*
+ * The probe's claim: "the vCenters I collect whose next collection is due".
+ * Only probe-collected vCenters name a probe, so this stays small.
+ */
+@Index(["collectionProbeId", "nextCollectionAt"])
+/*
  * Partial UNIQUE slug index, declared natively and NAMED.
  *
  * TypeORM's schema builder matches database indexes to entity metadata by
@@ -103,7 +187,7 @@ import {
   pluralName: "vCenters",
   icon: IconProp.VMware,
   tableDescription:
-    "vSphere endpoints (a vCenter Server, or a standalone ESXi host) that are being monitored in this project. Each vCenter is auto-discovered when the OneUptime VMware Agent sends metrics, or can be manually registered.",
+    "vSphere endpoints (a vCenter Server, or a standalone ESXi host) that are being monitored in this project. A vCenter is collected by one of your OneUptime probes with a read-only account saved on it (no agent to run), or auto-discovered when the OneUptime VMware Agent sends its metrics.",
 })
 @Entity({
   name: "VMwareVCenter",
@@ -1344,4 +1428,409 @@ export default class VMwareVCenter extends BaseModel {
     nullable: true,
   })
   public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * ---------------------------------------------------------------------
+   * Probe collection: no agent - a OneUptime probe logs in to vCenter.
+   * ---------------------------------------------------------------------
+   *
+   * A person saves vCenter's address, a read-only account and the probe that
+   * can reach vCenter. That probe collects the same data the VMware agent's
+   * vcenter receiver sends, every collectionIntervalInMinutes, and ingest
+   * treats it exactly like the agent's (VMwareSnapshotScan, the metric
+   * catalog, the alert templates, the AI tools).
+   *
+   * The settings are edited by whoever may edit the vCenter. The password is
+   * write-only - nobody reads it back and the API never returns it - and is
+   * only ever sent to the address, through the probe, and to the certificate
+   * it was entered for (VMwareCollectionSettings.getPasswordRebindRefusal).
+   * The status columns after the settings are written by the server and the
+   * probe only.
+   */
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Collection Method",
+    description:
+      "How this vCenter's data reaches OneUptime. Probe: one of your OneUptime probes logs in to vCenter with the read-only account saved here and collects it - no agent to install. Agent: the OneUptime VMware Agent you run sends it. Switching to Agent forgets the saved password.",
+    defaultValue: VMwareCollectionMethod.Agent,
+    example: VMwareCollectionMethod.Probe,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: VMwareCollectionMethod.Agent,
+  })
+  public collectionMethod?: VMwareCollectionMethod = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "vCenter Address",
+    description:
+      "The HTTPS address of vCenter Server (or a standalone ESXi host) the probe connects to, such as https://vcsa.example.com. Stored as https://host[:port]; a path such as /ui or /sdk is dropped. Changing it asks for the password again.",
+    example: "https://vcsa.example.com",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public vcenterUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "vCenter User Name",
+    description:
+      "The vSphere user the probe logs in as, with its domain - such as oneuptime@vsphere.local. Give it the built-in Read-Only role on the top-level vCenter object, propagated to children.",
+    example: "oneuptime@vsphere.local",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public vcenterUsername?: string = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: [],
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    encrypted: true,
+    title: "vCenter Password",
+    description:
+      "The password of the vCenter user. Write-only: encrypted at rest, never returned by the API, and sent only to the probe that collects this vCenter. Leave it out of an update to keep the saved one; changing the address, the probe or the trusted certificate needs it again.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public vcenterPassword?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Password Saved",
+    description:
+      "Whether a vCenter password is saved. Set by the server from the password itself.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isVCenterPasswordSet?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Credentials Changed At",
+    description:
+      "When the vCenter user name or password was last changed. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public vcenterCredentialsUpdatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "collectionProbeId",
+    type: TableColumnType.Entity,
+    modelType: Probe,
+    title: "Collection Probe",
+    description:
+      "The OneUptime probe that collects this vCenter: one of this project's own probes, in a network that can reach vCenter on TCP 443 (on a self-hosted install, the instance's own probes may be picked too).",
+  })
+  @ManyToOne(
+    () => {
+      return Probe;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "collectionProbeId" })
+  public collectionProbe?: Probe = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Collection Probe ID",
+    description:
+      "ID of the OneUptime probe that collects this vCenter. Changing it asks for the password again.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public collectionProbeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Trusted Certificate Fingerprint",
+    description:
+      "The SHA-256 fingerprint of the one certificate the probe accepts from this vCenter, for a vCenter whose certificate is not from a public authority (vCenter's own VMCA certificate, by default). Empty: the certificate must be signed by an authority the probe's machine trusts. Verification is never skipped. Trusting a different certificate asks for the password again.",
+    example:
+      "3A:7F:12:9C:4B:D0:55:E1:08:6A:B2:C3:91:F4:27:8E:6D:0B:A5:C8:13:4E:F9:72:B6:5D:0A:E3:29:C1:7B:44",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public trustedCertificateFingerprint?: string = undefined;
+
+  @ColumnAccessControl({
+    create: VCENTER_CREATORS,
+    read: VCENTER_READERS,
+    update: VCENTER_EDITORS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Collection Interval (Minutes)",
+    description:
+      "How often the probe collects this vCenter, in whole minutes from 1 to 60. Two minutes is the VMware agent's own default; collect large vCenters less often to go easier on vCenter.",
+    defaultValue: DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+    example: DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
+  })
+  public collectionIntervalInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Collection Status",
+    description:
+      "Where probe collection stands: Pending (the probe has not tried the current settings yet), Succeeded or Failed. Written by the server and the probe.",
+    example: VMwareCollectionStatus.Succeeded,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectionStatus?: VMwareCollectionStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Collection Error Code",
+    description:
+      "Why the last collection failed, as a code the dashboard turns into a next step (InvalidLogin, UntrustedCertificate, ConnectionTimedOut, ...). Written by the probe.",
+    example: VMwareCollectionErrorCode.InvalidLogin,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public collectionErrorCode?: VMwareCollectionErrorCode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Collection Error",
+    description:
+      "What went wrong in the last collection, in words. Written by the probe.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public collectionError?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Presented Certificate",
+    description:
+      "The certificate vCenter presented when the last collection did not trust it: its SHA-256 fingerprint, subject, issuer and validity, so a person can check it and trust exactly that certificate. Written by the probe.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public presentedCertificate?: VMwarePresentedCertificate = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Collection Summary",
+    description:
+      "What the last successful collection found: vCenter's product and version, and how many datacenters, clusters, hosts, virtual machines, datastores and resource pools it reported. Written by the probe.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public collectionSummary?: VMwareCollectionSummary = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Next Collection At",
+    description:
+      "When the probe collects this vCenter next. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextCollectionAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Collection At",
+    description:
+      "When the probe last tried to collect this vCenter, whether it worked or not. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastCollectionAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Last Successful Collection At",
+    description:
+      "When the probe last collected this vCenter successfully. Written by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastSuccessfulCollectionAt?: Date = undefined;
+
+  /*
+   * Counts every change to the connection settings. A probe is handed the
+   * version it collects with and reports it back, so a collection that
+   * started before a person fixed the password cannot report the old
+   * failure over the new settings.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: VCENTER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Collection Settings Version",
+    description:
+      "Counts changes to the probe collection settings, so a report from a collection that started before a change is not shown as the current status. Written by the server.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public collectionSettingsVersion?: number = undefined;
 }

@@ -9,7 +9,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import ProbeService from "./ProbeService";
 import Probe from "../../Models/DatabaseModels/Probe";
@@ -524,12 +523,9 @@ export class Service extends ProjectReferencesService<Model> {
      * credentials" for every project on the instance. Same shape as
      * MonitorService.onBeforeUpdate.
      */
-    const scans: Array<Model> = await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
+    const scans: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         cidr: true,
@@ -545,13 +541,7 @@ export class Service extends ProjectReferencesService<Model> {
         snmpV3PrivProtocol: true,
         snmpV3PrivKey: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     const plans: Record<string, ScanUpdatePlan> = {};
 

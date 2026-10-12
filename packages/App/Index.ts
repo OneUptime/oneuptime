@@ -34,6 +34,8 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
+import StartupGate from "Common/Server/Utils/StartupGate";
+import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
 import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
@@ -60,6 +62,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     const readyCheck: PromiseVoidFunction = async (): Promise<void> => {
+      /*
+       * Not ready until every route is mounted (StartupGate), so an
+       * orchestrator does not route traffic here that would only get
+       * "starting" back.
+       */
+      StartupGate.assertOpen();
+
       // Ready only while Postgres, Valkey and ClickHouse are all reachable.
       return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
@@ -143,6 +152,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Initialize the app with service name and status checks
     await App.init({
       appName: APP_NAME,
+      /*
+       * The routes below take a while to mount. Until they all are, they
+       * answer 503 with Retry-After - which collectors and probes retry -
+       * instead of a 404 that a collector drops its data on (issue #2825).
+       */
+      useStartupGate: true,
       statusOptions: {
         // Liveness must not depend on a datastore: see StatusAPIOptions.
         liveCheck: async () => {},
@@ -214,6 +229,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Generate OpenAPI spec (this automatically saves it to cache)
     OpenAPIUtil.generateOpenAPISpec();
+
+    // Every route is mounted: serve requests, and say so to readiness.
+    StartupGate.open();
+
+    /*
+     * Record, from now on, that OneUptime is receiving: the time between the
+     * last such record and this one is time it was not, and no host or
+     * monitor is marked down for it (issue #2825).
+     */
+    InstanceReceivingHeartbeat.start();
   } catch (err) {
     logger.error("App Init Failed:", { service: "api" });
     logger.error(err, { service: "api" });

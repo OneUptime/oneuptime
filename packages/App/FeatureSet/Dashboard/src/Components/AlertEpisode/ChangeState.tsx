@@ -456,8 +456,10 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             id: state.id?.toString() || "",
             name: state.name || "",
             color: state.color || Black,
+            order: state.order,
           };
         })}
+        stateList={StateListType.AlertState}
         identifier={
           episode?.episodeNumberWithPrefix ||
           (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)

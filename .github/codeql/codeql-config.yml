@@ -1,0 +1,24 @@
+# The configuration CodeQL's advanced setup (.github/workflows/codeql.yml)
+# analyses with. Default setup reads no configuration file, so this changes
+# nothing until the advanced setup is switched on - the workflow's header says
+# how.
+#
+# It sets the one thing default setup cannot: directories code scanning
+# leaves out. Only third-party files checked in as their publisher built them
+# belong here, never OneUptime's own code: an alert in a vendored build is
+# upstream's, fixed by upgrading the file rather than by editing it. Each
+# directory listed has a README that says it holds vendored third-party files
+# and names every file in it with its source - Tests/Ops/CodeQlWorkflow.test.js
+# fails on one that does not. The product code guard
+# (packages/Common/Tests/Helpers/CodeScanning.ts) reads this list too, so it
+# skips exactly what code scanning skips.
+#
+# Nothing else belongs here either: queries, packs, query filters or threat
+# models would change what default setup analysed, and its alerts would no
+# longer carry over to this setup.
+
+paths-ignore:
+  # The Tailwind Play CDN build, highlight.js and the Inter font that
+  # server-rendered pages load, vendored so that a self-hosted install
+  # without internet access still has them.
+  - packages/Common/Server/Static/Vendor

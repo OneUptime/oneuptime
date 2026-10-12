@@ -358,6 +358,49 @@ describe("MonitorUtil secret loading", () => {
       expect(destination["value"]).toBe("https://internal.example.com/health");
     });
 
+    test("an NTP server kept in a secret is filled in before the step goes to a probe", async () => {
+      const serialized: JSONObject = {
+        _type: "Hostname",
+        value: "{{monitorSecrets.ntpHost}}",
+      };
+      const step: MonitorStep = new MonitorStep();
+      step.setMonitorDestination({
+        ...serialized,
+        toJSON: (): JSONObject => {
+          return serialized;
+        },
+      } as unknown as URL);
+
+      monitorSecretService.getSecretsForMonitors.mockResolvedValue(
+        secretsFor([
+          [
+            MONITOR_A_ID,
+            [
+              makeSecret({
+                name: "ntpHost",
+                secretValue: "time.internal.example.com",
+              }),
+            ],
+          ],
+        ]),
+      );
+
+      const populated: MonitorSteps =
+        await MonitorUtil.populateSecretsInMonitorSteps({
+          monitorSteps: makeSteps([step]),
+          monitorType: MonitorType.NTP,
+          monitorId: MONITOR_A_ID,
+        });
+
+      expect(monitorSecretService.getSecretsForMonitors).toHaveBeenCalledTimes(
+        1,
+      );
+
+      const destination: JSONObject = firstStep(populated).data!
+        .monitorDestination as unknown as JSONObject;
+      expect(destination["value"]).toBe("time.internal.example.com");
+    });
+
     test("a step with a secret in its headers still gets the one in its body (it used to go out unfilled)", async () => {
       const populated: MonitorSteps =
         await MonitorUtil.populateSecretsInMonitorSteps({

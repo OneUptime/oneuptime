@@ -47,10 +47,12 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Entrante              | Convierte notificaciones de Alertmanager en incidentes.                                       |
 | [Grafana](/docs/integrations/grafana)                                 | Entrante              | Convierte alertas de Grafana en incidentes.                                                   |
 | [Datadog](/docs/integrations/datadog)                                 | Entrante              | Convierte alertas de monitores de Datadog en incidentes.                                      |
+| [Huntress](/docs/integrations/huntress)                               | Entrante             | Avisa a la guardia por los informes de incidente de Huntress y resuelve el incidente cuando se cierra el informe. |
 | [GitHub](/docs/integrations/github)                                   | Saliente              | Abre un issue de GitHub para un incidente.                                                    |
 | [GitLab](/docs/integrations/gitlab)                                   | Saliente              | Abre un issue de GitLab para un incidente.                                                    |
 | [Discord](/docs/integrations/discord)                                 | Saliente              | Publica actualizaciones de incidentes en un canal de Discord.                                 |
 | [Telegram](/docs/integrations/telegram)                               | Saliente              | Envía actualizaciones de incidentes a un chat de Telegram.                                    |
+| [IRC](/docs/integrations/irc)                                         | Saliente              | Publica actualizaciones de incidentes en un canal de IRC.                                     |
 | [Slack](/docs/workspace-connections/slack)                            | Ambas                 | Conexión de espacio de trabajo nativa — canales, alertas y guardia.                           |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Ambas                 | Conexión de espacio de trabajo nativa.                                                        |
 

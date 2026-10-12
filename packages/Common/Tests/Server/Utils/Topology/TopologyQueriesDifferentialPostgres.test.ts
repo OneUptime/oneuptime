@@ -13,7 +13,7 @@ import {
 } from "../../../../Types/Topology/TopologyApi";
 import {
   FLAT_TYPES,
-  SeededRandom,
+  EstateRandom,
   generateEstate,
 } from "./TopologyEstateGenerator";
 import {
@@ -106,7 +106,7 @@ function withMicroseconds(date: Date, microseconds: number): string {
  * calls, runs on and is called by many things (known and unknown), so the
  * section budgets, "Show more" offsets and label order are all exercised.
  */
-function addHub(estate: ReferenceEstate, random: SeededRandom): string | null {
+function addHub(estate: ReferenceEstate, random: EstateRandom): string | null {
   const services: Array<ReferenceItem> = estate.items.filter(
     (item: ReferenceItem): boolean => {
       return (
@@ -296,7 +296,7 @@ describePostgres.each(INDEX_VARIANTS)(
     /* Replaces both tables' rows with the estate's. */
     async function load(
       estate: ReferenceEstate,
-      random: SeededRandom,
+      random: EstateRandom,
     ): Promise<void> {
       for (const table of TABLES) {
         await database.query(`DELETE FROM "${schema}"."${table}"`);
@@ -489,7 +489,7 @@ describePostgres.each(INDEX_VARIANTS)(
     /* A few drawer targets per estate: plain, narrowed, hub, missing. */
     function drawerTargets(
       estate: ReferenceEstate,
-      random: SeededRandom,
+      random: EstateRandom,
       hub: string | null,
     ): Array<{ key: string; type: string | null }> {
       const projectItems: Array<ReferenceItem> = estate.items.filter(
@@ -525,7 +525,7 @@ describePostgres.each(INDEX_VARIANTS)(
       let duplicates: number = 0;
       let collectedDuplicates: number = 0;
       for (let seed: number = 1; seed <= ESTATES_PER_VARIANT; seed++) {
-        const random: SeededRandom = new SeededRandom(7_000 + seed);
+        const random: EstateRandom = new EstateRandom(7_000 + seed);
         const withCollection: boolean = seed % 3 === 1;
         const estate: ReferenceEstate = generateEstate(random, {
           projectId: PROJECT_ID.toString(),
@@ -663,7 +663,7 @@ describePostgres.each(INDEX_VARIANTS)(
           partOf("node-\u{1F600}", "00000000-0000-4000-a000-000000000012"),
         ],
       };
-      await load(estate, new SeededRandom(1));
+      await load(estate, new EstateRandom(1));
       await expectServerMatchesReference("non-BMP tie", estate, [
         { key: "pod", type: null },
       ]);

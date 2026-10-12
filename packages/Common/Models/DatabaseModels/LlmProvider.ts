@@ -9,7 +9,6 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
-import IsPermissionsIf from "../../Types/Database/IsPermissionsIf";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -18,10 +17,51 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, VirtualColumn } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import LlmType from "../../Types/LLM/LlmType";
 import { JSONObject } from "../../Types/JSON";
+
+/*
+ * Who reads a project's LLM providers: the project's members who may see its
+ * settings, and Read LLM. They read all of a provider but what it sends the
+ * provider besides its address and model (SECRET_READERS) and who created
+ * it (its owners').
+ */
+const PROVIDER_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+  Permission.ReadProjectLlm,
+];
+
+/*
+ * Who reads what a provider sends to the provider besides its address and
+ * model - the API key and the Additional Parameters - and who changes where
+ * they are sent, its Base URL. Project owners and admins alone; everyone
+ * else who reads the provider sees whether parameters are saved
+ * (hasAdditionalParams), never what they are.
+ */
+const SECRET_READERS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+];
+
+/*
+ * Whether a provider has Additional Parameters, as a Postgres expression over
+ * the row aliased `tableAlias` (already quoted): anything saved but nothing,
+ * JSON null or an empty object, list or text. The hasAdditionalParams
+ * virtual column reads it; the one definition of the rule.
+ */
+export const getHasAdditionalParamsSql: (tableAlias: string) => string = (
+  tableAlias: string,
+): string => {
+  return `COALESCE(${tableAlias}."additionalParams" NOT IN ('null'::jsonb, '{}'::jsonb, '[]'::jsonb, '""'::jsonb), false)`;
+};
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -30,7 +70,6 @@ import { JSONObject } from "../../Types/JSON";
   update: PlanType.Growth,
   delete: PlanType.Free,
 })
-@IsPermissionsIf(Permission.Public, "projectId", null)
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/llm-provider"))
 @SlugifyColumn("name", "slug")
@@ -54,17 +93,17 @@ import { JSONObject } from "../../Types/JSON";
     Permission.SettingsMember,
     Permission.CreateProjectLlm,
   ],
-  read: [
-    Permission.Public,
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
-    Permission.SettingsViewer,
-    Permission.ReadProjectLlm,
-  ],
+  /*
+   * The project's members who may see its settings: a provider's base URL
+   * and model are its own configuration, never anyone's at all. What it
+   * sends the provider besides - the API key and the Additional Parameters,
+   * which can carry a token or a header - is read by the project's owners
+   * and admins alone (SECRET_READERS). The shared global providers are
+   * listed to signed-in members by LlmProviderAPI's global-llms route (their
+   * name, description and price only), and the chat's provider picker by
+   * AIChatAPI's providers route.
+   */
+  read: PROVIDER_READERS,
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -92,7 +131,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -125,7 +164,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -149,7 +188,7 @@ export default class LlmProvider extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [],
   })
   @TableColumn({
@@ -176,7 +215,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -209,7 +248,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: SECRET_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -224,7 +263,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.LongText,
     title: "API Key",
     description:
-      "The API key for the LLM provider. Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral.",
+      "The API key for the LLM provider. Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of the resource's keys), Anthropic, Groq, and Mistral.",
     encrypted: true,
   })
   @Column({
@@ -242,7 +281,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -257,7 +296,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Model Name",
     description:
-      "The name of the model to use (e.g., gpt-4, claude-3-opus, llama2).",
+      "The model to use (e.g., gpt-5.1, claude-sonnet-5-5, llama3.1). For Azure OpenAI / Microsoft Foundry, the deployment's name.",
   })
   @Column({
     nullable: true,
@@ -275,22 +314,20 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditProjectLlm,
-    ],
+    read: PROVIDER_READERS,
+    /*
+     * The API key and the Additional Parameters go to this address with
+     * every request, so it is changed by who may read them (SECRET_READERS).
+     * A provider's creator gives it with the provider's own key.
+     */
+    update: SECRET_READERS,
   })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortURL,
     title: "Base URL",
     description:
-      "The base URL for the LLM API. Required for Azure OpenAI and Ollama, optional for others.",
+      "The base URL for the LLM API. Required for Azure OpenAI / Microsoft Foundry (the resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1), Ollama and OpenAI-compatible servers, optional for others. The API key and the Additional Parameters are sent to it, so only project owners and admins can change it. Everyone who may read the project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
   })
   @Column({
     nullable: true,
@@ -308,7 +345,12 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    /*
+     * Sent to the provider with every request, so it can carry a token or a
+     * header the provider needs: read like the API key. Whoever may change
+     * the provider may replace it without reading it.
+     */
+    read: SECRET_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -323,13 +365,41 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.JSON,
     title: "Additional Parameters",
     description:
-      "Optional JSON object with extra parameters sent directly to the provider API. These are merged last and override any defaults.",
+      "Optional JSON object with extra parameters sent directly to the provider API. These are merged last and override any defaults. Read only by project owners and admins, like the API key.",
   })
   @Column({
     nullable: true,
     type: ColumnType.JSON,
   })
   public additionalParams?: JSONObject = undefined;
+
+  /*
+   * Whether Additional Parameters are saved, for the members who read the
+   * provider but not its parameters: anything but nothing, JSON null or an
+   * empty object, list or text. Postgres works it out from the parameters on
+   * every read that selects it. It is never stored, so nothing can write it
+   * and it cannot disagree with them.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROVIDER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    computed: true,
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Has Additional Parameters",
+    description:
+      "Whether Additional Parameters are saved. Worked out from the parameters on every read.",
+  })
+  @VirtualColumn({
+    type: ColumnType.Boolean,
+    query: (alias: string): string => {
+      return getHasAdditionalParamsSql(alias);
+    },
+  })
+  public hasAdditionalParams?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -340,7 +410,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [],
   })
   @TableColumn({
@@ -375,7 +445,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [],
   })
   @TableColumn({
@@ -516,7 +586,7 @@ export default class LlmProvider extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateProjectLlm,
     ],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -545,7 +615,7 @@ export default class LlmProvider extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
-    read: [Permission.Public],
+    read: PROVIDER_READERS,
     update: [],
   })
   @TableColumn({

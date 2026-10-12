@@ -151,7 +151,7 @@ describe("the English sharing guide", () => {
     const allowlist: string = sectionOf(page, "IP allowlist");
 
     expect(allowlist).toContain(
-      "Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column)",
+      "Under **More settings** on the **Sharing** page, the **IP Allowlist** section (the `ipWhitelist` column)",
     );
     expect(allowlist).toContain(
       "It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud; emptying it works on every plan.",

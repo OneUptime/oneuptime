@@ -91,10 +91,11 @@ function modelOf(descriptor: CloudResourceTypeDescriptor): string {
   return CLOUD_SERVICE_MODEL_LABELS[descriptor.serviceModel];
 }
 
-function telemetryGroup(): NavGroup {
+// The Cloud pages have a sidebar group of their own, in Observability.
+function cloudGroup(): NavGroup {
   const group: NavGroup | undefined = DocsNav.find(
     (item: NavGroup): boolean => {
-      return item.title === "Telemetry";
+      return item.title === "Cloud";
     },
   );
 
@@ -178,12 +179,18 @@ describe("Cloud Resources docs", (): void => {
           return line.startsWith("## ");
         });
 
+      /*
+       * The setup sections are "Connect <provider>" so their anchors never
+       * collide with the identity tables' "### Azure", "### AWS" and
+       * "### Google Cloud" (the dashboard's guide links #aws for the
+       * dimensions that identify a resource).
+       */
       expect(headings).toEqual([
-        "## Overview",
-        "## Before you start",
-        "## Azure",
-        "## AWS",
-        "## Google Cloud",
+        "## How it works",
+        "## Before you begin",
+        "## Connect Azure",
+        "## Connect AWS",
+        "## Connect Google Cloud",
         "## Keep the pipeline free of resource detection",
         "## How a resource is identified",
         "## Status, archiving and limits",
@@ -191,13 +198,14 @@ describe("Cloud Resources docs", (): void => {
         "## Inventory and rules",
         "## Troubleshooting",
         "## Limitations",
+        "## Next steps",
       ]);
     });
   });
 
   describe("navigation", (): void => {
-    it("follows the Cloud Environments pages in the Telemetry group", (): void => {
-      const links: Array<NavLink> = telemetryGroup().links;
+    it("follows the Cloud Environments pages in the Cloud group", (): void => {
+      const links: Array<NavLink> = cloudGroup().links;
       const urls: Array<string> = links.map((link: NavLink): string => {
         return link.url;
       });

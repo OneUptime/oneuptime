@@ -954,6 +954,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Connection $connection_upgrade;
 
         proxy_pass ${BACKEND_APP_TARGET};
+
+        # A probe's incoming request ingress forwards the heartbeats it takes
+        # here (Probe/API/IncomingRequestIngress.ts), so this path takes the
+        # same bodies as /heartbeat. nginx.conf sets no global
+        # client_max_body_size, so without this line it would be 1M.
+        client_max_body_size 50M;
     }
 
 

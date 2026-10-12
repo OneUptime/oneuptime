@@ -1,4 +1,6 @@
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import { describeNetworkDevice } from "Common/Server/Utils/Telemetry/InventoryEntityRegistry";
 import Dictionary from "Common/Types/Dictionary";
 import fs from "fs";
@@ -62,11 +64,22 @@ function generatedHostDocs(): string {
   return readSource("Pages", "Host", "Utils", "DocumentationMarkdown.ts");
 }
 
-/** A switch as the poller leaves it after a full ENTITY-MIB walk. */
+/*
+ * A switch as the poller leaves it after a full ENTITY-MIB walk, assigned a
+ * role and a site - every fact the mirror can write (issue #4569).
+ */
 function polledSwitch(): NetworkDevice {
+  const site: NetworkSite = new NetworkSite();
+  site.name = "London DC1";
+  const role: NetworkDeviceRole = new NetworkDeviceRole();
+  role.key = "switch";
+  role.name = "Switch";
+
   const device: NetworkDevice = new NetworkDevice();
+  device.name = "core-sw-01";
   device.hostname = "10.20.0.1";
   device.dnsName = "core-sw-01.corp.example.com";
+  device.sysName = "core-sw-01";
   device.macAddress = "00:1b:54:c2:7a:01";
   device.vendor = "Cisco";
   device.deviceModel = "WS-C3850-48P";
@@ -74,6 +87,9 @@ function polledSwitch(): NetworkDevice {
   device.firmwareVersion = "16.12.4";
   device.softwareVersion = "16.12.04";
   device.sysDescr = "Cisco IOS Software, Version 16.12.4";
+  device.sysLocation = "Hall 2, Rack 14";
+  device.site = site;
+  device.networkDeviceRole = role;
   return device;
 }
 

@@ -42,6 +42,7 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import OneUptimeDate from "../../../Types/Date";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
@@ -919,6 +920,24 @@ export default class MonitorResourceUtil {
           };
           logger.debug(
             `${dataToProcess.monitorId.toString()} - Security event query found.`,
+          );
+        }
+
+        /*
+         * An AI / LLM check links to the AI calls it read, in the trace
+         * explorer: they are spans.
+         */
+        if (
+          dataToProcess &&
+          (dataToProcess as LlmMonitorResponse).llmSpanQuery
+        ) {
+          telemetryQuery = {
+            telemetryQuery: (dataToProcess as LlmMonitorResponse).llmSpanQuery,
+            telemetryType: TelemetryType.Trace,
+            metricViewData: null,
+          };
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - AI call query found.`,
           );
         }
 

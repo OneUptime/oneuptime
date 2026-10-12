@@ -123,6 +123,12 @@ spec:
             # This pod IS the worker role — it must consume the queues.
             - name: DISABLE_QUEUE_WORKERS
               value: "false"
+            # No ingress routes to this pod, so it never records that
+            # OneUptime is receiving data: if every app pod is down while the
+            # workers keep running, that time is still a receiving gap, and
+            # no host or monitor is marked down for it.
+            - name: RECEIVES_INGRESS_TRAFFIC
+              value: "false"
             - name: SMS_HIGH_RISK_COST_IN_CENTS
               value: {{ $.Values.billing.smsHighRiskValueInCents | quote }}
             - name: CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE

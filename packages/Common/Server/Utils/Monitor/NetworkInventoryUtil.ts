@@ -8,6 +8,7 @@ import NetworkInterfaceService, {
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import { SnmpTableSnapshot } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import { NetworkDeviceTransceiver } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
@@ -61,6 +62,12 @@ export default class NetworkInventoryUtil {
      * leaves the stored snapshot alone; an empty array clears it.
      */
     snmpTableSnapshot?: Array<SnmpTableSnapshot> | undefined;
+    /*
+     * The transceiver snapshot to store, already merged with the previous
+     * one (NetworkDeviceWalkUtil.applyTransceivers). Undefined leaves the
+     * stored snapshot alone.
+     */
+    transceiverSnapshot?: Array<NetworkDeviceTransceiver> | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -241,13 +248,16 @@ export default class NetworkInventoryUtil {
 
       /*
        * Vendor: ENTITY-MIB manufacturer when the device implements it,
-       * otherwise fingerprinted from the sysObjectID enterprise arc.
+       * otherwise fingerprinted from the sysObjectID enterprise arc - and
+       * the sysDescr, for devices that answer with someone else's arc (a
+       * UniFi access point on older firmware reports Net-SNMP's).
        */
       const vendor: string | undefined =
         entityInfo?.manufacturer ||
-        SnmpVendorTemplateUtil.getVendorNameBySysObjectId(
-          systemInfo?.sysObjectId,
-        );
+        SnmpVendorTemplateUtil.getVendorName({
+          sysObjectId: systemInfo?.sysObjectId,
+          sysDescr: systemInfo?.sysDescr,
+        });
       if (vendor) {
         deviceUpdate["vendor"] = vendor.substring(0, 100);
       }
@@ -362,6 +372,14 @@ export default class NetworkInventoryUtil {
       }
 
       /*
+       * Inventory too - which optic sits in which port - so a monitor-backed
+       * device stores it like its tables.
+       */
+      if (data.transceiverSnapshot !== undefined) {
+        deviceUpdate["transceiverSnapshot"] = data.transceiverSnapshot;
+      }
+
+      /*
        * The cached interface counts are health columns too (the device list
        * and the site overview read interfacesDown), so a monitor-backed
        * device keeps them out for the same reason as the poll columns.
@@ -447,6 +465,16 @@ export default class NetworkInventoryUtil {
               return !unmonitoredIndexes.has(walked.interfaceIndex);
             },
           );
+
+          // A muted port's optic is still stored, just never alerted on.
+          if (data.snmpResponse.transceivers) {
+            data.snmpResponse.transceivers =
+              data.snmpResponse.transceivers.filter(
+                (transceiver: NetworkDeviceTransceiver) => {
+                  return !unmonitoredIndexes.has(transceiver.interfaceIndex);
+                },
+              );
+          }
         }
       }
 

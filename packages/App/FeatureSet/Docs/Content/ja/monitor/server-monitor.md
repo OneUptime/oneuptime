@@ -1,210 +1,241 @@
-# サーバー/VMモニター
+# サーバー / VM モニター
 
-サーバー・VMモニタリングを使用すると、サーバーにシステムメトリクスをOneUptimeに報告する軽量エージェントをインストールすることで、サーバー、仮想マシン、その他のインフラストラクチャの正常性とパフォーマンスを監視できます。
+Server / VM モニターは、OneUptime のインフラストラクチャエージェント（`oneuptime-infrastructure-agent`）を通じて 1 台のマシンを監視します。このエージェントは小さなサービスで、30 秒ごとに CPU、メモリ、ディスク、負荷、ネットワーク、実行中のプロセスを OneUptime に報告します。このページでは、エージェントを Server / VM モニターに接続する方法、エージェントが報告する内容、そしてサーバーをオンラインまたはオフラインと判定する条件の書き方を説明します。
 
-## 概要
+> [!IMPORTANT]
+> **モニターを作成** では **Server / VM** を選べなくなりました。既存の Server / VM モニターは引き続き動作し、このページの内容はすべてそれらに当てはまります。新しいサーバーを監視するには、代わりに [ホストモニター](/docs/monitor/host-monitor) を作成してください。[ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector) が送信するホストのメトリクスでアラートを出します。
 
-サーバーモニターは、サーバーにインストールされたインフラストラクチャエージェントを使用してシステムメトリクスを収集・報告します。これにより、以下のことが可能になります。
+:::cards
+- [エージェントを接続する](#エージェントを接続する): インストールし、モニターのシークレットキーを渡して起動します。
+- [エージェントが報告する内容](#エージェントが報告する内容): CPU、メモリ、ディスク、負荷、ネットワーク、プロセス。
+- [監視条件](#監視条件): サーバーをオンラインまたはオフラインと見なすタイミングを決めます。
+- [トラブルシューティング](#トラブルシューティング): エージェントが報告しない、またはモニターがオフラインにならない場合。
+:::
 
-- サーバーの稼働時間と可用性の監視
-- CPU、メモリ、ディスク使用量の追跡
-- 実行中のプロセスの監視
-- リソース使用率のしきい値に基づくアラートの設定
-- サービスへの影響が出る前のインフラストラクチャ問題の検出
+## 仕組み
 
-## サーバーモニターの作成
+エージェントはシステムサービスとして動作します。30 秒ごとにレポートを収集し、モニターのシークレットキーで署名して OneUptime の URL に送信します。OneUptime は数値をモニターのメトリクスとして保存し、レポートをモニターの条件と照合します。
 
-1. OneUptime ダッシュボードで **モニター** を開きます
-2. **モニターを作成** をクリックします
-3. モニタータイプとして **サーバー/VM** を選択します
-4. このモニター用の **シークレットキー** が生成されます。エージェントの設定に必要です
-5. インストール手順に従ってサーバーにエージェントをセットアップします
+無応答は別途チェックされます。OneUptime は毎分、3 分以上報告がないすべての Server / VM モニターの **Is Online** 条件を再評価し、条件が許容する時間（既定では 3 分）より長く無応答のサーバーをオフラインと見なします。**Is Online** 条件のないモニターは、エージェントが無応答になっただけではオフラインになりません。この無応答に数えられるのは OneUptime がデータを受信していた時間だけです。OneUptime 自身が再起動、アップグレード、遅延の解消をしていた時間は数えられません。詳しくは [OneUptime がデータを受信していないとき](/docs/monitor/when-oneuptime-is-not-receiving) を参照してください。
 
-## インフラストラクチャエージェントのインストール
+```mermaid title="Server / VM モニターがデータを得る仕組み"
+flowchart TB
+    agent["インフラストラクチャ<br/>エージェント"] -->|"30 秒ごとにレポート"| oneuptime["OneUptime"]
+    oneuptime --> criteria{"条件を満たす？"}
+    sweep["毎分のチェック"] -->|"3 分間レポートなし"| criteria
+    criteria -->|"はい"| outcome["ステータス変更、<br/>アラート、インシデント"]
+```
 
-OneUptimeインフラストラクチャエージェントは、システムメトリクスを収集して30秒ごとにOneUptimeに送信する軽量なGoベースのデーモンです。Linux、macOS、Windowsをサポートしています。
+## 始める前に
 
-### Linux / macOS
+- プロジェクト内の Server / VM モニター。
+- モニターを編集する権限。シークレットキーと、それを含むセットアップコマンドは、モニターを編集できるユーザーにだけ表示されます。
+- サーバー上の root 権限（Linux、macOS）または管理者権限（Windows）。エージェントは自身をシステムサービスとしてインストールします。
+- サーバーから OneUptime の URL への送信方向の HTTPS（直接、または HTTP プロキシ経由）。
+
+## エージェントを接続する
+
+以下のコマンドでは `https://oneuptime.com` と `YOUR_SECRET_KEY` を使っています。モニター自身のセットアップコマンドには OneUptime の URL とモニターのシークレットキーがすでに入っているので、できるだけモニターからコピーしてください。
+
+:::steps
+### モニターのセットアップコマンドを開く
+
+**モニター** に移動し、Server / VM モニターを開いて **ドキュメント** を選びます。**サーバーモニターをセットアップ（Linux/Mac）** と **サーバーモニターをセットアップ（Windows）** のカードに、このモニター用のコマンドがあります。エージェントが最初に報告するまでは、モニターの **概要** にも表示されます。
+
+### エージェントをインストールする
+
+:::tabs
+@tab Linux
+```bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
+```
+@tab macOS
+```bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
+```
+@tab Windows
+1. [GitHub の最新リリース](https://github.com/OneUptime/oneuptime/releases/latest) からエージェントをダウンロードします。x64 は `oneuptime-infrastructure-agent_windows_amd64.zip`、ARM64 は `oneuptime-infrastructure-agent_windows_arm64.zip` です。
+2. zip を展開します。中に `oneuptime-infrastructure-agent.exe` があります。
+3. 展開したフォルダーで **コマンド プロンプト** を管理者として開きます。
+:::
+
+インストールスクリプトは、お使いのオペレーティングシステムとプロセッサ（x86-64 または ARM64）向けの最新リリースをダウンロードし、`oneuptime-infrastructure-agent` バイナリを `$HOME/bin` に配置します。セルフホストの場合、スクリプトはお使いの OneUptime の URL から配信されます。
+
+### モニターに接続する
+
+:::tabs
+@tab Linux
+```bash
+sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+@tab macOS
+```bash
+sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+@tab Windows
+```shell
+oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
+:::
+
+`configure` はシークレットキーと URL をエージェントの設定ファイルに保存し、エージェントをシステムサービスとしてインストールします。両方のフラグが必須です。セルフホストの場合は `https://oneuptime.com` をご自身の URL に置き換えてください。
+
+サーバーがプロキシ経由でインターネットに接続する場合は、`--proxy-url` を追加します。
 
 ```bash
-# エージェントのインストール
-curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
+sudo oneuptime-infrastructure-agent configure --proxy-url=http://proxy.example.com:8080 --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+```
 
-# エージェントの設定
-sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+### エージェントを起動する
 
-# エージェントの起動
+:::tabs
+@tab Linux
+```bash
 sudo oneuptime-infrastructure-agent start
 ```
-
-`YOUR_SECRET_KEY` はモニターの設定に表示されているシークレットキーに、セルフホストの場合は `https://oneuptime.com` をOneUptimeインスタンスのURLに置き換えてください。
-
-### Windows
-
-1. [GitHub Releases](https://github.com/OneUptime/oneuptime/releases/latest) から最新のエージェントをダウンロードします
-   - x64システムの場合：`oneuptime-infrastructure-agent_windows_amd64.zip`
-   - ARM64システムの場合：`oneuptime-infrastructure-agent_windows_arm64.zip`
-2. zipファイルを展開します
-3. 管理者としてコマンドプロンプトを開き、以下を実行します：
-
+@tab macOS
 ```bash
-# エージェントの設定
-oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
-
-# エージェントの起動
+sudo oneuptime-infrastructure-agent start
+```
+@tab Windows
+```shell
 oneuptime-infrastructure-agent start
 ```
+:::
 
-### プロキシサポート
+起動するとエージェントは OneUptime でシークレットキーを確認し、すぐに最初のレポートを送信します。
 
-サーバーがプロキシ経由でインターネットに接続している場合、エージェントがプロキシを使用するように設定できます。
+### 報告されていることを確認する
 
-```bash
-sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com --proxy-url=http://proxy.example.com:8080
-```
+`sudo oneuptime-infrastructure-agent status` を実行します（Windows では `sudo` は不要）。`Service is running` と表示されます。OneUptime では、最初のレポートが届くとモニターの **概要** にセットアップコマンドが表示されなくなり、**メトリクス** タブでサーバーのグラフが表示され始めます。
+:::
 
-## エージェントコマンド
+## エージェントリファレンス
 
-インフラストラクチャエージェントは以下のコマンドをサポートしています。
+### コマンド
 
-| コマンド    | 説明                                                                  |
-| ----------- | --------------------------------------------------------------------- |
-| `configure` | シークレットキーとOneUptime URLでエージェントを設定する               |
-| `start`     | エージェントサービスを起動する                                        |
-| `stop`      | エージェントサービスを停止する                                        |
-| `restart`   | エージェントサービスを再起動する                                      |
-| `status`    | 現在のサービスステータスを表示する                                    |
-| `logs`      | エージェントログを表示する（行数には `-n`、フォローには `-f` を使用） |
-| `uninstall` | エージェントサービスをアンインストールする                            |
+| コマンド | 動作 |
+| --- | --- |
+| `configure --secret-key=<key> --oneuptime-url=<url>` | 設定を保存し、エージェントをシステムサービスとしてインストールします。プロキシ経由でレポートを送るには `--proxy-url=<url>` を追加します。 |
+| `start` | サービスを起動します。`configure` を実行するまでは起動しません。 |
+| `stop` | サービスを停止します。 |
+| `restart` | サービスを再起動します。 |
+| `status` | サービスが実行中か停止中かを表示します。 |
+| `logs` | エージェントのログの最後の 100 行を表示します。`-n <lines>` で表示する行数を変え、`-f` で新しい行を追い続けます。 |
+| `uninstall` | サービスを削除し、エージェントの設定ファイルを削除します。 |
+| `help` | コマンドの一覧を表示します。 |
 
-## 収集されるメトリクス
+Linux と macOS では `sudo` を付けて、Windows では管理者の **コマンド プロンプト** から実行します。設定済みのエージェントのシークレットキー、URL、プロキシを変更するには、`stop` と `uninstall` を実行してから、もう一度 `configure` と `start` を実行します。
 
-エージェントはサーバーから以下のメトリクスを収集します。
+### ファイル
 
-### CPU
+| ファイル | Linux と macOS | Windows |
+| --- | --- | --- |
+| 設定 | `/etc/oneuptime-infrastructure-agent/config.json` | `%PROGRAMDATA%\oneuptime-infrastructure-agent\config.json` |
+| ログ | `/var/log/oneuptime-infrastructure-agent/oneuptime-infrastructure-agent.log` | `%PROGRAMDATA%\oneuptime-infrastructure-agent\oneuptime-infrastructure-agent.log` |
 
-- **CPU使用率（パーセント）** — 全体的なCPU使用率（パーセント）
-- **CPU コア** — CPUコアの数
+エージェントがこれらのディレクトリに書き込めない場合は、代わりに `~/.oneuptime-infrastructure-agent/` を使います。環境変数 `ONEUPTIME_AGENT_CONFIG_PATH` と `ONEUPTIME_AGENT_LOG_PATH` で、それぞれのパスを明示的に指定できます。
 
-### メモリ
+## エージェントが報告する内容
 
-- **メモリ合計** — 利用可能な合計メモリ
-- **使用メモリ** — 現在使用中のメモリ
-- **空きメモリ** — 利用可能な空きメモリ
-- **メモリ使用率（パーセント）** — メモリ使用率（パーセント）
+各レポートには、サーバーのホスト名と次の情報が含まれます。
 
-### ディスク
+| 分類 | 報告される内容 |
+| --- | --- |
+| CPU | 使用率（%）、コア数、コアごとの使用率、user、system、idle、I/O 待ち、steal、nice、IRQ、ソフト IRQ に費やした時間 |
+| メモリ | 合計、使用中、空き、利用可能なメモリ、バッファーとキャッシュ、使用率（%）、スワップの合計、使用中、空き、使用率（%） |
+| ディスク | マウントされた各ディスクについて、マウントパス、デバイス、ファイルシステム、合計・使用中・空き容量、使用率（%）、読み書きしたバイト数と操作数、I/O 時間 |
+| 負荷 | 1 分、5 分、15 分のロードアベレージ |
+| ネットワーク | 各インターフェースについて、送受信したバイト数とパケット数、送受信のエラーとドロップ、加えて確立済みと待ち受け中の接続 |
+| ホスト | オペレーティングシステム、プラットフォームとバージョン、カーネルのバージョンとアーキテクチャ、稼働時間、起動時刻、仮想化、プロセス数 |
+| プロセス | 実行中の各プロセスの名前、PID、コマンド、CPU（%）、メモリ、状態、スレッド、ユーザー、開始時刻 |
 
-マウントされた各ディスク/ボリュームについて：
-
-- **合計ディスク容量** — ディスクの合計容量
-- **使用ディスク容量** — 現在使用中のスペース
-- **空きディスク容量** — 利用可能な空きスペース
-- **ディスク使用率（パーセント）** — ディスク使用率（パーセント）
-- **ディスクパス** — ディスクのマウントパス
-
-### プロセス
-
-- **プロセス名** — 実行中のプロセスの名前
-- **プロセスID（PID）** — プロセス識別子
-- **プロセスコマンド** — プロセスを起動したフルコマンド
+オペレーティングシステムが提供しない値は省略されます。モニターの **メトリクス** タブでは、可用性、CPU、メモリ、ディスク使用量とディスク I/O、ロードアベレージ、スワップ、ネットワークトラフィックとエラー、接続、稼働時間、プロセス数がグラフ表示されます。
 
 ## 監視条件
 
-サーバーがオンライン、パフォーマンス低下、またはオフラインと判定されるタイミングを設定できます。
+条件は、モニターがオンライン、機能低下、オフラインのいずれになるか、またいつアラートやインシデントを作成するかを決めます。条件内の各フィルターには **フィルタータイプ**、**フィルター条件**、そしてほとんどのタイプでは値があります。
 
-### 利用可能なチェックタイプ
+| フィルタータイプ | チェック内容 | フィルター条件 |
+| --- | --- | --- |
+| Is Online | エージェントが最近報告したかどうか（既定では直近 3 分以内） | 真, 偽 |
+| CPU Usage (in %) | CPU 全体の使用率 | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| Memory Usage (in %) | 使用中のメモリ | CPU と同じ |
+| Disk Usage (in %) | **ディスクパス** で指定したディスクの使用率 | CPU と同じ |
+| Swap Usage (in %) | 使用中のスワップ | CPU と同じ |
+| CPU IO Wait (in %) | CPU 時間のうち I/O 待ちの割合 | CPU と同じ |
+| Load Average (1 minute) | 直近 1 分のロードアベレージ | CPU と同じ |
+| Load Average (5 minute) | 直近 5 分のロードアベレージ | CPU と同じ |
+| Load Average (15 minute) | 直近 15 分のロードアベレージ | CPU と同じ |
+| Server Process Name | この名前のプロセスが実行中かどうか（大文字と小文字を区別しない） | Is Executing, Is Not Executing |
+| Server Process Command | このコマンドラインと完全に一致するプロセスが実行中かどうか（大文字と小文字を区別しない） | Is Executing, Is Not Executing |
+| Server Process PID | この PID のプロセスが実行中かどうか | Is Executing, Is Not Executing |
 
-| チェックタイプ               | 説明                                                         |
-| ---------------------------- | ------------------------------------------------------------ |
-| オンラインか                 | サーバーエージェントが報告しているか（ハートビートに基づく） |
-| CPU使用率（パーセント）      | 現在のCPU使用率                                              |
-| メモリ使用率（パーセント）   | 現在のメモリ使用率                                           |
-| ディスク使用率（パーセント） | 特定のディスクパスの現在のディスク使用率                     |
-| スワップ使用率（パーセント） | 現在のスワップ使用率                                         |
-| CPU I/O待ち率（パーセント）  | I/O待ちに費やされたCPU時間の割合                             |
-| ロードアベレージ（1分）      | 直近1分間のシステムロードアベレージ                          |
-| ロードアベレージ（5分）      | 直近5分間のシステムロードアベレージ                          |
-| ロードアベレージ（15分）     | 直近15分間のシステムロードアベレージ                         |
-| サーバープロセス名           | 特定の名前のプロセスが実行中かどうか                         |
-| サーバープロセスコマンド     | 特定のコマンドのプロセスが実行中かどうか                     |
-| サーバープロセスPID          | 特定のPIDのプロセスが実行中かどうか                          |
+**ディスクパス** には、`/`、`/mnt/data`、`C:\`、`/dev/sda1` のようなマウントポイントまたはデバイスを指定します。空のままにすると `/` になります。`*` を入力すると、エージェントが報告するすべてのディスクをチェックします。しきい値を超えたディスクごとに個別のアラートが作成されるため、2 台目のディスクがいっぱいになっても 1 台目の未解決アラートに隠れません。
 
-### フィルタータイプ
+### 一定期間にわたって評価する
 
-数値メトリクス（CPU、メモリ、ディスク、スワップ、I/O待ち、ロードアベレージ）の場合：
+**この条件を一定期間にわたって評価する** は条件フォームにある独立したチェックボックスで、フィルター条件ではありません。**Is Online** とすべての数値フィルタータイプで使えます。オンにすると、最新のチェックの値ではなく、**過去（分単位）** で設定した期間にわたる集計値（**評価** で選択：平均、合計、Maximum Value、Minimum Value、All Values、Any Value）を比較します。**Is Online** フィルターでは、この期間が、サーバーがオフラインと見なされるまでにエージェントが無応答でいられる時間になります。
 
-- **より大きい** — 値がしきい値を超える
-- **より小さい** — 値がしきい値を下回る
-- **以上** — 値がしきい値以上
-- **以下** — 値がしきい値以下
+**All Values** は、期間が実際にデータで満たされて初めて一致します。作成したばかりのモニターや、チェックが記録されなくなったモニターには、直近 N 分について判断できるだけの履歴がないため、条件は手元にある 1 つの値で一致させず、待機します。**Any Value** は「1 回のチェックでも超えたらすぐに知らせる」ための設定で、これまでどおりすぐに発火します。
 
-**この条件を一定期間で評価する** は条件フォームのチェックボックスであり、フィルター条件ではありません。オンにすると、最新のチェックの値ではなく、**評価** （平均、合計、最大、最小、すべての値、いずれかの値） で選んだ集計値を **直近（分）** で設定した期間について比較します。
+**データがない場合** は、期間が条件を裏付けられない間に何が起こるかを制御します。
 
-プロセスチェックの場合：
+| データがない場合 | 動作 | 用途 |
+| --- | --- | --- |
+| **Ignore**（既定） | 条件は一致しません。 | 通常のしきい値アラート。 |
+| **トリガー** | データがないこと自体を問題として扱います。 | 無応答そのものが障害となるハートビート型のチェック。 |
+| **Treat As Zero** | 期間を 1 つのゼロとして比較します。 | 「イベントなし」が本当にゼロを意味するカウンター。 |
 
-- **実行中** — プロセスが現在実行中
-- **実行していない** — プロセスが実行していない
+> [!TIP]
+> CPU と負荷は常に短いスパイクを起こします。1 回のレポートでアラートを出すのではなく、**平均** や **All Values** を使って数分間で評価してください。
 
 ### 条件の例
 
-#### エージェントが報告を停止した場合にサーバーをオフラインとしてマークする
-
-- **チェック対象**：オンラインか
-- **フィルタータイプ**：False
-
-#### CPU使用率が90%を超えた場合にアラートを発する
-
-- **チェック対象**：CPU使用率（パーセント）
-- **フィルタータイプ**：より大きい
-- **値**：90
-
-#### ディスク使用率が85%を超えた場合にアラートを発する
-
-- **チェック対象**：ディスク使用率（パーセント）
-- **ディスクパス**：`/`
-- **フィルタータイプ**：より大きい
-- **値**：85
-
-#### メモリ使用率が80%を超えた場合にアラートを発する
-
-- **チェック対象**：メモリ使用率（パーセント）
-- **フィルタータイプ**：より大きい
-- **値**：80
-
-#### 重要なプロセスが停止した場合にアラートを発する
-
-- **チェック対象**：サーバープロセス名
-- **フィルタータイプ**：実行していない
-- **値**：`nginx`
+| 目的 | フィルタータイプ | フィルター条件 | 値 |
+| --- | --- | --- | --- |
+| エージェントの報告が止まったらサーバーをオフラインにする | Is Online | 偽 | — |
+| CPU 使用率が 90% を超えたらアラート | CPU Usage (in %) | Greater Than | `90` |
+| ルートディスクの使用率が 85% を超えたらアラート | Disk Usage (in %)、**ディスクパス** `/` | Greater Than | `85` |
+| 使用率が 85% を超えたディスクごとに 1 件ずつアラート | Disk Usage (in %)、**ディスクパス** `*` | Greater Than | `85` |
+| メモリ使用率が 80% を超えたらアラート | Memory Usage (in %) | Greater Than | `80` |
+| nginx が停止したらアラート | Server Process Name | Is Not Executing | `nginx` |
 
 ## トラブルシューティング
 
-### エージェントが報告しない場合
+:::details エージェントが報告しない
+- サービスが実行中か確認します：`sudo oneuptime-infrastructure-agent status`。
+- ログを読みます：`sudo oneuptime-infrastructure-agent logs -n 50`。`Metrics successfully pushed to OneUptime server` という行があれば、レポートは届いています。
+- エージェントは起動時にシークレットキーを確認し、OneUptime に拒否されると `Secret key is invalid` をログに記録して終了します。キーを、モニターの **設定** ページの **サーバーモニターのシークレットキーをリセット** にあるものと比べてください。
+- サーバーが HTTPS で OneUptime の URL に到達でき、ファイアウォールが送信方向の接続をブロックしていないことを確認します。
+:::
 
-- エージェントが実行中か確認します：`sudo oneuptime-infrastructure-agent status`
-- エージェントログを確認します：`sudo oneuptime-infrastructure-agent logs -n 50`
-- シークレットキーが正しいか確認します
-- サーバーがOneUptimeインスタンスのURLに到達できることを確認します
-- ファイアウォールルールがアウトバウンドHTTPS接続を許可していることを確認します
+:::details `sudo` でコマンドが見つからないと表示される
+インストールスクリプトは、実行したユーザーの `$HOME/bin` にバイナリを配置し、使用したディレクトリを表示します。`sudo /root/bin/oneuptime-infrastructure-agent configure ...` のようにフルパスでエージェントを実行してください。代わりにシステムのパス上のディレクトリにインストールするには、スクリプトに `-b` を渡します。
 
-### エージェントによるリソース高使用率
+```bash
+curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin
+```
+:::
 
-エージェントは軽量設計です。高いリソース使用率が見られる場合：
+:::details `start` でサービス設定が見つからないと表示される
+`configure` が実行されていないか、`uninstall` で設定が削除されています。シークレットキーと URL を指定して `configure` を実行し、その後 `start` を実行してください。
+:::
 
-- エージェントを再起動します：`sudo oneuptime-infrastructure-agent restart`
-- エラーのエージェントログを確認します
+:::details サーバーが停止してもモニターがオフラインにならない
+無応答のサーバーをオフラインにできるのは **Is Online** 条件だけです。**フィルター条件** を **偽** にした条件を追加し、変更先のモニターステータスを設定してください。
+:::
 
-### プロキシの問題
+:::details レポートがプロキシを通過しない
+- `--proxy-url` に渡したプロキシの URL とポートを確認します。
+- プロキシが OneUptime の URL への接続を許可していることを確認します。
+- プロキシを変更するには、`stop` と `uninstall` を実行し、新しい `--proxy-url` を指定して `configure` を実行してから、`start` を実行します。
+:::
 
-- プロキシのURLとポートが正しいか確認します
-- プロキシがOneUptimeインスタンスへの接続を許可していることを確認します
-- 再設定します：`sudo oneuptime-infrastructure-agent configure --proxy-url=http://proxy:port --secret-key=YOUR_KEY --oneuptime-url=YOUR_URL`
+## 次のステップ
 
-## ベストプラクティス
-
-1. **意味のあるしきい値を設定する** — サーバーの通常の動作範囲に合ったパフォーマンス低下・オフライン条件を設定します
-2. **重要なプロセスを監視する** — プロセス監視を使用して、WebサーバーやデータベースなどのサービスSchrödinger常に実行中であることを確認します
-3. **ディスク使用量を事前に監視する** — ディスクスペースの問題はアプリケーションの障害を引き起こす可能性があります。満杯になる前に早めにアラートを設定します
-4. **「時間経過で評価」を使用する** — 一時的なスパイクが発生するCPUなどのメトリクスには、誤検知アラートを避けるために時間ベースの集計を使用します
-5. **エージェントを最新の状態に保つ** — 最新の改善と修正を得るために、定期的にインフラストラクチャエージェントを更新します
+:::cards
+- [ホスト モニター](/docs/monitor/host-monitor): 新しいサーバーに使うモニター。OpenTelemetry のホストメトリクスに基づきます。
+- [ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Linux、macOS、Windows からホストのメトリクスとログを送信します。
+- [インシデント & アラート テンプレート](/docs/monitor/incident-alert-templating): CPU、メモリ、ディスク、プロセスの詳細をインシデントのタイトルに入れます。
+:::

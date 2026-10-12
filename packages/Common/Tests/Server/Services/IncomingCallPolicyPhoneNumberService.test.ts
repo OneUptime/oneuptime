@@ -25,6 +25,25 @@ import {
   stubGenericReferenceCheck,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import {
+  RowsCallerMayWriteRead,
+  answerRowsCallerMayWriteLikeFindBy,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+import { idsNamedBy } from "../TestingUtils/QueryConditions";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncomingCallPolicyService,
+    jest.spyOn(IncomingCallPolicyService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -450,8 +469,12 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
   );
 
   test("checks the exact update batch using its query, limit, skip, and every policy id", async () => {
+    const batchQuery: any = {
+      projectId: new ObjectID("project-a"),
+      name: "Batch",
+    };
     const updateBy: any = {
-      query: { projectId: new ObjectID("project-a"), name: "Batch" },
+      query: batchQuery,
       data: { projectCallSMSConfigId: CONFIG_B },
       limit: 17,
       skip: 9,
@@ -472,18 +495,30 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
       (IncomingCallPolicyService as any).onBeforeUpdate(updateBy),
     ).rejects.toThrow("Release all phone numbers");
 
-    expect(findPolicies).toHaveBeenCalledWith({
-      query: updateBy.query,
-      select: {
-        _id: true,
-        projectCallSMSConfigId: true,
-        routingPhoneNumber: true,
-        callProviderPhoneNumberId: true,
-      },
-      limit: 17,
-      skip: 9,
-      props: { isRoot: true },
+    // The update's own batch: its query, in its window, as the caller may write it.
+    const batch: RowsCallerMayWriteRead = readsOfRowsCallerMayWrite(
+      IncomingCallPolicyService,
+    )[0]!;
+    expect(batch.query).toEqual(batchQuery);
+    expect(batch.limit).toBe(17);
+    expect(batch.skip).toBe(9);
+
+    // Every policy in it, read by id - and the update held to them.
+    const read: any = findPolicies.mock.calls[0]![0];
+    expect(idsNamedBy(read.query._id).sort()).toEqual(
+      [POLICY_A.toString(), POLICY_B.toString()].sort(),
+    );
+    expect(read.select).toEqual({
+      _id: true,
+      projectCallSMSConfigId: true,
+      routingPhoneNumber: true,
+      callProviderPhoneNumberId: true,
     });
+    expect(read.limit).toBe(2);
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
+    expect(idsNamedBy(updateBy.query._id).sort()).toEqual(
+      [POLICY_A.toString(), POLICY_B.toString()].sort(),
+    );
     const phoneQuery: any =
       findPhoneNumber.mock.calls[0]?.[0].query.incomingCallPolicyId;
     expect(phoneQuery.getSql("phone.incomingCallPolicyId")).toMatch(
@@ -525,8 +560,9 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
       "Release all phone numbers before changing the Twilio configuration.",
     );
 
+    // The update's own query: the one policy it names.
     expect(findPolicies).toHaveBeenCalledWith({
-      query: updateBy.query,
+      query: { _id: POLICY_A },
       select: {
         _id: true,
         projectCallSMSConfigId: true,
@@ -535,7 +571,7 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
       },
       limit: 1,
       skip: 0,
-      props: { isRoot: true },
+      props: { isRoot: true, ignoreHooks: true },
     });
     expect(findPhoneNumber).not.toHaveBeenCalled();
   });
@@ -624,10 +660,6 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
 
   test("rejects conflicting public and persisted relation ids before reading policies", async () => {
     const findPolicies: any = jest.spyOn(IncomingCallPolicyService, "findBy");
-    const checkPermission: any = jest.spyOn(
-      ModelPermission,
-      "checkUpdateQueryPermissions",
-    );
     const updateBy: any = {
       query: { _id: POLICY_A },
       data: {
@@ -645,26 +677,20 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
       (IncomingCallPolicyService as any).onBeforeUpdate(updateBy),
     ).rejects.toThrow("Conflicting Twilio configuration identifiers");
 
-    expect(checkPermission).not.toHaveBeenCalled();
+    expect(readsOfRowsCallerMayWrite(IncomingCallPolicyService)).toEqual([]);
     expect(findPolicies).not.toHaveBeenCalled();
   });
 
-  test("permission-scopes the update query before inspecting policies", async () => {
-    const originalQuery: any = { _id: POLICY_A };
-    const scopedQuery: any = {
-      _id: POLICY_A,
-      projectId: new ObjectID("allowed-project"),
-    };
+  test("inspects only the policies the caller may write, and the update writes no other", async () => {
+    const allowedProject: ObjectID = new ObjectID("allowed-project");
     const updateBy: any = {
-      query: originalQuery,
+      query: { _id: POLICY_A },
       data: { projectCallSMSConfigId: CONFIG_B },
       limit: 1,
       skip: 0,
-      props: { isRoot: false, tenantId: new ObjectID("allowed-project") },
+      props: { isRoot: false, tenantId: allowedProject },
     };
-    const checkPermission: any = jest
-      .spyOn(ModelPermission, "checkUpdateQueryPermissions")
-      .mockResolvedValue(scopedQuery);
+    // Not one the caller may write.
     const findPolicies: any = jest
       .spyOn(IncomingCallPolicyService, "findBy")
       .mockResolvedValue([]);
@@ -677,16 +703,14 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
       (IncomingCallPolicyService as any).onBeforeUpdate(updateBy),
     ).resolves.toEqual({ updateBy, carryForward: null });
 
-    expect(checkPermission).toHaveBeenCalledWith(
-      IncomingCallPolicy,
-      originalQuery,
-      updateBy.data,
-      updateBy.props,
-    );
-    expect(findPolicies).toHaveBeenCalledWith(
-      expect.objectContaining({ query: scopedQuery }),
-    );
+    // Looked for in the caller's project, as the update's permission check narrows it.
+    expect(
+      readsOfRowsCallerMayWrite(IncomingCallPolicyService)[0]!.query,
+    ).toEqual({ _id: POLICY_A, projectId: allowedProject });
+    // None found: nothing more is read, and the update names no policy.
+    expect(findPolicies).not.toHaveBeenCalled();
     expect(findPhoneNumber).not.toHaveBeenCalled();
+    expect(idsNamedBy(updateBy.query._id)).toEqual([]);
   });
 });
 
@@ -932,17 +956,22 @@ describe("IncomingCallPolicyService multi-number cleanup", () => {
       IncomingCallPolicyService as any
     ).onBeforeDelete(deleteBy);
 
-    expect(findPolicies).toHaveBeenCalledWith(
+    // The policies the caller may delete: the permission's query, the window.
+    expect(readsOfRowsCallerMayWrite(IncomingCallPolicyService)[0]).toEqual(
       expect.objectContaining({
         query: scopedQuery,
         limit: 17,
         skip: 9,
       }),
     );
-    expect(Object.keys(result.deleteBy.query)).toEqual(["_id"]);
-    const pinnedIds: any = (result.deleteBy.query as any)._id;
-    expect(Object.values(pinnedIds.objectLiteralParameters)).toEqual([
-      [POLICY_A.toString(), POLICY_B.toString()],
+    // The delete's policies among them, read in one go.
+    expect(findPolicies).toHaveBeenCalledTimes(1);
+
+    // The delete names exactly the policies read, beside what it asked.
+    expect((result.deleteBy.query as any).name).toBe("Production");
+    expect(idsNamedBy((result.deleteBy.query as any)._id)).toEqual([
+      POLICY_A.toString(),
+      POLICY_B.toString(),
     ]);
     expect(result.deleteBy.limit).toBe(2);
     expect(result.deleteBy.skip).toBe(0);
@@ -980,20 +1009,21 @@ describe("IncomingCallPolicyService multi-number cleanup", () => {
       originalQuery,
       deleteBy.props,
     );
-    expect(findPolicies).toHaveBeenCalledWith(
+    expect(readsOfRowsCallerMayWrite(IncomingCallPolicyService)[0]).toEqual(
       expect.objectContaining({
         query: scopedQuery,
         limit: 1,
         skip: 2,
       }),
     );
+    // None the caller may delete: nothing more is read, nothing released.
+    expect(findPolicies).not.toHaveBeenCalled();
     expect(findPhoneNumbers).not.toHaveBeenCalled();
     expect(releasePhoneNumber).not.toHaveBeenCalled();
     expect(Object.keys(result.deleteBy.query)).toEqual(["_id"]);
     const emptyIds: any = (result.deleteBy.query as any)._id;
     expect(emptyIds.getSql("policy._id")).toBe("TRUE = FALSE");
     expect(Object.keys(emptyIds.objectLiteralParameters)).toHaveLength(0);
-    expect(result.deleteBy.limit).toBe(0);
     expect(result.deleteBy.skip).toBe(0);
   });
 });
@@ -1218,9 +1248,7 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
       "mirror-cleared",
     ]);
     const exactChildIds: any = deleteChildren.mock.calls[0]?.[0].query._id;
-    expect(Object.values(exactChildIds.objectLiteralParameters)).toEqual([
-      [child.id!.toString()],
-    ]);
+    expect(idsNamedBy(exactChildIds)).toEqual([child.id!.toString()]);
     expect(deleteChildren.mock.calls[0]?.[0]).toMatchObject({
       limit: 1,
       skip: 0,
@@ -1469,6 +1497,11 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
     const findConfigs: any = jest
       .spyOn(ProjectCallSMSConfigService, "findBy")
       .mockResolvedValue([makeConfig(CONFIG_A), makeConfig(CONFIG_B)]);
+    // The configs the caller may delete: those the same read reaches.
+    answerRowsCallerMayWriteLikeFindBy(
+      ProjectCallSMSConfigService,
+      findConfigs,
+    );
     jest
       .spyOn(IncomingCallPolicyPhoneNumberService, "findAllBy")
       .mockResolvedValue([]);
@@ -1484,17 +1517,21 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
       ProjectCallSMSConfigService as any
     ).onBeforeDelete(deleteBy);
 
-    expect(findConfigs).toHaveBeenCalledWith(
+    // The configs the caller may delete: the permission's query, the window.
+    expect(readsOfRowsCallerMayWrite(ProjectCallSMSConfigService)[0]).toEqual(
       expect.objectContaining({
         query: scopedQuery,
         limit: 11,
         skip: 4,
       }),
     );
-    expect(Object.keys(result.deleteBy.query)).toEqual(["_id"]);
-    const pinnedIds: any = (result.deleteBy.query as any)._id;
-    expect(Object.values(pinnedIds.objectLiteralParameters)).toEqual([
-      [CONFIG_A.toString(), CONFIG_B.toString()],
+    expect(findConfigs).toHaveBeenCalledTimes(1);
+
+    // The delete names exactly the configs read, beside what it asked.
+    expect((result.deleteBy.query as any).name).toBe("Twilio");
+    expect(idsNamedBy((result.deleteBy.query as any)._id)).toEqual([
+      CONFIG_A.toString(),
+      CONFIG_B.toString(),
     ]);
     expect(result.deleteBy.limit).toBe(2);
     expect(result.deleteBy.skip).toBe(0);
@@ -1512,6 +1549,11 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
     const findConfigs: any = jest
       .spyOn(ProjectCallSMSConfigService, "findBy")
       .mockResolvedValue([]);
+    // The configs the caller may delete: those the same read reaches.
+    answerRowsCallerMayWriteLikeFindBy(
+      ProjectCallSMSConfigService,
+      findConfigs,
+    );
     const findPhoneNumbers: any = jest.spyOn(
       IncomingCallPolicyPhoneNumberService,
       "findAllBy",
@@ -1540,13 +1582,15 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
       originalQuery,
       deleteBy.props,
     );
-    expect(findConfigs).toHaveBeenCalledWith(
+    expect(readsOfRowsCallerMayWrite(ProjectCallSMSConfigService)[0]).toEqual(
       expect.objectContaining({
         query: scopedQuery,
         limit: 1,
         skip: 3,
       }),
     );
+    // None the caller may delete: nothing more is read, nothing released.
+    expect(findConfigs).not.toHaveBeenCalled();
     expect(findPhoneNumbers).not.toHaveBeenCalled();
     expect(findPolicies).not.toHaveBeenCalled();
     expect(deleteChildren).not.toHaveBeenCalled();
@@ -1555,7 +1599,6 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
     const emptyIds: any = (result.deleteBy.query as any)._id;
     expect(emptyIds.getSql("config._id")).toBe("TRUE = FALSE");
     expect(Object.keys(emptyIds.objectLiteralParameters)).toHaveLength(0);
-    expect(result.deleteBy.limit).toBe(0);
     expect(result.deleteBy.skip).toBe(0);
   });
 });

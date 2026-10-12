@@ -33,6 +33,19 @@ enum MonitorMetricType {
   PortTcpConnectTime = "oneuptime.monitor.port.tcp.connect.time",
 
   /*
+   * NTP time server series, one sample per answered check. The offset is
+   * how far the server's clock is from the probe's, whichever way (the
+   * signed value is in the check's own result); the stratum is the effective
+   * one, so a kiss-o'-death or an unsynchronized server reads 16; synchronized
+   * is 1 or 0; the root dispersion is the server's own error bound. A check
+   * that got no reply writes none of them.
+   */
+  NtpClockOffset = "oneuptime.monitor.ntp.clock.offset",
+  NtpStratum = "oneuptime.monitor.ntp.stratum",
+  NtpIsSynchronized = "oneuptime.monitor.ntp.synchronized",
+  NtpRootDispersion = "oneuptime.monitor.ntp.root.dispersion",
+
+  /*
    * Per-interface SNMP metrics. Emitted when interface monitoring is enabled
    * on an SNMP monitor; one series per interface (interfaceName attribute).
    */
@@ -56,6 +69,18 @@ enum MonitorMetricType {
    * attributes, so every row charts and alerts on its own.
    */
   SnmpTableValue = "oneuptime.monitor.snmp.table.value",
+
+  /*
+   * Transceiver (SFP/SFP+/QSFP) readings, one series per port (and lane, on
+   * a multi-lane optic) - interfaceName / interfaceIndex / lane attributes.
+   * Written by the device's own poll, in display units: degrees C, volts,
+   * milliamps and dBm.
+   */
+  SnmpTransceiverTemperature = "oneuptime.monitor.snmp.transceiver.temperature",
+  SnmpTransceiverVoltage = "oneuptime.monitor.snmp.transceiver.voltage",
+  SnmpTransceiverBiasCurrent = "oneuptime.monitor.snmp.transceiver.bias.current",
+  SnmpTransceiverTxPower = "oneuptime.monitor.snmp.transceiver.tx.power",
+  SnmpTransceiverRxPower = "oneuptime.monitor.snmp.transceiver.rx.power",
 
   /*
    * Extended server/VM metrics. Emitted when the agent payload contains them;

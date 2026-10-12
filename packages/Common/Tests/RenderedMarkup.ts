@@ -12,6 +12,7 @@ import {
   resolveDisplay,
   splitVariants,
 } from "./ResponsiveVisibility";
+import { markupAsSpaces } from "./Helpers/HtmlText";
 
 /*
  * Server-rendered pages under a foreign `.hidden { display: none !important }`,
@@ -27,9 +28,10 @@ import {
  * holds just enough of an HTML reader to walk up the rendered tree, and the
  * class-attribute checks the three suites share.
  *
- * Node built-ins and ./ResponsiveVisibility only: Home imports this by a
- * relative path from outside its own package, where nothing else of Common's
- * resolves.
+ * Node built-ins, ./ResponsiveVisibility and ./Helpers/HtmlText (which
+ * imports only Common/Types/HtmlMarkup, which imports nothing): Home imports
+ * this by a relative path from outside its own package, where nothing else
+ * of Common's resolves.
  */
 
 export const WITH_FOREIGN_HIDDEN_RULE: VisibilityOptions = {
@@ -193,10 +195,11 @@ export function classOf(element: RenderedElement): string {
   return attributeOf(element, "class") || "";
 }
 
+// The words an element holds: its markup a space each, whitespace one space.
 export function textOf(page: RenderedPage, element: RenderedElement): string {
-  return page.html
-    .slice(element.contentStart, element.contentEnd)
-    .replace(/<[^>]*>/g, " ")
+  return markupAsSpaces(
+    page.html.slice(element.contentStart, element.contentEnd),
+  )
     .replace(/\s+/g, " ")
     .trim();
 }

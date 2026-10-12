@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import removeHtmlMarkup from "../../../../../Types/HtmlMarkup";
 
 /*
  * Pins MicrosoftTeamsUtil.stripHtmlTags, which turns a Teams message body
@@ -68,8 +69,41 @@ describe("MicrosoftTeamsUtil.stripHtmlTags", () => {
     "a < b <c",
     "<iframe src=x></iframe><style>",
     "<!-- <script> -->",
+    "<!<!---->--",
+    '<img alt="<script>" src=x>',
   ])("leaves no markup at all in %j", (body: string) => {
     expect(MicrosoftTeamsUtil.stripHtmlTags(body)).not.toContain("<");
+  });
+
+  /*
+   * It reads bodies through removeHtmlMarkup (Common/Types/HtmlMarkup), as
+   * the reaction note sync does: a tag ends only at a ">" outside a quoted
+   * attribute value, and a comment at its "-->", so neither leaves the rest
+   * of a value or a comment behind as text. One pass of /<[^>]*>/ ended
+   * both at their first ">".
+   */
+  test("keeps no attribute value or comment as text", () => {
+    expect(
+      MicrosoftTeamsUtil.stripHtmlTags(
+        '<p><img alt="chart > threshold" src="https://graph.microsoft.com/x/$value">over</p>',
+      ),
+    ).toBe("over");
+    expect(MicrosoftTeamsUtil.stripHtmlTags("<p>a<!-- x > y -->b</p>")).toBe(
+      "ab",
+    );
+  });
+
+  test("reads a body as removeHtmlMarkup does", () => {
+    for (const body of [
+      '<div><div><at id="0">Adele Vance</at>&nbsp;Hello there</div></div>',
+      "<scr<script>ipt>alert(1)</script>",
+      "a<!-- never closed",
+      '<a title="x>y">z</a>',
+    ]) {
+      expect(MicrosoftTeamsUtil.stripHtmlTags(body)).toBe(
+        removeHtmlMarkup(body),
+      );
+    }
   });
 });
 

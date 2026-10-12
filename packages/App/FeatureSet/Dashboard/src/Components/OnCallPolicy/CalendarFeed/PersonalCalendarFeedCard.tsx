@@ -291,6 +291,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
           scheduleId={props.scheduleId}
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
+          privateHost={status.privateHost}
           lastRenderTruncated={status.lastRenderTruncated}
           showRefreshAlert={false}
           idPrefix={idPrefix}
@@ -422,6 +423,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         <FeedDeploymentWarnings
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
+          privateHost={status.privateHost}
           idPrefix={idPrefix}
         />
         <FeedEmptyState
@@ -465,6 +467,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
             urls={status.urls}
             hostWarning={status.hostWarning}
             protocolWarning={status.protocolWarning}
+            privateHost={status.privateHost}
             lastRenderTruncated={status.lastRenderTruncated}
             idPrefix={idPrefix}
           />

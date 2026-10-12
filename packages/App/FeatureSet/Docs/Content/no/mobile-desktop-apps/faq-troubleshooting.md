@@ -38,7 +38,8 @@ Mobil push-levering bruker APNs (iOS) og FCM (Android) via Expo Push. Kontroller
 2. Batterioptimalisering er deaktivert og bakgrunnsaktivitet er tillatt (Android).
 3. Ikke forstyrr- eller Fokus-modi er av, eller appen er på unntakslisten.
 4. Du er logget inn — push-tokenet registreres hos serveren først etter at du har logget inn.
-5. **Kun selvhostet:** Push-varsler er konfigurert på OneUptime-instansen din. Se [Push-varsler](/docs/self-hosted/push-notifications)-veiledningen.
+5. Telefonen er ikke merket **Mottar ikke varsler** under **User Settings > Notification Methods > Push** i OneUptime. Hvis den er det, åpner du appen på telefonen mens du er logget inn for å registrere den på nytt.
+6. **Kun selvhostet:** Push-varsler er konfigurert på OneUptime-instansen din. Se [Push-varsler](/docs/self-hosted/push-notifications)-veiledningen.
 
 ### Er dataene på telefonen min sikre?
 

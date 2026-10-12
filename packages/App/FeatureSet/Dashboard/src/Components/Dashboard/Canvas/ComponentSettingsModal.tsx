@@ -31,6 +31,8 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { isDashboardComponentType } from "Common/Types/Dashboard/DashboardComponentType";
+import ContainedErrorBoundary from "Common/UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 
 /*
  * The settings a widget is titled by, by kind of widget: most call it
@@ -88,14 +90,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const component: DashboardBaseComponent =
-    props.dashboardViewConfig.components.find(
-      (component: DashboardBaseComponent) => {
-        return (
-          component.componentId.toString() === props.componentId.toString()
-        );
-      },
-    ) as DashboardBaseComponent;
+  const component: DashboardBaseComponent | undefined = (
+    props.dashboardViewConfig.components || []
+  ).find((component: DashboardBaseComponent) => {
+    return component.componentId.toString() === props.componentId.toString();
+  });
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
@@ -163,6 +162,23 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     onTimeRangeChange: setPreviewRange,
   });
 
+  /*
+   * Gone from the config: the widget was just deleted, and this dialog is
+   * closing in the same update.
+   */
+  if (!component) {
+    return <></>;
+  }
+
+  /*
+   * A widget of a type this version does not draw (DashboardWidgetFallback)
+   * has no settings to edit, and a copy of it would be just as broken, so
+   * its dialog offers Delete Widget and says why there is nothing else.
+   */
+  const isKnownType: boolean = isDashboardComponentType(
+    component.componentType,
+  );
+
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
     (component.heightInDashboardUnits || 1);
@@ -183,14 +199,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       closeButtonText="Done"
       leftFooterElement={
         <div className="flex items-center gap-2">
-          <Button
-            title={`Duplicate Widget`}
-            icon={IconProp.Copy}
-            buttonStyle={ButtonStyleType.NORMAL}
-            onClick={() => {
-              props.onComponentDuplicate(component);
-            }}
-          />
+          {isKnownType ? (
+            <Button
+              title={`Duplicate Widget`}
+              icon={IconProp.Copy}
+              buttonStyle={ButtonStyleType.NORMAL}
+              onClick={() => {
+                props.onComponentDuplicate(component);
+              }}
+            />
+          ) : (
+            <></>
+          )}
           <Button
             title={`Delete Widget`}
             icon={IconProp.Trash}
@@ -325,14 +345,51 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             <h4 className="text-sm font-semibold text-gray-800 mb-3">
               {translator.translateText("Settings")}
             </h4>
-            <ArgumentsForm
-              variables={props.variables}
-              component={component}
-              onFormChange={(component: DashboardBaseComponent) => {
-                props.onComponentUpdate(component);
-              }}
-              metrics={props.metrics}
-            />
+            {isKnownType ? (
+              /*
+               * Saved settings the form cannot read must not take the
+               * dashboard with them: the form's place says so, and Delete
+               * Widget below still works.
+               */
+              <ContainedErrorBoundary
+                resetKeys={[props.componentId.toString()]}
+                renderFallback={() => {
+                  return (
+                    <p
+                      className="text-sm text-gray-500"
+                      data-testid="widget-settings-unavailable"
+                    >
+                      {translator.translateText(
+                        "These settings could not be shown. You can still delete this widget and add it again.",
+                      )}
+                    </p>
+                  );
+                }}
+              >
+                <ArgumentsForm
+                  variables={props.variables}
+                  component={component}
+                  onFormChange={(component: DashboardBaseComponent) => {
+                    props.onComponentUpdate(component);
+                  }}
+                  metrics={props.metrics}
+                />
+              </ContainedErrorBoundary>
+            ) : (
+              <p
+                className="text-sm text-gray-500"
+                data-testid="widget-settings-unknown-type"
+              >
+                {String(component.componentType || "").trim()
+                  ? translator.translateTemplate(
+                      'OneUptime has no "{{componentType}}" widget, so there are no settings to change. Delete it to take it off this dashboard.',
+                      { componentType: String(component.componentType) },
+                    )
+                  : translator.translateText(
+                      "This widget does not say which kind of widget it is, so there are no settings to change. Delete it to take it off this dashboard.",
+                    )}
+              </p>
+            )}
           </section>
         </div>
       </>

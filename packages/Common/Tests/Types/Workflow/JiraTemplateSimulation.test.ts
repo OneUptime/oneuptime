@@ -178,6 +178,7 @@ const WEBHOOK_IDENTIFIER: string = "a1b2c3d4-webhook-delivery-sentinel";
 
 /** What the create wizard would have stored for each variable a template declares. */
 const VARIABLE_VALUES: Dictionary<string> = {
+  jiraSiteUrl: JIRA_SITE,
   jiraBaseUrl: JIRA_SITE,
   jiraBasicAuthToken: JIRA_TOKEN,
   jiraProjectKey: "OPS",
@@ -302,15 +303,20 @@ const buildSimulatedGraph: BuildSimulatedGraphFunction = (
   };
 };
 
-type VariablesForFunction = (templateId: string) => Dictionary<string>;
+type VariablesForFunction = (
+  templateId: string,
+  overrides?: Dictionary<string | null> | undefined,
+) => Dictionary<string>;
 
 /*
  * Only the variables the template declares, because that is all the wizard
  * creates. A reference to anything else stays unresolved, exactly as it would
- * in a real workflow.
+ * in a real workflow. A scenario can store another value for one, or none at
+ * all (null), as someone editing the workflow's variables afterwards could.
  */
 const variablesFor: VariablesForFunction = (
   templateId: string,
+  overrides?: Dictionary<string | null> | undefined,
 ): Dictionary<string> => {
   const template: WorkflowTemplate | null = getWorkflowTemplate(templateId);
 
@@ -321,13 +327,31 @@ const variablesFor: VariablesForFunction = (
   const values: Dictionary<string> = {};
 
   for (const variable of template.variables) {
-    const value: string | undefined = VARIABLE_VALUES[variable.name];
+    const override: string | null | undefined = overrides?.[variable.name];
+
+    // Deleted after the workflow was created: nothing resolves its reference.
+    if (override === null) {
+      continue;
+    }
+
+    const value: string | undefined =
+      override === undefined ? VARIABLE_VALUES[variable.name] : override;
 
     if (value === undefined) {
       throw new Error(`The simulation has no value for ${variable.name}.`);
     }
 
     values[variable.name] = value;
+  }
+
+  for (const name of Object.keys(overrides || {})) {
+    if (
+      !template.variables.some((variable: WorkflowTemplateVariable) => {
+        return variable.name === name;
+      })
+    ) {
+      throw new Error(`${templateId} declares no variable ${name}.`);
+    }
   }
 
   return values;
@@ -455,6 +479,11 @@ interface Scenario {
    * SYNC_PRIVATE_INCIDENTS or SYNC_PRIVATE_ALERTS on.
    */
   editCode?: Dictionary<EditCodeFunction> | undefined;
+  /*
+   * Variables stored with other values than the wizard's (VARIABLE_VALUES),
+   * by name, or deleted (null), as editing the workflow's variables would.
+   */
+  variables?: Dictionary<string | null> | undefined;
 }
 
 interface SimulationTrace {
@@ -785,7 +814,10 @@ const runTemplate: RunTemplateFunction = async (
     logs: [],
     runLog: [],
     storage: {
-      local: { variables: variablesFor(scenario.templateId), components: {} },
+      local: {
+        variables: variablesFor(scenario.templateId, scenario.variables),
+        components: {},
+      },
       global: { variables: {} },
     },
   };
@@ -3419,6 +3451,173 @@ describe.each(KINDS)(
   },
 );
 
+/* ------------------------ The link to the issue, on the site named ------------------------ */
+
+/*
+ * The link a description or a note gives to the issue goes to the site the
+ * workflow's Jira Site URL names, through the whole graph: the create wizard
+ * stored the variable, the runner substitutes it into the script's arguments
+ * beside the request body, and the script links the issue on that site
+ * whatever the event's issue URL says. The event's URL comes with the
+ * request, not from the workflow.
+ */
+const OTHER_HOST_ISSUE_URL: string =
+  "https://tracker.example/rest/api/2/issue/10040";
+
+const DATA_CENTER_SITE: string = "https://example.com/jira";
+
+describe.each(KINDS)(
+  "simulated: the $noun templates link the issue on the Jira site the workflow names",
+  (kind: SimulatedKind) => {
+    test("a comment whose issue URL names another host is noted with a link to the configured site", async () => {
+      const event: JSONObject = jiraCommentEvent();
+
+      (event["issue"] as JSONObject)["self"] = OTHER_HOST_ISSUE_URL;
+
+      const trace: SimulationTrace = await runComment(kind, { event: event });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        note: EXPECTED_COMMENT_NOTE,
+      });
+      // The issue is still read from the Jira the workflow calls, and nothing goes elsewhere.
+      expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(JSON.stringify(trace.databaseCalls)).not.toContain(
+        "tracker.example",
+      );
+    });
+
+    test("an edit whose issue URL names another host is noted with a link to the configured site", async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          self: OTHER_HOST_ISSUE_URL,
+          items: [
+            changelogItem({
+              field: "priority",
+              fromString: "Medium",
+              toString: "Highest",
+            }),
+          ],
+        }),
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\n- priority: Medium → Highest`,
+      });
+      expect(trace.requests).toEqual([]);
+    });
+
+    test(`an issue whose URL names another host becomes an ${kind.noun} whose description links the configured site`, async () => {
+      const trace: SimulationTrace = await runCreateFromIssue(kind, {
+        event: jiraIssueCreatedEvent({ self: OTHER_HOST_ISSUE_URL }),
+      });
+
+      expect(jsonOf(trace, kind.components.createOne)["description"]).toBe(
+        expectedCreatedDescription(kind),
+      );
+      expect(JSON.stringify(trace.databaseCalls)).not.toContain(
+        "tracker.example",
+      );
+    });
+
+    /*
+     * Jira Data Center under a context path names that path in its issues'
+     * URLs, but an event cannot be trusted to name it, so the issue was linked
+     * at the host before, and the link went nowhere. The setting names it.
+     */
+    test("Jira Data Center under a context path: the note links the issue under that path", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        ...issueChangesScenario(kind, {
+          event: jiraIssueUpdatedEvent({
+            labels: linkedLabelsOf(kind),
+            self: `${DATA_CENTER_SITE}/rest/api/2/issue/10040`,
+            items: [
+              changelogItem({
+                field: "assignee",
+                fromString: null,
+                toString: "Priya Patel",
+              }),
+            ],
+          }),
+        }),
+        variables: { jiraSiteUrl: DATA_CENTER_SITE },
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)["note"]).toBe(
+        `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated [${JIRA_ISSUE_KEY}](${DATA_CENTER_SITE}/browse/${JIRA_ISSUE_KEY}).\n\n- assignee: (empty) → Priya Patel`,
+      );
+    });
+
+    /*
+     * A variable deleted after the workflow was created leaves its reference
+     * as literal text, which is no site's address: the issue is named, the
+     * note still written.
+     */
+    test("with the Jira Site URL variable gone, the note names the issue without a link, and is still written", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        ...issueChangesScenario(kind, {
+          event: priorityChange(linkedLabelsOf(kind)),
+        }),
+        variables: { jiraSiteUrl: null },
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated ${JIRA_ISSUE_KEY}.\n\n- priority: Medium → Highest`,
+      });
+      expect(trace.logs).toEqual([
+        `✅ Noted the changes to Jira issue ${JIRA_ISSUE_KEY} on ${kind.number}.`,
+      ]);
+    });
+
+    /*
+     * A variable's content can be emptied after the workflow is created.
+     * An empty setting names no site: the note names the issue without a
+     * link, rather than at the site the event names, and is still written.
+     */
+    test("with the Jira Site URL variable emptied, the note names the issue without a link, whatever the event says", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        ...issueChangesScenario(kind, {
+          event: jiraIssueUpdatedEvent({
+            labels: linkedLabelsOf(kind),
+            self: OTHER_HOST_ISSUE_URL,
+            items: [
+              changelogItem({
+                field: "priority",
+                fromString: "Medium",
+                toString: "Highest",
+              }),
+            ],
+          }),
+        }),
+        variables: { jiraSiteUrl: "" },
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated ${JIRA_ISSUE_KEY}.\n\n- priority: Medium → Highest`,
+      });
+    });
+
+    test("a Jira Site URL stored with a slash at its end links the issue without a second one", async () => {
+      const event: JSONObject = jiraCommentEvent();
+
+      (event["issue"] as JSONObject)["self"] = OTHER_HOST_ISSUE_URL;
+
+      const trace: SimulationTrace = await runTemplate({
+        ...commentScenario(kind, { event: event }),
+        variables: { jiraSiteUrl: `${JIRA_SITE}/` },
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)["note"]).toBe(
+        EXPECTED_COMMENT_NOTE,
+      );
+    });
+  },
+);
+
 /* ------------------------------- What differs for alerts ------------------------------- */
 
 /*
@@ -4236,6 +4435,7 @@ describe.each(KIND_PAIRS)(
 /* ------------------------------- Security ------------------------------- */
 
 const TOKEN_REFERENCE: string = "{{local.variables.jiraBasicAuthToken}}";
+const SITE_REFERENCE: string = "{{local.variables.jiraSiteUrl}}";
 const HEADERS_REFERENCE: string =
   "{{local.components.webhook-1.returnValues.request-headers}}";
 
@@ -4324,6 +4524,46 @@ describe.each(KINDS)(
       expect(trace.requests).toHaveLength(1);
       expectNothingSubstituted(trace);
       expectTokenOnlyInAuthorization(trace);
+    });
+
+    /*
+     * The scripts that link the issue are handed the workflow's Jira Site URL
+     * in the same argument as the request body, before it. Text in the body
+     * that names that reference is never filled in: it is written as text,
+     * and the link is the configured site's.
+     */
+    test("a comment and an edit naming the Jira Site URL's own reference write it as text, and link the configured site", async () => {
+      const comment: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent({
+          body: `Open ${SITE_REFERENCE} instead.`,
+          author: jiraUser(SITE_REFERENCE),
+        }),
+      });
+
+      expect(jsonOf(comment, kind.components.noteCreateOne)["note"]).toBe(
+        `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: ${defused(SITE_REFERENCE)} commented on [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\nOpen ${defused(SITE_REFERENCE)} instead.`,
+      );
+      expectNothingSubstituted(comment);
+
+      const changes: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          self: SITE_REFERENCE,
+          user: jiraUser(SITE_REFERENCE),
+          items: [
+            changelogItem({
+              field: "summary",
+              fromString: SITE_REFERENCE,
+              toString: "Checkout API returns 502",
+            }),
+          ],
+        }),
+      });
+
+      expect(jsonOf(changes, kind.components.noteCreateOne)["note"]).toBe(
+        `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: ${defused(SITE_REFERENCE)} updated [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\n- summary: ${defused(SITE_REFERENCE)} → Checkout API returns 502`,
+      );
+      expectNothingSubstituted(changes);
     });
 
     test(`a summary, description and reporter naming the token ${kind.create} an ${kind.noun} holding none of it`, async () => {

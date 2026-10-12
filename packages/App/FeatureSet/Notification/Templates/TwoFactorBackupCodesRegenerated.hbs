@@ -4,7 +4,7 @@
 
 {{> EmailTitle title="Your two factor backup codes were replaced." }}
 
-{{> InfoBlock info="A new set of two factor authentication backup codes was generated for your OneUptime account. Every code you were holding before this -- printed, saved or written down -- has stopped working."}}
+{{> InfoBlock info=(concat "A new set of two factor authentication backup codes was generated for your " (brandNameHtml) " account. Every code you were holding before this -- printed, saved or written down -- has stopped working.")}}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Generated at:" text=generatedAt }}

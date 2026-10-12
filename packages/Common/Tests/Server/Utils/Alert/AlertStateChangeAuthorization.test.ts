@@ -12,20 +12,23 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../../../Models/DatabaseModels/AlertOwnerUser";
 import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
-import Label from "../../../../Models/DatabaseModels/Label";
+import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AlertOwnerTeamService from "../../../../Server/Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "../../../../Server/Services/AlertOwnerUserService";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
-import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
+import DatabaseService from "../../../../Server/Services/DatabaseService";
+import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
 import Query from "../../../../Server/Types/Database/Query";
-import AlertStateChangeAuthorization from "../../../../Server/Utils/Alert/AlertStateChangeAuthorization";
+import AlertStateChangeAuthorization, {
+  ALERTS_CHECKED_AT_ONCE,
+} from "../../../../Server/Utils/Alert/AlertStateChangeAuthorization";
+import { UnreadableParentException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
-import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
@@ -34,16 +37,33 @@ import Permission, {
 } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
 
+// Every refusal below is deliberate; @CaptureSpan logs each one's stack.
+jest.mock("../../../../Server/Utils/Logger");
+
 /*
  * AlertStateChangeAuthorization decides whether a caller may change the state
  * of a set of alerts that are then acknowledged for them as root (declaring an
- * incident with "acknowledge these alerts" ticked). These tests run the REAL
- * permission layer (ModelPermission and everything under it) against realistic
- * interaction props. Only the root reads the permission layer cannot make
- * without a database are stubbed: AlertService.findBy (the helper's two reads)
- * and, for the Owned scope, the AlertOwnerUser / AlertOwnerTeam lookups. The
- * second AlertService.findBy stub plays the database: it returns the rows the
- * scoped query would match, and each test pins the scope that query carries.
+ * incident with "acknowledge these alerts" ticked). Changing one alert's state
+ * on its own page is one write as the caller - a new AlertStateTimeline row -
+ * and the alert then takes the state from OneUptime itself. So the helper asks,
+ * for every alert, exactly what creating that row as the caller asks
+ * (AlertStateTimelineService.checkCallerMayCreate): the declare form needs what
+ * acknowledging each alert on its own page needs, and no Edit Alert.
+ *
+ * Most tests below run the REAL permission layer (ModelPermission and
+ * everything under it) against realistic interaction props. Only the reads the
+ * layer makes of the database are answered here, the way the database would
+ * answer them, and each test pins what was asked:
+ *
+ *   - the read of the alerts as the caller (DatabaseService
+ *     .findReadableParentIds): answered with the alerts the caller's read of
+ *     alerts reaches - every one unless a test says otherwise;
+ *   - the labels the alerts carry and the labels' names (findRecordLabels,
+ *     findLabelNames), read by OneUptime for a create permission limited to
+ *     labels or a block with labels;
+ *   - the alerts the caller or their teams own (AlertOwnerUserService,
+ *     AlertOwnerTeamService), for a create permission limited to owned
+ *     records.
  */
 
 type PermissionInput = {
@@ -53,47 +73,62 @@ type PermissionInput = {
   scope?: PermissionScope;
 };
 
-type FindBySpy = SpyInstance<typeof AlertService.findBy>;
+type ParentLookup = {
+  table: string;
+  ids: Array<string>;
+  query: Query<DatabaseBaseModel>;
+  props: DatabaseCommonInteractionProps;
+};
 
-type FindByArgument = Parameters<typeof AlertService.findBy>[0];
-
-type RawClause = {
-  sql: string;
-  params: Array<unknown>;
+type RecordLookup = {
+  table: string;
+  ids: Array<string>;
 };
 
 type WriteSpies = {
   alertCreate: SpyInstance<typeof AlertService.create>;
   alertUpdateOneById: SpyInstance<typeof AlertService.updateOneById>;
-  alertUpdateOneBy: SpyInstance<typeof AlertService.updateOneBy>;
   alertUpdateBy: SpyInstance<typeof AlertService.updateBy>;
   alertChangeState: SpyInstance<typeof AlertService.changeAlertState>;
   alertAcknowledge: SpyInstance<typeof AlertService.acknowledgeAlert>;
   timelineCreate: SpyInstance<typeof AlertStateTimelineService.create>;
 };
 
-const REFUSAL_MESSAGE: string =
-  "You do not have permission to change the state of one or more of these alerts.";
+type CheckCallerMayCreate =
+  typeof AlertStateTimelineService.checkCallerMayCreate;
 
 const projectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
+const acknowledgedStateId: ObjectID = ObjectID.generate();
+
+const TEAM_A: ObjectID = ObjectID.generate();
+const TEAM_B: ObjectID = ObjectID.generate();
+const LABEL_NAMES: Record<string, string> = {
+  [TEAM_A.toString().toLowerCase()]: "team-a",
+  [TEAM_B.toString().toLowerCase()]: "team-b",
+};
 
 function createDatabaseProps(
   permissions: Array<PermissionInput>,
   options?: {
     userTeamIds?: Array<ObjectID>;
     withoutUser?: boolean;
-    userType?: UserType;
   },
 ): DatabaseCommonInteractionProps {
   const userPermissions: Array<UserPermission> = permissions.map(
     (permissionInput: PermissionInput): UserPermission => {
+      const hasLabels: boolean = (permissionInput.labelIds || []).length > 0;
+
       return {
         _type: "UserPermission",
         permission: permissionInput.permission,
         isBlockPermission: permissionInput.isBlockPermission || false,
         labelIds: permissionInput.labelIds || [],
-        scope: permissionInput.scope,
+        scope:
+          permissionInput.scope ||
+          (hasLabels && !permissionInput.isBlockPermission
+            ? PermissionScope.Labels
+            : PermissionScope.All),
       };
     },
   );
@@ -123,91 +158,18 @@ function createDatabaseProps(
     },
   };
 
-  if (!options?.withoutUser) {
+  if (options?.withoutUser) {
+    props.userType = UserType.API;
+  } else {
     props.userId = userId;
-  }
-
-  if (options?.userType) {
-    props.userType = options.userType;
+    props.userType = UserType.User;
   }
 
   return props;
 }
 
-function createLabel(name: string): Label {
-  const label: Label = new Label(ObjectID.generate());
-  label.name = name;
-  return label;
-}
-
-// A row as the helper's first (root) read returns it: _id, project, labels.
-function createAlertRow(alertId: ObjectID, labels: Array<Label> = []): Alert {
-  const alert: Alert = new Alert();
-  alert.id = alertId;
-  alert.projectId = projectId;
-  alert.labels = labels;
-  return alert;
-}
-
-// A row as the helper's second (scoped) read returns it: _id only.
-function createPermittedRow(alertId: ObjectID | string): Alert {
-  const alert: Alert = new Alert();
-  alert._id = alertId.toString();
-  return alert;
-}
-
-function asFindOperator(value: unknown): FindOperator<unknown> {
-  expect(value).toBeInstanceOf(FindOperator);
-  return value as FindOperator<unknown>;
-}
-
-// The ids (or other values) bound into a Raw FindOperator such as QueryHelper.any.
-function getRawParameterValues(value: unknown): Array<unknown> {
-  return Object.values(asFindOperator(value).objectLiteralParameters || {});
-}
-
-function getRawClause(value: unknown): RawClause {
-  const operator: FindOperator<unknown> = asFindOperator(value);
-  const getSql: ((aliasPath: string) => string) | undefined = operator.getSql;
-
-  return {
-    sql: getSql ? getSql("COLUMN") : "",
-    params: Object.values(operator.objectLiteralParameters || {}),
-  };
-}
-
-function toIdStrings(ids: Array<ObjectID>): Array<string> {
-  return ids.map((id: ObjectID): string => {
-    return id.toString();
-  });
-}
-
-function getFindByArgument(
-  findBySpy: FindBySpy,
-  callIndex: number,
-): FindByArgument {
-  const argument: FindByArgument | undefined =
-    findBySpy.mock.calls[callIndex]?.[0];
-
-  if (!argument) {
-    throw new Error(`AlertService.findBy call ${callIndex} was not made`);
-  }
-
-  return argument;
-}
-
-function getQueryValue(query: Query<Alert>, key: string): unknown {
-  return (query as Record<string, unknown>)[key];
-}
-
-function stubAlertReads(
-  firstReadRows: Array<Alert>,
-  permittedRows: Array<Alert>,
-): FindBySpy {
-  return jest
-    .spyOn(AlertService, "findBy")
-    .mockResolvedValueOnce(firstReadRows)
-    .mockResolvedValueOnce(permittedRows);
+function toKey(id: ObjectID | string): string {
+  return id.toString().toLowerCase();
 }
 
 function spyOnWrites(): WriteSpies {
@@ -221,9 +183,6 @@ function spyOnWrites(): WriteSpies {
       .mockRejectedValue(unexpectedWrite),
     alertUpdateOneById: jest
       .spyOn(AlertService, "updateOneById")
-      .mockRejectedValue(unexpectedWrite),
-    alertUpdateOneBy: jest
-      .spyOn(AlertService, "updateOneBy")
       .mockRejectedValue(unexpectedWrite),
     alertUpdateBy: jest
       .spyOn(AlertService, "updateBy")
@@ -243,89 +202,437 @@ function spyOnWrites(): WriteSpies {
 function expectNoWrites(writeSpies: WriteSpies): void {
   expect(writeSpies.alertCreate).not.toHaveBeenCalled();
   expect(writeSpies.alertUpdateOneById).not.toHaveBeenCalled();
-  expect(writeSpies.alertUpdateOneBy).not.toHaveBeenCalled();
   expect(writeSpies.alertUpdateBy).not.toHaveBeenCalled();
   expect(writeSpies.alertChangeState).not.toHaveBeenCalled();
   expect(writeSpies.alertAcknowledge).not.toHaveBeenCalled();
   expect(writeSpies.timelineCreate).not.toHaveBeenCalled();
 }
 
+async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error("Expected the check to refuse");
+}
+
+function check(data: {
+  alertIds: Array<ObjectID>;
+  props: DatabaseCommonInteractionProps;
+}): Promise<void> {
+  return AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+    projectId: projectId,
+    alertIds: data.alertIds,
+    alertStateId: acknowledgedStateId,
+    props: data.props,
+  });
+}
+
 describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void => {
   let writeSpies: WriteSpies;
-  let createPermissionSpy: SpyInstance<
-    typeof ModelPermission.checkCreatePermissions
-  >;
-  let updateByModelSpy: SpyInstance<
-    typeof ModelPermission.checkUpdatePermissionByModel
-  >;
-  let updateQuerySpy: SpyInstance<
-    typeof ModelPermission.checkUpdateQueryPermissions
-  >;
-  let findOneBySpy: SpyInstance<typeof AlertService.findOneBy>;
+
+  // The database's answers, per test.
+  let readableAlertIds: Set<string> | null;
+  let labelsByAlertId: Map<string, Array<ObjectID>>;
+  let ownedByUser: Array<ObjectID>;
+  let ownedByTeam: Array<{ alertId: ObjectID; teamId: ObjectID }>;
+
+  // What was asked of it.
+  let parentLookups: Array<ParentLookup>;
+  let labelLookups: Array<RecordLookup>;
 
   beforeEach((): void => {
     writeSpies = spyOnWrites();
-    // Pass-through spies: the real permission layer still runs.
-    createPermissionSpy = jest.spyOn(ModelPermission, "checkCreatePermissions");
-    updateByModelSpy = jest.spyOn(
-      ModelPermission,
-      "checkUpdatePermissionByModel",
-    );
-    updateQuerySpy = jest.spyOn(ModelPermission, "checkUpdateQueryPermissions");
-    findOneBySpy = jest
-      .spyOn(AlertService, "findOneBy")
-      .mockRejectedValue(new Error("the helper reads alerts with findBy only"));
+
+    readableAlertIds = null;
+    labelsByAlertId = new Map();
+    ownedByUser = [];
+    ownedByTeam = [];
+    parentLookups = [];
+    labelLookups = [];
+
+    /*
+     * The read of records as the caller - the alerts the state changes go
+     * under, and any other record the row names that the caller's read is
+     * held to: every record asked about is one the caller's read reaches,
+     * but for the alerts a test leaves out.
+     */
+    jest
+      .spyOn(
+        DatabaseService as unknown as {
+          findReadableParentIds: (data: {
+            parentModelType: { new (): DatabaseBaseModel };
+            ids: Array<string>;
+            query: Query<DatabaseBaseModel>;
+            props: DatabaseCommonInteractionProps;
+          }) => Promise<Array<string>>;
+        },
+        "findReadableParentIds",
+      )
+      .mockImplementation(
+        async (data: {
+          parentModelType: { new (): DatabaseBaseModel };
+          ids: Array<string>;
+          query: Query<DatabaseBaseModel>;
+          props: DatabaseCommonInteractionProps;
+        }): Promise<Array<string>> => {
+          const table: string = new data.parentModelType().tableName || "";
+
+          parentLookups.push({
+            table: table,
+            ids: [...data.ids],
+            query: data.query,
+            props: data.props,
+          });
+
+          if (table !== "Alert" || !readableAlertIds) {
+            return [...data.ids];
+          }
+
+          return data.ids.filter((id: string): boolean => {
+            return readableAlertIds!.has(toKey(id));
+          });
+        },
+      );
+
+    // Records read by OneUptime in the project: every one asked about is the project's.
+    jest
+      .spyOn(
+        DatabaseService as unknown as {
+          findIdsInProject: (data: {
+            ids: Array<string>;
+          }) => Promise<Array<string>>;
+        },
+        "findIdsInProject",
+      )
+      .mockImplementation(
+        async (data: { ids: Array<string> }): Promise<Array<string>> => {
+          return [...data.ids];
+        },
+      );
+
+    // The labels each alert carries, read by OneUptime.
+    jest
+      .spyOn(
+        DatabaseService as unknown as {
+          findRecordLabels: (data: {
+            modelType: { new (): DatabaseBaseModel };
+            ids: Array<string>;
+          }) => Promise<Record<string, Array<string>>>;
+        },
+        "findRecordLabels",
+      )
+      .mockImplementation(
+        async (data: {
+          modelType: { new (): DatabaseBaseModel };
+          ids: Array<string>;
+        }): Promise<Record<string, Array<string>>> => {
+          labelLookups.push({
+            table: new data.modelType().tableName || "",
+            ids: [...data.ids],
+          });
+
+          const labels: Record<string, Array<string>> = {};
+
+          for (const id of data.ids) {
+            labels[toKey(id)] = (labelsByAlertId.get(toKey(id)) || []).map(
+              toKey,
+            );
+          }
+
+          return labels;
+        },
+      );
+
+    jest
+      .spyOn(
+        DatabaseService as unknown as {
+          findLabelNames: (data: {
+            labelIds: Array<string>;
+          }) => Promise<Array<string>>;
+        },
+        "findLabelNames",
+      )
+      .mockImplementation(
+        async (data: { labelIds: Array<string> }): Promise<Array<string>> => {
+          return data.labelIds.map((labelId: string): string => {
+            return LABEL_NAMES[toKey(labelId)] || labelId;
+          });
+        },
+      );
+
+    // The alerts the caller, and each of their teams, own.
+    jest
+      .spyOn(AlertOwnerUserService, "findBy")
+      .mockImplementation((async (): Promise<Array<AlertOwnerUser>> => {
+        return ownedByUser.map((alertId: ObjectID): AlertOwnerUser => {
+          const owner: AlertOwnerUser = new AlertOwnerUser();
+          owner.alertId = alertId;
+          owner.userId = userId;
+          return owner;
+        });
+      }) as never);
+    jest
+      .spyOn(AlertOwnerTeamService, "findBy")
+      .mockImplementation((async (): Promise<Array<AlertOwnerTeam>> => {
+        return ownedByTeam.map(
+          (owned: { alertId: ObjectID; teamId: ObjectID }): AlertOwnerTeam => {
+            const owner: AlertOwnerTeam = new AlertOwnerTeam();
+            owner.alertId = owned.alertId;
+            owner.teamId = owned.teamId;
+            return owner;
+          },
+        );
+      }) as never);
   });
 
   afterEach((): void => {
     jest.restoreAllMocks();
   });
 
-  describe("short circuits", (): void => {
-    test("a root caller is let through without a permission check or any read", async (): Promise<void> => {
-      const findBySpy: FindBySpy = jest
-        .spyOn(AlertService, "findBy")
-        .mockRejectedValue(new Error("root must not read alerts"));
+  function alertLookups(): Array<ParentLookup> {
+    return parentLookups.filter((lookup: ParentLookup): boolean => {
+      return lookup.table === "Alert";
+    });
+  }
+
+  describe("it asks the alert state timeline's own create check, for each alert", (): void => {
+    let checkSpy: SpyInstance<CheckCallerMayCreate>;
+
+    beforeEach((): void => {
+      checkSpy = jest
+        .spyOn(AlertStateTimelineService, "checkCallerMayCreate")
+        .mockResolvedValue(undefined);
+    });
+
+    test("once per alert, with the row that alert's change would be: the project, the alert and the state it moves to", async (): Promise<void> => {
+      const props: DatabaseCommonInteractionProps = createDatabaseProps([
+        { permission: Permission.AlertMember },
+      ]);
+      const first: ObjectID = ObjectID.generate();
+      const second: ObjectID = ObjectID.generate();
 
       await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
+        check({ alertIds: [first, second], props: props }),
+      ).resolves.toBeUndefined();
+
+      expect(checkSpy).toHaveBeenCalledTimes(2);
+
+      for (const [index, alertId] of [first, second].entries()) {
+        const asked: Parameters<CheckCallerMayCreate>[0] =
+          checkSpy.mock.calls[index]![0];
+        const row: AlertStateTimeline = asked.data;
+
+        expect(row).toBeInstanceOf(AlertStateTimeline);
+        expect(row.projectId).toBe(projectId);
+        expect(row.alertId).toBe(alertId);
+        expect(row.alertStateId).toBe(acknowledgedStateId);
+        // When the change starts, as the page's create fills it in.
+        expect(row.startsAt).toBeInstanceOf(Date);
+        // Asked as the caller, with their own props.
+        expect(asked.props).toBe(props);
+      }
+
+      // A row of its own for each alert: the check changes the row it is given.
+      expect(checkSpy.mock.calls[0]![0].data).not.toBe(
+        checkSpy.mock.calls[1]![0].data,
+      );
+      expectNoWrites(writeSpies);
+    });
+
+    test("each alert once, whatever the case of its id", async (): Promise<void> => {
+      const alertId: ObjectID = ObjectID.generate();
+
+      await check({
+        alertIds: [
+          alertId,
+          new ObjectID(alertId.toString().toUpperCase()),
+          alertId,
+        ],
+        props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+      });
+
+      expect(checkSpy).toHaveBeenCalledTimes(1);
+      expect(toKey(checkSpy.mock.calls[0]![0].data.alertId!)).toBe(
+        toKey(alertId),
+      );
+    });
+
+    test("refuses when one alert is refused, in the create check's own words", async (): Promise<void> => {
+      const allowed: ObjectID = ObjectID.generate();
+      const refused: ObjectID = ObjectID.generate();
+      const alsoAllowed: ObjectID = ObjectID.generate();
+      const refusal: CreateScopeException = new CreateScopeException(
+        "Your access lets you create Alert State Timelines only for records with one of these labels: team-a.",
+      );
+
+      checkSpy.mockImplementation(
+        async (data: Parameters<CheckCallerMayCreate>[0]): Promise<void> => {
+          if (toKey(data.data.alertId!) === toKey(refused)) {
+            throw refusal;
+          }
+        },
+      );
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [allowed, refused, alsoAllowed],
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      );
+
+      expect(error).toBe(refusal);
+      expectNoWrites(writeSpies);
+    });
+
+    test("a few at a time means a few: more than one, and never enough to take many connections at once", (): void => {
+      expect(ALERTS_CHECKED_AT_ONCE).toBeGreaterThan(1);
+      expect(ALERTS_CHECKED_AT_ONCE).toBeLessThanOrEqual(10);
+    });
+
+    test("asks the alerts a few at a time: once one of them is refused, the later ones are not asked", async (): Promise<void> => {
+      const alertIds: Array<ObjectID> = Array.from(
+        { length: ALERTS_CHECKED_AT_ONCE * 2 + 1 },
+        (): ObjectID => {
+          return ObjectID.generate();
+        },
+      );
+      const refusal: NotAuthorizedException = new NotAuthorizedException(
+        "Refused.",
+      );
+      let running: number = 0;
+      let mostAtOnce: number = 0;
+
+      checkSpy.mockImplementation(
+        async (data: Parameters<CheckCallerMayCreate>[0]): Promise<void> => {
+          running++;
+          mostAtOnce = Math.max(mostAtOnce, running);
+
+          await new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, 5);
+          });
+
+          running--;
+
+          if (toKey(data.data.alertId!) === toKey(alertIds[1]!)) {
+            throw refusal;
+          }
+        },
+      );
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: alertIds,
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      );
+
+      expect(error).toBe(refusal);
+      // The first few were asked together, and none after them.
+      expect(mostAtOnce).toBe(ALERTS_CHECKED_AT_ONCE);
+      expect(checkSpy).toHaveBeenCalledTimes(ALERTS_CHECKED_AT_ONCE);
+      expect(
+        checkSpy.mock.calls.map(
+          (call: [Parameters<CheckCallerMayCreate>[0]]): string => {
+            return toKey(call[0].data.alertId!);
+          },
+        ),
+      ).toEqual(alertIds.slice(0, ALERTS_CHECKED_AT_ONCE).map(toKey));
+    });
+
+    test("every alert is asked when none is refused, never more than a few at once", async (): Promise<void> => {
+      const alertIds: Array<ObjectID> = Array.from(
+        { length: ALERTS_CHECKED_AT_ONCE * 2 + 3 },
+        (): ObjectID => {
+          return ObjectID.generate();
+        },
+      );
+      let running: number = 0;
+      let mostAtOnce: number = 0;
+
+      checkSpy.mockImplementation(async (): Promise<void> => {
+        running++;
+        mostAtOnce = Math.max(mostAtOnce, running);
+
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 2);
+        });
+
+        running--;
+      });
+
+      await expect(
+        check({
+          alertIds: alertIds,
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(checkSpy).toHaveBeenCalledTimes(alertIds.length);
+      expect(mostAtOnce).toBeLessThanOrEqual(ALERTS_CHECKED_AT_ONCE);
+    });
+
+    test("of several alerts refused together, the first in the order given answers", async (): Promise<void> => {
+      const first: ObjectID = ObjectID.generate();
+      const second: ObjectID = ObjectID.generate();
+      const firstRefusal: NotAuthorizedException = new NotAuthorizedException(
+        "The first alert is refused.",
+      );
+      const secondRefusal: NotAuthorizedException = new NotAuthorizedException(
+        "The second alert is refused.",
+      );
+
+      checkSpy.mockImplementation(
+        async (data: Parameters<CheckCallerMayCreate>[0]): Promise<void> => {
+          if (toKey(data.data.alertId!) === toKey(first)) {
+            // Answers last.
+            await new Promise<void>((resolve: () => void): void => {
+              setTimeout(resolve, 10);
+            });
+            throw firstRefusal;
+          }
+
+          throw secondRefusal;
+        },
+      );
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [first, second],
+          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
+        }),
+      );
+
+      expect(error).toBe(firstRefusal);
+    });
+
+    test("a root caller is let through without a check", async (): Promise<void> => {
+      await expect(
+        check({
           alertIds: [ObjectID.generate(), ObjectID.generate()],
           props: { isRoot: true },
         }),
       ).resolves.toBeUndefined();
 
-      expect(findBySpy).not.toHaveBeenCalled();
-      expect(findOneBySpy).not.toHaveBeenCalled();
-      expect(createPermissionSpy).not.toHaveBeenCalled();
-      expect(updateByModelSpy).not.toHaveBeenCalled();
-      expect(updateQuerySpy).not.toHaveBeenCalled();
+      expect(checkSpy).not.toHaveBeenCalled();
       expectNoWrites(writeSpies);
     });
 
-    test("an empty alert list is let through without a permission check or any read, whoever the caller is", async (): Promise<void> => {
-      const findBySpy: FindBySpy = jest
-        .spyOn(AlertService, "findBy")
-        .mockRejectedValue(new Error("no alerts means no read"));
-
-      // A Viewer could not change any alert's state; with no alerts it does not matter.
+    test("no alerts is let through without a check, whoever the caller is", async (): Promise<void> => {
       await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
+        check({
           alertIds: [],
           props: createDatabaseProps([{ permission: Permission.Viewer }]),
         }),
       ).resolves.toBeUndefined();
 
-      expect(findBySpy).not.toHaveBeenCalled();
-      expect(createPermissionSpy).not.toHaveBeenCalled();
-      expect(updateByModelSpy).not.toHaveBeenCalled();
-      expect(updateQuerySpy).not.toHaveBeenCalled();
-      expectNoWrites(writeSpies);
+      expect(checkSpy).not.toHaveBeenCalled();
     });
   });
 
-  describe("the AlertStateTimeline create half", (): void => {
+  describe("it takes the state timeline's create permission, and no Edit Alert", (): void => {
     test.each([
       { name: "Viewer", permissions: [Permission.Viewer] },
       { name: "AlertViewer", permissions: [Permission.AlertViewer] },
@@ -334,55 +641,106 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
         permissions: [Permission.ReadAlert, Permission.ReadAlertStateTimeline],
       },
       {
-        name: "EditAlert without CreateAlertStateTimeline",
+        name: "EditAlert and ReadAlert, without CreateAlertStateTimeline",
         permissions: [Permission.EditAlert, Permission.ReadAlert],
+      },
+      {
+        // AlertStateTimeline is not an operational resource: the wildcards do not reach it.
+        name: "the operational-resource wildcards",
+        permissions: [
+          Permission.CreateAllOperationalResources,
+          Permission.EditAllOperationalResources,
+          Permission.ReadAlert,
+        ],
+      },
+      {
+        name: "IncidentMember, who may declare incidents from alerts",
+        permissions: [Permission.IncidentMember],
       },
     ])(
       "$name is refused before any alert is read",
-      async ({
-        permissions,
-      }: {
-        name: string;
-        permissions: Array<Permission>;
-      }): Promise<void> => {
-        const findBySpy: FindBySpy = jest
-          .spyOn(AlertService, "findBy")
-          .mockRejectedValue(
-            new Error("must not read before the create check"),
-          );
-
-        const promise: Promise<void> =
-          AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-            projectId,
+      async (data: { permissions: Array<Permission> }): Promise<void> => {
+        const error: unknown = await rejectionOf(
+          check({
             alertIds: [ObjectID.generate()],
             props: createDatabaseProps(
-              permissions.map((permission: Permission): PermissionInput => {
-                return { permission };
-              }),
+              data.permissions.map(
+                (permission: Permission): PermissionInput => {
+                  return { permission };
+                },
+              ),
             ),
-          });
-
-        await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-        await expect(promise).rejects.toThrow(
-          "You do not have permissions to create Alert State Timeline.",
+          }),
         );
 
-        expect(createPermissionSpy).toHaveBeenCalledTimes(1);
-        expect(findBySpy).not.toHaveBeenCalled();
-        expect(updateByModelSpy).not.toHaveBeenCalled();
-        expect(updateQuerySpy).not.toHaveBeenCalled();
+        expect(error).toBeInstanceOf(NotAuthorizedException);
+        expect((error as Error).message).toContain(
+          "Create Alert State Timeline",
+        );
+        expect(parentLookups).toEqual([]);
+        expect(labelLookups).toEqual([]);
         expectNoWrites(writeSpies);
       },
     );
 
-    test("a table-wide block on CreateAlertStateTimeline wins over ProjectMember, before any alert is read", async (): Promise<void> => {
-      const findBySpy: FindBySpy = jest
-        .spyOn(AlertService, "findBy")
-        .mockRejectedValue(new Error("must not read before the create check"));
+    test.each([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+    ])(
+      "%s may change the alerts' states",
+      async (permission: Permission): Promise<void> => {
+        await expect(
+          check({
+            alertIds: [ObjectID.generate(), ObjectID.generate()],
+            props: createDatabaseProps([{ permission }]),
+          }),
+        ).resolves.toBeUndefined();
 
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
+        expectNoWrites(writeSpies);
+      },
+    );
+
+    test("a custom role with Create Alert State Timeline and Read Alert, but no Edit Alert, may change the alerts' states", async (): Promise<void> => {
+      const first: ObjectID = ObjectID.generate();
+      const second: ObjectID = ObjectID.generate();
+
+      await expect(
+        check({
+          alertIds: [first, second],
+          props: createDatabaseProps([
+            { permission: Permission.CreateAlertStateTimeline },
+            { permission: Permission.ReadAlert },
+          ]),
+        }),
+      ).resolves.toBeUndefined();
+
+      // Each alert was read as the caller, and nothing was written.
+      expect(
+        alertLookups().map((lookup: ParentLookup): Array<string> => {
+          return lookup.ids.map(toKey);
+        }),
+      ).toEqual([[toKey(first)], [toKey(second)]]);
+      expectNoWrites(writeSpies);
+    });
+
+    test("a team's block on Edit Alert does not stop it: changing a state is not editing the alert", async (): Promise<void> => {
+      await expect(
+        check({
+          alertIds: [ObjectID.generate()],
+          props: createDatabaseProps([
+            { permission: Permission.ProjectMember },
+            { permission: Permission.EditAlert, isBlockPermission: true },
+          ]),
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    test("a team's block on Create Alert State Timeline stops it, even for a Project Member, before any alert is read", async (): Promise<void> => {
+      const error: unknown = await rejectionOf(
+        check({
           alertIds: [ObjectID.generate()],
           props: createDatabaseProps([
             { permission: Permission.ProjectMember },
@@ -391,819 +749,486 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
               isBlockPermission: true,
             },
           ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(
-        "because CreateAlertStateTimeline is in your team's permission block list.",
-      );
-
-      expect(findBySpy).not.toHaveBeenCalled();
-      expectNoWrites(writeSpies);
-    });
-
-    test("a caller with no credentials keeps the 401 (NotAuthenticatedException) and nothing is read", async (): Promise<void> => {
-      const findBySpy: FindBySpy = jest
-        .spyOn(AlertService, "findBy")
-        .mockRejectedValue(new Error("must not read for an anonymous caller"));
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [ObjectID.generate()],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }], {
-            withoutUser: true,
-          }),
         }),
-      ).rejects.toBeInstanceOf(NotAuthenticatedException);
+      );
 
-      expect(findBySpy).not.toHaveBeenCalled();
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(parentLookups).toEqual([]);
       expectNoWrites(writeSpies);
     });
 
-    test("the probe is an AlertStateTimeline in the project, for the first alert, with an alert state id", async (): Promise<void> => {
-      const firstAlertId: ObjectID = ObjectID.generate();
-      const secondAlertId: ObjectID = ObjectID.generate();
-      const props: DatabaseCommonInteractionProps = createDatabaseProps([
-        { permission: Permission.AlertMember },
-      ]);
-      stubAlertReads(
-        [createAlertRow(firstAlertId), createAlertRow(secondAlertId)],
-        [createPermittedRow(firstAlertId), createPermittedRow(secondAlertId)],
+    test("a caller with no credentials keeps the 401, and nothing is read", async (): Promise<void> => {
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [ObjectID.generate()],
+          props: { tenantId: projectId },
+        }),
       );
 
-      await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-        projectId,
-        alertIds: [firstAlertId, secondAlertId],
-        props,
-      });
+      expect(error).toBeInstanceOf(NotAuthenticatedException);
+      expect(parentLookups).toEqual([]);
+      expectNoWrites(writeSpies);
+    });
 
-      expect(createPermissionSpy).toHaveBeenCalledTimes(1);
-      const [modelType, probe, probeProps] = createPermissionSpy.mock
-        .calls[0] as unknown as [
-        typeof AlertStateTimeline,
-        AlertStateTimeline,
-        DatabaseCommonInteractionProps,
-      ];
-      expect(modelType).toBe(AlertStateTimeline);
-      expect(probe).toBeInstanceOf(AlertStateTimeline);
-      expect(probe.projectId?.toString()).toBe(projectId.toString());
-      expect(probe.alertId?.toString()).toBe(firstAlertId.toString());
-      expect(probe.alertStateId).toBeInstanceOf(ObjectID);
-      expect(probe.alertStateId?.toString()).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
-      expect(probeProps).toBe(props);
+    test("an API key with Create Alert State Timeline and Read Alert may change the alerts' states", async (): Promise<void> => {
+      await expect(
+        check({
+          alertIds: [ObjectID.generate()],
+          props: createDatabaseProps(
+            [
+              { permission: Permission.CreateAlertStateTimeline },
+              { permission: Permission.ReadAlert },
+            ],
+            { withoutUser: true },
+          ),
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    test("a master admin, not root, is let through by every check, and nothing is read", async (): Promise<void> => {
+      await expect(
+        check({
+          alertIds: [ObjectID.generate()],
+          props: {
+            ...createDatabaseProps([]),
+            isMasterAdmin: true,
+          },
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(parentLookups).toEqual([]);
       expectNoWrites(writeSpies);
     });
   });
 
-  describe("the Alert update half", (): void => {
-    test("an AlertMember with project-wide access may change every alert the scoped read returns", async (): Promise<void> => {
-      const alertIds: Array<ObjectID> = [
-        ObjectID.generate(),
-        ObjectID.generate(),
-        ObjectID.generate(),
-      ];
+  describe("each alert must be one the caller may read", (): void => {
+    test("the alert is read as the caller, in the project, with every record looked up and no service hook to lean on", async (): Promise<void> => {
+      const alertId: ObjectID = ObjectID.generate();
+      const props: DatabaseCommonInteractionProps = createDatabaseProps([
+        { permission: Permission.CreateAlertStateTimeline },
+        { permission: Permission.ReadAlert },
+      ]);
+
+      await check({ alertIds: [alertId], props: props });
+
+      const lookups: Array<ParentLookup> = alertLookups();
+
+      expect(lookups).toHaveLength(1);
+      expect(lookups[0]!.ids.map(toKey)).toEqual([toKey(alertId)]);
+      expect(lookups[0]!.props.userId).toBe(userId);
+      expect(lookups[0]!.props.tenantId).toBe(projectId);
+      expect(lookups[0]!.props.isRoot).toBeFalsy();
+      // No hook of the timeline service runs: the check looks the alert up itself.
+      expect(lookups[0]!.props.ignoreHooks).toBe(true);
+      // The caller's own props are left as they were.
+      expect(props.ignoreHooks).toBeUndefined();
+    });
+
+    test("an alert the caller's read does not reach is refused as if it did not exist", async (): Promise<void> => {
+      const readable: ObjectID = ObjectID.generate();
+      const unreadable: ObjectID = ObjectID.generate();
+      readableAlertIds = new Set([toKey(readable)]);
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [readable, unreadable],
+          props: createDatabaseProps([
+            { permission: Permission.CreateAlertStateTimeline },
+            { permission: Permission.ReadAlert, labelIds: [TEAM_A] },
+          ]),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(UnreadableParentException);
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as Error).message).toContain(unreadable.toString());
+      expect((error as Error).message).not.toContain(readable.toString());
+      expectNoWrites(writeSpies);
+    });
+
+    test("a caller who sees only some private alerts reads them with the alert privacy rule", async (): Promise<void> => {
+      await check({
+        alertIds: [ObjectID.generate()],
+        props: createDatabaseProps([
+          { permission: Permission.CreateAlertStateTimeline },
+          { permission: Permission.ReadAlert },
+        ]),
+      });
+
+      const query: Record<string, unknown> = alertLookups()[0]!
+        .query as unknown as Record<string, unknown>;
+
+      expect(query["isPrivate"]).toBeInstanceOf(FindOperator);
+
+      const operator: FindOperator<unknown> = query[
+        "isPrivate"
+      ] as FindOperator<unknown>;
+      const sql: string = operator.getSql ? operator.getSql("COLUMN") : "";
+
+      // A private alert passes only for its owners.
+      expect(sql).toContain('"AlertOwnerUser"');
+      expect(sql).toContain('"AlertOwnerTeam"');
+      expect(Object.values(operator.objectLiteralParameters || {})).toEqual([
+        userId.toString(),
+      ]);
+    });
+
+    test("an API key, which owns nothing, reads no private alert", async (): Promise<void> => {
+      await check({
+        alertIds: [ObjectID.generate()],
+        props: createDatabaseProps(
+          [
+            { permission: Permission.CreateAlertStateTimeline },
+            { permission: Permission.ReadAlert },
+          ],
+          { withoutUser: true },
+        ),
+      });
+
+      const operator: FindOperator<unknown> = (
+        alertLookups()[0]!.query as unknown as Record<string, unknown>
+      )["isPrivate"] as FindOperator<unknown>;
+
+      expect(operator).toBeInstanceOf(FindOperator);
+      expect(operator.getSql!("COLUMN")).toBe(
+        "(COLUMN IS NULL OR COLUMN = FALSE)",
+      );
+    });
+
+    test("a Project Owner, who sees every private alert, reads them without it", async (): Promise<void> => {
+      await check({
+        alertIds: [ObjectID.generate()],
+        props: createDatabaseProps([{ permission: Permission.ProjectOwner }]),
+      });
+
+      const lookups: Array<ParentLookup> = alertLookups();
+
+      expect(lookups).toHaveLength(1);
+      expect(
+        (lookups[0]!.query as unknown as Record<string, unknown>)["isPrivate"],
+      ).toBeUndefined();
+    });
+
+    test("a private alert the caller does not own is refused, and one they own goes through", async (): Promise<void> => {
+      const theirs: ObjectID = ObjectID.generate();
+      const someoneElses: ObjectID = ObjectID.generate();
+      // What the database answers to the read with the privacy rule.
+      readableAlertIds = new Set([toKey(theirs)]);
+
       const props: DatabaseCommonInteractionProps = createDatabaseProps([
         { permission: Permission.AlertMember },
       ]);
-      const firstReadRows: Array<Alert> = alertIds.map(
-        (alertId: ObjectID): Alert => {
-          return createAlertRow(alertId);
-        },
-      );
-      // The database may return the permitted rows in any order.
-      const findBySpy: FindBySpy = stubAlertReads(firstReadRows, [
-        createPermittedRow(alertIds[2]!),
-        createPermittedRow(alertIds[0]!),
-        createPermittedRow(alertIds[1]!),
-      ]);
 
       await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds,
-          props,
-        }),
+        check({ alertIds: [theirs], props: props }),
       ).resolves.toBeUndefined();
 
-      expect(findBySpy).toHaveBeenCalledTimes(2);
+      const error: unknown = await rejectionOf(
+        check({ alertIds: [theirs, someoneElses], props: props }),
+      );
 
-      /*
-       * Read 1: the alerts, whose they are and their labels, as root,
-       * bounded per project.
-       */
-      const firstRead: FindByArgument = getFindByArgument(findBySpy, 0);
-      expect(firstRead.select).toEqual({
-        _id: true,
-        projectId: true,
-        labels: {
-          _id: true,
-          name: true,
-        },
-      });
-      expect(firstRead.limit).toBe(LIMIT_PER_PROJECT);
-      expect(firstRead.skip).toBe(0);
-      expect(firstRead.props).toEqual({ isRoot: true });
-      expect(Object.keys(firstRead.query).sort()).toEqual(["_id", "projectId"]);
-      expect(getQueryValue(firstRead.query, "projectId")).toBe(projectId);
-      expect(
-        getRawParameterValues(getQueryValue(firstRead.query, "_id")),
-      ).toEqual([toIdStrings(alertIds)]);
-
-      // Every row read is checked against the caller's update rules.
-      expect(updateByModelSpy).toHaveBeenCalledTimes(3);
-      for (let index: number = 0; index < firstReadRows.length; index++) {
-        const call: Parameters<
-          typeof ModelPermission.checkUpdatePermissionByModel
-        >[0] = updateByModelSpy.mock.calls[index]![0] as Parameters<
-          typeof ModelPermission.checkUpdatePermissionByModel
-        >[0];
-        expect(call.modelType).toBe(Alert);
-        expect(call.props).toBe(props);
-        await expect(call.fetchModelWithAccessControlIds()).resolves.toBe(
-          firstReadRows[index],
-        );
-      }
-
-      // Read 2: the caller's update scope, as root, bounded per project.
-      const permittedRead: FindByArgument = getFindByArgument(findBySpy, 1);
-      expect(permittedRead.select).toEqual({ _id: true });
-      expect(permittedRead.limit).toBe(LIMIT_PER_PROJECT);
-      expect(permittedRead.skip).toBe(0);
-      expect(permittedRead.props).toEqual({ isRoot: true });
-      expect(
-        getRawParameterValues(getQueryValue(permittedRead.query, "_id")),
-      ).toEqual([toIdStrings(alertIds)]);
-      expect(
-        getRawParameterValues(getQueryValue(permittedRead.query, "projectId")),
-      ).toEqual([projectId.toString()]);
-      // Project-wide access adds no label scope.
-      expect(getQueryValue(permittedRead.query, "labels")).toBeUndefined();
-
-      /*
-       * Order: the create probe, read 1, the per-alert checks, the scoped
-       * update query, then read 2.
-       */
-      const probeOrder: number =
-        createPermissionSpy.mock.invocationCallOrder[0]!;
-      const firstReadOrder: number = findBySpy.mock.invocationCallOrder[0]!;
-      const perAlertOrders: Array<number> =
-        updateByModelSpy.mock.invocationCallOrder;
-      const updateQueryOrder: number =
-        updateQuerySpy.mock.invocationCallOrder[0]!;
-      const permittedReadOrder: number = findBySpy.mock.invocationCallOrder[1]!;
-      expect(probeOrder).toBeLessThan(firstReadOrder);
-      expect(Math.min(...perAlertOrders)).toBeGreaterThan(firstReadOrder);
-      expect(Math.max(...perAlertOrders)).toBeLessThan(updateQueryOrder);
-      expect(updateQueryOrder).toBeLessThan(permittedReadOrder);
-
-      expect(findOneBySpy).not.toHaveBeenCalled();
-      expectNoWrites(writeSpies);
+      expect(error).toBeInstanceOf(UnreadableParentException);
     });
 
-    test("the update check is asked about {_id: any(ids), projectId} writing a zero currentAlertStateId", async (): Promise<void> => {
-      const alertIds: Array<ObjectID> = [
-        ObjectID.generate(),
-        ObjectID.generate(),
-      ];
+    test("an AlertMember limited to label A, for reading and creating, may change an alert carrying A, and not one carrying only B", async (): Promise<void> => {
+      const alertA: ObjectID = ObjectID.generate();
+      const alertB: ObjectID = ObjectID.generate();
+      labelsByAlertId.set(toKey(alertA), [TEAM_A]);
+      labelsByAlertId.set(toKey(alertB), [TEAM_B]);
+      // A read limited to label A reaches only the alerts carrying it.
+      readableAlertIds = new Set([toKey(alertA)]);
+
       const props: DatabaseCommonInteractionProps = createDatabaseProps([
-        { permission: Permission.AlertMember },
+        { permission: Permission.AlertMember, labelIds: [TEAM_A] },
       ]);
-      const findBySpy: FindBySpy = stubAlertReads(
-        alertIds.map((alertId: ObjectID): Alert => {
-          return createAlertRow(alertId);
-        }),
-        alertIds.map((alertId: ObjectID): Alert => {
-          return createPermittedRow(alertId);
-        }),
-      );
-
-      await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-        projectId,
-        alertIds,
-        props,
-      });
-
-      expect(updateQuerySpy).toHaveBeenCalledTimes(1);
-      const [modelType, query, data, queryProps] = updateQuerySpy.mock
-        .calls[0] as unknown as [
-        typeof Alert,
-        Query<Alert>,
-        Record<string, unknown>,
-        DatabaseCommonInteractionProps,
-      ];
-      expect(modelType).toBe(Alert);
-      expect(queryProps).toBe(props);
-      expect(data).toEqual({ currentAlertStateId: ObjectID.getZeroObjectID() });
-      expect(Object.keys(data)).toEqual(["currentAlertStateId"]);
-      expect(Object.keys(query).sort()).toEqual(["_id", "projectId"]);
-      expect(getQueryValue(query, "projectId")).toBe(projectId);
-      expect(getRawParameterValues(getQueryValue(query, "_id"))).toEqual([
-        toIdStrings(alertIds),
-      ]);
-      // The same {_id, projectId} query the rows were read with.
-      expect(query).toBe(getFindByArgument(findBySpy, 0).query);
-      // The permission layer works on a copy: the caller's query is not scoped in place.
-      expect(getQueryValue(query, "isPrivate")).toBeUndefined();
-      expectNoWrites(writeSpies);
-    });
-
-    test("CreateAlertStateTimeline without any Alert update permission is refused after the first read", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId)],
-      );
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([
-            { permission: Permission.CreateAlertStateTimeline },
-            { permission: Permission.ReadAlert },
-          ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(
-        "You do not have permissions to update Alert.",
-      );
-
-      expect(createPermissionSpy).toHaveBeenCalledTimes(1);
-      expect(findBySpy).toHaveBeenCalledTimes(1);
-      // Refused by the per-alert update check, before the scoped query.
-      expect(updateByModelSpy).toHaveBeenCalledTimes(1);
-      expect(updateQuerySpy).not.toHaveBeenCalled();
-      expectNoWrites(writeSpies);
-    });
-
-    test("CreateAlertStateTimeline without Alert update is still refused when the first read finds none of the alerts", async (): Promise<void> => {
-      // No rows means no per-alert check; the scoped update query must refuse by itself.
-      const findBySpy: FindBySpy = stubAlertReads([], []);
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [ObjectID.generate()],
-          props: createDatabaseProps([
-            { permission: Permission.CreateAlertStateTimeline },
-            { permission: Permission.ReadAlert },
-          ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(
-        "You do not have permissions to update Alert.",
-      );
-
-      expect(updateByModelSpy).not.toHaveBeenCalled();
-      expect(updateQuerySpy).toHaveBeenCalledTimes(1);
-      expect(findBySpy).toHaveBeenCalledTimes(1);
-      expectNoWrites(writeSpies);
-    });
-
-    test("a custom role with CreateAlertStateTimeline and EditAlert may change the alerts", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId)],
-      );
 
       await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([
-            { permission: Permission.CreateAlertStateTimeline },
-            { permission: Permission.EditAlert },
-            { permission: Permission.ReadAlert },
-          ]),
-        }),
+        check({ alertIds: [alertA], props: props }),
       ).resolves.toBeUndefined();
 
-      expect(findBySpy).toHaveBeenCalledTimes(2);
-      expectNoWrites(writeSpies);
-    });
-
-    test("an alert id the project does not have (neither read returns it) is refused", async (): Promise<void> => {
-      const ownAlertId: ObjectID = ObjectID.generate();
-      const foreignAlertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(ownAlertId)],
-        [createPermittedRow(ownAlertId)],
+      const error: unknown = await rejectionOf(
+        check({ alertIds: [alertB], props: props }),
       );
 
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [ownAlertId, foreignAlertId],
-          props: createDatabaseProps([{ permission: Permission.ProjectOwner }]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(REFUSAL_MESSAGE);
-
-      expect(findBySpy).toHaveBeenCalledTimes(2);
-      expect(updateByModelSpy).toHaveBeenCalledTimes(1);
+      expect(error).toBeInstanceOf(BadDataException);
       expectNoWrites(writeSpies);
     });
   });
 
-  describe("label scope", (): void => {
-    test("Viewer plus AlertMember for label A is refused by the permission layer when one alert carries only label B", async (): Promise<void> => {
-      const labelA: Label = createLabel("team-a");
-      const labelB: Label = createLabel("team-b");
-      const alertA: ObjectID = ObjectID.generate();
+  describe("what the caller's create permission reaches through each alert", (): void => {
+    test("Viewer plus Create Alert State Timeline limited to label A: an alert carrying only label B is refused, naming the label", async (): Promise<void> => {
       const alertB: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertA, [labelA]), createAlertRow(alertB, [labelB])],
-        [createPermittedRow(alertA)],
-      );
+      labelsByAlertId.set(toKey(alertB), [TEAM_B]);
 
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertA, alertB],
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [alertB],
           props: createDatabaseProps([
             { permission: Permission.Viewer },
-            { permission: Permission.AlertMember, labelIds: [labelA.id!] },
+            {
+              permission: Permission.CreateAlertStateTimeline,
+              labelIds: [TEAM_A],
+            },
           ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(
-        "You do not have permission to update this Alert. You need to have one of the following labels: team-b.",
+        }),
       );
 
-      // alert A passed, alert B was refused, and the scoped read never ran.
-      expect(updateByModelSpy).toHaveBeenCalledTimes(2);
-      expect(findBySpy).toHaveBeenCalledTimes(1);
-      expect(updateQuerySpy).not.toHaveBeenCalled();
+      expect(error).toBeInstanceOf(CreateScopeException);
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        "Your access lets you create Alert State Timelines only for records with one of these labels: team-a.",
+      );
+      // The alert's labels, read by OneUptime.
+      expect(labelLookups).toEqual([{ table: "Alert", ids: [toKey(alertB)] }]);
       expectNoWrites(writeSpies);
     });
 
-    /*
-     * An AlertMember limited to label A reads only alerts carrying it: an
-     * unlabelled alert is one they may not read, so it is answered as
-     * missing, its labels unnamed.
-     */
-    test("an AlertMember for label A is answered as if an unlabelled alert were missing", async (): Promise<void> => {
-      const labelA: Label = createLabel("team-a");
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId, [])],
-        [],
-      );
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([
-            { permission: Permission.AlertMember, labelIds: [labelA.id!] },
-          ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotFoundException);
-      await expect(promise).rejects.toThrow("Alert not found.");
-
-      expect(findBySpy).toHaveBeenCalledTimes(1);
-      expectNoWrites(writeSpies);
-    });
-
-    // One they may read but not change is refused, saying why.
-    test("an alert viewer whose AlertMember is limited to label A is refused an unlabelled alert", async (): Promise<void> => {
-      const labelA: Label = createLabel("team-a");
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId, [])],
-        [],
-      );
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([
-            { permission: Permission.AlertViewer },
-            { permission: Permission.AlertMember, labelIds: [labelA.id!] },
-          ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(
-        "You do not have permission to update Alert without any labels.",
-      );
-
-      expect(findBySpy).toHaveBeenCalledTimes(1);
-      expectNoWrites(writeSpies);
-    });
-
-    test("Viewer plus AlertMember for label A may change alerts that all carry label A, and the scoped read is narrowed to label A", async (): Promise<void> => {
-      const labelA: Label = createLabel("team-a");
-      const labelB: Label = createLabel("team-b");
-      const firstAlert: ObjectID = ObjectID.generate();
-      const secondAlert: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [
-          createAlertRow(firstAlert, [labelA]),
-          // Carrying another label as well does not matter.
-          createAlertRow(secondAlert, [labelB, labelA]),
-        ],
-        [createPermittedRow(firstAlert), createPermittedRow(secondAlert)],
-      );
+    test("...and an alert carrying label A goes through", async (): Promise<void> => {
+      const alertA: ObjectID = ObjectID.generate();
+      labelsByAlertId.set(toKey(alertA), [TEAM_A, TEAM_B]);
 
       await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [firstAlert, secondAlert],
+        check({
+          alertIds: [alertA],
           props: createDatabaseProps([
             { permission: Permission.Viewer },
-            { permission: Permission.AlertMember, labelIds: [labelA.id!] },
+            {
+              permission: Permission.CreateAlertStateTimeline,
+              labelIds: [TEAM_A],
+            },
           ]),
         }),
       ).resolves.toBeUndefined();
-
-      const permittedQuery: Query<Alert> = getFindByArgument(
-        findBySpy,
-        1,
-      ).query;
-      const labelFilter: unknown = getQueryValue(permittedQuery, "labels");
-      expect(labelFilter).toEqual({ _id: expect.any(FindOperator) });
-      expect(
-        getRawParameterValues((labelFilter as Record<string, unknown>)["_id"]),
-      ).toEqual([[labelA.id!.toString()]]);
-      expect(
-        getRawParameterValues(getQueryValue(permittedQuery, "_id")),
-      ).toEqual([toIdStrings([firstAlert, secondAlert])]);
-      expectNoWrites(writeSpies);
     });
 
-    test("an alert that passes the per-alert label check but is missing from the label-scoped read is refused", async (): Promise<void> => {
-      // e.g. relabelled between the two reads: the scoped read is the final word.
-      const labelA: Label = createLabel("team-a");
-      const firstAlert: ObjectID = ObjectID.generate();
-      const secondAlert: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [
-          createAlertRow(firstAlert, [labelA]),
-          createAlertRow(secondAlert, [labelA]),
-        ],
-        [createPermittedRow(firstAlert)],
-      );
+    test("an unlabelled alert is refused to a create permission limited to labels", async (): Promise<void> => {
+      const unlabelled: ObjectID = ObjectID.generate();
 
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [firstAlert, secondAlert],
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [unlabelled],
           props: createDatabaseProps([
-            { permission: Permission.AlertMember, labelIds: [labelA.id!] },
+            { permission: Permission.Viewer },
+            {
+              permission: Permission.CreateAlertStateTimeline,
+              labelIds: [TEAM_A],
+            },
           ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(REFUSAL_MESSAGE);
-
-      expect(findBySpy).toHaveBeenCalledTimes(2);
-      expectNoWrites(writeSpies);
-    });
-
-    test("an EditAlert block for label B refuses an alert labelled B even for a ProjectMember", async (): Promise<void> => {
-      const labelB: Label = createLabel("team-b");
-      const alertA: ObjectID = ObjectID.generate();
-      const alertB: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertA, []), createAlertRow(alertB, [labelB])],
-        [createPermittedRow(alertA), createPermittedRow(alertB)],
+        }),
       );
 
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertA, alertB],
+      expect(error).toBeInstanceOf(CreateScopeException);
+    });
+
+    test("a block with label B on Create Alert State Timeline refuses an alert carrying B, even for a Project Member", async (): Promise<void> => {
+      const alertB: ObjectID = ObjectID.generate();
+      labelsByAlertId.set(toKey(alertB), [TEAM_B]);
+
+      const error: unknown = await rejectionOf(
+        check({
+          alertIds: [alertB],
+          props: createDatabaseProps([
+            { permission: Permission.ProjectMember },
+            {
+              permission: Permission.CreateAlertStateTimeline,
+              isBlockPermission: true,
+              labelIds: [TEAM_B],
+            },
+          ]),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(CreateScopeException);
+      expect((error as Error).message).toContain(
+        'is in your team\'s permission block list for the label "team-b"',
+      );
+    });
+
+    test("...and lets an alert without label B through", async (): Promise<void> => {
+      const alertA: ObjectID = ObjectID.generate();
+      labelsByAlertId.set(toKey(alertA), [TEAM_A]);
+
+      await expect(
+        check({
+          alertIds: [alertA],
+          props: createDatabaseProps([
+            { permission: Permission.ProjectMember },
+            {
+              permission: Permission.CreateAlertStateTimeline,
+              isBlockPermission: true,
+              labelIds: [TEAM_B],
+            },
+          ]),
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    test("a block with label B on Edit Alert leaves an alert carrying B to be changed", async (): Promise<void> => {
+      const alertB: ObjectID = ObjectID.generate();
+      labelsByAlertId.set(toKey(alertB), [TEAM_B]);
+
+      await expect(
+        check({
+          alertIds: [alertB],
           props: createDatabaseProps([
             { permission: Permission.ProjectMember },
             {
               permission: Permission.EditAlert,
               isBlockPermission: true,
-              labelIds: [labelB.id!],
+              labelIds: [TEAM_B],
             },
           ]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(
-        "You are not authorized to update this Alert because EditAlert is in your team's permission block list.",
-      );
-
-      expect(findBySpy).toHaveBeenCalledTimes(1);
-      expect(updateQuerySpy).not.toHaveBeenCalled();
-      expectNoWrites(writeSpies);
+        }),
+      ).resolves.toBeUndefined();
     });
-  });
 
-  describe("Owned scope", (): void => {
-    test("AlertViewer plus Owned AlertMember is refused when the scoped read leaves out an alert they do not own", async (): Promise<void> => {
+    test("Create Alert State Timeline limited to owned records: an alert the caller's team owns goes through, one they do not own is refused", async (): Promise<void> => {
       const teamId: ObjectID = ObjectID.generate();
-      const ownedAlert: ObjectID = ObjectID.generate();
-      const otherAlert: ObjectID = ObjectID.generate();
-      const ownerUser: AlertOwnerUser = new AlertOwnerUser();
-      ownerUser.alertId = ownedAlert;
-      const ownerUserSpy: SpyInstance<typeof AlertOwnerUserService.findBy> =
-        jest
-          .spyOn(AlertOwnerUserService, "findBy")
-          .mockResolvedValue([ownerUser]);
-      const ownerTeamSpy: SpyInstance<typeof AlertOwnerTeamService.findBy> =
-        jest.spyOn(AlertOwnerTeamService, "findBy").mockResolvedValue([]);
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(ownedAlert), createAlertRow(otherAlert)],
-        [createPermittedRow(ownedAlert)],
-      );
+      const ownedByTheirTeam: ObjectID = ObjectID.generate();
+      const ownedByThem: ObjectID = ObjectID.generate();
+      const notTheirs: ObjectID = ObjectID.generate();
+      ownedByTeam = [{ alertId: ownedByTheirTeam, teamId: teamId }];
+      ownedByUser = [ownedByThem];
 
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [ownedAlert, otherAlert],
-          props: createDatabaseProps(
-            [
-              { permission: Permission.AlertViewer },
-              {
-                permission: Permission.AlertMember,
-                scope: PermissionScope.Owned,
-              },
-            ],
-            { userTeamIds: [teamId] },
-          ),
-        });
-
-      // The per-alert check cannot see ownership; the scoped read is what refuses.
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(REFUSAL_MESSAGE);
-
-      expect(updateByModelSpy).toHaveBeenCalledTimes(2);
-      expect(ownerUserSpy).toHaveBeenCalledTimes(1);
-      expect(ownerUserSpy.mock.calls[0]?.[0].query).toEqual({
-        userId,
-        projectId,
-      });
-      expect(ownerTeamSpy).toHaveBeenCalledTimes(1);
-      expect(
-        getRawParameterValues(ownerTeamSpy.mock.calls[0]?.[0].query.teamId),
-      ).toEqual([[teamId.toString()]]);
-
-      // The scoped read is narrowed to {requested ids} AND {owned ids}.
-      const idFilter: FindOperator<unknown> = asFindOperator(
-        getQueryValue(getFindByArgument(findBySpy, 1).query, "_id"),
-      );
-      expect(idFilter.type).toBe("and");
-      const conditions: Array<unknown> = idFilter.value as Array<unknown>;
-      expect(conditions).toHaveLength(2);
-      expect(getRawParameterValues(conditions[0])).toEqual([
-        toIdStrings([ownedAlert, otherAlert]),
-      ]);
-      expect(getRawParameterValues(conditions[1])).toEqual([
-        [ownedAlert.toString()],
-      ]);
-      expectNoWrites(writeSpies);
-    });
-
-    test("an Owned AlertMember may change alerts their team owns", async (): Promise<void> => {
-      const teamId: ObjectID = ObjectID.generate();
-      const alertId: ObjectID = ObjectID.generate();
-      const ownerTeam: AlertOwnerTeam = new AlertOwnerTeam();
-      ownerTeam.alertId = alertId;
-      ownerTeam.teamId = teamId;
-      jest.spyOn(AlertOwnerUserService, "findBy").mockResolvedValue([]);
-      jest
-        .spyOn(AlertOwnerTeamService, "findBy")
-        .mockResolvedValue([ownerTeam]);
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId)],
-      );
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps(
-            [
-              {
-                permission: Permission.AlertMember,
-                scope: PermissionScope.Owned,
-              },
-            ],
-            { userTeamIds: [teamId] },
-          ),
-        }),
-      ).resolves.toBeUndefined();
-
-      expect(findBySpy).toHaveBeenCalledTimes(2);
-      expectNoWrites(writeSpies);
-    });
-  });
-
-  describe("alert privacy", (): void => {
-    test("a private alert the caller does not own is refused: the scoped read carries the self-privacy filter", async (): Promise<void> => {
-      const publicAlert: ObjectID = ObjectID.generate();
-      const privateAlert: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(publicAlert), createAlertRow(privateAlert)],
-        // What the database returns once the privacy clause hides the private alert.
-        [createPermittedRow(publicAlert)],
-      );
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [publicAlert, privateAlert],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(REFUSAL_MESSAGE);
-
-      // The first read is the unscoped root read: no privacy clause there.
-      expect(
-        getQueryValue(getFindByArgument(findBySpy, 0).query, "isPrivate"),
-      ).toBeUndefined();
-
-      const privacy: RawClause = getRawClause(
-        getQueryValue(getFindByArgument(findBySpy, 1).query, "isPrivate"),
-      );
-      expect(privacy.sql).toContain("COLUMN IS NULL OR COLUMN = FALSE");
-      expect(privacy.sql).toContain('FROM "AlertOwnerUser"');
-      expect(privacy.sql).toContain('FROM "AlertOwnerTeam"');
-      expect(privacy.params).toEqual([userId.toString()]);
-      expectNoWrites(writeSpies);
-    });
-
-    test("an API key (no user) gets the no-owner privacy clause, which hides every private alert", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId)],
-        [],
-      );
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }], {
-            withoutUser: true,
-            userType: UserType.API,
-          }),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(REFUSAL_MESSAGE);
-
-      const privacy: RawClause = getRawClause(
-        getQueryValue(getFindByArgument(findBySpy, 1).query, "isPrivate"),
-      );
-      expect(privacy.sql).toBe("(COLUMN IS NULL OR COLUMN = FALSE)");
-      expect(privacy.params).toEqual([]);
-      expectNoWrites(writeSpies);
-    });
-
-    test("a ProjectOwner bypasses alert privacy: the scoped read has no privacy clause", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId)],
-      );
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([{ permission: Permission.ProjectOwner }]),
-        }),
-      ).resolves.toBeUndefined();
-
-      const permittedQuery: Query<Alert> = getFindByArgument(
-        findBySpy,
-        1,
-      ).query;
-      expect(Object.keys(permittedQuery)).not.toContain("isPrivate");
-      expect(
-        getRawParameterValues(getQueryValue(permittedQuery, "_id")),
-      ).toEqual([[alertId.toString()]]);
-      expectNoWrites(writeSpies);
-    });
-  });
-
-  describe("matching the scoped read to the requested ids", (): void => {
-    test("ids are compared case-insensitively: upper-case requested ids match lower-case rows", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      const upperCaseId: ObjectID = new ObjectID(
-        alertId.toString().toUpperCase(),
-      );
-      stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId.toString().toLowerCase())],
-      );
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [upperCaseId],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
-        }),
-      ).resolves.toBeUndefined();
-      expectNoWrites(writeSpies);
-    });
-
-    test("ids are compared case-insensitively: lower-case requested ids match upper-case rows", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId.toString().toUpperCase())],
-      );
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
-        }),
-      ).resolves.toBeUndefined();
-      expectNoWrites(writeSpies);
-    });
-
-    test("a repeated id needs only one permitted row", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      stubAlertReads([createAlertRow(alertId)], [createPermittedRow(alertId)]);
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId, new ObjectID(alertId.toString())],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
-        }),
-      ).resolves.toBeUndefined();
-    });
-
-    test("a permitted row without an _id does not stand in for any alert", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      stubAlertReads([createAlertRow(alertId)], [new Alert()]);
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([{ permission: Permission.AlertMember }]),
-        }),
-      ).rejects.toThrow(REFUSAL_MESSAGE);
-    });
-
-    test("an empty scoped read refuses even a ProjectOwner", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      stubAlertReads([createAlertRow(alertId)], []);
-
-      const promise: Promise<void> =
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: createDatabaseProps([{ permission: Permission.ProjectOwner }]),
-        });
-
-      await expect(promise).rejects.toBeInstanceOf(NotAuthorizedException);
-      await expect(promise).rejects.toThrow(REFUSAL_MESSAGE);
-      expectNoWrites(writeSpies);
-    });
-  });
-
-  describe("master admin", (): void => {
-    test("a master admin (not root) still goes through both reads, and the permission layer lets every check through", async (): Promise<void> => {
-      const alertId: ObjectID = ObjectID.generate();
-      const findBySpy: FindBySpy = stubAlertReads(
-        [createAlertRow(alertId)],
-        [createPermittedRow(alertId)],
-      );
-
-      await expect(
-        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
-          projectId,
-          alertIds: [alertId],
-          props: {
-            isMasterAdmin: true,
-            userId,
-            userType: UserType.MasterAdmin,
-            tenantId: projectId,
+      const props: DatabaseCommonInteractionProps = createDatabaseProps(
+        [
+          { permission: Permission.Viewer },
+          {
+            permission: Permission.CreateAlertStateTimeline,
+            scope: PermissionScope.Owned,
           },
-        }),
+        ],
+        { userTeamIds: [teamId] },
+      );
+
+      await expect(
+        check({ alertIds: [ownedByTheirTeam, ownedByThem], props: props }),
       ).resolves.toBeUndefined();
 
-      expect(findBySpy).toHaveBeenCalledTimes(2);
-      // No privacy clause for a master admin.
-      expect(
-        getQueryValue(getFindByArgument(findBySpy, 1).query, "isPrivate"),
-      ).toBeUndefined();
+      const error: unknown = await rejectionOf(
+        check({ alertIds: [notTheirs], props: props }),
+      );
+
+      expect(error).toBeInstanceOf(CreateScopeException);
+      expect((error as Error).message).toBe(
+        "Your access lets you create Alert State Timelines only for the Alerts you or your teams own.",
+      );
       expectNoWrites(writeSpies);
+    });
+  });
+
+  describe("it is the same rule acknowledging one alert on its own page follows", (): void => {
+    /*
+     * The row each alert's change would be is asked about through the very
+     * check AlertStateTimelineService.create runs before it writes: the two
+     * agree for every caller below.
+     */
+    test.each([
+      {
+        name: "a custom role with Create Alert State Timeline and Read Alert",
+        permissions: [
+          { permission: Permission.CreateAlertStateTimeline },
+          { permission: Permission.ReadAlert },
+        ],
+        allowed: true,
+      },
+      {
+        name: "EditAlert and ReadAlert alone",
+        permissions: [
+          { permission: Permission.EditAlert },
+          { permission: Permission.ReadAlert },
+        ],
+        allowed: false,
+      },
+      {
+        name: "a Project Member blocked from editing alerts",
+        permissions: [
+          { permission: Permission.ProjectMember },
+          { permission: Permission.EditAlert, isBlockPermission: true },
+        ],
+        allowed: true,
+      },
+      {
+        name: "a Project Member blocked from creating alert state timelines",
+        permissions: [
+          { permission: Permission.ProjectMember },
+          {
+            permission: Permission.CreateAlertStateTimeline,
+            isBlockPermission: true,
+          },
+        ],
+        allowed: false,
+      },
+    ])(
+      "$name: declaring asks what the alert's own state timeline create asks",
+      async (data: {
+        permissions: Array<PermissionInput>;
+        allowed: boolean;
+      }): Promise<void> => {
+        const checkSpy: SpyInstance<CheckCallerMayCreate> = jest.spyOn(
+          AlertStateTimelineService,
+          "checkCallerMayCreate",
+        );
+
+        const result: Promise<void> = check({
+          alertIds: [ObjectID.generate()],
+          props: createDatabaseProps(data.permissions),
+        });
+
+        if (data.allowed) {
+          await expect(result).resolves.toBeUndefined();
+        } else {
+          await expect(result).rejects.toBeInstanceOf(NotAuthorizedException);
+        }
+
+        // Through the timeline service's own create check, not a check of its own.
+        expect(checkSpy).toHaveBeenCalledTimes(1);
+        expectNoWrites(writeSpies);
+      },
+    );
+
+    test("the create check asked is AlertStateTimelineService's: the service whose create a person's acknowledge is", (): void => {
+      expect(AlertStateTimelineService.modelType).toBe(AlertStateTimeline);
+      expect(
+        Object.getPrototypeOf(AlertStateTimelineService).checkCallerMayCreate,
+      ).toBe(DatabaseService.prototype.checkCallerMayCreate);
+    });
+
+    /*
+     * The row asked about carries the project, the alert, the state and when
+     * it starts. The other columns the timeline's create hook fills in on
+     * the alert's page - why the state changed, when it ends - are creatable
+     * by exactly the table's create permissions, so asking about them would
+     * change nothing; the ones OneUptime computes are never the caller's.
+     * A column whose create permissions came to differ would make the row
+     * asked about too small: this fails first.
+     */
+    test("the columns the page's create hook fills in besides add nothing to the check", (): void => {
+      const timeline: AlertStateTimeline = new AlertStateTimeline();
+      const tableCreate: Array<Permission> = [
+        ...timeline.getCreatePermissions(),
+      ].sort();
+
+      for (const column of ["rootCause", "endsAt", "startsAt"]) {
+        expect([
+          column,
+          [
+            ...(timeline.getColumnAccessControlFor(column)?.create || []),
+          ].sort(),
+        ]).toEqual([column, tableCreate]);
+      }
+
+      for (const column of ["isOwnerNotified", "stateChangeLog"]) {
+        expect([
+          column,
+          Boolean(timeline.getTableColumnMetadata(column)?.computed),
+        ]).toEqual([column, true]);
+      }
+    });
+
+    test("Alert is the record a state timeline row is read through, so it is the parent each check reads", (): void => {
+      expect(new AlertStateTimeline().canAccessIfCanReadOn).toBe("alert");
+      expect(new Alert().tableName).toBe("Alert");
     });
   });
 });

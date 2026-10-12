@@ -59,7 +59,7 @@ spec:
             - name: health
               containerPort: 13133
               protocol: TCP
-            {{- if .Values.ebpf.enabled }}
+            {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
             - name: otlp-http
               containerPort: 4318
               protocol: TCP

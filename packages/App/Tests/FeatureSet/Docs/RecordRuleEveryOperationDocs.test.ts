@@ -104,7 +104,7 @@ describe("Users, Teams & Permissions: one rule for reading, changing and deletin
       "A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when one of those records carries one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. A record that is about none of them, such as an AI insight about no service, belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.",
     );
     expect(paragraphs[3]).toMatch(
-      /^Where to find it: \*\*Settings → Labels\*\*/,
+      /^Where to find it: \*\*Project Settings > Basic > Labels\*\*/,
     );
   });
 

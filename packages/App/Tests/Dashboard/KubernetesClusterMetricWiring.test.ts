@@ -43,8 +43,12 @@ const IDLE_THRESHOLDS: RegExp =
   /thresholds=\{\{ warn: (\d+), danger: (\d+) \}\}/;
 const EFFICIENCY_GREEN: RegExp = /percent >= (\d+) \? "bg-green-50/;
 const EFFICIENCY_YELLOW: RegExp = /: percent >= (\d+) \? "bg-yellow-50/;
+/*
+ * The silence threshold, in minutes of time OneUptime was receiving
+ * (issue #2825): with no gap that is the same as that many minutes ago.
+ */
 const DISCONNECT_MINUTES: RegExp =
-  /OneUptimeDate\.getCurrentDate\(\), -(\d+), \);/;
+  /ReceivingCoverage\.getSilenceCutoff\(\{ silenceInMinutes: (\d+), \}\);/;
 const TOP_PODS_HOURS: RegExp =
   /const hoursBack: number = options\.hoursBack \|\| (\d+);/;
 

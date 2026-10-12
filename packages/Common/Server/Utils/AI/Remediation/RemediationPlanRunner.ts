@@ -36,6 +36,7 @@ import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * Auto-remediation — the AI planning run.
@@ -108,13 +109,20 @@ function capText(text: string, maxChars: number): string {
 }
 
 /*
- * Redact secrets, THEN cap. Order matters: capping first could slice a
- * secret across the boundary so the redaction regex no longer matches it.
- * Exported for the remediation-execution runner, which embeds the same
- * attacker-influenceable signal text under the same rules.
+ * Redact secrets (with embedded data left out around it), THEN cap. Order
+ * matters: capping first could slice a secret across the boundary so the
+ * redaction regex no longer matches it. A description that starts with a
+ * screenshot would otherwise reach the model as its first few thousand
+ * characters of base64, with the words after it cut off (see
+ * ToolResultSerializer.redactAndOmitEmbeddedData: the image becomes a short
+ * note). Exported for the remediation-execution runner, which embeds the
+ * same attacker-influenceable signal text under the same rules.
  */
 export function redactAndCap(text: string, maxChars: number): string {
-  return capText(ToolResultSerializer.redact(text).text, maxChars);
+  return capText(
+    ToolResultSerializer.redactAndOmitEmbeddedData(text).text,
+    maxChars,
+  );
 }
 
 export default class RemediationPlanRunner {
@@ -588,7 +596,9 @@ export default class RemediationPlanRunner {
     for (const runbook of data.candidates) {
       lines.push(
         `- id: ${runbook.id?.toString()} — "${runbook.name || "Unnamed"}"${
-          runbook.description ? `: ${runbook.description}` : ""
+          runbook.description
+            ? `: ${PromptText.field(runbook.description)}`
+            : ""
         }`,
       );
     }

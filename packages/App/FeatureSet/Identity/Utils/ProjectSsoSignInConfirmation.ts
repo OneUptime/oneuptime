@@ -17,6 +17,7 @@ import {
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
@@ -318,7 +319,7 @@ export default class ProjectSsoSignInConfirmation {
 
       await MailService.sendMail({
         toEmail: data.user.email as Email,
-        subject: "Confirm single sign-on for your OneUptime account",
+        subject: `Confirm single sign-on for your ${ProductBrandingText.getProductName()} account`,
         isSubjectLiteral: true,
         templateType: EmailTemplateType.ConfirmProjectSsoSignIn,
         vars: {

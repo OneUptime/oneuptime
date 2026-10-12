@@ -10,6 +10,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -309,9 +310,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               : "Configure LLM Providers for AI features. Connect to OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or other providers.",
           }}
           documentationLink={Route.fromString("/docs/ai/llm-provider")}
-          selectMoreFields={{
-            apiKey: true,
-          }}
           noItemsMessage={
             "No LLM Providers configured. Add an LLM Provider to enable AI features for your project."
           }
@@ -377,7 +375,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               required: false,
               placeholder: "sk-...",
               description:
-                "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
+                "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
             },
             {
               field: {
@@ -387,9 +385,10 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.Text,
               required: false,
-              placeholder: "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
+              placeholder:
+                "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
               description:
-                "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
+                "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
             },
             {
               field: {
@@ -400,8 +399,17 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FormFieldSchemaType.URL,
               required: false,
               placeholder: "http://ollama:11434",
+              /*
+               * The column holds 100 characters. Said at the field, before
+               * the save: a deployment's whole Target URI with its
+               * api-version runs longer, and the resource's endpoint, which
+               * is all the field needs, is short.
+               */
+              validation: {
+                maxLength: ColumnLength.ShortURL,
+              },
               description:
-                "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+                "Required for Azure OpenAI / Microsoft Foundry, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI / Microsoft Foundry use your resource's endpoint, e.g. https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
             },
             {
               field: {

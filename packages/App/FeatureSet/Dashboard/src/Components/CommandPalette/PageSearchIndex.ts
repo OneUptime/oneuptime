@@ -324,6 +324,32 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Label,
             keywords: ["tags", "create label"],
           },
+          {
+            page: PageMap.SETTINGS_IMPORT_FROM_TOOL,
+            title: "Import from another tool",
+            icon: IconProp.InboxArrowDown,
+            keywords: [
+              "import",
+              "migrate",
+              "migration",
+              "move to oneuptime",
+              "switch to oneuptime",
+              "opsgenie",
+              "pagerduty",
+              "splunk on-call",
+              "victorops",
+              "grafana oncall",
+              "grafana irm",
+              "uptimerobot",
+              "uptime robot",
+              "atlassian statuspage",
+              "better stack",
+              "betterstack",
+              "pingdom",
+              "statuscake",
+              "uptime kuma",
+            ],
+          },
         ],
       },
       {
@@ -723,6 +749,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       }),
+      {
+        title: "Integrations",
+        pages: [
+          {
+            page: PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS,
+            title: "Huntress",
+            icon: IconProp.ShieldCheck,
+            keywords: [
+              "edr",
+              "itdr",
+              "mdr",
+              "security incidents",
+              "incident reports",
+            ],
+          },
+        ],
+      },
       {
         title: "Rules",
         pages: [
@@ -1442,9 +1485,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         pages: [
           {
-            page: PageMap.LLM_OVERVIEW,
-            title: "Overview",
-            icon: IconProp.ChartBar,
+            page: PageMap.LLM_CONVERSATIONS,
+            title: "Conversations",
+            icon: IconProp.ChatBubbleLeftRight,
+            keywords: [
+              "chats",
+              "sessions",
+              "replay",
+              "prompts",
+              "answers",
+              "transcript",
+            ],
+          },
+          {
+            page: PageMap.LLM_CALLS,
+            title: "Calls",
+            icon: IconProp.List,
+            keywords: ["llm calls", "prompts", "completions"],
           },
           {
             page: PageMap.LLM_USAGE,
@@ -1453,10 +1510,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["tokens", "llm cost"],
           },
           {
-            page: PageMap.LLM_CALLS,
-            title: "LLM Calls",
-            icon: IconProp.List,
-            keywords: ["prompts", "completions"],
+            page: PageMap.LLM_ALERTS,
+            title: "Alerts",
+            icon: IconProp.Bell,
+            keywords: [
+              "ai alerts",
+              "bad answers",
+              "refusals",
+              "hallucination",
+              "ai monitor",
+            ],
           },
           {
             page: PageMap.LLM_BUDGETS,
@@ -2005,12 +2068,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.NETWORK_OVERVIEW,
             title: "Overview",
             icon: IconProp.Window,
+            keywords: ["network health", "network status"],
           },
           {
             page: PageMap.NETWORK_DEVICES,
             title: "Devices",
             icon: IconProp.Signal,
-            keywords: ["network devices", "routers", "switches", "snmp"],
+            keywords: [
+              "network devices",
+              "routers",
+              "switches",
+              "firewalls",
+              "snmp",
+              "add device",
+            ],
           },
           {
             page: PageMap.NETWORK_SITES,
@@ -2019,24 +2090,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["network sites", "locations", "offices"],
           },
           {
-            page: PageMap.NETWORK_DEVICE_ENDPOINTS,
-            title: "Endpoints",
-            icon: IconProp.Squares,
-          },
-          {
-            page: PageMap.NETWORK_DEVICE_DISCOVERY,
-            title: "Discovery Scans",
-            icon: IconProp.Search,
-            keywords: ["scan network", "find devices"],
-          },
-        ],
-      },
-      {
-        title: "Topology",
-        pages: [
-          {
             page: PageMap.NETWORK_SITE_MAP,
-            title: "Network Map",
+            title: "Map",
             icon: IconProp.Map,
             /*
              * The top of the map, as the menu opens it: an empty site
@@ -2044,12 +2099,50 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
              * (getNetworkMapRootRoute).
              */
             queryString: "?site=",
-            keywords: ["site map"],
+            keywords: ["network map", "site map", "geo map"],
           },
+          {
+            page: PageMap.NETWORK_TRAFFIC,
+            title: "Traffic",
+            icon: IconProp.ArrowUpDown,
+            keywords: [
+              "netflow",
+              "ipfix",
+              "sflow",
+              "flows",
+              "top talkers",
+              "bandwidth",
+              "network traffic",
+            ],
+          },
+          {
+            page: PageMap.NETWORK_DEVICE_DISCOVERY,
+            title: "Discovery",
+            icon: IconProp.Search,
+            keywords: [
+              "discovery scans",
+              "scan network",
+              "find devices",
+              "discover devices",
+              "subnet scan",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Topology",
+        pages: [
           {
             page: PageMap.NETWORK_DEVICE_TOPOLOGY,
             title: "Device Topology",
             icon: IconProp.Graph,
+            keywords: ["lldp", "cdp", "neighbors"],
+          },
+          {
+            page: PageMap.NETWORK_DEVICE_ENDPOINTS,
+            title: "Endpoints",
+            icon: IconProp.Squares,
+            keywords: ["arp", "mac addresses", "connected devices"],
           },
           {
             page: PageMap.NETWORK_DEVICE_LATENCY_MATRIX,
@@ -2060,11 +2153,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.NETWORK_SITE_LINKS,
             title: "Site Links",
             icon: IconProp.Link,
+            keywords: ["wan links"],
           },
           {
             page: PageMap.NETWORK_DEVICE_LINKS,
             title: "Device Links",
             icon: IconProp.Link,
+            keywords: ["cables"],
           },
         ],
       },
@@ -2094,15 +2189,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Settings",
         pages: [
           {
-            page: PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
-            title: "Device Roles",
-            icon: IconProp.Identification,
-          },
-          {
-            page: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
-            title: "OID Collection Templates",
-            icon: IconProp.List,
-            keywords: ["snmp oids"],
+            page: PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
+            title: "Alert Policies",
+            icon: IconProp.Alert,
+            keywords: ["network alerts", "device alerts"],
           },
           {
             page: PageMap.NETWORK_DEVICE_SETTINGS_SNMP_CREDENTIAL_PROFILES,
@@ -2111,14 +2201,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["community string", "snmp v3"],
           },
           {
-            page: PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES,
-            title: "Alert Policies",
-            icon: IconProp.Alert,
+            page: PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES,
+            title: "Device Roles",
+            icon: IconProp.Identification,
           },
           {
             page: PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES,
             title: "Site Types",
             icon: IconProp.Layers,
+          },
+          {
+            page: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,
+            title: "OID Collection Templates",
+            icon: IconProp.List,
+            keywords: ["snmp oids"],
           },
         ],
       },

@@ -780,7 +780,7 @@ describe("live updates follow every change of access", () => {
 
       test("turning Require SSO off tells no server about a project where it was off already, and tells about one where it was on", async () => {
         jest
-          .spyOn(ProjectService, "findAllBy")
+          .spyOn(ProjectService, "findBy")
           .mockResolvedValue([
             projectWithRule(PROJECT, { requireSsoForLogin: false }),
             projectWithRule(OTHER_PROJECT, { requireSsoForLogin: true }),
@@ -805,7 +805,7 @@ describe("live updates follow every change of access", () => {
 
       test("clearing the provider a project requires tells nobody where none was required; where one was, it is told", async () => {
         const reads: jest.SpyInstance = jest
-          .spyOn(ProjectService, "findAllBy")
+          .spyOn(ProjectService, "findBy")
           .mockResolvedValue([
             projectWithRule(PROJECT, { requireSsoForLogin: true }),
           ] as never);
@@ -861,7 +861,7 @@ describe("live updates follow every change of access", () => {
         "a write that asks for more - %s - is told for every project it wrote, whatever the rules were, and reads nothing before it",
         async (_label: string, data: Record<string, unknown>) => {
           const reads: jest.SpyInstance = jest
-            .spyOn(ProjectService, "findAllBy")
+            .spyOn(ProjectService, "findBy")
             .mockResolvedValue([
               projectWithRule(PROJECT, {
                 requireSsoForLogin: true,
@@ -894,7 +894,7 @@ describe("live updates follow every change of access", () => {
 
       test("when the rules cannot be read before the write, every project it wrote is told, so no change is missed", async () => {
         jest
-          .spyOn(ProjectService, "findAllBy")
+          .spyOn(ProjectService, "findBy")
           .mockRejectedValue(new Error("The database is not answering"));
 
         const update: OnUpdate<User & UserSession> = updateOf<User>({
@@ -917,7 +917,7 @@ describe("live updates follow every change of access", () => {
       });
 
       test("a write that names no rule reads nothing before it", async () => {
-        const reads: jest.SpyInstance = jest.spyOn(ProjectService, "findAllBy");
+        const reads: jest.SpyInstance = jest.spyOn(ProjectService, "findBy");
 
         await SsoRequirementChanges.rememberProjectRulesBefore(
           updateOf<User>({ name: "Renamed" }).updateBy as never,
@@ -930,8 +930,8 @@ describe("live updates follow every change of access", () => {
         const config: GlobalConfig = new GlobalConfig();
         config.requireSsoForLogin = false;
         const reads: jest.SpyInstance = jest
-          .spyOn(GlobalConfigService, "findOneBy")
-          .mockResolvedValue(config as never);
+          .spyOn(GlobalConfigService, "findBy")
+          .mockResolvedValue([config] as never);
 
         const offAgain: OnUpdate<User & UserSession> = updateOf<User>({
           requireSsoForLogin: false,
@@ -946,7 +946,7 @@ describe("live updates follow every change of access", () => {
 
         const wasOn: GlobalConfig = new GlobalConfig();
         wasOn.requireSsoForLogin = true;
-        reads.mockResolvedValue(wasOn as never);
+        reads.mockResolvedValue([wasOn] as never);
 
         const off: OnUpdate<User & UserSession> = updateOf<User>({
           requireSsoForLogin: false,
@@ -966,8 +966,8 @@ describe("live updates follow every change of access", () => {
         const config: GlobalConfig = new GlobalConfig();
         config.requireSsoForLogin = true;
         const reads: jest.SpyInstance = jest
-          .spyOn(GlobalConfigService, "findOneBy")
-          .mockResolvedValue(config as never);
+          .spyOn(GlobalConfigService, "findBy")
+          .mockResolvedValue([config] as never);
 
         const onAgain: OnUpdate<User & UserSession> = updateOf<User>({
           requireSsoForLogin: true,

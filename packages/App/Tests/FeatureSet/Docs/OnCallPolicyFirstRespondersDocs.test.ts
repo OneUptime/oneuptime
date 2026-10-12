@@ -6,6 +6,7 @@ import {
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { FIRST_RESPONDER_KEYS } from "Common/Types/OnCallDutyPolicy/FirstResponders";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { toLatinDigits } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -101,6 +102,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
       "How the levels page people",
       "Editing, reordering and deleting rules",
       "Creating rules with the API or Terraform",
+      "Next steps",
     ]);
   });
 
@@ -175,7 +177,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
         const pageSections: Array<{ heading: string; body: string }> =
           sections(page);
 
-        expect(pageSections).toHaveLength(5);
+        expect(pageSections).toHaveLength(6);
 
         const first: string = pageSections[0]!.body;
         const api: string = pageSections[4]!.body;
@@ -203,7 +205,12 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
           `**${getDefaultEscalationRuleName(1)}**`,
           `**${DEFAULT_ESCALATE_AFTER_IN_MINUTES}`,
         ]) {
-          expect({ lang, fact, found: first.includes(fact) }).toEqual({
+          // The wait in the language's digits: Persian writes 30 as ۳۰.
+          expect({
+            lang,
+            fact,
+            found: toLatinDigits(first).includes(fact),
+          }).toEqual({
             lang,
             fact,
             found: true,

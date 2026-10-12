@@ -78,6 +78,10 @@ import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentG
 
 import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnCallRules";
 
+// Integrations Pages
+import IncidentIntegrationsHuntress from "../Pages/Incidents/Integrations/Huntress";
+import IncidentIntegrationsHuntressView from "../Pages/Incidents/Integrations/HuntressView";
+
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
 
@@ -686,6 +690,35 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS] || ""
+          }
+          element={
+            <IncidentIntegrationsHuntress
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW] ||
+            ""
+          }
+          element={
+            <IncidentIntegrationsHuntressView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW] as Route
               }
             />
           }

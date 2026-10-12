@@ -4,7 +4,7 @@
 
 ## Typed nested attributes, not JSON
 
-`monitor_steps` is a **typed nested attribute**: a list of step objects written directly in HCL. There is no `jsonencode()`, no `{_type, value}` envelopes, no camelCase keys, and no hand-written ids — the provider translates your HCL to the API's wire format and the server generates all internal ids.
+`monitor_steps` is a **typed nested attribute**: a list of step objects written directly in HCL. There is no `jsonencode()`, no `{_type, value}` envelopes, no camelCase keys, and no hand-written ids — the provider translates your HCL to the API's wire format and the server generates all internal ids: one for every step, criteria, and incident and alert template. It keeps them across every apply — matching each criteria and template to the one it replaces by name, else by position — so probe results stay attached to their step and incidents keep pointing at the criteria that raised them, however often the configuration changes.
 
 ```hcl
 resource "oneuptime_monitor" "example" {
@@ -124,9 +124,9 @@ Each element of `monitor_steps` is one probe target:
 
 | Attribute | Type | Used by | Notes |
 |-----------|------|---------|-------|
-| `monitor_destination` | string | Website, API, Ping, Port, IP, SSL Certificate | The URL, hostname, or IP to probe. Requires `monitor_destination_type`. |
-| `monitor_destination_type` | string | same | `URL`, `Hostname`, or `IP` — must match the monitor type (URLs for Website/API/SSL Certificate; hostnames or IPs for Ping/Port/IP). |
-| `port` | number | Port | TCP port to probe, e.g. `443`. |
+| `monitor_destination` | string | Website, API, Ping, Port, IP, SSL Certificate, NTP | The URL, hostname, or IP to probe. Requires `monitor_destination_type`. |
+| `monitor_destination_type` | string | same | `URL`, `Hostname`, or `IP` — must match the monitor type (URLs for Website/API/SSL Certificate; hostnames or IPs for Ping/Port/IP/NTP). |
+| `port` | number | Port, NTP | TCP port to probe, e.g. `443`. For NTP, the UDP port the time server answers on; `123` when unset. |
 | `request_type` | string | Website, API | HTTP method: `GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `PATCH`. The server defaults to `GET`. |
 | `request_headers` | map(string) | API | Plain string map: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Raw request body string. |
@@ -143,7 +143,7 @@ Each element of `monitor_steps` is one probe target:
 | `retry_count_on_error` | number | Synthetic | Retries on script error. |
 | `criteria` | list (required) | all | The decision tree — see below. |
 
-Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`. Example for a Logs monitor:
+Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`. Example for a Logs monitor:
 
 ```hcl
 monitor_steps = [{
@@ -248,11 +248,12 @@ Common `check_on` values by monitor type:
 | Incoming Request | `Incoming Request`, `Request Body`, `Request Header` |
 | Server | `CPU Usage (in %)`, `Memory Usage (in %)`, `Disk Usage (in %)` (needs `disk_path`), `Server Process Name` |
 | Logs / Traces / Exceptions / Metrics | `Log Count`, `Span Count`, `Exception Count`, `Metric Value` (metric filters can carry `metric_monitor_options` JSON) |
-| Custom Code / Synthetic | `Result Value`, `Error`, `Execution Time (in ms)` |
+| Custom Code / Synthetic | `Result Value` (can compare one field of the returned data, named in `custom_code_monitor_options` JSON, e.g. `jsonencode({ resultValuePath = "status" })` — see below), `Error`, `Execution Time (in ms)` |
 | DNS / Domain / DNSSEC | `DNS Is Online`, `DNS Record Value`, `Domain Is Expired`, `DNSSEC Chain Is Valid` |
 | SQL Query | `SQL Is Online`, `SQL Query Row Count`, `SQL Query Scalar Value` |
 | Database Health | `Database Is Online`, `Database Metric` (requires `database_monitor_options` JSON naming the series, e.g. `jsonencode({ metricType = "oneuptime.monitor.database.connections.used.percent" })`), `Database Collection Error` |
 | External Status Page | `External Status Page Is Online`, `External Status Page Active Incidents`, `External Status Page Component Status` |
+| NTP | `NTP Is Online`, `NTP Is Synchronized`, `NTP Stratum`, `NTP Clock Offset (in ms)`, `NTP Response Time (in ms)`, `NTP Root Dispersion (in ms)` (`NTP Is Online` and `NTP Is Synchronized` take no `value`) |
 | Network Device (SNMP) | `SNMP Device Is Online` (reachable by ping or SNMP), `SNMP Walk Is Succeeding` (false is reachable-but-not-walkable), `SNMP OID Value` (SNMP filters can carry `snmp_monitor_options` JSON) |
 
 Common `filter_type` values:
@@ -280,6 +281,43 @@ filters = [
 
 The provider validates `check_on`, `filter_type`, and the other enum attributes at plan time, so a typo fails before anything is sent to the API. The full lists are visible in the dashboard's criteria editor; anything the dashboard accepts is valid here, using exactly the label the dashboard shows.
 
+### Comparing one field of a script's result
+
+A Custom Code or Synthetic monitor's script returns `data`, and a `Result Value` filter compares it. When `data` is an object or an array, `custom_code_monitor_options` names the one field of it to compare — the **Field Path** of the dashboard's Result Value filter. Use dots for nested fields and `[n]` for array items, and leave the attribute out to compare the whole value:
+
+```hcl
+monitor_steps = [{
+  custom_code = <<-EOT
+    const response = await axios.get("https://api.example.com/health");
+    // For example { status: "UP", checks: [{ name: "db", latency: 12 }] }
+    return { data: response.data };
+  EOT
+
+  criteria = [
+    {
+      name             = "Unhealthy"
+      filter_condition = "Any"
+      filters = [
+        {
+          check_on                    = "Result Value"
+          filter_type                 = "Not Equal To"
+          value                       = "UP"
+          custom_code_monitor_options = jsonencode({ resultValuePath = "status" })
+        },
+        {
+          check_on                    = "Result Value"
+          filter_type                 = "Greater Than"
+          value                       = "500"
+          custom_code_monitor_options = jsonencode({ resultValuePath = "checks[0].latency" })
+        }
+      ]
+    }
+  ]
+}]
+```
+
+`Greater Than` and the other number conditions only match a field that is a number, and a field missing from the returned data only matches `Is Empty`. See [Alerting on the returned data](/docs/monitor/custom-code-monitor#alerting-on-the-returned-data) for how paths and conditions work.
+
 ## Common mistakes
 
 1. **Passing empty placeholders.** `incidents = []`, `request_headers = {}`, or `description = ""` are rejected — omit the attribute instead. Absent always means "unset".
@@ -288,6 +326,10 @@ The provider validates `check_on`, `filter_type`, and the other enum attributes 
 4. **`change_monitor_status = true` without `monitor_status_id`.** The criteria then matches but has no status to switch to.
 5. **Writing ids.** There are no `id` attributes anywhere in `monitor_steps` anymore. If you are migrating old JSON, delete them — the server generates ids.
 6. **Escape hatches with hand-built strings.** Write `log_monitor` and friends with `jsonencode()` so Terraform handles quoting and produces canonical JSON (for `metric_monitor`, include the full object shape the dashboard produces — the server normalizes it).
+
+## When no criteria matches
+
+A check that matches none of the criteria puts the monitor in its *default status*: the project's operational status, the same one the dashboard preselects for a new monitor. Its open incidents whose criteria opted into auto-resolve are resolved too. To keep a status change for every outcome under your control, end the list with a broad "healthy" criteria, as the examples on this page do.
 
 ## Omitting monitor_steps entirely
 

@@ -1,8 +1,5 @@
 import Permission from "Common/Types/Permission";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Runner from "Common/Models/DatabaseModels/Runner";
@@ -83,7 +80,9 @@ export function canChangeProjectAiSettings(): boolean {
 /*
  * Whether the signed-in user may pick a Kubernetes credential for an
  * advanced Runner. The picker lists RunbookCredential rows, which carry
- * cluster tokens and are deliberately not readable by every member.
+ * cluster tokens and are deliberately not readable by every member - and
+ * reading them is what the server asks of whoever binds one
+ * (RunbookCredentialReaders), so it is the whole rule.
  */
 export function canPickKubernetesCredential(): boolean {
   return PermissionGate.check(new RunbookCredential(), ModelAction.Read)
@@ -181,11 +180,6 @@ export function getKubernetesAiAccessEditCapabilities(): KubernetesAiAccessEditC
   return {
     canConfigureUnattended,
     canPickRunner: canConfigureUnattended && canPickKubernetesRunner(),
-    canPickCredential:
-      canConfigureUnattended &&
-      canPickKubernetesCredential() &&
-      holdsKubernetesAiAccessPermission(
-        KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-      ),
+    canPickCredential: canConfigureUnattended && canPickKubernetesCredential(),
   };
 }

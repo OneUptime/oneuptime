@@ -3,6 +3,7 @@ import {
   SESSION_TRACE_STATE_KEY,
   buildSessionTraceStateMember,
 } from "Common/Utils/Rum/SessionTraceState";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -130,9 +131,7 @@ function tableRow(markdown: string, firstCell: string): string {
   const row: string | undefined = markdown
     .split("\n")
     .find((line: string): boolean => {
-      return new RegExp(
-        `^\\|\\s*${firstCell.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|`,
-      ).test(line);
+      return new RegExp(`^\\|\\s*${escapeRegExp(firstCell)}\\s*\\|`).test(line);
     });
 
   expect([firstCell, row !== undefined]).toEqual([firstCell, true]);

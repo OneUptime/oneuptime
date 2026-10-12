@@ -26,8 +26,6 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -39,6 +37,16 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import VMwareCollectionMethod from "Common/Types/VMware/VMwareCollectionMethod";
+import { JSONObject } from "Common/Types/JSON";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import ProbeUtil from "../../Utils/Probe";
+import {
+  VMWARE_CONNECT_FORM_STEPS,
+  getVMwareConnectFormFields,
+} from "../../Components/VMware/VMwareConnectionFormFields";
+import { isProbeCollected } from "../../Components/VMware/VMwareProbeCollectionView";
 
 /*
  * While the project has no vCenters yet, re-count on this cadence so the
@@ -52,6 +60,8 @@ const VMwareVCenters: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [clusterCount, setClusterCount] = useState<number | null>(null);
+  // The probes a vCenter can be connected through (the Connect form's picker).
+  const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -124,6 +134,14 @@ const VMwareVCenters: FunctionComponent<
     fetchClusterCount().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
+
+    ProbeUtil.getAllProbes()
+      .then((allProbes: Array<Probe>) => {
+        setProbes(allProbes);
+      })
+      .catch(() => {
+        // The picker then offers none, and says how to add one.
+      });
   }, []);
 
   /*
@@ -189,6 +207,20 @@ const VMwareVCenters: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        createVerb="Connect"
+        /*
+         * A vCenter connected here is collected by a probe: OneUptime logs
+         * in with the account entered, no agent to run. One the VMware agent
+         * sends appears on its own when the agent first reports.
+         */
+        onBeforeCreate={async (
+          item: VMwareVCenter,
+          miscDataProps: JSONObject,
+        ): Promise<VMwareVCenter> => {
+          void miscDataProps;
+          item.collectionMethod = VMwareCollectionMethod.Probe;
+          return item;
+        }}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -204,32 +236,21 @@ const VMwareVCenters: FunctionComponent<
         cardProps={{
           title: "vCenters",
           description:
-            "vCenter Servers (and standalone ESXi hosts) being monitored in this project. Install the OneUptime VMware Agent to connect one.",
+            "vCenter Servers (and standalone ESXi hosts) monitored in this project. Connect one with its address and a read-only account - a probe you run collects it, with no agent to install - or install the VMware Agent and it appears here when it first reports.",
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "prod-vcenter",
-            description:
-              "This should match the vmware.vcenter.name resource attribute reported by the VMware Agent (the VMWARE_VCENTER_NAME it was installed with).",
+        formSteps={VMWARE_CONNECT_FORM_STEPS}
+        formFields={getVMwareConnectFormFields({
+          probes: probes,
+          isBillingEnabled: BILLING_ENABLED,
+          translator: translator,
+        })}
+        selectMoreFields={{
+          collectionMethod: true,
+          collectionProbe: {
+            name: true,
           },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production vCenter Server in the US East datacenter",
-          },
-          getLabelsFormField<VMwareVCenter>(),
-        ]}
+        }}
         columns={[
           {
             field: {
@@ -280,6 +301,33 @@ const VMwareVCenters: FunctionComponent<
                       : translator.translateText("Disconnected")}
                   </span>
                 </div>
+              );
+            },
+          },
+          {
+            field: {
+              collectionMethod: true,
+            },
+            title: "Collected By",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: VMwareVCenter): ReactElement => {
+              if (!isProbeCollected(item)) {
+                return (
+                  <span className="text-sm text-gray-700">
+                    {translator.translateText("VMware Agent")}
+                  </span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-700">
+                  {item.collectionProbe?.name
+                    ? translator.translateTemplate("Probe: {{name}}", {
+                        name: item.collectionProbe.name,
+                      })
+                    : translator.translateText("Probe")}
+                </span>
               );
             },
           },
@@ -361,7 +409,7 @@ const VMwareVCenters: FunctionComponent<
       {clusterCount === 0 && (
         <VMwareDocumentationCard
           title="Getting Started with VMware Monitoring"
-          description="No vCenters connected yet. Install the agent using the guide below and your vCenter will appear here automatically."
+          description="No vCenters connected yet. Connect one above with a read-only account - a probe you run collects it, with no agent to install - or install the VMware Agent using the guide below and your vCenter appears here automatically."
         />
       )}
       {labelBulkActionModals}

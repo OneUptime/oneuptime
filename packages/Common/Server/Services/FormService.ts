@@ -9,7 +9,6 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -38,9 +37,11 @@ import {
   buildPublicForm,
   FormCustomFieldDefinition,
   FormFieldBinding,
+  FormQuestionsForTemplate,
   FormRecordOption,
   FormSubmissionValidationResult,
   formatFormSubmissionErrors,
+  getFormQuestionsForTemplate,
   getFormSubmissionTemplate,
   getFormTemplateAnswers,
   PublicForm,
@@ -113,9 +114,11 @@ import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
  *     linked to a field the target has, every field the target cannot do
  *     without asked;
  *   - its settings are that target's settings (validateFormTargetSettings);
- *   - its templates are well formed (validateFormTemplates), and every
- *     answer one holds suits the question it answers, as a submission's
- *     answer to it would (validateFormTemplateAnswers);
+ *   - its templates are well formed (validateFormTemplates), every answer
+ *     one holds suits the question it answers, as a submission's answer to
+ *     it would, and every question one asks its own way (Required, Optional,
+ *     Hidden) is a question of the form's that a template may change
+ *     (validateFormTemplateAnswers);
  *   - its IP allowlist holds only entries the public routes can match;
  *   - its logo and favicon, when it has them, are files uploaded in its own
  *     project, of a type the public page draws and small (FormBranding);
@@ -356,45 +359,46 @@ export class Service extends DatabaseService<Model> {
         },
       )
     ) {
-      const forms: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const forms: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           projectId: true,
           logoFileId: true,
           faviconFileId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       /*
-       * Hooks run before the permission layer narrows the update to the
-       * request's project, so the forms read here may be another project's.
-       * The files must then come from the request's project, as every other
-       * reference a form names does, and what such a form shows now is not
-       * used: an update aimed at another project's form is refused alike
-       * whichever file it names, and so tells nothing about that project.
+       * The forms read are the ones the update writes. A teammate's are the
+       * forms they may write, of the request's project, and the files must
+       * come from that project, as every other reference a form names does;
+       * what a form of another project shows now is not used, so an update
+       * aimed at one is refused alike whichever file it names, and tells
+       * nothing about that project. OneUptime's, or a master admin's, are
+       * whatever the update's query names, which may be another project's
+       * than the request's: the files must come from each form's own project.
        */
-      const tenantId: ObjectID | undefined = updateBy.props.tenantId;
+      const heldTo: ObjectID | null = DatabaseService.getProjectWriteIsHeldTo(
+        updateBy.props,
+      );
 
       await this.assertValidBrandingImages({
         values: data,
         forms: forms.map((form: Model): BrandingCheckForm => {
-          const isRequestsOwn: boolean =
-            !tenantId ||
+          const isProjectsOwn: boolean =
+            !heldTo ||
             Boolean(
-              form.projectId &&
-                form.projectId.toString() === tenantId.toString(),
+              form.projectId && form.projectId.toString() === heldTo.toString(),
             );
 
           return {
-            projectId: tenantId || form.projectId,
-            logoFileId: isRequestsOwn ? form.logoFileId : undefined,
-            faviconFileId: isRequestsOwn ? form.faviconFileId : undefined,
+            projectId: DatabaseService.getProjectToCheckRowIn(
+              updateBy.props,
+              form.projectId,
+            ),
+            logoFileId: isProjectsOwn ? form.logoFileId : undefined,
+            faviconFileId: isProjectsOwn ? form.faviconFileId : undefined,
           };
         }),
       });
@@ -425,23 +429,22 @@ export class Service extends DatabaseService<Model> {
      * as they are: an answer to a question since removed or changed is not
      * offered to anyone (getFormTemplateAnswers), and the Templates page
      * drops it the next time the template is saved - refusing would keep an
-     * admin from editing the questions until every template was redone.
+     * admin from editing the questions until every template was redone. For
+     * the same reason, what a template already held is not judged again
+     * when the templates are written: the Templates page saves the whole
+     * list for every change.
      */
-    const forms: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const forms: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         targetType: true,
         fields: true,
         targetSettings: true,
+        ...(changesTemplates ? { templates: true } : {}),
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const form of forms) {
       const targetType: FormTargetType = changesTarget
@@ -466,8 +469,13 @@ export class Service extends DatabaseService<Model> {
         this.assertValidTargetSettings({ value: settings, targetType });
       }
 
+      /*
+       * A teammate's update is kept to the request's project; OneUptime's,
+       * or a master admin's, is checked in the form's own project, whatever
+       * project the request names.
+       */
       const projectId: ObjectID | undefined =
-        updateBy.props.tenantId || form.projectId;
+        DatabaseService.getProjectToCheckRowIn(updateBy.props, form.projectId);
 
       if (projectId) {
         await this.validateProjectReferences({
@@ -486,6 +494,7 @@ export class Service extends DatabaseService<Model> {
             targetType,
             fields: fields,
             templates: data["templates"],
+            heldTemplates: form.templates,
           });
         }
       }
@@ -526,9 +535,13 @@ export class Service extends DatabaseService<Model> {
    * Creates what a public submission is for, and tells the submitter its
    * number.
    *
-   * The form's hidden questions are answered from the template the
-   * submission names (getFormSubmissionTemplate), if any - never from the
-   * request's answers, which are only read for the questions the page asks.
+   * The submission is held to the questions the page asked it: the form's,
+   * as the template it names (getFormSubmissionTemplate) asks them - a
+   * question the template makes required must be answered, one it hides is
+   * not read (getFormQuestionsForTemplate). Every question it was not asked
+   * - hidden by the form or by the template - is answered from that
+   * template, if any: never from the request's answers, which are only read
+   * for the questions the page asks.
    *
    * In order, each step refusing before the next one costs anything: the
    * same checks as getPublicForm (link, form on, plan, network), then the
@@ -573,8 +586,18 @@ export class Service extends DatabaseService<Model> {
 
     const built: BuiltPublicForm = await this.buildPublicFormFor(form);
 
+    const template: FormTemplate | undefined = getFormSubmissionTemplate({
+      templates: form.templates,
+      templateId: readFormSubmissionTemplateId(data.request?.data),
+    });
+
+    const questions: FormQuestionsForTemplate = getFormQuestionsForTemplate({
+      built: built,
+      templateId: template?.id,
+    });
+
     const validation: FormSubmissionValidationResult = validateFormSubmission({
-      fields: built.form.fields,
+      fields: questions.asked,
       data: data.request?.data,
     });
 
@@ -582,16 +605,11 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(formatFormSubmissionErrors(validation.errors));
     }
 
-    const template: FormTemplate | undefined = getFormSubmissionTemplate({
-      templates: form.templates,
-      templateId: readFormSubmissionTemplateId(data.request?.data),
-    });
-
     const answers: ValidatedFormAnswers = this.withHiddenAnswers({
       answers: validation.answers,
       hiddenAnswers: getFormTemplateAnswers({
         template: template,
-        fields: built.hiddenFields,
+        fields: questions.answeredByTemplate,
       }),
     });
 
@@ -1350,7 +1368,9 @@ export class Service extends DatabaseService<Model> {
    * form will ask it once the write is applied - an option the question
    * offers, a record the form offers, text that fits - so a template never
    * fills in what a submission would be refused for, nor answers a hidden
-   * question with what its record cannot hold. The questions are built as
+   * question with what its record cannot hold. Every question a template
+   * asks its own way is one the form asks, and never one the target cannot
+   * be created without made optional or hidden. The questions are built as
    * the public page builds them (buildPublicFormFor), from the project's
    * own custom fields and records: a template cannot name another
    * project's.
@@ -1360,6 +1380,8 @@ export class Service extends DatabaseService<Model> {
     targetType: FormTargetType;
     fields: unknown;
     templates: unknown;
+    // What the form holds now, on an update: not judged again.
+    heldTemplates?: unknown;
   }): Promise<void> {
     if (readFormTemplates(data.templates).length === 0) {
       return;
@@ -1375,6 +1397,9 @@ export class Service extends DatabaseService<Model> {
     const problem: string | null = validateFormTemplateAnswers({
       templates: data.templates,
       fields: built.allFields,
+      lockedFieldIds: built.lockedFieldIds,
+      targetType: data.targetType,
+      heldTemplates: data.heldTemplates,
     });
 
     if (problem) {

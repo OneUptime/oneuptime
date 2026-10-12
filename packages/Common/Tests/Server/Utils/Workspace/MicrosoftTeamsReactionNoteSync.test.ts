@@ -62,8 +62,10 @@ import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
@@ -76,9 +78,22 @@ import {
   mockProjectStates,
   openStateIds,
 } from "../../TestingUtils/Services/ProjectStatesHelper";
+import {
+  PROGRESS_STATE_KEYS,
+  ProgressStateKey,
+  makeProgressStates,
+  mockProgressStateReads,
+  progressStateId,
+} from "../../TestingUtils/ScheduledMaintenanceProgressWorld";
 
 const projectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
+
+// The member's own props, as WorkspaceActionAuthorization.authorize builds them.
+const memberProps: DatabaseCommonInteractionProps = {
+  userId: oneUptimeUserId,
+  tenantId: projectId,
+};
 const incidentId: ObjectID = ObjectID.generate();
 
 const TEAM_ID: string = "team-graph-id";
@@ -431,7 +446,12 @@ describe("MicrosoftTeamsReactionNoteSync.getMessageText", () => {
     );
   });
 
-  test("plain text bodies are used as they are", () => {
+  test("plain text bodies are used as they read, a '<' in them never a tag", () => {
+    /*
+     * A plain-text body is not HTML, so nothing is taken out of it. Its "<"
+     * reads as typed in the note, with an invisible word joiner after it,
+     * so the note's Markdown cannot read "<b>" as a tag.
+     */
     expect(
       MicrosoftTeamsReactionNoteSync.getMessageText(
         graphMessage({
@@ -440,7 +460,16 @@ describe("MicrosoftTeamsReactionNoteSync.getMessageText", () => {
           content: "  a <b>literal</b> text  ",
         }),
       ),
-    ).toBe("a <b>literal</b> text");
+    ).toBe("a <⁠b>literal<⁠/b> text");
+    expect(
+      MicrosoftTeamsReactionNoteSync.getMessageText(
+        graphMessage({
+          id: "1",
+          contentType: "text",
+          content: "  plain words only  ",
+        }),
+      ),
+    ).toBe("plain words only");
   });
 
   test("a card message (like OneUptime's own posts) is read from the card", () => {
@@ -570,7 +599,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
 
     authorizeSpy = jest
       .spyOn(WorkspaceActionAuthorization, "authorize")
-      .mockResolvedValue({ userId: oneUptimeUserId });
+      .mockResolvedValue(memberProps);
 
     saveSpy = jest
       .spyOn(WorkspaceReactionNote, "saveNote")
@@ -617,13 +646,15 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       resources: [{ service: IncidentService, id: incidentId }],
     });
 
+    // Saved with the member's own props: the note is theirs.
     expect(saveSpy).toHaveBeenCalledWith({
       resource: watchedChannel().resource,
       noteType: WorkspaceNoteType.Private,
-      userId: oneUptimeUserId,
+      props: memberProps,
       note: "Restarted the primary DB",
       sourceMessageKey: `${CHANNEL_ID}:1700000000200`,
     });
+    expect(saveSpy.mock.calls[0]![0].props).toBe(memberProps);
 
     expect(replySpy).toHaveBeenCalledWith({
       projectId: projectId,
@@ -845,6 +876,152 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     expect(replySpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * The note is saved with the member's props, so its own create can still
+   * refuse it after the check above let them through: a label, a column,
+   * the plan. That is an answer, not a failure.
+   */
+  test.each([
+    [
+      "a permission",
+      new NotAuthorizedException(
+        "You do not have permission to create Incident Internal Note.",
+      ),
+    ],
+    [
+      "a value",
+      new BadDataException(
+        'This incident internal note references records that are not in this project: Incident "42".',
+      ),
+    ],
+    [
+      "the plan",
+      new PaymentRequiredException(
+        "Please upgrade your plan to Growth to access this feature",
+      ),
+    ],
+  ])(
+    "a save its own create refuses (%s) is told to the member in the thread, and not retried",
+    async (_what: string, refusal: Error) => {
+      saveSpy.mockRejectedValue(refusal);
+
+      await expect(
+        MicrosoftTeamsReactionNoteSync.processReaction({
+          channel: watchedChannel(),
+          reaction: noteReaction(),
+          now: NOW,
+        }),
+      ).resolves.toBe(MicrosoftTeamsReactionOutcome.Refused);
+
+      expect(replySpy).toHaveBeenCalledTimes(1);
+      expect(replySpy.mock.calls[0]![0].parentMessageId).toBe("1700000000100");
+      expect(replySpy.mock.calls[0]![0].text).toBe(
+        `Jane Doe, could not save the message as a note: ${refusal.message}`,
+      );
+      // A refusal is an answer: the claim is kept, so it is not tried again.
+      expect(releaseSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a refused save is explained without a name when Teams gave none", async () => {
+    saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ reactingUserName: undefined }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "Could not save the message as a note: No.",
+    );
+  });
+
+  test("the reply to a refused save shows the member's name as written, not as formatting", async () => {
+    saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ reactingUserName: "*Jane* [Doe]" }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "\\*Jane\\* \\[Doe\\], could not save the message as a note: No.",
+    );
+  });
+
+  test("someone unlinked whose Teams name carries Markdown is named as written, and the settings link is the only link", async () => {
+    userAuthSpy.mockResolvedValue(null);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({
+        reactingUserName: "**Jane** [Doe](https://example.com)",
+      }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      `\\*\\*Jane\\*\\* \\[Doe\\](https://example.com), to save messages as notes, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/microsoft-teams-integration), then react again.`,
+    );
+  });
+
+  test("a member the check refuses is named, and told the refusal, as text", async () => {
+    authorizeSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission: the label *Payments* is not yours.",
+      ),
+    );
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({
+        reactingUserName: "**Jane** [Doe](https://example.com)",
+      }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "\\*\\*Jane\\*\\* \\[Doe\\](https://example.com), You do not have permission: the label \\*Payments\\* is not yours.",
+    );
+  });
+
+  test("a refusal the check gives without a name is still text", async () => {
+    authorizeSpy.mockRejectedValue(
+      new NotAuthorizedException(
+        "The label [x](https://example.com) is not yours.",
+      ),
+    );
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ reactingUserName: undefined }),
+      now: NOW,
+    });
+
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "The label \\[x\\](https://example.com) is not yours.",
+    );
+  });
+
+  test("an old reaction whose save is refused gets no reply, and is not retried either", async () => {
+    saveSpy.mockRejectedValue(new NotAuthorizedException("No."));
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction({
+          reactedAt: new Date(NOW.getTime() - 60 * 60 * 1000),
+        }),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.Refused);
+
+    expect(replySpy).not.toHaveBeenCalled();
+    expect(releaseSpy).not.toHaveBeenCalled();
+  });
+
   test("a message with nothing to save is skipped", async () => {
     await expect(
       MicrosoftTeamsReactionNoteSync.processReaction({
@@ -874,6 +1051,8 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
       "microsoft-teams-reaction-note",
       claimSpy.mock.calls[0]![1],
     );
+    // Not a refusal: its text is for operators, not the thread.
+    expect(replySpy).not.toHaveBeenCalled();
   });
 
   test("an unexpected authorization failure is not mistaken for a refusal", async () => {
@@ -1046,6 +1225,11 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
   beforeEach((): void => {
     // Open: in a state above the project's resolved state.
     mockProjectStates();
+    /*
+     * A scheduled maintenance event is open until it is complete: every
+     * state but Completed and the project's own states after it.
+     */
+    mockProgressStateReads(makeProgressStates(projectId));
   });
 
   test("collects the Teams channels of open and recently changed resources", async () => {
@@ -1218,15 +1402,36 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
     },
   );
 
-  test("open scheduled maintenance query", async () => {
-    await expect(
-      MicrosoftTeamsReactionNoteSync.getOpenResourceQuery({
+  /*
+   * A scheduled maintenance event is open until it is complete
+   * (ScheduledMaintenanceStartUtil.isComplete): asked for by the states it
+   * is not complete in - every state but Completed and the project's own
+   * states after it ("Archived"). The completed flag alone counted an
+   * event moved on to "Archived" as open, and kept its channels watched.
+   */
+  test("open scheduled maintenance query: the project's states it is not complete in", async () => {
+    const query: JSONObject =
+      await MicrosoftTeamsReactionNoteSync.getOpenResourceQuery({
         resourceType: WorkspaceNoteResourceType.ScheduledMaintenance,
         projectId: projectId,
-      }),
-    ).resolves.toEqual({
-      currentScheduledMaintenanceState: { isResolvedState: false },
-    });
+      });
+
+    expect(Object.keys(query)).toEqual(["currentScheduledMaintenanceStateId"]);
+    expect(
+      idsOfAnyFilter(query["currentScheduledMaintenanceStateId"])
+        .map((id: string): string => {
+          return id.toLowerCase();
+        })
+        .sort(),
+    ).toEqual(
+      PROGRESS_STATE_KEYS.filter((key: ProgressStateKey): boolean => {
+        return key !== "completed" && key !== "archived";
+      })
+        .map((key: ProgressStateKey): string => {
+          return progressStateId(key).toString().toLowerCase();
+        })
+        .sort(),
+    );
   });
 });
 

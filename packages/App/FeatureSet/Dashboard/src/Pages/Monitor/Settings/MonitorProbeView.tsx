@@ -25,6 +25,7 @@ import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
+import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -213,6 +214,12 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      {/*
+       * Captures of the traffic this probe sees, started here and downloaded
+       * for Wireshark - once whoever runs the probe has turned them on.
+       */}
+      <ProbePacketCaptures probeId={modelId} />
 
       {probeKey && (
         <CustomProbeDocumentation probeKey={probeKey} probeId={modelId} />

@@ -1,190 +1,232 @@
-# Docker 监控器
+# Docker 监控
 
-Docker 监控允许您监控 Docker 主机及其上运行的容器的健康状况和性能。OneUptime 通过预配置的 OpenTelemetry Collector（**OneUptime Docker Agent**）收集指标和容器日志，并根据您配置的标准进行评估。
+Docker 监视器监控一台 Docker 主机上的容器，在容器负载过高、内存耗尽或陷入崩溃循环时通知你。它读取 OneUptime Docker 代理从主机发送的指标，因此不会从外部探测任何东西：安装代理，然后根据模板或你自己的查询创建监视器。
 
-## 概述
+:::cards
+- [创建监视器](#创建-docker-监视器): 在仪表板中完成六个步骤。
+- [模板](#现成的警报模板): 六个现成的警报，每个容器一个事件。
+- [指标](#收集的指标): 代理收集的内容，以及每个指标的含义。
+- [日志](#收集的日志): 容器日志，以及它们所需的日志驱动。
+:::
 
-Docker 监控器使用来自主机的指标和日志，为您的容器工作负载提供可见性。这使您能够：
+## 工作原理
 
-- 监控 Docker 主机和每个容器的健康状况
-- 跨容器跟踪 CPU、内存、网络、块 I/O 和进程数
-- 检测容器重启、崩溃和 CPU 限速
-- 以原生 OpenTelemetry 格式流式传输结构化容器日志
-- 就高 CPU、高内存、重启循环等发出告警
+OneUptime Docker 代理以容器形式在主机上运行。它每 30 秒从 Docker Engine API 读取容器统计信息，跟踪容器的日志文件，并通过 OTLP 把两者都发送到 OneUptime。来自某台主机的第一批数据会把它注册到 OneUptime 中。
 
-## 创建 Docker 监控器
+Docker 监视器绑定到一台主机。它每分钟对这台主机的容器指标运行查询，并把结果与条件进行比较。
 
-1. 在 OneUptime 控制台中转到 **监视器**
-2. 点击 **创建监视器**
-3. 选择 **Docker** 作为监控器类型
-4. 选择要监控的 Docker 主机和资源范围
-5. 配置指标查询和聚合
-6. 根据需要配置监控标准
+```mermaid title="从 Docker 主机到事件"
+flowchart TB
+    subgraph host["你的 Docker 主机"]
+        direction LR
+        containers["容器"] --> agent["OneUptime Docker 代理"]
+    end
+    agent -->|"通过 OTLP 发送指标和日志"| oneuptime["OneUptime"]
+    oneuptime -->|"第一批数据"| registered["Docker 主机已注册"]
+    oneuptime --> monitor["Docker 监视器"]
+    monitor -->|"每分钟"| criteria{"满足条件？"}
+    criteria -->|"是"| incident["事件或警报"]
+    criteria -->|"否"| online["监视器在线"]
+```
 
-## 配置选项
+## 开始之前
 
-### Docker 主机
+- **安装 Docker 代理**，装在主机上。[Docker 代理指南](/docs/telemetry/docker-host) 介绍了安装、升级和检查方法。
+- **确认主机已注册。** 第一批数据到达后，它会以代理的 `DOCKER_HOST_NAME` 命名，出现在 **产品 → 基础设施 → Docker → 所有主机** 下。
+- **如需容器日志**，请使用 Docker 的 `json-file` 日志驱动运行容器。参见 [日志驱动要求](#日志驱动要求)。
 
-选择要监控的 Docker 主机。主机在 OneUptime Docker Agent 首次从其发送遥测数据时自动注册——您无需手动创建它们。
+## 创建 Docker 监视器
 
-### 资源范围
+:::steps
+### 开始新的监视器
 
-选择监控资源的级别：
+进入 **监视器** 并点击 **创建监视器**。
 
-| 范围 | 描述                                 |
-| ---- | ------------------------------------ |
-| 主机 | 监控整个 Docker 主机，跨所有容器聚合 |
-| 容器 | 按名称或镜像监控特定容器             |
+### 选择 Docker Container
 
-### 指标查询
+在 **监视器类型** 下点击 **更多监视器类型**，然后在 **基础设施** 下选择 **Docker Container**，或在搜索框中输入 `docker`。输入 **名称**（它会用在事件和警报标题中），然后点击 **下一步**。
 
-配置一个或多个指标查询进行评估。每个查询指定：
+### 选择主机
 
-- **指标名称** — 要查询的容器指标
-- **聚合** — 如何聚合指标值（平均值、求和、最大值、最小值）
-- **过滤器** — 基于属性的额外过滤（例如按容器名称、镜像或主机过滤）
-- **分组依据** — 可选地按 `resource.container.name` 分组，以便每个容器单独评估
+在 **Docker 监视器配置** 下，从 **Docker主机** 中选择主机。发送过数据的每台主机都在列表中。
 
-您还可以创建使用数学表达式组合多个指标查询的**公式**。
+### 选择要监控的内容
 
-### 滚动时间窗口
+选择三个选项卡之一：
 
-选择指标评估的时间窗口：
+- **Quick Setup** – 点击一个 [模板](#现成的警报模板)。它会设置指标、聚合、时间范围和阈值，并用自己的条件替换下面的条件。你仍然可以更改 **时间范围**。
+- **Custom Metric** – 从 **Docker 指标** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。**容器名称** 和 **容器镜像** 可以把范围缩小到部分容器。
+- **高级** – 在 **选择指标** 下自己构建查询和公式。使用 **Group by** `resource.container.name` 可以单独评判每个容器。
 
-- 过去 1 分钟
-- 过去 5 分钟
-- 过去 10 分钟
-- 过去 15 分钟
-- 过去 30 分钟
-- 过去 60 分钟
+### 检查条件
+
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **Threshold**。模板会填好这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，这些条件只会注意到指标降到零，所以请设置你自己的阈值。
+
+### 创建监视器
+
+点击 **创建监视器**。OneUptime 会打开监视器的页面，并每分钟评估一次。它打开的事件和警报也会列在主机的 **事件** 和 **警报** 页面上。
+:::
+
+> [!TIP]
+> 要一次设置多个模板，请从 **产品 → 基础设施 → Docker** 打开主机，然后进入 **Recommendations**。选择你需要的模板和要呼叫的人，OneUptime 会为每个模板创建一个监视器。
+
+## 监视器设置
+
+| 字段 | 选项卡 | 作用 |
+| --- | --- | --- |
+| **Docker主机** | 全部 | 必填。把每个查询限定在该主机的 `resource.host.name`。OneUptime 还会给每个查询加上 `resource.container.runtime = docker`。 |
+| **Docker 指标** | Custom Metric | 代理目录中的一个指标，按 CPU、内存、网络、块 I/O 和容器分组。 |
+| **容器名称** | Custom Metric、高级 | 可选。与 `resource.container.name` 完全匹配，例如 `my-container`。 |
+| **容器镜像** | Custom Metric、高级 | 可选。与 `resource.container.image.name` 完全匹配，例如 `nginx:latest`。 |
+| **聚合** | Custom Metric | 样本的合并方式：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。初始值为该指标通常的聚合方式。 |
+| **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 1 Minute** 开始；模板会设置自己的值。 |
+| **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**Group by**，以及用于组合查询的 **添加指标** 和 **添加公式**。 |
+
+## 现成的警报模板
+
+**Quick Setup** 提供六个模板。每个模板都会构建一个完整的监视器：一个按 `resource.container.name` 分组的查询、一个触发的条件和一个恢复的条件。每个容器都单独评判，因此一个繁忙的容器不会掩盖另一个，每个超过阈值的容器都有自己的事件和警报。阈值只是起点，你可以编辑。
+
+除非表中另有说明，条件只有在其窗口的每一分钟都成立时才会触发，并在越过阈值 10% 处恢复，这样在边界附近徘徊的值不会来回跳动。
+
+| 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
+| --- | --- | --- | --- | --- |
+| High Container CPU Usage | Warning | `container.cpu.utilization`，按容器取 Max，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
+| High Container Memory Usage | Warning | `container.memory.percent`，按容器取 Max，最近 5 分钟 | 高于 85% | 不高于 76.5% |
+| Container Restart Loop | 严重 | 每个容器 `container.restarts` 的增长，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
+| Container CPU Throttling | Warning | 每个容器 `container.cpu.throttling_data.throttled_time` 的增长（ms），最近 5 分钟 | 窗口内超过 1000 ms（总和） | 900 ms 或更少 |
+| High Container Process Count | Warning | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
+| Container Down (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 等于 0 | 高于 0 |
+
+**严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
+
+> [!NOTE]
+> `container.cpu.utilization` 就是 `docker stats` 输出的数字：100% 是一个完整的 CPU 核心，而不是整台主机，所以使用两个核心的容器读数为 200。在多核主机上，80 这个阈值是 CPU 预算，而不是机器的占比。
+
+> [!NOTE]
+> `container.memory.percent` 在容器设置了内存限制时除以该限制，否则除以**主机**的总内存。在把超限视为即将发生的内存不足终止之前，请先检查容器是否使用 `--memory` 启动。
+
+> [!WARNING]
+> `container.restarts` 和 `container.cpu.throttling_data.throttled_time` 只会增长，所以这两个模板根据它们在窗口内增长了多少发出警报：每分钟一个 Maximum 查询和一个 Minimum 查询，由公式相减后求和。按代理每 30 秒一次的采集，这只能看到大约一半的真实活动，阈值已经考虑到了这一点。如果把代理的 `collection_interval` 调到 60 秒或更长，每分钟只有一个样本，两个模板都会停止报警。
+
+> [!CAUTION]
+> **Container Down (Low Uptime)** 模板无法捕捉停止后一直保持停止的容器。代理只报告正在运行的容器，所以停止的容器根本不发送数据，其运行时间也永远不会读数为 0。对于必须保持运行的服务，还要监控它提供的功能，例如使用 [API 监控](/docs/monitor/api-monitor)。
 
 ## 收集的指标
 
-Docker Agent 使用 OpenTelemetry `docker_stats` 接收器，该接收器以可配置的间隔（默认每 30 秒）抓取 Docker Engine API。
+代理每 30 秒针对 Docker 套接字使用 OpenTelemetry `docker_stats` 接收器。每个容器的指标都把它的身份作为资源属性携带：`resource.container.name`、`resource.container.image.name`、`resource.container.id`、`resource.container.runtime`（`docker`）和 `resource.host.name`。
 
 ### CPU
 
-| 指标                                              | 描述                            |
-| ------------------------------------------------- | ------------------------------- |
-| `container.cpu.utilization`                       | CPU 利用率，占主机 CPU 的百分比 |
-| `container.cpu.usage.total`                       | 容器消耗的累计 CPU 时间         |
-| `container.cpu.throttling_data.throttled_time`    | 容器被 cgroups 限速的时间       |
-| `container.cpu.throttling_data.throttled_periods` | 限速周期数                      |
+| 指标 | 说明 |
+| --- | --- |
+| `container.cpu.utilization` | CPU 利用率，100% 表示一个完整的 CPU 核心（即 `docker stats` 的 CPU% 列）。 |
+| `container.cpu.usage.total` | 容器启动以来使用的 CPU 时间，单位为纳秒。生命周期计数器。 |
+| `container.cpu.throttling_data.throttled_time` | 容器自启动以来被其 CPU 限制节流的纳秒数。生命周期计数器。 |
+| `container.cpu.throttling_data.throttled_periods` | 容器启动以来的节流周期数。生命周期计数器。 |
 
 ### 内存
 
-| 指标                           | 描述                     |
-| ------------------------------ | ------------------------ |
-| `container.memory.usage.total` | 当前内存使用量（字节）   |
-| `container.memory.usage.limit` | 内存限制（字节）         |
-| `container.memory.percent`     | 内存使用量占限制的百分比 |
+| 指标 | 说明 |
+| --- | --- |
+| `container.memory.usage.total` | 正在使用的内存，单位为字节。 |
+| `container.memory.usage.limit` | 内存限制，单位为字节。 |
+| `container.memory.percent` | 内存使用量占容器限制的百分比；容器没有限制时，占主机总内存的百分比。 |
 
 ### 网络
 
-| 指标                                  | 描述           |
-| ------------------------------------- | -------------- |
-| `container.network.io.usage.rx_bytes` | 接收的总字节数 |
-| `container.network.io.usage.tx_bytes` | 发送的总字节数 |
+| 指标 | 说明 |
+| --- | --- |
+| `container.network.io.usage.rx_bytes` | 接收的字节数。生命周期计数器。 |
+| `container.network.io.usage.tx_bytes` | 发送的字节数。生命周期计数器。 |
 
 ### 块 I/O
 
-| 指标                                                 | 描述                 |
-| ---------------------------------------------------- | -------------------- |
-| `container.blockio.io_service_bytes_recursive.read`  | 从块设备读取的字节数 |
-| `container.blockio.io_service_bytes_recursive.write` | 写入块设备的字节数   |
+| 指标 | 说明 |
+| --- | --- |
+| `container.blockio.io_service_bytes_recursive.read` | 从块设备读取的字节数。 |
+| `container.blockio.io_service_bytes_recursive.write` | 写入块设备的字节数。 |
 
-### 容器信息
+### 容器
 
-| 指标                   | 描述               |
-| ---------------------- | ------------------ |
-| `container.uptime`     | 容器运行时间（秒） |
-| `container.restarts`   | 容器重启次数       |
-| `container.pids.count` | 容器内的进程数     |
+| 指标 | 说明 |
+| --- | --- |
+| `container.uptime` | 容器启动以来的秒数。只有正在运行的容器会报告它。 |
+| `container.restarts` | 容器自创建以来重启的次数。生命周期计数器。 |
+| `container.pids.count` | 容器中的任务数。cgroup 的 pids 控制器既统计进程也统计线程。 |
 
-## 监控标准
+**Docker 指标** 列表还提供 `container.cpu.usage.percpu`、`container.memory.rss`、`container.memory.cache` 和网络数据包计数器。随附的代理配置不会开启它们，所以在使用之前请先查看主机的 **指标** 页面。`container.cpu.throttling_data.throttled_periods` 不在列表中；请从 **高级** 查询它。
 
-### 可用检查类型
+## 监控条件
 
-| 检查类型 | 描述                     |
-| -------- | ------------------------ |
-| 指标值   | 配置的指标查询或公式的值 |
+条件把监视器的某个查询或公式与阈值进行比较。Docker 监视器的条件没有 **过滤器类型**：每条规则都用以下字段检查指标值。
 
-### 聚合类型
+| 字段 | 作用 |
+| --- | --- |
+| **指标** | 要检查的查询或公式，按其变量名指定。 |
+| **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（每个值都必须匹配）或 **Any Value**（一个就够）。 |
+| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **Threshold** | 用于比较的值。如果指标有单位，旁边会有单位列表。异常条件下不显示。 |
+| **灵敏度** | 仅限异常条件。**低**（4σ）、**中**（3σ，默认）或 **高**（2σ）。 |
+| **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |
+| **如果无数据** | 位于 **更多字段** 下。窗口中没有样本时的处理方式：**Ignore**（默认）、**Treat As Zero** 或 **触发器**。 |
 
-| 聚合   | 描述                   |
-| ------ | ---------------------- |
-| 平均值 | 时间窗口内的平均值     |
-| 求和   | 所有值的总和           |
-| 最大值 | 时间窗口内的最高值     |
-| 最小值 | 时间窗口内的最低值     |
-| 所有值 | 所有值必须满足标准     |
-| 任意值 | 至少一个值必须满足标准 |
+异常条件会把每个值与基线中一周的同一小时进行比较。在基线窗口积累足够的历史之前，它们会保持在“Learning”状态，不产生任何结果。
 
-### 过滤类型
+每个条件还会说明匹配时要做什么：更改监视器状态、创建警报或宣布事件。条件按从上到下的顺序检查，第一个匹配的条件决定结果。
 
-- **大于**、**小于**、**大于或等于**、**小于或等于**、**等于**
+### 默认条件
 
-基线异常检测（无需阈值 — 表单改为显示 **灵敏度** 和 **基线窗口**，并将每个采样与一周中同一时段的基线进行比较）：
+不是从模板构建的监视器会以两个条件开始：
 
-- **异常偏高** — 数值高于预期范围
-- **异常偏低** — 数值低于预期范围
-- **异常** — 数值在任一方向上超出预期范围
+| 顺序 | 条件 | 匹配时机 | 结果 |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | 第一个查询的任意值为 `0` | 将监视器标记为 **离线**，并宣布事件“_monitor name_ is offline”，监视器恢复后该事件会自动解决。 |
+| 2 | Check if _monitor name_ is online | 任意值大于 `0` | 将监视器标记为 **运行正常**。 |
 
-在积累到至少所选基线窗口的历史数据之前，异常条件不会产生告警（Learning 状态）。
-
-## 预置告警模板
-
-OneUptime 为常见的 Docker 监控场景提供模板：
-
-| 模板         | 描述                     | 阈值  | 聚合               |
-| ------------ | ------------------------ | ----- | ------------------ |
-| 高容器 CPU   | 每个容器的 CPU 利用率    | > 90% | 最大值（每个容器） |
-| 高容器内存   | 内存使用量占限制的百分比 | > 85% | 最大值（每个容器） |
-| 高 CPU 限速  | CPU 限速周期数           | > 0   | 最大值（每个容器） |
-| 容器重启循环 | 容器重启次数             | > 3   | 求和               |
-| 容器宕机     | 容器运行时间重置为 0     | = 0   | 最小值             |
-
-> 注意：CPU、内存和限速模板使用按 `resource.container.name` 分组的 **最大值** 聚合。这可以防止单个繁忙容器的信号被同一主机上的许多空闲容器稀释。
+> [!IMPORTANT]
+> 静默不匹配任何一个条件：停止发送数据的主机会让监视器保持原样。要在数据停止时收到通知，请在某个条件上把 **如果无数据** 设为 **触发器**。OneUptime 自身未接收数据的时间永远不算作无数据：窗口中包含这类时间的检查会改为等待，详见 [OneUptime 未接收数据时](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 收集的日志
 
-除了指标外，Docker Agent 还通过 OpenTelemetry filelog 接收器跟踪每个容器的 `*-json.log` 文件，并以原生 OTLP 日志格式发送日志记录。每条日志记录都包含以下信息：
+代理还会跟踪每个容器的 `*-json.log` 文件，并把每一行作为 OpenTelemetry 日志记录发送，包含：
 
-- `resource.host.name` — Docker 主机标识符
-- `resource.container.id` — 完整的容器 ID
-- `resource.container.runtime` — 始终为 `docker`
-- `attributes["log.iostream"]` — `stdout` 或 `stderr`
-- `severityText` / `severityNumber` — 从行中的级别关键字读取（`app.INFO:`、`{"level":"warn"}`、`[ERROR]`）；没有可识别级别的行回退到流：`stderr` → `ERROR`，`stdout` → `INFO`
-- `body` — 容器进程输出的原始日志行
-- `time` — Docker 守护进程对该行的时间戳
+| 字段 | 值 |
+| --- | --- |
+| `resource.host.name` | 主机，来自 `DOCKER_HOST_NAME`。 |
+| `resource.container.id` | 完整的容器 ID。 |
+| `resource.container.runtime` | 始终为 `docker`。 |
+| `attributes["log.iostream"]` | `stdout` 或 `stderr`。 |
+| `severityText` / `severityNumber` | 如果行中有级别，就从级别关键字中读取（`[ERROR]`、`app.INFO:`、`{"level":"warn"}`、`level=error`）。没有级别的行根据其流确定：`stderr` 为 `ERROR`，`stdout` 为 `INFO`。 |
+| `body` | 容器写入的行。以空白或右括号开头的行（例如堆栈跟踪的帧）会接到上一行。 |
+| `time` | Docker 守护进程为该行记录的时间戳。 |
 
-日志显示在 Docker 主机的 **日志** 选项卡和每个容器的详情页面上。
+日志会显示在主机的 **日志** 页面和每个容器的页面上。
 
-### 日志驱动程序要求
+### 日志驱动要求
 
-**Docker Agent 只摄取使用 Docker `json-file` 日志驱动程序的容器的日志。** 这是 Docker 的默认设置，但可以按容器或全局覆盖：
+代理只能读取使用 Docker `json-file` 日志驱动的容器的日志。这是 Docker 的默认值，但某个容器或整个守护进程可能使用其他驱动：
 
-- **`local`** 驱动程序 — 将二进制 protobuf 块写入 `/var/lib/docker/containers/<id>/local-logs/container.log`。filelog 接收器无法解析此格式。
-- **`journald`**、**`syslog`**、**`fluentd`**、**`gelf`**、**`awslogs`**、**`splunk`** 等 — 将日志发送到远程目标；没有文件可供跟踪。
-- **`none`** — 完全丢弃日志。
+| 驱动 | 代理看到的内容 |
+| --- | --- |
+| `json-file` | 每一行。 |
+| `local` | 什么也看不到：文件是二进制的，代理无法解析。 |
+| `journald`、`syslog`、`fluentd`、`gelf`、`awslogs`、`splunk`、… | 什么也看不到：日志去了别处，没有可跟踪的文件。 |
+| `none` | 什么也看不到：日志被丢弃。 |
 
-如果使用了上述任何驱动程序，您将在 Docker 主机页面上看到指标，但 **日志** 选项卡将为空（或仅包含 Docker Agent 自身的日志）。
-
-**检查特定容器的日志驱动程序：**
+检查容器的驱动以及守护进程的默认值：
 
 ```bash
 docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
-```
-
-**检查守护进程默认值：**
-
-```bash
 docker info --format '{{.LoggingDriver}}'
 ```
 
-**将 Docker Compose 服务切换为带有合理轮换的 `json-file`：**
+切换到 `json-file`。Docker 在创建容器时确定其日志驱动，所以更改后要重新创建每个容器，重启会保留旧的驱动。
 
-```yaml
+:::tabs
+@tab Docker Compose
+为每个服务设置驱动，并开启轮转：
+
+```yaml title="docker-compose.yml"
 services:
   my-app:
     image: my-app:latest
@@ -195,9 +237,15 @@ services:
         max-file: "5"
 ```
 
-**切换守护进程默认值**（适用于之后创建的每个容器），编辑 `/etc/docker/daemon.json`：
+然后重新创建服务：
 
-```json
+```bash
+docker compose up -d --force-recreate <service>
+```
+@tab Docker 守护进程
+让 `json-file` 成为此后创建的每个容器的默认值：
+
+```json title="/etc/docker/daemon.json"
 {
   "log-driver": "json-file",
   "log-opts": {
@@ -207,45 +255,45 @@ services:
 }
 ```
 
-然后重启 Docker 守护进程并**重建**受影响的容器。Docker 在容器创建时绑定日志驱动程序，因此现有容器会保留旧驱动程序，直到被删除并重新创建：
+重启 Docker 守护进程，然后删除并重新创建每个容器：
 
 ```bash
-# Docker Compose
-docker compose up -d --force-recreate <service>
-
-# 普通 docker
 docker rm -f <container>
 docker run ... <image>
 ```
+:::
 
-## 设置要求
+## 故障排除
 
-要使用 Docker 监控，您需要：
+:::details 主机不在 Docker主机 列表中
+主机会根据代理的数据自动注册。请检查代理容器是否在运行，以及主机是否列在 **产品 → 基础设施 → Docker → 所有主机** 下。[Docker 代理指南](/docs/telemetry/docker-host) 中有需要在主机上执行的检查。
+:::
 
-1. 在每个要监控的 Docker 主机上安装 OneUptime Docker Agent
-2. 将 `ONEUPTIME_URL`、`ONEUPTIME_SERVICE_TOKEN` 和 `DOCKER_HOST_NAME` 作为环境变量传入
-3. 确保要观察的容器使用 `json-file` 日志驱动程序（见上文）
+:::details 指标能到达，但日志页面是空的
+这些容器几乎肯定没有使用 `json-file` 日志驱动。用 [日志驱动要求](#日志驱动要求) 中的命令检查它们，切换你需要其日志的容器，然后重新创建它们。
+:::
 
-该 Agent 以 `oneuptime/docker-agent:release` 的形式发布在 Docker Hub 上。完整的 `docker run` 和 `docker compose` 示例请参见 [Docker Agent 安装指南](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent)。
+:::details 代理记录“no files match the configured criteria”
+代理查找 `/var/lib/docker/containers/*/*-json.log`，但什么也没找到。原因可能是：主机上没有容器使用 `json-file`；代理的 `/var/lib/docker/containers` 挂载（`-v /var/lib/docker/containers:/var/lib/docker/containers:ro`）缺失或为空；或者代理运行在 macOS 版 Docker Desktop 上，其容器文件位于它的 Linux 虚拟机内部。
+:::
 
-## 故障排查
+:::details 数据以错误的主机名到达
+OneUptime 通过 `resource.host.name` 识别主机，代理从 `DOCKER_HOST_NAME` 获取它。在第一批数据之后更改 `DOCKER_HOST_NAME` 会创建第二台主机，而不是重命名第一台，并且监视器仍绑定到创建时使用的名称。
+:::
 
-### 指标显示但日志选项卡为空
+:::details CPU 警报从不触发
+像 **High Container CPU Usage** 模板那样，按 `resource.container.name` 对查询分组，并用 **最大值** 聚合。在繁忙主机上对所有容器取平均值，会被空闲的容器拉低。请记住 100% 表示一个完整的核心，所以允许使用多个核心的容器需要更高的阈值。
+:::
 
-您的容器几乎肯定没有使用 `json-file` 日志驱动程序。运行上方[日志驱动程序要求](#日志驱动程序要求)部分中的诊断命令，并切换任何需要发送日志的容器。
+:::details 重启循环或节流模板不再报警
+两者都测量计数器在同一分钟内两个样本之间增长了多少。如果代理的 `collection_interval` 为 60 秒或更长，每分钟只有一个样本，增长始终为 0，两个模板都不会触发。请保持代理的默认值 30 秒。
+:::
 
-### Filelog 接收器日志显示"no files match the configured criteria"
+## 后续步骤
 
-这意味着 include glob `/var/lib/docker/containers/*/*-json.log` 在 Agent 启动时未匹配任何文件。原因可能是：
-
-1. 此主机上没有容器使用 `json-file`，或
-2. 绑定挂载 `-v /var/lib/docker/containers:/var/lib/docker/containers:ro` 缺失或指向空目录，或
-3. Agent 运行在 Docker Desktop for macOS 上，未暴露 Linux VM 的容器目录。
-
-### 日志到达但被归类到错误的主机名下
-
-OneUptime 通过 `resource.host.name` 自动注册 Docker 主机，该值来自 `DOCKER_HOST_NAME` 环境变量。在首次遥测批次发送后更改 `DOCKER_HOST_NAME` 会创建第二个主机行，而不是重命名现有行。
-
-### "高 CPU"未触发事件
-
-确保指标查询的聚合为 **最大值**（而非平均值），并且按 `resource.container.name` 分组。跨繁忙主机上所有容器的平均值会被空闲容器稀释，很少超过阈值。
+:::cards
+- [Docker 代理](/docs/telemetry/docker-host): 安装、升级本监视器读取的代理并排查其问题。
+- [Podman 监控](/docs/monitor/podman-monitor): 适用于 Podman 主机的同类监视器。
+- [Docker Swarm 监控](/docs/monitor/docker-swarm-monitor): 监控 Swarm 集群的任务。
+- [事件概览](/docs/incidents/index): 条件宣布事件之后会发生什么。
+:::

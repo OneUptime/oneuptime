@@ -6,6 +6,7 @@ import {
   IncidentAlertAiLogEntry,
   IncidentAlertAiLogKind,
 } from "../../../../../Types/AI/IncidentAlertAiLogs";
+import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -558,11 +559,7 @@ describe("IncidentAlertAiLogsPage.build", () => {
     }
 
     function makeRecord(seed: number): Array<Row> {
-      let state: number = seed;
-      const random: () => number = (): number => {
-        state = (state * 1103515245 + 12345) % 2147483648;
-        return state / 2147483648;
-      };
+      const random: SeededRandom = seededRandom(seed);
       const rows: Array<Row> = [];
       const kinds: Array<IncidentAlertAiLogKind> = [
         IncidentAlertAiLogKind.Investigation,
@@ -573,10 +570,10 @@ describe("IncidentAlertAiLogsPage.build", () => {
 
       for (let index: number = 0; index < 160; index++) {
         rows.push({
-          kind: kinds[Math.floor(random() * kinds.length)]!,
+          kind: kinds[random(kinds.length)]!,
           id: `r${String(index).padStart(3, "0")}`,
           // Clusters of rows inside a few milliseconds.
-          ageInMicroseconds: Math.floor(random() * 40) * 250,
+          ageInMicroseconds: random(40) * 250,
           visible: random() > 0.25,
         });
       }

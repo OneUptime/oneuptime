@@ -3,7 +3,6 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
@@ -737,26 +736,16 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnDelete<Model>> {
     deleteBy.query = this.applyPrivacyFilters(deleteBy.query, deleteBy.props);
 
-    const carriedQuery: Query<Model> = { ...deleteBy.query };
-
-    if (deleteBy.props.tenantId && !carriedQuery.projectId) {
-      carriedQuery.projectId = deleteBy.props.tenantId;
-    }
-
-    const linksToDelete: Array<Model> = await this.findBy({
-      query: carriedQuery,
-      select: {
+    // The links the delete removes, and the delete held to them.
+    const linksToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         incidentId: true,
         alertId: true,
         projectId: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const carried: Array<CarriedLink> = [];
 
@@ -1363,9 +1352,14 @@ export class Service extends ProjectReferencesService<Model> {
    * validated - before the incident number is taken - so an impossible
    * request is refused instead of the incident being declared while its
    * alerts keep paging: the project has no Acknowledged alert state, or the
-   * caller may not change the state of every alert that would be
-   * acknowledged (see AlertStateChangeAuthorization; the acknowledgements
-   * themselves are written as root, for exactly these alerts).
+   * caller may not acknowledge every alert that would be acknowledged. What
+   * acknowledging one of them takes is what it takes on the alert's own page,
+   * and nothing more: creating its state timeline row, moving it into the
+   * Acknowledged state, as the caller - Create Alert State Timeline, narrowed
+   * by labels, owners and the alert's privacy through the alert, and no
+   * permission to edit the alert (see AlertStateChangeAuthorization; the
+   * acknowledgements themselves are written as root, for exactly these
+   * alerts).
    */
   @CaptureSpan()
   public async validateAcknowledgeAlertsForNewIncident(data: {
@@ -1475,6 +1469,7 @@ export class Service extends ProjectReferencesService<Model> {
         await AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
           projectId: projectId,
           alertIds: alertIdsToAcknowledge,
+          alertStateId: new ObjectID(acknowledgedState._id.toString()),
           props: data.props,
         });
       } catch (error) {

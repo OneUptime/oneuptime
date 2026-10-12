@@ -39,6 +39,12 @@ import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { meetsCondition } from "../TestingUtils/QueryConditions";
+import {
+  RowsCallerMayWriteRead,
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
@@ -238,13 +244,7 @@ const matchesQuery: (
     }
 
     if (expected instanceof FindOperator) {
-      const excluded: Array<string> = Object.values(
-        expected.objectLiteralParameters || {},
-      ).map((value: unknown): string => {
-        return String(value);
-      });
-
-      return !excluded.includes(String(actual));
+      return meetsCondition(expected, actual);
     }
 
     return String(actual) === String(expected);
@@ -299,6 +299,19 @@ beforeEach(() => {
         }),
       );
     }) as never);
+
+  /*
+   * The read of the rows an editor's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(
+    TeamComplianceSettingService,
+    (read: RowsCallerMayWriteRead): Array<TeamComplianceSetting> => {
+      return storedSettings.filter((row: TeamComplianceSetting): boolean => {
+        return matchesQuery(row, read.query);
+      });
+    },
+  );
 
   // The service reads through findBy only; any other read is a regression.
   settingsFindOneBy = jest
@@ -1687,7 +1700,7 @@ describe("TeamComplianceSettingService onBeforeUpdate - turning a rule on", () =
     ).resolves.toBeDefined();
   });
 
-  test("reads only the rows being turned on, inside the caller's project, as root, with what the check needs", async () => {
+  test("reads only the rows being turned on - the ones the caller may write - inside the caller's project, as root, with what the check needs", async () => {
     store(INCIDENT_CALL_CRITICAL);
 
     const updateBy: UpdateBy<TeamComplianceSetting> = updateByFor({
@@ -1698,8 +1711,14 @@ describe("TeamComplianceSettingService onBeforeUpdate - turning a rule on", () =
 
     expect(settingsFindBy).toHaveBeenCalledTimes(1);
 
+    // The rules the caller may write, found in their project...
+    expect(
+      readsOfRowsCallerMayWrite(TeamComplianceSettingService)[0]!.query,
+    ).toEqual({ _id: SETTING_ID, projectId: PROJECT_ID });
+
+    // ... read again by id, with what the check needs.
     const read: JSONObject = findByCalls()[0]!;
-    expect(read["query"]).toEqual({ _id: SETTING_ID, projectId: PROJECT_ID });
+    expect(read["query"]).toEqual({ _id: SETTING_ID });
     expect(read["select"]).toEqual({
       _id: true,
       ruleType: true,
@@ -1707,10 +1726,12 @@ describe("TeamComplianceSettingService onBeforeUpdate - turning a rule on", () =
       incidentSeverities: { _id: true },
       alertSeverities: { _id: true },
     });
-    expect(read["limit"]).toBe(LIMIT_PER_PROJECT);
-    expect(read["props"]).toEqual({ isRoot: true });
-    // The caller's own query object is left alone.
+    expect(read["skip"]).toBe(0);
+    expect(read["limit"]).toBe(1);
+    expect(read["props"]).toEqual({ isRoot: true, ignoreHooks: true });
+    // The update writes the row read, and no other.
     expect(updateBy.query).toEqual({ _id: SETTING_ID });
+    expect(updateBy.limit).toBe(1);
     expect(incidentSeverityCountBy).not.toHaveBeenCalled();
   });
 
@@ -2002,18 +2023,21 @@ describe("TeamComplianceSettingService onBeforeUpdate - refusals before any read
 });
 
 describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
-  test("reads the rows being changed inside the caller's project, as root, with what their scope needs", async () => {
+  test("reads the rows being changed - the ones the caller may write - inside the caller's project, as root, with what their scope needs", async () => {
     store(INCIDENT_CALL_CRITICAL);
 
     await update({
       notificationChannels: [ComplianceNotificationChannel.Push],
     });
 
+    // The rules the caller may write, found in their project...
+    expect(
+      readsOfRowsCallerMayWrite(TeamComplianceSettingService)[0]!.query,
+    ).toEqual({ _id: SETTING_ID, projectId: PROJECT_ID });
+
+    // ... read again by id, with what their scope needs.
     const existingRead: JSONObject = findByCalls()[0]!;
-    expect(existingRead["query"]).toEqual({
-      _id: SETTING_ID,
-      projectId: PROJECT_ID,
-    });
+    expect(existingRead["query"]).toEqual({ _id: SETTING_ID });
     expect(existingRead["select"]).toEqual({
       _id: true,
       teamId: true,
@@ -2025,9 +2049,9 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
       incidentSeverities: { _id: true },
       alertSeverities: { _id: true },
     });
-    expect(existingRead["limit"]).toBe(LIMIT_PER_PROJECT);
+    expect(existingRead["limit"]).toBe(1);
     expect(existingRead["skip"]).toBe(0);
-    expect(existingRead["props"]).toEqual({ isRoot: true });
+    expect(existingRead["props"]).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   test("does not copy the caller's own query object when adding the project", async () => {
@@ -2064,10 +2088,11 @@ describe("TeamComplianceSettingService onBeforeUpdate - scope changes", () => {
       ),
     ).resolves.toBeDefined();
 
-    expect(findByCalls()[0]?.["query"]).toEqual({
-      _id: OTHER_PROJECT_SETTING_ID,
-      projectId: PROJECT_ID,
-    });
+    // Looked for in the caller's project only, where it is not: nothing is read.
+    expect(
+      readsOfRowsCallerMayWrite(TeamComplianceSettingService)[0]!.query,
+    ).toEqual({ _id: OTHER_PROJECT_SETTING_ID, projectId: PROJECT_ID });
+    expect(findByCalls()).toEqual([]);
     expect(siblingReads()).toEqual([]);
     expect(incidentSeverityCountBy).not.toHaveBeenCalled();
   });

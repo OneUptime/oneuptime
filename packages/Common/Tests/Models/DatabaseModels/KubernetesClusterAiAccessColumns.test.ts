@@ -15,10 +15,8 @@ import TablePermission from "../../../Server/Types/Database/Permissions/TablePer
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -288,7 +286,8 @@ describe("KubernetesCluster AI access columns", () => {
     });
 
     it("binding a credential takes the permissions that may read credentials", () => {
-      expect(sorted(KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS)).toEqual(
+      // One rule: RunbookCredential's own read list (RunbookCredentialReaders).
+      expect(sorted(RunbookCredentialReaders.getReadPermissions())).toEqual(
         sorted(new RunbookCredential().getReadPermissions()),
       );
     });
@@ -447,7 +446,7 @@ describe("KubernetesCluster AI access columns", () => {
       "%s also names the permission to read credentials",
       (column: string) => {
         for (const title of PermissionHelper.getPermissionTitles(
-          KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+          RunbookCredentialReaders.getReadPermissions(),
         )) {
           expect(description(column)).toContain(title);
         }

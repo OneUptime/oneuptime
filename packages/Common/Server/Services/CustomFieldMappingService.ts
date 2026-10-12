@@ -19,6 +19,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import {
   CustomFieldMappingSourceEntry,
   CustomFieldMappingTargetEntry,
+  DatabaseServiceLike,
   getCustomFieldMappingTarget,
   getCustomFieldMappingTargetsForSource,
 } from "../Utils/CustomField/CustomFieldMappingRegistry";
@@ -403,22 +404,25 @@ export class CustomFieldMappingServiceClass {
       }
 
       /*
-       * Limit 2 rather than 1: the answer needed is "exactly one row or more
-       * than one", and asking for two is how you tell those apart without
-       * counting the whole match.
+       * The record the update writes, and the update held to it: the values
+       * folded in below are worked out for that one record, and written to
+       * no other. An update of more than one record is left as it is - its
+       * records are stamped one by one once it is written
+       * (restampRecordsByIds) - and two records read are enough to tell.
        */
-      const affected: Array<BaseModel> = await this.findTargetRecords({
-        target: target,
-        query: data.updateBy.query as JSONObject,
-        limit: 2,
-        skip: 0,
-      });
+      const targetService: DatabaseServiceLike = target.getTargetService();
 
-      if (affected.length !== 1) {
+      const written: { row: BaseModel | null; writesMore: boolean } =
+        await targetService.findOneRowAndHoldUpdateToIt(
+          data.updateBy,
+          this.getTargetRecordSelect(target),
+        );
+
+      if (!written.row) {
         return;
       }
 
-      const record: BaseModel = affected[0]!;
+      const record: BaseModel = written.row;
       const projectId: ObjectID | undefined = (record as any)["projectId"];
 
       if (!projectId) {
@@ -844,6 +848,23 @@ export class CustomFieldMappingServiceClass {
     }
   }
 
+  // What a mapping reads of a target record: its fields, and its sources.
+  private getTargetRecordSelect(
+    target: CustomFieldMappingTargetEntry,
+  ): JSONObject {
+    const select: JSONObject = {
+      _id: true,
+      projectId: true,
+      customFields: true,
+    };
+
+    for (const source of target.sources) {
+      Object.assign(select, source.targetRelationSelect);
+    }
+
+    return select;
+  }
+
   private async findTargetRecords(data: {
     target: CustomFieldMappingTargetEntry;
     query: JSONObject;
@@ -851,19 +872,9 @@ export class CustomFieldMappingServiceClass {
     skip: number;
     sortNewestFirst?: boolean | undefined;
   }): Promise<Array<BaseModel>> {
-    const select: JSONObject = {
-      _id: true,
-      projectId: true,
-      customFields: true,
-    };
-
-    for (const source of data.target.sources) {
-      Object.assign(select, source.targetRelationSelect);
-    }
-
     return data.target.getTargetService().findBy({
       query: data.query,
-      select: select,
+      select: this.getTargetRecordSelect(data.target),
       limit: data.limit,
       skip: data.skip,
       sort: data.sortNewestFirst ? { createdAt: SortOrder.Descending } : {},

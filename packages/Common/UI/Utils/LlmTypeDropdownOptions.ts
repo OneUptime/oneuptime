@@ -12,7 +12,12 @@ const LlmTypeDropdownOptions: Array<DropdownOption> = [
     value: LlmType.OpenAI,
   },
   {
-    label: "Azure OpenAI",
+    /*
+     * Every Microsoft Foundry deployment goes through this one: OpenAI's
+     * models and Foundry Models on the resource's v1 API, Claude on its
+     * Anthropic API (LLMService picks the wire from the Base URL).
+     */
+    label: "Azure OpenAI / Microsoft Foundry",
     value: LlmType.AzureOpenAI,
   },
   {

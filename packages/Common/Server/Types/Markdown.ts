@@ -1,12 +1,38 @@
-import { Renderer, marked } from "marked";
+import { Marked, MarkedOptions, Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
+import {
+  DOCS_CALLOUT_TYPES,
+  docsMarkdownExtensions,
+  docsSafeUrl,
+  renderDocsCallout,
+} from "./MarkdownDocsExtensions";
 import SafeHtml from "../../Types/SafeHtml";
+import {
+  MarkupInTextReading,
+  removeMarkupFromText,
+} from "../../Types/HtmlMarkup";
 import {
   InlineImageDataUri,
   isBase64Character,
   parseInlineImageDataUri,
 } from "../../Utils/Markdown/InlineImageDataUri";
+import {
+  holdBackOverLongLines,
+  holdBackOverLongText,
+  mayHoldBack,
+} from "../../Utils/Markdown/OverLongText";
+import {
+  SLOW_MARKDOWN_MAX_INLINE_WORK,
+  SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+  SlowMarkdownLimits,
+  holdBackSlowMarkdown,
+} from "../../Utils/Markdown/SlowMarkdown";
+import logger from "../Utils/Logger";
+import EmailSize, {
+  EMAIL_TRUNCATED_TEXT_NOTE_HTML,
+  MAX_EMAIL_FIELD_HTML_BYTES,
+} from "../Utils/Mail/EmailSize";
 
 export type MarkdownRenderer = Renderer;
 
@@ -34,11 +60,29 @@ const PLACEHOLDER_PATTERN: RegExp = /\uE000(\d+)\uE001/g;
 const PARAGRAPH_BREAK: string = "\uE002";
 const LITERAL_UNDERSCORE: string = "\uE003";
 const WORD_EDGE: string = "\uE004";
-const INPUT_SENTINELS: RegExp = /[\uE000-\uE004]+/g;
+const FIRST_SENTINEL_CODE: number = 0xe000;
+const LAST_SENTINEL_CODE: number = 0xe004;
+// The last of PLACEHOLDER_OPEN, PLACEHOLDER_CLOSE and PARAGRAPH_BREAK.
+const LAST_TAG_BREAK_CODE: number = 0xe002;
 
 /*
- * Private Use Area sentinels convertToHTML puts in place of long base64 data
- * while marked reads EMAIL Markdown (see holdBackLongBase64):
+ * How convertToPlainText reads the HTML in Markdown
+ * (removeMarkupFromText): no tag reaches across held-back text or a blank
+ * line - their placeholders and marks, U+E000 to U+E002 - and no tag or
+ * comment holds more than 65536 characters, the most any step that reads
+ * across lines takes.
+ */
+export const PLAIN_TEXT_MARKUP_READING: MarkupInTextReading = {
+  tagCannotHold: (code: number): boolean => {
+    return code >= FIRST_SENTINEL_CODE && code <= LAST_TAG_BREAK_CODE;
+  },
+  maxLength: 65536,
+};
+
+/*
+ * Private Use Area sentinels convertToHTML puts in place of what it holds
+ * back from marked while marked reads EMAIL Markdown - long base64 data and
+ * over-long text (see holdBackFromMarked):
  *   HELD_DATA_OPEN + index + HELD_DATA_CLOSE
  * Any already in the input are held back the same way, so every one marked
  * sees is one convertToHTML put there. Always write them as \u escapes,
@@ -59,12 +103,93 @@ const BASE64_DATA_START_OR_SENTINEL: RegExp = /;base64,|[\uE005\uE006]/gi;
  */
 const HELD_BASE64_MIN_LENGTH: number = 1024;
 
-interface HeldBackMarkdown {
-  // The Markdown, with long base64 data held back.
-  markdown: string;
-  // `value` with the held-back data put back where it was taken from.
-  restore: (value: string) => string;
+/*
+ * The most Markdown marked reads for an email once what it cannot read
+ * safely is held back (holdBackFromMarked). Markdown with more left than
+ * this - a log of megabytes whose every line holds a "|", a "<" or a "`",
+ * a table of a hundred thousand rows - is sent as text (getEmailTextHtml):
+ * marked ran out of stack on a few megabytes of it, took seconds on less,
+ * and an email's table is some thirty times the size of its Markdown.
+ */
+export const MAX_MARKED_EMAIL_MARKDOWN_LENGTH: number = 1024 * 1024;
+
+/*
+ * What marked is given of an email's Markdown at most, once what is too
+ * long for it is held back (Utils/Markdown/SlowMarkdown): blocks whose
+ * emphasis, code spans, links or escapes would make it look ahead through
+ * them for too long, and blocks nested too deep, are written as text.
+ * marked reads lines, lists and tables in linear time, so their number is
+ * not limited.
+ */
+export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
+  maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
+  maxRunLines: Number.POSITIVE_INFINITY,
+  maxLines: Number.POSITIVE_INFINITY,
+  maxUnitLines: Number.POSITIVE_INFINITY,
+  maxUnitLength: Number.POSITIVE_INFINITY,
+  maxNestingDepth: SLOW_MARKDOWN_MAX_NESTING_DEPTH,
+  maxCellsPerLine: Number.POSITIVE_INFINITY,
+  holdBackCodeBlockContent: false,
+  countUrlLiterals: false,
+  countWordUnderscores: false,
+};
+
+/*
+ * convertToHTML renders an email field shorter at most this many times
+ * after the first, each time to this share of what would just fit
+ * (convertToEmailHtml).
+ */
+const MAX_EMAIL_FIT_ATTEMPTS: number = 5;
+const EMAIL_FIT_MARGIN: number = 0.9;
+
+// A run of base64 data after ";base64," in a text: where it starts and ends.
+interface Base64Run {
+  start: number;
+  end: number;
 }
+
+/*
+ * Where an image is in Markdown: "![", its address and where its data ends
+ * (after any "=" padding), and after its ")".
+ */
+interface MarkdownImagePosition {
+  start: number;
+  addressStart: number;
+  addressEnd: number;
+  end: number;
+}
+
+// The start of base64 data after a data: URL's media type.
+const BASE64_DATA_START: RegExp = /;base64,/gi;
+
+/*
+ * What a data: URL's media type and encoding read, before its data - any
+ * type: whether it is an image an email sends is parseInlineImageDataUri's
+ * to say.
+ */
+const IMAGE_DATA_URL_PREFIX: RegExp =
+  /^data:[a-z0-9.+-]+\/[a-z0-9.+-]+;base64,$/i;
+
+/*
+ * How far from an image's data its "![" may be, and its ")": the length of
+ * an alt text or a title (findImageAround).
+ */
+const IMAGE_SYNTAX_WINDOW: number = 1024;
+
+interface HeldBackMarkdown {
+  // The Markdown, with what marked cannot read safely held back.
+  markdown: string;
+  // `value` with what was held back put back as it was written: for a URL.
+  restore: (value: string) => string;
+  /*
+   * `value` - HTML marked rendered - with what was held back put back
+   * escaped, as marked escapes text.
+   */
+  restoreEscaped: (value: string) => string;
+}
+
+// Puts back what was held back: as it was written, or escaped for HTML.
+type PutBackFunction = (value: string, escape: boolean) => string;
 
 const FENCE_OPEN: RegExp =
   /^(?:[ \t>]|(?:[-*+]|\d{1,9}[.)])[ \t])*(?:(`{3,})[^`]*|(~{3,}).*)$/;
@@ -146,6 +271,19 @@ export default class Markdown {
    * overflows V8's backtrack stack (RangeError). The two Unicode-aware steps
    * (which underscores touch a letter or digit) loop over "_" alone and
    * leave marks that the emphasis steps read.
+   *
+   * NO QUANTIFIER TAKES MORE THAN A LINE'S WORTH. V8 matches a regex on a
+   * backtracking stack that can grow with every character a quantifier
+   * takes, and a process that has been running a while compiles regexes
+   * unoptimized: then a quantifier that took a few million characters - a
+   * long URL, a run of spaces, a minified JSON body, an unclosed tag - ran
+   * out of stack ("Maximum call stack size exceeded"). So the middle of every
+   * over-long line is held back first, as literal text
+   * (Utils/Markdown/OverLongText): a quantifier that stays within a line
+   * never takes more than OVER_LONG_LINE_LENGTH characters. One that can
+   * cross lines - a tag, a link, emphasis, a run of whitespace - takes at
+   * most 65536 ({0,65536}). Sentinels and whitespace are collapsed with
+   * loops, after the held-back text is back.
    */
   @CaptureSpan()
   public static convertToPlainText(markdown: string): string {
@@ -182,7 +320,13 @@ export default class Markdown {
     text = text.replace(/\r\n?/g, "\n");
 
     // Hold back sentinel characters already in the input, verbatim.
-    text = text.replace(INPUT_SENTINELS, hold);
+    text = Markdown.holdInputSentinels(text, hold);
+
+    /*
+     * Hold back the middle of every over-long line, verbatim: it reads as
+     * written, and no step below reads more than a line's worth of it.
+     */
+    text = holdBackOverLongLines(text, hold);
 
     /*
      * CODE FIRST. Drop fenced code blocks, then hold back code spans and
@@ -256,15 +400,20 @@ export default class Markdown {
      * A backslash-escaped character is held back too, so it also keeps the
      * text around it from being read as a tag ("List<Foo\_Bar>" stays).
      * A comment may span both: it is hidden when rendered, code and all.
+     * They come out completely: where taking one out joins the text either
+     * side into another - "<scr<script>ipt>", "<<b>b>", "<b<i>x</i>>" -
+     * that one goes too, until none is left (removeMarkupFromText, in one
+     * walk). Text that one pass of the rule left no tag in reads exactly
+     * as it did.
      */
-    text = text.replace(/<(?:\/?[A-Za-z][^<>\uE000-\uE002]*|[!?][^<>]*)>/g, "");
+    text = removeMarkupFromText(text, PLAIN_TEXT_MARKUP_READING);
 
     /*
      * Convert markdown images ![alt](url) to just alt text. Before links, or
      * the link step would leave the "!" behind.
      */
     text = text.replace(
-      /!\[([^[\]]*)\]\((?!\))[^()]*(?:\([^()]*\)[^()]*)?\)/g,
+      /!\[([^[\]]{0,65536})\]\((?!\))[^()]{0,65536}(?:\([^()]{0,65536}\)[^()]{0,65536})?\)/g,
       "$1",
     );
 
@@ -273,7 +422,7 @@ export default class Markdown {
      * one pair of parentheses, e.g. https://en.wikipedia.org/wiki/Foo_(bar).
      */
     text = text.replace(
-      /\[([^[\]]+)\]\((?!\))[^()]*(?:\([^()]*\)[^()]*)?\)/g,
+      /\[([^[\]]{1,65536})\]\((?!\))[^()]{0,65536}(?:\([^()]{0,65536}\)[^()]{0,65536})?\)/g,
       "$1",
     );
 
@@ -296,10 +445,11 @@ export default class Markdown {
      * runs again after italic to unwrap "**a *b* c**"; italic runs after
      * bold to unwrap "***a***".
      */
-    const boldStars: RegExp = /\*\*(?![\s*])([^*\uE002]*[^\s*\uE002])\*\*/g;
+    const boldStars: RegExp =
+      /\*\*(?![\s*])([^*\uE002]{0,65536}[^\s*\uE002])\*\*/g;
     const italicStar: RegExp = /\*(?![\s*])([^*\n]*[^\s*])\*/g;
     const boldUnderscores: RegExp =
-      /(?<!\uE004)__(?![\s_])([^_\uE002]*[^\s_\uE002])__(?!\uE004)/g;
+      /(?<!\uE004)__(?![\s_])([^_\uE002]{0,65536}[^\s_\uE002])__(?!\uE004)/g;
     const italicUnderscore: RegExp =
       /(?<![_\uE004])_(?![\s_])([^_\n]*[^\s_])_(?![_\uE004])/g;
 
@@ -311,17 +461,20 @@ export default class Markdown {
     text = text.replace(boldUnderscores, "$1"); // __bold _italic_ bold__
 
     // Remove markdown strikethrough
-    text = text.replace(/~~(?![\s~])([^~\uE002]*[^\s~\uE002])~~/g, "$1");
+    text = text.replace(
+      /~~(?![\s~])([^~\uE002]{0,65536}[^\s~\uE002])~~/g,
+      "$1",
+    );
 
     // Drop the blank-line and word-edge marks again.
     text = text.split(PARAGRAPH_BREAK).join("");
     text = text.split(WORD_EDGE).join("");
 
     // Remove markdown headers
-    text = text.replace(/^#{1,6}\s+/gm, "");
+    text = text.replace(/^#{1,6}\s{1,65536}/gm, "");
 
     // Remove markdown blockquotes
-    text = text.replace(/^>\s+/gm, "");
+    text = text.replace(/^>\s{1,65536}/gm, "");
 
     // Remove markdown horizontal rules: "---", "***", "___", "* * *", "- - -"
     text = text.replace(
@@ -330,8 +483,8 @@ export default class Markdown {
     );
 
     // Remove markdown list markers
-    text = text.replace(/^[^\S\n]*[-*+]\s+/gm, "");
-    text = text.replace(/^[^\S\n]*\d+\.\s+/gm, "");
+    text = text.replace(/^[^\S\n]*[-*+]\s{1,65536}/gm, "");
+    text = text.replace(/^[^\S\n]*\d+\.\s{1,65536}/gm, "");
 
     /*
      * Decode HTML entities. Code is still a placeholder here, so entities
@@ -349,14 +502,131 @@ export default class Markdown {
     text = text.split(LITERAL_UNDERSCORE).join("_");
     text = restore(text);
 
-    // Normalize whitespace - collapse multiple spaces/newlines
-    text = text.replace(/\n\s*\n/g, "\n");
-    text = text.replace(/[ \t]+/g, " ");
+    /*
+     * Normalize whitespace - collapse multiple spaces/newlines. A loop: the
+     * held-back text is back, and a run of whitespace can be megabytes.
+     */
+    text = Markdown.collapseWhitespace(text);
 
     // Trim whitespace
     text = text.trim();
 
     return text;
+  }
+
+  /*
+   * Every run of sentinel characters already in the input, held back as it
+   * is (see PLACEHOLDER_OPEN). A loop: a run can be megabytes long.
+   */
+  private static holdInputSentinels(text: string, hold: HoldFunction): string {
+    let result: string = "";
+    let copiedUpTo: number = 0;
+    let index: number = 0;
+
+    while (index < text.length) {
+      const code: number = text.charCodeAt(index);
+
+      if (code < FIRST_SENTINEL_CODE || code > LAST_SENTINEL_CODE) {
+        index++;
+        continue;
+      }
+
+      let runEnd: number = index + 1;
+
+      while (runEnd < text.length) {
+        const next: number = text.charCodeAt(runEnd);
+
+        if (next < FIRST_SENTINEL_CODE || next > LAST_SENTINEL_CODE) {
+          break;
+        }
+
+        runEnd++;
+      }
+
+      result += text.slice(copiedUpTo, index) + hold(text.slice(index, runEnd));
+      copiedUpTo = runEnd;
+      index = runEnd;
+    }
+
+    return copiedUpTo === 0 ? text : result + text.slice(copiedUpTo);
+  }
+
+  /*
+   * What text.replace(/\n\s*\n/g, "\n").replace(/[ \t]+/g, " ") makes of
+   * `text`, with loops: from a line break, a run of whitespace up to its
+   * last line break becomes one line break, and then every run of spaces
+   * and tabs one space.
+   */
+  private static collapseWhitespace(text: string): string {
+    let lines: string = "";
+    let copiedUpTo: number = 0;
+    let index: number = text.indexOf("\n");
+
+    while (index !== -1) {
+      let runEnd: number = index + 1;
+      let lastLineBreak: number = -1;
+
+      while (
+        runEnd < text.length &&
+        Markdown.isRegExpWhitespace(text.charCodeAt(runEnd))
+      ) {
+        if (text.charCodeAt(runEnd) === 0x0a) {
+          lastLineBreak = runEnd;
+        }
+
+        runEnd++;
+      }
+
+      if (lastLineBreak === -1) {
+        index = text.indexOf("\n", index + 1);
+        continue;
+      }
+
+      lines += text.slice(copiedUpTo, index) + "\n";
+      copiedUpTo = lastLineBreak + 1;
+      index = text.indexOf("\n", copiedUpTo);
+    }
+
+    lines += text.slice(copiedUpTo);
+
+    let collapsed: string = "";
+    let runStart: number = -1;
+    copiedUpTo = 0;
+
+    for (let position: number = 0; position <= lines.length; position++) {
+      const code: number =
+        position < lines.length ? lines.charCodeAt(position) : -1;
+      const isSpaceOrTab: boolean = code === 0x20 || code === 0x09;
+
+      if (isSpaceOrTab && runStart === -1) {
+        runStart = position;
+      }
+
+      if (!isSpaceOrTab && runStart !== -1) {
+        collapsed += lines.slice(copiedUpTo, runStart) + " ";
+        copiedUpTo = position;
+        runStart = -1;
+      }
+    }
+
+    return collapsed + lines.slice(copiedUpTo);
+  }
+
+  // Whether a UTF-16 code unit is whitespace to a regular expression's \s.
+  private static isRegExpWhitespace(code: number): boolean {
+    return (
+      (code >= 0x09 && code <= 0x0d) ||
+      code === 0x20 ||
+      code === 0xa0 ||
+      code === 0x1680 ||
+      (code >= 0x2000 && code <= 0x200a) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      code === 0x202f ||
+      code === 0x205f ||
+      code === 0x3000 ||
+      code === 0xfeff
+    );
   }
 
   /*
@@ -618,6 +888,7 @@ export default class Markdown {
 
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
+  private static docsMarkedOptions: MarkedOptions | null = null;
   private static emailRenderer: Renderer | null = null;
   private static blogValidationRenderer: Renderer | null = null;
 
@@ -655,15 +926,27 @@ export default class Markdown {
       };
     }
 
-    // An email's screenshots are held back from marked: see holdBackLongBase64.
+    /*
+     * An email's screenshots, and text too long for marked to read, are held
+     * back from marked (holdBackFromMarked), and the HTML a field renders
+     * to is held to what an email carries (convertToEmailHtml).
+     */
     if (contentType === MarkdownContentType.Email && renderer) {
-      const held: HeldBackMarkdown = Markdown.holdBackLongBase64(markdown);
+      return Markdown.convertToEmailHtml(markdown, renderer);
+    }
 
-      const emailBody: string = await marked(held.markdown, {
-        renderer: Markdown.withHeldDataInUrls(renderer, held.restore),
+    /*
+     * The docs have block components of their own (steps, tabs, cards,
+     * collapsible sections and callouts - see MarkdownDocsExtensions.ts).
+     * They are passed with each docs render rather than registered on
+     * marked, so the blog, email and the rest keep reading ":::" as text,
+     * and docs rendering still goes through marked like every other type.
+     */
+    if (contentType === MarkdownContentType.Docs && renderer) {
+      return await marked(markdown, {
+        ...Markdown.getDocsMarkedOptions(),
+        renderer: renderer,
       });
-
-      return held.restore(emailBody);
     }
 
     const htmlBody: string = await marked(markdown, {
@@ -674,95 +957,422 @@ export default class Markdown {
   }
 
   /*
-   * EMAIL Markdown with every long run of base64 data held back, for marked
-   * to read, and the means to put the data back.
-   *
-   * A synthetic monitor's screenshot reaches an email as a data: URL of
-   * millions of characters on one line (see Utils/Markdown/
-   * InlineImageDataUri). marked reads a line with regular expressions, and
-   * V8 matches those with a backtracking stack that can grow with every
-   * character: a screenshot of about six megabytes ran it out of stack -
-   * "Maximum call stack size exceeded" - and the email was never rendered.
-   * Once a long-running process has compiled enough code, V8 stops
-   * optimizing the regular expressions it compiles, and then three
-   * megabytes was enough.
-   *
-   * So each run of base64 after ";base64," that is long enough to matter
-   * leaves the Markdown, all but its last character, and a short token takes
-   * its place. The last character stays so that whatever follows the data
-   * reads exactly as it did. Links and images get their data back before
-   * their URL is judged (withHeldDataInUrls), and the rendered HTML gets it
-   * back wherever else marked wrote it - code, alt text, a title - so the
-   * email is what it would have been.
+   * EMAIL Markdown as HTML of at most MAX_EMAIL_FIELD_HTML_BYTES (see
+   * Utils/Mail/EmailSize), measured as it is sent: its inline images as the
+   * attachments they go out as, so a screenshot does not count. A text whose
+   * HTML is more - a log or a response body of megabytes, a table, whose
+   * HTML is some thirty times its Markdown - is cut (cutEmailMarkdown: at a
+   * line break where it can be, never inside an image) and rendered again,
+   * shorter in proportion and with a margin, a few times at most, and ends
+   * with EMAIL_TRUNCATED_TEXT_NOTE_HTML. A text far longer than that is cut
+   * before it is first rendered: rendering megabytes only to drop them is
+   * wasted work. A text that fits renders exactly as it always has.
    */
-  private static holdBackLongBase64(markdown: string): HeldBackMarkdown {
+  private static async convertToEmailHtml(
+    markdown: string,
+    renderer: Renderer,
+  ): Promise<string> {
+    if (typeof markdown !== "string" || !markdown) {
+      return Markdown.renderEmailMarkdown(markdown, renderer);
+    }
+
+    const runs: Array<Base64Run> = Markdown.getBase64Runs(markdown);
+    const weight: number = Markdown.getEmailMarkdownWeight(markdown, runs);
+
+    /*
+     * How much of the text is kept, by weight; null while all of it is. A
+     * text heavier than the budget renders to more HTML than it (escaping
+     * and tags only add), so it is cut to the budget before it is first
+     * rendered.
+     */
+    let kept: number | null =
+      weight > MAX_EMAIL_FIELD_HTML_BYTES ? MAX_EMAIL_FIELD_HTML_BYTES : null;
+    let html: string = "";
+
+    for (
+      let attempt: number = 0;
+      attempt <= MAX_EMAIL_FIT_ATTEMPTS;
+      attempt++
+    ) {
+      html =
+        kept === null
+          ? await Markdown.renderEmailMarkdown(markdown, renderer)
+          : (await Markdown.renderEmailMarkdown(
+              Markdown.cutEmailMarkdown(markdown, kept, runs),
+              renderer,
+            )) + EMAIL_TRUNCATED_TEXT_NOTE_HTML;
+
+      const sizeInBytes: number = EmailSize.getFieldSizeInBytes(html);
+
+      if (
+        sizeInBytes <= MAX_EMAIL_FIELD_HTML_BYTES ||
+        (kept !== null && kept <= 1)
+      ) {
+        break;
+      }
+
+      kept = Math.max(
+        1,
+        Math.floor(
+          (((kept ?? weight) * MAX_EMAIL_FIELD_HTML_BYTES) / sizeInBytes) *
+            EMAIL_FIT_MARGIN,
+        ),
+      );
+    }
+
+    if (kept !== null) {
+      logger.warn(
+        `An email's Markdown (${markdown.length} characters) renders to more HTML than an email carries, and was cut to fit.`,
+      );
+    }
+
+    return html;
+  }
+
+  /*
+   * EMAIL Markdown rendered by marked, with what marked cannot read safely
+   * held back (holdBackFromMarked); as text when even that is more than it
+   * reads safely, or when it fails anyway (getEmailTextHtml).
+   */
+  private static async renderEmailMarkdown(
+    markdown: string,
+    renderer: Renderer,
+  ): Promise<string> {
+    const held: HeldBackMarkdown = Markdown.holdBackFromMarked(markdown);
+
+    if (
+      typeof held.markdown === "string" &&
+      held.markdown.length > MAX_MARKED_EMAIL_MARKDOWN_LENGTH
+    ) {
+      logger.warn(
+        `An email's Markdown (${held.markdown.length} characters left once over-long text is held back, of ${String(markdown).length}) is more than marked reads safely, and is sent as text.`,
+      );
+
+      return Markdown.getEmailTextHtml(markdown);
+    }
+
+    try {
+      const emailBody: string = await marked(held.markdown, {
+        renderer: Markdown.withHeldDataInUrls(renderer, held.restore),
+      });
+
+      return held.restoreEscaped(emailBody);
+    } catch (error) {
+      /*
+       * The last resort. What marked cannot read safely is held back, so
+       * this is not expected - but if marked still runs out of stack
+       * (RangeError), the email is sent with its Markdown as text rather
+       * than not sent at all.
+       */
+      if (!(error instanceof RangeError)) {
+        throw error;
+      }
+
+      logger.error(
+        `An email's Markdown (${String(markdown).length} characters) could not be rendered, and is sent as text: ${error.message}`,
+      );
+
+      return Markdown.getEmailTextHtml(markdown);
+    }
+  }
+
+  /*
+   * The runs of base64 data in `text` of at least `minLength` characters
+   * (by default those long enough to matter: a screenshot, see
+   * HELD_BASE64_MIN_LENGTH), each after a ";base64,", in order. Found with
+   * a pattern that has no quantifier and a loop over the data.
+   */
+  private static getBase64Runs(
+    text: string,
+    minLength: number = HELD_BASE64_MIN_LENGTH,
+  ): Array<Base64Run> {
+    const runs: Array<Base64Run> = [];
+    const pattern: RegExp = new RegExp(BASE64_DATA_START.source, "gi");
+
+    for (
+      let match: RegExpExecArray | null = pattern.exec(text);
+      match !== null;
+      match = pattern.exec(text)
+    ) {
+      const start: number = match.index + match[0].length;
+      let end: number = start;
+
+      while (end < text.length && isBase64Character(text.charCodeAt(end))) {
+        end++;
+      }
+
+      pattern.lastIndex = end;
+
+      if (end - start >= minLength) {
+        runs.push({ start: start, end: end });
+      }
+    }
+
+    return runs;
+  }
+
+  /*
+   * How much of EMAIL Markdown counts toward the HTML it renders to: all of
+   * it but the data of its inline images, which go out as attachments.
+   */
+  private static getEmailMarkdownWeight(
+    markdown: string,
+    runs: Array<Base64Run>,
+  ): number {
+    return runs.reduce((weight: number, run: Base64Run): number => {
+      return weight - (run.end - run.start);
+    }, markdown.length);
+  }
+
+  // Where `weight` of `markdown` ends, counting no base64 run.
+  private static getPositionOfWeight(
+    markdown: string,
+    runs: Array<Base64Run>,
+    weight: number,
+  ): number {
+    let counted: number = 0;
+    let segmentStart: number = 0;
+
+    for (const run of runs) {
+      if (counted + (run.start - segmentStart) >= weight) {
+        return segmentStart + (weight - counted);
+      }
+
+      counted += run.start - segmentStart;
+      segmentStart = run.end;
+    }
+
+    return Math.min(markdown.length, segmentStart + (weight - counted));
+  }
+
+  /*
+   * The Markdown image whose data is `run` - "![alt](data:image/...;base64,
+   * <run> "title")" - where it starts ("!["), where its address starts, and
+   * where it ends (after its ")"); or null when the data is not in an
+   * image's address. Read in windows of IMAGE_SYNTAX_WINDOW around the
+   * data, so finding every image of a text takes time linear in its length.
+   */
+  private static findImageAround(
+    markdown: string,
+    run: Base64Run,
+  ): MarkdownImagePosition | null {
+    // "](" and "data:image/<type>;base64," right before the data.
+    const prefixStart: number = Math.max(0, run.start - 64);
+    const addressIndex: number = markdown
+      .slice(prefixStart, run.start)
+      .lastIndexOf("](");
+
+    if (addressIndex === -1) {
+      return null;
+    }
+
+    const addressStart: number = prefixStart + addressIndex + 2;
+
+    if (!IMAGE_DATA_URL_PREFIX.test(markdown.slice(addressStart, run.start))) {
+      return null;
+    }
+
+    // "![" before the alt text, on the same line.
+    const altWindowStart: number = Math.max(
+      0,
+      addressStart - 2 - IMAGE_SYNTAX_WINDOW,
+    );
+    const altWindow: string = markdown.slice(altWindowStart, addressStart - 2);
+    const altIndex: number = altWindow.lastIndexOf("![");
+
+    if (altIndex === -1 || altWindow.indexOf("\n", altIndex) !== -1) {
+      return null;
+    }
+
+    // The data's "=" padding, which the run does not take.
+    let addressEnd: number = run.end;
+
+    while (
+      addressEnd < markdown.length &&
+      addressEnd - run.end < 2 &&
+      markdown.charAt(addressEnd) === "="
+    ) {
+      addressEnd++;
+    }
+
+    // After the data: spaces and a quoted title, then ")".
+    const limit: number = Math.min(
+      markdown.length,
+      addressEnd + IMAGE_SYNTAX_WINDOW,
+    );
+    let end: number = addressEnd;
+
+    while (end < limit && markdown.charAt(end) === " ") {
+      end++;
+    }
+
+    const quote: string = markdown.charAt(end);
+
+    if (quote === '"' || quote === "'") {
+      const title: string = markdown.slice(end + 1, limit);
+      const titleLength: number = title.indexOf(quote);
+
+      if (titleLength === -1 || title.slice(0, titleLength).includes("\n")) {
+        return null;
+      }
+
+      end += titleLength + 2;
+
+      while (end < limit && markdown.charAt(end) === " ") {
+        end++;
+      }
+    }
+
+    if (markdown.charAt(end) !== ")") {
+      return null;
+    }
+
+    return {
+      start: altWindowStart + altIndex,
+      addressStart: addressStart,
+      addressEnd: addressEnd,
+      end: end + 1,
+    };
+  }
+
+  /*
+   * The start of EMAIL Markdown up to `weight` (getEmailMarkdownWeight: an
+   * inline image's data weighs nothing, so an image before the cut stays
+   * whole). Cut at the last line break in the second half of that, so a line
+   * is not split where it can be helped, else between whole characters -
+   * and never inside an image: an image the cut would split is left out,
+   * from its "![", so none of its data is left as text.
+   */
+  public static cutEmailMarkdown(
+    markdown: string,
+    weight: number,
+    runs: Array<Base64Run> = Markdown.getBase64Runs(markdown),
+  ): string {
+    if (Markdown.getEmailMarkdownWeight(markdown, runs) <= weight) {
+      return markdown;
+    }
+
+    let cut: number = Markdown.getPositionOfWeight(markdown, runs, weight);
+    const half: number = Markdown.getPositionOfWeight(
+      markdown,
+      runs,
+      Math.floor(weight / 2),
+    );
+    const lineBreak: number = markdown.lastIndexOf("\n", cut);
+
+    if (lineBreak > half) {
+      cut = lineBreak;
+    } else {
+      const before: number = markdown.charCodeAt(cut - 1);
+
+      if (cut > 0 && before >= 0xd800 && before <= 0xdbff) {
+        cut--;
+      }
+    }
+
+    /*
+     * An image the cut splits - one whose data starts after it, or ends
+     * before it with its ")" after - is left out from its "![".
+     */
+    const after: Base64Run | undefined = runs.find(
+      (run: Base64Run): boolean => {
+        return run.start >= cut;
+      },
+    );
+    const before: Base64Run | undefined = runs
+      .filter((run: Base64Run): boolean => {
+        return run.end <= cut;
+      })
+      .pop();
+
+    for (const run of [after, before]) {
+      const image: MarkdownImagePosition | null = run
+        ? Markdown.findImageAround(markdown, run)
+        : null;
+
+      if (image && image.start < cut && image.end > cut) {
+        cut = image.start;
+      }
+    }
+
+    return markdown.slice(0, cut).trimEnd();
+  }
+
+  /*
+   * marked's own processed form of the docs extensions - the tokenizers,
+   * renderers and the hook that resets per-page ids - taken from an instance
+   * that has them registered, to pass with each docs render.
+   */
+  private static getDocsMarkedOptions(): MarkedOptions {
+    if (this.docsMarkedOptions === null) {
+      const defaults: MarkedOptions = new Marked(docsMarkdownExtensions)
+        .defaults;
+      this.docsMarkedOptions = {
+        extensions: defaults.extensions ?? null,
+        hooks: defaults.hooks ?? null,
+      };
+    }
+
+    return this.docsMarkedOptions;
+  }
+
+  /*
+   * EMAIL Markdown with everything marked cannot read safely held back, for
+   * marked to read, and the means to put it back.
+   *
+   * marked reads a line, and a paragraph, with regular expressions, and V8
+   * matches those with a backtracking stack that can grow with every
+   * character: a screenshot of about six megabytes on one line ran it out
+   * of stack - "Maximum call stack size exceeded" - and the email was never
+   * rendered. Once a long-running process has compiled enough code, V8 stops
+   * optimizing the regular expressions it compiles, and then three and a
+   * half megabytes was enough - of a screenshot, of a response body a
+   * description template placed, of a log pasted into a note.
+   *
+   * So, before marked reads the Markdown, and each replaced by a short token:
+   *
+   *   - each run of base64 after ";base64," long enough to matter (a
+   *     screenshot, see Utils/Markdown/InlineImageDataUri) leaves it, all
+   *     but its last character. The last character stays so that whatever
+   *     follows the data reads exactly as it did.
+   *   - the middle of every over-long line, and the plain lines of every
+   *     over-long run of lines, leave it (Utils/Markdown/OverLongText): the
+   *     line keeps its start and end, and the run the lines that give it its
+   *     structure.
+   *   - a token character already in the input leaves it as it is.
+   *
+   * Links and images get what was held back before their URL is judged
+   * (withHeldDataInUrls), as it was written, and the rendered HTML gets it
+   * back wherever else marked wrote it - text, code, alt text, a title -
+   * escaped, as marked escapes text. So an email whose text is too long for
+   * marked shows it, as text, and the rest of the email is what it would
+   * have been. Markdown of at most 64 KB with no screenshot holds back
+   * nothing, and goes to marked as it is. Markdown with more than
+   * MAX_MARKED_EMAIL_MARKDOWN_LENGTH left - long runs of lines that are not
+   * plain - is not given to marked at all: it is sent as text.
+   */
+  private static holdBackFromMarked(markdown: string): HeldBackMarkdown {
+    const asIs: (value: string) => string = (value: string): string => {
+      return value;
+    };
+
     if (typeof markdown !== "string" || !markdown) {
       return {
         markdown: markdown,
-        restore: (value: string): string => {
-          return value;
-        },
+        restore: asIs,
+        restoreEscaped: asIs,
       };
     }
 
     const held: Array<string> = [];
-    let text: string = "";
-    let copiedUpTo: number = 0;
-
-    const pattern: RegExp = new RegExp(
-      BASE64_DATA_START_OR_SENTINEL.source,
-      "gi",
-    );
-
-    for (
-      let match: RegExpExecArray | null = pattern.exec(markdown);
-      match !== null;
-      match = pattern.exec(markdown)
-    ) {
-      let holdFrom: number = match.index;
-      let holdTo: number = match.index + match[0].length;
-
-      if (match[0].length > 1) {
-        // ";base64,": the data runs on for as long as it is base64.
-        holdFrom = holdTo;
-
-        let dataEnd: number = holdFrom;
-
-        while (
-          dataEnd < markdown.length &&
-          isBase64Character(markdown.charCodeAt(dataEnd))
-        ) {
-          dataEnd++;
-        }
-
-        pattern.lastIndex = dataEnd;
-
-        if (dataEnd - holdFrom < HELD_BASE64_MIN_LENGTH) {
-          continue;
-        }
-
-        holdTo = dataEnd - 1;
-      }
-
-      // Otherwise a sentinel already in the input, held back as it is.
-      held.push(markdown.slice(holdFrom, holdTo));
-      text +=
-        markdown.slice(copiedUpTo, holdFrom) +
-        `${HELD_DATA_OPEN}${held.length - 1}${HELD_DATA_CLOSE}`;
-      copiedUpTo = holdTo;
-    }
-
-    if (held.length === 0) {
-      return {
-        markdown: markdown,
-        restore: (value: string): string => {
-          return value;
-        },
-      };
-    }
+    // The held texts that are whole lines (SlowMarkdown), by index.
+    const heldLines: Set<number> = new Set<number>();
 
     // Read with indexOf, not a regular expression: the HTML is as long as the data.
-    const restore: (value: string) => string = (value: string): string => {
+    const putBack: PutBackFunction = (
+      value: string,
+      escape: boolean,
+    ): string => {
       let restored: string = "";
       let restoredUpTo: number = 0;
 
@@ -777,24 +1387,181 @@ export default class Markdown {
           break;
         }
 
-        restored +=
-          value.slice(restoredUpTo, open) +
-          (held[Number(value.slice(open + 1, close))] ?? "");
+        const index: number = Number(value.slice(open + 1, close));
+        const heldText: string = held[index] ?? "";
+
+        let restoredText: string = heldText;
+
+        if (escape) {
+          restoredText = heldLines.has(index)
+            ? Markdown.getEmailLinesHtml(heldText)
+            : Markdown.escapeHtml(heldText);
+        }
+
+        restored += value.slice(restoredUpTo, open) + restoredText;
         restoredUpTo = close + 1;
       }
 
       return restored + value.slice(restoredUpTo);
     };
 
+    // Kept as written: anything held back inside it is put back first.
+    const hold: (text: string) => string = (text: string): string => {
+      held.push(putBack(text, false));
+
+      return `${HELD_DATA_OPEN}${held.length - 1}${HELD_DATA_CLOSE}`;
+    };
+
+    // Whole lines, written back a line on each line (getEmailLinesHtml).
+    const holdLines: (text: string) => string = (text: string): string => {
+      const token: string = hold(text);
+
+      heldLines.add(held.length - 1);
+
+      return token;
+    };
+
+    /*
+     * Line breaks as marked reads them, so a line is a line here too. Only
+     * Markdown long enough to hold anything back is rewritten.
+     */
+    const source: string =
+      mayHoldBack(markdown) && markdown.indexOf("\r") !== -1
+        ? markdown.replace(/\r\n|\r/g, "\n")
+        : markdown;
+
+    let text: string = "";
+    let copiedUpTo: number = 0;
+
+    const pattern: RegExp = new RegExp(
+      BASE64_DATA_START_OR_SENTINEL.source,
+      "gi",
+    );
+
+    for (
+      let match: RegExpExecArray | null = pattern.exec(source);
+      match !== null;
+      match = pattern.exec(source)
+    ) {
+      let holdFrom: number = match.index;
+      let holdTo: number = match.index + match[0].length;
+
+      if (match[0].length > 1) {
+        // ";base64,": the data runs on for as long as it is base64.
+        holdFrom = holdTo;
+
+        let dataEnd: number = holdFrom;
+
+        while (
+          dataEnd < source.length &&
+          isBase64Character(source.charCodeAt(dataEnd))
+        ) {
+          dataEnd++;
+        }
+
+        pattern.lastIndex = dataEnd;
+
+        if (dataEnd - holdFrom < HELD_BASE64_MIN_LENGTH) {
+          continue;
+        }
+
+        holdTo = dataEnd - 1;
+      }
+
+      // Otherwise a sentinel already in the input, held back as it is.
+      text +=
+        source.slice(copiedUpTo, holdFrom) +
+        hold(source.slice(holdFrom, holdTo));
+      copiedUpTo = holdTo;
+    }
+
+    text = holdBackOverLongText(text + source.slice(copiedUpTo), hold);
+
+    /*
+     * Blocks marked would take too long to read - emphasis, code spans or
+     * links it looks ahead through, quotes nested thousands deep - are held
+     * back whole, and written back as text, a line on each line.
+     */
+    text = holdBackSlowMarkdown(
+      text,
+      { holdLines: holdLines, holdCode: hold },
+      EMAIL_SLOW_MARKDOWN_LIMITS,
+    );
+
+    if (held.length === 0) {
+      return {
+        markdown: markdown,
+        restore: asIs,
+        restoreEscaped: asIs,
+      };
+    }
+
     return {
-      markdown: text + markdown.slice(copiedUpTo),
-      restore: restore,
+      markdown: text,
+      restore: (value: string): string => {
+        return putBack(value, false);
+      },
+      restoreEscaped: (value: string): string => {
+        return putBack(value, true);
+      },
     };
   }
 
   /*
+   * An email's Markdown as text, for when marked cannot render it: every
+   * character escaped, every line on a line of its own - but an inline image
+   * ("![alt](data:image/png;base64,...)", a screenshot) still an image, which
+   * MailService sends as an attachment: written as text, its data would be
+   * megabytes of base64 in the email. An image whose data is not an image
+   * this sends (parseInlineImageDataUri) is its alt text.
+   */
+  private static getEmailTextHtml(markdown: string): string {
+    const text: string = String(markdown ?? "");
+    let html: string = "";
+    let copiedUpTo: number = 0;
+
+    for (const run of Markdown.getBase64Runs(text, 1)) {
+      const found: MarkdownImagePosition | null = Markdown.findImageAround(
+        text,
+        run,
+      );
+
+      if (found === null || found.start < copiedUpTo) {
+        continue;
+      }
+
+      const alt: string = text.slice(found.start + 2, found.addressStart - 2);
+      const image: InlineImageDataUri | null = parseInlineImageDataUri(
+        text.slice(found.addressStart, found.addressEnd),
+      );
+
+      html += Markdown.getEmailLinesHtml(text.slice(copiedUpTo, found.start));
+      html += image
+        ? `<img src="${Markdown.escapeHtml(image.dataUri)}" alt="${Markdown.escapeHtml(alt)}" style="${EMAIL_IMAGE_STYLE}">`
+        : Markdown.escapeHtml(alt);
+      copiedUpTo = found.end;
+    }
+
+    html += Markdown.getEmailLinesHtml(text.slice(copiedUpTo));
+
+    return `<p>${html}</p>\n`;
+  }
+
+  /*
+   * Lines of text as an email shows them: every character escaped, every
+   * line on a line of its own (a "\r\n" line break is one line break).
+   */
+  private static getEmailLinesHtml(text: string): string {
+    return Markdown.escapeHtml(text)
+      .split("\r\n")
+      .join("\n")
+      .split("\n")
+      .join("<br>\n");
+  }
+
+  /*
    * `renderer`, with every link and image URL it is given put back together
-   * first (see holdBackLongBase64), so it judges the URL the author wrote.
+   * first (see holdBackFromMarked), so it judges the URL the author wrote.
    */
   private static withHeldDataInUrls(
     renderer: Renderer,
@@ -1040,9 +1807,9 @@ export default class Markdown {
      * `code` arrives ALREADY escaped — marked escapes codespan text before
      * it reaches the renderer — so escaping again here would turn a typed
      * "<img>" into the literal "&lt;img&gt;" on screen rather than the
-     * "<img>" the author wrote. (The Docs and BlogValidation renderers do
-     * escape a second time; that is a separate defect in those surfaces,
-     * not a pattern to copy.)
+     * "<img>" the author wrote. (The blog's renderers do escape a second
+     * time; that is a separate defect in those surfaces, not a pattern to
+     * copy. The docs renderer no longer does.)
      */
     renderer.codespan = function (code: string): string {
       return (
@@ -1302,68 +2069,76 @@ export default class Markdown {
     };
 
     renderer.blockquote = function (quote) {
+      /*
+       * GitHub's alert syntax - "> [!NOTE]" on the first line - names the
+       * kind of callout without a word in any language, so a translated page
+       * keeps it as written and the label is put into the page's language
+       * (see renderDocsCallout). The older "> **Note:**" form still works.
+       */
+      const alertMatch: RegExpMatchArray | null = quote.match(
+        /^\s*<p>\[!(NOTE|TIP|INFO|IMPORTANT|WARNING|CAUTION|DANGER)\][ \t]*(?:\n|<br>)?/i,
+      );
+
+      if (alertMatch) {
+        const body: string = quote
+          .slice(alertMatch[0].length)
+          // "[!NOTE]" alone on its line leaves an empty paragraph behind.
+          .replace(/^\s*<\/p>/, "");
+
+        return renderDocsCallout({
+          type: alertMatch[1]!.toLowerCase(),
+          title: null,
+          bodyHtml: body.trim().startsWith("<") ? body : `<p>${body}`,
+        });
+      }
+
       const calloutMatch: RegExpMatchArray | null = quote.match(
-        /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>/i,
+        /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution|Important):?<\/strong>/i,
       );
 
       if (calloutMatch) {
         const type: string = calloutMatch[1]!.toLowerCase();
-        const configMap: Record<string, { icon: string; label: string }> = {
-          note: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Note",
-          },
-          info: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Info",
-          },
-          tip: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>`,
-            label: "Tip",
-          },
-          warning: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
-            label: "Warning",
-          },
-          caution: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>`,
-            label: "Caution",
-          },
-          danger: {
-            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>`,
-            label: "Danger",
-          },
-        };
-
-        const config: { icon: string; label: string } =
-          configMap[type] || configMap["note"]!;
 
         const content: string = quote.replace(
-          /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution):?<\/strong>\s*/i,
+          /<p[^>]*>\s*<strong>(Note|Warning|Tip|Danger|Info|Caution|Important):?<\/strong>\s*/i,
           "<p>",
         );
 
-        return `<div class="docs-callout docs-callout--${type}">
-          <div class="docs-callout__head">
-            <svg class="docs-callout__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">${config.icon}</svg>
-            <span class="docs-callout__label">${config.label}</span>
-          </div>
-          <div class="docs-callout__body">${content}</div>
-        </div>`;
+        return renderDocsCallout({
+          type: DOCS_CALLOUT_TYPES.includes(type) ? type : "note",
+          title: null,
+          bodyHtml: content,
+        });
       }
 
       return `<blockquote class="docs-quote">${quote}</blockquote>`;
     };
 
+    /*
+     * marked hands a link's or an image's address over as written, so it
+     * goes through docsSafeUrl before it is put in an attribute: a quote in
+     * it cannot end the attribute, and a javascript: address is shown as
+     * text, not as a link.
+     */
     renderer.image = function (href, title, text) {
+      const src: string | null = href
+        ? docsSafeUrl(href, { isImage: true })
+        : null;
+
+      if (src === null) {
+        return text || "";
+      }
+
       const titleAttr: string = title
         ? ` title="${Markdown.escapeHtml(title)}"`
         : "";
-      return `<img src="${href}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
+      return `<img src="${src}" alt="${text || ""}"${titleAttr} class="docs-image" loading="lazy" decoding="async" />`;
     };
 
     renderer.link = function (href, title, text) {
-      if (!href) {
+      const safeHref: string | null = href ? docsSafeUrl(href) : null;
+
+      if (safeHref === null) {
         return text as string;
       }
 
@@ -1381,11 +2156,22 @@ export default class Markdown {
         ? '<svg class="docs-link__external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>'
         : "";
 
-      return `<a class="docs-link" href="${href}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
+      return `<a class="docs-link" href="${safeHref}"${titleAttr}${externalAttrs}>${text}${marker}</a>`;
     };
 
     renderer.code = function (code, language) {
-      const lang: string = (language || "").trim().toLowerCase();
+      /*
+       * The info string is the language, optionally followed by a title:
+       * ```bash title="install.sh"
+       */
+      const info: string = (language || "").trim();
+      const lang: string = (info.split(/\s+/)[0] || "").toLowerCase();
+      const titleMatch: RegExpMatchArray | null = info.match(
+        /\btitle=(?:"([^"]*)"|'([^']*)')/,
+      );
+      const title: string = titleMatch
+        ? (titleMatch[1] ?? titleMatch[2] ?? "").trim()
+        : "";
 
       if (lang === "mermaid") {
         /*
@@ -1393,7 +2179,10 @@ export default class Markdown {
          * the diagram identical while making sure a `<` in a node label can
          * never be parsed as markup.
          */
-        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div></div>`;
+        const caption: string = title
+          ? `<p class="docs-diagram__caption">${Markdown.escapeHtml(title)}</p>`
+          : "";
+        return `<div class="docs-diagram"><div class="mermaid">${Markdown.escapeHtml(code)}</div>${caption}</div>`;
       }
 
       const escaped: string = Markdown.escapeHtml(code);
@@ -1409,15 +2198,18 @@ export default class Markdown {
        * without scripting it would be a dead control with an English name.
        * The bar reserves its height either way, so nothing shifts.
        */
+      const titleHtml: string = title
+        ? `<span class="docs-code__title">${Markdown.escapeHtml(title)}</span>`
+        : "";
       const bar: string = `<div class="docs-code__bar">
-          <span class="docs-code__lang">${label || ""}</span>
+          ${titleHtml}<span class="docs-code__lang">${label || ""}</span>
           <button type="button" class="docs-code__copy" data-copy-code hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             <span class="docs-code__copy-text"></span>
           </button>
         </div>`;
 
-      return `<div class="docs-code"${lang ? ` data-language="${lang}"` : ""}>${bar}<pre><code class="${codeClass}">${escaped}</code></pre></div>`;
+      return `<div class="docs-code"${lang ? ` data-language="${Markdown.escapeHtml(lang)}"` : ""}>${bar}<pre><code class="${Markdown.escapeHtml(codeClass)}">${escaped}</code></pre></div>`;
     };
 
     renderer.heading = function (text, level) {
@@ -1452,10 +2244,13 @@ export default class Markdown {
       return `<${tag}${align}>${content}</${tag}>`;
     };
 
-    // Inline code
+    /*
+     * Inline code. marked has escaped the code already, so it goes in as it
+     * is: escaping it again showed every quote, `<` and `&` in inline code
+     * as its entity - `"UP"` read "&quot;UP&quot;" on the page.
+     */
     renderer.codespan = function (code) {
-      const escaped: string = Markdown.escapeHtml(code);
-      return `<code class="docs-code-inline">${escaped}</code>`;
+      return `<code class="docs-code-inline">${code}</code>`;
     };
 
     this.docsRenderer = renderer;

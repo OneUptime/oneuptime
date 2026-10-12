@@ -288,29 +288,20 @@ export class Service extends ProjectReferencesService<Model> {
       return { deleteBy: deleteBy, carryForward: null };
     }
 
-    // The project the caller was checked in, whatever project the query named.
-    const query: Query<Model> =
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
-    const matched: Array<Model> = await this.findBy({
-      query: query,
-      select: {
+    /*
+     * The endpoints the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them.
+     */
+    const matched: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         databaseServerId: true,
         endpoint: true,
         isPrimary: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const checked: Set<string> = new Set<string>();
 
@@ -318,7 +309,7 @@ export class Service extends ProjectReferencesService<Model> {
       const databaseServerId: string | undefined =
         endpoint.databaseServerId?.toString();
       const projectId: ObjectID | undefined =
-        deleteBy.props.tenantId || endpoint.projectId || undefined;
+        endpoint.projectId || deleteBy.props.tenantId || undefined;
 
       if (!databaseServerId || !projectId || checked.has(databaseServerId)) {
         continue;

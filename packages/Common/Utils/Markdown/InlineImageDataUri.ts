@@ -228,6 +228,48 @@ const findSignature: (bytes: Array<number>) => ImageSignature | null = (
   return null;
 };
 
+export interface InlineImageType {
+  mimeType: InlineImageMimeType;
+  fileExtension: string;
+}
+
+export type GetInlineImageTypeFunction = (
+  base64: string,
+) => InlineImageType | null;
+
+/**
+ * The image base64 data is, by its first bytes - a PNG, a JPEG, a GIF or a
+ * WebP - or null when they are none of those. The data must start where the
+ * encoded bytes start, in the standard alphabet; only its first sixteen
+ * characters are read, so this is constant time at any length. Unlike
+ * parseInlineImageDataUri, it does not check the rest of the data.
+ */
+export const getInlineImageTypeOfBase64: GetInlineImageTypeFunction = (
+  base64: string,
+): InlineImageType | null => {
+  const leading: string = base64.slice(0, 16);
+
+  for (let index: number = 0; index < leading.length; index++) {
+    const code: number = leading.charCodeAt(index);
+
+    if (code === EQUALS_SIGN) {
+      break;
+    }
+
+    if (!isBase64Character(code)) {
+      return null;
+    }
+  }
+
+  const signature: ImageSignature | null = findSignature(
+    decodeLeadingBytes(leading, SIGNATURE_BYTE_COUNT),
+  );
+
+  return signature
+    ? { mimeType: signature.mimeType, fileExtension: signature.fileExtension }
+    : null;
+};
+
 export type ParseInlineImageDataUriFunction = (
   url: string | null | undefined,
 ) => InlineImageDataUri | null;

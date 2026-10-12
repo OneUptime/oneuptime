@@ -1,37 +1,56 @@
-# Indgående anmodnings-indgang
+# Indgående anmodning ingress
 
-En brugerdefineret probe kan valgfrit køre en **indgående HTTP-lytter**, der accepterer `heartbeat`- og `incoming-request`-kald inde fra dit private netværk og videresender dem til OneUptime. Dette giver tjenester, der **ikke har udgående internetadgang**, mulighed for stadig at rapportere til en [Indgående Anmodningsmonitor](/docs/monitor/incoming-request-monitor) ved at sende anmodningen til en probe på det lokale netværk i stedet for direkte til `oneuptime.com`.
+En tjeneste uden internetadgang kan stadig sende heartbeats til en [overvågning af indgående anmodninger](/docs/monitor/incoming-request-monitor). Den sender dem i stedet til en [brugerdefineret sonde](/docs/probe/custom-probe) i sit eget netværk, og sonden sender dem videre til OneUptime.
 
-## Oversigt
+:::cards
+- [Sådan virker det](#sådan-virker-det): Fra din tjeneste, gennem sonden, til overvågningen.
+- [Slå lytteren til](#slå-lytteren-til): Én indstilling på sonden, til Docker, Docker Compose eller Kubernetes.
+- [Send anmodninger til sonden](#send-anmodninger-til-sonden): Skift den URL, din tjeneste sender til, og intet andet.
+- [Fejlfinding](#fejlfinding): Hvad sonden logger, når en anmodning ikke kommer igennem.
+:::
 
-Når `PROBE_INGRESS_PORT` er indstillet, binder proben en yderligere HTTP-lytter på den port. Lytteren accepterer de samme `secretkey`-URL-stier som de offentlige OneUptime-endpoints:
+## Sådan virker det
 
-- `POST /heartbeat/:secretkey`
-- `GET /heartbeat/:secretkey`
-- `POST /incoming-request/:secretkey`
-- `GET /incoming-request/:secretkey`
+```mermaid title="Et heartbeat gennem sonden"
+flowchart TB
+    subgraph net["Dit private netværk"]
+        direction LR
+        S["Tjeneste uden<br/>internetadgang"] -->|"HTTP"| P["Brugerdefineret sonde"]
+    end
+    P -->|"HTTPS"| O["OneUptime"]
+    O --> M["Overvågning af indgående anmodninger"]
+```
 
-Proben proxyer derefter anmodningen til din OneUptime-instans og bevarer metoden, indholdet og anmodningsheaderne (minus hop-by-hop-headere som `Host`, `Connection`, `Content-Length` osv.). Proben vedhæfter automatisk en `OneUptime-Probe-Id`-header, så anmodningen tilskrives den videresendende probe.
+1. **Din tjeneste sender anmodningen til sonden.** Den samme `GET` eller `POST`, med den samme hemmelige nøgle, som den ville sende til OneUptime, til en port, sonden lytter på.
+2. **Sonden svarer med det samme.** Den svarer `200`, før den sender anmodningen videre, så din tjeneste aldrig venter på OneUptime.
+3. **Sonden sender den videre.** Den sender anmodningen videre til OneUptime med metode, headere og body og tilføjer en header `OneUptime-Probe-Id`, der nævner sonden.
+4. **OneUptime læser den som sædvanligt.** Overvågningens kriterier ser anmodningen, som om tjenesten havde sendt den direkte.
 
-Lytteren kører på en **dedikeret port**, adskilt fra probens interne status-/metrisk-endpoints, så du kan eksponere den til dit private netværk uden at eksponere noget andet.
+Lytteren kører på sin egen port, adskilt fra sondens sundhedstjek, så du kan åbne den for dit private netværk uden at åbne noget andet.
 
-## Hvornår skal du bruge dette
+## Hvornår du bruger den
 
-Brug indgangs-lytteren, når:
+Brug lytteren, når:
 
 - Dine tjenester kører i et isoleret netværkssegment uden udgående HTTPS-adgang
-- Du vil holde al overvågningstrafik inden for dit VPC/on-premises-netværk
-- Du vil have et enkelt udgangspunkt – proben – der har adgang til OneUptime
-- Du allerede har deployeret en [Brugerdefineret Probe](/docs/probe/custom-probe) og vil genbruge den til indgående hjerteslag
+- Du skal holde al overvågningstrafik inden for din VPC eller dit lokale netværk
+- Du vil have ét udgangspunkt, sonden, der må nå OneUptime
+- Du allerede har en [brugerdefineret sonde](/docs/probe/custom-probe) kørende og vil genbruge den til indgående heartbeats
 
-Hvis dine tjenester allerede kan nå `https://oneuptime.com` (eller din selvhostede URL) direkte, har du **ikke** brug for denne funktion – kald hjerteslag-URL'en direkte fra tjenesten.
+Kan dine tjenester allerede nå `https://oneuptime.com` (eller din selvhostede URL) direkte, har du **ikke** brug for denne funktion: kald heartbeat-URL'en direkte fra tjenesten.
 
-## Aktivering af indgangs-lytteren
+## Før du begynder
 
-Sæt `PROBE_INGRESS_PORT` til den port, du vil binde lytteren til. Enhver værdi større end `0` aktiverer lytteren; at lade den stå uindstillet (eller `0`) deaktiverer den.
+- **En kørende brugerdefineret sonde.** Dens **Status** viser **Forbundet**. Se [Brugerdefinerede probes](/docs/probe/custom-probe) for at installere en.
+- **En overvågning af indgående anmodninger.** Dens heartbeat-URL indeholder den hemmelige nøgle, din tjeneste sender: se [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor).
+- **En port på sondens vært, som dine tjenester kan nå.** Eksemplerne bruger `3875`.
 
-### Docker
+## Slå lytteren til
 
+Sæt `PROBE_INGRESS_PORT` til den port, lytteren skal bruge. Enhver værdi større end `0` slår den til; ikke sat, eller `0`, lader den være slået fra.
+
+:::tabs
+@tab Docker
 ```bash
 docker run --name oneuptime-probe --network host \
   -e PROBE_KEY=<probe-key> \
@@ -41,23 +60,9 @@ docker run --name oneuptime-probe --network host \
   -d oneuptime/probe:release
 ```
 
-Hvis du ikke bruger `--network host`, skal du eksplicit publicere indgangsporten:
-
-```bash
-docker run --name oneuptime-probe \
-  -e PROBE_KEY=<probe-key> \
-  -e PROBE_ID=<probe-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -e PROBE_INGRESS_PORT=3875 \
-  -p 3875:3875 \
-  -d oneuptime/probe:release
-```
-
-### Docker Compose
-
-```yaml
-version: "3"
-
+Uden `--network host` skal du publicere porten med `-p 3875:3875`.
+@tab Docker Compose
+```yaml title="docker-compose.yml"
 services:
   oneuptime-probe:
     image: oneuptime/probe:release
@@ -67,14 +72,13 @@ services:
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
       - PROBE_INGRESS_PORT=3875
-    ports:
-      - "3875:3875"
+    network_mode: host
     restart: always
 ```
 
-### Kubernetes
-
-```yaml
+Uden `network_mode: host` skal du publicere porten under `ports:` som `"3875:3875"`.
+@tab Kubernetes
+```yaml title="oneuptime-probe.yaml"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -118,72 +122,94 @@ spec:
   type: ClusterIP
 ```
 
-Interne tjenester kan derefter sende hjerteslag til `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+Tjenester i klyngen sender så til `http://oneuptime-probe-ingress.<namespace>.svc.cluster.local:3875/heartbeat/<secret-key>`.
+:::
 
-## Afsendelse af anmodninger til proben
+Når lytteren kører, står der i sondens log `Probe ingress listener started on port 3875 (heartbeat / incoming-request endpoints)`.
 
-Erstat den offentlige hjerteslag-URL:
+## Send anmodninger til sonden
 
-```
+Din tjeneste sender til sonden i stedet for til OneUptime. Erstat den offentlige heartbeat-URL:
+
+```text
 https://oneuptime.com/heartbeat/<secret-key>
 ```
 
-med probens indgangs-URL:
+med sondens ingress-URL:
 
-```
+```text
 http://<probe-host>:<PROBE_INGRESS_PORT>/heartbeat/<secret-key>
 ```
 
-Stien, metoden, indholdet og headerne er ellers identiske, så eventuel eksisterende klientkode kun behøver basis-URL'en ændret.
-
-### Eksempler
+Sti, metode, body og headere er ellers de samme, så eksisterende klientkode skal kun skifte basis-URL'en. Sonden tager også imod `/incoming-request/<secret-key>`, som virker på samme måde.
 
 ```bash
-# GET hjerteslag
+# GET heartbeat
 curl http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY
 
-# POST hjerteslag med JSON-indhold
+# POST heartbeat with JSON body
 curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
   -H "Content-Type: application/json" \
   -d '{"status": "healthy", "version": "1.2.3"}'
 
-# Cron-job
+# Cron job
 */5 * * * * curl -s http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY > /dev/null
 ```
 
-## Videresendelsesadfærd
+## Sådan sendes anmodninger videre
 
-- **Synkront svar, asynkron videresendelse.** Proben bekræfter den indgående anmodning øjeblikkeligt med en `200` og videresender til OneUptime i baggrunden. Din tjeneste behøver ikke vente på, at videresendelsen fuldføres.
-- **Headere bevares.** Alle headere undtagen hop-by-hop-headere (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) sendes videre. Proben tilføjer en `OneUptime-Probe-Id`-header, der identificerer den.
-- **Indhold bevares.** JSON-, URL-kodet og rå `application/octet-stream`-nyttelaster op til **50 MB** accepteres.
-- **Genforsøg med backoff.** Hvis videresendelsen mislykkes, forsøger proben igen op til `PROBE_INGRESS_FORWARD_RETRY_LIMIT` gange med eksponentiel backoff (2 s, 4 s, 8 s, maks. 15 s).
-- **Proxy-bevidst.** Hvis proben selv er konfigureret med `HTTP_PROXY_URL` / `HTTPS_PROXY_URL`, går videresendte anmodninger gennem proxyen.
+| Hvad | Hvordan sonden håndterer det |
+| --- | --- |
+| Svaret | `200` med et tomt JSON-objekt (`{}`), sendt før anmodningen sendes videre. Som hos OneUptime sendes det, uanset hvad der sker bagefter: også en forkert hemmelig nøgle får det. |
+| Metoder | `POST` sendes videre som `POST`. `GET` og `HEAD` sendes videre som `GET`. Andre metoder får et `404` fra sonden. |
+| Headere | Alle undtagen hop-by-hop-headerne (`Host`, `Connection`, `Content-Length`, `Transfer-Encoding`, `Keep-Alive`, `Proxy-Authenticate`, `Proxy-Authorization`, `TE`, `Trailer`, `Upgrade`) og `Content-Encoding`, da sonden videresender bodyen ukomprimeret. Sonden tilføjer `OneUptime-Probe-Id`. |
+| Body | JSON- og formular-bodies på op til 50 MB, som når du sender direkte til OneUptime. Ligesom dér når enhver anden body frem til overvågningen tom. |
+| Nye forsøg | Når en videresendelse fejler, prøver sonden igen op til `PROBE_INGRESS_FORWARD_RETRY_LIMIT` gange og venter 2 s, så 4 s, så 8 s, og aldrig mere end 15 s. Derefter logger den fejlen og dropper anmodningen. |
+| Proxyer | Videresendelsen går gennem sondens proxy, når `HTTP_PROXY_URL` eller `HTTPS_PROXY_URL` er sat. |
+| Hvor den går hen | `ONEUPTIME_URL` efterfulgt af `/incoming-request-ingest/incoming-request/<secret-key>`. |
 
 ## Miljøvariabler
 
-| Variabel                            | Standard                    | Beskrivelse                                                                                           |
-| ----------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `PROBE_INGRESS_PORT`                | _uindstillet_ (deaktiveret) | Port, som den indgående lytter binder til. Enhver værdi `> 0` aktiverer indgang.                      |
-| `PROBE_INGRESS_FORWARD_TIMEOUT_MS`  | `10000`                     | Timeout (ms) for hvert videresendingsforsøg til OneUptime. Minimum `1000`.                            |
-| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3`                         | Antal genforsøg, inden proben giver op på en videresendelse. Sæt til `0` for at deaktivere genforsøg. |
+| Variabel | Standard | Hvad den gør |
+| --- | --- | --- |
+| `PROBE_INGRESS_PORT` | ikke sat (fra) | Den port, lytteren bruger. Enhver værdi større end `0` slår den til. |
+| `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Hvor længe hver videresendelse til OneUptime må tage, i millisekunder. En værdi under `1000` falder tilbage til standarden. |
+| `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Hvor mange gange en mislykket videresendelse prøves igen. `0` slår nye forsøg fra. |
 
-Standard probe-variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL`, proxyvariable) gælder alle – se [Brugerdefinerede prober](/docs/probe/custom-probe) for den fulde liste.
+Sondens almindelige variabler (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` og proxyvariablerne) gælder alle: se [Brugerdefinerede probes](/docs/probe/custom-probe) for den fulde liste.
 
 ## Sikkerhedsovervejelser
 
-- **Endpointet er uautentificeret af design** – den hemmelige nøgle i URL-stien _er_ autentificeringen, ligesom det er på det offentlige `oneuptime.com`-endpoint. Behandl den hemmelige nøgle som et legitimationsoplysning.
-- **Bind kun til en privat grænseflade.** Indgangs-lytteren bør ikke være tilgængelig fra det offentlige internet. Brug en netværkspolitik, firewallregel eller `ClusterIP`-service til at begrænse adgangen.
-- **Brug HTTPS-terminering, hvis du kræver kryptering under overførslen.** Probens lytter taler alm. HTTP. Placer den bag en intern load balancer/ingress-controller, hvis du har brug for TLS på det indgående hop. Videresendelsesben fra probe → OneUptime bruger altid HTTPS (forudsat at `ONEUPTIME_URL` er `https://`).
-- **Ressourcegrænser.** Lytteren accepterer anmodningsindhold op til 50 MB. Hvis du har brug for et strengere loft, skal du placere en reverse proxy foran.
+- **Endpointet er bevidst uden godkendelse**: den hemmelige nøgle i URL-stien *er* godkendelsen, præcis som på det offentlige endpoint `oneuptime.com`. Behandl den hemmelige nøgle som en adgangskode.
+- **Hold lytteren på dit private netværk.** Den bør ikke kunne nås fra internettet. Brug en network policy, en firewallregel eller en `ClusterIP`-tjeneste til at begrænse, hvem der kan nå den.
+- **Sæt TLS foran, hvis du har brug for kryptering på dit netværk.** Lytteren taler almindelig HTTP. Sæt den bag en intern load balancer eller ingress controller for at få TLS på den strækning. Videresendelsen fra sonden til OneUptime bruger HTTPS, når `ONEUPTIME_URL` begynder med `https://`.
+- **Begræns selv body-størrelsen, hvis 50 MB er for meget.** Sæt en reverse proxy med en lavere grænse foran lytteren.
 
 ## Fejlfinding
 
-- **Probe logger `Probe ingress listener started on port <port>` ved start** – bekræfter, at lytteren er oppe. Hvis du ikke ser denne linje, er `PROBE_INGRESS_PORT` uindstillet, `0` eller ugyldig.
-- **`Probe ingress: failed to forward to <url> after N attempts`** – proben kunne ikke nå OneUptime. Kontroller probens udgående forbindelsesmuligheder, proxyindstillinger og værdien af `ONEUPTIME_URL`.
-- **`Probe ingress: probe ID not available, forwarding without it`** – proben har endnu ikke registreret sig. Videresendelsen lykkes stadig; hjerteslaget vil blot ikke blive tilskrevet en probe.
-- **Hjerteslag vises i OneUptime, men ikke via proben** – bekræft, at din tjeneste rammer `http://<probe-host>:<port>/...` og ikke den offentlige URL. En fejlkonfigureret DNS eller `/etc/hosts`-post er den sædvanlige årsag.
+:::details Sondens log siger aldrig, at lytteren er startet
+`PROBE_INGRESS_PORT` er ikke sat, er `0` eller er ikke et tal. Sæt den til et portnummer, og genstart sonden. Loglinjen er `Probe ingress listener started on port <port> (heartbeat / incoming-request endpoints)`.
+:::
 
-## Relateret
+:::details Sonden logger `Probe ingress: failed to forward to <url> after N attempts`
+Sonden kunne ikke nå OneUptime, heller ikke efter sine nye forsøg. Tjek sondens udgående forbindelse, dens proxyindstillinger og værdien af `ONEUPTIME_URL`. Viser sonden også **Afbrudt**, så se [Brugerdefinerede probes](/docs/probe/custom-probe) for at finde ud af, hvor dens forespørgsler går i stå.
+:::
 
-- [Brugerdefinerede prober](/docs/probe/custom-probe)
-- [Indgående Anmodningsmonitor](/docs/monitor/incoming-request-monitor)
+:::details Sonden logger `Probe ingress: probe ID not available, forwarding without it`
+Sonden er endnu ikke færdig med at forbinde til OneUptime, så den sender anmodningen videre uden headeren `OneUptime-Probe-Id`. Anmodningen når stadig frem til overvågningen.
+:::
+
+:::details Overvågningen får anmodningerne, men ikke gennem sonden
+Din tjeneste sender stadig til den offentlige URL. Tjek, at den sender til `http://<probe-host>:<port>/...`: et DNS-navn eller en post i `/etc/hosts`, der peger et andet sted hen, er den sædvanlige årsag.
+:::
+
+:::details Overvågningen får intet, og sonden logger intet
+Anmodningen nåede aldrig frem til sonden. Tjek, at tjenesten kan nå sondens vært på porten: en firewallregel, en port, der ikke er publiceret, eller en Kubernetes-Service, der ikke vælger sondens pod.
+:::
+
+## Næste skridt
+
+:::cards
+- [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor): Beslut, hvad der tæller som et sundt heartbeat.
+- [Brugerdefinerede probes](/docs/probe/custom-probe): Installér sonden, og se hver indstilling, den læser.
+:::

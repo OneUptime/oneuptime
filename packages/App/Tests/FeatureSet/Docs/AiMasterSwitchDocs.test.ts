@@ -40,7 +40,7 @@ const RETIRED_SWITCH_PATTERNS: Array<RegExp> = [
 const HISTORY: Array<{ page: string; section: string | null }> = [
   // The whole page is upgrade notes, one release after another.
   { page: UPGRADING_PAGE, section: null },
-  { page: KUBERNETES_AGENT_PAGE, section: "## Upgrading the Agent" },
+  { page: KUBERNETES_AGENT_PAGE, section: "## Upgrading the agent" },
 ];
 
 // Every English docs page, as absolute paths.

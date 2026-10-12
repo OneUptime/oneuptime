@@ -16,13 +16,14 @@
  * them. What is real and what is faked is deliberate:
  *
  *   - Real: VMAPI substitution, the JavaScript component in the isolated-vm
- *     sandbox, the If / Else component, the Log component, and the API
+ *     sandbox, the If / Else component, the Log component, the API
  *     components themselves — sanitizeArgs, URL parsing, HTTPResponse and the
- *     choice of port included.
+ *     choice of port included — and the Slack component, which posts the
+ *     message's blocks through the same API.fetch.
  *   - Faked: the other system, at API.fetch, the one function every API
- *     component sends through; the database, per step, by component id; and
- *     one DNS lookup (stubDnsLookups), so the SSRF check the API components
- *     run stays offline.
+ *     component and the Slack component send through; the database, per
+ *     step, by component id; and one DNS lookup (stubDnsLookups), so the
+ *     SSRF check the API components run stays offline.
  *
  * The Jira suite keeps a copy of its own, written before this one. Not a test
  * file itself (jest only collects *.test.ts).
@@ -59,6 +60,7 @@ import ApiPost from "../../../Server/Types/Workflow/Components/API/Post";
 import ApiPut from "../../../Server/Types/Workflow/Components/API/Put";
 import ApiPatch from "../../../Server/Types/Workflow/Components/API/Patch";
 import ApiDelete from "../../../Server/Types/Workflow/Components/API/Delete";
+import SlackSendMessageToChannel from "../../../Server/Types/Workflow/Components/Slack/SendMessageToChannel";
 import { jest } from "@jest/globals";
 import dns from "dns";
 
@@ -361,6 +363,7 @@ const COMPONENT_CODE: Dictionary<ComponentCode> = {
   [ComponentID.ApiPut]: new ApiPut(),
   [ComponentID.ApiPatch]: new ApiPatch(),
   [ComponentID.ApiDelete]: new ApiDelete(),
+  [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
 };
 
 const DATABASE_OPERATION: RegExp = /-(find-one|find-many|create-one)$/;

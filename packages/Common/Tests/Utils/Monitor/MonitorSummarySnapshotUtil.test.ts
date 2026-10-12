@@ -100,6 +100,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.SQLQuery]: PayloadKind.Probe,
   [MonitorType.Database]: PayloadKind.Probe,
   [MonitorType.ExternalStatusPage]: PayloadKind.Probe,
+  [MonitorType.NTP]: PayloadKind.Probe,
   /*
    * Not a "probeable" monitor - the device owns its polling schedule - but
    * its walks and traps still arrive as a ProbeMonitorResponse, and
@@ -113,6 +114,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
 
   [MonitorType.Logs]: PayloadKind.Telemetry,
   [MonitorType.SecurityEvents]: PayloadKind.Telemetry,
+  [MonitorType.Llm]: PayloadKind.Telemetry,
   [MonitorType.Metrics]: PayloadKind.Telemetry,
   [MonitorType.Traces]: PayloadKind.Telemetry,
   [MonitorType.Exceptions]: PayloadKind.Telemetry,
@@ -206,6 +208,14 @@ function telemetryResponse(
     return {
       ...base,
       profileCount: 11,
+    } as unknown as MonitorSummaryDataToProcess;
+  }
+  if (monitorType === MonitorType.Llm) {
+    return {
+      ...base,
+      llmAnswerCount: 120,
+      llmBadAnswerCount: 9,
+      llmBadAnswerPercent: 7.5,
     } as unknown as MonitorSummaryDataToProcess;
   }
 

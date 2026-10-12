@@ -32,6 +32,13 @@ import { describe, expect, test } from "@jest/globals";
  *      `.toString()` of Markdown: a list of Markdown pieces is joined with
  *      FeedMarkdown.join, and Markdown stays a MarkdownText until it reaches
  *      its sink - placed as a string it would be escaped a second time.
+ *   D. What the Slack and Microsoft Teams bots reply - to a button, a
+ *      command, a reaction - is Markdown whatever its own text says, so in
+ *      the integration (CHAT_DIRECTORY) the text of a reply is mdText: a
+ *      template with values in it, a "+" that joins a value, or an error's
+ *      message, handed to a reply as it is, is a finding
+ *      (findUnescapedChatReplies). A person's name, a refusal naming a
+ *      label or a record, a number prefix: each is text in a reply.
  *
  * A template that is right to stay untagged - an LLM prompt, a log line -
  * goes in ALLOWED_UNTAGGED with its reason. The list only shrinks: the guard
@@ -186,7 +193,7 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
 export interface GuardFinding {
   file: string;
   line: number;
-  rule: "A" | "B" | "C";
+  rule: "A" | "B" | "C" | "D";
   text: string;
 }
 
@@ -626,6 +633,481 @@ export function findUntaggedFeedMarkdown(
   return found;
 }
 
+/*
+ * Rule D: what the Slack and Microsoft Teams bots reply.
+ *
+ * A reply is Markdown whatever its own text says - Teams shows a bot's text
+ * as Markdown, and Slack's text and Markdown blocks are mrkdwn - so in the
+ * integration a reply's text is mdText even when no "**" or "](" in it says
+ * so. What a reply carries: a person's name, a refusal (which can name a
+ * label, a record or a person), a reason a write gave, a number prefix.
+ */
+
+/*
+ * The calls that post a bot's reply, by name, and which argument is its
+ * text - or an object with the text as its `text`.
+ */
+const REPLY_TEXT_ARGUMENTS: Record<string, number> = {
+  // Microsoft Teams: TurnContext.sendActivity(text | activity).
+  sendActivity: 0,
+  // MicrosoftTeamsReplies.sendBestEffort(turnContext, text | activity).
+  sendBestEffort: 1,
+  // A reply in a Microsoft Teams thread: ({ ..., text }).
+  replyInThread: 0,
+  sendTextReplyToChannelThread: 0,
+  // A reply in a Slack thread: ({ ..., text }).
+  sendMessageToThread: 0,
+};
+
+// A Slack or Microsoft Teams message block written as Markdown.
+const MARKDOWN_PAYLOAD_TYPE: string = "WorkspacePayloadMarkdown";
+
+// A function whose result a reply posts as it is: a reply of its own.
+const REPLY_BUILDER_NAME_PATTERN: RegExp = /Message$/;
+
+// What a scan read: how many replies, and the builders of their text.
+export interface ChatRepliesSeen {
+  replies: number;
+  builders: Set<string>;
+}
+
+type FunctionLikeNode =
+  | ts.FunctionDeclaration
+  | ts.MethodDeclaration
+  | ts.ArrowFunction
+  | ts.FunctionExpression
+  | ts.GetAccessorDeclaration
+  | ts.ConstructorDeclaration;
+
+function isFunctionLike(node: ts.Node): node is FunctionLikeNode {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isConstructorDeclaration(node)
+  );
+}
+
+// The function a node is written in, or the file when it is at the top.
+function enclosingFunctionOrFile(node: ts.Node): ts.Node {
+  let current: ts.Node | undefined = node.parent;
+
+  while (current && !ts.isSourceFile(current)) {
+    if (isFunctionLike(current)) {
+      return current;
+    }
+
+    current = current.parent;
+  }
+
+  return current || node.getSourceFile();
+}
+
+// Every node inside `container`, functions written inside it left out.
+function forEachOwnNode(
+  container: ts.Node,
+  visit: (node: ts.Node) => void,
+): void {
+  const walk: (node: ts.Node) => void = (node: ts.Node): void => {
+    visit(node);
+
+    if (isFunctionLike(node)) {
+      return;
+    }
+
+    ts.forEachChild(node, walk);
+  };
+
+  ts.forEachChild(container, walk);
+}
+
+/*
+ * What a variable is given where it is used: its initializer and every
+ * value assigned or appended to it, in the function it is used in - or at
+ * the top of the file, for a constant of the file's own.
+ */
+function valuesGivenTo(identifier: ts.Identifier): Array<ts.Expression> {
+  const name: string = identifier.text;
+  const values: Array<ts.Expression> = [];
+
+  const collect: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name &&
+      node.initializer
+    ) {
+      values.push(node.initializer);
+    }
+
+    if (
+      ts.isBinaryExpression(node) &&
+      (node.operatorToken.kind === ts.SyntaxKind.EqualsToken ||
+        node.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken) &&
+      ts.isIdentifier(node.left) &&
+      node.left.text === name
+    ) {
+      values.push(node.right);
+    }
+  };
+
+  const container: ts.Node = enclosingFunctionOrFile(identifier);
+  forEachOwnNode(container, collect);
+
+  if (values.length === 0 && !ts.isSourceFile(container)) {
+    forEachOwnNode(identifier.getSourceFile(), collect);
+  }
+
+  return values;
+}
+
+// The name a call is made by: `getNotLinkedMessage` for `this.getNotLinkedMessage(...)`.
+function calledName(call: ts.CallExpression): string | null {
+  if (ts.isPropertyAccessExpression(call.expression)) {
+    return call.expression.name.text;
+  }
+
+  if (ts.isIdentifier(call.expression)) {
+    return call.expression.text;
+  }
+
+  return null;
+}
+
+// What a function returns: each return of its own, or its expression body.
+function returnedValues(fn: FunctionLikeNode): Array<ts.Expression> {
+  if (!fn.body) {
+    return [];
+  }
+
+  if (!ts.isBlock(fn.body)) {
+    return [fn.body];
+  }
+
+  const values: Array<ts.Expression> = [];
+
+  forEachOwnNode(fn.body, (node: ts.Node): void => {
+    if (ts.isReturnStatement(node) && node.expression) {
+      values.push(node.expression);
+    }
+  });
+
+  return values;
+}
+
+// The name a function goes by, written as a declaration, a method or a variable.
+function functionName(node: ts.Node): string | null {
+  if (
+    (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) &&
+    node.name
+  ) {
+    return node.name.getText();
+  }
+
+  if (
+    (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
+    ts.isVariableDeclaration(node.parent) &&
+    ts.isIdentifier(node.parent.name)
+  ) {
+    return node.parent.name.text;
+  }
+
+  return null;
+}
+
+/**
+ * Rule D over the Slack and Microsoft Teams integration: the text of every
+ * reply the bots post is mdText. A template with values in it, a "+" that
+ * joins a value, or an error's `.message`, given to a reply as it is, is a
+ * finding - as the argument of a reply call (REPLY_TEXT_ARGUMENTS), as the
+ * text of a WorkspacePayloadMarkdown, as a value of a variable either is
+ * built in, or as what a ...Message function returns whose result a reply
+ * posts.
+ */
+export function findUnescapedChatReplies(
+  files: ReadonlyArray<SourceFile>,
+  seen?: ChatRepliesSeen | undefined,
+): Array<GuardFinding> {
+  const found: Array<GuardFinding> = [];
+  const reported: Set<ts.Node> = new Set<ts.Node>();
+  const examined: Set<ts.Node> = new Set<ts.Node>();
+  const builderNames: Set<string> = new Set<string>();
+
+  const sources: Array<{ file: string; source: ts.SourceFile }> = files.map(
+    (entry: SourceFile): { file: string; source: ts.SourceFile } => {
+      return {
+        file: entry.file,
+        source: ts.createSourceFile(
+          entry.file,
+          entry.sourceText,
+          ts.ScriptTarget.Latest,
+          true,
+        ),
+      };
+    },
+  );
+
+  const fileOf: Map<ts.SourceFile, string> = new Map<ts.SourceFile, string>();
+
+  for (const entry of sources) {
+    fileOf.set(entry.source, entry.file);
+  }
+
+  const report: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (reported.has(node)) {
+      return;
+    }
+
+    reported.add(node);
+
+    const source: ts.SourceFile = node.getSourceFile();
+
+    found.push({
+      file: fileOf.get(source) || source.fileName,
+      line: lineOf(source, node),
+      rule: "D",
+      text: node.getText(source).slice(0, 120),
+    });
+  };
+
+  // Whether a reply's text, as written, places a value as it is.
+  const examine: (expression: ts.Expression) => void = (
+    expression: ts.Expression,
+  ): void => {
+    const value: ts.Expression = unwrap(expression);
+
+    if (examined.has(value)) {
+      return;
+    }
+
+    examined.add(value);
+
+    if (ts.isTemplateExpression(value)) {
+      report(value);
+      return;
+    }
+
+    if (ts.isConditionalExpression(value)) {
+      examine(value.whenTrue);
+      examine(value.whenFalse);
+      return;
+    }
+
+    if (ts.isBinaryExpression(value)) {
+      const operator: ts.SyntaxKind = value.operatorToken.kind;
+
+      if (
+        operator === ts.SyntaxKind.BarBarToken ||
+        operator === ts.SyntaxKind.QuestionQuestionToken
+      ) {
+        examine(value.left);
+        examine(value.right);
+        return;
+      }
+
+      if (operator === ts.SyntaxKind.PlusToken) {
+        const operands: Array<ts.Expression> = concatenationOperands(value);
+
+        if (
+          operands.some((operand: ts.Expression): boolean => {
+            return (
+              ts.isTemplateExpression(unwrap(operand)) || isRawValue(operand)
+            );
+          })
+        ) {
+          report(value);
+        }
+      }
+
+      return;
+    }
+
+    // An error's message: text, which can name a label, a record or a person.
+    if (ts.isPropertyAccessExpression(value) && value.name.text === "message") {
+      report(value);
+      return;
+    }
+
+    if (ts.isIdentifier(value)) {
+      for (const given of valuesGivenTo(value)) {
+        examine(given);
+      }
+
+      return;
+    }
+
+    if (ts.isCallExpression(value)) {
+      const callee: string = calleeText(value);
+
+      // Markdown turned into the string a sink takes.
+      if (TO_STRING_CALLEE_PATTERN.test(callee)) {
+        const target: ts.Expression = unwrap(
+          (value.expression as ts.PropertyAccessExpression).expression,
+        );
+
+        if (
+          !isMdTextTag(target) &&
+          !(
+            ts.isCallExpression(target) &&
+            FEED_MARKDOWN_CALLEE_PATTERN.test(calleeText(target))
+          )
+        ) {
+          examine(target);
+        }
+
+        return;
+      }
+
+      const name: string | null = calledName(value);
+
+      if (name && REPLY_BUILDER_NAME_PATTERN.test(name)) {
+        builderNames.add(name);
+        return;
+      }
+
+      // A helper that takes the text as `{ text }` and hands it back cut or wrapped.
+      for (const argument of value.arguments) {
+        const unwrapped: ts.Expression = unwrap(argument);
+
+        if (!ts.isObjectLiteralExpression(unwrapped)) {
+          continue;
+        }
+
+        for (const property of unwrapped.properties) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            property.name.getText() === "text"
+          ) {
+            examine(property.initializer);
+          }
+        }
+      }
+    }
+  };
+
+  // The text of every reply call and Markdown block.
+  for (const entry of sources) {
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (ts.isCallExpression(node)) {
+        const name: string | null = calledName(node);
+        const index: number | undefined =
+          name !== null &&
+          Object.prototype.hasOwnProperty.call(REPLY_TEXT_ARGUMENTS, name)
+            ? REPLY_TEXT_ARGUMENTS[name]
+            : undefined;
+        const argument: ts.Expression | undefined =
+          index === undefined ? undefined : node.arguments[index];
+
+        if (argument) {
+          if (seen) {
+            seen.replies++;
+          }
+
+          const unwrapped: ts.Expression = unwrap(argument);
+
+          if (ts.isObjectLiteralExpression(unwrapped)) {
+            for (const property of unwrapped.properties) {
+              if (
+                ts.isPropertyAssignment(property) &&
+                property.name.getText() === "text"
+              ) {
+                examine(property.initializer);
+              }
+
+              if (
+                ts.isShorthandPropertyAssignment(property) &&
+                property.name.text === "text"
+              ) {
+                examine(property.name);
+              }
+            }
+          } else {
+            examine(argument);
+          }
+        }
+      }
+
+      if (ts.isObjectLiteralExpression(node)) {
+        const isMarkdownPayload: boolean = node.properties.some(
+          (property: ts.ObjectLiteralElementLike): boolean => {
+            return (
+              ts.isPropertyAssignment(property) &&
+              property.name.getText() === "_type" &&
+              ts.isStringLiteralLike(property.initializer) &&
+              property.initializer.text === MARKDOWN_PAYLOAD_TYPE
+            );
+          },
+        );
+
+        if (isMarkdownPayload) {
+          if (seen) {
+            seen.replies++;
+          }
+
+          for (const property of node.properties) {
+            if (
+              ts.isPropertyAssignment(property) &&
+              property.name.getText() === "text"
+            ) {
+              examine(property.initializer);
+            }
+          }
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(entry.source);
+  }
+
+  // What each reply builder returns, until no new builder turns up.
+  const builtAlready: Set<string> = new Set<string>();
+  let pending: Array<string> = Array.from(builderNames);
+
+  while (pending.length > 0) {
+    for (const name of pending) {
+      builtAlready.add(name);
+    }
+
+    const names: Set<string> = new Set<string>(pending);
+
+    for (const entry of sources) {
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (isFunctionLike(node)) {
+          const name: string | null = functionName(node);
+
+          if (name !== null && names.has(name)) {
+            for (const returned of returnedValues(node)) {
+              examine(returned);
+            }
+          }
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(entry.source);
+    }
+
+    pending = Array.from(builderNames).filter((name: string): boolean => {
+      return !builtAlready.has(name);
+    });
+  }
+
+  if (seen) {
+    for (const name of builderNames) {
+      seen.builders.add(name);
+    }
+  }
+
+  return found.sort((a: GuardFinding, b: GuardFinding): number => {
+    return a.file === b.file ? a.line - b.line : a.file < b.file ? -1 : 1;
+  });
+}
+
 const ESCAPER_MODULE_PATTERN: RegExp =
   /(?:^|\/)(MarkdownEscape|UntrustedMarkdown)$/;
 
@@ -825,6 +1307,36 @@ describe("feed and chat Markdown is written with mdText", () => {
     expect(describeFindings(scanSinks())).toEqual([]);
   });
 
+  test("every reply the Slack and Microsoft Teams bots post is mdText", () => {
+    const chatFiles: Array<SourceFile> = sinks.filter(
+      (sink: SourceFile): boolean => {
+        return sink.file.startsWith(CHAT_DIRECTORY);
+      },
+    );
+    const seen: ChatRepliesSeen = { replies: 0, builders: new Set<string>() };
+
+    const findings: Array<GuardFinding> = findUnescapedChatReplies(
+      chatFiles,
+      seen,
+    );
+
+    // The replies of both bots are read: a renamed call must not hide them.
+    expect(seen.replies).toBeGreaterThan(100);
+
+    for (const builder of [
+      "getAccountNotLinkedMessage",
+      "getNotLinkedMessage",
+      "getUnexpectedErrorMessage",
+      "getConfirmationMessage",
+      "getIncidentCreateFailedMessage",
+      "getFormNotAcceptedMessage",
+    ]) {
+      expect(seen.builders).toContain(builder);
+    }
+
+    expect(describeFindings(findings)).toEqual([]);
+  });
+
   test("nothing outside Utils/Markdown imports MarkdownEscape or UntrustedMarkdown", () => {
     const findings: Array<GuardFinding> = [];
     let scanned: number = 0;
@@ -991,6 +1503,112 @@ describe("findUntaggedFeedMarkdown", () => {
       findUntaggedFeedMarkdown(
         "packages/Common/Server/Services/Other.ts",
         "const text: string = `**${title}**`;",
+      ),
+    ).toHaveLength(1);
+  });
+});
+
+describe("findUnescapedChatReplies", () => {
+  const FILE: string =
+    "packages/Common/Server/Utils/Workspace/MicrosoftTeams/Example.ts";
+
+  function find(code: string): Array<string> {
+    return findUnescapedChatReplies([{ file: FILE, sourceText: code }]).map(
+      (finding: GuardFinding): string => {
+        return `${finding.rule}: ${finding.text}`;
+      },
+    );
+  }
+
+  test("finds a person's name placed into a reply with a template", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await turnContext.sendActivity(`${userName}, you cannot do that.`); }",
+      ),
+    ).toEqual([expect.stringMatching(/^D: /)]);
+  });
+
+  test("passes the same reply written with mdText", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await turnContext.sendActivity(mdText`${userName}, you cannot do that.`.toString()); }",
+      ),
+    ).toEqual([]);
+  });
+
+  test("finds a value joined into a reply with +", () => {
+    expect(
+      find(
+        'async function f(): Promise<void> { await turnContext.sendActivity("Sorry, the action " + actionType + " is not there."); }',
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("finds an error's message sent as it is", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await MicrosoftTeamsReplies.sendBestEffort(turnContext, error.message); }",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("passes a fixed reply and a constant", () => {
+    expect(
+      find(
+        'async function f(): Promise<void> { await turnContext.sendActivity("Done."); await turnContext.sendActivity(Actions.NO_STATES_MESSAGE); }',
+      ),
+    ).toEqual([]);
+  });
+
+  test("finds a thread reply's text built with a template", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await this.replyInThread({ channel: channel, text: `${name}, ${refusal}` }); }",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("finds a Slack Markdown block whose text is a template", () => {
+    expect(
+      find(
+        'const block: WorkspacePayloadMarkdown = { _type: "WorkspacePayloadMarkdown", text: `@${slackUsername}, ${message}` };',
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("follows a variable to the template it was built with", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { let text: string = mdText`Hello`.toString(); text += `, ${name}`; await turnContext.sendActivity(text); }",
+      ),
+    ).toEqual([expect.stringMatching(/^D: `, \$\{name\}`/)]);
+  });
+
+  test("reads what a ...Message function returns when a reply posts it", () => {
+    expect(
+      find(
+        [
+          "class A {",
+          "  static getGreetingMessage(name: string): string { return `Hello ${name}`; }",
+          "  static async f(): Promise<void> { await turnContext.sendActivity(A.getGreetingMessage(n)); }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([expect.stringMatching(/^D: `Hello/)]);
+  });
+
+  test("leaves a ...Message function alone when no reply posts it", () => {
+    expect(
+      find(
+        "class A { static getLogMessage(name: string): string { return `Hello ${name}`; } }",
+      ),
+    ).toEqual([]);
+  });
+
+  test("follows the text handed to a helper that cuts it to size", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await turnContext.sendActivity(Size.fit({ text: `${title} is down` })); }",
       ),
     ).toHaveLength(1);
   });

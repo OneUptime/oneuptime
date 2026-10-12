@@ -182,24 +182,30 @@ describe("the switch a write sets", () => {
 describe("a write that turns a provider off writes when, in the same write", () => {
   type Row = Record<string, unknown>;
 
+  /*
+   * The read of the rows an update writes, which holds the update to them
+   * (DatabaseService.findRowsAndHoldUpdateToThem): what it answers here.
+   */
   const serviceOver: (rows: Array<Row>) => {
     service: DatabaseService<BaseModel>;
-    findAllBy: ReturnType<typeof jest.fn>;
+    findRowsAndHoldUpdateToThem: ReturnType<typeof jest.fn>;
   } = (
     rows: Array<Row>,
   ): {
     service: DatabaseService<BaseModel>;
-    findAllBy: ReturnType<typeof jest.fn>;
+    findRowsAndHoldUpdateToThem: ReturnType<typeof jest.fn>;
   } => {
-    const findAllBy: ReturnType<typeof jest.fn> = jest.fn(
+    const findRowsAndHoldUpdateToThem: ReturnType<typeof jest.fn> = jest.fn(
       async (): Promise<Array<Row>> => {
         return rows;
       },
     );
 
     return {
-      service: { findAllBy } as unknown as DatabaseService<BaseModel>,
-      findAllBy,
+      service: {
+        findRowsAndHoldUpdateToThem,
+      } as unknown as DatabaseService<BaseModel>,
+      findRowsAndHoldUpdateToThem,
     };
   };
 
@@ -224,7 +230,7 @@ describe("a write that turns a provider off writes when, in the same write", () 
   };
 
   test("what the hooks found under their lock decides: a provider it turns off gets the time now", async () => {
-    const { service, findAllBy } = serviceOver([]);
+    const { service, findRowsAndHoldUpdateToThem } = serviceOver([]);
     const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
     const before: number = Date.now();
 
@@ -239,11 +245,11 @@ describe("a write that turns a provider off writes when, in the same write", () 
     expect((written as Date).getTime()).toBeGreaterThanOrEqual(before);
     expect((written as Date).getTime()).toBeLessThanOrEqual(Date.now());
     // Nothing read: the hooks already know.
-    expect(findAllBy).not.toHaveBeenCalled();
+    expect(findRowsAndHoldUpdateToThem).not.toHaveBeenCalled();
   });
 
   test("one that turns off only providers that are off already keeps the time they have", async () => {
-    const { service, findAllBy } = serviceOver([]);
+    const { service, findRowsAndHoldUpdateToThem } = serviceOver([]);
     const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
 
     await SsoSignInsEnded.stampWhenTurnedOff({
@@ -253,11 +259,11 @@ describe("a write that turns a provider off writes when, in the same write", () 
     });
 
     expect(writtenEndOf(updateBy)).toBeUndefined();
-    expect(findAllBy).not.toHaveBeenCalled();
+    expect(findRowsAndHoldUpdateToThem).not.toHaveBeenCalled();
   });
 
   test("without the hooks' word, the rows the update names are read: one of them on is turned off", async () => {
-    const { service, findAllBy } = serviceOver([
+    const { service, findRowsAndHoldUpdateToThem } = serviceOver([
       { _id: "provider", isEnabled: false },
       { _id: "other", isEnabled: true },
     ]);
@@ -266,17 +272,16 @@ describe("a write that turns a provider off writes when, in the same write", () 
     await SsoSignInsEnded.stampWhenTurnedOff({ service, updateBy });
 
     expect(writtenEndOf(updateBy)).toBeInstanceOf(Date);
-    expect(findAllBy).toHaveBeenCalledTimes(1);
-
-    const read: Record<string, unknown> = findAllBy.mock.calls[0]![0] as Record<
-      string,
-      unknown
-    >;
-    expect(read["query"]).toEqual({ _id: "provider" });
-    expect(read["limit"]).toBe(1);
-    expect(read["skip"]).toBe(0);
-    expect(read["select"]).toEqual({ _id: true, isEnabled: true });
-    expect(read["props"]).toEqual({ isRoot: true });
+    /*
+     * The update's own rows - its query, in its window - and the update
+     * held to them, so it writes no row the read did not see.
+     */
+    expect(findRowsAndHoldUpdateToThem).toHaveBeenCalledTimes(1);
+    expect(findRowsAndHoldUpdateToThem.mock.calls[0]![0]).toBe(updateBy);
+    expect(findRowsAndHoldUpdateToThem.mock.calls[0]![1]).toEqual({
+      _id: true,
+      isEnabled: true,
+    });
   });
 
   test("and every one of them off already keeps its time", async () => {
@@ -295,7 +300,7 @@ describe("a write that turns a provider off writes when, in the same write", () 
       { publicCertificate: "-----BEGIN CERTIFICATE-----" },
       { clientSecret: "a new secret" },
     ]) {
-      const { service, findAllBy } = serviceOver([
+      const { service, findRowsAndHoldUpdateToThem } = serviceOver([
         { _id: "provider", isEnabled: true },
       ]);
       const updateBy: UpdateBy<BaseModel> = updateOf(data);
@@ -307,7 +312,7 @@ describe("a write that turns a provider off writes when, in the same write", () 
       });
 
       expect(writtenEndOf(updateBy)).toBeUndefined();
-      expect(findAllBy).not.toHaveBeenCalled();
+      expect(findRowsAndHoldUpdateToThem).not.toHaveBeenCalled();
     }
   });
 });

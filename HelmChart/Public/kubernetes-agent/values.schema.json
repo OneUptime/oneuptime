@@ -14,7 +14,7 @@
     "preset": {
       "type": "string",
       "enum": ["", "standard", "gke-autopilot", "eks-fargate"],
-      "description": "Preset for the cluster type. 'standard' (default) uses a hostPath DaemonSet for logs. 'gke-autopilot' and 'eks-fargate' switch to API-mode log collection with a hardened security context."
+      "description": "Preset for the cluster type. 'standard' (default) uses a hostPath DaemonSet for logs. 'gke-autopilot' and 'eks-fargate' switch to API-mode log collection with a hardened security context, and leave out the privileged eBPF and profiling DaemonSets, which those platforms refuse."
     },
     "nameOverride": {
       "type": "string",
@@ -733,7 +733,7 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable the OpenTelemetry eBPF Instrumentation DaemonSet. Default: true."
+          "description": "Enable the OpenTelemetry eBPF Instrumentation DaemonSet. Default: true. The gke-autopilot and eks-fargate presets leave it out whatever this says: they refuse privileged pods."
         },
         "image": {
           "type": "object",
@@ -925,7 +925,7 @@
     },
     "profiling": {
       "type": "object",
-      "description": "Continuous CPU profiling via OpenTelemetry eBPF Profiler. Runs as a DaemonSet, samples stacks across all languages without SDKs, ships OTLP profiles directly to OneUptime. Default: enabled.",
+      "description": "Continuous CPU profiling via OpenTelemetry eBPF Profiler. Runs as a DaemonSet, samples stacks across all languages without SDKs, ships OTLP profiles directly to OneUptime. Default: off. The gke-autopilot and eks-fargate presets leave it off whatever profiling.enabled says: they refuse privileged pods.",
       "properties": {
         "enabled": { "type": "boolean" },
         "image": {

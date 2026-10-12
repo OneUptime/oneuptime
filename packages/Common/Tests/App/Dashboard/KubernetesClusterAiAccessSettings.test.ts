@@ -109,10 +109,7 @@ import {
   KubernetesAiRemediationMode,
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
@@ -2551,8 +2548,39 @@ describe("who may loosen a cluster's AI access", () => {
       canPickRunner: false,
       canPickCredential: false,
     });
-    expect(KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS.length).toBeGreaterThan(
-      0,
+  });
+
+  /*
+   * One rule for the credential picker: reading runbook credentials -
+   * RunbookCredential's own read list, what the server asks of whoever binds
+   * one (RunbookCredentialReaders) - on top of loosening.
+   */
+  test("offers the credential picker to whoever may loosen and read runbook credentials", () => {
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ReadRunner,
+      Permission.ReadRunbookCredential,
+    ]);
+    expect(getKubernetesAiAccessEditCapabilities()).toEqual({
+      canConfigureUnattended: true,
+      canPickRunner: true,
+      canPickCredential: true,
+    });
+
+    // A block on the read takes the picker away, even from an admin.
+    grant(
+      [...BASE_PERMISSIONS, Permission.ProjectAdmin],
+      [Permission.ReadRunbookCredential],
+    );
+    expect(getKubernetesAiAccessEditCapabilities().canPickCredential).toBe(
+      false,
+    );
+
+    expect(getKubernetesCredentialPermissionTitles()).toEqual(
+      PermissionGate.getPermissionTitles(
+        new RunbookCredential().getReadPermissions(),
+      ),
     );
   });
 
@@ -2560,7 +2588,7 @@ describe("who may loosen a cluster's AI access", () => {
   test("names permissions exactly as PermissionGate does, without a browser", () => {
     for (const permissions of [
       KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-      KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+      new RunbookCredential().getReadPermissions(),
       PROJECT_AI_SETTINGS_PERMISSIONS,
       [Permission.ProjectOwner, Permission.ProjectOwner],
     ]) {

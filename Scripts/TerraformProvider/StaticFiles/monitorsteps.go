@@ -109,11 +109,17 @@ var monitorStepsNoDataPolicyValues = []string{
 	"Trigger",
 }
 
-// CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts).
+// CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts), every value in
+// declaration order. Common/Tests/Utils/DeveloperDocs/TerraformCheckOnValues.test.ts
+// fails when a value the API accepts is missing here, so a filter on a new
+// check (NTP, SNMP tables and transceivers, Port timings, ...) is never
+// refused at plan time.
 var monitorStepsCheckOnValues = []string{
 	"Response Time (in ms)",
 	"Packet Loss (in %)",
 	"Jitter (in ms)",
+	"Port DNS Lookup Time (in ms)",
+	"Port TCP Connect Time (in ms)",
 	"Response Status Code",
 	"Response Header",
 	"Response Header Value",
@@ -148,7 +154,11 @@ var monitorStepsCheckOnValues = []string{
 	"Screen Size",
 	"Browser Type",
 	"Log Count",
+	"Security Event Count",
 	"Span Count",
+	"Bad AI Answers (in %)",
+	"Bad AI Answers",
+	"AI Answers",
 	"Exception Count",
 	"Profile Count",
 	"Metric Value",
@@ -161,10 +171,20 @@ var monitorStepsCheckOnValues = []string{
 	"SNMP OID Exists",
 	"SNMP Response Time (in ms)",
 	"SNMP Device Is Online",
+	"SNMP Walk Is Succeeding",
 	"SNMP Interface Is Down",
 	"SNMP Trap Received (Trap OID)",
 	"SNMP Interface Utilization (in %)",
 	"SNMP Interface Errors (per second)",
+	"SNMP Table Value",
+	"SNMP Table Row Count",
+	"SNMP Table Row Is Unhealthy",
+	"SNMP Trap Varbind Value",
+	"SNMP Transceiver Not Detected",
+	"SNMP Transceiver Past Alarm Threshold",
+	"SNMP Transceiver Past Warning Threshold",
+	"SNMP Transceiver Reading",
+	"SNMP Transceiver RX Power Drop (in dB)",
 	"DNS Response Time (in ms)",
 	"DNS Is Online",
 	"DNS Record Value",
@@ -181,6 +201,12 @@ var monitorStepsCheckOnValues = []string{
 	"DNSSEC Signature Expires In Days",
 	"DNSSEC Resolver Consensus (AD Flag)",
 	"DNSSEC Nameservers Are Consistent",
+	"NTP Is Online",
+	"NTP Is Synchronized",
+	"NTP Stratum",
+	"NTP Clock Offset (in ms)",
+	"NTP Response Time (in ms)",
+	"NTP Root Dispersion (in ms)",
 	"SQL Is Online",
 	"SQL Query Row Count",
 	"SQL Query Scalar Value",
@@ -257,6 +283,7 @@ type monitorStepsSubConfig struct {
 var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"log_monitor", "logMonitor"},
 	{"trace_monitor", "traceMonitor"},
+	{"llm_monitor", "llmMonitor"},
 	{"metric_monitor", "metricMonitor"},
 	{"exception_monitor", "exceptionMonitor"},
 	{"profile_monitor", "profileMonitor"},
@@ -296,6 +323,7 @@ func monitorStepsFilterAttrTypes() map[string]attr.Type {
 		"metric_monitor_options":            types.StringType,
 		"snmp_monitor_options":              types.StringType,
 		"database_monitor_options":          types.StringType,
+		"custom_code_monitor_options":       types.StringType,
 	}
 }
 
@@ -617,6 +645,11 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
+			"custom_code_monitor_options": schema.StringAttribute{
+				MarkdownDescription: "Raw JSON escape hatch for Custom Code and Synthetic monitor filter options (resultValuePath - the field of the returned data a `Result Value` filter compares, e.g. `status` or `data.items[0].value`: dots for nested fields, `[n]` for array items). Omit it to compare the whole value. Write it with `jsonencode()`.",
+				Optional:            true,
+				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+			},
 		},
 	}
 }
@@ -922,6 +955,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 	subDescriptions := map[string]string{
 		"log_monitor":                  "Raw JSON escape hatch for the Logs monitor query config (attributes, body, severityTexts, telemetryServiceIds, lastXSecondsOfLogs).",
 		"trace_monitor":                "Raw JSON escape hatch for the Traces monitor query config.",
+		"llm_monitor":                  "Raw JSON escape hatch for the AI / LLM monitor config (issues, slowAnswerSeconds, model, telemetryServiceIds, lastXSecondsOfCalls).",
 		"metric_monitor":               "Raw JSON escape hatch for the Metrics monitor query config (metricViewConfig, rollingTime). The server normalizes this object, so provide the full shape to avoid drift.",
 		"exception_monitor":            "Raw JSON escape hatch for the Exceptions monitor query config.",
 		"profile_monitor":              "Raw JSON escape hatch for the Profiles monitor query config.",
@@ -1113,6 +1147,9 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	}
 	if v, ok := monitorStepsAttrJSON(attrs, "database_monitor_options", attrPath, diags); ok {
 		out["databaseMonitorOptions"] = v
+	}
+	if v, ok := monitorStepsAttrJSON(attrs, "custom_code_monitor_options", attrPath, diags); ok {
+		out["customCodeMonitorOptions"] = v
 	}
 	return out
 }
@@ -1585,6 +1622,9 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 	}
 	if s, ok := monitorStepsAPIJSONString(m["databaseMonitorOptions"]); ok {
 		attrs["database_monitor_options"] = types.StringValue(s)
+	}
+	if s, ok := monitorStepsAPIJSONString(m["customCodeMonitorOptions"]); ok {
+		attrs["custom_code_monitor_options"] = types.StringValue(s)
 	}
 	// metricCriteriaContext (evaluation-time context) and any unknown keys
 	// are intentionally dropped.

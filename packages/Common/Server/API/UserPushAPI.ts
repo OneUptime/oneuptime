@@ -4,6 +4,7 @@ import UserPushService, {
 } from "../Services/UserPushService";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import PushNotificationService from "../Services/PushNotificationService";
+import ExpoPushReceiptQueue from "../Infrastructure/ExpoPushReceiptQueue";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
@@ -22,6 +23,7 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
+import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
@@ -88,6 +90,35 @@ export function readProjectIdFromBody(raw: unknown): ObjectID | null {
   }
 
   return new ObjectID(projectId);
+}
+
+/*
+ * The push token the mobile app had before the one it registers, when it
+ * says: it got a new one on a phone where it kept its data (a phone set up
+ * from a backup of the old one), and the device registered with the old one
+ * is this phone (UserPushService.renewExpoPushDevice). Only an Expo push
+ * token, from a phone, that is not the token being registered. Anything else
+ * is not one, and is ignored rather than refused: a registration never fails
+ * over it.
+ */
+export function readPreviousExpoPushToken(data: {
+  previousDeviceToken: unknown;
+  deviceToken: unknown;
+  deviceType: unknown;
+}): string | null {
+  const previous: unknown = data.previousDeviceToken;
+
+  if (
+    !isExpoPushDeviceType(data.deviceType) ||
+    typeof previous !== "string" ||
+    !previous ||
+    previous === data.deviceToken ||
+    !PushNotificationService.isValidExpoPushToken(previous)
+  ) {
+    return null;
+  }
+
+  return previous;
 }
 
 /*
@@ -187,6 +218,24 @@ export default class UserPushAPI extends BaseAPI<
             projectId: projectId,
           });
 
+          /*
+           * The app asked Expo for this token just before, which renews it
+           * there. A push sent before now whose receipt says the token was
+           * gone is about the token as it was, and does not mark the phone
+           * (ExpoPushReceiptService): an iPhone keeps its token through a
+           * reinstall, so a page sent while the app was removed is refused
+           * in its receipt after the app is back. Only an Expo push token
+           * from a phone is noted: nothing else is one a receipt names.
+           */
+          if (
+            isExpoPushDeviceType(req.body.deviceType) &&
+            PushNotificationService.isValidExpoPushToken(req.body.deviceToken)
+          ) {
+            await ExpoPushReceiptQueue.noteTokenRegistered(
+              req.body.deviceToken,
+            );
+          }
+
           // Check if device is already registered
           const existingDevice: UserPush | null = await this.service.findOneBy({
             query: {
@@ -199,6 +248,8 @@ export default class UserPushAPI extends BaseAPI<
             },
             select: {
               _id: true,
+              isVerified: true,
+              deviceType: true,
             },
           });
 
@@ -207,14 +258,135 @@ export default class UserPushAPI extends BaseAPI<
            * mistake: it is Register Device pressed again in a browser that
            * already gets this project's notifications, or the mobile app
            * registering on launch. The caller is told which device they
-           * already have, and nothing is created or changed.
+           * already have, and nothing is created.
+           *
+           * isVerified false, for a browser: the push service no longer
+           * accepts the subscription the browser still holds
+           * (UserPushService.markWebPushSubscriptionAsGone). The Dashboard
+           * then gets a new one and reports it (subscription-change), so the
+           * device it already has receives notifications again.
            */
           if (existingDevice) {
+            /*
+             * A phone that stopped receiving notifications - Expo said its
+             * token was gone (UserPushService.markExpoPushTokenAsGone) - and
+             * registers that token again. The app asked Expo for the token
+             * just before, which renews it there, so the device receives
+             * notifications again, with its rules. Before, it stayed marked
+             * however often the app registered it, and only deleting the
+             * device (and its rules) brought the phone back.
+             */
+            if (
+              !existingDevice.isVerified &&
+              isExpoPushDeviceType(existingDevice.deviceType)
+            ) {
+              const deviceId: ObjectID = new ObjectID(
+                existingDevice._id!.toString(),
+              );
+
+              /*
+               * Nothing to verify again: a registration a moment earlier
+               * verified it already, or it is gone. Said as it is now.
+               */
+              const isVerified: boolean =
+                (await this.service.verifyExpoPushDeviceRegisteredAgain(
+                  deviceId,
+                )) ||
+                Boolean(
+                  (
+                    await this.service.findOneById({
+                      id: deviceId,
+                      select: {
+                        isVerified: true,
+                      },
+                      props: {
+                        isRoot: true,
+                      },
+                    })
+                  )?.isVerified,
+                );
+
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: deviceId.toString(),
+                alreadyRegistered: true,
+                isVerified: isVerified,
+              });
+            }
+
             return Response.sendJsonObjectResponse(req, res, {
               success: true,
               deviceId: existingDevice._id!.toString(),
               alreadyRegistered: true,
+              isVerified: Boolean(existingDevice.isVerified),
             });
+          }
+
+          /*
+           * A new token from a phone that says which token it had before:
+           * its device here carries the new one from now on, with its
+           * rules, instead of a new device with default rules beside an old
+           * one that can no longer be reached.
+           */
+          const previousDeviceToken: string | null = readPreviousExpoPushToken({
+            previousDeviceToken: req.body.previousDeviceToken,
+            deviceToken: req.body.deviceToken,
+            deviceType: req.body.deviceType,
+          });
+
+          if (previousDeviceToken) {
+            const renewedDevice: UserPush | null =
+              await this.service.renewExpoPushDevice({
+                userId: userId,
+                projectId: projectId,
+                previousDeviceToken: previousDeviceToken,
+                deviceToken: req.body.deviceToken,
+                deviceType: req.body.deviceType as PushDeviceType,
+                deviceName: req.body.deviceName || "Unknown Device",
+                isCriticalAlertEnabled: parseCriticalAlertFlag(
+                  req.body.isCriticalAlertEnabled,
+                ),
+              });
+
+            if (renewedDevice) {
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: renewedDevice._id!.toString(),
+                alreadyRegistered: true,
+                isVerified: true,
+              });
+            }
+
+            /*
+             * A registration a moment earlier - the app registers again
+             * when its projects change - may have renewed it already, after
+             * the lookup above. That device is this phone's: it is named,
+             * and no second device is made for the same token.
+             */
+            const renewedMeanwhile: UserPush | null =
+              await this.service.findOneBy({
+                query: {
+                  userId: userId,
+                  projectId: projectId,
+                  deviceToken: req.body.deviceToken,
+                },
+                select: {
+                  _id: true,
+                  isVerified: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            if (renewedMeanwhile) {
+              return Response.sendJsonObjectResponse(req, res, {
+                success: true,
+                deviceId: renewedMeanwhile._id!.toString(),
+                alreadyRegistered: true,
+                isVerified: Boolean(renewedMeanwhile.isVerified),
+              });
+            }
           }
 
           // Create new device registration
@@ -265,6 +437,7 @@ export default class UserPushAPI extends BaseAPI<
             success: true,
             deviceId: savedDevice._id!.toString(),
             alreadyRegistered: false,
+            isVerified: true,
           });
         } catch (error: any) {
           next(error);
@@ -304,6 +477,101 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             message: "Device unregistered successfully",
+          });
+        } catch (error) {
+          return next(error);
+        }
+      },
+    );
+
+    /*
+     * A browser replaced its push subscription, or lost it. The Dashboard's
+     * service worker (sw.js.template) calls this from its
+     * pushsubscriptionchange handler, and again when the Dashboard is next
+     * opened if the call could not be made then. Until this route existed the
+     * worker sent the new subscription nowhere, and the browser's devices kept
+     * the old one until every notification to them failed.
+     *
+     * Keyed on the old subscription, like unregister and critical-alerts: the
+     * worker knows the subscription it had and holds no row ids, and one
+     * browser has a device per project it is registered in.
+     *
+     * Authenticated by the person's session, like every route here: a service
+     * worker's fetch carries the Dashboard's cookies (same origin, SameSite
+     * lax), and the worker refreshes a session whose access token has expired
+     * before it gives up. Only the caller's own devices change.
+     *
+     * POST rather than PUT: PUT /user-push/:id is the generic update, and
+     * would read "subscription-change" as a device id.
+     */
+    this.router.post(
+      `/user-push/subscription-change`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
+          const oldDeviceToken: unknown = req.body.oldDeviceToken;
+
+          if (!oldDeviceToken || typeof oldDeviceToken !== "string") {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("oldDeviceToken is required"),
+            );
+          }
+
+          const newDeviceToken: unknown = req.body.newDeviceToken;
+
+          if (newDeviceToken === undefined) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "newDeviceToken is required: the new subscription, or null when the browser has none",
+              ),
+            );
+          }
+
+          /*
+           * null, said outright: the browser has no subscription any more -
+           * notifications were blocked for the site, or it could not get a
+           * new one. Its devices stop being verified now, rather than at the
+           * next page that fails to reach them.
+           */
+          if (newDeviceToken === null) {
+            const markedCount: number =
+              await this.service.markWebPushSubscriptionAsGone({
+                deviceToken: oldDeviceToken,
+                userId: userId,
+              });
+
+            return Response.sendJsonObjectResponse(req, res, {
+              success: true,
+              devicesUpdated: markedCount,
+            });
+          }
+
+          PushNotificationService.assertIsWebPushSubscription(newDeviceToken);
+
+          const memberProjectIds: Array<ObjectID> =
+            await ProjectMembership.getMemberProjectIds({
+              userId: userId,
+            });
+
+          const renewedCount: number =
+            await this.service.replaceWebPushSubscription({
+              userId: userId,
+              oldDeviceToken: oldDeviceToken,
+              newDeviceToken: newDeviceToken as string,
+              memberProjectIds: memberProjectIds,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            success: true,
+            devicesUpdated: renewedCount,
           });
         } catch (error) {
           return next(error);
@@ -369,11 +637,22 @@ export default class UserPushAPI extends BaseAPI<
             projectId: device.projectId,
           });
 
+          /*
+           * A device stops being verified when its push subscription is gone
+           * (UserPushService.markWebPushSubscriptionAsGone), or Expo says its
+           * token is (markExpoPushTokenAsGone), and nothing is sent to it.
+           * Said in those words: "Device is not verified" told nobody what to
+           * do. A phone registers again when its app is opened.
+           */
           if (!device.isVerified) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Device is not verified"),
+              new BadDataException(
+                isExpoPushDeviceType(device.deviceType)
+                  ? PushNotificationService.EXPO_DEVICE_NOT_RECEIVING_MESSAGE
+                  : "This device no longer receives push notifications. Register it again from the browser or app it belongs to.",
+              ),
             );
           }
 

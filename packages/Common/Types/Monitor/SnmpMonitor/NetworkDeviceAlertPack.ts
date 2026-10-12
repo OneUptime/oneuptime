@@ -8,6 +8,7 @@ import {
   SnmpTableKind,
 } from "./SnmpTable";
 import SnmpTableListUtil from "./SnmpTableListUtil";
+import { TRANSCEIVER_RX_DROP_ALERT_DB } from "../../../Utils/NetworkDevice/TransceiverHealthUtil";
 
 /*
  * Prebuilt criteria for Network Device monitors — the alerts most operators
@@ -112,16 +113,69 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
     createIncidents: false,
     createAlerts: true,
   },
+  /*
+   * The transceiver items. Alerts, not incidents: a dark optic already takes
+   * its interface down, and "Interface down" pages for that - these say why,
+   * or warn before it happens. Each raises one alert per port ("*"), and
+   * none can fire on a device that reports no optics.
+   */
+  {
+    name: "Transceiver not detected",
+    description:
+      "An optic (SFP, SFP+, QSFP) that was in a port is no longer detected while the port is still enabled - pulled, failed, or no longer seated.",
+    filters: [
+      {
+        checkOn: CheckOn.SnmpTransceiverNotDetected,
+        filterType: FilterType.True,
+        value: undefined,
+        snmpMonitorOptions: { interfaceName: "*" },
+      },
+    ],
+    createIncidents: false,
+    createAlerts: true,
+  },
+  {
+    name: "Transceiver past its alarm threshold",
+    description:
+      "An optic's temperature, voltage, bias current or transmit or receive power is past the alarm threshold the device itself reports, or the device flags a loss of signal or a transmitter fault.",
+    filters: [
+      {
+        checkOn: CheckOn.SnmpTransceiverPastAlarmThreshold,
+        filterType: FilterType.True,
+        value: undefined,
+        snmpMonitorOptions: { interfaceName: "*" },
+      },
+    ],
+    createIncidents: false,
+    createAlerts: true,
+  },
+  {
+    name: "Transceiver RX power dropping",
+    description: `An optic receives at least ${TRANSCEIVER_RX_DROP_ALERT_DB} dB less light than on its best day of the last 30 - a dirty connector, a bent fibre or an optic wearing out, usually well before the link drops.`,
+    filters: [
+      {
+        checkOn: CheckOn.SnmpTransceiverRxPowerDrop,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: TRANSCEIVER_RX_DROP_ALERT_DB,
+        snmpMonitorOptions: { interfaceName: "*" },
+      },
+    ],
+    createIncidents: false,
+    createAlerts: true,
+  },
 ];
 
 /*
- * Tables whose rows are links or sessions: a row going unhealthy there is an
- * outage someone should be paged for. Everything else (fans, power supplies,
- * radios) raises an alert.
+ * Tables whose rows are links, sessions or whole access points: a row going
+ * unhealthy there is an outage someone should be paged for - a tunnel down,
+ * a fabric neighbour lost, an access point gone from its controller and its
+ * area without Wi-Fi. Everything else (fans, power supplies, radios) raises
+ * an alert.
  */
 const INCIDENT_TABLE_KINDS: Array<SnmpTableKind> = [
   SnmpTableKind.VpnTunnel,
   SnmpTableKind.RoutingAdjacency,
+  SnmpTableKind.WifiAccessPoint,
 ];
 
 export default class NetworkDeviceAlertPackUtil {

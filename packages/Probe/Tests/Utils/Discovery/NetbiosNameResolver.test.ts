@@ -601,7 +601,7 @@ describe("NetbiosNameResolver — defaults", () => {
 });
 
 describe("NetbiosNameResolver — choosing the name", () => {
-  it("names a host by its unique <00> name, lower-cased", async () => {
+  it("names a host by its unique <00> name, in the case it reported (issue #4518)", async () => {
     const setup: Harness = harness();
     setup.socket.responder = (query: SentQuery): void => {
       setup.socket.answer(query, workstation("REG01"));
@@ -611,7 +611,7 @@ describe("NetbiosNameResolver — choosing the name", () => {
       setup,
     ).resolveNames(["10.18.167.31"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.18.167.31": "reg01" });
+    expect(namesOf(resolution)).toEqual({ "10.18.167.31": "REG01" });
     expect(resolution).toMatchObject({
       queriedCount: 1,
       skippedCount: 0,
@@ -634,7 +634,7 @@ describe("NetbiosNameResolver — choosing the name", () => {
       setup,
     ).resolveNames(["10.0.0.1"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "srv-zero" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "SRV-ZERO" });
   });
 
   it("falls back to the unique <20> name", async () => {
@@ -650,7 +650,7 @@ describe("NetbiosNameResolver — choosing the name", () => {
       setup,
     ).resolveNames(["10.0.0.1"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "nas01" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "NAS01" });
   });
 
   it("never names a host after a group, __MSBROWSE__ or IS~ name — and does not re-ask it", async () => {
@@ -761,7 +761,7 @@ describe("NetbiosNameResolver — which replies count", () => {
       "10.0.0.2",
     ]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "only-one" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "ONLY-ONE" });
   });
 
   it("ignores garbage datagrams from the queried host without throwing", async () => {
@@ -819,7 +819,7 @@ describe("NetbiosNameResolver — which replies count", () => {
       setup,
     ).resolveNames(["10.0.0.1", "10.0.0.2"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "slow" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "SLOW" });
     expect(setup.socket.sentAddresses()).toEqual([
       "10.0.0.1",
       "10.0.0.2",
@@ -859,8 +859,8 @@ describe("NetbiosNameResolver — passes, pacing and early stop", () => {
       "10.0.0.3",
     ]);
     expect(namesOf(resolution)).toEqual({
-      "10.0.0.1": "first-time",
-      "10.0.0.2": "second-time",
+      "10.0.0.1": "FIRST-TIME",
+      "10.0.0.2": "SECOND-TIME",
     });
     expect(resolution.queriedCount).toBe(3);
     expect(resolution.isTimeBudgetExhausted).toBe(false);
@@ -1089,7 +1089,7 @@ describe("NetbiosNameResolver — the socket", () => {
       setup,
     ).resolveNames(["10.0.0.1"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "still-works" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "STILL-WORKS" });
     expect(resolution.failureReason).toBeUndefined();
   });
 
@@ -1122,7 +1122,7 @@ describe("NetbiosNameResolver — the socket", () => {
       setup,
     ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "before" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "BEFORE" });
     expect(resolution.failureReason).toBe("recvmsg ENOMEM");
     // Nothing is sent once the socket has failed.
     expect(setup.socket.sentAddresses()).toEqual(["10.0.0.1", "10.0.0.2"]);
@@ -1237,8 +1237,8 @@ describe("NetbiosNameResolver — one host's failed send", () => {
     ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
 
     expect(namesOf(resolution)).toEqual({
-      "10.0.0.1": "ok-1",
-      "10.0.0.3": "ok-3",
+      "10.0.0.1": "OK-1",
+      "10.0.0.3": "OK-3",
     });
     // Asked once, not retried, and it did not hold a listening window open.
     expect(setup.socket.sentAddresses()).toEqual([
@@ -1262,7 +1262,7 @@ describe("NetbiosNameResolver — one host's failed send", () => {
       setup,
     ).resolveNames(["10.0.0.1", "10.0.0.2"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "survivor" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "SURVIVOR" });
     expect(resolution.failureReason).toBeUndefined();
     expect(setup.socket.closeCount).toBe(1);
   });
@@ -1295,9 +1295,9 @@ describe("NetbiosNameResolver — budget and host cap", () => {
       "10.0.0.3",
     ]);
     expect(namesOf(resolution)).toEqual({
-      "10.0.0.1": "fast-1",
-      "10.0.0.2": "fast-2",
-      "10.0.0.3": "fast-3",
+      "10.0.0.1": "FAST-1",
+      "10.0.0.2": "FAST-2",
+      "10.0.0.3": "FAST-3",
     });
     expect(resolution.isTimeBudgetExhausted).toBe(true);
     expect(resolution.queriedCount).toBe(3);
@@ -1348,7 +1348,7 @@ describe("NetbiosNameResolver — budget and host cap", () => {
     // The public address and the host over the cap.
     expect(resolution.skippedCount).toBe(2);
     expect(warnedMessages.join("\n")).toMatch(
-      /capped at 2 host\(s\) per scan; 3 unnamed host\(s\) were eligible, so 1 will keep/,
+      /capped at 2 host\(s\) per scan; 3 host\(s\) were eligible, so 1 were not asked/,
     );
   });
 
@@ -2268,7 +2268,7 @@ describe("NetbiosNameResolver — the host cap the constructor applies", () => {
       });
       expect(setup.socket.sentAddresses()).toEqual(addresses.slice(0, 2000));
       expect(warnedMessages.join("\n")).toMatch(
-        /capped at 2000 host\(s\) per scan; 2001 unnamed host\(s\) were eligible, so 1 will keep/,
+        /capped at 2000 host\(s\) per scan; 2001 host\(s\) were eligible, so 1 were not asked/,
       );
       expect(setup.socket.closeCount).toBe(1);
     },
@@ -2539,11 +2539,11 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>([
-        ["10.0.0.1", "mixed"],
-        ["10.0.0.2", "mixed"],
-        ["192.168.1.1", "mixed"],
-        ["100.64.0.1", "mixed"],
-        ["172.16.0.1", "mixed"],
+        ["10.0.0.1", "MIXED"],
+        ["10.0.0.2", "MIXED"],
+        ["192.168.1.1", "MIXED"],
+        ["100.64.0.1", "MIXED"],
+        ["172.16.0.1", "MIXED"],
       ]),
       // Every allowed host answered; only the two refused ones are explained.
       statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>(
@@ -2618,7 +2618,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
     });
     expect(resolution.eligibleCount - resolution.maxHosts).toBe(5);
     expect(warnedMessages.join("\n")).toMatch(
-      /capped at 3 host\(s\) per scan; 8 unnamed host\(s\) were eligible, so 5 will keep/,
+      /capped at 3 host\(s\) per scan; 8 host\(s\) were eligible, so 5 were not asked/,
     );
   });
 
@@ -2644,7 +2644,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
     // The cap warning, and no budget warning after it.
     expect(warnedMessages).toHaveLength(1);
     expect(warnedMessages[0]).toMatch(
-      /capped at 2000 host\(s\) per scan; 2500 unnamed host\(s\) were eligible, so 500 will keep/,
+      /capped at 2000 host\(s\) per scan; 2500 host\(s\) were eligible, so 500 were not asked/,
     );
   });
 
@@ -2746,7 +2746,7 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
       await resolverFor(setup).resolveNames(inputs);
 
     expect(resolution).toEqual({
-      nameByIpAddress: new Map<string, string>([["10.0.0.1", "early"]]),
+      nameByIpAddress: new Map<string, string>([["10.0.0.1", "EARLY"]]),
       /*
        * .2's query got out before the socket failed and nothing answered it:
        * NoReply. .3 and .4 were next in line when it failed: Skipped.
@@ -2877,9 +2877,9 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
     // Sends at +0, +10 and +20 of the five under the cap.
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>([
-        ["10.0.0.1", "b-1"],
-        ["10.0.0.2", "b-2"],
-        ["10.0.0.3", "b-3"],
+        ["10.0.0.1", "B-1"],
+        ["10.0.0.2", "B-2"],
+        ["10.0.0.3", "B-3"],
       ]),
       /*
        * Three distinct reasons for three hosts that were never asked: the
@@ -2922,8 +2922,8 @@ describe("NetbiosNameResolver — eligibleCount, maxHosts and totalBudgetInMs on
 
     expect(resolution).toEqual({
       nameByIpAddress: new Map<string, string>([
-        ["10.0.0.1", "ok-1"],
-        ["10.0.0.2", "ok-2"],
+        ["10.0.0.1", "OK-1"],
+        ["10.0.0.2", "OK-2"],
       ]),
       // Asked on both passes, never answered.
       statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
@@ -3085,7 +3085,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       "10.0.0.1",
       "10.0.0.2",
     ]);
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "second-time" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "SECOND-TIME" });
     expect(statusesOf(resolution)).toEqual({
       "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
     });
@@ -3110,7 +3110,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       setup,
     ).resolveNames(["10.0.0.1", "10.0.0.2"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "slow" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.1": "SLOW" });
     expect(statusesOf(resolution)).toEqual({
       "10.0.0.2": DiscoveredHostNetbiosStatus.NoReply,
     });
@@ -3128,8 +3128,8 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
     ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
 
     expect(namesOf(resolution)).toEqual({
-      "10.0.0.1": "ok-1",
-      "10.0.0.3": "ok-3",
+      "10.0.0.1": "OK-1",
+      "10.0.0.3": "OK-3",
     });
     /*
      * Not NoReply: the datagram never left the probe, so the host was never
@@ -3161,7 +3161,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       setup,
     ).resolveNames(["10.0.0.1", "10.0.0.2"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "survivor" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "SURVIVOR" });
     expect(statusesOf(resolution)).toEqual({
       "10.0.0.1": DiscoveredHostNetbiosStatus.SendFailed,
     });
@@ -3243,7 +3243,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       setup,
     ).resolveNames(["10.0.0.1", "10.0.0.2", "10.0.0.3"]);
 
-    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "got-out-anyway" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "GOT-OUT-ANYWAY" });
     expect(statusesOf(resolution)).toEqual({
       "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
       "10.0.0.3": DiscoveredHostNetbiosStatus.NoUsableName,
@@ -3521,7 +3521,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       await resolverFor(setup).resolveNames(inputs);
 
     expect(setup.socket.sentAddresses()).toEqual(["10.0.0.5"]);
-    expect(namesOf(resolution)).toEqual({ "10.0.0.5": "private" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.5": "PRIVATE" });
     expect(resolution.statusByIpAddress).toEqual(
       new Map<string, DiscoveredHostNetbiosStatus>(
         sameStatusFor(
@@ -3737,7 +3737,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       "10.0.0.2",
       "10.0.0.1",
     ]);
-    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "once" });
+    expect(namesOf(resolution)).toEqual({ "10.0.0.2": "ONCE" });
     expect(resolution.statusByIpAddress).toEqual(
       new Map<string, DiscoveredHostNetbiosStatus>([
         ["10.0.0.1", DiscoveredHostNetbiosStatus.NoReply],
@@ -3808,7 +3808,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
       "10.0.0.4",
     ]);
     expect(resolution).toEqual({
-      nameByIpAddress: new Map<string, string>([["10.0.0.1", "wb0024kds02"]]),
+      nameByIpAddress: new Map<string, string>([["10.0.0.1", "WB0024KDS02"]]),
       statusByIpAddress: new Map<string, DiscoveredHostNetbiosStatus>([
         ["8.8.8.8", DiscoveredHostNetbiosStatus.SkippedIneligibleAddress],
         ["10.0.0.2", DiscoveredHostNetbiosStatus.NoUsableName],
@@ -3935,7 +3935,7 @@ describe("NetbiosNameResolver — why each unnamed host has no name (statusByIpA
     expect(statusesOf(first)).toEqual({
       "10.0.0.1": DiscoveredHostNetbiosStatus.NoReply,
     });
-    expect(namesOf(second)).toEqual({ "10.0.0.1": "now-answers" });
+    expect(namesOf(second)).toEqual({ "10.0.0.1": "NOW-ANSWERS" });
     expect(statusesOf(second)).toEqual({});
     expect(second.statusByIpAddress).not.toBe(first.statusByIpAddress);
   });
@@ -3992,7 +3992,7 @@ describe("NetbiosNameResolver — end to end over a real UDP socket", () => {
         "127.0.0.1",
       ]);
 
-      expect(namesOf(resolution)).toEqual({ "127.0.0.1": "loopback-host" });
+      expect(namesOf(resolution)).toEqual({ "127.0.0.1": "LOOPBACK-HOST" });
       // Named, so there is nothing to explain.
       expect(statusesOf(resolution)).toEqual({});
       expect(resolution.failureReason).toBeUndefined();

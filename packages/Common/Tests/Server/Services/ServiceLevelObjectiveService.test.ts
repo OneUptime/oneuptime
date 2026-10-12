@@ -44,6 +44,10 @@ import {
   openStateIds,
 } from "../TestingUtils/Services/ProjectStatesHelper";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -1601,10 +1605,12 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     expect(result.carryForward.burnRateRules).toEqual([firstRule, secondRule]);
   });
 
-  it("reads the SLOs as root through the caller's query pinned to the caller's project, and each SLO's rules inside its project", async () => {
+  it("reads the SLOs the caller may delete in the caller's project, holds the delete to them, and reads each SLO's rules inside its project", async () => {
     findBySpy.mockResolvedValue([
       makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
     ]);
+    // The SLOs the caller may delete: those the same read reaches.
+    stubRowsCallerMayDeleteLikeFindBy(ServiceLevelObjectiveService, findBySpy);
 
     const deleteBy: DeleteBy<ServiceLevelObjective> = makeDeleteBy({
       tenantId: PROJECT_ID,
@@ -1613,19 +1619,26 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
 
     await callHook("onBeforeDelete", deleteBy);
 
-    const findByArg: ReadArguments = findBySpy.mock
-      .calls[0]![0] as ReadArguments;
-
-    expect(findByArg.query).toEqual({
+    // The SLOs the caller may delete, read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveService)[0]!.query,
+    ).toEqual({
       _id: SLO_ID.toString(),
       projectId: PROJECT_ID,
     });
+
+    // The delete's SLOs among them, read as OneUptime.
+    const findByArg: ReadArguments = findBySpy.mock
+      .calls[0]![0] as ReadArguments;
+
+    expect(findByArg.query).toEqual({ _id: SLO_ID.toString() });
     expect(findByArg.select).toEqual({ _id: true, projectId: true });
     expect(findByArg.skip).toBe(0);
-    expect(findByArg.props).toEqual({ isRoot: true });
+    expect(findByArg.props).toEqual({ isRoot: true, ignoreHooks: true });
 
-    // A copy: DatabaseService still receives the caller's query as it came.
+    // The delete removes exactly the SLO read.
     expect(deleteBy.query).toEqual({ _id: SLO_ID.toString() });
+    expect(deleteBy.limit).toBe(1);
 
     const ruleFindByArg: ReadArguments = ruleFindBySpy.mock
       .calls[0]![0] as ReadArguments;

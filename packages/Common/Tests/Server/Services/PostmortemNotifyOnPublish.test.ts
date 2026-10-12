@@ -30,6 +30,22 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+});
 
 /*
  * SUBSCRIBERS HEAR ABOUT A POSTMORTEM ONCE, WHEN IT IS PUBLISHED.
@@ -904,7 +920,9 @@ describe("the stored postmortem is read once, before the write", () => {
       showPostmortemOnStatusPage: true,
       subscriberNotificationStatusOnPostmortemPublished: true,
     });
-    expect(postmortemReads()[0]!.query).toEqual(
+    // By id, among the incidents the caller may write - found in their project.
+    expect(postmortemReads()[0]!.query).toEqual({ _id: RECORD_ID });
+    expect(readsOfRowsCallerMayWrite(IncidentService)[0]!.query).toEqual(
       expect.objectContaining({ _id: RECORD_ID, projectId: PROJECT_ID }),
     );
   });
@@ -1285,7 +1303,9 @@ describe("showing a hidden incident sends the postmortem that waits for it", () 
       isPrivate: true,
       subscriberNotificationStatusMessageOnPostmortemPublished: true,
     });
-    expect(visibilityReads()[0]!.query).toEqual(
+    // By id, among the incidents the caller may write - found in their project.
+    expect(visibilityReads()[0]!.query).toEqual({ _id: RECORD_ID });
+    expect(readsOfRowsCallerMayWrite(IncidentService)[0]!.query).toEqual(
       expect.objectContaining({ _id: RECORD_ID, projectId: PROJECT_ID }),
     );
 

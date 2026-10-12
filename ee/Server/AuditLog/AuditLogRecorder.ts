@@ -312,6 +312,65 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     }
   }
 
+  /*
+   * A download of a record's file. Nothing changed, so there is no diff: the
+   * entry's fields are the columns the route read to say what was
+   * downloaded (a capture's interface, filter, probe, packets and size), and
+   * its actor is whoever downloaded it - eligible exactly as a change of the
+   * same record would be.
+   */
+  public async recordDownload<TModel extends BaseModel>(data: {
+    model: TModel;
+    downloadedItem: TModel;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    try {
+      const projectId: ObjectID | undefined = this.resolveProjectId(
+        data.model,
+        data.downloadedItem,
+        data.props,
+      );
+
+      if (!projectId) {
+        return;
+      }
+
+      const settings: CachedProjectSettings | null =
+        await this.getProjectSettings(projectId);
+
+      if (!this.isEligible(settings, data.props)) {
+        return;
+      }
+
+      const changes: JSONArray = this.buildSnapshotChanges({
+        model: data.model,
+        item: data.downloadedItem,
+        valueKey: "newValue",
+      });
+
+      await this.addRelationNames({
+        model: data.model,
+        changes,
+        projectId,
+      });
+
+      await this.insert({
+        projectId,
+        model: data.model,
+        item: data.downloadedItem,
+        resourceId: data.itemId,
+        action: AuditLogAction.Download,
+        changes,
+        props: data.props,
+        retentionInDays: settings!.retentionInDays,
+      });
+    } catch (err) {
+      logger.warn("AuditLog: failed to record download event");
+      logger.warn(err);
+    }
+  }
+
   private async insert<TModel extends BaseModel>(params: {
     projectId: ObjectID;
     model: TModel;

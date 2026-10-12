@@ -14,6 +14,7 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { UserPermission } from "Common/Types/Permission";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import UserType from "Common/Types/UserType";
 import {
   ExpressRequest,
@@ -103,6 +104,8 @@ new NetworkRuleRunAPI().getRouter();
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RULE_ID: ObjectID = ObjectID.generate();
+const GRANT_LABEL_ID: ObjectID = ObjectID.generate();
+const BLOCKED_LABEL_ID: ObjectID = ObjectID.generate();
 
 const deviceService: {
   applySiteAssignmentRuleToExistingDevices: jest.Mock;
@@ -135,6 +138,14 @@ const mockResponse: ExpressResponse = {} as ExpressResponse;
 function propsWith(data: {
   permissions?: Array<Permission> | undefined;
   blockedPermissions?: Array<Permission> | undefined;
+  // The labels every granted row is limited to (none: the whole project).
+  labelIds?: Array<ObjectID> | undefined;
+  // The scope stored on every granted row; absent, as on legacy rows.
+  scope?: PermissionScope | undefined;
+  // Blocks limited to these labels, beside the blocks with no labels.
+  labelledBlocks?: Array<Permission> | undefined;
+  // Grants limited to a label, beside the ones in `permissions`.
+  labelLimitedPermissions?: Array<Permission> | undefined;
   tenantId?: ObjectID | null | undefined;
   isMasterAdmin?: boolean | undefined;
 }): DatabaseCommonInteractionProps {
@@ -144,14 +155,17 @@ function propsWith(data: {
   const toUserPermission: (
     permission: Permission,
     isBlockPermission: boolean,
+    blockLabelIds?: Array<ObjectID>,
   ) => UserPermission = (
     permission: Permission,
     isBlockPermission: boolean,
+    blockLabelIds?: Array<ObjectID>,
   ): UserPermission => {
     return {
       permission: permission,
-      labelIds: [],
+      labelIds: isBlockPermission ? blockLabelIds || [] : data.labelIds || [],
       isBlockPermission: isBlockPermission,
+      ...(data.scope && !isBlockPermission ? { scope: data.scope } : {}),
       _type: "UserPermission",
     } as UserPermission;
   };
@@ -171,6 +185,19 @@ function propsWith(data: {
               ...(data.blockedPermissions || []).map(
                 (permission: Permission) => {
                   return toUserPermission(permission, true);
+                },
+              ),
+              ...(data.labelledBlocks || []).map((permission: Permission) => {
+                return toUserPermission(permission, true, [BLOCKED_LABEL_ID]);
+              }),
+              ...(data.labelLimitedPermissions || []).map(
+                (permission: Permission) => {
+                  return {
+                    permission: permission,
+                    labelIds: [GRANT_LABEL_ID],
+                    isBlockPermission: false,
+                    _type: "UserPermission",
+                  } as UserPermission;
                 },
               ),
             ],
@@ -827,7 +854,7 @@ describe("Network automation rule run endpoints", () => {
       const next: NextFunction = await callRoute({ uri: SITE_RULE_URI });
 
       expect(errorFrom(next).message).toContain(
-        "You do not have permission to update network devices",
+        "You do not have permission to edit every network device in this project",
       );
       expect(
         deviceService.applySiteAssignmentRuleToExistingDevices,
@@ -1082,5 +1109,358 @@ describe("Network automation rule run endpoints", () => {
         expectNothingRan();
       },
     );
+  });
+});
+
+/*
+ * A run reaches every network device of the project: the site and label
+ * rules walk them all, an auto import rule imports from every scan and
+ * creates monitors for what it imports. So every permission a run needs
+ * must reach the whole project, as every rule's Run now asks
+ * (RuleRunPermission.assertMayChangeEveryRecord): a grant limited to some
+ * labels, or to owned devices, is not enough, and a team's block on some
+ * labels of the devices or monitors a run changes takes the run away.
+ */
+describe("Network automation rule runs reach every device of the project", () => {
+  const RUN_ROUTES: Array<{
+    name: string;
+    uri: string;
+    rulePermission: Permission;
+    ruleLabel: string;
+  }> = [
+    {
+      name: "site assignment",
+      uri: SITE_RULE_URI,
+      rulePermission: Permission.EditNetworkSiteAssignmentRule,
+      ruleLabel: "site assignment rules",
+    },
+    {
+      name: "device label",
+      uri: LABEL_RULE_URI,
+      rulePermission: Permission.EditNetworkDeviceLabelRule,
+      ruleLabel: "network device label rules",
+    },
+  ];
+
+  function expectNoRun(): void {
+    expect(
+      deviceService.applySiteAssignmentRuleToExistingDevices,
+    ).not.toHaveBeenCalled();
+    expect(
+      labelRuleEngine.applyRuleToExistingNetworkDevices,
+    ).not.toHaveBeenCalled();
+    expect(
+      autoImportRuleEngine.applyRuleToCompletedScans,
+    ).not.toHaveBeenCalled();
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    autoImportRuleService.findOneBy.mockResolvedValue({
+      id: RULE_ID,
+      monitorTemplateId: null,
+    });
+  });
+
+  test.each(RUN_ROUTES)(
+    "a $name rule run is let through with project-wide grants",
+    async (route: { uri: string; rulePermission: Permission }) => {
+      mockProps(
+        propsWith({
+          permissions: [route.rulePermission, Permission.EditNetworkDevice],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({ uri: route.uri });
+
+      expect(next).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(RUN_ROUTES)(
+    "a $name rule run refuses device edit limited to some labels",
+    async (route: {
+      uri: string;
+      rulePermission: Permission;
+      ruleLabel: string;
+    }) => {
+      mockProps(
+        propsWith({
+          permissions: [route.rulePermission],
+          labelLimitedPermissions: [Permission.EditNetworkDevice],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({ uri: route.uri });
+
+      const error: Error = errorFrom(next);
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      // Saying which permission to ask for, and how far it must reach.
+      expect(error.message).toBe(
+        `You do not have permission to edit every network device in this project, which running ${route.ruleLabel} does. Missing permission: Edit Network Device, for all resources in the project.`,
+      );
+      expectNoRun();
+    },
+  );
+
+  test.each(RUN_ROUTES)(
+    "a $name rule run refuses device edit limited to owned devices",
+    async (route: { uri: string; rulePermission: Permission }) => {
+      mockProps(
+        propsWith({
+          permissions: [route.rulePermission, Permission.EditNetworkDevice],
+          scope: PermissionScope.Owned,
+        }),
+      );
+
+      const next: NextFunction = await callRoute({ uri: route.uri });
+
+      expect(errorFrom(next)).toBeInstanceOf(NotAuthorizedException);
+      expectNoRun();
+    },
+  );
+
+  test.each(RUN_ROUTES)(
+    "a $name rule run counts device edit granted with an explicit project-wide scope",
+    async (route: { uri: string; rulePermission: Permission }) => {
+      mockProps(
+        propsWith({
+          permissions: [route.rulePermission, Permission.EditNetworkDevice],
+          scope: PermissionScope.All,
+        }),
+      );
+
+      const next: NextFunction = await callRoute({ uri: route.uri });
+
+      expect(next).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an auto import run with a monitor template counts the monitors' wildcard granted project-wide", async () => {
+    /*
+     * A monitor is an operational resource, so its create accepts
+     * CreateAllOperationalResources, as the CRUD path does.
+     */
+    autoImportRuleService.findOneBy.mockResolvedValue({
+      id: RULE_ID,
+      monitorTemplateId: ObjectID.generate(),
+    });
+    monitorTemplateService.findOneById.mockResolvedValue({ id: RULE_ID });
+    mockProps(
+      propsWith({
+        permissions: [
+          Permission.EditNetworkDeviceAutoImportRule,
+          Permission.CreateNetworkDevice,
+          Permission.CreateAllOperationalResources,
+        ],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      autoImportRuleEngine.applyRuleToCompletedScans,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("an auto import run with a monitor template refuses the monitors' wildcard limited to some labels", async () => {
+    autoImportRuleService.findOneBy.mockResolvedValue({
+      id: RULE_ID,
+      monitorTemplateId: ObjectID.generate(),
+    });
+    mockProps(
+      propsWith({
+        permissions: [
+          Permission.EditNetworkDeviceAutoImportRule,
+          Permission.CreateNetworkDevice,
+        ],
+        labelLimitedPermissions: [Permission.CreateAllOperationalResources],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    expect(errorFrom(next).message).toContain(
+      "create monitors anywhere in this project",
+    );
+    expect(errorFrom(next).message).toContain(
+      "Missing permission: Create Monitor, for all resources in the project.",
+    );
+    expectNoRun();
+  });
+
+  test.each(RUN_ROUTES)(
+    "a $name rule run refuses a project admin whose team blocks device edit for some labels",
+    async (route: { uri: string }) => {
+      mockProps(
+        propsWith({
+          permissions: [Permission.ProjectAdmin],
+          labelledBlocks: [Permission.EditNetworkDevice],
+        }),
+      );
+
+      const next: NextFunction = await callRoute({ uri: route.uri });
+
+      const message: string = errorFrom(next).message;
+      expect(message).toContain("edit every network device in this project");
+      expect(message).toContain("block list for some labels");
+      expectNoRun();
+    },
+  );
+
+  test("an auto import run refuses device create limited to some labels", async () => {
+    mockProps(
+      propsWith({
+        permissions: [Permission.EditNetworkDeviceAutoImportRule],
+        labelLimitedPermissions: [Permission.CreateNetworkDevice],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    expect(errorFrom(next).message).toBe(
+      "You do not have permission to create network devices anywhere in this project, which running auto-import rules does. Missing permission: Create Network Device, for all resources in the project.",
+    );
+    expectNoRun();
+  });
+
+  test("an auto import run refuses a project admin whose team blocks device create for some labels", async () => {
+    mockProps(
+      propsWith({
+        permissions: [Permission.ProjectAdmin],
+        labelledBlocks: [Permission.CreateNetworkDevice],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    const message: string = errorFrom(next).message;
+    expect(message).toContain(
+      "create network devices anywhere in this project",
+    );
+    expect(message).toContain("block list for some labels");
+    expectNoRun();
+  });
+
+  test("an auto import run with a monitor template refuses monitor create limited to some labels", async () => {
+    autoImportRuleService.findOneBy.mockResolvedValue({
+      id: RULE_ID,
+      monitorTemplateId: ObjectID.generate(),
+    });
+    mockProps(
+      propsWith({
+        permissions: [
+          Permission.EditNetworkDeviceAutoImportRule,
+          Permission.CreateNetworkDevice,
+        ],
+        labelLimitedPermissions: [Permission.CreateProjectMonitor],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    expect(errorFrom(next).message).toBe(
+      "You do not have permission to create monitors anywhere in this project, which running this auto-import rule does. Missing permission: Create Monitor, for all resources in the project.",
+    );
+    expect(monitorTemplateService.findOneById).not.toHaveBeenCalled();
+    expectNoRun();
+  });
+
+  test("an auto import run with a monitor template refuses a project admin whose team blocks monitor create for some labels", async () => {
+    autoImportRuleService.findOneBy.mockResolvedValue({
+      id: RULE_ID,
+      monitorTemplateId: ObjectID.generate(),
+    });
+    mockProps(
+      propsWith({
+        permissions: [Permission.ProjectAdmin],
+        labelledBlocks: [Permission.CreateProjectMonitor],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    const message: string = errorFrom(next).message;
+    expect(message).toContain("create monitors anywhere in this project");
+    expect(message).toContain("block list for some labels");
+    expect(monitorTemplateService.findOneById).not.toHaveBeenCalled();
+    expectNoRun();
+  });
+
+  test("an auto import run without a monitor template does not ask about monitors", async () => {
+    mockProps(
+      propsWith({
+        permissions: [
+          Permission.EditNetworkDeviceAutoImportRule,
+          Permission.CreateNetworkDevice,
+        ],
+        labelledBlocks: [Permission.CreateProjectMonitor],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: AUTO_IMPORT_RULE_URI });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      autoImportRuleEngine.applyRuleToCompletedScans,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("a block on some labels of the rule's own permission does not take a run away", async () => {
+    /*
+     * Rules carry no labels, so a block on some labels narrows no rule on
+     * the CRUD path either; the devices are what a run changes.
+     */
+    mockProps(
+      propsWith({
+        permissions: [Permission.ProjectAdmin],
+        labelledBlocks: [Permission.EditNetworkSiteAssignmentRule],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: SITE_RULE_URI });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      deviceService.applySiteAssignmentRuleToExistingDevices,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("a rule permission limited to some labels is not a grant to run the rule", async () => {
+    mockProps(
+      propsWith({
+        permissions: [Permission.EditNetworkDevice],
+        labelLimitedPermissions: [Permission.EditNetworkSiteAssignmentRule],
+      }),
+    );
+
+    const next: NextFunction = await callRoute({ uri: SITE_RULE_URI });
+
+    expect(errorFrom(next).message).toBe(
+      "You do not have permission to run site assignment rules.",
+    );
+    expectNoRun();
+  });
+
+  test("a master admin runs every kind whatever their rows say", async () => {
+    for (const uri of [SITE_RULE_URI, LABEL_RULE_URI, AUTO_IMPORT_RULE_URI]) {
+      jest.clearAllMocks();
+      autoImportRuleService.findOneBy.mockResolvedValue({
+        id: RULE_ID,
+        monitorTemplateId: null,
+      });
+      mockProps(
+        propsWith({
+          permissions: [],
+          labelledBlocks: [Permission.EditNetworkDevice],
+          isMasterAdmin: true,
+        }),
+      );
+
+      const next: NextFunction = await callRoute({ uri: uri });
+
+      expect(next).not.toHaveBeenCalled();
+    }
   });
 });

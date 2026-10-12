@@ -3,6 +3,7 @@ import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import SnmpMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/SnmpMonitorCriteria";
+import { TransceiverReadingKind } from "../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -56,6 +57,11 @@ describe("what a Network Device monitor can be built from", () => {
       CheckOn.SnmpTableRowCount,
       CheckOn.SnmpTableRowIsUnhealthy,
       CheckOn.SnmpTrapVarbindValue,
+      CheckOn.SnmpTransceiverNotDetected,
+      CheckOn.SnmpTransceiverPastAlarmThreshold,
+      CheckOn.SnmpTransceiverPastWarningThreshold,
+      CheckOn.SnmpTransceiverReading,
+      CheckOn.SnmpTransceiverRxPowerDrop,
     ]);
   });
 
@@ -227,5 +233,91 @@ describe("the SNMP table and trap content checks", () => {
 
     expect(text).toContain("in SNMP table ipsec_tunnels");
     expect(text).toContain("for each row");
+  });
+});
+
+describe("the transceiver checks", () => {
+  test.each([
+    CheckOn.SnmpTransceiverNotDetected,
+    CheckOn.SnmpTransceiverPastAlarmThreshold,
+    CheckOn.SnmpTransceiverPastWarningThreshold,
+  ])("%s is a yes/no question", (checkOn: CheckOn) => {
+    expect(
+      values(CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn)),
+    ).toEqual([FilterType.True, FilterType.False]);
+  });
+
+  test.each([
+    CheckOn.SnmpTransceiverReading,
+    CheckOn.SnmpTransceiverRxPowerDrop,
+  ])("%s only compares numbers, above or below", (checkOn: CheckOn) => {
+    const offered: Array<string> = values(
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn),
+    );
+
+    expect([...offered].sort()).toEqual(
+      [
+        FilterType.GreaterThan,
+        FilterType.LessThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThanOrEqualTo,
+      ].sort(),
+    );
+  });
+
+  test("the value placeholders are an RX power and a drop in dB", () => {
+    expect(
+      CriteriaFilterUtil.getFilterTypePlaceholderValueByCheckOn({
+        monitorType: MonitorType.NetworkDevice,
+        checkOn: CheckOn.SnmpTransceiverReading,
+      }),
+    ).toBe("-14");
+    expect(
+      CriteriaFilterUtil.getFilterTypePlaceholderValueByCheckOn({
+        monitorType: MonitorType.NetworkDevice,
+        checkOn: CheckOn.SnmpTransceiverRxPowerDrop,
+      }),
+    ).toBe("2");
+  });
+
+  test("a reading criteria says which reading, which ports and in what unit", () => {
+    expect(
+      CriteriaFilterUtil.translateFilterToText({
+        checkOn: CheckOn.SnmpTransceiverReading,
+        filterType: FilterType.LessThan,
+        value: "-14",
+        snmpMonitorOptions: {
+          interfaceName: "*",
+          transceiverReading: TransceiverReadingKind.RxPower,
+        },
+      }),
+    ).toContain(
+      '"SNMP Transceiver Reading" (RX Power) on interface * is less than -14 dBm',
+    );
+
+    expect(
+      CriteriaFilterUtil.translateFilterToText({
+        checkOn: CheckOn.SnmpTransceiverReading,
+        filterType: FilterType.GreaterThan,
+        value: "70",
+        snmpMonitorOptions: {
+          transceiverReading: TransceiverReadingKind.Temperature,
+        },
+      }),
+    ).toContain(
+      '"SNMP Transceiver Reading" (Temperature) is greater than 70 °C',
+    );
+  });
+
+  test("a reading that is not one of the five is not named", () => {
+    const text: string = CriteriaFilterUtil.translateFilterToText({
+      checkOn: CheckOn.SnmpTransceiverReading,
+      filterType: FilterType.LessThan,
+      value: "-14",
+      snmpMonitorOptions: { transceiverReading: "wavelength" },
+    });
+
+    expect(text).toContain('"SNMP Transceiver Reading" is less than -14 ');
+    expect(text).not.toContain("(");
   });
 });

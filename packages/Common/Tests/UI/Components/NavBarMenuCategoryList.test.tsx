@@ -17,14 +17,9 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import Route from "../../../Types/API/Route";
-import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
-import Icon from "../../../UI/Components/Icon/Icon";
 import { MoreMenuItem } from "../../../UI/Components/Navbar/NavBar";
-import {
-  CATEGORY_LIST_COLUMNS,
-  DEFAULT_CATEGORY_ICON,
-} from "../../../UI/Components/Navbar/NavBarCategoryToggle";
+import { CATEGORY_LIST_COLUMNS } from "../../../UI/Components/Navbar/NavBarCategoryToggle";
 import NavBarMenuModal from "../../../UI/Components/Navbar/NavBarMenuModal";
 import Navigation from "../../../UI/Utils/Navigation";
 
@@ -51,12 +46,14 @@ jest.mock("../../../UI/Utils/Translation", () => {
  * them, every list of products starting somewhere else.
  *
  * Then the folded categories became the rows of one bordered list below the
- * cards: each row is the category's icon, its name, the products it holds,
- * how many and a chevron, and the list's columns line every row up. An
- * opened category's products are drawn inside the list, under its row.
+ * cards: each row is the category's name, the products it holds, how many
+ * and a chevron, and the list's columns line every row up. An opened
+ * category's products are drawn inside the list, under its row.
  *
  * Now Essentials are in the list as well: its first row, open, with their
  * cards under it, drawn like every other category's row.
+ *
+ * A row has no icon: it heads its products, and only they carry one.
  */
 
 const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
@@ -96,15 +93,6 @@ const FOLDED_CATEGORIES: Array<string> = [
 // Every category, as the list's rows: Essentials first.
 const CATEGORIES: Array<string> = ["Essentials", ...FOLDED_CATEGORIES];
 
-const CATEGORY_ICONS: Dictionary<IconProp> = {
-  Essentials: IconProp.Star,
-  Observability: IconProp.PresentationChartLine,
-  Code: IconProp.Code,
-  Resources: IconProp.Layers,
-  Infrastructure: IconProp.ServerStack,
-  Settings: IconProp.Settings,
-};
-
 function renderMenu(
   props: Partial<React.ComponentProps<typeof NavBarMenuModal>> = {},
 ): ReturnType<typeof render> {
@@ -112,7 +100,6 @@ function renderMenu(
     <NavBarMenuModal
       items={CATALOG}
       categoriesOpenByDefault={["Essentials"]}
-      categoryIcons={CATEGORY_ICONS}
       onClose={() => {}}
       {...props}
     />,
@@ -173,16 +160,9 @@ function productTitles(scope: HTMLElement): Array<string> {
     });
 }
 
-// The glyph a category's row draws for it: the first svg in the row.
-function drawnIcon(category: string): string {
-  return row(category).querySelector("svg")!.innerHTML;
-}
-
-function glyphOf(icon: IconProp): string {
-  const { container, unmount } = render(<Icon icon={icon} />);
-  const markup: string = container.querySelector("svg")!.innerHTML;
-  unmount();
-  return markup;
+// How many glyphs a category's row draws.
+function glyphCount(category: string): number {
+  return row(category).querySelectorAll("svg").length;
 }
 
 function goTo(pathname: string): void {
@@ -294,7 +274,7 @@ describe("every category is a row of one list, Essentials first", () => {
 });
 
 describe("the list's columns line every row up", () => {
-  test("the list lays out the columns: icon, name, products, count, chevron", () => {
+  test("the list lays out the columns: name, products, count, chevron", () => {
     renderMenu();
 
     expect(categoryLists()[0]).toHaveClass(CATEGORY_LIST_COLUMNS, "gap-x-3");
@@ -323,27 +303,26 @@ describe("the list's columns line every row up", () => {
     for (const category of FOLDED_CATEGORIES) {
       const parts: Array<Element> = Array.from(row(category).children);
 
-      expect([category, parts.length]).toEqual([category, 5]);
+      expect([category, parts.length]).toEqual([category, 4]);
+      expect(parts[1]).toHaveClass("sm:col-start-2");
       expect(parts[2]).toHaveClass("sm:col-start-3");
       expect(parts[3]).toHaveClass("sm:col-start-4");
-      expect(parts[4]).toHaveClass("sm:col-start-5");
     }
   });
 
-  test("the essentials' open row puts its icon, name, count and chevron in the columns of the folded rows", () => {
+  test("the essentials' open row puts its name, count and chevron in the columns of the folded rows", () => {
     renderMenu();
 
     const open: Array<Element> = Array.from(row("Essentials").children);
     const folded: Array<Element> = Array.from(row("Observability").children);
 
     // Open, a row lists no products: its cards are right below it.
-    expect(open).toHaveLength(4);
+    expect(open).toHaveLength(3);
     expect(open[0]!.className).toBe(folded[0]!.className);
-    expect(open[1]!.className).toBe(folded[1]!.className);
+    expect(open[1]!.className).toBe(folded[2]!.className);
     expect(open[2]!.className).toBe(folded[3]!.className);
-    expect(open[3]!.className).toBe(folded[4]!.className);
+    expect(open[1]).toHaveClass("sm:col-start-3");
     expect(open[2]).toHaveClass("sm:col-start-4");
-    expect(open[3]).toHaveClass("sm:col-start-5");
   });
 
   test("each row says what its category holds and how many", () => {
@@ -370,63 +349,38 @@ describe("the list's columns line every row up", () => {
   });
 });
 
-describe("each row is drawn with its category's icon", () => {
-  test.each(Object.entries(CATEGORY_ICONS))(
-    "%s is drawn with the icon the menu was given for it",
-    (category: string, icon: IconProp) => {
-      const expected: string = glyphOf(icon);
-
+describe("no row is drawn with an icon", () => {
+  test.each(CATEGORIES)(
+    "%s's row draws its chevron and nothing else",
+    (category: string) => {
       renderMenu();
 
-      expect(drawnIcon(category)).toBe(expected);
+      expect(glyphCount(category)).toBe(1);
+      expect(row(category).firstElementChild).toBe(
+        screen.getByRole("heading", { level: 3, name: category }),
+      );
     },
   );
 
-  test("a category the menu was given no icon for gets the products menu's own", () => {
-    const expected: string = glyphOf(DEFAULT_CATEGORY_ICON);
+  test("open or folded, the essentials' row has no icon", () => {
+    renderMenu();
 
-    renderMenu({ categoryIcons: { Observability: IconProp.Eye } });
-
-    expect(drawnIcon("Observability")).toBe(glyphOf(IconProp.Eye));
-    for (const category of CATEGORIES.filter((name: string): boolean => {
-      return name !== "Observability";
-    })) {
-      expect([category, drawnIcon(category)]).toEqual([category, expected]);
-    }
-  });
-
-  test("with no icons at all, every row still has one", () => {
-    const expected: string = glyphOf(DEFAULT_CATEGORY_ICON);
-
-    renderMenu({ categoryIcons: undefined });
-
-    for (const category of CATEGORIES) {
-      expect([category, drawnIcon(category)]).toEqual([category, expected]);
-    }
-  });
-
-  test("the essentials' row keeps its icon whether they are open or folded", () => {
-    renderMenu({
-      categoryIcons: { ...CATEGORY_ICONS, Essentials: IconProp.Alert },
-    });
-
-    expect(drawnIcon("Essentials")).toBe(glyphOf(IconProp.Alert));
+    expect(glyphCount("Essentials")).toBe(1);
     fireEvent.click(heading("Essentials"));
-    expect(drawnIcon("Essentials")).toBe(glyphOf(IconProp.Alert));
+    expect(glyphCount("Essentials")).toBe(1);
   });
 
-  test("an icon is looked up by the category's name as the items carry it", () => {
-    renderMenu({
-      items: [
-        product("Monitors", "Essentials", "/p/monitors"),
-        product("Hôtes", "Infrastructure (FR)", "/p/hosts"),
-      ],
-      categoryIcons: { "Infrastructure (FR)": IconProp.ServerStack },
-    });
+  test("the products under an open row keep their icons", () => {
+    renderMenu();
 
-    expect(drawnIcon("Infrastructure (FR)")).toBe(
-      glyphOf(IconProp.ServerStack),
+    const cards: Array<HTMLElement> = within(group("Essentials")).getAllByRole(
+      "option",
     );
+
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of cards) {
+      expect(card.querySelector("svg")).not.toBeNull();
+    }
   });
 });
 
@@ -466,16 +420,16 @@ describe("an opened category is drawn inside the list", () => {
     expect(categoryLists()).toHaveLength(1);
     expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
     expect(productTitles(listbox())).toEqual([]);
-    expect(Array.from(row("Essentials").children)).toHaveLength(5);
+    expect(Array.from(row("Essentials").children)).toHaveLength(4);
     expect(row("Essentials")).toHaveTextContent("Monitors, Incidents, Alerts");
   });
 
-  test("the opened row keeps its icon and count, and drops the products it lists", () => {
+  test("the opened row keeps its count, and drops the products it lists", () => {
     renderMenu();
 
     fireEvent.click(heading("Infrastructure"));
 
-    expect(drawnIcon("Infrastructure")).toBe(glyphOf(IconProp.ServerStack));
+    expect(glyphCount("Infrastructure")).toBe(1);
     expect(row("Infrastructure")).toHaveTextContent(/^Infrastructure3$/);
   });
 

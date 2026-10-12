@@ -1,3 +1,5 @@
+import { removeHtmlMarkup } from "../../Types/HtmlMarkup";
+
 /*
  * Heading text -> the `id` used for in-page anchors.
  *
@@ -7,10 +9,18 @@
  * import it directly; a second copy of these rules would drift and then pass a
  * link the renderer serves as a 404.
  *
- * It lives in its own module with ZERO imports on purpose: Markdown.ts pulls in
- * marked and the telemetry stack, which only resolve inside a fully installed
- * package. The scripts run in CI with nothing but the root npm install, so they
- * must be able to load the slugify rules without any of that.
+ * It lives in its own module, apart from Markdown.ts, on purpose: Markdown.ts
+ * pulls in marked and the telemetry stack, which only resolve inside a fully
+ * installed package. The scripts run in CI with nothing but the root npm
+ * install, so they must be able to load the slugify rules without any of
+ * that. Its one import, HtmlMarkup, imports nothing either.
+ *
+ * Markup is taken out of the heading by removeHtmlMarkup (Types/HtmlMarkup),
+ * the walk product code reads every tag and comment out of text with. It
+ * used to be one pass of /<[^>]*>/, which ended a tag at a ">" inside a
+ * quoted attribute value and a comment at its first ">", so the rest of the
+ * value or comment became part of the anchor. The headings the docs render
+ * hold no such markup, so no published anchor changes.
  *
  * The character class keeps letters and numbers in ANY script, via \p{L} and
  * \p{N} with the /u flag. It used to be `\w`, which is ASCII-only — so every
@@ -33,15 +43,38 @@
  * English anchors and break inbound deep links.
  */
 const slugify: (text: string) => string = (text: string): string => {
-  return text
-    .toLowerCase()
-    .replace(/<[^>]*>/g, "")
+  return removeHtmlMarkup(text.toLowerCase())
     .replace(/&[^;]+;/g, "")
     .replace(/[\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu, "")
     .replace(/[^\p{L}\p{N}\p{M}_\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+};
+
+/*
+ * The anchor of a heading, from the heading as it is written in Markdown -
+ * what the docs search index, the anchor scripts and the docs tests read.
+ *
+ * The renderer slugifies the heading's HTML, and there a `<` or `>` the
+ * author typed - in inline code such as "`oneuptime <resource> list`", or as
+ * text - is an entity, which slugify drops while keeping the word between
+ * them ("oneuptime-resource-list"). Slugified as written, "<resource>" would
+ * look like a tag and lose the word too ("oneuptime-list"), and a link to
+ * the heading would miss it. A bare `&` is escaped the way marked escapes
+ * it, so "A & B; C" keeps its "B" as it does on the page. A link in a
+ * heading is its text on the page.
+ */
+export const slugifyMarkdownHeading: (heading: string) => string = (
+  heading: string,
+): string => {
+  return slugify(
+    heading
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/&(?!#?\w+;)/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;"),
+  );
 };
 
 export default slugify;

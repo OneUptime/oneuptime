@@ -2,15 +2,15 @@
 
 {{> Logo this}}
 
-{{> EmailTitle title="ACTION REQUIRED: Valkey on your OneUptime instance needs attention." }}
+{{> EmailTitle title=(concat "ACTION REQUIRED: Valkey on your " (brandName) " instance needs attention.") }}
 
 {{> StatusBadge badgeType=badgeType badgeText=badgeText }}
 
-{{> InfoBlock info="Valkey backs OneUptime's caching and background job queues. A Valkey health check you enabled has crossed its threshold." }}
+{{> InfoBlock info=(concat "Valkey backs " (brandNameHtml) "'s caching and background job queues. A Valkey health check you enabled has crossed its threshold.") }}
 
 {{> DetailBoxStart this }}
 {{#if oneuptimeHost}}
-{{> DetailBoxField title="OneUptime Host: " text=oneuptimeHost }}
+{{> DetailBoxField title=(concat (brandName) " Host: ") text=oneuptimeHost }}
 {{/if}}
 {{#if detail1Title}}
 {{> DetailBoxField title=detail1Title text=detail1Text }}
@@ -38,7 +38,7 @@
 {{> ButtonBlock buttonUrl=healthPageLink buttonText=healthPageButtonText }}
 {{/if}}
 
-{{> InfoBlock info="You are receiving this email because you are a master admin on this OneUptime instance and Valkey health notifications are enabled." }}
+{{> InfoBlock info=(concat "You are receiving this email because you are a master admin on this " (brandNameHtml) " instance and Valkey health notifications are enabled.") }}
 
 {{> Footer this}}
 

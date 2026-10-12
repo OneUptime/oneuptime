@@ -39,11 +39,8 @@ function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
-  const {
-    moreMenuItems,
-    moreMenuCategoriesOpenByDefault,
-    moreMenuCategoryIcons,
-  } = useDashboardNavigationItems();
+  const { moreMenuItems, moreMenuCategoriesOpenByDefault } =
+    useDashboardNavigationItems();
 
   if (showPalette) {
     return (
@@ -84,8 +81,6 @@ function Fixture() {
           items={moreMenuItems}
           // As the Dashboard's NavBar passes it: Essentials, open every time.
           categoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
-          // And the icons of the categories' rows.
-          categoryIcons={moreMenuCategoryIcons}
           onClose={() => setIsOpen(false)}
           showCommandKShortcutHint={false}
         />

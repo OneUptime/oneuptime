@@ -6,15 +6,17 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `Provider produced inconsistent result after apply` | Old provider version that mishandled server-computed fields | Upgrade the provider (`terraform init -upgrade` within `~> 11.0`); report if it persists |
+| `Provider produced inconsistent result after apply` | Old provider version that mishandled server-computed fields | Upgrade the provider (`terraform init -upgrade` within `{{TERRAFORM_PROVIDER_VERSION}}`); report if it persists |
 | `ProjectId required` on every operation | Master or user API key instead of a project API key | Create a key under **Project Settings > API Keys** and use that |
 | Status/state `priority` or `order` drifts after apply | A number another state or status already holds is taken over, and the ones in the way step down one place — the same thing a drag in the dashboard does | Give each one a distinct, gapped value (e.g. `101`, `102`, `103`): a number nobody else holds is kept as written. Reorder Terraform-managed ones in Terraform, not by dragging them in the dashboard |
 | `402` / payment-required errors | Plan limit reached (monitors, status pages, ...), or a setting your OneUptime plan does not include switched on | Upgrade the plan, reduce resource count, or leave the setting at its default |
 | `403` / permission denied on one resource type | Project API key missing Create/Read/Update/Delete permission for that type | Edit the key's permissions in Project Settings > API Keys |
 | `401` / authentication failed | Key revoked, expired, or wrong `ONEUPTIME_API_KEY` value | Generate a fresh project API key |
 | Provider errors at `terraform plan` startup about a missing API key | No `api_key` attribute and no `ONEUPTIME_API_KEY` env var | Set one of them |
-| `no matching version found for oneuptime/oneuptime` | Exact-version pin on a version that was never published | Use a pessimistic constraint like `~> 11.0` |
-| Data source error: no match / more than one match | Name lookup found zero or multiple resources | Fix the name, or look up by `id` |
+| `no matching version found for oneuptime/oneuptime` | Exact-version pin on a version that was never published | Use a pessimistic constraint like `{{TERRAFORM_PROVIDER_VERSION}}` |
+| Data source error: `No ... matches` / `More than one ... matches` | The lookup's arguments match no item, or several | Fix the arguments, set more of them to narrow the lookup down to one, or look it up by `id` |
+| `Warning: Deprecated` — `oneuptime_io_t_fleet has been renamed to oneuptime_iot_fleet` | The resource type was renamed (IoT and vCenter types keep the word whole now); the old name is a deprecated alias | Rename it in your configuration and add a `moved` block — see below |
+| A monitor created with Terraform shows "No check has completed yet", or its incidents never auto-resolve | Monitors written through the API before the server gave their steps and incident templates ids | Upgrade OneUptime: the ids are filled in on upgrade and on every write — see below |
 | A resource disappears from the state at `terraform plan`, and the next apply creates it again | The API key can no longer read it: a read of a record the key may not read answers `404`, as a deleted one does, and Terraform drops a resource it gets `404` for | Give the key read access to every resource it manages, then `terraform import` the dropped one instead of applying - see below |
 | `references records that are not in this project` | An ID copied from another project's configuration, or one of a resource that has been deleted | Use the ID of your project's own record — see below |
 | `Invalid Configuration for Read-Only Attribute` on `created_by_user_id`, another `..._by_user_id` or `archived_at` | OneUptime records who created or archived a record, and when, so the provider offers these for reading only | Remove the attribute from the configuration — see below |
@@ -25,14 +27,37 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 
 ## "Provider produced inconsistent result after apply"
 
-This error means Terraform detected the provider returning different values than it planned. Historic provider versions produced it on server-computed fields — default `monitor_steps` injected by the server, normalized timestamps, wrapped values like `probe_version`. Current 11.x providers handle all of these: server defaults are accepted without drift, timestamps are compared semantically, and label arrays are unordered sets.
+This error means Terraform detected the provider returning different values than it planned. Historic provider versions produced it on server-computed fields — default `monitor_steps` injected by the server, normalized timestamps, wrapped values like `probe_version` — and on attributes the server keeps up to date on its own, such as when an incoming request monitor last checked its heartbeat, which can change between the plan and the end of the apply. Current providers handle all of these: server defaults are accepted without drift, timestamps are compared semantically, label arrays are unordered sets, and an attribute you did not configure keeps its planned value until the next refresh reads the server's.
 
 **Fix:**
 
-1. Make sure you are on a current provider: `version = "~> 11.0"` then `terraform init -upgrade`.
+1. Make sure you are on a current provider: `version = "{{TERRAFORM_PROVIDER_VERSION}}"` then `terraform init -upgrade`.
 2. Re-run the apply.
 
 If a current provider still produces the error, that is a provider bug worth reporting. Open an issue at [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues) and include: the provider version, the resource type, the minimal `resource` block that reproduces it, and the full error output (it names the exact attribute that flip-flopped). That attribute name is the single most useful thing you can provide.
+
+## A renamed resource type: "has been renamed to"
+
+Resource type names keep words like IoT and vCenter whole now — `oneuptime_iot_fleet` and `oneuptime_vcenter` — where older providers split them (`oneuptime_io_t_fleet`, `oneuptime_v_center`). The old names keep working as deprecated aliases, which is what the warning is about. To switch without replacing anything, rename the resource in your configuration and tell Terraform it moved:
+
+```hcl
+resource "oneuptime_iot_fleet" "factory" {
+  name = "Factory floor"
+}
+
+moved {
+  from = oneuptime_io_t_fleet.factory
+  to   = oneuptime_iot_fleet.factory
+}
+```
+
+`terraform plan` then shows the move and no other change. Moving between resource types needs Terraform 1.8 or newer; on an engine without it, keep the old name — it keeps working. Data sources were renamed the same way; just change the name.
+
+## A Terraform-created monitor shows "No check has completed yet"
+
+The ids inside a monitor's steps — of each step, criteria, and incident and alert template — are the server's to give. Older OneUptime versions gave criteria ids only, and a new set of them on every write, so a monitor written through the API (every one the Terraform provider made) was stored with a step that had no id. Its probes still checked it and its status still changed, but the monitor page could not find the results ("No check has completed yet"), its incidents could not auto-resolve, and every `terraform apply` that changed `monitor_steps` cut open incidents loose from their criteria.
+
+Current OneUptime gives every one of these an id on create, keeps them across every apply, and fills in the missing ones of existing monitors when it is upgraded. Nothing changes in your configuration: there are still no ids to write. An incident the old behaviour left open closes on the monitor's next recovery, as long as the criteria that raised it is still there; one whose criteria was replaced by an earlier apply needs resolving once by hand.
 
 ## "ProjectId required"
 
@@ -78,12 +103,12 @@ Who created a record — and who archived, resolved or acknowledged it — is re
 
 ## "no matching version found" from the registry
 
-Provider versions track OneUptime platform versions, and **not every platform patch release is published** to the registry. Exact pins like `version = "= 11.0.3"` therefore fail whenever that precise patch was skipped.
+Provider versions track OneUptime platform versions, and **not every platform patch release is published** to the registry. Exact pins like `version = "= {{TERRAFORM_PROVIDER_MAJOR}}.0.3"` therefore fail whenever that precise patch was skipped.
 
 Use a pessimistic constraint and let Terraform select the newest published match:
 
 ```hcl
-version = "~> 11.0"
+version = "{{TERRAFORM_PROVIDER_VERSION}}"
 ```
 
 Self-hosted users who must stay at or below their platform version can bound the range instead of pinning a patch — see [Self-Hosted Setup](/docs/terraform/self-hosted).

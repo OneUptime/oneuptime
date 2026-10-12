@@ -3726,6 +3726,104 @@ describe("no unmasked identifier reaches the DOM", () => {
   });
 
   /*
+   * A push device is verified the moment it is registered. One that is not
+   * was registered and then stopped receiving notifications - its push
+   * service, or Expo, said it was gone - and is registered again rather than
+   * verified. It says so in the words the person's own device list uses.
+   */
+  describe("a push device that stopped receiving notifications", () => {
+    const MASKED_PUSH_DEVICE: string = "iPh•••";
+
+    const PUSH_GONE_USER: JSONObject = {
+      userId: UNREACHABLE_USER_ID,
+      userName: "Pia Pushgone",
+      userEmail: "pia.pushgone@example.com",
+      status: "NotReachable",
+      methods: [
+        methodJson({
+          methodType: "Push",
+          maskedIdentifier: MASKED_PUSH_DEVICE,
+          isVerified: false,
+          leakedRawValue: "ExponentPushToken[pia-phone-0000000001]",
+        }),
+      ],
+      coverage: fullCoverage(true),
+      reasons: [
+        "No verified notification method - cannot be paged",
+        "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+      ],
+      reachedVia: ["Direct"],
+      teams: [],
+    };
+
+    test("is labelled not receiving notifications, not unverified, and says how to bring it back", async () => {
+      respondWith(summaryJson([PUSH_GONE_USER]));
+
+      const container: HTMLElement = await renderProjectPage();
+
+      await screen.findByText("Pia Pushgone");
+
+      openCoverage("Pia Pushgone");
+
+      const methodRow: HTMLElement = (
+        await screen.findByText(MASKED_PUSH_DEVICE)
+      ).closest("li")!;
+
+      expect(
+        within(methodRow).getByText("Not receiving notifications"),
+      ).toBeInTheDocument();
+      expect(within(methodRow).queryByText("Unverified")).toBeNull();
+      expect(
+        screen.getByText(
+          "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+        ),
+      ).toBeInTheDocument();
+      expect(container.textContent).not.toContain("ExponentPushToken");
+    });
+
+    test("the channel meter's tooltip says the same", async () => {
+      respondWith(summaryJson([PUSH_GONE_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Pia Pushgone");
+
+      fireEvent.mouseEnter(
+        within(tableRowFor("Pia Pushgone")).getByLabelText(
+          "0 of 7 notification channels verified",
+        ),
+      );
+
+      expect(
+        await screen.findByText(
+          `${MASKED_PUSH_DEVICE} (not receiving notifications)`,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(`${MASKED_PUSH_DEVICE} (unverified)`),
+      ).toBeNull();
+    });
+
+    test("any other unverified channel is still unverified in the meter", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Jane Partial");
+
+      fireEvent.mouseEnter(
+        within(tableRowFor("Jane Partial")).getByLabelText(
+          "2 of 7 notification channels verified",
+        ),
+      );
+
+      expect(
+        await screen.findByText(`${MASKED_TELEGRAM} (unverified)`),
+      ).toBeInTheDocument();
+    });
+  });
+
+  /*
    * The mail draft is the one place a whole address is legitimate - it is the
    * mailto recipient, and it is the login email an admin can already read on
    * every other screen. It must never be a notification-method identifier.

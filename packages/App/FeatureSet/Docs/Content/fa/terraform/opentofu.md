@@ -13,7 +13,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -55,7 +55,7 @@ tofu apply
 
 نسخه‌های ارائه‌دهنده نسخه‌های پلتفرم OneUptime را دنبال می‌کنند، و قاعده زیر هر دو موتور یکی است:
 
-- **‏OneUptime Cloud**: `version = "~> 11.0"`.
+- **‏OneUptime Cloud**: `version = "{{TERRAFORM_PROVIDER_VERSION}}"`.
 - **خودمیزبان**: تازه‌ترین نسخه منتشرشده ارائه‌دهنده که **کوچک‌تر یا مساوی** نسخه پلتفرم شما باشد. [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) را ببینید.
 
 نسخه وصله دقیقی را سنجاق نکنید — هر وصله پلتفرم منتشر نمی‌شود. توضیح کامل در [استفاده از رجیستری](/docs/terraform/registry) است؛ چون هر دو رجیستری همان انتشارها را سرو می‌کنند، برای رجیستری OpenTofu هم صدق می‌کند.
@@ -74,7 +74,7 @@ tofu apply
 
 ```hcl
 module "storefront" {
-  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=v11.7.4"
+  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=vX.Y.Z"
 
   service_name          = "storefront"
   status_page_is_public = true

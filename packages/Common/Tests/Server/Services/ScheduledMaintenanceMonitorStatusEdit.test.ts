@@ -23,6 +23,10 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  stubRowsCallerMayWrite,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A SCHEDULED MAINTENANCE EVENT'S CHANGE MONITOR STATUS TO CAN BE CHANGED
@@ -298,6 +302,14 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Array<ScheduledMaintenance>> => {
       return eventsBeforeWrite;
     }) as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(ScheduledMaintenanceService, () => {
+    return eventsBeforeWrite;
+  });
 
   eventFindOneById = jest
     .spyOn(ScheduledMaintenanceService, "findOneById")
@@ -641,8 +653,14 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: Change Monitor Status to, 
     const reads: Array<EventFindBy> = statusReads();
 
     expect(reads).toHaveLength(1);
-    expect(reads[0]!.query).toEqual({ _id: EVENT_ID, projectId: PROJECT_ID });
-    expect(reads[0]!.props).toEqual({ isRoot: true });
+    expect(reads[0]!.query).toEqual({ _id: EVENT_ID });
+    // Within the caller's project: the rows they may write are found there.
+    expect(
+      readsOfRowsCallerMayWrite(ScheduledMaintenanceService)[0]!.query[
+        "projectId"
+      ],
+    ).toBe(PROJECT_ID);
+    expect(reads[0]!.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(reads[0]!.select).toEqual({
       _id: true,
       projectId: true,

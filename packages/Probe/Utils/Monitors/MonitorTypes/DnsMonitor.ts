@@ -91,6 +91,7 @@ export default class DnsMonitorUtil {
           config.recordType,
           config.hostname,
           timeoutInMs,
+          config.port,
         );
       } catch (dnssecErr) {
         logger.debug(
@@ -318,9 +319,14 @@ export default class DnsMonitorUtil {
         break;
       }
       case DnsRecordType.CAA: {
-        // resolveCaa is not on the Resolver class type, use standalone function
+        /*
+         * Asked of this resolver like every other record type, so a CAA
+         * query honours the step's DNS server, port and timeout. The
+         * module-level dns.promises.resolveCaa used here before went to the
+         * probe's system resolver whatever the step said.
+         */
         const results: Array<dns.CaaRecord> =
-          await dns.promises.resolveCaa(queryName);
+          await resolver.resolveCaa(queryName);
         for (const result of results) {
           records.push({
             type: DnsRecordType.CAA,
@@ -365,6 +371,8 @@ export default class DnsMonitorUtil {
      * cannot add a second, longer wait on top of a slow resolution.
      */
     timeoutInMs: number = 10000,
+    // The step's port, which belongs to the custom DNS server only.
+    dnsServerPort?: number | undefined,
   ): Promise<boolean | undefined> {
     // Validate queryName to prevent argument injection
     if (!this.isValidHostnameOrIP(queryName)) {
@@ -391,6 +399,22 @@ export default class DnsMonitorUtil {
        * fall back to Google Public DNS which supports DNSSEC validation.
        */
       args.push(`@${dnsServer || "8.8.8.8"}`);
+
+      /*
+       * dig asks port 53 unless told otherwise. A custom server listening
+       * on another port is asked on that port, as the record query was;
+       * Google Public DNS is always asked on 53.
+       */
+      if (
+        dnsServer &&
+        dnsServerPort &&
+        Number.isInteger(dnsServerPort) &&
+        dnsServerPort > 0 &&
+        dnsServerPort <= 65535 &&
+        dnsServerPort !== 53
+      ) {
+        args.push("-p", String(dnsServerPort));
+      }
 
       execFile(
         "dig",

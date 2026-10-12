@@ -96,6 +96,13 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
     className: "border-red-200 bg-red-50 text-red-700",
     iconColor: "text-red-600",
   },
+  // A copy of something sensitive left OneUptime: a packet capture's file.
+  Download: {
+    label: "Download",
+    icon: IconProp.Download,
+    className: "border-violet-200 bg-violet-50 text-violet-700",
+    iconColor: "text-violet-600",
+  },
 };
 
 const AuditLogsTable: FunctionComponent<ComponentProps> = (

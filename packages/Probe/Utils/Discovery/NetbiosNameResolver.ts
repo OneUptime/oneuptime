@@ -303,8 +303,9 @@ const defaultTransactionId: () => number = (): number => {
 
 export interface NetbiosNameResolution {
   /*
-   * Names keyed by the address asked, already normalised and lower-cased.
-   * Addresses with no usable name are ABSENT, never mapped to undefined.
+   * Names keyed by the address asked, already normalised, in the case the
+   * host reported them (OneUptime issue #4518). Addresses with no usable
+   * name are ABSENT, never mapped to undefined.
    */
   nameByIpAddress: Map<string, string>;
   /*
@@ -588,7 +589,7 @@ export default class NetbiosNameResolver {
 
     if (isHostCapReached) {
       logger.warn(
-        `Discovery NetBIOS lookups are capped at ${this.maxHosts} host(s) per scan; ${eligibleAddresses.length} unnamed host(s) were eligible, so ${eligibleAddresses.length - this.maxHosts} will keep being named by IP address. The sweep itself is unaffected.`,
+        `Discovery NetBIOS lookups are capped at ${this.maxHosts} host(s) per scan; ${eligibleAddresses.length} host(s) were eligible, so ${eligibleAddresses.length - this.maxHosts} were not asked and keep the name reverse DNS gave them, or their IP address. The sweep itself is unaffected.`,
       );
     }
 

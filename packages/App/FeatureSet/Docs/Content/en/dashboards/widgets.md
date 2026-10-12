@@ -240,6 +240,14 @@ A few quick rules:
 
 Most dashboards mix a few — a chart at the top, a value or two beside it, a text divider, and a list or two below.
 
+## When a widget can't be shown
+
+A widget that cannot be drawn shows **This widget could not be shown** in its own place, and the rest of the dashboard keeps working. That happens when OneUptime has no widget of its type (one that was removed, misspelt when the dashboard was written through the API, or added by a newer version), or when the widget fails while it is drawn, for example because its saved settings are incomplete.
+
+If you can edit the dashboard, click **Edit widget** on it. The dashboard switches to edit mode with that widget's settings open: fix them, or click **Delete Widget**, then **Save Changes**. A widget that failed while it was drawn also offers **Try again**, and is drawn again at the next auto-refresh or when you change the time range.
+
+Visitors to a public dashboard are only told that the widget could not be shown.
+
 ## Where to read next
 
 - [Variables & Filters](/docs/dashboards/variables) — making widgets reusable for many services or customers.

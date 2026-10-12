@@ -61,6 +61,10 @@ const KEY: string = "tik_secret_123";
 // Ingestion keys are UUIDs; the E2E spec matches the key by that shape.
 const UUID_KEY: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
 
+// The swarm disconnect sweep: 15 minutes of time OneUptime was receiving.
+const SWARM_DISCONNECT_AFTER_15_MINUTES: RegExp =
+  /markDisconnectedClusters[\s\S]*?ReceivingCoverage\.getSilenceCutoff\(\{\s*silenceInMinutes: 15,/;
+
 const METHODS: Array<DockerSwarmInstallMethod> =
   DOCKER_SWARM_INSTALL_METHODS.map(
     (
@@ -954,9 +958,8 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
       ),
       "utf8",
     );
-    expect(service).toMatch(
-      /markDisconnectedClusters[\s\S]*?addRemoveMinutes\(\s*OneUptimeDate\.getCurrentDate\(\),\s*-15,/,
-    );
+    // 15 minutes of time OneUptime was receiving (issue #2825).
+    expect(service).toMatch(SWARM_DISCONNECT_AFTER_15_MINUTES);
     for (const markdown of [scriptMarkdown, composeMarkdown]) {
       expect(markdown).toContain("marked disconnected after 15 minutes");
     }

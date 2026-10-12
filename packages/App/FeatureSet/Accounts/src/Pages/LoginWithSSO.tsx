@@ -10,7 +10,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import { DASHBOARD_URL, IDENTITY_URL } from "Common/UI/Config";
-import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
+import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
@@ -309,11 +309,7 @@ const LoginPage: () => JSX.Element = () => {
       <div className="w-full max-w-md mx-auto px-4 sm:px-0">
         <div className="flex min-h-full flex-col justify-center py-8 sm:py-12">
           <div className="w-full">
-            <img
-              className="mx-auto h-10 w-auto sm:h-12"
-              src={OneUptimeLogo}
-              alt="OneUptime"
-            />
+            <ProductLogo />
             <h2 className="mt-6 sm:mt-10 text-center text-lg sm:text-xl tracking-tight text-gray-900">
               {t("sso.selectProjectTitle")}
             </h2>
@@ -352,11 +348,7 @@ const LoginPage: () => JSX.Element = () => {
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
-        <img
-          className="mx-auto h-10 w-auto sm:h-12"
-          src={OneUptimeLogo}
-          alt="OneUptime"
-        />
+        <ProductLogo />
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
           {t("sso.title")}
         </h2>

@@ -14,6 +14,11 @@ import EgressGuardException, {
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataSourceEgressGuard, { PinnedAgents } from "../DataSource/EgressGuard";
+import ClaudeModels from "./ClaudeModels";
+import RejectedRequestParameter from "./RejectedRequestParameter";
+import LlmProviderEndpoint, {
+  AzureOpenAIRequestEndpoint,
+} from "../../../Utils/LLM/LlmProviderEndpoint";
 
 export interface LLMToolDefinition {
   name: string;
@@ -129,15 +134,63 @@ enum TokenLimitParam {
 }
 
 /**
- * Per-endpoint compatibility adjustments for the OpenAI chat-completions wire
- * format. Model families disagree about which generation parameters they
- * accept, so a request may need reshaping before a given deployment takes it.
+ * Per-endpoint compatibility adjustments. Model families disagree about which
+ * generation parameters they accept, so a request may need reshaping before a
+ * given deployment takes it. Learned the same way on every wire: from the
+ * model's name where that is known to say something, then from what the
+ * provider answers.
  */
-interface OpenAIRequestAdaptation {
+interface RequestAdaptation {
+  /** OpenAI wire only: which spelling of the output-token cap to send. */
   tokenLimitParam: TokenLimitParam;
   /** Generation params this model rejects outright, so we omit them. */
   unsupportedParams: Set<string>;
+  /**
+   * Anthropic wire only: the model thinks before it answers, and the
+   * thinking is counted against max_tokens, so the request leaves room for it
+   * on top of the caller's cap for the answer.
+   */
+  reservesThinkingRoom: boolean;
 }
+
+/*
+ * Structural fields of an Anthropic /v1/messages request. Additional
+ * Parameters are the operator's tuning (sampling, thinking, effort,
+ * metadata), so they may never replace the conversation, the system prompt or
+ * the tool belt, force or forbid tool calls, or switch the request to
+ * streaming, which this branch cannot read. Fail closed, as on the Ollama
+ * wire, whether or not the caller protected its request.
+ */
+const ANTHROPIC_RESERVED_REQUEST_KEYS: Set<string> = new Set([
+  "model",
+  "messages",
+  "system",
+  "tools",
+  "tool_choice",
+  "stream",
+]);
+
+/*
+ * Anthropic's sampling parameters. Claude Opus 4.7 and every later model
+ * refuse them (see ClaudeModels), and leaving them out is what the API asks.
+ */
+const ANTHROPIC_SAMPLING_PARAMETERS: Array<string> = [
+  "temperature",
+  "top_p",
+  "top_k",
+];
+
+/*
+ * Anthropic stop reasons that mean the output was cut off rather than
+ * finished: the max_tokens cap, or the context window filling up mid-answer.
+ */
+const ANTHROPIC_TRUNCATED_STOP_REASONS: Set<string> = new Set([
+  "max_tokens",
+  "model_context_window_exceeded",
+]);
+
+// A refusal's category is a short identifier, such as "cyber".
+const ANTHROPIC_REFUSAL_CATEGORY: RegExp = /^[a-z][a-z_]{0,39}$/;
 
 /*
  * Structural fields of an Ollama /api/chat request. additionalParams is
@@ -181,6 +234,31 @@ const EGRESS_REFUSAL_DESCRIPTIONS: Record<EgressFailureReason, string> = {
 const NO_USER_QUERY_ERROR_PATTERN: RegExp = /no user query found in messages/i;
 const PROMPT_LONGER_THAN_CONTEXT_ERROR_PATTERN: RegExp =
   /prompt is longer than the context length/i;
+
+/*
+ * What Azure says when a deployment's model is newer than the api-version a
+ * deployment URL asks for: "Model o3-mini is enabled only for api versions
+ * 2024-12-01-preview and later". Only a dated version is ever read out of it.
+ */
+const AZURE_API_VERSION_TOO_OLD_PATTERN: RegExp =
+  /enabled only for api versions? (\d{4}-\d{2}-\d{2}(?:-preview)?) and later/i;
+
+// An api-version the endpoint does not take at all, such as a dated one on v1.
+const AZURE_API_VERSION_UNSUPPORTED_PATTERN: RegExp =
+  /(?:api[- ]version (?:is )?not supported|unsupported api[- ]version|invalid api[- ]version)/i;
+
+// A resource whose key access is turned off (disableLocalAuth).
+const AZURE_KEY_AUTH_DISABLED_PATTERN: RegExp =
+  /key based authentication is disabled/i;
+
+// No deployment of that name on the resource.
+const AZURE_DEPLOYMENT_NOT_FOUND_PATTERN: RegExp =
+  /deployment for this resource does not exist/i;
+
+const AZURE_DEPLOYMENT_NOT_FOUND_CODES: Set<string> = new Set([
+  "DeploymentNotFound",
+  "model_not_found",
+]);
 
 export default class LLMService {
   /*
@@ -227,6 +305,12 @@ export default class LLMService {
    * as tools, web_search_options, data_sources, modalities, audio, or future
    * agent extensions must fail closed instead of silently widening egress or
    * output behavior.
+   *
+   * Anthropic spells three of these differently, and they are on the list
+   * under its names too: stop_sequences is `stop`, and thinking and
+   * output_config (effort, output format) are what reasoning_effort and
+   * response_format are on the OpenAI wire. They are how an operator makes a
+   * Claude model think less, for every caller.
    */
   private static readonly PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST: Set<string> =
     new Set([
@@ -237,6 +321,7 @@ export default class LLMService {
       "max_completion_tokens",
       "min_p",
       "min_tokens",
+      "output_config",
       "presence_penalty",
       "random_seed",
       "reasoning_effort",
@@ -245,6 +330,8 @@ export default class LLMService {
       "safe_prompt",
       "seed",
       "stop",
+      "stop_sequences",
+      "thinking",
       "top_k",
       "top_logprobs",
       "top_p",
@@ -252,11 +339,12 @@ export default class LLMService {
     ]);
 
   /*
-   * Generation params that reasoning models (o-series, gpt-5) reject outright.
-   * When a provider names one of these in an error, we drop it and retry
-   * rather than failing the whole completion. Only params that merely tune
-   * sampling are droppable — never anything that changes what the model is
-   * asked to do.
+   * Generation params that some models reject outright: reasoning models
+   * (o-series, gpt-5) on the OpenAI wire, and on the Anthropic wire every
+   * Claude model since Opus 4.7, which choose their own sampling. When a
+   * provider names one of these in an error, we drop it and retry rather than
+   * failing the whole completion. Only params that merely tune sampling are
+   * droppable — never anything that changes what the model is asked to do.
    */
   private static readonly DROPPABLE_UNSUPPORTED_PARAMETERS: Set<string> =
     new Set([
@@ -265,6 +353,7 @@ export default class LLMService {
       "logprobs",
       "presence_penalty",
       "temperature",
+      "top_k",
       "top_logprobs",
       "top_p",
     ]);
@@ -310,7 +399,7 @@ export default class LLMService {
    */
   private static readonly requestAdaptationCache: Map<
     string,
-    { adaptation: OpenAIRequestAdaptation; learnedAt: number }
+    { adaptation: RequestAdaptation; learnedAt: number }
   > = new Map();
 
   private static readonly MAX_ADAPTATION_CACHE_ENTRIES: number = 500;
@@ -327,35 +416,56 @@ export default class LLMService {
   private static getInitialRequestAdaptation(
     config: LLMProviderConfig,
     modelName: string,
-  ): OpenAIRequestAdaptation {
+  ): RequestAdaptation {
     const key: string = this.getAdaptationCacheKey(config, modelName);
     const cached:
-      | { adaptation: OpenAIRequestAdaptation; learnedAt: number }
+      | { adaptation: RequestAdaptation; learnedAt: number }
       | undefined = this.requestAdaptationCache.get(key);
 
     if (cached) {
       if (Date.now() - cached.learnedAt < this.ADAPTATION_CACHE_TTL_IN_MS) {
-        return {
-          tokenLimitParam: cached.adaptation.tokenLimitParam,
-          unsupportedParams: new Set(cached.adaptation.unsupportedParams),
-        };
+        return this.copyRequestAdaptation(cached.adaptation);
       }
 
       this.requestAdaptationCache.delete(key);
     }
 
+    const isAnthropicWire: boolean = config.llmType === LlmType.Anthropic;
+
     return {
-      tokenLimitParam: this.REASONING_MODEL_NAME_REGEX.test(modelName)
-        ? TokenLimitParam.MaxCompletionTokens
-        : TokenLimitParam.Default,
-      unsupportedParams: new Set(),
+      tokenLimitParam:
+        !isAnthropicWire && this.REASONING_MODEL_NAME_REGEX.test(modelName)
+          ? TokenLimitParam.MaxCompletionTokens
+          : TokenLimitParam.Default,
+      /*
+       * A current Claude model refuses temperature, top_p and top_k on any
+       * wire, including an OpenAI-compatible gateway (LiteLLM, OpenRouter)
+       * that serves it. Leaving them out up front saves its first request a
+       * rejected round trip; the error-driven retry still covers every model
+       * this does not know.
+       */
+      unsupportedParams: ClaudeModels.rejectsSamplingParameters(modelName)
+        ? new Set(ANTHROPIC_SAMPLING_PARAMETERS)
+        : new Set(),
+      reservesThinkingRoom:
+        isAnthropicWire && ClaudeModels.thinksByDefault(modelName),
+    };
+  }
+
+  private static copyRequestAdaptation(
+    adaptation: RequestAdaptation,
+  ): RequestAdaptation {
+    return {
+      tokenLimitParam: adaptation.tokenLimitParam,
+      unsupportedParams: new Set(adaptation.unsupportedParams),
+      reservesThinkingRoom: adaptation.reservesThinkingRoom,
     };
   }
 
   private static cacheRequestAdaptation(
     config: LLMProviderConfig,
     modelName: string,
-    adaptation: OpenAIRequestAdaptation,
+    adaptation: RequestAdaptation,
   ): void {
     const key: string = this.getAdaptationCacheKey(config, modelName);
 
@@ -374,10 +484,7 @@ export default class LLMService {
     }
 
     this.requestAdaptationCache.set(key, {
-      adaptation: {
-        tokenLimitParam: adaptation.tokenLimitParam,
-        unsupportedParams: new Set(adaptation.unsupportedParams),
-      },
+      adaptation: this.copyRequestAdaptation(adaptation),
       learnedAt: Date.now(),
     });
   }
@@ -542,7 +649,7 @@ export default class LLMService {
   private static buildOpenAIRequestBody(
     modelName: string,
     request: LLMCompletionRequest,
-    adaptation: OpenAIRequestAdaptation,
+    adaptation: RequestAdaptation,
   ): JSONObject {
     const data: JSONObject = {
       model: modelName,
@@ -633,7 +740,7 @@ export default class LLMService {
 
   private static applyRequestAdaptation(
     data: JSONObject,
-    adaptation: OpenAIRequestAdaptation,
+    adaptation: RequestAdaptation,
   ): void {
     if (adaptation.tokenLimitParam === TokenLimitParam.MaxCompletionTokens) {
       const tokenLimit: unknown =
@@ -669,17 +776,51 @@ export default class LLMService {
    */
   private static getRequestAdaptationForError(
     response: HTTPErrorResponse,
-    adaptation: OpenAIRequestAdaptation,
+    adaptation: RequestAdaptation,
     attemptedTokenLimitParams: Set<TokenLimitParam>,
-  ): OpenAIRequestAdaptation | undefined {
-    const error: JSONObject | undefined = (response.data as JSONObject)?.[
-      "error"
-    ] as JSONObject | undefined;
+    sentBody: JSONObject,
+  ): RequestAdaptation | undefined {
+    const rawError: unknown = (response.data as JSONObject)?.["error"];
+    const error: JSONObject | undefined =
+      rawError && typeof rawError === "object" && !Array.isArray(rawError)
+        ? (rawError as JSONObject)
+        : undefined;
 
-    if (!error) {
-      return undefined;
+    if (error) {
+      const structuredAdaptation: RequestAdaptation | undefined =
+        this.getRequestAdaptationForOpenAIError(
+          error,
+          adaptation,
+          attemptedTokenLimitParams,
+        );
+
+      if (structuredAdaptation) {
+        return structuredAdaptation;
+      }
     }
 
+    /*
+     * A gateway serving a model OpenAI does not make (LiteLLM or OpenRouter
+     * in front of Claude, say) passes the model's own complaint on in words,
+     * with no `param` to read: "AnthropicException - `temperature` is
+     * deprecated for this model." The same remedy applies.
+     */
+    return this.getAdaptationDroppingRejectedParameter(
+      response,
+      adaptation,
+      sentBody,
+    );
+  }
+
+  /*
+   * OpenAI's own errors, which name the offending parameter in `param` and
+   * say what is wrong with it in `code`.
+   */
+  private static getRequestAdaptationForOpenAIError(
+    error: JSONObject,
+    adaptation: RequestAdaptation,
+    attemptedTokenLimitParams: Set<TokenLimitParam>,
+  ): RequestAdaptation | undefined {
     const param: string = (error["param"] as string) || "";
     const code: string = (error["code"] as string) || "";
     const message: string = (error["message"] as string) || "";
@@ -748,6 +889,106 @@ export default class LLMService {
     }
 
     return undefined;
+  }
+
+  /*
+   * The adaptation that leaves out the sampling parameter a provider's error
+   * says the model does not accept, or undefined when the error says no such
+   * thing about a parameter the request carried.
+   *
+   * Only a parameter that went out on the wire can be the one rejected, and
+   * only a droppable one is ever left out: a model that will not take
+   * `top_k` answers the same request without it, while one that rejects the
+   * conversation or the tools has nothing left to answer.
+   */
+  private static getAdaptationDroppingRejectedParameter(
+    response: HTTPErrorResponse,
+    adaptation: RequestAdaptation,
+    sentBody: JSONObject,
+  ): RequestAdaptation | undefined {
+    // 422 is how FastAPI-based gateways answer an unknown field.
+    if (response.statusCode !== 400 && response.statusCode !== 422) {
+      return undefined;
+    }
+
+    const candidates: Array<string> = Array.from(
+      this.DROPPABLE_UNSUPPORTED_PARAMETERS,
+    ).filter((param: string): boolean => {
+      return (
+        sentBody[param] !== undefined &&
+        !adaptation.unsupportedParams.has(param)
+      );
+    });
+
+    if (candidates.length === 0) {
+      return undefined;
+    }
+
+    const rejected: string | undefined = RejectedRequestParameter.findIn({
+      errorText: this.getProviderErrorText(response),
+      candidates: candidates,
+    });
+
+    if (!rejected) {
+      return undefined;
+    }
+
+    return {
+      ...adaptation,
+      unsupportedParams: new Set(adaptation.unsupportedParams).add(rejected),
+    };
+  }
+
+  /*
+   * One debug line per reshaped request. It names only parameters from
+   * OneUptime's own lists, never the provider's words, so it is safe for
+   * requests whose provider errors must not be logged.
+   */
+  private static logRequestAdaptation(data: {
+    llmType: LlmType;
+    modelName: string;
+    previous: RequestAdaptation;
+    next: RequestAdaptation;
+  }): void {
+    const changes: Array<string> = [];
+
+    for (const param of data.next.unsupportedParams) {
+      if (!data.previous.unsupportedParams.has(param)) {
+        changes.push(`leaving out ${param}`);
+      }
+    }
+
+    if (data.next.tokenLimitParam !== data.previous.tokenLimitParam) {
+      changes.push(
+        data.next.tokenLimitParam === TokenLimitParam.MaxCompletionTokens
+          ? "sending max_completion_tokens instead of max_tokens"
+          : "sending max_tokens instead of max_completion_tokens",
+      );
+    }
+
+    logger.debug(
+      `${data.llmType} rejected a generation parameter for model ${data.modelName}. Retrying with a request adapted to what the model accepts${
+        changes.length > 0 ? ` (${changes.join(", ")})` : ""
+      }.`,
+    );
+  }
+
+  /*
+   * The words of a provider's error: its message where the body has one in a
+   * place HTTPErrorResponse knows, and the whole body otherwise.
+   */
+  private static getProviderErrorText(response: HTTPErrorResponse): string {
+    const message: string = response.message;
+
+    if (message) {
+      return message;
+    }
+
+    try {
+      return JSON.stringify(response.data ?? "");
+    } catch {
+      return "";
+    }
   }
 
   /**
@@ -902,7 +1143,7 @@ export default class LLMService {
     request: LLMCompletionRequest;
     logAttributes: LogAttributes;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
-    let adaptation: OpenAIRequestAdaptation = this.getInitialRequestAdaptation(
+    let adaptation: RequestAdaptation = this.getInitialRequestAdaptation(
       data.config,
       data.modelName,
     );
@@ -933,6 +1174,9 @@ export default class LLMService {
         logAttributes: data.logAttributes,
       });
 
+    // What the last request carried: only a parameter it sent can be rejected.
+    let lastBody: JSONObject = {};
+
     const post: () => Promise<
       HTTPResponse<JSONObject> | HTTPErrorResponse
     > = (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
@@ -941,6 +1185,8 @@ export default class LLMService {
         data.request,
         adaptation,
       );
+
+      lastBody = body;
 
       if (body["max_completion_tokens"] !== undefined) {
         attemptedTokenLimitParams.add(TokenLimitParam.MaxCompletionTokens);
@@ -966,22 +1212,26 @@ export default class LLMService {
       response instanceof HTTPErrorResponse;
       attempt++
     ) {
-      const nextAdaptation: OpenAIRequestAdaptation | undefined =
+      const nextAdaptation: RequestAdaptation | undefined =
         this.getRequestAdaptationForError(
           response,
           adaptation,
           attemptedTokenLimitParams,
+          lastBody,
         );
 
       if (!nextAdaptation) {
         return response;
       }
 
-      adaptation = nextAdaptation;
+      this.logRequestAdaptation({
+        llmType: data.config.llmType,
+        modelName: data.modelName,
+        previous: adaptation,
+        next: nextAdaptation,
+      });
 
-      logger.debug(
-        `${data.config.llmType} rejected a generation parameter for model ${data.modelName}. Retrying with a request adapted to what the model accepts.`,
-      );
+      adaptation = nextAdaptation;
 
       response = await post();
     }
@@ -1078,6 +1328,13 @@ export default class LLMService {
     request: LLMCompletionRequest;
     response: HTTPErrorResponse;
     logAttributes: LogAttributes;
+    /*
+     * What to change, when the provider's answer says: one or two sentences
+     * of OneUptime's own words (describeAzureOpenAIFailure). It leads the
+     * message, so it survives the truncation of a long provider body in the
+     * LLM log, and it is shown even where that body is not.
+     */
+    hint?: string | undefined;
   }): never {
     logger.error(`Error from ${data.providerName} API:`, data.logAttributes);
 
@@ -1092,15 +1349,17 @@ export default class LLMService {
       logger.error(data.response, data.logAttributes);
       throw new BadDataException(
         contextWindowOverflowError ??
-          `${data.providerName} API error: ${JSON.stringify(
-            data.response.jsonData,
-          )}`,
+          `${data.providerName} API error: ${
+            data.hint ? `${data.hint} Details: ` : ""
+          }${JSON.stringify(data.response.jsonData)}`,
       );
     }
 
     throw new BadDataException(
       contextWindowOverflowError ??
-        `${data.providerName} API request failed. Review the provider configuration and try again.`,
+        `${data.providerName} API request failed. ${
+          data.hint || "Review the provider configuration and try again."
+        }`,
     );
   }
 
@@ -1474,56 +1733,61 @@ export default class LLMService {
   }
 
   /*
-   * Default Azure OpenAI API version. Users can override by including
-   * ?api-version=... in their configured base URL.
+   * The deployment an Azure OpenAI provider asks for when its Model Name is
+   * left blank. A deployment URL (/openai/deployments/<name>) names its
+   * deployment itself and Azure goes by that; on the v1 API the deployment
+   * is this `model`. The long-standing guess stays: a deployment named after
+   * the model it serves is the Foundry portal's default, and existing
+   * providers that left Model Name blank keep the deployment they have.
    */
-  private static readonly AZURE_OPENAI_DEFAULT_API_VERSION: string =
-    "2024-10-21";
+  public static readonly AZURE_OPENAI_DEFAULT_DEPLOYMENT: string = "gpt-4o";
 
-  private static buildAzureOpenAIChatCompletionsUrl(baseUrl: string): string {
-    const trimmed: string = baseUrl.replace(/\/+$/, "");
-    const queryIndex: number = trimmed.indexOf("?");
-    const pathPart: string =
-      queryIndex >= 0 ? trimmed.substring(0, queryIndex) : trimmed;
-    const queryPart: string =
-      queryIndex >= 0 ? trimmed.substring(queryIndex + 1) : "";
-
-    const params: URLSearchParams = new URLSearchParams(queryPart);
-    if (!params.has("api-version")) {
-      params.set("api-version", LLMService.AZURE_OPENAI_DEFAULT_API_VERSION);
-    }
-
-    return `${pathPart}/chat/completions?${params.toString()}`;
-  }
-
+  /*
+   * Microsoft Foundry and Azure OpenAI: the OpenAI wire, sent to the
+   * endpoint LlmProviderEndpoint.resolveAzureOpenAI works out from the Base
+   * URL (the resource's v1 API, or a deployment URL with an api-version),
+   * with the resource's key in the `api-key` header. A Base URL on the
+   * resource's Claude API (/anthropic) gets the Anthropic wire instead.
+   */
   @CaptureSpan()
   private static async getAzureOpenAICompletion(
     config: LLMProviderConfig,
     request: LLMCompletionRequest,
   ): Promise<LLMCompletionResponse> {
     if (!config.apiKey) {
-      throw new BadDataException("Azure OpenAI API key is required");
+      throw new BadDataException(
+        "Azure OpenAI API key is required: KEY 1 or KEY 2 from the resource's Keys and Endpoint page in the Azure portal.",
+      );
     }
 
     if (!config.baseUrl) {
       throw new BadDataException(
-        "Azure OpenAI Base URL is required (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>)",
+        "Azure OpenAI Base URL is required: your Microsoft Foundry or Azure OpenAI resource's endpoint (e.g. https://<resource>.openai.azure.com/openai/v1).",
       );
     }
 
     /*
-     * On Azure the model field is the DEPLOYMENT NAME the operator chose —
-     * not a model id. Keep the long-standing "gpt-4o" guess for tenants who
-     * left it blank: existing deployments named after the old default keep
-     * working, and Azure deployment names cannot contain dots, so a
-     * "gpt-5.1"-style id would never match a real deployment. The
-     * error-driven parameter adaptation corrects token-param mismatches
-     * either way.
+     * Microsoft Foundry serves Claude only through the Anthropic Messages
+     * API, at the resource's /anthropic path, with the same key. A provider
+     * pointed there speaks that wire, so this one provider type covers every
+     * deployment on a Foundry resource.
      */
-    const modelName: string = config.modelName || "gpt-4o";
-    const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
-      config.baseUrl,
-    );
+    if (LlmProviderEndpoint.isAnthropicApiBaseUrl(config.baseUrl)) {
+      return await this.getAnthropicCompletion(
+        { ...config, llmType: LlmType.Anthropic },
+        request,
+      );
+    }
+
+    /*
+     * On Azure the model field is the DEPLOYMENT NAME the operator chose,
+     * not a model id. The error-driven parameter adaptation corrects
+     * token-param mismatches whatever the deployment is called.
+     */
+    const modelName: string =
+      config.modelName || LLMService.AZURE_OPENAI_DEFAULT_DEPLOYMENT;
+    const endpoint: AzureOpenAIRequestEndpoint =
+      LlmProviderEndpoint.resolveAzureOpenAI(config.baseUrl);
     const logAttributes: LogAttributes = {
       llmType: config.llmType,
       modelName: modelName,
@@ -1532,7 +1796,7 @@ export default class LLMService {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await this.postOpenAIChatCompletion({
         providerName: "Azure OpenAI",
-        requestUrl: requestUrl,
+        requestUrl: endpoint.requestUrl,
         headers: {
           "api-key": config.apiKey,
           "Content-Type": "application/json",
@@ -1550,6 +1814,11 @@ export default class LLMService {
         request,
         response,
         logAttributes,
+        hint: this.describeAzureOpenAIFailure({
+          response: response,
+          endpoint: endpoint,
+          modelName: modelName,
+        }),
       });
     }
 
@@ -1557,6 +1826,79 @@ export default class LLMService {
       response.jsonData as JSONObject,
       "Azure OpenAI",
     );
+  }
+
+  /*
+   * What to change when a Microsoft Foundry or Azure OpenAI resource refuses
+   * a request, for the refusals people meet while they set one up: a wrong
+   * key, key access turned off, a network rule, a deployment name the
+   * resource does not have, a wrong address, and an api-version the model or
+   * the API does not take. Undefined for anything else.
+   *
+   * Built from OneUptime's own words, Azure's fixed codes and phrases, an
+   * api-version matched digit by digit and the provider's own Model Name, so
+   * it can be shown where Azure's error body cannot.
+   */
+  private static describeAzureOpenAIFailure(data: {
+    response: HTTPErrorResponse;
+    endpoint: AzureOpenAIRequestEndpoint;
+    modelName: string;
+  }): string | undefined {
+    const statusCode: number = data.response.statusCode;
+    const rawError: unknown = (data.response.data as JSONObject | undefined)?.[
+      "error"
+    ];
+    const errorCode: string =
+      rawError && typeof rawError === "object" && !Array.isArray(rawError)
+        ? String((rawError as JSONObject)["code"] ?? "")
+        : "";
+    const errorText: string = this.getProviderErrorText(data.response);
+
+    const requiredApiVersion: string | undefined = errorText.match(
+      AZURE_API_VERSION_TOO_OLD_PATTERN,
+    )?.[1];
+
+    if (requiredApiVersion) {
+      return `This model needs api-version ${requiredApiVersion} or later. Use the resource's v1 API, which takes no api-version: set the Base URL to https://<resource>.openai.azure.com/openai/v1 and Model Name to the deployment's name. Or add ?api-version=${requiredApiVersion} to the Base URL.`;
+    }
+
+    if (AZURE_API_VERSION_UNSUPPORTED_PATTERN.test(errorText)) {
+      return data.endpoint.usesV1Api
+        ? "Azure's v1 API takes no dated api-version: remove api-version from the Base URL."
+        : "Azure does not take the api-version this request asked for: remove api-version from the Base URL, or set the Base URL to the resource's v1 API (https://<resource>.openai.azure.com/openai/v1).";
+    }
+
+    if (statusCode === 401) {
+      return "Azure did not accept the API key. Copy KEY 1 or KEY 2 from the Keys and Endpoint page of the same resource the Base URL points to.";
+    }
+
+    if (
+      statusCode === 403 &&
+      (errorCode === "AuthenticationTypeDisabled" ||
+        AZURE_KEY_AUTH_DISABLED_PATTERN.test(errorText))
+    ) {
+      return "Key-based authentication is turned off for this resource, and OneUptime signs in with the resource's API key. Turn key access back on for the resource (disableLocalAuth set to false).";
+    }
+
+    if (statusCode === 403) {
+      return "Azure refused the request. If the resource's Networking settings allow only selected networks or private endpoints, OneUptime has to reach it from one of them.";
+    }
+
+    if (
+      statusCode === 404 &&
+      (AZURE_DEPLOYMENT_NOT_FOUND_CODES.has(errorCode) ||
+        AZURE_DEPLOYMENT_NOT_FOUND_PATTERN.test(errorText))
+    ) {
+      return data.endpoint.usesV1Api
+        ? `This resource has no deployment named "${data.modelName}". Set Model Name to the deployment's name exactly as the Foundry portal shows it. A deployment created in the last few minutes may not be ready yet.`
+        : "This resource has no deployment with the name in the Base URL (after /openai/deployments/). Check that name, or set the Base URL to the resource's v1 API (https://<resource>.openai.azure.com/openai/v1) and Model Name to the deployment's name.";
+    }
+
+    if (statusCode === 404) {
+      return "Azure found nothing at this address. Set the Base URL to the resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1.";
+    }
+
+    return undefined;
   }
 
   /*
@@ -1627,6 +1969,17 @@ export default class LLMService {
       }
 
       /*
+       * An assistant turn with no text and no tool calls carries nothing, and
+       * the API refuses an empty message with a 400. The agent loop sends one
+       * when a reply came back empty at the output cap (a model that spent
+       * the whole cap thinking) and it asks the model to go on. Leave it out;
+       * the turns on either side are then merged as below.
+       */
+      if (msg.role === "assistant" && !(msg.content || "").trim()) {
+        continue;
+      }
+
+      /*
        * Anthropic requires strictly alternating user/assistant turns and
        * returns a 400 on two consecutive same-role messages. The agent loop
        * can legitimately emit back-to-back user turns (e.g. a tool_result
@@ -1661,6 +2014,26 @@ export default class LLMService {
     return anthropicMessages;
   }
 
+  /*
+   * The model a provider gets when its Model Name is left blank: the current
+   * Sonnet, the balance of intelligence, speed and cost the LLM provider guide
+   * recommends first (LlmProviderGuideDocs holds the two together).
+   */
+  public static readonly ANTHROPIC_DEFAULT_MODEL: string = "claude-sonnet-5-5";
+
+  /*
+   * Room for thinking, on top of the caller's cap for the answer, when the
+   * model thinks before it answers.
+   *
+   * The API counts thinking against max_tokens, and OneUptime's callers size
+   * their caps for the answer alone: 20 tokens for a one-word classification,
+   * 100 for a chat title. A model that thinks first would spend all of that
+   * thinking and stop before writing a word. The room bounds the thinking; it
+   * is not a target, and the model still decides how much to think (an
+   * operator who wants less sets a lower effort in Additional Parameters).
+   */
+  public static readonly ANTHROPIC_THINKING_ROOM_TOKENS: number = 8192;
+
   @CaptureSpan()
   private static async getAnthropicCompletion(
     config: LLMProviderConfig,
@@ -1670,13 +2043,52 @@ export default class LLMService {
       throw new BadDataException("Anthropic API key is required");
     }
 
-    const baseUrl: string = config.baseUrl || "https://api.anthropic.com/v1";
+    const modelName: string =
+      config.modelName || LLMService.ANTHROPIC_DEFAULT_MODEL;
     /*
-     * Current Sonnet alias. The dated claude-sonnet-4-20250514 ID this used to
-     * default to is deprecated and retires in June 2026.
+     * Anthropic's API by default; with a Base URL, Claude in Microsoft
+     * Foundry or a gateway, which accept the same x-api-key and
+     * anthropic-version headers.
      */
-    const modelName: string = config.modelName || "claude-sonnet-5";
+    const anthropicRequestUrl: string =
+      LlmProviderEndpoint.resolveAnthropicMessagesUrl(config.baseUrl);
+    const anthropicLogAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: modelName,
+    };
 
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await this.postAnthropicMessages({
+        requestUrl: anthropicRequestUrl,
+        headers: {
+          "x-api-key": config.apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        config: config,
+        modelName: modelName,
+        request: request,
+        logAttributes: anthropicLogAttributes,
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      this.throwProviderHTTPError({
+        providerName: "Anthropic",
+        llmType: config.llmType,
+        request,
+        response,
+        logAttributes: anthropicLogAttributes,
+      });
+    }
+
+    return this.parseAnthropicResponse(response.jsonData as JSONObject);
+  }
+
+  private static buildAnthropicRequestBody(
+    modelName: string,
+    request: LLMCompletionRequest,
+    adaptation: RequestAdaptation,
+  ): JSONObject {
     let systemMessage: string = "";
 
     for (const msg of request.messages) {
@@ -1685,12 +2097,12 @@ export default class LLMService {
       }
     }
 
-    const requestData: JSONObject = {
+    const temperature: number = request.temperature ?? 0.7;
+
+    const data: JSONObject = {
       model: modelName,
       messages: this.toAnthropicMessages(request.messages),
-      temperature: request.temperature ?? 0.7,
-      // Anthropic requires max_tokens on every request.
-      max_tokens: request.maxTokens || LLMService.ANTHROPIC_DEFAULT_MAX_TOKENS,
+      temperature: temperature,
     };
 
     /*
@@ -1702,7 +2114,7 @@ export default class LLMService {
      * anthropic-version 2023-06-01, so no beta header is required.
      */
     if (systemMessage) {
-      requestData["system"] = [
+      data["system"] = [
         {
           type: "text",
           text: systemMessage,
@@ -1729,52 +2141,291 @@ export default class LLMService {
         lastTool["cache_control"] = { type: "ephemeral" };
       }
 
-      requestData["tools"] = anthropicTools;
+      data["tools"] = anthropicTools;
     }
 
-    const anthropicRequestUrl: string = `${baseUrl}/messages`;
-    const anthropicLogAttributes: LogAttributes = {
-      llmType: config.llmType,
-      modelName: modelName,
+    /*
+     * Provider-configured tuning (Additional Parameters), as on the other
+     * wires: it overrides OneUptime's defaults, and a caller that protects its
+     * request keeps only the generation-safe allowlist. The structural fields
+     * are never the operator's to replace (ANTHROPIC_RESERVED_REQUEST_KEYS).
+     */
+    const appliedParams: JSONObject = {};
+
+    for (const key of Object.keys(request.additionalParams || {})) {
+      if (ANTHROPIC_RESERVED_REQUEST_KEYS.has(key)) {
+        continue;
+      }
+
+      if (
+        request.protectRequestParameters &&
+        !this.PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST.has(key)
+      ) {
+        continue;
+      }
+
+      appliedParams[key] = request.additionalParams![key]!;
+    }
+
+    Object.assign(data, appliedParams);
+
+    /*
+     * Applied after every other source so it overrides them all: this is
+     * what the model has told us (or its name says) it will not accept, and
+     * a request it rejects is worth nothing. Nothing below adds a parameter
+     * back.
+     */
+    for (const unsupportedParam of adaptation.unsupportedParams) {
+      delete data[unsupportedParam];
+    }
+
+    /*
+     * Claude 4 models take temperature or top_p, never both ("`temperature`
+     * and `top_p` cannot both be specified for this model"). Every request
+     * carries the caller's temperature, so without this a top_p in Additional
+     * Parameters - one of the presets the provider form suggests - would fail
+     * every request. The parameter someone chose wins: the operator's top_p
+     * over the caller's temperature, unless the caller protects its request,
+     * whose temperature is then the one that stands. An operator who set both
+     * themselves gets the provider's own explanation. Decided after the
+     * model's refusals are applied, so a model that refuses the top_p keeps
+     * the caller's temperature rather than losing both.
+     */
+    if (data["temperature"] !== undefined && data["top_p"] !== undefined) {
+      if (request.protectRequestParameters) {
+        delete data["top_p"];
+      } else if (appliedParams["temperature"] === undefined) {
+        delete data["temperature"];
+      }
+    }
+
+    /*
+     * Anthropic requires max_tokens on every request. The caller's cap is for
+     * the answer, so a model that thinks first gets room for that on top.
+     * An operator's own max_tokens (on a request the caller does not protect)
+     * is the whole cap, as they wrote it.
+     */
+    const operatorSetsMaxTokens: boolean =
+      !request.protectRequestParameters &&
+      appliedParams["max_tokens"] !== undefined;
+
+    if (!operatorSetsMaxTokens) {
+      data["max_tokens"] =
+        (request.maxTokens || LLMService.ANTHROPIC_DEFAULT_MAX_TOKENS) +
+        this.getAnthropicThinkingRoom(data, adaptation);
+    }
+
+    return data;
+  }
+
+  /*
+   * How many tokens of max_tokens to keep for thinking: none when the request
+   * turns thinking off, and otherwise ANTHROPIC_THINKING_ROOM_TOKENS when the
+   * model thinks unasked or the request asks it to. A fixed thinking budget
+   * (thinking.type "enabled", on models before Claude 4.6) must fit under
+   * max_tokens, so a larger one is kept whole.
+   */
+  private static getAnthropicThinkingRoom(
+    data: JSONObject,
+    adaptation: RequestAdaptation,
+  ): number {
+    const thinking: unknown = data["thinking"];
+    const thinkingConfig: JSONObject | undefined =
+      thinking && typeof thinking === "object" && !Array.isArray(thinking)
+        ? (thinking as JSONObject)
+        : undefined;
+    const thinkingType: unknown = thinkingConfig?.["type"];
+
+    // "between_tools" is how Claude Sonnet 5.5 turns thinking off.
+    if (thinkingType === "disabled" || thinkingType === "between_tools") {
+      return 0;
+    }
+
+    const requestAsksForThinking: boolean =
+      thinkingType === "adaptive" || thinkingType === "enabled";
+
+    if (!adaptation.reservesThinkingRoom && !requestAsksForThinking) {
+      return 0;
+    }
+
+    const budget: unknown =
+      thinkingType === "enabled"
+        ? thinkingConfig?.["budget_tokens"]
+        : undefined;
+
+    if (
+      typeof budget === "number" &&
+      budget > LLMService.ANTHROPIC_THINKING_ROOM_TOKENS
+    ) {
+      return budget;
+    }
+
+    return LLMService.ANTHROPIC_THINKING_ROOM_TOKENS;
+  }
+
+  /**
+   * POST an Anthropic Messages request, reshaping and retrying when the
+   * model rejects a sampling parameter, the way postOpenAIChatCompletion
+   * does for the OpenAI wire.
+   *
+   * Every Claude model since Opus 4.7 chooses its own sampling and answers a
+   * request carrying temperature, top_p or top_k with a 400 ("`temperature`
+   * is deprecated for this model."). The models known to do that never get
+   * them (ClaudeModels); for any other model the 400 itself is the
+   * authority, and it names the parameter in words, one per response.
+   */
+  private static async postAnthropicMessages(data: {
+    requestUrl: string;
+    headers: Headers;
+    config: LLMProviderConfig;
+    modelName: string;
+    request: LLMCompletionRequest;
+    logAttributes: LogAttributes;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    let adaptation: RequestAdaptation = this.getInitialRequestAdaptation(
+      data.config,
+      data.modelName,
+    );
+
+    // Validated once: every adapted request goes to the same address.
+    const requestOptions: RequestOptions =
+      await this.buildGuardedRequestOptions({
+        providerName: "Anthropic",
+        requestUrl: data.requestUrl,
+        isGlobalProvider: data.config.isGlobalProvider,
+        options: this.buildRequestPolicy({
+          request: data.request,
+          defaultTimeoutInMs: 120000,
+        }),
+        logAttributes: data.logAttributes,
+      });
+
+    // What the last request carried: only a parameter it sent can be rejected.
+    let lastBody: JSONObject = {};
+
+    const post: () => Promise<
+      HTTPResponse<JSONObject> | HTTPErrorResponse
+    > = (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      const body: JSONObject = this.buildAnthropicRequestBody(
+        data.modelName,
+        data.request,
+        adaptation,
+      );
+
+      lastBody = body;
+
+      return this.postToProvider({
+        providerName: "Anthropic",
+        requestUrl: data.requestUrl,
+        body: body,
+        headers: data.headers,
+        options: requestOptions,
+        logAttributes: data.logAttributes,
+      });
     };
 
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await this.postToProvider({
-        providerName: "Anthropic",
-        requestUrl: anthropicRequestUrl,
-        body: requestData,
-        headers: {
-          "x-api-key": config.apiKey,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        options: await this.buildGuardedRequestOptions({
-          providerName: "Anthropic",
-          requestUrl: anthropicRequestUrl,
-          isGlobalProvider: config.isGlobalProvider,
-          options: this.buildRequestPolicy({
-            request: request,
-            defaultTimeoutInMs: 120000,
-          }),
-          logAttributes: anthropicLogAttributes,
-        }),
-        logAttributes: anthropicLogAttributes,
+    let response: HTTPResponse<JSONObject> | HTTPErrorResponse = await post();
+
+    for (
+      let attempt: number = 0;
+      attempt < this.MAX_REQUEST_ADAPTATION_ATTEMPTS &&
+      response instanceof HTTPErrorResponse;
+      attempt++
+    ) {
+      const nextAdaptation: RequestAdaptation | undefined =
+        this.getAdaptationDroppingRejectedParameter(
+          response,
+          adaptation,
+          lastBody,
+        );
+
+      if (!nextAdaptation) {
+        return response;
+      }
+
+      this.logRequestAdaptation({
+        llmType: data.config.llmType,
+        modelName: data.modelName,
+        previous: adaptation,
+        next: nextAdaptation,
       });
 
-    if (response instanceof HTTPErrorResponse) {
-      this.throwProviderHTTPError({
-        providerName: "Anthropic",
-        llmType: config.llmType,
-        request,
-        response,
-        logAttributes: anthropicLogAttributes,
-      });
+      adaptation = nextAdaptation;
+
+      response = await post();
     }
 
-    const jsonData: JSONObject = response.jsonData as JSONObject;
-    const content: Array<JSONObject> = jsonData["content"] as Array<JSONObject>;
+    if (!(response instanceof HTTPErrorResponse)) {
+      /*
+       * A reply with a thinking block in it comes from a model that thinks,
+       * whatever it is called. Remember it, so the next request to this model
+       * leaves room for the thinking even under a name ClaudeModels does not
+       * know, such as a gateway's.
+       */
+      if (
+        !adaptation.reservesThinkingRoom &&
+        this.hasAnthropicThinking(response.jsonData as JSONObject)
+      ) {
+        adaptation = { ...adaptation, reservesThinkingRoom: true };
+      }
 
-    if (!content || content.length === 0) {
+      this.cacheRequestAdaptation(data.config, data.modelName, adaptation);
+    }
+
+    return response;
+  }
+
+  private static getAnthropicContentBlocks(
+    jsonData: JSONObject | undefined,
+  ): Array<JSONObject> {
+    const content: unknown = jsonData?.["content"];
+
+    if (!Array.isArray(content)) {
+      return [];
+    }
+
+    return content.filter((block: unknown): block is JSONObject => {
+      return Boolean(block) && typeof block === "object";
+    });
+  }
+
+  private static hasAnthropicThinking(
+    jsonData: JSONObject | undefined,
+  ): boolean {
+    return this.getAnthropicContentBlocks(jsonData).some(
+      (block: JSONObject): boolean => {
+        return (
+          block["type"] === "thinking" || block["type"] === "redacted_thinking"
+        );
+      },
+    );
+  }
+
+  private static parseAnthropicResponse(
+    jsonData: JSONObject,
+  ): LLMCompletionResponse {
+    const anthropicStopReason: string =
+      (jsonData?.["stop_reason"] as string) || "";
+
+    /*
+     * The model's safety classifiers declined the request: HTTP 200 with
+     * stop_reason "refusal" and nothing to show. Current Claude models run
+     * them (cyber, bio and more), and an investigation into an attack can
+     * trip one. Say what happened rather than "No text content".
+     */
+    if (anthropicStopReason === "refusal") {
+      throw new BadDataException(this.describeAnthropicRefusal(jsonData));
+    }
+
+    /*
+     * Thinking blocks are the model's own working, never the answer, and are
+     * skipped below: OneUptime reads the text and the tool calls.
+     */
+    const content: Array<JSONObject> = this.getAnthropicContentBlocks(jsonData);
+    const isTruncated: boolean =
+      ANTHROPIC_TRUNCATED_STOP_REASONS.has(anthropicStopReason);
+
+    if (content.length === 0 && !isTruncated) {
       throw new BadDataException("No response from Anthropic");
     }
 
@@ -1783,7 +2434,7 @@ export default class LLMService {
         return block["type"] === "text";
       })
       .map((block: JSONObject) => {
-        return block["text"] as string;
+        return (block["text"] as string) || "";
       })
       .join("");
 
@@ -1799,24 +2450,29 @@ export default class LLMService {
         };
       });
 
-    if (!textContent && toolCalls.length === 0) {
+    /*
+     * A reply cut off before any text (a model that spent the whole cap
+     * thinking) is reported as truncated, the way the OpenAI wire reports a
+     * reasoning model that did the same, so callers handle it as they handle
+     * any cut-off answer. Any other reply with nothing in it is an error.
+     */
+    if (!textContent && toolCalls.length === 0 && !isTruncated) {
       throw new BadDataException("No text content in Anthropic response");
     }
 
     const usage: JSONObject = jsonData["usage"] as JSONObject;
 
     /*
-     * Anthropic reports truncation as stop_reason "max_tokens" — surface it as
-     * "length" so callers never present a cut-off answer as complete.
+     * Anthropic reports truncation as stop_reason "max_tokens" (or
+     * "model_context_window_exceeded" when the context window filled up) —
+     * surface it as "length" so callers never present a cut-off answer as
+     * complete.
      */
-    const anthropicStopReason: string =
-      (jsonData["stop_reason"] as string) || "";
-
     let stopReason: "stop" | "tool_use" | "length" = "stop";
 
     if (anthropicStopReason === "tool_use") {
       stopReason = "tool_use";
-    } else if (anthropicStopReason === "max_tokens") {
+    } else if (isTruncated) {
       stopReason = "length";
     }
 
@@ -1845,6 +2501,25 @@ export default class LLMService {
           }
         : undefined,
     };
+  }
+
+  /*
+   * In OneUptime's words, with the classifier's category when it gives one.
+   * The category is a short identifier ("cyber"), never the request's own
+   * content, so it is safe to show wherever the error goes.
+   */
+  private static describeAnthropicRefusal(jsonData: JSONObject): string {
+    const details: unknown = jsonData?.["stop_details"];
+    const category: unknown =
+      details && typeof details === "object" && !Array.isArray(details)
+        ? (details as JSONObject)["category"]
+        : undefined;
+    const namedCategory: string =
+      typeof category === "string" && ANTHROPIC_REFUSAL_CATEGORY.test(category)
+        ? ` (${category})`
+        : "";
+
+    return `Anthropic declined this request: the model's safety classifiers stopped it${namedCategory}. Rephrase the request, or choose a different Claude model for this provider.`;
   }
 
   /*

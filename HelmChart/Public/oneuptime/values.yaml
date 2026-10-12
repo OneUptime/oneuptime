@@ -860,6 +860,16 @@ pgbouncer:
   maxDbConnections: 450
   # Close server connections idle longer than this (seconds).
   serverIdleTimeoutSeconds: 600
+  # How long (seconds) a statement may wait in pgbouncer's queue for a free
+  # server connection before pgbouncer refuses it (query_wait_timeout). Kept
+  # below the app's own wait for a statement, DATABASE_QUERY_TIMEOUT_MS (35 s
+  # by default), so pgbouncer gives up on a queued statement before the app
+  # does: pgbouncer does not cancel a statement still in its queue, and at its
+  # own default (120 s) such a statement started long after the app had
+  # reported it failed. If you raise DATABASE_QUERY_TIMEOUT_MS, you may raise
+  # this with it - keep it a few seconds below. 0 lets a statement wait for
+  # ever. See HelmChart/Docs/Postgres.md ("Statements queued in the pooler").
+  queryWaitTimeoutSeconds: 30
   # Startup parameters the app sends that pgbouncer must accept (otherwise it
   # rejects the connection with a FATAL "unsupported startup parameter"). The
   # node-postgres driver sends statement_timeout and idle_in_transaction_session_timeout
@@ -869,14 +879,24 @@ pgbouncer:
   # so those server-side GUCs are not applied through the pooler.
   #
   # The app's client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) is NOT a
-  # substitute: it ABANDONS the query rather than cancelling it. The backend
-  # keeps executing and keeps its place in the lock queue, which is how killed
-  # and scaled-down workers left orphaned statements holding a queue through
-  # the pooler during the row-lock convoy incident.
+  # substitute. The app cancels a statement it stops waiting for, and closes
+  # its connection - pgbouncer passes the cancel on to the server connection
+  # the statement runs on - but a cancel cannot reach a backend whose
+  # connection is lost, nor a statement still in pgbouncer's queue
+  # (queryWaitTimeoutSeconds above). It used to cancel nothing at all: the
+  # backend kept executing and kept its place in the lock queue, which is how
+  # killed and scaled-down workers left orphaned statements holding a queue
+  # through the pooler during the row-lock convoy incident.
   # Server-side enforcement must therefore be set on the BACKEND — the chart
   # now ships lock_timeout in both postgresql.primary.configuration and
   # postgresOperator.cnpg.parameters. For an externalPostgres, set it yourself
   # (e.g. `ALTER DATABASE oneuptimedb SET lock_timeout='3s'`).
+  # statement_timeout is not shipped (it would reach admin sessions too): set
+  # it on the app's database role, to DATABASE_STATEMENT_TIMEOUT_MS, e.g.
+  # `ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s'`.
+  # Some writes are held back until a statement the app stopped waiting for
+  # could no longer land, and only this timeout bounds that. See
+  # HelmChart/Docs/Postgres.md ("Statement timeout behind the pooler").
   ignoreStartupParameters: "extra_float_digits,options,statement_timeout,idle_in_transaction_session_timeout,lock_timeout,idle_session_timeout"
   # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
   # with ssl.enabled, this auto-defaults to "require" and verifies against
@@ -2433,6 +2453,55 @@ microsoftTeamsApp:
   #   clientIdKey: clientId
   #   clientSecretKey: clientSecret
   #   tenantIdKey: tenantId
+
+# Video calls: the apps behind the one-click Connect of Zoom, Google Meet and
+# Microsoft Teams in Project Settings > Video Calls. Someone signs in to the
+# provider and allows this app to create meetings as that account - nothing
+# to set up on the provider's side for them. A provider whose clientId and
+# clientSecret are both set is connected by signing in; without them, projects
+# connect their own Zoom, Google or Microsoft app instead.
+#
+# Each app registers this redirect URI (https://<host>/api/...):
+#   zoomApp:                   /api/video-call-oauth/zoom/callback
+#   googleMeetApp:             /api/video-call-oauth/google-meet/callback
+#   microsoftTeamsMeetingsApp: /api/video-call-oauth/microsoft-teams/callback
+# See https://oneuptime.com/docs/workspace-connections/video-calls#one-click-connect-on-a-self-hosted-server
+
+# A Zoom General app (user-managed) with the meeting:write:meeting and
+# user:read:user scopes. webhookSecretToken is the app's Secret Token: it
+# verifies the event Zoom sends to /api/video-call-oauth/zoom/events when
+# someone removes the app from their Zoom account.
+zoomApp:
+  clientId:
+  clientSecret:
+  webhookSecretToken:
+  # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
+  # existingSecret:
+  #   name: "zoom-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+  #   webhookSecretTokenKey: webhookSecretToken
+
+# A Google Cloud OAuth client (web application) in a project with the Google
+# Meet REST API enabled, asking for the meetings.space.created scope.
+googleMeetApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "google-meet-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+
+# A multi-tenant Microsoft Entra app registration with the delegated
+# OnlineMeetings.ReadWrite permission. Not the Teams bot (microsoftTeamsApp):
+# it signs people in for meetings, which the bot's registration does not.
+microsoftTeamsMeetingsApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "microsoft-teams-meetings-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
 
 # GitHub Example Configuration
 #

@@ -412,21 +412,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
     expect(sentence).toContain(card);
     expect(sentence).toContain(settingsPath);
 
-    if (lang === "de") {
-      /*
-       * The German page has no section on users' numbers: it says so where
-       * calls that do not reach an engineer are explained, right after
-       * "check that users have verified phone numbers".
-       */
-      const bullets: Array<string> = found.paragraph.split("\n");
-      const at: number = bullets.indexOf(sentence);
-
-      expect(sentence.startsWith("- ")).toBe(true);
-      expect(bullets[at - 1]).toContain("verifizierte Telefonnummern");
-      return;
-    }
-
-    // The last word of the section on users' phone numbers.
+    // The last word of the section on users' phone numbers, in every language.
     expect(paragraphs[found.index + 1]).toMatch(/^## /);
 
     let heading: number = found.index - 1;

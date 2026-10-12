@@ -280,24 +280,13 @@ export default class MonitorIncident {
         continue;
       }
 
-      const createdCriteriaId: string | undefined =
-        openIncident.createdCriteriaId?.toString();
-      const createdIncidentTemplateId: string | undefined =
-        openIncident.createdIncidentTemplateId?.toString();
-
       // Only auto-resolve when the creating criteria opted into it.
-      if (!createdCriteriaId || !createdIncidentTemplateId) {
-        continue;
-      }
-
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          createdCriteriaId
-        ];
-
       if (
-        !autoResolveTemplates ||
-        !autoResolveTemplates.includes(createdIncidentTemplateId)
+        !this.isAutoResolveConfiguredForIncident({
+          openIncident: openIncident,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        })
       ) {
         continue;
       }
@@ -601,14 +590,20 @@ export default class MonitorIncident {
            * monitor. Normalise both sides to `undefined` on missing so a created
            * incident (whose template id was left NULL) still matches itself next
            * cycle instead of being recreated as a duplicate.
+           *
+           * An incident with no template id stands for every template of its
+           * criteria: it was raised before the server gave templates ids, and
+           * once its template has one it must still be found, or a second
+           * incident would open beside it while the first is still open.
            */
           const alreadyOpenIncident: Incident | undefined = openIncidents.find(
             (incident: Incident) => {
               return (
                 (incident.createdCriteriaId || undefined) ===
                   (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (incident.createdIncidentTemplateId || undefined) ===
-                  (criteriaIncident.id?.toString() || undefined) &&
+                (!incident.createdIncidentTemplateId ||
+                  incident.createdIncidentTemplateId ===
+                    (criteriaIncident.id?.toString() || undefined)) &&
                 (incident.seriesFingerprint || undefined) === seriesFingerprint
               );
             },
@@ -1439,30 +1434,19 @@ export default class MonitorIncident {
       return false;
     }
 
-    // If antoher criteria is active then, check if the incident id is present in the map.
-
-    if (!input.openIncident.createdCriteriaId?.toString()) {
-      return false;
-    }
-
-    if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-      return false;
-    }
-
-    if (
-      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-        input.openIncident.createdCriteriaId?.toString()
-      ]
-    ) {
-      if (
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId?.toString()
-        ]?.includes(input.openIncident.createdIncidentTemplateId?.toString())
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    /*
+     * Another criteria (or none) is active: close the incident when the
+     * criteria that raised it opted into auto-resolve. An incident raised
+     * from a template that had no id - every criteria an API client such as
+     * the Terraform provider wrote, before the server gave templates ids -
+     * carries no createdIncidentTemplateId and is matched on its criteria,
+     * as the per-series path already does. Requiring the template id here is
+     * what left those incidents open after the monitor recovered.
+     */
+    return MonitorIncident.isAutoResolveConfiguredForIncident({
+      openIncident: input.openIncident,
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+    });
   }
 }

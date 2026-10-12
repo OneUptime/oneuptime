@@ -1,6 +1,6 @@
 /*
  * Help for the steps that send a message somewhere: Slack, Microsoft Teams,
- * Discord, Telegram, SMSEagle and email.
+ * Discord, Telegram, IRC, Mattermost, SMSEagle and email.
  *
  * Their example is a message with a real value in it, taken from another step
  * of the same workflow - the trigger's, where there is one - so it shows the
@@ -23,6 +23,13 @@ import {
   docsLink,
   externalLink,
 } from "./DocumentationLinks";
+import {
+  IRC_DEFAULT_NICKNAME,
+  IRC_DEFAULT_PLAIN_TEXT_PORT,
+  IRC_DEFAULT_TLS_PORT,
+  IRC_MAX_LINES,
+} from "../Components/IRC";
+import { MATTERMOST_MAX_MESSAGE_LENGTH } from "../Components/Mattermost";
 
 export type MessagingDocumentationFunction = (
   context: ComponentDocumentationContext,
@@ -254,6 +261,154 @@ export const getTelegramDocumentation: MessagingDocumentationFunction = (
         "https://core.telegram.org/bots#how-do-i-create-a-bot",
       ),
       docsLink("Telegram step guide", WorkflowDocsPaths.telegram),
+    ],
+  };
+};
+
+export const getIRCDocumentation: MessagingDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary: "Posts a message to an IRC channel.",
+    steps: [
+      "Enter the server in **IRC Server**, such as `irc.libera.chat`, and the channel in **Channel**, such as `#ops`.",
+      "Write the message in **Message Text**. Each line is sent as an IRC message of its own.",
+      "Connect **Success** to what runs next, and **Error** to what should happen if the server refuses the message.",
+    ],
+    examples: [
+      messageExample({
+        context,
+        prefix: "Heads up: ",
+        plainMessage: "Heads up: the nightly export has finished.",
+      }),
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `The step connects over TLS on port ${IRC_DEFAULT_TLS_PORT}, joins the channel, sends the message and leaves. A channel with a key needs it in **Channel Key**.`,
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `A message is sent as at most ${IRC_MAX_LINES} IRC lines. A longer one is cut short, and its last line says so.`,
+      },
+    ],
+    learnMore: [
+      {
+        title: "Signing in",
+        paragraphs: [
+          "On a network that wants you signed in to an account, such as Libera.Chat from some cloud addresses, fill in **SASL Username** and **SASL Password**. A server or bouncer that asks for a password when you connect takes it in **Server Password**.",
+          "Passwords are hidden in run logs. To share one between workflows, save it in a secret global variable and use the variable here instead.",
+        ],
+        example: {
+          title: "SASL Password",
+          code: "{{global.variables.IRC_SASL_PASSWORD}}",
+        },
+      },
+      {
+        title: "Joining, and the nickname",
+        paragraphs: [
+          "Most channels only take messages from their members, so the step joins the channel before it posts and leaves straight after. Where a channel takes messages from outside, turn on **Send Without Joining** and the channel does not see the step come and go.",
+          `The step posts as \`${IRC_DEFAULT_NICKNAME}\` unless **Nickname** says otherwise. When the nickname is taken, it adds an underscore or a number.`,
+        ],
+      },
+      {
+        title: "Formatting",
+        paragraphs: [
+          "IRC has no Markdown: the message is sent exactly as typed. IRC's own formatting codes, such as bold and colours, work.",
+        ],
+      },
+      {
+        title: "Many messages at once",
+        paragraphs: [
+          "Each run of the step is a connection of its own, and IRC networks limit how often one address may connect. A burst of messages can be refused, with a reason such as `Reconnecting too fast`, and takes **Error**. Where a workflow fires many times a minute, gather what it has to say into one message.",
+        ],
+      },
+      {
+        title: "Which servers it can reach",
+        paragraphs: [
+          "Servers on `localhost`, link-local and cloud metadata addresses are refused. On OneUptime Cloud, servers on a private network are refused too. A self-hosted install can reach a server on its own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`.",
+          `The server's TLS certificate must be one OneUptime trusts. A self-hosted install can trust its own certificate authority with \`NODE_EXTRA_CA_CERTS\`. Turn on **Disable TLS** only for a server that does not offer TLS: it then connects on port ${IRC_DEFAULT_PLAIN_TEXT_PORT}, and any password is sent unencrypted.`,
+        ],
+      },
+      whenRefusedTopic(context, "the IRC server"),
+    ],
+    links: [
+      externalLink(
+        "Libera.Chat: signing in with SASL",
+        "https://libera.chat/guides/sasl",
+      ),
+      docsLink("IRC step guide", WorkflowDocsPaths.irc),
+    ],
+  };
+};
+
+export const getMattermostDocumentation: MessagingDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary: "Posts a message to a Mattermost channel.",
+    steps: [
+      "In Mattermost, add an incoming webhook for the channel ([Mattermost's guide](https://docs.mattermost.com/developers/integrate/webhooks/incoming)) and paste its URL into **Mattermost Incoming Webhook URL**.",
+      "Write the message in **Message Text**. Mattermost's Markdown works in it.",
+      "Connect **Success** to what runs next, and **Error** to what should happen if Mattermost refuses the message.",
+    ],
+    examples: [
+      messageExample({
+        context,
+        prefix: "**Heads up:** ",
+        plainMessage: "**Heads up:** the nightly export has finished.",
+      }),
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Warning,
+        text: "Only incoming webhook URLs work: the server's address, then `/hooks/` and the webhook's ID, as Mattermost shows it.",
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `A post holds at most ${MATTERMOST_MAX_MESSAGE_LENGTH.toLocaleString("en-US")} characters. A longer message is cut to fit, and ends with a note that the rest is in OneUptime.`,
+      },
+    ],
+    learnMore: [
+      {
+        title: "Formatting",
+        paragraphs: [
+          "The message is sent exactly as you type it, and Mattermost reads Markdown: `**bold**`, `_italic_`, `~~strikethrough~~`, `[links](https://example.com)`, tables and emoji such as `:rotating_light:`. `@channel` and `@here` notify everyone in the channel.",
+        ],
+      },
+      {
+        title: "Another channel, name or picture",
+        paragraphs: [
+          "**Channel** posts somewhere other than the webhook's own channel: the channel's name as its URL shows it, such as `town-square`, or `@` and a username for a direct message. A webhook locked to its channel refuses any other.",
+          "**Username** and **Icon URL** change who the message seems to come from. Mattermost uses them only where a system admin lets integrations override usernames and profile picture icons; elsewhere it posts as the webhook.",
+        ],
+      },
+      {
+        title: "Keeping the webhook URL private",
+        paragraphs: [
+          "Anyone with the URL can post to the channel. It is hidden in run logs, and the step never quotes it. To share it between workflows, save it in a secret global variable and use the variable here instead.",
+        ],
+        example: {
+          title: "Mattermost Incoming Webhook URL",
+          code: "{{global.variables.MATTERMOST_WEBHOOK_URL}}",
+        },
+      },
+      {
+        title: "Which servers it can reach",
+        paragraphs: [
+          "The message is sent from OneUptime, and a redirect is not followed. Servers on `localhost`, link-local and cloud metadata addresses are refused. A server on a private network is refused too, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`.",
+          "The server's TLS certificate must be one OneUptime trusts. A self-hosted install can trust its own certificate authority with `NODE_EXTRA_CA_CERTS`.",
+        ],
+      },
+      whenRefusedTopic(context, "Mattermost"),
+    ],
+    links: [
+      externalLink(
+        "Mattermost: incoming webhooks",
+        "https://docs.mattermost.com/developers/integrate/webhooks/incoming",
+      ),
+      docsLink("Mattermost step guide", WorkflowDocsPaths.mattermost),
+      docsLink("Outbound network access", WorkflowDocsPaths.networkAccess),
     ],
   };
 };

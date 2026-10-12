@@ -8,8 +8,11 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import {
   afterEach,
   beforeEach,
@@ -76,12 +79,41 @@ async function created(
   return result.createBy.data as AutoRemediationRule;
 }
 
-async function updateError(data: Record<string, unknown>): Promise<unknown> {
+/*
+ * A project owner, who may read runbook credentials - so an edit that lets
+ * OneUptime AI run a rule's commands without asking needs nothing more
+ * (AutoRemediationRuleUnattendedCommands.test.ts has the editors who may not).
+ */
+const OWNER: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userId: ObjectID.generate(),
+  userType: UserType.User,
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectOwner,
+          labelIds: [],
+        },
+      ],
+    },
+  },
+} as unknown as DatabaseCommonInteractionProps;
+
+async function updateError(
+  data: Record<string, unknown>,
+  props: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+  } as DatabaseCommonInteractionProps,
+): Promise<unknown> {
   try {
     await hooks.onBeforeUpdate({
       query: { _id: ObjectID.generate().toString() },
       data,
-      props: { tenantId: PROJECT_ID },
+      props,
     } as unknown as UpdateBy<AutoRemediationRule>);
     return null;
   } catch (error) {
@@ -169,7 +201,9 @@ describe("an edit's Fix With", () => {
       jest.spyOn(AutoRemediationRuleService, "findBy");
 
     for (const action of Object.values(AutoRemediationAction)) {
-      expect(await updateError({ remediationAction: action })).toBeNull();
+      expect(
+        await updateError({ remediationAction: action }, OWNER),
+      ).toBeNull();
     }
 
     expect(findBy).not.toHaveBeenCalled();

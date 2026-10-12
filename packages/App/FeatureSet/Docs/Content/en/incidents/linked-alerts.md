@@ -4,7 +4,15 @@ An outage rarely raises one alert. When the primary database falls over, the rep
 
 A link is only a link. The alert keeps its own state, owners, on-call policies, notes and feed; the incident keeps its own. Linking merges and copies nothing, and on its own it never acknowledges, resolves or silences an alert. (Declaring a new incident from alerts is different: the new incident is prefilled from them, as [described below](#declaring-an-incident-from-alerts), and unless you untick the box on the form, the alerts are acknowledged as you declare it, which stops their escalation — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).) Two project switches, on for new projects, move the linked alerts along with the incident as it is acknowledged and resolved — see [further down](#keeping-alert-states-in-step-with-the-incident).
 
-If you are coming from Opsgenie, this is OneUptime's version of associating alerts with an incident.
+:::cards
+- [Link alerts to an incident](#linking-alerts-from-an-incident): From the incident, from an alert, or many at once.
+- [Declare an incident from alerts](#declaring-an-incident-from-alerts): A new incident, prefilled and linked in one go.
+- [Keep alert states in step](#keeping-alert-states-in-step-with-the-incident): Acknowledge and resolve the alerts along with the incident.
+- [Permissions](#permissions): Who can link, and what linking lets them do.
+:::
+
+> [!TIP]
+> If you are coming from Opsgenie, this is OneUptime's version of associating alerts with an incident.
 
 ## At a glance
 
@@ -15,9 +23,22 @@ If you are coming from Opsgenie, this is OneUptime's version of associating aler
 - **Alert states follow the incident** — two project switches, both on for new projects, acknowledge and resolve linked alerts when the incident is acknowledged and resolved. Turn either off at **Incidents → Settings → Linked Alerts**.
 - **Automatable** — links are an ordinary API resource, `/api/incident-alert`.
 
-## Why link alerts to an incident
+## How it works
 
-Alerts are signals: a monitor's criteria matched, an SLO started burning its budget, a security rule fired. An incident is the coordinated response to a problem. Most problems produce several signals, and without links, the only thing tying them to the response is somebody's memory.
+Alerts are signals: a monitor's criteria matched, an SLO started burning its budget, a security rule fired. An incident is the coordinated response to a problem (see [Incidents Overview](/docs/incidents/index)). Most problems produce several signals, and without links, the only thing tying them to the response is somebody's memory.
+
+```mermaid title="Three alerts, one incident, and the switches that move them"
+flowchart TB
+    subgraph signals["Alerts"]
+        direction LR
+        lag["Replication lag"]
+        errors["API error rate"]
+        latency["Checkout latency"]
+    end
+    signals -->|linked to| incident["Incident"]
+    incident -->|acknowledged| ack["Linked alerts acknowledged"]
+    incident -->|resolved| res["Linked alerts resolved"]
+```
 
 With the alerts linked:
 
@@ -37,7 +58,19 @@ A link connects one alert to one incident. Links go both ways — the same link 
 
 ## Linking alerts from an incident
 
-Open the incident and choose **Linked Alerts** in the **Investigation** section of its side menu. The table lists every alert linked to the incident:
+:::steps
+### Open the incident's Linked Alerts page
+
+Open the incident and choose **Linked Alerts** in the **Investigation** section of its side menu. The table lists every alert already linked to it.
+
+### Pick the alert
+
+Click **Link Alert** and pick it from the **Alert** dropdown. The dropdown lists the most recent alerts first, each with its number — such as `ALT-63: Checkout API is offline` — so alerts that share a title, as a monitor's repeated alerts do, can be told apart. To find an older alert, type: the dropdown searches every alert by title.
+
+### Save the link
+
+Click **Link Alert** in the dialog. The alert appears in the table, and both feeds record the link. If the link is refused, for example because the alert is already linked, the dialog stays open and says why.
+:::
 
 | Column            | What it shows                                    |
 | ----------------- | ------------------------------------------------ |
@@ -46,8 +79,6 @@ Open the incident and choose **Linked Alerts** in the **Investigation** section 
 | **Current State** | The alert's own state, such as **Acknowledged**. |
 | **Linked At**     | When the alert was linked.                       |
 | **Linked By**     | Who linked it.                                   |
-
-To link another alert, click **Link Alert** and pick it from the **Alert** dropdown. The dropdown lists the most recent alerts first, each with its number — such as `ALT-63: Checkout API is offline` — so alerts that share a title, as a monitor's repeated alerts do, can be told apart. To find an older alert, type: the dropdown searches every alert by title. Click **Link Alert** in the dialog to save. If the link is refused, for example because the alert is already linked, the dialog stays open and says why.
 
 Each row has **View Alert** to open the alert and **Unlink** to remove the link.
 
@@ -108,6 +139,19 @@ The incident links open in a new tab, so you can check the existing incident wit
 
 **A private alert makes a private incident.** If any of the alerts is private, **Private Incident** starts switched on, and the banner listing the alerts says so. A private incident is visible only to its owners, Project Owners and Project Admins, so OneUptime makes sure the people who could see the alerts can see the incident: once it is declared, the owners of every declared alert — users and teams alike — are added as owners of the incident, without being notified. They are added just after the incident's Slack and Microsoft Teams channels are created, so they are invited to those channels like any other owner. You are an owner as well, as with any incident you declare. The same happens when an incident privacy rule makes the new incident private. If you switch **Private Incident** off before submitting and no privacy rule applies, the incident is not private and no owners are copied.
 
+```mermaid title="What happens when you declare from alerts"
+sequenceDiagram
+    participant You
+    participant OneUptime
+    participant Alerts
+    You->>OneUptime: Declare Incident, with up to 50 alerts
+    OneUptime->>OneUptime: Check every alert and your permissions
+    OneUptime->>OneUptime: Create the incident and run its privacy rules
+    OneUptime->>Alerts: Link each alert
+    OneUptime-->>You: The new incident, alerts already linked
+    OneUptime->>Alerts: Acknowledge them in the background, if the box is ticked
+```
+
 When you submit, the server checks the alerts before it creates anything: at most 50 of them, each an alert in this project that you are allowed to see, and you must be allowed to link alerts to incidents. If any check fails, the request is rejected and no incident is created — so a bad alert id never uses up an incident number. Once the incident exists — and once its privacy rules have run, so the links know whether it is private — every alert is linked before the request returns, so the incident's **Linked Alerts** page already lists them. If a single link fails — say, because the alert was deleted a moment earlier — the incident is still declared and the other alerts are still linked.
 
 The incident's feed gets one **Alert Linked** entry listing the alerts, written after **Incident Created**, rather than one per alert — see [The feed, Slack and Microsoft Teams](#the-feed-slack-and-microsoft-teams).
@@ -126,7 +170,7 @@ Leave it ticked and, once the incident is declared and the alerts are linked:
 
 Untick the box to declare without acknowledging. Whenever alerts will be left unacknowledged — the box is unticked or locked — the form says so: "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged." And if you acknowledge the alerts without choosing an on-call policy for the incident, the **On-Call & Roles** step's summary points out: "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page."
 
-**You need permission to acknowledge the alerts.** Acknowledging them as you declare takes **Create Alert State Timeline** and **Edit Alert** (acknowledging an alert on its own page takes only the first: see [Changing a state](/docs/permissions/index#changing-a-state)): Project Owner, Project Admin, Project Member, Alert Admin and Alert Member have both, while Incident Admin and Incident Member, who can declare incidents from alerts, have neither. Your label and owner scope on alerts must include each alert that will be acknowledged, too — only the ones not acknowledged yet are checked. Alerts that are already acknowledged or resolved need no permission and never block the declaration. Without the permissions the box is locked, with a tooltip naming the missing one, and you can still declare the incident. The server checks again before it creates anything, for each alert it will acknowledge: if you may not acknowledge one of them, no incident is created and the form says why — untick the box and submit again.
+**You need permission to acknowledge the alerts.** Acknowledging them as you declare takes what acknowledging each of them on its own page takes: **Create Alert State Timeline**, and no **Edit Alert** (see [Changing a state](/docs/permissions/index#changing-a-state)). Project Owner, Project Admin, Project Member, Alert Admin and Alert Member have it, while Incident Admin and Incident Member, who can declare incidents from alerts, do not. Labels, owners and private alerts narrow it as they do on an alert's own page: each alert that will be acknowledged must be one you can read, and one your permission reaches — only the ones not acknowledged yet are checked. Alerts that are already acknowledged or resolved need no permission and never block the declaration. Without the permission the box is locked, with a tooltip naming it, and you can still declare the incident. The server checks again before it creates anything, for each alert it will acknowledge: if you may not acknowledge one of them, no incident is created and the form says why — untick the box and submit again.
 
 **The project needs an Acknowledged alert state.** Every project starts with one. If yours has none, the box is not offered.
 
@@ -161,7 +205,7 @@ curl -X POST https://oneuptime.com/api/incident \
 - it is anything other than `true` or `false`;
 - it is sent without `alertIdsToLink`;
 - the project has no Acknowledged alert state;
-- the API key may not acknowledge every alert that is not acknowledged yet — that takes **Create Alert State Timeline** and **Edit Alert**, with a label scope that includes each of those alerts.
+- the API key may not acknowledge every alert that is not acknowledged yet — that takes **Create Alert State Timeline**, with labels and owner scope that reach each of those alerts, as acknowledging each of them does.
 
 An API key is not a user, so alerts acknowledged with one are credited to nobody, just as its links have no **Linked By**.
 
@@ -234,7 +278,7 @@ Three more rules apply on top:
 - **A link belongs to its incident.** Whether you can see a link follows your access to its incident: label restrictions and owner scope on incidents apply to the link too.
 - **Linking needs read access to an alert, not edit access.** With the project's linked alert switches on, as they are in new projects, that is enough for a link to acknowledge or resolve the alert — see [Who moves a linked alert](#who-moves-a-linked-alert).
 
-Declaring an incident from alerts also needs permission to create incidents, and acknowledging its alerts as you declare needs **Create Alert State Timeline** and **Edit Alert** on each of them that is not acknowledged yet — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare). In the dashboard, an action you lack a permission for is locked, and its tooltip names the missing permission. That includes read access to the other side: **Link Alert** is locked if you cannot read alerts, and **Link Incident** and **Link to Incident** if you cannot read incidents. For how roles, granular permissions, labels and owner scope combine, see [Users, Teams & Permissions](/docs/permissions/index).
+Declaring an incident from alerts also needs permission to create incidents, and acknowledging its alerts as you declare needs **Create Alert State Timeline** on each of them that is not acknowledged yet, as acknowledging each of them on its own page does — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare). In the dashboard, an action you lack a permission for is locked, and its tooltip names the missing permission. That includes read access to the other side: **Link Alert** is locked if you cannot read alerts, and **Link Incident** and **Link to Incident** if you cannot read incidents. For how roles, granular permissions, labels and owner scope combine, see [Users, Teams & Permissions](/docs/permissions/index).
 
 ## The feed, Slack and Microsoft Teams
 
@@ -292,7 +336,8 @@ Neither needs permission to edit the alerts. OneUptime moves them itself, and li
 
 Acknowledging is always safe for a monitor's alert: an acknowledged alert still counts as open, so the monitor keeps using it rather than opening another.
 
-Resolving is different. If the monitor is still failing when its alert is resolved, the monitor's next check opens a fresh alert — and the fresh alert is not linked to the incident. If your incidents are often resolved before their monitors recover, turn the resolve switch off and keep just the acknowledge switch on, or resolve incidents only once their monitors are healthy.
+> [!WARNING]
+> Resolving is different. If the monitor is still failing when its alert is resolved, the monitor's next check opens a fresh alert — and the fresh alert is not linked to the incident. If your incidents are often resolved before their monitors recover, turn the resolve switch off and keep just the acknowledge switch on, or resolve incidents only once their monitors are healthy.
 
 ## Deleting alerts and incidents
 
@@ -302,11 +347,11 @@ Resolving is different. If the monitor is still failing when its alert is resolv
 
 None of these write **Alert Unlinked** or **Unlinked from Incident** feed entries — only an explicit unlink does.
 
-## Where to read next
+## Next steps
 
-- [Incidents Overview](/docs/incidents/index) — how the incident feature fits together.
-- [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare form, templates, monitor criteria and the API.
-- [Incident States & Severities](/docs/incidents/states-and-severities) — the state order the switches compare against.
-- [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — the incident feed where links are recorded.
-- [Incident Settings & Automation](/docs/incidents/settings) — the incident settings pages, Linked Alerts among them.
-- [Users, Teams & Permissions](/docs/permissions/index) — roles, granular permissions and scope.
+:::cards
+- [Declaring an Incident](/docs/incidents/declaring-incidents): The declare form, templates, monitor criteria and the API.
+- [Incident States & Severities](/docs/incidents/states-and-severities): The state order the switches compare against.
+- [Incident Settings & Automation](/docs/incidents/settings): The incident settings pages, Linked Alerts among them.
+- [Users, Teams & Permissions](/docs/permissions/index): Roles, granular permissions and scope.
+:::

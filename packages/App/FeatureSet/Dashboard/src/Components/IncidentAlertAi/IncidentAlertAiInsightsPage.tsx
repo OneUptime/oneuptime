@@ -13,12 +13,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The AI Insights page of the Incidents and Alerts menus (AI → Insights):
- * what OneUptime AI learned from the project's incidents (or alerts) over
- * the last 30 days, and what deserves attention - what needs a look, the
- * problems that keep coming back and what the investigations found about
- * them, the monitors and services that keep failing, how the fixes and fix
- * pull requests turned out, how much it investigated and why it skipped the
- * rest, and the trend.
+ * what OneUptime AI found out about the project's incidents (or alerts) over
+ * the last 30 days - the ones that keep coming back and why, with the step
+ * their investigations suggest, the service or monitor behind several of
+ * them, what AI fixed on its own or would fix if allowed, and the incidents
+ * it could not look at and what would let it - and, as a footnote, how much
+ * it investigated, how its fixes and fix pull requests turned out, and the
+ * trend.
  *
  * It is every scope's AI Insights page (AiActivityInsightsPage, the one a
  * cluster and each resource have), over POST /ai-activity/{incident|alert}
@@ -34,10 +35,10 @@ export const AI_INSIGHTS_PAGE_SUBTITLES: Record<
   string
 > = {
   incident: translationKey(
-    "What OneUptime AI learned from your incidents over the last 30 days: what keeps happening, what its investigations found, which monitors and services keep failing, and how its fixes turned out.",
+    "What OneUptime AI found out about your incidents in the last 30 days: what keeps going wrong and why, and what to do about it.",
   ),
   alert: translationKey(
-    "What OneUptime AI learned from your alerts over the last 30 days: what keeps happening, what its investigations found, which monitors and services keep failing, and how its fixes turned out.",
+    "What OneUptime AI found out about your alerts in the last 30 days: what keeps going wrong and why, and what to do about it.",
   ),
 };
 
@@ -46,10 +47,10 @@ export const AI_INSIGHTS_EMPTY_DESCRIPTIONS: Record<
   string
 > = {
   incident: translationKey(
-    "OneUptime AI has not investigated or fixed an incident in the last 30 days. Once it does, what keeps happening, what it found and how its fixes turned out show here.",
+    "When an incident is created, OneUptime AI investigates it. This page then tells you which incidents keep coming back and why, which services are behind most of them, what AI fixed on its own, and what it would fix if you let it.",
   ),
   alert: translationKey(
-    "OneUptime AI has not investigated or fixed an alert in the last 30 days. Once it does, what keeps happening, what it found and how its fixes turned out show here.",
+    "When an alert fires, OneUptime AI investigates it. This page then tells you which alerts keep coming back and why, which services are behind most of them, what AI fixed on its own, and what it would fix if you let it.",
   ),
 };
 

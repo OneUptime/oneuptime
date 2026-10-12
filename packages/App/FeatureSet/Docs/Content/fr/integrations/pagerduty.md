@@ -73,7 +73,7 @@ Le champ `severity` de PagerDuty accepte `critical`, `error`, `warning` ou `info
 
 ## Entrant (optionnel)
 
-Pour aller dans l'autre sens — ouvrir un incident OneUptime depuis un événement PagerDuty — ajoutez un workflow avec un déclencheur **Webhook** et pointez un [webhook V3](https://developer.pagerduty.com/docs/webhooks/v3-overview/) PagerDuty (ou une orchestration d'événements) vers son URL, puis utilisez **Create Incident**. Voir le [schéma entrant](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+Pour aller dans l'autre sens — ouvrir un incident OneUptime depuis un événement PagerDuty — ajoutez un workflow avec un déclencheur **Webhook** et pointez un [webhook V3](https://developer.pagerduty.com/docs/webhooks/v3-overview/) PagerDuty (ou une orchestration d'événements) vers son URL, puis utilisez **Create Incident**. Voir le [schéma entrant](/docs/integrations/index#entrant-un-autre-outil-envoie-des-données-dans-oneuptime).
 
 ## Dépannage
 

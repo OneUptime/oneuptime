@@ -19,6 +19,7 @@ import {
   serializeProxmoxNodeLiveness,
 } from "../../../../Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
 import ObjectID from "../../../../Types/ObjectID";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import {
   afterEach,
   beforeEach,
@@ -1668,11 +1669,7 @@ describe("decideProxmoxSilentNodes", () => {
      * clusters (a fixed seed).
      */
     test("L + D is always the number of nodes, over a sweep of clusters", () => {
-      let seed: number = 20_260_928;
-      const next: (modulo: number) => number = (modulo: number): number => {
-        seed = (seed * 16_807) % 2_147_483_647;
-        return seed % modulo;
-      };
+      const next: SeededRandom = seededRandom(20_260_928);
       const livenessChoices: Array<ProxmoxNodeLiveness | null> = [
         null,
         liveness(NOW_MS - 30_000, NOW_MS - 2_000), // warming up
@@ -1716,7 +1713,11 @@ describe("decideProxmoxSilentNodes", () => {
       // R: continued on a mark past the window at nowMs, within it at the read.
       let continuedOnTheRead: number = 0;
       let moreThanKeyed: number = 0;
-      for (let run: number = 0; run < 1_200; run++) {
+      /*
+       * 3,000 clusters: a continuation that only the roster's read time keeps
+       * inside the window comes up about once in 250.
+       */
+      for (let run: number = 0; run < 3_000; run++) {
         const siblingCount: number = 1 + next(6);
         const roster: Array<ProxmoxRosterNode> = [];
         const map: Map<string, ProxmoxNodeLiveness | null> = new Map<

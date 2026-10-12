@@ -102,7 +102,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Processes running or ready to run on a CPU in the newest interval; the total on the line below counts every state and is updated at most about once a minute. Where states are not reported, as on Windows, it counts every process seen in the last 5 minutes.",
   ),
   availabilityChart: translationKey(
-    "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; the uptime badge is the share of intervals that were up. The newest interval is not judged until its data can arrive, and one missed minute between up ones counts as up.",
+    "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; one missed minute between up ones counts as up. The uptime badge leaves out time OneUptime was not receiving, and the newest interval is not judged until data arrives.",
   ),
   cpuChart: translationKey(
     "Share of CPU time spent running programs and the operating system (user plus system time), averaged across all cores, in each interval of the selected range. 100% means every core was busy for the whole interval.",

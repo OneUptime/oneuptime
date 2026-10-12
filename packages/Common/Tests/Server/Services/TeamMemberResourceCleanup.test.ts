@@ -194,12 +194,18 @@ function stubWorld(options?: { remainingMemberships?: number }): Spies {
     maintenanceStates: jest
       .spyOn(ScheduledMaintenanceStateService, "findBy")
       .mockResolvedValue([
-        state(new ObjectID("sm-scheduled"), { isScheduledState: true }),
-        state(new ObjectID("sm-ongoing"), { isOngoingState: true }),
-        state(new ObjectID("sm-ended"), { isEndedState: true }),
-        state(new ObjectID("sm-completed"), { isResolvedState: true }),
-        // Ordered after the end: still not open.
-        state(new ObjectID("sm-archived")),
+        state(new ObjectID("sm-scheduled"), {
+          order: 1,
+          isScheduledState: true,
+        }),
+        state(new ObjectID("sm-ongoing"), { order: 2, isOngoingState: true }),
+        state(new ObjectID("sm-ended"), { order: 3, isEndedState: true }),
+        state(new ObjectID("sm-completed"), {
+          order: 4,
+          isResolvedState: true,
+        }),
+        // Placed after the end: over, so not open.
+        state(new ObjectID("sm-archived"), { order: 5 }),
       ] as never),
     incidentFindBy: jest
       .spyOn(IncidentService, "findBy")

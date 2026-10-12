@@ -6,6 +6,8 @@ import {
   getMonitorDestinationFieldCopy,
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
+  NTP_PORT_FIELD_DESCRIPTION,
+  NTP_PORT_FIELD_ERROR,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitorDestinationFieldCopy";
 import MonitorDestinationUtil, {
   ParsedMonitorDestination,
@@ -29,6 +31,7 @@ const DESTINATION_TYPES: Array<MonitorType> = [
   MonitorType.Ping,
   MonitorType.IP,
   MonitorType.Port,
+  MonitorType.NTP,
 ];
 
 function copyFor(monitorType: MonitorType): MonitorDestinationFieldCopy {
@@ -105,6 +108,34 @@ describe("the address field of a probe check", () => {
   test("a Port monitor's port field says what to type, with an example", () => {
     expect(MONITOR_PORT_FIELD_DESCRIPTION).toBe(
       "The TCP or UDP port to check, like 443.",
+    );
+  });
+
+  test("an NTP monitor asks for the time server by name or address", () => {
+    expect(copyFor(MonitorType.NTP)).toEqual({
+      title: "NTP Server",
+      description:
+        "The time server to check, like time.example.com or 192.168.1.10.",
+      placeholder: "time.example.com",
+    });
+  });
+
+  test("an NTP monitor's IP address example is accepted too", () => {
+    const parsed: ParsedMonitorDestination = MonitorDestinationUtil.parse({
+      value: "192.168.1.10",
+      monitorType: MonitorType.NTP,
+    });
+
+    expect(parsed.error).toBeFalsy();
+    expect(parsed.destination).toBeTruthy();
+  });
+
+  test("an NTP monitor's port field says the standard port is used when it is empty", () => {
+    expect(NTP_PORT_FIELD_DESCRIPTION).toBe(
+      "The UDP port the server answers NTP on. Leave it empty for the standard port, 123.",
+    );
+    expect(NTP_PORT_FIELD_ERROR).toBe(
+      "Enter a port from 1 to 65535, or leave it empty for 123.",
     );
   });
 

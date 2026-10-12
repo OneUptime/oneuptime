@@ -20,6 +20,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorSecretService,
+    jest.spyOn(MonitorSecretService, "findBy"),
+  );
+});
 
 /*
  * MonitorSecretService owns the three ways a secret can be shared with
@@ -686,6 +699,26 @@ describe("MonitorSecretService.onBeforeUpdate", () => {
 
     await expect(
       runBeforeUpdate({ monitors: [MONITOR_A2] }, { isRoot: true }),
+    ).resolves.toEqual({ monitors: [MONITOR_A2] });
+  });
+
+  /*
+   * OneUptime's update reaches any secret its query names, whatever project
+   * the request is made in: what it writes is checked in the project of the
+   * secret it writes, not the request's.
+   */
+  test("a server-side update made in another project is checked in the secret's own project", async () => {
+    const rootInOtherProject: DatabaseCommonInteractionProps = {
+      isRoot: true,
+      tenantId: new ObjectID(PROJECT_B),
+    };
+
+    await expect(
+      runBeforeUpdate({ monitors: [MONITOR_B1] }, rootInOtherProject),
+    ).rejects.toThrow(/not in this project/);
+
+    await expect(
+      runBeforeUpdate({ monitors: [MONITOR_A2] }, rootInOtherProject),
     ).resolves.toEqual({ monitors: [MONITOR_A2] });
   });
 });

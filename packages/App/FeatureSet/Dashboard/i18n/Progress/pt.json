@@ -1,15 +1,26 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16617
+    "keys": 28012,
+    "untranslated": 16929
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
+    "App",
+    "Apps",
+    "Embedding",
+    "Interface",
+    "Interface {{index}}",
     "Offline",
     "Runbook: {{name}}",
     "Runner",
+    "Status",
     "VMware vCenter",
     "cluster",
     "host",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
+    "{{tokens}} tokens"
   ]
 }

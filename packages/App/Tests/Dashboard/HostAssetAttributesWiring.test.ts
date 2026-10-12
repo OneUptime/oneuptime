@@ -287,12 +287,16 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
      */
     test("the new section did not add a copy-whole config", () => {
       const doc: string = readDoc("en", "telemetry", "host-otel-collector.md");
-      const section: string = doc.substring(
-        doc.indexOf(
-          "### Inventory attributes (IP, MAC, serial number, make, model, firmware)",
-        ),
-        doc.indexOf("### Complete example — Linux host"),
+      const start: number = doc.indexOf(
+        "### Inventory attributes (IP, MAC, serial number, make, model, firmware)",
       );
+      // The section runs to the next section of the page, its H4s included.
+      const end: number = doc.indexOf("\n## ", start);
+
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+
+      const section: string = doc.substring(start, end);
 
       expect(section.length).toBeGreaterThan(0);
       expect(section).not.toContain(

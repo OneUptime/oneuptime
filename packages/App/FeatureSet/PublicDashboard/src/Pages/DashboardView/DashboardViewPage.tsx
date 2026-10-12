@@ -21,10 +21,9 @@ import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import StoredDashboardViewConfig from "Common/Utils/Dashboard/StoredDashboardViewConfig";
 import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import useDashboardTimeRangeZoom, {
   DashboardTimeRangeZoom,
@@ -42,6 +41,7 @@ import { VariableValueChange } from "Common/UI/Components/Dashboard/DashboardVar
 import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import PoweredByFooter from "../../Components/PoweredByFooter";
 
 export interface ComponentProps {
   dashboardId: ObjectID;
@@ -125,10 +125,14 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const config: DashboardViewConfig = JSONFunctions.deserializeValue(
-        response.data["dashboardViewConfig"] ||
-          DashboardViewConfigUtil.createDefaultDashboardViewConfig(),
-      ) as DashboardViewConfig;
+      /*
+       * Read the way the dashboard app reads it (issue #4571): a config the
+       * server stored in another shape, or with widgets this version cannot
+       * draw, opens with what can be shown instead of not at all.
+       */
+      const config: DashboardViewConfig = StoredDashboardViewConfig.read(
+        response.data["dashboardViewConfig"],
+      );
 
       setDashboardViewConfig(config);
       setDashboardName(
@@ -469,19 +473,7 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Footer */}
-      <div className="max-w-7xl mx-auto px-5 py-5">
-        <div className="flex items-center justify-center text-xs text-gray-400">
-          <span>Powered by</span>
-          <a
-            href="https://oneuptime.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-1 text-gray-500 hover:text-gray-700 font-medium"
-          >
-            OneUptime
-          </a>
-        </div>
-      </div>
+      <PoweredByFooter />
     </div>
   );
 };

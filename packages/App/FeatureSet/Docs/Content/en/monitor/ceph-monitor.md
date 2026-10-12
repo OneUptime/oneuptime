@@ -1,227 +1,281 @@
 # Ceph Monitor
 
-Ceph monitoring allows you to monitor the health and performance of your Ceph clusters — overall health, active health checks, mon quorum, OSDs, pools, and placement groups. OneUptime collects metrics via a pre-configured OpenTelemetry Collector (the **OneUptime Ceph Agent**) and evaluates them against your configured criteria.
+A Ceph monitor watches one Ceph cluster — its health, health checks, monitor quorum, OSDs, pools and placement groups — and tells you the moment health degrades, an OSD goes down, or capacity runs short. It reads the `ceph_*` metrics the Ceph mgr `prometheus` module exports, collected by the OneUptime Ceph Agent, so nothing is probed from outside.
 
-## Overview
+:::cards
+- [Create the monitor](#create-a-ceph-monitor): Six steps in the dashboard.
+- [Templates](#pre-built-alert-templates): 23 ready-made alerts for health, OSDs, placement groups and capacity.
+- [Health checks](#health-check-series): Alert on any Ceph health check by name.
+- [Metrics](#collected-metrics): Every `ceph_*` series the monitor can alert on.
+:::
 
-Ceph monitors use metrics from the Ceph mgr `prometheus` module to provide visibility into your storage clusters. This enables you to:
+## How it works
 
-- Alert the moment cluster health degrades to `HEALTH_WARN` or `HEALTH_ERR`
-- Detect down or out OSDs before data availability suffers
-- Watch placement groups for inactive, degraded, undersized, or damaged states
-- Track cluster, pool, and per-OSD capacity, plus pool IOPS / throughput
-- Monitor mon quorum membership, clock skew, and mon disk space
-- Catch daemon crashes, slow operations, and slow OSD heartbeats via Ceph's own health checks
+The Ceph mgr `prometheus` module serves the cluster's metrics on port 9283. The OneUptime Ceph Agent scrapes every mgr daemon every 30 seconds — the active one answers, the standbys return nothing until they take over — keeps Ceph's own labels (`ceph_daemon`, `pool_id`) and sends the metrics to OneUptime over OTLP, stamped with the cluster's name, `ceph.cluster.name`. The first data registers the cluster.
 
-## Creating a Ceph Monitor
+A Ceph monitor is tied to one cluster. Every minute it runs its query over that cluster's metrics and compares the result with its criteria.
 
-1. Go to **Monitors** in the OneUptime Dashboard
-2. Click **Create Monitor**
-3. Select **Ceph** as the monitor type
-4. Select the Ceph cluster to monitor
-5. Configure metric queries and aggregation
-6. Configure monitoring criteria as needed
+```mermaid title="From a Ceph cluster to an incident"
+flowchart TB
+    subgraph cluster["Your Ceph cluster"]
+        direction LR
+        active["Active mgr"]
+        standby["Standby mgrs"]
+    end
+    active -->|"metrics on port 9283"| agent["OneUptime Ceph Agent"]
+    standby -.->|"after a failover"| agent
+    agent -->|"ceph metrics over OTLP"| oneuptime["OneUptime"]
+    oneuptime -->|"first data"| registered["Cluster registered"]
+    oneuptime --> monitor["Ceph monitor"]
+    monitor -->|"every minute"| criteria{"Criteria met?"}
+    criteria -->|"yes"| incident["Incident or alert"]
+    criteria -->|"no"| online["Monitor online"]
+```
 
-## Configuration Options
+## Before you begin
 
-### Ceph Cluster
+- **Enable the mgr `prometheus` module** on the cluster:
 
-Select the Ceph cluster to monitor. Clusters are auto-registered the first time the OneUptime Ceph Agent ships telemetry from them (keyed by the `ceph.cluster.name` resource attribute) — you do not need to create them manually.
+  ```bash
+  ceph mgr module enable prometheus
+  ```
 
-### Metric Queries
+- **Install the Ceph Agent** on a machine that can reach every mgr daemon on port 9283, and list all of them in `CEPH_MGR_ENDPOINTS`. The [Ceph Agent guide](/docs/telemetry/ceph) covers the install.
+- **Check the cluster is registered.** It appears under **Products → Infrastructure → Ceph → All Clusters**, named after the agent's `CEPH_CLUSTER_NAME`, about a minute after the first scrape.
+- **For health-check alerts**, run Ceph Quincy or later. Older releases do not export `ceph_health_detail`.
 
-Configure one or more metric queries to evaluate. Each query specifies:
+## Create a Ceph monitor
 
-- **Metric name** — The Ceph metric to query (`ceph_*` series)
-- **Aggregation** — How to aggregate metric values (Avg, Sum, Max, Min)
-- **Filters** — Attribute-based filtering on the `ceph_daemon` label (e.g. `osd.3`, `mon.a`) for per-daemon metrics, the `pool_id` label for per-pool metrics, or the `name` label of `ceph_health_detail` (e.g. `OSD_NEARFULL`)
-- **Group By** — Optionally group by `ceph_daemon` or `pool_id` so each OSD/monitor or pool is evaluated independently — one incident per daemon or pool
+:::steps
+### Start a new monitor
 
-You can also create **formulas** that combine multiple metric queries using mathematical expressions — for example a used-capacity ratio from `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`.
+Go to **Monitors** and click **Create Monitor**.
 
-> Pool **data** series carry only the `pool_id` label — the pool name exists solely on `ceph_pool_metadata`. Filter and group pool data series by `pool_id`, and join the metadata series when you need a display name.
+### Pick Ceph
 
-### Health-check Series
+Under **Monitor Type**, click **More monitor types** and pick **Ceph** under **Infrastructure**, or type `ceph` in the search box. Enter a **Name** — it is used in incident and alert titles — and click **Next**.
 
-`ceph_health_detail` (Quincy and later) exports **one series per active health check**, labeled `name` (e.g. `OSD_NEARFULL`, `RECENT_CRASH`) and `severity`. A series exists only while its check fires — absence means healthy. That makes "Max > 0 fires / = 0 recovers" the right shape for alerting on any Ceph health check by name, and it is exactly how the health-check templates below are built (their recover criteria treat series absence as zero). `ceph_daemon_health_metrics` follows the same pattern per daemon, keyed by a `type` label (e.g. `SLOW_OPS`) and `ceph_daemon`.
+### Choose the cluster
 
-### Rolling Time Window
+Under **Ceph Monitor Configuration**, pick the cluster from **Ceph Cluster**. Every cluster that has sent data is in the list.
 
-Select the time window for metric evaluation:
+### Choose what to watch
 
-- Past 1 Minute
-- Past 5 Minutes
-- Past 10 Minutes
-- Past 15 Minutes
-- Past 30 Minutes
-- Past 60 Minutes
+Pick one of the three tabs:
 
-## Collected Metrics
+- **Quick Setup** — click a [template](#pre-built-alert-templates). It sets the metrics, filters, aggregation, time range and thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** — pick one metric from **Ceph Metric**, then set **Aggregation** and **Time Range**. **OSD** and **Pool ID** narrow it to one daemon or pool.
+- **Advanced** — build queries and formulas yourself under **Select Metrics**, for example a used-capacity ratio from `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Use **Group by** `ceph_daemon` or `pool_id` to judge each daemon or pool on its own.
 
-The Ceph Agent scrapes every mgr daemon every 30 seconds with `honor_labels: true`, so Ceph's own labels (`ceph_daemon`, `pool_id`) are preserved.
+### Check the criteria
 
-### Cluster Health
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
 
-| Metric                          | Description                                                                                                            |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `ceph_health_status`            | Overall cluster health: 0 = `HEALTH_OK`, 1 = `HEALTH_WARN`, 2 = `HEALTH_ERR`                                           |
-| `ceph_health_detail`            | One series per **active** health check with `name` and `severity` labels (Quincy and later — absent on older releases) |
-| `ceph_healthcheck_slow_ops`     | Number of slow OSD/monitor operations reported by the SLOW_OPS health check                                            |
-| `ceph_daemon_health_metrics`    | Per-daemon health metrics keyed by `type` (e.g. `SLOW_OPS`) and `ceph_daemon`                                          |
-| `ceph_mon_quorum_status`        | 1 when the mon is in quorum, per `ceph_daemon` (e.g. `mon.a`)                                                          |
-| `ceph_mon_metadata`             | Mon metadata (value is always 1) — sum it to count monitors                                                            |
-| `ceph_cluster_total_bytes`      | Total raw cluster capacity in bytes                                                                                    |
-| `ceph_cluster_total_used_bytes` | Used raw cluster capacity in bytes                                                                                     |
+### Create the monitor
 
-### OSD
+Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it every minute. Incidents and alerts it raises are also listed on the cluster's **Incidents** and **Alerts** pages.
+:::
 
-| Metric                       | Description                                                                              |
-| ---------------------------- | ---------------------------------------------------------------------------------------- |
-| `ceph_osd_up`                | 1 when the OSD is up, per `ceph_daemon` (e.g. `osd.3`)                                   |
-| `ceph_osd_in`                | 1 when the OSD is in the data distribution, per `ceph_daemon`                            |
-| `ceph_osd_apply_latency_ms`  | Time to apply an operation to the backing store, per OSD                                 |
-| `ceph_osd_commit_latency_ms` | Time to commit an operation to the journal/WAL, per OSD                                  |
-| `ceph_osd_stat_bytes`        | Total raw capacity of each OSD's backing device                                          |
-| `ceph_osd_stat_bytes_used`   | Raw bytes used on each OSD — compare against total to spot imbalanced or nearfull OSDs   |
-| `ceph_osd_numpg`             | Number of placement groups hosted by each OSD                                            |
-| `ceph_osd_metadata`          | OSD metadata (hostname, device_class, version; value is always 1) — sum it to count OSDs |
+> [!TIP]
+> To set up several templates at once, open the cluster from **Products → Infrastructure → Ceph** and go to **Recommendations**. Pick the templates you want, choose who is paged, and OneUptime creates one monitor per template.
 
-### Pool
+## Monitor settings
 
-| Metric                | Description                                                                     |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `ceph_pool_stored`    | Bytes of user data stored in the pool                                           |
-| `ceph_pool_max_avail` | Bytes still writable to the pool given its replication / EC profile             |
-| `ceph_pool_objects`   | Number of objects in the pool                                                   |
-| `ceph_pool_rd`        | Cumulative read operations on the pool                                          |
-| `ceph_pool_wr`        | Cumulative write operations on the pool                                         |
-| `ceph_pool_rd_bytes`  | Cumulative bytes read from the pool                                             |
-| `ceph_pool_wr_bytes`  | Cumulative bytes written to the pool                                            |
-| `ceph_pool_metadata`  | Pool metadata (value is always 1) — the ONLY series mapping `pool_id` to a name |
+| Field | Tab | What it does |
+| --- | --- | --- |
+| **Ceph Cluster** | All | Required. Scopes every query to `resource.ceph.cluster.name`. |
+| **OSD** | Custom Metric, Advanced | Optional. Exact match on the `ceph_daemon` label, for example `osd.3`. |
+| **Pool ID** | Custom Metric, Advanced | Optional. Exact match on the `pool_id` label, for example `2`. |
+| **Ceph Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |
+| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
+| **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 1 Minute**; templates set their own. |
+| **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
 
-### Placement Groups
+Pool data series carry only the `pool_id` label: the pool's name exists solely on `ceph_pool_metadata`. Filter and group pool series by `pool_id`, and look the name up in `ceph_pool_metadata` when you need it.
 
-All `ceph_pg_*` state metrics are exported **per pool** with a `pool_id` label — they are not single cluster-wide gauges. Sum across pools for a cluster-wide count:
+### Health-check series
 
-| Metric                       | Description                                                           |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `ceph_pg_total`              | Number of PGs, per pool                                               |
-| `ceph_pg_active`             | Number of PGs in the `active` state (able to serve I/O), per pool     |
-| `ceph_pg_clean`              | Number of PGs in the `clean` state (fully replicated), per pool       |
-| `ceph_pg_degraded`           | Number of PGs in the `degraded` state, per pool                       |
-| `ceph_pg_undersized`         | Number of PGs in the `undersized` state, per pool                     |
-| `ceph_num_objects_degraded`  | Objects with fewer replicas than configured                           |
-| `ceph_num_objects_misplaced` | Objects not on their CRUSH-intended OSDs (data safe, placement wrong) |
+`ceph_health_detail` exports **one series per active health check**, labeled `name` (for example `OSD_NEARFULL` or `RECENT_CRASH`) and `severity`. A series exists only while its check fires, so no series means healthy. To alert on any Ceph health check, filter on its `name`, fire on **Maximum** above `0`, and recover at `0` with **If No Data** set to **Treat As Zero** — exactly how the health-check templates are built. `ceph_daemon_health_metrics` works the same way per daemon, keyed by a `type` label (for example `SLOW_OPS`) and `ceph_daemon`.
 
-## Monitoring Criteria
+## Pre-built alert templates
 
-### What Gets Evaluated
+**Quick Setup** offers 23 templates covering cluster health, OSDs, placement groups and capacity. Each builds a complete monitor — queries, label filters, a group-by, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
-These monitors always evaluate the **Metric Value** — the value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**.
+Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap. **Severity** is the label the picker shows; the incident and alert a template creates start on your project's most severe incident and alert severity.
 
-### Aggregation Types
+### Cluster health templates
 
-| Aggregation   | Description                        |
-| ------------- | ---------------------------------- |
-| Average       | Average value over the time window |
-| Sum           | Sum of all values                  |
-| Maximum Value | Highest value in the time window   |
-| Minimum Value | Lowest value in the time window    |
-| All Values    | All values must match the criteria |
-| Any Value     | At least one value must match      |
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Cluster Health Error | Critical | `ceph_health_status`, Max, past 1 minute | 2 or more: `HEALTH_ERR` | Below 1.8: `HEALTH_WARN` or better |
+| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 or more: `HEALTH_WARN` or worse | Below 0.9: `HEALTH_OK` |
+| Monitor Quorum Degraded | Critical | `ceph_mon_quorum_status`, Min per `ceph_daemon`, past 1 minute | A monitor drops below 1, out of quorum. One incident per monitor | Back at 1 |
+| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Above 0: the cluster's `SLOW_OPS` check is active | At 0 |
+| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` for `type = SLOW_OPS`, Max per `ceph_daemon` | Above 0. One incident per OSD or monitor | The series clears |
+| Daemon Crash | Critical | `ceph_health_detail` for `name = RECENT_CRASH`, Max | The check is active: unarchived daemon crashes exist. The mgr has no `ceph_crash_*` metric, so this is the only crash signal | The crashes are archived |
+| Monitor Clock Skew | Warning | `ceph_health_detail` for `name = MON_CLOCK_SKEW`, Max | The check is active: monitor clocks drift past the allowed skew (default 0.05 s) | The check clears |
+| Monitor Disk Critically Low | Critical | `ceph_health_detail` for `name = MON_DISK_CRIT`, Max | The check is active: a monitor's database disk is below 5% free (the default) | The check clears |
+| Monitor Disk Space Low | Warning | `ceph_health_detail` for `name = MON_DISK_LOW`, Max | The check is active: below 30% free (the default) | The check clears |
 
-### Conditions
+### OSD templates
 
-Static thresholds — compared against the **Threshold** you enter:
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| OSD Down | Critical | `ceph_osd_up`, Min per `ceph_daemon` | An OSD drops below 1. One incident per OSD | Back at 1 |
+| OSD Out | Warning | `ceph_osd_in`, Min per `ceph_daemon` | An OSD drops below 1: marked out of the data distribution | Back at 1 |
+| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg per `ceph_daemon` | Above 100 ms. One incident per OSD | At or below 90 ms |
+| OSD Slow Heartbeats | Warning | `ceph_health_detail` for `name = OSD_SLOW_PING_TIME_FRONT` and `name = OSD_SLOW_PING_TIME_BACK`, Max | Either check is active: heartbeats on the public or cluster network are slow. The mgr exports no ping-time gauge | Both checks clear |
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+### Placement group templates
 
-Baseline anomaly detection — no threshold; the form shows **Sensitivity** and **Baseline Window** instead, and compares each sample to the same-hour-of-week baseline built from that window:
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Inactive Placement Groups | Critical | `ceph_pg_total` − `ceph_pg_active`, Max per `pool_id` | Above 0: PGs cannot serve I/O, so client requests to them hang. One incident per pool | At 0 |
+| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max per `pool_id` | Above 0: objects have fewer replicas than configured | At 0 |
+| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max per `pool_id` | Above 0: PGs map to fewer OSDs than their replica count | At 0 |
+| Damaged Placement Groups | Critical | `ceph_health_detail` for `name = PG_DAMAGED` and `name = OSD_SCRUB_ERRORS`, Max | Either check is active: scrubbing found damage or read errors | Both checks clear |
 
-- **Anomalously High** — Value rises above the expected range
-- **Anomalously Low** — Value falls below the expected range
-- **Anomalous** — Value leaves the expected range in either direction
+### Capacity templates
 
-Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Above 85%, Ceph's default nearfull ratio | At or below 76.5% |
+| Cluster Full | Critical | The same ratio | Above 95%, Ceph's default full ratio, where writes stop cluster-wide | At or below 85.5% |
+| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, per `pool_id` | Above 85% of what the pool can hold. One incident per pool | At or below 76.5% |
+| OSD Nearfull | Warning | `ceph_health_detail` for `name = OSD_NEARFULL`, Max | The check is active: an OSD passed the nearfull threshold (default 85%). Single OSDs fill long before the cluster average does | The check clears |
+| OSD Backfillfull | Warning | `ceph_health_detail` for `name = OSD_BACKFILLFULL`, Max | The check is active: backfill onto the OSD is refused (default 90%), stalling recovery | The check clears |
+| OSD Full | Critical | `ceph_health_detail` for `name = OSD_FULL`, Max, past 1 minute | The check is active: an OSD reached the full threshold (default 95%) and writes are refused | The check clears |
 
-## Pre-built Alert Templates
+- **Down and quorum templates use Minimum**, so one down OSD or one monitor out of quorum trips them instead of being hidden by the healthy majority.
+- **Count and health-check templates use Maximum**, so one bad scrape is enough.
+- **PG and pool series are per pool**: there is no cluster-wide gauge, so those templates group by `pool_id` and open one incident per pool.
+- **Capacity ratios** take the **Sum** of both sides. Both come from the same mgr scrape, so the result is a true percentage. **Inactive Placement Groups** uses **Maximum** per pool instead, because a sum would add up scrapes in a subtraction.
+- **Health-check templates** recover when the check clears: their recovery criteria count a missing series as 0.
 
-OneUptime ships 23 templates covering cluster health, OSDs, placement groups, and capacity. Each builds a complete monitor — metric queries, label filters, group-by, a fire criteria, and an auto-recover criteria — that you can edit after applying. Thresholds are starting points. Templates evaluate over the past 5 minutes unless noted:
+Some alerts have no template. PG imbalance needs cross-series statistics criteria cannot compute. Capacity forecasting needs a growth fit, which the cluster's dashboard draws instead. Disk failure prediction and scrub staleness have no mgr metric, and NVMe-oF, RBD mirroring and cephadm need other exporters.
 
-### Cluster Health
+## Collected metrics
 
-| Template                    | Severity | Watches                                                                         | Fires when                                                                                                                                                             |
-| --------------------------- | -------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cluster Health Error        | Critical | `ceph_health_status`, Max over the past 1 minute                                | ≥ 2 — health reaches `HEALTH_ERR`; recovers below 2                                                                                                                    |
-| Cluster Health Warning      | Warning  | `ceph_health_status`, Max                                                       | ≥ 1 — health reaches `HEALTH_WARN` or worse                                                                                                                            |
-| Monitor Quorum Degraded     | Critical | `ceph_mon_quorum_status`, Min per `ceph_daemon`, past 1 minute                  | Any monitor drops below 1 (out of quorum). One incident per monitor                                                                                                    |
-| Slow Operations             | Warning  | `ceph_healthcheck_slow_ops`, Max                                                | > 0 — the cluster-level SLOW_OPS health check is active                                                                                                                |
-| Daemon Slow Operations      | Warning  | `ceph_daemon_health_metrics` filtered to `type=SLOW_OPS`, Max per `ceph_daemon` | > 0 — pinpoints the exact OSD or monitor reporting slow ops. One incident per daemon                                                                                   |
-| Daemon Crash                | Critical | `ceph_health_detail` filtered to `name=RECENT_CRASH`, Max                       | The check is active — unacknowledged daemon crashes exist (the only crash signal the mgr exports; there is no `ceph_crash_*` metric). Clears when crashes are archived |
-| Monitor Clock Skew          | Warning  | `ceph_health_detail` filtered to `name=MON_CLOCK_SKEW`, Max                     | The check is active — mon clock skew exceeds the allowed threshold (default 0.05 s)                                                                                    |
-| Monitor Disk Critically Low | Critical | `ceph_health_detail` filtered to `name=MON_DISK_CRIT`, Max                      | The check is active — a monitor's database disk is below the critical threshold (default 5% free)                                                                      |
-| Monitor Disk Space Low      | Warning  | `ceph_health_detail` filtered to `name=MON_DISK_LOW`, Max                       | The check is active — a monitor's database disk is below the warning threshold (default 30% free). Separate template so it opens at Warning, not Critical              |
+The agent scrapes every mgr daemon every 30 seconds and keeps Ceph's own labels, so per-daemon series carry `ceph_daemon` (`osd.3`, `mon.a`) and per-pool series carry `pool_id`.
 
-### OSD
+### Cluster health metrics
 
-| Template            | Severity | Watches                                                                                               | Fires when                                                                                                                                                                                               |
-| ------------------- | -------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OSD Down            | Critical | `ceph_osd_up`, Min per `ceph_daemon`                                                                  | Any OSD reports below 1. One incident per OSD                                                                                                                                                            |
-| OSD Out             | Warning  | `ceph_osd_in`, Min per `ceph_daemon`                                                                  | Any OSD reports below 1 (marked out of the data distribution)                                                                                                                                            |
-| OSD High Latency    | Warning  | `ceph_osd_apply_latency_ms`, Avg per `ceph_daemon`                                                    | > 100 ms sustained apply latency. One incident per OSD                                                                                                                                                   |
-| OSD Slow Heartbeats | Warning  | `ceph_health_detail`, two queries: `name=OSD_SLOW_PING_TIME_FRONT` and `name=OSD_SLOW_PING_TIME_BACK` | Either check is active — heartbeat pings on the public or cluster network exceed the grace threshold (the mgr exports no ping-time gauge, so these checks are the only signal). Recovers when both clear |
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `ceph_health_status` | — | Overall health: 0 = `HEALTH_OK`, 1 = `HEALTH_WARN`, 2 = `HEALTH_ERR`. |
+| `ceph_health_detail` | count | One series per **active** health check, labeled `name` and `severity`. Quincy and later only. |
+| `ceph_healthcheck_slow_ops` | count | Slow OSD and monitor operations reported by the `SLOW_OPS` check. |
+| `ceph_daemon_health_metrics` | count | Per-daemon health metrics, keyed by `type` (for example `SLOW_OPS`) and `ceph_daemon`. |
+| `ceph_mon_quorum_status` | count | 1 when the monitor is in quorum, per `ceph_daemon` (for example `mon.a`). |
+| `ceph_mon_metadata` | count | Monitor metadata, always 1. Sum it to count monitors. |
+| `ceph_cluster_total_bytes` | bytes | Total raw capacity. |
+| `ceph_cluster_total_used_bytes` | bytes | Raw capacity in use. |
 
-### Placement Groups
+### OSD metrics
 
-| Template                    | Severity | Watches                                                                          | Fires when                                                                                        |
-| --------------------------- | -------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Inactive Placement Groups   | Critical | Formula: `ceph_pg_total` − `ceph_pg_active`, Max per `pool_id`                   | > 0 — PGs cannot serve I/O; client requests to them hang. One incident per pool. Recovers at 0    |
-| Degraded Placement Groups   | Warning  | `ceph_pg_degraded`, Max per `pool_id`                                            | > 0 — objects have fewer replicas than configured. One incident per pool                          |
-| Undersized Placement Groups | Warning  | `ceph_pg_undersized`, Max per `pool_id`                                          | > 0 — PGs are mapped to fewer OSDs than their replica count. One incident per pool                |
-| Damaged Placement Groups    | Critical | `ceph_health_detail`, two queries: `name=PG_DAMAGED` and `name=OSD_SCRUB_ERRORS` | Either check is active — scrubbing found data damage or OSD read errors. Recovers when both clear |
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `ceph_osd_up` | count | 1 when the OSD is up, per `ceph_daemon` (for example `osd.3`). |
+| `ceph_osd_in` | count | 1 when the OSD is in the data distribution. |
+| `ceph_osd_apply_latency_ms` | ms | Time to apply an operation to the backing store. |
+| `ceph_osd_commit_latency_ms` | ms | Time to commit an operation to the journal or WAL. |
+| `ceph_osd_stat_bytes` | bytes | Raw capacity of the OSD's device. |
+| `ceph_osd_stat_bytes_used` | bytes | Raw bytes used on the OSD. Compare with the total to spot uneven or nearly full OSDs. |
+| `ceph_osd_numpg` | count | Placement groups on the OSD. |
+| `ceph_osd_metadata` | count | OSD metadata (hostname, device class, version), always 1. Sum it to count OSDs. |
 
-### Capacity
+### Pool metrics
 
-| Template          | Severity | Watches                                                                                         | Fires when                                                                                                                                     |
-| ----------------- | -------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cluster Near Full | Warning  | Formula: `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100                     | > 85% — Ceph's default nearfull ratio                                                                                                          |
-| Cluster Full      | Critical | The same ratio                                                                                  | > 95% — Ceph's default full ratio, at which writes stop cluster-wide                                                                           |
-| Pool Near Full    | Warning  | Formula: `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, per `pool_id` | Any pool exceeds 85% of its writable capacity. One incident per pool                                                                           |
-| OSD Nearfull      | Warning  | `ceph_health_detail` filtered to `name=OSD_NEARFULL`, Max                                       | The check is active — an individual OSD crossed the nearfull threshold (default 85%); single OSDs fill up long before the cluster average does |
-| OSD Backfillfull  | Warning  | `ceph_health_detail` filtered to `name=OSD_BACKFILLFULL`, Max                                   | The check is active — backfill onto the OSD is refused (default 90%), stalling recovery and rebalancing                                        |
-| OSD Full          | Critical | `ceph_health_detail` filtered to `name=OSD_FULL`, Max over the past 1 minute                    | The check is active — an OSD reached the full threshold (default 95%) and writes are being refused                                             |
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `ceph_pool_stored` | bytes | User data stored in the pool. |
+| `ceph_pool_max_avail` | bytes | Bytes still writable to the pool, given its replication or erasure-coding profile. |
+| `ceph_pool_objects` | count | Objects in the pool. |
+| `ceph_pool_rd` | ops | Read operations on the pool. A lifetime counter. |
+| `ceph_pool_wr` | ops | Write operations on the pool. A lifetime counter. |
+| `ceph_pool_rd_bytes` | bytes | Bytes read from the pool. A lifetime counter. |
+| `ceph_pool_wr_bytes` | bytes | Bytes written to the pool. A lifetime counter. |
+| `ceph_pool_metadata` | count | Pool metadata, always 1 — the only series that maps `pool_id` to a name. |
 
-> Notes on the choices baked in: down/quorum templates use **Min** so a single down OSD or out-of-quorum monitor trips the threshold instead of being masked by the healthy majority; count-style and health-check templates use **Max** so one bad scrape fires. Every `ceph_pg_*` and `ceph_pool_*` series is exported **per pool** (`pool_id` label — there is no cluster-wide gauge), so those templates group by `pool_id` and open one incident per pool. The capacity **ratios** aggregate both sides with **Sum**: both sides ride the same mgr scrape, so the scrape multiple cancels. The PG-inactive **difference** uses **Max per pool** instead — nothing cancels in a subtraction, so summing a one-minute bucket would add the two 30-second scrapes as well as the pools and report a multiplied PG count. Templates watching `ceph_health_detail` require **Quincy or later**; health-check series (`ceph_health_detail` and `ceph_daemon_health_metrics`) exist only while the check is active, so the recover criteria treat series absence as zero — the monitor returns to healthy when the check clears. Add a `ceph_daemon` attribute filter to scope per-daemon templates to a specific daemon.
+### Placement group metrics
 
-Not covered by templates, with reasons: PG imbalance needs cross-series stddev math the criteria engine does not support; capacity-forecast alerting needs server-side derived metrics (the dashboard shows a client-side growth fit instead); hardware/SMART failure prediction has no mgr metric; scrub-staleness has no per-pool staleness metric; NVMe-oF / RBD-mirror / cephadm rules need different exporters.
+Every `ceph_pg_*` series is per pool, labeled `pool_id`; sum across pools for a cluster-wide count.
 
-## Setup Requirements
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `ceph_pg_total` | count | Placement groups in the pool. |
+| `ceph_pg_active` | count | PGs that are `active`, able to serve I/O. |
+| `ceph_pg_clean` | count | PGs that are `clean`, fully replicated. |
+| `ceph_pg_degraded` | count | PGs that are `degraded`. |
+| `ceph_pg_undersized` | count | PGs that are `undersized`. |
+| `ceph_num_objects_degraded` | count | Objects with fewer replicas than configured. |
+| `ceph_num_objects_misplaced` | count | Objects not where CRUSH wants them. The data is safe; only the placement is wrong. |
 
-To use Ceph monitoring, you need to:
+## Monitoring criteria
 
-1. Enable the mgr prometheus module on the cluster: `ceph mgr module enable prometheus`
-2. Install the OneUptime Ceph Agent on a machine that can reach every mgr daemon on port 9283 — see the [Ceph Agent installation guide](/docs/telemetry/ceph)
-3. Pass `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `CEPH_CLUSTER_NAME`, and `CEPH_MGR_ENDPOINTS` (all mgrs, comma-separated, wrapped in square brackets) as environment variables
-4. Wait for the cluster to auto-register (about a minute after the first scrape)
+A criteria compares one of the monitor's queries or formulas with a threshold. A Ceph monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
+
+| Field | What it does |
+| --- | --- |
+| **Metric** | The query or formula to check, by its variable name. |
+| **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match) or **Any Value** (one is enough). |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
+| **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
+| **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
+| **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
+
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
+
+Each criteria also says what to do when it matches: change the monitor status, create an alert, or declare an incident. Criteria are checked from top to bottom, and the first one that matches decides.
+
+### Default criteria
+
+A monitor you do not build from a template starts with two criteria:
+
+| Order | Criteria | Matches when | Then |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
+
+These defaults suit few Ceph metrics: `ceph_health_status` is 0 when the cluster is healthy. Pick a template, or set your own criteria.
+
+> [!IMPORTANT]
+> Silence matches neither criteria: a cluster that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria.
 
 ## Troubleshooting
 
-### The cluster does not appear in the monitor's cluster picker
+:::details The cluster is not in the Ceph Cluster list
+Clusters register themselves from the agent's data. Check that the agent is running and shipping data (see the [Ceph Agent guide](/docs/telemetry/ceph)), and that `CEPH_CLUSTER_NAME` is set.
+:::
 
-The cluster registers itself from the agent's telemetry. Check the agent is running and shipping (see [Verify the Installation](/docs/telemetry/ceph)), and that `CEPH_CLUSTER_NAME` is set.
+:::details Metrics stopped after a mgr failover
+The agent has to scrape **every** mgr daemon, not only the active one: standbys return nothing until they take over. List every mgr in `CEPH_MGR_ENDPOINTS`.
+:::
 
-### Metrics stopped after a mgr failover
+:::details ceph_health_status is 1 but nothing fires
+Check that the criteria uses **Greater Than Or Equal To** `1`, not **Greater Than**, and that the monitor's **Time Range** covers at least one 30-second scrape.
+:::
 
-The agent must scrape **all** mgr daemons, not just the active one — standbys return empty responses until they take over. List every mgr in `CEPH_MGR_ENDPOINTS`.
+:::details Health-check templates never fire
+The templates that watch `ceph_health_detail` — Daemon Crash, Monitor Clock Skew, OSD Nearfull, OSD Backfillfull, OSD Full, the two monitor-disk templates, Damaged Placement Groups and OSD Slow Heartbeats — need the mgr `prometheus` module from Quincy or later. While a check is active, confirm the series exists:
 
-### `ceph_health_status` is 1 but no incident fires
+```bash
+curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail
+```
 
-Check the criteria filter is **Greater Than or Equal To** `1` (not Greater Than), and that the monitor's rolling window covers at least one scrape interval (30 seconds).
+Health-check series, `ceph_daemon_health_metrics` included, exist only while a check fires, so finding none while the cluster is healthy is expected.
+:::
 
-### Health-check templates never fire
+:::details Counters like ceph_pool_wr_bytes only ever grow
+Pool I/O series are lifetime counters, and criteria compare raw values: there is no rate operator, and **Convert to per-second rate** in the query builder only changes the chart. Chart them as a rate, or alert on their growth with a formula, such as a **Maximum** query minus a **Minimum** query of the same counter.
+:::
 
-Templates watching `ceph_health_detail` (Daemon Crash, Monitor Clock Skew, OSD Nearfull/Backfillfull/Full, Monitor Disk Space, Damaged PGs, OSD Slow Heartbeats) need the mgr prometheus module from **Quincy or later** — older releases do not export that series. `curl http://ACTIVE_MGR:9283/metrics | grep ceph_health_detail` while a check is active to verify. Remember health-check series (including `ceph_daemon_health_metrics`) only exist while the check fires — no series during a healthy period is expected.
+## Next steps
 
-### Counters like `ceph_pool_wr_bytes` only ever grow
-
-Pool IO series are cumulative counters. Alert on their rate of change (or use a formula over a rolling window) rather than the raw value.
+:::cards
+- [Ceph Agent](/docs/telemetry/ceph): Install and upgrade the agent this monitor reads.
+- [Proxmox Monitor](/docs/monitor/proxmox-monitor): Watch the Proxmox VE cluster that uses the storage.
+- [Storage Array Monitor](/docs/monitor/storage-array-monitor): The same kind of monitor for Pure Storage arrays.
+- [Incidents](/docs/incidents/index): What happens after a criteria declares an incident.
+:::

@@ -86,11 +86,12 @@ import { EntityManager } from "typeorm";
  *
  * The statement timeout is set on the transaction as well, not left to the
  * connection's startup parameter: PgBouncer drops that parameter, and behind
- * it nothing but node-postgres's client-side query_timeout would remain — which
- * abandons a query without cancelling it, leaving one of the heaviest reads in
- * the app running on the server (holding its snapshot) after the user was
- * already told it failed. The configured value stays below that client
- * timeout, so Postgres cancels first.
+ * it nothing but the app's client-side query timeout would remain - which
+ * cancels a query only once the client has given up on it, and cannot at all
+ * when the cancel does not reach the server (CancelOnTimeoutClient), leaving
+ * one of the heaviest reads in the app running on the server (holding its
+ * snapshot) after the user was already told it failed. The configured value
+ * stays below that client timeout, so Postgres cancels first.
  */
 
 /*

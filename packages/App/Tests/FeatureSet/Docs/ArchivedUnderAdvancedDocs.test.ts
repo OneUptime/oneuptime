@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * Every product's side menu used to list Archived in its main section, beside
@@ -13,7 +14,8 @@ import path from "path";
  * Every page in every language: a bold menu path that ends at an Archived
  * page goes through Advanced. And the pages that tell readers where their
  * archived things are say so, in English and in Persian (whose pages name the
- * UI in English, as here).
+ * UI in English, as here, except the SLO pages, which name it as the Persian
+ * Dashboard draws it).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -134,8 +136,9 @@ describe("docs send readers to Archived through Advanced", () => {
     expect(readPage("en/slo/introduction.md")).toContain(
       "on the **Archived** page, under **Advanced** in the SLO list's side menu",
     );
+    // The Persian page names both as the Persian Dashboard draws them.
     expect(readPage("fa/slo/introduction.md")).toContain(
-      "در صفحه **Archived**، در بخش **Advanced** منوی کناری فهرست SLOها",
+      `در صفحه **${drawnDashboardLabel("fa", "Archived")}**، در بخش **${drawnDashboardLabel("fa", "Advanced")}** منوی کناری فهرست SLOها`,
     );
   });
 

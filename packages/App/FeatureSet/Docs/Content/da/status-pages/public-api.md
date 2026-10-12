@@ -1,186 +1,207 @@
-# Offentlig statussides API
+# Offentlig API
 
-Her er, hvordan du kan bruge den Offentlige statussides API til at hente status for dine ressourcer, der er på statussiden. Alt du skal gøre er at sende en POST-anmodning til API-endpointet.
+Hver statusside svarer på et lille sæt JSON-endpoints, der kun læser: dens oversigt, oppetid, hændelser, episoder, planlagte vedligeholdelsesbegivenheder og meddelelser. Det er de endpoints, statussiden selv indlæser, så de returnerer præcis det, en besøgende ser, og en offentlig side kræver ingen API-nøgle. Brug dem til at vise din status i din egen app, en chatbot eller på en vægskærm.
 
-## Oversigtens API
+:::cards
+- [Endpoints](#endpoints): Ét endpoint for hver ting, siden viser.
+- [Læs oversigten](#læs-oversigten): Hele siden i én request, med curl, Node.js og Python.
+- [Oppetid for et datointerval](#oppetid-for-et-datointerval): Oppetid pr. ressource og gruppe, for op til 90 dage.
+- [Fejl](#fejl): Hvad hver statuskode betyder.
+:::
 
-Denne API henter alle ressourcer, der er på statussiden, herunder den overordnede status for ressourcerne, incidents og vedligeholdelse og mere.
+## Sådan besvares en request
 
-For at hente den overordnede status for ressourcerne på statussiden kan du sende en POST-anmodning til følgende endpoint:
+Hver request angiver statussiden ved dens ID eller ved et af dens brugerdefinerede domæner. OneUptime finder siden, anvender de samme adgangsregler, som en besøgende møder, og svarer med JSON.
 
-```bash
-curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
+```mermaid title="Sådan besvares en request til en statussides API"
+flowchart TB
+    R["Request med en<br/>statussides ID<br/>eller domæne"] --> F{"Velformet ID<br/>eller verificeret<br/>domæne?"}
+    F -->|"Ja"| A{"Er siden<br/>arkiveret?"}
+    F -->|"Nej"| E404["404: Status Page<br/>not found"]
+    A -->|"Nej"| IP{"Lukker<br/>IP-tilladelseslisten<br/>kalderen ind?"}
+    A -->|"Ja"| E404
+    IP -->|"Ja"| P{"Er siden<br/>offentlig?"}
+    IP -->|"Nej"| E403["403: IP-adresse<br/>blokeret"]
+    P -->|"Nej"| S{"Logget ind, eller<br/>låst op med<br/>adgangskoden?"}
+    P -->|"Ja"| OK["200 med JSON"]
+    S -->|"Ja"| OK
+    S -->|"Nej"| E401["401: ikke<br/>godkendt"]
 ```
 
-Dette er svaret fra API'en:
+En privat side svarer kun en browser, der er logget ind på den eller har låst den op med dens adgangskode: API'et læser den samme session som siden. Brug en offentlig side til et script. Se [At begrænse hvem der må se siden](/docs/status-pages/index#at-begrænse-hvem-der-må-se-siden).
+
+Et velformet ID, som ingen statusside har, går samme vej som en privat side og besvares med `401`. Svarer en offentlig side med `401`, så tjek ID'et.
+
+## Før du begynder
+
+- **Statussidens ID.** Åbn siden i dashboardet (**Statussider → Alle statussider**, derefter siden). Kortet **Statussidedetaljer** på dens **Oversigt** viser **Statusside-ID**.
+- **Basis-URL'en.** Alle endpoints nedenfor ligger under `/status-page-api`:
+
+| Hvor siden kører | Basis-URL |
+| ------------------- | -------- |
+| OneUptime Cloud | `https://oneuptime.com/status-page-api` |
+| Selvhostet OneUptime | `https://<your-oneuptime-host>/status-page-api` |
+| Et brugerdefineret domæne for siden | `https://status.example.com/status-page-api` |
+
+Hvor en sti nedenfor siger `{statusPageIdOrDomain}`, kan du sende sidens ID eller et af dens verificerede brugerdefinerede domæner, f.eks. `status.example.com`. Oppetids-endpointet tager kun ID'et og svarer på et domæne med `401`.
+
+## Endpoints
+
+| Endpoint | Metoder | Returnerer |
+| -------- | ------- | ------- |
+| `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Alt, hvad oversigten viser: den samlede status, ressourcer og grupper, aktive hændelser og episoder, planlagt vedligeholdelse, aktuelle meddelelser og dataene bag oppetidsbjælkerne. |
+| `/uptime/{statusPageId}` | `POST` | Oppetidsprocenter pr. ressource og pr. gruppe for et datointerval. |
+| `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | De hændelser, siden viser, med deres offentlige noter og tilstandsskift. |
+| `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Én hændelse. |
+| `/episodes/{statusPageIdOrDomain}` | `POST` | De hændelsesepisoder, siden viser. |
+| `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | Én episode. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`, `POST` | De planlagte vedligeholdelsesbegivenheder, siden viser, med deres offentlige noter og tilstandsskift. |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | Én planlagt vedligeholdelsesbegivenhed. |
+| `/announcements/{statusPageIdOrDomain}` | `GET`, `POST` | De meddelelser, siden viser. |
+| `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | Én meddelelse. |
+
+Endpointene følger sidens egne indstillinger i kortet **Hvad din statusside viser** (se [At vælge hvad der vises på siden](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden)):
+
+- En liste, der er slået fra, afviser sit endpoint, for eksempel med `Incidents are not enabled on this status page.`
+- Hver liste rækker så langt tilbage som sin indstilling **Vis de seneste … dage** (som standard 14). Hændelseslisten omfatter desuden alle hændelser, der endnu ikke er løst, og listen over planlagt vedligeholdelse alle begivenheder, der endnu ikke er begyndt eller er i gang.
+- Ved sit ID returneres en hændelse, episode, begivenhed eller meddelelse, uanset hvor gammel den er, så et link til en ældre bliver ved med at virke. En, som siden slet ikke viser, for eksempel en hændelse på en monitor, der ikke er på siden, kommer tilbage som en tom liste, og en episode som `404`.
+
+**Hvilke hændelser en side returnerer.** Hændelses-endpointet returnerer hændelserne på sidens monitorer, minus dem, der er begrænset til andre statussider, og minus alle hændelser, der ikke er begrænset til denne side, hvis siden kun viser hændelser, der er begrænset til den (se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience)). Hvilke sider en hændelse er begrænset til, er aldrig en del af svaret.
+
+## Læs oversigten
+
+Oversigten er én request for hele siden. Det er de samme data, som statussiden tegner, og de er højst 15 sekunder gamle.
+
+:::tabs
+@tab curl
+```bash
+curl https://oneuptime.com/status-page-api/overview/YOUR_STATUS_PAGE_ID
+```
+@tab Node.js
+```javascript title="status.mjs"
+// Node.js 18 or later: fetch is built in. Run with `node status.mjs`.
+const statusPageId = "YOUR_STATUS_PAGE_ID";
+
+const response = await fetch(
+  `https://oneuptime.com/status-page-api/overview/${statusPageId}`,
+);
+const body = await response.json();
+
+if (!response.ok) {
+  throw new Error(`${response.status}: ${body.error}`);
+}
+
+console.log(body.overallStatus?.name); // "Operational"
+```
+@tab Python
+```python title="status.py"
+# Python 3, standard library only. Run with `python3 status.py`.
+import json
+import urllib.request
+
+STATUS_PAGE_ID = "YOUR_STATUS_PAGE_ID"
+url = f"https://oneuptime.com/status-page-api/overview/{STATUS_PAGE_ID}"
+
+with urllib.request.urlopen(url, timeout=10) as response:
+    overview = json.load(response)
+
+print((overview.get("overallStatus") or {}).get("name"))  # Operational
+```
+:::
+
+Den samlede status er den værste aktuelle status blandt sidens monitorer og monitorgrupper, den med den højeste prioritet. En monitorstatus ser sådan ud:
 
 ```json
 {
-  "overallStatus": {
-    // Monitor Status-objekt
-    // Overordnet status er den værste status for alle monitorer og grupper på statussiden.
-    // Du kan finde flere detaljer om monitorstatus her.
-    // https://oneuptime.com/reference/monitor-status
-  },
-  "scheduledMaintenanceEventsPublicNotes": [
-    // Du kan finde flere detaljer om den planlagte vedligeholdelses offentlige note her.
-    // https://oneuptime.com/reference/scheduled-maintenance-public-note
-    {
-      // Planlagt vedligeholdelses offentlig note-objekt
-    },
-    {
-      // Planlagt vedligeholdelses offentlig note-objekt
-    }
-  ],
-  "statusPageHistoryChartBarColorRules": [
-    // Du kan finde flere detaljer om statussidernes historikdiagram-stavsfarveregel her.
-    // https://oneuptime.com/reference/status-page-history-chart-bar-color-rule
-    {
-      // Statussidernes historikdiagram-stavsfarveregel-objekt
-    },
-    {
-      // Statussidernes historikdiagram-stavsfarveregel-objekt
-    }
-  ],
-  "scheduledMaintenanceEvents": [
-    // Du kan finde flere detaljer om den planlagte vedligeholdelsesbegivenhed her.
-    // https://oneuptime.com/reference/scheduled-maintenance
-    {
-      // Planlagt vedligeholdelsesbegivenhed-objekt
-    },
-    {
-      // Planlagt vedligeholdelsesbegivenhed-objekt
-    }
-  ],
-  "activeAnnouncements": [
-    // Du kan finde flere detaljer om den aktive meddelelse her.
-    // https://oneuptime.com/reference/status-page-announcement
-    {
-      // Statussidernes meddelelse-objekt
-    },
-    {
-      // Statussidernes meddelelse-objekt
-    }
-  ],
-  "incidentPublicNotes": [
-    // Du kan finde flere detaljer om den offentlige incidentnote her.
-    // https://oneuptime.com/reference/incident-public-note
-    {
-      // Incident offentlig note-objekt
-    },
-    {
-      // Incident offentlig note-objekt
-    }
-  ],
-  "activeIncidents": [
-    // Du kan finde flere detaljer om det aktive incident her.
-    // https://oneuptime.com/reference/incident
-    {
-      // Incident-objekt
-    },
-    {
-      // Incident-objekt
-    }
-  ],
-  "monitorStatusTimelines": [
-    // Du kan finde flere detaljer om monitorstatustidslinjen her.
-    // https://oneuptime.com/reference/monitor-status-timeline
-    {
-      // Monitorstatustidslinje-objekt
-    },
-    {
-      // Monitorstatustidslinje-objekt
-    }
-  ],
-  "resourceGroups": [
-    // Du kan finde flere detaljer om ressourcegruppen her.
-    // https://oneuptime.com/reference/resource-group
-    {
-      // Ressourcegruppe-objekt
-    },
-    {
-      // Ressourcegruppe-objekt
-    }
-  ],
-  "monitorStatuses": [
-    // Du kan finde flere detaljer om monitorstatus her.
-    // https://oneuptime.com/reference/monitor-status
-    {
-      // Monitorstatus-objekt
-    },
-    {
-      // Monitorstatus-objekt
-    }
-  ],
-  "statusPageResources": [
-    // Du kan finde flere detaljer om statussideressourcen her.
-    // https://oneuptime.com/reference/status-page-resource
-    {
-      // Statussideressource-objekt
-    },
-    {
-      // Statussideressource-objekt
-    }
-  ],
-  "incidentStateTimelines": [
-    // Du kan finde flere detaljer om incidenttilstandstidslinjen her.
-    // https://oneuptime.com/reference/incident-state-timeline
-    {
-      // Incidenttilstandstidslinje-objekt
-    },
-    {
-      // Incidenttilstandstidslinje-objekt
-    }
-  ],
-  "statusPage": {
-    // Du kan finde flere detaljer om statussiden her.
-    // https://oneuptime.com/reference/status-page
-  },
-  "scheduledMaintenanceStateTimelines": [
-    // Du kan finde flere detaljer om den planlagte vedligeholdelses tilstandstidslinje her.
-    // https://oneuptime.com/reference/scheduled-maintenance-state-timeline
-    {
-      // Planlagt vedligeholdelses tilstandstidslinje-objekt
-    },
-    {
-      // Planlagt vedligeholdelses tilstandstidslinje-objekt
-    }
-  ],
-  "monitorGroupCurrentStatuses": {
-    // Aktuel status for monitorgruppen.
-  },
-  "monitorsInGroup": {
-    // Monitorer i gruppen.
-  }
+  "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
+  "name": "Operational",
+  "color": { "_type": "Color", "value": "#2ab57d" },
+  "isOperationalState": true,
+  "priority": 1
 }
 ```
 
-## Oppetids-API
+### Hvad oversigten returnerer
 
-Denne API henter al oppetid for alle ressourcer på statussiden.
+| Nøgle | Hvad den indeholder |
+| --- | ------------- |
+| `overallStatus` | Sidens samlede status, en monitorstatus som ovenfor. En side uden noget på får projektets status med den laveste prioritet. |
+| `statusPage` | Sidens offentlige indstillinger: titel, beskrivelse, branding og hvad den viser. |
+| `statusPageResources` | Hver ressource: visningsnavn, beskrivelse, gruppe, monitor eller monitorgruppe og visningsindstillinger. |
+| `resourceGroups` | Grupperne, med `parentStatusPageGroupId` for indlejrede grupper. |
+| `monitorStatuses` | Alle projektets monitorstatusser, fra den laveste prioritet til den højeste. |
+| `monitorGroupCurrentStatuses`, `monitorsInGroup` | Den aktuelle status for hver monitorgruppe på siden og monitorerne i den. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det, oppetidsbjælkerne tegnes ud fra, og sidens farveregler for bjælkerne. |
+| `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De uløste hændelser, siden viser, deres offentlige noter og tilstandsskift samt projektets hændelsestilstande. |
+| `timelineIncidents` | Hændelserne i oppetidsbjælkernes tidsvindue, løste hændelser medregnet, til bjælkernes værktøjstip. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hændelsesepisoder. |
+| `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De planlagte vedligeholdelsesbegivenheder, der endnu ikke er begyndt eller er i gang, deres offentlige noter og tilstandsskift. |
+| `activeAnnouncements` | De meddelelser, der vises nu: startet og ikke afsluttet. |
 
-For at hente den samlede oppetid for alle ressourcer kan du sende en POST-anmodning til følgende endpoint:
+## Oppetid for et datointerval
 
+`POST /uptime/{statusPageId}` returnerer oppetiden for hver ressource og gruppe på siden mellem to datoer. Begge datoer er valgfrie:
+
+| Felt | Standard | Bemærkninger |
+| ----- | ------- | ----- |
+| `startDate` | For 14 dage siden | En dato og et klokkeslæt efter ISO 8601. |
+| `endDate` | Nu | Må ikke ligge før `startDate`. Intervallet må højst dække 90 dage. |
+
+:::tabs
+@tab curl
 ```bash
-curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
+curl -X POST https://oneuptime.com/status-page-api/uptime/YOUR_STATUS_PAGE_ID \
+  -H "Content-Type: application/json" \
+  -d '{"startDate": "2026-09-01T00:00:00Z", "endDate": "2026-09-30T23:59:59Z"}'
 ```
+@tab Node.js
+```javascript title="uptime.mjs"
+// Node.js 18 or later. Run with `node uptime.mjs`.
+const statusPageId = "YOUR_STATUS_PAGE_ID";
 
-**Anmodningsindhold (valgfrit):**
+const response = await fetch(
+  `https://oneuptime.com/status-page-api/uptime/${statusPageId}`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      startDate: "2026-09-01T00:00:00Z",
+      endDate: "2026-09-30T23:59:59Z",
+    }),
+  },
+);
+const uptime = await response.json();
 
-Du kan sende startDate og endDate som anmodningsindhold.
-
-```
-{
-    "startDate": "2021-09-01T00:00:00Z",
-    "endDate": "2021-09-30T23:59:59Z"
+for (const group of uptime.groupUptimes) {
+  console.log(group.statusPageGroupName, group.uptimePercent);
 }
 ```
+@tab Python
+```python title="uptime.py"
+# Python 3, standard library only. Run with `python3 uptime.py`.
+import json
+import urllib.request
 
-Disse datoer bør ikke være mere end 90 dage fra hinanden. Hvis du ikke angiver datoerne, returnerer API'en oppetiden for de seneste 14 dage.
+STATUS_PAGE_ID = "YOUR_STATUS_PAGE_ID"
 
-**Eksempelsvar:**
+request = urllib.request.Request(
+    f"https://oneuptime.com/status-page-api/uptime/{STATUS_PAGE_ID}",
+    data=json.dumps(
+        {"startDate": "2026-09-01T00:00:00Z", "endDate": "2026-09-30T23:59:59Z"}
+    ).encode(),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
 
-Dette er eksempelsvaret fra API'en:
+with urllib.request.urlopen(request, timeout=10) as response:
+    uptime = json.load(response)
+
+for group in uptime["groupUptimes"]:
+    print(group["statusPageGroupName"], group["uptimePercent"])
+```
+:::
+
+Svaret:
 
 ```json
 {
@@ -191,15 +212,11 @@ Dette er eksempelsvaret fra API'en:
         "value": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663"
       },
       "uptimePercent": 99.98,
-      "statusPageResourceName": "Statussideressourcenavn",
+      "statusPageResourceName": "Checkout API",
       "currentStatus": {
         "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-        "isPermissionIf": {},
         "name": "Operational",
-        "color": {
-          "_type": "Color",
-          "value": "#2ab57d"
-        },
+        "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
       }
@@ -211,6 +228,7 @@ Dette er eksempelsvaret fra API'en:
         "_type": "ObjectID",
         "value": "df7632c4-c5c0-453c-88bf-9ee3d68d45f2"
       },
+      "parentStatusPageGroupId": null,
       "uptimePercent": 99.98,
       "statusPageResourceUptimes": [
         {
@@ -219,118 +237,120 @@ Dette er eksempelsvaret fra API'en:
             "value": "8175534f-aa77-456c-ad5b-b8e7b85876aa"
           },
           "uptimePercent": 99.98,
-          "statusPageResourceName": "dfg",
+          "statusPageResourceName": "Web app",
           "currentStatus": {
             "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-            "isPermissionIf": {},
             "name": "Operational",
-            "color": {
-              "_type": "Color",
-              "value": "#2ab57d"
-            },
+            "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
           }
         }
       ],
-      "statusPageGroupName": "Gruppenavn",
+      "statusPageGroupName": "Web",
       "currentStatus": {
         "_id": "cc80b385-4190-42a3-ae8b-9b391e90d79f",
-        "isPermissionIf": {},
         "name": "Operational",
-        "color": {
-          "_type": "Color",
-          "value": "#2ab57d"
-        },
+        "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
       }
     }
   ],
-  "startDate": "2021-09-01T00:00:00Z",
-  "endDate": "2021-09-30T23:59:59Z"
+  "startDate": "2026-09-01T00:00:00.000Z",
+  "endDate": "2026-09-30T23:59:59.000Z"
 }
 ```
 
-## Incident-API
+| Nøgle | Hvad den indeholder |
+| --- | ------------- |
+| `statusPageResourceUptimes` | Ressourcerne uden for enhver gruppe, dem besøgende ser øverst på siden. |
+| `groupUptimes` | Én post pr. gruppe. En gruppes `uptimePercent` og `currentStatus` dækker alle ressourcer under den, indlejrede grupper medregnet; dens `statusPageResourceUptimes` viser kun de ressourcer, der ligger direkte i den. Genopbyg træet med `parentStatusPageGroupId`. |
+| `uptimePercent` | Afrundet til ressourcens eller gruppens egen præcision. `null`, når ressourcen eller gruppen ikke viser en oppetidsprocent. |
+| `currentStatus` | `null`, når ressourcen eller gruppen ikke viser sin aktuelle status. |
 
-Denne API henter alle incidents, der er på statussiden. For at hente alle incidents på statussiden kan du sende en POST-anmodning til følgende endpoint:
+Tid tæller som nedetid, når dens monitorstatus er en af sidens statusser under **Tæller som nedetid**.
 
+## Hændelser, episoder, vedligeholdelse og meddelelser
+
+Liste-endpointene svarer på `GET` såvel som `POST`; endpointene for enkelte elementer og episode-endpointene svarer på `POST`.
+
+:::tabs
+@tab curl
 ```bash
-curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
-```
+# The incidents the page lists
+curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-Dette er svaret fra API'en:
+# One scheduled maintenance event
+curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
+```
+@tab Node.js
+```javascript title="incidents.mjs"
+// Node.js 18 or later. Run with `node incidents.mjs`.
+const statusPageId = "YOUR_STATUS_PAGE_ID";
+
+const response = await fetch(
+  `https://oneuptime.com/status-page-api/incidents/${statusPageId}`,
+);
+const { incidents } = await response.json();
+
+for (const incident of incidents) {
+  console.log(incident.title, incident.currentIncidentState?.name);
+}
+```
+@tab Python
+```python title="incidents.py"
+# Python 3, standard library only. Run with `python3 incidents.py`.
+import json
+import urllib.request
+
+STATUS_PAGE_ID = "YOUR_STATUS_PAGE_ID"
+url = f"https://oneuptime.com/status-page-api/incidents/{STATUS_PAGE_ID}"
+
+with urllib.request.urlopen(url, timeout=10) as response:
+    incidents = json.load(response)["incidents"]
+
+for incident in incidents:
+    print(incident["title"], (incident.get("currentIncidentState") or {}).get("name"))
+```
+:::
+
+| Endpoint | Nøgler i svaret |
+| -------- | -------------------- |
+| Hændelser | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Episoder | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Planlagte vedligeholdelsesbegivenheder | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
+| Meddelelser | `announcements`, `statusPageResources`, `monitorsInGroup` |
+
+En request efter ét element svarer med de samme nøgler, som rummer den ene post.
+
+## Fejl
+
+En fejl svarer med en statuskode og JSON-indhold, der fortæller hvorfor:
 
 ```json
-{
-  "incidents": [
-    // Du kan finde flere detaljer om incidentet her.
-    // https://oneuptime.com/reference/incident
-    {
-      // Incident-objekt
-    },
-    {
-      // Incident-objekt
-    }
-  ]
-}
+{ "error": "You can only get uptime for 90 days. Please select a date range within 90 days." }
 ```
 
-## Planlagt vedligeholdelses-API
+| Status | Hvornår |
+| ------ | ---- |
+| `400` | Requesten beder om noget, siden ikke viser, for eksempel en liste, der er slået fra, eller oppetidsintervallet er længere end 90 dage eller slutter, før det begynder. |
+| `401` | Siden er privat, og requesten har hverken en logget-ind-session eller adgangskoden til den. Et velformet ID, som ingen statusside har, besvares også med `401`. |
+| `403` | Sidens IP-tilladelsesliste indeholder ikke kalderens adresse. |
+| `404` | ID'et er ikke velformet, intet verificeret brugerdefineret domæne passer, eller siden er arkiveret. En episode, siden ikke viser, besvares også med `404`. |
 
-Denne API henter al planlagt vedligeholdelse, der er på statussiden. For at hente al planlagt vedligeholdelse på statussiden kan du sende en POST-anmodning til følgende endpoint:
+## Andre måder at læse en statusside på
 
-```bash
-curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
-```
+- **RSS.** Hver statusside leverer `/rss`, et feed med dens hændelser, meddelelser og planlagte vedligeholdelsesbegivenheder. Se [Det indlejrbare mærke og RSS-feedet](/docs/status-pages/index#det-indlejrbare-mærke-og-rss-feedet).
+- **llms.txt.** Ved siden af `/rss` leverer hver statusside `/llms.txt`, som viser AI-agenter vej til RSS-feedet og oversigtens JSON.
+- **MCP.** AI-agenter kan læse siden gennem OneUptimes MCP-server på `https://oneuptime.com/mcp`, uden API-nøgle, ved at angive sidens ID eller domæne som `statusPageIdOrDomain`. Den er slået til som standard; slå den fra med **Aktivér MCP-server** under **AI → MCP** i sidens sidemenu. Se [MCP-server](/docs/ai/mcp-server).
+- **REST API'et.** Brug [OneUptime API'et](/docs/api-reference/api-reference) med en API-nøgle til at oprette eller ændre statussider, ressourcer, abonnenter og meddelelser.
 
-Dette er svaret fra API'en:
+## Næste trin
 
-```json
-{
-  "scheduledMaintenanceEvents": [
-    // Du kan finde flere detaljer om den planlagte vedligeholdelsesbegivenhed her.
-    // https://oneuptime.com/reference/scheduled-maintenance
-    {
-      // Planlagt vedligeholdelsesbegivenhed-objekt
-    },
-    {
-      // Planlagt vedligeholdelsesbegivenhed-objekt
-    }
-  ]
-}
-```
-
-## Meddelelse-API
-
-Denne API henter alle meddelelser, der er på statussiden. For at hente alle meddelelser på statussiden kan du sende en POST-anmodning til følgende endpoint:
-
-```bash
-curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
-```
-
-Dette er svaret fra API'en:
-
-```json
-{
-  "announcements": [
-    // Du kan finde flere detaljer om meddelelsen her.
-    // https://oneuptime.com/reference/status-page-announcement
-    {
-      // Meddelelse-objekt
-    },
-    {
-      // Meddelelse-objekt
-    }
-  ]
-}
-```
-
-## Hvor du kan læse videre
-
-- [Statussider – Oversigt](/docs/status-pages/index) — hvad en statusside er, og hvordan delene hænger sammen.
-- [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups) — de ressourcer, som disse endpoints returnerer.
-- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) — det brugerdefinerede domæne, som disse endpoints serveres fra.
-- [Abonnenter og meddelelser](/docs/status-pages/subscribers) — de meddelelser, som meddelelses-endpointet serverer.
-- [Hændelser – Oversigt](/docs/incidents/index) — hvor hændelserne i disse svar kommer fra.
+:::cards
+- [Statussider – Oversigt](/docs/status-pages/index): Hvad en statusside viser, og hvem der må se den.
+- [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups): De ressourcer og grupper, disse endpoints returnerer.
+- [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience): Hvorfor én side viser en hændelse, som en anden ikke viser.
+- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains): Lever siden, og disse endpoints, på dit eget domæne.
+:::

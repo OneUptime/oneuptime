@@ -15,6 +15,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
+import PromptText from "../../../Utils/AI/PromptText";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
@@ -60,8 +61,11 @@ export default class IncidentAIContextBuilder {
           color: true,
         },
         monitors: {
+          _id: true,
           name: true,
         },
+        // For the affected network device's transceivers (NetworkTransceiverContext).
+        seriesLabels: true,
         serviceLevelObjectives: {
           name: true,
         },
@@ -228,7 +232,7 @@ export default class IncidentAIContextBuilder {
     // Basic incident information
     contextText += "# Incident Information\n\n";
     contextText += `**Title:** ${incident.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${incident.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(incident.description) || "N/A"}\n\n`;
     contextText += `**Severity:** ${incident.incidentSeverity?.name || "N/A"}\n\n`;
     contextText += `**Current State:** ${incident.currentIncidentState?.name || "N/A"}\n\n`;
     contextText += `**Created At:** ${incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "N/A"}\n\n`;
@@ -275,12 +279,12 @@ export default class IncidentAIContextBuilder {
 
     // Root cause if available
     if (incident.rootCause) {
-      contextText += `**Root Cause:** ${incident.rootCause}\n\n`;
+      contextText += `**Root Cause:** ${PromptText.draftField(incident.rootCause)}\n\n`;
     }
 
     // Remediation notes if available
     if (incident.remediationNotes) {
-      contextText += `**Remediation Notes:** ${incident.remediationNotes}\n\n`;
+      contextText += `**Remediation Notes:** ${PromptText.draftField(incident.remediationNotes)}\n\n`;
     }
 
     // State timeline
@@ -299,7 +303,7 @@ export default class IncidentAIContextBuilder {
 
         contextText += `- **${startTime}**: State changed to **${stateName}** by ${createdBy}\n`;
         if (timeline.rootCause) {
-          contextText += `  - Root cause noted: ${timeline.rootCause}\n`;
+          contextText += `  - Root cause noted: ${PromptText.draftField(timeline.rootCause)}\n`;
         }
       }
       contextText += "\n";
@@ -318,7 +322,7 @@ export default class IncidentAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -337,7 +341,7 @@ export default class IncidentAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -437,7 +441,7 @@ Grounding rules (important):
     // Basic incident information
     contextText += "# Incident Information\n\n";
     contextText += `**Title:** ${incident.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${incident.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(incident.description) || "N/A"}\n\n`;
     contextText += `**Severity:** ${incident.incidentSeverity?.name || "N/A"}\n\n`;
     contextText += `**Current State:** ${incident.currentIncidentState?.name || "N/A"}\n\n`;
     contextText += `**Created At:** ${incident.createdAt ? OneUptimeDate.getDateAsFormattedString(incident.createdAt) : "N/A"}\n\n`;
@@ -484,7 +488,7 @@ Grounding rules (important):
 
     // Root cause if available
     if (incident.rootCause) {
-      contextText += `**Root Cause:** ${incident.rootCause}\n\n`;
+      contextText += `**Root Cause:** ${PromptText.draftField(incident.rootCause)}\n\n`;
     }
 
     // State timeline
@@ -503,7 +507,7 @@ Grounding rules (important):
 
         contextText += `- **${startTime}**: State changed to **${stateName}** by ${createdBy}\n`;
         if (timeline.rootCause) {
-          contextText += `  - Root cause noted: ${timeline.rootCause}\n`;
+          contextText += `  - Root cause noted: ${PromptText.draftField(timeline.rootCause)}\n`;
         }
       }
       contextText += "\n";
@@ -522,7 +526,7 @@ Grounding rules (important):
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -541,7 +545,7 @@ Grounding rules (important):
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 

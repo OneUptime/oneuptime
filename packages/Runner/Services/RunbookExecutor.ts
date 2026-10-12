@@ -110,10 +110,14 @@ function runBashLocally(data: {
  * but now on the agent's machine rather than on the OneUptime Worker. The
  * isolate has no fs or process access and is killed at the timeout.
  *
- * It is NOT a network sandbox: the host deliberately bridges an HTTP client
- * into the isolate, so a script can reach anything the agent's machine can
- * reach. Run agents where you would run any other operator-authored automation
- * — the trust boundary is the Runbook author, not the isolate.
+ * The host bridges axios into the isolate, through VMRunner's SSRF guard.
+ * Nothing here passes allowPrivateNetworkRequests, so the guard's strict
+ * policy applies: a script reaches public addresses only, and private,
+ * loopback and link-local ones (this host, the networks it sits in, a cloud
+ * metadata endpoint) are refused. A step that has to reach those runs as Bash,
+ * with this host's own network access. Run agents where you would run any
+ * other operator-authored automation - the trust boundary is the Runbook
+ * author, not the isolate.
  */
 async function runJavaScriptLocally(data: {
   script: string;

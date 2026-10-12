@@ -464,9 +464,11 @@ export interface OnCallPageItem {
  */
 
 /**
- * The three ways a calendar app can be pointed at one feed. `webcal` is a
- * `webcals://` URL when the server is served over https; `googleAdd` is the
- * Google Calendar "add by URL" deep link, which only works from a browser.
+ * The three ways a calendar app can be pointed at one feed. `webcal` is the
+ * link on the webcal:// scheme (servers before the Google Calendar fix sent
+ * webcals://, which iOS does not open, so the app rebuilds it); `googleAdd`
+ * is the Google Calendar "add by URL" deep link, which only works from a
+ * browser.
  */
 export interface OnCallCalendarFeedUrls {
   https: string;

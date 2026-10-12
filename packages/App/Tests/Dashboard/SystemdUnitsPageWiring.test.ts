@@ -70,6 +70,9 @@ const DOCS_CONTENT: string = path.join(
   "Content",
 );
 
+// A fenced YAML block, with or without a title on its opening line.
+const YAML_FENCE: RegExp = /```yaml[^\n]*\n[\s\S]*?```/g;
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -460,19 +463,19 @@ describe("systemd receiver documentation", () => {
   }
 
   /*
-   * The three "Complete example" sections are the configs users copy whole.
-   * They are found by their fenced YAML rather than by heading text, because
-   * the headings are translated and the YAML is not.
+   * The configs users copy whole: the Linux, macOS and Windows configs of the
+   * install's first step, and the lean one. They are found by their fenced
+   * YAML rather than by heading text, because the headings are translated
+   * and the YAML is not. A fence may carry a title (```yaml title="..."),
+   * which the docs draw above the block.
    */
   function completeExampleConfigs(doc: string): Array<string> {
-    return (doc.match(/```yaml\n[\s\S]*?```/g) || []).filter(
-      (block: string): boolean => {
-        return (
-          block.includes("x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN") &&
-          block.includes("service:\n  pipelines:")
-        );
-      },
-    );
+    return (doc.match(YAML_FENCE) || []).filter((block: string): boolean => {
+      return (
+        block.includes("x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN") &&
+        block.includes("service:\n  pipelines:")
+      );
+    });
   }
 
   test("the English page documents the receiver end to end", () => {

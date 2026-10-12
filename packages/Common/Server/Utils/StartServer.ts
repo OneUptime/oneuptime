@@ -45,6 +45,7 @@ import {
   UnitOfWork,
 } from "../../Types/Telemetry/UnitOfWork";
 import mountVendorAssets from "./VendorAssets";
+import StartupGate from "./StartupGate";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -356,6 +357,13 @@ export interface InitFuctionOptions {
   port?: Port | undefined;
   isFrontendApp?: boolean;
   statusOptions: StatusAPIOptions;
+  /*
+   * Answer 503 with Retry-After for every route mounted after this call
+   * until StartupGate.open() is called - for a service that keeps mounting
+   * routes for a while after it starts listening (the App). The status
+   * routes are mounted first and keep answering. See StartupGate.
+   */
+  useStartupGate?: boolean | undefined;
   getVariablesToRenderIndexPage?: (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -396,6 +404,15 @@ const init: InitFunction = async (
    * a stylesheet.
    */
   mountVendorAssets(app);
+
+  /*
+   * After the status routes and the vendor assets, before everything the
+   * service mounts later: those answer "starting" until the service opens
+   * the gate.
+   */
+  if (data.useStartupGate) {
+    app.use(StartupGate.middleware);
+  }
 
   if (isFrontendApp) {
     app.use(ExpressStatic("/usr/src/app/public"));

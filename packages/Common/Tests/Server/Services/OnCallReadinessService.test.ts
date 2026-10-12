@@ -1792,6 +1792,104 @@ describe("status", () => {
     );
   });
 
+  /*
+   * A push device is verified the moment it is registered. One that is not
+   * was registered, and then its push service or Expo said it was gone
+   * (UserPushService.markWebPushSubscriptionAsGone, markExpoPushTokenAsGone).
+   * "Added Push but never verified" sent the admin after a verification code
+   * that does not exist; the fix is to register the device again.
+   */
+  test("a push device that stopped receiving notifications is NotReachable, and says to register it again - not 'never verified'", async () => {
+    pushFindBy.mockResolvedValue([
+      pushMethod({
+        userId: USER_A_ID,
+        deviceName: RAW_PUSH_DEVICE,
+        isVerified: false,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).toBe(ReadinessStatus.NotReachable);
+    expect(readiness.reasons).toEqual([
+      "No verified notification method - cannot be paged",
+      "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+    ]);
+    expect(readiness.methods).toHaveLength(1);
+    expect(readiness.methods[0]!.methodType).toBe(ReadinessMethodType.Push);
+    expect(readiness.methods[0]!.isVerified).toBe(false);
+  });
+
+  test("several push devices that stopped receiving notifications are counted in one sentence", async () => {
+    pushFindBy.mockResolvedValue([
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.reasons).toEqual([
+      "No verified notification method - cannot be paged",
+      "2 push devices no longer receive notifications - register them again from the mobile app or browser they belong to",
+    ]);
+  });
+
+  test("an unverified email next to a push device that stopped receiving: each is named for its own fix", async () => {
+    emailFindBy.mockResolvedValue([
+      emailMethod({
+        userId: USER_A_ID,
+        email: RAW_NOTIFICATION_EMAIL,
+        isVerified: false,
+      }),
+    ] as never);
+    pushFindBy.mockResolvedValue([
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.reasons).toEqual([
+      "No verified notification method - cannot be paged",
+      "Added Email but never verified - unverified methods are never used",
+      "A push device no longer receives notifications - register it again from the mobile app or browser it belongs to",
+    ]);
+  });
+
+  /*
+   * Reachable on another channel, the person is paged there, and readiness
+   * says nothing about the device: a line on every such row would be one
+   * nobody can act on from here. The device list, the on-call timeline and
+   * the person's own readiness methods still show it.
+   */
+  test("a push device that stopped receiving next to a verified email does not make the person unreachable", async () => {
+    emailFindBy.mockResolvedValue([
+      emailMethod({
+        userId: USER_A_ID,
+        email: RAW_NOTIFICATION_EMAIL,
+        isVerified: true,
+      }),
+    ] as never);
+    pushFindBy.mockResolvedValue([
+      pushMethod({ userId: USER_A_ID, isVerified: false }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).not.toBe(ReadinessStatus.NotReachable);
+    expect(
+      readiness.methods.map(
+        (method: { methodType: string; isVerified: boolean }) => {
+          return [method.methodType, method.isVerified];
+        },
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        [ReadinessMethodType.Email, true],
+        [ReadinessMethodType.Push, false],
+      ]),
+    );
+  });
+
   test("an unverified method is still LISTED, because the UI has to show what to go and verify", async () => {
     emailFindBy.mockResolvedValue([
       emailMethod({

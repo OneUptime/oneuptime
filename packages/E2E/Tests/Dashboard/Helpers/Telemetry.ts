@@ -269,6 +269,278 @@ export const postOtlpTraces: PostOtlpTracesFunction = async (data: {
   expect(response.ok()).toBe(true);
 };
 
+/*
+ * One LLM call, as an app instrumented with the OpenTelemetry GenAI
+ * conventions sends it: a span carrying gen_ai.* attributes. Ingest marks it
+ * an LLM span (isLlmSpan), so it is listed on AI / LLM > Overview under
+ * Recent LLM Calls, with `model` in its Model column.
+ */
+/*
+ * What a person said and what the AI answered, sent the way the current
+ * OpenTelemetry GenAI conventions record them, with the conversation the
+ * call belongs to - enough for the call to show as a conversation.
+ */
+export interface LlmCallConversation {
+  conversationId: string;
+  question: string;
+  answer: string;
+  userEmail?: string | undefined;
+}
+
+type PostOtlpLlmCallFunction = (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  conversation?: LlmCallConversation | undefined;
+}) => Promise<void>;
+
+function conversationAttributes(
+  conversation: LlmCallConversation | undefined,
+): Array<{ key: string; value: { stringValue: string } }> {
+  if (!conversation) {
+    return [];
+  }
+
+  return [
+    {
+      key: "gen_ai.conversation.id",
+      value: { stringValue: conversation.conversationId },
+    },
+    {
+      key: "gen_ai.input.messages",
+      value: {
+        stringValue: JSON.stringify([
+          {
+            role: "user",
+            parts: [{ type: "text", content: conversation.question }],
+          },
+        ]),
+      },
+    },
+    {
+      key: "gen_ai.output.messages",
+      value: {
+        stringValue: JSON.stringify([
+          {
+            role: "assistant",
+            parts: [{ type: "text", content: conversation.answer }],
+            finish_reason: "stop",
+          },
+        ]),
+      },
+    },
+    ...(conversation.userEmail
+      ? [
+          {
+            key: "user.email",
+            value: { stringValue: conversation.userEmail },
+          },
+        ]
+      : []),
+  ];
+}
+
+export const postOtlpLlmCall: PostOtlpLlmCallFunction = async (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  conversation?: LlmCallConversation | undefined;
+}): Promise<void> => {
+  const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
+    .addRoute("/otlp/v1/traces")
+    .toString();
+
+  const startNano: string = nowUnixNano();
+  // 5ms after start so the call has a non-zero duration.
+  const endNano: string = `${Date.now() + 5}000000`;
+
+  const response: APIResponse = await data.page.request.post(otlpTracesUrl, {
+    headers: {
+      "content-type": "application/json",
+      "x-oneuptime-token": data.ingestionKey,
+    },
+    data: {
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [
+              {
+                key: "service.name",
+                value: { stringValue: data.serviceName },
+              },
+            ],
+          },
+          scopeSpans: [
+            {
+              scope: { name: "e2e-llm-fixture" },
+              spans: [
+                {
+                  traceId: randomHex(16),
+                  spanId: randomHex(8),
+                  name: `chat ${data.model}`,
+                  kind: 3,
+                  startTimeUnixNano: startNano,
+                  endTimeUnixNano: endNano,
+                  attributes: [
+                    {
+                      key: "gen_ai.system",
+                      value: { stringValue: "openai" },
+                    },
+                    {
+                      key: "gen_ai.operation.name",
+                      value: { stringValue: "chat" },
+                    },
+                    {
+                      key: "gen_ai.request.model",
+                      value: { stringValue: data.model },
+                    },
+                    {
+                      key: "gen_ai.usage.input_tokens",
+                      value: { intValue: "12" },
+                    },
+                    {
+                      key: "gen_ai.usage.output_tokens",
+                      value: { intValue: "3" },
+                    },
+                    ...conversationAttributes(data.conversation),
+                  ],
+                  status: { code: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  expect(response.ok()).toBe(true);
+};
+
+/*
+ * A claude_code.llm_request span as Claude Code's traces beta exports it
+ * (code.claude.com/docs/en/monitoring-usage): the model under gen_ai.system
+ * and gen_ai.request.model, and its usage under Claude Code's own keys -
+ * input_tokens (which leaves the cache out), output_tokens,
+ * cache_read_tokens and cache_creation_tokens - with no gen_ai.usage.* key.
+ */
+export interface ClaudeCodeLlmRequestUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+
+type PostOtlpClaudeCodeLlmRequestFunction = (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  sessionId: string;
+  usage: ClaudeCodeLlmRequestUsage;
+}) => Promise<void>;
+
+export const postOtlpClaudeCodeLlmRequest: PostOtlpClaudeCodeLlmRequestFunction =
+  async (data: {
+    page: Page;
+    ingestionKey: string;
+    serviceName: string;
+    model: string;
+    sessionId: string;
+    usage: ClaudeCodeLlmRequestUsage;
+  }): Promise<void> => {
+    const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute("/otlp/v1/traces")
+      .toString();
+
+    const startNano: string = nowUnixNano();
+    const endNano: string = `${Date.now() + 5}000000`;
+
+    const response: APIResponse = await data.page.request.post(otlpTracesUrl, {
+      headers: {
+        "content-type": "application/json",
+        "x-oneuptime-token": data.ingestionKey,
+      },
+      data: {
+        resourceSpans: [
+          {
+            resource: {
+              attributes: [
+                {
+                  key: "service.name",
+                  value: { stringValue: data.serviceName },
+                },
+              ],
+            },
+            scopeSpans: [
+              {
+                scope: { name: "com.anthropic.claude_code" },
+                spans: [
+                  {
+                    traceId: randomHex(16),
+                    spanId: randomHex(8),
+                    name: "claude_code.llm_request",
+                    kind: 3,
+                    startTimeUnixNano: startNano,
+                    endTimeUnixNano: endNano,
+                    attributes: [
+                      {
+                        key: "span.type",
+                        value: { stringValue: "llm_request" },
+                      },
+                      {
+                        key: "session.id",
+                        value: { stringValue: data.sessionId },
+                      },
+                      { key: "model", value: { stringValue: data.model } },
+                      {
+                        key: "gen_ai.system",
+                        value: { stringValue: "anthropic" },
+                      },
+                      {
+                        key: "gen_ai.request.model",
+                        value: { stringValue: data.model },
+                      },
+                      {
+                        key: "input_tokens",
+                        value: { intValue: String(data.usage.inputTokens) },
+                      },
+                      {
+                        key: "output_tokens",
+                        value: { intValue: String(data.usage.outputTokens) },
+                      },
+                      {
+                        key: "cache_read_tokens",
+                        value: {
+                          intValue: String(data.usage.cacheReadTokens),
+                        },
+                      },
+                      {
+                        key: "cache_creation_tokens",
+                        value: {
+                          intValue: String(data.usage.cacheCreationTokens),
+                        },
+                      },
+                      {
+                        key: "stop_reason",
+                        value: { stringValue: "end_turn" },
+                      },
+                    ],
+                    status: { code: 0 },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(response.ok()).toBe(true);
+  };
+
 type PostOtlpMetricsFunction = (data: {
   page: Page;
   ingestionKey: string;

@@ -9,7 +9,7 @@ import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaint
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import logger from "../../../Server/Utils/Logger";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -68,10 +68,12 @@ interface KindUnderTest {
   // The subject column holding its current state.
   stateColumn: string;
   /*
-   * How the project's states are read. Incidents and alerts read every
-   * state, top first, and keep the ones above the resolved state by the one
-   * rule (Common/Utils/ResolvedState); scheduled maintenance asks for the
-   * states not flagged resolved.
+   * How the project's states are read. Each kind reads every state, top
+   * first, and keeps the ones its subjects are still open in by its one
+   * rule: incidents and alerts the states above the resolved state
+   * (Common/Utils/ResolvedState), scheduled maintenance the states it is not
+   * complete in - all but Completed and the project's own states after it
+   * (Common/Utils/ScheduledMaintenanceStart.isComplete).
    */
   stateRead: {
     query: (projectId: ObjectID) => JSONObject;
@@ -178,9 +180,9 @@ const KINDS: Array<KindUnderTest> = [
     stateColumn: "currentScheduledMaintenanceStateId",
     stateRead: {
       query: (projectId: ObjectID): JSONObject => {
-        return { projectId: projectId, isResolvedState: false };
+        return { projectId: projectId };
       },
-      limit: LIMIT_PER_PROJECT,
+      limit: LIMIT_MAX,
     },
     refreshOpenSubjects: (
       projectId: ObjectID,

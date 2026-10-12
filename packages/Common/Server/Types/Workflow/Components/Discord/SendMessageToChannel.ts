@@ -14,6 +14,10 @@ import ComponentMetadata, {
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import DiscordComponents from "../../../../../Types/Workflow/Components/Discord";
 import API from "../../../../../Utils/API";
+import {
+  fitTextToLength,
+  MAX_DISCORD_MESSAGE_LENGTH,
+} from "../../../../../Utils/MessageFit";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class SendMessageToChannel extends ComponentCode {
@@ -76,7 +80,14 @@ export default class SendMessageToChannel extends ComponentCode {
       apiResult = await API.post({
         url: args["webhook-url"] as URL,
         data: {
-          content: args["text"] as string,
+          /*
+           * Discord refuses a message of more than 2,000 characters, and
+           * the step fails: a longer one is cut to fit, with a note.
+           */
+          content: fitTextToLength(
+            args["text"]?.toString() || "",
+            MAX_DISCORD_MESSAGE_LENGTH,
+          ),
         },
         /*
          * The host is pinned above; following a redirect would hand the

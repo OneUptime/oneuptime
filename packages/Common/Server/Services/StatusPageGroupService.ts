@@ -1,8 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -144,17 +142,22 @@ export class Service extends ProjectReferencesService<Model> {
     let group: Model | null = null;
 
     if (!deleteBy.props.isRoot) {
-      group = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+      /*
+       * The one group the delete removes, and the delete held to it:
+       * the groups after it move up a place once it is gone.
+       */
+      const found: { row: Model | null; deletesMore: boolean } =
+        await this.findOneRowAndHoldDeleteToIt(deleteBy, {
           order: true,
           statusPageId: true,
           projectId: true,
-        },
-      });
+        });
+
+      if (found.deletesMore) {
+        throw new BadDataException("Delete one status page group at a time.");
+      }
+
+      group = found.row;
     }
 
     return {
@@ -199,26 +202,6 @@ export class Service extends ProjectReferencesService<Model> {
     return {
       deleteBy: deleteBy,
       carryForward: null,
-    };
-  }
-
-  /*
-   * The hierarchy hooks run BEFORE DatabaseService applies tenant scoping to
-   * the caller's query, so reading the raw client query with props.isRoot
-   * would hand the hook rows from other projects. Re-apply the caller's tenant
-   * so validation can never look at a row outside the caller's project.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
     };
   }
 
@@ -360,18 +343,11 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (newParentId) {
-      const groupsBeingUpdated: Array<Model> = await this.findBy({
-        query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-        select: {
+      const groupsBeingUpdated: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           statusPageId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+        });
 
       for (const group of groupsBeingUpdated) {
         if (!group.id || !group.statusPageId) {
@@ -394,10 +370,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let move: GroupMove | null = null;
 
-    if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
+    // The one row an update names by its id is the one it moves.
+    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
+
+    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
       const group: Model | null = await this.findOneBy({
         query: {
-          _id: updateBy.query._id!,
+          _id: movedId,
         },
         props: {
           isRoot: true,

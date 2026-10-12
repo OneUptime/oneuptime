@@ -36,7 +36,42 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentService,
+    jest.spyOn(IncidentService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertService,
+    jest.spyOn(AlertService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    ScheduledMaintenanceService,
+    jest.spyOn(ScheduledMaintenanceService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    MonitorService,
+    jest.spyOn(MonitorService, "findBy"),
+  );
+  // An episode update that writes a state reads the rows it moves.
+  stubRowsCallerMayWriteLikeFindBy(
+    IncidentEpisodeService,
+    jest.spyOn(IncidentEpisodeService, "findBy"),
+  );
+  stubRowsCallerMayWriteLikeFindBy(
+    AlertEpisodeService,
+    jest.spyOn(AlertEpisodeService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -713,6 +748,13 @@ describe("cross-project reference guard on write", () => {
 
     test("incident episode update checks state and severity", async () => {
       spyOnValidator();
+      /*
+       * No episode is in the update's window, so the state move rule
+       * (StateMoveCheck) has no move to hold it to.
+       */
+      jest
+        .spyOn(IncidentEpisodeService, "findBy")
+        .mockResolvedValue([] as never);
 
       await callHook(IncidentEpisodeService, "onBeforeUpdate", {
         data: {
@@ -741,6 +783,8 @@ describe("cross-project reference guard on write", () => {
 
     test("alert episode update checks state and severity", async () => {
       spyOnValidator();
+      // As above: no episode to move, so no move to hold to the rule.
+      jest.spyOn(AlertEpisodeService, "findBy").mockResolvedValue([] as never);
 
       await callHook(AlertEpisodeService, "onBeforeUpdate", {
         data: {
@@ -834,6 +878,32 @@ describe("cross-project reference guard on write", () => {
           props: { tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow("not in this project");
+    });
+
+    test("OneUptime's update of the status and a linked resource reads the projects it checks them in once", async () => {
+      spyOnValidator();
+      const findProjects: SpyInstance<
+        typeof MonitorService.findProjectsToCheckUpdateIn
+      > = jest
+        .spyOn(MonitorService, "findProjectsToCheckUpdateIn")
+        .mockResolvedValue([PROJECT_ID]);
+
+      await callHook(MonitorService, "onBeforeUpdate", {
+        data: {
+          currentMonitorStatusId: MONITOR_STATUS_ID,
+          hosts: [new ObjectID("4c7cbc1a-3a4e-4d0e-9a51-1f1d0f2c3b4d")],
+        },
+        query: {},
+        props: { isRoot: true },
+      });
+
+      // Read once, and both checks made in the project it answered.
+      expect(findProjects).toHaveBeenCalledTimes(1);
+      expect(
+        validatorCalls.map((call: ValidatorCall): string => {
+          return String(call.projectId);
+        }),
+      ).toEqual([PROJECT_ID.toString(), PROJECT_ID.toString()]);
     });
 
     test("update looks nothing up when neither monitorSteps nor the status is written", async () => {

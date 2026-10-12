@@ -3,6 +3,7 @@ import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import logger from "../../../Server/Utils/Logger";
+import ReceivingCoverage from "../../../Server/Utils/Telemetry/ReceivingCoverage";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -20,13 +21,19 @@ import { DataSource } from "typeorm";
  *     restored while it was silent;
  *   - restore: a resource the sweep archived comes back as soon as it
  *     reports again; one a person archived stays archived;
- *   - the budget's count is live resources only.
+ *   - the budget's count is live resources only;
+ *   - silence is counted in time OneUptime was receiving: an outage in the
+ *     receiving ledger is not held against a resource.
  *
  * Opt in with RUN_POSTGRES_CLOUD_RESOURCE_SWEEP_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
- * workflow's database right after its drift check. The CloudResource
- * STRUCTURE is cloned into a unique schema (search_path holds only that
- * schema) that is dropped afterwards. Credentials from DATABASE_USERNAME /
+ * workflow's database right after its drift check. The STRUCTURE of every
+ * table the sweeps read is cloned into a unique schema (search_path holds
+ * only that schema) that is dropped afterwards: CloudResource, and
+ * InstanceReceivingPeriod, the receiving ledger the "Not reporting" and
+ * auto-archive cutoffs count silence against (ReceivingCoverage). The
+ * ledger is left empty - no gaps, OneUptime receiving throughout - so
+ * silence here is plain wall-clock time. Credentials from DATABASE_USERNAME /
  * DATABASE_PASSWORD, database from CLOUD_RESOURCE_SWEEP_TEST_DATABASE_NAME
  * or DATABASE_NAME, endpoint from CLOUD_RESOURCE_SWEEP_TEST_DATABASE_HOST /
  * _PORT (default localhost:5400).
@@ -118,6 +125,9 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
         );
       }
     }
+    await database.query(
+      `CREATE TABLE "${schema}"."InstanceReceivingPeriod" (LIKE public."InstanceReceivingPeriod" INCLUDING ALL)`,
+    );
     expect(
       (await database.query("SELECT current_schema()"))[0].current_schema,
     ).toBe(schema);
@@ -143,7 +153,10 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
     });
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
+    // Every test reads the (empty) ledger itself, not an answer cached by the last.
+    ReceivingCoverage.clearCache();
     await database.query(`DELETE FROM "${schema}"."CloudResource"`);
+    await database.query(`DELETE FROM "${schema}"."InstanceReceivingPeriod"`);
   });
 
   afterEach(() => {
@@ -248,6 +261,35 @@ describePostgres("Cloud Resource sweeps against Postgres", () => {
       await expect(
         CloudResourceService.markUnreportedMonitoredResources(),
       ).resolves.toBe(0);
+    });
+
+    test("does not hold an hour and a half OneUptime was not receiving against a resource", async () => {
+      // Receiving until 100 minutes ago, down, then back for the last 10.
+      await database.query(
+        `INSERT INTO "${schema}"."InstanceReceivingPeriod" ("startedAt", "lastReceivingAt", "version")
+         VALUES (now() - interval '3 hours', now() - interval '100 minutes', 1),
+                (now() - interval '10 minutes', now(), 1)`,
+      );
+      await insert([
+        resource("silent-through-the-outage", {
+          lastSeenMinutesAgo: 2 * HOUR,
+        }),
+        resource("silent-since-long-before", {
+          lastSeenMinutesAgo: 3 * HOUR,
+        }),
+      ]);
+
+      await expect(
+        CloudResourceService.markUnreportedMonitoredResources(),
+      ).resolves.toBe(1);
+
+      const rows: Record<string, StateRow> = await state();
+      expect(rows["silent-through-the-outage"]!.otelCollectorStatus).toBe(
+        "connected",
+      );
+      expect(rows["silent-since-long-before"]!.otelCollectorStatus).toBe(
+        "disconnected",
+      );
     });
   });
 

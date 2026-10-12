@@ -42,6 +42,10 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDelete,
+} from "../TestingUtils/RowsCallerMayWrite";
 /*
  * Owners are who gets paged when an SLO goes at risk, so "who was put on the
  * hook, who was taken off, and by whom" is part of the SLO's history. These
@@ -309,6 +313,10 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(ServiceLevelObjectiveOwnerUserService, "findBy")
       .mockResolvedValue([doomed]);
+    // The caller may delete the owner row.
+    stubRowsCallerMayDelete(ServiceLevelObjectiveOwnerUserService, () => {
+      return [doomed];
+    });
 
     jest
       .spyOn(UserService, "findOneById")
@@ -336,17 +344,21 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     expect(onDelete.carryForward.itemsToDelete).toEqual([doomed]);
 
     /*
-     * Read as root through the caller's own query - pinned to the caller's
-     * project, since permissions are applied only after this hook - selecting
-     * the row id (matched against what the delete removed) and the SLO column.
+     * The rows the caller may delete, read in the caller's project; then the
+     * delete's own among them, as root, selecting the row id (matched against
+     * what the delete removed) and the SLO column.
      */
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveOwnerUserService)[0]!
+        .query["projectId"],
+    ).toBe(PROJECT_ID);
+
     const findByArgs: FindByArgs = findBySpy.mock.calls[0]![0] as FindByArgs;
 
     expect(findByArgs.query).toEqual({
       _id: OWNER_USER_ROW_ID.toString(),
-      projectId: PROJECT_ID,
     });
-    expect(findByArgs.props).toEqual({ isRoot: true });
+    expect(findByArgs.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(findByArgs.select).toEqual({
       _id: true,
       serviceLevelObjectiveId: true,
@@ -459,29 +471,19 @@ describe("ServiceLevelObjectiveOwnerUserService feed writes", () => {
     );
   });
 
-  test("a failed read before delete never blocks the delete", async () => {
+  test("a failed read of the rows the delete removes refuses the delete: it is held to the rows read", async () => {
     jest
       .spyOn(ServiceLevelObjectiveOwnerUserService, "findBy")
       .mockRejectedValue(new Error("replica lag"));
 
-    const onDelete: { carryForward: { itemsToDelete: Array<unknown> } } =
-      (await callHook(ServiceLevelObjectiveOwnerUserService, "onBeforeDelete", {
+    await expect(
+      callHook(ServiceLevelObjectiveOwnerUserService, "onBeforeDelete", {
         query: {},
         limit: 1,
         skip: 0,
-        props: {},
-      })) as { carryForward: { itemsToDelete: Array<unknown> } };
-
-    expect(onDelete.carryForward.itemsToDelete).toEqual([]);
-
-    await expect(
-      callHook(
-        ServiceLevelObjectiveOwnerUserService,
-        "onDeleteSuccess",
-        onDelete,
-        [OWNER_USER_ROW_ID],
-      ),
-    ).resolves.toBeDefined();
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow("replica lag");
     expect(feedCalls).toHaveLength(0);
   });
 });
@@ -585,6 +587,10 @@ describe("ServiceLevelObjectiveOwnerTeamService feed writes", () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(ServiceLevelObjectiveOwnerTeamService, "findBy")
       .mockResolvedValue([doomed]);
+    // The caller may delete the owner row.
+    stubRowsCallerMayDelete(ServiceLevelObjectiveOwnerTeamService, () => {
+      return [doomed];
+    });
 
     const onDelete: { carryForward: { itemsToDelete: Array<unknown> } } =
       (await callHook(ServiceLevelObjectiveOwnerTeamService, "onBeforeDelete", {
@@ -596,11 +602,16 @@ describe("ServiceLevelObjectiveOwnerTeamService feed writes", () => {
 
     expect(onDelete.carryForward.itemsToDelete).toEqual([doomed]);
 
+    // The rows the caller may delete are read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveOwnerTeamService)[0]!
+        .query["projectId"],
+    ).toBe(PROJECT_ID);
+
     const findByArgs: FindByArgs = findBySpy.mock.calls[0]![0] as FindByArgs;
 
     expect(findByArgs.query).toEqual({
       _id: OWNER_TEAM_ROW_ID.toString(),
-      projectId: PROJECT_ID,
     });
     expect(findByArgs.select).toEqual({
       _id: true,

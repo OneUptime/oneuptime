@@ -21,9 +21,12 @@
  * they read in the template:
  *
  *   - A step output quoted into JSON arguments ("incident": "{{…model}}")
- *     arrives as JSON TEXT, not as an object. quoted() reproduces that.
- *   - A whole-argument reference to the webhook body (read-event-1,
- *     read-comment-1, read-changes-1) arrives as the parsed object itself.
+ *     arrives as JSON TEXT, not as an object. quoted() reproduces that, and
+ *     so does the webhook body the scripts that link the issue get beside
+ *     the workflow's Jira Site URL (read-comment-1, read-changes-1 and the
+ *     create step: jiraLinkingEventArgs, recordArgs).
+ *   - A whole-argument reference to the webhook body (read-event-1) arrives
+ *     as the parsed object itself.
  *   - A reference that did not resolve stays as its literal braces, and a
  *     null step output (a find-one that matched nothing) arrives as the text
  *     "null". Both have to read as "nothing here", never as a crash.
@@ -89,6 +92,7 @@ import {
   jiraIssueCreatedEvent,
   jiraIssueLabelsResponse,
   jiraIssueUpdatedEvent,
+  jiraLinkingEventArgs,
   jiraSearchResponse,
   jiraStatus,
   jiraTransition,
@@ -130,6 +134,26 @@ const step: StepFunction = (
       args: args,
       editCode: editCode,
     });
+  };
+};
+
+/*
+ * Binds a script that reads a Jira event and links its issue in a note. Each
+ * test still feeds it the event, which arrives as the runtime hands it over:
+ * quoted as the request body, after the workflow's Jira Site URL (JIRA_SITE,
+ * as the create wizard would have stored it).
+ */
+const linkingEventStep: StepFunction = (
+  templateId: string,
+  componentId: string,
+): RunStepFunction => {
+  const run: RunStepFunction = step(templateId, componentId);
+
+  return async (
+    event: JSONValue,
+    editCode?: EditCodeFunction | undefined,
+  ): Promise<JSONObject> => {
+    return await run(jiraLinkingEventArgs(event), editCode);
   };
 };
 
@@ -354,9 +378,9 @@ const stepsOf: KindStepsFunction = (
     confirmUnlinked: step(templates.createRecord, "confirm-unlinked-1"),
     readEvent: step(templates.statusToState, "read-event-1"),
     decideState: step(templates.statusToState, "decide-state-1"),
-    readComment: step(templates.commentToNote, "read-comment-1"),
+    readComment: linkingEventStep(templates.commentToNote, "read-comment-1"),
     findLink: step(templates.commentToNote, "find-link-1"),
-    readChanges: step(templates.changesToNote, "read-changes-1"),
+    readChanges: linkingEventStep(templates.changesToNote, "read-changes-1"),
   };
 };
 
@@ -2726,20 +2750,33 @@ type RecordArgsFunction = (
   kind: RecordKind,
   payload: JSONValue,
   severities?: JSONValue,
+  site?: string | null,
 ) => JSONObject;
 
-/* The Jira payload goes last, as it does in the template. */
+/*
+ * The Jira payload goes last, as it does in the template, after the
+ * workflow's Jira Site URL as the create wizard stored it (JIRA_SITE). A
+ * site of null leaves the setting out.
+ */
 const recordArgs: RecordArgsFunction = (
   kind: RecordKind,
   payload: JSONValue,
   severities?: JSONValue,
+  site: string | null = JIRA_SITE,
 ): JSONObject => {
-  return {
+  const args: JSONObject = {
     severities: asArgument(
       severities === undefined ? kind.severities : severities,
     ),
-    payload: asArgument(payload),
   };
+
+  if (site !== null) {
+    args["jiraSiteUrl"] = site;
+  }
+
+  args["payload"] = asArgument(payload);
+
+  return args;
 };
 
 type SeverityListFunction = (count: number) => Array<JSONObject>;
@@ -2972,9 +3009,21 @@ for (const kind of KINDS) {
       expect(result["title"]).toBe("Jira issue OPS-17");
     });
 
-    test("writes the key without a link when the issue has no REST URL to read the site from", async () => {
+    test("links the key on the workflow's Jira site when the issue has no REST URL", async () => {
       const result: JSONObject = await prepareRecord(
         recordArgs(kind, jiraIssueCreatedEvent({ self: "" })),
+      );
+
+      expect(
+        textOf(result, "description").startsWith(
+          `${kind.Created} from Jira issue ${ISSUE_LINK}.\n`,
+        ),
+      ).toBe(true);
+    });
+
+    test("without a Jira Site URL, writes the key without a link when the issue has no REST URL to read the site from", async () => {
+      const result: JSONObject = await prepareRecord(
+        recordArgs(kind, jiraIssueCreatedEvent({ self: "" }), undefined, null),
       );
 
       expect(
@@ -4684,7 +4733,7 @@ const scriptStepsOf: ScriptStepsOfFunction = (
     {
       templateId: kind.templates.createRecord,
       componentId: kind.prepareRecordStep,
-      argumentNames: ["severities", "payload"],
+      argumentNames: ["severities", "jiraSiteUrl", "payload"],
     },
     {
       templateId: kind.templates.createRecord,
@@ -4704,7 +4753,7 @@ const scriptStepsOf: ScriptStepsOfFunction = (
     {
       templateId: kind.templates.commentToNote,
       componentId: "read-comment-1",
-      argumentNames: [],
+      argumentNames: ["jiraSiteUrl", "payload"],
     },
     {
       templateId: kind.templates.commentToNote,
@@ -4714,7 +4763,7 @@ const scriptStepsOf: ScriptStepsOfFunction = (
     {
       templateId: kind.templates.changesToNote,
       componentId: "read-changes-1",
-      argumentNames: [],
+      argumentNames: ["jiraSiteUrl", "payload"],
     },
   ];
 };
@@ -4997,10 +5046,12 @@ const adversarialProceeding: AdversarialCasesFunction = (
     {
       templateId: kind.templates.commentToNote,
       componentId: "read-comment-1",
-      args: jiraCommentEvent({
-        body: ADVERSARIAL_TEXT,
-        author: jiraUser(ADVERSARIAL_TEXT),
-      }),
+      args: jiraLinkingEventArgs(
+        jiraCommentEvent({
+          body: ADVERSARIAL_TEXT,
+          author: jiraUser(ADVERSARIAL_TEXT),
+        }),
+      ),
     },
     {
       templateId: kind.templates.commentToNote,
@@ -5013,22 +5064,24 @@ const adversarialProceeding: AdversarialCasesFunction = (
     {
       templateId: kind.templates.changesToNote,
       componentId: "read-changes-1",
-      args: linkedUpdate(
-        kind,
-        [
-          changelogItem({
-            field: "summary",
-            fromString: ADVERSARIAL_TEXT,
-            toString: ADVERSARIAL_TEXT,
-          }),
-          changelogItem({
-            field: ADVERSARIAL_TEXT,
-            fieldId: "customfield_10050",
-            fromString: ADVERSARIAL_TEXT,
-            toString: ADVERSARIAL_TEXT,
-          }),
-        ],
-        { user: jiraUser(ADVERSARIAL_TEXT) },
+      args: jiraLinkingEventArgs(
+        linkedUpdate(
+          kind,
+          [
+            changelogItem({
+              field: "summary",
+              fromString: ADVERSARIAL_TEXT,
+              toString: ADVERSARIAL_TEXT,
+            }),
+            changelogItem({
+              field: ADVERSARIAL_TEXT,
+              fieldId: "customfield_10050",
+              fromString: ADVERSARIAL_TEXT,
+              toString: ADVERSARIAL_TEXT,
+            }),
+          ],
+          { user: jiraUser(ADVERSARIAL_TEXT) },
+        ),
       ),
     },
   ];
@@ -5105,15 +5158,17 @@ for (const kind of KINDS) {
         {
           templateId: kind.templates.commentToNote,
           componentId: "read-comment-1",
-          args: jiraCommentEvent({ webhookEvent: ADVERSARIAL_TEXT }),
+          args: jiraLinkingEventArgs(
+            jiraCommentEvent({ webhookEvent: ADVERSARIAL_TEXT }),
+          ),
         },
         {
           templateId: kind.templates.changesToNote,
           componentId: "read-changes-1",
-          args: {
+          args: jiraLinkingEventArgs({
             ...linkedUpdate(kind, [PRIORITY_RAISED]),
             webhookEvent: ADVERSARIAL_TEXT,
-          },
+          }),
         },
       ];
       const offenders: Array<string> = [];

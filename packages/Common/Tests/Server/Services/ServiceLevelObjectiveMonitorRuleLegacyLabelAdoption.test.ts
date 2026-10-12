@@ -25,6 +25,22 @@ import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  stubRowsCallerMayDeleteLikeFindBy,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ServiceLevelObjectiveMonitorRuleService,
+    jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+  );
+});
 /*
  * Contract under test - creating an SLO's first monitor rule while the SLO
  * still runs on the deprecated "Auto-Add Monitors With Labels" list.
@@ -383,6 +399,12 @@ describe("ServiceLevelObjectiveMonitorRuleService - rule edits and deletes never
   });
 
   it("a delete syncs without adopting: 'no rule, monitors still attached' right after it is what a deliberate delete looks like", async () => {
+    // The caller may delete the rule.
+    stubRowsCallerMayDeleteLikeFindBy(
+      ServiceLevelObjectiveMonitorRuleService,
+      jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+    );
+
     const onDelete: OnDelete<Model> = (await callHook("onBeforeDelete", {
       query: { _id: RULE_ID.toString() },
       props: { tenantId: PROJECT_ID, userId: USER_ID },

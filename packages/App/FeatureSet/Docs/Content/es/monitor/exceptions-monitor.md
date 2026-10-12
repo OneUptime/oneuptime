@@ -1,53 +1,85 @@
 # Monitor de excepciones
 
-El monitoreo de excepciones te permite supervisar las excepciones y errores de la aplicación, activando alertas cuando los recuentos de excepciones superan tus umbrales configurados. OneUptime evalúa los datos de excepciones de tus servicios de telemetría en una ventana de tiempo.
+Un monitor de excepciones cuenta, en una ventana de tiempo, las excepciones que tus servicios notifican a OneUptime y que coinciden con tus filtros (mensaje, tipo de excepción, entorno, servicio). Cuando el recuento cumple tus criterios, cambia el estado del monitor, crea una alerta o declara un incidente. Úsalo para alertar sobre cualquier fallo nuevo en producción, sobre un tipo de excepción concreto o sobre un aumento repentino de errores.
 
-## Información general
+:::cards
+- [Crear el monitor](#crear-un-monitor-de-excepciones): Elige qué excepciones contar y cuándo alertar.
+- [Entornos](#entornos): Limita el monitor a `production`.
+- [Cómo se evalúa](#cómo-se-evalúa): Qué se cuenta y qué hace resolver una excepción.
+- [Criterios](#criterios): Las condiciones y los valores predeterminados.
+:::
 
-Los monitores de excepciones cuentan y filtran las excepciones que coinciden con criterios específicos. Esto te permite:
+## Cómo funciona
 
-- Alertar sobre picos de excepciones en tus aplicaciones
-- Monitorear tipos específicos de excepciones
-- Limitar las alertas a un entorno de despliegue como `production`
-- Buscar excepciones por mensaje de error
-- Rastrear por separado las excepciones resueltas y activas
-- Detectar problemas de estabilidad de la aplicación a partir de patrones de error
+```mermaid title="Cada minuto, un monitor de excepciones cuenta y comprueba"
+flowchart TB
+    App["Tus servicios"] -->|OpenTelemetry| Store[("Excepciones en OneUptime")]
+    Store --> Skip["Dejar fuera las excepciones<br/>resueltas y archivadas"]
+    Skip --> Count["Contar las excepciones que coinciden<br/>en la ventana de tiempo"]
+    Count --> Check{"¿Se cumplen los criterios?"}
+    Check -->|"Primera coincidencia"| Act["Cambiar el estado,<br/>alerta o incidente"]
+    Check -->|Ninguno| Default["Estado predeterminado"]
+```
 
-## Creación de un monitor de excepciones
+Cada minuto, OneUptime cuenta las excepciones que coinciden con los filtros del monitor y ocurrieron dentro de su ventana de tiempo, dejando fuera las que marcaste como resueltas o archivaste. Compara ese recuento con los criterios del monitor de arriba abajo, y el primer criterio que coincide decide qué pasa. Si no coincide ninguno, el monitor vuelve a su estado predeterminado.
 
-1. Ve a **Monitores** en el panel de OneUptime
-2. Haz clic en **Crear monitor**
-3. Selecciona **Excepciones** como tipo de monitor
-4. Elige qué excepciones contar: el mensaje, los tipos de excepción, los entornos y la ventana de tiempo
-5. Para limitarlas a servicios de telemetría o entidades de infraestructura, o para contar también las excepciones resueltas y archivadas, abre **Más campos** debajo de estos filtros
-6. Configura los criterios según sea necesario
+## Antes de empezar
 
-## Opciones de configuración
+- Tus servicios envían excepciones a OneUptime mediante OpenTelemetry. Consulta [OpenTelemetry](/docs/telemetry/open-telemetry).
+- Para limitar un monitor a un entorno, tus servicios deben definir el atributo de recurso `deployment.environment`.
 
-### Servicios de telemetría
+## Crear un monitor de excepciones
 
-Selecciona en **Más campos** uno o más servicios desde los que monitorear excepciones. Déjalo vacío para monitorear las excepciones de todos los servicios. Los servicios deben enviar datos de excepciones a OneUptime a través de OpenTelemetry.
+:::steps
+### Empezar un monitor nuevo
 
-### Filtros de excepciones
+Ve a **Monitores** y haz clic en **Crear monitor**.
 
-| Filtro             | Descripción                                                                                 | Requerido |
-| ------------------ | ------------------------------------------------------------------------------------------- | --------- |
-| Tipos de excepción | Filtra por nombres de tipos de excepción (por ejemplo, `NullPointerException`, `TypeError`) | No        |
-| Entornos           | Filtra por entorno de despliegue (por ejemplo, `production`, `staging`)                     | No        |
-| Mensaje            | Búsqueda de texto dentro de los mensajes de excepción                                       | No        |
-| Incluir resueltas  | Incluye excepciones que han sido marcadas como resueltas (predeterminado: falso)            | No        |
-| Incluir archivadas | Incluye excepciones que han sido archivadas (predeterminado: falso)                         | No        |
-| Ventana de tiempo  | Hasta qué punto atrás buscar excepciones (en segundos, predeterminado: 60)                  | No        |
+### Elegir Exceptions
+
+En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Excepciones** en **Telemetría**, o escribe `exceptions` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
+
+### Elegir las excepciones que se cuentan
+
+En **Configuración del monitor de excepciones**, rellena **Filtrar mensaje de excepción**, **Tipos de excepción**, **Entornos** y **Excepciones del monitor durante (tiempo)**. Un filtro que dejas vacío coincide con todas las excepciones. **Vista previa de excepciones**, bajo los filtros, muestra las excepciones con las que coinciden ahora mismo.
+
+### Acotarlas (opcional)
+
+Abre **Más campos** para filtrar por servicio de telemetría o entidad de infraestructura, o para contar también las excepciones resueltas y archivadas.
+
+### Definir los criterios
+
+La tarjeta **Criterios del monitor** empieza con dos criterios: fuera de línea, con un incidente, cuando coincide alguna excepción; en línea cuando no coincide ninguna. Cámbialos según lo que quieras alertar; consulta [Criterios](#criterios).
+
+### Crear el monitor
+
+Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general**, y su primera evaluación se ejecuta en menos de un minuto.
+:::
+
+## Qué consulta
+
+| Campo | Con qué coincide | Predeterminado |
+| --- | --- | --- |
+| **Filtrar mensaje de excepción** | Excepciones cuyo mensaje contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todas las excepciones |
+| **Tipos de excepción** | Excepciones de cualquiera de estos tipos, separados por comas, como `TypeError, NullReferenceException`. El nombre del tipo debe coincidir exactamente. | Vacío: todos los tipos |
+| **Entornos** | Excepciones de cualquiera de estos entornos, separados por comas; consulta [Entornos](#entornos). | Vacío: todos los entornos |
+| **Excepciones del monitor durante (tiempo)** | Excepciones de los últimos 5 segundos hasta las últimas 24 horas. | **Último minuto** |
+| **Filtrar por servicio de telemetría** (en **Más campos**) | Excepciones de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
+| **Filtrar por entidad de infraestructura** (en **Más campos**) | Excepciones de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
+| **Incluir excepciones resueltas** (en **Más campos**) | Contar también las excepciones marcadas como resueltas. | Desactivado |
+| **Incluir excepciones archivadas** (en **Más campos**) | Contar también las excepciones archivadas. | Desactivado |
+
+Todos los filtros que definas deben coincidir para que una excepción se cuente.
 
 ### Entornos
 
-Los entornos provienen del atributo de recurso de OpenTelemetry `deployment.environment` de cada excepción, el mismo valor que el explorador de excepciones filtra con `env:production`. Introduce un entorno, o varios separados por comas; una excepción se cuenta cuando su entorno coincide con cualquiera de ellos.
+Los entornos proceden del atributo de recurso de OpenTelemetry `deployment.environment` de cada excepción, el mismo valor que el explorador de excepciones filtra con `env:production`. Escribe un entorno, o varios separados por comas; una excepción se cuenta cuando su entorno coincide con alguno de ellos.
 
-La coincidencia es exacta y distingue entre mayúsculas y minúsculas: `production` no coincide con `Production` ni con `prod`. Las excepciones sin entorno no se cuentan cuando este filtro está configurado. Déjalo vacío para contar las excepciones de todos los entornos, incluidas las que no tienen entorno.
+La coincidencia es exacta y distingue mayúsculas y minúsculas: `production` no coincide con `Production` ni con `prod`. Las excepciones sin entorno no se cuentan cuando este filtro está definido. Déjalo vacío para contar las excepciones de todos los entornos, incluidas las que no tienen ninguno.
 
-El filtro de entorno se combina con todos los demás filtros, por lo que un monitor limitado a un servicio de telemetría y a `production` solo cuenta las excepciones de producción de ese servicio.
+El filtro de entorno se combina con todos los demás filtros, así que un monitor limitado a un servicio de telemetría y a `production` solo cuenta las excepciones de producción de ese servicio.
 
-Al crear el monitor a través de la API, establece `environments` en el `exceptionMonitor` del paso como una lista de nombres de entorno:
+Al crear el monitor mediante la API, define `environments` en el `exceptionMonitor` del paso como una lista de nombres de entorno:
 
 ```json
 {
@@ -63,56 +95,71 @@ Al crear el monitor a través de la API, establece `environments` en el `excepti
 }
 ```
 
-## Criterios de monitoreo
+## Cómo se evalúa
 
-### Tipos de verificación disponibles
+- **Cada minuto.** Un monitor de excepciones no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.
+- **Ocurrencias, no tipos de excepción.** El monitor cuenta cada vez que una excepción que coincide ocurrió dentro de **Excepciones del monitor durante (tiempo)**. Una excepción lanzada 40 veces cuenta 40.
+- **Las excepciones resueltas y archivadas quedan fuera.** Salvo que actives **Incluir excepciones resueltas** o **Incluir excepciones archivadas**, las ocurrencias de una excepción que marcaste como resuelta o archivaste no cuentan. Por eso, marcar una excepción como resuelta puede cerrar el incidente que abrió. Cuando una excepción resuelta vuelve a ocurrir, se marca automáticamente como no resuelta y vuelve a contarse.
+- **Sin excepciones, el recuento es 0.**
+- **La caída del propio OneUptime no es silencio.** Mientras la ventana de tiempo contenga un periodo en el que OneUptime no recibía datos (se estaba reiniciando, actualizando o poniéndose al día), la comprobación espera: el estado no cambia y no se abre ni se resuelve ningún incidente ni alerta. Consulta [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
+- **Criterios de arriba abajo.** Decide el primer criterio que coincide, así que pon primero el más grave.
 
-| Tipo de verificación    | Descripción                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------ |
-| Recuento de excepciones | El número de excepciones que coinciden con tus filtros en la ventana de tiempo |
+Cada cambio de estado, con su motivo, queda registrado en la **Cronología de estados** del monitor.
 
-### Tipos de filtro
+## Criterios
 
-- **Mayor que**: El recuento de excepciones supera un umbral
-- **Menor que**: El recuento de excepciones está por debajo de un umbral
-- **Mayor o igual que**: El recuento de excepciones está en o por encima de un umbral
-- **Menor o igual que**: El recuento de excepciones está en o por debajo de un umbral
-- **Igual a**: El recuento de excepciones coincide exactamente
-- **Diferente de**: El recuento de excepciones no coincide
+Los criterios de un monitor de excepciones tienen un único **Tipo de filtro**: **Exception Count**, el número de excepciones que coincidieron en la ventana. Elige una **Condición de filtro** y un **Valor**.
 
-### Ejemplos de criterios
+| Condición de filtro | Coincide cuando el recuento de excepciones está… |
+| --- | --- |
+| **Greater Than** | por encima del valor |
+| **Greater Than Or Equal To** | en el valor o por encima |
+| **Less Than** | por debajo del valor |
+| **Less Than Or Equal To** | en el valor o por debajo |
+| **Equal To** | exactamente en el valor |
+| **Not Equal To** | en cualquier valor menos ese |
 
-#### Alertar si hay más de 10 excepciones en 60 segundos
+Los recuentos de excepciones no tienen condiciones de anomalía: no hay ninguna referencia con la que compararlos.
 
-- **Ventana de tiempo**: 60 segundos
-- **Verificar en**: Recuento de excepciones
-- **Tipo de filtro**: Mayor que
-- **Valor**: 10
+Un monitor de excepciones nuevo empieza con estos criterios:
 
-#### Alertar sobre cualquier NullPointerException
+| Criterio | Filtro | Efecto |
+| --- | --- | --- |
+| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Pone el monitor en línea |
 
-- **Tipos de excepción**: `NullPointerException`
-- **Ventana de tiempo**: 60 segundos
-- **Verificar en**: Recuento de excepciones
-- **Tipo de filtro**: Mayor que
-- **Valor**: 0
+## Ejemplo práctico: solo las excepciones de producción
 
-#### Alertar solo sobre excepciones de producción
+Quieres un incidente cada vez que la API lance una excepción en producción, y nada para staging. Pones **Entornos** en `production` y **Excepciones del monitor durante (tiempo)** en **Últimos 5 minutos**, y mantienes los criterios predeterminados. En los últimos cinco minutos:
 
-- **Entornos**: `production`
-- **Ventana de tiempo**: 300 segundos
-- **Verificar en**: Recuento de excepciones
-- **Tipo de filtro**: Mayor que
-- **Valor**: 5
+| Excepciones | Entorno | Estado | ¿Se cuenta? |
+| --- | --- | --- | --- |
+| `TypeError` × 3 | `production` | Activa | Sí: 3 |
+| `TypeError` × 40 | `staging` | Activa | No: otro entorno |
+| `TimeoutError` × 2 | ninguno | Activa | No: sin entorno |
+| `NullReferenceException` × 4 | `production` | Resuelta después de ocurrir | No: resuelta |
 
-#### Monitorear excepciones que contienen un mensaje específico
+El **Exception Count** es 3, así que **Greater Than** `0` coincide: el monitor pasa a fuera de línea y se declara un incidente. Cuando pasan cinco minutos sin ninguna excepción de producción activa, coincide el criterio de en línea y el incidente se resuelve solo.
 
-- **Mensaje**: `out of memory`
-- **Ventana de tiempo**: 300 segundos
-- **Verificar en**: Recuento de excepciones
-- **Tipo de filtro**: Mayor que
-- **Valor**: 0
+## Solución de problemas
 
-## Requisitos de configuración
+:::details Las excepciones aparecen en el explorador, pero el monitor cuenta 0
+Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Vista previa de excepciones** muestra con qué coinciden los filtros.
+:::
 
-El monitoreo de excepciones requiere que tus aplicaciones envíen datos de excepciones a OneUptime a través de OpenTelemetry. Consulta la documentación de [OpenTelemetry](/docs/telemetry/open-telemetry) para instrucciones de configuración.
+:::details El incidente se resolvió cuando resolví la excepción
+Es lo esperado. Las excepciones resueltas no se cuentan, así que el recuento bajó y el criterio dejó de coincidir. Si la excepción vuelve a ocurrir, se marca como no resuelta y vuelve a contarse. Activa **Incluir excepciones resueltas** para contarlas de todos modos.
+:::
+
+:::details Un filtro de tipo de excepción no coincide con nada
+Los **Tipos de excepción** se comparan exactamente con el nombre de tipo con el que se notificó la excepción, como `TypeError`. Copia el tipo desde el explorador de excepciones.
+:::
+
+## Próximos pasos
+
+:::cards
+- [Monitor de trazas](/docs/monitor/traces-monitor): Alerta sobre spans y endpoints que fallan.
+- [Monitor de registros](/docs/monitor/logs-monitor): Alerta sobre el volumen y el contenido de los registros.
+- [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating): Escribe títulos y descripciones de alerta útiles.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Envía excepciones a OneUptime.
+:::

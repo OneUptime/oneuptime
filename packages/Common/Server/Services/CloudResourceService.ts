@@ -2,6 +2,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/CloudResource";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -460,16 +461,21 @@ export class Service extends ProjectReferencesService<Model> {
      * polling cadence, and markUnreportedMonitoredResources gives them the
      * longer window that needs.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES,
+    });
 
     const connectedResources: Array<Model> = await this.findBy({
       query: {
         cloudResourceKind: CloudResourceKind.Environment,
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,
@@ -646,10 +652,15 @@ export class Service extends ProjectReferencesService<Model> {
    */
   @CaptureSpan()
   public async markUnreportedMonitoredResources(): Promise<number> {
-    const cutoff: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -CLOUD_RESOURCE_DISCONNECTED_MINUTES,
-    );
+    /*
+     * Measured in time OneUptime was receiving, like every other
+     * "disconnected" sweep (issue #2825). With no stretch when OneUptime was
+     * down or catching up this is exactly CLOUD_RESOURCE_DISCONNECTED_MINUTES
+     * ago.
+     */
+    const cutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: CLOUD_RESOURCE_DISCONNECTED_MINUTES,
+    });
 
     const rows: unknown = await this.getRepository().manager.query(
       `UPDATE "CloudResource"

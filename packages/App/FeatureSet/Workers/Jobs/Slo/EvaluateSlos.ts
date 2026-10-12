@@ -67,6 +67,7 @@ import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
 import ServiceLevelObjectiveBurnRateRuleService from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
 import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObjectiveService";
@@ -1384,22 +1385,31 @@ function computeBurnRateForLookback(data: {
 /*
  * Simplified form of MonitorAlert's scheduled-maintenance suppression: the
  * SLO alerting layer suppresses burn-rate alert CREATION while any attached
- * monitor is attached to an ongoing ScheduledMaintenance (same
- * currentScheduledMaintenanceState.isOngoingState query
- * MonitorMaintenanceSuppression uses, intersected against the SLO's monitors
- * instead of series labels). Existing open alerts still resolve normally.
+ * monitor is attached to a ScheduledMaintenance in progress - in its
+ * project's ongoing state, or in a state of the project's own placed between
+ * Ongoing and Ended, such as "Verifying" (the same in-progress states
+ * MonitorMaintenanceSuppression asks for, intersected against the SLO's
+ * monitors instead of series labels). Existing open alerts still resolve
+ * normally.
  */
 async function isAnySloMonitorUnderOngoingMaintenance(data: {
   projectId: ObjectID;
   monitorIds: Array<ObjectID>;
 }): Promise<boolean> {
+  const inProgressStateIds: Array<ObjectID> =
+    await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+      data.projectId,
+    );
+
+  if (inProgressStateIds.length === 0) {
+    return false;
+  }
+
   const ongoingEvents: Array<ScheduledMaintenance> =
     await ScheduledMaintenanceService.findBy({
       query: {
         projectId: data.projectId,
-        currentScheduledMaintenanceState: {
-          isOngoingState: true,
-        },
+        currentScheduledMaintenanceStateId: QueryHelper.any(inProgressStateIds),
       },
       select: {
         _id: true,

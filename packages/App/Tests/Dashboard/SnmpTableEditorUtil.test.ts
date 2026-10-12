@@ -1,6 +1,12 @@
 import SnmpTableEditorUtil from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpTableEditorUtil";
-import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import {
+  SnmpTableColumn,
+  SnmpTableDefinition,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import { describe, expect, test } from "@jest/globals";
+
+// A column's numeric adjustment, as a vendor template sets it.
+type ColumnAdjustment = Pick<SnmpTableColumn, "scale" | "offset">;
 
 /*
  * The text forms the SNMP table editor shows for structured values, and the
@@ -105,5 +111,55 @@ describe("SnmpTableEditorUtil.getTableError", () => {
     expect(
       SnmpTableEditorUtil.getTableError(table({ maxRows: 100000 })),
     ).toContain("whole number from 1 to 250");
+  });
+
+  test("refuses a column adjustment the server would refuse", () => {
+    expect(
+      SnmpTableEditorUtil.getTableError(
+        table({
+          columns: [
+            { oid: "1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9", name: "x", scale: 0 },
+          ],
+        }),
+      ),
+    ).toContain('the scale of column "x"');
+  });
+});
+
+/*
+ * The vendor templates bring columns whose numbers are adjusted on read
+ * (Aruba's noise floor, ArubaOS's transmit power, Aerohive's offset): the
+ * editor shows the arithmetic under the column, so what the SNMP Tables tab
+ * shows can be traced back to what snmpwalk prints.
+ */
+describe("SnmpTableEditorUtil column adjustments", () => {
+  test.each([
+    [{ scale: -1 }, "value × −1"],
+    [{ scale: 0.5 }, "value × 0.5"],
+    [{ scale: 20 }, "value × 20"],
+    [{ offset: -256 }, "value − 256"],
+    [{ offset: 3 }, "value + 3"],
+    [{ scale: -1, offset: 3 }, "value × −1 + 3"],
+    [{ scale: 0.1, offset: -10 }, "value × 0.1 − 10"],
+  ])("%j reads as %s", (adjustment: ColumnAdjustment, formula: string) => {
+    expect(
+      SnmpTableEditorUtil.formatAdjustment({
+        oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.6",
+        name: "Noise Floor",
+        ...adjustment,
+      }),
+    ).toBe(formula);
+  });
+
+  test("says nothing for a column that reads numbers as they come", () => {
+    for (const adjustment of [{}, { scale: 1 }, { offset: 0 }]) {
+      expect(
+        SnmpTableEditorUtil.formatAdjustment({
+          oid: "1.3.6.1.4.1.14823.2.3.3.1.2.2.1.6",
+          name: "Noise Floor",
+          ...adjustment,
+        }),
+      ).toBeUndefined();
+    }
   });
 });

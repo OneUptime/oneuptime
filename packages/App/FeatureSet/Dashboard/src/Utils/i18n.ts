@@ -10,6 +10,10 @@ import {
 } from "Common/Types/Dashboard/DashboardLanguage";
 
 import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
+import {
+  getProductNamePostProcess,
+  productNamePostProcessor,
+} from "Common/UI/Utils/ProductNameTranslation";
 
 /*
  * English is the ONLY locale bundled statically: it is the fallback language,
@@ -126,10 +130,13 @@ export const i18nReady: Promise<void> = i18n
   .use(LanguageDetector)
   .use(lazyLocaleBackend)
   .use(initReactI18next)
+  .use(productNamePostProcessor)
   .init({
     resources: {
       en: { translation: en },
     },
+    // The installation's own name in every sentence, when it has one.
+    postProcess: getProductNamePostProcess(),
     partialBundledLanguages: true,
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_DASHBOARD_LANGUAGE_CODES,

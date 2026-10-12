@@ -21,6 +21,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubRowsCallerMayWrite,
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A MONITOR'S "UPDATED" FEED ITEM RECORDS WHAT AN EDIT REALLY CHANGED.
@@ -201,6 +206,16 @@ beforeEach(() => {
     },
   );
   jest.spyOn(MonitorService, "findBy").mockImplementation(reads as never);
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(MonitorService, (read: RowsCallerMayWriteRead) => {
+    return matching(storedMonitors, read.query).map((record: StoredMonitor) => {
+      return { _id: record.id };
+    });
+  });
 
   // The monitor as it reads after the write.
   jest.spyOn(MonitorService, "findOneById").mockImplementation((async (data: {
@@ -551,7 +566,10 @@ describe("the read before the write", () => {
 
     expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(read.query["_id"]).toBe(MONITOR_ID);
-    expect(read.query["projectId"]).toBe(PROJECT_ID);
+    // Within the caller's project: the rows they may write are found there.
+    expect(
+      readsOfRowsCallerMayWrite(MonitorService)[0]!.query["projectId"],
+    ).toBe(PROJECT_ID);
   });
 
   test("is not made for an update that writes none of those columns", async () => {

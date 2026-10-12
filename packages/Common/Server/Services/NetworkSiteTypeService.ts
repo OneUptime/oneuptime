@@ -2,6 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteOneBy from "../Types/Database/DeleteOneBy";
+import FindBy from "../Types/Database/FindBy";
 import Select from "../Types/Database/Select";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
@@ -13,6 +14,9 @@ import NetworkSiteService from "./NetworkSiteService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import NetworkSiteHierarchyLock from "../Utils/NetworkSite/NetworkSiteHierarchyLock";
+import NetworkSiteLeafPurge, {
+  LeafPurgeShape,
+} from "../Utils/NetworkSite/NetworkSiteLeafPurge";
 import Model from "../../Models/DatabaseModels/NetworkSiteType";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteTypeHierarchyUtil from "../../Utils/NetworkSite/TypeHierarchyUtil";
@@ -33,6 +37,23 @@ const EXISTING_SITES_WOULD_INVERT_MESSAGE: string =
   "This site type's parent cannot be changed because an existing site is already placed under a site that the move would push below it. Move that site first, then change the type.";
 
 const REFERENCE_VALIDATION_BATCH_SIZE: number = 1000;
+
+/*
+ * What keeps a deleted site type from the retention purge: a child type that
+ * names it as its parent, or a site that names it as its type, deleted or
+ * not. Those foreign keys (parentNetworkSiteTypeId and
+ * NetworkSite.networkSiteTypeId, NO ACTION) would refuse the DELETE. See
+ * NetworkSiteLeafPurge. NetworkSitePurgePostgres holds this list to the
+ * migrated foreign keys.
+ */
+export const SITE_TYPE_PURGE_SHAPE: LeafPurgeShape = {
+  rowsName: "network site types",
+  parentColumn: "parentNetworkSiteTypeId",
+  namedBy: [
+    { table: "NetworkSiteType", column: "parentNetworkSiteTypeId" },
+    { table: "NetworkSite", column: "networkSiteTypeId" },
+  ],
+};
 
 const normalizeId: (id: ObjectID | string) => string = (
   id: ObjectID | string,
@@ -230,9 +251,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The retention cron uses one root deletedAt query across all projects.
-     * Convert it to a closed batch of unused leaf types before locking. A
-     * parent and child can therefore never be split by the batch limit; once
-     * leaves are removed, the cron's next iteration can work upward.
+     * Convert it to a closed batch of unused types - leaves, or a whole
+     * closed cycle - before locking (hardDeleteClosedLeafBatch). A parent and
+     * child can therefore never be split by the batch limit; once leaves are
+     * removed, the cron's next iteration can work upward.
      */
     if (
       !NetworkSiteHierarchyLock.isSafeRootMutationScope({
@@ -251,6 +273,7 @@ export class Service extends ProjectReferencesService<Model> {
         limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
         skip: this.positiveNumberValue(deleteBy.skip, 0),
         isDelete: true,
+        withDeleted: true,
       });
 
     return await NetworkSiteHierarchyLock.runExclusive({
@@ -285,157 +308,34 @@ export class Service extends ProjectReferencesService<Model> {
     return value ?? fallback;
   }
 
+  /*
+   * The retention cron's purge (HardDeleteItemsInDatabase): the site types
+   * deleted more than 30 days ago, in every project. NetworkSiteLeafPurge
+   * chooses them - the types no child type and no site row names, deleted or
+   * not, or else a cycle of deleted types nothing outside it names - and this
+   * deletes exactly the types it chose, by their ids, as the purge's own
+   * delete. The cron purges sites first, so a type whose last deleted site
+   * goes is purged the same day.
+   */
   private async hardDeleteClosedLeafBatch(
     deleteBy: DeleteBy<Model>,
   ): Promise<number> {
-    const requestedLimit: number = this.positiveNumberValue(
-      deleteBy.limit,
-      LIMIT_MAX,
-    );
-
-    if (requestedLimit <= 0) {
-      return 0;
-    }
-
-    const scanPageSize: number = Math.min(
-      REFERENCE_VALIDATION_BATCH_SIZE,
-      requestedLimit,
-    );
-    const leafTypes: Array<Model> = [];
-    let scanSkip: number = this.positiveNumberValue(deleteBy.skip, 0);
-
-    while (leafTypes.length < requestedLimit) {
-      const candidates: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: { _id: true, projectId: true },
-        sort: { _id: SortOrder.Ascending },
-        limit: scanPageSize,
-        skip: scanSkip,
-        props: { isRoot: true },
-      });
-
-      if (candidates.length === 0) {
-        break;
-      }
-
-      const candidateIds: Array<ObjectID> = candidates
-        .map((candidate: Model): ObjectID | null => {
-          return candidate.id || null;
-        })
-        .filter((id: ObjectID | null): id is ObjectID => {
-          return Boolean(id);
-        });
-      const referencedTypeIds: Set<string> = new Set<string>();
-
-      for (
-        let candidateOffset: number = 0;
-        candidateOffset < candidateIds.length;
-        candidateOffset += REFERENCE_VALIDATION_BATCH_SIZE
-      ) {
-        const candidateIdBatch: Array<ObjectID> = candidateIds.slice(
-          candidateOffset,
-          candidateOffset + REFERENCE_VALIDATION_BATCH_SIZE,
-        );
-        let childSkip: number = 0;
-
-        while (candidateIdBatch.length > 0) {
-          const childTypes: Array<Model> = await this.findBy({
-            query: {
-              parentNetworkSiteTypeId: QueryHelper.any(candidateIdBatch),
-            },
-            select: { parentNetworkSiteTypeId: true },
-            sort: { _id: SortOrder.Ascending },
-            limit: REFERENCE_VALIDATION_BATCH_SIZE,
-            skip: childSkip,
-            props: { isRoot: true },
-          });
-
-          for (const childType of childTypes) {
-            if (childType.parentNetworkSiteTypeId) {
-              referencedTypeIds.add(
-                normalizeId(childType.parentNetworkSiteTypeId),
-              );
-            }
-          }
-
-          if (childTypes.length < REFERENCE_VALIDATION_BATCH_SIZE) {
-            break;
-          }
-
-          childSkip += childTypes.length;
-        }
-
-        let siteSkip: number = 0;
-
-        while (candidateIdBatch.length > 0) {
-          const sites: Array<NetworkSite> = await NetworkSiteService.findBy({
-            query: {
-              networkSiteTypeId: QueryHelper.any(candidateIdBatch),
-            },
-            select: { networkSiteTypeId: true },
-            sort: { _id: SortOrder.Ascending },
-            limit: REFERENCE_VALIDATION_BATCH_SIZE,
-            skip: siteSkip,
-            props: { isRoot: true },
-          });
-
-          for (const site of sites) {
-            if (site.networkSiteTypeId) {
-              referencedTypeIds.add(normalizeId(site.networkSiteTypeId));
-            }
-          }
-
-          if (sites.length < REFERENCE_VALIDATION_BATCH_SIZE) {
-            break;
-          }
-
-          siteSkip += sites.length;
-        }
-      }
-
-      for (const candidate of candidates) {
-        if (
-          candidate.id &&
-          candidate.projectId &&
-          !referencedTypeIds.has(normalizeId(candidate.id))
-        ) {
-          leafTypes.push(candidate);
-
-          if (leafTypes.length === requestedLimit) {
-            break;
-          }
-        }
-      }
-
-      scanSkip += candidates.length;
-
-      if (candidates.length < scanPageSize) {
-        break;
-      }
-    }
-
-    if (leafTypes.length === 0) {
-      return 0;
-    }
-
-    const leafTypeIds: Array<ObjectID> = leafTypes.map(
-      (networkSiteType: Model): ObjectID => {
-        return networkSiteType.id!;
+    return await NetworkSiteLeafPurge.purgeBatch<Model>({
+      shape: SITE_TYPE_PURGE_SHAPE,
+      due: deleteBy.query,
+      limit: this.positiveNumberValue(deleteBy.limit, LIMIT_MAX),
+      skip: this.positiveNumberValue(deleteBy.skip, 0),
+      read: async (findBy: FindBy<Model>): Promise<Array<Model>> => {
+        return await this.findByWithDeleted(findBy);
       },
-    );
-
-    return await NetworkSiteHierarchyLock.runExclusive({
-      projectIds: leafTypes.map((networkSiteType: Model): ObjectID => {
-        return networkSiteType.projectId!;
-      }),
-      operation: async (): Promise<number> => {
+      hardDeleteByIds: async (ids: Array<ObjectID>): Promise<number> => {
         return await super.hardDeleteBy({
           ...deleteBy,
           query: {
             ...deleteBy.query,
-            _id: QueryHelper.any(leafTypeIds),
+            _id: QueryHelper.any(ids),
           },
-          limit: leafTypeIds.length,
+          limit: ids.length,
           skip: 0,
         });
       },
@@ -448,6 +348,8 @@ export class Service extends ProjectReferencesService<Model> {
     limit: number;
     skip: number;
     isDelete: boolean;
+    // A hard delete's read: rows deleted before count too.
+    withDeleted?: boolean | undefined;
   }): Promise<Array<ObjectID | string>> {
     NetworkSiteHierarchyLock.assertSafeRootMutationScope({
       query: data.query as unknown as Record<string, unknown>,
@@ -455,7 +357,7 @@ export class Service extends ProjectReferencesService<Model> {
       tenantScopeIsClosed: data.isDelete,
     });
 
-    const networkSiteTypes: Array<Model> = await this.findBy({
+    const findBy: FindBy<Model> = {
       query: data.isDelete
         ? this.scopeDeleteQueryToCallerTenant(data.query, data.props)
         : this.scopeQueryToCallerTenant(data.query, data.props),
@@ -463,7 +365,16 @@ export class Service extends ProjectReferencesService<Model> {
       limit: data.limit,
       skip: data.skip,
       props: { isRoot: true },
-    });
+    };
+
+    /*
+     * A hard delete removes rows deleted before too, and its hook reads
+     * them (findRowsAndHoldDeleteToThem): the projects it locks are read
+     * the same way, so they are the projects of the rows it removes.
+     */
+    const networkSiteTypes: Array<Model> = data.withDeleted
+      ? await this.findByWithDeleted(findBy)
+      : await this.findBy(findBy);
 
     const projectIds: Array<ObjectID | string> = networkSiteTypes
       .map((networkSiteType: Model): ObjectID | undefined => {
@@ -1086,27 +997,13 @@ export class Service extends ProjectReferencesService<Model> {
       ? this.readParentId(data)
       : null;
 
-    const updateLimit: number =
-      updateBy.limit instanceof PositiveNumber
-        ? updateBy.limit.toNumber()
-        : updateBy.limit || LIMIT_MAX;
-    const updateSkip: number =
-      updateBy.skip instanceof PositiveNumber
-        ? updateBy.skip.toNumber()
-        : updateBy.skip || 0;
-
-    const networkSiteTypesBeingUpdated: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const networkSiteTypesBeingUpdated: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         parentNetworkSiteTypeId: true,
         isUnitLevel: true,
-      },
-      limit: updateLimit,
-      skip: updateSkip,
-      props: { isRoot: true },
-    });
+      });
 
     if (isProjectWritten) {
       for (const networkSiteType of networkSiteTypesBeingUpdated) {
@@ -1215,25 +1112,12 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const deleteLimit: number =
-      deleteBy.limit instanceof PositiveNumber
-        ? deleteBy.limit.toNumber()
-        : deleteBy.limit || LIMIT_MAX;
-    const deleteSkip: number =
-      deleteBy.skip instanceof PositiveNumber
-        ? deleteBy.skip.toNumber()
-        : deleteBy.skip || 0;
-
-    const networkSiteTypesBeingDeleted: Array<Model> = await this.findBy({
-      query: this.scopeDeleteQueryToCallerTenant(
-        deleteBy.query,
-        deleteBy.props,
-      ),
-      select: { _id: true, projectId: true },
-      limit: deleteLimit,
-      skip: deleteSkip,
-      props: { isRoot: true },
-    });
+    // The types the delete removes, and the delete held to them.
+    const networkSiteTypesBeingDeleted: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
+        _id: true,
+        projectId: true,
+      });
 
     const ids: Array<ObjectID> = networkSiteTypesBeingDeleted
       .map((networkSiteType: Model) => {
@@ -1279,8 +1163,17 @@ export class Service extends ProjectReferencesService<Model> {
       );
       let childSkip: number = 0;
 
+      /*
+       * Child types and sites deleted before count too: their rows still
+       * name this type, and the foreign keys (NO ACTION) would refuse the
+       * DELETE anyway, with the database's generic "records still reference
+       * it" message. Refusing here gives the answer a live row gets, and
+       * counts the same rows as the retention purge's choice
+       * (NetworkSiteLeafPurge). A child type the same delete removes holds
+       * nothing, so a closed cycle the purge removes in one delete goes whole.
+       */
       while (true) {
-        const childTypes: Array<Model> = await this.findBy({
+        const childTypes: Array<Model> = await this.findByWithDeleted({
           query: {
             parentNetworkSiteTypeId: QueryHelper.any(parentIdBatch),
             ...(projectIdStrings.length > 0
@@ -1311,15 +1204,10 @@ export class Service extends ProjectReferencesService<Model> {
         childSkip += childTypes.length;
       }
 
-      const site: NetworkSite | null = await NetworkSiteService.findOneBy({
-        query: {
-          networkSiteTypeId: QueryHelper.any(parentIdBatch),
-        },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
+      const typeIdsNamedBySites: Set<string> =
+        await NetworkSiteService.findSiteTypeIdsNamedBySites(parentIdBatch);
 
-      if (site) {
+      if (typeIdsNamedBySites.size > 0) {
         throw new BadDataException(
           "A Network Site Type cannot be deleted while Network Sites use it.",
         );

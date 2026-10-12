@@ -477,6 +477,63 @@ describe("how it looks", () => {
 
     expect(screen.getByTestId("monitor-step-more-fields")).toBeInTheDocument();
   });
+
+  /*
+   * A page's More settings holds cards as its sections (CardSections): each
+   * pads itself and draws the divider above it, so the body adds neither,
+   * and is rounded with the frame so the last section ends on its curve.
+   */
+  test("by default the body pads what it holds, under a rule", () => {
+    renderSection({ isElevated: true });
+
+    const content: HTMLElement = body().firstElementChild as HTMLElement;
+
+    expect(content).toHaveClass("border-t", "border-gray-200", "px-5", "py-5");
+    expect(body()).not.toHaveClass("rounded-b-xl");
+    expect(body()).not.toHaveClass("rounded-b-lg");
+  });
+
+  test("a flush body adds no padding and no rule: what it holds pads itself", () => {
+    renderSection({ isElevated: true, isBodyFlush: true });
+
+    const content: HTMLElement = body().firstElementChild as HTMLElement;
+
+    expect(content.getAttribute("class") || "").toBe("");
+    expect(content).toContainElement(screen.getByLabelText("Note"));
+  });
+
+  test("a flush body is rounded with the frame and clips to it", () => {
+    renderSection({ isElevated: true, isBodyFlush: true });
+
+    expect(body()).toHaveClass("rounded-b-xl", "overflow-hidden");
+    expect(screen.getByTestId(FOLDED_SECTION_TEST_ID)).toHaveClass(
+      "rounded-xl",
+    );
+
+    cleanup();
+    renderSection({ isBodyFlush: true });
+
+    // A form's fold has the smaller corners, and so does its body.
+    expect(body()).toHaveClass("rounded-b-lg", "overflow-hidden");
+    expect(screen.getByTestId(FOLDED_SECTION_TEST_ID)).toHaveClass(
+      "rounded-lg",
+    );
+  });
+
+  test("a flush body still folds out of sight and reach, and opens", async () => {
+    const user: UserEvent = renderSection({
+      isElevated: true,
+      isBodyFlush: true,
+    });
+
+    expect(body()).toHaveClass("max-h-0", "opacity-0", "invisible");
+
+    await user.click(header());
+
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+    expect(body()).not.toHaveClass("invisible");
+    expect(body()).toHaveClass("rounded-b-xl");
+  });
 });
 
 /*

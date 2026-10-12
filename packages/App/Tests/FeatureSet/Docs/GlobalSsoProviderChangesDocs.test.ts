@@ -22,7 +22,20 @@ import path from "path";
  *   - changes that let people sign in reach every server at once
  *     (RealtimeAccessChanges SignInRulesChanged);
  *   - a status page provider turned off or deleted signs out the private
- *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule).
+ *     users it signed in (StatusPagePrivateUserSessionService.addSignInRule);
+ *   - a save that sends Require SSO for Login on, or names the provider a
+ *     project requires, is checked even when the setting has that value
+ *     already (SsoRequirementChanges.beforeProjectUpdate /
+ *     beforeServerUpdate);
+ *   - the app cancels a statement it stops waiting for, and closes its
+ *     connection (Common/Server/Infrastructure/Postgres/
+ *     CancelOnTimeoutClient); behind PgBouncer, the statement timeout the
+ *     app relies on when the cancel cannot reach the database is set on the
+ *     app's database role (HelmChart/Docs/Postgres.md): a change to who can
+ *     sign in whose write got no answer is held until it would have been
+ *     cancelled (ProjectSsoProviderChanges.giveBackAfterFailedWrite); and
+ *     PgBouncer gives up on a statement still in its queue before the app
+ *     does (pgbouncer.queryWaitTimeoutSeconds).
  *
  * Markdown is not compiled, so nothing else notices a guide that falls
  * behind. Other languages follow in the translated docs catch-up.
@@ -164,6 +177,12 @@ describe("the Global SSO guide", () => {
       );
       expect(section).toContain("Turning it off is never refused.");
     });
+
+    it("says a save that sends the switch on while it is on already is checked the same way", () => {
+      expect(section).toContain(
+        "- A save that sends **Require SSO for Login** on while it is on already - with other settings, or from the API - is checked the same way, for the instance or for a project, and so is one that names the provider a project requires already.",
+      );
+    });
   });
 });
 
@@ -181,6 +200,20 @@ describe("the SSO guide", () => {
     );
     expect(section).toContain(
       "If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.",
+    );
+  });
+
+  it("says a save that sends Require SSO for Login on again, or names the provider the project requires already, is checked the same way, and what to do first", () => {
+    const section: string = sectionOf(
+      page,
+      "## Requiring SSO for Your Project",
+    );
+
+    expect(section).toContain(
+      "A save that sends **Require SSO for Login** on while it is on already, or names the provider the project requires already, is checked the same way - the API, Terraform and other tools often send every setting with each save.",
+    );
+    expect(section).toContain(
+      "So while the project has no provider that signs people in, or the provider it requires was turned off since, such a save is refused in the same words, whatever else it changes: turn a provider on, require another one, or turn **Require SSO for Login** off, first.",
     );
   });
 
@@ -297,6 +330,60 @@ describe("the upgrade notes", () => {
     );
     expect(page).toContain(
       "[SSO](/docs/identity/sso#requiring-sso-for-your-project) and [Global SSO](/docs/identity/global-sso#enforcing-sso).",
+    );
+  });
+
+  it("say that saving Require SSO for Login on again is checked as turning it on is, and that turning it off never is", () => {
+    expect(page).toContain(
+      "**Saving Require SSO for Login on again is checked as turning it on is.**",
+    );
+    expect(page).toContain(
+      "A save that sends Require SSO for Login on - for a project or for the whole server - or names the provider a project requires is now checked even when the setting has that value already, as the API, Terraform and other tools that send every setting with each save do.",
+    );
+    expect(page).toContain(
+      "such a save is refused with the message turning it on gives, whatever else it changes: turn a provider on, or turn the setting off, first. Turning it off and clearing the required provider are never refused.",
+    );
+  });
+});
+
+describe("the Postgres operations guide", () => {
+  // Markdown wraps the guide's lines; read it as one line of text.
+  const page: string = fs
+    .readFileSync(path.join(REPO_ROOT, "../HelmChart/Docs/Postgres.md"), "utf8")
+    .replace(/\s+/g, " ");
+
+  it("says the app cancels a statement it stops waiting for, and never hands its connection on", () => {
+    expect(page).toContain(
+      "When the app stops waiting for a statement (`DATABASE_QUERY_TIMEOUT_MS`, 35 seconds by default) it cancels it on the database",
+    );
+    expect(page).toContain(
+      "A transaction the statement was part of is rolled back with that connection, so a write the app reported as failed is never committed later by the next request to borrow the connection.",
+    );
+  });
+
+  it("says behind the pooler the statement timeout the app relies on when the cancel cannot reach is set on its database role, and why", () => {
+    expect(page).toContain("#### Statement timeout behind the pooler");
+    expect(page).toContain(
+      "A cancel cannot reach the database once the connection to it is gone - a network partition, a pooler restarting. Only the backend's `statement_timeout` (`DATABASE_STATEMENT_TIMEOUT_MS`, 30 seconds by default) ends such a statement",
+    );
+    expect(page).toContain(
+      `ALTER ROLE "postgres" IN DATABASE "oneuptimedb" SET statement_timeout = '30s';`,
+    );
+    expect(page).toContain(
+      "[Statement timeout behind the pooler](#statement-timeout-behind-the-pooler)",
+    );
+  });
+
+  it("says PgBouncer gives up on a queued statement before the app does, and why", () => {
+    expect(page).toContain("#### Statements queued in the pooler");
+    expect(page).toContain(
+      "PgBouncer cannot cancel a statement still waiting in its own queue for a free server connection",
+    );
+    expect(page).toContain(
+      "`pgbouncer.queryWaitTimeoutSeconds` (PgBouncer's `query_wait_timeout`, 30 seconds by default, below the app's 35)",
+    );
+    expect(page).toContain(
+      "With your own PgBouncer, or a managed pooled endpoint, set its `query_wait_timeout` the same way.",
     );
   });
 });

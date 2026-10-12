@@ -511,20 +511,15 @@ export class Service extends ProjectReferencesService<Model> {
     // Only members the caller can see are deleted, and carried forward.
     deleteBy.query = this.applyPrivacyFilters(deleteBy.query, deleteBy.props);
 
-    // Get the member records before deletion
-    const membersToDelete: Model[] = await this.findBy({
-      query: deleteBy.query,
-      props: {
-        isRoot: true,
-      },
-      select: {
+    // The members the delete removes, and the delete held to them.
+    const membersToDelete: Model[] = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         incidentEpisodeId: true,
         incidentId: true,
         projectId: true,
       },
-      limit: 100,
-      skip: 0,
-    });
+    );
 
     return {
       deleteBy,

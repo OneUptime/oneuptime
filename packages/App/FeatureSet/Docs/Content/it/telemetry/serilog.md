@@ -1,40 +1,68 @@
-# Invia i log di Serilog a OneUptime
+# Serilog (.NET)
 
-## Panoramica
+[Serilog](https://serilog.net) è la libreria di logging strutturato più diffusa per .NET. Con il sink ufficiale [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry), ogni evento che la tua applicazione registra tramite Serilog viene inviato a OneUptime con l'OpenTelemetry Protocol (OTLP) e diventa ricercabile in **Prodotti → Registri** con le sue proprietà strutturate, la gravità e la correlazione con le tracce.
 
-[Serilog](https://serilog.net) è la libreria di logging strutturato più popolare per .NET. OneUptime acquisisce i log di Serilog tramite l'OpenTelemetry Protocol (OTLP) utilizzando il sink ufficiale [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Una volta configurato, ogni evento di log che la tua applicazione scrive tramite Serilog viene inviato a OneUptime, dove diventa ricercabile in **Prodotti → Log**, completo di proprietà strutturate, severità e correlazione trace/span.
+Non c'è alcun pacchetto specifico di OneUptime da installare: il sink parla con lo stesso endpoint OTLP che OneUptime espone per tutti i dati OpenTelemetry. Funziona con applicazioni console, worker service, applicazioni ASP.NET Core e qualunque altra cosa giri su .NET.
 
-Non è necessario installare alcun pacchetto specifico per OneUptime — il sink comunica con lo stesso endpoint OTLP che OneUptime espone per tutti i dati OpenTelemetry. Funziona con applicazioni console, worker service, app ASP.NET Core e qualsiasi altra cosa che gira su .NET.
+:::cards
+- [Configurare il sink](#configurare-il-sink): Installa due pacchetti e configurali nel codice o in `appsettings.json`.
+- [Eccezioni](#eccezioni): Le eccezioni registrate diventano problemi in Eccezioni.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Cosa controllare quando non arriva nessun log.
+:::
 
-## Prerequisiti
+## Come funziona
 
-- **Registrati per un account OneUptime** – Puoi registrarti per un account gratuito [qui](https://oneuptime.com). Tieni presente che, sebbene l'account sia gratuito, l'acquisizione dei log è una funzionalità a pagamento. Puoi trovare maggiori dettagli sui prezzi [qui](https://oneuptime.com/pricing).
-- **Crea un progetto OneUptime** – Una volta ottenuto un account, crea un progetto dalla dashboard di OneUptime. Se hai bisogno di aiuto, contattaci all'indirizzo support@oneuptime.com.
-- **Crea un token di acquisizione della telemetria** – Hai bisogno di un token per autenticare i tuoi log.
+```mermaid title="Da Serilog a OneUptime"
+flowchart TB
+    app["La tua app .NET registra con Serilog"] --> sink["Il sink OpenTelemetry raggruppa gli eventi"]
+    sink -->|"OTLP/HTTP + chiave di acquisizione"| ingest["OneUptime /otlp/v1/logs"]
+    ingest --> logs["Log, con le proprietà come attributi"]
+    ingest -->|"attributi di eccezione"| exceptions["Eccezioni"]
+```
 
-Dopo esserti registrato a OneUptime e aver creato un progetto, fai clic su "Prodotti" nella barra di navigazione e poi su "Impostazioni del progetto".
+Il sink raggruppa gli eventi di log e li invia in background. Ogni proprietà con nome diventa un attributo del log, e un'eccezione registrata con Serilog arriva con gli attributi da cui OneUptime ricava un problema.
 
-Nella pagina Telemetry Ingestion Key, fai clic su "Crea chiave di ingestione" per creare un token.
+## Prima di iniziare
 
-![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
+- Un progetto OneUptime. Su OneUptime Cloud la telemetria si paga per GB acquisito (vedi i [prezzi](https://oneuptime.com/pricing)) e un progetto con il piano Free ha bisogno di un metodo di pagamento prima di poter inviare telemetria.
+- Un'applicazione .NET che usa Serilog, o che può usarlo.
+- Una chiave di acquisizione della telemetria per autenticare i tuoi log. Se non ne hai una:
 
-Una volta creato un token, fai clic su "Visualizza" per visualizzarlo.
+:::steps
+### Aprire le chiavi di acquisizione
 
-![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
+Vai a **Prodotti → Impostazioni del progetto**, apri **Telemetria e APM** nel menu laterale e seleziona **Chiavi di acquisizione**.
+
+![La pagina delle chiavi di acquisizione della telemetria nelle impostazioni del progetto](/docs/static/images/TelemetryIngestionKeys.png)
+
+### Creare una chiave
+
+Fai clic su **Crea chiave di ingestione**. La finestra ha già il nome della chiave compilato e **Server** scelto (il tipo di chiave con cui invia un'applicazione o un collector), quindi fai clic su **Crea chiave di ingestione** per crearla, oppure rinominala prima.
+
+### Copiare il segreto
+
+La nuova chiave si apre nella sua pagina. Copia la sua **Chiave segreta**: è lo `YOUR_TELEMETRY_INGESTION_TOKEN` degli esempi qui sotto.
+
+![La pagina di una chiave di acquisizione della telemetria, con la sua chiave segreta](/docs/static/images/TelemetryIngestionKeyView.png)
+:::
 
 ## Cosa ti serve da OneUptime
 
-| Impostazione             | Valore                                                                 |
-| ------------------------ | ---------------------------------------------------------------------- |
-| Endpoint OTLP            | `https://oneuptime.com/otlp`                                           |
-| Header di autenticazione | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN`                    |
-| Nome del servizio        | Il nome con cui il tuo servizio dovrebbe apparire, ad es. `my-service` |
+| Impostazione | Valore |
+| ------------- | ------------------------------------------------------------ |
+| Endpoint OTLP | `https://oneuptime.com/otlp` |
+| Header di autenticazione | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
+| Nome del servizio | Il nome con cui deve comparire il tuo servizio, ad esempio `my-service` |
 
-> **Self-hosting di OneUptime?** Sostituisci `https://oneuptime.com/otlp` con `https://YOUR-ONEUPTIME-HOST/otlp` (oppure `http://...` se non stai terminando il TLS). Tutto il resto rimane invariato.
+> [!NOTE]
+> Ospiti OneUptime in proprio? Sostituisci `https://oneuptime.com/otlp` con `https://YOUR-ONEUPTIME-HOST/otlp` (oppure `http://...` se non termini TLS). Tutto il resto rimane uguale.
 
-Il sink utilizza il protocollo OTLP **HTTP/protobuf** e aggiunge automaticamente il percorso `/v1/logs` all'endpoint, quindi l'URL finale a cui invia i dati è `https://oneuptime.com/otlp/v1/logs`. Devi fornire solo l'endpoint base `/otlp`.
+Con il protocollo impostato su `HttpProtobuf`, il sink aggiunge il percorso `/v1/logs` all'endpoint, quindi l'URL finale a cui invia è `https://oneuptime.com/otlp/v1/logs`. Devi indicare solo l'endpoint di base `/otlp`.
 
-## Passaggio 1 — Installa i pacchetti NuGet
+## Configurare il sink
+
+:::steps
+### Installare i pacchetti NuGet
 
 Aggiungi Serilog e il sink OpenTelemetry al tuo progetto:
 
@@ -43,23 +71,20 @@ dotnet add package Serilog
 dotnet add package Serilog.Sinks.OpenTelemetry
 ```
 
-Se stai configurando il sink da `appsettings.json` (vedi sotto), aggiungi anche:
+Se configuri il sink da `appsettings.json`, aggiungi anche `Serilog.Settings.Configuration`. Per le applicazioni ASP.NET Core, aggiungi `Serilog.AspNetCore`, che collega Serilog all'host e alla pipeline delle richieste:
 
 ```bash
 dotnet add package Serilog.Settings.Configuration
-```
-
-Per le app ASP.NET Core, il pacchetto `Serilog.AspNetCore` integra Serilog nell'host e nella pipeline delle richieste:
-
-```bash
 dotnet add package Serilog.AspNetCore
 ```
 
-## Passaggio 2 — Configura il sink nel codice
+### Impostare il sink
 
-Il modo più diretto è configurare Serilog all'avvio dell'applicazione. Punta il sink al tuo endpoint OTLP di OneUptime, imposta il protocollo su `HttpProtobuf`, passa il tuo token di acquisizione come header e contrassegna i log con un `service.name`.
+Punta il sink al tuo endpoint OTLP di OneUptime, imposta il protocollo su `HttpProtobuf`, passa il tuo token di acquisizione come header e contrassegna i log con un `service.name`. Configuralo nel codice, in `appsettings.json` o nell'host ASP.NET Core:
 
-```csharp
+:::tabs
+@tab Nel codice
+```csharp title="Program.cs"
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
 
@@ -99,14 +124,10 @@ finally
     Log.CloseAndFlush();
 }
 ```
+@tab appsettings.json
+Metti le impostazioni del sink in `appsettings.json`:
 
-> **Importante:** Il sink raggruppa gli eventi di log e li invia in modo asincrono. Chiama sempre `Log.CloseAndFlush()` (oppure rilascia il logger) prima che la tua applicazione termini, altrimenti l'ultimo batch di log potrebbe andare perso. In ASP.NET Core, `Serilog.AspNetCore` gestisce questo per te durante l'arresto regolare.
-
-## Passaggio 3 — Configura da appsettings.json (alternativa)
-
-Se preferisci la configurazione al codice, usa `Serilog.Settings.Configuration` e inserisci le impostazioni del sink in `appsettings.json`:
-
-```json
+```json title="appsettings.json"
 {
   "Serilog": {
     "Using": ["Serilog.Sinks.OpenTelemetry"],
@@ -131,9 +152,9 @@ Se preferisci la configurazione al codice, usa `Serilog.Settings.Configuration` 
 }
 ```
 
-Quindi costruisci il logger dalla configurazione:
+Poi costruisci il logger a partire dalla configurazione:
 
-```csharp
+```csharp title="Program.cs"
 using Serilog;
 using Microsoft.Extensions.Configuration;
 
@@ -145,14 +166,10 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(configuration)
     .CreateLogger();
 ```
+@tab ASP.NET Core
+Per ASP.NET Core (hosting minimale, .NET 6 e successivi), usa `Serilog.AspNetCore`, così Serilog sostituisce il logger predefinito e cattura anche i log del framework e delle richieste:
 
-> Mantieni il token fuori dal controllo del codice sorgente. Fai riferimento ad esso da una variabile d'ambiente o da un archivio di segreti e inseriscilo nella configurazione all'avvio, anziché inserirlo direttamente in `appsettings.json`.
-
-## Integrazione con ASP.NET Core
-
-Per ASP.NET Core (.NET 6+ con minimal hosting), usa `Serilog.AspNetCore` in modo che Serilog sostituisca il logger predefinito e acquisisca anche i log del framework e delle richieste:
-
-```csharp
+```csharp title="Program.cs"
 using Serilog;
 using Serilog.Sinks.OpenTelemetry;
 
@@ -178,17 +195,25 @@ builder.Host.UseSerilog((context, services, configuration) =>
         });
 });
 
-// Logs one summary event per HTTP request.
 var app = builder.Build();
+
+// Logs one summary event per HTTP request.
 app.UseSerilogRequestLogging();
 
 app.MapGet("/", () => "Hello World");
 app.Run();
 ```
+:::
 
-## Scrivere i log
+> [!IMPORTANT]
+> Il sink raggruppa gli eventi di log e li invia in modo asincrono. Chiama sempre `Log.CloseAndFlush()` (o rilascia il logger) prima che l'applicazione termini, altrimenti l'ultimo blocco di log può andare perso. In ASP.NET Core, `Serilog.AspNetCore` se ne occupa al posto tuo durante uno spegnimento ordinato.
 
-Una volta configurato, usa Serilog come faresti normalmente. Le proprietà strutturate vengono preservate e diventano attributi ricercabili in OneUptime:
+> [!TIP]
+> Tieni il token fuori dal controllo di versione. Leggilo da una variabile d'ambiente o da un archivio di segreti e inseriscilo nella configurazione all'avvio, invece di salvarlo in `appsettings.json`.
+
+### Scrivere i log
+
+Usa Serilog come al solito. Le proprietà strutturate vengono conservate e diventano attributi ricercabili in OneUptime:
 
 ```csharp
 Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
@@ -197,11 +222,16 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Ogni proprietà denominata (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) viene inviata come attributo del log, così puoi filtrare e ricercare in base ad esse nell'explorer **Prodotti → Log**.
+Ogni proprietà con nome (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) viene inviata come attributo del log, così puoi filtrarle e cercarle nell'explorer **Prodotti → Registri**.
+
+### Verificare che i log arrivino
+
+Avvia la tua applicazione e scrivi qualche evento di log. In pochi secondi compaiono in **Prodotti → Registri** e nella pagina del tuo servizio in **Prodotti → Servizi**: il servizio prende il nome dal `service.name` che hai impostato (`my-service`). Le loro proprietà strutturate sono disponibili come filtri.
+:::
 
 ## Eccezioni
 
-Quando registri un'eccezione con Serilog, il sink allega al record di log gli attributi OpenTelemetry `exception.type`, `exception.message` ed `exception.stacktrace`:
+Quando registri un'eccezione con Serilog, il sink aggiunge al log gli attributi OpenTelemetry `exception.type`, `exception.message` e `exception.stacktrace`:
 
 ```csharp
 try
@@ -214,24 +244,47 @@ catch (Exception ex)
 }
 ```
 
-OneUptime rileva questi attributi e aggrega automaticamente l'errore nella vista **Eccezioni** (Issues), raggruppandolo per fingerprint e attribuendolo al servizio corretto. Un errore segnalato sia da una trace che da un log viene unito in un singolo problema. Consulta [Eccezioni dai log](/docs/telemetry/open-telemetry) per i dettagli su come funziona il rilevamento.
+OneUptime rileva questi attributi e raggruppa l'errore in un problema in **Eccezioni**, per impronta e attribuito al servizio giusto. Un errore segnalato sia da una traccia sia da un log viene unito in un solo problema. Vedi [Eccezioni dai log](/docs/telemetry/open-telemetry#eccezioni-dai-log) per i dettagli su come funziona il rilevamento.
 
-## Correlazione delle trace
+## Correlazione con le tracce
 
-Se la tua applicazione è anche strumentata con l'OpenTelemetry .NET SDK per le trace, gli eventi di log di Serilog emessi all'interno di uno span attivo vengono automaticamente contrassegnati con i valori correnti di `TraceId` e `SpanId` (questo fa parte degli `IncludedData` predefiniti del sink). Ciò consente a OneUptime di collegare una riga di log direttamente alla trace in cui si è verificata, così puoi passare da un log alla richiesta circostante e viceversa.
+Se la tua applicazione è instrumentata anche con l'SDK OpenTelemetry per .NET per le tracce, gli eventi Serilog emessi dentro uno span attivo ricevono automaticamente il `TraceId` e lo `SpanId` correnti (fa parte degli `IncludedData` predefiniti del sink). Così OneUptime collega una riga di log direttamente alla traccia in cui è avvenuta, e puoi passare da un log alla richiesta che lo contiene e tornare indietro.
 
-## Verifica
-
-1. Esegui la tua applicazione e genera alcuni eventi di log.
-2. Apri OneUptime, vai su **Telemetria**, seleziona il tuo servizio (`my-service`) e apri **Registri**.
-3. Dovresti vedere i tuoi eventi Serilog comparire entro pochi secondi, con le loro proprietà strutturate disponibili come filtri.
+Per inviare anche tracce e metriche, vedi la configurazione .NET nell'[avvio rapido di OpenTelemetry](/docs/telemetry/open-telemetry#avvio-rapido).
 
 ## Risoluzione dei problemi
 
-- **Non compare alcun log** – Ricontrolla il valore di `x-oneuptime-token` e verifica che appartenga al progetto che stai visualizzando. Verifica che l'endpoint sia `https://oneuptime.com/otlp` (solo il percorso base — non aggiungere tu stesso `/v1/logs`).
-- **I log compaiono solo all'uscita dell'app, oppure mancano gli ultimi log** – Assicurati che `Log.CloseAndFlush()` venga eseguito all'arresto. Il sink raggruppa gli eventi, quindi i log nel buffer vanno persi se il processo viene terminato senza eseguire il flush.
-- **`401 Unauthorized` / nulla viene acquisito** – Il token è mancante o non valido. Verifica che la chiave dell'header sia esattamente `x-oneuptime-token`.
-- **Nome del servizio errato** – Imposta `service.name` in `ResourceAttributes` (codice) o `resourceAttributes` (appsettings.json). Senza di esso, i log ricadono su un servizio predefinito/sconosciuto.
-- **Errori di connessione a un'istanza self-hosted** – Assicurati che il protocollo corrisponda allo schema del tuo endpoint (`https://` vs `http://`) e che il tuo host OneUptime sia raggiungibile dall'applicazione.
+:::details Non compare nessun log
+Controlla il valore di `x-oneuptime-token` e che appartenga al progetto che stai guardando. Verifica che l'endpoint sia `https://oneuptime.com/otlp` (solo il percorso di base: non aggiungere tu `/v1/logs`). Per vedere perché il sink non riesce, attiva all'avvio l'output degli errori di Serilog con `Serilog.Debugging.SelfLog.Enable(Console.Error)`: mostra il codice di stato con cui risponde OneUptime.
+:::
 
-Se hai domande o hai bisogno di aiuto, contattaci all'indirizzo support@oneuptime.com.
+:::details I log compaiono solo quando l'app si chiude, oppure mancano gli ultimi
+Assicurati che `Log.CloseAndFlush()` venga eseguito allo spegnimento. Il sink raggruppa gli eventi, quindi i log nel buffer vanno persi se il processo viene terminato senza svuotarlo.
+:::
+
+:::details 401 Unauthorized, e non viene acquisito nulla
+La chiave manca, è sconosciuta o è scaduta. Verifica che il nome dell'header sia esattamente `x-oneuptime-token` e che il suo valore sia la **Chiave segreta** della chiave.
+:::
+
+:::details 402 o 422, e non viene acquisito nulla
+`402`: su OneUptime Cloud il progetto ha il piano Free e nessun metodo di pagamento. Aggiungine uno in **Impostazioni del progetto → Fatturazione e fatture → Fatturazione**. `422`: la chiave è disattivata, oppure è una chiave Browser. Riattiva **Abilitato** nelle impostazioni della chiave, oppure crea una chiave **Server**.
+:::
+
+:::details I log arrivano con il nome di servizio sbagliato
+Imposta `service.name` in `ResourceAttributes` (codice) o `resourceAttributes` (appsettings.json). Senza di esso, i tuoi log vengono archiviati con il nome segnaposto che il sink invia al suo posto, invece che con il nome del tuo servizio.
+:::
+
+:::details Errori di connessione verso un'istanza self-hosted
+Assicurati che il protocollo corrisponda allo schema del tuo endpoint (`https://` o `http://`) e che l'host di OneUptime sia raggiungibile dall'applicazione.
+:::
+
+Per qualsiasi domanda o se ti serve aiuto, scrivici a support@oneuptime.com.
+
+## Passaggi successivi
+
+:::cards
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Invia anche tracce e metriche da .NET.
+- [Pipeline dei log](/docs/telemetry/log-pipelines): Analizza e arricchisci i log al loro arrivo.
+- [Monitor log](/docs/monitor/logs-monitor): Avvisa quando compaiono log corrispondenti.
+- [Sintassi di ricerca](/docs/telemetry/search-syntax): Filtra sulle tue proprietà Serilog.
+:::

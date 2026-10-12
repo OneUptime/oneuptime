@@ -122,6 +122,7 @@ type SideEffect =
   | "performanceFixTaskCreate"
   | "telemetryTaskCreate"
   | "insightRead"
+  | "insightsListRead"
   | "insightVerdictWrite"
   | "insightResolve"
   | "insightReopen"
@@ -248,6 +249,13 @@ const AI_INSIGHT_ROUTES: Array<HumanOnlyRoute> = [
     body: { insightId: INSIGHT_ID.toString() },
     notAUserMessage: USER_SESSION_REQUIRED,
     firstRead: "insightRead",
+  },
+  {
+    uri: "/ai-insight/highlights",
+    params: {},
+    body: {},
+    notAUserMessage: USER_SESSION_REQUIRED,
+    firstRead: "insightsListRead",
   },
 ];
 
@@ -444,6 +452,9 @@ function stubSideEffects(): Record<SideEffect, jest.SpyInstance> {
     insightRead: jest
       .spyOn(AIInsightService, "findOneById")
       .mockResolvedValue(null),
+    insightsListRead: jest
+      .spyOn(AIInsightService, "findBy")
+      .mockResolvedValue([]),
     insightVerdictWrite: jest
       .spyOn(AIInsightService, "applyHumanVerdict")
       .mockResolvedValue(undefined as never),
@@ -662,6 +673,30 @@ describe.each(ALL_ROUTES)(
 );
 
 describe("the refusals end-users actually hit", () => {
+  test("a signed-in user's AI insight highlights are read under their own props, in their project", async () => {
+    const props: DatabaseCommonInteractionProps = memberProps();
+    withProps(props);
+
+    const call: RouteCall = await callRoute(
+      AI_INSIGHT_ROUTES.find((route: HumanOnlyRoute): boolean => {
+        return route.uri === "/ai-insight/highlights";
+      }) as HumanOnlyRoute,
+    );
+
+    expect(call.nextCallCount).toBe(0);
+    expect(sideEffects.insightsListRead).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: props,
+        query: expect.objectContaining({ projectId: PROJECT_ID }),
+      }),
+    );
+    expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    expect(
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]![2],
+    ).toEqual({ openCount: 0, newCount: 0, isPartial: false });
+  });
+
   test("a signed-in user on /ai-readiness/code-fix gets the readiness report", async () => {
     withProps(memberProps());
 

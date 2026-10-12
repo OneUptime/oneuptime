@@ -608,4 +608,66 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
     expect(received).toBeDefined();
     expect(received!.workflowName).toBeUndefined();
   });
+
+  /*
+   * A step is lent no read of a setting that holds credentials, whoever
+   * saved the workflow (RunbookCredentialReaders): the runner reads the
+   * steps it runs, and nobody who saved them, and hands a step nothing to
+   * be answered for instead.
+   */
+  test("reads the steps it runs, and nobody who saved them", async () => {
+    let received: RunOptions | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        _args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = node(metadata());
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    const read: RecordedSpy = jest
+      .spyOn(
+        WorkflowService as unknown as WorkflowServiceForTest,
+        "findOneById",
+      )
+      .mockResolvedValue(workflow()) as unknown as RecordedSpy;
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    const select: Record<string, unknown> = (
+      read.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+    expect(select["graph"]).toBe(true);
+    expect(
+      Object.keys(select).filter((column: string): boolean => {
+        return column.startsWith("lastSaved");
+      }),
+    ).toEqual([]);
+
+    expect(received).toBeDefined();
+    expect(Object.keys(received!).sort()).toEqual(
+      [
+        "executeWorkflow",
+        "getRemainingExecutionTimeInMs",
+        "log",
+        "onError",
+        "projectId",
+        "workflowId",
+        "workflowLogId",
+        "workflowName",
+      ].sort(),
+    );
+  });
 });

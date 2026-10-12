@@ -15,6 +15,8 @@ import { isValidCustomFieldVariableKey } from "Common/Types/CustomField/CustomFi
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { visibleText } from "Common/Tests/Helpers/HtmlText";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -219,11 +221,17 @@ const TEMPLATE_ID_REFUSED: Record<string, string> = {
 /*
  * How the declaring page's note on it starts: a paragraph after the field
  * list. A workflow step declares from a template again (its Incident
- * Template setting), so the English note names the API key alone; the
- * Persian one follows when the translations catch up.
+ * Template setting), so the note names the API key alone, in English and
+ * in Persian.
  */
 const TEMPLATE_ID_NOTE_START: Record<string, string> = {
   en: "An API key cannot declare from a template",
+  fa: "کلید API نمی‌تواند از روی قالب اعلام کند",
+};
+
+// The note's old start, from when a workflow step could not declare from a template.
+const STALE_TEMPLATE_ID_NOTE_START: Record<string, string> = {
+  en: "An API key or a workflow step cannot declare from a template",
   fa: "کلید API یا گام یک گردش کار نمی‌تواند از روی قالب اعلام کند",
 };
 
@@ -281,6 +289,9 @@ const ASCII_PUNCTUATION: string = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
 // A mention the page names, which is broken.
 const EXAMPLE_MENTION: string = "<!here>";
+
+// The mention as the page writes it: its angle brackets escaped, so it shows as typed.
+const EXAMPLE_MENTION_AS_WRITTEN: string = "\\<!here\\>";
 
 // The old count of ways in, before incident forms.
 const STALE_WAY_COUNTS: Record<string, ReadonlyArray<string>> = {
@@ -403,11 +414,6 @@ const FORMS_ON_SUBMIT_PAGE: string = "forms/on-submit";
 const EXAMPLE_MULTI_SELECT_FIELD: { name: string; dropdownOptions: string } = {
   name: "Affected Systems",
   dropdownOptions: "API\nWeb\nMobile",
-};
-
-type EscapedInProseFunction = (text: string) => string;
-const escapedInProse: EscapedInProseFunction = (text: string): string => {
-  return text.replace(/[<>]/g, "\\$&");
 };
 
 interface MarkdownParts {
@@ -706,12 +712,6 @@ const sentenceWith: SentenceWithFunction = (
   return found[0] || "";
 };
 
-type EscapeRegExpFunction = (text: string) => string;
-
-const escapeRegExp: EscapeRegExpFunction = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
-
 type SourceBetweenFunction = (
   source: string,
   start: string,
@@ -755,6 +755,12 @@ const cardCopy: CardCopyFunction = (key: string): string | undefined => {
 
 describe("Incident docs", () => {
   describe("an incident's title in the feed and chat messages", () => {
+    it("writes the example mention with its angle brackets escaped, so the reader sees it as typed", async () => {
+      expect(
+        visibleText(await DocsRender.render(EXAMPLE_MENTION_AS_WRITTEN)),
+      ).toBe(EXAMPLE_MENTION);
+    });
+
     it("says which characters of a title are escaped, and that an address in it still works, as the feed places a title, in every language", () => {
       // Each character on its own, between words, where it could act.
       const escaped: Array<string> = Array.from(ASCII_PUNCTUATION).filter(
@@ -801,7 +807,7 @@ describe("Incident docs", () => {
             addressStaysALink: section.includes(
               ADDRESS_STAYS_A_LINK[language] as string,
             ),
-            mention: section.includes(escapedInProse(EXAMPLE_MENTION)),
+            mention: section.includes(EXAMPLE_MENTION_AS_WRITTEN),
             staleFormats: (
               STALE_TITLE_FORMATS_CLAIMS[language] as ReadonlyArray<string>
             ).filter((claim: string): boolean => {
@@ -1308,10 +1314,14 @@ describe("Incident docs", () => {
           ownParagraph: html.includes(`<p>${start}`),
           inListItem:
             html.lastIndexOf("<li", at) > html.lastIndexOf("</ul>", at),
+          stale: html.includes(
+            STALE_TEMPLATE_ID_NOTE_START[language] as string,
+          ),
         }).toEqual({
           language: language,
           found: true,
           ownParagraph: true,
+          stale: false,
           inListItem: false,
         });
       }

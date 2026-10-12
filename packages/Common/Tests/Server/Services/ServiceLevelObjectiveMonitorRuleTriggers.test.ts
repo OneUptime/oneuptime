@@ -432,19 +432,14 @@ describe("LabelService - a deleted label takes its SLO monitor rule references w
     expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
   });
 
-  it("still deletes the label when the label lookup fails", async () => {
+  it("refuses the delete when the labels it removes cannot be read: the delete is held to the labels read", async () => {
     labelFindBySpy.mockRejectedValue(new Error("db down"));
 
-    const onDelete: OnDelete<Label> = (await callHook(
-      LabelService,
-      "onBeforeDelete",
-      deleteBy(),
-    )) as OnDelete<Label>;
+    await expect(
+      callHook(LabelService, "onBeforeDelete", deleteBy()),
+    ).rejects.toThrow("db down");
 
-    expect(
-      (onDelete.carryForward as { serviceLevelObjectiveIds: Array<ObjectID> })
-        .serviceLevelObjectiveIds,
-    ).toEqual([]);
+    expect(sloRuleFindBySpy).not.toHaveBeenCalled();
   });
 
   it("still reports the delete as done when re-running a rule fails", async () => {

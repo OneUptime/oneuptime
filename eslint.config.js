@@ -62,6 +62,7 @@ export default tseslint.config(
       "**/Static/", // TODO: Remove this ignore
       "**/*.js", // TODO: Remove this ignore
       "packages/Probe/Tests/Utils/Monitors/SyntheticRuntime/Fixtures/*.cjs", // CommonJS fork fixtures are intentionally outside the TypeScript project.
+      "packages/Probe/Tests/TestingUtils/FakeTcpdump.cjs", // A stand-in for tcpdump the runner's tests start as a child process: plain CommonJS, outside the TypeScript project.
       "**/tmp/",
       "**/temp/",
       "**/.tmp/",

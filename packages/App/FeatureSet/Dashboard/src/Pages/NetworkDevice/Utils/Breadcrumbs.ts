@@ -17,6 +17,11 @@ export function getNetworkDeviceBreadcrumbs(
       "Network",
       "Devices",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_TRAFFIC, [
+      "Project",
+      "Network",
+      "Traffic",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW, [
       "Project",
       "Network",
@@ -90,11 +95,12 @@ export function getNetworkDeviceBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_DISCOVERY, [
       "Project",
       "Network",
-      "Discovery Scans",
+      "Discovery",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_ENDPOINTS, [
       "Project",
       "Network",
+      "Topology",
       "Endpoints",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_TOPOLOGY, [

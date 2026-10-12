@@ -33,6 +33,12 @@ import {
   SnmpTableDefinition,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import {
+  TRANSCEIVER_READING_KINDS,
+  TRANSCEIVER_READING_UNITS,
+  TransceiverReadingKind,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import { TRANSCEIVER_READING_COLUMN_TITLES } from "../../NetworkDevice/TransceiverViewModel";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import Button, {
   ButtonSize,
@@ -369,6 +375,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   value: undefined,
                   evaluateOverTime: false,
                   evaluateOverTimeOptions: undefined,
+                  // Same for a transceiver reading: received power first.
+                  ...(checkOn === CheckOn.SnmpTransceiverReading
+                    ? {
+                        snmpMonitorOptions: {
+                          transceiverReading: TransceiverReadingKind.RxPower,
+                        },
+                      }
+                    : {}),
                 });
               }}
             />
@@ -391,6 +405,33 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     ...criteriaFilter,
                     serverMonitorOptions: {
                       diskPath: value,
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn &&
+          criteriaFilter?.checkOn === CheckOn.ResultValue && (
+            <div className="mt-1">
+              <FieldLabelElement
+                title="Field Path (Optional)"
+                description="Compare one field of the data your script returns instead of the whole value - for example status, cpu_busy_percent or data.items[0].value. Use dots for nested fields and [n] for array items. Leave empty to compare the whole result."
+              />
+
+              <Input
+                placeholder="status or data.items[0].value"
+                value={
+                  criteriaFilter?.customCodeMonitorOptions?.resultValuePath ||
+                  ""
+                }
+                onChange={(value: string) => {
+                  props.onChange?.({
+                    ...criteriaFilter,
+                    customCodeMonitorOptions: {
+                      ...criteriaFilter?.customCodeMonitorOptions,
+                      resultValuePath: value || undefined,
                     },
                   });
                 }}
@@ -508,11 +549,64 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             );
           })()}
 
+        {criteriaFilter?.checkOn === CheckOn.SnmpTransceiverReading &&
+          (() => {
+            /*
+             * Which of the optic's five readings this criteria compares. A
+             * new one starts on received power (see the Filter Type above);
+             * one saved without a reading is not evaluated, and shows the
+             * placeholder until one is picked.
+             */
+            const readingOptions: Array<DropdownOption> =
+              TRANSCEIVER_READING_KINDS.map(
+                (kind: TransceiverReadingKind): DropdownOption => {
+                  return {
+                    value: kind,
+                    label: `${
+                      translator.translateText(
+                        TRANSCEIVER_READING_COLUMN_TITLES[kind],
+                      ) || TRANSCEIVER_READING_COLUMN_TITLES[kind]
+                    } (${TRANSCEIVER_READING_UNITS[kind]})`,
+                  };
+                },
+              );
+
+            const savedReading: string =
+              criteriaFilter?.snmpMonitorOptions?.transceiverReading || "";
+
+            const selectedReadingOption: DropdownOption | undefined =
+              readingOptions.find((option: DropdownOption) => {
+                return option.value === savedReading;
+              });
+
+            return (
+              <div className="mt-1" data-testid="transceiver-reading-picker">
+                <FieldLabelElement
+                  title="Transceiver Reading"
+                  description="Which reading of the optic to compare: received or transmitted power in dBm, temperature in °C, supply voltage in V or laser bias current in mA. Useful on devices that report no thresholds of their own; every lane of a multi-lane optic is compared."
+                />
+                <Dropdown
+                  value={selectedReadingOption}
+                  options={readingOptions}
+                  placeholder="Choose a reading"
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    props.onChange?.({
+                      ...criteriaFilter,
+                      snmpMonitorOptions: {
+                        ...criteriaFilter?.snmpMonitorOptions,
+                        transceiverReading: value?.toString() || undefined,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            );
+          })()}
+
         {criteriaFilter?.checkOn &&
-          (criteriaFilter?.checkOn === CheckOn.SnmpInterfaceIsDown ||
-            criteriaFilter?.checkOn ===
-              CheckOn.SnmpInterfaceUtilizationPercent ||
-            criteriaFilter?.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) &&
+          CriteriaFilterUtil.isInterfaceScopedCheckOn(criteriaFilter.checkOn) &&
           (() => {
             const savedInterfaceName: string =
               criteriaFilter?.snmpMonitorOptions?.interfaceName || "";
@@ -739,7 +833,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <p className="text-sm text-gray-500">
                       {translator.translateText(
                         isDeviceSelected
-                          ? "This device walks no SNMP tables yet. Add tables on the device's Settings page, or link an OID Collection Template that has them - the vendor templates for Sophos, Extreme and Cambium include IPsec tunnels, fabric neighbours, Wi-Fi radios and hardware tables."
+                          ? "This device walks no SNMP tables yet. Add tables on the device's Settings page, or link an OID Collection Template that has them - the vendor templates for Sophos, Extreme, Cambium, HPE Aruba and Ubiquiti UniFi include IPsec tunnels, fabric neighbours, Wi-Fi access points, radios and SSIDs, and hardware tables."
                           : "Choose the network device for this monitor in the configuration above, and the SNMP tables it walks are listed here.",
                       )}
                     </p>

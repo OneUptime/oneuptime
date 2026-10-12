@@ -1,122 +1,161 @@
 # Runbook 概览
 
-Runbook 是可复用的响应流程——由手动或自动步骤组成的有序列表——你可以将它附加到事件、告警或计划维护上。它把"现在该怎么办？"这种临时的 Slack 讨论，变成同事在凌晨三点也能从零接手的工作。
+Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤组成的有序列表，你可以在事件、警报或计划维护事件上运行它。它把“现在该怎么办？”的讨论变成一份清单，任何值班人员都能在凌晨 3 点照着执行，脚本、API 调用和审批都已事先写好。Runbook 面向处理事件的值班工程师，以及将这种响应自动化的平台团队。
 
-## 一览
+:::cards
+- [编写 Runbook](/docs/runbooks/authoring): 创建 Runbook 并编写其步骤。
+- [Runbook 规则](/docs/runbooks/rules): 在新的事件、警报和维护事件上启动 Runbook。
+- [运行 Runbook](/docs/runbooks/running): 启动一次执行，完成并批准其步骤，或取消它。
+- [Runbook 代理](/docs/runbooks/agents): 安装在你自己的基础设施中运行脚本的 Runner。
+:::
 
-- OneUptime 仪表板 **产品 → 运行手册** 下的**顶层功能**。
-- **五种步骤类型**：手动清单、JavaScript（沙箱）和 Bash（两者都在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上运行）、HTTP 请求，以及 AI（用你项目的 LLM 提供商分析事件和步骤上下文）。
-- **三条触发路径**：匹配事件 / 告警 / 计划维护的规则，或者在任意事件上手动点击"运行 Runbook"。
-- **快照语义**：Runbook 启动时，它的步骤会被拷贝到执行上。之后编辑模板永远不会改变正在进行中的执行。
-- **完整审计轨迹**：每个步骤的状态、输出、错误信息和耗时永远保留在执行上。
+## Runbook 如何运行
 
-## 为什么用 Runbook？
+```mermaid title="从触发到记录结果"
+flowchart TB
+    subgraph triggers["启动执行的方式"]
+        direction LR
+        rule["Runbook 规则"]
+        manual["在事件上运行 Runbook"]
+        runnow["在 Runbook 上点击 Run Now"]
+    end
+    rule --> execution["执行：步骤的快照"]
+    manual --> execution
+    runnow --> execution
+    execution --> worker["OneUptime Worker 按顺序处理步骤"]
+    worker -->|"Manual 步骤或审批"| person["等待人员处理"]
+    worker -->|"HTTP 和 AI 步骤"| onworker["在 Worker 上运行"]
+    worker -->|"JavaScript、Bash、SSH、Kubernetes"| runner["你基础设施中的 Runner"]
+    person --> record["记录状态、输出和错误"]
+    onworker --> record
+    runner --> record
+    record --> history["事件的运行手册页面和 Runbook 的执行列表"]
+```
 
-事件响应往往是一分钟小问题与几小时大故障之间的分界。Runbook 帮你：
+每次运行 Runbook 都会创建一次 **执行** 。执行开始时，Runbook 的步骤会被复制到其中，OneUptime 按顺序逐一处理。Manual 步骤或需要审批的步骤会暂停执行，直到有人处理。
 
-- **沉淀部落知识**——"队列堵塞时怎么办"放在团队找得到的地方。
-- **降低平均恢复时间 (MTTR)**——自动步骤秒级完成；手动步骤消除决策瘫痪。
-- **审计响应动作**——每个步骤、每个输出、每次响应者点击都记录在执行上。
-- **赋能初级工程师**——他们能放心运行 Runbook，而不必凌晨三点呼叫资深同事。
-- **靠数据而非记忆写事后回顾**——保留下来的执行就是当时实际发生了什么的冻结记录。
+HTTP 和 AI 步骤在 OneUptime Worker 上运行。JavaScript、Bash、SSH 和 Kubernetes 步骤在你安装于自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，因此你的脚本永远不会在 OneUptime 的服务器上运行。每个步骤的状态、输出和错误消息都会记录在执行中，执行会一直保留在它所针对的事件、警报或计划维护事件上。
 
-## 关键概念
+## 核心概念
 
-后面文档中会反复出现的几个术语，先理顺：
+| 概念 | 含义 |
+| --- | --- |
+| **Runbook** | 模板。一个有名称、可重复使用的流程，包含有序的步骤列表和 **运行此 Runbook** 开关。 |
+| **步骤** | Runbook 中的一项。它有类型（Manual、JavaScript、HTTP request、Bash、SSH、Kubernetes 或 AI）、标题、描述和与类型相关的设置。 |
+| **Runbook 规则** | 一条规则，自动将一个或多个 Runbook 关联到符合其条件（监视器、严重性、标签、监视器标签、标题或描述）的事件、警报或计划维护事件。 |
+| **执行** | Runbook 的一次运行。在规则触发、有人在事件上点击 **运行 Runbook** 或在 Runbook 本身上点击 **Run Now** 时创建。它保存步骤的快照以及每个步骤的状态和输出。 |
+| **快照** | 保存在每次执行中的 Runbook 步骤的冻结副本。之后编辑 Runbook 不会改写过去运行的历史。 |
+| **Runner** | 你在自己基础设施中的主机上运行的小型代理。它运行指定它的 JavaScript、Bash、SSH 和 Kubernetes 步骤。也称为 Runbook 代理。 |
+| **凭据** | SSH 和 Kubernetes 步骤使用的受管 SSH 或 Kubernetes 访问权限。静态加密存储，只交给你分配的 Runner。 |
+| **密钥** | 单个值，例如 API 令牌，Bash 或 JavaScript 脚本以 `{{runbookSecrets.NAME}}` 的形式使用它。静态加密存储，只交给你分配的 Runner。 |
 
-| 术语             | 含义                                                                                                                             |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Runbook**      | 模板。一段命名的可复用流程，包含有序的步骤列表和 `isEnabled` 开关。                                                              |
-| **步骤**         | Runbook 中的一项。具有类型（Manual / JavaScript / HTTP / Bash / AI）、标题、描述和该类型专属配置。                               |
-| **Runbook 规则** | 当事件、告警或计划维护的标题或描述匹配正则时，自动附加一个或多个 Runbook 的模式。                                                |
-| **执行**         | Runbook 的一次运行。规则触发、有人在事件上点"运行 Runbook"、或在 Runbook 上点"立即运行"时创建。保存步骤快照以及每步的状态/输出。 |
-| **快照**         | Runbook 步骤在每次执行上的冻结副本。让你随后能修改模板而不改写历史。                                                             |
+## 步骤类型
 
-## Runbook 的生命周期
+为每个步骤选择合适的类型。[编写 Runbook](/docs/runbooks/authoring) 介绍了每种类型的设置。
 
-1. **撰写** — 创建一个 Runbook，混合 Manual、JavaScript、HTTP、Bash 和 AI 步骤，保存。
-2. **（可选）添加规则** — 在事件、告警或计划维护的设置中，让 OneUptime 在事件标题或描述匹配正则时启动这个 Runbook。
-3. **触发** — 要么匹配事件被创建时规则自动触发，要么响应者在事件上手动点击 **运行 Runbook**。
-4. **执行** — 创建一个新执行并附带步骤快照。自动步骤在 Runbook worker 上运行；遇到 Manual 步骤就暂停，等待有人勾选。
-5. **审计** — 执行永远留在事件的 **运行手册** 标签和 Runbook 的执行列表中。每步的输出、错误和时间都保留，供事后回顾用。
+| 步骤类型 | 运行位置 | 适用场景 | 示例 |
+| --- | --- | --- | --- |
+| **Manual** | 人员 | 需要人来检查、判断或执行 OneUptime 无法完成的操作。 | “确认流量已切换到备用区域。” |
+| **JavaScript** | Runner | 需要在沙箱中进行小型、受限的计算。 | 计算副本延迟并决定是否继续。 |
+| **HTTP request** | OneUptime Worker | 调用现有 API：云服务商、PagerDuty、Slack Webhook、你自己的服务。 | 向故障转移编排器发送 `POST`。 |
+| **Bash** | Runner | 需要在你自己的基础设施上执行 Shell 命令。 | 运行 `kubectl rollout restart` 或恢复脚本。 |
+| **SSH** | Runner | 需要用受管的 SSH 凭据在远程主机上运行一条命令。 | 在 Web 服务器上重启服务。 |
+| **Kubernetes** | Runner | 需要重启或扩缩 Deployment、StatefulSet 或 DaemonSet。 | 在 `production` 中重启 `checkout-api`。 |
+| **AI** | OneUptime Worker | 希望在执行过程中由项目的 LLM 提供商给出分析、摘要或判断。 | “查看上面的诊断结果。现在故障转移安全吗？” |
 
-## 何时用哪种步骤类型
+一个 Runbook 可以混合所有类型。Runbook 的优势在于把人工检查与自动化和 AI 分析交织在一起。
 
-快速决策指南。更详细的拆解见 [编写 Runbook](/docs/runbooks/authoring)。
+## 启动执行的方式
 
-| 步骤类型       | 适用场景                                                                                                                                                  | 例子                                                   |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Manual**     | 必须由人来验证、判断或执行 OneUptime 无法观察的动作。                                                                                                     | "在负载均衡器仪表板上确认副本区域流量。"               |
-| **JavaScript** | 需要一个小的、封闭的计算——查询配置服务、转换 payload、在下一步前执行逻辑。在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上以沙箱方式运行。 | 计算当前副本延迟并决定是否继续。                       |
-| **HTTP 请求**  | 你在调用一个已有的 API——自己的管理端点、云供应商、PagerDuty、Slack。                                                                                      | 向你的故障切换编排器 `POST`。                          |
-| **Bash**       | 你需要在自己的基础设施上执行 shell 命令——重启服务、跑 `kubectl`、调用部署脚本。需要在你的环境中安装 [Runbook 代理](/docs/runbooks/agents)。               | 重启服务、跑 `kubectl rollout restart`、执行恢复脚本。 |
-| **AI**         | 你需要在执行过程中做分析、总结或判断——通过你项目的 LLM 提供商，对触发事件和前面步骤的输出进行推理。                                                       | “审阅上面的诊断信息——现在执行故障切换安全吗？”         |
+| 方式 | 位置 | 执行关联到 |
+| --- | --- | --- |
+| Runbook 规则 | **事件** 、 **警报** 或 **计划维护** → **规则** → **Runbook 规则** | 新的事件、警报或计划维护事件 |
+| **运行 Runbook** | 事件、警报或计划维护事件的 **运行手册** 页面 | 该事件、警报或计划维护事件 |
+| **Run Now** | Runbook 的 **概览** 页面 | 无：一次临时运行 |
+| 自动修复规则 | 参见 [AI SRE](/docs/ai/ai-sre) | 事件或警报 |
 
-五种类型可以混在同一个 Runbook 里——Runbook 的优势就在于让人为校验与自动化和 AI 分析交织。
+如果 Runbook 在 **设置** 页面上关闭了 **运行此 Runbook** 开关，以上任何方式都不会启动它。已经开始的执行会继续进行。
 
-## Runbook 在仪表板的位置
+## Runbook 在仪表板中的位置
 
-| 页面                                             | 在那里做什么                                               |
-| ------------------------------------------------ | ---------------------------------------------------------- |
-| **产品 → 运行手册**                              | 浏览、创建和编辑 Runbook 模板。                            |
-| Runbook 的 **步骤** 标签                         | 编写步骤列表并调整顺序。                                   |
-| Runbook 的 **执行** 标签                         | 按状态筛选查看此 Runbook 的所有运行。                      |
-| Runbook 的 **立即运行** 按钮                     | 启动一次不附属任何事件的临时执行。                         |
-| **事件 / 告警 / 计划维护 → 规则 → Runbook 规则** | 按实体类型创建自动触发规则。                               |
-| 事件 / 告警 / 维护事件 → **运行手册** 标签       | 查看附加到该事件的执行，并点击 **运行 Runbook** 手动运行。 |
+Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 
-## 常见用法
-
-团队常用 Runbook 解决的几个模式：
-
-- **数据库故障切换** — 用 JavaScript 捕获当前状态，由 Manual 让值班 DBA 确认副本健康，用 HTTP 调用编排器 API，用 Manual 勾选"DNS 已更新"，用 HTTP 在 Slack 发恢复通告。
-- **缓存刷新** — 一个 HTTP 步骤加一个 Manual 步骤"在仪表板上确认缓存命中率正在恢复"。
-- **影响客户的事件** — Manual：发布状态页更新。HTTP：在 `#customer-incidents` 通知客户成功团队。JavaScript：从内部 API 拉取受影响账户列表。
-- **计划维护前置检查** — JavaScript：快照当前指标。Manual：与相关方确认变更窗口。HTTP：在负载均衡器上启用维护模式。
-- **常驻卫生检查** — 标题模式为空的规则会在每个事件上捕获系统状态，无论标题是什么——非常适合事后回顾。
+| 页面 | 在这里做什么 |
+| --- | --- |
+| **产品 → 运行手册** | 浏览、创建和打开 Runbook。 |
+| Runbook 的 **步骤** | 编写步骤并调整顺序，然后选择 **Save Steps** 。 |
+| Runbook 的 **概览** | 查看最近的执行和结果，并点击 **Run Now** 。 |
+| Runbook 的 **执行** | 该 Runbook 的所有运行，可按状态或开始日期筛选。 |
+| Runbook 的 **所有者** | 添加对它负责的人员和团队。 |
+| Runbook 的 **设置** | 在不删除 Runbook 的情况下关闭 **运行此 Runbook** 。 |
+| **运行手册 → 执行** | 项目中所有 Runbook 的所有运行。 |
+| **运行手册 → Runbook 代理** 和 **运行手册 → Runbook 代理 → 凭据** | 安装 [Runner](/docs/runbooks/agents) 并管理 [凭据](/docs/runbooks/credentials)。 |
+| **运行手册 → 设置** | 管理供脚本使用的 [密钥](/docs/runbooks/credentials#供脚本使用的密钥)，以及为新 Runbook 添加所有者和标签的 **所有者规则** 和 **标签规则** 。 |
+| **事件 / 警报 / 计划维护 → 规则 → Runbook 规则** | 创建自动启动 Runbook 的规则。 |
+| 事件、警报或维护事件 → **运行手册** | 查看与之关联的执行，并点击 **运行 Runbook** 启动新的执行。 |
 
 ## 完整示例
 
-假设你希望所有标题里包含"db-primary"的事件都自动触发一个五步的 DB 故障切换 Runbook。
+假设每个标题中含有“db-primary”的事件都应启动一个五步的数据库故障转移 Runbook。
 
-**1. 创建 Runbook。** 在 **运行手册 → 创建 Runbook** 中命名为"DB primary failover"，并添加这些步骤：
+:::steps
+### 创建 Runbook
 
-| #   | 类型       | 标题                              |
-| --- | ---------- | --------------------------------- |
-| 1   | JavaScript | 捕获故障切换前的副本延迟          |
-| 2   | Manual     | 在 DBA 仪表板上确认副本健康       |
-| 3   | HTTP       | 向故障切换编排器 `POST`           |
-| 4   | Manual     | 验证写入已转向新主库              |
-| 5   | HTTP       | 在 `#db-incidents` Slack 通告恢复 |
+在 **运行手册** 中点击 **创建Runbook** ，将其命名为“DB primary failover”。打开它，进入 **步骤** ，添加以下步骤，然后点击 **Save Steps** ：
 
-**2. 添加规则。** 在 **事件 → 规则 → Runbook 规则** 中创建：
+| # | 类型 | 标题 |
+| --- | --- | --- |
+| 1 | JavaScript | 记录故障转移前的副本延迟 |
+| 2 | Manual | 在 DBA 仪表板中确认副本健康 |
+| 3 | HTTP request | 向故障转移编排器发送 `POST` |
+| 4 | Manual | 确认写入已转到新的主库 |
+| 5 | HTTP request | 向 Slack 的 `#db-incidents` 发送解除通知 |
 
+### 添加规则
+
+在 **事件 → 规则 → Runbook 规则** 中，创建一条只有一个条件、指定要启动的 Runbook 的规则：
+
+```text
+Conditions:  Incident Title starts with db-primary
+Runbooks:    [DB primary failover]
 ```
-标题模式：    ^db-primary
-Runbooks：    [DB primary failover]
-```
 
-**3. 触发。** 一次监控告警打开了事件 `INC-4821 · db-primary connection timeout`。规则匹配，执行被创建，然后：
+### 让它运行
 
-- 步骤 1 (JavaScript) 在 worker 上立刻运行——它的 `return { lagMs: 412 }` 值被捕获。
-- 步骤 2 (Manual) 暂停了执行。值班人员在事件页看到"等待您处理"标记，点开仪表板，并勾选步骤。
-- 步骤 3 (HTTP) 在步骤 2 被勾选后立即运行——`POST` 响应体被捕获。
-- 步骤 4 (Manual) 再次暂停。
-- 步骤 5 (HTTP) 运行后执行结束。
+某个监视器打开了事件 `INC-4821 · db-primary connection timeout`。规则匹配，执行开始：
 
-**4. 审计。** 执行留在事件的 **运行手册** 标签上。每个步骤的输出一键可看。下周你写事后回顾时不必再问"那个脚本返回了什么？"——它就在那儿。
+- 步骤 1（JavaScript）在你为它选择的 Runner 上运行。返回值（例如 `{ lagMs: 412 }`）会被记录。
+- 步骤 2（Manual）暂停执行，执行显示 **等待您处理** 。值班人员查看仪表板并点击 **Mark complete** 。
+- 步骤 3（HTTP request）运行，`POST` 的响应被记录。
+- 步骤 4（Manual）再次暂停执行，直到有人完成它。
+- 步骤 5（HTTP request）运行，执行变为 **已完成** 。
 
-## Runbook 如何与 OneUptime 的其他部分配合
+### 回顾
 
-- **监视器** 打开事件和告警；**Runbook 规则** 把那些事件变成 Runbook 执行。两者一起构成"检测 → 触发 → 响应 → 记录"的闭环。
-- **工作区连接**（Slack、Microsoft Teams）是 Runbook HTTP 步骤天然的目标——发状态更新、通知频道。
-- **状态页** 通常作为影响客户的 Runbook 中 Manual 步骤来更新。
-- **值班排班** 决定谁会被呼叫；Runbook 决定那个人醒来之后做什么。
+执行会保留在事件的 **运行手册** 页面上。撰写事后复盘时，每个步骤的输出、错误和耗时一键即可查看。
+:::
 
-## 接下来读什么
+## 常见用途
 
-- [编写 Runbook](/docs/runbooks/authoring) — 创建 Runbook、五种步骤类型以及各自的作用。
-- [Runbook 规则](/docs/runbooks/rules) — 把 Runbook 自动附加到事件、告警和计划维护。
-- [运行 Runbook](/docs/runbooks/running) — 手动触发、执行视图，以及手动步骤与自动步骤的互动。
-- [Runbook 代理](/docs/runbooks/agents) — 安装在你自己的基础设施中运行 Bash 步骤的代理。
-- [配置与安全](/docs/runbooks/configuration) — 输出限制、权限和加固说明。
+- **数据库故障转移**：用 JavaScript 记录状态，请值班 DBA 确认副本健康（Manual），调用编排器（HTTP request），确认 DNS（Manual），发送解除通知（HTTP request）。
+- **清除缓存**：一次 HTTP 请求，然后一个 Manual 步骤“确认缓存命中率正在恢复”。
+- **影响客户的事件**：Manual“在状态页面发布更新”，用 HTTP 请求通知支持团队，用 JavaScript 获取受影响账户的列表。
+- **计划维护前的预检**：对指标做快照，与相关方确认变更窗口（Manual），在负载均衡器上开启维护模式（HTTP request）。
+- **先诊断，再修复**：Bash 步骤收集诊断信息，开启了 **需要批准** 的 AI 步骤阅读这些信息并推荐修复方案，只有在人员批准后，Kubernetes 步骤才会重启工作负载。
+- **始终运行的例行检查**：一条没有条件的规则，在每个事件上记录系统状态，供事后复盘使用。
+
+## Runbook 与 OneUptime 其他功能的关系
+
+- **监视器** 打开事件和警报， **Runbook 规则** 把它们变成 Runbook 执行：检测、触发、响应、记录。
+- **[值班策略](/docs/on-call/schedules)** 决定呼叫谁。Runbook 决定这个人醒来后做什么。
+- Slack 和 Microsoft Teams 等 **[工作区连接](/docs/workspace-connections/slack)** 是发布更新的 HTTP 请求步骤的天然目标。
+- **[状态页面](/docs/status-pages/index)** 常常作为面向客户的 Runbook 中的一个 Manual 步骤来更新。
+
+## 后续步骤
+
+:::cards
+- [编写 Runbook](/docs/runbooks/authoring): 创建你的第一个 Runbook 及其步骤。
+- [Runbook 代理](/docs/runbooks/agents): 在编写 JavaScript、Bash、SSH 或 Kubernetes 步骤之前安装 Runner。
+- [Runbook 规则](/docs/runbooks/rules): 在创建事件时自动启动 Runbook。
+- [Runbook 配置与安全](/docs/runbooks/configuration): 限制、超时、权限和加固。
+:::

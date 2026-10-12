@@ -173,6 +173,7 @@ const PROPER_NOUNS: Array<string> = [
   "Discord",
   "Docker",
   "Grafana",
+  "Huntress",
   "Jira",
   "Kubernetes",
   "Linux",

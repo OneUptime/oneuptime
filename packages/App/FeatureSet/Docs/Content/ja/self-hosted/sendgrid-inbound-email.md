@@ -1,267 +1,179 @@
-# SendGridインバウンドメール統合
+# SendGrid 受信メール
 
-OneUptimeの **受信メールモニター** を使用すると、モニター固有のメールアドレスに送信されたメールに基づいてアラートの作成と解決ができます。これはレガシーシステム、アラートツール、またはメールを送信できる任意のサービスとの統合に役立ちます。
+OneUptime の **Incoming Email Monitor** を使うと、モニターごとに固有のメールアドレスに送られたメールをもとにアラートを作成・解決できます。レガシーシステムやアラートツール、メールを送信できるあらゆるサービスとの連携に便利です。
 
-このガイドでは、受信メールをセルフホストのOneUptimeインスタンスに転送するためのSendGrid Inbound Parseのセットアップ方法を説明します。
+同じ設定でワークフローもメールを受信できます。**Incoming Email** トリガーを持つワークフローには同じドメイン上に専用のアドレスが割り当てられ、そのアドレスに届いたメールごとにワークフローが開始されます。[トリガー](/docs/workflows/triggers#incoming-email) を参照してください。
 
-## 前提条件
+このガイドでは、受信メールをセルフホストの OneUptime インスタンスに転送するよう SendGrid Inbound Parse を設定する方法を説明します。OneUptime Cloud ではこの設定は不要で、アドレスはすぐに使えます。
 
-- Inbound Parse にアクセスできる SendGrid アカウント
-- 管理権限を持つドメイン（DNSの設定変更可能なもの）
-- SendGrid Webhook を OneUptime に転送する公開 HTTPS エンドポイント
-
-## ネットワークアクセス
-
-Inbound Parse では SendGrid から OneUptime への接続が必要です。OneUptime からインターネットへのアウトバウンド通信だけでは動作しません。
-
-| 方向 | 宛先 | プロトコル / ポート | 用途 |
-| --- | --- | --- | --- |
-| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | 解析済みメールを multipart POST で配信します。 |
-| 送信元メールサーバー → SendGrid | 受信ドメインの公開 MX レコードで指定した `mx.sendgrid.net` | SMTP / TCP 25 | SendGrid でメールを受信します。OneUptime サーバーへの接続ではありません。 |
-| OneUptime → SendGrid（メール送信を別途設定した場合のみ） | `api.sendgrid.com` | HTTPS / TCP 443 | Mail Send API で通知メールを送信します。 |
-
-Webhook のホスト名に公開 DNS を設定し、公開クライアントが信頼する証明書を使用してください。プライベート環境では、OneUptime に内部接続できる公開リバースプロキシやゲートウェイを通じて Webhook パスだけを公開できます。パス、シークレット、コンテンツタイプ、multipart 本文を保持し、対話的ログインやブラウザー検証なしで POST を許可します。OneUptime に受信用 SMTP リスナーは不要です。[SendGrid の設定手順](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)を参照してください。
-
-`INBOUND_EMAIL_WEBHOOK_SECRET` に強力なランダム値を設定し、`YOUR_SECRET` をその値に置き換えます。最後のパス要素は必須です。OneUptime は設定済みシークレットと比較し、変数が空の場合は検証を無効にします。完全な URL とモニターのメールアドレスはプロキシログも含めて秘密にしてください。OneUptime は現在 SendGrid の Inbound Parse 署名ヘッダーや OAuth トークンを検証しません。必要な場合は、[SendGrid のセキュリティ文書](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks)に従ってゲートウェイで検証してから転送します。
-
-SendGrid は Inbound Parse 送信元の信頼できる固定 IP リストを提供していません。メール送信 IP や `mx.sendgrid.net` の DNS 解決結果を Webhook の許可リストに使用しないでください。[SendGrid のファイアウォール指針](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)を参照してください。
-
-Inbound Parse とメール送信は別機能です。受信のために OneUptime が SendGrid API を呼び出す必要はありません。SendGrid で通知も送信する場合は DNS と `api.sendgrid.com` へのアウトバウンド HTTPS を許可します。[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send)への送信にインバウンドコールバックは不要です。SMTP の場合は OneUptime に設定したサーバーとポートを許可します。
-
-公開 MX を確認し、テストモニターにメールを送り、Webhook の受信と該当アラートの作成または解決を確認してください。空の POST や送信メールのテスト成功だけでは Inbound Parse の一連の処理を検証できません。
+:::cards
+- [始める前に](#前提条件): SendGrid アカウント、ドメイン、公開 HTTPS アドレス。
+- [設定する](#設定手順): MX レコードからテストメールまでの 7 つのステップ。
+- [環境変数](#環境変数のリファレンス): 3 つの設定とその既定値。
+- [トラブルシューティング](#トラブルシューティング): 届かないメールと失敗する Webhook。
+:::
 
 ## 仕組み
 
-1. OneUptimeで **受信メールモニター** を作成します
-2. OneUptimeがそのモニター用の一意のメールアドレスを生成します（例：`monitor-abc123@inbound.yourdomain.com`）
-3. そのアドレスにメールが送信されると、SendGridがそれを受信してWebhook経由でOneUptimeに転送します
-4. OneUptimeは設定した条件に基づいてメールを評価してアラートを作成または解決します
-
-## セットアップ手順
-
-### ステップ1：インバウンドメールドメインの選択
-
-受信メール専用のサブドメインが必要です。以下のようなサブドメインの使用を推奨します：
-
-- `inbound.yourdomain.com`
-- `email.yourdomain.com`
-- `monitor.yourdomain.com`
-
-このサブドメインはOneUptimeのモニターメール専用として使用されます。
-
-### ステップ2：DNS MXレコードの設定
-
-インバウンドサブドメインのメールをSendGridにルーティングするために、DNS設定にMXレコードを追加します。
-
-| タイプ | ホスト/名前 | 優先度 | 値              |
-| ------ | ----------- | ------ | --------------- |
-| MX     | inbound     | 10     | mx.sendgrid.net |
-
-**例：** ドメインが `example.com` で `inbound.example.com` を使用する場合：
-
+```mermaid title="メールがモニターに届くまで"
+sequenceDiagram
+    participant Sender as 送信元メールサーバー
+    participant SendGrid as SendGrid Inbound Parse
+    participant OneUptime as OneUptime
+    Sender->>SendGrid: モニターのアドレス宛てのメール (MX レコード経由)
+    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: アドレスをモニターまたはワークフローに対応付ける
+    OneUptime-->>SendGrid: 200 OK
 ```
+
+1. OneUptime で **Incoming Email Monitor** を作成します
+2. OneUptime がそのモニター用の固有のメールアドレスを生成します (例: `monitor-abc123@inbound.yourdomain.com`)
+3. そのアドレスにメールが送られると、SendGrid が受信し、Webhook で OneUptime に転送します
+4. OneUptime は設定された条件に照らしてメールを評価し、アラートを作成または解決します
+
+## 前提条件
+
+- Inbound Parse を利用できる SendGrid アカウント
+- DNS 設定にアクセスできる、自分で管理しているドメイン
+- SendGrid の Webhook を OneUptime インスタンスに転送する公開 HTTPS エンドポイント
+
+## ネットワークアクセス
+
+Inbound Parse では、OneUptime への接続を開始するのは SendGrid です。OneUptime からの外向きのインターネットアクセスを許可するだけでは足りません。
+
+| 方向 | 宛先 | プロトコル / ポート | 目的 |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | 解析したメールを multipart の POST として配信します。 |
+| 送信元メールサーバー → SendGrid | `mx.sendgrid.net` (受信ドメインの公開 MX レコードで選ばれます) | SMTP / TCP 25 | SendGrid でメールを受信します。この接続は OneUptime サーバーには向かいません。 |
+| OneUptime → SendGrid (SendGrid プロバイダーでのメール送信を別途設定した場合のみ) | `api.sendgrid.com` | HTTPS / TCP 443 | Mail Send API で通知メールを送信します。 |
+
+Webhook のホスト名の DNS を公開し、公開クライアントが信頼する証明書を提供してください。プライベートな OneUptime のデプロイメントでは、内部で OneUptime に到達できる公開リバースプロキシやゲートウェイを通じて、Webhook のパスだけを公開できます。パス、シークレット、コンテンツタイプ、multipart のリクエストボディを保ったまま、対話的なログインやブラウザーのチャレンジなしで POST を通してください。OneUptime サーバーに受信用の SMTP リスナーは不要です。[SendGrid の Inbound Parse の設定](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook) を参照してください。
+
+`INBOUND_EMAIL_WEBHOOK_SECRET` に強力なランダム値を設定し、URL の `YOUR_SECRET` をその値に置き換えます。ルートにはパスの最後のセグメントが必要です。シークレットが設定されていれば OneUptime はその値を確認し、変数を空にするとこの確認は無効になります。完全な URL とモニターのメールアドレスは、プロキシのログも含めて非公開にしてください。現在、OneUptime は SendGrid の署名付き Inbound Parse ヘッダーや OAuth トークンを検証しません。それらの仕組みが必要な場合は、[SendGrid の Webhook セキュリティのドキュメント](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) に従い、OneUptime に転送する前にそれらを検証するゲートウェイを設定してください。
+
+SendGrid は Inbound Parse 用の信頼できる静的な送信元 IP の一覧を提供していません。SendGrid のメール送信用 IP や `mx.sendgrid.net` の名前解決で得られるアドレスは、Webhook の許可リストにはなりません。現在の DNS の結果を固定するのではなく、[SendGrid のファイアウォールに関するガイダンス](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) に従ってください。
+
+Inbound Parse は外向きのメール送信とは別のものです。モニター宛てのメールを受信するために、OneUptime が SendGrid の API を呼び出す必要はありません。通知の送信にも SendGrid を選ぶ場合は、DNS の名前解決と `api.sendgrid.com` への外向きの HTTPS を許可してください。[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) では送信のために受信側のコールバックは不要です。代わりに SMTP を使う場合は、OneUptime で設定した SMTP サーバーとポートを許可してください。
+
+## 設定手順
+
+:::steps
+### 受信メール用のドメインを選ぶ
+
+`inbound.yourdomain.com`、`email.yourdomain.com`、`monitor.yourdomain.com` のように、OneUptime 宛てのメール受信専用のサブドメインを選びます。OneUptime のモニターとワークフロー宛てのメールだけに使うため、あなたのメールボックスがそこに置かれることはありません。
+
+### その MX レコードを SendGrid に向ける
+
+サブドメイン宛てのメールを SendGrid に送る MX レコードを追加します。
+
+| 種類 | ホスト/名前 | 優先度 | 値 |
+| --- | --- | --- | --- |
+| MX | inbound | 10 | mx.sendgrid.net |
+
+ドメインが `example.com` で `inbound.example.com` を使う場合、レコードは次のようになります。
+
+```text
 inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 ```
 
-**注意：** DNSの変更は伝播に最大48時間かかる場合がありますが、通常は数時間で完了します。
+DNS の変更が反映されるまで最大 48 時間かかることがありますが、通常は数時間以内に完了します。
 
-### ステップ3：SendGrid でドメインを認証する
+### SendGrid でドメインを認証する
 
-受信ドメインは、[SendGrid で認証済みのドメイン](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse)に属する必要があります。
+受信ドメインは、[SendGrid で認証済みのドメイン](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse) のいずれかに属している必要があります。[SendGrid のダッシュボード](https://app.sendgrid.com) で **Settings** > **Sender Authentication** に移動し、**Authenticate Your Domain** をクリックして、求められる DNS レコード (DKIM 用の CNAME レコード) を追加します。
 
-1. [SendGridダッシュボード](https://app.sendgrid.com) にログインします
-2. **設定** > **送信者認証** に移動します
-3. **ドメインを認証** をクリックします
-4. 必要なDNSレコードを追加するためのプロンプトに従います（DKIM用のCNAMEレコード）
+### Inbound Parse の Webhook を追加する
 
-### ステップ4：SendGrid Inbound Parseの設定
+SendGrid のダッシュボードで **Settings** > **Inbound Parse** に移動し、**Add Host & URL** をクリックします。次のように入力してから **Add** をクリックします。
 
-1. [SendGridダッシュボード](https://app.sendgrid.com) にログインします
-2. **設定** > **Inbound Parse** に移動します
-3. **「ホストとURLを追加」** をクリックします
-4. 以下を設定します：
+| 項目 | 値 |
+| --- | --- |
+| **Receiving Domain** | 受信用のサブドメイン (例: `inbound.yourdomain.com`) |
+| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam** | 任意 (必要に応じて有効にします) |
+| **Send raw, full MIME message** | チェックしないままにします (不要) |
+| **POST the raw, full MIME message** | チェックしないままにします (不要) |
 
-| フィールド                         | 値                                                                      |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| **受信ドメイン**                   | インバウンドサブドメイン（例：`inbound.yourdomain.com`）                |
-| **宛先URL**                        | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **受信メールのスパムチェック**     | オプション — 必要に応じて有効にする                                     |
-| **生の完全なMIMEメッセージを送信** | チェック不要                                                            |
-| **生の完全なMIMEメッセージをPOST** | チェック不要                                                            |
+### OneUptime を設定する
 
-5. **「追加」** をクリックします
+Destination URL と同じシークレットを使って、受信メールの変数を設定します。
 
-### ステップ5：OneUptime環境変数の設定
-
-#### Docker Compose
-
-`config.env` ファイルにこれらの環境変数を追加します：
-
-```bash
-# インバウンドメール設定
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
 INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
-
-#### KubernetesとHelm
-
-`values.yaml` ファイルにこれらを追加します：
-
-```yaml
+@tab Kubernetes
+```yaml title="values.yaml"
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+:::
 
-ステップ4の送信先 URL と同じシークレットを設定し、変更後に OneUptime を再起動してください。
+次に適用します。Docker Compose では `npm run start` を実行すると新しい値でコンテナーが作り直されます。Kubernetes では Helm のリリースをアップグレードします。
 
-### ステップ6：受信メールモニターの作成
+### Incoming Email モニターを作成する
 
-1. OneUptime ダッシュボードにログインします
-2. **モニター** > **モニターを作成** に移動します
-3. モニタータイプとして **受信メール** を選択します
-4. モニターを設定します：
-   - **名前：** モニターのわかりやすい名前を入力
-   - **説明：** このモニターの目的を記述
-5. **アラート作成条件** を設定します（アラートを作成するタイミング）：
-   - 例：メール件名に「ALERT」または「CRITICAL」が含まれる
-6. **アラート解決条件** を設定します（アラートを解決するタイミング）：
-   - 例：メール件名に「RESOLVED」または「OK」が含まれる
-7. **作成** をクリックします
+[Incoming Email モニターを作成します](/docs/monitor/incoming-email-monitor#受信メール-モニターを作成する)。その **概要** ページには `monitor-abc123def456@inbound.yourdomain.com` のようなアドレスが表示され、条件によってどのメールでアラートを作成し、どのメールで解決するかが決まります。
 
-作成後、このモニター用の一意のメールアドレスが表示されます（例：`monitor-abc123def456@inbound.yourdomain.com`）。
+ワークフローも同じドメインを使います。ワークフローに **Incoming Email** トリガーを追加してクリックすると、そのアドレス (`workflow-…@inbound.yourdomain.com`) が設定の上部に表示されます。上記の受信メールの変数が設定されるまで、トリガーにはサーバーがメールを受信できるよう設定されていないと表示されます。
 
-### ステップ7：統合のテスト
+### テストメールを送る
 
-1. OneUptime ダッシュボードからモニターのメールアドレスをコピーします
-2. アラート条件と一致する件名でそのアドレスにテストメールを送信します
-3. OneUptime ダッシュボードで以下を確認します：
-   - メールが受信されたか（モニターサマリーで確認可能）
-   - アラートが作成されたか（条件と一致した場合）
+モニターのアドレスに、条件に一致する件名のメールを送ります。モニターの概要にそのメールが表示され、条件に一致するとアラートが作成されます。
+:::
 
-## 環境変数リファレンス
+## 環境変数のリファレンス
 
-| 変数                           | 説明                                                                                                         | 必須   | デフォルト |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------ | ------ | ---------- |
-| `INBOUND_EMAIL_PROVIDER`       | 使用するインバウンドメールプロバイダー                                                                       | はい   | -          |
-| `INBOUND_EMAIL_DOMAIN`         | インバウンドメール用に設定したサブドメイン                                                                   | はい   | -          |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `/incoming-email/sendgrid/YOUR_SECRET` の最後のパス要素と比較します。公開エンドポイントでは設定してください。空値は検証を無効にします。 | 推奨 | - |
+| 変数 | Helm の値 | 説明 | 必須 | 既定値 |
+| --- | --- | --- | --- | --- |
+| `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | 受信メールのプロバイダー。SendGrid のみです。 | いいえ | `SendGrid` |
+| `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 受信メール用に設定したサブドメイン。設定するまで受信メールはオフです。 | はい | 空 |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Webhook の URL の最後のセグメント `/incoming-email/sendgrid/YOUR_SECRET` と照合するシークレット。公開エンドポイントでは設定してください。空の値では検証が無効になります。 | 推奨 | 空 |
 
-## サポートされるメール条件
-
-受信メールモニターを設定する際、以下のフィールドに基づいて条件を作成できます。
-
-| フィールド         | 説明                               | 利用可能なフィルター                                                 |
-| ------------------ | ---------------------------------- | -------------------------------------------------------------------- |
-| **メールの件名**   | メールの件名                       | 含む、含まない、等しい、等しくない、始まる、終わる、空白、空白でない |
-| **送信元メール**   | 送信者のメールアドレス             | 含む、含まない、等しい、等しくない、始まる、終わる、空白、空白でない |
-| **メール本文**     | メールのプレーンテキスト本文       | 含む、含まない、等しい、等しくない、始まる、終わる、空白、空白でない |
-| **メール宛先**     | 受信者のメールアドレス             | 含む、含まない、等しい、等しくない、始まる、終わる、空白、空白でない |
-| **メール受信日時** | 最後のメールが受信されてからの時間 | X分以内に受信、X分以内に未受信                                       |
-
-## ユースケース例
-
-### レガシーシステムのアラート
-
-多くのレガシーシステムはメールアラートのみ送信できます。受信メールモニターを使用して：
-
-- レガシーシステムが `[CRITICAL]` メールを送信したときにOneUptimeアラートを作成する
-- `[RESOLVED]` メールを受信したときにアラートを解決する
-
-### サードパーティサービスの統合
-
-メール通知を送信するサービスとの統合：
-
-- API統合のない監視ツール
-- クラウドプロバイダーの通知
-- セキュリティスキャンツール
-
-### メールによるハートビート
-
-定期的なメールが受信されることを確認するために「メール受信日時」条件を使用します：
-
-- 60分間メールが受信されなかった場合にアラートを作成する
-- 完了メールを送信するバッチジョブやスケジュールタスクの監視に役立ちます
+Incoming Email モニターが照合できる項目 (件名、送信者、本文、受信者、メールが期限内に届いたかどうか) は、[利用できるフィルターの種類](/docs/monitor/incoming-email-monitor#使用できるフィルタータイプ) にあります。
 
 ## トラブルシューティング
 
-### メールが受信されない場合
+:::details メールが受信されない
+1. **DNS の伝播を確認する:** `dig MX inbound.yourdomain.com` が `mx.sendgrid.net` を返すはずです。
+2. **SendGrid の Inbound Parse の設定を確認する:** SendGrid のダッシュボードの **Settings** > **Inbound Parse** で、ドメインと Webhook の URL を確認します。
+3. **OneUptime のログを確認する:** OneUptime の `app` サービスのログで、受信メールの Webhook リクエストとエラーを探します。SendGrid は Inbound Parse の詳細なログを残さないため、これらのログが届いたものの記録になります。
+:::
 
-1. **DNSの伝播を確認：**
+:::details Webhook が失敗する
+1. **公開 Webhook のルートを確認する:** シークレットを含む完全な URL が、インターネットから OneUptime に届く必要があります。最後のシークレットのセグメントがない URL はルートに一致しません。
+2. **ファイアウォールのルールを確認する:** ログインのリダイレクトやブラウザーのチャレンジなしで Webhook のパスへの HTTPS POST リクエストを許可し、SendGrid のメール送信用 IP を Webhook の送信元の許可リストとして使わないでください。
+3. **SSL 証明書を確認する:** Webhook のホスト名には、公的に信頼される有効な証明書を使い、証明書チェーンも含めてください。
+:::
 
-   ```bash
-   dig MX inbound.yourdomain.com
-   ```
+:::details モニターがアラートを作成しない
+1. **条件を確認する:** アラート作成の条件がメールの内容と一致しているかを確認し、パターンを使う前にまず完全一致の文字列で試してください。
+2. **モニターを確認する:** 無効になっていないこと、種類が Incoming Email であることを確認します。
+3. **モニターの概要を確認する:** メールが受信・処理されたかを確認し、評価ログで条件がどう一致したかを読みます。
+:::
 
-   `mx.sendgrid.net` が返されることを確認してください
-
-2. **SendGrid Inbound Parseの設定を確認：**
-
-   - SendGridダッシュボードにログイン
-   - 設定 > Inbound Parseに移動
-   - ドメインとWebhookURLが正しいことを確認
-
-3. **OneUptimeのログを確認：**
-   - OneUptime のアプリケーションログ（Telemetry / ProbeIngest）で受信メール Webhook を確認します。
-   - エラーメッセージがないか確認
-
-### Webhookが失敗する場合
-
-- シークレットを含む完全な HTTPS URL にインターネットから到達できる必要があります。最後のパス要素がない URL はルートに一致しません。
-- ログインへのリダイレクトやブラウザー検証を要求せず POST を許可してください。SendGrid のメール送信 IP は Webhook 送信元の許可リストではありません。
-- 公開クライアントが信頼する証明書と完全な証明書チェーンを使用し、「ネットワークアクセス」の手順で配信を確認してください。
-
-### モニターがアラートを作成しない場合
-
-1. **条件設定を確認：**
-
-   - アラート作成条件がメール内容と一致しているか確認
-   - パターンマッチングを使用する前に完全一致の文字列でテスト
-
-2. **モニターのステータスを確認：**
-
-   - モニターが無効になっていないことを確認
-   - モニタータイプが「受信メール」であることを確認
-
-3. **モニターサマリーを確認：**
-   - メールが受信・処理されたか確認
-   - 条件マッチングの評価ログを確認
-
-### SendGridのWebhook配信ログ
-
-SendGridがWebhookを正常に送信しているか確認するには：
-
-1. 残念ながら、SendGridはInbound Parseの詳細なログを提供していません
-2. OneUptimeサーバーのログで受信WebhookリクエストをN確認します
-3. [RequestBin](https://requestbin.com) などのツールを一時的にWebhook配信テストに使用します
+:::details トリガーに、サーバーがメールを受信できるよう設定されていないと表示される
+サーバーで `INBOUND_EMAIL_DOMAIN` が空です。設定して変更を適用し、ワークフローのトリガーを開き直してください。
+:::
 
 ## セキュリティのベストプラクティス
 
-1. **HTTPSを使用する：** WebhookエンドポイントにはHTTPSを使用してください
-2. **Webhookシークレット：** `INBOUND_EMAIL_WEBHOOK_SECRET` を設定してWebhookURL（例：`/incoming-email/sendgrid/your-secret`）に含めることで、追加の検証ができます
-3. **ドメイン認証：** より良いメールセキュリティのためにSendGridでドメインを認証してください
-4. **アクセスを制限する：** 信頼できるメールソースのみのモニターを作成してください
-5. **ログを監視する：** 不審なアクティビティのために受信メールのログを定期的に確認してください
+1. **HTTPS を使う:** Webhook のエンドポイントには常に HTTPS を使います
+2. **Webhook のシークレット:** `INBOUND_EMAIL_WEBHOOK_SECRET` を設定し、追加の検証として Webhook の URL に含めます (例: `/incoming-email/sendgrid/your-secret`)
+3. **ドメインの検証:** メールのセキュリティを高めるため、SendGrid でドメインを検証します
+4. **アクセスを制限する:** 信頼できるメールの送信元に対してだけモニターを作成します
+5. **ログを監視する:** 受信メールのログを定期的に確認し、不審なアクティビティがないか調べます
 
-## 代替プロバイダー
+## 次のステップ
 
-OneUptimeは複数のインバウンドメールプロバイダーをサポートするよう設計されています。現在サポートされているプロバイダー：
-
-| プロバイダー           | ステータス   |
-| ---------------------- | ------------ |
-| SendGrid               | サポート済み |
-| Haraka（セルフホスト） | 計画中       |
-
-別のプロバイダーのサポートが必要な場合は、お問い合わせいただくか、機能リクエストを提出してください。
-
-## サポート
-
-SendGridインバウンドメール統合に問題が発生した場合：
-
-1. 上記のトラブルシューティングセクションを確認する
-2. OneUptimeのログで詳細なエラーメッセージを確認する
-3. [hello@oneuptime.com](mailto:hello@oneuptime.com) に連絡する
-
-この統合の改善のためのフィードバックをお待ちしています！
+:::cards
+- [Incoming Email Monitor](/docs/monitor/incoming-email-monitor): 条件、アドレスの形式、例。
+- [ワークフローのトリガー](/docs/workflows/triggers): メールからワークフローを開始します。
+- [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access): サーバーが自分のネットワーク内で到達できる範囲。
+- [アーキテクチャ](/docs/self-hosted/architecture): セルフホスト環境で Webhook が届く場所。
+:::

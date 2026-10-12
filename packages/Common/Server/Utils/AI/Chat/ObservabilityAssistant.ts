@@ -393,8 +393,15 @@ export default class ObservabilityAssistant {
             extraToolsByName.get(toolCall.name);
 
           let outcome: ToolCallOutcome;
-          if (excludedToolNames.has(toolCall.name)) {
-            // Defense in depth: excluded tools are refused even if named.
+          if (
+            excludedToolNames.has(toolCall.name) ||
+            AIToolbox.isMutationTool(toolCall.name)
+          ) {
+            /*
+             * Defense in depth: excluded tools, and the tools that change the
+             * project (this surface is read-only and offers none), are
+             * refused even if named.
+             */
             outcome = {
               success: false,
               textForLlm: `Error: ${toolCall.name} is not available in this run. Answer with the data you already have.`,

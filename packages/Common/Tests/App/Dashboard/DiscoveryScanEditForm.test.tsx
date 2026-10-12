@@ -312,16 +312,21 @@ describe("Editing a discovery scan after it was created", () => {
 
     expect(editFieldKeys()).toEqual(wizardKeys);
 
+    /*
+     * The three questions a scan is defined by, then More fields (the name,
+     * the naming switches and the schedule), then the credentials - which
+     * sit on a step of their own.
+     */
     expect(editFieldKeys()).toEqual([
-      "name",
       "cidr",
       "probe",
       "isSnmpEnabled",
+      "name",
       "isNetbiosLookupEnabled",
       "useShortDeviceNames",
-      "snmpConfigs",
       "isRecurring",
       "rescanIntervalInMinutes",
+      "snmpConfigs",
     ]);
   });
 
@@ -553,11 +558,22 @@ describe("Editing a discovery scan after it was created", () => {
       ).toBe(true);
     }
 
+    /*
+     * The headings live inside the More fields fold now - Device names over
+     * the naming switches, Schedule over the repeat switch - and read the
+     * same in both forms. The method toggle has none: on a step of three
+     * questions its own words are enough.
+     */
     expect(
       wizardFields.find((field: CapturedFormField): boolean => {
         return fieldKeyOf(field) === "isSnmpEnabled";
       })?.sectionTitle,
-    ).toBe("What to check");
+    ).toBeUndefined();
+    expect(
+      wizardFields.find((field: CapturedFormField): boolean => {
+        return fieldKeyOf(field) === "isNetbiosLookupEnabled";
+      })?.sectionTitle,
+    ).toBe("Device names");
 
     // And the validators are really wired, not merely identical undefineds.
     expect(
@@ -592,13 +608,11 @@ describe("Editing a discovery scan after it was created", () => {
   });
 
   /*
-   * The edit dialog walks the create wizard's own steps - Scan Target, SNMP
-   * Credentials, Schedule - from the one list both forms are handed, so a
-   * setting can never sit on a step one of them lacks. Long forms are
-   * stepped, edit forms included; being an Update form, the dialog saves
-   * from any step and opens any step from its step list
-   * (SteppedEditFormSave.test.tsx drives that), so flipping the schedule is
-   * not three Next clicks away, and there is still no Back button.
+   * The edit dialog walks the create wizard's own steps - Scan Target and
+   * SNMP Credentials - from the one list both forms are handed, so a
+   * setting can never sit on a step one of them lacks. The schedule folds
+   * under More fields on Scan Target, in both: flipping it is one fold away,
+   * not a step away.
    */
   test("walks the create wizard's own steps", async () => {
     await openEditDialog();
@@ -613,7 +627,7 @@ describe("Editing a discovery scan after it was created", () => {
           return step.title;
         },
       ),
-    ).toEqual(["Scan Target", "SNMP Credentials", "Schedule"]);
+    ).toEqual(["Scan Target", "SNMP Credentials"]);
     expect(capturedModalProps?.formProps?.formType).toBe(FormType.Update);
 
     const wizardFields: Array<CapturedFormField> =
@@ -638,45 +652,28 @@ describe("Editing a discovery scan after it was created", () => {
     );
     expect(headings).not.toContain("Scan Target");
     expect(headings).not.toContain("SNMP Credentials");
-    expect(headings).not.toContain("Schedule");
-    expect(headings).toContain("What to check");
+    // The schedule's heading is inside the fold, not a step's title.
+    expect(headings).toEqual(["Device names", "Schedule"]);
 
-    // The credentials are on their own step, and the schedule on its.
+    // The credentials are on their own step; the schedule folds on the first.
     expect(editFieldNamed("snmpConfigs").stepId).toBe("snmp");
-    expect(editFieldNamed("isRecurring").stepId).toBe("schedule");
+    expect(editFieldNamed("isRecurring").stepId).toBe("scan-target");
     expect(editFieldNamed("cidr").stepId).toBe("scan-target");
 
-    /*
-     * And the toggle keeps its own heading rather than being promoted to a
-     * group start. It sits in the MIDDLE of the Scan Target step, so if the
-     * edit layout ever headed every field instead of the first of each step,
-     * "What to check" would be replaced by a second "Scan Target" and the two
-     * questions the step asks would read as one.
-     */
-    expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBe("What to check");
+    // The method toggle has no heading: the step asks three plain questions.
+    expect(editFieldNamed("isSnmpEnabled").sectionTitle).toBeUndefined();
 
     /*
-     * The same holds for the naming toggle (issue #3678): it opens its own
-     * "Device names" group inside the Scan Target step, so it must keep that
-     * heading rather than being folded under "What to check" or promoted to a
-     * second "Scan Target".
-     */
-    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(
-      "Device names",
-    );
-    expect(headings).toContain("Device names");
-
-    /*
-     * The NetBIOS lookup (issue #3677) is the opposite case: it carries NO
-     * heading, so it reads as the second question under "What to check" — it
-     * is something the probe sends — rather than opening a group, or being
-     * swallowed by "Device names", which sends nothing.
+     * The NetBIOS lookup (issue #3677) opens the Device names heading inside
+     * More fields - a NetBIOS name is one of the names a host can be given -
+     * and the naming switch (issue #3678) follows under it.
      */
     expect(editFieldNamed("isNetbiosLookupEnabled").sectionTitle).toBe(
-      undefined,
+      "Device names",
     );
-    expect(editFieldKeys().indexOf("isNetbiosLookupEnabled")).toBe(
-      editFieldKeys().indexOf("isSnmpEnabled") + 1,
+    expect(editFieldNamed("useShortDeviceNames").sectionTitle).toBe(undefined);
+    expect(editFieldKeys().indexOf("useShortDeviceNames")).toBe(
+      editFieldKeys().indexOf("isNetbiosLookupEnabled") + 1,
     );
   });
 

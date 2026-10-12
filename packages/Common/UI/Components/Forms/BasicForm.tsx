@@ -172,18 +172,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const [didSomethingChange, setDidSomethingChange] =
       useState<boolean>(false);
 
-    const [isLoading, setIsLoading] = useState<boolean | undefined>(
-      props.isLoading,
-    );
+    /*
+     * Read straight from the prop, never copied into state: a copy kept in
+     * step by an effect lagged one render behind it, so a failed save drew
+     * its error (props.error) while the fields were still disabled, and a
+     * save that had just started still left the form enabled for that
+     * render.
+     */
+    const isLoading: boolean | undefined = props.isLoading;
 
     const [formError, setFormError] = useState<string | null>(null);
 
     const [isDropdownOptionsLoading, setIsDropdownOptionsLoading] =
       useState<boolean>(false);
-
-    useEffect(() => {
-      setIsLoading(props.isLoading);
-    }, [props.isLoading]);
 
     const getFormSteps: () => Array<FormStep<T>> | undefined = () => {
       if (props.summary && props.summary.enabled) {

@@ -543,19 +543,12 @@ export class Service extends ProjectReferencesService<Model> {
           throw new BadDataException(WINDOWS_NOT_NUMERIC_ERROR_MESSAGE);
         }
 
-        const rulesToUpdate: Array<Model> = await this.findBy({
-          query: updateBy.query,
-          select: {
+        const rulesToUpdate: Array<Model> =
+          await this.findRowsAndHoldUpdateToThem(updateBy, {
             _id: true,
             longWindowInMinutes: true,
             shortWindowInMinutes: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+          });
 
         for (const rule of rulesToUpdate) {
           /*
@@ -623,16 +616,10 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const itemsToDelete: Array<Model> = await this.findBy({
-      query: SloFeedUtil.getTenantPinnedQuery({
-        query: deleteBy.query,
-        tenantId: deleteBy.props.isMultiTenantRequest
-          ? undefined
-          : deleteBy.props.tenantId,
-      }),
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
+    // The rules the delete removes, and the delete held to them.
+    const itemsToDelete: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         serviceLevelObjectiveId: true,
@@ -642,10 +629,7 @@ export class Service extends ProjectReferencesService<Model> {
         longWindowInMinutes: true,
         shortWindowInMinutes: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -797,19 +781,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     try {
-      const rows: Array<Model> = await this.findBy({
-        // Pinned: this hook runs before DatabaseService applies permissions.
-        query: SloFeedUtil.getTenantPinnedQuery({
-          query: updateBy.query,
-          tenantId: updateBy.props.tenantId,
-        }),
-        select: this.getFeedSelect(columns),
-        limit: updateBy.limit,
-        skip: updateBy.skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        this.getFeedSelect(columns),
+      );
 
       const rowsById: Dictionary<Model> = {};
 
@@ -1199,19 +1174,14 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const rulesToUpdate: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const rulesToUpdate: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         shouldCreateAlert: true,
         shouldCreateIncident: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const rule of rulesToUpdate) {
       const resultingShouldCreateAlert: boolean = isShouldCreateAlertUpdated
@@ -1442,9 +1412,8 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     for (const projectId of projectIds) {
       await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
@@ -1476,9 +1445,8 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     for (const projectId of projectIds) {
       await this.validateSeverityReferences({
@@ -1648,29 +1616,19 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: select as unknown as Select<Model>,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    const rules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as unknown as Select<Model>,
+    );
 
-    const projectIds: Dictionary<ObjectID> = {};
-
-    if (updateBy.props.tenantId) {
-      projectIds[updateBy.props.tenantId.toString()] = updateBy.props.tenantId;
-    } else {
-      for (const rule of rules) {
-        if (rule.projectId) {
-          projectIds[rule.projectId.toString()] = rule.projectId;
-        }
-      }
-    }
-
-    for (const projectId of Object.values(projectIds)) {
+    /*
+     * The request's project for a teammate, whose update is kept to it; the
+     * project of each rule written for OneUptime and a master admin.
+     */
+    for (const projectId of this.getProjectsToCheckRowsIn(
+      updateBy.props,
+      rules,
+    )) {
       const storedIds: Dictionary<Set<string>> = {};
 
       for (const column of columnsInPayload) {
@@ -1873,32 +1831,6 @@ export class Service extends ProjectReferencesService<Model> {
         service: teamService,
       },
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const rules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const rule of rules) {
-      if (rule.projectId) {
-        projectIds[rule.projectId.toString()] = rule.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   /*

@@ -44,6 +44,7 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { readsOfRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
@@ -1667,7 +1668,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
     expect(repositoryDelete).not.toHaveBeenCalled();
   });
 
-  test("the lookup only looks inside the caller's project, as root", async () => {
+  test("the lookup reads only endpoints the caller may delete, in the caller's project, as root", async () => {
     /*
      * An endpoint of the caller's project, so the delete reaches its hook:
      * DatabaseService runs no hook for a delete that names no row the caller
@@ -1688,11 +1689,22 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       return 0;
     });
 
+    // The endpoints the caller may delete: read in the caller's project.
+    expect(
+      readsOfRowsCallerMayWrite(DatabaseServerEndpointService)[0]!.query[
+        "projectId"
+      ],
+    ).toEqual(PROJECT_ID);
+
+    /*
+     * The delete's own query among them, read as root: another project's
+     * endpoint, which the caller may not delete, is never in it.
+     */
     const call: any = findBy.mock.calls[0]![0];
     expect(call.query._id).toBe(endpointId);
-    // The request tenant wins over whatever project the query named.
-    expect(call.query.projectId).toEqual(PROJECT_ID);
+    expect(call.query.projectId).toEqual(OTHER_PROJECT_ID);
     expect(call.props.isRoot).toBe(true);
+    expect(repositoryDelete).not.toHaveBeenCalled();
   });
 
   test("an endpoint in another project is never matched, so nothing is removed or revealed", async () => {

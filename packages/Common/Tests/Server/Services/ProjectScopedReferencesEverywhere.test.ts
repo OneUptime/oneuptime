@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Every service whose rows name another record of the project - an
@@ -171,12 +172,18 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "NetworkDeviceProbeTenancy suites (ProbeService.isProbeAttachableToProject)",
   "NetworkSiteService.ts":
     "NetworkSiteService.test.ts (ProbeService.isProbeAttachableToProject)",
+  "PacketCaptureService.ts":
+    "PacketCaptureService.test.ts (the probe must be the project's own and never a global one, the network device the project's; another project's answered as a missing one)",
   "ServiceLevelObjectiveBurnRateRuleService.ts":
     "ServiceLevelObjectiveBurnRateRuleService.test.ts",
   "TeamComplianceSettingService.ts":
     "TeamComplianceSettingService.test.ts (severities, after the rule type drops the options it does not use)",
   "TeamMemberService.ts":
     "the invited user is not a member until the row exists (TeamMemberService.test.ts)",
+  "VMwareVCenterService.ts":
+    "VMwareVCenterConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
+  "VMwareVCenterConnectionTestService.ts":
+    "VMwareVCenterConnectionTestService.test.ts (the probe as a vCenter's collection probe; the vCenter read within the test's project, a foreign and a missing one answered alike)",
 };
 
 /*
@@ -983,6 +990,12 @@ describe("services whose rows name the project's records", () => {
       // The record holds nothing yet.
       jest.spyOn(service, "findBy").mockResolvedValue([] as never);
 
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
+
       const thrown: unknown = await refusalOf(
         callHook(service, "onBeforeUpdate", {
           query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
@@ -1072,9 +1085,20 @@ describe("services whose rows name the project's records", () => {
           : { _id: foreignIdFor(index) };
       });
 
-      jest
-        .spyOn(service, "findBy")
-        .mockResolvedValue([recordWith(service, held)] as never);
+      const record: DatabaseBaseModel = recordWith(service, held);
+
+      // The record the update names - a project is its own project already.
+      if (!record._id) {
+        record._id = "1c2d3e4f-0000-4000-8000-0000000000a1";
+      }
+
+      jest.spyOn(service, "findBy").mockResolvedValue([record] as never);
+
+      /*
+       * The read of the rows the caller's update may write, which the update
+       * path makes before the hooks: what the read above answers.
+       */
+      stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
       // The base class's hook: the service's own may read the database.
       const baseHook: HookFunction = (
@@ -1088,7 +1112,7 @@ describe("services whose rows name the project's records", () => {
         data: Record<string, unknown>,
       ): Promise<unknown> => {
         return baseHook.call(service, {
-          query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
+          query: { _id: record._id },
           data: data,
           props: USER_PROPS,
           limit: 1,

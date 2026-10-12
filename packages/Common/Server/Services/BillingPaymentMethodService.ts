@@ -4,7 +4,7 @@ import { OnDelete, OnFind } from "../Types/Database/Hooks";
 import BillingService, { PaymentMethod } from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/BillingPaymentMethod";
 import Project from "../../Models/DatabaseModels/Project";
@@ -150,20 +150,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const items: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    /*
+     * The payment methods the delete removes, and the delete held to them:
+     * only those are detached at the provider.
+     */
+    const items: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         paymentProviderPaymentMethodId: true,
         paymentProviderCustomerId: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
 
     for (const item of items) {
       if (

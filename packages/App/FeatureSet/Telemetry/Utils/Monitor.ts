@@ -155,6 +155,7 @@ export default class MonitorUtil {
       monitorType === MonitorType.IP ||
       monitorType === MonitorType.Ping ||
       monitorType === MonitorType.Port ||
+      monitorType === MonitorType.NTP ||
       monitorType === MonitorType.Website ||
       monitorType === MonitorType.SSLCertificate
     ) {

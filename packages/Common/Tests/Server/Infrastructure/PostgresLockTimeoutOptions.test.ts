@@ -24,14 +24,18 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  *     queued every query on its table behind itself - 14.0.13's ALTER TABLE
  *     on "Monitor" stopped monitoring that way.
  *
- *  2. The deadlines must be ORDERED so the server wins. The client-side
- *     `query_timeout` does not cancel anything — it abandons the query while
- *     the backend keeps running and keeps its place in the lock queue. That is
+ *  2. The deadlines must be ORDERED so the server wins. node-postgres' own
+ *     `query_timeout` did not cancel anything - it abandoned the query while
+ *     the backend kept running and kept its place in the lock queue. That is
  *     how killed and scaled-down workers left orphaned statements holding the
  *     queue through pgbouncer. It used to be set equal to statement_timeout,
  *     and since the client timer starts before the packet reaches the backend,
  *     the client always won by a round trip and the server-side timeout never
- *     fired at all.
+ *     fired at all. The pool's client now cancels a statement it stops
+ *     waiting for, and closes its connection (CancelOnTimeoutClient) - for
+ *     where the server enforces no timeout of its own: behind a pooler that
+ *     drops it. Where it does, the server still answers first, with the
+ *     statement's own SQLSTATE.
  *
  * The module reads env at import time, so each case re-imports it in isolation.
  */
@@ -41,6 +45,8 @@ interface DataSourceExtra {
   statement_timeout?: number;
   query_timeout?: number;
   idle_in_transaction_session_timeout?: number;
+  // The node-postgres client class the pool opens its connections with.
+  Client?: (new (...args: Array<unknown>) => unknown) | undefined;
 }
 
 /* Runs `load` on fresh module instances, with `env` set for its duration. */
@@ -150,9 +156,9 @@ describe("Postgres connection deadlines", () => {
     });
 
     /*
-     * statement_timeout < query_timeout, so the SERVER cancels first. If the
-     * client wins, the statement is only abandoned — the backend keeps
-     * running, keeps its lock, and keeps its place in the queue.
+     * statement_timeout < query_timeout, so the SERVER cancels first, and the
+     * app sees the statement's own SQLSTATE. The client's cancel is for
+     * where the server enforces no statement timeout.
      */
     test("the server cancels before the client gives up", () => {
       const extra: DataSourceExtra = loadExtra({
@@ -180,6 +186,36 @@ describe("Postgres connection deadlines", () => {
 
       expect(extra.statement_timeout).toBe(60000);
       expect(extra.query_timeout!).toBeGreaterThan(60000);
+    });
+  });
+
+  describe("a statement the client stops waiting for", () => {
+    /*
+     * node-postgres' own query_timeout only stopped waiting: the statement
+     * ran on, and inside save() its ROLLBACK was dropped and the open
+     * transaction handed to the next request on that connection
+     * (AbandonedStatementsPostgres). The pool's client cancels it on the
+     * database and closes the connection instead.
+     */
+    test("is cancelled by the client the pool opens its connections with", () => {
+      const extra: DataSourceExtra = loadExtra({
+        RUN_DATABASE_MIGRATIONS_ON_BOOT: "false",
+      });
+
+      expect(typeof extra.Client).toBe("function");
+      expect(extra.Client!.name).toBe("CancelOnTimeoutClient");
+      // node-postgres' own client underneath, as the pool expects.
+      expect(Object.getPrototypeOf(extra.Client!).name).toBe("Client");
+      // Its timeout is still the pool's query_timeout, which it keeps itself.
+      expect(extra.query_timeout).toBeGreaterThan(0);
+    });
+
+    test("the same on the app pool of a migrating process", () => {
+      const extra: DataSourceExtra = loadExtra({
+        RUN_DATABASE_MIGRATIONS_ON_BOOT: "true",
+      });
+
+      expect(extra.Client!.name).toBe("CancelOnTimeoutClient");
     });
   });
 
@@ -270,6 +306,8 @@ describe("Postgres connection deadlines", () => {
     });
 
     test("keep every other deadline of the app pool", () => {
+      // And its client: a migration statement the runner stops waiting for is cancelled too.
+      expect(defaults.migrationExtra.Client).toBe(defaults.appExtra.Client);
       expect(defaults.migrationExtra.statement_timeout).toBe(
         defaults.appExtra.statement_timeout,
       );

@@ -13,6 +13,7 @@ import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import CompareCriteria from "./CompareCriteria";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ReceivingSilence, { MeasuredSilence } from "../ReceivingSilence";
 
 export default class IncomingRequestCriteria {
   @CaptureSpan()
@@ -107,13 +108,9 @@ export default class IncomingRequestCriteria {
 
       logger.debug("Last Check Time: " + lastCheckTime);
 
-      const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
-        lastCheckTime,
+      const checkedAt: Date =
         (input.dataToProcess as IncomingMonitorRequest)?.checkedAt ||
-          OneUptimeDate.getCurrentDate(),
-      );
-
-      logger.debug("Difference in minutes: " + differenceInMinutes);
+        OneUptimeDate.getCurrentDate();
 
       if (!value) {
         return null;
@@ -132,6 +129,27 @@ export default class IncomingRequestCriteria {
         return null;
       }
 
+      /*
+       * A sender cannot reach OneUptime while it is not receiving - a
+       * restart, an upgrade, a backed-up ingest queue - so that time is not
+       * silence held against it (issue #2825). With no such time this is
+       * simply the minutes since the last request.
+       */
+      const silence: MeasuredSilence = await ReceivingSilence.measure({
+        lastHeardAt: lastCheckTime,
+        now: checkedAt,
+        thresholdInMinutes: value as number,
+      });
+      const differenceInMinutes: number = silence.receivingMinutes;
+
+      logger.debug("Difference in minutes: " + differenceInMinutes);
+
+      const lastReceived: string = ReceivingSilence.describe({
+        silence,
+        verb: "received",
+        what: "requests",
+      });
+
       if (input.criteriaFilter.filterType === FilterType.RecievedInMinutes) {
         logger.debug(
           "Checking RecievedInMinutes for Monitor: " +
@@ -143,7 +161,7 @@ export default class IncomingRequestCriteria {
               input.dataToProcess.monitorId.toString() +
               " is true",
           );
-          return `Incoming request / heartbeat received in ${value} minutes. It was received ${differenceInMinutes} minutes ago.`;
+          return `Incoming request / heartbeat received in ${value} minutes. ${lastReceived}`;
         }
         return null;
       }
@@ -159,7 +177,7 @@ export default class IncomingRequestCriteria {
               input.dataToProcess.monitorId.toString() +
               " is true",
           );
-          return `Incoming request / heartbeat not received in ${value} minutes. It was received ${differenceInMinutes} minutes ago.`;
+          return `Incoming request / heartbeat not received in ${value} minutes. ${lastReceived}`;
         }
         return null;
       }

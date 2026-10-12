@@ -3,18 +3,20 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Getting Started tells a new user how to find their way around: the
- * products menu lists its groups as the rows of one list, always opens with
- * the first of them, the essentials, open, and folds every other group into
- * a row. The page names the essentials and the folded groups, so it has to
- * name the ones the menu actually shows. These read the names from the
- * Dashboard's own English locale, the words on the screen, and fail when the
- * page and the menu drift apart.
+ * Home Page & Shortcuts (introduction/home; Getting Started until the docs
+ * overhaul gave the dashboard's own ways around a page of their own) tells a
+ * new user how to find their way around: the products menu lists its groups
+ * as the rows of one list, always opens with the first of them, the
+ * essentials, open, and folds every other group into a row. The page names
+ * the essentials and the folded groups, so it has to name the ones the menu
+ * actually shows. These read the names from the Dashboard's own English
+ * locale, the words on the screen, and fail when the page and the menu drift
+ * apart.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..", "..");
 
-const GETTING_STARTED: string = fs.readFileSync(
+const HOME_PAGE: string = fs.readFileSync(
   path.join(
     APP_ROOT,
     "FeatureSet",
@@ -22,7 +24,7 @@ const GETTING_STARTED: string = fs.readFileSync(
     "Content",
     "en",
     "introduction",
-    "getting-started.md",
+    "home.md",
   ),
   "utf8",
 );
@@ -53,10 +55,10 @@ const NAVIGATION_ITEMS: string = fs.readFileSync(
 
 // The section of the page about the products menu.
 const SECTION: string = ((): string => {
-  const start: number = GETTING_STARTED.indexOf("## Finding your way around");
+  const start: number = HOME_PAGE.indexOf("## Finding your way around");
   expect(start).toBeGreaterThan(-1);
-  const next: number = GETTING_STARTED.indexOf("\n## ", start + 1);
-  return GETTING_STARTED.slice(start, next === -1 ? undefined : next);
+  const next: number = HOME_PAGE.indexOf("\n## ", start + 1);
+  return HOME_PAGE.slice(start, next === -1 ? undefined : next);
 })();
 
 // The essentials, in the catalog's own order, by their English titles.
@@ -69,7 +71,7 @@ const ESSENTIAL_TITLE_KEYS: Array<string> = [
   "scheduledMaintenanceTitle",
 ];
 
-describe("Getting Started explains the products menu", () => {
+describe("Home Page & Shortcuts explains the products menu", () => {
   test("it says the menu opens with the essentials open and names each of them", () => {
     expect(SECTION).toContain("**Products**");
     expect(SECTION).toContain(

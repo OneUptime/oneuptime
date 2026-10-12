@@ -65,6 +65,13 @@ GHCR_429_STDERR="[0019] ERROR could not determine source: errors occurred attemp
 MANIFEST_UNKNOWN_STDERR="[0002] ERROR could not determine source: errors occurred attempting to resolve 'ghcr.io/oneuptime/home:12.0.27':
   - oci-registry: GET https://ghcr.io/v2/oneuptime/home/manifests/12.0.27: MANIFEST_UNKNOWN: manifest unknown"
 
+# What Docker Hub's token service answered a Common Test pull with on its third
+# attempt (fb78dc289a, job 114031418916), verbatim. The first attempt's timeout
+# read "context deadline exceeded (Client.Timeout ...)" and was retried; this
+# one, Go's other spelling of the same timeout, was not, so the pull gave up
+# with an attempt still left.
+DOCKER_HUB_TOKEN_TIMEOUT_STDERR='Error response from daemon: Head "https://registry-1.docker.io/v2/valkey/valkey/manifests/9.1-alpine": Get "https://auth.docker.io/token?account=githubactions&scope=repository%3Avalkey%2Fvalkey%3Apull&service=registry.docker.io": net/http: request canceled (Client.Timeout exceeded while awaiting headers)'
+
 ATTEMPTS_FILE=""
 
 # A stand-in for syft: fails the first N attempts with the given stderr, then
@@ -113,6 +120,13 @@ assert_eq 2 "$(attempts_made)" "retries the 429 exactly once before succeeding"
 assert_contains "$output" "TOOMANYREQUESTS" "replays the failing attempt's stderr to the log"
 assert_contains "$output" "Retrying in 0s" "announces the retry"
 
+# --- Docker Hub's token service timing out is transient too, however Go words it. ---
+reset_attempts
+status=0
+output="$(retry_registry_read "test pull" fake_command 1 "$DOCKER_HUB_TOKEN_TIMEOUT_STDERR" 1 2>&1)" || status=$?
+assert_eq 0 "$status" "recovers from Docker Hub's token service timing out"
+assert_eq 2 "$(attempts_made)" "retries the 'request canceled (Client.Timeout ...)' timeout"
+
 # --- Recovers even when it takes every retry it has. ---
 reset_attempts
 status=0
@@ -157,7 +171,9 @@ for transient in \
 	"read tcp 10.1.0.4:52134->140.82.121.33:443: read: connection reset by peer" \
 	"net/http: TLS handshake timeout" \
 	"dial tcp: lookup ghcr.io: no such host" \
-	"context deadline exceeded"; do
+	"context deadline exceeded" \
+	"net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)" \
+	"net/http: request canceled (Client.Timeout exceeded while reading body)"; do
 	reset_attempts
 	status=0
 	retry_registry_read "test scan" fake_command 1 "$transient" 1 >/dev/null 2>&1 || status=$?

@@ -5,10 +5,17 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
+/*
+ * The AI / LLM product's tabs, in the order a person uses them: what the AI
+ * said (Conversations, the home), every call underneath (Calls), who uses
+ * which model (Usage), being told when answers go wrong (Alerts), what it
+ * may spend (Budgets) and what a model costs (Pricing), then Setup.
+ */
 export type LlmTabKey =
-  | "overview"
-  | "usage"
+  | "conversations"
   | "calls"
+  | "usage"
+  | "alerts"
   | "budgets"
   | "pricing"
   | "setup";
@@ -18,15 +25,31 @@ interface Props {
   trailing?: ReactElement | undefined;
 }
 
+export const LLM_TAB_ORDER: Array<LlmTabKey> = [
+  "conversations",
+  "calls",
+  "usage",
+  "alerts",
+  "budgets",
+  "pricing",
+  "setup",
+];
+
 const LlmNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
   const tabs: Array<TelemetryTab> = [
     {
-      key: "overview",
-      label: "Overview",
-      icon: IconProp.Home,
+      key: "conversations",
+      label: "Conversations",
+      icon: IconProp.ChatBubbleLeftRight,
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.LLM_OVERVIEW] as Route,
+        RouteMap[PageMap.LLM_CONVERSATIONS] as Route,
       ),
+    },
+    {
+      key: "calls",
+      label: "Calls",
+      icon: IconProp.List,
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_CALLS] as Route),
     },
     {
       key: "usage",
@@ -35,10 +58,10 @@ const LlmNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_USAGE] as Route),
     },
     {
-      key: "calls",
-      label: "LLM Calls",
-      icon: IconProp.Sparkles,
-      to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_CALLS] as Route),
+      key: "alerts",
+      label: "Alerts",
+      icon: IconProp.Bell,
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM_ALERTS] as Route),
     },
     {
       key: "budgets",

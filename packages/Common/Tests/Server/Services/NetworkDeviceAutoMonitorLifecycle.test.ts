@@ -28,6 +28,10 @@ import type { SpyInstance } from "jest-mock";
 import { getMetadataArgsStorage } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  stubRowsCallerMayDeleteLikeFindBy,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -289,9 +293,15 @@ describe("auto-provisioned Monitor lifecycle", () => {
 
   it("refuses a direct update that links a template hidden by the caller's read scope", async () => {
     const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
     monitor.projectId = PROJECT_ID;
     monitor.monitorType = MonitorType.NetworkDevice;
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
+    // The monitors the caller's update may write: this one.
+    stubRowsCallerMayWriteLikeFindBy(
+      MonitorService,
+      jest.spyOn(MonitorService, "findBy"),
+    );
     const props: DatabaseCommonInteractionProps = {
       tenantId: PROJECT_ID,
       userId: ObjectID.generate(),
@@ -307,7 +317,7 @@ describe("auto-provisioned Monitor lifecycle", () => {
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: monitor.id.toString() },
         data: { monitorTemplateId: TEMPLATE_ID },
         limit: 1,
         skip: 0,
@@ -395,6 +405,15 @@ describe("Network Device deletion with automatic monitors", () => {
   beforeEach(() => {
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
     stubProjectDirectory({});
+    /*
+     * The devices the caller may delete: those the case's device read
+     * answers. A case's own delete permission stub, set after this, decides
+     * the rest.
+     */
+    stubRowsCallerMayDeleteLikeFindBy(
+      NetworkDeviceService,
+      jest.spyOn(NetworkDeviceService, "findBy"),
+    );
   });
 
   it("fails closed at the foreign key when a monitor appears after service preflight", () => {

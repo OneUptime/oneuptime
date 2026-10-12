@@ -117,15 +117,14 @@ export default class RunRunbook {
       }
 
       /*
-       * Somebody else may have finished this execution while the previous step
-       * was in flight: a user cancelling it, or the stuck-execution sweep
-       * failing it after this Worker went quiet for too long. Neither can
-       * interrupt a step that is already running, but both mean nobody wants
-       * the rest of the runbook — and the array held here is now stale, so
-       * carrying on would write Cancelled steps back as Pending and keep
-       * dispatching scripts for a run the operator was told had stopped.
-       * Checked at the step boundary, which is the only place it is safe to
-       * stop.
+       * Somebody else may have finished this execution since it was read: a
+       * user cancelling it, or the stuck-execution sweep failing it after this
+       * Worker went quiet for too long. Both mean nobody wants the rest of the
+       * runbook — and the array held here is now stale, so carrying on would
+       * write Cancelled steps back as Pending and keep dispatching scripts for
+       * a run the operator was told had stopped. Neither can interrupt a step
+       * that is already running, so this is asked at the step boundaries:
+       * before a step starts, here, and again when it returns (below).
        */
       if (await this.hasReachedTerminalState(execution._id!)) {
         return;
@@ -168,6 +167,21 @@ export default class RunRunbook {
           output: "",
           errorMessage: err instanceof Error ? err.message : String(err),
         };
+      }
+
+      /*
+       * The run can end while this step is in flight: cancelled from the
+       * execution page, or failed by the stuck-execution sweep. The row says
+       * so already - the run Cancelled or Failed, this step and the ones
+       * after it Cancelled - and every write below would undo that: it puts
+       * back the status Running and the step array held here, the later
+       * steps Pending again, and the loop would go on to run them. A
+       * cancelled Runner job comes back as a failed step too, which would
+       * turn the cancelled run into a Failed one. So the step's result is
+       * not recorded on a run that has ended, and nothing more runs.
+       */
+      if (await this.hasReachedTerminalState(execution._id!)) {
+        return;
       }
 
       stepExec.completedAt = new Date().toISOString();

@@ -2,6 +2,7 @@ import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import MonitorMaintenanceSuppression, {
   MaintainedResourceKeys,
 } from "../../../../Server/Utils/Monitor/MonitorMaintenanceSuppression";
@@ -552,6 +553,21 @@ describe("MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints — data
   const PROJECT_ID: ObjectID = new ObjectID(
     "11111111-1111-4111-8111-111111111111",
   );
+
+  /*
+   * The events are asked for by the project's states they are in progress
+   * in; the stubbed event reads below stand for the events in them.
+   */
+  beforeEach(() => {
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getInProgressScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([
+        new ObjectID("44444444-4444-4444-8444-444444444441"),
+      ]);
+  });
 
   afterEach(() => {
     jest.restoreAllMocks();

@@ -7,6 +7,7 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdatePermission from "../../../Server/Types/Database/Permissions/UpdatePermission";
+import UpdateScopePermission from "../../../Server/Types/Database/Permissions/UpdateScopePermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -423,6 +424,30 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
       return await ModelPermission.checkCreateScopePermission({
         modelType: Label,
         data: newLabel(),
+        props: props,
+        findRecordLabels: async (): Promise<Record<string, Array<string>>> => {
+          return {};
+        },
+        findLabelNames: async (): Promise<Array<string>> => {
+          return [];
+        },
+      });
+    },
+  },
+  {
+    /*
+     * Asked of an update that changes the labels its records carry: the
+     * records stay within the caller's permission to update them.
+     */
+    name: "checkUpdateScopePermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(UpdateScopePermission, "checkUpdateScope");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkUpdateScopePermission({
+        modelType: Label,
+        data: { name: "Renamed" },
+        rows: [newLabel()],
         props: props,
         findRecordLabels: async (): Promise<Record<string, Array<string>>> => {
           return {};
@@ -858,6 +883,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
       "checkUpdateParentPermission",
       "checkUpdatePermissionByModel",
       "checkUpdateQueryPermissions",
+      "checkUpdateScopePermission",
       "getUpdatableQuery",
     ],
   },

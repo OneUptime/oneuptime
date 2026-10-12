@@ -143,17 +143,34 @@ function snapshot(
 
 /*
  * A stand-in for a resource's DatabaseService: the settings read, the
- * marker write and the project lookup are all the helper asks of it.
+ * marker write and the project lookup are all the helper asks of it. The
+ * settings of the rows an update writes are read - and the update held to
+ * them - by findRowsAndHoldUpdateToThem (DatabaseService's own is pinned by
+ * DatabaseServiceRowsAnUpdateWrites.test.ts); here it answers with what the
+ * rows read answers.
  */
 interface FakeService {
   findBy: jest.Mock;
+  findRowsAndHoldUpdateToThem: jest.Mock;
   findOneById: jest.Mock;
   updateBy: jest.Mock;
 }
 
 function fakeService(rows: Array<Record<string, unknown>> = []): FakeService {
+  const findBy: jest.Mock = jest.fn().mockResolvedValue(rows);
+
   return {
-    findBy: jest.fn().mockResolvedValue(rows),
+    findBy: findBy,
+    findRowsAndHoldUpdateToThem: jest
+      .fn()
+      .mockImplementation(
+        async (
+          heldUpdate: UpdateBy<BaseModel>,
+          select: Record<string, unknown>,
+        ): Promise<unknown> => {
+          return await findBy({ query: heldUpdate.query, select: select });
+        },
+      ),
     findOneById: jest.fn().mockResolvedValue({ projectId: PROJECT_ID }),
     updateBy: jest.fn().mockResolvedValue(1),
   };
@@ -803,7 +820,7 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
     });
   }
 
-  it("refuses an editor's loosening before anything is written, and reads the settings scoped to the tenant as root", async () => {
+  it("refuses an editor's loosening before anything is written, and reads the settings of the rows the update writes", async () => {
     await expect(
       check(
         { aiRemediationMode: ResourceAiRemediationMode.RequireApproval },
@@ -811,28 +828,18 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
       ),
     ).rejects.toThrow(NotAuthorizedException);
 
-    expect(service.findBy).toHaveBeenCalledTimes(1);
-    const args: {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      props: DatabaseCommonInteractionProps;
-    } = service.findBy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      props: DatabaseCommonInteractionProps;
-    };
-    expect(args.query).toEqual({
-      _id: RESOURCE_ID.toString(),
-      projectId: PROJECT_ID,
-    });
-    expect(args.props).toEqual({ isRoot: true });
+    // The rows the update writes, the update held to them.
+    expect(service.findRowsAndHoldUpdateToThem).toHaveBeenCalledTimes(1);
+    const [heldUpdate, select] = service.findRowsAndHoldUpdateToThem.mock
+      .calls[0] as [UpdateBy<BaseModel>, Record<string, unknown>];
+    expect(heldUpdate.query).toEqual({ _id: RESOURCE_ID.toString() });
     for (const column of [
       "projectId",
       "isAiInvestigationEnabled",
       "aiRemediationMode",
       "aiCommandAllowlist",
     ]) {
-      expect(args.select[column]).toBe(true);
+      expect(select[column]).toBe(true);
     }
     expect(service.updateBy).not.toHaveBeenCalled();
   });

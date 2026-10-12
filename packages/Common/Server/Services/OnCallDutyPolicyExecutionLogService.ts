@@ -24,6 +24,7 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import IncidentService from "./IncidentService";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
@@ -121,14 +122,70 @@ export class Service extends ProjectReferencesService<Model> {
 
     createBy.data.onCallPolicyExecutionRepeatCount = 1;
 
-    return { createBy, carryForward: null };
+    /*
+     * An archived policy pages no one, however its execution is asked for:
+     * a record's Execute On-Call Policy in the dashboard, the API, Slack or
+     * Microsoft Teams (OnCallDutyPolicyArchive). The log is still written,
+     * with the reason, so "why was nobody paged?" has an answer on the
+     * record; onCreateSuccess then starts no escalation.
+     */
+    const isPolicyArchived: boolean = await this.isPolicyArchived(
+      createBy.data,
+    );
+
+    if (isPolicyArchived) {
+      createBy.data.status = OnCallDutyPolicyStatus.Error;
+      createBy.data.statusMessage =
+        ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE;
+    }
+
+    return {
+      createBy,
+      carryForward: {
+        isPolicyArchived: isPolicyArchived,
+      },
+    };
+  }
+
+  // Whether the policy an execution log is for is archived, read as OneUptime.
+  private async isPolicyArchived(data: Model): Promise<boolean> {
+    const policyId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["onCallDutyPolicyId", "onCallDutyPolicy"],
+      "On-Call Duty Policy",
+    );
+
+    if (!policyId) {
+      return false;
+    }
+
+    const policy: OnCallDutyPolicy | null =
+      await OnCallDutyPolicyService.findOneById({
+        id: policyId,
+        select: {
+          isArchived: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return policy?.isArchived === true;
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // An archived policy's log says why nobody was paged; nothing follows it.
+    if (
+      (onCreate.carryForward as { isPolicyArchived?: boolean } | null)
+        ?.isPolicyArchived
+    ) {
+      return createdItem;
+    }
+
     if (
       createdItem.triggeredByIncidentId ||
       createdItem.triggeredByAlertId ||
@@ -397,12 +454,18 @@ export class Service extends ProjectReferencesService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    // if status is updtaed then check if this on-call is related to the incident, if yes, then add to incident feed.
-    if (onUpdate.updateBy.data.status && onUpdate.updateBy.query._id) {
-      const id: ObjectID = onUpdate.updateBy.query._id! as ObjectID;
+    /*
+     * When the status is updated, each execution log the update wrote that
+     * an incident, an alert or an episode triggered adds its new status to
+     * that record's feed.
+     */
+    if (!onUpdate.updateBy.data.status) {
+      return onUpdate;
+    }
 
+    for (const id of updatedItemIds) {
       const onCalldutyPolicyExecutionLog: Model | null = await this.findOneById(
         {
           id: id,

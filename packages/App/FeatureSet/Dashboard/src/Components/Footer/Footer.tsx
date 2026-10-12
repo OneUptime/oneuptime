@@ -5,11 +5,15 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
-import Footer from "Common/UI/Components/Footer/Footer";
+import Footer, { FooterLink } from "Common/UI/Components/Footer/Footer";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
+import {
+  getProductName,
+  isProductRenamed,
+} from "Common/UI/Utils/ProductBranding";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
@@ -59,43 +63,54 @@ const DashboardFooter: () => JSX.Element = () => {
     throw new BadDataException(t("footer.versionUnavailable"));
   };
 
+  /*
+   * An installation that goes by a name of its own (ProductBranding) is not
+   * OneUptime to the people using it: its footer leaves out OneUptime's
+   * support desk, OneUptime's legal terms and the OneUptime edition pill
+   * (master admins manage the license from the Admin Dashboard header), and
+   * the copyright line carries its own name.
+   */
+  const isRenamed: boolean = isProductRenamed();
+
+  const oneUptimeLinks: Array<FooterLink> = [
+    {
+      /*
+       * The Enterprise plugin's license manager, read here in render
+       * (never at module load); the Community stub has none.
+       */
+      content: (
+        <EditionLabel licenseManager={getDashboardPlugins().LicenseManager} />
+      ),
+    },
+    {
+      title: (
+        <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
+          <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
+          {t("footer.helpSupport")}
+        </span>
+      ),
+      to: URL.fromString("https://oneuptime.com/support"),
+      openInNewTab: true,
+    },
+    {
+      title: (
+        <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
+          <Icon icon={IconProp.ShieldCheck} className="h-3.5 w-3.5" />
+          {t("footer.legal")}
+        </span>
+      ),
+      to: URL.fromString("https://oneuptime.com/legal"),
+      openInNewTab: true,
+    },
+  ];
+
   return (
     <>
       <Footer
         className="bg-gray-50/50 border-t border-gray-100 px-8"
-        copyright={t("footer.copyright")}
+        copyright={isRenamed ? getProductName() : t("footer.copyright")}
         links={[
-          {
-            /*
-             * The Enterprise plugin's license manager, read here in render
-             * (never at module load); the Community stub has none.
-             */
-            content: (
-              <EditionLabel
-                licenseManager={getDashboardPlugins().LicenseManager}
-              />
-            ),
-          },
-          {
-            title: (
-              <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
-                <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
-                {t("footer.helpSupport")}
-              </span>
-            ),
-            to: URL.fromString("https://oneuptime.com/support"),
-            openInNewTab: true,
-          },
-          {
-            title: (
-              <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
-                <Icon icon={IconProp.ShieldCheck} className="h-3.5 w-3.5" />
-                {t("footer.legal")}
-              </span>
-            ),
-            to: URL.fromString("https://oneuptime.com/legal"),
-            openInNewTab: true,
-          },
+          ...(isRenamed ? [] : oneUptimeLinks),
           {
             title: (
               <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">

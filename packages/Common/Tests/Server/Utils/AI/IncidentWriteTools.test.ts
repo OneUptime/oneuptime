@@ -10,8 +10,15 @@ import {
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventType,
+} from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import Permission from "../../../../Types/Permission";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
@@ -23,7 +30,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * than the prose handed to the model: tenancy and the acting user come from
  * ctx (never from a tool argument), severity is resolved from the project's
  * own list, the state tools only act on an incident the caller can already
- * see, and every missing input fails loudly instead of writing.
+ * see and change its state the way the dashboard's state panel does - as
+ * the person, through WorkspaceMemberActions - and every missing input
+ * fails loudly instead of writing.
  */
 
 const USER_ID: ObjectID = ObjectID.generate();
@@ -281,7 +290,7 @@ describe("create_incident", () => {
 type StateCase = {
   label: string;
   tool: ObservabilityTool;
-  serviceMethod: "acknowledgeIncident" | "resolveIncident";
+  memberAction: "acknowledge" | "resolve";
   newStateName: string;
   actionTitlePrefix: string;
 };
@@ -290,29 +299,34 @@ const stateCases: Array<StateCase> = [
   {
     label: "acknowledge_incident",
     tool: AcknowledgeIncidentTool,
-    serviceMethod: "acknowledgeIncident",
+    memberAction: "acknowledge",
     newStateName: "Acknowledged",
     actionTitlePrefix: "Acknowledge incident",
   },
   {
     label: "resolve_incident",
     tool: ResolveIncidentTool,
-    serviceMethod: "resolveIncident",
+    memberAction: "resolve",
     newStateName: "Resolved",
     actionTitlePrefix: "Resolve incident",
   },
 ];
 
+interface MemberActionCall {
+  event: WorkspaceEvent;
+  props: unknown;
+}
+
 describe.each(stateCases)(
   "$label",
-  ({ tool, serviceMethod, newStateName, actionTitlePrefix }: StateCase) => {
-    test("changes the state as ctx's user and cites the incident", async () => {
+  ({ tool, memberAction, newStateName, actionTitlePrefix }: StateCase) => {
+    test("changes the state as ctx's user, as the dashboard's state panel does, and cites the incident", async () => {
       jest
         .spyOn(IncidentService, "findOneById")
         .mockResolvedValue(buildIncident() as never);
       const changeSpy: jest.SpyInstance = jest
-        .spyOn(IncidentService, serviceMethod)
-        .mockResolvedValue(buildIncident() as never);
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockResolvedValue(undefined as never);
 
       const result: ToolExecutionResult = await tool.execute(
         { incidentId: INCIDENT_ID.toString() },
@@ -320,12 +334,12 @@ describe.each(stateCases)(
       );
 
       expect(changeSpy).toHaveBeenCalledTimes(1);
-      const [calledIncidentId, calledUserId] = changeSpy.mock.calls[0] as [
-        ObjectID,
-        ObjectID,
-      ];
-      expect(calledIncidentId.toString()).toBe(INCIDENT_ID.toString());
-      expect(calledUserId).toBe(USER_ID);
+      const call: MemberActionCall = changeSpy.mock
+        .calls[0]?.[0] as MemberActionCall;
+      expect(call.event.type).toBe(WorkspaceEventType.Incident);
+      expect(call.event.id.toString()).toBe(INCIDENT_ID.toString());
+      // The very props the request carried: the change is the person's own.
+      expect(call.props).toBe(ctx.props);
 
       expect(result.rowCount).toBe(1);
       expect(result.isTruncated).toBe(false);
@@ -344,8 +358,8 @@ describe.each(stateCases)(
         .spyOn(IncidentService, "findOneById")
         .mockResolvedValue(buildIncident() as never);
       jest
-        .spyOn(IncidentService, serviceMethod)
-        .mockResolvedValue(buildIncident() as never);
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockResolvedValue(undefined as never);
 
       await tool.execute({ incidentId: INCIDENT_ID.toString() }, ctx);
 
@@ -360,14 +374,33 @@ describe.each(stateCases)(
         .spyOn(IncidentService, "findOneById")
         .mockResolvedValue(null as never);
       const changeSpy: jest.SpyInstance = jest.spyOn(
-        IncidentService,
-        serviceMethod,
+        WorkspaceMemberActions,
+        memberAction,
       );
 
       await expect(
         tool.execute({ incidentId: INCIDENT_ID.toString() }, ctx),
       ).rejects.toThrow("Incident not found");
       expect(changeSpy).not.toHaveBeenCalled();
+    });
+
+    test("a change the person may not make is refused with its own reason, and reported as not done", async () => {
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(buildIncident() as never);
+      jest
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockRejectedValue(
+          new NotAuthorizedException(
+            "You do not have permissions to create Incident State Timeline.",
+          ) as never,
+        );
+
+      await expect(
+        tool.execute({ incidentId: INCIDENT_ID.toString() }, ctx),
+      ).rejects.toThrow(
+        "You do not have permissions to create Incident State Timeline.",
+      );
     });
 
     test("missing incidentId is a loud BadData error and reads nothing", async () => {
@@ -391,11 +424,16 @@ describe.each(stateCases)(
         IncidentService,
         "findOneById",
       );
+      const changeSpy: jest.SpyInstance = jest.spyOn(
+        WorkspaceMemberActions,
+        memberAction,
+      );
 
       await expect(
         tool.execute({ incidentId: INCIDENT_ID.toString() }, anonymousCtx),
       ).rejects.toThrow("No authenticated user");
       expect(findSpy).not.toHaveBeenCalled();
+      expect(changeSpy).not.toHaveBeenCalled();
     });
 
     test("carries a resource card widget that deep-links to the incident", async () => {
@@ -403,8 +441,8 @@ describe.each(stateCases)(
         .spyOn(IncidentService, "findOneById")
         .mockResolvedValue(buildIncident() as never);
       jest
-        .spyOn(IncidentService, serviceMethod)
-        .mockResolvedValue(buildIncident() as never);
+        .spyOn(WorkspaceMemberActions, memberAction)
+        .mockResolvedValue(undefined as never);
 
       const result: ToolExecutionResult = await tool.execute(
         { incidentId: INCIDENT_ID.toString() },
@@ -435,12 +473,18 @@ describe.each(stateCases)(
       expect(tool.buildActionTitle!({})).toBe(actionTitlePrefix);
     });
 
-    test("is a mutation whose permissions derive from the Incident model's update ACL", () => {
+    test("is a mutation that needs what the dashboard's state panel needs: to change the incident's state", () => {
       expect(tool.isMutation).toBe(true);
       expect(tool.requiredPermissions).toEqual(
-        new Incident().getUpdatePermissions(),
+        new IncidentStateTimeline().getCreatePermissions(),
       );
-      expect(tool.requiredPermissions.length).toBeGreaterThan(0);
+      expect(tool.requiredPermissions).toContain(
+        Permission.CreateIncidentStateTimeline,
+      );
+      // Editing the incident is not changing its state.
+      expect(tool.requiredPermissions).not.toContain(
+        Permission.EditProjectIncident,
+      );
     });
   },
 );
@@ -457,11 +501,11 @@ describe("the incident write tools as a set", () => {
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(buildIncident() as never);
     const acknowledgeSpy: jest.SpyInstance = jest
-      .spyOn(IncidentService, "acknowledgeIncident")
-      .mockResolvedValue(buildIncident() as never);
+      .spyOn(WorkspaceMemberActions, "acknowledge")
+      .mockResolvedValue(undefined as never);
     const resolveSpy: jest.SpyInstance = jest
-      .spyOn(IncidentService, "resolveIncident")
-      .mockResolvedValue(buildIncident() as never);
+      .spyOn(WorkspaceMemberActions, "resolve")
+      .mockResolvedValue(undefined as never);
 
     await ResolveIncidentTool.execute(
       { incidentId: INCIDENT_ID.toString() },

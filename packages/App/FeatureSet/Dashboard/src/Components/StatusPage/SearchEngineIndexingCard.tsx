@@ -17,6 +17,7 @@ import StatusPageBrandingCopy, {
   SEARCH_ENGINE_INDEXING_SWITCH_TEST_ID,
 } from "./StatusPageBrandingCopy";
 import StatusPageSwitchRow from "./StatusPageSwitchRow";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * Search Engine Indexing, on a status page's Branding page: one switch,
@@ -45,6 +46,7 @@ export const SEARCH_ENGINE_INDEXING_CARD_TEST_ID: string =
 const SearchEngineIndexingCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const translator: Translator = useTranslator();
   const [isOn, setIsOn] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -107,7 +109,7 @@ const SearchEngineIndexingCard: FunctionComponent<ComponentProps> = (
        * A full-bleed row, ruled like the card's own header rule, as on the
        * Channels card and the "What your status page shows" card.
        */
-      <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
+      <div className={ruledBodyClassName}>
         <div className="px-5 py-4 md:px-6">
           <StatusPageSwitchRow
             statusPageId={props.statusPageId}

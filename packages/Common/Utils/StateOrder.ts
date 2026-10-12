@@ -18,14 +18,15 @@ import {
  * 1 is the top. On top of that:
  *
  *   - Incident, alert and scheduled maintenance states are a path. An
- *     incident only ever moves down its list (IncidentStateTimelineService
- *     refuses a move back up), and the built-in states mark the points that
- *     mean something: a state at or below the acknowledged one counts as
- *     acknowledged (on-call stops escalating), at or below the resolved one
- *     as resolved. So the built-in states have to stay in their order -
- *     Resolved above Acknowledged would page nobody and resolve nothing -
- *     and a new state goes just above the state that closes the list, never
- *     after it, where it would quietly count as resolved.
+ *     incident, an alert, an episode or a maintenance event only ever moves
+ *     down its list (every state timeline refuses a move back up, by the one
+ *     rule in Common/Utils/StateMove), and the built-in states mark the
+ *     points that mean something: a state at or below the acknowledged one
+ *     counts as acknowledged (on-call stops escalating), at or below the
+ *     resolved one as resolved. So the built-in states have to stay in their
+ *     order - Resolved above Acknowledged would page nobody and resolve
+ *     nothing - and a new state goes just above the state that closes the
+ *     list, never after it, where it would quietly count as resolved.
  *   - Monitor statuses run from the healthiest to the worst: where monitors
  *     are shown together (a status page, a monitor group) the lowest one in
  *     the list wins. A new status goes just above the offline one, so that
@@ -327,6 +328,26 @@ export const getStateListReachedBuiltIn: (
   }
 
   return null;
+};
+
+/**
+ * Whether `row` sits below `other` in the list - after it, on the path a
+ * record walks down - by the comparison the server makes of their places.
+ * Null when either has no place to compare: nothing about their order is
+ * known. Two rows at the same place are not after each other.
+ */
+export const isStateListRowAfter: (
+  row: StateListRow,
+  other: StateListRow,
+) => boolean | null = (
+  row: StateListRow,
+  other: StateListRow,
+): boolean | null => {
+  if (row.order === null || other.order === null) {
+    return null;
+  }
+
+  return row.order > other.order;
 };
 
 export interface StateListOrderViolation {

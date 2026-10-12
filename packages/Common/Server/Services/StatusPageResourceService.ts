@@ -421,18 +421,25 @@ export class Service extends ProjectReferencesService<Model> {
     let resource: Model | null = null;
 
     if (!deleteBy.props.isRoot) {
-      resource = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+      /*
+       * The one resource the delete removes, and the delete held to
+       * it: the resources after it move up a place once it is gone.
+       */
+      const found: { row: Model | null; deletesMore: boolean } =
+        await this.findOneRowAndHoldDeleteToIt(deleteBy, {
           order: true,
           statusPageId: true,
           statusPageGroupId: true,
           projectId: true,
-        },
-      });
+        });
+
+      if (found.deletesMore) {
+        throw new BadDataException(
+          "Delete one status page resource at a time.",
+        );
+      }
+
+      resource = found.row;
     }
 
     return {
@@ -496,33 +503,16 @@ export class Service extends ProjectReferencesService<Model> {
         updateBy.data as unknown as Record<string, unknown>,
       );
 
-    if (
-      (updatedTarget.monitorId || updatedTarget.monitorGroupId) &&
-      updateBy.query._id
-    ) {
-      const resourceBeingUpdated: Model | null = await this.findOneBy({
-        query: {
-          _id: updateBy.query._id!,
-          ...(updateBy.props.tenantId
-            ? { projectId: updateBy.props.tenantId }
-            : {}),
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
+    if (updatedTarget.monitorId || updatedTarget.monitorGroupId) {
+      // Every resource the update writes, and the update held to them.
+      const resourcesBeingUpdated: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           statusPageId: true,
           projectId: true,
           monitorId: true,
           monitorGroupId: true,
-        },
-      });
-
-      const currentTarget: StatusPageResourceTarget = {
-        monitorId: resourceBeingUpdated?.monitorId || null,
-        monitorGroupId: resourceBeingUpdated?.monitorGroupId || null,
-      };
+        });
 
       /*
        * The edit form is a ModelForm, so it posts every field it collects -
@@ -547,23 +537,49 @@ export class Service extends ProjectReferencesService<Model> {
         );
       };
 
-      const isTargetUnchanged: boolean =
-        isSameId(updatedTarget.monitorId, currentTarget.monitorId) &&
-        isSameId(updatedTarget.monitorGroupId, currentTarget.monitorGroupId);
+      /*
+       * The pages the update points a resource of at the target. One update
+       * pointing two resources of one page at it would list it twice.
+       */
+      const pagesRetargeted: Set<string> = new Set<string>();
 
-      if (
-        resourceBeingUpdated?.statusPageId &&
-        resourceBeingUpdated.projectId &&
-        !isTargetUnchanged &&
-        (await this.isResourceAlreadyOnStatusPage({
-          statusPageId: resourceBeingUpdated.statusPageId,
-          projectId: resourceBeingUpdated.projectId,
-          monitorId: updatedTarget.monitorId,
-          monitorGroupId: updatedTarget.monitorGroupId,
-          excludeResourceId: resourceBeingUpdated.id,
-        }))
-      ) {
-        throw duplicateResourceException(updatedTarget);
+      for (const resourceBeingUpdated of resourcesBeingUpdated) {
+        const isTargetUnchanged: boolean =
+          isSameId(
+            updatedTarget.monitorId,
+            resourceBeingUpdated.monitorId || null,
+          ) &&
+          isSameId(
+            updatedTarget.monitorGroupId,
+            resourceBeingUpdated.monitorGroupId || null,
+          );
+
+        if (
+          !resourceBeingUpdated.statusPageId ||
+          !resourceBeingUpdated.projectId ||
+          isTargetUnchanged
+        ) {
+          continue;
+        }
+
+        const pageId: string = resourceBeingUpdated.statusPageId
+          .toString()
+          .toLowerCase();
+
+        if (
+          pagesRetargeted.has(pageId) ||
+          (await this.isResourceAlreadyOnStatusPage({
+            statusPageId: resourceBeingUpdated.statusPageId,
+            projectId: resourceBeingUpdated.projectId,
+            monitorId: updatedTarget.monitorId,
+            monitorGroupId: updatedTarget.monitorGroupId,
+            excludeResourceId: resourceBeingUpdated.id,
+          }))
+        ) {
+          throw duplicateResourceException(updatedTarget);
+        }
+
+        pagesRetargeted.add(pageId);
       }
     }
 
@@ -575,10 +591,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let move: ResourceMove | null = null;
 
-    if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
+    // The one row an update names by its id is the one it moves.
+    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
+
+    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
       const resource: Model | null = await this.findOneBy({
         query: {
-          _id: updateBy.query._id!,
+          _id: movedId,
         },
         props: {
           isRoot: true,

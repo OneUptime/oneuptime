@@ -48,6 +48,10 @@ import {
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
+import {
+  generateMicrosoftIdentityAssociation,
+  MicrosoftIdentityAssociationPaths,
+} from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
@@ -240,6 +244,19 @@ const HomeFeatureSet: FeatureSet = {
             requestedName: requestedName,
           }),
         );
+      },
+    );
+
+    /*
+     * Microsoft Entra fetches this to let OneUptime's app registrations name
+     * oneuptime.com as their publisher domain. Off the canonical host it
+     * lists no apps - see Home/Utils/MicrosoftIdentityAssociation.ts.
+     */
+    app.get(
+      MicrosoftIdentityAssociationPaths,
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.json(generateMicrosoftIdentityAssociation({ host: Host }));
       },
     );
 
@@ -541,8 +558,6 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     let gitHubContributors: Array<JSONObject> = [];
-    let gitHubBasicInfo: JSONObject | null = null;
-    let gitHubCommits: string = "-";
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
@@ -574,47 +589,17 @@ const HomeFeatureSet: FeatureSet = {
         gitHubContributors = [...contributors];
       }
 
-      const response: HTTPResponse<JSONObject> = await API.get({
-        url: URL.fromString(
-          "https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1",
-        ),
-      });
-
-      if (gitHubCommits === "-") {
-        // this is of type: '<https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=22486>; rel="last"',
-        const link: string | undefined = response.headers["link"];
-        const urlString: string | undefined = link
-          ?.split(",")[1]
-          ?.split(";")[0]
-          ?.replace("<", "")
-          .replace(">", "")
-          .trim();
-        const url: URL = URL.fromString(urlString!);
-        const commits: string = Number.parseInt(
-          url.getQueryParam("page") as string,
-        ).toLocaleString();
-
-        if (!gitHubBasicInfo) {
-          const basicInfo: HTTPResponse<JSONObject> = await API.get({
-            url: URL.fromString(
-              "https://api.github.com/repos/oneuptime/oneuptime",
-            ),
-          });
-
-          gitHubBasicInfo = basicInfo.data as JSONObject;
-        }
-
-        gitHubCommits = commits;
-      }
-
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/about",
         res.locals["homeUrl"] as string,
       );
       res.render(`${ViewsPath}/about`, {
+        /*
+         * Only the contributors: the page shows nothing else of GitHub's (the
+         * commit count it used to ask GitHub for on every visit, and the
+         * repository's details, were never on it).
+         */
         contributors: gitHubContributors,
-        basicInfo: gitHubBasicInfo,
-        commits: gitHubCommits,
         enableGoogleTagManager: GoogleTagManagerEnabled,
         seo,
       });

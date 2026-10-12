@@ -17,7 +17,7 @@
 
 {{> InfoBlock plainInfo=signInSummary}}
 
-{{> InfoBlock plainInfo="Confirming lets this project's single sign-on sign you in to OneUptime from now on. You only need to do this once for each project."}}
+{{> InfoBlock plainInfo=(concat "Confirming lets this project's single sign-on sign you in to " (brandName) " from now on. You only need to do this once for each project.")}}
 
 {{> ButtonBlock buttonUrl=confirmationUrl buttonText="Confirm Sign-In"}}
 
@@ -29,7 +29,7 @@
 
 {{> InfoBlock plainInfo=expiryNote}}
 
-{{> InfoBlock plainInfo="If you weren't expecting this, you can safely ignore this email. This project's single sign-on cannot sign in to your OneUptime account unless the button above is used."}}
+{{> InfoBlock plainInfo=(concat "If you weren't expecting this, you can safely ignore this email. This project's single sign-on cannot sign in to your " (brandName) " account unless the button above is used.")}}
 
 {{> SupportBlock this }}
 

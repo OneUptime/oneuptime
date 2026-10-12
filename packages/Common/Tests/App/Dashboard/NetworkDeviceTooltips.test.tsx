@@ -644,9 +644,10 @@ describe("the Network Overview", () => {
 
     await renderAndSettle(<NetworkOverview {...PAGE_PROPS} />);
 
-    expect(
-      screen.getByText("Welcome to Network Monitoring"),
-    ).toBeInTheDocument();
+    // The two ways in, and nothing to explain yet.
+    expect(screen.getByText("Bring your network in")).toBeInTheDocument();
+    expect(screen.getByText("Discover devices")).toBeInTheDocument();
+    expect(screen.getByText("Add one device")).toBeInTheDocument();
     expect(infoButtonNames()).toEqual([]);
   });
 });

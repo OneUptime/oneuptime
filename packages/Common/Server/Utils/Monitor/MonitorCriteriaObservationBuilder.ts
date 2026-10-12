@@ -26,6 +26,7 @@ import LogMonitorGroupResult, {
   LogMonitorGroupResultUtil,
 } from "../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import LlmMonitorResponse from "../../../Types/Monitor/LlmMonitor/LlmMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import SnmpMonitorResponse, {
@@ -40,6 +41,8 @@ import {
   getDatabaseMetricByMetricType,
 } from "../../../Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
@@ -51,6 +54,10 @@ import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
+import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
+
+// A sentence's closing period, dropped where it is quoted mid-sentence.
+const TRAILING_PERIOD: RegExp = /\.$/;
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -190,6 +197,12 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSpanCountObservation(
           input,
         );
+      case CheckOn.LlmBadAnswerPercent:
+      case CheckOn.LlmBadAnswerCount:
+      case CheckOn.LlmAnswerCount:
+        return MonitorCriteriaObservationBuilder.describeLlmAnswersObservation(
+          input,
+        );
       case CheckOn.MetricValue:
         return MonitorCriteriaObservationBuilder.describeMetricValueObservation(
           input,
@@ -227,6 +240,17 @@ export default class MonitorCriteriaObservationBuilder {
           )?.snmpResponse?.tables,
           criteriaFilter: input.criteriaFilter,
         });
+      case CheckOn.SnmpTransceiverNotDetected:
+      case CheckOn.SnmpTransceiverPastAlarmThreshold:
+      case CheckOn.SnmpTransceiverPastWarningThreshold:
+      case CheckOn.SnmpTransceiverReading:
+      case CheckOn.SnmpTransceiverRxPowerDrop:
+        return SnmpTransceiverCriteria.describeObservation({
+          transceivers: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpResponse?.transceivers,
+          criteriaFilter: input.criteriaFilter,
+        });
       case CheckOn.SnmpTrapVarbindValue:
         return SnmpTableCriteria.describeTrapVarbindObservation({
           snmpTrap: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
@@ -246,6 +270,115 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeDatabaseCollectionErrorObservation(
           input,
         );
+      case CheckOn.NtpIsOnline:
+      case CheckOn.NtpIsSynchronized:
+      case CheckOn.NtpStratum:
+      case CheckOn.NtpClockOffset:
+      case CheckOn.NtpResponseTime:
+      case CheckOn.NtpRootDispersion:
+        return MonitorCriteriaObservationBuilder.describeNtpObservation(input);
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * What an NTP check found, for the filter being explained. A server that
+   * did not answer has no stratum, offset or synchronized state, and says so
+   * rather than reading as a zero.
+   */
+  public static describeNtpObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+
+    if (!probeResponse) {
+      return null;
+    }
+
+    const ntpResponse: NtpMonitorResponse | undefined =
+      probeResponse.ntpResponse;
+    const isAnswered: boolean = Boolean(ntpResponse?.isOnline);
+    const failureCause: string =
+      ntpResponse?.failureCause || probeResponse.failureCause || "";
+
+    const evaluationWindow: string | null =
+      MonitorCriteriaExpectationBuilder.getEvaluationWindowDescription(
+        input.criteriaFilter,
+      );
+    const windowSuffix: string = evaluationWindow ? ` ${evaluationWindow}` : "";
+
+    const notAnswered: string = failureCause
+      ? `The NTP server did not answer: ${failureCause.replace(TRAILING_PERIOD, "")}`
+      : "The NTP server did not answer";
+
+    switch (input.criteriaFilter.checkOn) {
+      case CheckOn.NtpIsOnline:
+        return isAnswered
+          ? `The NTP server answered${windowSuffix}`
+          : `${notAnswered}${windowSuffix}`;
+
+      case CheckOn.NtpIsSynchronized:
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so its synchronization was not checked`;
+        }
+
+        return ntpResponse.isSynchronized
+          ? `The NTP server is synchronized, at stratum ${ntpResponse.stratum}${windowSuffix}`
+          : `The NTP server is not synchronized: ${(ntpResponse.failureCause || "").replace(TRAILING_PERIOD, "")}${windowSuffix}`;
+
+      case CheckOn.NtpStratum:
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so it reported no stratum`;
+        }
+
+        return `NTP Stratum was ${NtpMonitorUtil.describeStratum(
+          ntpResponse.stratum,
+          ntpResponse.kissCode,
+        )}${windowSuffix}`;
+
+      case CheckOn.NtpClockOffset: {
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so no clock offset was measured`;
+        }
+
+        if (ntpResponse.clockOffsetInMs === undefined) {
+          return "The NTP reply carried no usable time, so no clock offset was measured";
+        }
+
+        return `NTP Clock Offset (in ms) was ${NtpMonitorUtil.formatMilliseconds(
+          Math.abs(ntpResponse.clockOffsetInMs),
+        )}: the server's clock is ${NtpMonitorUtil.describeClockOffset(
+          ntpResponse.clockOffsetInMs,
+        )}${windowSuffix}`;
+      }
+
+      case CheckOn.NtpRootDispersion: {
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so it reported no root dispersion`;
+        }
+
+        if (ntpResponse.rootDispersionInMs === undefined) {
+          return "The NTP reply carried no root dispersion";
+        }
+
+        return `NTP Root Dispersion (in ms) was ${NtpMonitorUtil.formatMilliseconds(
+          ntpResponse.rootDispersionInMs,
+        )}${windowSuffix}`;
+      }
+
+      case CheckOn.NtpResponseTime: {
+        if (!isAnswered || !ntpResponse) {
+          return `${notAnswered}, so there is no response time`;
+        }
+
+        return `NTP Response Time (in ms) was ${NtpMonitorUtil.formatMilliseconds(
+          ntpResponse.responseTimeInMs,
+        )}${windowSuffix}`;
+      }
+
       default:
         return null;
     }
@@ -1212,6 +1345,31 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return `Security event count was ${securityEventsResponse.securityEventCount}.`;
+  }
+
+  /*
+   * The same sentence for every AI / LLM check-on: how many answers there
+   * were and how many of them were bad, so a reader of the root cause sees
+   * both the count and the share whichever one the criteria compared.
+   */
+  public static describeLlmAnswersObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const llmResponse: LlmMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getLlmMonitorResponse(input.dataToProcess);
+
+    if (!llmResponse) {
+      return null;
+    }
+
+    const answers: number = Number(llmResponse.llmAnswerCount) || 0;
+    const bad: number = Number(llmResponse.llmBadAnswerCount) || 0;
+
+    if (answers === 0) {
+      return "The AI gave no answers in the window.";
+    }
+
+    return `${bad} of ${answers} AI ${answers === 1 ? "answer was" : "answers were"} bad (${Number(llmResponse.llmBadAnswerPercent) || 0}%).`;
   }
 
   private static describeSpanCountObservation(input: {

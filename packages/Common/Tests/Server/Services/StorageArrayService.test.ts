@@ -44,6 +44,19 @@ import crypto from "crypto";
 import FeedMarkdown, {
   MarkdownText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    StorageArrayService,
+    jest.spyOn(StorageArrayService, "findBy"),
+  );
+});
 /*
  * StorageArrayService — the row one Storage Array Agent reports into.
  *

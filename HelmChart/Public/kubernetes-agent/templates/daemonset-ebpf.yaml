@@ -1,4 +1,4 @@
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -101,7 +101,7 @@ spec:
             - name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
               value: {{ ternary "false" "true" (eq (toString .Values.ebpf.excludeOtelInstrumentedServices) "false") | quote }}
             {{- $profiling := .Values.profiling | default dict }}
-            {{- if and $profiling.enabled (ne (toString $profiling.obiProcessContext) "false") }}
+            {{- if and (eq (include "kubernetes-agent.profilingEnabled" .) "true") (ne (toString $profiling.obiProcessContext) "false") }}
             # The profiler (profiling.obiProcessContext) tags each CPU sample
             # with the span its thread is serving, which it reads from OBI's
             # pinned traces_ctx_v1 map. Since v0.14 OBI leaves that map empty

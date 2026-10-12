@@ -35,6 +35,11 @@ enum MimeType {
   ppt = "application/vnd.ms-powerpoint",
   pptx = "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   odp = "application/vnd.oasis.opendocument.presentation",
+  /*
+   * A packet capture, as a probe uploads it (PacketCapture). The type
+   * Wireshark and tcpdump register for the libpcap file format.
+   */
+  pcap = "application/vnd.tcpdump.pcap",
 
   // TODO add more mime types.
 }

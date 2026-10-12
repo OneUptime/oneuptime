@@ -802,12 +802,14 @@ export default class NetworkSummaryAPI {
             siteStatusCounts,
             vendors,
             endpointCount,
+            snmpFailingCount,
             attentionDevices,
             attentionSites,
           ]: [
             Array<DeviceHealthGroup>,
             Array<SiteStatusCount>,
             Array<{ vendor: string; count: number }>,
+            number,
             number,
             JSONArray,
             JSONArray,
@@ -830,6 +832,24 @@ export default class NetworkSummaryAPI {
             NetworkEndpointService.countBy({
               query: {
                 projectId: projectId,
+              },
+              props: props,
+            }).then((count: PositiveNumber) => {
+              return count.toNumber();
+            }),
+            /*
+             * Devices that answer ping while their SNMP walk fails - the
+             * same rows the attention list's SNMP-failing read pages
+             * through, counted whole. The Overview's headline says how many
+             * devices are not reporting their details, and the attention
+             * list shows at most eight of them.
+             */
+            NetworkDeviceService.countBy({
+              query: {
+                projectId: projectId,
+                isArchived: false,
+                isReachable: true,
+                isSnmpReachable: false,
               },
               props: props,
             }).then((count: PositiveNumber) => {
@@ -877,6 +897,7 @@ export default class NetworkSummaryAPI {
               down: fleet.down,
               pending: fleet.pending,
               interfacesDown: interfacesDown,
+              snmpFailing: snmpFailingCount,
             },
             siteCount: siteTally.totalSites,
             unhealthySiteCount: siteTally.unhealthySites,

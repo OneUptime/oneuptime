@@ -67,6 +67,16 @@ const SettingsDangerZone: React.LazyExoticComponent<
   return import("../Pages/Settings/DangerZone");
 });
 
+/*
+ * Lazy: an import is run once or twice in a project's life, so its page
+ * and its components load only when it is opened.
+ */
+const SettingsImportFromTool: React.LazyExoticComponent<
+  typeof import("../Pages/Settings/ImportFromTool").default
+> = lazy(() => {
+  return import("../Pages/Settings/ImportFromTool");
+});
+
 export interface ComponentProps extends PageComponentProps {
   onProjectDeleted: () => void;
 }
@@ -425,6 +435,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingLabels
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_LABELS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_IMPORT_FROM_TOOL)}
+          element={
+            <SettingsImportFromTool
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_IMPORT_FROM_TOOL] as Route}
             />
           }
         />

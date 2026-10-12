@@ -8,7 +8,10 @@ import { GoModuleGenerator } from "./Core/GoModuleGenerator";
 import { ResourceGenerator } from "./Core/ResourceGenerator";
 import { DataSourceGenerator } from "./Core/DataSourceGenerator";
 import { ProviderGenerator } from "./Core/ProviderGenerator";
-import { DocumentationGenerator } from "./Core/DocumentationGenerator";
+import {
+  DocumentationGenerator,
+  ProviderSchemaDump,
+} from "./Core/DocumentationGenerator";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -33,6 +36,27 @@ function formatCommandError(error: unknown): string {
   );
 }
 
+/*
+ * `--spec <file>` generates the provider from an OpenAPI spec already on disk
+ * instead of building one from the codebase first - for iterating on the
+ * generator itself, where the spec does not change between runs.
+ */
+function getSpecArgument(): string | null {
+  const index: number = process.argv.indexOf("--spec");
+
+  if (index === -1) {
+    return null;
+  }
+
+  const value: string | undefined = process.argv[index + 1];
+
+  if (!value) {
+    throw new Error("--spec needs the path of an OpenAPI spec file.");
+  }
+
+  return path.resolve(value);
+}
+
 async function main(): Promise<void> {
   Logger.info("🚀 Starting Terraform Provider Generation Process...");
 
@@ -43,8 +67,17 @@ async function main(): Promise<void> {
     terraformDir,
     "terraform-provider-oneuptime",
   );
+  const givenSpecPath: string | null = getSpecArgument();
 
   try {
+    if (givenSpecPath && !fs.existsSync(givenSpecPath)) {
+      throw new Error(`OpenAPI spec not found: ${givenSpecPath}`);
+    }
+
+    const givenSpec: string | null = givenSpecPath
+      ? fs.readFileSync(givenSpecPath, "utf-8")
+      : null;
+
     // Step 1: Clean up existing Terraform directory
     if (fs.existsSync(terraformDir)) {
       Logger.info("🗑️ Removing existing Terraform directory...");
@@ -52,8 +85,14 @@ async function main(): Promise<void> {
     }
 
     // Step 2: Generate OpenAPI spec
-    Logger.info("📄 Step 1: Generating OpenAPI specification...");
-    await generateOpenAPISpec(openApiSpecPath);
+    if (givenSpec !== null) {
+      Logger.info(`📄 Step 1: Using the OpenAPI spec at ${givenSpecPath}...`);
+      fs.mkdirSync(terraformDir, { recursive: true });
+      fs.writeFileSync(openApiSpecPath, givenSpec);
+    } else {
+      Logger.info("📄 Step 1: Generating OpenAPI specification...");
+      await generateOpenAPISpec(openApiSpecPath);
+    }
 
     // Step 3: Parse OpenAPI spec
     Logger.info("🔍 Step 2: Parsing OpenAPI specification...");
@@ -122,14 +161,6 @@ async function main(): Promise<void> {
       apiSpec,
     );
     await dataSourceGen.generateDataSources();
-
-    // Step 9: Generate documentation
-    Logger.info("📚 Step 8: Generating documentation...");
-    const docGen: DocumentationGenerator = new DocumentationGenerator(
-      generator.config,
-      apiSpec,
-    );
-    await docGen.generateDocumentation();
 
     /*
      * Step 10: Write VERSION file (no timestamp — regeneration is a no-op
@@ -200,6 +231,36 @@ async function main(): Promise<void> {
         `Generated provider failed to compile (go build):\n${formatCommandError(error)}`,
       );
     }
+
+    /*
+     * Step 13: Generate documentation from the schema of the provider just
+     * built (provider_schema_dump_test.go writes it), so the reference pages
+     * show what Terraform sees - nested attributes included.
+     */
+    Logger.info("📚 Step 13: Generating documentation...");
+    const schemaDumpPath: string = path.resolve(
+      terraformDir,
+      "provider-schema.json",
+    );
+    try {
+      await execAsync(
+        `ONEUPTIME_PROVIDER_SCHEMA_OUT="${schemaDumpPath}" go test ./internal/provider -run '^TestWriteProviderSchemaForDocs$' -count=1`,
+        { cwd: providerDir },
+      );
+    } catch (error) {
+      throw new Error(
+        `Could not read the built provider's schema for the docs:\n${formatCommandError(error)}`,
+      );
+    }
+    const schemaDump: ProviderSchemaDump = JSON.parse(
+      fs.readFileSync(schemaDumpPath, "utf-8"),
+    ) as ProviderSchemaDump;
+    const docGen: DocumentationGenerator = new DocumentationGenerator(
+      generator.config,
+      apiSpec,
+      schemaDump,
+    );
+    await docGen.generateDocumentation();
 
     Logger.info("✅ Terraform provider generation completed successfully!");
     Logger.info(`📁 Provider generated at: ${providerDir}`);

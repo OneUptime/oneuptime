@@ -1,4 +1,5 @@
 import MailService from "../Services/MailService";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailServer from "Common/Types/Email/EmailServer";
@@ -114,7 +115,7 @@ router.post(
       const mail: EmailMessage = {
         templateType: EmailTemplateType.SMTPTest,
         toEmail: new Email(body["toEmail"] as string),
-        subject: "Test Email from OneUptime",
+        subject: `Test Email from ${ProductBrandingText.getProductName()}`,
         isSubjectLiteral: true,
         vars: {},
         body: "",

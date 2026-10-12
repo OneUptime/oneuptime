@@ -4,6 +4,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "../../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -29,11 +30,15 @@ import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
  * shown that says what to do next (issue #4111 answered both with a generic
  * "Sorry, I encountered an error...", twice).
  *
- * 1. In a personal chat the sender is the only one who can submit the form,
- *    so a sender without a connected account, who is not a member of the
- *    project, or who may not create the thing, is told so before filling it
- *    in, not after. In a channel or group chat anyone there may submit it, and
- *    the submit checks whoever does, so the form is posted for everyone.
+ * 1. The form is filled in as the person who asked for it, with their own
+ *    permissions - in a personal chat, a channel or a group chat alike. A
+ *    sender without a connected account, who is not a member of the project,
+ *    or who may not create the thing, is told so instead of getting the form,
+ *    and the form lists only the monitors, labels, on-call policies and the
+ *    rest that the sender may read (WorkspaceActionAuthorization
+ *    .findReadable). In a channel or group chat anyone there may submit it,
+ *    and the submit is made as whoever does, with their own permissions: it
+ *    names only what they may name.
  * 2. The form's lists (monitors, labels, on-call policies...) are read in name
  *    order up to a cap, and the card is fitted to a size budget that Teams
  *    accepts; a card Teams still refuses as too large is sent again smaller,
@@ -75,25 +80,30 @@ export default class MicrosoftTeamsCreateCommands {
   }): Promise<void> {
     const { turnContext, activity, projectId } = data;
 
-    if (
-      this.isPersonalConversation(activity) &&
-      !(await this.authorizeSender({
+    const props: DatabaseCommonInteractionProps | null =
+      await this.authorizeSender({
         turnContext: turnContext,
         activity: activity,
         projectId: projectId,
         form: INCIDENT_FORM,
-      }))
-    ) {
+        // Submitting checks the same permission.
+        createPermission: {
+          modelType: Incident,
+          action: "declare an incident",
+        },
+      });
+
+    if (!props) {
       return;
     }
 
     let choices: MicrosoftTeamsNewIncidentFormChoices;
 
     try {
-      choices =
-        await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
-          projectId,
-        );
+      choices = await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
+        projectId,
+        props,
+      );
     } catch (error) {
       await this.replyFormCouldNotLoad({
         turnContext: turnContext,
@@ -113,11 +123,11 @@ export default class MicrosoftTeamsCreateCommands {
 
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        `An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under ${
+        mdText`An incident needs a severity, and this project has no incident severities yet. Add one in OneUptime under ${
           severitySettingsUrl
             ? mdText`[Incidents → Settings → Incident Severity](${severitySettingsUrl})`
             : "Incidents → Settings → Incident Severity"
-        }, then try again.`,
+        }, then try again.`.toString(),
       );
       return;
     }
@@ -153,9 +163,8 @@ export default class MicrosoftTeamsCreateCommands {
   }): Promise<void> {
     const { turnContext, activity, projectId } = data;
 
-    if (
-      this.isPersonalConversation(activity) &&
-      !(await this.authorizeSender({
+    const props: DatabaseCommonInteractionProps | null =
+      await this.authorizeSender({
         turnContext: turnContext,
         activity: activity,
         projectId: projectId,
@@ -165,8 +174,9 @@ export default class MicrosoftTeamsCreateCommands {
           modelType: ScheduledMaintenance,
           action: "create a scheduled maintenance event",
         },
-      }))
-    ) {
+      });
+
+    if (!props) {
       return;
     }
 
@@ -176,6 +186,7 @@ export default class MicrosoftTeamsCreateCommands {
       choices =
         await MicrosoftTeamsScheduledMaintenanceActions.getNewScheduledMaintenanceFormChoices(
           projectId,
+          props,
         );
     } catch (error) {
       await this.replyFormCouldNotLoad({
@@ -216,32 +227,22 @@ export default class MicrosoftTeamsCreateCommands {
     });
   }
 
-  // A 1:1 chat with the bot, where whoever asks for a form is the one to submit it.
-  private static isPersonalConversation(activity: JSONObject): boolean {
-    return (
-      ((activity["conversation"] as JSONObject | undefined)?.[
-        "conversationType"
-      ] as string | undefined) === "personal"
-    );
-  }
-
   /*
-   * True when the sender can submit the form. Otherwise the sender is told
-   * why (no connected account, not a project member, no permission) and this
-   * returns false.
+   * The sender's own props when they may fill the form in: a connected
+   * account of a current member who may create the thing. Otherwise the
+   * sender is told why (no connected account, not a project member, no
+   * permission) and this returns null.
    */
   private static async authorizeSender(data: {
     turnContext: TurnContext;
     activity: JSONObject;
     projectId: ObjectID;
     form: CreateFormText;
-    createPermission?:
-      | {
-          modelType: DatabaseBaseModelType;
-          action: string;
-        }
-      | undefined;
-  }): Promise<boolean> {
+    createPermission: {
+      modelType: DatabaseBaseModelType;
+      action: string;
+    };
+  }): Promise<DatabaseCommonInteractionProps | null> {
     const { turnContext, activity, projectId, form } = data;
 
     const teamsUserId: string =
@@ -258,9 +259,9 @@ export default class MicrosoftTeamsCreateCommands {
       );
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        `Sorry, I couldn't tell who sent this message, so I can't open the form to create ${form.what}. Please try again.`,
+        mdText`Sorry, I couldn't tell who sent this message, so I can't open the form to create ${form.what}. Please try again.`.toString(),
       );
-      return false;
+      return null;
     }
 
     try {
@@ -276,15 +277,13 @@ export default class MicrosoftTeamsCreateCommands {
           projectId: projectId,
         });
 
-      if (data.createPermission) {
-        await WorkspaceActionAuthorization.assertCanCreate({
-          props: props,
-          modelType: data.createPermission.modelType,
-          action: data.createPermission.action,
-        });
-      }
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: props,
+        modelType: data.createPermission.modelType,
+        action: data.createPermission.action,
+      });
 
-      return true;
+      return props;
     } catch (error) {
       if (error instanceof MicrosoftTeamsAccountNotLinkedException) {
         await MicrosoftTeamsReplies.sendBestEffort(
@@ -294,12 +293,16 @@ export default class MicrosoftTeamsCreateCommands {
             purpose: form.purpose,
           }),
         );
-        return false;
+        return null;
       }
 
+      // Placed as text: a refusal can name a label, a record or a person.
       if (error instanceof NotAuthorizedException) {
-        await MicrosoftTeamsReplies.sendBestEffort(turnContext, error.message);
-        return false;
+        await MicrosoftTeamsReplies.sendBestEffort(
+          turnContext,
+          mdText`${error.message}`.toString(),
+        );
+        return null;
       }
 
       MicrosoftTeamsReplies.logFailure(
@@ -311,9 +314,9 @@ export default class MicrosoftTeamsCreateCommands {
       );
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
-        `Sorry, I couldn't open the form to create ${form.what} because OneUptime could not check your account just now. Please try again in a minute.`,
+        mdText`Sorry, I couldn't open the form to create ${form.what} because OneUptime could not check your account just now. Please try again in a minute.`.toString(),
       );
-      return false;
+      return null;
     }
   }
 
@@ -371,10 +374,10 @@ export default class MicrosoftTeamsCreateCommands {
 
     await MicrosoftTeamsReplies.sendBestEffort(
       data.turnContext,
-      `Sorry, I couldn't open the form to create ${data.form.what} because OneUptime could not load the lists it needs just now. Please try again in a minute, ${this.getCreateInOneUptimeHint(
+      mdText`Sorry, I couldn't open the form to create ${data.form.what} because OneUptime could not load the lists it needs just now. Please try again in a minute, ${this.getCreateInOneUptimeHint(
         createInOneUptimeUrl,
         "or create it",
-      )}`,
+      )}`.toString(),
     );
   }
 
@@ -389,7 +392,7 @@ export default class MicrosoftTeamsCreateCommands {
     );
 
     if (MicrosoftTeamsMessageSize.isMessageTooLargeError(data.error)) {
-      return `Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams refused it as too large, even without the lists of ${data.form.lists}. ${createInOneUptime}`;
+      return mdText`Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams refused it as too large, even without the lists of ${data.form.lists}. ${createInOneUptime}`.toString();
     }
 
     const statusCode: number | undefined =
@@ -403,9 +406,9 @@ export default class MicrosoftTeamsCreateCommands {
       })
       .join(" ");
 
-    return `Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams did not accept it${
-      teamsReason ? ` (${teamsReason})` : ""
-    }. ${createInOneUptime}`;
+    return mdText`Sorry, I couldn't open the form to create ${data.form.what}: Microsoft Teams did not accept it${
+      teamsReason ? mdText` (${teamsReason})` : ""
+    }. ${createInOneUptime}`.toString();
   }
 
   private static getCreateInOneUptimeHint(

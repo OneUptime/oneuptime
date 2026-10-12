@@ -48,7 +48,10 @@ import Permission, {
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
-import CallerPermission from "../Utils/Permission/CallerPermission";
+import CallerPermission, {
+  PermissionListModel,
+} from "../Utils/Permission/CallerPermission";
+import { PermissionOperation } from "../../Types/HeldPermissions";
 
 /*
  * What a request's session is, as every route reads it (readRequestSession):
@@ -1076,6 +1079,86 @@ export default class UserMiddleware {
     res: ExpressResponse,
     next: NextFunction,
   ) => Promise<void> {
+    return UserMiddleware.requireCallerTo({
+      holds: (request: OneUptimeRequest, projectId: ObjectID): boolean => {
+        return CallerPermission.holdsAnyOf(request, data.permissions, {
+          projectId: projectId,
+          wildcard: data.wildcard,
+        });
+      },
+      refusal: UserMiddleware.MISSING_PERMISSION_MESSAGE,
+    });
+  }
+
+  public static readonly MISSING_PERMISSION_MESSAGE: string =
+    "You do not have the required permission to perform this action.";
+
+  /*
+   * A route guard for a route that stands in for operations on models - a
+   * custom route that reads or changes what a model's CRUD API would: the
+   * caller must hold, for every one of `operations`, one of that model's own
+   * permissions for it (its *AllOperationalResources wildcard included, for
+   * an operational resource), with no block with no labels on any of them
+   * (CallerPermission.holdsModelPermission). That is the table half of what
+   * the CRUD path asks before the same operation, read from the model, so
+   * the route takes exactly the model's roles and keeps them when they
+   * change. Labels and owners are about records: the route weighs them when
+   * it reads or writes the records, with the caller's props. A caller who
+   * lacks one is told `refusal`.
+   */
+  public static requireModelPermission(data: {
+    operations: ReadonlyArray<{
+      model: PermissionListModel;
+      operation: PermissionOperation;
+    }>;
+    refusal?: string | undefined;
+  }): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
+    return UserMiddleware.requireCallerTo({
+      holds: (request: OneUptimeRequest, projectId: ObjectID): boolean => {
+        return (
+          data.operations.length > 0 &&
+          data.operations.every(
+            (operation: {
+              model: PermissionListModel;
+              operation: PermissionOperation;
+            }): boolean => {
+              return CallerPermission.holdsModelPermission(
+                request,
+                {
+                  model: operation.model,
+                  operation: operation.operation,
+                },
+                {
+                  projectId: projectId,
+                },
+              );
+            },
+          )
+        );
+      },
+      refusal: data.refusal || UserMiddleware.MISSING_PERMISSION_MESSAGE,
+    });
+  }
+
+  /*
+   * What every permission route guard asks, in this order: someone signed
+   * in (an anonymous caller is asked who it is, so that the browser client
+   * can refresh an expired session), a master admin let through, a project
+   * named, the caller authorized for it, and then `holds` - read from the
+   * caller's rows by the one rule (CallerPermission).
+   */
+  private static requireCallerTo(data: {
+    holds: (request: OneUptimeRequest, projectId: ObjectID) => boolean;
+    refusal: string;
+  }): (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> {
     return async (
       req: ExpressRequest,
       res: ExpressResponse,
@@ -1135,18 +1218,11 @@ export default class UserMiddleware {
        * else the caller holds, as it takes away the tables these routes
        * stand in for.
        */
-      if (
-        !CallerPermission.holdsAnyOf(oneuptimeRequest, data.permissions, {
-          projectId: tenantId,
-          wildcard: data.wildcard,
-        })
-      ) {
+      if (!data.holds(oneuptimeRequest, tenantId)) {
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthorizedException(
-            "You do not have the required permission to perform this action.",
-          ),
+          new NotAuthorizedException(data.refusal),
         );
       }
 

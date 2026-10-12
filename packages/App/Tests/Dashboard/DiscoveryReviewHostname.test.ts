@@ -9,10 +9,11 @@ import {
   buildNetworkDeviceFromDiscoveredHost,
   getDiscoveredHostDisplayName,
   getDiscoveredHostFullName,
+  getDiscoveredHostNameSource,
 } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
-import { normalizeNetbiosName } from "Common/Utils/NetworkDiscovery/NetbiosNameUtil";
+import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
 import {
   createTranslator,
   translatableTerm,
@@ -75,13 +76,15 @@ import path from "path";
  * short name the device will be created with, and that the full name the
  * short one was cut from is still readable on the row's second line.
  *
- * NETBIOS NAMES (issue #3677)
+ * NETBIOS NAMES (issues #3677, #4518)
  *
- * A scan can also ask the probe for the NetBIOS name of a host that has no
- * SNMP name and no PTR record. That name is SELF-REPORTED by the scanned
- * host, so a row named by it carries a plain "NetBIOS name" hint beside the
- * address. The hint's gate is lifted and run with the rest of the row, so the
- * tests below say which rows carry it by executing the page's own expression.
+ * A scan can also ask the probe for the NetBIOS name of every host SNMP did
+ * not name. That name is the Windows computer name the host reports for
+ * itself, and since #4518 it names the row AHEAD of the PTR record (the
+ * device's own name first), so a row named by it carries a plain "NetBIOS
+ * name" hint beside the address, with the PTR name after it. The hint's gate
+ * is lifted and run with the rest of the row, so the tests below say which
+ * rows carry it by executing the page's own expression.
  */
 
 /*
@@ -365,7 +368,8 @@ type RowNamingFunction = (
   buildName: typeof buildDeviceName,
   getFullName: typeof getDiscoveredHostFullName,
   normalizeName: typeof normalizeReverseDnsName,
-  normalizeNetbios: typeof normalizeNetbiosName,
+  getNameSource: typeof getDiscoveredHostNameSource,
+  nameSources: typeof DeviceNameSource,
   naming: DiscoveredHostNaming,
 ) => [string, Array<string | undefined>, unknown];
 
@@ -390,7 +394,8 @@ function rowNamingFor(
       "buildDeviceName",
       "getDiscoveredHostFullName",
       "normalizeReverseDnsName",
-      "normalizeNetbiosName",
+      "getDiscoveredHostNameSource",
+      "DeviceNameSource",
       source.namingIdentifier,
       `${stripTypeAnnotations(source.statements)} return [${
         source.displayNameIdentifier
@@ -409,7 +414,8 @@ function rowNamingFor(
     buildDeviceName,
     getDiscoveredHostFullName,
     normalizeReverseDnsName,
-    normalizeNetbiosName,
+    getDiscoveredHostNameSource,
+    DeviceNameSource,
     naming,
   );
 
@@ -1572,10 +1578,9 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
     /*
      * Fed RAW, the way a result from an older or modified probe would reach
      * the column: NetBIOS pads to fifteen bytes and upper-cases on the wire.
-     * The row names it by the normalised form and still flags it, because the
-     * gate compares the normalised answer with the name line — comparing the
-     * raw value would miss "ACCOUNTS-PC01  " !== "accounts-pc01" and silently
-     * drop the hint.
+     * The row names it by the trimmed name, in the case the host reported it
+     * (issue #4518), and still flags it: the gate asks the naming rule which
+     * source named the row, so the padding cannot make it miss.
      */
     expect(
       rowNamingFor(
@@ -1583,7 +1588,7 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
         FULL_NAMES,
       ),
     ).toEqual({
-      displayName: "accounts-pc01",
+      displayName: "ACCOUNTS-PC01",
       extraNames: [],
       showsNetbiosHint: true,
     });
@@ -1595,11 +1600,11 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
     );
   });
 
-  test("a PTR-named host carries no hint, even when it also holds a NetBIOS answer", () => {
+  test("a host with a PTR name and a NetBIOS answer is named by the NetBIOS name, with the hint and the PTR name beside the address (issue #4518)", () => {
     /*
-     * The probe only asks hosts DNS did not name, but the column is jsonb and
-     * a row can hold both. DNS wins the name line, and the hint would then be
-     * a lie about where the name came from.
+     * The probe asks hosts DNS named too since #4518, and the host's own
+     * Windows name wins the name line. The PTR name is not lost: it is printed
+     * beside the address, after the hint that says where the name came from.
      */
     expect(
       rowNamingFor(
@@ -1611,32 +1616,68 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
         FULL_NAMES,
       ),
     ).toEqual({
-      displayName: "core-gw.corp.example.com",
+      displayName: "accounts-pc01",
+      extraNames: ["core-gw.corp.example.com"],
+      showsNetbiosHint: true,
+    });
+  });
+
+  test("a NetBIOS name cut to fifteen characters loses to the PTR name it was cut from, and carries no hint", () => {
+    /*
+     * Windows truncates a long computer name for NetBIOS. The row names the
+     * host by the PTR name the stump was cut from, and the hint would be a lie
+     * about where that name came from.
+     */
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.33",
+          dnsHostname: "wb-0660-kitchen-display-01.wbhq.com",
+          netbiosName: "WB-0660-KITCHEN",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "wb-0660-kitchen-display-01.wbhq.com",
       extraNames: [],
       showsNetbiosHint: false,
     });
   });
 
-  test("a PTR name shortened to the very same label is still not called a NetBIOS name", () => {
+  test("a NetBIOS answer that reads like the PTR name's first label still names the row as a NetBIOS name (issue #4518)", () => {
     /*
-     * The case that separates "named by NetBIOS" from "happens to read like
-     * the NetBIOS answer": a Windows host whose PTR record is its computer name
-     * under the domain. With short names on, the name line is "ws-0042" either
-     * way — but it came from DNS, and only the PTR guard in the gate says so.
+     * A Windows host whose PTR record is its computer name under the domain.
+     * The host's own name wins (#4518), so the name line is the NetBIOS
+     * answer and carries the hint, and the PTR name is printed beside the
+     * address — with short names on or off.
      */
     expect(
       rowNamingFor(
         {
           ipAddress: "10.18.167.42",
           dnsHostname: "ws-0042.corp.example.com",
-          netbiosName: "ws-0042",
+          netbiosName: "WS-0042",
         },
         SHORT_NAMES,
       ),
     ).toEqual({
-      displayName: "ws-0042",
+      displayName: "WS-0042",
       extraNames: ["ws-0042.corp.example.com"],
-      showsNetbiosHint: false,
+      showsNetbiosHint: true,
+    });
+    expect(
+      rowNamingFor(
+        {
+          ipAddress: "10.18.167.42",
+          dnsHostname: "ws-0042.corp.example.com",
+          netbiosName: "WS-0042",
+        },
+        FULL_NAMES,
+      ),
+    ).toEqual({
+      displayName: "WS-0042",
+      extraNames: ["ws-0042.corp.example.com"],
+      showsNetbiosHint: true,
     });
   });
 
@@ -1717,6 +1758,167 @@ describe("a host named by its NetBIOS answer says so beside the address (issue #
       });
     },
   );
+});
+
+describe("the Review dialog names hosts by their own hostname first (issue #4518)", () => {
+  /*
+   * The report, a scan of Windows kitchen displays:
+   *
+   *     10.16.42.52    No name found
+   *     WB0024KDS03    wb-0024-kds03.wbhq.com
+   *     wb-0024-kds04  wb-0024-kds04.wbhq.com
+   *     wb-0024-kds05  wb-0024-kds05.wbhq.com
+   *
+   * WB0024KDS03 answered SNMP, so its sysName — its Windows computer name —
+   * named it. kds04 and kds05 did not, and their reverse zone spells them
+   * differently from the names their owners use; the probe never asked them
+   * for their NetBIOS name, because DNS had named them. Since #4518 it does,
+   * and the host's own name wins, so all three displays read as the
+   * reporter's estate knows them, with the DNS name beside the address.
+   */
+  const REPORTED_ROWS: Array<DiscoveredNetworkDevice> = [
+    { ipAddress: "10.16.42.52", snmpReachable: false },
+    {
+      ipAddress: "10.16.42.53",
+      snmpReachable: true,
+      sysName: "WB0024KDS03",
+      dnsHostname: "wb-0024-kds03.wbhq.com",
+    },
+    {
+      ipAddress: "10.16.42.54",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds04.wbhq.com",
+      netbiosName: "WB0024KDS04",
+    },
+    {
+      ipAddress: "10.16.42.55",
+      snmpReachable: false,
+      dnsHostname: "wb-0024-kds05.wbhq.com.",
+      netbiosName: "WB0024KDS05    ",
+    },
+  ];
+
+  const EXPECTED_ROWS: Array<RowNaming> = [
+    { displayName: "10.16.42.52", extraNames: [], showsNetbiosHint: false },
+    {
+      displayName: "WB0024KDS03",
+      extraNames: ["wb-0024-kds03.wbhq.com"],
+      showsNetbiosHint: false,
+    },
+    {
+      displayName: "WB0024KDS04",
+      extraNames: ["wb-0024-kds04.wbhq.com"],
+      showsNetbiosHint: true,
+    },
+    {
+      displayName: "WB0024KDS05",
+      extraNames: ["wb-0024-kds05.wbhq.com"],
+      showsNetbiosHint: true,
+    },
+  ];
+
+  test.each([
+    ["short names on, as the reporter's scan has them", SHORT_NAMES],
+    ["short names off", FULL_NAMES],
+  ])(
+    "every display is named by its hostname, the DNS name beside the address (%s)",
+    (_label: string, naming: DiscoveredHostNaming) => {
+      expect(
+        normalizeDiscoveredHosts(REPORTED_ROWS).map(
+          (host: DiscoveredNetworkDevice): RowNaming => {
+            return rowNamingFor(host, naming);
+          },
+        ),
+      ).toEqual(EXPECTED_ROWS);
+    },
+  );
+
+  test("the checkbox announces each display by its hostname", () => {
+    expect(
+      normalizeDiscoveredHosts(REPORTED_ROWS).map(
+        (host: DiscoveredNetworkDevice): string => {
+          return ariaLabelFor(host, SHORT_NAMES);
+        },
+      ),
+    ).toEqual([
+      "Import 10.16.42.52 (10.16.42.52)",
+      "Import WB0024KDS03 (10.16.42.53)",
+      "Import WB0024KDS04 (10.16.42.54)",
+      "Import WB0024KDS05 (10.16.42.55)",
+    ]);
+  });
+
+  test("the import creates the names the rows show, keeps the address and the DNS name, and records where each name came from", () => {
+    const devices: Array<NetworkDevice> = normalizeDiscoveredHosts(
+      REPORTED_ROWS,
+    ).map((host: DiscoveredNetworkDevice): NetworkDevice => {
+      return buildNetworkDeviceFromDiscoveredHost({
+        projectId: new ObjectID("00000000-0000-0000-0000-000000000001"),
+        host: host,
+        scan: SHORT_NAMES,
+      });
+    });
+
+    expect(
+      devices.map((device: NetworkDevice) => {
+        return {
+          name: device.name,
+          hostname: device.hostname,
+          dnsName: device.dnsName,
+          discoveredName: device.discoveredName,
+          discoveredNameSource: device.discoveredNameSource,
+        };
+      }),
+    ).toEqual([
+      {
+        name: "10.16.42.52",
+        hostname: "10.16.42.52",
+        dnsName: undefined,
+        discoveredName: "10.16.42.52",
+        discoveredNameSource: DeviceNameSource.Address,
+      },
+      {
+        name: "WB0024KDS03",
+        hostname: "10.16.42.53",
+        dnsName: "wb-0024-kds03.wbhq.com",
+        discoveredName: "WB0024KDS03",
+        discoveredNameSource: DeviceNameSource.SystemName,
+      },
+      {
+        name: "WB0024KDS04",
+        hostname: "10.16.42.54",
+        dnsName: "wb-0024-kds04.wbhq.com",
+        discoveredName: "WB0024KDS04",
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      },
+      {
+        name: "WB0024KDS05",
+        hostname: "10.16.42.55",
+        dnsName: "wb-0024-kds05.wbhq.com",
+        discoveredName: "WB0024KDS05",
+        discoveredNameSource: DeviceNameSource.NetbiosName,
+      },
+    ]);
+  });
+
+  test("a later scan that adds an SNMP agent is a better source than the NetBIOS name, and an address is the worst", () => {
+    /*
+     * What the rename of a discovered name keys on, read off the same rows:
+     * the source each row is named from. The order is the rule's.
+     */
+    expect(
+      normalizeDiscoveredHosts(REPORTED_ROWS).map(
+        (host: DiscoveredNetworkDevice): DeviceNameSource | undefined => {
+          return getDiscoveredHostNameSource(host);
+        },
+      ),
+    ).toEqual([
+      DeviceNameSource.Address,
+      DeviceNameSource.SystemName,
+      DeviceNameSource.NetbiosName,
+      DeviceNameSource.NetbiosName,
+    ]);
+  });
 });
 
 describe("Discovery.tsx wires the row to the shared recipe", () => {
@@ -1981,27 +2183,30 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     ).toBe("");
   });
 
-  test("the NetBIOS hint is gated on a boolean computed from the naming order", () => {
+  test("the NetBIOS hint is gated on a boolean the shared naming rule decides (issue #4518)", () => {
     /*
      * The executed tests in the NetBIOS describe say WHICH rows carry the hint;
      * this pins what they cannot see on their own. The gate is declared a
      * boolean (so `{gate && (...)}` can never paint a stray string or a 0), it
-     * re-normalises the stored NetBIOS answer at the point of render rather
-     * than trusting the jsonb, and it is rendered exactly once.
+     * asks the shared naming rule which source named the row — the same rule
+     * the name line and the import use, which re-normalises the stored answer
+     * rather than trusting the jsonb — and it is rendered exactly once.
      */
     const source: RowNameSource = rowNameSource();
 
     expect(source.statements).toMatch(
       new RegExp(
-        `const\\s+${source.netbiosHintIdentifier}\\s*:\\s*boolean\\s*=`,
+        `const\\s+${source.netbiosHintIdentifier}\\s*:\\s*boolean\\s*=\\s*getDiscoveredHostNameSource\\(entry\\)\\s*===\\s*DeviceNameSource\\.NetbiosName\\s*;`,
       ),
     );
-    expect(source.statements).toContain(
-      "normalizeNetbiosName(entry.netbiosName)",
+    expect(readCode()).toMatch(
+      /import\s*\{[^}]*\bgetDiscoveredHostNameSource\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
     );
     expect(readCode()).toMatch(
-      /import\s*\{[^}]*\bnormalizeNetbiosName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/NetbiosNameUtil"/,
+      /import\s*\{[^}]*\bDeviceNameSource\b[^}]*\}\s*from\s*"Common\/Types\/NetworkDevice\/DeviceNameSource"/,
     );
+    // No second, local spelling of the rule: the page never reads the column raw.
+    expect(readCode()).not.toContain("normalizeNetbiosName");
     const hintText: RegExp =
       /\{translator\.translateText\(\s*"NetBIOS name"\s*,?\s*\)\}\s*<\/span>/g;
     expect(Array.from(readCode().matchAll(hintText))).toHaveLength(1);

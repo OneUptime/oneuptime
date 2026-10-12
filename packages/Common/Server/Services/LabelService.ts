@@ -79,19 +79,15 @@ export class Service extends DatabaseService<Model> {
     let serviceLevelObjectiveIds: Array<ObjectID> = [];
     let statusPageMonitorRuleIds: Array<ObjectID> = [];
 
-    try {
-      const labels: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          _id: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    // The labels the delete removes, and the delete held to them.
+    const labels: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+      },
+    );
 
+    try {
       const labelIds: Array<ObjectID> = labels
         .map((label: Model) => {
           return label.id;

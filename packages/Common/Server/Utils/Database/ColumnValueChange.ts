@@ -174,7 +174,7 @@ export default class ColumnValueChange {
    * Postgres reads it, whatever zone the server runs in. Null for anything
    * that names none, looser text ("12") included: it is compared as text.
    */
-  private static toInstant(value: unknown): number | null {
+  public static toInstant(value: unknown): number | null {
     const time: unknown = coerceDateColumnValue(value);
     let instant: number = NaN;
 

@@ -580,18 +580,89 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
   /*
    * View only appears once the permission snapshot says the viewer may read
    * probes - and the snapshot arrives on a response header, so for the first
-   * paint after a login or a project switch it is empty. Show ID and Key is
-   * then the row's only action, and styled NORMAL: without the MoreMenu mark
-   * it would sit on every row as the button, which is the one place a
+   * paint after a login or a project switch it is empty. The ID action is
+   * then the row's only action - named Show ID, since nothing yet says the
+   * viewer may read the key - and styled NORMAL: without the MoreMenu mark it
+   * would sit on every row as the button, which is the one place a
    * secret-revealing utility should not be.
    */
-  test("with View not on offer, Show ID and Key still waits in the menu", async () => {
+  test("with View not on offer, the ID action still waits in the menu", async () => {
     startSession({ isMasterAdmin: false, projectPermissions: [] });
 
     const rowActions: HTMLElement = await renderMonitorProbes();
 
     expect(rowButtonLabels(rowActions)).toEqual(["More actions"]);
-    expect(menuLabels(openMenuIn(rowActions))).toEqual(["Show ID and Key"]);
+    expect(menuLabels(openMenuIn(rowActions))).toEqual(["Show ID"]);
+  });
+
+  /*
+   * A member who may read the probes but not their keys needs the probe's
+   * ID to install it all the same: they get Show ID, and the ID alone, in
+   * the shared Show ID dialog (RecordIdModal) every table's Show ID opens.
+   */
+  test("a member who may not read keys gets Show ID, and the ID alone", async () => {
+    startSession({
+      isMasterAdmin: false,
+      projectPermissions: [Permission.ProjectMember],
+    });
+
+    const rowActions: HTMLElement = await renderMonitorProbes();
+
+    expect(rowButtonLabels(rowActions)).toEqual(["View Probe", "More actions"]);
+
+    const menu: HTMLElement = openMenuIn(rowActions);
+
+    expect(menuLabels(menu)).toEqual(["Show ID"]);
+
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Show ID" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("modal-title")).toHaveTextContent("Probe ID");
+    });
+
+    expect(screen.getByTestId("record-id-value")).toHaveTextContent(PROBE_ID);
+    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+    expect(screen.getByTestId("modal")).not.toHaveTextContent("Probe Key");
+    expect(document.body).not.toHaveTextContent(PROBE_KEY);
+  });
+
+  test("the key is asked for only of those who may read it", async () => {
+    startSession({
+      isMasterAdmin: false,
+      projectPermissions: [Permission.ProjectMember],
+    });
+
+    await renderMonitorProbes();
+
+    const projectListSelects: Array<Record<string, unknown>> =
+      getListMock.mock.calls
+        .map((call: Array<unknown>) => {
+          return call[0] as {
+            modelType: unknown;
+            select: Record<string, unknown>;
+            requestOptions?: { overrideRequestUrl?: unknown };
+          };
+        })
+        .filter(
+          (params: {
+            modelType: unknown;
+            requestOptions?: { overrideRequestUrl?: unknown };
+          }) => {
+            return (
+              params.modelType === Probe &&
+              !params.requestOptions?.overrideRequestUrl
+            );
+          },
+        )
+        .map((params: { select: Record<string, unknown> }) => {
+          return params.select;
+        });
+
+    expect(projectListSelects.length).toBeGreaterThan(0);
+
+    for (const select of projectListSelects) {
+      expect(Object.keys(select)).not.toContain("key");
+    }
   });
 
   test("Show ID and Key from the menu reveals that probe's ID and key", async () => {

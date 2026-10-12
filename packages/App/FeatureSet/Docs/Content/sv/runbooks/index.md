@@ -1,122 +1,161 @@
 # Runbooks – Översikt
 
-Runbooks är återanvändbara svarsprocedurer — ordnade listor över manuella eller automatiserade steg — som du kopplar till incidenter, larm eller planerade underhåll. De förvandlar ad hoc-Slack-trådar i stil med "vad gör vi nu?" till något en kollega kan ta upp kallt klockan 3 på natten.
+Ett runbook är en återanvändbar responsprocedur: en ordnad lista med manuella och automatiserade steg som du kör på en incident, ett larm eller en schemalagd underhållshändelse. Det gör tråden "vad gör vi nu?" till en checklista som alla i jouren kan följa klockan 3 på natten, med skript, API-anrop och godkännanden redan skrivna. Runbooks är till för jourhavande ingenjörer som hanterar incidenter och för plattformsteam som automatiserar den hanteringen.
 
-## I korthet
+:::cards
+- [Skriva ett runbook](/docs/runbooks/authoring): Skapa ett runbook och skriv dess steg.
+- [Runbook-regler](/docs/runbooks/rules): Starta runbooks vid nya incidenter, larm och underhållshändelser.
+- [Köra ett runbook](/docs/runbooks/running): Starta en körning, slutför och godkänn dess steg, avbryt den.
+- [Runbook-agenter](/docs/runbooks/agents): Installera den Runner som kör dina skript i din egen infrastruktur.
+:::
 
-- **Toppnivåfunktion** i OneUptime-dashboarden under **Produkter → Runbooks**.
-- **Fem stegtyper**: Manuell checklista, JavaScript (sandboxat) och Bash (båda körs på en [Runbook-agent](/docs/runbooks/agents) inuti din egen infrastruktur), HTTP-förfrågan, och AI (analysera incident- och stegkontext med ditt projekts LLM-leverantör).
-- **Tre triggervägar**: regler som matchar incidenter/larm/planerat underhåll, eller en manuell "Kör Runbook"-knapp på vilket event som helst.
-- **Snapshot-semantik**: när ett runbook startar kopieras dess steg in på körningen. Att senare redigera mallen muterar aldrig en pågående körning.
-- **Fullt audit-spår**: varje stegs status, utdata, felmeddelande och tidsåtgång registreras för alltid på körningen.
+## Så körs ett runbook
 
-## Varför använda runbooks?
-
-Incidenthantering är ofta skillnaden mellan en blixt på en minut och ett flertimmars avbrott. Runbooks hjälper dig att:
-
-- **Kodifiera stammkunskap** — det "vad man gör när kön svämmar över" bor någonstans där ditt team kan hitta det.
-- **Minska Mean Time to Recovery (MTTR)** — automatiserade steg körs på sekunder; manuella steg tar bort beslutsförlamning.
-- **Granska svarsåtgärder** — varje körda steg, varje utdata, varje klick från en svarare registreras på körningen.
-- **Få juniora ingenjörer i arbete snabbt** — de kan köra ett runbook med tillförsikt i stället för att paga en senior klockan 3 på natten.
-- **Skriva post-mortems från data, inte från minnet** — den registrerade körningen är ett fryst protokoll över exakt vad som hände.
-
-## Nyckelbegrepp
-
-Några termer återkommer i resten av runbook-dokumenten. Få ordning på dessa först:
-
-| Term              | Betydelse                                                                                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Runbook**       | Mallen. En namngiven, återanvändbar procedur med en ordnad steglista och en `isEnabled`-flagga.                                                                                                                    |
-| **Steg**          | Ett objekt i ett runbook. Har en typ (Manuell / JavaScript / HTTP / Bash / AI), en titel, en beskrivning och typspecifik konfiguration.                                                                            |
-| **Runbook-regel** | Ett mönster som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller planerade underhåll när deras titel eller beskrivning matchar en regex.                                                   |
-| **Körning**       | En körning av ett runbook. Skapas när en regel utlöses, någon klickar "Kör Runbook" på ett event, eller någon klickar "Run Now" på själva runbooket. Innehåller ett snapshot av stegen och status/utdata per steg. |
-| **Snapshot**      | Den frysta kopian av runbookets steg som lever på varje körning. Låter dig redigera mallen senare utan att skriva om historien.                                                                                    |
-
-## Ett runbooks livscykel
-
-1. **Författa** — Skapa ett runbook och lägg in en mix av Manuella, JavaScript-, HTTP-, Bash- och AI-steg. Spara.
-2. **(Valfritt) Lägg till en regel** — Tala om för OneUptime i inställningarna för Incidenter, Larm eller Planerat underhåll att detta runbook ska starta så snart titeln eller beskrivningen på ett event matchar en regex.
-3. **Trigga** — Antingen utlöses regeln automatiskt när ett matchande event skapas, eller så klickar en svarare manuellt på **Kör Runbook** på eventet.
-4. **Köra** — En ny körning skapas med ett snapshot av stegen. Automatiserade steg körs inline på Runbook-workern; körningen pausar vid varje manuellt steg tills någon bockar av det.
-5. **Granska** — Körningen stannar för alltid på eventets **Runbooks**-flik och på runbookets **Körningar**-lista. Per-steg utdata, fel och tider bevaras för post-mortem.
-
-## När ska man använda vilken stegtyp
-
-En snabb beslutsguide. Den längre genomgången finns i [Skriva ett runbook](/docs/runbooks/authoring).
-
-| Stegtyp          | Sträck dig efter den när…                                                                                                                                                                                            | Exempel                                                                          |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| **Manuell**      | En människa måste verifiera något, göra en bedömning eller utföra en åtgärd som OneUptime inte kan observera.                                                                                                        | "Bekräfta sekundärregion-trafik på load balancer-dashboarden."                   |
-| **JavaScript**   | Du behöver en liten, avgränsad beräkning — fråga en konfigurationstjänst, transformera en payload, köra logik före nästa steg. Körs sandboxat på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Beräkna nuvarande replica-lag och avgöra om man ska fortsätta.                   |
-| **HTTP-begäran** | Du anropar ett befintligt API — din egen admin-endpoint, en molnleverantör, PagerDuty, Slack.                                                                                                                        | `POST` till din failover-orchestrator.                                           |
-| **Bash**         | Du behöver köra shell-kommandon på din egen infrastruktur — starta om en tjänst, anropa `kubectl`, anropa ett deploy-skript. Kräver en [Runbook-agent](/docs/runbooks/agents) installerad i din miljö.               | Starta om en tjänst, köra `kubectl rollout restart`, exec:a ett recovery-skript. |
-| **AI**           | Du vill ha en analys, sammanfattning eller bedömning mitt i körningen — resonemang över den utlösande incidenten och tidigare stegs utdata via ditt projekts LLM-leverantör.                                         | "Granska diagnostiken ovan — är det säkert att fortsätta med failovern?"         |
-
-Du kan blanda alla fem i ett enda runbook — runbooks styrka är att varva mänsklig verifiering med automation och AI-analys.
-
-## Var runbooks bor i dashboarden
-
-| Sida                                                                        | Vad du gör där                                                                            |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Produkter → Runbooks**                                                    | Bläddra, skapa och redigera runbook-mallar.                                               |
-| **Ett runbooks Steg-flik**                                                  | Författa och omordna steglistan.                                                          |
-| **Ett runbooks Körningar-flik**                                             | Se varje körning av detta runbook med statusfilter.                                       |
-| **Ett runbooks "Run Now"-knapp**                                            | Starta en ad hoc-körning som inte är kopplad till något event.                            |
-| **Incidenter / Varningar / Schemalagt underhåll → Regler → Runbook-regler** | Skapa auto-triggerreglerna per entitetstyp.                                               |
-| **En incident / ett larm / ett underhåll → Runbooks-flik**                  | Se körningar kopplade till detta event och klicka **Kör Runbook** för en manuell körning. |
-
-## Vanliga användningsfall
-
-Några mönster vi ser team använda runbooks för:
-
-- **Databas-failover** — Fånga nuvarande status med JavaScript, be jour-DBA:n bekräfta replicans hälsa (Manuell), anropa orchestrator-API:t (HTTP), bocka av "DNS uppdaterad" (Manuell), posta klart-meddelande till Slack (HTTP).
-- **Cache-tömning** — Ett enskilt HTTP-steg plus ett Manuellt "bekräfta att cache hit rate återhämtar sig på dashboarden".
-- **Kund-påverkande incident** — Manuellt: "Posta statussideuppdatering." HTTP: "Notifiera CS-teamet i #customer-incidents." JavaScript: "Hämta lista över påverkade konton från intern API."
-- **Pre-flight för planerat underhåll** — JavaScript: snapshot av nuvarande mätvärden. Manuellt: "Bekräfta förändringsfönster med intressenter." HTTP: aktivera underhållsläge på load balancern.
-- **Always-run-hygien** — En regel med tomt titelmönster som fångar systemstatus vid varje incident, oavsett vad — perfekt för post-mortems.
-
-## Ett genomarbetat exempel
-
-Anta att du vill att varje incident med "db-primary" i titeln automatiskt sparkar igång ett femstegs DB-failover-runbook.
-
-**1. Skapa runbooket.** Under **Runbooks → Create Runbook**, namnge det "DB primary failover" och lägg till dessa steg:
-
-| #   | Typ        | Titel                                             |
-| --- | ---------- | ------------------------------------------------- |
-| 1   | JavaScript | Fånga pre-failover replica-lag                    |
-| 2   | Manuell    | Bekräfta replicans hälsa i DBA-dashboard          |
-| 3   | HTTP       | `POST` till failover-orchestrator                 |
-| 4   | Manuell    | Verifiera att skrivningar nu går till nya primary |
-| 5   | HTTP       | Posta klart-meddelande till `#db-incidents` Slack |
-
-**2. Lägg till en regel.** Under **Incidenter → Regler → Runbook-regler**, skapa:
-
-```
-Title Pattern:  ^db-primary
-Runbooks:       [DB primary failover]
+```mermaid title="Från en utlösare till ett registrerat resultat"
+flowchart TB
+    subgraph triggers["Vad som startar en körning"]
+        direction LR
+        rule["Runbook-regel"]
+        manual["Kör Runbook på en händelse"]
+        runnow["Run Now på runbooket"]
+    end
+    rule --> execution["Körning: en ögonblicksbild av stegen"]
+    manual --> execution
+    runnow --> execution
+    execution --> worker["OneUptime Worker tar stegen i ordning"]
+    worker -->|"Manual-steg eller godkännande"| person["Väntar på en person"]
+    worker -->|"HTTP- och AI-steg"| onworker["Körs på Workern"]
+    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner i din infrastruktur"]
+    person --> record["Status, output och fel registreras"]
+    onworker --> record
+    runner --> record
+    record --> history["Händelsens Runbooks-sida och runbookets Körningar"]
 ```
 
-**3. Trigga.** Ett monitorlarm öppnar incident `INC-4821 · db-primary connection timeout`. Regeln matchar, en körning skapas, och:
+Varje gång ett runbook körs skapas en **körning**. När den startar kopieras runbookets steg över till den, och OneUptime går igenom dem i ordning. Ett Manual-steg, eller ett steg som kräver godkännande, pausar körningen tills någon agerar.
 
-- Steg 1 (JavaScript) körs omedelbart på workern — dess `return { lagMs: 412 }`-värde fångas.
-- Steg 2 (Manuellt) pausar körningen. Jouren ser en "Väntar på dig"-etikett på incidentsidan, klickar på dashboarden och bockar av steget.
-- Steg 3 (HTTP) körs så snart steg 2 är avbockat — `POST`-svarsbodyn fångas.
-- Steg 4 (Manuellt) pausar igen.
-- Steg 5 (HTTP) körs och körningen avslutas.
+HTTP- och AI-steg körs på OneUptime Worker. JavaScript-, Bash-, SSH- och Kubernetes-steg körs på en [Runner](/docs/runbooks/agents) som du installerar i din egen infrastruktur, så att dina skript aldrig körs på OneUptimes servrar. Varje stegs status, output och felmeddelande registreras på körningen, som stannar kvar på den incident, det larm eller den händelse den kördes för.
 
-**4. Granska.** Körningen stannar på incidentens **Runbooks**-flik. Varje stegs utdata är ett klick bort. När du skriver post-mortemen nästa vecka behöver du inte fråga "vad gav det skriptet tillbaka?" — det står där.
+## Centrala begrepp
 
-## Hur runbooks passar in med resten av OneUptime
+| Begrepp | Betydelse |
+| --- | --- |
+| **Runbook** | Mallen. En namngiven, återanvändbar procedur med en ordnad lista med steg och en brytare **Kör det här runbooket**. |
+| **Steg** | En punkt i ett runbook. Den har en typ (Manual, JavaScript, HTTP request, Bash, SSH, Kubernetes eller AI), en titel, en beskrivning och typspecifika inställningar. |
+| **Runbook-regel** | En regel som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller schemalagda underhållshändelser som uppfyller dess villkor: deras monitorer, allvarlighetsgrad, etiketter, monitoretiketter, titel eller beskrivning. |
+| **Körning** | En körning av ett runbook. Skapas när en regel utlöses, när någon klickar på **Kör Runbook** på en händelse eller när någon klickar på **Run Now** på själva runbooket. Den innehåller en ögonblicksbild av stegen och varje stegs status och output. |
+| **Ögonblicksbild** | Den frysta kopian av runbookets steg som ligger på varje körning. Du kan redigera runbooket senare utan att skriva om historiken för tidigare körningar. |
+| **Runner** | En liten agent som du kör på en värd i din egen infrastruktur. Den kör de JavaScript-, Bash-, SSH- och Kubernetes-steg som pekar på den. Kallas även en runbook-agent. |
+| **Autentiseringsuppgift** | Hanterad SSH- eller Kubernetes-åtkomst som SSH- och Kubernetes-steg använder. Krypterad i vila och lämnas bara ut till de Runners du tilldelar den. |
+| **Hemlighet** | Ett enskilt värde, till exempel en API-token, som ett Bash- eller JavaScript-skript använder som `{{runbookSecrets.NAME}}`. Krypterad i vila och lämnas bara ut till de Runners du tilldelar den. |
 
-- **Övervakare** öppnar incidenter och larm; **runbook-regler** förvandlar dessa events till runbook-körningar. Tillsammans bildar de en sluten loop: upptäcka → trigga → svara → registrera.
-- **Arbetsyteanslutningar** (Slack, Microsoft Teams) är ett naturligt mål för runbook-HTTP-steg — posta statusuppdateringar, notifiera kanaler.
-- **Statussidor** uppdateras ofta som ett manuellt steg i ett kund-påverkande runbook.
-- **Jourscheman** bestämmer vem som pagas; runbooks bestämmer vad den personen gör så snart hen är vaken.
+## Stegtyper
 
-## Var läsa vidare
+Välj den typ som passar varje steg. [Skriva ett runbook](/docs/runbooks/authoring) beskriver inställningarna för varje typ.
 
-- [Skriva ett runbook](/docs/runbooks/authoring) — skapa runbooks, de fem stegtyperna och vad varje gör.
-- [Runbook-regler](/docs/runbooks/rules) — koppla runbooks automatiskt till incidenter, larm och planerade underhåll.
-- [Köra ett runbook](/docs/runbooks/running) — manuella triggers, körningsvyn och hur manuella steg samspelar med automatiserade.
-- [Runbook-agenter](/docs/runbooks/agents) — installera agenterna som kör Bash-steg inuti din egen infrastruktur.
-- [Runbook-konfiguration & säkerhet](/docs/runbooks/configuration) — utdatatak, behörigheter, härdningsnoteringar.
+| Stegtyp | Körs på | Använd den när … | Exempel |
+| --- | --- | --- | --- |
+| **Manual** | En person | En människa måste kontrollera något, göra en bedömning eller agera där OneUptime inte kan. | "Bekräfta att trafiken har flyttats till den sekundära regionen." |
+| **JavaScript** | En Runner | Du behöver en liten, avgränsad beräkning i en sandlåda. | Beräkna replikeringsfördröjningen och avgör om du ska fortsätta. |
+| **HTTP request** | OneUptime Worker | Du anropar ett befintligt API: en molnleverantör, PagerDuty, en Slack-webhook, din egen tjänst. | `POST` till din failover-orkestrerare. |
+| **Bash** | En Runner | Du behöver skalkommandon på din egen infrastruktur. | Kör `kubectl rollout restart` eller ett återställningsskript. |
+| **SSH** | En Runner | Du behöver ett kommando på en fjärrvärd med en hanterad SSH-autentiseringsuppgift. | Starta om en tjänst på en webbserver. |
+| **Kubernetes** | En Runner | Du behöver starta om eller skala en Deployment, ett StatefulSet eller ett DaemonSet. | Starta om `checkout-api` i `production`. |
+| **AI** | OneUptime Worker | Du vill ha en analys, en sammanfattning eller en bedömning mitt i körningen från projektets LLM-leverantör. | "Gå igenom diagnostiken ovan. Är det säkert att göra failover?" |
+
+Ett runbook kan blanda alla. Styrkan med runbooks är att väva samman mänskliga kontroller med automatisering och AI-analys.
+
+## Vad som startar en körning
+
+| Hur | Var | Körningen kopplas till |
+| --- | --- | --- |
+| En runbook-regel | **Incidenter**, **Varningar** eller **Schemalagt underhåll** → **Regler** → **Runbook-regler** | Den nya incidenten, larmet eller händelsen |
+| **Kör Runbook** | Sidan **Runbooks** för en incident, ett larm eller en schemalagd underhållshändelse | Den händelsen |
+| **Run Now** | Runbookets sida **Översikt** | Ingenting: en ad hoc-körning |
+| En regel för automatisk åtgärd | Se [AI SRE](/docs/ai/ai-sre) | Incidenten eller larmet |
+
+Ett runbook vars brytare **Kör det här runbooket** är avstängd på sidan **Inställningar** startas inte av något av dessa. Körningar som redan har startat fortsätter.
+
+## Var runbooks finns i instrumentpanelen
+
+Runbooks finns under **Produkter**, i gruppen **Instrumentpaneler och automatisering**.
+
+| Sida | Vad du gör där |
+| --- | --- |
+| **Produkter → Runbooks** | Bläddra bland, skapa och öppna runbooks. |
+| Ett runbooks **Steg** | Skriv och ordna om dess steg och välj sedan **Save Steps**. |
+| Ett runbooks **Översikt** | Se den senaste körningen och resultaten, och klicka på **Run Now**. |
+| Ett runbooks **Körningar** | Alla körningar av det här runbooket, filtrerade efter status eller startdatum. |
+| Ett runbooks **Ägare** | Lägg till de personer och team som ansvarar för det. |
+| Ett runbooks **Inställningar** | Stäng av **Kör det här runbooket** utan att ta bort runbooket. |
+| **Runbooks → Körningar** | Alla körningar av alla runbooks i projektet. |
+| **Runbooks → Runbook-agenter** och **Runbooks → Runbook-agenter → Autentiseringsuppgifter** | Installera [Runners](/docs/runbooks/agents) och hantera [autentiseringsuppgifter](/docs/runbooks/credentials). |
+| **Runbooks → Inställningar** | Hantera [hemligheter](/docs/runbooks/credentials#hemligheter-för-skript) för skript, samt de **Ägarregler** och **Etikettregler** som lägger till ägare och etiketter på nya runbooks. |
+| **Incidenter / Varningar / Schemalagt underhåll → Regler → Runbook-regler** | Skapa de regler som startar runbooks automatiskt. |
+| En incident, ett larm eller en underhållshändelse → **Runbooks** | Se de körningar som är kopplade till den och klicka på **Kör Runbook** för att starta en. |
+
+## Ett genomgånget exempel
+
+Anta att varje incident med "db-primary" i titeln ska starta ett runbook för databas-failover med fem steg.
+
+:::steps
+### Skapa runbooket
+
+Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Öppna det, gå till **Steg**, lägg till de här stegen och klicka sedan på **Save Steps**:
+
+| # | Typ | Titel |
+| --- | --- | --- |
+| 1 | JavaScript | Registrera replikeringsfördröjningen före failover |
+| 2 | Manual | Bekräfta i DBA-instrumentpanelen att repliken är frisk |
+| 3 | HTTP request | `POST` till failover-orkestreraren |
+| 4 | Manual | Kontrollera att skrivningar går till den nya primära |
+| 5 | HTTP request | Skicka klartecknet till `#db-incidents` i Slack |
+
+### Lägg till en regel
+
+Under **Incidenter → Regler → Runbook-regler** skapar du en regel med ett villkor och det runbook som ska startas:
+
+```text
+Conditions:  Incident Title starts with db-primary
+Runbooks:    [DB primary failover]
+```
+
+### Låt det köra
+
+En monitor öppnar incidenten `INC-4821 · db-primary connection timeout`. Regeln matchar och en körning startar:
+
+- Steg 1 (JavaScript) körs på den Runner du valde för det. Returvärdet, till exempel `{ lagMs: 412 }`, registreras.
+- Steg 2 (Manual) pausar körningen, som visar **Väntar på dig**. Den jourhavande kontrollerar instrumentpanelen och klickar på **Mark complete**.
+- Steg 3 (HTTP request) körs och svaret på `POST` registreras.
+- Steg 4 (Manual) pausar körningen igen tills någon slutför det.
+- Steg 5 (HTTP request) körs och körningen är **Slutförd**.
+
+### Granska den
+
+Körningen stannar kvar på incidentens sida **Runbooks**. När du skriver postmortem är varje stegs output, fel och tidsåtgång ett klick bort.
+:::
+
+## Vanliga användningsområden
+
+- **Databas-failover**: registrera tillståndet med JavaScript, be den jourhavande DBA:n bekräfta replikens hälsa (Manual), anropa orkestreraren (HTTP request), bekräfta DNS (Manual), skicka klartecknet (HTTP request).
+- **Tömning av cache**: en HTTP-begäran och sedan ett Manual-steg "bekräfta att cachens träffgrad återhämtar sig".
+- **Incident som påverkar kunder**: Manual "publicera en uppdatering på statussidan", en HTTP-begäran för att meddela supportteamet, JavaScript för att hämta listan över berörda konton.
+- **Förkontroll före schemalagt underhåll**: ta en ögonblicksbild av mätvärden, bekräfta ändringsfönstret med intressenterna (Manual), slå på underhållsläge i lastbalanseraren (HTTP request).
+- **Diagnostisera och åtgärda sedan**: ett Bash-steg samlar in diagnostik, ett AI-steg med **Kräv godkännande** läser den och rekommenderar en åtgärd, och ett Kubernetes-steg startar om arbetsbelastningen först när en person har godkänt.
+- **Hygien som alltid körs**: en regel utan villkor som registrerar systemets tillstånd vid varje incident för postmortem.
+
+## Så passar runbooks in i resten av OneUptime
+
+- **Monitorer** öppnar incidenter och larm, och **runbook-regler** gör dem till runbook-körningar: upptäck, utlös, hantera, registrera.
+- **[Jourpolicyer](/docs/on-call/schedules)** avgör vem som larmas. Runbooks avgör vad den personen gör när hen är vaken.
+- **[Workspace-anslutningar](/docs/workspace-connections/slack)** som Slack och Microsoft Teams är naturliga mål för HTTP-begäransteg som skickar uppdateringar.
+- **[Statussidor](/docs/status-pages/index)** uppdateras ofta som ett Manual-steg i ett kundinriktat runbook.
+
+## Nästa steg
+
+:::cards
+- [Skriva ett runbook](/docs/runbooks/authoring): Skapa ditt första runbook och dess steg.
+- [Runbook-agenter](/docs/runbooks/agents): Installera en Runner innan du skriver ett JavaScript-, Bash-, SSH- eller Kubernetes-steg.
+- [Runbook-regler](/docs/runbooks/rules): Starta runbooks automatiskt när incidenter skapas.
+- [Runbook-konfiguration & säkerhet](/docs/runbooks/configuration): Gränser, tidsgränser, behörigheter och härdning.
+:::

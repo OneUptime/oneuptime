@@ -63,10 +63,12 @@ import {
   getWorkflowTemplate,
 } from "Common/Types/Workflow/Templates";
 import {
+  TemplateVariableEdit,
   WorkflowTemplateVariableErrors,
   WorkflowTemplateVariableValues,
   buildWorkflowFromTemplate,
   buildWorkflowVariables,
+  editTemplateVariable,
   validateTemplateVariableValues,
 } from "../../Utils/Workflow/WorkflowTemplateCreateUtil";
 import {
@@ -89,6 +91,16 @@ enum WizardStep {
   Configure = "configure",
 }
 
+interface ConfigureStepState {
+  values: WorkflowTemplateVariableValues;
+  typedVariableNames: Array<string>;
+}
+
+const EMPTY_CONFIGURATION: ConfigureStepState = {
+  values: {},
+  typedVariableNames: [],
+};
+
 const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -106,8 +118,17 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [nameError, setNameError] = useState<string>("");
-  const [variableValues, setVariableValues] =
-    useState<WorkflowTemplateVariableValues>({});
+  /*
+   * What is typed into the Configure step, and the settings someone has typed
+   * into. A setting prefilled from another (WorkflowTemplateVariable.
+   * prefilledFrom) takes what is typed there until it is typed into itself:
+   * the Jira API URL is the Jira Site URL on most sites, so it is typed once,
+   * and changed only where it differs (editTemplateVariable). One state, so
+   * each edit reads both as they stand, however edits are batched.
+   */
+  const [configuration, setConfiguration] =
+    useState<ConfigureStepState>(EMPTY_CONFIGURATION);
+  const variableValues: WorkflowTemplateVariableValues = configuration.values;
   const [variableErrors, setVariableErrors] =
     useState<WorkflowTemplateVariableErrors>({});
   const [pickerState, setPickerState] = useState<WorkflowTemplatePickerState>(
@@ -167,7 +188,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     if (!isSameStart) {
       setName(template ? template.workflowName : "");
       setDescription(template ? template.workflowDescription : "");
-      setVariableValues({});
+      setConfiguration(EMPTY_CONFIGURATION);
       setVariableErrors({});
     }
 
@@ -445,15 +466,41 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                   error={variableErrors[variable.name]}
                   dataTestId={inputId}
                   onChange={(value: string) => {
-                    setVariableValues(
-                      (
-                        current: WorkflowTemplateVariableValues,
-                      ): WorkflowTemplateVariableValues => {
-                        return { ...current, [variable.name]: value };
+                    type EditFunction = (
+                      state: ConfigureStepState,
+                    ) => TemplateVariableEdit;
+
+                    const editOf: EditFunction = (
+                      state: ConfigureStepState,
+                    ): TemplateVariableEdit => {
+                      return editTemplateVariable({
+                        template: selectedTemplate as WorkflowTemplate,
+                        values: state.values,
+                        typedVariableNames: state.typedVariableNames,
+                        variableName: variable.name,
+                        value: value,
+                      });
+                    };
+
+                    setConfiguration(
+                      (current: ConfigureStepState): ConfigureStepState => {
+                        const next: TemplateVariableEdit = editOf(current);
+
+                        return {
+                          values: next.values,
+                          typedVariableNames: next.typedVariableNames,
+                        };
                       },
                     );
 
-                    if (variableErrors[variable.name]) {
+                    // The messages under the fields this edit changes go.
+                    const edit: TemplateVariableEdit = editOf(configuration);
+
+                    if (
+                      edit.changedVariableNames.some((name: string) => {
+                        return Boolean(variableErrors[name]);
+                      })
+                    ) {
                       setVariableErrors(
                         (
                           current: WorkflowTemplateVariableErrors,
@@ -461,7 +508,11 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                           const next: WorkflowTemplateVariableErrors = {
                             ...current,
                           };
-                          delete next[variable.name];
+
+                          for (const name of edit.changedVariableNames) {
+                            delete next[name];
+                          }
+
                           return next;
                         },
                       );

@@ -16,6 +16,7 @@ import {
   FilterFieldValueOption,
 } from "../../../FeatureSet/Dashboard/src/Components/FilterQueryBuilder/Types";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import { toLatinDigits } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -144,12 +145,13 @@ const OK_OPTION_LABEL: string = "Ok (1)";
 
 /*
  * The languages whose Dashboard shows that option under a translated label,
- * e.g. "Correcto (1)" in Spanish. The other translations show it as Ok or OK
- * (Ок, in Cyrillic, in Russian), and the Persian recipe names the English UI
- * throughout.
+ * e.g. "Correcto (1)" in Spanish, or "موفق (۱)", with a Persian digit, in
+ * Persian. The other translations show it as Ok or OK (Ок, in Cyrillic, in
+ * Russian).
  */
 const TRANSLATED_OK_OPTION_LANGUAGES: ReadonlyArray<string> = [
   "es",
+  "fa",
   "hi",
   "ko",
   "zh-CN",
@@ -748,7 +750,8 @@ describe("Traces monitor docs: span status codes (#4118)", (): void => {
         const recipe: string = blocksOf(statusSectionOf(lang).body)[2] ?? "";
 
         expect(option).not.toBe(OK_OPTION_LABEL);
-        expect(option).toContain(`(${SpanStatus.Ok})`);
+        // The Persian option writes the code in Persian digits: (۱).
+        expect(toLatinDigits(option)).toContain(`(${SpanStatus.Ok})`);
         expect(recipe).toContain(option);
         expect(recipe).not.toMatch(/\bOk\b/);
       });

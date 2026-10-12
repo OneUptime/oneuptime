@@ -32,6 +32,9 @@ import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/Schedul
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import ScheduledMaintenanceStartUtil, {
+  ScheduledMaintenancePhaseOfState,
+} from "Common/Utils/ScheduledMaintenanceStart";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -86,6 +89,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     scheduledMaintenanceStateTimelines: ScheduledMaintenanceStateTimeline[];
     statusPageResources: StatusPageResource[];
     monitorsInGroup: Dictionary<ObjectID[]>;
+    scheduledMaintenanceStates: ScheduledMaintenanceState[];
   };
 
   type GetEventHistoryFunction = (
@@ -101,6 +105,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       scheduledMaintenanceStateTimelines,
       statusPageResources,
       monitorsInGroup,
+      scheduledMaintenanceStates,
     } = data;
 
     const eventHistoryListComponentProps: EventHistoryListComponentProps = {
@@ -130,6 +135,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           monitorsInGroup,
           isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
           isSummary: true,
+          scheduledMaintenanceStates,
         }),
       );
     }
@@ -230,41 +236,41 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return;
     }
 
-    const ongoingOrder: number =
-      scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-        return state.isOngoingState;
-      })?.order || 0;
+    /*
+     * Each event in the list of its phase (ScheduledMaintenanceStartUtil):
+     * ongoing - in its project's ongoing state, or in a state of the
+     * project's own between Ongoing and Ended, such as "Verifying";
+     * scheduled - not started yet; ended - over, a state of the project's
+     * own after Ended included. An event read without its state is in none.
+     */
+    const eventsInPhase: (
+      phase: ScheduledMaintenancePhaseOfState,
+    ) => ScheduledMaintenance[] = (
+      phase: ScheduledMaintenancePhaseOfState,
+    ): ScheduledMaintenance[] => {
+      return scheduledMaintenanceEvents.filter(
+        (event: ScheduledMaintenance): boolean => {
+          return (
+            ScheduledMaintenanceStartUtil.getPhase({
+              states: scheduledMaintenanceStates,
+              state: event.currentScheduledMaintenanceState,
+            }) === phase
+          );
+        },
+      );
+    };
 
-    const endedEventOrder: number =
-      scheduledMaintenanceStates.find((state: ScheduledMaintenanceState) => {
-        return state.isEndedState;
-      })?.order || 0;
+    const ongoingEvents: ScheduledMaintenance[] = eventsInPhase(
+      ScheduledMaintenancePhaseOfState.InProgress,
+    );
 
-    // get ongoing events - anything after ongoing state but before ended state
+    const scheduledEvents: ScheduledMaintenance[] = eventsInPhase(
+      ScheduledMaintenancePhaseOfState.NotStarted,
+    );
 
-    const ongoingEvents: ScheduledMaintenance[] =
-      scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
-        return (
-          event.currentScheduledMaintenanceState!.order! >= ongoingOrder &&
-          event.currentScheduledMaintenanceState!.order! < endedEventOrder
-        );
-      });
-
-    // get scheduled events - anything before ongoing state
-
-    const scheduledEvents: ScheduledMaintenance[] =
-      scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
-        return event.currentScheduledMaintenanceState!.order! < ongoingOrder;
-      });
-
-    // get ended events - anythign equalTo or after ended state
-
-    const endedEvents: ScheduledMaintenance[] =
-      scheduledMaintenanceEvents.filter((event: ScheduledMaintenance) => {
-        return (
-          event.currentScheduledMaintenanceState!.order! >= endedEventOrder
-        );
-      });
+    const endedEvents: ScheduledMaintenance[] = eventsInPhase(
+      ScheduledMaintenancePhaseOfState.Over,
+    );
 
     const endedEventProps: EventHistoryListComponentProps =
       getEventHistoryListComponentProps({
@@ -273,6 +279,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         scheduledMaintenanceStateTimelines,
         statusPageResources,
         monitorsInGroup,
+        scheduledMaintenanceStates,
       });
     const scheduledEventProps: EventHistoryListComponentProps =
       getEventHistoryListComponentProps({
@@ -281,6 +288,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         scheduledMaintenanceStateTimelines,
         statusPageResources,
         monitorsInGroup,
+        scheduledMaintenanceStates,
       });
     const ongoingEventProps: EventHistoryListComponentProps =
       getEventHistoryListComponentProps({
@@ -289,6 +297,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         scheduledMaintenanceStateTimelines,
         statusPageResources,
         monitorsInGroup,
+        scheduledMaintenanceStates,
       });
 
     setOngoingEventsParsedData(ongoingEventProps);

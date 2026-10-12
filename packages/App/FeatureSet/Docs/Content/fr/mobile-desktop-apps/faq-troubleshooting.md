@@ -38,7 +38,8 @@ Les notifications push mobiles utilisent APNs (iOS) et FCM (Android) à travers 
 2. L'optimisation de la batterie est désactivée et l'activité en arrière-plan est autorisée (Android).
 3. Les modes Do Not Disturb ou Concentration sont désactivés, ou l'application figure dans la liste des exceptions.
 4. Vous êtes connecté — le jeton push n'est enregistré auprès du serveur qu'après votre connexion.
-5. **Auto-hébergement uniquement :** Les notifications push sont configurées sur votre instance OneUptime. Consultez le guide [Notifications push](/docs/self-hosted/push-notifications).
+5. Le téléphone n'est pas marqué **Ne reçoit pas de notifications** sous **User Settings > Notification Methods > Push** dans OneUptime. Si c'est le cas, ouvrez l'application sur le téléphone en étant connecté pour l'enregistrer de nouveau.
+6. **Auto-hébergement uniquement :** Les notifications push sont configurées sur votre instance OneUptime. Consultez le guide [Notifications push](/docs/self-hosted/push-notifications).
 
 ### Les données sur mon téléphone sont-elles sécurisées ?
 

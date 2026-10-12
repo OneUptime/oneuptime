@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -15,6 +16,10 @@ import path from "path";
  * Users, Teams & Permissions says so in every docs language, with the
  * permission for each kind of record; the incident state and linked-alert
  * pages point to it, and the upgrade notes say what changes for custom roles.
+ * Acknowledging the alerts of an incident as it is declared takes the same as
+ * acknowledging each of them on its own page (AlertStateChangeAuthorization),
+ * and Linked Alerts says so in every docs language: the timeline's create
+ * permission, and no Edit Alert.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -33,6 +38,37 @@ const STATE_TIMELINE_PERMISSIONS: Array<string> = [
   "**Create Scheduled Maintenance State Timeline**",
   "**Create Monitor Status Timeline**",
 ];
+
+const LINKED_ALERTS_PAGE: string = "incidents/linked-alerts.md";
+
+// What acknowledging an alert takes, and the edit permission it does not.
+const ACKNOWLEDGE_PERMISSION: string = "**Create Alert State Timeline**";
+const EDIT_ALERT: string = "**Edit Alert**";
+
+/*
+ * How each language's Linked Alerts page says that acknowledging the alerts
+ * as you declare takes no Edit Alert, in the paragraph that names what it
+ * takes.
+ */
+const NO_EDIT_ALERT: Record<string, string> = {
+  en: "and no **Edit Alert**",
+  de: "und kein **Edit Alert**",
+  fr: "et pas **Edit Alert**",
+  es: "y no **Edit Alert**",
+  it: "e nessun **Edit Alert**",
+  pt: "e nenhuma **Edit Alert**",
+  nl: "en geen **Edit Alert**",
+  da: "og ingen **Edit Alert**",
+  no: "og ingen **Edit Alert**",
+  sv: "och ingen **Edit Alert**",
+  ru: "и никакого **Edit Alert**",
+  ja: "**Edit Alert** は不要",
+  ko: "**Edit Alert**는 필요하지 않습니다",
+  "zh-CN": "而不需要 **Edit Alert**",
+  "zh-TW": "而不需要 **Edit Alert**",
+  hi: "और कोई **Edit Alert** नहीं",
+  fa: "و نه **Edit Alert**",
+};
 
 function read(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
@@ -127,15 +163,16 @@ describe("Docs: changing a state takes the state timeline's create permission", 
     }
   });
 
-  test("it keeps the note a change posts, and acknowledging alerts on declare, to their own permissions", () => {
+  test("it keeps the note a change posts to its own permission, and acknowledging alerts on declare to the timeline's", () => {
     const { body } = stateChangeSection(english);
 
     expect(body).toContain(
       "Only the state is written for you. A note posted with a change is posted as you and takes the note's own permission",
     );
     expect(body).toContain(
-      "Acknowledging the alerts of an incident as you declare it still also takes **Edit Alert**",
+      "Acknowledging the alerts of an incident as you declare it takes the same as acknowledging each of them on its own page: **Create Alert State Timeline**, narrowed through each alert, and no **Edit Alert**.",
     );
+    expect(body).not.toContain("still also takes **Edit Alert**");
     expect(body).toContain(
       "(/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare)",
     );
@@ -164,7 +201,7 @@ describe("Docs: changing a state takes the state timeline's create permission", 
         ]).toEqual([language, permission, true]);
       }
 
-      // The two permissions the change no longer needs, and the one it still does on declare.
+      // The two edit permissions a change does not need - on declare either.
       for (const permission of ["**Edit Incident**", "**Edit Alert**"]) {
         expect([
           language,
@@ -222,11 +259,97 @@ describe("Docs: changing a state takes the state timeline's create permission", 
     );
   });
 
-  test("the linked alerts page says acknowledging on declare takes more than on the alert's own page", () => {
+  test("the linked alerts page says acknowledging on declare takes what the alert's own page takes", () => {
     const page: string = read("en", "incidents/linked-alerts.md");
 
     expect(page).toContain(
-      "Acknowledging them as you declare takes **Create Alert State Timeline** and **Edit Alert** (acknowledging an alert on its own page takes only the first: see [Changing a state](/docs/permissions/index#changing-a-state))",
+      "Acknowledging them as you declare takes what acknowledging each of them on its own page takes: **Create Alert State Timeline**, and no **Edit Alert** (see [Changing a state](/docs/permissions/index#changing-a-state)).",
+    );
+    expect(page).not.toContain(
+      "**Create Alert State Timeline** and **Edit Alert**",
+    );
+  });
+
+  test("every docs language words the linked alerts page's 'no Edit Alert'", () => {
+    expect(Object.keys(NO_EDIT_ALERT)).toEqual(LANGUAGES);
+  });
+
+  test.each(LANGUAGES)(
+    "%s: linked alerts says acknowledging on declare takes the timeline's permission and no Edit Alert, in all three places",
+    (language: string) => {
+      const page: string = read(language, LINKED_ALERTS_PAGE);
+
+      // The permission paragraph, the API refusal and the permissions section.
+      const naming: Array<string> = page
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.includes(ACKNOWLEDGE_PERMISSION);
+        });
+
+      expect([language, naming.length]).toEqual([language, 3]);
+
+      const [paragraph, refusal, permissions] = naming as [
+        string,
+        string,
+        string,
+      ];
+
+      // Users, Teams & Permissions' state change section, in this language.
+      const changingAState: string = stateChangeSection(
+        read(language, "permissions/index.md"),
+      ).heading.replace(/^###\s+/, "");
+
+      expect({
+        language: language,
+        // Named once on the page, to say it is not needed.
+        editAlertMentions: page.split(EDIT_ALERT).length - 1,
+        saysNoEditAlert: paragraph.includes(NO_EDIT_ALERT[language] as string),
+        permissionFirst:
+          paragraph.indexOf(ACKNOWLEDGE_PERMISSION) <
+          paragraph.indexOf(EDIT_ALERT),
+        linksChangingAState: paragraph.includes(
+          `](/docs/permissions/index#${slugifyMarkdownHeading(changingAState)})`,
+        ),
+        refusalIsABullet: refusal.startsWith("- "),
+        refusalNamesNoEditAlert: !refusal.includes(EDIT_ALERT),
+        permissionsLinkTheSection: permissions.includes("](#"),
+        permissionsNameNoEditAlert: !permissions.includes(EDIT_ALERT),
+      }).toEqual({
+        language: language,
+        editAlertMentions: 1,
+        saysNoEditAlert: true,
+        permissionFirst: true,
+        linksChangingAState: true,
+        refusalIsABullet: true,
+        refusalNamesNoEditAlert: true,
+        permissionsLinkTheSection: true,
+        permissionsNameNoEditAlert: true,
+      });
+    },
+  );
+
+  test("the upgrade notes say acknowledging alerts on declare no longer takes Edit Alert", () => {
+    const page: string = read("en", "installation/upgrading.md");
+
+    for (const sentence of [
+      "- **Acknowledging alerts as you declare an incident takes what acknowledging",
+      "take **Edit Alert** as well as **Create Alert State Timeline** for each",
+      "on their own pages. It now takes **Create Alert State Timeline** alone,",
+      "**Edit Alert** - or a team with a block on **Edit Alert** - acknowledges",
+      "[Acknowledging the alerts as you declare](/docs/incidents/linked-alerts#acknowledging-the-alerts-as-you-declare).",
+    ]) {
+      expect([sentence, page.includes(sentence)]).toEqual([sentence, true]);
+    }
+
+    // Right after the note on changing a state.
+    expect(
+      page.indexOf(
+        "- **Acknowledging alerts as you declare an incident takes what acknowledging",
+      ),
+    ).toBeGreaterThan(
+      page.indexOf(
+        "- **Changing a state takes the state timeline's permission, and nothing",
+      ),
     );
   });
 

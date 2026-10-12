@@ -11,6 +11,7 @@ import {
   dataUrlUsesAsDashboard,
 } from "./DashboardMarkdownDataUrls";
 import SlackifyMarkdown from "slackify-markdown";
+import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -562,17 +563,6 @@ describe("ChatInlineImages - code is byte for byte, as the dashboard's parser re
     `\n\n![a](${DATA_URL})\n`,
     `\n![b](${DATA_URL})`,
   ];
-
-  function seededRandom(seed: number): () => number {
-    let state: number = seed;
-
-    return (): number => {
-      state = (state + 0x6d2b79f5) | 0;
-      let mixed: number = Math.imul(state ^ (state >>> 15), 1 | state);
-      mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-      return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-    };
-  }
 
   test("every code span and code block of 4000 generated texts survives toText and split", () => {
     const random: () => number = seededRandom(20261008);

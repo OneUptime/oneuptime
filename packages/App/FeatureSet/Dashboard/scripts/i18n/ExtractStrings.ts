@@ -107,7 +107,20 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
+  // What a failed vCenter collection means and what fixes it (VMwareCollectionError).
+  { directory: "packages/Common/Types/VMware", kind: "ui" },
 ];
+
+/*
+ * Files under SOURCE_ROOTS whose strings no frontend shows, so none of them
+ * is extracted. EnterpriseLicense is the license server's own table: no
+ * project role may read it, and its enterprise-only column titles must stay
+ * out of every locale file (a test in ee/ holds every frontend's locales to
+ * that).
+ */
+export const SKIPPED_SOURCE_FILES: ReadonlySet<string> = new Set<string>([
+  "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
+]);
 
 /*
  * Property and attribute names whose string value is shown to the reader.
@@ -160,6 +173,7 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "meaning",
   "message",
   "moreText",
+  "nextStep",
   "noItemsMessage",
   "noLogsMessage",
   "noValueMessage",
@@ -1240,6 +1254,10 @@ export const scanSourceRoots: (
     for (const filePath of listSourceFiles(
       path.join(rootDirectory, root.directory),
     )) {
+      if (SKIPPED_SOURCE_FILES.has(toRepositoryPath(filePath, rootDirectory))) {
+        continue;
+      }
+
       const result: SourceScanResult = scanSourceText(
         toRepositoryPath(filePath, rootDirectory),
         fs.readFileSync(filePath, "utf8"),

@@ -9,6 +9,10 @@ import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import API from "../../../../../Utils/API";
+import {
+  MAX_DISCORD_MESSAGE_LENGTH,
+  TRUNCATED_TEXT_NOTE,
+} from "../../../../../Utils/MessageFit";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -135,6 +139,36 @@ describe("Discord SendMessageToChannel — webhook URL pin", () => {
         options?: { doNotFollowRedirects?: boolean };
       };
     expect(request.options?.doNotFollowRedirects).toBe(true);
+  });
+
+  test("a message over 2,000 characters is cut to fit, with the note; one that fits goes as it is", async () => {
+    apiPostMock.mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+
+    await new DiscordSendMessage().run(
+      {
+        text: `Deploy log:\n${"step finished\n".repeat(500)}`,
+        "webhook-url": "https://discord.com/api/webhooks/123/abcdef",
+      },
+      makeOptions(),
+    );
+    await new DiscordSendMessage().run(
+      {
+        text: "x".repeat(MAX_DISCORD_MESSAGE_LENGTH),
+        "webhook-url": "https://discord.com/api/webhooks/123/abcdef",
+      },
+      makeOptions(),
+    );
+
+    const contents: Array<string> = apiPostMock.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return (call[0] as { data: JSONObject }).data["content"] as string;
+      },
+    );
+
+    expect(contents[0]!.length).toBeLessThanOrEqual(MAX_DISCORD_MESSAGE_LENGTH);
+    expect(contents[0]!.startsWith("Deploy log:\nstep finished")).toBe(true);
+    expect(contents[0]!.endsWith(TRUNCATED_TEXT_NOTE)).toBe(true);
+    expect(contents[1]).toBe("x".repeat(MAX_DISCORD_MESSAGE_LENGTH));
   });
 
   test("accepts the discordapp.com alias", async () => {

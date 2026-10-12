@@ -5,8 +5,11 @@ import URL from "../../../../Types/API/URL";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
@@ -20,6 +23,7 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import IncidentStateService from "../../../Services/IncidentStateService";
 import AlertStateService from "../../../Services/AlertStateService";
+import ScheduledMaintenanceStateService from "../../../Services/ScheduledMaintenanceStateService";
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -32,7 +36,11 @@ import WorkspaceReactionNote, {
   WorkspaceNoteSaveResult,
 } from "../WorkspaceReactionNote";
 import MicrosoftTeamsUtil from "./MicrosoftTeams";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
+import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -62,9 +70,153 @@ export enum MicrosoftTeamsReactionOutcome {
   AlreadyHandled = "AlreadyHandled",
   NotLinked = "NotLinked",
   NotAuthorized = "NotAuthorized",
+  // The note's own create refused it: a permission, the plan, or a value.
+  Refused = "Refused",
   NoText = "NoText",
   NotSupported = "NotSupported",
 }
+
+/*
+ * A card or file attached to a Teams message, with what it holds: the card's
+ * text is read from the message's attachments instead (getAdaptiveCardText).
+ * An element runs from its start tag's first ">" to the first end tag after
+ * it (withoutAttachmentElements).
+ */
+const TEAMS_ATTACHMENT_START: RegExp = /<attachment\b/i;
+const TEAMS_ATTACHMENT_END: RegExp = /<\/attachment>/i;
+const TEAMS_ATTACHMENT_END_LENGTH: number = "</attachment>".length;
+
+export type WithoutAttachmentElementsFunction = (html: string) => string;
+
+/*
+ * The HTML with every attachment element taken out, as one pass of
+ * /<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi took them out - read in one
+ * pass. That pattern looked for an end tag again from every start tag, to
+ * the end of the text when there was none: time that grew with the square
+ * of the message.
+ *
+ * An element is a start tag, everything up to its first ">", and everything
+ * up to the first end tag after that. The end tags are found once. When a
+ * start tag has no ">" or no end tag after it, no later one has either, so
+ * the rest of the HTML stays as it is. matchAll starts each search at its
+ * pattern's lastIndex, so every call makes its own global patterns: nothing
+ * done elsewhere to a shared one can start a search part way through.
+ */
+export const withoutAttachmentElements: WithoutAttachmentElementsFunction = (
+  html: string,
+): string => {
+  const ends: Array<number> = [];
+
+  for (const end of html.matchAll(new RegExp(TEAMS_ATTACHMENT_END, "gi"))) {
+    ends.push(end.index);
+  }
+
+  let text: string = "";
+  let at: number = 0;
+  let nextEnd: number = 0;
+
+  for (const start of html.matchAll(new RegExp(TEAMS_ATTACHMENT_START, "gi"))) {
+    // A start tag inside an element already taken out is part of it.
+    if (start.index < at) {
+      continue;
+    }
+
+    const startTagEnd: number = html.indexOf(">", start.index);
+
+    if (startTagEnd === -1) {
+      break;
+    }
+
+    while (nextEnd < ends.length && ends[nextEnd]! <= startTagEnd) {
+      nextEnd++;
+    }
+
+    if (nextEnd === ends.length) {
+      break;
+    }
+
+    text += html.slice(at, start.index);
+    at = ends[nextEnd]! + TEAMS_ATTACHMENT_END_LENGTH;
+  }
+
+  return text + html.slice(at);
+};
+
+export type WithoutSpaceBeforeLineEndsFunction = (text: string) => string;
+
+/*
+ * The text with the spaces and tabs before each line break taken out, as
+ * .replace(/[ \t]+\n/g, "\n") took them out - read in one pass. That
+ * pattern started again from every space of a run that no line break ends,
+ * so a long run of spaces took time that grew with the square of its
+ * length: half a second for a message of 28 KB, Teams' largest.
+ */
+export const withoutSpaceBeforeLineEnds: WithoutSpaceBeforeLineEndsFunction = (
+  text: string,
+): string => {
+  const lines: Array<string> = text.split("\n");
+
+  // The last line ends the text, not a line break, so it keeps its spaces.
+  for (let index: number = 0; index < lines.length - 1; index++) {
+    const line: string = lines[index]!;
+    let end: number = line.length;
+
+    while (end > 0 && (line[end - 1] === " " || line[end - 1] === "\t")) {
+      end--;
+    }
+
+    lines[index] = line.slice(0, end);
+  }
+
+  return lines.join("\n");
+};
+
+// The name of the tag a piece of markup is, "/" first for an end tag.
+const TAG_NAME: RegExp = /^<(\/?[A-Za-z][A-Za-z0-9-]*)/;
+
+// The ends of the blocks a Teams message is laid out in: each ends a line.
+const TEAMS_BLOCK_ENDS: ReadonlySet<string> = new Set<string>([
+  "/p",
+  "/div",
+  "/li",
+  "/h1",
+  "/h2",
+  "/h3",
+  "/h4",
+  "/h5",
+  "/h6",
+  "/blockquote",
+  "/pre",
+  "/tr",
+]);
+
+type TeamsMarkupAsTextFunction = (markup: string) => string;
+
+/*
+ * What a tag of a Teams message becomes in its text: a line break a line,
+ * a list item "- ", a mention ("<at>Jane</at>") "@" before the name, the end
+ * of a block a line; any other tag or comment, nothing. None of these holds
+ * a "<", so neither does the text (replaceHtmlMarkup).
+ */
+const teamsMarkupAsText: TeamsMarkupAsTextFunction = (
+  markup: string,
+): string => {
+  const name: string = (TAG_NAME.exec(markup)?.[1] || "").toLowerCase();
+
+  if (name === "br") {
+    return "\n";
+  }
+
+  if (name === "li") {
+    return "- ";
+  }
+
+  if (name === "at") {
+    return "@";
+  }
+
+  return TEAMS_BLOCK_ENDS.has(name) ? "\n" : "";
+};
 
 /*
  * Pin (📌) or megaphone (📣 / 📢) a message in an incident, alert, scheduled
@@ -298,7 +450,9 @@ export default class MicrosoftTeamsReactionNoteSync {
    * The resources of a kind still open in the project. Incidents, alerts
    * and their episodes are open above the project's resolved state - one in
    * a state placed after Resolved is over (Common/Utils/ResolvedState). A
-   * scheduled maintenance event is open until it is completed.
+   * scheduled maintenance event is open until it is completed - in the
+   * completed state or a state of the project's own after it, such as
+   * "Archived" (Common/Utils/ScheduledMaintenanceStart.isComplete).
    */
   public static async getOpenResourceQuery(data: {
     resourceType: WorkspaceNoteResourceType;
@@ -322,7 +476,13 @@ export default class MicrosoftTeamsReactionNoteSync {
           ),
         };
       case WorkspaceNoteResourceType.ScheduledMaintenance:
-        return { currentScheduledMaintenanceState: { isResolvedState: false } };
+        return {
+          currentScheduledMaintenanceStateId: QueryHelper.any(
+            await ScheduledMaintenanceStateService.getIncompleteScheduledMaintenanceStateIds(
+              data.projectId,
+            ),
+          ),
+        };
     }
   }
 
@@ -606,8 +766,10 @@ export default class MicrosoftTeamsReactionNoteSync {
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
 
+    let props: DatabaseCommonInteractionProps;
+
     try {
-      await WorkspaceActionAuthorization.authorize({
+      props = await WorkspaceActionAuthorization.authorize({
         userId: oneUptimeUserId,
         projectId: projectId,
         modelType: WorkspaceReactionNote.getNoteModelType(
@@ -636,9 +798,10 @@ export default class MicrosoftTeamsReactionNoteSync {
         await this.replyInThread({
           channel: channel,
           threadId: reaction.threadId,
+          // The person's name and the refusal are both text.
           text: reaction.reactingUserName
-            ? `${reaction.reactingUserName}, ${err.message}`
-            : err.message,
+            ? mdText`${reaction.reactingUserName}, ${err.message}`.toString()
+            : mdText`${err.message}`.toString(),
         });
       }
 
@@ -651,14 +814,42 @@ export default class MicrosoftTeamsReactionNoteSync {
       return MicrosoftTeamsReactionOutcome.NoText;
     }
 
-    const saveResult: WorkspaceNoteSaveResult =
-      await WorkspaceReactionNote.saveNote({
+    let saveResult: WorkspaceNoteSaveResult;
+
+    try {
+      saveResult = await WorkspaceReactionNote.saveNote({
         resource: resource,
         noteType: reaction.noteType,
-        userId: oneUptimeUserId,
+        props: props,
         note: text,
         sourceMessageKey: sourceMessageKey,
       });
+    } catch (err) {
+      /*
+       * Saved with the member's props, so the note's own create can still
+       * refuse it after the check above - a label, a column, the plan. A
+       * refusal is an answer, as the check's is: the claim is kept, so it is
+       * not tried again every minute, and the member is told why. Anything
+       * else is left for the next run to retry.
+       */
+      const refusal: string | null = this.getRefusalMessage(err);
+
+      if (refusal === null) {
+        throw err;
+      }
+
+      if (isFresh) {
+        await this.replyInThread({
+          channel: channel,
+          threadId: reaction.threadId,
+          text: reaction.reactingUserName
+            ? mdText`${reaction.reactingUserName}, could not save the message as a note: ${refusal}`.toString()
+            : mdText`Could not save the message as a note: ${refusal}`.toString(),
+        });
+      }
+
+      return MicrosoftTeamsReactionOutcome.Refused;
+    }
 
     if (saveResult === WorkspaceNoteSaveResult.Duplicate) {
       return MicrosoftTeamsReactionOutcome.AlreadySaved;
@@ -676,13 +867,7 @@ export default class MicrosoftTeamsReactionNoteSync {
           noteType: reaction.noteType,
           resourceLabel: display.label,
           resourceLink: display.link.toString(),
-          formatLink: (url: string, linkText: string): string => {
-            return mdText`[${linkText}](${url})`.toString();
-          },
-          formatBold: (boldText: string): string => {
-            return mdText`**${boldText}**`.toString();
-          },
-        }),
+        }).toString(),
       });
     } catch (err) {
       logger.error("Error building Microsoft Teams note confirmation", {
@@ -693,6 +878,24 @@ export default class MicrosoftTeamsReactionNoteSync {
     }
 
     return MicrosoftTeamsReactionOutcome.Saved;
+  }
+
+  /*
+   * The message of a refusal written for the person who asked - a
+   * permission, a plan the project is not on, a value the create would not
+   * take - or null for anything else, whose text is meant for operators.
+   */
+  private static getRefusalMessage(error: unknown): string | null {
+    if (
+      (error instanceof NotAuthorizedException ||
+        error instanceof BadDataException ||
+        error instanceof PaymentRequiredException) &&
+      error.message
+    ) {
+      return error.message;
+    }
+
+    return null;
   }
 
   private static async replyInThread(data: {
@@ -721,31 +924,47 @@ export default class MicrosoftTeamsReactionNoteSync {
     projectId: ObjectID;
     reactingUserName?: string | undefined;
   }): Promise<string> {
-    const greeting: string = data.reactingUserName
-      ? `${data.reactingUserName}, to`
-      : "To";
+    // The person's Teams name is theirs to set: it is placed as text.
+    const greeting: MarkdownText = data.reactingUserName
+      ? mdText`${data.reactingUserName}, to`
+      : mdText`To`;
 
-    let settingsLink: string = "";
+    let settingsLink: MarkdownText = FeedMarkdown.empty();
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-      settingsLink =
-        mdText` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
-          dashboardUrl.toString(),
+      settingsLink = mdText` in [OneUptime → User Settings → Microsoft Teams](${URL.fromString(
+        dashboardUrl.toString(),
+      )
+        .addRoute(
+          `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
         )
-          .addRoute(
-            `/${data.projectId.toString()}/user-settings/microsoft-teams-integration`,
-          )
-          .toString()})`.toString();
+        .toString()})`;
     } catch (err) {
       logger.debug("Could not build the Microsoft Teams settings link");
       logger.debug(err);
     }
 
-    return `${greeting} save messages as notes, first connect your Microsoft Teams account to OneUptime${settingsLink}, then react again.`;
+    return mdText`${greeting} save messages as notes, first connect your Microsoft Teams account to OneUptime${settingsLink}, then react again.`.toString();
   }
 
-  // The text of a Graph chatMessage: its body, plus any adaptive card it carries.
+  /*
+   * The text of a Graph chatMessage, as the note it is saved as: its body,
+   * plus any adaptive card it carries.
+   *
+   * A note is Markdown, and it goes to the dashboard, to the status page
+   * and subscribers' email when it is public, and as a feed item to the
+   * project's Slack and Microsoft Teams channels - while the message is
+   * text anyone in the channel may have typed, apps and connectors too, and
+   * Teams showed it as text: a "<b>" typed there (Teams sends it as
+   * "&lt;b&gt;") or a "![x](https://...)" did nothing. So the note's text
+   * is placed as text a stranger typed is everywhere else
+   * (FeedMarkdown.reportedValue, as a form's answers are): it reads exactly
+   * as typed, and no renderer finds a tag, a mention, an image, a link, a
+   * diagram or a reference in it - each "<" that whitespace does not follow,
+   * each "![" and each "]" a link goes on from gets an invisible word joiner.
+   * A message with none of those in its text is saved exactly as it reads.
+   */
   public static getMessageText(message: JSONObject): string {
     const body: JSONObject | undefined = message["body"] as
       | JSONObject
@@ -792,25 +1011,47 @@ export default class MicrosoftTeamsReactionNoteSync {
       }
     }
 
-    return parts.join("\n\n").trim();
+    return FeedMarkdown.reportedValue(parts.join("\n\n").trim());
   }
 
+  /*
+   * A Teams message body (HTML) as the text it shows: attachments out,
+   * mentions as "@name", line breaks, list items and the ends of blocks as
+   * lines, every other tag and comment out, then entities read - once, so
+   * "&amp;lt;" is the text "&lt;".
+   *
+   * Every tag and comment is read by replaceHtmlMarkup (Common/Types/
+   * HtmlMarkup), one walk that ends a tag only at a ">" outside a quoted
+   * attribute value, a comment at its "-->", and leaves no "<" of the HTML
+   * behind; teamsMarkupAsText says what each becomes. Tags used to be found
+   * with patterns that each stopped at the first ">" - a line break, a list
+   * item, a mention, then one pass of /<[^>]*>/ for the rest - which kept an
+   * unclosed tag ("<img src=x onerror=..." with no ">" after it) as it came,
+   * and kept the end of an attribute value or a comment holding ">" as
+   * text. Entities are read only after that, so text that was
+   * "&lt;script&gt;" in the HTML is text, never a tag this takes out or
+   * keeps; getMessageText then places it as text for the note.
+   *
+   * The attachments and the spaces before line ends are found with loops
+   * (withoutAttachmentElements, withoutSpaceBeforeLineEnds). They replace
+   * patterns that started again from every place a match could start, and
+   * took time that grew with the square of the message. The patterns left -
+   * entities, numeric references, runs of line breaks - start only at an
+   * "&" or a line break and never look back past it. A Teams message is at
+   * most about 28 KB; MarkupReadersInLongRunningProcess.test.ts reads a
+   * megabyte of every shape, numeric references and line breaks included,
+   * in a process that compiles patterns unoptimized.
+   */
   public static htmlToText(html: string): string {
     if (!html) {
       return "";
     }
 
-    return this.decodeHtmlEntities(
-      html
-        .replace(/<attachment\b[^>]*>[\s\S]*?<\/attachment>/gi, "")
-        .replace(/<at\b[^>]*>([\s\S]*?)<\/at>/gi, "@$1")
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<li\b[^>]*>/gi, "- ")
-        .replace(/<\/(p|div|li|h[1-6]|blockquote|pre|tr)>/gi, "\n")
-        .replace(/<[^>]*>/g, ""),
+    return withoutSpaceBeforeLineEnds(
+      this.decodeHtmlEntities(
+        replaceHtmlMarkup(withoutAttachmentElements(html), teamsMarkupAsText),
+      ).replace(/\u00a0/g, " "),
     )
-      .replace(/\u00a0/g, " ")
-      .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
   }

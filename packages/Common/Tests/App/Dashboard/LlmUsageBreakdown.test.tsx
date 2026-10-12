@@ -31,7 +31,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *    the question it exists for.
  *  - the Unattributed row. Spans without an identity attribute are a real
  *    bucket of money. Dropping them would make this page quietly disagree
- *    with the Overview KPIs, which count every LLM span.
+ *    with the conversation tiles and the budgets, which count every LLM
+ *    span.
  *  - the service-id resolution. A raw ObjectID in a manager-facing table is
  *    useless.
  *  - the span-first / metric-fallback rule. Metrics stand in for spans ONLY
@@ -80,6 +81,23 @@ jest.mock("../../../UI/Utils/Project", () => {
     },
   };
 });
+
+/*
+ * The totals above the table read the same streams through their own
+ * aggregates (LlmUsageTotals.test.tsx pins them). Stubbed here so every
+ * aggregate this suite counts is the breakdown's own.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageTotals",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 
 import LlmUsageBreakdown from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmUsageBreakdown";
 import Service from "../../../Models/DatabaseModels/Service";
@@ -367,7 +385,7 @@ describe("LlmUsageBreakdown - unattributed spend", () => {
     /*
      * The unattributed bucket is in the denominator too. If it were dropped,
      * the named employee would read as 100% of spend and the page would
-     * disagree with the Overview KPIs.
+     * disagree with the conversation tiles and the budgets.
      */
     expect(rows[0]![7]).toContain("75.0%");
     expect(rows[1]![7]).toContain("25.0%");

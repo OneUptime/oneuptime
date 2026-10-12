@@ -5,6 +5,7 @@ import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I1
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { dashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * One rule decides whether an incident, an alert or an episode is resolved:
@@ -383,10 +384,12 @@ describe("every docs language", () => {
     });
 
     test("says what a resolve does, before the state timeline", () => {
+      // The setting, named as this language's Dashboard draws it.
+      const setting: string = `**${dashboardLabel(language, "Change Monitor Status to")}**`;
       const translated: Array<string> = sections(states);
       const resolvingIndex: number = translated.findIndex(
         (text: string): boolean => {
-          return text.includes("**Change Monitor Status to**");
+          return text.includes(setting);
         },
       );
 
@@ -396,7 +399,7 @@ describe("every docs language", () => {
       // One section names the monitor status setting: the new one.
       expect(
         translated.filter((text: string): boolean => {
-          return text.includes("**Change Monitor Status to**");
+          return text.includes(setting);
         }),
       ).toHaveLength(1);
     });

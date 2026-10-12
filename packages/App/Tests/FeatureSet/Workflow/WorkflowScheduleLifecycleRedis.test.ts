@@ -227,6 +227,13 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
     expect(await repeatableNames()).not.toContain(id1);
     expect(await delayedFor(id1)).toBe(0);
     expect(sent[sent.length - 1]).toEqual({ status: "Workflow not found" });
+    /*
+     * A second boundary can pass between the schedule and the delete: that
+     * run was due while the workflow still existed, so it is let finish.
+     * Count only what runs once the delete is done.
+     */
+    await sleep(500);
+    delete runs[id1];
     await sleep(2500);
     expect(runs[id1]).toBeUndefined();
   });

@@ -109,6 +109,39 @@ function collectViewFiles(directory: string): Array<ViewFile> {
   return files;
 }
 
+const EJS_INCLUDE_PATTERN: RegExp = /include\(\s*['"]([^'"]+)['"]/g;
+
+/*
+ * A view's own text and the text of every partial it includes, followed down:
+ * what the page it renders is made of. A view that moved its logo or its
+ * scripts into a shared partial still loads them.
+ */
+function contentsWithIncludes(
+  absolutePath: string,
+  seen: Set<string> = new Set<string>(),
+): string {
+  if (seen.has(absolutePath)) {
+    return "";
+  }
+
+  seen.add(absolutePath);
+
+  const contents: string = stripComments(fs.readFileSync(absolutePath, "utf8"));
+  const parts: Array<string> = [contents];
+
+  for (const match of contents.matchAll(EJS_INCLUDE_PATTERN)) {
+    const includedName: string = match[1]!;
+    const includedPath: string = path.resolve(
+      path.dirname(absolutePath),
+      path.extname(includedName) ? includedName : `${includedName}.ejs`,
+    );
+
+    parts.push(contentsWithIncludes(includedPath, seen));
+  }
+
+  return parts.join("\n");
+}
+
 function featureSetViewDirectories(): Array<string> {
   const featureSetRoot: string = path.join(
     REPOSITORY_ROOT,
@@ -428,12 +461,15 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
 
       expect([viewName, Boolean(view)]).toEqual([viewName, true]);
 
+      // The page as it is built: the view and every partial it includes.
+      const page: string = view ? contentsWithIncludes(view.absolutePath) : "";
+
       for (const expectedUrl of expectedUrls) {
-        expect([
+        expect([viewName, expectedUrl, page.includes(expectedUrl)]).toEqual([
           viewName,
           expectedUrl,
-          view?.contents.includes(expectedUrl),
-        ]).toEqual([viewName, expectedUrl, true]);
+          true,
+        ]);
       }
     }
   });

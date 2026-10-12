@@ -74,6 +74,13 @@ import {
 import CronTab from "../../../Utils/CronTab";
 import { DISCORD_WEBHOOK_DOMAINS } from "../../../Server/Types/Workflow/Components/IncomingWebhookUtils";
 import { MAX_SLEEP_IN_MS } from "../../../Server/Types/Workflow/Components/Sleep";
+import {
+  IRC_DEFAULT_NICKNAME,
+  IRC_DEFAULT_PLAIN_TEXT_PORT,
+  IRC_DEFAULT_TLS_PORT,
+  IRC_MAX_LINES,
+} from "../../../Types/Workflow/Components/IRC";
+import { MATTERMOST_MAX_MESSAGE_LENGTH } from "../../../Types/Workflow/Components/Mattermost";
 import { MICROSOFT_TEAMS_WEBHOOK_DOMAINS } from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { componentInputTypeToFormFieldType } from "../../../UI/Components/Workflow/Utils";
 import {
@@ -771,6 +778,8 @@ describe("examples are built from this step and this workflow", () => {
       ComponentID.MicrosoftTeamsSendMessageToChannel,
       ComponentID.DiscordSendMessageToChannel,
       ComponentID.TelegramSendMessageToChat,
+      ComponentID.IRCSendMessageToChannel,
+      ComponentID.MattermostSendMessageToChannel,
       ComponentID.SMSEagleSendSms,
       ComponentID.SMSEagleMakeCall,
       ComponentID.SendEmail,
@@ -1034,6 +1043,90 @@ describe("built-in help says what each step really does", () => {
     expect(
       allText(docsOf(findStep(BUILT_IN, ComponentID.Sleep))).join(" "),
     ).toContain(`The longest wait is ${days} days.`);
+  });
+
+  test("IRC's help states the defaults and the limit the step uses", () => {
+    const text: string = allText(
+      docsOf(findStep(BUILT_IN, ComponentID.IRCSendMessageToChannel)),
+    ).join(" ");
+
+    expect(text).toContain(`over TLS on port ${IRC_DEFAULT_TLS_PORT}`);
+    expect(text).toContain(`connects on port ${IRC_DEFAULT_PLAIN_TEXT_PORT}`);
+    expect(text).toContain(`at most ${IRC_MAX_LINES} IRC lines`);
+    expect(text).toContain(`\`${IRC_DEFAULT_NICKNAME}\``);
+    // The same policy as the egress guard in front of the step.
+    expect(text).toContain("`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`");
+    expect(text).toContain("`NODE_EXTRA_CA_CERTS`");
+  });
+
+  test("IRC's help links to its own section of the components guide", () => {
+    expect(
+      docsOf(findStep(BUILT_IN, ComponentID.IRCSendMessageToChannel)).links,
+    ).toContainEqual({
+      title: "IRC step guide",
+      site: ComponentDocumentationLinkSite.Docs,
+      path: "/workflows/components#irc",
+    });
+  });
+
+  test("Mattermost's help states the limit, the URL's shape and the policy the step uses", () => {
+    const documentation: ComponentDocumentation = docsOf(
+      findStep(BUILT_IN, ComponentID.MattermostSendMessageToChannel),
+    );
+    const text: string = allText(documentation).join(" ");
+
+    expect(MATTERMOST_MAX_MESSAGE_LENGTH).toBe(16383);
+    expect(text).toContain("A post holds at most 16,383 characters.");
+    // The path the step holds a webhook's URL to.
+    expect(text).toContain("then `/hooks/` and the webhook's ID");
+    // The same policy as the address guard in front of the step: the API steps'.
+    expect(text).toContain("`ALLOW_PRIVATE_NETWORK_WEBHOOKS`");
+    expect(text).toContain("`PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`");
+    expect(text).toContain("`NODE_EXTRA_CA_CERTS`");
+    expect(text).toContain("a redirect is not followed");
+    expect(text).not.toContain("DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES");
+    // Its optional settings are explained, under the names the step gives them.
+    expect(text).toContain("**Channel**");
+    expect(text).toContain("**Username** and **Icon URL**");
+  });
+
+  test("Mattermost's example is written in Mattermost's Markdown, not Slack's", () => {
+    const metadata: ComponentMetadata = findStep(
+      BUILT_IN,
+      ComponentID.MattermostSendMessageToChannel,
+    );
+
+    expect(docsOf(metadata).examples[0]?.code).toBe(
+      "**Heads up:** the nightly export has finished.",
+    );
+    expect(
+      docsOf(metadata, [INCIDENT_TRIGGER, makeNode(metadata, STEP_ID)])
+        .examples[0]?.code,
+    ).toBe(
+      "**Heads up:** {{local.components.incident-on-create-1.returnValues.model.title}}",
+    );
+  });
+
+  test("Mattermost's help links to its own section of the components guide, and to where the addresses it may reach are set", () => {
+    const links: Array<ComponentDocumentationLink> = docsOf(
+      findStep(BUILT_IN, ComponentID.MattermostSendMessageToChannel),
+    ).links;
+
+    expect(links).toContainEqual({
+      title: "Mattermost step guide",
+      site: ComponentDocumentationLinkSite.Docs,
+      path: "/workflows/components#mattermost",
+    });
+    expect(links).toContainEqual({
+      title: "Outbound network access",
+      site: ComponentDocumentationLinkSite.Docs,
+      path: "/workflows/configuration#outbound-network-access",
+    });
+    expect(links).toContainEqual({
+      title: "Mattermost: incoming webhooks",
+      site: ComponentDocumentationLinkSite.External,
+      path: "https://docs.mattermost.com/developers/integrate/webhooks/incoming",
+    });
   });
 
   test("the API steps only mention a body where they send one", () => {

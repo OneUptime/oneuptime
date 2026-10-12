@@ -32,6 +32,12 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  RowsCallerMayWriteRead,
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWrite,
+} from "../TestingUtils/RowsCallerMayWrite";
+import { idsNamedBy } from "../TestingUtils/QueryConditions";
 
 /*
  * Sending a public note's 'posted' notification again - Retry after a
@@ -200,6 +206,10 @@ describe.each(SERVICE_CASES)(
       jest
         .spyOn(serviceCase.service, "findBy")
         .mockImplementation(noteFindBy as never);
+      // The notes a teammate's update may write: the stored ones.
+      stubRowsCallerMayWrite(serviceCase.service as never, () => {
+        return storedNotes;
+      });
     });
 
     afterEach(() => {
@@ -227,13 +237,23 @@ describe.each(SERVICE_CASES)(
       },
     );
 
-    test("reads the notes with the caller's own permissions and the update's own query", async () => {
+    test("reads the notes the caller's update may write, and holds the update to them", async () => {
       const props: DatabaseCommonInteractionProps = makeProps([
         serviceCase.memberRole,
       ]);
+      const updateBy: UpdateBy<BaseModel> = update({ props });
 
-      await runBeforeUpdate(serviceCase, update({ props }));
+      await runBeforeUpdate(serviceCase, updateBy);
 
+      // The notes the caller may write: by the update's query, in their project.
+      const reads: Array<RowsCallerMayWriteRead> = readsOfRowsCallerMayWrite(
+        serviceCase.service as never,
+      );
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.query["_id"]).toBe(NOTE_ID);
+      expect(reads[0]!.query["projectId"]).toEqual(PROJECT_ID);
+
+      // Those notes, read again by id with what the check needs.
       expect(noteFindBy).toHaveBeenCalledTimes(1);
 
       const findBy: {
@@ -247,12 +267,38 @@ describe.each(SERVICE_CASES)(
       };
 
       expect(findBy.query).toEqual({ _id: NOTE_ID });
-      expect(findBy.props).toBe(props);
+      expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
       expect(findBy.select).toEqual({
         _id: true,
         subscriberNotificationStatusOnNoteCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
       });
+
+      // The update writes only the notes checked.
+      expect((updateBy.query as JSONObject)["_id"]).toBe(NOTE_ID);
+      expect(updateBy.limit).toBe(1);
+    });
+
+    test("a note outside the caller's reach is neither checked nor written", async () => {
+      stubRowsCallerMayWrite(serviceCase.service as never, () => {
+        return [];
+      });
+      storedNotes = [
+        storedNote(serviceCase, {
+          shouldStatusPageSubscribersBeNotifiedOnNoteCreated: false,
+        }),
+      ];
+      const updateBy: UpdateBy<BaseModel> = update({
+        props: makeProps([serviceCase.memberRole]),
+      });
+
+      await expect(
+        runBeforeUpdate(serviceCase, updateBy),
+      ).resolves.toBeDefined();
+
+      // Nothing read about it, and the update names no note.
+      expect(noteFindBy).not.toHaveBeenCalled();
+      expect(idsNamedBy((updateBy.query as JSONObject)["_id"])).toEqual([]);
     });
 
     test("a note posted without notifying subscribers is refused, with the reason", async () => {
@@ -481,6 +527,10 @@ describe.each(SERVICE_CASES)(
       jest
         .spyOn(serviceCase.service, "findBy")
         .mockImplementation(noteFindBy as never);
+      // The notes a teammate's update may write: the stored ones.
+      stubRowsCallerMayWrite(serviceCase.service as never, () => {
+        return storedNotes;
+      });
     });
 
     afterEach(() => {
@@ -506,15 +556,23 @@ describe.each(SERVICE_CASES)(
       });
     });
 
-    test("reads the update notification's state with the caller's own permissions", async () => {
+    test("reads the update notification's state of the notes the caller's update may write, and holds the update to them", async () => {
       const props: DatabaseCommonInteractionProps = makeProps([
         serviceCase.memberRole,
       ]);
+      const updateBy: UpdateBy<BaseModel> = update({
+        props,
+        data: { ...EDIT },
+        miscDataProps: NOTIFY_ON_EDIT,
+      });
 
-      await runBeforeUpdate(
-        serviceCase,
-        update({ props, data: { ...EDIT }, miscDataProps: NOTIFY_ON_EDIT }),
+      await runBeforeUpdate(serviceCase, updateBy);
+
+      const reads: Array<RowsCallerMayWriteRead> = readsOfRowsCallerMayWrite(
+        serviceCase.service as never,
       );
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.query["projectId"]).toEqual(PROJECT_ID);
 
       expect(noteFindBy).toHaveBeenCalledTimes(1);
       const findBy: {
@@ -527,11 +585,12 @@ describe.each(SERVICE_CASES)(
         props: DatabaseCommonInteractionProps;
       };
       expect(findBy.query).toEqual({ _id: NOTE_ID });
-      expect(findBy.props).toBe(props);
+      expect(findBy.props).toEqual({ isRoot: true, ignoreHooks: true });
       expect(findBy.select).toEqual({
         _id: true,
         subscriberNotificationStatusOnNoteUpdated: true,
       });
+      expect((updateBy.query as JSONObject)["_id"]).toBe(NOTE_ID);
     });
 
     test("a role that may edit notes but could not post one may not, and learns nothing about the note", async () => {

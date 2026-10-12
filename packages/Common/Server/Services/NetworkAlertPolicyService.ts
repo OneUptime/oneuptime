@@ -17,7 +17,6 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
 import Query from "../Types/Database/Query";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -252,8 +251,13 @@ export class Service extends ProjectReferencesService<Model> {
       previousPolicies: matchedPolicies,
     };
 
-    const projectIds: Array<ObjectID> = this.getProjectIdsForUpdate(
-      updateBy,
+    /*
+     * The project(s) the update's template must belong to: the request's
+     * for a teammate, whose update is kept to it; each matched policy's for
+     * OneUptime and a master admin, who reach any policy their query names.
+     */
+    const projectIds: Array<ObjectID> = this.getProjectsToCheckRowsIn(
+      updateBy.props,
       matchedPolicies,
     );
 
@@ -354,65 +358,26 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The policies an update's query matches, read as root — onBeforeUpdate
-   * runs before DatabaseService has permission-checked the query — and
-   * therefore re-scoped to the caller's own tenant first, so a guessed id
-   * from another project cannot become a state oracle through the checks
-   * that follow.
+   * The policies the update writes - the ones its caller may write - with
+   * the update held to them (findRowsAndHoldUpdateToThem): a guessed id from
+   * another project reads nothing, so it cannot become a state oracle
+   * through the checks that follow, and a policy those checks did not see
+   * is not written.
    */
   private async getMatchedPoliciesForUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<Model>> {
-    return await this.findBy({
-      query:
-        !updateBy.props.isRoot && updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-      select: {
-        _id: true,
-        projectId: true,
-        /*
-         * The two columns onUpdateSuccess compares the payload against. Both
-         * are read here rather than in the success hook because by then the
-         * new values are already on the row.
-         */
-        isEnabled: true,
-        monitorTemplateId: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
+    return await this.findRowsAndHoldUpdateToThem(updateBy, {
+      _id: true,
+      projectId: true,
+      /*
+       * The two columns onUpdateSuccess compares the payload against. Both
+       * are read here rather than in the success hook because by then the
+       * new values are already on the row.
+       */
+      isEnabled: true,
+      monitorTemplateId: true,
     });
-  }
-
-  /*
-   * The project(s) an update's template must belong to.
-   *
-   * An API caller carries its tenant in props, and that is the only project
-   * its query can touch, so the answer is that one id. A root caller with no
-   * tenant (a worker updating by id) is answered from the matched rows.
-   */
-  private getProjectIdsForUpdate(
-    updateBy: UpdateBy<Model>,
-    matchedPolicies: Array<Model>,
-  ): Array<ObjectID> {
-    if (updateBy.props.tenantId) {
-      return [updateBy.props.tenantId];
-    }
-
-    const projectIds: Array<ObjectID> = [];
-    const seen: Set<string> = new Set<string>();
-
-    for (const policy of matchedPolicies) {
-      if (policy.projectId && !seen.has(policy.projectId.toString())) {
-        seen.add(policy.projectId.toString());
-        projectIds.push(policy.projectId);
-      }
-    }
-
-    return projectIds;
   }
 
   /*
@@ -905,23 +870,18 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const authorizedQuery: Query<Model> =
-      await ModelPermission.checkDeleteQueryPermission(
-        Model,
-        deleteBy.query,
-        deleteBy.props,
-      );
-
-    const policies: Array<Model> = await this.findBy({
-      query: authorizedQuery,
-      select: {
+    /*
+     * The policies the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them, so the monitors
+     * removed below are those of the policies that go.
+     */
+    const policies: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: { isRoot: true },
-    });
+    );
 
     for (const policy of policies) {
       if (!policy.id || !policy.projectId) {

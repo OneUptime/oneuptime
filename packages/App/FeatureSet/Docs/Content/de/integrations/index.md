@@ -47,10 +47,12 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend               | Alertmanager-Benachrichtigungen in Vorfälle umwandeln.                                |
 | [Grafana](/docs/integrations/grafana)                                 | Eingehend               | Grafana-Alarme in Vorfälle umwandeln.                                                 |
 | [Datadog](/docs/integrations/datadog)                                 | Eingehend               | Datadog-Monitor-Alarme in Vorfälle umwandeln.                                         |
+| [Huntress](/docs/integrations/huntress)                               | Eingehend            | Für Huntress-Vorfallberichte die Bereitschaft alarmieren und den Vorfall lösen, wenn der Bericht geschlossen wird. |
 | [GitHub](/docs/integrations/github)                                   | Ausgehend               | Für einen Vorfall ein GitHub-Issue öffnen.                                            |
 | [GitLab](/docs/integrations/gitlab)                                   | Ausgehend               | Für einen Vorfall ein GitLab-Issue öffnen.                                            |
 | [Discord](/docs/integrations/discord)                                 | Ausgehend               | Vorfallsaktualisierungen in einen Discord-Kanal posten.                               |
 | [Telegram](/docs/integrations/telegram)                               | Ausgehend               | Vorfallsaktualisierungen an einen Telegram-Chat senden.                               |
+| [IRC](/docs/integrations/irc)                                         | Ausgehend               | Vorfallsaktualisierungen in einen IRC-Kanal posten.                                   |
 | [Slack](/docs/workspace-connections/slack)                            | Beides                  | Native Workspace-Verbindung – Kanäle, Alarme und Rufbereitschaft.                     |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Beides                  | Native Workspace-Verbindung.                                                          |
 

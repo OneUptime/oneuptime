@@ -1,160 +1,171 @@
-# SCIM（跨網域身分管理系統，System for Cross-domain Identity Management）
+# SCIM
 
-OneUptime 支援 SCIM v2.0 通訊協定，用於自動化的使用者佈建與解除佈建。SCIM 讓 Azure AD、Okta 等身分提供者（IdP）以及其他企業身分系統，能夠自動管理使用者對 OneUptime 專案與狀態頁面的存取權。
+SCIM（System for Cross-domain Identity Management）會自動為人員佈建和取消佈建。您的身分提供者（IdP），例如 Microsoft Entra ID、Okta 或任何其他 SCIM 2.0 系統，會在您指派人員時把他們加入您的 OneUptime 專案和私人狀態頁面，並在您取消指派時將其移除。
 
-> **版本：** SCIM 屬於 OneUptime Enterprise Edition（企業版）功能。在 OneUptime Cloud 上，**Scale** 以上方案可用。自架部署需要使用企業版映像並擁有授權。請參閱 [Enterprise Edition](/docs/self-hosted/enterprise)。沒有有效的授權時（14 天試用期結束後，或授權過期 30 天後），在啟用授權之前，SCIM 請求將被拒絕。
+> [!NOTE]
+> **版本：** SCIM 屬於 OneUptime Enterprise Edition。在 OneUptime Cloud 上，**Scale** 及以上方案可用。自行託管的安裝需要 Enterprise Edition 映像檔和授權。請參閱 [企業版](/docs/self-hosted/enterprise)。如果沒有有效的授權（14 天試用期結束後，或授權到期 30 天後），SCIM 請求會被拒絕，直到啟用授權為止。
 
-## 概觀
+:::cards
+- [設定專案 SCIM](#設定專案-scim): 建立連線，並把其 URL 和權杖交給您的 IdP。
+- [設定狀態頁面 SCIM](#設定狀態頁面-scim): 為狀態頁面佈建私人使用者。
+- [連接您的身分提供者](#連接您的身分提供者): Microsoft Entra ID 和 Okta 的逐步說明。
+- [常見問題](#常見問題): 現有使用者、取消佈建、電子郵件地址變更。
+:::
 
-SCIM 整合提供下列優點：
+## 運作方式
 
-- **自動化使用者佈建**：當使用者在您的 IdP 中被指派時，自動於 OneUptime 中建立該使用者
-- **自動化使用者解除佈建**：當使用者在您的 IdP 中被取消指派時，自動將其從 OneUptime 中移除
-- **使用者屬性同步**：讓使用者資訊在您的 IdP 與 OneUptime 之間保持同步
-- **集中式存取管理**：從您既有的身分管理系統管理 OneUptime 的存取權
+每當您指派、變更或取消指派某人時，您的身分提供者都會使用 Bearer 權杖進行驗證，呼叫 OneUptime 的 SCIM 端點。請求變更的內容取決於連線所在的位置：
 
-## 專案的 SCIM
+```mermaid title="SCIM 在 OneUptime 中變更的內容"
+flowchart TB
+    IdP["您的身分提供者"] -->|"SCIM 請求，<br/>Bearer 權杖"| P["專案 SCIM 連線"]
+    IdP -->|"SCIM 請求，<br/>Bearer 權杖"| S["狀態頁面 SCIM 連線"]
+    P --> Q{"push 群組已開啟?"}
+    Q -->|"否"| T["使用者加入和離開<br/>預設團隊"]
+    Q -->|"是"| G["群組成為團隊，<br/>成員資格隨之同步"]
+    S --> U["新增和刪除<br/>私人使用者"]
+```
 
-專案 SCIM 讓身分提供者能夠管理 OneUptime 專案內的團隊成員。
+SCIM 整合提供以下優點：
+
+- **自動佈建使用者**：在您的 IdP 中指派使用者時，會在 OneUptime 中建立該使用者。
+- **自動取消佈建使用者**：在您的 IdP 中取消指派使用者時，會從 OneUptime 中移除該使用者。
+- **使用者屬性同步**：使用者資訊在您的 IdP 和 OneUptime 之間保持一致。
+- **集中式存取管理**：從您現有的身分管理系統管理 OneUptime 的存取權限。
+
+SCIM 和 [SSO](/docs/identity/sso) 是彼此獨立的：SCIM 決定誰在專案中，SSO 決定他們如何登入。大多數組織會同時使用兩者。
+
+## 專案 SCIM
+
+專案 SCIM 讓身分提供者可以管理 OneUptime 專案中的團隊成員。
 
 ### 設定專案 SCIM
 
-只有專案擁有者可以新增或變更專案的 SCIM 連線，或檢視、重設其 Bearer Token：透過 SCIM，您的身分識別提供者可以將人員加入專案中的任何團隊。
-
+只有專案擁有者可以新增或變更專案的 SCIM 連線，或檢視或重設其 Bearer 權杖：透過 SCIM，您的身分提供者可以把人員加入專案中的任何團隊。
+:::steps
 1. **前往專案設定**
 
    - 進入您的 OneUptime 專案
    - 前往 **專案設定** > **安全性** > **SCIM**
 
-2. **設定 SCIM 選項**
+2. **設定 SCIM**
 
-   - 輸入 **名稱**。**預設團隊** 預設為專案的成員團隊：新使用者會加入這些團隊
-   - 在 **更多欄位** 中，**自動佈建使用者**（使用者在您的 IdP 中被指派時新增使用者）與 **自動取消佈建使用者**（使用者在您的 IdP 中被取消指派時移除使用者）已開啟，**啟用 push 群組** 已關閉。如有需要，可在那裡變更
-   - 儲存。包含供您的 IdP 設定使用之 **SCIM Base URL** 與 **Bearer Token** 的對話方塊會立即開啟
+   - 輸入 **名稱**。**預設團隊** 預設為專案的成員團隊：新使用者會被加入這些團隊
+   - 在 **更多欄位** 中，**自動佈建使用者**（在您的 IdP 中指派使用者時新增使用者）和 **自動取消佈建使用者**（在您的 IdP 中取消指派使用者時移除使用者）為開啟狀態，**啟用 push 群組** 為關閉狀態。如有需要，請在那裡變更
+   - 儲存。顯示用於 IdP 設定之 **SCIM Base URL** 和 **Bearer Token** 的對話方塊會立即開啟
 
 3. **設定您的身分提供者**
-   - 使用 SCIM Base URL：`https://oneuptime.com/scim/v2/{scimId}`
-   - 使用提供的權杖設定 Bearer 權杖驗證
-   - 對應使用者屬性（email 為必填）
 
-### 專案 SCIM 端點
+   - 使用對話方塊中的 **SCIM Base URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/scim/v2/<scim-id>`；自行託管的安裝會顯示其自己的主機
+   - 使用對話方塊中的 **Bearer Token** 設定 Bearer 權杖驗證
+   - 對應使用者屬性（電子郵件為必填）。[連接您的身分提供者](#連接您的身分提供者) 中提供了 Microsoft Entra ID 和 Okta 的詳細資訊
+:::
 
-- **Service Provider Config**：`GET /scim/v2/{scimId}/ServiceProviderConfig`
-- **Schemas**：`GET /scim/v2/{scimId}/Schemas`
-- **Resource Types**：`GET /scim/v2/{scimId}/ResourceTypes`
-- **List Users**：`GET /scim/v2/{scimId}/Users`
-- **Get User**：`GET /scim/v2/{scimId}/Users/{userId}`
-- **Create User**：`POST /scim/v2/{scimId}/Users`
-- **Update User**：`PUT /scim/v2/{scimId}/Users/{userId}` 或 `PATCH /scim/v2/{scimId}/Users/{userId}`
-- **Delete User**：`DELETE /scim/v2/{scimId}/Users/{userId}`
-- **List Groups**：`GET /scim/v2/{scimId}/Groups`
-- **Get Group**：`GET /scim/v2/{scimId}/Groups/{groupId}`
-- **Create Group**：`POST /scim/v2/{scimId}/Groups`
-- **Update Group**：`PUT /scim/v2/{scimId}/Groups/{groupId}` 或 `PATCH /scim/v2/{scimId}/Groups/{groupId}`
-- **Delete Group**：`DELETE /scim/v2/{scimId}/Groups/{groupId}`
+若要再次檢視這些 URL，請在連線所在列選擇 **檢視 SCIM URL**。**重設 Bearer Token** 會替換權杖；請用新權杖更新您的身分提供者。
 
-### 專案 SCIM 使用者生命週期
+### 專案使用者如何被佈建
 
-1. **在 IdP 中指派使用者**：當使用者在您的 IdP 中被指派至 OneUptime 時
-2. **SCIM 佈建**：IdP 呼叫 OneUptime SCIM API 以建立使用者
-3. **團隊成員資格**：使用者會被自動加入已設定的預設團隊。在 OneUptime Cloud 上，已有 OneUptime 帳戶的人則會改為收到邀請，並在接受邀請後加入（請參閱下方的常見問題）
-4. **授予存取權**：使用者現在可以存取該 OneUptime 專案
-5. **取消指派使用者**：當使用者在 IdP 中被取消指派時
-6. **SCIM 解除佈建**：IdP 呼叫 OneUptime SCIM API 以移除使用者
-7. **撤銷存取權**：使用者失去對該專案的存取權
+```mermaid title="專案 SCIM 中使用者的生命週期"
+sequenceDiagram
+    participant IdP as 身分提供者
+    participant O as OneUptime
+    IdP->>O: 您指派使用者時，建立該使用者
+    Note over O: 加入預設團隊。<br/>在 OneUptime Cloud 上，現有<br/>帳戶改為收到邀請
+    IdP->>O: 使用者個人資料變更時，更新該使用者
+    IdP->>O: 您取消指派時，刪除或停用
+    Note over O: 從預設團隊中移除
+```
 
-## 狀態頁面的 SCIM
+已經有 OneUptime 帳戶的人，在 OneUptime Cloud 上接受邀請後即可加入（請參閱 [常見問題](#常見問題)）。透過連線預設團隊以外的團隊授予的存取權限不受影響。
 
-狀態頁面 SCIM 讓身分提供者能夠管理私人狀態頁面的訂閱者。
+## 狀態頁面 SCIM
+
+狀態頁面 SCIM 讓身分提供者可以為能夠存取私人狀態頁面的狀態頁面私人使用者進行佈建和取消佈建。
 
 ### 設定狀態頁面 SCIM
 
+:::steps
 1. **前往狀態頁面設定**
 
-   - 進入您的 OneUptime 狀態頁面
-   - 前往 **Status Page Settings** > **安全性** > **SCIM**
+   - 開啟 **狀態頁面** 並選擇您的狀態頁面
+   - 前往 **安全性** > **SCIM**
 
-2. **設定 SCIM 選項**
+2. **設定 SCIM**
 
-   - 輸入 **名稱**。在 **更多欄位** 中，**自動佈建使用者**（訂閱者在您的 IdP 中被指派時新增訂閱者）與 **自動取消佈建使用者**（訂閱者在您的 IdP 中被取消指派時移除訂閱者）已開啟。如有需要，可在那裡變更
-   - 儲存。包含供您的 IdP 設定使用之 **SCIM Base URL** 與 **Bearer Token** 的對話方塊會立即開啟
+   - 輸入 **名稱**。在 **更多欄位** 中，**自動佈建使用者**（在您的 IdP 中指派時新增私人使用者）和 **自動取消佈建使用者**（在您的 IdP 中取消指派時刪除私人使用者）為開啟狀態。如有需要，請在那裡變更
+   - 儲存。顯示用於 IdP 設定之 **SCIM Base URL** 和 **Bearer Token** 的對話方塊會立即開啟
 
 3. **設定您的身分提供者**
-   - 使用 SCIM Base URL：`https://oneuptime.com/status-page-scim/v2/{scimId}`
-   - 使用提供的權杖設定 Bearer 權杖驗證
-   - 對應使用者屬性（email 為必填）
 
-### 狀態頁面 SCIM 端點
+   - 使用對話方塊中的 **SCIM Base URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
+   - 使用顯示的權杖設定 Bearer 權杖驗證
+   - 對應使用者屬性（電子郵件為必填）
+:::
 
-- **Service Provider Config**：`GET /status-page-scim/v2/{scimId}/ServiceProviderConfig`
-- **Schemas**：`GET /status-page-scim/v2/{scimId}/Schemas`
-- **Resource Types**：`GET /status-page-scim/v2/{scimId}/ResourceTypes`
-- **List Users**：`GET /status-page-scim/v2/{scimId}/Users`
-- **Get User**：`GET /status-page-scim/v2/{scimId}/Users/{userId}`
-- **Create User**：`POST /status-page-scim/v2/{scimId}/Users`
-- **Update User**：`PUT /status-page-scim/v2/{scimId}/Users/{userId}` 或 `PATCH /status-page-scim/v2/{scimId}/Users/{userId}`
-- **Delete User**：`DELETE /status-page-scim/v2/{scimId}/Users/{userId}`
+若要再次檢視這些 URL，請在連線所在列選擇 **顯示 SCIM 端點 URL**。
 
-### 狀態頁面 SCIM 使用者生命週期
+狀態頁面 SCIM 只支援使用者，不支援群組或群組佈建。
 
-1. **在 IdP 中指派使用者**：當使用者在您的 IdP 中被指派至 OneUptime 狀態頁面時
-2. **SCIM 佈建**：IdP 呼叫 OneUptime SCIM API 以建立訂閱者
-3. **授予存取權**：使用者現在可以存取該私人狀態頁面
-4. **取消指派使用者**：當使用者在 IdP 中被取消指派時
-5. **SCIM 解除佈建**：IdP 呼叫 OneUptime SCIM API 以移除訂閱者
-6. **撤銷存取權**：使用者失去對該狀態頁面的存取權
+### 私人使用者如何被佈建
 
-## 身分提供者設定
+```mermaid title="狀態頁面 SCIM 中私人使用者的生命週期"
+sequenceDiagram
+    participant IdP as 身分提供者
+    participant O as OneUptime
+    IdP->>O: 您指派使用者時，建立該使用者
+    Note over O: 私人使用者可以存取<br/>私人狀態頁面
+    IdP->>O: 刪除，或將 active 設為 false
+    Note over O: 刪除私人使用者<br/>及其工作階段
+```
 
-### Microsoft Entra ID（前身為 Azure AD）
+> [!WARNING]
+> 取消佈建會永久刪除狀態頁面私人使用者及其在該狀態頁面上的所有工作階段。如果之後再次指派該使用者，會將其作為新的私人使用者佈建。當 **自動取消佈建使用者** 為關閉狀態時，將 `active` 設為 `false` 的更新會被忽略，DELETE 請求會被拒絕。
 
-Microsoft Entra ID 提供企業等級的身分管理，並具備強大的 SCIM 佈建功能。請依照下列詳細步驟設定與 OneUptime 的 SCIM 佈建。
+## 連接您的身分提供者
 
-#### 先決條件
+下面的每個提供者都從在 OneUptime 中建立專案 SCIM 連線開始，然後把您的身分提供者連接到它。
 
-- 具備 Premium P1 或 P2 授權的 Microsoft Entra ID 租用戶（自動佈建所需）
-- 採用 Scale 方案或更高方案的 OneUptime 帳戶
-- 對 Microsoft Entra ID 與 OneUptime 兩者皆具有管理員存取權
+### Microsoft Entra ID（舊稱 Azure AD）
 
-#### 步驟 1：從 OneUptime 取得 SCIM 設定
+Microsoft Entra ID 提供具備 SCIM 佈建的企業級身分管理。您需要：
+
+- 擁有 Premium P1 或 P2 授權的 Microsoft Entra ID 租用戶（自動佈建需要）。
+- OneUptime Cloud 上使用 **Scale** 或更高方案的 OneUptime 專案。
+- Microsoft Entra ID 和 OneUptime 的管理員存取權限。
+
+:::steps
+#### 為 Entra ID 建立 SCIM 連線
 
 1. 登入您的 OneUptime 儀表板
 2. 前往 **專案設定** > **安全性** > **SCIM**
-3. 點選 **Create SCIM Configuration**
-4. 輸入易記名稱（例如「Microsoft Entra ID Provisioning」）
-5. 檢查下列選項：
-   - **預設團隊**：預設為專案的成員團隊；新使用者會加入這些團隊
-   - **自動佈建使用者** 與 **自動取消佈建使用者**：已開啟，位於 **更多欄位** 中
-   - **啟用 push 群組**：位於 **更多欄位** 中；若您想透過 Entra ID 群組管理團隊成員資格，請開啟此選項
+3. 按一下 **建立SCIM**
+4. 輸入一個容易辨識的名稱（例如 "Microsoft Entra ID Provisioning"）
+5. 檢查設定：
+   - **預設團隊**：預設為專案的成員團隊；新使用者會被加入這些團隊
+   - **自動佈建使用者** 和 **自動取消佈建使用者**：已開啟，位於 **更多欄位** 中
+   - **啟用 push 群組**：位於 **更多欄位** 中；如果您想透過 Entra ID 群組管理團隊成員，請開啟它
 6. 儲存設定
-7. 從開啟的對話方塊複製 **SCIM Base URL** 與 **Bearer Token**——您在 Entra ID 中會需要用到這些資訊
+7. 從開啟的對話方塊中複製 **SCIM Base URL** 和 **Bearer Token**——在 Entra ID 中需要它們
 
-#### 步驟 2：在 Microsoft Entra ID 中建立企業應用程式
+#### 在 Entra ID 中建立企業應用程式
 
-1. 登入 [Microsoft Entra 系統管理中心](https://entra.microsoft.com)
+1. 登入 [Microsoft Entra admin center](https://entra.microsoft.com)
 2. 前往 **Identity** > **Applications** > **Enterprise applications**
-3. 點選 **+ New application**
-4. 點選 **+ Create your own application**
-5. 輸入名稱（例如「OneUptime」）
-6. 選取 **Integrate any other application you don't find in the gallery (Non-gallery)**
-7. 點選 **Create**
+3. 按一下 **+ New application**，然後按一下 **+ Create your own application**
+4. 輸入名稱（例如 "OneUptime"）
+5. 選擇 **Integrate any other application you don't find in the gallery (Non-gallery)**，然後按一下 **Create**
 
-#### 步驟 3：設定 SCIM 佈建
+#### 將 Entra ID 連接到 OneUptime
 
-1. 在您的 OneUptime 企業應用程式中，前往 **Provisioning**
-2. 點選 **Get started**
-3. 將 **Provisioning Mode** 設定為 **Automatic**
-4. 在 **Admin Credentials** 下：
-   - **Tenant URL**：輸入來自 OneUptime 的 SCIM Base URL（例如 `https://oneuptime.com/api/identity/scim/v2/{your-scim-id}`）
-   - **Secret Token**：輸入來自 OneUptime 的 Bearer Token
-5. 點選 **Test Connection** 以驗證設定
-6. 點選 **Save**
+1. 在您的 OneUptime 企業應用程式中前往 **Provisioning**，按一下 **Get started**
+2. 將 **Provisioning Mode** 設為 **Automatic**
+3. 在 **Admin Credentials** 下，將 **Tenant URL** 設為 OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`），將 **Secret Token** 設為 **Bearer Token**
+4. 按一下 **Test Connection** 驗證設定，然後按一下 **Save**
 
-#### 步驟 4：設定屬性對應
+#### 在 Entra ID 中對應使用者屬性
 
-1. 在 Provisioning 區段中，點選 **Mappings**
-2. 點選 **Provision Azure Active Directory Users**
-3. 設定下列屬性對應：
+1. 在 Provisioning 區段中按一下 **Mappings**，然後按一下 **Provision Azure Active Directory Users**
+2. 設定以下屬性對應，移除不需要的對應，然後按一下 **Save**：
 
 | Azure AD 屬性                                                 | OneUptime SCIM 屬性            | 是否必填 |
 | ------------------------------------------------------------- | ------------------------------ | -------- |
@@ -165,200 +176,154 @@ Microsoft Entra ID 提供企業等級的身分管理，並具備強大的 SCIM �
 | `surname`                                                     | `name.familyName`              | 選填     |
 | `Switch([IsSoftDeleted], , "False", "True", "True", "False")` | `active`                       | 建議     |
 
-4. 移除任何不需要的對應，以簡化佈建
-5. 點選 **Save**
+#### 在 Entra ID 中對應群組（選用）
 
-#### 步驟 5：設定群組佈建（選用）
+如果您在 OneUptime 中開啟了 **啟用 push 群組**：
 
-若您在 OneUptime 中啟用了 **推送群組**：
-
-1. 返回 **Mappings**
-2. 點選 **Provision Azure Active Directory Groups**
-3. 將 **Enabled** 設定為 **Yes** 以啟用群組佈建
-4. 設定下列屬性對應：
+1. 返回 **Mappings**，按一下 **Provision Azure Active Directory Groups**
+2. 將 **Enabled** 設為 **Yes**
+3. 設定以下屬性對應，然後按一下 **Save**：
 
 | Azure AD 屬性 | OneUptime SCIM 屬性 |
 | ------------- | ------------------- |
 | `displayName` | `displayName`       |
 | `members`     | `members`           |
 
-5. 點選 **Save**
+#### 在 Entra ID 中指派使用者和群組
 
-#### 步驟 6：指派使用者與群組
+1. 在您的 OneUptime 企業應用程式中前往 **Users and groups**
+2. 按一下 **+ Add user/group**，選擇要佈建到 OneUptime 的使用者和群組，然後按一下 **Assign**
 
-1. 在您的 OneUptime 企業應用程式中，前往 **Users and groups**
-2. 點選 **+ Add user/group**
-3. 選取您想佈建至 OneUptime 的使用者及／或群組
-4. 點選 **Assign**
+#### 在 Entra ID 中開始佈建
 
-#### 步驟 7：開始佈建
-
-1. 前往 **Provisioning** > **Overview**
-2. 點選 **Start provisioning**
-3. 初始佈建週期將開始（首次同步可能需時長達 40 分鐘）
-4. 監看 **Provisioning logs** 是否有任何錯誤
-
-#### Microsoft Entra ID 疑難排解
-
-- **測試連線失敗**：確認 SCIM Base URL 包含 `/api/identity` 前綴，且 Bearer Token 正確無誤
-- **使用者未佈建**：檢查使用者是否已指派至該應用程式，且屬性對應是否正確
-- **佈建錯誤**：檢視 Entra ID 中的 Provisioning logs 以取得特定錯誤訊息
-- **同步延遲**：初始佈建可能需時長達 40 分鐘；後續同步每 40 分鐘進行一次
-
----
+1. 前往 **Provisioning** > **Overview**，按一下 **Start provisioning**
+2. 第一個佈建週期開始；首次同步最長可能需要 40 分鐘
+3. 在 **Provisioning logs** 中檢查錯誤。您指派的人員會出現在 OneUptime 中專案的團隊裡
+:::
 
 ### Okta
 
-Okta 提供具彈性的身分管理，並擁有絕佳的 SCIM 支援。請依照下列詳細步驟設定與 OneUptime 的 SCIM 佈建。
+Okta 提供支援 SCIM 的彈性身分管理。您需要：
 
-#### 先決條件
+- 具備佈建功能（Lifecycle Management 功能）的 Okta 租用戶。
+- OneUptime Cloud 上使用 **Scale** 或更高方案的 OneUptime 專案。
+- Okta 和 OneUptime 的管理員存取權限。
 
-- 具備佈建功能（Lifecycle Management 功能）的 Okta 租用戶
-- 採用 Scale 方案或更高方案的 OneUptime 帳戶
-- 對 Okta 與 OneUptime 兩者皆具有管理員存取權
-
-#### 步驟 1：從 OneUptime 取得 SCIM 設定
+:::steps
+#### 為 Okta 建立 SCIM 連線
 
 1. 登入您的 OneUptime 儀表板
 2. 前往 **專案設定** > **安全性** > **SCIM**
-3. 點選 **Create SCIM Configuration**
-4. 輸入易記名稱（例如「Okta Provisioning」）
-5. 檢查下列選項：
-   - **預設團隊**：預設為專案的成員團隊；新使用者會加入這些團隊
-   - **自動佈建使用者** 與 **自動取消佈建使用者**：已開啟，位於 **更多欄位** 中
-   - **啟用 push 群組**：位於 **更多欄位** 中；若您想透過 Okta 群組管理團隊成員資格，請開啟此選項
+3. 按一下 **建立SCIM**
+4. 輸入一個容易辨識的名稱（例如 "Okta Provisioning"）
+5. 檢查設定：
+   - **預設團隊**：預設為專案的成員團隊；新使用者會被加入這些團隊
+   - **自動佈建使用者** 和 **自動取消佈建使用者**：已開啟，位於 **更多欄位** 中
+   - **啟用 push 群組**：位於 **更多欄位** 中；如果您想透過 Okta 群組管理團隊成員，請開啟它
 6. 儲存設定
-7. 從開啟的對話方塊複製 **SCIM Base URL** 與 **Bearer Token**——您在 Okta 中會需要用到這些資訊
+7. 從開啟的對話方塊中複製 **SCIM Base URL** 和 **Bearer Token**——在 Okta 中需要它們
 
-#### 步驟 2：建立或設定 Okta 應用程式
+#### 建立或開啟 Okta 應用程式
 
-**若您已有既有的 SSO 應用程式：**
+在 Okta Admin Console 中前往 **Applications** > **Applications**：
 
-1. 登入您的 Okta Admin Console
-2. 前往 **Applications** > **Applications**
-3. 找到並選取您既有的 OneUptime 應用程式
+- 如果您已經在 OneUptime 中使用 Okta 進行 SSO，請開啟該應用程式。
+- 否則，按一下 **Create App Integration**，選擇 **SAML 2.0**，將其命名為 "OneUptime"，並完成 SAML 設定（請參閱 [SSO](/docs/identity/sso)）。
 
-**若要建立新的應用程式：**
+#### 在 Okta 中開啟 SCIM 佈建
 
-1. 登入您的 Okta Admin Console
-2. 前往 **Applications** > **Applications**
-3. 點選 **Create App Integration**
-4. 選取 **SAML 2.0** 並點選 **Next**
-5. 在 App name 中輸入「OneUptime」
-6. 完成 SAML 設定（請參閱 SSO 文件）
-7. 點選 **Finish**
+1. 前往您的 OneUptime 應用程式的 **General** 分頁
+2. 在 **App Settings** 區段中按一下 **Edit**，在 **Provisioning** 下選擇 **SCIM**，然後按一下 **Save**
+3. 會出現一個新的 **Provisioning** 分頁
 
-#### 步驟 3：啟用 SCIM 佈建
+#### 將 Okta 連接到 OneUptime
 
-1. 在您的 OneUptime 應用程式中，前往 **General** 索引標籤
-2. 在 **App Settings** 區段中，點選 **Edit**
-3. 在 **Provisioning** 下，選取 **SCIM**
-4. 點選 **Save**
-5. 將會出現一個新的 **Provisioning** 索引標籤
+1. 在 **Provisioning** 分頁上按一下 **Integration**，然後按一下 **Configure API Integration**，並勾選 **Enable API integration**
+2. 設定以下內容：
+   - **SCIM connector base URL**：OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`）
+   - **Unique identifier field for users**：`userName`
+   - **Supported provisioning actions**：Import New Users and Profile Updates、Push New Users、Push Profile Updates，如果使用以群組為基礎的佈建，還有 Push Groups
+   - **Authentication Mode**：**HTTP Header**
+   - **Authorization**：OneUptime 的 **Bearer Token**。OneUptime 需要 `Authorization: Bearer <token>` 標頭；如果 Okta 已在欄位前顯示 Bearer 一詞，只需輸入權杖
+3. 按一下 **Test API Credentials** 驗證連線，然後按一下 **Save**
 
-#### 步驟 4：設定 SCIM 連線
+#### 選擇 Okta 佈建的內容
 
-1. 前往 **Provisioning** 索引標籤
-2. 點選左側側邊欄的 **Integration**
-3. 點選 **Configure API Integration**
-4. 勾選 **Enable API integration**
-5. 設定下列項目：
-   - **SCIM connector base URL**：輸入來自 OneUptime 的 SCIM Base URL（例如 `https://oneuptime.com/api/identity/scim/v2/{your-scim-id}`）
-   - **Unique identifier field for users**：輸入 `userName`
-   - **Supported provisioning actions**：選取您想啟用的動作：
-     - Import New Users and Profile Updates
-     - Push New Users
-     - Push Profile Updates
-     - Push Groups（若使用以群組為基礎的佈建）
-   - **Authentication Mode**：選取 **HTTP Header**
-   - **Authorization**：輸入 `Bearer {your-bearer-token}`（請替換為實際的權杖）
-6. 點選 **Test API Credentials** 以驗證連線
-7. 點選 **Save**
+1. 在 **Provisioning** 分頁上按一下 **To App**，然後按一下 **Edit**
+2. 開啟 **Create Users**、**Update User Attributes** 和 **Deactivate Users**，然後按一下 **Save**
 
-#### 步驟 5：設定對應用程式的佈建
+#### 在 Okta 中對應使用者屬性
 
-1. 在 **Provisioning** 索引標籤中，點選左側側邊欄的 **To App**
-2. 點選 **Edit**
-3. 啟用下列選項：
-   - **Create Users**：啟用以佈建新使用者
-   - **Update User Attributes**：啟用以同步屬性變更
-   - **Deactivate Users**：啟用以在取消指派時解除佈建使用者
-4. 點選 **Save**
+向下捲動到 **Attribute Mappings** 並檢查以下對應。移除不需要的對應：
 
-#### 步驟 6：設定屬性對應
+| Okta 屬性          | OneUptime SCIM 屬性             | 方向              |
+| ------------------ | ------------------------------- | ----------------- |
+| `userName`         | `userName`                      | Okta 到應用程式   |
+| `user.email`       | `emails[primary eq true].value` | Okta 到應用程式   |
+| `user.firstName`   | `name.givenName`                | Okta 到應用程式   |
+| `user.lastName`    | `name.familyName`               | Okta 到應用程式   |
+| `user.displayName` | `displayName`                   | Okta 到應用程式   |
 
-1. 向下捲動至 **Attribute Mappings**
-2. 確認或設定下列對應：
+#### 從 Okta 推送群組（選用）
 
-| Okta 屬性          | OneUptime SCIM 屬性             | 方向        |
-| ------------------ | ------------------------------- | ----------- |
-| `userName`         | `userName`                      | Okta to App |
-| `user.email`       | `emails[primary eq true].value` | Okta to App |
-| `user.firstName`   | `name.givenName`                | Okta to App |
-| `user.lastName`    | `name.familyName`               | Okta to App |
-| `user.displayName` | `displayName`                   | Okta to App |
+如果您在 OneUptime 中開啟了 **啟用 push 群組**：
 
-3. 移除任何不必要的對應
-4. 若您有進行變更，請點選 **Save**
+1. 前往 **Push Groups** 分頁，按一下 **+ Push Groups**
+2. 選擇 **Find groups by name** 或 **Find groups by rule**
+3. 搜尋並選擇要推送的群組，然後按一下 **Save**
 
-#### 步驟 7：設定推送群組（選用）
+#### 在 Okta 中指派人員
 
-若您在 OneUptime 中啟用了 **推送群組**：
+1. 前往 **Assignments** 分頁
+2. 按一下 **Assign** > **Assign to People** 或 **Assign to Groups**，選擇要佈建的人，為每個人按一下 **Assign**，然後按一下 **Done**
 
-1. 前往 **Push Groups** 索引標籤
-2. 點選 **+ Push Groups**
-3. 選取 **Find groups by name** 或 **Find groups by rule**
-4. 搜尋並選取您想推送的群組
-5. 點選 **Save**
+#### 在 Okta 中檢查佈建
 
-#### 步驟 8：指派使用者
-
-1. 前往 **Assignments** 索引標籤
-2. 點選 **Assign** > **Assign to People** 或 **Assign to Groups**
-3. 選取您想佈建的使用者或群組
-4. 為每個選取項目點選 **Assign**
-5. 點選 **Done**
-
-#### 步驟 9：驗證佈建
-
-1. 在 Okta Admin Console 中前往 **Reports** > **System Log**
-2. 篩選與您的 OneUptime 應用程式相關的事件
-3. 確認佈建事件已成功
-4. 檢查 OneUptime 以確認使用者已被建立
-
-#### Okta 疑難排解
-
-- **API 認證測試失敗**：確認 SCIM Base URL 與 Bearer Token 正確無誤
-- **使用者未佈建**：確保使用者已指派至該應用程式，且已啟用佈建
-- **重複的使用者**：確保 `userName` 屬性是唯一的，且正確對應至 email
-- **群組推送失敗**：確認群組存在且具有正確的成員資格
-- **錯誤：401 Unauthorized**：在 OneUptime 中重新產生 Bearer Token 並更新 Okta
-
----
+1. 在 Okta Admin Console 中前往 **Reports** > **System Log**，依您的 OneUptime 應用程式篩選
+2. 確認佈建事件已成功，且人員出現在 OneUptime 中專案的團隊裡
+:::
 
 ### 其他身分提供者
 
-OneUptime 的 SCIM 實作遵循 SCIM v2.0 規格，應可與任何符合規範的身分提供者搭配運作。一般設定步驟：
+OneUptime 的 SCIM 實作遵循 SCIM v2.0 規格，可與任何相容的身分提供者搭配使用：
 
-1. **SCIM Base URL**：`https://oneuptime.com/api/identity/scim/v2/{scim-id}`（用於專案）或 `https://oneuptime.com/api/identity/status-page-scim/v2/{scim-id}`（用於狀態頁面）
-2. **驗證**：HTTP Bearer Token
-3. **必填使用者屬性**：`userName`（必須是有效的電子郵件地址）
-4. **支援的操作**：對 Users 與 Groups 進行 GET、POST、PUT、PATCH、DELETE
+| 設定 | 值 |
+| --- | --- |
+| SCIM Base URL | OneUptime 的 **SCIM Base URL**：專案為 `https://oneuptime.com/identity/scim/v2/<scim-id>`，狀態頁面為 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
+| 驗證 | HTTP Bearer 權杖 |
+| 唯一使用者識別碼 | `userName`，必須是有效的電子郵件地址 |
+| 操作 | 在專案 SCIM 和狀態頁面 SCIM 中，對 Users 執行 GET、POST、PUT、PATCH 和 DELETE。Groups 僅在專案 SCIM 中受支援。 |
 
-#### 支援的 SCIM 端點
+## SCIM API 參考
 
-| 端點                     | 方法                    | 說明                                  |
-| ------------------------ | ----------------------- | ------------------------------------- |
-| `/ServiceProviderConfig` | GET                     | SCIM 伺服器功能                       |
-| `/Schemas`               | GET                     | 可用的資源結構描述                    |
-| `/ResourceTypes`         | GET                     | 可用的資源類型                        |
-| `/Users`                 | GET, POST               | 列出與建立使用者                      |
-| `/Users/{id}`            | GET, PUT, PATCH, DELETE | 管理個別使用者                        |
-| `/Groups`                | GET, POST               | 列出與建立群組／團隊（僅限專案 SCIM） |
-| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | 管理個別群組（僅限專案 SCIM）         |
+路徑相對於連線的 **SCIM Base URL**。
 
-#### SCIM 使用者結構描述
+| 端點                     | 方法                    | 說明                                      |
+| ------------------------ | ----------------------- | ----------------------------------------- |
+| `/ServiceProviderConfig` | GET                     | SCIM 伺服器功能                           |
+| `/Schemas`               | GET                     | 可用的資源結構描述                        |
+| `/ResourceTypes`         | GET                     | 可用的資源類型                            |
+| `/Users`                 | GET, POST               | 列出和建立使用者                          |
+| `/Users/{id}`            | GET, PUT, PATCH, DELETE | 管理個別使用者                            |
+| `/Groups`                | GET, POST               | 列出和建立群組/團隊（僅限專案 SCIM）       |
+| `/Groups/{id}`           | GET, PUT, PATCH, DELETE | 管理個別群組（僅限專案 SCIM）             |
+| `/Bulk`                  | POST                    | 在一個請求中執行多個操作                  |
 
+`/ServiceProviderConfig` 回報的內容：
+
+| 功能 | 是否支援 |
+| --- | --- |
+| PATCH | 是 |
+| Bulk | 是，每個請求最多 1,000 個操作和 1 MB |
+| Filter | 是，最多 200 個結果 |
+| 排序 | 是 |
+| 變更密碼 | 否 |
+| ETag | 否 |
+| 驗證 | HTTP Bearer 權杖 |
+
+您的身分提供者建立的群組會成為專案中同名的團隊；如果已有同名的團隊，則使用該團隊，而不是新建團隊。
+
+:::details SCIM 使用者結構描述
 ```json
 {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -379,9 +344,9 @@ OneUptime 的 SCIM 實作遵循 SCIM v2.0 規格，應可與任何符合規範�
   "active": true
 }
 ```
+:::
 
-#### SCIM 群組結構描述
-
+:::details SCIM 群組結構描述
 ```json
 {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
@@ -394,43 +359,100 @@ OneUptime 的 SCIM 實作遵循 SCIM v2.0 規格，應可與任何符合規範�
   ]
 }
 ```
+:::
+
+## 方案和授權
+
+在 OneUptime Cloud 上，SCIM 需要 **Scale** 方案。如頁面頂端的說明所述，自行託管的安裝需要 Enterprise Edition 和授權。
+
+### 低於 Scale 方案時
+
+在 OneUptime Cloud 上，只有當專案使用 **Scale** 或更高方案時，SCIM 佈建才能完整運作。低於該方案時（Scale 試用期結束或方案降級後），專案的 SCIM 連線以及其狀態頁面的 SCIM 連線只會移除人員，因此任何離開的人仍會失去存取權限：
+
+- **仍然有效：** 停用使用者（在設定為移除其停用人員的連線上，將 `active` 設為 `false`）、刪除使用者、從群組中移除成員（Entra ID 對 `members` 執行以成員為值的 `Remove`，Okta 對 `members[value eq "..."]` 執行 `remove`，或用群組中已有成員的一部分取代成員）、刪除群組，以及僅由 `DELETE` 組成的 `Bulk` 請求。查詢也會得到回應——列出和篩選使用者和群組，這是身分提供者在移除某人之前會做的——但低於該方案時，查詢永遠不會建立任何人。
+- **會被拒絕：** 建立使用者或群組、重新啟用使用者（對連線會重新放回其某個團隊的人，將 `active` 設為 `true`）、把某人加入其不在的群組，以及僅變更使用者的電子郵件或姓名，或群組的名稱。新增某人的請求會被整個拒絕，即使它同時移除人員也是如此，因為 SCIM 的 `PATCH` 要麼全部套用，要麼全部不套用。拒絕結果是帶有 SCIM 格式錯誤的 `402`，您的身分提供者會顯示它：`SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.` 每次拒絕也會記錄在連線的 SCIM 日誌中。
+- **同時變更個人資料的移除**——傳送新電子郵件或新姓名的停用，或在移除成員的同時重新命名群組的群組更新——會通過，而電子郵件、姓名或群組名稱保持不變。身分提供者會重新傳送它們發現不同的內容，因此被拒絕過一次的變更會隨它們之後的請求再次到來，而移除永遠不必等待方案。在不會移除其停用人員的連線上（自動取消佈建已關閉，或改為推送群組）進行的停用不會移除任何人，因此隨之傳送的新電子郵件或新姓名會作為單獨的變更被拒絕。
+- **不做任何變更的請求會照常得到回應**——Okta 對已在連線所有團隊中的人原樣 `PUT` 使用者並將 `active` 設為 `true`；把某人加入其已在的群組；以不同大小寫重新傳送的電子郵件；OneUptime 不儲存的屬性，例如職稱或部門。狀態頁面私人使用者要麼在頁面上，要麼根本不存在，因此將 `active` 設為 `true` 永遠不會改變這樣的使用者。
+
+不會刪除任何內容。升級到 **Scale** 後，連線會照原樣再次完整運作，使用相同的 Bearer 權杖，不需要在您的身分提供者中重新設定；方案變更會在一分鐘內生效。身分提供者會依自己的排程繼續呼叫：Okta 會在其佈建錯誤中顯示這些拒絕，Entra ID 會在其佈建日誌中顯示它們，並可能隔離持續失敗的作業，這會讓同步（包括移除）減慢到大約每天一次。升級後請在那裡重新啟動佈建，以便佈建在此期間新增的人員。
+
+低於 **Scale** 時，**專案設定** > **安全性** > **SCIM** 和狀態頁面的 **SCIM** 頁面會在方案升級提示下方顯示這些連線（**仍在設定中的 SCIM 連線**），並說明它們只會移除人員。若要移除某個連線，請將其刪除。新增連線、變更連線或替換其 Bearer 權杖都需要 **Scale**。清單不會顯示 Bearer 權杖，而且在任何方案上，只有專案擁有者才能讀取權杖。
+
+## 疑難排解
+
+先查看 **專案設定** > **安全性** > **SCIM**（或狀態頁面的 **SCIM** 頁面）中的 **日誌** 分頁。它會列出您的身分提供者傳送的 SCIM 請求及其狀態，**檢視詳細資料** 會顯示請求以及 OneUptime 的回應。
+
+:::details Entra ID: Test Connection 失敗
+請檢查 **Tenant URL** 是否與 OneUptime 顯示的 **SCIM Base URL** 完全一致，以及 **Secret Token** 是否為目前的 **Bearer Token**。執行 **重設 Bearer Token** 後，舊權杖將不再有效。
+:::
+
+:::details Okta: API 認證測試失敗，或請求收到 401 Unauthorized
+請檢查 **SCIM connector base URL** 和權杖。OneUptime 會讀取 `Authorization: Bearer <token>` 標頭，因此請確保 Bearer 一詞只傳送一次。如果權杖遺失或外洩，請在 OneUptime 中選擇 **重設 Bearer Token** 並更新 Okta。
+:::
+
+:::details 使用者未被佈建
+請檢查使用者是否已在您的身分提供者中指派給應用程式、那裡是否已開啟佈建，以及屬性對應是否正確。在 Entra ID 中，**Provisioning logs** 會顯示每個錯誤；在 Okta 中，則由 **System Log** 顯示。
+:::
+
+:::details Okta 中出現重複的使用者
+請確保 `userName` 是唯一的，並與使用者的電子郵件地址對應。
+:::
+
+:::details 推送群組時發生錯誤
+請檢查這些群組是否存在於您的身分提供者中且成員正確，以及 OneUptime 中是否已開啟 **啟用 push 群組**。
+:::
+
+:::details 來自 Entra ID 的變更需要一段時間才生效
+Entra ID 依自己的排程進行佈建：首次同步最長可能需要 40 分鐘，之後的同步大約每 40 分鐘執行一次。被 Entra ID 隔離的作業同步頻率更低；請修正 **Provisioning logs** 中的錯誤並重新啟動該作業。
+:::
 
 ## 常見問題
 
-### 當使用者被解除佈建時會發生什麼事？
+:::details 使用者被取消佈建後會發生什麼事？
+可以透過 DELETE 請求，或在 PUT/PATCH 更新中將 `active` 設為 `false` 來要求取消佈建：
 
-當使用者被解除佈建時（無論是透過 DELETE 請求，或是將 `active: false` 進行設定），他們會從 SCIM 設定中所設定的團隊中被移除。使用者帳戶本身仍會保留在 OneUptime 中，但會失去對該專案的存取權。
+- **專案 SCIM**：開啟 **自動取消佈建使用者** 時，使用者會從 SCIM 設定中設定的預設團隊中移除，而其 OneUptime 帳戶會保留。透過其他團隊取得的存取權限不受影響。開啟 push 群組時，團隊成員由群組佈建管理。
+- **狀態頁面 SCIM**：開啟 **自動取消佈建使用者** 時，狀態頁面私人使用者及其在該狀態頁面上的所有工作階段會被永久刪除。這不會刪除專案中另外的 OneUptime 使用者帳戶。
+:::
 
-### 我可以在不使用 SSO 的情況下使用 SCIM 嗎？
+:::details 我可以在不使用 SSO 的情況下使用 SCIM 嗎？
+可以，SCIM 和 SSO 是彼此獨立的功能。您可以使用 SCIM 佈建使用者，同時讓使用者使用其 OneUptime 密碼或其他驗證方式登入。
+:::
 
-可以，SCIM 與 SSO 是各自獨立的功能。您可以使用 SCIM 進行使用者佈建，同時允許使用者以其 OneUptime 密碼或任何其他驗證方式登入。
+:::details 如何處理 OneUptime 中已存在的使用者？
+當 SCIM 嘗試建立一個已存在的使用者（依電子郵件比對）時，OneUptime 不會建立重複的使用者。接下來會發生什麼取決於 OneUptime 的執行位置：
 
-### 我該如何處理已存在於 OneUptime 中的使用者？
-
-當 SCIM 嘗試建立一個已存在的使用者（以 email 比對）時，OneUptime 不會建立重複的使用者。接下來會發生什麼事，取決於 OneUptime 的執行位置：
-
-- **自架**：現有使用者會立即被加入所設定的預設團隊（使用推送群組時，則加入該群組對應的團隊）。
+- **自行託管**：現有使用者會立即被加入設定的預設團隊（使用 push 群組時，則加入該群組對應的團隊）。
 - **OneUptime Cloud**：OneUptime 帳戶屬於使用者本人，而不屬於任何單一專案，因此 SCIM 無法擅自讓某人成為您專案的成員。現有使用者會改為被 **邀請** 加入這些團隊，並收到一般的邀請 email。使用者在 OneUptime 的 **專案邀請** 中接受邀請，或是透過 OneUptime 在其首次以 SSO 登入時寄出的 email 確認您專案的單一登入（SSO）後，即可加入。在此之前，該使用者會顯示為待處理。當群組加入一位尚未成為您專案成員的現有使用者時，也同樣適用。
 
 由 SCIM 自行建立的使用者以及您專案的成員，在兩種環境下都會被立即加入。確認您專案的 SSO 會讓某人成為成員，因此此人也會被立即加入；此後已離開您專案的人會被重新邀請。
+:::
 
-### SCIM 能否變更使用者的電子郵件地址或姓名？
-
-OneUptime 帳戶的電子郵件地址，是該使用者登入其所屬每個專案時使用的地址，也是其密碼重設連結的收件地址。因此：
+:::details SCIM 能否變更使用者的電子郵件地址或姓名？
+OneUptime 帳戶的電子郵件地址是此人登入其所屬每個專案時使用的地址，也是密碼重設連結的寄送地址。因此：
 
 - **OneUptime Cloud**：SCIM 絕不會變更電子郵件地址。會變更電子郵件地址的請求將被拒絕，並傳回類型為 `mutability` 的 SCIM `400` 錯誤，該請求中的任何內容都不會套用；您的身分提供者會顯示原因。請使用者在自己的 OneUptime 個人資料中自行變更地址。如果請求中提交的地址與帳戶現有地址相同，則不屬於變更，請求會成功。
-- **自架**：只有當使用者已加入此專案、不屬於任何其他專案，且不是 OneUptime 管理員時，SCIM 才會變更其電子郵件地址。任何其他變更都會以相同方式被拒絕。
+- **自行託管**：只有當使用者已加入此專案、不屬於任何其他專案且不是 OneUptime 管理員時，SCIM 才會變更其電子郵件地址。任何其他變更都會以同樣的方式被拒絕。
 
-姓名在兩種環境下都遵循相同的規則：只有當使用者已加入此專案、不屬於任何其他專案，且不是 OneUptime 管理員時，SCIM 才會更新其姓名。對於其他使用者，姓名會維持不變，請求的其餘部分仍會成功。
+姓名在任何地方都遵循相同的規則：只有當使用者已加入此專案、不屬於任何其他專案且不是 OneUptime 管理員時，SCIM 才會更新其姓名。對於其他所有人，姓名保持不變，請求的其餘部分仍會成功。
+:::
 
-### 預設團隊與推送群組之間有什麼差異？
+:::details 預設團隊和 push 群組有什麼差別？
+- **預設團隊**：透過 SCIM 佈建的所有使用者都會被加入相同的預先定義團隊
+- **push 群組**：團隊成員由您的身分提供者管理，因此不同使用者可以依其在 IdP 中的群組加入不同的團隊
+:::
 
-- **預設團隊**：所有透過 SCIM 佈建的使用者都會被加入相同的預先定義團隊
-- **推送群組**：團隊成員資格由您的身分提供者管理，可讓不同的使用者依其 IdP 群組成員資格而被分配至不同的團隊
-
-### 佈建同步多久進行一次？
-
+:::details 多久同步一次？
 這取決於您的身分提供者：
 
-- **Microsoft Entra ID**：初始同步可能需時長達 40 分鐘，後續同步每 40 分鐘進行一次
-- **Okta**：大多數操作接近即時，並會定期進行完整同步
+- **Microsoft Entra ID**：首次同步最長可能需要 40 分鐘；之後每 40 分鐘同步一次
+- **Okta**：大多數操作接近即時，並定期進行完整同步
+:::
+
+## 後續步驟
+
+:::cards
+- [SSO](/docs/identity/sso): 讓 SCIM 佈建的人員使用您的身分提供者登入。
+- [使用者、團隊與權限](/docs/permissions/index): 預設團隊允許新使用者做什麼。
+- [全域 SSO](/docs/identity/global-sso): 在自行託管的執行個體上為所有專案使用一個身分提供者。
+:::

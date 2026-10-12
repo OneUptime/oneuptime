@@ -10,8 +10,10 @@ import {
   parseCustomFieldDropdownOptions,
 } from "../../../Types/CustomField/CustomFieldDropdownOption";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { getCustomFieldValuesNotOffered } from "../../../Types/CustomField/CustomFieldOptionEdit";
 import { customFieldValueToText } from "../../../Types/CustomField/CustomFieldValueFormat";
 import { JSONObject } from "../../../Types/JSON";
+import { translateTemplate } from "../../Utils/TranslateTemplate";
 
 /*
  * The inputs for a record's custom field values, built from the project's
@@ -110,27 +112,68 @@ export const toCustomFieldFormDefinition: ToCustomFieldFormDefinitionFunction =
 export { sortCustomFieldDefinitions } from "../../../Types/CustomField/CustomFieldOrder";
 export type { SortCustomFieldDefinitionsFunction } from "../../../Types/CustomField/CustomFieldOrder";
 
+/*
+ * A value a record holds that its dropdown field no longer offers - an
+ * option taken out after the record chose it (#4564) - is shown, never
+ * hidden: as itself, in gray, marked as no longer an option. The English
+ * texts are their keys in the locale files.
+ */
+export const CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEMPLATE: string =
+  "{{option}} (no longer an option)";
+
+export const CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT: string =
+  "No longer an option";
+
+// Gray: it reads as set, and as not one of the colors the options have.
+export const CUSTOM_FIELD_NO_LONGER_AN_OPTION_COLOR: string = "#6b7280";
+
 export type GetCustomFieldDropdownOptionsFunction = (
   serializedOptions: unknown,
+  // What the record holds for the field, when its own value must be shown.
+  heldValue?: unknown,
 ) => Array<DropdownOption>;
 
-/** A dropdown field's options, with their colors, as the form lists them. */
+/**
+ * A dropdown field's options, with their colors, as the form lists them -
+ * followed, when the record's own value is given, by each value it holds
+ * that the field no longer offers, so the form and the card show it as
+ * chosen (and keep it) instead of showing the field as empty.
+ */
 export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunction =
-  (serializedOptions: unknown): Array<DropdownOption> => {
-    return parseCustomFieldDropdownOptions(serializedOptions).map(
-      (option: CustomFieldDropdownOption): DropdownOption => {
-        const dropdownOption: DropdownOption = {
-          label: option.value,
-          value: option.value,
-        };
+  (serializedOptions: unknown, heldValue?: unknown): Array<DropdownOption> => {
+    const options: Array<DropdownOption> = parseCustomFieldDropdownOptions(
+      serializedOptions,
+    ).map((option: CustomFieldDropdownOption): DropdownOption => {
+      const dropdownOption: DropdownOption = {
+        label: option.value,
+        value: option.value,
+      };
 
-        if (option.color) {
-          dropdownOption.color = Color.fromString(option.color);
-        }
+      if (option.color) {
+        dropdownOption.color = Color.fromString(option.color);
+      }
 
-        return dropdownOption;
-      },
-    );
+      return dropdownOption;
+    });
+
+    if (heldValue === undefined) {
+      return options;
+    }
+
+    for (const value of getCustomFieldValuesNotOffered({
+      dropdownOptions: serializedOptions,
+      value: heldValue,
+    })) {
+      options.push({
+        label: translateTemplate(CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEMPLATE, {
+          option: String(value),
+        }),
+        value: value,
+        color: Color.fromString(CUSTOM_FIELD_NO_LONGER_AN_OPTION_COLOR),
+      });
+    }
+
+    return options;
   };
 
 /*
@@ -239,6 +282,12 @@ export type BuildCustomFieldFormFieldsFunction = (data: {
    * its overrideFieldKey, and its own validation reads the value from there.
    */
   getFormKey?: ((fieldName: string) => string) | undefined;
+  /*
+   * The values the record holds now, by field name: a dropdown also offers
+   * each value it holds that the field no longer does, so editing the
+   * record shows it chosen and keeps it until someone picks another.
+   */
+  values?: JSONObject | undefined;
 }) => Array<Field<JSONObject>>;
 
 /**
@@ -251,6 +300,7 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
     enforceRequiredOnCreate?: boolean | undefined;
     stepId?: string | undefined;
     getFormKey?: ((fieldName: string) => string) | undefined;
+    values?: JSONObject | undefined;
   }): Array<Field<JSONObject>> => {
     return data.definitions.map(
       (definition: CustomFieldFormDefinition): Field<JSONObject> => {
@@ -272,7 +322,10 @@ export const buildCustomFieldFormFields: BuildCustomFieldFormFieldsFunction =
           required: isRequired,
           placeholder: "",
           dropdownOptions: isDropdownType(definition.customFieldType)
-            ? getCustomFieldDropdownOptions(definition.dropdownOptions)
+            ? getCustomFieldDropdownOptions(
+                definition.dropdownOptions,
+                data.values?.[definition.name],
+              )
             : undefined,
         };
 

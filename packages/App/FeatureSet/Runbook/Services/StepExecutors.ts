@@ -211,7 +211,7 @@ export async function runJavaScriptStep(
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
-      "JavaScript step is missing a Runbook Agent. Pick an agent under Runbooks → Agents. JavaScript no longer runs on the OneUptime Worker.",
+      "JavaScript step is missing a Runner. Pick one under Runbooks → Runners. JavaScript never runs on the OneUptime Worker.",
   });
 }
 
@@ -319,7 +319,7 @@ export async function runBashStep(
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
-      "Bash step is missing a Runbook Agent. Pick an agent under Runbooks → Agents.",
+      "Bash step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
 

@@ -39,6 +39,7 @@ import SessionReplayBudgetMetricTypeUtil, {
   SESSION_REPLAY_METRIC_NAME_PREFIX,
 } from "Common/Utils/SessionReplay/SessionReplayBudgetMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -207,10 +208,6 @@ function leadInBlock(markdown: string, leadIn: string): string {
   }
 
   return body.join("\n");
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function tableRowStartingWith(

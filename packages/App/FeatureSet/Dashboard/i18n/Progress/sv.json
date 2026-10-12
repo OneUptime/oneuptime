@@ -1,18 +1,36 @@
 {
   "baseline": {
-    "keys": 25975,
-    "untranslated": 16625
+    "keys": 28012,
+    "untranslated": 16935
   },
   "sameAsEnglish": [
+    "0 (kiss-o'-death {{kissCode}})",
+    "AI / LLM",
+    "Agent",
+    "App",
+    "Budget",
     "CloudWatch Metric Streams",
+    "Diagram",
+    "Embedding",
+    "Filter:",
+    "Filter: {{expression}}",
     "Incident {{number}}: {{title}}",
     "Offline",
     "Precision",
+    "Revision",
     "Runbook: {{name}}",
     "Runner",
+    "Status",
+    "Stratum",
+    "Team",
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
-    "{{count}} process"
+    "{{count}} B",
+    "{{count}} KB",
+    "{{count}} MB",
+    "{{count}} process",
+    "{{count}} rotation",
+    "{{tokens}} tokens"
   ]
 }

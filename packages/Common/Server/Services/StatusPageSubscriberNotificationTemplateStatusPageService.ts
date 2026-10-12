@@ -1,12 +1,10 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -94,21 +92,12 @@ export class Service extends ProjectReferencesService<Model> {
       templateIds = [writtenTemplateId];
     } else {
       // Moved to another page: the templates the links already point at.
-      const query: Query<Model> = updateBy.props.tenantId
-        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-        : updateBy.query;
-
-      const links: Array<Model> = await this.findBy({
-        query: query,
-        select: {
+      const links: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           statusPageSubscriberNotificationTemplateId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       templateIds = links
         .map((link: Model): ObjectID | undefined => {

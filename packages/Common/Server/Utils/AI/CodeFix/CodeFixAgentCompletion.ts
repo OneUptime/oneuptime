@@ -220,6 +220,13 @@ export default class CodeFixAgentCompletion {
        * LlmLog's project-wide readability — never store previews.
        */
       storeContentPreviews: false,
+      /*
+       * The agent reads source files and writes them back whole: a data:
+       * URL in a stylesheet or a fixture is code, and a short note in its
+       * place would be written into the pull request. The one call that
+       * keeps embedded data.
+       */
+      keepEmbeddedData: true,
     });
 
     /*

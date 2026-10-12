@@ -188,6 +188,7 @@ import ObjectID from "../../../Types/ObjectID";
 import StatusPageGroupViewMode from "../../../Types/StatusPage/StatusPageGroupViewMode";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "../../../UI/Utils/Navigation";
 import { MemoryRouter } from "react-router-dom";
 import {
   getByTextOutsideFoldedHeaders,
@@ -647,6 +648,143 @@ describe("Status Page > Resources", () => {
     mockIsMasterAdmin.mockReturnValue(true);
     mockModelFormModalProps.length = 0;
     window.localStorage.clear();
+  });
+
+  /*
+   * Show ID on a resource and on a group opens the dialog every table's Show
+   * ID opens (ObjectID/RecordIdModal): the whole ID on a row of its own, a
+   * copy button, and the way to the model's page in the API Reference. They
+   * used to be a sentence with the ID at its end - "Status Page Resource ID:
+   * ..." - and nothing to copy it with.
+   */
+  describe("Show ID", () => {
+    type DialogFunction = () => HTMLElement;
+
+    const dialog: DialogFunction = (): HTMLElement => {
+      return screen.getByTestId("modal");
+    };
+
+    type FooterButtonNamesFunction = () => Array<string>;
+
+    const footerButtonNames: FooterButtonNamesFunction = (): Array<string> => {
+      return within(screen.getByTestId("modal-footer"))
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return (button.textContent || "").trim();
+        });
+    };
+
+    test("on a group, from its row in the navigator", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await openRowMenu("Market 1001");
+
+      fireEvent.click(
+        within(screen.getByRole("menu")).getByRole("menuitem", {
+          name: "Show ID",
+        }),
+      );
+      await flushEffects();
+
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        "Market 1001 ID",
+      );
+      expect(screen.getByTestId("record-id-value").textContent).toBe(MARKET_ID);
+      expect(dialog()).toHaveTextContent("ID of this Status Page Group:");
+      expect(dialog()).not.toHaveTextContent("Status Page Group ID:");
+      expect(footerButtonNames()).toEqual(["Close", "Go to API Docs"]);
+
+      fireEvent.click(screen.getByRole("button", { name: "Go to API Docs" }));
+      await flushEffects();
+
+      const navigate: jest.Mock = Navigation.navigate as unknown as jest.Mock;
+      const lastCall: Array<unknown> =
+        navigate.mock.calls[navigate.mock.calls.length - 1] || [];
+
+      expect(String(lastCall[0]).endsWith("/status-page-group")).toBe(true);
+      expect(lastCall[1]).toEqual({ openInNewTab: true });
+      expect(screen.queryByTestId("record-id-value")).toBeNull();
+    });
+
+    test("on the selected group, from the pane's Show group ID", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Region 1000");
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-more"));
+      await flushEffects();
+
+      fireEvent.click(
+        within(screen.getByRole("menu")).getByRole("menuitem", {
+          name: "Show group ID",
+        }),
+      );
+      await flushEffects();
+
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        "Region 1000 ID",
+      );
+      expect(screen.getByTestId("record-id-value").textContent).toBe(REGION_ID);
+
+      fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+      await flushEffects();
+
+      expect(screen.queryByTestId("record-id-value")).toBeNull();
+    });
+
+    test("on a resource in a list, from its row's ⋯", async () => {
+      setUpApi({
+        groups: buildHierarchy(),
+        resources: [
+          makeResource({
+            id: "0198c8ec-2a1d-7f0c-9e75-384194164001",
+            groupId: MARKET_ID,
+            monitorName: "Checkout API",
+          }),
+        ],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Market 1001");
+
+      fireEvent.click(
+        await screen.findByTestId("status-page-resource-row-more"),
+      );
+      await flushEffects();
+
+      fireEvent.click(
+        within(screen.getByRole("menu")).getByRole("menuitem", {
+          name: "Show ID",
+        }),
+      );
+      await flushEffects();
+
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        "Checkout API ID",
+      );
+      expect(screen.getByTestId("record-id-value").textContent).toBe(
+        "0198c8ec-2a1d-7f0c-9e75-384194164001",
+      );
+      expect(dialog()).toHaveTextContent("ID of this Status Page Resource:");
+      expect(dialog()).not.toHaveTextContent("Status Page Resource ID:");
+      expect(footerButtonNames()).toEqual(["Close", "Go to API Docs"]);
+
+      fireEvent.keyDown(document, { key: "Escape" });
+      await flushEffects();
+
+      expect(screen.queryByTestId("record-id-value")).toBeNull();
+    });
   });
 
   describe("opening the tab", () => {
@@ -1169,8 +1307,18 @@ describe("Status Page > Resources", () => {
         );
         await flushEffects();
 
+        /*
+         * The Show ID dialog every table opens: titled after the resource,
+         * the ID on a row of its own with a copy button.
+         */
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          "API EU ID",
+        );
+        expect(screen.getByTestId("record-id-value").textContent).toBe(
+          "grid-b",
+        );
         expect(
-          screen.getByText("Status Page Resource ID: grid-b"),
+          screen.getByRole("button", { name: "Copy ID to clipboard" }),
         ).toBeInTheDocument();
       });
 

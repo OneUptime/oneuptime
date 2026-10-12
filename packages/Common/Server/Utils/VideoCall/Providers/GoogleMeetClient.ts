@@ -27,6 +27,10 @@ import { VideoCallMeetingRequest } from "../VideoCallMeetingRequest";
  * A space has no name of its own - it is a room with a link - and lives on
  * after its conference ends, so the same link works for the whole incident.
  * https://developers.google.com/workspace/meet/api/reference/rest/v2/spaces/create
+ *
+ * A connection made by signing in (VideoCallAuthMethod.OAuth) creates the
+ * same space with the signed-in account's own token
+ * (createSpaceWithToken). Only the token and the advice in an error differ.
  */
 
 export interface GoogleMeetClientSettings {
@@ -34,6 +38,19 @@ export interface GoogleMeetClientSettings {
   impersonatedUserEmail: string;
   // "TRUSTED" or "OPEN" (SpaceConfig.accessType).
   accessType: string;
+}
+
+// Who a space is created as, and how an error names them.
+export interface GoogleMeetOwner {
+  label: string;
+  /*
+   * Whether the token is a person's sign-in to this server's Google app
+   * rather than the project's own service account: what fixes a refusal
+   * differs.
+   */
+  isSignIn: boolean;
+  // A service account's: how to grant it domain-wide delegation.
+  delegationHint?: string | undefined;
 }
 
 export interface GoogleServiceAccountKey {
@@ -99,13 +116,31 @@ export default class GoogleMeetClient {
   ): Promise<VideoCallMeeting> {
     const accessToken: string = await this.getAccessToken();
 
-    const accessType: string = ALLOWED_ACCESS_TYPES.includes(
-      this.settings.accessType,
-    )
-      ? this.settings.accessType
+    return await GoogleMeetClient.createSpaceWithToken({
+      http: this.http,
+      accessToken,
+      accessType: this.settings.accessType,
+      owner: {
+        label: this.settings.impersonatedUserEmail.trim(),
+        isSignIn: false,
+        delegationHint: this.getDelegationHint(),
+      },
+    });
+  }
+
+  public static async createSpaceWithToken(data: {
+    http: VideoCallHttpClient;
+    accessToken: string;
+    // "TRUSTED" or "OPEN"; anything else is TRUSTED.
+    accessType: string;
+    owner: GoogleMeetOwner;
+  }): Promise<VideoCallMeeting> {
+    const accessToken: string = data.accessToken;
+    const accessType: string = ALLOWED_ACCESS_TYPES.includes(data.accessType)
+      ? data.accessType
       : "TRUSTED";
 
-    const response: VideoCallHttpResponse = await this.http.request({
+    const response: VideoCallHttpResponse = await data.http.request({
       url: GOOGLE_MEET_SPACES_URL,
       method: "POST",
       headers: {
@@ -123,7 +158,7 @@ export default class GoogleMeetClient {
     });
 
     if (!response.ok) {
-      throw this.getMeetingError(response);
+      throw GoogleMeetClient.getMeetingError(response, data.owner);
     }
 
     const meetingUri: JSONValue | undefined = response.json?.["meetingUri"];
@@ -341,7 +376,10 @@ export default class GoogleMeetClient {
     );
   }
 
-  private getMeetingError(response: VideoCallHttpResponse): Error {
+  private static getMeetingError(
+    response: VideoCallHttpResponse,
+    owner: GoogleMeetOwner,
+  ): Error {
     const errorCode: string = VideoCallHttpClient.readErrorCode(response.json);
     const summary: string = VideoCallHttpClient.summarizeErrorBody(response);
 
@@ -349,14 +387,32 @@ export default class GoogleMeetClient {
       SERVICE_DISABLED_PATTERN.test(response.bodyText) ||
       API_NOT_ENABLED_PATTERN.test(summary)
     ) {
+      if (owner.isSignIn) {
+        return new BadDataException(
+          `The Google Meet REST API is not enabled for the Google Cloud project of this OneUptime server's Google app. Ask your server administrator to enable it under APIs & Services. (${summary})`,
+        );
+      }
+
       return new BadDataException(
         `The Google Meet REST API is not enabled for the service account's Google Cloud project. Enable it in the Google Cloud console under APIs & Services, then try again. (${summary})`,
       );
     }
 
+    if (owner.isSignIn && response.status === 401) {
+      return new BadDataException(
+        `Google no longer accepts OneUptime's sign-in for ${owner.label}. Reconnect Google Meet in Project Settings > Video Calls. (${summary})`,
+      );
+    }
+
+    if (owner.isSignIn && response.status === 403) {
+      return new BadDataException(
+        `Google did not allow ${owner.label} to create a meeting space. Check that the account can use Google Meet, then reconnect Google Meet in Project Settings > Video Calls. (${errorCode || response.status}: ${summary})`,
+      );
+    }
+
     if (response.status === 401 || response.status === 403) {
       return new BadDataException(
-        `Google did not allow ${this.settings.impersonatedUserEmail.trim()} to create a meeting space. Check that the user has Google Meet and that ${this.getDelegationHint()} (${errorCode || response.status}: ${summary})`,
+        `Google did not allow ${owner.label} to create a meeting space. Check that the user has Google Meet and that ${owner.delegationHint || ""} (${errorCode || response.status}: ${summary})`,
       );
     }
 

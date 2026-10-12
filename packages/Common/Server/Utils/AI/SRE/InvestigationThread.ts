@@ -28,6 +28,7 @@ import ToolOutputPager, {
 import { ChatExtraTool } from "../Chat/ChatAgentRunner";
 import PostedRootCause from "./PostedRootCause";
 import logger from "../../Logger";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * The shared conversation inside an incident's (or alert's) AI
@@ -234,8 +235,13 @@ export default class InvestigationThread {
       `incidentId: ${incidentId.toString()}`,
     ];
 
+    /*
+     * Sent with every turn: free text goes in through PromptText.field, so a
+     * screenshot embedded in the description is a short note, not hundreds
+     * of kilobytes of base64, and no field crowds out the thread.
+     */
     if (incident?.description) {
-      lines.push(`Description: ${incident.description}`);
+      lines.push(`Description: ${PromptText.field(incident.description)}`);
     }
 
     lines.push(`Severity: ${incident?.incidentSeverity?.name || "N/A"}`);
@@ -276,7 +282,7 @@ export default class InvestigationThread {
 
     if (incident?.rootCause) {
       lines.push(
-        `Root cause (as recorded by responders): ${incident.rootCause}`,
+        `Root cause (as recorded by responders): ${PromptText.field(incident.rootCause)}`,
       );
     }
 
@@ -309,7 +315,7 @@ export default class InvestigationThread {
     ];
 
     if (alert?.description) {
-      lines.push(`Description: ${alert.description}`);
+      lines.push(`Description: ${PromptText.field(alert.description)}`);
     }
 
     lines.push(`Severity: ${alert?.alertSeverity?.name || "N/A"}`);
@@ -337,7 +343,9 @@ export default class InvestigationThread {
     }
 
     if (alert?.rootCause) {
-      lines.push(`Root cause (as recorded by responders): ${alert.rootCause}`);
+      lines.push(
+        `Root cause (as recorded by responders): ${PromptText.field(alert.rootCause)}`,
+      );
     }
 
     return {

@@ -1,205 +1,370 @@
-# Indgående anmodningsmonitor
+# Indgående anmodning-monitor
 
-En Indgående anmodningsmonitor giver dig en URL, som andre systemer sender HTTP-anmodninger til. OneUptime vurderer hver anmodning ud fra dine kriterier og kan ændre monitorens status, oprette hændelser og tilkalde din vagtrotation.
+En monitor for indgående anmodninger giver dig en URL, som andre systemer sender HTTP-anmodninger til. OneUptime evaluerer hver anmodning ud fra dine kriterier og kan ændre monitorens status, erklære hændelser og tilkalde dem, der har vagt.
 
 Den dækker to forskellige opgaver:
 
-- **Hjerteslag-overvågning** — et cron-job, en worker eller en enhed kalder URL'en efter en plan, og OneUptime opretter en hændelse, når hjerteslagene udebliver.
-- **Modtagelse af alarmer fra et andet system** — Prometheus Alertmanager, Grafana eller alt andet, der kan POSTe JSON, sender alarmer ind, og OneUptime laver hver enkelt om til en hændelse med vagt-eskalering og automatisk løsning ved genopretning.
+- **Heartbeat-overvågning** — et cronjob, en worker eller en enhed kalder URL'en efter en tidsplan, og OneUptime opretter en hændelse, når kaldene holder op med at komme.
+- **Modtagelse af advarsler fra et andet system** — Prometheus Alertmanager, Grafana eller alt andet, der kan sende JSON med POST, skubber advarsler ind, og OneUptime gør hver enkelt til en hændelse med eskalering til vagten og automatisk løsning, når problemet er væk.
 
-Begge bruger samme monitortype. Det, der adskiller dem, er de kriterier, du opsætter.
+Begge bruger den samme monitortype. Det, der skiller dem ad, er de kriterier, du konfigurerer.
 
-## Oversigt
+:::cards
+- [Opret monitoren](#opret-en-monitor-for-indgående-anmodninger): Få en heartbeat-URL i nogle få trin.
+- [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
+- [Advar, når kaldene stopper](#markér-som-offline-hvis-der-ikke-er-noget-heartbeat-i-10-minutter-en-dødmandsknap): Gør monitoren til en dødmandsknap.
+- [Modtag advarsler](#modtagelse-af-advarsler-fra-et-andet-system): Én hændelse pr. advarsel fra Alertmanager eller Grafana.
+:::
 
-Indgående anmodningsmonitorer stiller en unik URL til rådighed, som dine tjenester kalder. Det gør dig i stand til at:
+## Sådan fungerer det
 
-- Overvåge cron-jobs og planlagte opgaver
-- Kontrollere at baggrunds-workers kører
+Intet tjekker dit system udefra: dit system kalder monitorens URL, OneUptime svarer med det samme og evaluerer derefter anmodningen ud fra monitorens kriterier. Et kriterium, der leder efter anmodninger, som er *holdt op* med at komme, tjekkes desuden igen i baggrunden hvert 30. sekund, så også stilhed kan oprette en hændelse.
+
+```mermaid title="Et heartbeat, fra dit job til vagtteamet"
+sequenceDiagram
+    participant J as Dit job
+    participant O as OneUptime
+    participant T as Vagtteam
+    J->>O: GET eller POST /heartbeat/KEY
+    O-->>J: 200 med det samme
+    O->>O: Evaluér kriterierne
+    Note over O: Hvert 30. sekund, tjek<br/>for manglende anmodninger
+    O->>T: Hændelse, hvis et kriterium matcher
+```
+
+Brug den til at:
+
+- Overvåge cronjobs og planlagte opgaver
+- Bekræfte, at baggrunds-workers kører
 - Overvåge tjenester bag firewalls, som ikke kan nås udefra
-- Modtage alarmer fra Prometheus Alertmanager, Grafana og andre alarmeringssystemer
-- Følge hjerteslag-signaler fra ethvert system, der kan HTTP
+- Modtage advarsler fra Prometheus Alertmanager, Grafana og andre advarselssystemer
+- Følge heartbeat-signaler fra ethvert system, der kan tale HTTP
 
-## Oprettelse af en Indgående Anmodningsmonitor
+## Opret en monitor for indgående anmodninger
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
-2. Klik på **Opret monitor**
-3. Vælg **Indgående anmodning** som monitortype
-4. Der genereres en **Hemmelig nøgle** og en URL til denne monitor
-5. Åbn monitoren og klik på **Documentation** i menuen til venstre for at kopiere URL'en
-6. Konfigurér din tjeneste til at sende anmodninger til den URL
-7. Konfigurér overvågningskriterier som beskrevet nedenfor
+:::steps
+### Start en ny monitor
+
+Gå til **Monitorer**, og klik på **Opret monitor**.
+
+### Vælg Incoming Request
+
+Under **Monitortype** skal du vælge **Incoming Request** — den er en af de almindelige typer øverst. Angiv et **Navn**, og klik derefter på **Næste**.
+
+### Gennemgå kriterierne
+
+Trinnet **Kriterier** starter med [standardkriterierne](#hvad-du-får-fra-start). Til et heartbeat skal du klikke på **Tilføj kriterier** og give det nye kriterium et filter **Incoming Request** / **Not Recieved In Minutes**, der ændrer status til offline og erklærer en hændelse, med **Løs hændelse automatisk** slået til. Træk det derefter øverst på listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for at se hvorfor.
+
+### Opret monitoren
+
+Klik på **Opret monitor**. Monitoren åbner på sin side **Oversigt**, hvor kortet **Send the first heartbeat** viser **Heartbeat URL** med en kopiknap og en eksempelkommando med `curl`.
+
+### Send den første anmodning
+
+Konfigurér din tjeneste til at sende anmodninger til den URL (se [Send et heartbeat](#send-et-heartbeat)). Når den første anmodning kommer, giver kortet plads til monitorens historik, og et kort **Heartbeat URL** viser URL'en, og hvornår den seneste anmodning kom.
+:::
+
+> [!NOTE]
+> URL'en indeholder monitorens hemmelige nøgle, så kun personer, der kan redigere monitorer, kan se den. Du kan altid finde den igen på monitorens side **Dokumentation** i afsnittet **Konfiguration** i sidemenuen.
 
 ## Anmodnings-URL'en
 
-Din monitor har en unik URL i formatet:
+Din monitor har en unik URL i dette format:
 
-```
+```text
 https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 ```
 
-Erstat `https://oneuptime.com` med URL'en til din egen OneUptime-instans, hvis du selv hoster.
+Erstat `https://oneuptime.com` med URL'en til din OneUptime-instans, hvis du selv hoster.
 
-Send **GET**- eller **POST**-anmodninger til denne URL. HEAD accepteres og behandles som GET. Andre metoder returnerer 404. Den hemmelige nøgle i stien er den eneste legitimation — ingen header eller token er nødvendig.
+Send **GET**- eller **POST**-anmodninger til denne URL. HEAD accepteres og behandles som GET; PUT, PATCH og DELETE returnerer 404. Den hemmelige nøgle i stien er den eneste legitimation — der kræves ingen header eller token. Querystrenge ignoreres: send det, kriterierne skal læse, i brødteksten eller i headerne.
 
-> **Warning:** Enhver, der kender denne URL, kan markere monitoren som rask, så behandl den som en hemmelighed. Hver header, du sender, gemmes på monitoren og er synlig for alle, der kan læse den — send ikke API-nøgler eller tokens i headers til dette endpoint.
+> [!WARNING]
+> Alle, der kender denne URL, kan markere monitoren som sund, så behandl den som en hemmelighed. Hvis den slipper ud, skal du åbne monitorens side **Indstillinger** og klikke på **Nulstil hemmelig nøgle for indgående anmodning** og derefter opdatere hver afsender. Alle headere, du sender, gemmes på monitoren og er synlige for alle, der kan læse den — send ikke API-nøgler eller tokens i headere til dette endpoint.
 
-OneUptime svarer straks med et tomt `200` og behandler anmodningen i en kø. Det svar skrives, før nogen validering finder sted, så et `200` er **ikke** en bekræftelse på, at anmodningen blev accepteret — en forkert hemmelig nøgle, en slettet monitor og en deaktiveret monitor returnerer også `200`. Tjek monitorens egen tidslinje for at bekræfte, at anmodningerne når frem.
+> [!IMPORTANT]
+> OneUptime svarer straks `200` med et tomt JSON-objekt (`{}`) og behandler anmodningen via en kø. Svaret skrives, før nogen validering finder sted, så en `200` er **ikke** en bekræftelse på, at anmodningen blev accepteret — en forkert hemmelig nøgle, en slettet monitor og en deaktiveret monitor returnerer også `200`. Tjek monitorens egen tidslinje for at bekræfte, at anmodningerne lander.
 
-### Afsendelse af et anmodningsindhold
+### Send en brødtekst i anmodningen
 
-Hvis du vil adressere felter inde i indholdet — `{{requestBody.status}}` i en hændelsestitel, en JSON-sti i hændelsesgruppering eller et JavaScript Expression-kriterium — så send `Content-Type: application/json`; det er det format, denne dokumentation forudsætter hele vejen igennem. Et `application/x-www-form-urlencoded`-indhold parses også, men kun til flade felter på øverste niveau. Enhver anden content type, eller ingen, parses ikke, og enhver `requestBody`-reference opløses til ingenting.
+Hvis du vil bruge felter inde i brødteksten — `{{requestBody.status}}` i en hændelsestitel, en JSON-sti i grupperingen af hændelser eller et kriterium med et JavaScript-udtryk — skal du sende `Content-Type: application/json`. Det er det format, denne dokumentation går ud fra overalt. Brødteksten skal være et JSON-objekt eller et JSON-array: ugyldig JSON eller en enkeltstående værdi som `"error"` afvises med en `500`.
 
-Indhold op til 50 MB accepteres. Komprimér ikke indholdet med `Content-Encoding: gzip`; det gemmes uparset, og stier ind i det vil ikke blive opløst.
+| Indholdstype | Hvad kriterier og skabeloner ser |
+| --- | --- |
+| `application/json` | Den fortolkede JSON. |
+| `application/x-www-form-urlencoded` | Den fortolkede formular. Nøgler i firkantede parenteser indlejres (`alerts[0][status]=firing`), og alle værdier er strenge. |
+| Alt andet eller ingen | En tom brødtekst (`{}`), så enhver henvisning til `requestBody` ender som ingenting. |
 
-### Afsendelse af et hjerteslag
+Brødtekster på op til 50 MB accepteres; en større afvises med en `413`. Komprimér ikke brødteksten med `Content-Encoding: gzip`: så gemmes den ikke som JSON, og stier ind i den bliver ikke løst op.
 
-#### Brug af curl
+### Send et heartbeat
 
+Hvert eksempel sender én anmodning. Erstat `YOUR_SECRET_KEY` med nøglen fra din monitors URL.
+
+:::tabs
+@tab curl
 ```bash
-# Simpel GET-anmodning
+# Simple GET request
 curl https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
-# POST-anmodning med brugerdefineret indhold
+# POST request with a JSON body
 curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
   -H "Content-Type: application/json" \
   -d '{"status": "healthy", "version": "1.2.3"}'
 ```
-
-#### Fra et cron-job
-
+@tab Cron
 ```bash
-# Tilføj til crontab for at sende hjerteslag hvert 5. minut
-*/5 * * * * curl -s https://oneuptime.com/heartbeat/YOUR_SECRET_KEY > /dev/null
-```
+# Send a heartbeat every 5 minutes
+*/5 * * * * curl -fsS https://oneuptime.com/heartbeat/YOUR_SECRET_KEY > /dev/null
 
-#### Fra applikationskode
-
-```javascript
-// Node.js example
-const https = require("https");
-https.get("https://oneuptime.com/heartbeat/YOUR_SECRET_KEY");
+# Or ping only when the job succeeds, so a failed run counts as a missed heartbeat
+0 2 * * * /usr/local/bin/backup.sh && curl -fsS https://oneuptime.com/heartbeat/YOUR_SECRET_KEY > /dev/null
 ```
+@tab Node.js
+```javascript title="heartbeat.mjs"
+// Node.js 18 or later: fetch is built in. Run with `node heartbeat.mjs`.
+const response = await fetch(
+  "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "healthy", version: "1.2.3" }),
+  },
+);
 
-```python
-# Python-eksempel
-import requests
-requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
+console.log(response.status); // 200
 ```
+@tab Python
+```python title="heartbeat.py"
+# Python 3, standard library only. Run with `python3 heartbeat.py`.
+import json
+import urllib.request
+
+request = urllib.request.Request(
+    "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY",
+    data=json.dumps({"status": "healthy", "version": "1.2.3"}).encode(),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+
+with urllib.request.urlopen(request, timeout=10) as response:
+    print(response.status)  # 200
+```
+@tab Go
+```go title="heartbeat.go"
+// Run with `go run heartbeat.go`.
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"net/http"
+)
+
+func main() {
+	body := []byte(`{"status": "healthy", "version": "1.2.3"}`)
+
+	resp, err := http.Post(
+		"https://oneuptime.com/heartbeat/YOUR_SECRET_KEY",
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println(resp.StatusCode) // 200
+}
+```
+@tab PowerShell
+```powershell
+# Windows PowerShell 5.1 or PowerShell 7
+Invoke-RestMethod -Method Post `
+  -Uri "https://oneuptime.com/heartbeat/YOUR_SECRET_KEY" `
+  -ContentType "application/json" `
+  -Body '{"status": "healthy", "version": "1.2.3"}'
+```
+:::
 
 ## Overvågningskriterier
 
-Du kan opsætte kriterier for at afgøre, hvornår din tjeneste betragtes som online, forringet eller offline. Hvert kriteriefilter har en **Filter Type** (hvad der kigges på), en **Filter Condition** (hvordan der sammenlignes) og en **Value**.
+Du kan konfigurere kriterier, der afgør, hvornår din tjeneste betragtes som online, forringet eller offline. Hvert kriteriefilter har en **Filtertype** (hvad der ses på), en **Filterbetingelse** (hvordan der sammenlignes) og en **Værdi**.
 
-### Tilgængelige Filter Types
+### Hvad du får fra start
 
-| Filter Type           | Kontrollerer                                          | Bemærkninger                                                                              |
-| --------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Incoming Request      | Om en anmodning blev modtaget inden for et tidsvindue | Den eneste kontrol, der kan udløses, når intet ankommer                                   |
-| Request Body          | Anmodningens indhold                                  | Delstrengsmatch. Objektindhold sammenlignes som kompakt JSON                              |
-| Request Header        | Navnene på anmodningens headers                       | Nøjagtigt match mod et headernavn, med små bogstaver                                      |
-| Request Header Value  | Værdierne i anmodningens headers                      | Nøjagtigt match mod en headerværdi, med små bogstaver                                     |
+En ny monitor for indgående anmodninger oprettes med to kriterier, der læser anmodningens brødtekst:
+
+| Kriterium | Filtertype | Filterbetingelse | Værdi | Virkning |
+| -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
+| Offline  | Anmodningsbrødtekst | Indeholder | `error` | Markerer monitoren som offline, åbner en hændelse |
+| Online   | Anmodningsbrødtekst | Not Contains | `error` | Markerer monitoren som online |
+
+Det passer til det almindelige tilfælde, hvor afsenderen rapporterer sit eget helbred i payloaden: en anmodning, hvis brødtekst nævner `error`, tager monitoren ned, og den næste anmodning uden ordet bringer monitoren op igen og løser hændelsen. En anmodning helt uden brødtekst tæller som "indeholder ikke `error`", så et rent heartbeat-kald holder monitoren online.
+
+Ret værdien til det, din afsender faktisk sender (`"status":"firing"`, `FAILED` og så videre) — sammenligningen er en søgning efter en delstreng, der skelner mellem store og små bogstaver, i hele brødteksten inklusive nøgler, så også `{"error":null}` matcher `error`.
+
+> [!NOTE]
+> Disse standarder er **ikke** en dødmandsknap: intet her udløses, når anmodningerne holder op med at komme. Vil du advares ved stilhed, så tilføj et kriterium **Incoming Request** / **Not Recieved In Minutes** som beskrevet nedenfor.
+
+### Tilgængelige filtertyper
+
+| Filtertype | Tjekker | Bemærkninger |
+| --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Incoming Request | Om der er modtaget en anmodning inden for et tidsvindue | Det eneste tjek, der kan udløses, når intet kommer |
+| Anmodningsbrødtekst | Anmodningens brødtekst | Søgning efter en delstreng. Objekter som brødtekst sammenlignes som kompakt JSON |
+| Request Header | Navnene på anmodningens headere | Nøjagtig sammenligning med et helt headernavn, uden hensyn til store og små bogstaver |
+| Request Header Value | Værdierne af anmodningens headere | Nøjagtig sammenligning med en hel headerværdi, uden hensyn til store og små bogstaver |
 | JavaScript Expression | Ethvert udtryk over `requestBody` og `requestHeaders` | Den mest fleksible mulighed — se [JavaScript-udtryk](/docs/monitor/javascript-expression) |
 
-### Filter Conditions
+### Filterbetingelser
 
-Hver Filter Type tilbyder sit eget sæt betingelser.
+Hver filtertype har sine egne betingelser:
 
-For **Incoming Request** (gengivet her med dashboardets stavemåde):
+| Filtertype | Betingelser |
+| --- | --- |
+| **Incoming Request** | **Recieved In Minutes** — der er modtaget en anmodning inden for det angivne antal minutter. **Not Recieved In Minutes** — der er ikke modtaget nogen anmodning inden for det angivne antal minutter. (Dashboardet staver dem sådan.) |
+| **Anmodningsbrødtekst**, **Request Header**, **Request Header Value** | **Indeholder** og **Not Contains** |
+| **JavaScript Expression** | **Evaluates To True** |
 
-- **Recieved In Minutes** — en anmodning blev modtaget inden for det angivne antal minutter
-- **Not Recieved In Minutes** — ingen anmodning blev modtaget inden for det angivne antal minutter
+> [!NOTE]
+> Headernavne og -værdier sammenlignes med små bogstaver og med hele navnet eller hele værdien, ikke som delstreng: `application/json` matcher ikke `application/json; charset=utf-8`. Kun **Anmodningsbrødtekst** søger efter en delstreng. Headere, som din proxy eller OneUptimes egen load balancer tilføjer (`x-forwarded-for`, `x-real-ip`), gemmes også.
 
-For **Request Body**, **Request Header** og **Request Header Value**: **Contains** og **Not Contains**.
+Objekter som brødtekst sammenlignes som kompakt JSON uden mellemrum, så et filter **Anmodningsbrødtekst** / **Indeholder** skal skrives `"status":"firing"` — kopierer du `"status": "firing"` fra en pænt formateret payload, matcher det aldrig.
 
-For **JavaScript Expression**: **Evaluates To True**.
+### Eksempler på kriterier
 
-> **Note:** Headernavne og headerværdier gøres til små bogstaver før sammenligning, og der matches mod hele navnet eller værdien, ikke en delstreng. Skriv `content-type`, ikke `Content-Type`, og `application/json`, ikke `application/JSON`. Kun **Request Body** laver et reelt delstrengsmatch.
+#### Markér som offline, hvis der ikke er noget heartbeat i 10 minutter (en dødmandsknap)
 
-Objektindhold sammenlignes som kompakt JSON uden mellemrum, så et **Request Body** / **Contains**-filter skal skrives `"status":"firing"` — at kopiere `"status": "firing"` fra en formateret payload vil aldrig matche.
+| Felt | Værdi |
+| --- | --- |
+| **Filtertype** | Incoming Request |
+| **Filterbetingelse** | Not Recieved In Minutes |
+| **Værdi** | `10` |
 
-### Eksempelkriterier
+#### Markér som forringet ud fra indholdet af anmodningens brødtekst
 
-#### Markér som offline, hvis intet hjerteslag inden for 10 minutter
+| Felt | Værdi |
+| --- | --- |
+| **Filtertype** | Anmodningsbrødtekst |
+| **Filterbetingelse** | Indeholder |
+| **Værdi** | `"status":"degraded"` |
 
-- **Filter Type**: Incoming Request
-- **Filter Condition**: Not Recieved In Minutes
-- **Value**: 10
+> [!IMPORTANT]
+> Placér dødmandsknappen **over** standardkriterierne. Kriterier tjekkes oppefra, og det første, der matcher, afgør det. Baggrundstjekket læser den seneste anmodning igen, så standardkriteriet for online — "Request Body Not Contains `error`" — bliver ved med at matche den, og et kriterium under det kommer aldrig til. **Tilføj kriterier** tilføjer et kriterium nederst: træk det op.
 
-#### Markér som forringet baseret på anmodningsindhold
+> [!WARNING]
+> En monitor evalueres kun igen i baggrunden, hvis mindst ét af dens kriterier tjekker **Incoming Request**. En monitor, hvis kriterier kun tjekker brødteksten, Request Header eller et JavaScript-udtryk, evalueres, når en anmodning kommer, og på intet andet tidspunkt — så den kan aldrig gå offline af sig selv. Vil du have en alarm for manglende heartbeats, har du brug for et kriterium med **Incoming Request**.
 
-- **Filter Type**: Request Body
-- **Filter Condition**: Contains
-- **Value**: `"status":"degraded"`
+Baggrundstjekket tæller hele minutter og udløses, så snart *mere* end værdien er gået: "Not Recieved In Minutes: 10" udløses omkring 11 minutter efter den seneste anmodning (tjekket kører hvert 30. sekund). En monitor, der aldrig har modtaget en anmodning, behandles, som om dens oprettelsestidspunkt var den seneste anmodning, så det samme kriterium på en helt ny monitor udløses omkring 11 minutter efter, at du opretter den, også selv om afsenderen aldrig blev koblet på. Kun minutter, hvor OneUptime modtog, tæller med i værdien: minutter, hvor OneUptime selv genstarter, opgraderes eller indhenter et efterslæb, tæller ikke, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
-> **Warning:** En monitor revurderes kun i baggrunden, hvis mindst ét af dens kriterier kontrollerer **Incoming Request**. En monitor, hvis kriterier kun kontrollerer Request Body, Request Header eller et JavaScript Expression, vurderes, når en anmodning ankommer, og på intet andet tidspunkt — den kan derfor aldrig gå offline af sig selv. Vil du have en alarm for manglende hjerteslag, skal du bruge et **Incoming Request**-kriterium.
+## Modtagelse af advarsler fra et andet system
 
-Bemærk også, at en monitor, der aldrig har modtaget en anmodning, behandles, som om dens oprettelsestidspunkt var den seneste anmodning. Et kriterium "Not Recieved In Minutes: 10" på en helt ny monitor udløses 10 minutter efter, du opretter den, selv hvis afsenderen aldrig blev koblet til.
+Alertmanager, Grafana og lignende værktøjer sender med POST et JSON-dokument, der beskriver én eller flere advarsler. Som standard åbner et kriterium **én** hændelse, så en payload med fem advarsler ville give en enkelt hændelse. Gruppering af hændelser ændrer det: den trækker en værdi ud af payloaden og åbner **en separat hændelse pr. særskilt værdi**, som alle kan være åbne på samme tid.
 
-## Modtagelse af alarmer fra et andet system
+```mermaid title="Gruppering af hændelser: én hændelse pr. advarsel i payloaden"
+flowchart TB
+    payload["Webhook-payload"] --> keys["Én nøgle pr. advarsel"]
+    keys --> state{"Advarsel løst?"}
+    state -->|Nej| open["Åbn eller behold dens hændelse"]
+    state -->|Ja| resolve["Løs dens hændelse"]
+```
 
-Alertmanager, Grafana og lignende værktøjer POSTer et JSON-dokument, der beskriver en eller flere alarmer. Som standard åbner et kriterium **én** hændelse, så en payload med fem alarmer ville give en enkelt hændelse. Hændelsesgruppering ændrer det: den udtrækker en værdi fra payloaden og åbner **en separat hændelse per unik værdi**, som alle kan være åbne samtidig.
+### Slå gruppering af hændelser til
 
-### Slå hændelsesgruppering til
+:::steps
+1. Åbn kriteriet, og fold **Indstillinger** ud.
+2. Slå **Group incidents and alerts by a payload field** til.
+3. Udfyld **Open a separate incident for each…**. Skal hver hændelse løse sig selv, så udfyld også feltet og værdien under **Auto-resolve each incident when…** (se nedenfor). Gem derefter monitoren.
+:::
 
-Åbn kriteriet, fold **Settings** ud, og slå **Group incidents and alerts by a payload field** til. Fire felter dukker op:
+| Felt | Eksempel | Hvad det gør |
+| ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Den sti, hvis særskilte værdier deler hændelserne op |
+| Field that signals recovery | `requestBody.alerts[*].status` | Den sti, der tjekkes for at afgøre, at en advarsel er ovre |
+| Value that means recovered | `resolved` | Den nøjagtige værdi, der markerer, at problemet er ovre |
+| Max incidents per request | `100` (standard) | Sikkerhedsloft, så et felt med mange værdier ikke kan åbne et ubegrænset antal hændelser |
 
-| Felt                               | Eksempel                                 | Hvad det gør                                                                               |
-| ---------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Stien, hvis unikke værdier deler hændelserne op                                            |
-| Field that signals recovery        | `requestBody.alerts[*].status`           | Stien, der tjekkes for at afgøre, om en alarm er genoprettet                               |
-| Value that means recovered         | `resolved`                               | Den nøjagtige værdi, der markerer genopretning                                             |
-| Max incidents per request          | `100` (standard)                         | Sikkerhedsgrænse, så et felt med høj kardinalitet ikke kan åbne ubegrænset mange hændelser |
+### Syntaks for stier
 
-### Sti-syntaks
+Stier skal starte med det bogstavelige præfiks `requestBody.`. En sti uden det — `alerts[*].labels.alertname` — matcher ingenting, uden at sige det. Indpakningen `{{ }}` er valgfri: `requestBody.status` og `{{requestBody.status}}` opfører sig ens.
 
-Stier skal begynde med det bogstavelige præfiks `requestBody.`. En sti uden det — `alerts[*].labels.alertname` — matcher ingenting, og det sker lydløst. `{{ }}`-indpakningen er valgfri: `requestBody.status` og `{{requestBody.status}}` opfører sig ens.
+- `[*]` folder sig ud over et array — én hændelse pr. **særskilt** værdi. To elementer med samme værdi slås sammen til én hændelse, og den hændelses tilstand (aktiv/løst) tages fra det **første** matchende element. **Kun den første `[*]` i en sti er et jokertegn**; `requestBody.groups[*].alerts[*].name` matcher ingenting.
+- `[0]` og `[last]` vælger et enkelt element og må komme efter en `[*]`.
+- Objekt- og arrayværdier, tomme strenge og null-værdier springes over. `0` og `false` er gyldige nøgler.
+- Brødteksten skal være et JSON-objekt; en payload, hvis øverste niveau er et array, grupperes ikke.
 
-- `[*]` breder sig ud over et array — én hændelse per **unik** værdi. To elementer, der giver samme værdi, falder sammen til én hændelse, og den hændelses firing/resolved-tilstand tages fra det **første** matchende element. **Kun det første `[*]` i en sti er et jokertegn**; `requestBody.groups[*].alerts[*].name` matcher ingenting.
-- `[0]` og `[last]` vælger et enkelt element og må følge efter et `[*]`.
-- Objekt- og array-værdier, tomme strenge og null'er springes over. `0` og `false` er gyldige nøgler.
+### Løsning sker på baggrund af hændelser
 
-### Løsning er hændelsesdrevet
+En webhook beskriver kun det, der står i den payload, så OneUptime løser aldrig en hændelse, fordi dens nøgle holdt op med at dukke op. En hændelse løses kun, når en payload udtrykkeligt siger, at den nøgle er ovre. To ting skal begge være sande:
 
-En webhook beskriver kun det, der er i den payload, så OneUptime løser aldrig en hændelse, fordi dens nøgle er holdt op med at optræde. En hændelse løses kun, når en payload udtrykkeligt siger, at den nøgle er genoprettet. To ting skal begge være opfyldt:
+1. **Field that signals recovery** og **Value that means recovered** er udfyldt og matcher payloaden. Sammenligningen er nøjagtig og skelner mellem store og små bogstaver — `Resolved` matcher ikke `resolved`.
+2. Kriteriets hændelse har **Løs hændelse automatisk** slået til under **Flere felter** i hændelsesformularen. Uden det ignoreres matchende meldinger om, at problemet er ovre, og hændelserne forbliver åbne. (Det samme gælder for advarsler og **Løs advarsel automatisk**.) Standardkriteriet for offline starter med det slået til; en hændelse, du selv føjer til et kriterium, starter med det slået fra.
 
-1. **Field that signals recovery** og **Value that means recovered** er sat og matcher payloaden. Sammenligningen er nøjagtig og skelner mellem store og små bogstaver — `Resolved` matcher ikke `resolved`.
-2. Kriteriets hændelse har **Auto Resolve Incident** slået til, under **More fields** i hændelsesformularen. Uden det ignoreres matchende genopretningshændelser, og hændelserne forbliver åbne. (Det samme gælder alarmer og **Auto Resolve Alert**.)
+**Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
 
-**Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over grænsen er også usynlige for genopretning, så i en payload med flere unikke nøgler end grænsen vil en alarm, der melder `resolved` ud over den, ikke lukke sin hændelse.
+> [!NOTE]
+> Når én monitor modtager anmodninger hurtigere, end OneUptime evaluerer dem, evaluerer OneUptime den nyeste og springer dem imellem over, så en byge af webhooks kan efterlade en aktiv eller en løst advarsel uevalueret. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljø hver anmodning til at blive evalueret for sig.
 
-> **Warning:** Hvis **Field that signals recovery** indeholder `[*]`, men **Open a separate incident for each…** ikke gør, bliver intet nogensinde løst. Brug `[*]` i begge, eller i ingen af dem. En genopretningssti uden `[*]` vurderes mod hele payloaden, så et `status: resolved` på payload-niveau løser alle nøgler i den payload — også alarmer, hvis egen status stadig er firing.
+> [!WARNING]
+> Hvis **Field that signals recovery** indeholder `[*]`, men **Open a separate incident for each…** ikke gør, bliver intet nogensinde løst. Brug enten `[*]` i begge eller i ingen af dem. En sti for løsning uden `[*]` evalueres mod hele payloaden, så en `status: resolved` på payloadens niveau løser hver nøgle i den payload — også advarsler, hvis egen status stadig er aktiv.
 
-### At navngive hændelserne
+### Navngiv hændelserne
 
-Grupperingsnøglen stilles til rådighed for hændelses- og alarmskabeloner som en variabel opkaldt efter **stiens sidste segment**:
+Grupperingsnøglen gøres tilgængelig for hændelses- og advarselsskabeloner som en variabel, der er opkaldt efter **stiens sidste segment**:
 
-| Sti                                      | Variabel          |
+| Sti | Variabel |
 | ---------------------------------------- | ----------------- |
 | `requestBody.alerts[*].labels.alertname` | `{{alertname}}`   |
 | `requestBody.alerts[*].fingerprint`      | `{{fingerprint}}` |
 | `requestBody.commonLabels.severity`      | `{{severity}}`    |
 
-Hele payloaden er tilgængelig ved siden af, så en hændelsestitel `{{alertname}}` og en beskrivelse med `{{requestBody.commonAnnotations.summary}}` fungerer begge. Se [Dynamiske hændelses- og alarmskabeloner](/docs/monitor/incident-alert-templating).
+Hele payloaden er tilgængelig ved siden af, så både en hændelsestitel `{{alertname}}` og en beskrivelse, der henviser til `{{requestBody.commonAnnotations.summary}}`, virker. Se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
 
-> **Warning:** Variabelnavnet er en del af den identitet, OneUptime bruger til at matche en genopretningshændelse med en åben hændelse. Ændrer du grupperingsstien til en med et andet sidste segment, bliver alle hændelser, der aktuelt er åbne under den gamle sti, forældreløse — de kan ikke længere løses automatisk og skal lukkes manuelt.
+> [!WARNING]
+> Variablens navn er en del af den identitet, OneUptime bruger til at matche en melding om, at problemet er ovre, med en åben hændelse. Ændrer du grupperingsstien til en med et andet sidste segment, bliver alle hændelser, der står åbne under den gamle sti, forældreløse — de kan ikke længere løses automatisk og skal lukkes manuelt.
 
-Bemærk, at `[*]` **kun** virker i de to grupperingssti-felter. Andre steder opløses det ikke, og en uopløst pladsholder udskrives **ordret** i stedet for at blive tømt — en titel `{{requestBody.alerts[*].labels.alertname}}` vises med tuborgklammerne intakte. En titel `{{requestBody.alerts[0].annotations.summary}}` opløses, men læser altid den første alarm i payloaden, ikke den, denne hændelse blev åbnet for. Foretræk grupperingsvariablen sammen med payloadens fælles `commonAnnotations`-felter.
+`[*]` virker **kun** i de to felter til grupperingsstier. Andre steder løses den ikke op, og en pladsholder, der ikke løses op, skrives **ordret** i stedet for at blive tømt — en titel `{{requestBody.alerts[*].labels.alertname}}` vises med tuborgklammerne stadig i. En titel `{{requestBody.alerts[0].annotations.summary}}` løses op, men læser altid den første advarsel i payloaden, ikke den, hændelsen blev åbnet for. Foretræk grupperingsvariablen plus payloadens fælles felter `commonAnnotations`.
 
-### Gennemarbejdet eksempel
+### Gennemgået eksempel
 
-For en fuld Alertmanager-konfiguration, se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
+En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
 
 ## Bedste praksis
 
-1. **Sæt tidsvinduet passende** — Hvis dit cron-job kører hvert 5. minut, sæt tærsklen "Not Recieved In Minutes" til 10–15 minutter for at tillade lejlighedsvise forsinkelser
-2. **Medtag meningsfulde data** — Send statusinformation i anmodningens indhold, så du kan opsætte finkornede kriterier
-3. **Brug POST med `Content-Type: application/json`** — alt, der læser inde i indholdet, afhænger af det
-4. **Bland ikke de to opgaver på én monitor** — en monitor, der modtager hændelsesdrevne alarmer, har ingen fast kadence, så et "Not Recieved In Minutes"-kriterium på den vil svinge. Brug en separat monitor til dødemandsknappen
-5. **Overvåg monitoren** — Sørg for, at tjenesten, der sender anmodningerne, har ordentlig fejlhåndtering, så mislykkede anmodninger ikke går ubemærket hen
+1. **Sæt tidsvinduet passende** — Hvis dit cronjob kører hvert 5. minut, så sæt tærsklen for "Not Recieved In Minutes" til 10–15 minutter for at give plads til lejlighedsvise forsinkelser, og placér det kriterium først.
+2. **Send meningsfulde data med** — Send statusoplysninger i anmodningens brødtekst, så du kan opsætte detaljerede kriterier.
+3. **Brug POST med `Content-Type: application/json`** — alt, der læser inde i brødteksten, afhænger af det.
+4. **Bland ikke de to opgaver på én monitor** — en monitor, der modtager hændelsesdrevne advarsler, har ingen fast rytme, så et kriterium "Not Recieved In Minutes" på den vil skifte frem og tilbage. Brug en separat monitor til dødmandsknappen.
+5. **Overvåg overvågningen** — Sørg for, at den tjeneste, der sender anmodningerne, håndterer fejl ordentligt, så mislykkede anmodninger ikke går ubemærket hen.
 
-## Læs videre
+## Fejlfinding
 
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) — en komplet indgående alarmeringsopsætning
-- [Grafana](/docs/integrations/grafana) — det samme, for Grafana-alarmering
-- [Dynamiske hændelses- og alarmskabeloner](/docs/monitor/incident-alert-templating) — alle variabler til rådighed i titler og beskrivelser
-- [JavaScript-udtryk](/docs/monitor/javascript-expression) — udtrykssyntaks og regler for anførselstegn
+:::details Min afsender får en 200, men intet vises på monitoren
+`200` sendes, før anmodningen valideres, så den beviser ikke, at anmodningen blev accepteret. Tjek, at den hemmelige nøgle i URL'en svarer til monitorens **Heartbeat URL**, og at monitoren ikke er deaktiveret. Se derefter på monitorens tidslinje, om anmodningerne lander.
+:::
+
+:::details Monitoren går aldrig offline, når heartbeats stopper
+Kun et kriterium med **Incoming Request** (**Not Recieved In Minutes**) kan opdage stilhed. Tilføj et, hvis der ikke er noget, og træk det op over standardkriterierne: standardkriteriet for online matcher den seneste anmodning ved hvert baggrundstjek, og det første kriterium, der matcher, afgør det.
+:::
+
+:::details Et filter på Anmodningsbrødtekst matcher aldrig
+Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke.
+:::
+
+:::details Et filter på Request Header matcher aldrig
+Headernavne og -værdier sammenlignes i deres helhed. Angiv hele værdien, for eksempel `application/json; charset=utf-8`, i stedet for en del af den.
+:::
+
+:::details Afsenderen får en 500
+Anmodningen siger `Content-Type: application/json`, men dens brødtekst er ikke et JSON-objekt eller et JSON-array. Send gyldig JSON eller en anden indholdstype.
+:::
+
+## Næste trin
+
+:::cards
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): En komplet opsætning til indgående advarsler.
+- [Grafana](/docs/integrations/grafana): Det samme for advarsler fra Grafana.
+- [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating): Alle variabler, der er tilgængelige i titler og beskrivelser.
+- [JavaScript-udtryk](/docs/monitor/javascript-expression): Syntaks for udtryk og regler for anførselstegn.
+:::

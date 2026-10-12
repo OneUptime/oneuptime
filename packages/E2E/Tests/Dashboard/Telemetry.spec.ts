@@ -1,15 +1,22 @@
 import { BASE_URL } from "../../Config";
-import { Page, test } from "@playwright/test";
+import { Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
+import { JSONish, requestJson } from "./Helpers/MonitorAlerting";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import {
   createTelemetryIngestionKey,
+  postOtlpClaudeCodeLlmRequest,
+  postOtlpLlmCall,
   postOtlpLogs,
   postOtlpMetrics,
   postOtlpTraces,
   waitForTelemetryText,
 } from "./Helpers/Telemetry";
+
+// A record ID: a UUID, as Show ID hands it over.
+const RECORD_ID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /*
  * Telemetry (Logs / Traces / Metrics) end-to-end coverage.
@@ -111,6 +118,254 @@ test.describe("Telemetry Ingestion", () => {
       ready: page.getByPlaceholder(/Search traces/i),
       text: spanName,
     });
+  });
+
+  /*
+   * Issue #4615: Show ID on a row of the LLM calls table threw minified React
+   * error #31 and replaced the page with the error screen. An LLM call is an
+   * analytics row, whose ID is an ObjectID rather than a string, and the
+   * dialog put the object on the page. The table was the Overview's Recent
+   * LLM Calls; the Overview folded into Conversations and the table lives on
+   * AI / LLM > Calls.
+   */
+  test("should show an LLM call's ID from the AI / LLM calls instead of crashing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const projectId: string = await registerAndCreateProject({
+      page,
+      projectNamePrefix: "E2E LLM Project",
+    });
+
+    const ingestionKey: string = await createTelemetryIngestionKey({
+      page,
+      projectId,
+      keyName: "E2E LLM Key " + Faker.generateName().toString(),
+    });
+
+    const serviceName: string =
+      "e2e-llm-" + Faker.generateName().toString().toLowerCase();
+    const model: string =
+      "e2e-model-" + Faker.generateName().toString().toLowerCase();
+
+    await postOtlpLlmCall({ page, ingestionKey, serviceName, model });
+
+    const llmCallsUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/llm/calls`)
+      .toString();
+
+    await waitForTelemetryText({
+      page,
+      projectId,
+      url: llmCallsUrl,
+      ready: page.getByRole("heading", { name: "AI / LLM Calls" }),
+      text: model,
+    });
+
+    // The call's own ID, as the span API holds it.
+    const listed: JSONish = await requestJson({
+      page,
+      projectId,
+      path: "/api/span/get-list",
+      body: {
+        query: { projectId, llmRequestModel: model },
+        select: { _id: true },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      },
+    });
+    const storedId: JSONish | string | undefined = (
+      (listed["data"] || []) as Array<JSONish>
+    )[0]?.["_id"];
+    const callId: string =
+      typeof storedId === "string" ? storedId : String(storedId?.["value"]);
+
+    expect(callId).toMatch(RECORD_ID_PATTERN);
+
+    const row: Locator = page.locator("tr", { hasText: model });
+    await row.getByTestId("row-actions-more-button").click();
+    await page.getByRole("menuitem", { name: "Show ID" }).click();
+
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.getByTestId("modal-title")).toHaveText("LLM Call ID");
+    await expect(modal.getByTestId("record-id-value")).toHaveText(callId);
+    await expect(
+      modal.getByRole("button", { name: "Copy ID to clipboard" }),
+    ).toBeVisible();
+    // Spans are in the API Reference, so the dialog offers the way there.
+    await expect(
+      modal.getByRole("button", { name: "Go to API Docs" }),
+    ).toBeVisible();
+
+    // Closing it leaves the page as it was: no error screen behind it.
+    await modal.getByTestId("modal-footer-close-button").click();
+    await expect(modal).toBeHidden();
+    await expect(
+      page.getByRole("heading", { name: "AI / LLM Calls" }),
+    ).toBeVisible();
+    await expect(page.getByText(model).first()).toBeVisible();
+  });
+
+  /*
+   * An AI call that carries its conversation id and what was said shows as
+   * a conversation: listed under the person's question, opened to read the
+   * question and the answer, and replayed message by message.
+   */
+  test("should list an AI conversation and open it to read and replay", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const projectId: string = await registerAndCreateProject({
+      page,
+      projectNamePrefix: "E2E LLM Conversation Project",
+    });
+
+    const ingestionKey: string = await createTelemetryIngestionKey({
+      page,
+      projectId,
+      keyName: "E2E LLM Conversation Key " + Faker.generateName().toString(),
+    });
+
+    const suffix: string = Faker.generateName().toString().toLowerCase();
+    const question: string = `Where should I travel in May, ${suffix}?`;
+    const answer: string = `Lisbon is lovely in May, ${suffix}.`;
+
+    await postOtlpLlmCall({
+      page,
+      ingestionKey,
+      serviceName: "e2e-llm-chat-" + suffix,
+      model: "e2e-model-" + suffix,
+      conversation: {
+        conversationId: "e2e-chat-" + suffix,
+        question: question,
+        answer: answer,
+        userEmail: "ada@example.com",
+      },
+    });
+
+    const conversationsUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/llm/conversations`)
+      .toString();
+
+    await waitForTelemetryText({
+      page,
+      projectId,
+      url: conversationsUrl,
+      ready: page.getByTestId("llm-conversations-search"),
+      text: question,
+    });
+
+    // The row says who asked; opening it shows what was said.
+    const row: Locator = page
+      .getByTestId("llm-conversation-row")
+      .filter({ hasText: question });
+    await expect(row).toContainText("ada@example.com");
+    await row.click();
+
+    await expect(page).toHaveURL(/\/llm\/conversations\/c%3Ae2e-chat-/);
+    await expect(page.getByTestId("llm-conversation-title")).toHaveText(
+      question,
+    );
+
+    const transcript: Locator = page.getByTestId("llm-transcript");
+    await expect(transcript).toContainText(question);
+    await expect(transcript).toContainText(answer);
+
+    // A step back in the replay hides the answer and says it is to come.
+    await page.keyboard.press("j");
+    await expect(transcript).not.toContainText(answer);
+    await expect(page.getByTestId("llm-replay-hidden-note")).toContainText(
+      "1 more message to come in the replay",
+    );
+    await expect(page).toHaveURL(/[?&]step=0/);
+
+    await page.getByTestId("llm-replay-show-all").click();
+    await expect(transcript).toContainText(answer);
+    await expect(page.getByTestId("llm-replay-play")).toHaveText(/Replay/);
+  });
+
+  /*
+   * Claude Code's traces beta writes a model request's usage under its own
+   * keys, not gen_ai.usage.*, and its calls used to be stored with no
+   * tokens and a cost of $0. The call is stored with every token it read
+   * (the cache counts added to input_tokens) and a cost at Claude Opus
+   * 4.8's list prices: 12 x $5 + 48,000 x $0.50 + 2,100 x $6.25 + 640 x $25
+   * per million tokens, $0.053185.
+   */
+  test("should store a Claude Code traces beta call with its tokens and a cost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const projectId: string = await registerAndCreateProject({
+      page,
+      projectNamePrefix: "E2E Claude Code Project",
+    });
+
+    const ingestionKey: string = await createTelemetryIngestionKey({
+      page,
+      projectId,
+      keyName: "E2E Claude Code Key " + Faker.generateName().toString(),
+    });
+
+    const suffix: string = Faker.generateName().toString().toLowerCase();
+    const model: string = "claude-opus-4-8";
+
+    await postOtlpClaudeCodeLlmRequest({
+      page,
+      ingestionKey,
+      serviceName: "e2e-claude-code-" + suffix,
+      model: model,
+      sessionId: "e2e-claude-code-session-" + suffix,
+      usage: {
+        inputTokens: 12,
+        outputTokens: 640,
+        cacheReadTokens: 48000,
+        cacheCreationTokens: 2100,
+      },
+    });
+
+    const llmCallsUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/llm/calls`)
+      .toString();
+
+    await waitForTelemetryText({
+      page,
+      projectId,
+      url: llmCallsUrl,
+      ready: page.getByRole("heading", { name: "AI / LLM Calls" }),
+      text: model,
+    });
+
+    const listed: JSONish = await requestJson({
+      page,
+      projectId,
+      path: "/api/span/get-list",
+      body: {
+        query: { projectId, llmRequestModel: model },
+        select: {
+          llmInputTokens: true,
+          llmOutputTokens: true,
+          llmTotalTokens: true,
+          llmCost: true,
+        },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      },
+    });
+    const call: JSONish = ((listed["data"] || []) as Array<JSONish>)[0] || {};
+
+    expect({
+      input: Number(call["llmInputTokens"]),
+      output: Number(call["llmOutputTokens"]),
+      total: Number(call["llmTotalTokens"]),
+      cost: Number(call["llmCost"]),
+    }).toEqual({ input: 50112, output: 640, total: 50752, cost: 0.053185 });
   });
 
   test("should ingest OTLP metrics and show them on the Metrics dashboard", async ({

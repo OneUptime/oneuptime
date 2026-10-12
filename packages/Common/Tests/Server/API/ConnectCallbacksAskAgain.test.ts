@@ -5,7 +5,8 @@ import path from "path";
 /*
  * Every redirect that finishes connecting something to a project - a GitHub
  * App installation, a Slack workspace, a Microsoft 365 tenant, a person's
- * Slack or Microsoft account - lands on a callback that carries no session
+ * Slack or Microsoft account, a Zoom, Google or Microsoft sign-in for video
+ * calls - lands on a callback that carries no session
  * and writes as OneUptime. Two rules keep those callbacks honest:
  *
  *  1. The project and the person come only from a one-use state the start
@@ -179,6 +180,36 @@ const CALLBACKS: Array<Callback> = [
     ],
     helpers: ["continueAdminConsentWithSignIn", "completeAdminConsent"],
   },
+  {
+    file: "VideoCallOAuthAPI.ts",
+    path: "/video-call-oauth/zoom/callback",
+    provider: "ConnectProvider.Zoom",
+    flows: ["WorkspaceOAuthFlow.VideoCallZoomConnect"],
+    asksAgain: "VideoCallConnectAccess.assertMayFinish(",
+    refusedAs: "ConnectCallbackError.NoPermission",
+    writes: ["VideoCallOAuthAPI.finishConnect("],
+    helpers: ["finishConnect"],
+  },
+  {
+    file: "VideoCallOAuthAPI.ts",
+    path: "/video-call-oauth/google-meet/callback",
+    provider: "ConnectProvider.GoogleMeet",
+    flows: ["WorkspaceOAuthFlow.VideoCallGoogleMeetConnect"],
+    asksAgain: "VideoCallConnectAccess.assertMayFinish(",
+    refusedAs: "ConnectCallbackError.NoPermission",
+    writes: ["VideoCallOAuthAPI.finishConnect("],
+    helpers: ["finishConnect"],
+  },
+  {
+    file: "VideoCallOAuthAPI.ts",
+    path: "/video-call-oauth/microsoft-teams/callback",
+    provider: "ConnectProvider.MicrosoftTeamsMeetings",
+    flows: ["WorkspaceOAuthFlow.VideoCallMicrosoftTeamsConnect"],
+    asksAgain: "VideoCallConnectAccess.assertMayFinish(",
+    refusedAs: "ConnectCallbackError.NoPermission",
+    writes: ["VideoCallOAuthAPI.finishConnect("],
+    helpers: ["finishConnect"],
+  },
 ];
 
 interface Start {
@@ -219,6 +250,24 @@ const STARTS: Array<Start> = [
     path: "/microsoft-teams/admin-consent",
     flow: "WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent",
     asks: "CommonAPI.assertPermittedInProject(",
+  },
+  {
+    file: "VideoCallOAuthAPI.ts",
+    path: "/video-call-oauth/zoom/authorize-url",
+    flow: "WorkspaceOAuthFlow.VideoCallZoomConnect",
+    asks: "VideoCallConnectAccess.assertMayStart(",
+  },
+  {
+    file: "VideoCallOAuthAPI.ts",
+    path: "/video-call-oauth/google-meet/authorize-url",
+    flow: "WorkspaceOAuthFlow.VideoCallGoogleMeetConnect",
+    asks: "VideoCallConnectAccess.assertMayStart(",
+  },
+  {
+    file: "VideoCallOAuthAPI.ts",
+    path: "/video-call-oauth/microsoft-teams/authorize-url",
+    flow: "WorkspaceOAuthFlow.VideoCallMicrosoftTeamsConnect",
+    asks: "VideoCallConnectAccess.assertMayStart(",
   },
 ];
 

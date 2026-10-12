@@ -6,7 +6,6 @@ import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasur
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -36,6 +35,8 @@ import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
@@ -49,8 +50,6 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
@@ -170,8 +169,12 @@ const STATE_PLACE_SELECT: Select<ScheduledMaintenanceState> = {
  */
 type AttachmentsBeforeUpdate = {
   projectId: ObjectID | undefined;
-  // Live ongoing: what suppresses the event's network sites.
-  wasOngoingBeforeUpdate: boolean;
+  /*
+   * In progress - ongoing, or in a state of the project's own between
+   * Ongoing and Ended (ScheduledMaintenanceStartUtil): what suppresses the
+   * event's network sites.
+   */
+  wasInProgressBeforeUpdate: boolean;
   // Ongoing, or past it without having ended: what keeps monitors disabled.
   wasHoldingMonitorsBeforeUpdate: boolean;
   // Undefined when the update does not write that list.
@@ -792,17 +795,22 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    // The one event an update names by its id: what it holds decides this.
+    const scheduledMaintenanceId: ObjectID | null = Service.getOneRowIdNamedBy(
+      updateBy.query,
+    );
+
     if (
-      updateBy.query._id &&
+      scheduledMaintenanceId &&
       (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
         updateBy.data.startsAt)
     ) {
       logger.debug(
-        `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${updateBy.query.id}`,
+        `Calculating nextSubscriberNotificationBeforeTheEventAt for Scheduled Maintenance: ${scheduledMaintenanceId.toString()}`,
       );
 
       const scheduledMaintenance: Model | null = await this.findOneById({
-        id: updateBy.query._id! as ObjectID,
+        id: scheduledMaintenanceId,
         select: {
           startsAt: true,
           sendSubscriberNotificationsOnBeforeTheEvent: true,
@@ -892,6 +900,37 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
      */
 
     await this.validateProjectScopedReferences(updateBy);
+
+    /*
+     * An update that writes the event's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of scheduled maintenance states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.ScheduledMaintenance,
+      updateBy: updateBy,
+      stateKeys: STATE_KEYS,
+      stateModelName: "Scheduled Maintenance State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<ScheduledMaintenanceState>> => {
+        return ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: projectId,
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+      },
+    });
 
     /*
      * The one stored read of the event's own columns the update writes. A
@@ -1053,11 +1092,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         )
       : null;
 
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: updateBy.props.tenantId
-        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-        : updateBy.query,
-      select: {
+    const scheduledMaintenanceEvents: Array<Model> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
         _id: true,
         projectId: true,
         ...(isMonitorStatusWritten
@@ -1069,13 +1105,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         ...(ScheduledMaintenanceFieldChange.getSelect(
           fieldsWritten,
         ) as Select<Model>),
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     const monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null =
       isMonitorStatusWritten ? {} : null;
@@ -1139,11 +1169,84 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       return startedByFlags;
     }
 
+    // An event read without a state has none to place: nothing is read.
+    if (!currentState) {
+      return false;
+    }
+
+    const states: Array<ScheduledMaintenanceState> | null =
+      await this.getProjectStatesOnce({
+        scheduledMaintenanceEvent: data.scheduledMaintenanceEvent,
+        statesByProjectId: data.statesByProjectId,
+      });
+
+    if (!states) {
+      return false;
+    }
+
+    return ScheduledMaintenanceStartUtil.hasStarted({
+      states: states,
+      state: currentState,
+    });
+  }
+
+  /*
+   * Whether an event read with its state's flags (and id) is in progress
+   * (ScheduledMaintenanceStartUtil): in the ongoing state, or in a state of
+   * the project's own placed between Ongoing and Ended, such as
+   * "Verifying". A built-in state answers by its flag; only a state of the
+   * project's own needs the project's list, read once per project into
+   * statesByProjectId.
+   */
+  private async isScheduledMaintenanceInProgress(data: {
+    scheduledMaintenanceEvent: Model;
+    statesByProjectId: Map<string, Array<ScheduledMaintenanceState>>;
+  }): Promise<boolean> {
+    const currentState: ScheduledMaintenanceState | undefined =
+      data.scheduledMaintenanceEvent.currentScheduledMaintenanceState;
+
+    const inProgressByFlags: boolean | null =
+      ScheduledMaintenanceStartUtil.isInProgressByFlags(currentState);
+
+    if (inProgressByFlags !== null) {
+      return inProgressByFlags;
+    }
+
+    // An event read without a state has none to place: nothing is read.
+    if (!currentState) {
+      return false;
+    }
+
+    const states: Array<ScheduledMaintenanceState> | null =
+      await this.getProjectStatesOnce({
+        scheduledMaintenanceEvent: data.scheduledMaintenanceEvent,
+        statesByProjectId: data.statesByProjectId,
+      });
+
+    if (!states) {
+      return false;
+    }
+
+    return ScheduledMaintenanceStartUtil.isInProgress({
+      states: states,
+      state: currentState,
+    });
+  }
+
+  /*
+   * The event's project's states, in their order, read the first time a
+   * project is asked about and kept in statesByProjectId after that. Null
+   * for an event read without its project.
+   */
+  private async getProjectStatesOnce(data: {
+    scheduledMaintenanceEvent: Model;
+    statesByProjectId: Map<string, Array<ScheduledMaintenanceState>>;
+  }): Promise<Array<ScheduledMaintenanceState> | null> {
     const projectId: ObjectID | undefined =
       data.scheduledMaintenanceEvent.projectId;
 
-    if (!currentState || !projectId) {
-      return false;
+    if (!projectId) {
+      return null;
     }
 
     const projectKey: string = projectId.toString();
@@ -1165,10 +1268,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       data.statesByProjectId.set(projectKey, states);
     }
 
-    return ScheduledMaintenanceStartUtil.hasStarted({
-      states: states,
-      state: currentState,
-    });
+    return states;
   }
 
   /*
@@ -1234,6 +1334,12 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
 
     const listIdsBeforeUpdate: Dictionary<Dictionary<Array<string>>> = {};
 
+    // Each project's states, read once and only for a state of its own.
+    const statesByProjectId: Map<
+      string,
+      Array<ScheduledMaintenanceState>
+    > = new Map<string, Array<ScheduledMaintenanceState>>();
+
     for (const column of columns) {
       const isAttachment: boolean = ATTACHMENT_COLUMNS.includes(
         column as AttachmentColumn,
@@ -1250,17 +1356,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
         },
       } as Select<Model>;
 
-      const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-        query: updateBy.props.tenantId
-          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
-          : updateBy.query,
-        select: select,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      const scheduledMaintenanceEvents: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, select);
 
       for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
         if (!scheduledMaintenanceEvent.id) {
@@ -1286,17 +1383,18 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
           eventKey
         ] || {
           projectId: undefined,
-          wasOngoingBeforeUpdate: false,
+          wasInProgressBeforeUpdate: false,
           wasHoldingMonitorsBeforeUpdate: false,
           monitorIdsBeforeUpdate: undefined,
           networkSiteIdsBeforeUpdate: undefined,
         };
 
         attachmentsBeforeUpdate.projectId = scheduledMaintenanceEvent.projectId;
-        attachmentsBeforeUpdate.wasOngoingBeforeUpdate = Boolean(
-          scheduledMaintenanceEvent.currentScheduledMaintenanceState
-            ?.isOngoingState,
-        );
+        attachmentsBeforeUpdate.wasInProgressBeforeUpdate =
+          await this.isScheduledMaintenanceInProgress({
+            scheduledMaintenanceEvent: scheduledMaintenanceEvent,
+            statesByProjectId: statesByProjectId,
+          });
 
         if (column === "monitors") {
           attachmentsBeforeUpdate.monitorIdsBeforeUpdate = this.getIdsNotIn({
@@ -1455,19 +1553,20 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each event the query actually matches.
+     * The project of every event the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * event's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     // See ProjectScopedReferenceValidator.getRelationReferences.
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -1524,52 +1623,19 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     ];
   }
 
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const scheduledMaintenance of scheduledMaintenanceEvents) {
-      if (scheduledMaintenance.projectId) {
-        projectIds[scheduledMaintenance.projectId.toString()] =
-          scheduledMaintenance.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
-  }
-
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The events the delete removes, and the delete held to them.
+    const scheduledMaintenanceEvents: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         projectId: true,
         monitors: {
           _id: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     return {
       carryForward: {
@@ -1582,11 +1648,14 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _deletedItemIds: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward?.scheduledMaintenanceEvents) {
-      for (const scheduledMaintenanceEvent of onDelete?.carryForward
-        ?.scheduledMaintenanceEvents || []) {
+      // The events the delete removed, of those onBeforeDelete read.
+      for (const scheduledMaintenanceEvent of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.scheduledMaintenanceEvents,
+        deletedIds: deletedIds,
+      })) {
         await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
           scheduledMaintenanceEvent,
         );
@@ -1853,6 +1922,15 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
   public async refreshReminderSchedule(data: {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;
+    /*
+     * Set when all that asks for the refresh is the event's start moving -
+     * startsAtBefore is where it was. The schedule then follows the start
+     * only where it is counted from it: the matching rule waits for the
+     * start (remindWhileScheduled off), and the start - where it was or
+     * where it is now - is still ahead. Anywhere else the interval running
+     * now is left alone, as each refresh starts it over.
+     */
+    startMovedFrom?: { startsAtBefore: Date | null } | undefined;
   }): Promise<void> {
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: data.scheduledMaintenanceId,
@@ -1873,6 +1951,9 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     let nextReminderNotificationAt: Date | null = null;
+
+    // Whether the first reminder is counted from the event's start.
+    let isCountedFromTheStart: boolean = false;
 
     if (scheduledMaintenance.enableReminders !== false) {
       const matchingRule: ScheduledMaintenanceReminderRule | null =
@@ -1909,7 +1990,21 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
           referenceDate,
           matchingRule.reminderIntervalInMinutes,
         );
+
+        const startsAtBefore: Date | null | undefined =
+          data.startMovedFrom?.startsAtBefore;
+
+        isCountedFromTheStart =
+          !matchingRule.remindWhileScheduled &&
+          ((Boolean(scheduledMaintenance.startsAt) &&
+            OneUptimeDate.isInTheFuture(scheduledMaintenance.startsAt!)) ||
+            (Boolean(startsAtBefore) &&
+              OneUptimeDate.isInTheFuture(startsAtBefore!)));
       }
+    }
+
+    if (data.startMovedFrom && !isCountedFromTheStart) {
+      return;
     }
 
     await this.updateOneById({
@@ -2542,7 +2637,7 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
 
     if (
       networkSiteIdsBeforeUpdate &&
-      attachmentsBeforeUpdate.wasOngoingBeforeUpdate
+      attachmentsBeforeUpdate.wasInProgressBeforeUpdate
     ) {
       // A read of its own, for the same reason as in onBeforeUpdate.
       const eventAfterUpdate: Model | null = await this.findOneById({
@@ -2715,7 +2810,7 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
      * recomputeNetworkSiteRollups logs its own failures.
      */
     if (
-      attachmentsBeforeUpdate.wasOngoingBeforeUpdate &&
+      attachmentsBeforeUpdate.wasInProgressBeforeUpdate &&
       change.networkSitesChanged.length > 0
     ) {
       const eventWithChangedSites: Model = new Model(
@@ -3271,8 +3366,11 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
          * sent back as it is changes nothing. The event is read back rather
          * than the ids in the payload being looked up: the read is held to
          * this project, and it names the whole list the card now shows. An
-         * edit that leaves it affecting nothing has no list to show, as
-         * before; the monitors taken off are named below.
+         * edit that leaves it affecting nothing has no list to show: when it
+         * took off something besides monitors - a host, a cluster, a service
+         * - one line says nothing else is affected now, or the feed would
+         * not record the edit at all; the monitors taken off are named
+         * below.
          */
         const affectedResourcesChanged: boolean =
           this.getAffectedResourceListColumns().some(
@@ -3306,6 +3404,17 @@ ${FeedMarkdown.join(
   "\n",
 )}
 `;
+
+              shouldAddScheduledMaintenanceFeed = true;
+            } else if (
+              changedListColumns.some((column: string): boolean => {
+                return (
+                  column !== "monitors" &&
+                  this.getAffectedResourceListColumns().includes(column)
+                );
+              })
+            ) {
+              feedInfoInMarkdown += mdText`\n\n**Resources Affected**: \n${ScheduledMaintenanceFieldChange.noOtherResourcesLine}\n`;
 
               shouldAddScheduledMaintenanceFeed = true;
             }
@@ -3438,15 +3547,39 @@ ${FeedMarkdown.join(
          * runs when it changed neither: each refresh starts the interval
          * over, so writing back the labels the event has, as every save of
          * its Maintenance Details card does, must not.
+         *
+         * A start that really moved - another instant, not the same time
+         * spelled another way (EventFieldChange.isInstantChanged) - asks
+         * for it too, but the schedule follows only where the first
+         * reminder is counted from the start: a rule that waits for it
+         * (refreshReminderSchedule's startMovedFrom). Moved earlier, the
+         * reminders would otherwise come late; nothing else moves them.
          */
+        const isStartMoved: boolean =
+          fieldChanges.timeColumns.includes("startsAt");
+
         if (
           onUpdate.updateBy.props.tenantId &&
-          (fieldChanges.labels || fieldChanges.enableReminders)
+          (fieldChanges.labels || fieldChanges.enableReminders || isStartMoved)
         ) {
+          const startsAtBeforeUpdate: unknown =
+            carryForward?.valuesBeforeUpdate?.[
+              scheduledMaintenanceId.toString()
+            ]?.startsAt;
+
           try {
             await this.refreshReminderSchedule({
               scheduledMaintenanceId: scheduledMaintenanceId,
               projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+              startMovedFrom:
+                fieldChanges.labels || fieldChanges.enableReminders
+                  ? undefined
+                  : {
+                      startsAtBefore:
+                        typeof startsAtBeforeUpdate === "number"
+                          ? new Date(startsAtBeforeUpdate)
+                          : null,
+                    },
             });
           } catch (reminderError) {
             logger.error(
@@ -3558,6 +3691,12 @@ ${FeedMarkdown.join(
     });
   }
 
+  /*
+   * Whether the event is complete: in its project's completed state or one
+   * placed after it (ScheduledMaintenanceStartUtil.isComplete, the rule the
+   * chats' buttons read off an event they read already). What stops its
+   * owners' reminders ("Remind until event is Completed").
+   */
   @CaptureSpan()
   public async isScheduledMaintenanceCompleted(data: {
     scheduledMaintenanceId: ObjectID;
@@ -3568,9 +3707,7 @@ ${FeedMarkdown.join(
       },
       select: {
         projectId: true,
-        currentScheduledMaintenanceState: {
-          order: true,
-        },
+        currentScheduledMaintenanceStateId: true,
       },
       props: {
         isRoot: true,
@@ -3582,32 +3719,28 @@ ${FeedMarkdown.join(
     }
 
     if (!scheduledMaintenance.projectId) {
-      throw new BadDataException("Incident Project ID not found");
+      throw new BadDataException("Scheduled maintenance project ID not found");
     }
 
-    const resolvedScheduledMaintenanceState: ScheduledMaintenanceState =
-      await ScheduledMaintenanceStateService.getCompletedScheduledMaintenanceState(
-        {
-          projectId: scheduledMaintenance.projectId,
-          props: {
-            isRoot: true,
+    // An event without a state is not complete: nothing says it is.
+    if (!scheduledMaintenance.currentScheduledMaintenanceStateId) {
+      return false;
+    }
+
+    return ScheduledMaintenanceStartUtil.isComplete({
+      states:
+        await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: scheduledMaintenance.projectId,
+            props: {
+              isRoot: true,
+            },
           },
-        },
-      );
-
-    const currentScheduledMaintenanceStateOrder: number =
-      scheduledMaintenance.currentScheduledMaintenanceState!.order!;
-    const resolvedScheduledMaintenanceStateOrder: number =
-      resolvedScheduledMaintenanceState.order!;
-
-    if (
-      currentScheduledMaintenanceStateOrder >=
-      resolvedScheduledMaintenanceStateOrder
-    ) {
-      return true;
-    }
-
-    return false;
+        ),
+      state: {
+        _id: scheduledMaintenance.currentScheduledMaintenanceStateId,
+      },
+    });
   }
 
   @CaptureSpan()
@@ -3641,6 +3774,14 @@ ${FeedMarkdown.join(
     };
   }
 
+  /*
+   * Whether the event has started (ScheduledMaintenanceStartUtil): it is in
+   * its project's ongoing state or any state after it - a state of the
+   * project's own placed after Ongoing ("Verifying") as much as Ended. What
+   * stops the reminders of a rule set to stop once the event is ongoing.
+   * (Slack's and Teams' Mark as Ongoing read the same rule off the event
+   * they read already: WorkspaceMemberActions.getStanding.)
+   */
   @CaptureSpan()
   public async isScheduledMaintenanceOngoing(data: {
     scheduledMaintenanceId: ObjectID;
@@ -3651,9 +3792,7 @@ ${FeedMarkdown.join(
       },
       select: {
         projectId: true,
-        currentScheduledMaintenanceState: {
-          order: true,
-        },
+        currentScheduledMaintenanceState: STATE_PLACE_SELECT,
       },
       props: {
         isRoot: true,
@@ -3668,152 +3807,10 @@ ${FeedMarkdown.join(
       throw new BadDataException("Incident Project ID not found");
     }
 
-    const ackScheduledMaintenanceState: ScheduledMaintenanceState =
-      await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
-        {
-          projectId: scheduledMaintenance.projectId,
-          props: {
-            isRoot: true,
-          },
-        },
-      );
-
-    const currentScheduledMaintenanceStateOrder: number =
-      scheduledMaintenance.currentScheduledMaintenanceState!.order!;
-    const ackScheduledMaintenanceStateOrder: number =
-      ackScheduledMaintenanceState.order!;
-
-    if (
-      currentScheduledMaintenanceStateOrder >= ackScheduledMaintenanceStateOrder
-    ) {
-      return true;
-    }
-
-    return false;
-  }
-
-  @CaptureSpan()
-  public async markScheduledMaintenanceAsComplete(
-    scheduledMaintenanceId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    const scheduledMaintenance: Model | null = await this.findOneById({
-      id: scheduledMaintenanceId,
-      select: {
-        projectId: true,
-        scheduledMaintenanceNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    return await this.hasScheduledMaintenanceStarted({
+      scheduledMaintenanceEvent: scheduledMaintenance,
+      statesByProjectId: new Map<string, Array<ScheduledMaintenanceState>>(),
     });
-
-    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
-      throw new BadDataException("ScheduledMaintenance not found.");
-    }
-
-    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          projectId: scheduledMaintenance.projectId,
-          isResolvedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
-      throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-      );
-    }
-
-    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-      new ScheduledMaintenanceStateTimeline();
-    scheduledMaintenanceStateTimeline.projectId =
-      scheduledMaintenance.projectId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
-      scheduledMaintenanceId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
-      scheduledMaintenanceState.id;
-    scheduledMaintenanceStateTimeline.createdByUserId = resolvedByUserId;
-
-    await ScheduledMaintenanceStateTimelineService.create({
-      data: scheduledMaintenanceStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store scheduledMaintenance metric
-
-    return scheduledMaintenance;
-  }
-
-  @CaptureSpan()
-  public async markScheduledMaintenanceAsOngoing(
-    scheduledMaintenanceId: ObjectID,
-    markedByUserId: ObjectID,
-  ): Promise<Model> {
-    const scheduledMaintenance: Model | null = await this.findOneById({
-      id: scheduledMaintenanceId,
-      select: {
-        projectId: true,
-        scheduledMaintenanceNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
-      throw new BadDataException("ScheduledMaintenance not found.");
-    }
-
-    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          projectId: scheduledMaintenance.projectId,
-          isOngoingState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
-      throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-      );
-    }
-
-    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-      new ScheduledMaintenanceStateTimeline();
-    scheduledMaintenanceStateTimeline.projectId =
-      scheduledMaintenance.projectId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
-      scheduledMaintenanceId;
-    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
-      scheduledMaintenanceState.id;
-    scheduledMaintenanceStateTimeline.createdByUserId = markedByUserId;
-
-    await ScheduledMaintenanceStateTimelineService.create({
-      data: scheduledMaintenanceStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store scheduledMaintenance metric
-
-    return scheduledMaintenance;
   }
 
   @CaptureSpan()

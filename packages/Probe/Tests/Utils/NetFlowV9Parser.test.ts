@@ -2,6 +2,7 @@ import NetFlowV9Parser, {
   NetFlowV9Record,
   ParsedNetFlowV9Datagram,
 } from "../../Utils/NetFlow/NetFlowV9Parser";
+import { MAX_CACHED_TEMPLATES } from "../../Utils/NetFlow/TemplateFlowDecoder";
 
 const HEADER_LENGTH_BYTES: number = 20;
 
@@ -262,7 +263,7 @@ describe("NetFlowV9Parser", () => {
     expect(record.flowEndAt.getTime()).toBe(UNIX_SECS * 1000 - 1000);
   });
 
-  test("skips data that arrives before its template, then decodes once the template is learned", () => {
+  test("holds data that arrives before its template, and decodes it the moment the template arrives", () => {
     const parser: NetFlowV9Parser = new NetFlowV9Parser();
 
     const dataFlowSet: Buffer = buildDataFlowSet(STANDARD_TEMPLATE_ID, [
@@ -279,7 +280,11 @@ describe("NetFlowV9Parser", () => {
       }),
     ]);
 
-    // Data first: the template is unknown, so the FlowSet cannot decode.
+    /*
+     * Data first - routine right after the exporter or the probe restarts:
+     * the template is unknown, so the FlowSet cannot decode yet. It is held,
+     * not thrown away.
+     */
     const beforeTemplate: ParsedNetFlowV9Datagram | null = parser.parse(
       buildDatagram([dataFlowSet]),
       EXPORTER_IP,
@@ -288,8 +293,12 @@ describe("NetFlowV9Parser", () => {
     expect(beforeTemplate).not.toBeNull();
     expect(beforeTemplate!.records).toHaveLength(0);
     expect(beforeTemplate!.dataFlowSetsSkippedForUnknownTemplate).toBe(1);
+    expect(beforeTemplate!.dataFlowSetsDropped).toBe(0);
 
-    // The exporter's periodic template refresh arrives.
+    /*
+     * The exporter's periodic template refresh arrives, and the held data
+     * decodes with it - stamped with the times of the datagram it came in.
+     */
     const templateOnly: ParsedNetFlowV9Datagram | null = parser.parse(
       buildDatagram([buildTemplateFlowSet([STANDARD_TEMPLATE])]),
       EXPORTER_IP,
@@ -297,7 +306,21 @@ describe("NetFlowV9Parser", () => {
 
     expect(templateOnly).not.toBeNull();
     expect(templateOnly!.templatesLearned).toBe(1);
-    expect(templateOnly!.records).toHaveLength(0);
+    expect(templateOnly!.dataFlowSetsReplayed).toBe(1);
+    expect(templateOnly!.records).toHaveLength(1);
+    expect(templateOnly!.records[0]!.destinationPort).toBe(53);
+    expect(templateOnly!.records[0]!.flowStartAt.getTime()).toBe(
+      UNIX_SECS * 1000 - 5000,
+    );
+
+    // Held data is decoded once, never again.
+    const refreshAgain: ParsedNetFlowV9Datagram | null = parser.parse(
+      buildDatagram([buildTemplateFlowSet([STANDARD_TEMPLATE])]),
+      EXPORTER_IP,
+    );
+
+    expect(refreshAgain!.records).toHaveLength(0);
+    expect(refreshAgain!.dataFlowSetsReplayed).toBe(0);
 
     // The same data FlowSet now decodes.
     const afterTemplate: ParsedNetFlowV9Datagram | null = parser.parse(
@@ -565,13 +588,14 @@ describe("NetFlowV9Parser", () => {
     expect(parsed!.records[0]!.protocolNumber).toBe(17);
   });
 
-  test("skips options template FlowSets without losing FlowSet alignment", () => {
+  test("learns options templates apart from data templates, without losing FlowSet alignment", () => {
     const parser: NetFlowV9Parser = new NetFlowV9Parser();
 
     /*
      * Options template FlowSet (ID 1): templateId, scope length, option
-     * length, then scope/option field definitions. The parser must skip it
-     * wholesale and still decode the FlowSets after it.
+     * length, then scope/option field definitions. It describes option
+     * records (sampling, here), never flows - and the FlowSets after it must
+     * still decode.
      */
     const optionsTemplateFlowSet: Buffer = Buffer.alloc(4 + 14 + 2);
     optionsTemplateFlowSet.writeUInt16BE(1, 0); // FlowSet ID 1
@@ -610,10 +634,50 @@ describe("NetFlowV9Parser", () => {
     );
 
     expect(parsed).not.toBeNull();
-    // The options template must not be cached as a data template.
-    expect(parsed!.templatesLearned).toBe(1);
+    // Both templates are learned; only the data template yields flows.
+    expect(parsed!.templatesLearned).toBe(2);
     expect(parsed!.records).toHaveLength(1);
     expect(parsed!.records[0]!.destinationPort).toBe(80);
+    expect(parsed!.records[0]!.samplingRate).toBe(1);
+
+    /*
+     * Option data for template 512 is an option record, not a flow: it sets
+     * the exporter's sampling rate (System scope = every flow) to 1 in 64.
+     */
+    const optionData: Buffer = Buffer.alloc(4 + 8);
+    optionData.writeUInt16BE(512, 0);
+    optionData.writeUInt16BE(optionData.length, 2);
+    optionData.writeUInt32BE(0, 4); // scope: System
+    optionData.writeUInt32BE(64, 8); // SAMPLING_INTERVAL
+
+    const sampled: ParsedNetFlowV9Datagram | null = parser.parse(
+      buildDatagram([
+        optionData,
+        buildDataFlowSet(
+          STANDARD_TEMPLATE_ID,
+          [
+            buildStandardRecord({
+              srcAddr: [10, 0, 0, 1],
+              dstAddr: [10, 0, 0, 2],
+              packets: 2,
+              octets: 120,
+              first: SYS_UPTIME_MS - 1000,
+              last: SYS_UPTIME_MS - 500,
+              srcPort: 1234,
+              dstPort: 80,
+              prot: 6,
+            }),
+          ],
+          1,
+        ),
+      ]),
+      EXPORTER_IP,
+    );
+
+    expect(sampled!.records).toHaveLength(1);
+    // The parser reports the rate; the collector scales the counts.
+    expect(sampled!.records[0]!.samplingRate).toBe(64);
+    expect(sampled!.records[0]!.packets).toBe(2);
   });
 
   test("returns null only for a buffer that cannot be a v9 datagram", () => {
@@ -900,24 +964,40 @@ describe("NetFlowV9Parser", () => {
       };
     };
 
-    // Fill the cache to exactly its 1000-entry cap: templates 256..1255.
-    const fillTemplates: Array<TemplateSpec> = [];
+    /*
+     * Fill the cache to exactly its cap: templates 256 onwards, in FlowSets
+     * of 1000 (a FlowSet's length is a 16-bit field).
+     */
+    const lastTemplateId: number = 256 + MAX_CACHED_TEMPLATES - 1;
+    let learned: number = 0;
 
-    for (let templateId: number = 256; templateId <= 1255; templateId++) {
-      fillTemplates.push(minimalTemplate(templateId));
+    for (let first: number = 256; first <= lastTemplateId; first += 1000) {
+      const fillTemplates: Array<TemplateSpec> = [];
+
+      for (
+        let templateId: number = first;
+        templateId <= Math.min(first + 999, lastTemplateId);
+        templateId++
+      ) {
+        fillTemplates.push(minimalTemplate(templateId));
+      }
+
+      const filled: ParsedNetFlowV9Datagram | null = parser.parse(
+        buildDatagram([buildTemplateFlowSet(fillTemplates)]),
+        EXPORTER_IP,
+      );
+
+      expect(filled).not.toBeNull();
+      learned += filled!.templatesLearned;
     }
 
-    const filled: ParsedNetFlowV9Datagram | null = parser.parse(
-      buildDatagram([buildTemplateFlowSet(fillTemplates)]),
-      EXPORTER_IP,
-    );
-
-    expect(filled).not.toBeNull();
-    expect(filled!.templatesLearned).toBe(1000);
+    expect(learned).toBe(MAX_CACHED_TEMPLATES);
 
     // One more template pushes the cache over the cap, evicting the oldest.
     parser.parse(
-      buildDatagram([buildTemplateFlowSet([minimalTemplate(1256)])]),
+      buildDatagram([
+        buildTemplateFlowSet([minimalTemplate(lastTemplateId + 1)]),
+      ]),
       EXPORTER_IP,
     );
 
@@ -943,7 +1023,7 @@ describe("NetFlowV9Parser", () => {
     const survivor: ParsedNetFlowV9Datagram | null = parser.parse(
       buildDatagram([
         buildDataFlowSet(257, [protocolRecord]),
-        buildDataFlowSet(1256, [protocolRecord]),
+        buildDataFlowSet(lastTemplateId + 1, [protocolRecord]),
       ]),
       EXPORTER_IP,
     );

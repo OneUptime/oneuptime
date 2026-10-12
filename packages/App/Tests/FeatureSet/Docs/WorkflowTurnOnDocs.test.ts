@@ -33,8 +33,13 @@ const DASHBOARD_LOCALES_DIR: string = path.resolve(
 
 const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
-// The Persian pages name the Dashboard's labels in English.
-const ENGLISH_UI_LABELS: Set<string> = new Set(["en", "fa"]);
+/*
+ * Only the English pages name the Dashboard's labels in English. The Persian
+ * workflow pages name them as the Persian Dashboard draws them (فعال,
+ * سازنده...), like the on-call and runbook pages
+ * (WorkflowDocsTranslations).
+ */
+const ENGLISH_UI_LABELS: Set<string> = new Set(["en"]);
 
 interface DashboardWords {
   enabled: string;

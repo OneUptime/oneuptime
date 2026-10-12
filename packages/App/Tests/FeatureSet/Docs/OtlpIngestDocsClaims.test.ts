@@ -2,6 +2,7 @@ import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGE_CODES,
 } from "../../../FeatureSet/Docs/Utils/I18n";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -73,6 +74,7 @@ const KUBERNETES_AGENT_CHART_DIR: string = path.join(
 const PROFILES_ROUTE: string = "/otlp/v1/profiles";
 const RUM_TROUBLESHOOTING_PAGE: string = "rum/troubleshooting.md";
 const KUBERNETES_AGENT_PAGE: string = "telemetry/kubernetes-agent.md";
+const OPEN_TELEMETRY_PAGE: string = "telemetry/open-telemetry.md";
 
 /*
  * Exporter examples that may keep `encoding: json` or a JSON Content-Type,
@@ -231,6 +233,8 @@ function fencedBlocksOf(markdown: string, where: string): Array<FencedBlock> {
 const OTLP_HTTP_EXPORTER_ID: RegExp = /^otlp_?http(\/.+)?$/;
 const MENTIONS_OTLP_HTTP: RegExp = /\botlp_?http\b/;
 const ABSOLUTE_HTTP_URL: RegExp = /^https?:\/\//;
+// A URL written as a code span; code spans stay untranslated in every language.
+const CODE_SPAN_HTTP_URL: RegExp = /`(https?:\/\/[^`\s]+)`/g;
 
 /*
  * The raw-text twins of the parsed checks: a commented-out
@@ -638,7 +642,7 @@ function clientMaxBodySizesFor(
     })
     .join("\n");
   const opening: RegExp = new RegExp(
-    `^\\s*location\\s+${location.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}\\s*\\{`,
+    `^\\s*location\\s+${escapeRegExp(location)}\\s*\\{`,
     "gm",
   );
   const sizes: Array<NginxSize> = [];
@@ -1117,10 +1121,12 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
       const expected: Array<string> = [
         "en/telemetry/open-telemetry.md",
         "en/telemetry/iot-devices.md",
-        "en/telemetry/gemini-cli-and-copilot.md",
-        "fa/telemetry/gemini-cli-and-copilot.md",
         ...SUPPORTED_DOCS_LANGUAGE_CODES.map((lang: string): string => {
           return `${lang}/telemetry/iot-devices.md`;
+        }),
+        // Gemini CLI's collector example, in every language's copy.
+        ...SUPPORTED_DOCS_LANGUAGE_CODES.map((lang: string): string => {
+          return `${lang}/telemetry/gemini-cli-and-copilot.md`;
         }),
       ].map((page: string): string => {
         return relativeToRepo(path.join(CONTENT_DIR, page));
@@ -1207,9 +1213,7 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
       const router: string = read(OTEL_INGEST_ROUTER_FILE);
 
       expect(router).toMatch(
-        new RegExp(
-          `router\\.post\\(\\s*"${PROFILES_ROUTE.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}"`,
-        ),
+        new RegExp(`router\\.post\\(\\s*"${escapeRegExp(PROFILES_ROUTE)}"`),
       );
 
       const profileExporters: Array<{
@@ -1261,12 +1265,14 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
       }
 
       /*
-       * Most translated profiles pages still carry the collector example
-       * (English now documents Pyroscope ingest instead), so an empty list
-       * means the reader broke, not that there is nothing to check.
+       * No page shows a collector with a profiles pipeline any more: the
+       * profiles pages document Pyroscope ingest in every language, and the
+       * OpenTelemetry page says in prose where OTLP profiles go (held to the
+       * route below). So an empty list is real. "finds the examples it is
+       * meant to check" proves the reader against the pages that do carry an
+       * otlphttp example. A profiles pipeline that comes back must name the
+       * route.
        */
-      expect(profileExporters.length).toBeGreaterThan(0);
-
       for (const found of profileExporters) {
         const endpoint: string = String(found.profilesEndpoint);
 
@@ -1278,6 +1284,65 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
         }).toEqual({ where: found.where, path: PROFILES_ROUTE });
       }
     });
+
+    /*
+     * The positive half for profiles. Every language's OpenTelemetry page
+     * tells a collector to set profiles_endpoint, and every profiles URL on
+     * the page is the route ingest serves. Lines are found by the option
+     * name and URLs by their code spans, which stay untranslated, so every
+     * language is read the same way.
+     */
+    it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+      "%s OpenTelemetry page sends OTLP profiles to the route ingest serves",
+      (lang: string): void => {
+        const markdown: string = read(
+          path.join(CONTENT_DIR, lang, OPEN_TELEMETRY_PAGE),
+        );
+
+        const urlsIn: (text: string) => Array<string> = (
+          text: string,
+        ): Array<string> => {
+          return Array.from(
+            text.matchAll(CODE_SPAN_HTTP_URL),
+            (match: RegExpMatchArray): string => {
+              return match[1]!;
+            },
+          );
+        };
+
+        // The URL's path, without parsing it: placeholders such as <host> are not valid hosts.
+        const pathOf: (url: string) => string = (url: string): string => {
+          return url.replace(ABSOLUTE_HTTP_URL, "").replace(/^[^/?#]*/, "");
+        };
+
+        const instructions: Array<string> = markdown
+          .split("\n")
+          .filter((line: string): boolean => {
+            return (
+              line.includes("`profiles_endpoint`") && urlsIn(line).length > 0
+            );
+          });
+
+        const profilesPaths: Array<string> = Array.from(
+          new Set(
+            urlsIn(markdown)
+              .map(pathOf)
+              .filter((urlPath: string): boolean => {
+                return urlPath.endsWith("/profiles");
+              }),
+          ),
+        );
+
+        expect({ lang, instructed: instructions.length > 0 }).toEqual({
+          lang,
+          instructed: true,
+        });
+        expect({ lang, profilesPaths }).toEqual({
+          lang,
+          profilesPaths: [PROFILES_ROUTE],
+        });
+      },
+    );
   });
 
   describe("(b) the RUM troubleshooting page quotes the /otlp body limit nginx sets", () => {

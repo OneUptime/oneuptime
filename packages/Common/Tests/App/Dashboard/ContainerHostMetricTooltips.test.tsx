@@ -84,6 +84,25 @@ jest.mock(
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return stubModule("stub-host-details");
 });
+/*
+ * When OneUptime itself was not receiving (issue #2825): never, here. The
+ * request is answered at once, so under fake timers the charts are not left
+ * waiting on a network this suite does not model.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/ReceivingGaps",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Utils/ReceivingGaps",
+    ) as Record<string, unknown>;
+    return {
+      ...actual,
+      fetchReceivingGaps: (): Promise<Array<unknown>> => {
+        return Promise.resolve([]);
+      },
+    };
+  },
+);
 
 import DockerHostOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Overview";
 import PodmanHostOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Overview";

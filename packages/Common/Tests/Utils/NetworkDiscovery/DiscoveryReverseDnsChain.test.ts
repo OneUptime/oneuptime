@@ -1521,8 +1521,9 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
    *   .32  the raw wire form: upper case, space-padded to fifteen bytes
    *   .33  a host that did not answer NBSTAT: no key at all
    *   .34  a hostile answer, markup in the name field
-   *   .35  a host that has a PTR record too (the probe would not have asked,
-   *        but the column cannot refuse the row), so the PTR name must win
+   *   .35  a host that has a PTR record too, so the NetBIOS name — the
+   *        host's own — wins, and the PTR name is kept as its DNS Name
+   *        (issue #4518; the probe now asks hosts DNS names as well)
    *   .36  a sixteen-character answer, one past the NetBIOS name field
    */
   const REPORTER_PAYLOAD: Array<unknown> = [
@@ -1551,12 +1552,17 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
     },
   ];
 
+  /*
+   * NetBIOS names keep the case the host reported (issue #4518): .31 was
+   * stored lower-cased by an older probe and stays so, .32 and .35 are the
+   * raw upper-case wire form.
+   */
   const EXPECTED_FULL_NAMES: Array<string> = [
     "reg01",
-    "reg02",
+    "REG02",
     "10.18.167.33",
     "10.18.167.34",
-    "wb-0660-kds05.wbhq.com",
+    "WB-0660-KDS05",
     "10.18.167.36",
   ];
 
@@ -1576,10 +1582,10 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
       }),
     ).toEqual([
       "reg01",
-      "reg02",
+      "REG02",
       undefined,
       undefined,
-      "wb-0660-kds05",
+      "WB-0660-KDS05",
       undefined,
     ]);
 
@@ -1650,22 +1656,16 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
   });
 
   /*
-   * A NetBIOS name is one label, so short names have nothing to cut. The only
-   * name that changes with the setting on is the PTR name on .35.
+   * A NetBIOS name is one label, so short names have nothing to cut — and
+   * since the NetBIOS name beats the PTR name on .35 (issue #4518), no name
+   * here changes with the setting on.
    */
   it("imports the same NetBIOS names with short names on", () => {
     expect(
       deviceNames(
         devicesFromPayloadWith(REPORTER_PAYLOAD, NETBIOS_SHORT_NAMES_SCAN),
       ),
-    ).toEqual([
-      "reg01",
-      "reg02",
-      "10.18.167.33",
-      "10.18.167.34",
-      "wb-0660-kds05",
-      "10.18.167.36",
-    ]);
+    ).toEqual(EXPECTED_FULL_NAMES);
   });
 
   /*
@@ -1727,11 +1727,16 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
 
     const hosts: Array<DiscoveredNetworkDevice> = hostsFromPayload(payload);
 
+    /*
+     * The two answers differ only in case, which device names ignore: they
+     * are one name to the uniqueness check, so the second create collides
+     * exactly as before (each keeps the case its host reported, #4518).
+     */
     expect(
       hosts.map((host: DiscoveredNetworkDevice): string => {
         return buildDeviceName(host, NETBIOS_SCAN);
       }),
-    ).toEqual(["reg01", "reg01"]);
+    ).toEqual(["REG01", "reg01"]);
 
     const fallbacks: Array<string> = hosts.map(
       (host: DiscoveredNetworkDevice): string => {
@@ -1739,7 +1744,7 @@ describe("NetBIOS names, probe payload to created NetworkDevice", () => {
       },
     );
 
-    expect(fallbacks).toEqual(["reg01 (10.18.167.31)", "reg01 (10.18.167.32)"]);
+    expect(fallbacks).toEqual(["REG01 (10.18.167.31)", "reg01 (10.18.167.32)"]);
 
     const retry: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
       projectId: PROJECT_ID,
@@ -2002,7 +2007,7 @@ describe("Naming status codes, probe payload to the Review row's explanation", (
       "10.16.42.55",
       "10.16.42.56",
       "10.16.42.57",
-      "wb0024kds08",
+      "WB0024KDS08",
     ]);
 
     expect(deviceHostnames(devicesFromPayload(PAYLOAD))).toEqual(

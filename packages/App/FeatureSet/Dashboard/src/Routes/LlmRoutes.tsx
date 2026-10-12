@@ -5,9 +5,12 @@ import RouteMap, { LlmRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 
 // Pages
-import LlmOverview from "../Pages/Llm/Overview";
+import LlmConversations from "../Pages/Llm/Conversations";
+import LlmConversationViewPage from "../Pages/Llm/ConversationView";
+import LlmAlerts from "../Pages/Llm/Alerts";
 import LlmUsage from "../Pages/Llm/Usage";
 import LlmCalls from "../Pages/Llm/Calls";
 import LlmBudgets from "../Pages/Llm/Budgets";
@@ -19,11 +22,21 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
+      {/*
+       * The Overview page was folded into Conversations, which carries its
+       * numbers above the list. Old links and bookmarks land there. Mounted
+       * outside the layout, as the other route groups mount their forwards.
+       */}
+      <PageRoute
+        path={LlmRoutePath[PageMap.LLM_OVERVIEW] || ""}
+        element={<MovedPageRedirect pageMap={PageMap.LLM_CONVERSATIONS} />}
+      />
+
       <PageRoute path="/" element={<LlmLayout {...props} />}>
         <PageRoute
           index
           element={
-            <LlmOverview
+            <LlmConversations
               {...props}
               pageRoute={RouteMap[PageMap.LLM] as Route}
             />
@@ -31,11 +44,31 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={LlmRoutePath[PageMap.LLM_OVERVIEW] || ""}
+          path={LlmRoutePath[PageMap.LLM_CONVERSATIONS] || ""}
           element={
-            <LlmOverview
+            <LlmConversations
               {...props}
-              pageRoute={RouteMap[PageMap.LLM_OVERVIEW] as Route}
+              pageRoute={RouteMap[PageMap.LLM_CONVERSATIONS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={LlmRoutePath[PageMap.LLM_CONVERSATION_VIEW] || ""}
+          element={
+            <LlmConversationViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.LLM_CONVERSATION_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={LlmRoutePath[PageMap.LLM_ALERTS] || ""}
+          element={
+            <LlmAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.LLM_ALERTS] as Route}
             />
           }
         />

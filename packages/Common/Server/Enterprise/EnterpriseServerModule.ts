@@ -5,6 +5,7 @@ import type {
 } from "./EnterpriseLicenseSnapshot";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import type DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import type { ProductBranding } from "../../Types/Branding/ProductBranding";
 import type { JSONObject } from "../../Types/JSON";
 import type ObjectID from "../../Types/ObjectID";
 
@@ -24,7 +25,7 @@ export const ENTERPRISE_SERVER_MODULE_NAME: EnterpriseServerModuleName =
   "oneuptime-enterprise";
 
 /*
- * The recording half of the audit log. Core's AuditLogService keeps these four
+ * The recording half of the audit log. Core's AuditLogService keeps these
  * public methods as thin delegates, so DatabaseService, ProjectService and the
  * user-notification services call exactly what they call today; on the
  * Community Edition there is no recorder and nothing is recorded.
@@ -49,6 +50,18 @@ export interface AuditLogRecorder {
   recordDelete<TModel extends BaseModel>(data: {
     model: TModel;
     deletedItem: TModel;
+    itemId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void>;
+
+  /*
+   * Someone downloaded a record's file - a packet capture's pcap file. The
+   * entry names the record and who downloaded it; `downloadedItem` holds the
+   * columns that say what was downloaded, recorded as the entry's fields.
+   */
+  recordDownload<TModel extends BaseModel>(data: {
+    model: TModel;
+    downloadedItem: TModel;
     itemId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void>;
@@ -119,6 +132,15 @@ export default interface EnterpriseServerModule {
   registerWorkerJobs(): Promise<void>;
 
   getAuditLogRecorder(): AuditLogRecorder | null;
+
+  /*
+   * How this installation names and shows itself (Types/Branding/
+   * ProductBranding.ts): null to show OneUptime's own name and logo, which is
+   * what core does when the module has no such method at all. Synchronous,
+   * because it is asked while a page, env.js or an email is being rendered:
+   * the module answers from its own cache. Must not throw.
+   */
+  getProductBranding?(): ProductBranding | null;
 }
 
 const REQUIRED_MODULE_FUNCTIONS: ReadonlyArray<string> = [
@@ -129,6 +151,9 @@ const REQUIRED_MODULE_FUNCTIONS: ReadonlyArray<string> = [
   "registerWorkerJobs",
   "getAuditLogRecorder",
 ];
+
+// Hooks a module may leave out; core falls back to the Community Edition's answer.
+const OPTIONAL_MODULE_FUNCTIONS: ReadonlyArray<string> = ["getProductBranding"];
 
 const REQUIRED_LICENSING_FUNCTIONS: ReadonlyArray<string> = [
   "getSnapshot",
@@ -179,6 +204,15 @@ export class EnterpriseServerModuleShape {
     for (const functionName of REQUIRED_MODULE_FUNCTIONS) {
       if (typeof candidate[functionName] !== "function") {
         problems.push(`"${functionName}" must be a function`);
+      }
+    }
+
+    for (const functionName of OPTIONAL_MODULE_FUNCTIONS) {
+      if (
+        candidate[functionName] !== undefined &&
+        typeof candidate[functionName] !== "function"
+      ) {
+        problems.push(`"${functionName}", when present, must be a function`);
       }
     }
 

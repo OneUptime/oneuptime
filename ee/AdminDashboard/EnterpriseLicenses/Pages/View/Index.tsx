@@ -2,6 +2,8 @@ import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
+  CAN_BE_WHITE_LABELLED_DESCRIPTION,
+  CAN_BE_WHITE_LABELLED_TITLE,
   EnterpriseLicenseInstanceStatusPill,
   LicenseStatusPill,
   SeatUsageMeter,
@@ -316,6 +318,16 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.PositiveNumber,
               required: false,
             },
+            {
+              field: {
+                canBeWhiteLabelled: true,
+              },
+              title: CAN_BE_WHITE_LABELLED_TITLE,
+              stepId: "license",
+              description: CAN_BE_WHITE_LABELLED_DESCRIPTION,
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
           ]}
           modelDetailProps={{
             modelType: EnterpriseLicense,
@@ -373,6 +385,15 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 title: "User Limit",
                 fieldType: FieldType.Number,
                 placeholder: "No limit",
+              },
+              {
+                field: {
+                  canBeWhiteLabelled: true,
+                },
+                title: CAN_BE_WHITE_LABELLED_TITLE,
+                description:
+                  "When on, the customer can replace the OneUptime name and logo on their installation.",
+                fieldType: FieldType.Boolean,
               },
               {
                 field: {

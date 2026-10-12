@@ -62,6 +62,13 @@ x-common-variables: &common-variables
   MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
   MICROSOFT_TEAMS_APP_TENANT_ID: ${MICROSOFT_TEAMS_APP_TENANT_ID}
 
+  # Video calls: the public client ids of the apps behind the one-click
+  # Connect of Zoom, Google Meet and Microsoft Teams (see config.example.env).
+  # Defaulted so a config.env upgraded in place, without the keys, starts.
+  ZOOM_APP_CLIENT_ID: ${ZOOM_APP_CLIENT_ID:-}
+  GOOGLE_MEET_APP_CLIENT_ID: ${GOOGLE_MEET_APP_CLIENT_ID:-}
+  MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID:-}
+
 x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
@@ -208,6 +215,13 @@ x-common-runtime-variables: &common-runtime-variables
 
   MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
   CAPTCHA_SECRET_KEY: ${CAPTCHA_SECRET_KEY}
+
+  # Video calls: the secrets of the apps behind the one-click Connect of
+  # Zoom, Google Meet and Microsoft Teams (see config.example.env).
+  ZOOM_APP_CLIENT_SECRET: ${ZOOM_APP_CLIENT_SECRET:-}
+  ZOOM_APP_WEBHOOK_SECRET_TOKEN: ${ZOOM_APP_WEBHOOK_SECRET_TOKEN:-}
+  GOOGLE_MEET_APP_CLIENT_SECRET: ${GOOGLE_MEET_APP_CLIENT_SECRET:-}
+  MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET:-}
 
   # GitHub App Configuration
   GITHUB_APP_ID: ${GITHUB_APP_ID}

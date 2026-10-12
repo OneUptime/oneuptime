@@ -34,8 +34,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * incident or a scheduled maintenance event (targetType) - from the answers
  * (fields) and the form's own settings (targetSettings), and leaves a
  * FormSubmission behind. A submission can start from one of the form's
- * templates (templates): named sets of answers that fill the form in, and
- * answer its hidden questions.
+ * templates (templates): named sets of answers that fill the form in, ask
+ * its questions their own way (required, optional or hidden) and answer the
+ * questions they hide.
  *
  * Forms replaced incident forms (Incidents > Settings > Forms); the
  * migration that moved them kept each form's id and link key, so the old
@@ -299,7 +300,7 @@ export default class Form extends BaseModel {
     type: TableColumnType.JSON,
     title: "Questions",
     description:
-      "The questions the form asks, in order. Each has an id, a source (Question: one of the form's own, answered by type; TargetField: a built-in field of what the form creates, by targetField; TargetCustomField: one of its custom fields, by customFieldId; Submitter: the submitter's Name or Email), a label, optional help text, isRequired and isHidden (not shown on the public form, and answered only from the template a submission started from; never required, and never a field the target cannot be created without). A new form starts with a title, a description and the submitter's name and email.",
+      "The questions the form asks, in order. Each has an id, a source (Question: one of the form's own, answered by type; TargetField: a built-in field of what the form creates, by targetField; TargetCustomField: one of its custom fields, by customFieldId; Submitter: the submitter's Name or Email), a label, optional help text, isRequired and isHidden (not shown on the public form unless the template a submission starts from asks it, and otherwise answered only from the template a submission started from; never required, and never a field the target cannot be created without). isRequired and isHidden are the form's default: each template can make a question Required, Optional or Hidden (its fieldSettings). A new form starts with a title, a description and the submitter's name and email.",
     example: [
       {
         id: "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40",
@@ -327,9 +328,11 @@ export default class Form extends BaseModel {
   /*
    * Named sets of answers a submission can start from - the Templates page:
    * a list of Types/Form/FormTemplate, checked on every write by FormService,
-   * each answer against the question it answers. The public page offers them
-   * above the questions; the server answers the form's hidden questions from
-   * the one a submission started from.
+   * each answer against the question it answers and each field setting
+   * against the question it sets. The public page offers them above the
+   * questions and asks the questions as the chosen one asks them (Required,
+   * Optional, Hidden); the server holds a submission to the same questions,
+   * and answers the ones it was not asked from the template it started from.
    */
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
@@ -341,7 +344,7 @@ export default class Form extends BaseModel {
     type: TableColumnType.JSON,
     title: "Templates",
     description:
-      "Named sets of answers a submission can start from, in the order the form lists them. Each has an id, a name (unique within the form), isDefault (the form opens with it; at most one template) and answers: an object keyed by question id, each answer as a submission sends it - text, a number, true or false, an option's value, or a list of values for a multi-select. The public form lists the templates above its questions and fills in a template's answers when one is chosen, or when its link names one (?template=<id>). Hidden questions are answered only from the template a submission started from.",
+      "Named sets of answers a submission can start from, in the order the form lists them. Each has an id, a name (unique within the form), isDefault (the form opens with it; at most one template), answers: an object keyed by question id, each answer as a submission sends it - text, a number, true or false, an option's value, or a list of values for a multi-select - and fieldSettings: an object keyed by question id that makes a question Required, Optional or Hidden when a submission starts from the template; a question it does not list is asked as the form asks it, and a question the form cannot create its record without is always asked and required. The public form lists the templates above its questions and fills in a template's answers when one is chosen, or when its link names one (?template=<id>). A question the submission was not asked - hidden by the form or by the template - is answered only from the template a submission started from.",
     example: [
       {
         id: "3f2c1b0a-9d8e-4c7b-a6f5-e4d3c2b1a0f9",
@@ -351,6 +354,10 @@ export default class Form extends BaseModel {
           "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40":
             "The application is unavailable",
           "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a": "London",
+        },
+        fieldSettings: {
+          "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40": "Hidden",
+          "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a": "Required",
         },
       },
     ],

@@ -173,12 +173,23 @@ import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 // Microsoft Teams: save pinned / megaphoned channel messages as notes
 import "./Jobs/MicrosoftTeams/SyncReactionNotes";
 
+// Video calls: keep the sign-ins of connections made by signing in from expiring
+import "./Jobs/VideoCall/KeepVideoCallSignInsAlive";
+
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 
 // User Notifications Log
 import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
+
+/*
+ * Mobile push receipts. Load-bearing like every import here: without it the
+ * receipts of pushes Expo accepted are never read, so a phone whose app was
+ * removed keeps being paged until a later push's ticket is refused, and the
+ * page that first went to it says it was sent.
+ */
+import "./Jobs/PushNotification/CheckExpoPushReceipts";
 import "./Jobs/Workflow/TimeoutJobs";
 
 /*
@@ -195,9 +206,25 @@ import "./Jobs/Runbook/TimeoutStuckExecutions";
  */
 import "./Jobs/StatusPageSubscriber/TimeoutStuckNotifications";
 
+/*
+ * Imports from another tool (Project Settings > Import from another tool).
+ * Load-bearing like every import here: the first registers the job a read
+ * or an import is queued as - without it the run waits in Reading or
+ * Importing until the sweep fails it - and the second is that sweep, which
+ * also clears the API key of a read a dead worker left behind.
+ */
+import "./Jobs/ToolImport/RunToolImport";
+import "./Jobs/ToolImport/SweepStaleToolImports";
+
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
+
+/*
+ * Packet captures: fail the ones no probe will finish, and delete them with
+ * their files after the retention period.
+ */
+import "./Jobs/PacketCapture/SweepPacketCaptures";
 
 // AI Agents
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
@@ -261,6 +288,8 @@ import "./Jobs/Proxmox/CleanupStaleResources";
 
 // VMware vCenter disconnection sweeper + inventory cleanup.
 import "./Jobs/VMware/CleanupStaleResources";
+// vCenter connection tests no probe will answer: failed, password wiped.
+import "./Jobs/VMware/ExpireConnectionTests";
 
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";

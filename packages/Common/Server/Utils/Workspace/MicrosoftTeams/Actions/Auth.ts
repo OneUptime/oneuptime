@@ -7,17 +7,11 @@ import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAut
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 
-export interface MicrosoftTeamsAction {
-  actionType: string;
-  actionValue?: string;
-}
-
 export interface MicrosoftTeamsRequest {
   isAuthorized: boolean;
   projectId: ObjectID;
   authToken: string;
   payloadType: string;
-  actions?: Array<MicrosoftTeamsAction>;
   userId?: string;
   teamId?: string;
   tenantId?: string;

@@ -136,15 +136,22 @@ describe("NetworkDeviceDiscoveryScan.isNetbiosLookupEnabled", () => {
   });
 
   /*
-   * And it says WHICH hosts are asked: only the ones still unnamed. An operator
-   * reading "NetBIOS lookup" could otherwise expect it to override a sysName
-   * or a PTR name, which it never does.
+   * And it says WHICH hosts are asked: every host SNMP did not name, the ones
+   * reverse DNS named included, and that the name found outranks the PTR
+   * name (issue #4518). Before #4518 only still-unnamed hosts were asked; an
+   * integrator reading the old sentence would not expect UDP 137 to reach a
+   * host that has a PTR record, nor the device to be named differently.
    */
-  test("its description says only hosts with no SNMP name and no reverse DNS record are asked", () => {
+  test("its description says every host with no SNMP name is asked, those reverse DNS named included, and why", () => {
     const description: string = metadata().description ?? "";
 
-    expect(description).toContain("no SNMP name");
-    expect(description).toContain("no reverse DNS record");
+    expect(description).toContain(
+      "Whether hosts with no SNMP name are asked for their NetBIOS name over UDP 137, including hosts reverse DNS already named.",
+    );
+    expect(description).toContain(
+      "it names the device ahead of its reverse DNS name",
+    );
+    expect(description).not.toContain("no reverse DNS record");
   });
 
   test("is not required, so a create that omits it is still accepted", () => {

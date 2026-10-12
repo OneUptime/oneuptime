@@ -42,6 +42,7 @@ import InProcessMemo from "../Utils/InProcessMemo";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -1214,9 +1215,17 @@ export class Service extends ProjectReferencesService<Model> {
    */
   @CaptureSpan()
   public async markDisconnectedDatabaseServers(): Promise<number> {
-    const threshold: Date = this.getCollectorSilenceCutoff(
-      OneUptimeDate.getCurrentDate(),
-    );
+    /*
+     * The same silence as getCollectorSilenceCutoff, measured in time
+     * OneUptime was receiving: a stretch when OneUptime itself was down,
+     * starting up or catching up is not the collector's silence (issue
+     * #2825). With no such stretch the two are the same instant.
+     */
+    const threshold: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes:
+        this.getCollectorStaleThresholdMinutes() +
+        COLLECTOR_HEARTBEAT_LAG_MINUTES,
+    });
 
     const rows: Array<{ count: number | string }> =
       await this.getRepository().manager.query(

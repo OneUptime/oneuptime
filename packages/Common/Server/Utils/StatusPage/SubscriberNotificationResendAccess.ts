@@ -1,6 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
@@ -8,7 +7,6 @@ import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/St
 import SubscriberNotificationResend from "../../../Types/StatusPage/SubscriberNotificationResend";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
-import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import UpdateBy from "../../Types/Database/UpdateBy";
 import ColumnPermissions from "../../Types/Database/Permissions/ColumnPermission";
@@ -41,8 +39,11 @@ import TablePermission from "../../Types/Database/Permissions/TablePermission";
  * check (DatabaseService runs that after the hooks), so each one checks
  * permissions before it reads anything: a caller who may not send a
  * notification again is told only that, never what state the notification
- * is in. Rows are then read with the caller's own permissions, so nothing
- * they cannot read decides the answer either.
+ * is in. Rows are then read only among the rows the caller may write
+ * (DatabaseService.findRowsAndHoldUpdateToThem) - the rows their update
+ * permission reaches, which are rows they may read - so nothing they cannot
+ * read decides the answer either, and the update is held to the rows the
+ * answer was given for.
  *
  * Root callers - the workers and other internal writes - are trusted and
  * never checked. Master admins skip the permission checks, as they do
@@ -187,17 +188,14 @@ export default class SubscriberNotificationResendAccess {
       refusal: SubscriberNotificationResend.noPermissionToResendNoteMessage,
     });
 
-    const notes: Array<TNote> = await data.service.findBy({
-      query: updateBy.query as Query<TNote>,
-      select: {
+    const notes: Array<TNote> = await data.service.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         subscriberNotificationStatusOnNoteCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
       } as unknown as Select<TNote>,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: updateBy.props,
-    });
+    );
 
     for (const note of notes) {
       const record: JSONObject = note as unknown as JSONObject;
@@ -290,9 +288,10 @@ export default class SubscriberNotificationResendAccess {
    *
    * Permission first: a caller who may not write those columns is left to
    * the update's own check, which refuses them anyway, and never learns the
-   * notification's state from this one. The rows are then read with the
-   * caller's own permissions, so nothing they cannot read decides the
-   * answer. Root callers - the workers - are never checked.
+   * notification's state from this one. The rows are then read only among
+   * the rows the caller may write, which are rows they may read (see the
+   * header), so nothing they cannot read decides the answer. Root callers -
+   * the workers - are never checked.
    */
   public static async assertNotQueuedWhileBeingSent<
     TBaseModel extends BaseModel,
@@ -346,13 +345,11 @@ export default class SubscriberNotificationResendAccess {
       throw err;
     }
 
-    const rows: Array<TBaseModel> = await data.service.findBy({
-      query: updateBy.query as Query<TBaseModel>,
-      select: select as unknown as Select<TBaseModel>,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: updateBy.props,
-    });
+    const rows: Array<TBaseModel> =
+      await data.service.findRowsAndHoldUpdateToThem(
+        updateBy,
+        select as unknown as Select<TBaseModel>,
+      );
 
     for (const row of rows) {
       const record: JSONObject = row as unknown as JSONObject;

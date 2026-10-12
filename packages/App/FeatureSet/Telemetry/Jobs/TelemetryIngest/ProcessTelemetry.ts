@@ -332,6 +332,8 @@ if (DisableQueueWorkers) {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body,
                 headers: jobData.requestHeaders!,
+                // When the batch arrived, not when this worker got to it.
+                receivedAt: jobData.ingestionTimestamp,
               } as TelemetryRequest;
 
               await OtelMetricsIngestService.processMetricsFromQueue(

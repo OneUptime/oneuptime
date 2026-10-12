@@ -8,8 +8,10 @@
         noResults: <%- JSON.stringify(t('ui.searchNoResults')) %>,
         copy: <%- JSON.stringify(t('ui.copy')) %>,
         copied: <%- JSON.stringify(t('ui.copied')) %>,
-        copyCode: <%- JSON.stringify(t('ui.copyCode')) %>
+        copyCode: <%- JSON.stringify(t('ui.copyCode')) %>,
+        copyPage: <%- JSON.stringify(t('ui.copyPage')) %>
     };
+    window.__docsLang = <%- JSON.stringify(typeof lang !== 'undefined' && lang ? lang : 'en') %>;
     window.__docsSearchIndex = <%- JSON.stringify(nav.reduce(function(acc, group){
         group.links.forEach(function(navLink){
             acc.push({ title: navLink.title, url: navLink.url, category: group.title });
@@ -240,6 +242,193 @@
             });
         });
 
+        /* ======================== Copy the page ======================== */
+        /*
+         * Copies the page's Markdown - what /docs/as-markdown serves, with the
+         * generated tables filled in - for pasting into an AI assistant or an
+         * issue. Fetched on the click, so pages that are only read do not pay
+         * for it.
+         */
+        document.querySelectorAll('[data-copy-page]').forEach(function (button) {
+            if (!navigator.clipboard || !navigator.clipboard.writeText || !window.fetch) {
+                return;
+            }
+            var label = button.querySelector('.docs-page-action__label');
+            button.removeAttribute('hidden');
+            button.addEventListener('click', function () {
+                window.fetch(button.getAttribute('data-markdown-url'))
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Markdown not found');
+                        }
+                        return response.text();
+                    })
+                    .then(function (markdown) {
+                        return navigator.clipboard.writeText(markdown);
+                    })
+                    .then(function () {
+                        button.classList.add('is-copied');
+                        if (label) {
+                            label.textContent = i18n.copied || 'Copied';
+                        }
+                        window.setTimeout(function () {
+                            button.classList.remove('is-copied');
+                            if (label) {
+                                label.textContent = i18n.copyPage || 'Copy page';
+                            }
+                        }, 2000);
+                    })
+                    .catch(function () {
+                        /* Offline or clipboard blocked: "View as Markdown" still works. */
+                    });
+            });
+        });
+
+        /* ============================= Tabs ============================ */
+        /*
+         * A tab set (:::tabs in the markdown) shows one panel at a time. The
+         * reader's pick is applied to every set on the page that offers the
+         * same label - choose Python once, read Python everywhere - and
+         * remembered for the next page. Without this script every panel
+         * stays visible under its own label.
+         */
+        var TAB_PREFERENCES_KEY = 'oneuptime-docs-tabs';
+        var tabSets = Array.prototype.slice.call(document.querySelectorAll('[data-docs-tabs]'));
+
+        function readTabPreferences() {
+            try {
+                var stored = JSON.parse(window.localStorage.getItem(TAB_PREFERENCES_KEY) || '[]');
+                return Array.isArray(stored) ? stored.filter(function (item) { return typeof item === 'string'; }) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function rememberTab(key) {
+            var preferences = readTabPreferences().filter(function (item) { return item !== key; });
+            preferences.unshift(key);
+            try {
+                window.localStorage.setItem(TAB_PREFERENCES_KEY, JSON.stringify(preferences.slice(0, 12)));
+            } catch (e) {
+                /* Storage unavailable — the choice holds for this page only. */
+            }
+        }
+
+        // A set's own tabs and panels, not those of a set nested inside it.
+        function partsOf(set) {
+            var list = null;
+            var panels = [];
+            Array.prototype.forEach.call(set.children, function (child) {
+                if (child.classList.contains('docs-tabs__list')) {
+                    list = child;
+                } else if (child.classList.contains('docs-tabs__panel')) {
+                    panels.push(child);
+                }
+            });
+            return {
+                tabs: list ? Array.prototype.slice.call(list.children) : [],
+                panels: panels
+            };
+        }
+
+        function selectTab(set, index, moveFocus) {
+            var parts = partsOf(set);
+            if (!parts.tabs[index]) {
+                return;
+            }
+            parts.tabs.forEach(function (tab, position) {
+                var isSelected = position === index;
+                tab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+                tab.setAttribute('tabindex', isSelected ? '0' : '-1');
+                if (parts.panels[position]) {
+                    parts.panels[position].classList.toggle('is-active', isSelected);
+                }
+            });
+            if (moveFocus) {
+                parts.tabs[index].focus();
+            }
+        }
+
+        function indexOfKey(set, key) {
+            var tabs = partsOf(set).tabs;
+            for (var position = 0; position < tabs.length; position++) {
+                if (tabs[position].getAttribute('data-docs-tab') === key) {
+                    return position;
+                }
+            }
+            return -1;
+        }
+
+        // Every set offering this label switches to it.
+        function selectEverywhere(key) {
+            tabSets.forEach(function (set) {
+                var position = indexOfKey(set, key);
+                if (position >= 0) {
+                    selectTab(set, position, false);
+                }
+            });
+        }
+
+        if (tabSets.length > 0) {
+            var tabPreferences = readTabPreferences();
+            tabSets.forEach(function (set) {
+                set.classList.add('is-enhanced');
+                for (var p = 0; p < tabPreferences.length; p++) {
+                    var preferred = indexOfKey(set, tabPreferences[p]);
+                    if (preferred >= 0) {
+                        selectTab(set, preferred, false);
+                        break;
+                    }
+                }
+
+                partsOf(set).tabs.forEach(function (tab, position) {
+                    tab.addEventListener('click', function () {
+                        var key = tab.getAttribute('data-docs-tab') || '';
+                        /*
+                         * Switching other sets above this one changes their
+                         * height; keep the clicked tab where the reader sees it.
+                         */
+                        var topBefore = tab.getBoundingClientRect().top;
+                        selectTab(set, position, false);
+                        if (key) {
+                            selectEverywhere(key);
+                            rememberTab(key);
+                        }
+                        var shift = tab.getBoundingClientRect().top - topBefore;
+                        if (shift !== 0) {
+                            window.scrollBy(0, shift);
+                        }
+                    });
+
+                    tab.addEventListener('keydown', function (event) {
+                        var count = partsOf(set).tabs.length;
+                        var isRightToLeft = window.getComputedStyle(set).direction === 'rtl';
+                        var next = null;
+                        if (event.key === 'ArrowRight') {
+                            next = isRightToLeft ? position - 1 : position + 1;
+                        } else if (event.key === 'ArrowLeft') {
+                            next = isRightToLeft ? position + 1 : position - 1;
+                        } else if (event.key === 'Home') {
+                            next = 0;
+                        } else if (event.key === 'End') {
+                            next = count - 1;
+                        }
+                        if (next === null) {
+                            return;
+                        }
+                        event.preventDefault();
+                        next = (next + count) % count;
+                        selectTab(set, next, true);
+                        var nextKey = partsOf(set).tabs[next].getAttribute('data-docs-tab') || '';
+                        if (nextKey) {
+                            selectEverywhere(nextKey);
+                            rememberTab(nextKey);
+                        }
+                    });
+                });
+            });
+        }
+
         /* ============================ Search =========================== */
         var searchOverlay = document.getElementById('search-overlay');
         var searchModal = document.getElementById('search-modal');
@@ -264,6 +453,112 @@
                 escapeHtml(text.slice(position + query.length));
         }
 
+        /*
+         * The full index - every page's headings and summary - is fetched
+         * the first time search opens (Utils/SearchIndex.ts). Until it
+         * arrives, or if it cannot, search falls back to the page titles
+         * embedded above.
+         */
+        var fullIndex = null;
+        var fullIndexRequested = false;
+
+        function loadFullIndex() {
+            if (fullIndexRequested || !window.fetch) {
+                return;
+            }
+            fullIndexRequested = true;
+            window.fetch('/docs/search-index/' + encodeURIComponent(window.__docsLang || 'en') + '.json')
+                .then(function (response) {
+                    return response.ok ? response.json() : null;
+                })
+                .then(function (data) {
+                    if (Array.isArray(data)) {
+                        fullIndex = data;
+                        if (isSearchOpen() && searchInput.value.trim()) {
+                            renderResults(searchInput.value);
+                        }
+                    }
+                })
+                .catch(function () {
+                    /* Offline or blocked: the title search keeps working. */
+                });
+        }
+
+        function normalize(value) {
+            return String(value || '').toLowerCase();
+        }
+
+        // Every word of the query appears somewhere in the text.
+        function hasEveryTerm(text, terms) {
+            var haystack = normalize(text);
+            for (var i = 0; i < terms.length; i++) {
+                if (haystack.indexOf(terms[i]) === -1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function findMatches(query) {
+            var terms = query.split(/\s+/).filter(function (term) { return term.length > 0; });
+            var found = [];
+
+            if (!fullIndex) {
+                searchIndex.forEach(function (item) {
+                    var titlePosition = normalize(item.title).indexOf(query);
+                    if (titlePosition !== -1 || hasEveryTerm(item.title + ' ' + item.category, terms)) {
+                        found.push({
+                            title: item.title,
+                            meta: item.category,
+                            url: item.url,
+                            isSection: false,
+                            score: titlePosition === -1 ? 400 : 1000 - titlePosition
+                        });
+                    }
+                });
+            } else {
+                fullIndex.forEach(function (entry) {
+                    /*
+                     * A hit in the page title is what people mean; then a
+                     * section heading, then the group, then the summary.
+                     */
+                    var titlePosition = normalize(entry.t).indexOf(query);
+                    var score = 0;
+                    if (titlePosition !== -1) {
+                        score = 1000 - titlePosition;
+                    } else if (hasEveryTerm(entry.t, terms)) {
+                        score = 800;
+                    } else if (hasEveryTerm(entry.t + ' ' + entry.c, terms)) {
+                        score = 500;
+                    } else if (hasEveryTerm(entry.d, terms)) {
+                        score = 200;
+                    }
+                    if (score > 0) {
+                        found.push({ title: entry.t, meta: entry.c, detail: entry.d, url: entry.u, isSection: false, score: score });
+                    }
+                    (entry.h || []).forEach(function (heading) {
+                        var headingPosition = normalize(heading.t).indexOf(query);
+                        if (headingPosition !== -1 || hasEveryTerm(heading.t, terms)) {
+                            found.push({
+                                title: heading.t,
+                                meta: entry.c + ' \u203a ' + entry.t,
+                                url: entry.u + '#' + heading.a,
+                                isSection: true,
+                                score: headingPosition === -1 ? 550 : 700 - Math.min(headingPosition, 100)
+                            });
+                        }
+                    });
+                });
+            }
+
+            return found.sort(function (a, b) {
+                return b.score - a.score;
+            }).slice(0, 30);
+        }
+
+        var pageIcon = '<svg class="h-4 w-4 flex-none opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>';
+        var sectionIcon = '<svg class="h-4 w-4 flex-none opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>';
+
         function renderResults(rawQuery) {
             var query = rawQuery.toLowerCase().trim();
             searchInput.setAttribute('aria-expanded', query ? 'true' : 'false');
@@ -276,15 +571,7 @@
                 return;
             }
 
-            matches = searchIndex.filter(function (item) {
-                return item.title.toLowerCase().indexOf(query) !== -1 ||
-                    item.category.toLowerCase().indexOf(query) !== -1;
-            }).sort(function (a, b) {
-                /* A hit in the page title is what people mean; a category hit is a fallback. */
-                var aRank = a.title.toLowerCase().indexOf(query);
-                var bRank = b.title.toLowerCase().indexOf(query);
-                return (aRank < 0 ? 1000 : aRank) - (bRank < 0 ? 1000 : bRank);
-            }).slice(0, 30);
+            matches = findMatches(query);
 
             if (matches.length === 0) {
                 highlightedIndex = -1;
@@ -299,10 +586,11 @@
                 return '<a href="' + escapeHtml(item.url) + '" role="option" id="search-result-' + index + '"' +
                     ' aria-selected="' + (index === 0) + '"' +
                     ' class="docs-search__item' + (index === 0 ? ' is-highlighted' : '') + '">' +
-                    '<svg class="h-4 w-4 flex-none opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>' +
+                    (item.isSection ? sectionIcon : pageIcon) +
                     '<span class="min-w-0 flex-1">' +
                     '<span class="docs-search__item-title block truncate">' + highlightMatch(item.title, query) + '</span>' +
-                    '<span class="docs-search__item-meta block truncate">' + highlightMatch(item.category, query) + '</span>' +
+                    '<span class="docs-search__item-meta block truncate">' + highlightMatch(item.meta, query) + '</span>' +
+                    (item.detail ? '<span class="docs-search__item-detail block truncate">' + highlightMatch(item.detail, query) + '</span>' : '') +
                     '</span>' +
                     '<svg class="docs-rtl-mirror h-3.5 w-3.5 flex-none opacity-30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
                     '</a>';
@@ -326,6 +614,7 @@
         }
 
         function openSearch() {
+            loadFullIndex();
             lastFocused = document.activeElement;
             searchOverlay.classList.add('is-open');
             searchModal.classList.add('is-open');

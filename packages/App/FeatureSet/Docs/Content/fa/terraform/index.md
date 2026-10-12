@@ -11,7 +11,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -78,7 +78,7 @@ provider "oneuptime" {
 
 نسخه‌های ارائه‌دهنده نسخه‌های پلتفرم OneUptime را دنبال می‌کنند.
 
-- **OneUptime Cloud**: از `version = "~> 11.0"` استفاده کنید.
+- **OneUptime Cloud**: از `version = "{{TERRAFORM_PROVIDER_VERSION}}"` استفاده کنید.
 - **خودمیزبان**: تازه‌ترین نسخه منتشرشده ارائه‌دهنده را به کار ببرید که **کوچک‌تر یا مساوی** نسخه پلتفرم OneUptime شماست. نسخه وصله‌ای دقیق را پین نکنید — هر انتشار وصله‌ای پلتفرم روی رجیستری منتشر نمی‌شود. [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) را ببینید.
 
 ## پشتیبانی

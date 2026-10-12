@@ -282,6 +282,16 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Number Prefix",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS, [
+      "Project",
+      "Incidents",
+      "Integrations",
+      "Huntress",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW,
+      ["Project", "Incidents", "Integrations", "Huntress", "View Connection"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_STATE, [
       "Project",
       "Incidents",

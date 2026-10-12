@@ -1,35 +1,62 @@
 # Cloud Resources (IaaS & PaaS)
 
-## Overview
+**Cloud Resources** lists the IaaS and PaaS resources in your AWS, Azure and Google Cloud accounts: virtual machines, disks, load balancers, buckets, managed databases, caches, queues, API gateways and the rest. Each one gets a page of its own, with its type, region and account, the provider's own ID for it, every metric the provider publishes about it, and owners and labels like every other resource in OneUptime. Find them under **Cloud → All Resources**.
 
-**Cloud Resources** (_Cloud → All Resources_ in the dashboard) lists the IaaS and PaaS resources in your AWS, Azure and Google Cloud accounts — virtual machines, disks, load balancers, buckets, managed databases, caches, queues, API gateways and the rest — each with a page of its own: its type, region and account, the provider's own id for it, every metric the provider publishes about it, owners, labels and archiving, like every other resource in OneUptime.
+:::cards
+- [Connect Azure](#connect-azure): Read every resource in a subscription from Azure Monitor.
+- [Connect AWS](#connect-aws): Poll CloudWatch, or stream it through Amazon Data Firehose.
+- [Connect Google Cloud](#connect-google-cloud): Read a project's services from Cloud Monitoring.
+- [How a resource is identified](#how-a-resource-is-identified): Every resource type OneUptime recognizes, by provider.
+:::
 
-They are discovered from the metrics each provider's monitoring service already publishes — **Azure Monitor**, **Amazon CloudWatch** and **Google Cloud Monitoring**. An OpenTelemetry Collector you run, with read-only access to that service, reads the metrics and exports them to OneUptime; OneUptime tells from each datapoint which resource it is about, and creates the Cloud Resource the first time it sees one. Nothing is installed on the resources themselves, and OneUptime never holds your cloud credentials: the collector does, in your environment.
+## How it works
+
+```mermaid title="How a cloud resource reaches OneUptime"
+flowchart TB
+    subgraph cloud["Your cloud account"]
+        direction LR
+        res["VMs, load balancers,<br/>buckets, databases"] --> mon["Azure Monitor,<br/>CloudWatch or<br/>Cloud Monitoring"]
+    end
+    mon -->|"read-only API"| col["OpenTelemetry Collector<br/>you run"]
+    col -->|"OTLP metrics"| ou["OneUptime"]
+    ou --> cr["Cloud Resources<br/>one per resource"]
+    ou --> metrics["Metrics"]
+```
+
+- **The provider already measures your resources.** Azure Monitor, Amazon CloudWatch and Google Cloud Monitoring publish metrics about every resource they run for you.
+- **A collector you run reads them.** An OpenTelemetry Collector with read-only access to that monitoring service exports the metrics to OneUptime. Nothing is installed on the resources, and OneUptime never holds your cloud credentials: the collector does, in your environment.
+- **Each resource appears with its first metric.** OneUptime tells from each data point which resource it is about, and creates the Cloud Resource the first time it sees one.
+
+Cloud Resources is one of several places your cloud shows up:
 
 | You run | Where it appears | How |
 | --- | --- | --- |
-| Containers on ECS, Cloud Run, Container Apps, App Service, … | **Cloud → All Environments** | Your workloads' own telemetry, by its `cloud.platform` — see [Cloud Environments](/docs/telemetry/cloud-environments) |
-| Any IaaS or PaaS resource the provider monitors | **Cloud → All Resources** | The provider's monitoring API, read by a collector — this page |
-| Virtual machines with an OpenTelemetry Collector on them | **Hosts** | The host's own metrics and logs — see [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| Queues and topics your applications use | **Queues** | Spans, and the same cloud metrics — see [Queues](/docs/telemetry/queues) |
+| Containers on ECS, Cloud Run, Container Apps, App Service, … | **Cloud → All Environments** | Your workloads' own telemetry, by its `cloud.platform`. See [Cloud Environments](/docs/telemetry/cloud-environments) |
+| Any IaaS or PaaS resource the provider monitors | **Cloud → All Resources** | The provider's monitoring API, read by a collector: this page |
+| Virtual machines with an OpenTelemetry Collector on them | **Hosts** | The host's own metrics and logs. See [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
+| Queues and topics your applications use | **Queues** | Spans, and the same cloud metrics. See [Queues](/docs/telemetry/queues) |
 
-A resource can appear in more than one place: a VM with the collector installed is a **Host**, and its platform metrics (CPU credits, disk and network throughput as the hypervisor sees them) make it a **Cloud Resource** too; an SQS queue is a **Queue** and a **Cloud Resource**. Each view shows what its source knows.
+A resource can appear in more than one place. A virtual machine with the collector on it is a **Host**, and its platform metrics (CPU credits, disk and network as the hypervisor sees them) make it a **Cloud Resource** too. An SQS queue is a **Queue** and a **Cloud Resource**. Each view shows what its source knows.
 
-## Before you start
+## Before you begin
 
-- A **OneUptime Telemetry Ingestion Token** — create a **Server** key from _Project Settings → Telemetry & APM → Ingestion Keys_. The collectors below read it from the `ONEUPTIME_TOKEN` environment variable, never from their configuration file.
-- Somewhere to run the **OpenTelemetry Collector** (the `otelcol-contrib` distribution, image `otel/opentelemetry-collector-contrib`) with outbound access to your cloud provider and to OneUptime: a small VM, a container, or your Kubernetes cluster. One collector can read several accounts and providers.
-- Read access to the provider's monitoring API, created in the first step for each provider below.
+- **An ingestion key.** Create a **Server** key under **Project Settings → Telemetry & APM → Ingestion Keys**. The collectors below read it from the `ONEUPTIME_TOKEN` environment variable, never from their configuration file.
+- **Somewhere to run the OpenTelemetry Collector**: the `otelcol-contrib` distribution, image `otel/opentelemetry-collector-contrib`, with outbound access to your cloud provider and to OneUptime. A small VM, a container or your Kubernetes cluster will do, and one collector can read several accounts and providers.
+- **Read access to the provider's monitoring API.** Each provider's first step below creates it.
 
-The same steps are in the dashboard: **Cloud → All Resources** shows them, with your token filled in, until the first resource arrives, and every resource's **Documentation** tab opens on its own provider.
+> [!TIP]
+> The same steps are in the dashboard, with your token filled in: under **Cloud → All Resources** until the first resource arrives, and on every resource's **Documentation** tab, which opens on its own provider.
 
-If you self-host OneUptime, replace `https://oneuptime.com/otlp` with `https://YOUR-ONEUPTIME-HOST/otlp`.
+If you host OneUptime yourself, replace `https://oneuptime.com/otlp` with `https://YOUR-ONEUPTIME-HOST/otlp`.
 
-## Azure
+## Connect Azure
 
-The `azure_monitor` receiver lists the resources of a subscription and reads their platform metrics every minute. With no `services` list it reads **every** resource type, so every resource in the subscription becomes a Cloud Resource.
+The `azure_monitor` receiver lists the resources of a subscription and reads their platform metrics every minute. With no `services` list it reads every resource type, so every resource in the subscription becomes a Cloud Resource.
 
-**1. Give the collector read access.** Create a service principal with the **Monitoring Reader** role — it reads metrics and lists resources, and cannot change anything:
+:::steps
+### Create a Monitoring Reader service principal
+
+**Monitoring Reader** reads metrics and lists resources, and cannot change anything:
 
 ```bash
 az ad sp create-for-rbac \
@@ -38,9 +65,11 @@ az ad sp create-for-rbac \
   --scopes /subscriptions/<SUBSCRIPTION_ID>
 ```
 
-It prints an `appId` (the client id), a `password` (the client secret) and the `tenant`. Give the same principal the role on more subscriptions to read them with the same collector.
+It prints an `appId` (the client ID), a `password` (the client secret) and the `tenant`. Give the same service principal the role on more subscriptions to read them with the same collector.
 
-**2. Configure the collector** — save this as `config.yaml`:
+### Configure the Azure Monitor receiver
+
+Save this as `config.yaml`:
 
 ```yaml
 extensions:
@@ -78,7 +107,7 @@ service:
       exporters: [otlphttp/oneuptime]
 ```
 
-**3. Run the collector:**
+### Run the Azure collector
 
 ```bash
 docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
@@ -91,24 +120,38 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
   otel/opentelemetry-collector-contrib:latest
 ```
 
-Resources appear at **Cloud → All Resources** within a few minutes.
+Resources appear under **Cloud → All Resources** within a few minutes.
+:::
 
-**Options.**
+Options of the `azure_monitor` receiver:
 
-- `resource_groups`, `services` and `resource_tags` narrow what is read: a list of resource groups, of Resource Manager types (`Microsoft.Compute/virtualMachines`), or of tags a resource must carry.
-- `metrics` limits each resource type to the metrics and aggregations you list. Once a type is listed, only its listed metrics are read.
-- `discover_subscriptions: true` reads every subscription the principal can see, instead of `subscription_ids`.
-- `maximum_number_of_records_per_resource` is how many series Azure returns per metric and resource (10 by default); raise it when a metric splits by a dimension with many values.
-- **Large subscriptions.** The receiver makes one Resource Manager call per resource and batch of 20 metrics, and Resource Manager allows about 12,000 reads an hour. For hundreds of resources, set `use_batch_api: true`: it reads up to 50 resources per call from the Azure Monitor data plane, whose limit is far higher.
-- The receiver lists resources once a day by default (`cache_resources`, in seconds), so a resource created after the collector started can take up to a day to appear. Restart the collector to list them at once.
+| Option | What it does |
+| --- | --- |
+| `resource_groups`, `services`, `resource_tags` | Read less: a list of resource groups, of Resource Manager types (`Microsoft.Compute/virtualMachines`), or of tags a resource must carry |
+| `metrics` | Limits each resource type to the metrics and aggregations you list. Once a type is listed, only its listed metrics are read |
+| `discover_subscriptions: true` | Reads every subscription the service principal can see, instead of `subscription_ids` |
+| `maximum_number_of_records_per_resource` | How many series Azure returns per metric and resource (10 by default). Raise it when a metric splits by a dimension with many values |
+| `use_batch_api: true` | For large subscriptions. The receiver makes one Resource Manager call per resource and batch of 20 metrics, and Resource Manager allows about 12,000 reads an hour; the batch API reads up to 50 resources per call from the Azure Monitor data plane, whose limit is far higher |
+| `cache_resources` | How often, in seconds, the receiver lists the resources: once a day by default. A resource created after the collector started can take up to a day to appear; restart the collector to list them at once |
 
-## AWS
+## Connect AWS
 
-CloudWatch metrics reach OneUptime in one of two ways. **Polling** — the collector's `aws_cloudwatch` receiver — needs nothing on the AWS side but credentials. **Metric Streams** push metrics as CloudWatch publishes them, through Amazon Data Firehose, to the collector's `awsfirehose` receiver: they suit large accounts, but the collector has to be reachable from AWS over HTTPS.
+CloudWatch metrics reach OneUptime in one of two ways:
+
+| | Polling | Metric Streams |
+| --- | --- | --- |
+| How | The collector's `aws_cloudwatch` receiver asks CloudWatch | CloudWatch pushes through Amazon Data Firehose to the collector's `awsfirehose` receiver |
+| Needs on the AWS side | Credentials only | A Firehose stream and a metric stream in each region |
+| The collector must be reachable from AWS | No | Yes, over HTTPS on port 443 |
+| Delay | 10 to 20 minutes | A few minutes |
+| Suits | Most accounts | Large accounts |
 
 ### Polling with the aws_cloudwatch receiver
 
-**1. Give the collector read access** — attach this policy to the role the collector runs as (an EC2 instance profile, an ECS task role, an EKS service account) or to an IAM user whose access keys you give it:
+:::steps
+#### Allow the collector to read CloudWatch
+
+Attach this policy to the role the collector runs as (an EC2 instance profile, an ECS task role, an EKS service account), or to an IAM user whose access keys you give it:
 
 ```json
 {
@@ -127,9 +170,11 @@ CloudWatch metrics reach OneUptime in one of two ways. **Polling** — the colle
 }
 ```
 
-`sts:GetCallerIdentity` lets the receiver report the account id, which each resource's ARN needs.
+`sts:GetCallerIdentity` lets the receiver report the account ID, which each resource's ARN needs.
 
-**2. Configure the collector** — one receiver reads one namespace in one region, so add one for each namespace and region you want. This example reads the common ones:
+#### Configure the CloudWatch receivers
+
+One receiver reads one namespace in one region, so add one for each namespace and region you want. This example reads the common ones; save it as `config.yaml`:
 
 ```yaml
 receivers:
@@ -217,7 +262,7 @@ service:
       exporters: [otlphttp/oneuptime]
 ```
 
-**3. Run the collector:**
+#### Run the CloudWatch collector
 
 ```bash
 docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
@@ -230,13 +275,17 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
 ```
 
 On an EC2 instance, ECS task or EKS pod that has the role, leave out the two key variables.
+:::
 
-- **Leave `stats` unset.** Each metric is then read as one summary per period — four statistics, four `GetMetricData` queries — and AWS bills `GetMetricData` per metric requested. `discovery.limit` caps the metrics a receiver reads per scrape (it must be set; the receiver's own default is 100), and a longer `collection_interval` reads them less often.
-- `delay` waits for CloudWatch to publish a period, so datapoints arrive 10 to 20 minutes after the time they measure. Resources appear within about twenty minutes.
+- **Leave `stats` unset.** Each metric is then read as one summary per period: four statistics, four `GetMetricData` queries, and AWS bills `GetMetricData` per metric requested. `discovery.limit` caps the metrics a receiver reads per scrape (set it: the receiver's own default is 100), and a longer `collection_interval` reads them less often.
+- **Data arrives late.** `delay` waits for CloudWatch to publish a period, so data points arrive 10 to 20 minutes after the time they measure, and resources appear within about twenty minutes.
 
 ### Streaming with CloudWatch Metric Streams
 
-**1. Configure the collector**, with a certificate for its address — Firehose only delivers to `https://` on port 443:
+:::steps
+#### Configure the Firehose receiver
+
+The collector needs a certificate for its address: Firehose delivers only to `https://` on port 443. Save this as `config.yaml`:
 
 ```yaml
 extensions:
@@ -272,21 +321,37 @@ service:
       exporters: [otlphttp/oneuptime]
 ```
 
-**2. Run it** with `-e FIREHOSE_ACCESS_KEY=<A_LONG_RANDOM_SECRET>`, the certificate mounted at `/etc/otelcol-contrib/tls/`, and port 4433 published behind something that answers on 443 (a load balancer, for example).
+#### Run the Firehose collector
 
-**3. Create the streams.**
+```bash
+docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
+  -e ONEUPTIME_TOKEN=YOUR_TELEMETRY_INGESTION_TOKEN \
+  -e FIREHOSE_ACCESS_KEY=<A_LONG_RANDOM_SECRET> \
+  -p 4433:4433 \
+  -v "$(pwd)/tls:/etc/otelcol-contrib/tls:ro" \
+  -v "$(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml" \
+  otel/opentelemetry-collector-contrib:latest
+```
+
+The certificate and its key go in `tls/`, as `server.crt` and `server.key`. Publish port 4433 behind something that answers on 443, such as a load balancer.
+
+#### Create the Firehose and metric streams
 
 1. **Amazon Data Firehose → Create Firehose stream**: source **Direct PUT**, destination **HTTP Endpoint**. The endpoint URL is the collector's `https://` address; the access key is `FIREHOSE_ACCESS_KEY`. Pick or create an S3 bucket for failed deliveries.
 2. **CloudWatch → Metrics → Streams → Create metric stream**: the namespaces to include (or all), the Firehose stream, and the output format **OpenTelemetry 1.0**.
 3. Repeat in each region: a metric stream carries its own region's metrics.
+:::
 
-AWS bills a metric stream per metric update it delivers, plus Firehose's data charges; include only the namespaces you want. A stream in the **JSON** format (`format: json` on the encoding extension) names the same resources, but also writes each namespace into `service.name`, so every namespace shows up in **Services** as well — prefer **OpenTelemetry 1.0**.
+AWS bills a metric stream per metric update it delivers, plus Firehose's data charges, so include only the namespaces you want. A stream in the **JSON** format (`format: json` on the encoding extension) names the same resources, but also writes each namespace into `service.name`, so every namespace shows up under **Services** as well: prefer **OpenTelemetry 1.0**.
 
-## Google Cloud
+## Connect Google Cloud
 
 The `googlecloudmonitoring` receiver reads the metric types its `metrics_list` names, for one project.
 
-**1. Give the collector read access** — a service account with **Monitoring Viewer**:
+:::steps
+### Create a Monitoring Viewer service account
+
+**Monitoring Viewer** reads metrics, and cannot change anything:
 
 ```bash
 gcloud iam service-accounts create oneuptime-cloud-collector \
@@ -302,7 +367,9 @@ gcloud iam service-accounts keys create key.json \
 
 On Google Cloud itself, run the collector as this service account instead of creating a key.
 
-**2. Configure the collector.** Each filter reads every metric type of one service:
+### Configure the Cloud Monitoring receiver
+
+Each filter reads every metric type of one service. Save this as `config.yaml`:
 
 ```yaml
 receivers:
@@ -335,7 +402,7 @@ service:
       exporters: [otlphttp/oneuptime]
 ```
 
-**3. Run the collector:**
+### Run the Google Cloud collector
 
 ```bash
 docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
@@ -346,23 +413,26 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
   -v "$(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml" \
   otel/opentelemetry-collector-contrib:latest
 ```
+:::
 
-- The list is read when the collector starts: restart it after a change. `metric_name: compute.googleapis.com/instance/cpu/utilization` reads one type instead of a service's every type.
-- One receiver reads one project: add one per project.
-- Each metric type is one Cloud Monitoring API read per collection interval. Reading Google Cloud's own metrics is free within the API's monthly allowance; a longer `collection_interval` keeps a large project inside it and inside the per-minute quota.
+- **The list is read when the collector starts:** restart it after a change. `metric_name: compute.googleapis.com/instance/cpu/utilization` reads one type instead of a service's every type.
+- **One receiver reads one project:** add one per project.
+- **Reading has a cost and a quota.** Each metric type is one Cloud Monitoring API read per collection interval. Reading Google Cloud's own metrics is free within the API's monthly allowance; a longer `collection_interval` keeps a large project inside it, and inside the per-minute quota.
 
 ## Keep the pipeline free of resource detection
 
-Do not add the `resourcedetection` processor to the pipeline that reads cloud monitoring. It stamps the collector machine's own `host.name` and `os.type` on every datapoint, and OneUptime then files your cloud's metrics under that machine in **Hosts** as well. A collector that also monitors its own host should do that in a pipeline of its own.
+> [!WARNING]
+> Do not add the `resourcedetection` processor to the pipeline that reads cloud monitoring. It stamps the collector machine's own `host.name` and `os.type` on every data point, and OneUptime then files your cloud's metrics under that machine in **Hosts** as well. A collector that also monitors its own host should do that in a pipeline of its own.
 
 ## How a resource is identified
 
-Every datapoint from these receivers names one resource, and OneUptime keys the Cloud Resource on that resource's identity — never on its name, which you can change. The identity is compared without regard to case, so a resource reported in two spellings is one resource.
+Every data point from these receivers names one resource, and OneUptime keys the Cloud Resource on that resource's identity, never on its name, which you can change. The identity is compared without regard to case, so a resource reported in two spellings is one resource.
 
 ### Azure
 
-Every datapoint carries its resource's Azure resource id (`azuremonitor.resource_id`), so **every** resource the receiver reads becomes a Cloud Resource — the types below under a friendly name, any other under its Resource Manager type. The resource id, region, subscription and resource group are all shown on the resource.
+Every data point carries its resource's Azure resource ID (`azuremonitor.resource_id`), so every resource the receiver reads becomes a Cloud Resource: the types below under a friendly name, any other under its Resource Manager type. The resource ID, region, subscription and resource group are all shown on the resource.
 
+:::details The Azure resource types with a friendly name
 | Resource type | Shown as | Model |
 | --- | --- | --- |
 | `Microsoft.Compute/virtualMachines` | Virtual Machine | IaaS |
@@ -421,13 +491,15 @@ Every datapoint carries its resource's Azure resource id (`azuremonitor.resource
 | `Microsoft.OperationalInsights/workspaces` | Log Analytics Workspace | PaaS |
 | `Microsoft.Automation/automationAccounts` | Automation Account | PaaS |
 | `Microsoft.Devices/IotHubs` | IoT Hub | PaaS |
+:::
 
 ### AWS
 
-A CloudWatch metric names its resource in a dimension that depends on the namespace. A datapoint that carries the dimensions in **Identified by** is that resource's, together with its account and region; extra dimensions narrow the series, not the resource (an Application Load Balancer's per-target-group series are the load balancer's). A datapoint aggregated over something else — `InstanceType`, `DatabaseClass`, an account-wide total — names no resource and is not discovered. Neither is a namespace that is not listed: its metrics still reach **Metrics**.
+A CloudWatch metric names its resource in a dimension that depends on the namespace. A data point that carries the dimensions under **Identified by** is that resource's, together with its account and region; extra dimensions narrow the series, not the resource (an Application Load Balancer's per-target-group series are the load balancer's). A data point aggregated over something else (`InstanceType`, `DatabaseClass`, an account-wide total) names no resource and is not discovered. Neither is a namespace that is not listed: its metrics still reach **Metrics**.
 
 Each resource is shown with its ARN where its metrics name it completely; where they do not (an Auto Scaling group's ARN carries a UUID no metric reports), with its namespace and dimensions.
 
+:::details The CloudWatch namespaces and the dimensions that identify a resource
 | Namespace | Identified by | Shown as | Resource type | Model |
 | --- | --- | --- | --- | --- |
 | `AWS/EC2` | `InstanceId` | EC2 Instance | `AWS::EC2::Instance` | IaaS |
@@ -484,11 +556,13 @@ Each resource is shown with its ARN where its metrics name it completely; where 
 | `AWS/Cognito` | `UserPool` | Cognito User Pool | `AWS::Cognito::UserPool` | PaaS |
 | `AWS/SageMaker` | `EndpointName` | SageMaker Endpoint | `AWS::SageMaker::Endpoint` | PaaS |
 | `AWS/Logs` | `LogGroupName` | CloudWatch Log Group | `AWS::Logs::LogGroup` | PaaS |
+:::
 
 ### Google Cloud
 
-Cloud Monitoring names each metric's monitored resource with a type and labels. A datapoint of a type below is that resource's, identified by the labels listed — the resource's other labels, and its metadata labels, never split it. Kubernetes types (`k8s_container`, `k8s_pod`, …) are left to the [Kubernetes](/docs/telemetry/kubernetes-agent) product.
+Cloud Monitoring names each metric's monitored resource with a type and labels. A data point of a type below is that resource's, identified by the labels listed; the resource's other labels, and its metadata labels, never split it. Kubernetes types (`k8s_container`, `k8s_pod`, …) are left to the [Kubernetes](/docs/telemetry/kubernetes-agent) product.
 
+:::details The Cloud Monitoring resource types and the labels that identify them
 | Monitored resource type | Identified by | Shown as | Model |
 | --- | --- | --- | --- |
 | `gce_instance` | `project_id`, `zone`, `instance_id` | Compute Engine VM Instance | IaaS |
@@ -516,19 +590,32 @@ Cloud Monitoring names each metric's monitored resource with a type and labels. 
 | `cloud_composer_environment` | `project_id`, `location`, `environment_name` | Cloud Composer Environment | PaaS |
 | `dataproc_cluster` | `project_id`, `region`, `cluster_name` | Dataproc Cluster | PaaS |
 | `aiplatform.googleapis.com/Endpoint` | `resource_container`, `location`, `endpoint_id` | Vertex AI Endpoint | PaaS |
+:::
 
 ### Names
 
-A resource is named after what its provider calls it (`vm-prod-01`, `checkout`, `orders`). Names are unique within a project, and the provider's are not — two subscriptions each have a `web-01`, an App Service plan and its app are both `checkout` — so a resource whose name is taken is named with its type, then its resource group or region, then its account: `web-01 (Virtual Machine, rg-prod)`. Rename any resource on its **Settings** tab: metrics are matched by its identity, not its name.
+A resource is named after what its provider calls it (`vm-prod-01`, `checkout`, `orders`). Names are unique within a project, and the provider's are not: two subscriptions each have a `web-01`, and an App Service plan and its app are both `checkout`. So a resource whose name is taken is named with its type, then its resource group or region, then its account: `web-01 (Virtual Machine, rg-prod)`. Rename any resource on its **Settings** tab: metrics are matched by its identity, not its name.
 
 ## Status, archiving and limits
 
-- **Reporting** means the provider sent a metric about the resource within the last hour; after an hour without one it reads **Not reporting**. Some resources are quiet by nature — a Key Vault nobody called, a bucket whose storage metrics CloudWatch publishes once a day — and come back with their next datapoint.
+```mermaid title="A cloud resource's status"
+stateDiagram-v2
+    state "Reporting" as Reporting
+    state "Not reporting" as NotReporting
+    state "Archived" as Archived
+    [*] --> Reporting: first metric
+    Reporting --> NotReporting: an hour<br/>without a metric
+    NotReporting --> Reporting: next metric
+    NotReporting --> Archived: 7 days<br/>without a metric
+    Archived --> Reporting: reports again
+```
+
+- **Reporting** means the provider sent a metric about the resource within the last hour; after an hour without one it reads **Not reporting**. Some resources are quiet by nature, such as a Key Vault nobody called or a bucket whose storage metrics CloudWatch publishes once a day, and come back with their next data point.
 - A resource that sends **no metric for 7 days** is archived automatically: an instance an Auto Scaling group replaced, a deleted volume, a bucket that is gone. It keeps its labels, owners and history under **Cloud → Advanced → Archived**, and is restored by itself the moment it reports again. A resource you archive yourself stays archived; one you restore while it is silent stays in the list until it reports.
-- **Deleting** a resource the provider still reports does not stick: it is discovered again from its next metrics. Archive it instead.
+- Deleting a resource the provider still reports does not stick: it is discovered again from its next metrics. Archive it instead.
 - Discovery stops creating resources when a project holds **5,000** live (not archived) ones, and logs a warning; archived resources do not count.
 
-Self-hosted installs can change these with environment variables on the app:
+Self-hosted installations can change these with environment variables on the app:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -537,13 +624,19 @@ Self-hosted installs can change these with environment variables on the app:
 
 ## Alerting on a resource
 
-A resource's **Metrics** tab lists every metric its provider reports about it. Open one to chart it in the metrics explorer, already filtered to the resource, and choose **Create monitor from this view**: the monitor watches that metric for that resource.
+:::steps
+1. Open the resource and its **Metrics** tab, which lists every metric its provider reports about it.
+2. Open a metric to chart it in the metrics explorer, already filtered to the resource.
+3. Click **Create monitor from this view**: the monitor watches that metric for that resource.
+:::
 
-Cloud monitoring publishes each number minutes after the time it measures — 10 to 20 minutes for CloudWatch polled as above, a few minutes for Azure Monitor and Cloud Monitoring — and it is stored under that time. Give a monitor over these metrics a window longer than that (30 minutes for CloudWatch, 15 for the others), or it sees no data and never fires.
+> [!IMPORTANT]
+> Cloud monitoring publishes each number minutes after the time it measures: 10 to 20 minutes for CloudWatch polled as above, a few minutes for Azure Monitor and Cloud Monitoring. It is stored under the time it measures. Give a monitor over these metrics a window longer than that (30 minutes for CloudWatch, 15 for the others), or it sees no data and never fires.
 
 ## Inventory and rules
 
-Cloud Resources are mirrored into the [Inventory](/docs/inventory/overview) as **Cloud Resource** items, with the provider's id as `cloud.resource.id` and the type as `cloud.resource.type`, and are listed by the AI agent's resource tools. **Cloud → Settings → Label Rules** and **Owner Rules** apply to them as they do to cloud environments.
+- **Inventory:** Cloud Resources are listed in the [Inventory](/docs/inventory/overview) as **Cloud Resource** items, with the provider's ID as `cloud.resource.id` and the type as `cloud.resource.type`. The AI agent's resource tools list them too.
+- **Rules:** **Cloud → Settings → Label Rules** and **Owner Rules** apply to them as they do to cloud environments.
 
 ## Troubleshooting
 
@@ -551,27 +644,36 @@ Cloud Resources are mirrored into the [Inventory](/docs/inventory/overview) as *
 
 1. Check the token: `curl -i https://oneuptime.com/otlp/v1/validate -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"` must answer `200` with `"valid": true`.
 2. Read the collector's log (`docker logs oneuptime-cloud-collector`). An authorization error names the permission it is missing: `AuthorizationFailed` (Azure: **Monitoring Reader** on the subscription), `AccessDenied` on `cloudwatch:GetMetricData` (AWS: the policy above), `PermissionDenied` (Google Cloud: **Monitoring Viewer**).
-3. Look in **Metrics** for the provider's metrics (`azure_…`, `amazonaws.com/aws/…`, `compute.googleapis.com/…`). If they are there but no resource is, the datapoints name none OneUptime recognises: an AWS namespace or Google Cloud type that is not listed above, or a datapoint aggregated over something other than a resource.
+3. Look in **Metrics** for the provider's metrics (`azure_…`, `amazonaws.com/aws/…`, `compute.googleapis.com/…`). If they are there but no resource is, the data points name no resource OneUptime recognizes: an AWS namespace or Google Cloud type that is not listed above, or a data point aggregated over something other than a resource.
 4. Wait for late data: CloudWatch polled as above is 10 to 20 minutes behind.
 
 ### A resource is missing
 
 - **Azure:** the receiver lists resources once a day; restart the collector to list new ones now. A resource type with no platform metrics in Azure Monitor has nothing to report.
-- **AWS:** each receiver reads one namespace in one region, and `discovery.limit` caps how many metrics it reads — raise it when an account has more.
+- **AWS:** each receiver reads one namespace in one region, and `discovery.limit` caps how many metrics it reads: raise it when an account has more.
 - **Google Cloud:** `metrics_list` must name the resource's service.
-- A project at the budget creates no new resources until some are archived (see [Status, archiving and limits](#status-archiving-and-limits)).
+- **Any provider:** a project at the budget creates no new resources until some are archived. See [Status, archiving and limits](#status-archiving-and-limits).
 
 ### The same resource appears twice
 
-An AWS resource read once with its account id and once without (the polling receiver reports the account only when it may call `sts:GetCallerIdentity`) is two resources. Give every collector the permission, and archive the one without an account.
+An AWS resource read once with its account ID and once without is two resources: the polling receiver reports the account only when it may call `sts:GetCallerIdentity`. Give every collector that permission, and archive the copy without an account.
 
 ### My cloud's metrics appear under a host
 
-The pipeline has a `resourcedetection` processor: see [Keep the pipeline free of resource detection](#keep-the-pipeline-free-of-resource-detection).
+The pipeline has a `resourcedetection` processor. See [Keep the pipeline free of resource detection](#keep-the-pipeline-free-of-resource-detection).
 
 ## Limitations
 
-- Only metrics: the providers' monitoring APIs publish no logs or traces about a resource. Send those from your workloads with OpenTelemetry.
-- Discovery follows the metrics: a resource the provider publishes no metrics about — or the collector does not read — is not discovered.
-- A resource has no retention setting of its own: its metrics are kept as long as the rest of the metrics its collector sends.
-- Polling the cloud APIs costs money and counts against their limits; see each provider's notes above.
+- **Only metrics.** The providers' monitoring APIs publish no logs or traces about a resource. Send those from your workloads with OpenTelemetry.
+- **Discovery follows the metrics.** A resource the provider publishes no metrics about, or the collector does not read, is not discovered.
+- **No retention setting of its own.** A resource's metrics are kept as long as the rest of the metrics its collector sends.
+- **Polling costs money** and counts against the cloud APIs' limits: see each provider's notes above.
+
+## Next steps
+
+:::cards
+- [Cloud Environments](/docs/telemetry/cloud-environments): Your containers on ECS, Cloud Run and Container Apps, from their own telemetry.
+- [Queues](/docs/telemetry/queues): SQS, Service Bus and Pub/Sub, with the same cloud metrics.
+- [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Label and assign owners to resources as they are discovered.
+- [Inventory](/docs/inventory/overview): Every host, device and cloud resource in one list.
+:::

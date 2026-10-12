@@ -50,6 +50,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * A record's reference has two names a write can use - its ID column
@@ -222,8 +223,19 @@ describe("moving a subscriber template link is checked under either name", () =>
         "findBy",
       )
       .mockResolvedValue([
-        { statusPageSubscriberNotificationTemplateId: LINKED_TEMPLATE_ID },
+        {
+          _id: "0193c0de-b0b0-4aaa-8bbb-0000000000c1",
+          statusPageSubscriberNotificationTemplateId: LINKED_TEMPLATE_ID,
+        },
       ] as never);
+    // The links a teammate's update may write: what the read above answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      StatusPageSubscriberNotificationTemplateStatusPageService,
+      jest.spyOn(
+        StatusPageSubscriberNotificationTemplateStatusPageService,
+        "findBy",
+      ),
+    );
 
     jest
       .spyOn(SubscriberTemplateIncidentRecordAccess, "assertCanPlace")

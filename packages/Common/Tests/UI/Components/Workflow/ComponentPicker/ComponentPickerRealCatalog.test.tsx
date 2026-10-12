@@ -347,11 +347,31 @@ describe("a search over the full catalog is fast", () => {
       }
     }
 
-    const durations: Array<number> = typed.map((query: string): number => {
-      const started: number = performance.now();
-      searchComponents(ACTION_INDEX, query);
-      return performance.now() - started;
+    /*
+     * A search's cost is the fastest of a few typings of it. One search
+     * takes about a millisecond (3 ms at worst), so a single wall-clock
+     * sample on a shared runner can be mostly the runner: one sample on
+     * master's CI read 785 ms while every search's own cost stayed near
+     * those figures. A pause of the runner only ever adds time, so the
+     * fastest run is the search's cost, and a search that really is slow
+     * is slow every time it is typed and still fails. The searches keep no
+     * results between calls, so each run does the whole search again.
+     */
+    const TYPINGS: number = 3;
+    const durations: Array<number> = typed.map((): number => {
+      return Number.POSITIVE_INFINITY;
     });
+
+    for (let typing: number = 0; typing < TYPINGS; typing++) {
+      typed.forEach((query: string, index: number): void => {
+        const started: number = performance.now();
+        searchComponents(ACTION_INDEX, query);
+        durations[index] = Math.min(
+          durations[index]!,
+          performance.now() - started,
+        );
+      });
+    }
 
     const total: number = durations.reduce((sum: number, value: number) => {
       return sum + value;

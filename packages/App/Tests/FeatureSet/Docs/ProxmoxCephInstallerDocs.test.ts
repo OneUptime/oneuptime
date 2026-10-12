@@ -7,6 +7,8 @@ import {
   CEPH_AGENT_INSTALL_DIR,
   getCephAgentUpgradeCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { anchorInLanguage, sectionInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -14,10 +16,15 @@ import path from "path";
 /*
  * Re-running the Proxmox or Ceph install script keeps the answers: it reuses
  * the .env it finds (nothing is asked again) and is how the agent is
- * upgraded. The docs, in English and Persian, and the agents' READMEs say so
- * where they introduce the install script, link from there to the upgrade,
- * show the script again first in the upgrade, and promise only what
- * install.sh does. Markdown is not compiled, so this reads the files.
+ * upgraded. The docs and the agents' READMEs say so where they introduce the
+ * install script, link from there to the upgrade, show the script again
+ * first in the upgrade, and promise only what install.sh does. Markdown is
+ * not compiled, so this reads the files.
+ *
+ * The Proxmox page is checked in every language: its translations lie line
+ * for line beside the English page (InfrastructureAgentDocsTranslations), so
+ * a section is found where the English one is. The Ceph page is checked in
+ * English and Persian, by its headings, until its own docs task.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -32,42 +39,17 @@ interface Agent {
   dir: string;
   installDir: string;
   upgrade: string;
+  // The languages its docs page is checked in.
+  languages: Array<string>;
+  // Where the page introduces the install script, in a language.
+  installSection: (language: string) => string;
+  // The page's upgrade section, in a language.
+  upgradeSection: (language: string) => string;
+  // The anchor of the upgrade section, in a language.
+  upgradeAnchor: (language: string) => string;
+  // The sentence that says a re-run keeps the .env, where it is pinned.
+  reusesEnv: Record<string, string>;
 }
-
-const AGENTS: Array<Agent> = [
-  {
-    name: "Proxmox",
-    page: "telemetry/proxmox.md",
-    dir: "agents/ProxmoxAgent",
-    installDir: PROXMOX_AGENT_INSTALL_DIR,
-    upgrade: getProxmoxAgentUpgradeCommand(),
-  },
-  {
-    name: "Ceph",
-    page: "telemetry/ceph.md",
-    dir: "agents/CephAgent",
-    installDir: CEPH_AGENT_INSTALL_DIR,
-    upgrade: getCephAgentUpgradeCommand(),
-  },
-];
-
-const LANGUAGES: Array<string> = ["en", "fa"];
-
-const QUICK_START: Record<string, string> = {
-  en: "## Quick Start (Install Script)",
-  fa: "## شروع سریع (اسکریپت نصب)",
-};
-
-const UPGRADE: Record<string, string> = {
-  en: "## Upgrading the Agent",
-  fa: "## ارتقای عامل",
-};
-
-// The sentence that says a re-run keeps the .env, in each language.
-const REUSES_ENV: Record<string, string> = {
-  en: "Running the script again reuses everything in that `.env` instead of prompting again",
-  fa: "را از همان `.env` بازاستفاده",
-};
 
 function read(file: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
@@ -84,6 +66,75 @@ function section(markdown: string, heading: string): string {
   const end: number = markdown.indexOf("\n## ", start + heading.length);
   return markdown.slice(start, end < 0 ? undefined : end);
 }
+
+const PROXMOX_PAGE: string = "telemetry/proxmox";
+
+// The Ceph page's headings, in the two languages it is checked in.
+const CEPH_QUICK_START: Record<string, string> = {
+  en: "## Quick Start (Install Script)",
+  fa: "## شروع سریع (اسکریپت نصب)",
+};
+
+const CEPH_UPGRADE: Record<string, string> = {
+  en: "## Upgrading the Agent",
+  fa: "## ارتقای عامل",
+};
+
+const AGENTS: Array<Agent> = [
+  {
+    name: "Proxmox",
+    page: "telemetry/proxmox.md",
+    dir: "agents/ProxmoxAgent",
+    installDir: PROXMOX_AGENT_INSTALL_DIR,
+    upgrade: getProxmoxAgentUpgradeCommand(),
+    languages: [...SUPPORTED_DOCS_LANGUAGE_CODES],
+    installSection: (language: string): string => {
+      return sectionInLanguage(language, PROXMOX_PAGE, "## Install the agent");
+    },
+    upgradeSection: (language: string): string => {
+      return sectionInLanguage(
+        language,
+        PROXMOX_PAGE,
+        "## Upgrading the agent",
+      );
+    },
+    upgradeAnchor: (language: string): string => {
+      return (
+        anchorInLanguage(language, PROXMOX_PAGE, "upgrading-the-agent") || ""
+      );
+    },
+    reusesEnv: {
+      en: "Running the script again reuses everything in that `.env` instead of prompting again",
+    },
+  },
+  {
+    name: "Ceph",
+    page: "telemetry/ceph.md",
+    dir: "agents/CephAgent",
+    installDir: CEPH_AGENT_INSTALL_DIR,
+    upgrade: getCephAgentUpgradeCommand(),
+    languages: ["en", "fa"],
+    installSection: (language: string): string => {
+      return section(
+        readPage(language, "telemetry/ceph.md"),
+        CEPH_QUICK_START[language]!,
+      );
+    },
+    upgradeSection: (language: string): string => {
+      return section(
+        readPage(language, "telemetry/ceph.md"),
+        CEPH_UPGRADE[language]!,
+      );
+    },
+    upgradeAnchor: (language: string): string => {
+      return slugify(CEPH_UPGRADE[language]!.replace(/^## /, ""));
+    },
+    reusesEnv: {
+      en: "Running the script again reuses everything in that `.env` instead of prompting again",
+      fa: "را از همان `.env` بازاستفاده",
+    },
+  },
+];
 
 function headingSlugs(markdown: string): Set<string> {
   return new Set<string>(
@@ -104,23 +155,24 @@ function inPageAnchors(markdown: string): Array<string> {
 }
 
 describe.each(AGENTS)("the $name agent's docs", (agent: Agent) => {
-  test.each(LANGUAGES)(
-    "%s: the quick start says a re-run reuses the .env, and links to the upgrade",
+  test.each(agent.languages)(
+    "%s: the install section says a re-run reuses the .env, and links to the upgrade",
     (language: string) => {
-      const quickStart: string = section(
-        readPage(language, agent.page),
-        QUICK_START[language]!,
-      );
+      const quickStart: string = agent.installSection(language);
+      const anchor: string = agent.upgradeAnchor(language);
+
       expect(quickStart).toContain(`\`${agent.installDir}\``);
       expect(quickStart).toContain("`0600`");
-      expect(quickStart).toContain(REUSES_ENV[language]!);
-      expect(quickStart).toContain(
-        `](#${slugify(UPGRADE[language]!.replace(/^## /, ""))})`,
-      );
+      expect(quickStart).toContain("`.env`");
+      if (agent.reusesEnv[language]) {
+        expect(quickStart).toContain(agent.reusesEnv[language]!);
+      }
+      expect(anchor).not.toBe("");
+      expect(quickStart).toContain(`](#${anchor})`);
     },
   );
 
-  test.each(LANGUAGES)(
+  test.each(agent.languages)(
     "%s: every in-page link resolves to a heading of the page",
     (language: string) => {
       const markdown: string = readPage(language, agent.page);
@@ -136,13 +188,10 @@ describe.each(AGENTS)("the $name agent's docs", (agent: Agent) => {
     },
   );
 
-  test.each(LANGUAGES)(
+  test.each(agent.languages)(
     "%s: the upgrade runs the install script again first, keeps edited files, and gives the Compose way after it",
     (language: string) => {
-      const upgrade: string = section(
-        readPage(language, agent.page),
-        UPGRADE[language]!,
-      );
+      const upgrade: string = agent.upgradeSection(language);
       const script: number = upgrade.indexOf(
         "```bash\n" + agent.upgrade + "\n```",
       );

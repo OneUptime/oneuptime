@@ -27,6 +27,7 @@ import DatabaseServerEndpointService from "../../../../Server/Services/DatabaseS
 import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import HostService from "../../../../Server/Services/HostService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import MonitorMaintenanceSuppression, {
   MaintainedResourceKeys,
   MonitorMaintenanceSuppressionResult,
@@ -317,6 +318,19 @@ describe("MonitorMaintenanceSuppression.getMaintenanceSuppression", () => {
     events = [];
     databaseRows = [];
     endpointRows = [];
+
+    /*
+     * The events are asked for by the project's states they are in progress
+     * in; `events` stands for the events in them.
+     */
+    jest
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getInProgressScheduledMaintenanceStateIds",
+      )
+      .mockResolvedValue([
+        new ObjectID("44444444-4444-4444-8444-444444444441"),
+      ]);
 
     maintenanceSpy = jest
       .spyOn(ScheduledMaintenanceService, "findBy")

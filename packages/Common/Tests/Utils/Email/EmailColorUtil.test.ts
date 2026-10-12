@@ -7,6 +7,7 @@ import EmailColorUtil, {
   EMAIL_COLOR_TEXT_CONTRAST,
   EmailColorPair,
 } from "../../../Utils/Email/EmailColorUtil";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -43,11 +44,10 @@ function hexToRgb(value: string): RGB {
 // A deterministic spread over the whole colour space.
 function sampleColors(count: number): Array<string> {
   const colors: Array<string> = [];
-  let seed: number = 7;
+  const random: SeededRandom = seededRandom(7);
 
   for (let index: number = 0; index < count; index++) {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    colors.push(`#${(seed % 16777216).toString(16).padStart(6, "0")}`);
+    colors.push(`#${random(16777216).toString(16).padStart(6, "0")}`);
   }
 
   return colors;

@@ -138,9 +138,12 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     source: "SCHEDULED_MAINTENANCE_EVENT_MEASUREMENTS",
     detailsCard: 'name="Scheduled Maintenance Details"',
     nextCard: "<OverviewCustomFields",
-    // Ended or completed: the header's own "ended" kind.
-    isEventOver:
-      /isEventOver=\{Boolean\(scheduledMaintenance\?\.currentScheduledMaintenanceState ?\?\.isEndedState \|\| scheduledMaintenance\?\.currentScheduledMaintenanceState ?\?\.isResolvedState,?\)\}/,
+    /*
+     * Over by the one rule (hasScheduledMaintenanceEventEnded, through
+     * ScheduledMaintenanceStartUtil.hasEnded): Ended, Completed, or a state
+     * of the project's own placed after Ended - not the two flags alone.
+     */
+    isEventOver: /isEventOver=\{isEventOver\}/,
     // Its current state, and its planned window.
     refreshKey:
       "refreshKey={getEventMeasurementRefreshKey({ currentStateId: scheduledMaintenance?.currentScheduledMaintenanceState?._id, times: [eventStartsAt, eventEndsAt], })}",

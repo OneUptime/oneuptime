@@ -1431,6 +1431,15 @@ const EXPECTED_JIRA_CALLS: Record<string, Array<JiraCall>> = perKind(
 
 const JIRA_CREDENTIALS: Array<string> = ["jiraBaseUrl", "jiraBasicAuthToken"];
 
+/*
+ * The templates that link to an issue in what they write ask for the site
+ * the link goes to first, then for what their Jira calls need.
+ */
+const JIRA_SITE_AND_CREDENTIALS: Array<string> = [
+  "jiraSiteUrl",
+  ...JIRA_CREDENTIALS,
+];
+
 const expectedVariables: KindEntriesFunction<Array<string>> = (
   kind: RecordKind,
 ): Record<string, Array<string>> => {
@@ -1446,11 +1455,12 @@ const expectedVariables: KindEntriesFunction<Array<string>> = (
     ],
     [ids.transitionIssue]: JIRA_CREDENTIALS,
     [ids.updateComment]: JIRA_CREDENTIALS,
-    [ids.createFromIssue]: JIRA_CREDENTIALS,
-    // Webhook in, OneUptime out: nothing to call, so nothing to configure.
+    [ids.createFromIssue]: JIRA_SITE_AND_CREDENTIALS,
+    // Webhook in, OneUptime out, and no link to the issue: nothing to configure.
     [ids.statusToState]: [],
-    [ids.commentToNote]: JIRA_CREDENTIALS,
-    [ids.issueChangesToNote]: [],
+    [ids.commentToNote]: JIRA_SITE_AND_CREDENTIALS,
+    // Nothing to call, but the note links the issue, on the site it names.
+    [ids.issueChangesToNote]: ["jiraSiteUrl"],
   };
 
   for (const templateId of noteToCommentIds(kind)) {
@@ -2471,11 +2481,11 @@ describe("Jira template variables", () => {
 
       expect({
         templateId: templateId,
-        asksForSite: names.includes("jiraBaseUrl"),
+        asksForApiUrl: names.includes("jiraBaseUrl"),
         asksForToken: names.includes("jiraBasicAuthToken"),
       }).toEqual({
         templateId: templateId,
-        asksForSite: specOf(templateId).nodes.some(isApiNode),
+        asksForApiUrl: specOf(templateId).nodes.some(isApiNode),
         asksForToken: specOf(templateId).nodes.some(isApiNode),
       });
     }
@@ -2520,6 +2530,7 @@ describe("Jira template variables", () => {
         "jiraBasicAuthToken",
         "jiraIssueType",
         "jiraProjectKey",
+        "jiraSiteUrl",
         "oneuptimeUrl",
       ].sort(),
     );
@@ -2561,7 +2572,7 @@ describe("Jira template variables", () => {
    * Every call is written as {{jiraBaseUrl}}/rest/api/3/..., so a trailing
    * slash doubles up and a missing scheme is not a URL at all.
    */
-  test("the site URL asks for https and no trailing slash", () => {
+  test("the API URL asks for https and no trailing slash", () => {
     const siteUrl: WorkflowTemplateVariable = templateOf(
       INCIDENT.templates.createIssue,
     ).variables.find((variable: WorkflowTemplateVariable) => {
@@ -2619,9 +2630,9 @@ describe("Jira template variables", () => {
   });
 
   /*
-   * The site and the token belong to the Jira calls and nowhere else; the
-   * project, issue type and OneUptime address only to the step that files the
-   * issue.
+   * The API URL and the token belong to the Jira calls and nowhere else; the
+   * Jira Site URL only to the scripts that link the issue; the project, issue
+   * type and OneUptime address only to the step that files the issue.
    */
   test("each variable is referenced only where it belongs", () => {
     const found: Array<string> = [];
@@ -2659,6 +2670,10 @@ describe("Jira template variables", () => {
         `${templateId} jiraProjectKey in create-issue-1.request-body`,
         `${templateId} jiraIssueType in create-issue-1.request-body`,
         `${templateId} oneuptimeUrl in prepare-issue-1.arguments`,
+        // The site goes only to the scripts that link to the issue.
+        `${kind.templates.createFromIssue} jiraSiteUrl in ${kind.steps.prepareRecord}.arguments`,
+        `${kind.templates.commentToNote} jiraSiteUrl in read-comment-1.arguments`,
+        `${kind.templates.issueChangesToNote} jiraSiteUrl in read-changes-1.arguments`,
       );
     }
 
@@ -3486,11 +3501,17 @@ describe("text from Jira at substitution", () => {
 
   /*
    * Only references already in an argument are ever filled in, so text from
-   * Jira can reach a variable only if the same argument names one. None does,
-   * log lines included.
+   * Jira can reach a variable only if the same argument names one. One does:
+   * the scripts that link to the issue get the workflow's Jira Site URL
+   * beside the event they read, because the site is the setting's, not the
+   * event's. It is not a secret, it is named before the Jira text (the test
+   * above), so it is filled in before any Jira text is, and the runtime never
+   * reads a value it filled in for references again. No other variable, and
+   * so no secret, is ever named beside Jira text, log lines included.
    */
-  test("no argument that quotes Jira text also quotes a variable", () => {
+  test("no argument that quotes Jira text also quotes a variable, bar the Jira Site URL of a script that links the issue", () => {
     const offenders: Array<string> = [];
+    const sitesBesideJiraText: Array<string> = [];
 
     for (const { templateId, node } of jiraNodes()) {
       for (const [argumentId, value] of Object.entries(node.args || {})) {
@@ -3499,21 +3520,45 @@ describe("text from Jira at substitution", () => {
         const quotesJira: boolean = references.some((reference: Reference) => {
           return isFromJira(templateId, reference);
         });
-        const quotesVariable: boolean = references.some(
-          (reference: Reference) => {
-            return (
-              reference.parsed.rootType === ReferenceRootType.LocalVariable
-            );
-          },
-        );
 
-        if (quotesJira && quotesVariable) {
-          offenders.push(`${templateId} ${node.componentId}.${argumentId}`);
+        if (!quotesJira) {
+          continue;
+        }
+
+        for (const reference of references) {
+          if (reference.parsed.rootType !== ReferenceRootType.LocalVariable) {
+            continue;
+          }
+
+          const at: string = `${templateId} ${node.componentId}.${argumentId}`;
+
+          if (reference.parsed.variableName === "jiraSiteUrl") {
+            sitesBesideJiraText.push(at);
+          } else {
+            offenders.push(`${at}: ${reference.raw}`);
+          }
         }
       }
     }
 
     expect(offenders).toEqual([]);
+    expect(sitesBesideJiraText.sort()).toEqual(
+      KINDS.flatMap((kind: RecordKind): Array<string> => {
+        return [
+          `${kind.templates.createFromIssue} ${kind.steps.prepareRecord}.arguments`,
+          `${kind.templates.commentToNote} read-comment-1.arguments`,
+          `${kind.templates.issueChangesToNote} read-changes-1.arguments`,
+        ];
+      }).sort(),
+    );
+
+    const site: WorkflowTemplateVariable | undefined = templateOf(
+      INCIDENT.templates.commentToNote,
+    ).variables.find((variable: WorkflowTemplateVariable) => {
+      return variable.name === "jiraSiteUrl";
+    });
+
+    expect(site?.isSecret).toBe(false);
   });
 
   test.each(KINDS)(
@@ -4437,8 +4482,9 @@ describe("Jira webhook templates", () => {
   /*
    * A whole-argument reference to the request body hands the script the
    * parsed object itself, so no Jira text is substituted into JSON text at
-   * all. The create-from-issue script also needs the severities, so it quotes
-   * the body — last.
+   * all. A script that needs something besides the event quotes the body
+   * last: the create-from-issue script takes the severities, and every
+   * script that links to the issue the workflow's Jira Site URL.
    */
   test.each(KINDS)(
     "$noun: the event script is handed the webhook body whole, or quoted last",
@@ -4447,13 +4493,25 @@ describe("Jira webhook templates", () => {
         "webhook-1",
         "request-body",
       );
+      const site: string = variableReference("jiraSiteUrl");
+
+      expect(
+        nodeOf(kind.templates.statusToState, "read-event-1").args?.[
+          "arguments"
+        ],
+      ).toBe(body);
 
       for (const [templateId, scriptId] of [
-        [kind.templates.statusToState, "read-event-1"],
         [kind.templates.commentToNote, "read-comment-1"],
         [kind.templates.issueChangesToNote, "read-changes-1"],
       ] as Array<[string, string]>) {
-        expect(nodeOf(templateId, scriptId).args?.["arguments"]).toBe(body);
+        expect(jsonArg(nodeOf(templateId, scriptId), "arguments")).toEqual({
+          jiraSiteUrl: site,
+          payload: body,
+        });
+        expect(
+          Object.keys(jsonArg(nodeOf(templateId, scriptId), "arguments")),
+        ).toEqual(["jiraSiteUrl", "payload"]);
       }
 
       const createArguments: JSONObject = jsonArg(
@@ -4461,7 +4519,12 @@ describe("Jira webhook templates", () => {
         "arguments",
       );
 
-      expect(Object.keys(createArguments)).toEqual(["severities", "payload"]);
+      expect(Object.keys(createArguments)).toEqual([
+        "severities",
+        "jiraSiteUrl",
+        "payload",
+      ]);
+      expect(createArguments["jiraSiteUrl"]).toBe(site);
       expect(createArguments["payload"]).toBe(body);
     },
   );

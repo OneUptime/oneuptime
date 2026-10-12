@@ -327,8 +327,18 @@ describe("the shared switch", () => {
   );
 
   test("is gated on the column, saves through the API it is given, and announces its saves", () => {
+    /*
+     * Its own column first, then those of the switches under it, if any:
+     * the server checks every column of a write.
+     */
     expect(row).toContain(
-      "PermissionGate.checkColumnUpdate( model, props.column, )",
+      "getSwitchUpdateGate({ model: model, column: props.column, childSwitches: props.childSwitches, })",
+    );
+    expect(row).toContain(
+      "const ownGate: PermissionGateResult = PermissionGate.checkColumnUpdate( data.model, data.column, ); if (!ownGate.isAllowed) { return ownGate; }",
+    );
+    expect(row).toContain(
+      "PermissionGate.checkColumnUpdate( data.model, child.column, )",
     );
     expect(row).toContain(
       "const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;",

@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import AlertStateUtil from "../../Utils/AlertState";
+import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -18,6 +19,7 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import React, {
@@ -136,6 +138,36 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       });
     };
 
+  /*
+   * In progress: in the project's ongoing state, or in a state of its own
+   * placed between Ongoing and Ended, such as "Verifying"
+   * (Common/Utils/ScheduledMaintenanceStart) - the events the Ongoing list
+   * this tile opens shows.
+   */
+  const fetchOngoingMaintenanceCount: () => Promise<number> =
+    async (): Promise<number> => {
+      const inProgressStates: Array<ScheduledMaintenanceState> =
+        await ScheduledMaintenanceStateUtil.getInProgressScheduledMaintenanceStates(
+          props.projectId,
+        );
+
+      if (inProgressStates.length === 0) {
+        return 0;
+      }
+
+      return ModelAPI.count<ScheduledMaintenance>({
+        modelType: ScheduledMaintenance,
+        query: {
+          projectId: props.projectId,
+          currentScheduledMaintenanceStateId: new Includes(
+            inProgressStates.map((state: ScheduledMaintenanceState) => {
+              return state.id!;
+            }),
+          ),
+        },
+      });
+    };
+
   const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
@@ -167,15 +199,7 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
               },
             },
           }),
-          ModelAPI.count<ScheduledMaintenance>({
-            modelType: ScheduledMaintenance,
-            query: {
-              projectId: props.projectId,
-              currentScheduledMaintenanceState: {
-                isOngoingState: true,
-              },
-            },
-          }),
+          fetchOngoingMaintenanceCount(),
           /*
            * At Risk and Budget Exhausted are the two statuses that mean a
            * reliability target is in trouble. Misconfigured and Paused are

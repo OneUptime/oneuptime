@@ -1,3 +1,4 @@
+import CalendarSubscriptionLinks from "Common/Types/Calendar/CalendarSubscriptionLinks";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
 import {
@@ -20,9 +21,9 @@ import {
 export interface FeedUrls {
   /** The https URL calendar clients fetch. */
   https: string;
-  /** webcal:// (or webcals:// when the API is served over https). */
+  /** The same address as webcal:// (never webcals://, which iOS refuses). */
   webcal: string;
-  /** Google Calendar's "add by URL" deep link, already url-encoded. */
+  /** Google Calendar's "add by URL" link, the webcal:// address in its cid. */
   googleAdd: string;
 }
 
@@ -56,6 +57,12 @@ export interface FeedStatus {
   urls: FeedUrls | null;
   hostWarning: string | null;
   protocolWarning: string | null;
+  /**
+   * HOST, when it is a private address: Google Calendar and Outlook on the
+   * web cannot reach a link there. Null when it is public, and from an API
+   * that predates the field.
+   */
+  privateHost: string | null;
 }
 
 export interface MyShiftsResponse {
@@ -138,29 +145,18 @@ export const parseFeedUrls: ParseFeedUrlsFunction = (
   const https: string | null = readString(json["https"]);
 
   /*
-   * Without the https URL there is nothing to subscribe to; the other two are
-   * derived from it, so a payload missing them is repaired rather than
-   * rejected.
+   * Without the https URL there is nothing to subscribe to. The other two are
+   * always derived from it here, never taken from the payload: an API from
+   * before the fix sends a webcals:// link (which iOS will not open) and a
+   * Google link with the https:// address in `cid` (which Google rejects
+   * with "Unable to add calendar. Check the URL."), and the dashboard may be
+   * talking to one during a rolling upgrade.
    */
   if (!https) {
     return null;
   }
 
-  return {
-    https: https,
-    /*
-     * The repaired scheme must match what the server would have built:
-     * webcals:// for https, webcal:// for http (OnCallCalendarFeedUrls,
-     * spec 2.2). Deriving webcal:// from an https link would make Apple
-     * Calendar subscribe over cleartext to an https-only host.
-     */
-    webcal:
-      readString(json["webcal"]) ||
-      https.replace(/^https:/, "webcals:").replace(/^http:/, "webcal:"),
-    googleAdd:
-      readString(json["googleAdd"]) ||
-      `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(https)}`,
-  };
+  return CalendarSubscriptionLinks.build(https);
 };
 
 type ParseFeedSettingsFunction = (value: unknown) => FeedSettings;
@@ -231,6 +227,7 @@ export const parseFeedStatus: ParseFeedStatusFunction = (
     urls: parseFeedUrls(json["urls"]),
     hostWarning: readString(json["hostWarning"]),
     protocolWarning: readString(json["protocolWarning"]),
+    privateHost: readString(json["privateHost"]),
   };
 };
 

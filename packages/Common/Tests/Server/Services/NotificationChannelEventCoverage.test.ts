@@ -295,6 +295,13 @@ interface ChannelSpec {
   sendingMessage: string;
   /* Fragment of the Error row an unverified method must produce. */
   unverifiedMessage: string;
+  /*
+   * What that row says the method's trouble is. "not verified" for the
+   * methods a person verifies with a code; a push device is verified by
+   * being registered, so one that is not stopped receiving notifications
+   * (its push service, or Expo, said it was gone) and the row says so.
+   */
+  unverifiedReason: string;
   /* The provider function the block must call. Read lazily: spies are per-test. */
   sender: () => jest.SpyInstance;
   /*
@@ -345,6 +352,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     },
     sendingMessage: "Sending email to",
     unverifiedMessage: "Email notification not sent because email",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.mail;
     },
@@ -376,6 +384,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     },
     sendingMessage: "Sending SMS to",
     unverifiedMessage: "SMS not sent because phone",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.sms;
     },
@@ -407,6 +416,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     },
     sendingMessage: "Sending WhatsApp message to",
     unverifiedMessage: "WhatsApp message not sent because phone",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.whatsApp;
     },
@@ -438,6 +448,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     },
     sendingMessage: "Sending Telegram message",
     unverifiedMessage: "Telegram message not sent because",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.telegram;
     },
@@ -473,6 +484,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sendingMessage: "Sending Slack message.",
     unverifiedMessage:
       "Slack message not sent because the Slack account is not verified.",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.workspace;
     },
@@ -513,6 +525,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sendingMessage: "Sending Microsoft Teams message.",
     unverifiedMessage:
       "Microsoft Teams message not sent because the Microsoft Teams account is not verified.",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.workspace;
     },
@@ -542,6 +555,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     unverifiedMethod: null,
     sendingMessage: "Sending webhook to",
     unverifiedMessage: "",
+    unverifiedReason: "",
     sender: (): jest.SpyInstance => {
       return spies.webhook;
     },
@@ -573,6 +587,7 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     },
     sendingMessage: "Making a call to",
     unverifiedMessage: "Call not sent because phone",
+    unverifiedReason: "not verified",
     sender: (): jest.SpyInstance => {
       return spies.call;
     },
@@ -605,7 +620,9 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
       };
     },
     sendingMessage: "Sending push notification",
-    unverifiedMessage: "Push notification not sent because device is not",
+    unverifiedMessage:
+      "Push notification not sent: this device no longer receives push notifications. Open the mobile app on it to register it again.",
+    unverifiedReason: "no longer receives push notifications",
     sender: (): jest.SpyInstance => {
       return spies.push;
     },
@@ -1658,7 +1675,9 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         expect(timelineRows[0]?.statusMessage).toContain(
           channel.unverifiedMessage,
         );
-        expect(timelineRows[0]?.statusMessage).toContain("not verified");
+        expect(timelineRows[0]?.statusMessage).toContain(
+          channel.unverifiedReason,
+        );
         expect(timelineRows[0]?.statusMessage).not.toContain(
           "No notification template",
         );

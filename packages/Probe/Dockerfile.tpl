@@ -63,6 +63,10 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 #   - Runtime tools: bash, curl, iputils-ping, net-tools, dnsutils (dig is
 #     used in DNSSEC validation), traceroute (NetworkPathMonitor execs it on
 #     Linux; it was missing from the old full image too)
+#   - tcpdump: packet captures started from the dashboard
+#     (Utils/PacketCapture). Installed in every image, run only by a probe
+#     whose operator set PROBE_PACKET_CAPTURE_ENABLED=true; it writes the
+#     capture to the probe's memory, never to disk.
 #   - tini: a tiny init for containers to properly reap zombie processes
 #   - ca-certificates: required by update-ca-certificates (intermediate certs
 #     copied above)
@@ -77,7 +81,7 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 RUN apt-get update \
     && apt-get upgrade -y \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        bash curl iputils-ping net-tools dnsutils traceroute tini ca-certificates \
+        bash curl iputils-ping net-tools dnsutils traceroute tcpdump tini ca-certificates \
         python3 make g++ unixodbc-dev krb5-user \
         libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
         libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \

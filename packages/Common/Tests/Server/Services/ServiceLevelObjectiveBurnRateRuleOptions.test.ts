@@ -965,6 +965,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
     const read: { query: unknown; select: unknown; props: unknown } = findBySpy
       .mock.calls[0]![0] as { query: unknown; select: unknown; props: unknown };
 
+    // The rule the update names, as the update names it.
     expect(read.query).toEqual({ _id: RULE_ID.toString() });
     expect(read.select).toEqual({
       _id: true,
@@ -972,7 +973,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
       alertLabels: { _id: true },
       incidentOwnerUsers: { _id: true },
     });
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   /*
@@ -1110,6 +1111,10 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
   });
 
   it("lets a newly introduced cross-project policy abort the update", async () => {
+    // The rule the update writes: OneUptime's update is checked in its project.
+    findBySpy.mockResolvedValue([
+      makeRule({ _id: RULE_ID.toString(), id: RULE_ID, projectId: PROJECT_ID }),
+    ]);
     validatorSpy.mockRejectedValue(
       new BadDataException(
         `This SLO burn rate rule references records that are not in this project: On-Call Duty Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
@@ -1129,6 +1134,11 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
   });
 
   it("lets a newly introduced non-member owner abort the update", async () => {
+    // The rule the update writes: OneUptime's update is checked in its project.
+    findBySpy.mockResolvedValue([
+      makeRule({ _id: RULE_ID.toString(), id: RULE_ID, projectId: PROJECT_ID }),
+    ]);
+
     await expectBadData(
       callHook(
         "onBeforeUpdate",

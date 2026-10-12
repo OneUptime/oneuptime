@@ -108,6 +108,14 @@ export interface ComponentProps {
    * Unset, the axis picks decimal ticks as it always has.
    */
   allowDecimals?: boolean | undefined;
+  /*
+   * false breaks the line where a series has no point, instead of joining
+   * across the gap: for a series whose missing points mean "unknown", such
+   * as an availability chart's "not monitored" stretch, where a joined line
+   * would claim the value it held before carried on. Unset, lines join
+   * across missing points as they always have.
+   */
+  connectNulls?: boolean | undefined;
 }
 
 export interface LineInternalProps extends ComponentProps {
@@ -250,7 +258,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
         showLegend={props.showLegend !== false}
-        connectNulls={true}
+        connectNulls={props.connectNulls !== false}
         curve={props.curve}
         syncid={props.sync ? props.syncid : undefined}
         yAxisWidth={64}

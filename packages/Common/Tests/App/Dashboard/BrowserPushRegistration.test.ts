@@ -12,6 +12,7 @@ import {
   BrowserPushProblem,
   DASHBOARD_SERVICE_WORKER_URL,
   NotificationPermissionApi,
+  PUSH_CONFIGURATION_MESSAGE_TYPE,
   askForNotificationPermission,
   decodeVapidPublicKey,
   getBrowserPushProblem,
@@ -21,6 +22,9 @@ import {
   getThisBrowserDeviceId,
   isSubscribedWithKey,
   readBrowserPushEnvironment,
+  replacePushSubscription,
+  sendPushConfigurationToRegisteredServiceWorker,
+  sendPushConfigurationToServiceWorker,
   setThisBrowserDeviceId,
   toBrowserPushError,
   waitForActiveServiceWorker,
@@ -1160,6 +1164,295 @@ describe("this browser's push subscription", () => {
     );
 
     expect(toBrowserPushError(error)).toBe(error);
+  });
+});
+
+/*
+ * The push service stopped accepting the subscription this browser still
+ * holds, and its device was marked as no longer receiving notifications.
+ * getPushSubscription would hand the same dead subscription back.
+ */
+describe("replacing a subscription the push service no longer accepts", () => {
+  function deadSubscription(unsubscribeError?: Error): {
+    unsubscribe: jest.Mock;
+  } {
+    return {
+      unsubscribe: jest.fn(async (): Promise<boolean> => {
+        if (unsubscribeError) {
+          throw unsubscribeError;
+        }
+
+        return true;
+      }),
+    };
+  }
+
+  test("drops it first, then subscribes again for the server's key", async () => {
+    const dead: { unsubscribe: jest.Mock } = deadSubscription();
+    const fresh: { endpoint: string } = {
+      endpoint: "https://fcm.googleapis.com/fcm/send/fresh",
+    };
+    let isDropped: boolean = false;
+    dead.unsubscribe.mockImplementation(async (): Promise<boolean> => {
+      isDropped = true;
+      return true;
+    });
+
+    const manager: { getSubscription: jest.Mock; subscribe: jest.Mock } = {
+      getSubscription: jest.fn(async (): Promise<unknown> => {
+        return isDropped ? null : dead;
+      }),
+      subscribe: jest.fn(async (): Promise<unknown> => {
+        return fresh;
+      }),
+    };
+
+    expect(
+      await replacePushSubscription({
+        pushManager: manager as unknown as PushManager,
+        subscription: dead as unknown as PushSubscription,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      }),
+    ).toBe(fresh);
+
+    expect(dead.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(dead.unsubscribe.mock.invocationCallOrder[0]!).toBeLessThan(
+      manager.subscribe.mock.invocationCallOrder[0]!,
+    );
+
+    const options: { applicationServerKey: Uint8Array } = manager.subscribe.mock
+      .calls[0]![0] as never;
+
+    expect(Array.from(options.applicationServerKey)).toEqual(
+      Array.from(decodeVapidPublicKey(VAPID_PUBLIC_KEY)!),
+    );
+  });
+
+  test("a browser that will not let it go says what to do, as subscribing does", async () => {
+    const error: Error = new Error("Permission denied");
+    error.name = "NotAllowedError";
+
+    const manager: { getSubscription: jest.Mock; subscribe: jest.Mock } = {
+      getSubscription: jest.fn(),
+      subscribe: jest.fn(),
+    };
+
+    expectProblem(
+      await rejectionOf(
+        replacePushSubscription({
+          pushManager: manager as unknown as PushManager,
+          subscription: deadSubscription(error) as unknown as PushSubscription,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ),
+      BrowserPushProblem.PermissionBlocked,
+    );
+    expect(manager.subscribe).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The service worker renews this browser's push subscription when the
+ * browser replaces it (sw.js.template), and needs the server's VAPID key to
+ * subscribe again. It used to subscribe with applicationServerKey: null,
+ * which every browser refuses, so a browser that lost its subscription
+ * stayed without one.
+ */
+describe("telling the service worker the server's push key", () => {
+  class MessagedWorker extends FakeWorker {
+    public postMessage: jest.Mock = jest.fn();
+  }
+
+  test("after registering: the active worker is sent the key", () => {
+    const worker: MessagedWorker = new MessagedWorker(
+      OUR_WORKER_URL,
+      "activated",
+    );
+
+    expect(
+      sendPushConfigurationToServiceWorker({
+        registration: {
+          active: worker,
+        } as unknown as ServiceWorkerRegistration,
+        vapidPublicKey: `  ${VAPID_PUBLIC_KEY}\n`,
+      }),
+    ).toBe(true);
+
+    expect(PUSH_CONFIGURATION_MESSAGE_TYPE).toBe("PUSH_CONFIGURATION");
+    expect(worker.postMessage).toHaveBeenCalledTimes(1);
+    expect(worker.postMessage).toHaveBeenCalledWith({
+      type: "PUSH_CONFIGURATION",
+      vapidPublicKey: VAPID_PUBLIC_KEY,
+    });
+  });
+
+  test("a registration with no active worker, or none at all, is sent nothing", () => {
+    expect(
+      sendPushConfigurationToServiceWorker({
+        registration: { active: null } as unknown as ServiceWorkerRegistration,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      }),
+    ).toBe(false);
+
+    expect(
+      sendPushConfigurationToServiceWorker({
+        registration: undefined,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      }),
+    ).toBe(false);
+  });
+
+  test.each([
+    ["no key: push is not set up on this server", ""],
+    ["a key that is not one", "not a key!"],
+  ])("%s - nothing is sent", (_name: string, vapidPublicKey: string) => {
+    const worker: MessagedWorker = new MessagedWorker(
+      OUR_WORKER_URL,
+      "activated",
+    );
+
+    expect(
+      sendPushConfigurationToServiceWorker({
+        registration: {
+          active: worker,
+        } as unknown as ServiceWorkerRegistration,
+        vapidPublicKey: vapidPublicKey,
+      }),
+    ).toBe(false);
+    expect(worker.postMessage).not.toHaveBeenCalled();
+  });
+
+  test("a worker that went away as it was sent the key is not an error", () => {
+    const worker: MessagedWorker = new MessagedWorker(
+      OUR_WORKER_URL,
+      "redundant",
+    );
+    worker.postMessage.mockImplementation(() => {
+      throw new Error("InvalidStateError");
+    });
+
+    expect(
+      sendPushConfigurationToServiceWorker({
+        registration: {
+          active: worker,
+        } as unknown as ServiceWorkerRegistration,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      }),
+    ).toBe(false);
+  });
+
+  describe("each time the Dashboard starts", () => {
+    function container(data: {
+      registration?: unknown;
+      getRegistrationFails?: boolean;
+    }): { getRegistration: jest.Mock } {
+      return {
+        getRegistration: jest.fn(async (): Promise<unknown> => {
+          if (data.getRegistrationFails) {
+            throw new Error("InvalidStateError");
+          }
+
+          return data.registration;
+        }),
+      };
+    }
+
+    test("a browser registered before is sent the key, by OneUptime's worker", async () => {
+      const worker: MessagedWorker = new MessagedWorker(
+        OUR_WORKER_URL,
+        "activated",
+      );
+
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: container({
+            registration: { active: worker, installing: null, waiting: null },
+          }) as unknown as ServiceWorkerContainer,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ).toBe(true);
+
+      expect(worker.postMessage).toHaveBeenCalledWith({
+        type: "PUSH_CONFIGURATION",
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      });
+    });
+
+    test("a browser without OneUptime's worker is not given one", async () => {
+      const serviceWorkers: { getRegistration: jest.Mock } = container({
+        registration: undefined,
+      });
+
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: serviceWorkers as unknown as ServiceWorkerContainer,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ).toBe(false);
+      expect(serviceWorkers.getRegistration).toHaveBeenCalledTimes(1);
+      expect(serviceWorkers).not.toHaveProperty("register");
+    });
+
+    test("another site's worker over the page is not told OneUptime's key", async () => {
+      const worker: MessagedWorker = new MessagedWorker(
+        "https://oneuptime.example/other-app/worker.js",
+        "activated",
+      );
+
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: container({
+            registration: { active: worker },
+          }) as unknown as ServiceWorkerContainer,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ).toBe(false);
+      expect(worker.postMessage).not.toHaveBeenCalled();
+    });
+
+    test("a worker still installing is told when Register Device finishes, not here", async () => {
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: container({
+            registration: {
+              active: null,
+              installing: new MessagedWorker(OUR_WORKER_URL, "installing"),
+            },
+          }) as unknown as ServiceWorkerContainer,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ).toBe(false);
+    });
+
+    test("a browser that cannot say what is registered, or has no service workers, is left alone", async () => {
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: container({
+            getRegistrationFails: true,
+          }) as unknown as ServiceWorkerContainer,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ).toBe(false);
+
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: undefined,
+          vapidPublicKey: VAPID_PUBLIC_KEY,
+        }),
+      ).toBe(false);
+    });
+
+    test("a server without push keys: the browser is not even asked", async () => {
+      const serviceWorkers: { getRegistration: jest.Mock } = container({});
+
+      expect(
+        await sendPushConfigurationToRegisteredServiceWorker({
+          container: serviceWorkers as unknown as ServiceWorkerContainer,
+          vapidPublicKey: "",
+        }),
+      ).toBe(false);
+      expect(serviceWorkers.getRegistration).not.toHaveBeenCalled();
+    });
   });
 });
 

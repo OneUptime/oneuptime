@@ -1,6 +1,8 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu, {
@@ -12,6 +14,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
+import useInProgressScheduledMaintenanceStateIds from "../../Components/ScheduledMaintenance/useInProgressScheduledMaintenanceStateIds";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -31,6 +34,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       connect: PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS,
     });
+
+  /*
+   * The events in progress: in the project's ongoing state, or in a state
+   * of its own placed between Ongoing and Ended, such as "Verifying". The
+   * badge waits for the project's states.
+   */
+  const { inProgressStateIds } = useInProgressScheduledMaintenanceStateIds();
 
   const sections: SideMenuSectionProps[] = [
     {
@@ -55,12 +65,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Clock,
           badgeType: BadgeType.WARNING,
           modelType: ScheduledMaintenance,
-          countQuery: {
-            projectId: props.project?._id,
-            currentScheduledMaintenanceState: {
-              isOngoingState: true,
-            },
-          } as any,
+          countQuery: inProgressStateIds
+            ? ({
+                projectId: props.project?._id,
+                currentScheduledMaintenanceStateId: new Includes(
+                  inProgressStateIds.map((stateId: ObjectID) => {
+                    return stateId.toString();
+                  }),
+                ),
+              } as any)
+            : undefined,
         },
       ],
     },

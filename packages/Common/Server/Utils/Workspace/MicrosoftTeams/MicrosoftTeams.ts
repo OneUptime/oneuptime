@@ -55,6 +55,7 @@ import {
 import IncidentService from "../../../Services/IncidentService";
 import AlertService from "../../../Services/AlertService";
 import ScheduledMaintenanceService from "../../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../Services/ScheduledMaintenanceStateService";
 import IncidentStateService from "../../../Services/IncidentStateService";
 import AlertStateService from "../../../Services/AlertStateService";
 
@@ -67,6 +68,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { truncateToLength } from "../../Database/TruncateColumnValue";
+import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
 
 // Bot Framework SDK imports
 import {
@@ -106,11 +108,21 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
-import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
+import MicrosoftTeamsMessageSize, {
+  MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
+} from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
+import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
+import {
+  MessageCardFact,
+  MessageCardLink,
+  findFact,
+  findMessageCardLinks,
+  withLinksAsText,
+} from "./MicrosoftTeamsMessageCardText";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -131,18 +143,6 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
-
-/*
- * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
- * into a button. Only a link Markdown itself would read: a "[" written as
- * "\[" - a title or a name escaped where it was placed (MarkdownEscape) - opens
- * no link, and a "]" written as "\]" does not end the link's text. A "["
- * after an even run of backslashes ("\\[") is not escaped: the backslashes
- * are a literal one, and a link follows. So text that only looks like a link
- * stays text, as it does in every other place the message is shown.
- */
-const MESSAGE_CARD_LINK_PATTERN: RegExp =
-  /(?<!(?:^|[^\\])(?:\\\\)*\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g;
 
 // A CommonMark backslash escape: a backslash before ASCII punctuation.
 const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
@@ -708,22 +708,36 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * Teams MessageCard supports HTML in the text field.
    */
   private static convertMarkdownTablesToHtml(markdown: string): string {
-    // Regular expression to match markdown tables
-    const tableRegex: RegExp =
-      /(?:^|\n)((?:\|[^\n]+\|\n)+(?:\|[-:\s|]+\|\n)(?:\|[^\n]+\|\n?)+)/g;
+    // Tables are found in one pass over the lines (Utils/Markdown/PipeTables).
+    return replacePipeTables(markdown, (lines: Array<string>): string => {
+      // Parse header row
+      const headerLine: string = lines[0] || "";
+      const headers: Array<string> = headerLine
+        .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
+        .map((cell: string) => {
+          return cell.trim();
+        })
+        .filter((cell: string) => {
+          return cell.length > 0;
+        });
 
-    return markdown.replace(
-      tableRegex,
-      (_match: string, table: string): string => {
-        const lines: Array<string> = table.trim().split("\n");
+      // Skip separator line (line with dashes) and get data rows
+      const dataRows: Array<string> = lines.slice(2);
 
-        if (lines.length < 2) {
-          return table;
-        }
+      // Build HTML table
+      let html: string =
+        '<table style="border-collapse: collapse; width: 100%;">';
 
-        // Parse header row
-        const headerLine: string = lines[0] || "";
-        const headers: Array<string> = headerLine
+      // Header row
+      html += "<tr>";
+      for (const header of headers) {
+        html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
+      }
+      html += "</tr>";
+
+      // Data rows
+      for (const row of dataRows) {
+        const cells: Array<string> = row
           .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
           .map((cell: string) => {
             return cell.trim();
@@ -732,62 +746,70 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             return cell.length > 0;
           });
 
-        // Skip separator line (line with dashes) and get data rows
-        const dataRows: Array<string> = lines.slice(2);
+        if (cells.length === 0) {
+          continue;
+        }
 
-        // Build HTML table
-        let html: string =
-          '<table style="border-collapse: collapse; width: 100%;">';
-
-        // Header row
         html += "<tr>";
-        for (const header of headers) {
-          html += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;"><strong>${escapeMessageCardCell(header)}</strong></th>`;
+        for (const cell of cells) {
+          html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
         }
         html += "</tr>";
+      }
 
-        // Data rows
-        for (const row of dataRows) {
-          const cells: Array<string> = row
-            .split(MESSAGE_CARD_CELL_SEPARATOR_PATTERN)
-            .map((cell: string) => {
-              return cell.trim();
-            })
-            .filter((cell: string) => {
-              return cell.length > 0;
-            });
+      html += "</table>";
 
-          if (cells.length === 0) {
-            continue;
-          }
-
-          html += "<tr>";
-          for (const cell of cells) {
-            html += `<td style="border: 1px solid #ddd; padding: 8px;">${escapeMessageCardCell(cell)}</td>`;
-          }
-          html += "</tr>";
-        }
-
-        html += "</table>";
-
-        return "\n" + html + "\n";
-      },
-    );
+      return html;
+    });
   }
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     /*
+     * An incoming webhook's card cannot carry a screenshot's base64 (and a
+     * Teams webhook refuses a message that large): an image whose address
+     * is a data: URL is its alt text. The card is measured as it is sent,
+     * whatever the size of its text - a table that fits as Markdown can be
+     * HTML several times as big - and when it is more than an incoming
+     * webhook takes (MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES) its
+     * text is cut, in proportion and with a note, until the card fits
+     * (fitMarkdownText). A card that fits is the card it always was.
+     */
+    let lastCard: { markdown: string; card: JSONObject } | null = null;
+
+    // The card for a text, built once however often it is measured.
+    const buildCard: (fitted: string) => JSONObject = (
+      fitted: string,
+    ): JSONObject => {
+      if (!lastCard || lastCard.markdown !== fitted) {
+        lastCard = {
+          markdown: fitted,
+          card: this.buildMessageCardFromFittedMarkdown(fitted),
+        };
+      }
+
+      return lastCard.card;
+    };
+
+    const fittedMarkdown: string = MicrosoftTeamsMessageSize.fitMarkdownText(
+      ChatInlineImages.toText(markdown),
+      (fitted: string): number => {
+        return MicrosoftTeamsMessageSize.getIncomingWebhookSizeInBytes(
+          buildCard(fitted),
+        );
+      },
+      MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
+    );
+
+    return buildCard(fittedMarkdown);
+  }
+
+  private static buildMessageCardFromFittedMarkdown(
+    markdownWithoutInlineImages: string,
+  ): JSONObject {
+    /*
      * Teams MessageCard has limited markdown support. Headings like '##' are not supported
      * and single newlines can collapse. Convert common patterns to a structured card.
      */
-
-    /*
-     * An incoming webhook's card cannot carry a screenshot's base64 (and a
-     * Teams webhook refuses a message that large): an image whose address
-     * is a data: URL is its alt text.
-     */
-    const markdownWithoutInlineImages: string =
-      ChatInlineImages.toText(markdown);
 
     // First, convert markdown tables to HTML
     const markdownWithHtmlTables: string = this.convertMarkdownTablesToHtml(
@@ -823,7 +845,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         .replace(/^\*\*|\*\*$/g, "") // remove stray bold markers if any
         .trim();
       // Remove markdown link syntax from title for cleaner rendering
-      title = title.replace(MESSAGE_CARD_LINK_PATTERN, "$1");
+      title = withLinksAsText(title, findMessageCardLinks(title));
       // Sanitize unmatched bold markers if any remain
       const boldCountTitle: number = (title.match(/\*\*/g) || []).length;
       if (boldCountTitle % 2 !== 0) {
@@ -831,8 +853,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
       lines.shift();
     }
-
-    const linkRegex: RegExp = new RegExp(MESSAGE_CARD_LINK_PATTERN); // [text](url)
 
     // Helper to clean up unmatched bold markers that can break rendering
     const sanitizeMarkdownText: (text: string) => string = (
@@ -883,48 +903,40 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       // Extract links to actions and keep link display text in-place (without markdown)
-      let lineWithoutLinks: string = line;
-      let match: RegExpExecArray | null = null;
-      while ((match = linkRegex.exec(line))) {
-        const linkText: string = match[1] ?? "";
+      const links: Array<MessageCardLink> = findMessageCardLinks(line);
+
+      for (const link of links) {
         // The button's name is plain text: an escape in the link's text is undone.
-        const name: string = linkText.replace(
+        const name: string = link.text.replace(
           MARKDOWN_BACKSLASH_ESCAPE_PATTERN,
           "$1",
         );
-        const url: string = match[2] ?? "";
         actions.push({
           ["@type"]: "OpenUri",
           name: name,
           targets: [
             {
               os: "default",
-              uri: url,
+              uri: link.url,
             },
           ],
         });
-        /*
-         * Replace the markdown link with just its text to preserve sentence
-         * flow. The section is read as Markdown, so the text stays as it was
-         * written, escapes and all: unescaped, a title's "[x](...)" would turn
-         * into a link there. Replaced by a function, so a "$" in the text is
-         * not read as a replacement pattern.
-         */
-        lineWithoutLinks = lineWithoutLinks
-          .replace(match[0], (): string => {
-            return linkText;
-          })
-          .trim();
       }
 
+      /*
+       * Replace the markdown link with just its text to preserve sentence
+       * flow. The section is read as Markdown, so the text stays as it was
+       * written, escapes and all: unescaped, a title's "[x](...)" would turn
+       * into a link there.
+       */
+      const lineWithoutLinks: string = withLinksAsText(line, links).trim();
+
       // Parse facts of the form **Label:** value
-      const factMatch: RegExpExecArray | null = new RegExp(
-        "\\*\\*(.*?):\\*\\*\\s*(.*)",
-      ).exec(lineWithoutLinks);
+      const factMatch: MessageCardFact | null = findFact(lineWithoutLinks);
 
       if (factMatch) {
-        const name: string = (factMatch[1] ?? "").trim();
-        const value: string = (factMatch[2] ?? "").trim();
+        const name: string = factMatch.name.trim();
+        const value: string = factMatch.value.trim();
         if (
           name.toLowerCase() === "description" ||
           name.toLowerCase() === "note"
@@ -2839,7 +2851,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(
       `Built adaptive card with ${body.length} body elements and ${actions.length} actions`,
     );
-    return card;
+
+    /*
+     * Each text block fits on its own (getMarkdownBlock), but a card
+     * carries many: the card is measured as it is sent, and one over what
+     * Teams takes has its longest text blocks cut to fit (fitAdaptiveCard).
+     */
+    return MicrosoftTeamsMessageSize.fitAdaptiveCard(card);
   }
 
   private static convertAdaptiveCardToHtml(adaptiveCard: JSONObject): string {
@@ -3087,7 +3105,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * A text block. An image whose address is a data: URL - a screenshot in a
    * description - is its alt text here: sendMessage shows it as an image of
-   * its own before a markdown block gets here (WorkspaceInlineImages).
+   * its own before a markdown block gets here (WorkspaceInlineImages). A
+   * text more than a message can carry, measured as it is sent, is cut,
+   * with a note (fitMarkdownText).
    */
   @CaptureSpan()
   public static override getMarkdownBlock(data: {
@@ -3095,7 +3115,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): JSONObject {
     return {
       type: "TextBlock",
-      text: ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+      text: MicrosoftTeamsMessageSize.fitMarkdownText(
+        ChatInlineImages.toText(data.payloadMarkdownBlock.text),
+      ),
       wrap: true,
       markdown: true,
     };
@@ -3552,11 +3574,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static getUnexpectedErrorMessage(activity: JSONObject): string {
     const reference: string = (activity["id"] as string | undefined) || "";
 
-    return `Sorry, something went wrong in OneUptime while handling that message. Please try again in a minute.${
+    return mdText`Sorry, something went wrong in OneUptime while handling that message. Please try again in a minute.${
       reference
-        ? ` If it keeps happening, ask your OneUptime administrator to look for reference ${reference} in the server logs.`
+        ? mdText` If it keeps happening, ask your OneUptime administrator to look for reference ${reference} in the server logs.`
         : ""
-    }`;
+    }`.toString();
   }
 
   /*
@@ -3628,23 +3650,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * Plain text out of a Teams message body, which Graph and the Bot Framework
    * hand over as HTML. Removing complete tags is not enough on its own: an
    * unclosed one ("<script" with no ">" after it) matches no tag pattern, so
-   * once no tag is left, any "<" still standing goes too, and the text holds
-   * no markup at all. The tag pass repeats until nothing changes - the shape
-   * code scanning recognises as complete, where a single pass is reported as
-   * incomplete multi-character sanitization. Teams sends a literal "<" in a
-   * message as "&lt;", which is left encoded: decoding it here would hand
-   * back what this removed.
+   * any "<" whose markup never ends goes too, and the text holds no markup
+   * at all. It is read by removeHtmlMarkup (Common/Types/HtmlMarkup), the
+   * walk the reaction note sync reads message bodies with too, which also
+   * ends a tag only at a ">" outside a quoted attribute value and a comment
+   * at its "-->", so neither leaves the rest of a value or a comment behind
+   * as text. Teams
+   * sends a literal "<" in a message as "&lt;", which is left encoded:
+   * decoding it here would hand back what this removed.
    */
   public static stripHtmlTags(html: string): string {
-    let text: string = html;
-    let previous: string;
-
-    do {
-      previous = text;
-      text = text.replace(/<[^>]*>/g, "");
-    } while (text !== previous);
-
-    return text.replace(/</g, "");
+    return removeHtmlMarkup(html);
   }
 
   /*
@@ -3941,7 +3957,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     } catch (error) {
       // A linked Teams account whose user has since left the project.
       if (error instanceof NotAuthorizedException) {
-        await turnContext.sendActivity(error.message);
+        await turnContext.sendActivity(mdText`${error.message}`.toString());
         return;
       }
 
@@ -4267,14 +4283,21 @@ If you need to report an incident or check historical incidents, please visit th
           projectId.toString(),
       );
 
-      // Get scheduled maintenance events
+      /*
+       * The events still to come: waiting for their start, in the scheduled
+       * state or a state of the project's own placed after Scheduled and
+       * before Ongoing, such as "Confirmed" (Common/Utils/
+       * ScheduledMaintenanceStart.isWaitingToStart).
+       */
       const scheduledEvents: Array<ScheduledMaintenance> =
         await ScheduledMaintenanceService.findBy({
           query: {
             projectId: projectId,
-            currentScheduledMaintenanceState: {
-              isScheduledState: true,
-            } as any,
+            currentScheduledMaintenanceStateId: QueryHelper.any(
+              await ScheduledMaintenanceStateService.getWaitingToStartScheduledMaintenanceStateIds(
+                projectId,
+              ),
+            ),
             isVisibleOnStatusPage: true, // Only show events visible on status page
           },
           select: {
@@ -4376,39 +4399,49 @@ Check back later for upcoming maintenance windows.`;
           projectId.toString(),
       );
 
-      // Get ongoing maintenance events
+      /*
+       * The events in progress: in the project's ongoing state, or in a
+       * state of the project's own placed between Ongoing and Ended, such as
+       * "Verifying" (Common/Utils/ScheduledMaintenanceStart).
+       */
+      const inProgressStateIds: Array<ObjectID> =
+        await ScheduledMaintenanceStateService.getInProgressScheduledMaintenanceStateIds(
+          projectId,
+        );
+
       const ongoingEvents: Array<ScheduledMaintenance> =
-        await ScheduledMaintenanceService.findBy({
-          query: {
-            projectId: projectId,
-            currentScheduledMaintenanceState: {
-              isOngoingState: true,
-            } as any,
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            startsAt: true,
-            endsAt: true,
-            currentScheduledMaintenanceState: {
-              name: true,
-            },
-            monitors: {
-              name: true,
-            },
-            scheduledMaintenanceNumber: true,
-            scheduledMaintenanceNumberWithPrefix: true,
-          },
-          sort: {
-            startsAt: SortOrder.Descending,
-          },
-          limit: 10,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+        inProgressStateIds.length === 0
+          ? []
+          : await ScheduledMaintenanceService.findBy({
+              query: {
+                projectId: projectId,
+                currentScheduledMaintenanceStateId:
+                  QueryHelper.any(inProgressStateIds),
+              },
+              select: {
+                _id: true,
+                title: true,
+                description: true,
+                startsAt: true,
+                endsAt: true,
+                currentScheduledMaintenanceState: {
+                  name: true,
+                },
+                monitors: {
+                  name: true,
+                },
+                scheduledMaintenanceNumber: true,
+                scheduledMaintenanceNumberWithPrefix: true,
+              },
+              sort: {
+                startsAt: SortOrder.Descending,
+              },
+              limit: 10,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
 
       if (ongoingEvents.length === 0) {
         return `**Ongoing Maintenance Events**
@@ -4786,11 +4819,13 @@ All monitoring checks are passing normally.`;
 
       // Handle on-call duty actions
       if (MicrosoftTeamsOnCallDutyActions.isOnCallDutyAction({ actionType })) {
-        await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction(
-          actionType as MicrosoftTeamsOnCallDutyActionType,
-          data.turnContext,
-          value,
-        );
+        await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+          actionType: actionType as MicrosoftTeamsOnCallDutyActionType,
+          turnContext: data.turnContext,
+          actionPayload: value,
+          projectId: projectId,
+          databaseProps: databaseProps,
+        });
         return;
       }
     } catch (error) {
@@ -4826,9 +4861,10 @@ All monitoring checks are passing normally.`;
         logger.debug("Bot invoke activity refused: " + error.message, {
           actionType: actionType,
         });
+        // Placed as text: a refusal can name a label, a record or a person.
         await MicrosoftTeamsReplies.sendBestEffort(
           data.turnContext,
-          error.message,
+          mdText`${error.message}`.toString(),
         );
         return;
       }
@@ -4848,7 +4884,7 @@ All monitoring checks are passing normally.`;
       await MicrosoftTeamsReplies.sendBestEffort(
         data.turnContext,
         reason
-          ? `Sorry, that action failed: ${reason}`
+          ? mdText`Sorry, that action failed: ${reason}`.toString()
           : "Sorry, that action failed. Please try again later.",
       );
     }

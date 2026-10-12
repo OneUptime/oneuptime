@@ -243,7 +243,7 @@ data:
           - type: move
             from: attributes.log
             to: body
-          {{- if and .Values.ebpf.enabled .Values.ebpf.logToTraceCorrelation }}
+          {{- if and (eq (include "kubernetes-agent.ebpfEnabled" .) "true") .Values.ebpf.logToTraceCorrelation }}
           # OBI's log enricher zeroes out the original stdout buffer with
           # NULs (then re-emits the enriched line separately), so each
           # intercepted write leaves a placeholder line of NULs/whitespace

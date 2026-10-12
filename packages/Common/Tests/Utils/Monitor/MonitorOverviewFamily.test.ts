@@ -33,8 +33,8 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("covers all 35 monitor types", () => {
-    expect(ALL_TYPES).toHaveLength(35);
+  it("covers all 37 monitor types", () => {
+    expect(ALL_TYPES).toHaveLength(37);
   });
 
   it("ProbeCheck matches isProbableMonitor exactly", () => {
@@ -72,7 +72,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("family sizes are 14/2/1/6/10/1/1", () => {
+  it("family sizes are 15/2/1/7/10/1/1", () => {
     expect({
       probeCheck: typesInFamily(MonitorOverviewFamily.ProbeCheck).length,
       heartbeat: typesInFamily(MonitorOverviewFamily.Heartbeat).length,
@@ -83,10 +83,10 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
       networkDevice: typesInFamily(MonitorOverviewFamily.NetworkDevice).length,
       manual: typesInFamily(MonitorOverviewFamily.Manual).length,
     }).toEqual({
-      probeCheck: 14,
+      probeCheck: 15,
       heartbeat: 2,
       agent: 1,
-      telemetry: 6,
+      telemetry: 7,
       infrastructure: 10,
       networkDevice: 1,
       manual: 1,
@@ -111,7 +111,14 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
         MonitorType.Exceptions,
         MonitorType.Profiles,
         MonitorType.SecurityEvents,
+        MonitorType.Llm,
       ].sort(),
+    );
+  });
+
+  it("an AI / LLM monitor gets the telemetry overview, with no signal preview", () => {
+    expect(MonitorOverviewFamilyUtil.getFamily(MonitorType.Llm)).toBe(
+      MonitorOverviewFamily.TelemetrySignal,
     );
   });
 

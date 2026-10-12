@@ -11,6 +11,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
+import PromptText from "../../../Utils/AI/PromptText";
 
 export interface ScheduledMaintenanceContextData {
   scheduledMaintenance: ScheduledMaintenance;
@@ -166,7 +167,7 @@ export default class ScheduledMaintenanceAIContextBuilder {
     // Basic scheduled maintenance information
     contextText += "# Scheduled Maintenance Information\n\n";
     contextText += `**Title:** ${scheduledMaintenance.title || "N/A"}\n\n`;
-    contextText += `**Description:** ${scheduledMaintenance.description || "N/A"}\n\n`;
+    contextText += `**Description:** ${PromptText.draftField(scheduledMaintenance.description) || "N/A"}\n\n`;
     contextText += `**Current State:** ${scheduledMaintenance.currentScheduledMaintenanceState?.name || "N/A"}\n\n`;
     contextText += `**Scheduled Start:** ${scheduledMaintenance.startsAt ? OneUptimeDate.getDateAsFormattedString(scheduledMaintenance.startsAt) : "N/A"}\n\n`;
     contextText += `**Scheduled End:** ${scheduledMaintenance.endsAt ? OneUptimeDate.getDateAsFormattedString(scheduledMaintenance.endsAt) : "N/A"}\n\n`;
@@ -229,7 +230,7 @@ export default class ScheduledMaintenanceAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 
@@ -248,7 +249,7 @@ export default class ScheduledMaintenanceAIContextBuilder {
           "Unknown";
 
         contextText += `**[${noteTime}] ${createdBy}:**\n`;
-        contextText += `${note.note || "N/A"}\n\n`;
+        contextText += `${PromptText.draftField(note.note) || "N/A"}\n\n`;
       }
     }
 

@@ -1,6 +1,7 @@
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import SubscriberUnsubscribeCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberUnsubscribeCopy";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -8,18 +9,26 @@ import path from "path";
 /*
  * The docs on unsubscribing, against the feature. Markdown is not compiled,
  * so nothing else notices when the link's shape, the page's routes, the
- * dashboard's column or the English wording the docs quote change, or when
- * the Persian page falls behind the English one.
+ * dashboard's column or the wording the docs quote change, or when the
+ * Persian page falls behind the English one.
+ *
+ * A page names the Dashboard as its language's Dashboard draws it
+ * (drawnActionLabel), and quotes the unsubscribe page as visitors read it in
+ * that language, from the status page app's own locale, as
+ * StatusPageDocsTranslations holds every language.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
-const STATUS_PAGE_LOCALE: string = path.join(
+const STATUS_PAGE_LOCALES_DIR: string = path.join(
   REPO_ROOT,
-  "App/FeatureSet/StatusPage/src/Locales/en.json",
+  "App/FeatureSet/StatusPage/src/Locales",
 );
 
-// `fa` is the only translated corpus; every other language falls back to English.
+/*
+ * English, and Persian, whose page these checks were first written for. The
+ * other translations are held to the same words by StatusPageDocsTranslations.
+ */
 const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
 function read(language: string, page: string): string {
@@ -55,9 +64,17 @@ function headingSlugs(markdown: string): Array<string> {
     });
 }
 
-const statusPageCopy: Record<string, string> = (
-  JSON.parse(fs.readFileSync(STATUS_PAGE_LOCALE, "utf8")) as Record<string, any>
-)["subscribe"]["unsubscribe"];
+// The unsubscribe page's words, as the status page app shows them in this language.
+function statusPageCopy(language: string): Record<string, string> {
+  return (
+    JSON.parse(
+      fs.readFileSync(
+        path.join(STATUS_PAGE_LOCALES_DIR, `${language}.json`),
+        "utf8",
+      ),
+    ) as Record<string, any>
+  )["subscribe"]["unsubscribe"];
+}
 
 describe.each(LANGUAGES)("%s: status-pages/subscribers", (language: string) => {
   const markdown: string = read(language, "status-pages/subscribers");
@@ -81,13 +98,15 @@ describe.each(LANGUAGES)("%s: status-pages/subscribers", (language: string) => {
       "`POST .../unsubscribe/:statusPageId/:subscriberId/:token`",
     );
     expect(markdown).toContain("`List-Unsubscribe=One-Click`");
-    expect(markdown).toContain(`*${statusPageCopy["confirmPrompt"]}*`);
-    expect(markdown).toContain(`**${statusPageCopy["confirmButton"]}**`);
+    const copy: Record<string, string> = statusPageCopy(language);
+
+    expect(markdown).toContain(`*${copy["confirmPrompt"]}*`);
+    expect(markdown).toContain(`**${copy["confirmButton"]}**`);
   });
 
   test("documents the Unsubscribed At column by the name the dashboard shows", () => {
     expect(markdown).toContain(
-      `**${SubscriberUnsubscribeCopy.unsubscribedAtTitle}** (\`unsubscribedAt\`)`,
+      `**${drawnActionLabel(language, SubscriberUnsubscribeCopy.unsubscribedAtTitle)}** (\`unsubscribedAt\`)`,
     );
   });
 
@@ -103,14 +122,17 @@ describe.each(LANGUAGES)("%s: status-pages/subscribers", (language: string) => {
   test("warns about shared addresses in its own section", () => {
     expect(markdown).toContain("`site03-all@`");
     expect(markdown).toMatch(/^### .+$/m);
-    expect(markdown).toContain("**Add in Bulk**");
+    expect(markdown).toContain(
+      `**${drawnActionLabel(language, "Add in Bulk")}**`,
+    );
   });
 });
 
 describe("both languages put the shared-address section under unsubscribing", () => {
   /*
-   * The Persian page predates some English sections, so the two are not
-   * compared whole; the unsubscribe sections are.
+   * StatusPageDocsTranslations lays each translation beside the English page
+   * whole; here, the shared-address section is held right after the
+   * unsubscribe section it belongs to.
    */
   test.each([
     [

@@ -33,7 +33,10 @@ import { describe, expect, test } from "@jest/globals";
  * What is left reads the flag on purpose and is listed below, shrink-only: a
  * file that no longer needs its entry fails here until the entry goes.
  * Scheduled maintenance has a path of its own (scheduled, ongoing, ended,
- * completed), where "ended or completed" is read off its states' flags.
+ * completed) and a rule of its own for it (Common/Utils/
+ * ScheduledMaintenanceStart: isComplete, hasEnded), which its own guard
+ * keeps (OneMaintenancePhaseRuleGuard): only its state service still asks
+ * for the completed flag, to build that rule's queries.
  *
  * Only real syntax is read, through the TypeScript AST.
  */
@@ -53,33 +56,13 @@ const ALLOWED: Record<string, string> = {
   "packages/MobileApp/src/utils/resolvedState.ts":
     "the mobile app's copy of Common/Utils/ResolvedState",
 
-  // Scheduled maintenance: its own path, "ended or completed" by its flags.
-  "packages/Common/Server/Services/ScheduledMaintenanceStateTimelineService.ts":
-    "scheduled maintenance states",
+  /*
+   * Scheduled maintenance's own rule, built into queries for every project
+   * at once: the states that carry none of the four flags are read to place
+   * them, and only those (ScheduledMaintenanceStateService).
+   */
   "packages/Common/Server/Services/ScheduledMaintenanceStateService.ts":
-    "scheduled maintenance states",
-  "packages/Common/Server/Services/ScheduledMaintenanceMeasurementValueService.ts":
-    "scheduled maintenance states",
-  "packages/Common/Server/Services/ScheduledMaintenanceReminderRuleService.ts":
-    "scheduled maintenance events not yet completed",
-  "packages/Common/Server/Services/ScheduledMaintenanceService.ts":
-    "scheduled maintenance states",
-  "packages/Common/Server/Utils/TeamMember/ProjectLeaveResourceCleanup.ts":
-    "the open scheduled maintenance states (incidents and alerts ask the state services)",
-  "packages/Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault.ts":
-    "a scheduled maintenance event moved into an ended state",
-  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/ReactionNoteSync.ts":
-    "the open scheduled maintenance events (incidents and alerts ask the state services)",
-  "packages/App/FeatureSet/StatusPage/src/Pages/ScheduledEvent/Detail.tsx":
-    "scheduled maintenance timeline icons",
-  "packages/App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/Index.tsx":
-    "scheduled maintenance states",
-  "packages/App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ChangeState.tsx":
-    "scheduled maintenance states",
-  "packages/App/FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceTiming.ts":
-    "scheduled maintenance states",
-  "packages/App/FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceState.ts":
-    "scheduled maintenance states",
+    "the scheduled maintenance phase queries of every project",
 };
 
 // Every read of the resolved flag, and every query on it, in one file's text.
@@ -106,8 +89,8 @@ describe("one rule decides whether an incident, alert or episode is resolved", (
     /*
      * Ask Common/Utils/ResolvedState (in the dashboard and on status pages),
      * the state services (isResolvedIncidentState, getUnresolvedIncidentStateIds
-     * and the alert twins) or the record services (isIncidentResolved,
-     * isAlertResolved, isEpisodeResolved) instead.
+     * and the alert twins), the record services (isIncidentResolved,
+     * isAlertResolved) or WorkspaceMemberActions.getStanding instead.
      */
     expect(unexpected).toEqual([]);
   });

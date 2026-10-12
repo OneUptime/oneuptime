@@ -55,7 +55,7 @@ type SnmpMonitorHelpers = {
   toDisplayString: (value: unknown) => string | undefined;
   isPrintableBuffer: (value: Buffer) => boolean;
   toMetricNumber: (value: unknown) => number | undefined;
-  walkEntityInfo: (session: unknown) => Promise<SnmpEntityInfo | undefined>;
+  pickEntityInfo: (table: SnmpTableRows) => SnmpEntityInfo | undefined;
   walkCdpNeighbors: (session: unknown) => Promise<Array<CdpNeighbor>>;
   walkLldpNeighbors: (session: unknown) => Promise<Array<LldpNeighbor>>;
   readSystemInfo: (session: unknown) => Promise<SnmpSystemInfo>;
@@ -483,28 +483,19 @@ describe("SnmpMonitor.toMetricNumber", () => {
   });
 });
 
-describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
+describe("SnmpMonitor.pickEntityInfo — chassis selection", () => {
   /*
    * entPhysicalTable column numbers (relative to entPhysicalEntry):
    * 5 = class, 8 = hardwareRev, 9 = firmwareRev, 10 = softwareRev,
    * 11 = serialNum, 12 = mfgName, 13 = modelName. Class 3 == chassis.
+   *
+   * The walk reads the table once and hands the same rows to the device's
+   * identity (here) and to the transceiver read, so the choice is made on
+   * rows rather than on a session.
    */
 
-  test("walks entPhysicalTable with the identity columns", async () => {
-    const session: MockTableSession = createTableSession({});
-
-    await Internal.walkEntityInfo(session);
-
-    expect(session.calls).toEqual([
-      {
-        tableOid: "1.3.6.1.2.1.47.1.1.1",
-        columns: [5, 8, 9, 10, 11, 12, 13],
-      },
-    ]);
-  });
-
-  test("the chassis row wins over lower-indexed non-chassis rows with serials", async () => {
-    const session: MockTableSession = createTableSession({
+  test("the chassis row wins over lower-indexed non-chassis rows with serials", () => {
+    const entityInfo: SnmpEntityInfo | undefined = Internal.pickEntityInfo({
       "1": {
         "5": 9, // module
         "11": Buffer.from("MODULE-SN"),
@@ -517,9 +508,6 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
       },
     });
 
-    const entityInfo: SnmpEntityInfo | undefined =
-      await Internal.walkEntityInfo(session);
-
     expect(entityInfo).toEqual({
       manufacturer: "Cisco",
       model: "C9300-24T",
@@ -527,8 +515,8 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
     });
   });
 
-  test("a chassis class arriving as a 1-byte buffer is still recognized", async () => {
-    const session: MockTableSession = createTableSession({
+  test("a chassis class arriving as a 1-byte buffer is still recognized", () => {
+    const entityInfo: SnmpEntityInfo | undefined = Internal.pickEntityInfo({
       "1": {
         "5": 9,
         "11": Buffer.from("MODULE-SN"),
@@ -539,14 +527,11 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
       },
     });
 
-    const entityInfo: SnmpEntityInfo | undefined =
-      await Internal.walkEntityInfo(session);
-
     expect(entityInfo?.serialNumber).toBe("CHASSIS-SN");
   });
 
-  test("with no chassis row, the lowest-indexed row carrying a serial wins", async () => {
-    const session: MockTableSession = createTableSession({
+  test("with no chassis row, the lowest-indexed row carrying a serial wins", () => {
+    const entityInfo: SnmpEntityInfo | undefined = Internal.pickEntityInfo({
       "2": {
         "5": 11, // stack — no serial at all
       },
@@ -560,42 +545,37 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
       },
     });
 
-    const entityInfo: SnmpEntityInfo | undefined =
-      await Internal.walkEntityInfo(session);
-
     // Numeric row ordering: 9 before 10; row 2 skipped for lacking a serial.
     expect(entityInfo?.serialNumber).toBe("SN-9");
   });
 
-  test("rows with no useful identity fields produce undefined", async () => {
-    const session: MockTableSession = createTableSession({
-      "1": { "5": 9 },
-      "2": { "5": 10 },
-    });
-
-    expect(await Internal.walkEntityInfo(session)).toBeUndefined();
-  });
-
-  test("a chassis row whose fields are all empty/whitespace produces undefined", async () => {
-    const session: MockTableSession = createTableSession({
-      "1": {
-        "5": 3,
-        "11": Buffer.from(""),
-        "12": Buffer.from("   "),
-      },
-    });
-
-    expect(await Internal.walkEntityInfo(session)).toBeUndefined();
-  });
-
-  test("an empty table produces undefined", async () => {
+  test("rows with no useful identity fields produce undefined", () => {
     expect(
-      await Internal.walkEntityInfo(createTableSession({})),
+      Internal.pickEntityInfo({
+        "1": { "5": 9 },
+        "2": { "5": 10 },
+      }),
     ).toBeUndefined();
   });
 
-  test("all identity fields map from their ENTITY-MIB columns and are trimmed", async () => {
-    const session: MockTableSession = createTableSession({
+  test("a chassis row whose fields are all empty/whitespace produces undefined", () => {
+    expect(
+      Internal.pickEntityInfo({
+        "1": {
+          "5": 3,
+          "11": Buffer.from(""),
+          "12": Buffer.from("   "),
+        },
+      }),
+    ).toBeUndefined();
+  });
+
+  test("an empty table produces undefined", () => {
+    expect(Internal.pickEntityInfo({})).toBeUndefined();
+  });
+
+  test("all identity fields map from their ENTITY-MIB columns and are trimmed", () => {
+    const entityInfo: SnmpEntityInfo | undefined = Internal.pickEntityInfo({
       "1": {
         "5": 3,
         "8": Buffer.from("V02"),
@@ -607,9 +587,6 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
       },
     });
 
-    const entityInfo: SnmpEntityInfo | undefined =
-      await Internal.walkEntityInfo(session);
-
     expect(entityInfo).toEqual({
       manufacturer: "Cisco Systems Inc",
       model: "WS-C3850-48T",
@@ -619,16 +596,102 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
       softwareVersion: "16.9.3",
     });
   });
+});
 
-  test("a table walk error propagates to the caller", async () => {
-    const session: MockTableSession = createTableSession(
-      {},
-      new Error("RequestTimedOutError"),
-    );
+describe("SnmpMonitor.walkInterfaces — the ENTITY-MIB read", () => {
+  const config: MonitorStepSnmpMonitor = {
+    snmpVersion: SnmpVersion.V2c,
+    hostname: "10.0.0.1",
+    port: 161,
+    communityString: "public",
+    oids: [],
+    timeout: 1000,
+    retries: 0,
+    monitorInterfaces: true,
+  };
 
-    await expect(Internal.walkEntityInfo(session)).rejects.toThrow(
-      "RequestTimedOutError",
-    );
+  function installEntitySession(entity: SnmpTableRows | Error): {
+    calls: Array<TableColumnsCall>;
+  } {
+    const calls: Array<TableColumnsCall> = [];
+
+    (
+      snmp.createSession as unknown as {
+        mockReturnValue: (value: unknown) => void;
+      }
+    ).mockReturnValue({
+      tableColumns: (
+        tableOid: string,
+        columns: Array<number>,
+        callback: (err: Error | null, tbl?: unknown) => void,
+      ): void => {
+        calls.push({ tableOid, columns });
+
+        if (tableOid === "1.3.6.1.2.1.47.1.1.1") {
+          if (entity instanceof Error) {
+            callback(entity);
+            return;
+          }
+
+          callback(null, entity);
+          return;
+        }
+
+        callback(null, {});
+      },
+      get: (
+        _oids: Array<string>,
+        callback: (error: Error | null) => void,
+      ): void => {
+        callback(new Error("system group unavailable"));
+      },
+      close: jest.fn(),
+      on: jest.fn(),
+    });
+
+    return { calls };
+  }
+
+  afterEach(() => {
+    (
+      snmp.createSession as unknown as {
+        mockImplementation: (impl: () => unknown) => void;
+      }
+    ).mockImplementation(() => {
+      return { close: jest.fn(), on: jest.fn() };
+    });
+  });
+
+  test("walks entPhysicalTable once, with the identity columns", async () => {
+    const { calls } = installEntitySession({
+      "1": { "5": 3, "11": Buffer.from("FDO1"), "13": Buffer.from("C9300") },
+    });
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {});
+
+    expect(
+      calls.filter((call: TableColumnsCall) => {
+        return call.tableOid === "1.3.6.1.2.1.47.1.1.1";
+      }),
+    ).toEqual([
+      {
+        tableOid: "1.3.6.1.2.1.47.1.1.1",
+        columns: [5, 8, 9, 10, 11, 12, 13],
+      },
+    ]);
+    expect(result.entityInfo).toEqual({
+      model: "C9300",
+      serialNumber: "FDO1",
+    });
+  });
+
+  test("a device without ENTITY-MIB still walks its interfaces", async () => {
+    installEntitySession(new Error("RequestTimedOutError"));
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {});
+
+    expect(result.entityInfo).toBeUndefined();
+    expect(result.interfaces).toEqual([]);
   });
 });
 

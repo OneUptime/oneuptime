@@ -106,6 +106,7 @@ import { PublicForm } from "../../../Types/Form/FormPublic";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -372,6 +373,14 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Array<Form>> => {
       return storedForms;
     }) as never) as unknown as MockedFn;
+
+  /*
+   * The read of the rows the caller's update may write, which the update
+   * path makes before the hooks (stubRowsCallerMayWrite).
+   */
+  stubRowsCallerMayWrite(FormService, () => {
+    return storedForms;
+  });
 
   jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
@@ -660,6 +669,28 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
       ).resolves.toBeDefined();
       expect(
         (await refusal(update({ logoFileId: LOGO_FILE_ID }, { isRoot: true })))
+          ?.message,
+      ).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
+    });
+
+    /*
+     * OneUptime's update reaches any form its query names, whatever project
+     * the request is made in: each file is checked against the project of
+     * the form it is written to, not the request's.
+     */
+    test("a server-side update made in one project is checked against the form's own project", async () => {
+      storedForms = [storedRow({ projectId: OTHER_PROJECT_ID })];
+
+      const rootInProject: DatabaseCommonInteractionProps = {
+        isRoot: true,
+        tenantId: PROJECT_ID,
+      };
+
+      await expect(
+        update({ logoFileId: OTHER_PROJECT_FILE_ID }, rootInProject),
+      ).resolves.toBeDefined();
+      expect(
+        (await refusal(update({ logoFileId: LOGO_FILE_ID }, rootInProject)))
           ?.message,
       ).toBe(FORM_LOGO_NOT_FOUND_MESSAGE);
     });

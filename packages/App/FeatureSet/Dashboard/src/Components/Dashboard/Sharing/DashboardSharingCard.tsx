@@ -69,6 +69,7 @@ import DashboardSharingCopy, {
   isDashboardPasswordRequiredInDialog,
 } from "./DashboardSharingCopy";
 import { getPublicDashboardUrl } from "./PublicDashboardUrl";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * "Who can view this dashboard", on a dashboard's Sharing page: only people
@@ -150,6 +151,7 @@ enum PasswordDialog {
 const DashboardSharingCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const translator: Translator = useTranslator();
 
   // A fixed English sentence in the reader's language.
@@ -471,7 +473,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
        * Full-bleed rows, ruled like the card's own header rule, as on a
        * status page's "Who can see this status page" card.
        */
-      <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
+      <div className={ruledBodyClassName}>
         <ChoiceRows<DashboardAccess>
           value={pending || current}
           options={options}

@@ -1,0 +1,35 @@
+name: Pull Docker Hub images through mirror.gcr.io
+description: >-
+  Points this runner's Docker daemon at Google's public Docker Hub mirror,
+  mirror.gcr.io, before the job pulls images, falling back to Docker Hub for
+  anything the mirror cannot serve. Needs the repository checked out. Never
+  fails the job.
+
+# Why this exists: the test jobs pull postgres, valkey and clickhouse from
+# Docker Hub without an account. Docker Hub caps anonymous pulls per runner IP
+# and has bad hours of its own: on 2026-10-09, from about 21:26 UTC, its token
+# service timed out and answered "unauthenticated pull rate limit" to every
+# pull, and every test job of fb78dc289a that pulls an image failed before it
+# ran a test.
+#
+# Scripts/GHA/use_docker_hub_mirror.sh adds the mirror to the daemon's
+# registry-mirrors and reloads it (no restart: that would stop the job's
+# service containers). Service containers themselves are pulled by the runner
+# before any step, so a job's `services:` name their images on mirror.gcr.io
+# directly instead.
+#
+# Only for jobs that pull other people's images. A mirror answers for a tag
+# with whatever image it holds under that tag, and the daemon takes that answer
+# without asking Docker Hub. The e2e jobs pull OneUptime's own images under
+# tags every master push or release pushes again; through a mirror holding an
+# older image under the same tag, they would test that older image.
+#
+# Tests/Ops/DockerHubMirrorCoverage.test.js holds every test job that pulls a
+# Docker Hub image to running this first, and lists the jobs allowed to.
+
+runs:
+  using: composite
+  steps:
+    - name: Use mirror.gcr.io for Docker Hub images
+      shell: bash
+      run: bash Scripts/GHA/use_docker_hub_mirror.sh

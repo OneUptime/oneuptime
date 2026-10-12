@@ -12,6 +12,11 @@ import SafeHtml from "Common/Types/SafeHtml";
 import SmsStatus from "Common/Types/SmsStatus";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import Text from "Common/Types/Text";
+import {
+  fitTextToLength,
+  MAX_SMS_LENGTH,
+  TRUNCATED_TEXT_NOTE_PLAIN,
+} from "Common/Utils/MessageFit";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import {
   Host,
@@ -44,6 +49,7 @@ import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
 
 export default class SmsService {
@@ -85,7 +91,8 @@ export default class SmsService {
     try {
       const notSentReason: string | null = await this.sendSmsInternal(
         to,
-        message,
+        // The installation's own name, when it goes by one.
+        ProductBrandingText.brandText(message),
         options,
       );
 
@@ -162,10 +169,22 @@ export default class SmsService {
     let smsLogId: ObjectID | null = null;
 
     try {
+      message = Text.trimLines(message);
+
+      /*
+       * Twilio refuses an SMS body of more than 1,600 characters (error
+       * 21617), and the message is lost: a longer one - a template that
+       * placed a description - is cut to fit, and ends with a note, in
+       * characters every SMS encoding has, that the rest is in OneUptime.
+       */
+      message = fitTextToLength(
+        message,
+        MAX_SMS_LENGTH,
+        TRUNCATED_TEXT_NOTE_PLAIN,
+      );
+
       // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
       const smsSegments: number = Math.ceil(message.length / 160);
-
-      message = Text.trimLines(message);
 
       const shouldChargeForSMS: boolean =
         IsBillingEnabled && !options.customTwilioConfig;

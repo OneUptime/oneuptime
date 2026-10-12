@@ -38,7 +38,8 @@ OneUptime 行動與桌面應用程式的常見問題與解決方案。
 2. 已停用電池最佳化並允許背景活動（Android）。
 3. 勿擾或專注模式已關閉，或應用程式位於例外清單中。
 4. 您已登入——推播權杖只有在您登入後才會向伺服器註冊。
-5. **僅限自架：** 推播通知已在您的 OneUptime 執行個體上設定完成。請參閱[推播通知](/docs/self-hosted/push-notifications)指南。
+5. 在 OneUptime 的 **User Settings > Notification Methods > Push** 中,該手機未被標記為 **未收到通知**。若已被標記,請在登入狀態下於手機上開啟應用程式以重新註冊。
+6. **僅限自架：** 推播通知已在您的 OneUptime 執行個體上設定完成。請參閱[推播通知](/docs/self-hosted/push-notifications)指南。
 
 ### 我手機上的資料安全嗎？
 

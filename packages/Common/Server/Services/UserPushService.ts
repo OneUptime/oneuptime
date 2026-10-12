@@ -13,7 +13,9 @@ import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Includes from "../../Types/BaseDatabase/Includes";
+import { EXPO_PUSH_DEVICE_TYPES } from "../../Types/PushNotification/ExpoPushDeviceType";
 
 export class Service extends DatabaseService<UserPush> {
   public constructor() {
@@ -221,6 +223,344 @@ export class Service extends DatabaseService<UserPush> {
     }
 
     return updatedCount;
+  }
+
+  /**
+   * A browser push subscription that is gone: the push service answered a
+   * send to it with 404 or 410 (PushNotificationService), or the browser
+   * said it dropped it without getting a new one (the subscription-change
+   * route).
+   *
+   * The web devices registered with it stop being verified. Nothing is sent
+   * to an unverified device, and that is what makes the loss visible: the
+   * on-call timeline says a page was not pushed because the device is not
+   * verified, readiness counts the device as not ready, and the device list
+   * says it no longer receives notifications. Before, a dead subscription
+   * stayed verified, every page to it failed at the push service, and
+   * everything said the device was fine.
+   *
+   * Marked, not deleted. The browser may still report a new subscription
+   * (replaceWebPushSubscription), which brings these devices back with the
+   * rules their owner set up for them; deleting a device takes its rules
+   * with it (UserNotificationRule.userPushId cascades).
+   *
+   * Every account that registered the browser has lost the subscription
+   * alike, so without `userId` all of them are marked. A caller reporting
+   * for themselves passes their own id, and marks only their own devices.
+   *
+   * Returns how many devices were marked.
+   */
+  @CaptureSpan()
+  public async markWebPushSubscriptionAsGone(data: {
+    deviceToken: string;
+    userId?: ObjectID | undefined;
+  }): Promise<number> {
+    return await this.markPushTokenAsGone({
+      ...data,
+      deviceType: PushDeviceType.Web,
+    });
+  }
+
+  /*
+   * What marking a gone subscription or token does, for both kinds: the
+   * verified devices of these types registered with it stop being verified,
+   * as root (UserPush grants update to nobody), every one of them - not
+   * deleted, so their rules survive. markWebPushSubscriptionAsGone and
+   * markExpoPushTokenAsGone differ only in the devices a token can belong to.
+   */
+  private async markPushTokenAsGone(data: {
+    deviceToken: string;
+    deviceType: PushDeviceType | Includes;
+    userId?: ObjectID | undefined;
+  }): Promise<number> {
+    return await this.updateBy({
+      query: {
+        deviceToken: data.deviceToken,
+        deviceType: data.deviceType,
+        isVerified: true,
+        ...(data.userId ? { userId: data.userId } : {}),
+      },
+      data: {
+        isVerified: false,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /**
+   * An Expo push token that is gone: Expo answered a send to it with
+   * DeviceNotRegistered (PushNotificationService - sent directly with the
+   * deployment's Expo access token, or through the push relay, which says
+   * so in its answer). The mobile app was removed from the device, or the
+   * device's push token is no longer valid.
+   *
+   * The phones and tablets registered with it stop being verified, exactly
+   * as markWebPushSubscriptionAsGone does for a browser: nothing more is
+   * sent to them, and the on-call timeline, readiness and the device list
+   * say they no longer receive notifications. Before, the token stayed
+   * verified and every later page to it failed at Expo.
+   *
+   * Marked, not deleted, for the same reason: the rules their owner set up
+   * for them survive (UserNotificationRule.userPushId cascades on delete).
+   * The app gets its token from Expo again every time it registers, which
+   * renews it there, and registering a device that is marked here verifies
+   * it again (UserPushAPI's register route).
+   *
+   * Only iOS and Android devices: an Expo push token is never a browser's
+   * subscription. Every account that registered the token has lost it
+   * alike, so without `userId` all of them are marked.
+   *
+   * Returns how many devices were marked.
+   */
+  @CaptureSpan()
+  public async markExpoPushTokenAsGone(data: {
+    deviceToken: string;
+    userId?: ObjectID | undefined;
+  }): Promise<number> {
+    return await this.markPushTokenAsGone({
+      ...data,
+      deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+    });
+  }
+
+  /**
+   * The mobile app registered a token again whose device is not verified -
+   * most often one Expo said was gone (markExpoPushTokenAsGone). The app
+   * asks Expo for its token on every launch before it registers, and that
+   * request renews the token with Expo, so the token it registers is one
+   * Expo can deliver to: the device is verified again, with the rules its
+   * owner set up for it. If Expo still refuses it, the next page marks it
+   * again.
+   *
+   * Only an iOS or Android device. A browser's subscription that the push
+   * service refused is gone for good, and its browser renews it with a new
+   * one instead (replaceWebPushSubscription).
+   *
+   * Returns whether the device was verified again.
+   */
+  @CaptureSpan()
+  public async verifyExpoPushDeviceRegisteredAgain(
+    deviceId: ObjectID,
+  ): Promise<boolean> {
+    const verifiedCount: number = await this.updateOneBy({
+      query: {
+        _id: deviceId.toString(),
+        deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+        isVerified: false,
+      },
+      data: {
+        isVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return verifiedCount > 0;
+  }
+
+  /**
+   * The mobile app got a new push token on a phone where it kept its data -
+   * a phone set up from a backup of the old one, say - and says which token
+   * it had before (the register route's previousDeviceToken). When the
+   * person's device in this project registered with that token no longer
+   * receives notifications - Expo said its token was gone - this phone takes
+   * it over: it carries the new token from now on, verified, with the rules
+   * its owner set up for it, and the name, type and critical-alerts setting
+   * the phone registers with now. Before, the new token got a new device
+   * with default rules, and the old one stayed "Not receiving
+   * notifications" until somebody deleted it.
+   *
+   * Only a device that no longer receives notifications. One that still
+   * does may be a phone still in use - an iPad set up from an iPhone's
+   * backup reports the iPhone's token - and taking it over would silently
+   * stop paging that phone. Then this phone gets a device of its own, as
+   * before.
+   *
+   * Like a browser's subscription-change (replaceWebPushSubscription), only
+   * the caller's own iOS or Android device in this project, and only when
+   * the new token has no device there yet (the register route checks):
+   * nothing is ever deleted. Returns the device renewed, or null when there
+   * was none to renew.
+   */
+  @CaptureSpan()
+  public async renewExpoPushDevice(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    previousDeviceToken: string;
+    deviceToken: string;
+    deviceType: PushDeviceType;
+    deviceName: string;
+    isCriticalAlertEnabled: boolean;
+  }): Promise<UserPush | null> {
+    if (
+      !data.previousDeviceToken ||
+      data.previousDeviceToken === data.deviceToken
+    ) {
+      return null;
+    }
+
+    const previous: UserPush | null = await this.findOneBy({
+      query: {
+        userId: data.userId,
+        projectId: data.projectId,
+        deviceToken: data.previousDeviceToken,
+        deviceType: new Includes([...EXPO_PUSH_DEVICE_TYPES]),
+        isVerified: false,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!previous?._id) {
+      return null;
+    }
+
+    /*
+     * Still the old token, and still not receiving: another registration may
+     * have renewed it a moment ago, or the old phone registered it again,
+     * and then this one has nothing to take over.
+     */
+    const renewedCount: number = await this.updateOneBy({
+      query: {
+        _id: previous._id.toString(),
+        userId: data.userId,
+        deviceToken: data.previousDeviceToken,
+        isVerified: false,
+      },
+      data: {
+        deviceToken: data.deviceToken,
+        deviceType: data.deviceType,
+        deviceName: data.deviceName,
+        isVerified: true,
+        isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return renewedCount > 0 ? previous : null;
+  }
+
+  /**
+   * A browser replaced its push subscription - it expired, the push service
+   * rotated it, permission was given back - and its service worker reports
+   * the old one and the new one. Every web device of `userId` registered with
+   * the old one carries the new one from now on, and is verified again: one
+   * browser has one subscription, and a device per project it is registered
+   * in.
+   *
+   * Only devices of projects in `memberProjectIds`, the projects the person
+   * is a member of now. A device pages its owner for its project, and
+   * somebody who has left cannot give themselves a way to be reached by it
+   * again (the register and verify routes check the same).
+   *
+   * A project where this browser is already registered with the new
+   * subscription - it was registered again before the old one was replaced
+   * here - keeps that device. The old one is marked unverified rather than
+   * renewed: renewing it would push every notification to this browser twice.
+   *
+   * Returns how many devices now carry the new subscription.
+   */
+  @CaptureSpan()
+  public async replaceWebPushSubscription(data: {
+    userId: ObjectID;
+    oldDeviceToken: string;
+    newDeviceToken: string;
+    memberProjectIds: Array<ObjectID>;
+  }): Promise<number> {
+    // Nothing was replaced: every device would count as registered again.
+    if (data.oldDeviceToken === data.newDeviceToken) {
+      return 0;
+    }
+
+    const devices: Array<UserPush> = await this.findBy({
+      query: {
+        userId: data.userId,
+        deviceToken: data.oldDeviceToken,
+        deviceType: PushDeviceType.Web,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const memberProjectIds: Set<string> = new Set<string>(
+      data.memberProjectIds.map((projectId: ObjectID): string => {
+        return projectId.toString().toLowerCase();
+      }),
+    );
+
+    let renewedCount: number = 0;
+
+    for (const device of devices) {
+      if (
+        !device.projectId ||
+        !memberProjectIds.has(device.projectId.toString().toLowerCase())
+      ) {
+        continue;
+      }
+
+      const registeredAgain: UserPush | null = await this.findOneBy({
+        query: {
+          userId: data.userId,
+          projectId: device.projectId,
+          deviceToken: data.newDeviceToken,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (registeredAgain) {
+        await this.updateOneBy({
+          query: {
+            _id: device._id!,
+          },
+          data: {
+            isVerified: false,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        continue;
+      }
+
+      renewedCount += await this.updateOneBy({
+        query: {
+          _id: device._id!,
+        },
+        data: {
+          deviceToken: data.newDeviceToken,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return renewedCount;
   }
 }
 

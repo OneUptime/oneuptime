@@ -104,6 +104,14 @@ describe("records with no labels of their own", () => {
       RecommendationDismissal: ["resourceId"],
       ResourceAiAgent: ["resourceId"],
       RunnerJob: ["assignedAgentId", "resourceId"],
+      /*
+       * The record an import created, of the kind its `kind` column names
+       * (a monitor, a policy, a team...), so of any kind. Only OneUptime
+       * reads the table (every access list is empty, and it has no API),
+       * so no read of it runs under a block; one that ever did would rightly
+       * weigh the record against every model that carries labels.
+       */
+      ToolImportRecord: ["recordId"],
     });
   });
 

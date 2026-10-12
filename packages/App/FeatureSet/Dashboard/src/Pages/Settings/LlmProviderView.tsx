@@ -12,6 +12,7 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestLLMProvider, {
@@ -27,6 +28,9 @@ import React, {
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // Set as Default and Additional Parameters, folded at the end of Provider Settings.
 const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
@@ -35,7 +39,19 @@ const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
+
+  /*
+   * The Additional Parameters are read like the API key, by project owners
+   * and admins alone (LlmProvider.additionalParams). Everyone else who reads
+   * the provider is shown whether any are saved (hasAdditionalParams), never
+   * what they are.
+   */
+  const canReadAdditionalParams: boolean = PermissionGate.canReadColumn(
+    new LlmProvider(),
+    "additionalParams",
+  );
 
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
@@ -65,6 +81,11 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
     <Fragment>
       {/* LLM Provider View  */}
       <CardModelDetail<LlmProvider>
+        /*
+         * Fetched again when whether the parameters may be read changes: the
+         * permission snapshot can land after the first paint.
+         */
+        key={canReadAdditionalParams ? "with-parameters" : "without-parameters"}
         name="LLM Provider Details"
         cardProps={{
           title: "LLM Provider Details",
@@ -139,7 +160,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "sk-...",
             description:
-              "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
+              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
           },
           {
             field: {
@@ -149,9 +170,9 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             stepId: "provider-settings",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
+            placeholder: "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
             description:
-              "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
+              "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5-5 for Anthropic, your deployment's name for Azure OpenAI / Microsoft Foundry, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
           },
           {
             field: {
@@ -162,8 +183,12 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.URL,
             required: false,
             placeholder: "http://ollama:11434",
+            // The column holds 100 characters; see LlmProviders.tsx.
+            validation: {
+              maxLength: ColumnLength.ShortURL,
+            },
             description:
-              "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+              "Required for Azure OpenAI / Microsoft Foundry, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI / Microsoft Foundry use your resource's endpoint, e.g. https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Optional for others to override the default endpoint. Everyone who can see this project's settings can read it, so never put a key, a token or a password in it: use the API Key.",
           },
           {
             field: {
@@ -234,14 +259,33 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               title: "Base URL",
               placeholder: "Not specified (using default)",
             },
-            {
-              field: {
-                additionalParams: true,
-              },
-              title: "Additional Parameters",
-              fieldType: FieldType.JSON,
-              placeholder: "None",
-            },
+            canReadAdditionalParams
+              ? {
+                  field: {
+                    additionalParams: true,
+                  },
+                  title: "Additional Parameters",
+                  fieldType: FieldType.JSON,
+                  placeholder: "None",
+                }
+              : {
+                  field: {
+                    hasAdditionalParams: true,
+                  },
+                  title: "Additional Parameters",
+                  description:
+                    "Only project owners and admins can read them, like the API key.",
+                  fieldType: FieldType.Boolean,
+                  getElement: (item: LlmProvider): ReactElement => {
+                    return (
+                      <span>
+                        {item.hasAdditionalParams
+                          ? translator.translateText("Saved")
+                          : translator.translateText("None")}
+                      </span>
+                    );
+                  },
+                },
             {
               field: {
                 isDefault: true,

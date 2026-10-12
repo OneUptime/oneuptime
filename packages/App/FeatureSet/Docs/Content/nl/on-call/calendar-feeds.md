@@ -1,241 +1,347 @@
-# Agendafeeds (piketdiensten in Google Agenda, Outlook en Apple Agenda)
+# Agendafeeds
 
-Agendafeeds zetten je piketdiensten in de agenda waar je toch al naar kijkt. OneUptime publiceert een geheime iCalendar-link (`.ics`) per persoon, per rooster en per project; Google Agenda, Outlook, Apple Agenda, Thunderbird en elke andere app die zich via een URL op een agenda kan abonneren, halen die link periodiek op en tonen één afspraak per dienst. Er wordt niets geïnstalleerd en er wordt geen account gekoppeld: de link is de hele integratie.
+Agendafeeds zetten je bereikbaarheidsdiensten in de agenda waar je toch al naar kijkt. OneUptime publiceert een geheime iCalendar-link (`.ics`) voor elke persoon, elk rooster en elk project; Google Agenda, Outlook, Apple Agenda, Thunderbird en elke andere app die zich via een URL op een agenda kan abonneren, haalt die link regelmatig op en toont één afspraak per dienst. Er wordt niets geïnstalleerd en er wordt geen account gekoppeld: de link is de hele integratie.
 
-> **Note:** Een geabonneerde agenda is bedoeld voor **planning**. Agenda-apps halen feeds in hun eigen tempo opnieuw op — Google Agenda slechts elke 8 tot 24 uur —, dus een ruil die een uur voor een dienst wordt gedaan bereikt je via de eigen herinneringen, hertoewijzingsberichten en pagermeldingen van OneUptime, niet via de agenda.
+```mermaid title="Agenda-apps halen een geheime link op; sommige vanaf hun eigen servers"
+flowchart TB
+    subgraph links["Geheime .ics-links"]
+        direction LR
+        personal["Persoonlijke feed"]
+        schedule["Roosterfeed"]
+        project["Projectfeed"]
+    end
+    shifts["Roosters, rotaties<br/>en overrides"] --> links
+    links -->|"opgehaald vanaf hun servers"| serverApps["Google Agenda, Outlook op het web"]
+    links -->|"opgehaald vanaf je apparaat"| deviceApps["Apple Agenda, Thunderbird, klassieke Outlook"]
+```
+
+> [!NOTE]
+> Een geabonneerde agenda is bedoeld voor **planning**. Agenda-apps halen feeds op in hun eigen tempo — Google Agenda maar eens per 8 tot 24 uur — dus een ruil die een uur voor een dienst wordt gemaakt, bereikt je via de eigen herinneringen, meldingen over hertoewijzing en oproepen van OneUptime, niet via de agenda.
 
 ## Wat je krijgt
 
-- Eén afspraak per dienst, met de titel `On-call · <Schedule>` (met ` · <Policy>` erachter wanneer het rooster aan precies één escalatiebeleid is gekoppeld) in je persoonlijke feed en `<Name> · On-call · <Schedule>` in een gedeelde feed. De omschrijving vermeldt wie piket heeft, het rooster en zijn tijdzone, de laag, de dienst in de tijdzone van het rooster, in UTC en in de jouwe, via welke escalatiebeleidsregels je via dit rooster wordt opgeroepen, en een link naar het rooster in het dashboard.
-- Overrides worden gerespecteerd. Als iemand voor je invalt, gaat de afspraak naar die persoon (`(covering for <Name>)` wordt toegevoegd) en blijft het dezelfde afspraak in je agenda-app, zodat hij ter plekke wordt bijgewerkt in plaats van gedupliceerd. Een gedeeltelijke override splitst de dienst in aansluitende afspraken.
-- Standaard twee dagen geschiedenis en 90 dagen vooruit. Je kunt dit verruimen tot 60 dagen terug en 180 dagen vooruit; een feed die meer dan 5.000 afspraken zou bevatten wordt ingekort en meldt dat in de agendabeschrijving.
-- Afspraken zijn gemarkeerd als vrij (`TRANSP:TRANSPARENT`), dus een geabonneerde feed blokkeert nooit je beschikbaarheid, en niets is als privé gemarkeerd, zodat een gedeelde teamagenda de titels toont aan iedereen die hem kan zien.
-- Tijden worden in UTC verzonden en door je agenda-app omgerekend; de omschrijving noemt de kloktijd in de tijdzone van het rooster en in de jouwe. Stel je eigen tijdzone in onder **Gebruikersinstellingen** > **Profiel** en die van het rooster op zijn tabblad **Instellingen**. Een rooster zonder tijdzone wordt berekend in de tijdzone van de server, net als bij het oproepen, en de afspraak vermeldt dat.
+- Eén afspraak per dienst, met de titel `On-call · <Schedule>` (met ` · <Policy>` erachter wanneer het rooster aan precies één escalatiebeleid is gekoppeld) in je persoonlijke feed en `<Name> · On-call · <Schedule>` in een gedeelde feed. De beschrijving noemt wie er dienst heeft, het rooster en de tijdzone ervan, de laag, de dienst in de zone van het rooster, in UTC en in jouw zone, welk escalatiebeleid jou via dit rooster oproept, en een link naar het rooster in het dashboard.
+- Overrides worden gevolgd. Wanneer iemand je vervangt, gaat de afspraak naar die persoon (`(covering for <Name>)` wordt toegevoegd) en blijft het dezelfde afspraak in je agenda-app, dus wordt hij bijgewerkt in plaats van verdubbeld. Een gedeeltelijke override splitst de dienst in aansluitende afspraken.
+- Standaard twee dagen geschiedenis en 90 dagen vooruit. Je kunt dit verruimen tot 60 dagen terug en 180 dagen vooruit; een feed die meer dan 5.000 afspraken zou bevatten, wordt ingekort en meldt dat in de beschrijving van de agenda.
+- Afspraken zijn gemarkeerd als vrij (`TRANSP:TRANSPARENT`), dus een geabonneerde feed blokkeert nooit je beschikbaarheid, en niets is gemarkeerd als privé, dus een gedeelde teamagenda toont de titels aan iedereen die hem kan zien.
+- Tijden worden in UTC verstuurd en door je agenda-app omgerekend; de beschrijving vermeldt de kloktijd in de zone van het rooster en in de jouwe. Stel je eigen tijdzone in als **Tijdzone** op je **Profiel** (je foto rechtsboven in het dashboard), en die van het rooster in de kaart **Schedule timezone** op de pagina **Lagen** ervan. Een rooster zonder tijdzone wordt uitgerekend in de zone van de server, net als bij het oproepen, en de afspraak meldt dat.
 
-Vaste toewijzingen — een gebruiker of team dat rechtstreeks in een regel van een escalatiebeleid staat — hebben geen begin of einde en verschijnen in geen enkele feed. In OneUptime Cloud volgen feeds hetzelfde abonnement als piketroosters (Growth); een project onder dat abonnement krijgt een lege agenda in plaats van een fout.
+Vaste toewijzingen — een gebruiker of team die rechtstreeks in een regel van een escalatiebeleid staat — hebben geen begin of einde en verschijnen in geen enkele feed. Op OneUptime Cloud volgen feeds hetzelfde abonnement als bereikbaarheidsschema's (Growth); een project onder dat abonnement krijgt een lege agenda in plaats van een fout.
 
 ## Drie soorten links
 
-| Link                  | Wie maakt hem                                                                           | Wat hij bevat                                                                                        | Waar                                                          |
-| --------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Persoonlijke feed** | Elke gebruiker, één per project                                                         | Je diensten op elk rooster in dat project, plus de diensten waarin je voor iemand invalt (optioneel) | **Gebruikersinstellingen** > **Agendafeed**                   |
-| **Roosterfeed**       | Iedereen die het rooster mag bewerken; iedereen die het mag lezen mag de link kopiëren  | Ieders diensten op één rooster, met optionele afspraken voor dekkingsgaten                           | De pagina van het rooster, kaart **Abonneren op dit rooster** |
-| **Projectfeed**       | Iedereen die piketroosters mag bewerken; iedereen die ze mag lezen mag de link kopiëren | Ieders diensten op elk rooster in het project, met optionele afspraken voor dekkingsgaten            | **Piket** > **Agendafeeds**                                   |
+| Link | Wie maakt hem | Wat hij bevat | Waar |
+| --- | --- | --- | --- |
+| **Persoonlijke feed** | Elke gebruiker, één per project | Jouw diensten in elk rooster van dat project, plus de diensten waarin je iemand vervangt (optioneel) | **Gebruikersinstellingen** > **Agenda** > **Agendafeed** |
+| **Roosterfeed** | Iedereen die het rooster mag bewerken; iedereen die het mag lezen, mag de link kopiëren | De diensten van iedereen in één rooster, met optionele afspraken voor dekkingsgaten | De pagina van het rooster, kaart **Abonneren op dit rooster** |
+| **Projectfeed** | Iedereen die bereikbaarheidsschema's mag bewerken; iedereen die ze mag lezen, mag de link kopiëren | De diensten van iedereen in elk rooster van het project, met optionele afspraken voor dekkingsgaten | **Bereikbaarheidsdienst** > **Agendafeeds** |
 
 De links zien er zo uit:
 
-```
-https://<jouw host>/api/on-call-calendar/user/<token>/shifts.ics
-https://<jouw host>/api/on-call-calendar/schedule/<token>/schedule.ics
-https://<jouw host>/api/on-call-calendar/project/<token>/project.ics
+```text
+https://<your host>/api/on-call-calendar/user/<token>/shifts.ics
+https://<your host>/api/on-call-calendar/schedule/<token>/schedule.ics
+https://<your host>/api/on-call-calendar/project/<token>/project.ics
 ```
 
-Het token van 43 tekens in het pad is de enige inloggegevens — er komt geen login, cookie of API-sleutel aan te pas. Behandel elk van deze links als een wachtwoord.
+> [!WARNING]
+> Het token van 43 tekens in het pad is het enige inloggegeven — er komt geen login, cookie of API-sleutel aan te pas. Behandel elk van deze links als een wachtwoord.
 
 ## Je persoonlijke feed
 
-1. Open **Gebruikersinstellingen** > **Agendafeed** in het project waarvan je de diensten wilt. Persoonlijke feeds zijn per project: een tweede project krijgt een tweede link en een tweede agenda.
-2. Klik op **Agendalink genereren**. De kaart **Abonneer je op je piketdiensten** toont nu de `https://`-link en drie knoppen:
-   - **Google Agenda** opent Google Agenda met de link al ingevuld.
-   - **Apple / andere apps** opent de `webcals://`-vorm van de link, die macOS, iOS en de meeste desktop-apps rechtstreeks aan hun abonneerdialoog doorgeven.
-   - **Webcal-link kopiëren** kopieert diezelfde `webcal(s)://`-link — degene die klassiek Outlook voor Windows nodig heeft.
-3. Abonneer je in je agenda-app volgens de stappen per app hieronder.
+Persoonlijke feeds zijn per project: een tweede project krijgt een tweede link en een tweede agenda.
 
-Instellingen op dezelfde kaart:
+:::steps
+### Open je agendafeed
 
-- **Diensten meenemen die ik voor anderen overneem** (standaard aan) voegt de diensten toe die een override je geeft op roosters waarvan je verder geen lid bent.
-- **Dagen eerdere diensten** (standaard 2, maximaal 60) en **Dagen vooruit** (standaard 90, tussen 7 en 180).
+Open **Gebruikersinstellingen** > **Agenda** > **Agendafeed** in het project waarvan je de diensten wilt. **Agenda** is een sectie van het zijmenu die ingeklapt begint.
 
-De statusregel toont wanneer de link voor het laatst is opgehaald, door welke agenda-app, hoe vaak, en de laatste vier tekens van het token zodat je links uit elkaar kunt houden. Als na twee dagen niets de link heeft opgehaald, vraagt de pagina of de server vanaf internet bereikbaar is (zie Problemen oplossen).
+### Genereer de link
 
-De pagina toont ook je **Komende diensten** (de volgende 30 dagen), elk met een link **Vervanging regelen** die de gebruikersoverrides vooraf ingevuld voor die dienst opent, en de kaart **Herinner me voor diensten** die verderop wordt beschreven.
+Klik op **Agendalink genereren**. De kaart **Abonneren op uw oproepdiensten** biedt nu één manier om je te abonneren:
 
-Acties:
+- **Toevoegen aan uw agenda**: **Google Agenda** opent Google Agenda, dat vraagt of de agenda moet worden toegevoegd. **Apple Agenda / Outlook** opent de `webcal://`-vorm van de link in de app waarmee je computer of telefoon zich abonneert: Apple Agenda op een Mac, iPhone of iPad, Outlook op Windows.
+- **Of kopieer de link**: **Link kopiëren** kopieert de `https://`-link voor elke andere app die zich via een URL op een agenda kan abonneren. De link blijft verborgen op de pagina tot je klikt om hem te tonen.
 
-- **Link opnieuw genereren** maakt een nieuw token. Elke app die op de oude link is geabonneerd stopt met bijwerken: 30 dagen lang levert de oude link een lege agenda zodat die apps hun kopie wissen, daarna geeft hij 404. Abonneer je opnieuw met de nieuwe link.
-- **Uitschakelen** houdt de link, maar levert een lege agenda totdat je hem weer inschakelt.
-- **Verwijderen** verwijdert de link. Apps die hem nog opvragen krijgen 404 en blijven tonen wat ze het laatst hebben opgehaald — schakel eerst uit als je wilt dat ze leeglopen.
+### Abonneer je op de link
 
-Dezelfde persoonlijke link, gefilterd op één rooster met `?schedule=<id>`, wordt op elke roosterpagina aangeboden als **Alleen mijn diensten op dit rooster**, en de piketbanner en de pagina **Mijn piketbeleid** hebben een link **Je diensten aan je agenda toevoegen** naar de bovenstaande pagina.
+Volg de stappen voor je app onder "Abonneren in je agenda-app" hieronder. Je diensten verschijnen als afspraken zodra de app de link de volgende keer ophaalt: zie "Hoe vaak agenda's verversen".
+:::
 
-In de mobiele app: **Piket** > **Diensten aan mijn agenda toevoegen** (ook onder **Instellingen** > **Agendafeed**), met één link per project. Op de iPhone opent **Openen in Agenda** het systeemeigen abonneerblad. Op Android is er geen manier om je op de telefoon op een URL te abonneren, dus het scherm biedt **Link delen** en **https-link kopiëren** en vraagt je de link op een computer toe te voegen, waarna hij naar de telefoon synchroniseert. De lijst **Jouw diensten** in de app komt uit dezelfde gegevens en heeft dezelfde actie **Vervanging regelen**.
+### Instellingen van de feed
+
+Klik op **Instellingen bewerken** op de kaart **Instellingen agendafeed** om te wijzigen wat de link bevat:
+
+| Instelling | Wat het doet |
+| --- | --- |
+| **Diensten opnemen die ik voor anderen overneem** | Standaard aan. Voegt de diensten toe die een override je geeft in roosters waarvan je anders geen lid bent. |
+| **Dagen aan eerdere diensten** | Hoe ver de agenda terugreikt (standaard 2, hooguit 60). |
+| **Dagen vooruit** | Hoe ver de agenda vooruitreikt (standaard 90, tussen 7 en 180). |
+
+De statusregel toont wanneer de link voor het laatst is opgehaald, door welke agenda-app, hoe vaak, en de laatste vier tekens van het token, zodat je links uit elkaar kunt houden. Heeft na twee dagen niets de link opgehaald, dan vraagt de pagina of de server vanaf internet bereikbaar is (zie Probleemoplossing).
+
+### De link beheren
+
+| Actie | Wat er gebeurt |
+| --- | --- |
+| **Link opnieuw genereren** | Maakt een nieuw token aan. Elke app die op de oude link is geabonneerd, wordt niet meer bijgewerkt: 30 dagen lang levert de oude link een lege agenda, zodat die apps hun kopie leegmaken, daarna geeft hij 404. Abonneer je opnieuw met de nieuwe link. |
+| **Uitschakelen** | Houdt de link, maar levert een lege agenda tot je hem weer inschakelt. |
+| **Verwijderen** | Verwijdert de link. Apps die hem nog ophalen, krijgen 404 en blijven tonen wat ze het laatst hebben opgehaald — schakel hem eerst uit als je wilt dat ze leeglopen. |
+
+### Komende diensten en vervanging
+
+De pagina toont ook je **Upcoming shifts** (de komende 30 dagen) en de kaart **Herinner mij vóór diensten**, die verderop wordt beschreven. Elk van je eigen diensten heeft een link **Vervanging regelen**: die opent de overrides van gebruikers in het project van de dienst, met een nieuwe override die al voor die dienst is ingevuld, met jou als **Wie is afwezig?** en de tijden van de dienst als **Begint** en **Eindigt** (vanaf nu, als de dienst al is begonnen), zodat alleen **Wie vervangt?** nog overblijft. De override stuurt al je oproepen in die tijd naar de persoon die je vervangt, vanuit elk bereikbaarheidsbeleid; een dienst die alleen binnen één beleid bestaat, wordt in plaats daarvan op de pagina met overrides van gebruikers van dat beleid vervangen. Een dienst waarin jij iemand anders vervangt, heeft geen **Vervanging regelen**: overrides worden niet aan elkaar gekoppeld, dus vervanging voor een vervanging zou niets veranderen.
+
+Dezelfde persoonlijke link, gefilterd op één rooster met `?schedule=<id>`, wordt op de pagina van elk rooster aangeboden als **Alleen mijn diensten in dit rooster**, en de bereikbaarheidsbanner en de pagina **Mijn bereikbaarheidsbeleid** hebben een link **Uw diensten aan uw agenda toevoegen** naar de pagina hierboven.
+
+### In de mobiele app
+
+In de mobiele app: **On-Call** > **Add shifts to my calendar** (ook onder **Settings** > **Calendar feed**), met één link per project. Op de iPhone opent **Open in Calendar** het ingebouwde abonneervenster. Op Android kun je je op de telefoon niet op een URL abonneren, dus het scherm biedt **Share link** en **Copy https link** en vraagt je de link op een computer toe te voegen, waarna hij naar de telefoon synchroniseert. De lijst **Your shifts** in de app komt uit dezelfde gegevens en heeft dezelfde actie **Get cover**.
 
 ## Abonneren in je agenda-app
 
-Gebruik de `https://`-link tenzij de app om `webcal` vraagt; de sectie over schema's hieronder legt het verschil uit.
+Gebruik **Google Agenda** of **Apple Agenda / Outlook** in OneUptime waar je app een knop heeft; elke andere app neemt de `https://`-link die **Link kopiëren** je geeft. "https- en webcal-links" hieronder legt de twee vormen uit.
 
-### Google Agenda (web)
+:::tabs
+@tab Google Agenda
+1. Klik op **Google Agenda** in OneUptime. Google Agenda opent en vraagt of de agenda moet worden toegevoegd; klik op **Toevoegen**.
+2. Of klik in Google Agenda op het web naast **Andere agenda's** op **+** > **Via URL**, plak de link (**Link kopiëren** in OneUptime) en klik op **Agenda toevoegen**.
 
-1. Klik in Google Agenda op het web naast **Andere agenda's** op **+** > **Via URL**.
-2. Plak de `https://`-link en klik op **Agenda toevoegen**. De knop **Google Agenda** in OneUptime doet hetzelfde met de link al ingevuld.
+De knop **Google Agenda** opent de pagina van Google om een agenda via een URL toe te voegen, `https://calendar.google.com/calendar/r?cid=` gevolgd door de `webcal://`-vorm van de link, procentgecodeerd. Die pagina neemt alleen de `webcal://`-vorm aan: met de `https://`-vorm erin antwoordt Google "Unable to add calendar. Check the URL." **Via URL** neemt beide vormen aan.
 
-Google haalt de feed op **vanaf de servers van Google**, ruwweg elke 8 tot 24 uur en soms langer. Er is geen vernieuwknop voor geabonneerde agenda's, en Google negeert de vernieuwhints in de feed. De naam en tijdzone van de agenda worden **alleen bij het eerste abonneren** gelezen: een rooster later hernoemen hernoemt de agenda in Google niet — verwijder hem en voeg hem opnieuw toe als de naam belangrijk is. Google laat herinneringen in agendabestanden vallen; stel dus standaardmeldingen voor die agenda in bij de Google-instellingen, of beter, gebruik de eigen herinneringen van OneUptime. Meldt Google dat de URL niet kon worden opgehaald, controleer dan of je de `https://`-vorm hebt geplakt en niet `webcal://`, en voeg `?nocache=1` toe om hem opnieuw te laten kijken (OneUptime negeert onbekende queryparameters, de feed zelf verandert niet). De Google Agenda-app op Android en iOS kan zich niet via een URL abonneren; voeg de link op een computer toe en hij verschijnt op de telefoon.
+Google haalt de feed op **vanaf de servers van Google**, dus de OneUptime-server moet vanaf internet bereikbaar zijn — OneUptime Cloud is dat altijd; zie voor een zelfgehoste installatie Probleemoplossing. De eerste keer ophalen gebeurt meestal binnen enkele minuten na het abonneren; daarna ververst Google ongeveer elke 8 tot 24 uur, soms langer. Er is geen verversknop voor geabonneerde agenda's, en Google negeert de verversingshints in de feed. De statusregel op de feedpagina meldt **Laatst opgehaald … door Google Calendar** zodra Google de link heeft gelezen.
 
-### Outlook op het web en Outlook.com
+De naam en de tijdzone van de agenda worden **alleen bij het eerste abonnement** gelezen: een rooster later hernoemen hernoemt de agenda in Google niet — verwijder hem en voeg hem opnieuw toe als de naam belangrijk is. Google laat herinneringen in agendabestanden vallen, dus stel standaardmeldingen voor die agenda in bij de instellingen van Google, of beter: gebruik de eigen herinneringen van OneUptime. Google onthoudt een adres dat het niet kon lezen: voeg na het verhelpen van de oorzaak de link opnieuw toe met `?nocache=1` erachter (OneUptime negeert onbekende queryparameters, dus de feed zelf verandert niet) of genereer de link opnieuw. De Google Agenda-app op Android en iOS kan zich niet via een URL abonneren; voeg de link op een computer toe en hij verschijnt op de telefoon.
+@tab Outlook op het web
+1. Open **Agenda** > **Agenda toevoegen** > **Abonneren vanaf internet**.
+2. Plak de `https://`-link (**Link kopiëren** in OneUptime), geef de agenda een naam en klik op **Importeren**.
 
-1. Open **Agenda** > **Agenda toevoegen** > **Abonneren vanaf web**.
-2. Plak de `https://`-link, geef de agenda een naam en klik op **Importeren**.
+Dit werkt hetzelfde in Outlook.com, Outlook op het web voor werk- en schoolaccounts, de nieuwe Outlook voor Windows en Outlook voor Mac. Outlook haalt op **vanaf de servers van Microsoft**: ongeveer elke 3 uur voor Outlook.com en elke 4 tot 6 uur voor werk- en schoolaccounts, soms meer dan een dag. Het interval staat vast en er is geen handmatige verversing.
 
-Outlook haalt op **vanaf de servers van Microsoft**: ongeveer elke 3 uur voor Outlook.com en elke 4 tot 6 uur voor werk- en schoolaccounts, soms meer dan een dag. Het interval ligt vast en er is geen handmatige vernieuwing. Abonneer je hier in plaats van in de desktop-app als je de agenda ook op je telefoon en in Outlook op het web wilt — abonnementen die in klassiek Outlook voor Windows zijn gemaakt blijven op die pc. Het nieuwe Outlook voor Windows en Outlook voor Mac gebruiken dezelfde dialoog **Agenda toevoegen** > **Abonneren vanaf web**.
+Abonneer je hier in plaats van in de desktopapp als je de agenda ook op je telefoon en in Outlook op het web wilt hebben — abonnementen die in de klassieke Outlook voor Windows zijn gemaakt, blijven op die pc.
+@tab Klassieke Outlook voor Windows
+1. Klik op een pc waarop Outlook is geïnstalleerd op **Apple Agenda / Outlook** in OneUptime. Windows geeft de `webcal://`-link door aan Outlook, dat vraagt of de internetagenda moet worden toegevoegd. Zonder Outlook heeft Windows geen `webcal`-handler.
+2. Of open in Outlook **Bestand** > **Accountinstellingen** > **Accountinstellingen** > **Internetagenda's** > **Nieuw**, plak de link (**Link kopiëren** in OneUptime) en klik op **Toevoegen**.
 
-### Klassiek Outlook voor Windows
+Open de `https://…/shifts.ics`-link zelf **niet** in de klassieke Outlook: dat importeert een eenmalige momentopname die nooit wordt bijgewerkt. De `webcal://`-link openen, of het adres onder **Internetagenda's** toevoegen, maakt een abonnement aan.
 
-1. Klik in OneUptime op **Webcal-link kopiëren**.
-2. Open in Outlook **Bestand** > **Accountinstellingen** > **Accountinstellingen** > **Internetagenda's** > **Nieuw**, plak de `webcals://`-link en klik op **Toevoegen**. Een `webcal`-link in een browser openen werkt ook op een pc waarop Outlook is geïnstalleerd; zonder Outlook heeft Windows geen `webcal`-handler.
+De feed wordt ververst bij **Verzenden/ontvangen** (F9, of het interval onder Groepen voor verzenden/ontvangen). De instellingen van het abonnement hebben een selectievakje **Updatelimiet**: als het is aangevinkt, ververst Outlook niet vaker dan het interval dat de uitgever voorstelt. OneUptime stelt één uur voor (`X-PUBLISHED-TTL:PT1H`), dus de feed ververst ongeveer elk uur. Feeds zonder die hint verversen nooit zolang het vakje is aangevinkt; die van OneUptime hebben hem, dus je kunt het vakje aan laten. De klassieke Outlook haalt de feed op **vanaf je pc** en controleert het certificaat van de server.
+@tab Apple Agenda (macOS)
+1. Klik op **Apple Agenda / Outlook** in OneUptime, of kies in Agenda **Archief** > **Nieuw agenda-abonnement** en plak de link.
+2. Stel in het abonneervenster **Vernieuw automatisch** in — elke 5 minuten, 15 minuten, uur, dag of week (elk uur is de standaard) — en kies **iCloud** onder **Locatie**, zodat de agenda ook op je iPhone en iPad verschijnt en volgens dat schema blijft verversen.
 
-Open **niet** de `https://…/shifts.ics`-link zelf in klassiek Outlook: die importeert een eenmalige momentopname die nooit wordt bijgewerkt. Alleen `webcal://` en `webcals://` maken een abonnement.
+macOS haalt de feed op **vanaf je Mac**, dus het werkt voor een installatie op een privénetwerk zolang de Mac die kan bereiken. Een zelfondertekend certificaat of een certificaat van een interne CA moet eerst in de macOS-sleutelhanger worden vertrouwd. **Verwijder meldingen** is in dat venster standaard aangevinkt; hier maakt het niets uit, omdat de feed geen alarmen bevat.
+@tab iPhone en iPad
+Om je op het apparaat te abonneren, tik je op **Open in Calendar** in de mobiele app van OneUptime, of ga je naar **Instellingen** > **Agenda** > **Accounts** > **Voeg account toe** > **Andere** > **Voeg agenda-abonnement toe** en plak je de link.
 
-De feed wordt vernieuwd bij **Verzenden/ontvangen** (F9, of het interval onder Groepen voor verzenden/ontvangen). De instellingen van het abonnement hebben een selectievakje **Bijwerklimiet**: aangevinkt vernieuwt Outlook niet sneller dan het interval dat de uitgever voorstelt. OneUptime stelt één uur voor (`X-PUBLISHED-TTL:PT1H`), dus de feed wordt ongeveer elk uur vernieuwd. Feeds zonder die hint worden nooit vernieuwd zolang het vakje is aangevinkt; die van OneUptime bevatten hem, dus je kunt het vakje aan laten. Klassiek Outlook haalt de feed op **vanaf je pc** en controleert het certificaat van de server.
+Abonnementen die op het apparaat zelf zijn gemaakt, verversen volgens **Instellingen** > **Agenda** > **Accounts** > **Nieuwe gegevens** — standaard **Automatisch**, wat vooral ophaalt tijdens het opladen via wifi. Voor betrouwbaar verversen abonneer je je op een Mac met **iCloud** als locatie, of stel je **Nieuwe gegevens** in op een vast interval.
+@tab Thunderbird
+Kies **Bestand** > **Nieuw** > **Agenda** > **Op het netwerk** > **iCalendar (ICS)**, plak de `https://`-link en kies in de eigenschappen van de agenda een verversingsinterval: 1, 5, 15, 30 of 60 minuten. Thunderbird haalt op **vanaf je computer** en moet het certificaat van de server vertrouwen.
+@tab Android
+De Google Agenda-app en Samsung Agenda kunnen zich allebei niet op een URL abonneren. Voeg de `https://`-link op een computer aan Google Agenda toe (**Andere agenda's** > **+** > **Via URL**); de agenda synchroniseert daarna naar de telefoon, samen met al het andere in dat Google-account. De mobiele app van OneUptime op Android biedt **Share link** en **Copy https link** precies hiervoor.
+@tab Andere diensten
+Fastmail ververst ongeveer elk uur en **schakelt een abonnement uit na vijf mislukte pogingen op rij**; voeg het in dat geval opnieuw toe zodra de server weer gezond is. Proton Calendar ververst elke 4 tot 16 uur en weigert zeer grote feeds — verlaag **Dagen vooruit** als het klaagt. Confluence Team Calendars neemt de roosterfeed aan; de limiet van 28 tekens voor agendanamen wordt gerespecteerd.
+:::
 
-### Apple Agenda op macOS
+## Hoe vaak agenda's verversen
 
-1. Klik op **Apple / andere apps** in OneUptime, of kies in Agenda **Archief** > **Nieuw agenda-abonnement** en plak de link.
-2. Stel in het abonneerblad **Automatisch vernieuwen** in — elke 5 minuten, 15 minuten, uur, dag of week (elk uur is standaard) — en kies **iCloud** onder **Locatie** zodat de agenda ook op je iPhone en iPad verschijnt en in dat tempo blijft vernieuwen.
+| Agenda-app | Gebruikelijke verversing | Haalt op vanaf | Opmerkingen |
+| --- | --- | --- | --- |
+| Google Agenda (Via URL) | 8–24 uur, soms langer | Servers van Google | Geen handmatige verversing; negeert verversingshints; naam en tijdzone alleen bij het eerste abonnement gelezen |
+| Outlook.com | Ongeveer 3 uur | Servers van Microsoft | Vast; kan meer dan 24 uur zijn |
+| Outlook op het web (werk, school) | Ongeveer 4–6 uur | Servers van Microsoft | Vast; niet door de gebruiker in te stellen |
+| Klassieke Outlook voor Windows | Bij Verzenden/ontvangen; ongeveer elk uur met **Updatelimiet** | Je pc | Abonneer je via de `webcal`-link; synchroniseert niet naar telefoon of web |
+| Apple Agenda (macOS) | 5 minuten tot wekelijks, standaard elk uur | Je Mac | Bewaar in iCloud om iPhone en iPad te bereiken |
+| Apple Agenda (alleen iOS) | Volgens **Nieuwe gegevens**, afhankelijk van de batterij | Je telefoon | Abonneer je voor betrouwbaarheid op een Mac |
+| Thunderbird | 1–60 minuten | Je computer | |
+| Fastmail | Ongeveer elk uur | Servers van Fastmail | Uitgeschakeld na vijf mislukte pogingen |
+| Proton Calendar | 4–16 uur | Servers van Proton | Weigert grote feeds |
 
-macOS haalt de feed op **vanaf je Mac**, dus het werkt voor een installatie in een privénetwerk zolang de Mac erbij kan. Een zelfondertekend of intern-CA-certificaat moet eerst in de macOS-sleutelhanger vertrouwd worden. **Verwijder meldingen** staat in dat blad standaard aangevinkt; dat maakt hier niets uit omdat de feed geen alarmen bevat.
+OneUptime levert zelf verse gegevens: een wijziging aan een laag, een rotatie, een override of een koppeling aan een beleid maakt de feed meteen ongeldig, en antwoorden worden hooguit vijf minuten gecachet. Het wachten dat je ziet, komt van de agenda-app, niet van de server. OneUptime stelt via `REFRESH-INTERVAL` en `X-PUBLISHED-TTL` voor om elk uur te verversen; alleen de klassieke Outlook neemt die hint over, en alleen met **Updatelimiet** aan — Apple Agenda, Thunderbird en de rest verversen met het interval dat je per agenda instelt.
 
-### iPhone en iPad
+## https- en webcal-links
 
-Abonnementen die op het apparaat zelf zijn gemaakt vernieuwen volgens **Instellingen** > **Agenda** > **Accounts** > **Nieuwe gegevens** — standaard **Automatisch**, wat vooral ophaalt tijdens het opladen via wifi. Voor betrouwbare vernieuwing abonneer je je op een Mac met **iCloud** als locatie, of stel je **Nieuwe gegevens** in op een vast interval. Om je op het apparaat te abonneren tik je op **Openen in Agenda** in de mobiele app van OneUptime, of ga je naar **Instellingen** > **Agenda** > **Accounts** > **Voeg account toe** > **Anders** > **Voeg agenda-abonnement toe** en plak je de link.
+Beide wijzen naar dezelfde feed. `webcal://` is de link met een ander schema, zodat het besturingssysteem een agenda-app opent in plaats van een browser; de app haalt de feed daarna op via `https://` wanneer de server https levert, zoals Apple Agenda en Google Agenda doen.
 
-### Thunderbird
+- **Link kopiëren** geeft de `https://`-vorm. **Via URL** van Google Agenda, Outlook op het web, Thunderbird en Fastmail nemen die aan.
+- **Apple Agenda / Outlook** opent de `webcal://`-vorm: Apple Agenda en de klassieke Outlook voor Windows abonneren zich daarmee. In de klassieke Outlook is het openen van de `https://`-vorm in plaats daarvan een eenmalige import.
+- **Google Agenda** stopt de `webcal://`-vorm in de link van Google om via een URL toe te voegen, de enige vorm die die pagina aanneemt.
+- OneUptime deelt geen `webcals://` meer uit: iOS opent het niet ("het adres is ongeldig"), en Google neemt het ook niet aan. Een agenda waarop je je al met een `webcals://`-link hebt geabonneerd, blijft werken.
+- Draait je installatie nog op gewone `http`, dan wordt de feed onversleuteld opgehaald, token inbegrepen, en toont het dashboard een waarschuwing naast de link; schakel over op `https` voordat je links breed deelt.
 
-Kies **Bestand** > **Nieuw** > **Agenda** > **Op het netwerk** > **iCalendar (ICS)**, plak de `https://`-link en kies een vernieuwinterval in de eigenschappen van de agenda: 1, 5, 15, 30 of 60 minuten. Thunderbird haalt op **vanaf je computer** en moet het certificaat van de server vertrouwen.
+Feed-URL's sturen nooit door. Ze antwoorden `200` op welk schema OneUptime ook bereikt, omdat de app niet kan zien welk schema de agenda-app gebruikte wanneer TLS ervoor eindigt — op OneUptime Cloud, of achter je eigen load balancer of CDN — en een doorverwijzing daar terugwijst naar dezelfde URL. Stuur gewone `http` door naar `https` op de proxy die TLS afhandelt, de enige hop die het weet.
 
-### Fastmail, Proton en andere diensten
+## Herinneringen en meldingen over hertoewijzing
 
-Fastmail vernieuwt ruwweg elk uur en **schakelt een abonnement uit na vijf opeenvolgende mislukte ophaalpogingen**; gebeurt dat, voeg het dan opnieuw toe zodra de server weer gezond is. Proton Calendar vernieuwt elke 4 tot 16 uur en weigert zeer grote feeds — verlaag **Dagen vooruit** als hij klaagt. Confluence Team Calendars accepteert de roosterfeed; de limiet van 28 tekens voor agendanamen wordt gerespecteerd.
+Agenda-apps bezorgen geen alarmen uit geabonneerde feeds — Google laat ze vallen, Apple verwijdert ze standaard, Outlook vlakt ze af — dus OneUptime stuurt zijn eigen.
 
-### Android
+:::steps
+1. Open **Gebruikersinstellingen** > **Agenda** > **Agendafeed**.
+2. Kies op de kaart **Herinner mij vóór diensten** hoe lang van tevoren: **1 week**, **1 dag**, **1 uur**, **15 min** of, met **Aangepast**, een eigen waarde tussen 15 minuten en 14 dagen. Je kunt er meerdere tegelijk kiezen.
+3. Kies hoe herinneringen je bereiken onder **Voordat mijn oproepdienst begint** op **Gebruikersinstellingen** > **Meldingsinstellingen** (tabblad Bereikbaarheid). E-mail en push staan standaard aan.
+:::
 
-Noch de Google Agenda-app, noch Samsung Agenda kan zich op een URL abonneren. Voeg de `https://`-link op een computer toe aan Google Agenda (**Andere agenda's** > **+** > **Via URL**); de agenda synchroniseert dan met al het andere in dat Google-account naar de telefoon. De mobiele app van OneUptime op Android biedt precies hiervoor **Link delen** en **https-link kopiëren**.
+Elke herinnering wordt één keer per dienst verstuurd. Het bericht noemt het rooster, het beleid waarmee het oproept en de begintijd in jouw tijdzone.
 
-## Hoe vaak agenda's vernieuwen
-
-| Agenda-app                        | Typische vernieuwing                                            | Haalt op vanaf        | Opmerkingen                                                                                      |
-| --------------------------------- | --------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------ |
-| Google Agenda (Via URL)           | 8–24 uur, soms langer                                           | Servers van Google    | Geen handmatige vernieuwing; negeert hints; naam en tijdzone alleen bij eerste abonneren gelezen |
-| Outlook.com                       | Ongeveer 3 uur                                                  | Servers van Microsoft | Vast; kan 24 uur overschrijden                                                                   |
-| Outlook op het web (werk, school) | Ongeveer 4–6 uur                                                | Servers van Microsoft | Vast; geen gebruikerscontrole                                                                    |
-| Klassiek Outlook voor Windows     | Bij Verzenden/ontvangen; ongeveer elk uur met **Bijwerklimiet** | Je pc                 | Heeft een `webcal`-link nodig; synchroniseert niet naar telefoon of web                          |
-| Apple Agenda (macOS)              | 5 minuten tot wekelijks, standaard elk uur                      | Je Mac                | Bewaar in iCloud om iPhone en iPad te bereiken                                                   |
-| Apple Agenda (alleen iOS)         | Volgens **Nieuwe gegevens**, beperkt door batterij              | Je telefoon           | Abonneer je op een Mac voor betrouwbaarheid                                                      |
-| Thunderbird                       | 1–60 minuten                                                    | Je computer           |                                                                                                  |
-| Fastmail                          | Ongeveer elk uur                                                | Servers van Fastmail  | Uitgeschakeld na vijf mislukte ophaalpogingen                                                    |
-| Proton Calendar                   | 4–16 uur                                                        | Servers van Proton    | Weigert grote feeds                                                                              |
-
-OneUptime zelf levert verse gegevens: een wijziging aan een laag, een rotatie, een override of een beleidskoppeling maakt de feed meteen ongeldig, en antwoorden worden hooguit vijf minuten gecachet. De wachttijd die je ziet is die van de agenda-app, niet van de server. OneUptime stelt via `REFRESH-INTERVAL` en `X-PUBLISHED-TTL` een uurlijkse vernieuwing voor; alleen klassiek Outlook neemt die hint over, en alleen met **Bijwerklimiet** aan — Apple Agenda, Thunderbird en de rest vernieuwen met het interval dat je per agenda instelt.
-
-## https, webcal en webcals
-
-Alle drie wijzen naar dezelfde feed. `webcal://` en `webcals://` zijn de `http://`- en `https://`-link met een hernoemd schema, zodat het besturingssysteem een agenda-app opent in plaats van een browser; `webcals` is de versleutelde variant en is wat OneUptime aanbiedt als `HTTP_PROTOCOL` op `https` staat.
-
-- Google Agenda, Outlook op het web, Thunderbird en Fastmail willen de `https://`-vorm.
-- Apple Agenda en klassiek Outlook voor Windows abonneren zich vanaf een `webcal(s)://`-link; in klassiek Outlook is de `https://`-vorm een eenmalige import.
-- `webcal://` zonder de `s` is onversleuteld en stuurt het token bij elke ophaalactie in klare tekst. Draait je installatie nog op gewoon `http`, dan toont het dashboard een waarschuwing naast de link; stap over op `https` voordat je links breed deelt.
-
-## Herinneringen en hertoewijzingsberichten
-
-Agenda-apps leveren geen alarmen uit geabonneerde feeds — Google laat ze vallen, Apple verwijdert ze standaard, Outlook maakt ze plat —, dus OneUptime stuurt zijn eigen herinneringen.
-
-Onder **Gebruikersinstellingen** > **Agendafeed** laat de kaart **Herinner me voor diensten** je voorlooptijden kiezen: **1 week**, **1 dag**, **1 uur**, **15 min** of een eigen waarde tussen 15 minuten en 14 dagen, meerdere tegelijk. Elke herinnering wordt eenmaal per dienst verzonden via de bezorgmethoden die je hebt gekozen voor **Voordat mijn piketdienst begint** onder **Gebruikersinstellingen** > **Meldingsinstellingen** (tabblad Piket; e-mail en push staan standaard aan). Het bericht noemt het rooster, het beleid waarlangs het oproept en de begintijd in jouw tijdzone.
-
-- Een dienst die door een late override binnen een van je voorlooptijden valt — iemand geeft je 20 minuten voor het begin een dienst — krijgt meteen één inhaalherinnering.
-- Als een dienst waarvoor je herinnerd bent aan iemand anders wordt gegeven, krijg je **Mijn komende piketdienst is opnieuw toegewezen**, een apart gebeurtenistype dat afzonderlijk kan worden gedempt.
-- Herinneringen worden nooit verzonden nadat een dienst is begonnen, en nooit voor roosters die aan geen enkel escalatiebeleid zijn gekoppeld, omdat die niemand kunnen oproepen.
-- Op WhatsApp komt een herinnering binnen via het vooraf goedgekeurde wachtdienstsjabloon van Meta: het noemt het rooster en het escalatiebeleid en linkt naar het rooster, maar bevat de starttijd niet, en WhatsApp levert het alleen in het Engels. Voor meldingen over een herverdeling bestaat geen goedgekeurd WhatsApp-sjabloon, dus die bereiken je via je andere kanalen.
+- Een dienst die door een late override binnen een van je herinneringstijden valt — iemand geeft je een dienst 20 minuten voordat die begint — krijgt meteen één inhaalherinnering.
+- Wordt een dienst waarvoor je een herinnering kreeg aan iemand anders gegeven, dan krijg je **Mijn komende oproepdienst wordt opnieuw toegewezen**, een apart soort gebeurtenis, zodat die apart kan worden gedempt.
+- Herinneringen worden nooit verstuurd nadat een dienst is begonnen, en nooit voor roosters die aan geen enkel escalatiebeleid zijn gekoppeld, omdat die niemand kunnen oproepen.
+- Op WhatsApp komt een herinnering binnen via het vooraf goedgekeurde bereikbaarheidssjabloon van Meta, dat het rooster en het escalatiebeleid noemt en naar het rooster linkt maar de begintijd niet bevat, en dat WhatsApp alleen in het Engels levert. Voor meldingen over hertoewijzing is er geen goedgekeurd WhatsApp-sjabloon, dus die bereiken je in plaats daarvan via je andere kanalen.
 
 ## Gedeelde links voor een rooster of een project
 
-Een gedeelde link is van het **project**, niet van degene die hem heeft gekopieerd, en toont namen van mensen, nooit hun e-mailadressen.
+Een gedeelde link hoort bij het **project**, niet bij wie hem heeft gekopieerd, en hij toont de namen van mensen, nooit hun e-mailadressen. Zet de roosterlink in een gedeelde teamagenda — Google, Outlook of Confluence — en één abonnement bedient het hele team.
 
-**Roosterfeed.** Op de pagina van een rooster heeft de kaart **Abonneren op dit rooster** twee helften: **Alleen mijn diensten op dit rooster** (je persoonlijke link met een roosterfilter) en **Ieders diensten op dit rooster (gedeelde teamlink)**. Iedereen met de machtiging **Bewerken** op roosters kan **Gedeelde link publiceren**, hem **Opnieuw genereren** of **Uitschakelen**; iedereen die het rooster mag lezen kan hem kopiëren. De kaart toont wanneer de link voor het laatst is geroteerd.
+### Roosterfeed
 
-**Projectfeed.** **Piket** > **Agendafeeds** bevat de kaart **Ieders diensten in dit project (gedeelde link)** — één gedeelde link die elk rooster in het project dekt — met dezelfde acties voor publiceren, opnieuw genereren en uitschakelen, en een link naar je persoonlijke feedpagina.
+Op de pagina van een rooster heeft de kaart **Abonneren op dit rooster** twee helften: **Alleen mijn diensten in dit rooster** (je persoonlijke link met een roosterfilter) en **Diensten van iedereen in dit rooster (gedeelde teamlink)**. Iedereen met de machtiging **Bewerken** op roosters kan **Gedeelde link publiceren** gebruiken, of de link met **Link opnieuw genereren** vernieuwen of met **Uitschakelen** uitzetten; iedereen die het rooster mag lezen, mag hem kopiëren. De kaart toont wanneer de link voor het laatst is vernieuwd.
 
-Instellingen op beide:
+### Projectfeed
 
-- **Dekkingsgaten tonen** (standaard uit) voegt een afspraak `No coverage · <Schedule>` toe overal waar een laag _hoort_ te dekken maar niemand piket heeft: een lege laag, een laag met een begindatum in de toekomst, lagen die niet op elkaar aansluiten, of elk gat in een 24×7-rooster. De uren buiten kantoortijd van een kantoorurenrooster worden nooit gemeld. **Minimaal te tonen gat (minuten)** (standaard 60) verbergt kortere gaten; er worden hooguit 100 gatafspraken uitgegeven, de oudste eerst.
-- **Opnieuw genereren wanneer iemand het project verlaat** (standaard uit) genereert de link automatisch opnieuw wanneer iemand zijn laatste team in het project verlaat, zodat de agenda van een oud-collega stopt met bijwerken. Alle anderen moeten zich daarna opnieuw abonneren, daarom is het opt-in.
-- **Dagen eerdere diensten** en **Dagen vooruit**, zoals bij de persoonlijke feed.
+**Bereikbaarheidsdienst** > **Agendafeeds** bevat de kaart **Diensten van iedereen in dit project (gedeelde link)** — één gedeelde link voor elk rooster in het project — met dezelfde acties voor publiceren, opnieuw genereren en uitschakelen, en een link naar de pagina van je persoonlijke feed.
 
-Zet de roosterlink in een gedeelde teamagenda — Google, Outlook of Confluence — en één abonnement bedient het hele team. Roteer hem als iemand die hem had vertrekt, of schakel de automatische rotatie hierboven in.
+### Instellingen van gedeelde links
+
+Klik op **Instellingen bewerken** op de kaart **Instellingen gedeelde link**:
+
+| Instelling | Wat het doet |
+| --- | --- |
+| **Dekkingsgaten tonen** | Standaard uit. Voegt een afspraak `No coverage · <Schedule>` toe overal waar een laag _bedoeld_ is om te dekken maar niemand dienst heeft: een lege laag, een laag waarvan de begindatum in de toekomst ligt, lagen die niet op elkaar aansluiten, of elk gat in een rooster van 24×7. Uren buiten kantoortijd van een rooster voor kantoortijden worden nooit gemeld, en er worden hooguit 100 gat-afspraken uitgegeven, oudste eerst. |
+| **Minimaal te tonen gat (minuten)** | Standaard 60. Verbergt kortere gaten. |
+| **Opnieuw genereren wanneer iemand het project verlaat** | Standaard uit. Genereert de link automatisch opnieuw wanneer iemand zijn laatste team in het project verlaat, zodat de agenda van een oud-collega niet meer wordt bijgewerkt. Alle anderen moeten zich daarna opnieuw abonneren, daarom moet je het zelf aanzetten. |
+| **Dagen aan eerdere diensten**, **Dagen vooruit** | Zoals bij de persoonlijke feed. |
+
+Vernieuw een gedeelde link wanneer iemand die hem had vertrekt, of zet de automatische vernieuwing hierboven aan.
 
 Wanneer iemand zijn laatste team in een project verlaat, verwijdert OneUptime die persoon ook uit de roosterlagen en escalatieregels van dat project, verwijdert de lopende en toekomstige overrides van dat project waarin die persoon staat (als vervangen persoon of als vervanger), schakelt zijn persoonlijke feed voor het project uit en verwijdert zijn herinneringen daar. Een persoonlijke link toont alleen diensten zolang de eigenaar lid van het project is: dat wordt bij elke keer ophalen van de link gecontroleerd, dus wie is vertrokken krijgt een lege agenda, en de lijst met komende diensten in de mobiele app bevat alleen de projecten waarvan die persoon nog lid is.
 
 ## Afspraken in detail
 
-- Elke dienst heeft een stabiele identiteit die uit het rooster en het begin van de dienst bestaat, zodat dezelfde dienst dezelfde afspraak is in je persoonlijke feed, in de roosterfeed en na het opnieuw genereren van een link. Agenda-apps werken hem ter plekke bij; een wijziging verhoogt het volgnummer van de afspraak.
-- Een override die de hele dienst ruilt behoudt de afspraak en wisselt de persoon; een override die een deel van een dienst dekt levert drie aansluitende afspraken op, bijvoorbeeld A 09:00–12:00, B 12:00–13:00, A 13:00–17:00.
-- Wanneer een rooster aan twee of meer escalatiebeleidsregels is gekoppeld en een override slechts op één daarvan van toepassing is, verschillen de opgeroepen personen per beleid. De feed toont dit in plaats van het te verbergen: de dienst behoudt zijn afspraak voor de persoon die door de andere beleidsregels wordt opgeroepen, met een notitie die het beleid noemt dat iemand anders oproept, en de invaller krijgt een extra afspraak met de titel `On-call · <Schedule> · <Policy> (covering for <Name>)`.
-- Diensten in het verleden dragen in hun omschrijving de regel "Past shifts reflect the current rotation, not who was actually paged".
-- Een rooster dat aan geen enkel escalatiebeleid is gekoppeld wordt toch getoond, met een notitie dat het niemand zal oproepen.
+- Elke dienst heeft een vaste identiteit die bestaat uit het rooster en het begin van de dienst, dus dezelfde dienst is dezelfde afspraak in je persoonlijke feed, in de roosterfeed en nadat je een link opnieuw genereert. Agenda-apps werken hem bij; een wijziging verhoogt het volgnummer van de afspraak.
+- Een override die de hele dienst ruilt, houdt de afspraak en wijzigt de persoon; een override voor een deel van een dienst levert drie aansluitende afspraken op, bijvoorbeeld A 09:00–12:00, B 12:00–13:00, A 13:00–17:00.
+- Wanneer een rooster aan twee of meer escalatiebeleiden is gekoppeld en een override maar voor één ervan geldt, verschillen de opgeroepen mensen per beleid. De feed toont dat in plaats van het te verbergen: de dienst houdt zijn afspraak voor de persoon die de andere beleiden oproepen, met een opmerking die het beleid noemt dat iemand anders oproept, en de vervanger krijgt een extra afspraak met de titel `On-call · <Schedule> · <Policy> (covering for <Name>)`.
+- Diensten in het verleden hebben in hun beschrijving de regel "Past shifts reflect the current rotation, not who was actually paged".
+- Een rooster dat aan geen enkel escalatiebeleid is gekoppeld, wordt nog steeds getoond, met een opmerking dat het niemand zal oproepen.
 
 ## Planning, geen audit
 
-De feed toont de rotatie **zoals hij nu is geconfigureerd**, ook voor voorbije dagen: een achteraf ingevoerde override herschrijft de geschiedenis in de agenda. Voor werkelijk gemaakte piketuren, eerlijkheidscontroles en vergoeding gebruik je **Piket** > **Rapporten** > **Pikettijd per gebruiker**, dat wordt geschreven op basis van wat de pager daadwerkelijk heeft gedaan.
+De feed toont de rotatie **zoals die nu is ingesteld**, ook voor dagen in het verleden: een override die achteraf wordt ingevoerd, herschrijft de geschiedenis in de agenda. Voor de uren die echt in bereikbaarheid zijn doorgebracht, eerlijkheidsbeoordelingen en vergoedingen gebruik je **Bereikbaarheidsdienst** > **Rapporten** > **Bereikbaarheidstijd gebruiker**, dat wordt opgebouwd uit wat de pager echt heeft gedaan.
 
 ## Beveiliging
 
-- Het token in de link is de enige inloggegevens. Iedereen die de link heeft ziet de diensten — namen, roosters, beleid — totdat hij opnieuw wordt gegenereerd. Plak links niet in chatkanalen of tickets; als een team een agenda nodig heeft, deel dan de rooster- of projectlink in plaats van je persoonlijke.
-- Links zijn per project. Een gelekte persoonlijke link legt de diensten van één project bloot, niet van elk project waar je bij hoort.
-- **Opnieuw genereren** zet het oude token in een respijtperiode van 30 dagen (lege agenda, daarna 404). **Uitschakelen** levert een lege agenda. Een onbekende of verlopen link geeft een kale 404 zonder aanwijzing. Lege agenda's laten geabonneerde apps hun kopie wissen; een 404 laat ze die houden, en daarom leveren uitschakelen en opnieuw genereren lege agenda's.
-- Tokens worden gehasht opgeslagen; de kopie die op de instellingenpagina wordt getoond is versleuteld met `ENCRYPTION_SECRET`. Geef die variabele op een zelfgehoste installatie een echt geheim — de server waarschuwt bij het opstarten wanneer hij niet is ingesteld of nog een van de tijdelijke waarden uit deze repository is (`secret`, of de `please-change-this-to-random-value` die `config.example.env` zet). Wijzig je hem later, dan biedt de pagina **Link opnieuw genereren** omdat de opgeslagen kopie niet meer leesbaar is; de feed blijft werken totdat je dat doet.
-- Feedantwoorden zijn gemarkeerd met `Cache-Control: private`, uitgesloten van zoekmachines (`X-Robots-Tag: noindex`) en per link en per clientadres in snelheid beperkt.
-- De eigen Nginx van OneUptime houdt feedverzoeken uit zijn logbestanden:
+- Het token in de link is het enige inloggegeven. Iedereen die de link heeft, ziet de diensten — namen, roosters, beleid — totdat hij opnieuw wordt gegenereerd. Plak links niet in chatkanalen of tickets; heeft een team een agenda nodig, deel dan de rooster- of projectlink in plaats van je persoonlijke.
+- Links zijn per project. Een uitgelekte persoonlijke link stelt de diensten van één project bloot, niet van elk project waarvan je lid bent.
+- Een link opnieuw genereren zet het oude token in een respijtperiode van 30 dagen (lege agenda, daarna 404). **Uitschakelen** levert een lege agenda. Een onbekende of verlopen link geeft een kale 404 zonder hint. Lege agenda's laten geabonneerde apps hun kopie leegmaken; een 404 laat ze die bewaren, daarom leveren uitschakelen en opnieuw genereren lege agenda's.
+- Tokens worden gehasht opgeslagen; de kopie op de instellingenpagina is versleuteld met `ENCRYPTION_SECRET`. Stel die variabele op een zelfgehoste installatie in op een echt geheim — de server waarschuwt bij het opstarten wanneer hij niet is ingesteld of nog een van de plaatshouders is die deze repository meelevert (`secret`, of de `please-change-this-to-random-value` die `config.example.env` instelt). Wijzig je hem later, dan biedt de pagina **Link opnieuw genereren** aan, omdat de opgeslagen kopie niet meer kan worden gelezen; de feed blijft werken tot je dat doet.
+- Feedantwoorden zijn gemarkeerd met `Cache-Control: private`, worden uitgesloten van zoekmachines (`X-Robots-Tag: noindex`) en hebben een snelheidslimiet per link en per clientadres.
 
-  ```
-  location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
-      access_log off;
-      error_log /dev/null crit;
-      proxy_max_temp_file_size 0;
-      ...
-  }
-  ```
+De eigen Nginx van OneUptime houdt feedverzoeken uit zijn logboeken:
 
-  zodat een token nooit naast een clientadres in een logbestand belandt; de applicatie logt het evenmin. `access_log off` haalt de regel per verzoek weg, `error_log` haalt de regels weg die Nginx schrijft als een aanroep naar de applicatie mislukt — zonder die regel wordt het token vastgelegd van elke client die tijdens een herstart de feed ophaalt — en `proxy_max_temp_file_size 0` houdt een grote feed uit een tijdelijk bestand. **Elke proxy, WAF of CDN die je vóór OneUptime plaatst logt nog steeds de volledige URI, zowel in zijn toegangslog als in zijn foutlog** tenzij je hem anders configureert — controleer dat voordat je feeds uitrolt.
+```nginx title="default.conf.template"
+location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+    access_log off;
+    error_log /dev/null crit;
+    proxy_max_temp_file_size 0;
+    ...
+}
+```
 
-## Zelfgehoste configuratie
+Zo komt een token nooit in een logbestand naast een clientadres terecht; de applicatie logt hem ook nooit. `access_log off` laat de regel per verzoek vallen, `error_log` laat de regels vallen die Nginx schrijft wanneer ophalen bij de upstream mislukt — zonder dat wordt het token vastgelegd van elke client die tijdens een herstart ophaalt — en `proxy_max_temp_file_size 0` houdt een grote feed uit een tijdelijk bestand.
 
-Er hoeft niets te worden ingeschakeld: feeds werken op elke installatie. Vier omgevingsvariabelen sturen ze aan, ingesteld in `config.env` voor Docker Compose of onder `onCallCalendarFeed` in de Helm-waarden (zie de [configuratiereferentie](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) van de chart):
+> [!WARNING]
+> **Elke proxy, WAF of CDN die je vóór OneUptime draait, logt nog steeds de volledige URI, in zijn toegangslogboek en in zijn foutenlogboek,** tenzij je hem anders configureert — controleer dat voordat je feeds uitrolt.
 
-| Variabele                                               | Helm-waarde                                      | Standaard | Effect                                                                                                                                                              |
-| ------------------------------------------------------- | ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DISABLE_ON_CALL_CALENDAR_FEED`                         | `onCallCalendarFeed.disabled`                    | `false`   | Noodschakelaar. Elke feed-URL antwoordt `503` met `Retry-After: 3600`; geabonneerde apps houden hun kopie en proberen het later opnieuw. Er wordt niets verwijderd. |
-| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS`       | `onCallCalendarFeed.rateLimit.windowSeconds`     | `60`      | Lengte van het snelheidsbeperkingsvenster.                                                                                                                          |
-| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW` | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | `60`      | Ophaalacties die één link vanaf één clientadres per venster mag doen.                                                                                               |
-| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`    | `onCallCalendarFeed.rateLimit.perIpPerWindow`    | `3000`    | Ophaalacties die één clientadres over alle links per venster mag doen — het plafond voor een heel kantoor achter één adres.                                         |
+## Configuratie bij zelf hosten
 
-Ook relevant:
+Er hoeft niets te worden aangezet: feeds werken op elke installatie. Vier omgevingsvariabelen bepalen ze, in te stellen in `config.env` voor Docker Compose of onder `onCallCalendarFeed` in de Helm-values (zie de [configuratiereferentie](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#on-call-calendar-feeds) van de chart):
 
-- **`HOST` en `HTTP_PROTOCOL`** bouwen de links. Als `HOST` leeg of `localhost` is, of `HTTP_PROTOCOL` op `http` staat, toont de feedpagina een waarschuwing en werken de links van buitenaf niet.
-- **`TRUSTED_PROXY_HOPS`** bepaalt welk adres de limiet per adres telt. De standaard `1` klopt voor de standaardopstellingen van Docker Compose en Helm; tel er één bij op voor elke eigen proxy — een CDN, WAF of loadbalancer — die aan `X-Forwarded-For` toevoegt, anders lijkt elke agendaclient hetzelfde adres en delen ze allemaal één budget. Zie [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) in de chartdocumentatie.
-- **Redis** draagt de caches en de snelheidsbeperker. Beide degraderen netjes: zonder Redis worden feeds nog steeds gerenderd, alleen langzamer, en laat de beperker verzoeken door.
-- In de gesplitste modus van de Helm-chart (`worker.enabled: true`) worden feeds op de API-laag gerenderd; dimensioneer die laag voor een piek van agendaclients die op het hele uur ophalen.
-- De hierboven getoonde uitzondering op de Nginx-toegangslog maakt deel uit van het meegeleverde `packages/Nginx/default.conf.template`; behoud hem als je de template aanpast.
+| Variabele | Helm-value | Standaard | Effect |
+| --- | --- | --- | --- |
+| `DISABLE_ON_CALL_CALENDAR_FEED` | `onCallCalendarFeed.disabled` | `false` | Noodschakelaar. Elke feed-URL antwoordt `503` met `Retry-After: 3600`; geabonneerde apps houden hun kopie en proberen het later opnieuw. Er wordt niets verwijderd. |
+| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_WINDOW_SECONDS` | `onCallCalendarFeed.rateLimit.windowSeconds` | `60` | Lengte van het venster voor de snelheidslimiet. |
+| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_TOKEN_PER_WINDOW` | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | `60` | Hoe vaak één link per venster vanaf één clientadres mag worden opgehaald. |
+| `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` | `onCallCalendarFeed.rateLimit.perIpPerWindow` | `3000` | Hoe vaak één clientadres per venster over alle links heen mag ophalen — het plafond voor een heel kantoor achter één adres. |
 
-## Problemen oplossen
+Ook van belang:
 
-**Niets heeft de link opgehaald, of "Kon de URL niet ophalen".** Google Agenda, Outlook op het web, Fastmail en Proton halen op **vanaf hun eigen servers**, dus de OneUptime-host moet vanaf het openbare internet bereikbaar zijn met een certificaat dat zij vertrouwen. Een installatie in een privénetwerk, achter een VPN of met een interne certificaatautoriteit is voor hen onbereikbaar, wat je ook plakt. Apple Agenda, Thunderbird en klassiek Outlook halen op vanaf het apparaat en werken dus overal waar het apparaat het dashboard kan openen — na het vertrouwen van het certificaat op dat apparaat als het zelfondertekend is. De statusregel van de feedpagina vertelt je of iets de link al heeft opgehaald; `curl -I` op de link van buiten je netwerk is de snelste controle. OneUptime privénetwerken laten _bereiken_ — [Toegang tot privénetwerken](/docs/self-hosted/private-network-access) — is een andere kwestie en helpt hier niet.
+- **`HOST` en `HTTP_PROTOCOL`** bouwen de links. Is `HOST` leeg of `localhost`, of is `HTTP_PROTOCOL` `http`, dan toont de feedpagina een waarschuwing en werken de links niet van buitenaf. Is `HOST` een privéadres — `10.x`, `172.16–31.x`, `192.168.x`, een naam zonder punt zoals een containernaam, of een naam onder `.internal`, `.local`, `.lan` en dergelijke — dan zegt de pagina dat Google Agenda en Outlook op het web de link niet kunnen bereiken; apps op een computer in hetzelfde netwerk kunnen dat nog wel.
+- **`TRUSTED_PROXY_HOPS`** bepaalt welk adres de limiet per adres telt. De standaard `1` klopt voor de standaardopzet van Docker Compose en Helm; tel er één bij op voor elke eigen proxy — een CDN, WAF of load balancer — die iets aan `X-Forwarded-For` toevoegt, anders lijkt elke agendaclient hetzelfde adres en delen ze één budget. Zie [Trusted proxies](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/configuration.md#trusted-proxies) in de documentatie van de chart.
+- **Redis** ondersteunt de caches en de snelheidsbegrenzer. Beide vallen netjes terug: zonder Redis worden feeds nog steeds opgebouwd, alleen langzamer, en de begrenzer laat verzoeken door.
+- In de gesplitste modus van de Helm-chart (`worker.enabled: true`) worden feeds op de API-laag opgebouwd, dus dimensioneer die laag voor een piek van agendaclients die aan het begin van het uur ophalen.
+- De uitzondering voor het Nginx-toegangslogboek hierboven maakt deel uit van de meegeleverde `packages/Nginx/default.conf.template`; behoud die als je de template aanpast.
 
-**De agenda is verouderd.** Lees eerst de vernieuwtabel: bij Google is de vertraging normaal. Om Google opnieuw te laten kijken, verwijder je de agenda en voeg je hem opnieuw toe, of voeg je `?nocache=1` aan de link toe (onbekende parameters worden genegeerd, de feed is hetzelfde maar Google behandelt hem als nieuw). Druk in klassiek Outlook op F9 en controleer de instelling **Bijwerklimiet**. Gebruik in Apple Agenda **Weergave** > **Vernieuw agenda's**. Als een wijziging van dezelfde dag belangrijk is, vertrouw dan op de herinneringen en hertoewijzingsberichten van OneUptime in plaats van op de agenda.
+## Probleemoplossing
 
-**De agenda is leeg.** Een lege agenda is opzettelijk. Het betekent dat de link is uitgeschakeld, een oude link is binnen zijn respijtperiode van 30 dagen na opnieuw genereren, het project onder het abonnement zit dat piketroosters bevat, of dat je op geen enkel rooster in dat project meer staat. Open de link in een browser: de agendabeschrijving (`X-WR-CALDESC`) noemt de reden. Als je het project hebt verlaten, blijft de link leeg: hij toont alleen diensten zolang je lid bent.
+:::details Google Agenda meldt "Unable to add calendar. Check the URL."
+Oudere versies van OneUptime zetten de `https://`-vorm van de link in de knop **Google Agenda**, en de pagina van Google om via een URL toe te voegen neemt alleen de `webcal://`-vorm aan. Laad de feedpagina opnieuw en klik nogmaals op **Google Agenda**, of voeg de link toe onder **Andere agenda's** > **+** > **Via URL**.
+:::
 
-**404.** De link is onbekend, verwijderd, of zijn respijtperiode is voorbij. Genereer een nieuwe en abonneer je opnieuw.
+:::details Google Agenda toont de agenda, maar geen diensten
+Controleer eerst de statusregel op de feedpagina. **Laatst opgehaald … door Google Calendar** betekent dat Google de link heeft gelezen: open de link in een browser en kijk wat hij levert — een lege agenda noemt zijn reden in `X-WR-CALDESC` (zie "De agenda is leeg" hieronder).
 
-**503.** Ofwel `DISABLE_ON_CALL_CALENDAR_FEED` is ingesteld, ofwel de server is bezet: er worden hooguit enkele feeds tegelijk gerenderd, en een rooster dat zeer lang duurt om te berekenen wordt afgebroken. Wanneer een eerdere kopie van de feed bestaat, levert de server die in plaats daarvan met een `Warning: 110`-header; een 503 betekent dus dat er niets was om op terug te vallen. Clients houden hun laatste kopie en proberen het na het `Retry-After`-interval opnieuw. Fastmail schakelt een abonnement uit na vijf mislukkingen op rij; voeg het opnieuw toe zodra de server gezond is. De metriek `oncall_calendar_render_duration_ms` laat beheerders zien welke feeds traag zijn.
+**Nog niet opgehaald** betekent dat Google hem niet kon lezen: vanaf een machine buiten je netwerk moet `curl -sI <link>` meteen `200` antwoorden met `Content-Type: text/calendar`. Een doorverwijzing, een inlogpagina, een firewall of een botcontrole vóór OneUptime houdt de ophaler van Google tegen; dat deed in oudere versies van OneUptime ook een doorverwijzingslus, op installaties met `PROVISION_SSL=true` waarvan TLS vóór Nginx eindigt. Zodra hij `200` antwoordt, voeg je de link opnieuw toe met `?nocache=1` erachter, zodat Google hem opnieuw leest.
+:::
 
-**429 of "te veel verzoeken".** Veel clients achter één adres — een kantoor-NAT, een VPN-gateway — delen het budget per adres. Verhoog `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` en controleer `TRUSTED_PROXY_HOPS`: staat die te laag, dan wordt elke client aan je eigen proxy toegeschreven en delen ze allemaal één budget.
+:::details Niets heeft de link opgehaald, of "Kan de URL niet ophalen"
+Google Agenda, Outlook op het web, Fastmail en Proton halen op **vanaf hun eigen servers**, dus de OneUptime-host moet vanaf het openbare internet bereikbaar zijn met een certificaat dat zij vertrouwen. Een installatie op een privénetwerk, achter een VPN of met een interne certificeringsinstantie is voor hen onbereikbaar, wat je ook plakt.
 
-**Certificaatfouten in Apple Agenda, Thunderbird of Outlook.** Deze apps controleren TLS op het apparaat. Importeer je interne CA in de vertrouwensopslag van het apparaat — de macOS-sleutelhanger, de Windows-certificaatopslag, het certificaatbeheer van Thunderbird — of gebruik een publiek vertrouwd certificaat. Serverside ophalers zoals Google en Microsoft kunnen niet worden aangezet een privé-CA te vertrouwen.
+Apple Agenda, Thunderbird en de klassieke Outlook halen op vanaf het apparaat, dus ze werken overal waar het apparaat het dashboard kan openen — nadat het certificaat op dat apparaat is vertrouwd als het zelfondertekend is. De statusregel op de feedpagina vertelt of iets de link al heeft opgehaald; `curl -I` op de link vanaf buiten je netwerk is de snelste controle:
 
-**De tijden kloppen niet.** Alle tijden in het bestand zijn UTC; de agenda-app rekent om naar zijn eigen tijdzone. Lijken diensten met een vast aantal uren verschoven, controleer dan de tijdzone van het rooster (tabblad **Instellingen**) en je eigen tijdzone (**Gebruikersinstellingen** > **Profiel**). Een rooster zonder tijdzone wordt in de tijdzone van de server berekend en de afspraak vermeldt dat.
+```bash
+curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"
+```
 
-**De feed zegt dat hij is ingekort.** Meer dan 5.000 afspraken vielen binnen het venster. Verlaag **Dagen vooruit**, of abonneer je op **Alleen mijn diensten op dit rooster** in plaats van op een heel project.
+OneUptime privénetwerken laten _bereiken_ — [Toegang tot privénetwerk](/docs/self-hosted/private-network-access) — is iets anders en helpt hier niet.
+:::
 
-**Google toont een oude agendanaam.** Google leest de naam alleen bij het eerste abonneren; verwijder de agenda en voeg hem opnieuw toe.
+:::details De agenda is verouderd
+Lees eerst de verversingstabel: voor Google is de vertraging normaal. Om Google opnieuw te laten kijken, verwijder je de agenda en voeg je hem opnieuw toe, of zet je `?nocache=1` achter de link (onbekende parameters worden genegeerd, dus de feed verandert niet, maar Google behandelt hem als nieuw). Druk in de klassieke Outlook op F9 en controleer de instelling **Updatelimiet**. Gebruik in Apple Agenda **Weergave** > **Vernieuw agenda's**. Is een wijziging op dezelfde dag belangrijk, vertrouw dan op de herinneringen en meldingen over hertoewijzing van OneUptime in plaats van op de agenda.
+:::
 
-**De instellingenpagina zegt dat de link opnieuw moet worden gegenereerd.** `ENCRYPTION_SECRET` is gewijzigd sinds de link is gemaakt, dus de server kan hem niet meer tonen. Het bestaande abonnement blijft werken; opnieuw genereren geeft je een link die je weer kunt kopiëren en trekt de oude na 30 dagen in.
+:::details De agenda is leeg
+Een lege agenda is opzettelijk. Het betekent dat de link is uitgeschakeld, een oude link is binnen zijn respijtperiode van 30 dagen na opnieuw genereren, het project onder het abonnement zit dat bereikbaarheidsschema's bevat, of dat je in dat project in geen enkel rooster meer staat. Open de link in een browser: de agendabeschrijving (`X-WR-CALDESC`) noemt de reden. Als je het project hebt verlaten, blijft de link leeg: hij toont alleen diensten zolang je lid bent.
+:::
 
-**Er ontbreekt een dienst in mijn feed.** Alleen roosterdiensten verschijnen; directe gebruikers- of teamtoewijzingen in een beleidsregel zijn vast en hebben geen afspraken. Een dienst die iemand anders via een override heeft overgenomen verdwijnt uit je feed omdat hij nu in de zijne staat. Schakel **Diensten meenemen die ik voor anderen overneem** in om diensten te zien die je via overrides hebt gekregen op roosters waarvan je geen lid bent.
+:::details De link geeft 404
+De link is onbekend, is verwijderd, of zijn respijtperiode is afgelopen. Genereer een nieuwe en abonneer je opnieuw.
+:::
+
+:::details De link geeft 503
+Ofwel `DISABLE_ON_CALL_CALENDAR_FEED` is ingesteld, ofwel de server heeft het druk: er worden hooguit een paar feeds tegelijk opgebouwd, en een rooster dat heel lang duurt om uit te rekenen, wordt afgebroken. Bestaat er een eerdere kopie van de feed, dan levert de server die in plaats daarvan, met een header `Warning: 110`, dus een 503 betekent dat er niets was om op terug te vallen. Clients houden hun laatste kopie en proberen het opnieuw na het interval van `Retry-After`. Fastmail schakelt een abonnement uit na vijf mislukkingen op rij; voeg het opnieuw toe zodra de server weer gezond is. De metriek `oncall_calendar_render_duration_ms` laat beheerders zien welke feeds traag zijn.
+:::
+
+:::details 429 of "too many requests"
+Veel clients achter één adres — een kantoor-NAT, een VPN-gateway — delen het budget per adres. Verhoog `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` en controleer `TRUSTED_PROXY_HOPS`: is die te laag, dan wordt elke client aan je eigen proxy toegeschreven en delen ze allemaal één budget.
+:::
+
+:::details Certificaatfouten in Apple Agenda, Thunderbird of Outlook
+Deze apps controleren TLS op het apparaat. Importeer je interne CA in de vertrouwensopslag van het apparaat — de macOS-sleutelhanger, het Windows-certificaatarchief, de certificaatbeheerder van Thunderbird — of gebruik een openbaar vertrouwd certificaat. Ophalers aan de serverkant, zoals die van Google en Microsoft, zijn niet zover te krijgen dat ze een privé-CA vertrouwen.
+:::
+
+:::details Tijden kloppen niet
+Alle tijden in het bestand zijn UTC; de agenda-app rekent ze om naar zijn eigen zone. Lijken diensten met een vaste afwijking verschoven, controleer dan de tijdzone van het rooster (**Schedule timezone** op de pagina **Lagen** ervan) en je eigen (**Tijdzone** op je **Profiel**). Een rooster zonder tijdzone wordt uitgerekend in de zone van de server, en de afspraak meldt dat.
+:::
+
+:::details De feed meldt dat hij is ingekort
+Er vielen meer dan 5.000 afspraken binnen het venster. Verlaag **Dagen vooruit**, of abonneer je op **Alleen mijn diensten in dit rooster** in plaats van op een heel project.
+:::
+
+:::details Google toont een oude agendanaam
+Google leest de naam alleen bij het eerste abonnement; verwijder de agenda en voeg hem opnieuw toe.
+:::
+
+:::details De instellingenpagina meldt dat de link opnieuw moet worden gegenereerd
+`ENCRYPTION_SECRET` is gewijzigd sinds de link is gemaakt, dus de server kan hem niet meer tonen. Het bestaande abonnement blijft werken; opnieuw genereren geeft je een link die je weer kunt kopiëren en trekt de oude na 30 dagen in.
+:::
+
+:::details Er ontbreekt een dienst in mijn feed
+Alleen diensten uit roosters verschijnen; rechtstreekse toewijzingen van gebruikers of teams in een beleidsregel zijn vast en hebben geen afspraken. Een dienst die iemand anders via een override heeft overgenomen, verdwijnt uit jouw feed, omdat hij nu in die van de ander staat. Zet **Diensten opnemen die ik voor anderen overneem** aan om diensten te zien die je via overrides hebt gekregen in roosters waarvan je geen lid bent.
+:::
+
+## Volgende stappen
+
+:::cards
+- [Bereikbaarheidsschema's](/docs/on-call/schedules): Stel de rotaties in die je feeds tonen.
+- [Tijdlijn van bereikbaarheidsschema's](/docs/on-call/schedule-timeline): Bekijk alle roosters naast elkaar in het dashboard.
+- [Escalatieregels](/docs/on-call/escalation-rules): Koppel roosters aan beleid, zodat hun diensten mensen oproepen.
+:::

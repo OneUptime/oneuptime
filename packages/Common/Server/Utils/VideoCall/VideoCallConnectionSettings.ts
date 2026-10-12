@@ -1,6 +1,7 @@
 import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import VideoCallAuthMethod from "../../../Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import {
   VideoCallConnectionField,
@@ -20,11 +21,18 @@ import MicrosoftTeamsMeetingClient from "./Providers/MicrosoftTeamsMeetingClient
  * `config` holds the provider's non-secret settings and `secrets` its
  * credentials, both keyed by the catalog's field keys. The secrets are
  * encrypted at rest and never returned by the API.
+ *
+ * A connection made by signing in (authMethod OAuth) has only the config
+ * fields a sign-in leaves to pick (the catalog's `oauth.configFields`), and
+ * secrets the server writes - the sign-in's tokens (VideoCallOAuthSecrets) -
+ * which no form or API call sets.
  */
 export interface VideoCallConnectionSettings {
   provider: VideoCallProvider;
   config: JSONObject;
   secrets: JSONObject;
+  // Absent: the connection's own app credentials (or a meeting link).
+  authMethod?: VideoCallAuthMethod | undefined;
 }
 
 // Longer than any real meeting link, short enough to keep out a payload.
@@ -337,10 +345,11 @@ export default class VideoCallConnectionSettingsUtil {
   public static withConfigDefaults(
     definition: VideoCallProviderDefinition,
     config: JSONObject,
+    fields?: Array<VideoCallConnectionField> | undefined,
   ): JSONObject {
     const result: JSONObject = { ...config };
 
-    for (const field of definition.configFields) {
+    for (const field of fields || definition.configFields) {
       const current: JSONValue | undefined = result[field.key];
       const isEmpty: boolean =
         current === undefined ||
@@ -397,6 +406,49 @@ export default class VideoCallConnectionSettingsUtil {
     this.validateProviderRules(settings);
 
     return settings;
+  }
+
+  /*
+   * The settings of a connection made by signing in: only the config fields
+   * a sign-in leaves to pick, checked like the form's. Its secrets are the
+   * sign-in's tokens, which only the server writes, so none are taken here.
+   */
+  public static validateOAuth(data: {
+    provider: unknown;
+    config: JSONObject;
+  }): VideoCallConnectionSettings {
+    const definition: VideoCallProviderDefinition = this.getDefinitionOrThrow(
+      data.provider,
+    );
+
+    if (!definition.oauth) {
+      throw new BadDataException(
+        `${definition.title} cannot be connected by signing in.`,
+      );
+    }
+
+    const fields: Array<VideoCallConnectionField> =
+      definition.oauth.configFields;
+    const config: JSONObject = this.withConfigDefaults(
+      definition,
+      data.config,
+      fields,
+    );
+
+    this.validateFields({
+      definition,
+      fields,
+      values: config,
+      label: "Configuration",
+      requireRequiredFields: true,
+    });
+
+    return {
+      provider: definition.provider,
+      config,
+      secrets: {},
+      authMethod: VideoCallAuthMethod.OAuth,
+    };
   }
 
   /*

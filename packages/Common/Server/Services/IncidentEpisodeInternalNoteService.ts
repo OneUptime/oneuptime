@@ -1,3 +1,4 @@
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
@@ -73,17 +74,24 @@ export class Service extends ProjectReferencesService<Model> {
     return { deleteBy, carryForward: null };
   }
 
+  /*
+   * A note posted from Slack or Microsoft Teams - a button's form, or a
+   * message saved with a note emoji - made with the props of the member who
+   * posted it (WorkspaceActionAuthorization.getProjectMemberProps), as the
+   * dashboard makes the note they post there: it needs their permission to
+   * create the note and their read of the incident episode, it is held to the
+   * project's plan, and it is theirs - DatabaseService stamps them as its
+   * creator.
+   */
   @CaptureSpan()
   public async addNote(data: {
-    userId: ObjectID;
     incidentEpisodeId: ObjectID;
     projectId: ObjectID;
     note: string;
-    attachmentFileIds?: Array<ObjectID>;
-    postedFromSlackMessageId?: string;
+    postedFromSlackMessageId?: string | undefined;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const internalNote: Model = new Model();
-    internalNote.createdByUserId = data.userId;
     internalNote.incidentEpisodeId = data.incidentEpisodeId;
     internalNote.projectId = data.projectId;
     internalNote.note = data.note;
@@ -92,21 +100,9 @@ export class Service extends ProjectReferencesService<Model> {
       internalNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
-      internalNote.attachments = data.attachmentFileIds.map(
-        (fileId: ObjectID) => {
-          const file: File = new File();
-          file.id = fileId;
-          return file;
-        },
-      );
-    }
-
     return this.create({
       data: internalNote,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
   }
 

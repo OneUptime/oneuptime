@@ -29,8 +29,15 @@ import {
   readFormFields,
   validateFormFields,
 } from "../../../Types/Form/FormField";
+import {
+  BuiltPublicForm,
+  buildPublicForm,
+  validateFormTemplateAnswers,
+} from "../../../Types/Form/FormPublic";
 import { validateFormTargetSettings } from "../../../Types/Form/FormTargetSettings";
 import {
+  FORM_TEMPLATE_FIELD_SETTINGS,
+  FormTemplate,
   readFormTemplates,
   validateFormTemplates,
 } from "../../../Types/Form/FormTemplate";
@@ -857,11 +864,45 @@ describe("Form columns", () => {
     });
     expect(columnArgs(Form, "templates").options.default).toBeUndefined();
 
-    for (const property of ["id", "name", "isDefault", "answers"]) {
+    for (const property of [
+      "id",
+      "name",
+      "isDefault",
+      "answers",
+      "fieldSettings",
+    ]) {
       expect(metadata.description).toContain(property);
     }
 
     expect(metadata.description).toContain("?template=<id>");
+  });
+
+  // Issue #4563: a template makes a question required, optional or hidden.
+  test("the templates' description names every setting a template can give a question, as stored", () => {
+    const description: string =
+      model.getTableColumnMetadata("templates").description || "";
+
+    for (const setting of FORM_TEMPLATE_FIELD_SETTINGS) {
+      expect(description).toContain(setting);
+    }
+
+    expect(description).toContain(
+      "a question it does not list is asked as the form asks it",
+    );
+    expect(model.getTableColumnMetadata("fields").description || "").toContain(
+      "fieldSettings",
+    );
+  });
+
+  test("the example templates show a template asking questions its own way", () => {
+    const example: Array<FormTemplate> = readFormTemplates(
+      model.getTableColumnMetadata("templates").example,
+    );
+
+    expect(example[0]!.fieldSettings).toEqual({
+      "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40": "Hidden",
+      "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a": "Required",
+    });
   });
 
   test("the example templates in the API reference are templates the server accepts", () => {
@@ -872,6 +913,35 @@ describe("Form columns", () => {
     expect(readFormTemplates(example)).toHaveLength(
       (example as Array<unknown>).length,
     );
+  });
+
+  /*
+   * The two examples are one form: every answer and setting of the example
+   * templates is for a question of the example questions, as the server's
+   * own check on a write holds them (validateFormTemplateAnswers) - not
+   * only the templates' shape.
+   */
+  test("the example templates answer, and set, the example questions as the server's write check holds them", () => {
+    const built: BuiltPublicForm = buildPublicForm({
+      form: {
+        name: "Example",
+        fields: model.getTableColumnMetadata("fields").example,
+        targetType: FormTargetType.Incident,
+      },
+      customFields: [],
+      recordOptions: {},
+      isCaptchaRequired: false,
+    });
+
+    expect(built.allFields).toHaveLength(2);
+    expect(
+      validateFormTemplateAnswers({
+        templates: model.getTableColumnMetadata("templates").example,
+        fields: built.allFields,
+        lockedFieldIds: built.lockedFieldIds,
+        targetType: FormTargetType.Incident,
+      }),
+    ).toBeNull();
   });
 
   test("the example questions in the API reference are questions the server accepts", () => {

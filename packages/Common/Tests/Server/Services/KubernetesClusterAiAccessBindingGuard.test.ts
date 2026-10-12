@@ -28,6 +28,7 @@ import KubectlPolicy, {
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -274,6 +275,15 @@ describe("KubernetesClusterService AI access binding guard", () => {
           ];
         },
       );
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     stubProjectDirectory({});
   });
 
@@ -989,6 +999,15 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
       .mockImplementation(async (): Promise<Array<KubernetesCluster>> => {
         return [current as unknown as KubernetesCluster];
       });
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     stubProjectDirectory({});
   });
 
@@ -1156,6 +1175,15 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
         projectId: PROJECT_ID,
       } as unknown as KubernetesCluster,
     ]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     stubProjectDirectory({});
   });
 
@@ -1577,6 +1605,15 @@ describe("KubernetesClusterService AI access configured marker", () => {
         projectId: PROJECT_ID,
       } as unknown as KubernetesCluster,
     ]);
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: what the read above answers.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      KubernetesClusterService,
+      jest.spyOn(KubernetesClusterService, "findBy"),
+    );
     updateBySpy = jest
       .spyOn(KubernetesClusterService, "updateBy")
       .mockResolvedValue(1);

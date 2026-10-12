@@ -444,6 +444,57 @@ describe("NetFlowV5Parser", () => {
     expect(parsed).not.toBeNull();
     expect(parsed!.header.samplingMode).toBe(1);
     expect(parsed!.header.samplingInterval).toBe(100);
+    // Every record of the datagram carries the rate the collector scales by.
+    expect(parsed!.records[0]!.samplingRate).toBe(100);
+  });
+
+  test("a record of an unsampled export has a sampling rate of 1", () => {
+    for (const samplingField of [0, 1, (2 << 14) | 1]) {
+      const datagram: Buffer = buildDatagram([
+        {
+          srcAddr: [10, 0, 0, 1],
+          dstAddr: [10, 0, 0, 2],
+          dPkts: 1,
+          dOctets: 60,
+          first: SYS_UPTIME_MS - 1000,
+          last: SYS_UPTIME_MS - 500,
+          srcPort: 1,
+          dstPort: 2,
+          prot: 6,
+        },
+      ]);
+
+      // Interval 0 (sampling off) and interval 1 both mean every packet.
+      datagram.writeUInt16BE(samplingField, 22);
+
+      expect(NetFlowV5Parser.parse(datagram)!.records[0]!.samplingRate).toBe(1);
+    }
+  });
+
+  test("random (mode 2) 1-in-512 sampling reads as a rate of 512", () => {
+    const datagram: Buffer = buildDatagram([
+      {
+        srcAddr: [10, 0, 0, 1],
+        dstAddr: [10, 0, 0, 2],
+        dPkts: 3,
+        dOctets: 180,
+        first: SYS_UPTIME_MS - 1000,
+        last: SYS_UPTIME_MS - 500,
+        srcPort: 1,
+        dstPort: 2,
+        prot: 17,
+      },
+    ]);
+
+    datagram.writeUInt16BE((2 << 14) | 512, 22);
+
+    const parsed: ParsedNetFlowV5Datagram | null =
+      NetFlowV5Parser.parse(datagram);
+
+    expect(parsed!.header.samplingMode).toBe(2);
+    expect(parsed!.records[0]!.samplingRate).toBe(512);
+    // The parser reports what the device counted; scaling is the collector's.
+    expect(parsed!.records[0]!.packets).toBe(3);
   });
 
   test("returns null for a count outside the 1-30 bound", () => {

@@ -258,7 +258,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
             </li>
             <li>
               {translator.translateText(
-                "Missing values render as empty strings — they will not break the template.",
+                "A variable with no value is left as written, so a mistyped name shows in the text.",
               )}
             </li>
           </ul>

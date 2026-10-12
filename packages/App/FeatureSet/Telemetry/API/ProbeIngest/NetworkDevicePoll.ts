@@ -20,6 +20,9 @@ import SnmpTableListUtil, {
   EffectiveTableResolution,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import ProbeCapability, {
+  ProbeCapabilityUtil,
+} from "Common/Types/Probe/ProbeCapability";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -62,13 +65,15 @@ const DEVICE_POLL_FETCH_LIMIT: number = NumberUtil.parseNumberWithDefault({
  * request) when it can ping a device and report the result without an SNMP
  * walk. A probe that does not advertise it predates ping-first polling.
  */
-const NETWORK_DEVICE_PING_CAPABILITY: string = "networkDevicePing";
+const NETWORK_DEVICE_PING_CAPABILITY: string =
+  ProbeCapability.NetworkDevicePing;
 
 /*
  * Hands the requesting probe the polling-enabled devices assigned to it
  * that are due for a poll. Every device is handed out as
  * `{ networkDeviceId, projectId, hostname, pollMode, collectEndpoints,
- * snmpMonitor? }`:
+ * collectTransceivers?, snmpMonitor? }` (collectTransceivers only in snmp
+ * mode):
  *
  *   pollMode "snmp" - usable SNMP credentials resolved for the device
  *                     (NetworkDeviceHydrationUtil.resolveSnmpCredentials:
@@ -420,6 +425,14 @@ router.post(
           hostname: device.hostname,
           pollMode: pollMode,
           collectEndpoints: device.collectEndpoints === true,
+          /*
+           * Transceiver (SFP/SFP+/QSFP) health rides the interface walk:
+           * optics are matched to the ports it finds. A device answers one
+           * request per transceiver MIB it lacks, and the probe reads the
+           * static part of the ones it has (thresholds, identity) once an
+           * hour, so this is on wherever interfaces are walked.
+           */
+          collectTransceivers: monitorInterfaces,
           snmpMonitor: NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
             hostname: device.hostname,
             // Where to connect is the device's; what to connect with is resolved.
@@ -481,6 +494,10 @@ router.post(
  * probe sends `{ networkDeviceId, snmpResponse, monitoredAt }`. A body is
  * rejected only when it carries NEITHER a walk nor a boolean `isOnline`;
  * the processor derives whatever else is missing.
+ *
+ * Every probe body also carries the probe's `probeCapabilities` (its
+ * default request body), forwarded so the processor can tell a walk that
+ * was handed no SNMP tables from one by a probe that cannot walk them.
  */
 router.post(
   "/probe/network-device/response/ingest",
@@ -547,6 +564,9 @@ router.post(
           pollMode: typeof pollMode === "string" ? pollMode : undefined,
           pingResponse: pingResponse || undefined,
           snmpResponse: snmpResponse || undefined,
+          probeCapabilities: ProbeCapabilityUtil.parse(
+            req.body["probeCapabilities"],
+          ),
           monitoredAt: (req.body["monitoredAt"] as string) || undefined,
         },
       });

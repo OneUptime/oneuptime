@@ -1,8 +1,10 @@
 import DatabaseService from "./DatabaseService";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 import Model from "../../Models/DatabaseModels/GlobalConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ObjectID from "../../Types/ObjectID";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -45,6 +47,23 @@ export const ROOT_ONLY_LICENSE_COLUMNS: ReadonlyArray<keyof Model> = [
   "enterpriseLicenseUserCountUpdatedAt",
   "enterpriseLicenseInstances",
   "enterpriseEditionFirstSeenAt",
+];
+
+/*
+ * The installation's branding (GlobalConfig.branding*). The enterprise module
+ * writes and reads them, as root, behind its own checks of whether this
+ * installation may change its branding at all; the generic API neither
+ * writes them (assertBrandingColumnsWrittenByRootOnly) nor reads them back
+ * (onBeforeFind drops them), so a value stored while it was allowed is never
+ * served once it is not.
+ */
+export const ROOT_ONLY_BRANDING_COLUMNS: ReadonlyArray<keyof Model> = [
+  "brandingProductName",
+  "brandingWebsiteUrl",
+  "brandingLogo",
+  "brandingDarkLogo",
+  "brandingFavicon",
+  "brandingUpdatedAt",
 ];
 
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
@@ -286,11 +305,84 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * Refuses any write to ROOT_ONLY_BRANDING_COLUMNS that does not come from
+   * OneUptime itself. The refusal is the generic "not allowed" a column a
+   * caller may not write gets, naming no column: the generic API must not
+   * confirm that these columns exist.
+   */
+  public assertBrandingColumnsWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_BRANDING_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown>)[column as string] !== undefined
+        );
+      },
+    );
+
+    if (isWritten) {
+      throw new NotAuthorizedException(
+        "You do not have permission to change these settings.",
+      );
+    }
+  }
+
+  /*
+   * The branding columns, removed from what a caller other than OneUptime
+   * itself selects or filters on: read back through the generic API, they
+   * would show values the enterprise module has decided not to apply.
+   */
+  public dropBrandingColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
+    if (findBy.props.isRoot) {
+      return findBy;
+    }
+
+    const without: <T>(value: T) => T = <T>(value: T): T => {
+      if (!value || typeof value !== "object") {
+        return value;
+      }
+
+      const copy: Record<string, unknown> = {
+        ...(value as unknown as Record<string, unknown>),
+      };
+
+      for (const column of ROOT_ONLY_BRANDING_COLUMNS) {
+        delete copy[column as string];
+      }
+
+      return copy as unknown as T;
+    };
+
+    return {
+      ...findBy,
+      select: without(findBy.select),
+      query: without(findBy.query),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    return {
+      findBy: this.dropBrandingColumnsFromRead(findBy),
+      carryForward: null,
+    };
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertBrandingColumnsWrittenByRootOnly(createBy.data, createBy.props);
 
     return {
       createBy,
@@ -303,6 +395,7 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     this.assertLicenseColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertBrandingColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
       const secret: unknown = updateBy.data.telegramWebhookSecretToken;
@@ -357,17 +450,14 @@ export class Service extends DatabaseService<Model> {
      * cross-field validation still compares the effective pruning threshold
      * and target when the request changes only one of them.
      */
-    const currentConfig: Model | null = await this.findOneBy({
-      query: updateBy.query,
-      select: {
-        clickhouseCapacityNotificationThresholdPercent: true,
-        clickhouseDataPruningThresholdPercent: true,
-        clickhouseDataPruningTargetPercent: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const currentConfig: Model | null =
+      (
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          clickhouseCapacityNotificationThresholdPercent: true,
+          clickhouseDataPruningThresholdPercent: true,
+          clickhouseDataPruningTargetPercent: true,
+        })
+      )[0] || null;
 
     const normalizePercent: (value: unknown, fieldName: string) => number = (
       value: unknown,
@@ -474,11 +564,14 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Turning the server's Require SSO for Login on needs an SSO provider that
-   * signs people in to every project that does not require SSO itself
-   * (Utils/SsoRequirementChanges): checked once the caller has passed every
-   * permission check, under the lock on the server's sign-in rules, held
-   * until the write is done (onUpdateSuccess).
+   * Writing the server's Require SSO for Login on - turning it on, or saving
+   * it on again - needs an SSO provider that signs people in to every
+   * project that does not require SSO itself (Utils/SsoRequirementChanges):
+   * checked once the caller has passed every permission check, under the
+   * lock on the server's sign-in rules, held until the write is done
+   * (onUpdateSuccess) - kept once more right before it, taken again and the
+   * check run again should it be gone by then, and kept alive while it is
+   * written (SsoRequirementChanges.beforeWrite).
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -488,16 +581,27 @@ export class Service extends DatabaseService<Model> {
 
     // What the rule is now, so turning it off is told only when it was on.
     await SsoRequirementChanges.rememberServerRuleBefore(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
-  // An update that failed once it held the lock: it is given back.
+  /*
+   * An update that failed once it held the lock: it is given back - or, when
+   * the database may still apply the write, kept until it would have
+   * cancelled it (SsoRequirementChanges).
+   */
   @CaptureSpan()
   protected override async onUpdateError(
     error: Exception,
     onUpdate?: OnUpdate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
   ): Promise<Exception> {
     if (onUpdate) {
-      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+      await SsoRequirementChanges.afterFailedUpdate(
+        onUpdate.updateBy,
+        error,
+        failedStatement,
+      );
     }
 
     return error;

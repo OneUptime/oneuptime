@@ -9,6 +9,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { AdminDashboardClientURL } from "Common/Server/EnvironmentConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -163,7 +164,9 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       password: globalConfig.smtpPassword || undefined,
       secure: globalConfig.isSMTPSecure || false,
       fromEmail: globalConfig.smtpFromEmail,
-      fromName: globalConfig.smtpFromName || "OneUptime",
+      // Without a name of its own, emails are from the product.
+      fromName:
+        globalConfig.smtpFromName || ProductBrandingText.getProductName(),
       authType: smtpAuthType,
       clientId: globalConfig.smtpClientId || undefined,
       clientSecret: globalConfig.smtpClientSecret || undefined,

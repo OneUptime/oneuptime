@@ -1,9 +1,11 @@
-import RemediationExecutionRunner from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
+import CommandAllowlist from "../../../../Server/Utils/AutoRemediation/CommandAllowlist";
 import { afterEach, describe, expect, it } from "@jest/globals";
 
 /*
- * Contract under test — RemediationExecutionRunner.normalizeAllowlist, the
- * single reader of a rule's operator-authored command allowlist.
+ * Contract under test — CommandAllowlist.normalize, the single reader of a
+ * rule's operator-authored command allowlist: the runner reads a rule's
+ * allowlist with it, and so does the check of who may save a rule that runs
+ * its commands without asking (AiRemediationCredentialUse).
  *
  * The column is jsonb, and the dashboard's JSON form field can persist
  * either a real array or a JSON STRING containing one. The runner used to
@@ -24,18 +26,17 @@ import { afterEach, describe, expect, it } from "@jest/globals";
  * downgrades the run to Suggest and NOTHING auto-executes.
  */
 
-describe("RemediationExecutionRunner.normalizeAllowlist", () => {
+describe("CommandAllowlist.normalize", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   describe("a real array (the ordinary shape)", () => {
     it("passes patterns through in order", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist([
-          "systemctl restart *",
-          "kubectl rollout restart *",
-        ]);
+      const result: Array<string> = CommandAllowlist.normalize([
+        "systemctl restart *",
+        "kubectl rollout restart *",
+      ]);
 
       expect(result).toEqual([
         "systemctl restart *",
@@ -44,53 +45,53 @@ describe("RemediationExecutionRunner.normalizeAllowlist", () => {
     });
 
     it("trims surrounding whitespace on each pattern", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist([
-          "  systemctl restart *  ",
-          "\tdocker restart *\n",
-        ]);
+      const result: Array<string> = CommandAllowlist.normalize([
+        "  systemctl restart *  ",
+        "\tdocker restart *\n",
+      ]);
 
       expect(result).toEqual(["systemctl restart *", "docker restart *"]);
     });
 
     it("drops empty and whitespace-only entries", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist([
-          "systemctl restart *",
-          "",
-          "   ",
-          "\t\n",
-          "docker restart *",
-        ]);
+      const result: Array<string> = CommandAllowlist.normalize([
+        "systemctl restart *",
+        "",
+        "   ",
+        "\t\n",
+        "docker restart *",
+      ]);
 
       expect(result).toEqual(["systemctl restart *", "docker restart *"]);
     });
 
     it("drops non-string entries rather than stringifying them", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist([
-          "systemctl restart *",
-          5,
-          null,
-          undefined,
-          { a: 1 },
-          ["nested"],
-          true,
-        ]);
+      const result: Array<string> = CommandAllowlist.normalize([
+        "systemctl restart *",
+        5,
+        null,
+        undefined,
+        { a: 1 },
+        ["nested"],
+        true,
+      ]);
 
       expect(result).toEqual(["systemctl restart *"]);
     });
 
     it("returns [] for an array with nothing usable in it", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist(["", "   ", 7, null]);
+      const result: Array<string> = CommandAllowlist.normalize([
+        "",
+        "   ",
+        7,
+        null,
+      ]);
 
       expect(result).toEqual([]);
     });
 
     it("returns [] for an empty array", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist([]);
+      const result: Array<string> = CommandAllowlist.normalize([]);
 
       expect(result).toEqual([]);
     });
@@ -107,36 +108,33 @@ describe("RemediationExecutionRunner.normalizeAllowlist", () => {
       const value: string = '["systemctl restart *","docker restart *"]';
 
       expect(() => {
-        return RemediationExecutionRunner.normalizeAllowlist(value);
+        return CommandAllowlist.normalize(value);
       }).not.toThrow();
 
-      expect(RemediationExecutionRunner.normalizeAllowlist(value)).toEqual([
+      expect(CommandAllowlist.normalize(value)).toEqual([
         "systemctl restart *",
         "docker restart *",
       ]);
     });
 
     it("trims and drops blanks inside the parsed array too", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist(
-          '["  systemctl restart *  ","","   ","docker restart *"]',
-        );
+      const result: Array<string> = CommandAllowlist.normalize(
+        '["  systemctl restart *  ","","   ","docker restart *"]',
+      );
 
       expect(result).toEqual(["systemctl restart *", "docker restart *"]);
     });
 
     it("drops non-string entries inside the parsed array", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist(
-          '["systemctl restart *",5,null,{"a":1}]',
-        );
+      const result: Array<string> = CommandAllowlist.normalize(
+        '["systemctl restart *",5,null,{"a":1}]',
+      );
 
       expect(result).toEqual(["systemctl restart *"]);
     });
 
     it("returns [] for an empty JSON array string", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("[]");
+      const result: Array<string> = CommandAllowlist.normalize("[]");
 
       expect(result).toEqual([]);
     });
@@ -149,31 +147,29 @@ describe("RemediationExecutionRunner.normalizeAllowlist", () => {
    */
   describe("a bare non-JSON string", () => {
     it("becomes a single-pattern allowlist", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("systemctl restart *");
+      const result: Array<string> = CommandAllowlist.normalize(
+        "systemctl restart *",
+      );
 
       expect(result).toEqual(["systemctl restart *"]);
     });
 
     it("is trimmed like any other pattern", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist(
-          "  systemctl restart *  ",
-        );
+      const result: Array<string> = CommandAllowlist.normalize(
+        "  systemctl restart *  ",
+      );
 
       expect(result).toEqual(["systemctl restart *"]);
     });
 
     it("returns [] for a whitespace-only string", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("   ");
+      const result: Array<string> = CommandAllowlist.normalize("   ");
 
       expect(result).toEqual([]);
     });
 
     it("returns [] for an empty string", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("");
+      const result: Array<string> = CommandAllowlist.normalize("");
 
       expect(result).toEqual([]);
     });
@@ -186,36 +182,31 @@ describe("RemediationExecutionRunner.normalizeAllowlist", () => {
    */
   describe("JSON that does not describe an array", () => {
     it('returns [] for a JSON object string ("{}")', () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist('"{}"');
+      const result: Array<string> = CommandAllowlist.normalize('"{}"');
 
       expect(result).toEqual([]);
     });
 
     it("returns [] for a JSON object", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("{}");
+      const result: Array<string> = CommandAllowlist.normalize("{}");
 
       expect(result).toEqual([]);
     });
 
     it("returns [] for a JSON number string", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("5");
+      const result: Array<string> = CommandAllowlist.normalize("5");
 
       expect(result).toEqual([]);
     });
 
     it('returns [] for the string "null"', () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("null");
+      const result: Array<string> = CommandAllowlist.normalize("null");
 
       expect(result).toEqual([]);
     });
 
     it('returns [] for the string "true"', () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist("true");
+      const result: Array<string> = CommandAllowlist.normalize("true");
 
       expect(result).toEqual([]);
     });
@@ -223,24 +214,21 @@ describe("RemediationExecutionRunner.normalizeAllowlist", () => {
 
   describe("absent values", () => {
     it("returns [] for undefined (column never set)", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist(undefined);
+      const result: Array<string> = CommandAllowlist.normalize(undefined);
 
       expect(result).toEqual([]);
     });
 
     it("returns [] for null (column explicitly null)", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist(null);
+      const result: Array<string> = CommandAllowlist.normalize(null);
 
       expect(result).toEqual([]);
     });
 
     it("returns [] for a non-string, non-array value", () => {
-      const result: Array<string> =
-        RemediationExecutionRunner.normalizeAllowlist({
-          patterns: ["systemctl restart *"],
-        });
+      const result: Array<string> = CommandAllowlist.normalize({
+        patterns: ["systemctl restart *"],
+      });
 
       expect(result).toEqual([]);
     });

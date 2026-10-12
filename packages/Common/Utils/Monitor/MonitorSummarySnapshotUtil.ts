@@ -253,6 +253,7 @@ export default class MonitorSummarySnapshotUtil {
     const counts: Array<{ key: string; title: string }> = [
       { key: "logCount", title: "Log Records" },
       { key: "securityEventCount", title: "Security Events" },
+      { key: "llmBadAnswerCount", title: "Bad AI Answers" },
       { key: "spanCount", title: "Spans" },
       { key: "exceptionCount", title: "Exceptions" },
       { key: "profileCount", title: "Profiles" },

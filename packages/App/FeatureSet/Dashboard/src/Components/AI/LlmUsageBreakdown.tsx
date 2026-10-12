@@ -39,6 +39,7 @@ import LlmMetricQuery, {
   LlmMetricScope,
 } from "Common/Utils/Telemetry/LlmMetricQuery";
 import ServiceElement from "../Service/ServiceElement";
+import LlmUsageTotalsTiles from "./LlmUsageTotals";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   translatableTerm,
@@ -57,14 +58,14 @@ const DEFAULT_WINDOW_DAYS: number = 7;
 const TOP_K_GROUPS: number = 25;
 
 /*
- * Row cap for the aggregate reads themselves, matching LlmOverview. This is
+ * Row cap for the aggregate reads themselves. This is
  * deliberately far larger than TOP_K_GROUPS: the ranking and the
  * share-of-total denominator are computed over EVERY group, so trimming at
  * the query would make the percentages lie.
  */
 const AGGREGATE_ROW_LIMIT: number = 10000;
 
-// Same wording LlmOverview uses, so one label means one thing product-wide.
+// One label for a metric-sourced figure, wherever the product shows one.
 const METRIC_SOURCE_HINT: string = translationKey("from GenAI metrics");
 
 const UNATTRIBUTED_LABEL: string = translationKey("Unattributed");
@@ -542,8 +543,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       /*
        * The `startTime` predicate has to live in the QUERY.
        * startTimestamp/endTimestamp only choose the bucket grid — without this
-       * the aggregate scans the span table's whole retention. Same trap
-       * LlmOverview documents.
+       * the aggregate scans the span table's whole retention.
        */
       const spanQuery: Query<Span> = {
         projectId: projectId,
@@ -742,7 +742,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * so a span-only leaderboard shows an empty table for an entire fleet
        * of coding agents that is very much spending money.
        *
-       * The rule is LlmOverview's, exactly: spans are authoritative, metrics
+       * The rule, exactly: spans are authoritative, metrics
        * are consulted ONLY when the span stream reported nothing, and the two
        * are NEVER summed — an emitter producing both signals would otherwise
        * have every dollar counted twice. A failed span aggregate never
@@ -875,8 +875,9 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
        * The share denominator is the sum over EVERY group, including the
        * Unattributed one and the groups that fall outside the visible top-K.
        * Dropping unattributed spend from the total is the specific mistake
-       * that would make this page disagree with the Overview KPIs, which
-       * count every LLM span whether or not it carries an identity.
+       * that would make this page disagree with the conversation tiles and
+       * the budgets, which count every LLM span whether or not it carries an
+       * identity.
        */
       const totalCost: number = allRows.reduce(
         (accumulator: number, row: LlmUsageRow): number => {
@@ -918,7 +919,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
       /*
        * Never silently dropped. An unattributed row is a real bucket of
        * spend; hiding it would make this page's totals disagree with the
-       * Overview KPIs and quietly understate the bill.
+       * conversation tiles and the budgets, and quietly understate the bill.
        */
       return (
         <span
@@ -1035,6 +1036,12 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
         />
       </div>
 
+      {/*
+       * The range's totals: what a coding-assistant fleet, which has no
+       * conversations, reads its token and cost totals from.
+       */}
+      <LlmUsageTotalsTiles range={range} />
+
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-col gap-1 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -1072,7 +1079,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
          */}
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-600">
           <TranslatedSentence
-            template="Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals match the Overview page."
+            template="Calls appear under {{unattributed}} when the emitter did not send an identity attribute (for example {{userEmail}} or {{teamId}}). They are still counted here, so these totals include every call."
             values={{
               unattributed: translator.translateText(
                 UNATTRIBUTED_LABEL,

@@ -118,22 +118,18 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * The severities this delete is about to remove, read while the team
-     * compliance rules scoped to them still say so: the join rows cascade
-     * away with the severity. See TeamComplianceSettingService.
+     * The severities this delete is about to remove - and the delete held to
+     * them - read while the team compliance rules scoped to them still say
+     * so: the join rows cascade away with the severity. See
+     * TeamComplianceSettingService.
      */
-    const severities: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    const severities: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
       },
-      limit: deleteBy.limit,
-      skip: deleteBy.skip,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const carryForward: SeverityDeleteCarryForward = {
       complianceSettingIds:

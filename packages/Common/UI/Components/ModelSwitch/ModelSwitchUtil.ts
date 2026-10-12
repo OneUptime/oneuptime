@@ -160,6 +160,63 @@ export const getStoredValueForSwitch: (data: {
 };
 
 /*
+ * A switch that belongs to another one - "Open a fix pull request when an
+ * investigation finds a code change" under "Fix new incidents
+ * automatically": its column, and whether it is inverted. It turns on and
+ * off with the switch it belongs to (ModelSwitchRow's childSwitches).
+ */
+export interface ModelSwitchChild {
+  column: string;
+  isInverted?: boolean | undefined;
+}
+
+/*
+ * What flipping a switch writes, by column: its own column, and the column
+ * of every switch under it set the same way - on with it, off with it - so
+ * one request saves them all, and a refused one saves none of them.
+ */
+export const getModelSwitchWrite: (data: {
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+  childSwitches?: Array<ModelSwitchChild> | undefined;
+}) => Record<string, boolean> = (data: {
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+  childSwitches?: Array<ModelSwitchChild> | undefined;
+}): Record<string, boolean> => {
+  const write: Record<string, boolean> = {};
+
+  for (const child of data.childSwitches || []) {
+    write[child.column] = getStoredValueForSwitch({
+      isOn: data.isOn,
+      isInverted: child.isInverted,
+    });
+  }
+
+  // The switch's own column last: a child can never overwrite it.
+  write[data.column] = getStoredValueForSwitch({
+    isOn: data.isOn,
+    isInverted: data.isInverted,
+  });
+
+  return write;
+};
+
+/*
+ * Where the switches under a switch are drawn: under its name, with a rule
+ * down from the middle of its switch (21px + the 2px rule = the middle of
+ * a 44px switch) that holds them together as its own, the way a side
+ * menu's nested pages hang from theirs. From sm up each one's switch lines
+ * up with the name above (21 + 2 + 33 = 56px, a switch and its gap: the
+ * pl-14 everything under a switch's name has); on a phone they sit closer
+ * to the rule, so their sentences keep the width.
+ */
+export const MODEL_SWITCH_CHILDREN_CLASS_NAME: string =
+  "mt-4 ml-[21px] space-y-4 border-l-2 border-gray-200 pl-4 sm:pl-[33px]";
+
+/*
  * A switch whose record holds a plan feature the project's plan does not
  * include - left on when a trial ended, or when the project moved to a
  * lower plan. The server lets the switch go back to the column's default

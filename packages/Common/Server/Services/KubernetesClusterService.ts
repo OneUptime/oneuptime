@@ -28,6 +28,7 @@ import KubectlPolicy, {
 } from "../../Utils/AiRemediation/KubectlPolicy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -36,10 +37,7 @@ import {
   AgentAiSettingsSource,
   isAgentAiSettingsSourceAgent,
 } from "../../Types/AI/AgentAiSettings";
-import {
-  KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-} from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import { PermissionHelper } from "../../Types/Permission";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
@@ -52,6 +50,7 @@ import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
 import DiscoveredResourceCreate, {
   DiscoveredResourceNaming,
   NamedAfterIdentityOptions,
@@ -198,10 +197,17 @@ export function getAgentSetAiAccessRefusal(
   }, so AI investigation and fixes cannot be changed here. Set aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart instead; the cluster's AI agent page (AI → Agent) shows the command for each option.`;
 }
 
-export function getAiAccessCredentialRefusal(): string {
-  return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-    KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-  ).join(", ")}.`;
+/*
+ * Why a caller cannot bind a Kubernetes credential: it takes the read of
+ * runbook credentials (RunbookCredentialReaders) - and, for a workflow's
+ * step, that a person has to bind it.
+ */
+export function getAiAccessCredentialRefusal(
+  props?: DatabaseCommonInteractionProps | undefined,
+): string {
+  return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${RunbookCredentialReaders.getTitles()}.${
+    props ? RunbookCredentialReaders.getWorkflowNote(props) : ""
+  }`;
 }
 
 /*
@@ -489,13 +495,13 @@ export class Service extends ProjectReferencesService<Model> {
       ])
     ) {
       /*
-       * Root/API updates do not always carry a tenantId, so fall back to
-       * the project of each cluster the query actually matches — a Runner
-       * must belong to every one of them.
+       * The project of every cluster the update writes - the request's
+       * project for a teammate, whose update is kept to it, and each
+       * cluster's own project for OneUptime and a master admin
+       * (findProjectsToCheckUpdateIn): a Runner must belong to every one.
        */
-      const projectIds: Array<ObjectID> = updateBy.props.tenantId
-        ? [updateBy.props.tenantId]
-        : await this.getProjectIdsForUpdateQuery(updateBy);
+      const projectIds: Array<ObjectID> =
+        await this.findProjectsToCheckUpdateIn(updateBy);
 
       const loaded: AiAccessBindingRows = {
         runners: new Map<string, Runner>(),
@@ -557,20 +563,13 @@ export class Service extends ProjectReferencesService<Model> {
     let inFlightRounds: Array<AutoRemediationSuggestion> = [];
     const clusterNames: Record<string, string> = {};
 
-    try {
-      const clusters: Array<Model> = await this.findBy({
-        query: {
-          ...deleteBy.query,
-          ...(deleteBy.props.tenantId
-            ? { projectId: deleteBy.props.tenantId }
-            : {}),
-        },
-        select: { _id: true, name: true, clusterIdentifier: true },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    // The clusters the delete removes, and the delete held to them.
+    const clusters: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, name: true, clusterIdentifier: true },
+    );
 
+    try {
       const clusterIds: Array<ObjectID> = [];
 
       for (const cluster of clusters) {
@@ -781,9 +780,11 @@ export class Service extends ProjectReferencesService<Model> {
    * A cluster's AI mode does the job of a FullAuto AutoRemediationRule with
    * no rule row, so making AI do MORE on a cluster takes the same
    * permissions as authoring such a rule (KUBERNETES_AI_ACCESS_ADMIN_
-   * PERMISSIONS), and binding a credential additionally takes the right to
-   * read credentials — the rule the dashboard's picker applies, now enforced
-   * where it cannot be skipped. The column ACLs stay open to every cluster
+   * PERMISSIONS), and binding a credential additionally takes the read of
+   * runbook credentials - the one rule every use of a runbook credential
+   * asks, people and workflow steps alike (RunbookCredentialReaders), which
+   * the dashboard's picker applies too, enforced where it cannot be skipped.
+   * The column ACLs stay open to every cluster
    * editor on purpose: a column ACL cannot say "tightening is free", and
    * turning AI remediation off must never need more than editing the
    * cluster.
@@ -826,13 +827,11 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (
         loosening.bindsCredential &&
-        !CallerPermission.holdsAnyOf(
-          data.props,
-          KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-          { projectId: baseline.projectId },
-        )
+        !RunbookCredentialReaders.mayRead(data.props, baseline.projectId)
       ) {
-        throw new NotAuthorizedException(getAiAccessCredentialRefusal());
+        throw new NotAuthorizedException(
+          getAiAccessCredentialRefusal(data.props),
+        );
       }
     }
   }
@@ -955,10 +954,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The AI access settings of every cluster an operator's update reaches,
-   * read before the write. onBeforeUpdate runs before the framework scopes
-   * the query to the caller's project, so scope it here: a caller must
-   * never learn anything about, or be judged against, another project's
-   * cluster.
+   * read before the write: the clusters the update writes, with the update
+   * held to them (findRowsAndHoldUpdateToThem). A caller is only ever
+   * judged against, and only ever learns about, a cluster they may write.
    */
   @CaptureSpan()
   private async getAiAccessSettingsForUpdateQuery(
@@ -968,14 +966,9 @@ export class Service extends ProjectReferencesService<Model> {
       withKubernetesAiAgent: boolean;
     } = { withKubernetesAiAgent: false },
   ): Promise<Record<string, AiAccessSettingsSnapshot>> {
-    const clusters: Array<Model> = await this.findBy({
-      query: {
-        ...updateBy.query,
-        ...(updateBy.props.tenantId
-          ? { projectId: updateBy.props.tenantId }
-          : {}),
-      },
-      select: {
+    const clusters: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         clusterIdentifier: true,
@@ -986,12 +979,7 @@ export class Service extends ProjectReferencesService<Model> {
         aiAccessCredentialId: true,
         aiAccessConfiguredAt: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const settings: Record<string, AiAccessSettingsSnapshot> = {};
 
@@ -1389,33 +1377,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   @CaptureSpan()
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const clusters: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Record<string, ObjectID> = {};
-
-    for (const cluster of clusters) {
-      if (cluster.projectId) {
-        projectIds[cluster.projectId.toString()] = cluster.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
-  }
-
-  @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
@@ -1692,15 +1653,20 @@ export class Service extends ProjectReferencesService<Model> {
      * equal to the fence TTL flaps healthy resources. 15 minutes
      * gives 3x headroom.
      */
-    const fifteenMinutesAgo: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      -15,
-    );
+    /*
+     * Measured in time OneUptime was receiving: a stretch when OneUptime
+     * itself was down, starting up or catching up on its ingest queue is
+     * not silence held against the resource (issue #2825). With no such
+     * stretch this is exactly 15 minutes ago.
+     */
+    const silenceCutoff: Date = await ReceivingCoverage.getSilenceCutoff({
+      silenceInMinutes: 15,
+    });
 
     const connectedClusters: Array<Model> = await this.findBy({
       query: {
         otelCollectorStatus: "connected",
-        lastSeenAt: QueryHelper.lessThan(fifteenMinutesAgo),
+        lastSeenAt: QueryHelper.lessThan(silenceCutoff),
       },
       select: {
         _id: true,

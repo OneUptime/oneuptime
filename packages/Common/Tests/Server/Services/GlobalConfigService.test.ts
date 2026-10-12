@@ -83,11 +83,15 @@ describe("GlobalConfigService ClickHouse capacity settings", () => {
   });
 
   test("normalizes integer form strings before persisting", async () => {
-    jest.spyOn(GlobalConfigService, "findOneBy").mockResolvedValue({
-      clickhouseCapacityNotificationThresholdPercent: 80,
-      clickhouseDataPruningThresholdPercent: 90,
-      clickhouseDataPruningTargetPercent: 80,
-    } as GlobalConfig);
+    // The stored config, read as the rows the update writes.
+    jest.spyOn(GlobalConfigService, "findBy").mockResolvedValue([
+      {
+        _id: ObjectID.getZeroObjectID().toString(),
+        clickhouseCapacityNotificationThresholdPercent: 80,
+        clickhouseDataPruningThresholdPercent: 90,
+        clickhouseDataPruningTargetPercent: 80,
+      } as GlobalConfig,
+    ]);
 
     const result: OnUpdate<GlobalConfig> = await (
       GlobalConfigService as unknown as GlobalConfigServiceWithUpdateHook
@@ -107,11 +111,15 @@ describe("GlobalConfigService ClickHouse capacity settings", () => {
   });
 
   test("rejects a normalized target that is not below the trigger", async () => {
-    jest.spyOn(GlobalConfigService, "findOneBy").mockResolvedValue({
-      clickhouseCapacityNotificationThresholdPercent: 80,
-      clickhouseDataPruningThresholdPercent: 90,
-      clickhouseDataPruningTargetPercent: 80,
-    } as GlobalConfig);
+    // The stored config, read as the rows the update writes.
+    jest.spyOn(GlobalConfigService, "findBy").mockResolvedValue([
+      {
+        _id: ObjectID.getZeroObjectID().toString(),
+        clickhouseCapacityNotificationThresholdPercent: 80,
+        clickhouseDataPruningThresholdPercent: 90,
+        clickhouseDataPruningTargetPercent: 80,
+      } as GlobalConfig,
+    ]);
 
     await expect(
       (

@@ -216,7 +216,7 @@ const ALL_STRINGS: Array<string> = unique([
 const SAME_EVERYWHERE: Array<string> = ["name@example.com"];
 
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
-  de: ["Name", "Status"],
+  de: ["Name", "Optional", "Status"],
   fr: ["Date", "Description", "Incident", "Options", "Question", "Questions"],
   es: ["No"],
   it: ["No"],

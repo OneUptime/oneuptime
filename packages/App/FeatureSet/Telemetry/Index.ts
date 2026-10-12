@@ -15,9 +15,11 @@ import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
 import ProbeIngestDiscoveryScanAPI from "./API/ProbeIngest/DiscoveryScan";
 import ProbeIngestNetworkDevicePollAPI from "./API/ProbeIngest/NetworkDevicePoll";
 import ProbeIngestNetworkDeviceDiagnosticAPI from "./API/ProbeIngest/NetworkDeviceDiagnostic";
+import ProbeIngestPacketCaptureAPI from "./API/ProbeIngest/PacketCapture";
 import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
 import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
+import ProbeIngestVMwareCollectionAPI from "./API/ProbeIngest/VMwareCollection";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
 // ServerMonitorIngest routes
 import ServerMonitorAPI from "./API/ServerMonitorIngest/ServerMonitor";
@@ -117,9 +119,11 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDiscoveryScanAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkDevicePollAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkDeviceDiagnosticAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestPacketCaptureAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestVMwareCollectionAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);
 
       // ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]

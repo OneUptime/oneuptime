@@ -38,6 +38,7 @@ import {
  * disagree about who may start an execution.
  */
 import { assertCanExecuteRunbooks } from "../Utils/Runbook/RunbookExecutePermission";
+import AiRemediationCredentialUse from "../Utils/AutoRemediation/AiRemediationCredentialUse";
 import RunbookRunAccess from "../Utils/Runbook/RunbookRunAccess";
 import { Indigo500 } from "../../Types/BrandColors";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -84,6 +85,11 @@ const router: ExpressRouter = Express.getRouter();
  * membership + the read ACL), then the service performs the root write —
  * the AIInsightAPI idiom. State transitions are CAS-guarded so two
  * concurrent approvals can never double-start a runbook.
+ *
+ * Approving an AI command plan is held to the approver: what it lets run
+ * must be what they may do - start runbooks, change the resources the plan
+ * changes and, for a command that runs with a credential OneUptime AI
+ * picked, read runbook credentials (AiRemediationCredentialUse).
  */
 
 async function getLoggedInProps(
@@ -841,6 +847,24 @@ router.post(
       ) {
         assertCanExecuteRunbooks(props, suggestion.projectId);
 
+        const plan: AiRemediationCommandPlan | null =
+          AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+        /*
+         * And an SSH command runs with the credential OneUptime AI picked
+         * from its Runner's: approving confirms that pick, so it needs the
+         * approver's read of runbook credentials - as naming one in a
+         * runbook step does (AiRemediationCredentialUse). Asked before
+         * anything else is read: it depends on the approver and the plan
+         * alone.
+         */
+        if (plan) {
+          AiRemediationCredentialUse.assertApproverMayUseCredentials({
+            plan: plan,
+            props: props,
+          });
+        }
+
         /*
          * Re-check the project's AI switch at approval time. The plan may
          * have been composed hours ago; an operator who has since turned
@@ -864,9 +888,6 @@ router.post(
             "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
           );
         }
-
-        const plan: AiRemediationCommandPlan | null =
-          AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
 
         if (!plan || plan.commands.length === 0) {
           throw new BadDataException(

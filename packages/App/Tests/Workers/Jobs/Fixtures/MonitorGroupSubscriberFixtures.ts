@@ -104,10 +104,15 @@ export function fanEmail(fan: ResourceFan): string {
   return `${fan}@fans.acme.com`;
 }
 
-// Only what a subscriber's chosen resources hold: their ids.
+/*
+ * Only what a subscriber's chosen resources hold, as
+ * getSubscribersByStatusPage reads them: their ids, and the page each is
+ * on - a subscriber is told about an event only through its own page's.
+ */
 function picked(resource: StatusPageResource): StatusPageResource {
   const choice: StatusPageResource = new StatusPageResource();
   choice._id = resource._id!;
+  choice.statusPageId = resource.statusPageId!;
   return choice;
 }
 

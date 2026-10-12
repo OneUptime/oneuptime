@@ -542,6 +542,14 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY_INGESTION",
   "DISABLE_UPDATE_CHECK",
   "DISABLE_QUEUE_WORKERS",
+  /*
+   * Whether this process records that OneUptime is receiving data. The first
+   * thing to check when hosts or monitors went down during a OneUptime
+   * outage on a deployment with separate workers: a worker no ingress
+   * reaches that still records it hides every outage of the ingress tier
+   * from the receiving ledger (issue #2825). A boolean.
+   */
+  "RECEIVES_INGRESS_TRAFFIC",
   "DISABLE_AUTOMATIC_INCIDENT_CREATION",
   "DISABLE_AUTOMATIC_ALERT_CREATION",
   /*

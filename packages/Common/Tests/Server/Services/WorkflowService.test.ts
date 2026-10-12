@@ -294,6 +294,49 @@ describe("WorkflowService trigger denormalization on update", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * An update that wrote several workflows - one held to the rows a check
+   * read, say, which names them by "any of" their ids - writes the trigger
+   * of each, and tells the workflow service about each.
+   */
+  test("writes the trigger of, and notifies the workflow service about, every workflow the update wrote", async () => {
+    const OTHER_WORKFLOW_ID: string = "550e8400-e29b-41d4-a716-446655440001";
+    const updateSpy: jest.SpyInstance = spyOnUpdateOneById();
+    const postSpy: jest.SpyInstance = spyOnApiPost();
+
+    const hook: OnUpdateSuccessFunction = (
+      WorkflowService as unknown as {
+        onUpdateSuccess: OnUpdateSuccessFunction;
+      }
+    ).onUpdateSuccess.bind(WorkflowService);
+
+    await hook(
+      {
+        updateBy: {
+          query: { name: "Nightly" },
+          data: { graph: scheduleGraph() },
+        },
+      },
+      [new ObjectID(WORKFLOW_ID), new ObjectID(OTHER_WORKFLOW_ID)],
+    );
+
+    expect(
+      updateSpy.mock.calls.map((call: Array<unknown>): string => {
+        return String((call[0] as JSONObject)["id"]);
+      }),
+    ).toEqual([WORKFLOW_ID, OTHER_WORKFLOW_ID]);
+
+    const urls: Array<string> = postSpy.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return (call[0] as JSONObject)["url"]!.toString();
+      },
+    );
+
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toContain(`/workflow/update/${WORKFLOW_ID}`);
+    expect(urls[1]).toContain(`/workflow/update/${OTHER_WORKFLOW_ID}`);
+  });
+
   test("always notifies the workflow service so trigger changes take effect", async () => {
     spyOnUpdateOneById();
     const postSpy: jest.SpyInstance = spyOnApiPost();

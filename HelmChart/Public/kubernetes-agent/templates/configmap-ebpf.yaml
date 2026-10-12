@@ -1,4 +1,4 @@
-{{- if .Values.ebpf.enabled }}
+{{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
 # OBI YAML configuration, mounted into the eBPF DaemonSet and named by
 # OTEL_EBPF_CONFIG_PATH. Most of OBI's settings are OTEL_EBPF_* env vars on
 # the DaemonSet; this file holds the ones OBI only reads from YAML:

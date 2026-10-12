@@ -12,7 +12,7 @@ import {
   gotoProjectPage,
   registerAndCreateProject,
 } from "./Helpers/ProductOnboarding";
-import { Page, expect, test } from "@playwright/test";
+import { Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 test.describe("Topology page", () => {
@@ -83,9 +83,17 @@ test.describe("Topology page", () => {
     await expect(
       page.getByText("The network map is live", { exact: false }),
     ).toBeVisible();
-    await expect(
-      page.getByText("Set up network device monitoring"),
-    ).toBeVisible();
+    /*
+     * The way forward from an empty map is the Add Device form itself: the
+     * link carries ?open=add-device, which opens it on the Devices list.
+     */
+    const addDeviceLink: Locator = page.getByRole("link", {
+      name: "Add a device",
+    });
+    await expect(addDeviceLink).toBeVisible();
+    expect(await addDeviceLink.getAttribute("href")).toContain(
+      "network-devices?open=add-device",
+    );
     expect(page.url()).toContain("tab=Network");
 
     /*

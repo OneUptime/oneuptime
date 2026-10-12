@@ -738,3 +738,62 @@ describe("infrastructure page guidance", () => {
     expect(section).toContain('"namespace":"production"');
   });
 });
+
+describe("network device transceiver guidance", () => {
+  test("a network device page routes optics questions to query_network_transceivers with its id", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.NetworkDevice,
+      entityId: ENTITY_ID,
+      entityTitle: "core-switch-1",
+    });
+
+    expect(section).toContain(
+      `call query_network_transceivers with networkDeviceId="${ENTITY_ID}"`,
+    );
+    expect(section).toContain("received power over the last weeks");
+  });
+
+  test("the network devices list names the tool without inventing a device", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.ResourcesList,
+      resourceType: AIResourceType.NetworkDevice,
+    });
+
+    expect(section).toContain(
+      "call query_network_transceivers with its networkDeviceId",
+    );
+    expect(section).not.toContain(ENTITY_ID);
+  });
+
+  test.each(
+    Object.values(AIResourceType).filter((resourceType: AIResourceType) => {
+      return resourceType !== AIResourceType.NetworkDevice;
+    }),
+  )("%s pages do not mention transceivers", (resourceType: AIResourceType) => {
+    expect(
+      buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType,
+        entityId: ENTITY_ID,
+      }),
+    ).not.toContain("query_network_transceivers");
+  });
+
+  test("the system prompt sends interface trouble on a network device to the optics", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-10-09T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+    const line: string | undefined = prompt
+      .split("\n")
+      .find((candidate: string): boolean => {
+        return candidate.startsWith("- For a network device's transceivers");
+      });
+
+    expect(line).toBeDefined();
+    expect(line).toContain("query_network_transceivers");
+    expect(line).toContain("interface is down or logging errors");
+    expect(TOOLBOX_TOOL_NAMES.has("query_network_transceivers")).toBe(true);
+  });
+});

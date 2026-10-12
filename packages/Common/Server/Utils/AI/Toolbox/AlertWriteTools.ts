@@ -1,10 +1,15 @@
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import AlertService from "../../../Services/AlertService";
+import WorkspaceMemberActions, {
+  WorkspaceEvent,
+  WorkspaceEventType,
+} from "../../Workspace/WorkspaceMemberActions";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
@@ -15,19 +20,23 @@ import {
 } from "./ToolTypes";
 
 /*
+ * Acknowledging or resolving an alert changes its state: the permission to
+ * create its state timeline row, as the dashboard's state panel asks.
+ *
  * Derived from the model ACL so the tool gate can never drift from RBAC.
  * Resolved lazily rather than at module load: this module is pulled in through
- * the service import graph before the Alert model class is fully wired up, so
+ * the service import graph before the model classes are fully wired up, so
  * calling a model method at import time throws a circular-dependency
  * TypeError. By the time a tool actually executes, every module is loaded.
  */
-let cachedUpdatePermissions: Array<Permission> | null = null;
-const resolveUpdatePermissions: () => Array<Permission> =
+let cachedStateChangePermissions: Array<Permission> | null = null;
+const resolveStateChangePermissions: () => Array<Permission> =
   (): Array<Permission> => {
-    if (!cachedUpdatePermissions) {
-      cachedUpdatePermissions = new Alert().getUpdatePermissions();
+    if (!cachedStateChangePermissions) {
+      cachedStateChangePermissions =
+        new AlertStateTimeline().getCreatePermissions();
     }
-    return cachedUpdatePermissions;
+    return cachedStateChangePermissions;
   };
 
 async function changeAlertStateTool(data: {
@@ -44,14 +53,13 @@ async function changeAlertStateTool(data: {
     );
   }
 
-  const userId: ObjectID | undefined = ctx.props.userId;
-  if (!userId) {
+  if (!ctx.props.userId) {
     throw new BadDataException(
       "No authenticated user in context; cannot change the alert.",
     );
   }
 
-  // Confirm the alert is visible to this user under their RBAC.
+  // The alert as the person reads it, for the answer below.
   const alert: Alert | null = await AlertService.findOneById({
     id: alertId,
     select: {
@@ -68,10 +76,25 @@ async function changeAlertStateTool(data: {
     );
   }
 
+  /*
+   * The change is the alert state timeline row the dashboard's state panel
+   * creates, created as the person who asked (WorkspaceMemberActions): held
+   * to their permission to change the alert's state, their labels and
+   * owners and the project's plan, and credited to them in the alert's
+   * timeline and feed.
+   */
+  const event: WorkspaceEvent = {
+    type: WorkspaceEventType.Alert,
+    id: alertId,
+  };
+
   if (verb === "acknowledge") {
-    await AlertService.acknowledgeAlert(alertId, userId);
+    await WorkspaceMemberActions.acknowledge({
+      event: event,
+      props: ctx.props,
+    });
   } else {
-    await AlertService.resolveAlert(alertId, userId);
+    await WorkspaceMemberActions.resolve({ event: event, props: ctx.props });
   }
 
   const newStateName: string =
@@ -130,7 +153,7 @@ export const AcknowledgeAlertTool: ObservabilityTool = {
     required: ["alertId"],
   },
   get requiredPermissions(): Array<Permission> {
-    return resolveUpdatePermissions();
+    return resolveStateChangePermissions();
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
@@ -159,7 +182,7 @@ export const ResolveAlertTool: ObservabilityTool = {
     required: ["alertId"],
   },
   get requiredPermissions(): Array<Permission> {
-    return resolveUpdatePermissions();
+    return resolveStateChangePermissions();
   },
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {

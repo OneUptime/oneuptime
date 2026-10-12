@@ -2,9 +2,9 @@
 
 {{> Logo this}}
 
-{{> EmailTitle title="ACTION REQUIRED: OneUptime Probe cannot monitor your resources." }}
+{{> EmailTitle title=(concat "ACTION REQUIRED: " (brandName) " Probe cannot monitor your resources.") }}
 
-{{> InfoBlock info="We have detected that the OneUptime Probe is offline and cannot monitor your resources. This may be due to a network issue, a firewall blocking the probe, or the probe being powered off. Please take the necessary steps to bring the probe back online." }}
+{{> InfoBlock info=(concat "We have detected that the " (brandNameHtml) " Probe is offline and cannot monitor your resources. This may be due to a network issue, a firewall blocking the probe, or the probe being powered off. Please take the necessary steps to bring the probe back online.") }}
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Probe Name: " text=probeName  }}

@@ -27,7 +27,7 @@ Useful columns on an inventory item:
 | `source` | `discovered`, `inventory`, or `manual` |
 | `description` | Free text |
 | `identifyingAttributes` | The immutable attribute set that defines this thing's identity |
-| `descriptiveAttributes` | Mutable observed metadata — see [Host asset attributes](#host-asset-attributes) and [Network device asset attributes](#network-device-asset-attributes) below |
+| `descriptiveAttributes` | Mutable observed metadata — see [Asset details](#asset-details), [Host asset attributes](#host-asset-attributes) and [Network device asset attributes](#network-device-asset-attributes) below |
 | `customFields` | Your own fields, keyed by field name |
 | `resourceType` / `resourceId` | Pointer to the richer OneUptime record, when one exists |
 | `firstSeenAt` / `lastSeenAt` | Observation window |
@@ -90,7 +90,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Each network device's `descriptiveAttributes` carries its serial number, MAC address, make, model and firmware — see [Network device asset attributes](#network-device-asset-attributes) below. Anything else the poller knows (site, role, interfaces, neighbors) lives on the Network Device record itself: follow `resourceId` to `/api/network-device/:id/get-item`, or pull `/api/network-device/get-list` directly.
+Each network device's `descriptiveAttributes` carries its hostname, IP address, serial number, MAC address, make, model, firmware, operating system, role, site and location — see [Network device asset attributes](#network-device-asset-attributes) below. What else the poller knows (interfaces, neighbors) lives on the Network Device record itself: follow `resourceId` to `/api/network-device/:id/get-item`, or pull `/api/network-device/get-list` directly.
 
 ### As CSV
 
@@ -105,7 +105,27 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
   -o inventory.csv
 ```
 
-The inventory list in the dashboard exports the same way, including whichever custom field columns you have turned on.
+The inventory list in the dashboard exports the same way, including whichever custom field columns you have turned on. Each [asset detail](#asset-details) is a column there too — **Hostname**, **IP Address**, **Serial Number**, **Model** and the rest start hidden; turn them on from the column picker and the export carries one column per fact, whether a row is a host or a network device.
+
+## Asset Details
+
+Hosts and network devices are described by the same facts, stored under the same keys. One CMDB column holds the serial number whether a row is a server or a switch, and an item's **Asset Details** card in the dashboard shows every fact in the same order for both. A fact nothing has reported is shown as **Unknown** rather than left out, so a gap is visible.
+
+| Fact | Key | On a host | On a network device |
+| ---- | --- | --------- | ------------------- |
+| Hostname | `host.name` | The host's name. It is the host's identity, so it is in `identifyingAttributes` | The device's own name: its SNMP `sysName`, else the NetBIOS or DNS name discovery found. Never its IP address |
+| IP address | `host.ip` | Every address the collector reports | The address OneUptime polls, when it is an IP address |
+| MAC address | `host.mac` | Detected | Typed on the device, or learned from a walked router's ARP table |
+| Serial number | `host.serial_number` | Stamped | ENTITY-MIB |
+| Manufacturer | `device.manufacturer` | Stamped | ENTITY-MIB, else what `sysDescr` or `sysObjectID` names |
+| Model | `device.model.name` | Stamped | ENTITY-MIB, else what `sysDescr` names |
+| Firmware version | `device.firmware.version` | Stamped | ENTITY-MIB |
+| Operating system | `os.name` | `os.description` (or `os.type`) | What `sysDescr` names — Cisco IOS, Junos OS, Arista EOS, Linux |
+| OS version | `os.version` | Detected | ENTITY-MIB, else what `sysDescr` names |
+| Device type | `device.type` | Stamped. Otherwise the card classifies it from its OS and name (Server, Firewall, ...) | Its role: the one you assigned, else the one the topology map draws it as |
+| Location | `device.location` | Stamped. Otherwise the card shows its cloud zone | `sysLocation`. The card shows its site first |
+
+The [host table](#host-asset-attributes) and the [network device table](#network-device-asset-attributes) below say where each value comes from in detail.
 
 ## Host Asset Attributes
 
@@ -123,12 +143,15 @@ The inventory list in the dashboard exports the same way, including whichever cu
 | Make | `device.manufacturer` | Needs one config step |
 | Model | `device.model.name` | Needs one config step |
 | Firmware (BIOS / UEFI) version | `device.firmware.version` | Needs one config step |
+| Operating system name | `os.name` | Only from SDKs that report it — `os.description` names the OS otherwise |
+| Device type | `device.type` | Optional — stamp it the same way (`Hypervisor`, `Workstation`) |
+| Location | `device.location` | Optional — stamp it the same way (`Frankfurt DC, Rack B4`) |
 
 Everything marked *Yes* comes from the collector's `resourcedetection` processor and is already in the config OneUptime generates for you.
 
 The `cloud.*` keys need a cloud detector in that processor — `detectors: [system, env, ec2]`, or `gcp` / `azure` for the others. The shipped config runs `[system, env]` only, so those three stay empty until you add one.
 
-The last four have no resource detector — they live in the machine's firmware, read through WMI on Windows and DMI on Linux — so they are stamped onto the resource once, when the machine is provisioned. [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-mac-serial-number-make-model-firmware) has the exact snippet for each OS. `host.manufacturer`, `host.model.name`, `host.firmware.version` and `host.bios.version` are accepted as alternative spellings and stored under the `device.*` keys (and `device.serial_number` under `host.serial_number`), so a sync only ever has to read one key per fact.
+The serial number, make, model and firmware have no resource detector — they live in the machine's firmware, read through WMI on Windows and DMI on Linux — so they are stamped onto the resource once, when the machine is provisioned. A device type or location you want on the row is stamped the same way. [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-mac-serial-number-make-model-firmware) has the exact snippet for each OS. `host.manufacturer`, `host.model.name`, `host.firmware.version` and `host.bios.version` are accepted as alternative spellings and stored under the `device.*` keys (and `device.serial_number` under `host.serial_number`), so a sync only ever has to read one key per fact.
 
 `host.id` is worth a look as a correlation key if your CMDB already keys on a hardware identifier — unlike `entityKey` it is the machine's own id, so it matches what an endpoint management tool reports for the same box.
 
@@ -140,17 +163,25 @@ A **network device** (`entityType: network.device`) is mirrored from its Network
 
 | Field | Key | Where it comes from |
 | ----- | --- | ------------------- |
-| Hostname / IP | `net.device.hostname` | The address OneUptime polls |
-| DNS name | `net.device.dns_name` | The reverse-DNS name found at discovery |
+| Hostname | `host.name` | The device's own name: its SNMP `sysName`, else the NetBIOS or reverse-DNS name discovery found. Left out when only its IP address names it |
+| IP address | `host.ip` | The address OneUptime polls, when it is an IP address |
+| DNS name | `net.device.dns_name` | The reverse-DNS name found at discovery, or the DNS name OneUptime polls |
 | MAC address | `host.mac` | Typed on the device, or learned from a walked router's ARP table |
-| Make | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, else the vendor of the `sysObjectID` |
-| Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName` |
+| Make | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, else the maker `sysDescr` names, else the vendor of the `sysObjectID` |
+| Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, else the model `sysDescr` names |
 | Serial number | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev` |
-| Software / OS version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev` |
+| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, else the release a Ubiquiti `sysDescr` names |
+| Operating system | `os.name` | The operating system `sysDescr` names |
+| Software / OS version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, else the release `sysDescr` names |
 | System description | `os.description` | `sysDescr` |
+| Device type | `device.type` | The role you assigned the device, else the role the topology map classifies it as, by your project's name for it |
+| Location | `device.location` | `sysLocation`, unless it is an agent's default such as Net-SNMP's "Sitting on the Dock of the Bay" |
+| Site | `oneuptime.site.name` | The Network Site the device is assigned to |
+| Polled address | `net.device.hostname` | The address OneUptime polls — an IP address or a DNS name. Kept for syncs written before `host.name` and `host.ip` existed |
 
-The hardware rows fill in after the device's first SNMP walk, so a device monitored by ping alone — or one added but not yet polled — shows only its hostname. A device that does not implement ENTITY-MIB has no serial, model or firmware to report; its `sysDescr` usually still names the software version.
+The hardware rows fill in after the device's first SNMP walk, so a device monitored by ping alone — or one added but not yet polled — shows little more than its address. A device that does not implement ENTITY-MIB has no serial number or firmware to report. Its `sysDescr` still names the model and operating system for many platforms: a Cisco Meraki MX reports `Meraki MX85`, which fills the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.
+
+The hostname is never the IP address. A device that only its address names has `host.ip` and no `host.name`. Once its SNMP walk reports a system name, `host.name` follows on the next pass.
 
 These are copied from the Network Device record every fifteen minutes and **replace** the previous values rather than adding to them, so a value cleared on the device (a MAC removed, say) also leaves the inventory item.
 

@@ -203,7 +203,7 @@ const LITERALS_ON_EVERY_PAGE: Array<string> = [
   "configuration.md#on-call-calendar-feeds",
   "configuration.md#trusted-proxies",
   "/docs/self-hosted/private-network-access",
-  "webcals://",
+  "webcal://",
   "curl -I",
 ];
 
@@ -217,9 +217,11 @@ const DASHBOARD_UI_NAMES: Array<string> = [
   "Calendar Feeds",
   "Generate calendar link",
   "Subscribe to your on-call shifts",
+  "Add to your calendar",
   "Google Calendar",
-  "Apple / other apps",
-  "Copy webcal link",
+  "Apple Calendar / Outlook",
+  "Or copy the link",
+  "Copy link",
   "Include shifts I cover for others",
   "Days of past shifts",
   "Days ahead",
@@ -828,6 +830,89 @@ describe("Calendar Feeds docs page", () => {
           inDocs: true,
         });
       }
+    });
+
+    /*
+     * The Google Calendar fix (a customer could not add an on-call schedule
+     * to Google Calendar): the button's link carries the webcal:// form in
+     * Google's cid, the links are webcal:// rather than webcals://, and feed
+     * URLs never redirect. The page states each, in step with the code.
+     */
+    it("describes Google's add-by-URL link exactly as the code builds it", () => {
+      const links: string = readRepoFile(
+        "Common/Types/Calendar/CalendarSubscriptionLinks.ts",
+      );
+      const prefix: string =
+        links.match(
+          /GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX:\s*string\s*=\s*"([^"]+)"/,
+        )?.[1] || "";
+
+      expect(prefix).toBe("https://calendar.google.com/calendar/r?cid=");
+      expect(english).toContain(
+        `\`${prefix}\` followed by the \`webcal://\` form`,
+      );
+      expect(english).toContain('"Unable to add calendar. Check the URL."');
+    });
+
+    it("hands out webcal:// links and never tells a reader to use webcals://", () => {
+      expect(english).toContain("OneUptime no longer hands out `webcals://`");
+      expect(english).not.toMatch(/paste the `webcals?:\/\/` link/);
+      expect(english).not.toContain("Copy webcal link");
+      expect(english).not.toContain("Apple / other apps");
+    });
+
+    it("says feed URLs never redirect, as the API serves them", () => {
+      const api: string = readRepoFile(
+        "Common/Server/API/OnCallCalendarAPI.ts",
+      );
+
+      expect(api).not.toContain(".redirect(");
+      expect(english).toContain("Feed URLs never redirect.");
+    });
+
+    it("tells a self-hosted reader why Google stays empty, and how to check", () => {
+      // Two troubleshooting entries of their own, as collapsible answers.
+      expect(english).toContain(
+        ':::details Google Calendar says "Unable to add calendar. Check the URL."\n',
+      );
+      expect(english).toContain(
+        ":::details Google Calendar shows the calendar but no shifts\n",
+      );
+      expect(english).toContain("`curl -sI <link>` must answer `200`");
+      expect(english).toContain("**Last fetched … by Google Calendar**");
+    });
+
+    it("sends readers to the Calendar section of User Settings, which starts folded", () => {
+      const userSettingsMenu: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu.tsx",
+      );
+
+      expect(userSettingsMenu).toMatch(
+        /title: "Calendar",\s*defaultCollapsed: true,\s*items: \[\s*\{\s*link: \{\s*title: "Calendar Feed"/,
+      );
+      expect(english).toContain(
+        "**User Settings** > **Calendar** > **Calendar Feed**",
+      );
+      expect(english).not.toContain("**User Settings** > **Calendar Feed**");
+    });
+
+    it("says where both time zones are set: your Profile, and the schedule's Layers page", () => {
+      const profile: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index.tsx",
+      );
+      const layers: string = readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      );
+
+      expect(profile).toContain('title: "Timezone"');
+      expect(layers).toContain('title="Schedule timezone"');
+      expect(english).toContain("**Timezone** on your **Profile**");
+      expect(english).toContain(
+        "**Schedule timezone** card on its **Layers** page",
+      );
+      // The old pages sent readers to places that do not set a time zone.
+      expect(english).not.toContain("**User Settings** > **Profile**");
+      expect(english).not.toContain("under its **Settings** tab");
     });
 
     it("keeps the personal, schedule and project feed routes in step with the API", () => {

@@ -15,6 +15,7 @@ import {
 import { isFormFieldId } from "Common/Types/Form/FormField";
 import {
   findPublicFormTemplate,
+  getPublicFormForTemplate,
   PublicForm,
   PublicFormField,
   PublicFormFieldOption,
@@ -24,11 +25,15 @@ import {
   PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
 import {
+  defineOwnValue,
   FORM_MAX_TEMPLATES,
   FORM_TEMPLATE_NAME_MAX_LENGTH,
+  FormTemplateFieldSetting,
+  FormTemplateFieldSettings,
   isFormTemplateId,
+  readFormTemplateFieldSettings,
 } from "Common/Types/Form/FormTemplate";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { packPublicFormAnswers } from "Common/UI/Components/PublicForm/PublicFormFields";
 
@@ -149,8 +154,9 @@ type ReadFieldFunction = (value: unknown) => PublicFormField | null;
 
 /*
  * One question, read with the server's rules (buildPublicForm): it needs an
- * id and a label, a type this page does not know is asked as text, and a
- * choice with nothing to choose from is not asked at all.
+ * id and a label, a type this page does not know is asked as text, a choice
+ * with nothing to choose from is not asked at all, and one the form hides is
+ * asked only from a template that asks it.
  */
 const readField: ReadFieldFunction = (
   value: unknown,
@@ -174,6 +180,10 @@ const readField: ReadFieldFunction = (
 
   if (typeof value["helpText"] === "string" && value["helpText"].trim()) {
     field.helpText = value["helpText"];
+  }
+
+  if (value["isHidden"] === true) {
+    field.isHidden = true;
   }
 
   if (
@@ -217,9 +227,12 @@ type ReadTemplatesFunction = (data: {
 /*
  * The templates the server listed, read with the server's rules: each needs
  * an id and a name, an id is listed once, only the first default is one,
- * and a template keeps only its answers to the questions this page asks -
- * what each answer is, the page's inputs read (getPublicFormValuesFromAnswers)
- * and the server checks again.
+ * and a template keeps only its answers to, and its settings for, the
+ * questions this page has - a setting only when it is Required, Optional or
+ * Hidden. What each answer is, the page's inputs read
+ * (getPublicFormValuesFromAnswers) and the server checks again; which
+ * questions a template asks, and requires, the server holds the submission
+ * to as well.
  */
 const readTemplates: ReadTemplatesFunction = (data: {
   value: unknown;
@@ -263,13 +276,23 @@ const readTemplates: ReadTemplatesFunction = (data: {
     if (isPlainObject(rawAnswers)) {
       for (const key of Object.keys(rawAnswers)) {
         if (fieldIds.has(key)) {
-          Object.defineProperty(answers, key, {
-            value: rawAnswers[key],
-            enumerable: true,
-            writable: true,
-            configurable: true,
-          });
+          defineOwnValue<JSONValue>(answers, key, rawAnswers[key] as JSONValue);
         }
+      }
+    }
+
+    // Read as the server reads them, then kept for this page's questions.
+    const fieldSettings: FormTemplateFieldSettings = {};
+    const readSettings: FormTemplateFieldSettings =
+      readFormTemplateFieldSettings(entry["fieldSettings"]);
+
+    for (const key of Object.keys(readSettings)) {
+      if (fieldIds.has(key)) {
+        defineOwnValue<FormTemplateFieldSetting>(
+          fieldSettings,
+          key,
+          readSettings[key]!,
+        );
       }
     }
 
@@ -278,6 +301,10 @@ const readTemplates: ReadTemplatesFunction = (data: {
       name: entry["name"].trim().slice(0, FORM_TEMPLATE_NAME_MAX_LENGTH),
       answers: answers,
     };
+
+    if (Object.keys(fieldSettings).length > 0) {
+      template.fieldSettings = fieldSettings;
+    }
 
     if (entry["isDefault"] === true && !hasDefault) {
       template.isDefault = true;
@@ -462,10 +489,11 @@ export type BuildFormSubmissionRequestFunction = (data: {
 
 /**
  * The body of the submit request: the answers to the questions the form
- * asks, keyed by question id (packPublicFormAnswers), the template the
- * submitter started from when it is one of the form's - the server answers
- * the form's hidden questions from it - and the captcha answer when there
- * is one. Nothing else is ever sent.
+ * asks as the template the submitter started from asks them, keyed by
+ * question id (packPublicFormAnswers) - never one to a question that
+ * template hides - the template when it is one of the form's (the server
+ * asks its questions the same way, and answers the rest from it), and the
+ * captcha answer when there is one. Nothing else is ever sent.
  */
 export const buildFormSubmissionRequest: BuildFormSubmissionRequestFunction =
   (data: {
@@ -474,17 +502,25 @@ export const buildFormSubmissionRequest: BuildFormSubmissionRequestFunction =
     captchaToken?: string | undefined;
     templateId?: string | null | undefined;
   }): PublicFormSubmissionRequest => {
+    const template: PublicFormTemplate | undefined = findPublicFormTemplate(
+      data.form,
+      data.templateId,
+    );
+
     const request: PublicFormSubmissionRequest = {
       data: {
         answers: packPublicFormAnswers({
-          form: data.form,
+          form: getPublicFormForTemplate({
+            form: data.form,
+            template: template,
+          }),
           values: data.values || {},
         }),
       },
     };
 
-    if (findPublicFormTemplate(data.form, data.templateId)) {
-      request.data.templateId = data.templateId as string;
+    if (template) {
+      request.data.templateId = template.id;
     }
 
     const captchaToken: string = (data.captchaToken || "").trim();

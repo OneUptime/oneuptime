@@ -1104,6 +1104,31 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       expect(preheader).not.toContain("<");
     });
 
+    /*
+     * A root cause can quote what a monitored service answered. Its typed
+     * markup comes out of the preview line completely - where taking a tag
+     * out joins the text either side into another one, that one goes too -
+     * and a "<" typed as text stays.
+     */
+    test("the preheader takes a root cause's typed markup out completely", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          rootCause:
+            "Response <scr<script>ipt>alert(1)</script> while p99 < 200 ms",
+          seriesLabels: {
+            "resource.k8s.pod.name": "kubernetes-agent-logs-7t88f",
+          },
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["preheader"]).toBe(
+        "Response alert(1) while p99 < 200 ms \u00b7 Pod: kubernetes-agent-logs-7t88f",
+      );
+    });
+
     test("the preheader announces a flap and is capped at 160 characters", async () => {
       alertService.findAllBy.mockResolvedValue([
         makeAlert({

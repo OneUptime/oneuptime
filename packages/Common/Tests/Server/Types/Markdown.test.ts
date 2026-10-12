@@ -1,4 +1,5 @@
 import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
+import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * slugify turns a heading into the `id` the docs renderer emits, and therefore
@@ -1262,20 +1263,6 @@ describe("Markdown.convertToPlainText", () => {
   describe("properties over generated input", () => {
     const RUNS: number = 3000;
 
-    /*
-     * A 32-bit linear congruential generator: deterministic and
-     * dependency-free. Math.imul keeps the multiply exact; a plain "*" would
-     * pass 2^53, lose the low bits and cycle after a few thousand draws.
-     */
-    function makeRandom(seed: number): () => number {
-      let state: number = seed >>> 0;
-
-      return (): number => {
-        state = (Math.imul(state, 1103515245) + 12345) >>> 0;
-        return state / 4294967296;
-      };
-    }
-
     function pick<T>(random: () => number, items: Array<T>): T {
       return items[Math.floor(random() * items.length)] as T;
     }
@@ -1293,7 +1280,7 @@ describe("Markdown.convertToPlainText", () => {
     }
 
     test("returns trimmed text with no carriage return and no leftover placeholder", () => {
-      const random: () => number = makeRandom(7);
+      const random: () => number = seededRandom(7);
       const tokens: Array<string> = [
         "_",
         "__",
@@ -1350,7 +1337,7 @@ describe("Markdown.convertToPlainText", () => {
     });
 
     test("a single-line code span always comes back literally", () => {
-      const random: () => number = makeRandom(11);
+      const random: () => number = seededRandom(11);
       const codeCharacters: Array<string> =
         "_*~[]()<>&;#!/\\|=-+.: abcXYZ019".split("");
       const before: Array<string> = [
@@ -1403,7 +1390,7 @@ describe("Markdown.convertToPlainText", () => {
     });
 
     test("an intraword underscore is never removed", () => {
-      const random: () => number = makeRandom(13);
+      const random: () => number = seededRandom(13);
       const wordParts: Array<string> = [
         "a",
         "b",
@@ -1460,7 +1447,7 @@ describe("Markdown.convertToPlainText", () => {
      * the tag from being stripped, the same as held-back code does.
      */
     test("sentinel characters in the input are inert", () => {
-      const random: () => number = makeRandom(17);
+      const random: () => number = seededRandom(17);
       const sentinels: Array<string> = [
         0xe000, 0xe001, 0xe002, 0xe003, 0xe004,
       ].map((code: number) => {

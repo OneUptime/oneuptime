@@ -143,6 +143,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
 
 export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_OVERVIEW]: `overview`,
+  [PageMap.NETWORK_TRAFFIC]: `traffic`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
   [PageMap.NETWORK_DEVICE_VIEW_TABLES]: `${RouteParams.ModelID}/tables`,
@@ -205,6 +206,7 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW_DEVICES]: `view/${RouteParams.ModelID}/devices`,
   [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: `view/${RouteParams.ModelID}/child-sites`,
   [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: `view/${RouteParams.ModelID}/endpoints`,
+  [PageMap.NETWORK_SITE_VIEW_TRAFFIC]: `view/${RouteParams.ModelID}/traffic`,
   [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
   [PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE]: `view/${RouteParams.ModelID}/scheduled-maintenance`,
   [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
@@ -829,8 +831,12 @@ export const ExceptionsRoutePath: Dictionary<string> = {
 };
 
 export const LlmRoutePath: Dictionary<string> = {
-  [PageMap.LLM]: "overview",
+  // The product opens on its conversations.
+  [PageMap.LLM]: "conversations",
   [PageMap.LLM_OVERVIEW]: "overview",
+  [PageMap.LLM_CONVERSATIONS]: "conversations",
+  [PageMap.LLM_CONVERSATION_VIEW]: `conversations/${RouteParams.ModelID}`,
+  [PageMap.LLM_ALERTS]: "alerts",
   [PageMap.LLM_USAGE]: "usage",
   [PageMap.LLM_CALLS]: "calls",
   [PageMap.LLM_BUDGETS]: "budgets",
@@ -965,6 +971,10 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
   [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
+
+  // Integrations that open incidents: Huntress connections.
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: "integrations/huntress",
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]: `integrations/huntress/${RouteParams.ModelID}`,
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -1151,6 +1161,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
   [PageMap.SETTINGS_USAGE_HISTORY]: "usage-history",
   [PageMap.SETTINGS_LABELS]: "labels",
+  [PageMap.SETTINGS_IMPORT_FROM_TOOL]: "import",
 };
 
 export const UsersRoutePath: Dictionary<string> = {
@@ -2366,6 +2377,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_AI]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AI]
@@ -3164,6 +3187,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_TRAFFIC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_TRAFFIC]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
@@ -3359,6 +3388,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_TRAFFIC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_TRAFFIC]
     }`,
   ),
 
@@ -7050,6 +7085,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_IMPORT_FROM_TOOL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_IMPORT_FROM_TOOL]
+    }`,
+  ),
+
   // workflows.
   [PageMap.WORKFLOWS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/*`,
@@ -7435,6 +7476,22 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/llm/${
       LlmRoutePath[PageMap.LLM_OVERVIEW]
     }`,
+  ),
+
+  [PageMap.LLM_CONVERSATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_CONVERSATIONS]
+    }`,
+  ),
+
+  [PageMap.LLM_CONVERSATION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_CONVERSATION_VIEW]
+    }`,
+  ),
+
+  [PageMap.LLM_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_ALERTS]}`,
   ),
 
   [PageMap.LLM_USAGE]: new Route(

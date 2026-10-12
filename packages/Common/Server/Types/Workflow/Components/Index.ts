@@ -21,11 +21,13 @@ import IfElse from "./Conditions/IfElse";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
 import IncomingEmailWorkflowTrigger from "./IncomingEmail";
+import IRCSendMessageToChannel from "./IRC/SendMessageToChannel";
 import JsonToText from "./JSON/JsonToText";
 import MergeJSON from "./JSON/MergeJson";
 import TextToJSON from "./JSON/TextToJson";
 import JavaScriptCode from "./JavaScript";
 import Log from "./Log";
+import MattermostSendMessageToChannel from "./Mattermost/SendMessageToChannel";
 import ManualTrigger from "./Manual";
 import MicrosoftTeamsSendMessageToChannel from "./MicrosoftTeams/SendMessageToChannel";
 import Schedule from "./Schedule";
@@ -51,6 +53,9 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.MicrosoftTeamsSendMessageToChannel]:
     new MicrosoftTeamsSendMessageToChannel(),
   [ComponentID.TelegramSendMessageToChat]: new TelegramSendMessageToChat(),
+  [ComponentID.IRCSendMessageToChannel]: new IRCSendMessageToChannel(),
+  [ComponentID.MattermostSendMessageToChannel]:
+    new MattermostSendMessageToChannel(),
   [ComponentID.SMSEagleSendSms]: new SMSEagleSendSms(),
   [ComponentID.SMSEagleMakeCall]: new SMSEagleMakeCall(),
   [ComponentID.Log]: new Log(),

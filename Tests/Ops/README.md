@@ -235,7 +235,7 @@ config:
 - the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
   so a fork reports itself), `server.address`,
   `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
-  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+"true"` and `oneuptime.agent.version` (equal to the compose image pin), and
   deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
   `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
   Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
@@ -810,6 +810,19 @@ App; MobileApp compiles after Common in its job (its tsconfig maps `Common/*`
 to `../Common/build/dist/*`); and every step after a job's first install runs
 unless the run was cancelled, so one run reports each package that fails.
 
+### `TerraformProviderGeneratorTypeCheck.test.js`
+
+`Scripts/TerraformProvider`'s `npm run compile` type-checks the Terraform
+provider generator, `Scripts/OpenAPI/GenerateSpec.ts` and the Common sources
+they import, with Common's own compiler options (the generator's
+`tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
+and it failed with about 10,700 errors before anyone looked. The suite pins
+that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
+on every pull request and every push to master, after installing Common,
+`Scripts` and the generator in the same job (what its imports resolve from),
+before the provider is generated, with nothing that lets it fail quietly, and
+with the generator's unit tests still running when it fails.
+
 ### `CodeQlWorkflow.test.js`
 
 `.github/workflows/codeql.yml` is CodeQL's advanced setup, to replace the
@@ -819,6 +832,18 @@ languages with the same build modes and default query suite under the same
 categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
+
+It also pins the configuration the setup reads,
+`.github/codeql/codeql-config.yml`: a `paths-ignore` and nothing else (queries,
+packs or threat models would change what default setup analysed), naming only
+`packages/Common/Server/Static/Vendor`, the third-party browser assets vendored
+for offline installs. So that list cannot grow to hide OneUptime's own code,
+every directory on it must be a plain path with a README that says it holds
+vendored third-party files, names the configuration, and lists every file in
+it with its source under `## Contents` - a file added there without its row
+fails, as does a row whose file is gone. The suite also checks that the
+product code guard (`packages/Common/Tests/Helpers/CodeScanning.ts`) reads the
+same list rather than keeping its own.
 
 ### `JestIgnorePatterns.test.js`
 
@@ -835,6 +860,48 @@ config ignores, that such a directory inside a package is not ignored either,
 and that each package's build output, its `node_modules` and App's recorder
 suites still are. Write entries as whole path segments: `"/dist/"` for a name
 at any depth, `"<rootDir>/build/"` for one directory of the package.
+
+### `OssScannerImage.test.js`
+
+`.oss-scanner/` is OneUptime's enrolment in Anthropic's OSS Scanner, which
+builds `.oss-scanner/Dockerfile` from master and studies the image with no
+network (`.oss-scanner/README.md`). Nothing else runs those files, so the
+suite holds them to the repository:
+
+- every directory with a tracked `package.json` or `go.mod` is installed
+  (`npm ci` from its committed lockfile, after every project it links with
+  `file:`) and built (its `compile`, or the App's `build-frontends:prod`
+  bundles it), or sits on a `# not built: <dir> - <reason>` line; a listed
+  directory that is gone fails too;
+- every `FROM` is pinned by digest, on the Probe image's Node base (the Node
+  major of every `Dockerfile.tpl` and the root `engines`), the ClickHouse
+  image `docker-compose.base.yml` runs, its Postgres major, and the Go version
+  of the Infrastructure Agent's `go.mod` on the same Debian release;
+- the files are committed and not ignored (the repo-wide `**/Dockerfile`
+  rule once swallowed a hand-written Dockerfile), and the rendered service
+  Dockerfiles still are;
+- `Dockerfile.dockerignore` keeps every tracked file, and the Dockerfile stops
+  on the paths the root `.dockerignore` leaves out (read with a matcher of
+  Docker's own rules);
+- `config.env` carries CI's test settings from `packages/Common/test-setup.sh`,
+  only settings something reads, and no placeholder secret; the datastores
+  listen where it, the dev stack and `start-services.sh` say; ClickHouse runs
+  the drop-ins compose mounts; the Probe's browsers and native helpers are
+  where the Probe image puts and the Probe loads them; every `/usr/src` path
+  the server code hard-codes is linked;
+- the threat model has the scanner template's sections, names every compose
+  service, boundary and entry point, and every path, link and test file it
+  cites exists; `project.yaml` passes the rules of the scanner's
+  `tools/validate.py`;
+- the scripts parse, pass `shellcheck` when it is installed, and
+  `run-in-parallel.sh` and `start-services.sh` are run for real in a scratch
+  copy.
+
+The "Ops Config Test" workflow also runs `docker buildx build --check` over
+the Dockerfile. It does not build the image: that is about 10 GB, more than a
+standard runner has to spare, and the scanner emails security@oneuptime.com
+when its build fails. `.oss-scanner/README.md` says how to build it locally
+with the scanner's own tools.
 
 ### `agent-ebpf-e2e/`
 

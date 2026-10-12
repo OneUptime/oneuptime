@@ -55,8 +55,13 @@ export default class MonitorDestinationUtil {
             error: null,
           };
 
+        /*
+         * An NTP server is a host like a Port target is: a name or an
+         * address, optionally with ":port" ("ntp.example.com:1123").
+         */
         case MonitorType.Ping:
-        case MonitorType.Port: {
+        case MonitorType.Port:
+        case MonitorType.NTP: {
           const host: string = HostAddressUtil.stripBrackets(value);
 
           if (IP.isIP(host)) {

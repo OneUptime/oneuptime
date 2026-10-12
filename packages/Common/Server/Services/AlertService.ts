@@ -10,7 +10,6 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import AlertCustomField from "../../Models/DatabaseModels/AlertCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -27,7 +26,7 @@ import LinkedAffectedResources, {
 } from "../Utils/AffectedResources/LinkedAffectedResources";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -37,6 +36,8 @@ import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
@@ -60,9 +61,7 @@ import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   ALERT_EPISODE_REFERENCE,
 } from "../Utils/Episode/EpisodeMembershipReference";
-import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
@@ -320,27 +319,37 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Acknowledges the alert, as the user: moves it into its project's
-   * acknowledged state - the first from the top flagged acknowledged. One
-   * that is acknowledged already, or further along, is refused with a
-   * sentence that says which (Common/Utils/AcknowledgedState) rather than
-   * moved back up its list - whichever channel asked: Slack, Microsoft
-   * Teams, OneUptime AI.
+   * Acknowledges the alert: moves it into its project's acknowledged state
+   * - the first from the top flagged acknowledged. One that is acknowledged
+   * already, or further along, is refused with a sentence that says which
+   * (Common/Utils/AcknowledgedState) rather than moved back up its list.
+   * The alert is read, and its state timeline row created, with `props`: a
+   * person's props hold the acknowledge to their read of the alert and
+   * their permission to create the row, and credit it to them; root props
+   * credit `acknowledgedByUserId`.
+   *
+   * A person's acknowledge is the state timeline row created with their own
+   * props: the dashboard creates it through the API, and Slack, Microsoft
+   * Teams and OneUptime AI through WorkspaceMemberActions. What is left here
+   * is OneUptime's own acknowledge, made once a responder has answered an
+   * on-call page about the alert (UserOnCallLogTimelineService), which says
+   * so by passing root props.
    */
   @CaptureSpan()
-  public async acknowledgeAlert(
-    alertId: ObjectID,
-    acknowledgedByUserId: ObjectID,
-  ): Promise<void> {
+  public async acknowledgeAlert(data: {
+    alertId: ObjectID;
+    acknowledgedByUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const { alertId, acknowledgedByUserId } = data;
+
     const alert: Model | null = await this.findOneById({
       id: alertId,
       select: {
         projectId: true,
         currentAlertStateId: true,
       },
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     if (!alert || !alert.projectId) {
@@ -386,9 +395,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await AlertStateTimelineService.create({
       data: alertStateTimeline,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
   }
 
@@ -433,6 +440,33 @@ export class Service extends ProjectReferencesService<Model> {
       await this.getMonitorChangesForUpdate(updateBy);
 
     await this.validateProjectScopedReferences(updateBy);
+
+    /*
+     * An update that writes the alert's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of alert states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.Alert,
+      updateBy: updateBy,
+      stateKeys: ALERT_STATE_KEYS,
+      stateModelName: "Alert State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (projectId: ObjectID): Promise<Array<AlertState>> => {
+        return AlertStateService.getAllAlertStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
 
     /*
      * Two cases, one call. The Custom Fields modal saves the WHOLE bag back
@@ -661,43 +695,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The alerts an update will write to, as they are stored, for the check
-   * above.
+   * The alerts an update writes, as they are stored, for the checks above -
+   * the ones its caller may write, with the update held to them
+   * (findRowsAndHoldUpdateToThem), so no alert is written that a check did
+   * not see.
    *
    * Read as root: the answer only decides whether the update may go ahead,
    * and the update itself is still checked against the caller's permissions
    * afterwards. Reading with the caller's props would fail the whole edit for
-   * a role that may edit alerts but not read these columns. The query already
-   * carries the caller's privacy filter (applyAlertSelfPrivacyFilter), but
-   * not their tenant: the update's permission check adds it only after this
-   * hook runs. So a non-root caller's read is limited to their own project
-   * here, or a request for another project's alert id would be answered with
-   * that alert's state (a refusal that depends on it) instead of the usual
-   * "nothing updated".
+   * a role that may edit alerts but not read these columns. The query
+   * carries the caller's privacy filter (applyAlertSelfPrivacyFilter), and a
+   * request for another project's alert id reads nothing, so it is answered
+   * with the usual "nothing updated" rather than that alert's state.
    */
   private async findAlertsForUpdateHook(data: {
     updateBy: UpdateBy<Model>;
     select: Select<Model>;
   }): Promise<Array<Model>> {
-    const updateBy: UpdateBy<Model> = data.updateBy;
-
-    const query: Query<Model> =
-      !updateBy.props.isRoot && updateBy.props.tenantId
-        ? {
-            ...updateBy.query,
-            projectId: updateBy.props.tenantId,
-          }
-        : updateBy.query;
-
-    return await this.findBy({
-      query: query,
-      select: data.select,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(data.updateBy, data.select);
   }
 
   /*
@@ -754,18 +769,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each alert the query actually matches.
+     * The project of every alert the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * alert's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -871,32 +887,6 @@ export class Service extends ProjectReferencesService<Model> {
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const alerts: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const alert of alerts) {
-      if (alert.projectId) {
-        projectIds[alert.projectId.toString()] = alert.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -2357,21 +2347,17 @@ ${alertSeverity.name}
       deleteBy.props,
     );
 
-    const alerts: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The alerts the delete removes, and the delete held to them.
+    const alerts: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         monitor: {
           _id: true,
         },
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -2384,10 +2370,14 @@ ${alertSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.alerts) {
-      for (const alert of onDelete.carryForward.alerts) {
+      // The alerts the delete removed, of those onBeforeDelete read.
+      for (const alert of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.alerts,
+        deletedIds: deletedIds,
+      })) {
         if (alert.projectId && alert.id) {
           const metricRetentionDays: number =
             await this.getMetricRetentionDays();
@@ -2966,59 +2956,6 @@ ${alertSeverity.name}
       number: alert.alertNumber ? Number(alert.alertNumber) : null,
       numberWithPrefix: alert.alertNumberWithPrefix || null,
     };
-  }
-
-  @CaptureSpan()
-  public async resolveAlert(
-    alertId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    const alert: Model | null = await this.findOneById({
-      id: alertId,
-      select: {
-        projectId: true,
-        alertNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alert || !alert.projectId) {
-      throw new BadDataException("Alert not found.");
-    }
-
-    // The project's resolved state: the first from the top flagged resolved.
-    const alertState: AlertState =
-      await AlertStateService.getResolvedAlertState({
-        projectId: alert.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!alertState.id) {
-      throw new BadDataException(
-        "Resolved state not found for this project. Please add resolved state from settings.",
-      );
-    }
-
-    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
-    alertStateTimeline.projectId = alert.projectId;
-    alertStateTimeline.alertId = alertId;
-    alertStateTimeline.alertStateId = alertState.id;
-    alertStateTimeline.createdByUserId = resolvedByUserId;
-
-    await AlertStateTimelineService.create({
-      data: alertStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store alert metric
-
-    return alert;
   }
 
   /**

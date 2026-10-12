@@ -9,7 +9,7 @@ import Model, {
 } from "../../Models/DatabaseModels/AIAgent";
 import AIAgentOwnerUser from "../../Models/DatabaseModels/AIAgentOwnerUser";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AIAgentOwnerTeam from "../../Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -280,19 +280,14 @@ export class Service extends ProjectReferencesService<Model> {
       aiAgentsToNotifyOwners: [],
     };
 
-    if (updateBy.data.connectionStatus && updateBy.query._id) {
-      const aiAgents: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+    if (updateBy.data.connectionStatus) {
+      const aiAgents: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           connectionStatus: true,
         },
-        skip: 0,
-        limit: LIMIT_MAX,
-      });
+      );
 
       const aiAgentsToNotifyOwners: Array<Model> = aiAgents.filter(
         (aiAgent: Model) => {

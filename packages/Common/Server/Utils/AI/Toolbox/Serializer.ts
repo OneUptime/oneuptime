@@ -1,10 +1,18 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * Prepares tool results for the LLM prompt: redacts likely secrets/PII,
- * truncates long fields, and caps total payload size. Everything that enters
- * the prompt (and therefore leaves for the LLM provider, and is previewed in
- * LlmLog.requestPrompt) passes through here first.
+ * leaves embedded files out, truncates long fields, and caps total payload
+ * size. Everything that enters the prompt (and therefore leaves for the LLM
+ * provider, and is previewed in LlmLog.requestPrompt) passes through here
+ * first.
+ *
+ * An incident's description can hold a synthetic monitor's screenshot -
+ * hundreds of kilobytes of base64 in a data: URL. Left in, it filled the
+ * field's MAX_FIELD_LENGTH with base64 and cut off the words after it; so
+ * every value goes through redactAndOmitEmbeddedData, which puts a short
+ * note where the image was ("[image omitted: PNG, 340 KB]") before it is cut.
  */
 
 /*
@@ -162,6 +170,28 @@ export default class ToolResultSerializer {
     return { text: redacted, count };
   }
 
+  /*
+   * Redaction, with the data embedded in the text left out around it
+   * (PromptText): data: URLs first, so a screenshot's megabytes of base64
+   * never reach the rules - they read everything else exactly as it was -
+   * and any long run of base64 last, because a secret glued to one would
+   * otherwise lose its first part, and with it the shape a rule knows it by.
+   * Every caller that redacts text for a model goes through here.
+   */
+  public static redactAndOmitEmbeddedData(text: string): {
+    text: string;
+    count: number;
+  } {
+    const redacted: { text: string; count: number } = this.redact(
+      PromptText.omitDataUrls(text).text,
+    );
+
+    return {
+      text: PromptText.omitEncodedRuns(redacted.text).text,
+      count: redacted.count,
+    };
+  }
+
   // Byte-accurate truncation (substring counts UTF-16 units, not bytes).
   private static truncateToBytes(text: string, maxBytes: number): string {
     if (Buffer.byteLength(text, "utf8") <= maxBytes) {
@@ -224,7 +254,8 @@ export default class ToolResultSerializer {
           continue;
         }
 
-        const redacted: { text: string; count: number } = this.redact(rawValue);
+        const redacted: { text: string; count: number } =
+          this.redactAndOmitEmbeddedData(rawValue);
         redactionCount += redacted.count;
 
         const truncated: { value: string; truncated: boolean } =
@@ -282,7 +313,8 @@ export default class ToolResultSerializer {
     text: string,
     rowCount: number,
   ): SerializedResult {
-    const redacted: { text: string; count: number } = this.redact(text);
+    const redacted: { text: string; count: number } =
+      this.redactAndOmitEmbeddedData(text);
     let output: string = redacted.text;
     let isTruncated: boolean = false;
 

@@ -46,6 +46,39 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import {
+  fitTextsToBudget,
+  MAX_CALL_TWIML_LENGTH,
+  TRUNCATED_TEXT_NOTE_PLAIN,
+} from "Common/Utils/MessageFit";
+
+/*
+ * How long a text is once Twilio's TwiML builder has escaped it: "&", "<"
+ * and ">" as references, quotes as they are.
+ */
+const getTwimlTextLength: (text: string) => number = (text: string): number => {
+  if (typeof text !== "string") {
+    return 0;
+  }
+
+  let length: number = text.length;
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === 0x26) {
+      length += 4; // &amp;
+    } else if (code === 0x3c || code === 0x3e) {
+      length += 3; // &lt; &gt;
+    }
+  }
+
+  return length;
+};
+
+// generateTwimlForCall cuts a call's texts shorter at most this many times.
+const MAX_TWIML_FIT_ATTEMPTS: number = 4;
 
 /**
  * Extracts the main sayMessage values from a CallRequest's data array for call summary.
@@ -106,7 +139,11 @@ export default class CallService {
     let outcome: "success" | "failure" = "success";
 
     try {
-      await this.makeCallInternal(callRequest, options);
+      await this.makeCallInternal(
+        // The installation's own name in what the call says, when it goes by one.
+        ProductBrandingText.brandCallRequest(callRequest),
+        options,
+      );
     } catch (err) {
       outcome = "failure";
       throw err;
@@ -498,17 +535,85 @@ export default class CallService {
     }
   }
 
+  /*
+   * The TwiML a call is made with. Twilio refuses TwiML of more than
+   * MAX_CALL_TWIML_LENGTH characters, and the call is not made: a call whose
+   * spoken texts make it longer - a template that placed a description -
+   * has them cut, the longest first and all to about the same length, each
+   * ending with a note that the rest is in OneUptime (fitTextsToBudget). The
+   * TwiML is built again and measured, and the texts cut shorter while it is
+   * still over. A call that fits is made as it always was.
+   */
   public static generateTwimlForCall(callRequest: CallRequest): string {
+    const spoken: Array<string> = [];
+
+    const twiml: string = this.buildTwimlForCall(
+      callRequest,
+      (text: string): string => {
+        spoken.push(text);
+        return text;
+      },
+    );
+
+    if (twiml.length <= MAX_CALL_TWIML_LENGTH) {
+      return twiml;
+    }
+
+    // What the TwiML takes besides its texts: each text one character.
+    const overhead: number =
+      this.buildTwimlForCall(callRequest, (): string => {
+        return "x";
+      }).length - spoken.length;
+
+    let budget: number = MAX_CALL_TWIML_LENGTH - overhead;
+    let fittedTwiml: string = twiml;
+
+    for (
+      let attempt: number = 0;
+      attempt < MAX_TWIML_FIT_ATTEMPTS && budget > 0;
+      attempt++
+    ) {
+      const fitted: Array<string> = fitTextsToBudget(spoken, budget, {
+        measure: getTwimlTextLength,
+        getNote: (): string => {
+          return TRUNCATED_TEXT_NOTE_PLAIN;
+        },
+      });
+
+      let next: number = 0;
+
+      fittedTwiml = this.buildTwimlForCall(callRequest, (): string => {
+        return fitted[next++] ?? "";
+      });
+
+      if (fittedTwiml.length <= MAX_CALL_TWIML_LENGTH) {
+        return fittedTwiml;
+      }
+
+      budget -= fittedTwiml.length - MAX_CALL_TWIML_LENGTH;
+    }
+
+    return fittedTwiml;
+  }
+
+  /*
+   * The TwiML for a call, each text it speaks as `say` has it: in the order
+   * the call speaks them.
+   */
+  private static buildTwimlForCall(
+    callRequest: CallRequest,
+    say: (text: string) => string,
+  ): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
 
     for (const item of callRequest.data) {
       if ((item as Say).sayMessage) {
-        response.say((item as Say).sayMessage);
+        response.say(say((item as Say).sayMessage));
       }
 
       if ((item as GatherInput) && (item as GatherInput).numDigits > 0) {
-        response.say((item as GatherInput).introMessage);
+        response.say(say((item as GatherInput).introMessage));
 
         response.gather({
           numDigits: (item as GatherInput).numDigits,
@@ -527,7 +632,7 @@ export default class CallService {
           method: "POST",
         });
 
-        response.say((item as GatherInput).noInputMessage);
+        response.say(say((item as GatherInput).noInputMessage));
       }
     }
 

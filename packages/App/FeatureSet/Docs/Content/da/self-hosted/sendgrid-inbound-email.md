@@ -1,267 +1,179 @@
-# SendGrid indgående e-mail-integration
+# SendGrid indgående e-mail
 
-OneUptimes **Indgående e-mailmonitor** giver dig mulighed for at oprette og løse advarsler baseret på e-mails sendt til unikke monitor-specifikke e-mailadresser. Dette er nyttigt til integration med ældre systemer, advarselsværktøjer eller enhver tjeneste, der kan sende e-mails.
+OneUptimes **Incoming Email Monitor** lader dig oprette og løse alarmer ud fra e-mails, der sendes til unikke, monitorspecifikke e-mailadresser. Det er nyttigt til at integrere ældre systemer, alarmeringsværktøjer eller enhver tjeneste, der kan sende e-mails.
 
-Denne guide forklarer, hvordan du opsætter SendGrid Inbound Parse til at videresende indgående e-mails til din selvhostede OneUptime-instans.
+Den samme opsætning lader også workflows modtage e-mail: Et workflow med triggeren **Incoming Email** får sin egen adresse på det samme domæne, og hver e-mail til den starter workflowet. Se [Triggere](/docs/workflows/triggers#incoming-email).
+
+Denne vejledning forklarer, hvordan du sætter SendGrid Inbound Parse op til at videresende indgående e-mails til din selvhostede OneUptime-instans. OneUptime Cloud har ikke brug for noget af det: Dér virker adresserne med det samme.
+
+:::cards
+- [Før du går i gang](#forudsætninger): En SendGrid-konto, et domæne og en offentlig HTTPS-adresse.
+- [Opsætning](#opsætningsvejledning): Syv trin, fra MX-posten til en test-e-mail.
+- [Miljøvariabler](#reference-for-miljøvariabler): De tre indstillinger og deres standardværdier.
+- [Fejlfinding](#fejlfinding): E-mails, der aldrig kommer frem, og webhooks, der fejler.
+:::
+
+## Sådan fungerer det
+
+```mermaid title="Sådan når en e-mail frem til en monitor"
+sequenceDiagram
+    participant Sender as Afsendende mailserver
+    participant SendGrid as SendGrid Inbound Parse
+    participant OneUptime as OneUptime
+    Sender->>SendGrid: E-mail til monitorens adresse (din MX-post)
+    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Knyt adressen til en monitor eller et workflow
+    OneUptime-->>SendGrid: 200 OK
+```
+
+1. Du opretter en **Incoming Email Monitor** i OneUptime
+2. OneUptime genererer en unik e-mailadresse til den monitor (f.eks. `monitor-abc123@inbound.yourdomain.com`)
+3. Når der sendes en e-mail til den adresse, modtager SendGrid den og videresender den til OneUptime via webhook
+4. OneUptime vurderer e-mailen ud fra de kriterier, du har sat op, for at oprette eller løse alarmer
 
 ## Forudsætninger
 
 - En SendGrid-konto med adgang til Inbound Parse
-- Et domæne, du kontrollerer, med adgang til DNS-indstillinger
-- Et offentligt HTTPS-endpoint, der videresender SendGrid-webhooks til OneUptime
+- Et domæne, du har kontrol over, med adgang til DNS-indstillingerne
+- Et offentligt HTTPS-endpoint, der videresender SendGrid-webhooks til din OneUptime-instans
 
 ## Netværksadgang
 
-Inbound Parse kræver, at SendGrid opretter forbindelse til OneUptime. Kun udgående internetadgang er ikke tilstrækkeligt.
+Med Inbound Parse er det SendGrid, der opretter forbindelsen til OneUptime. Det er ikke nok kun at tillade udgående internetadgang fra OneUptime.
 
 | Retning | Destination | Protokol / port | Formål |
 | --- | --- | --- | --- |
-| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | Lever analyseret e-mail som multipart POST. |
-| Afsendende mailservere → SendGrid | `mx.sendgrid.net`, via modtagerdomænets offentlige MX-post | SMTP / TCP 25 | Modtag e-mail hos SendGrid, ikke på OneUptime. |
-| OneUptime → SendGrid, kun ved separat konfigureret e-mailafsendelse | `api.sendgrid.com` | HTTPS / TCP 443 | Send notifikationer med Mail Send API. |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | Levere den parsede e-mail som et multipart-POST. |
+| Afsendende mailservere → SendGrid | `mx.sendgrid.net`, valgt via den offentlige MX-post for dit indgående domæne | SMTP / TCP 25 | Modtage e-mail hos SendGrid; denne forbindelse går ikke til din OneUptime-server. |
+| OneUptime → SendGrid, kun når afsendelse af e-mail via SendGrid-udbyderen er sat op særskilt | `api.sendgrid.com` | HTTPS / TCP 443 | Sende notifikations-e-mails via Mail Send API'et. |
 
-Publicér DNS for webhookens værtsnavn, og brug et offentligt betroet certifikat. En privat installation kan nøjes med at eksponere webhook-stien via en offentlig reverse proxy eller gateway med intern adgang til OneUptime. Bevar sti, hemmelighed, indholdstype og multipart-indhold, og tillad POST uden interaktivt login eller browserkontrol. OneUptime behøver ingen indgående SMTP-tjeneste. Se [SendGrid-opsætning](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
+Udgiv DNS for webhookens værtsnavn, og server et certifikat, som offentlige klienter stoler på. En privat OneUptime-installation kan nøjes med at eksponere webhook-stien gennem en offentlig reverse proxy eller gateway, der kan nå OneUptime internt. Bevar stien, hemmeligheden, indholdstypen og multipart-requestens body, og lad POST'et komme igennem uden interaktivt login eller browserudfordring. OneUptime-serveren har ikke brug for en indgående SMTP-lytter. Se [SendGrids opsætning af Inbound Parse](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
 
-Sæt `INBOUND_EMAIL_WEBHOOK_SECRET` til en stærk tilfældig værdi, og erstat `YOUR_SECRET` med den. Sidste stisegment er obligatorisk. OneUptime sammenligner med den konfigurerede hemmelighed; en tom variabel deaktiverer kontrollen. Hold hele URL’en og monitorernes e-mailadresser private, også i proxylogge. OneUptime validerer endnu ikke signerede Inbound Parse-headere eller OAuth-tokens fra SendGrid. Kræves dette, skal en gateway validere før videresendelse efter [SendGrids sikkerhedsdokumentation](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
+Sæt `INBOUND_EMAIL_WEBHOOK_SECRET` til en stærk tilfældig værdi, og erstat `YOUR_SECRET` i URL'en med den værdi. Ruten kræver det sidste stisegment. OneUptime kontrollerer dets værdi, når hemmeligheden er sat; en tom variabel slår kontrollen fra. Hold den fulde URL og monitorernes e-mailadresser hemmelige, også i proxylogs. OneUptime validerer i øjeblikket hverken SendGrids signerede Inbound Parse-headere eller OAuth-tokens. Hvis du har brug for de mekanismer, så sæt en gateway op, der validerer dem, før den videresender til OneUptime, efter [SendGrids dokumentation om webhooksikkerhed](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
 
-SendGrid tilbyder ingen pålidelig statisk liste over Inbound Parse-kilde-IP’er. Afsendelses-IP’er og DNS-svar for `mx.sendgrid.net` er ikke en webhook-tilladelsesliste. Følg [SendGrids firewallvejledning](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs).
+SendGrid stiller ikke en pålidelig liste over statiske kilde-IP'er til rådighed for Inbound Parse. SendGrids IP'er til afsendelse af e-mail og de adresser, der slås op for `mx.sendgrid.net`, er ikke en tilladelsesliste for webhooks. Følg [SendGrids vejledning om firewalls](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) i stedet for at fastlåse et aktuelt DNS-resultat.
 
-Inbound Parse er adskilt fra e-mailafsendelse. Modtagelse kræver ingen SendGrid-API-kald fra OneUptime. Ved afsendelse skal DNS og udgående HTTPS til `api.sendgrid.com` tillades; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) kræver ingen indgående callback for indsendelsen. Bruger du SMTP, tillad serveren og porten konfigureret i OneUptime.
+Inbound Parse er adskilt fra afsendelse af udgående e-mail. For at modtage monitor-e-mails behøver OneUptime ikke at kalde SendGrid-API'et. Hvis du også vælger SendGrid til at sende notifikationer, så tillad DNS-opslag og udgående HTTPS til `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) behøver ikke et indgående callback for at indsende. Bruger du SMTP i stedet, så tillad den SMTP-server og port, der er sat op i OneUptime.
 
-Kontrollér offentlig MX, send e-mail til en testmonitor, og bekræft webhookmodtagelse samt oprettelse eller løsning af alarmen. En tom POST eller en afsendelsestest validerer ikke Inbound Parse.
+## Opsætningsvejledning
 
-## Sådan fungerer det
+:::steps
+### Vælg dit domæne til indgående e-mail
 
-1. Du opretter en **Indgående e-mailmonitor** i OneUptime
-2. OneUptime genererer en unik e-mailadresse til den pågældende monitor (f.eks. `monitor-abc123@inbound.yourdomain.com`)
-3. Når en e-mail sendes til den adresse, modtager SendGrid den og videresender den til OneUptime via webhook
-4. OneUptime evaluerer e-mailen mod dine konfigurerede kriterier for at oprette eller løse advarsler
+Vælg et underdomæne, der kun bruges til at modtage e-mail til OneUptime, f.eks. `inbound.yourdomain.com`, `email.yourdomain.com` eller `monitor.yourdomain.com`. Det bruges kun til e-mail til OneUptime-monitorer og -workflows, så ingen af dine postkasser ligger på det.
 
-## Opsætningsinstruktioner
+### Lad dets MX-post pege på SendGrid
 
-### Trin 1: Vælg dit indgående e-maildomæne
+Tilføj en MX-post, der sender e-mail til underdomænet videre til SendGrid:
 
-Du skal bruge et underdomæne dedikeret til modtagelse af indgående e-mails. Vi anbefaler at bruge et underdomæne som:
+| Type | Vært/Navn | Prioritet | Værdi |
+| --- | --- | --- | --- |
+| MX | inbound | 10 | mx.sendgrid.net |
 
-- `inbound.yourdomain.com`
-- `email.yourdomain.com`
-- `monitor.yourdomain.com`
+Hvis dit domæne er `example.com`, og du bruger `inbound.example.com`, lyder posten:
 
-Dette underdomæne bruges udelukkende til OneUptime-monitore-e-mails.
-
-### Trin 2: Konfigurer DNS MX-post
-
-Tilføj en MX-post til din DNS-konfiguration for at dirigere e-mails for dit indgående underdomæne til SendGrid.
-
-| Type | Host/Navn | Prioritet | Værdi           |
-| ---- | --------- | --------- | --------------- |
-| MX   | inbound   | 10        | mx.sendgrid.net |
-
-**Eksempel:** Hvis dit domæne er `example.com` og du bruger `inbound.example.com`:
-
-```
+```text
 inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 ```
 
-**Bemærk:** DNS-ændringer kan tage op til 48 timer at sprede sig, men fuldføres typisk inden for få timer.
+DNS-ændringer kan tage op til 48 timer om at slå igennem, men er som regel færdige inden for få timer.
 
-### Trin 3: Godkend dit domæne i SendGrid
+### Godkend domænet i SendGrid
 
-Modtagerdomænet skal tilhøre et af dine [godkendte domæner i SendGrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse):
+Det modtagende domæne skal høre til et af dine [godkendte domæner i SendGrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse). Gå i [SendGrid-dashboardet](https://app.sendgrid.com) til **Settings** > **Sender Authentication**, klik på **Authenticate Your Domain**, og tilføj de DNS-poster, den beder om (CNAME-poster til DKIM).
 
-1. Log ind på dit [SendGrid-dashboard](https://app.sendgrid.com)
-2. Gå til **Indstillinger** > **Afsenderautentificering**
-3. Klik på **Autentificér dit domæne**
-4. Følg prompterne for at tilføje de nødvendige DNS-poster (CNAME-poster til DKIM)
+### Tilføj Inbound Parse-webhooken
 
-### Trin 4: Konfigurer SendGrid Inbound Parse
+Gå i SendGrid-dashboardet til **Settings** > **Inbound Parse**, og klik på **Add Host & URL**. Udfyld formularen som nedenfor, og klik så på **Add**:
 
-1. Log ind på dit [SendGrid-dashboard](https://app.sendgrid.com)
-2. Naviger til **Indstillinger** > **Inbound Parse**
-3. Klik på **Add Host & URL**
-4. Konfigurer følgende:
+| Felt | Værdi |
+| --- | --- |
+| **Receiving Domain** | Dit indgående underdomæne (f.eks. `inbound.yourdomain.com`) |
+| **Destination URL** | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
+| **Check incoming emails for spam** | Valgfrit – slå til, hvis du ønsker det |
+| **Send raw, full MIME message** | Lad være umarkeret (ikke nødvendigt) |
+| **POST the raw, full MIME message** | Lad være umarkeret (ikke nødvendigt) |
 
-| Felt                                      | Værdi                                                                   |
-| ----------------------------------------- | ----------------------------------------------------------------------- |
-| **Modtagerdomæne**                        | Dit indgående underdomæne (f.eks. `inbound.yourdomain.com`)             |
-| **Destinations-URL**                      | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` |
-| **Kontroller indgående e-mails for spam** | Valgfrit – aktiver, hvis ønsket                                         |
-| **Send rå, fuld MIME-meddelelse**         | Lad stå umarkeret (ikke påkrævet)                                       |
-| **POST den rå, fulde MIME-meddelelse**    | Lad stå umarkeret (ikke påkrævet)                                       |
+### Konfigurer OneUptime
 
-5. Klik på **Add**
+Sæt variablerne til indgående e-mail, med den samme hemmelighed som i Destination URL:
 
-### Trin 5: Konfigurer OneUptime-miljøvariabler
-
-#### Docker Compose
-
-Tilføj disse miljøvariabler til din `config.env`-fil:
-
-```bash
-# Konfiguration af indgående e-mail
+:::tabs
+@tab Docker Compose
+```bash title="config.env"
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
 INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
-
-#### Kubernetes med Helm
-
-Tilføj disse til din `values.yaml`-fil:
-
-```yaml
+@tab Kubernetes
+```yaml title="values.yaml"
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
   webhookSecret: "replace-with-a-strong-random-secret"
 ```
+:::
 
-Brug samme hemmelighed i destinations-URL’en fra trin 4, og genstart OneUptime efter ændringen.
+Anvend dem derefter: Kør `npm run start` på Docker Compose, hvilket genskaber containerne med de nye værdier, eller opgrader Helm-releasen på Kubernetes.
 
-### Trin 6: Opret en Indgående e-mailmonitor
+### Opret en Incoming Email-monitor
 
-1. Log ind på dit OneUptime-dashboard
-2. Naviger til **Monitorer** > **Opret monitor**
-3. Vælg **Indgående e-mail** som monitortype
-4. Konfigurer din monitor:
-   - **Navn:** Giv din monitor et beskrivende navn
-   - **Beskrivelse:** Beskriv, hvad denne monitor er til
-5. Konfigurer **Advarselsopretnelseskriterier** (hvornår der skal oprettes en advarsel):
-   - Eksempel: E-mailemne indeholder "ADVARSEL" eller "KRITISK"
-6. Konfigurer **Advarselssolverende kriterier** (hvornår advarslen skal løses):
-   - Eksempel: E-mailemne indeholder "LØST" eller "OK"
-7. Klik på **Opret**
+[Opret en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opret-en-monitor-for-indgående-e-mail). Dens side **Oversigt** viser dens adresse, f.eks. `monitor-abc123def456@inbound.yourdomain.com`, og dens kriterier afgør, hvilke e-mails der opretter en alarm, og hvilke der løser den.
 
-Efter oprettelse vil du se den unikke e-mailadresse til denne monitor (f.eks. `monitor-abc123def456@inbound.yourdomain.com`).
+Workflows bruger det samme domæne. Tilføj triggeren **Incoming Email** til et workflow, og klik på den: Dens adresse (`workflow-…@inbound.yourdomain.com`) står øverst i dens indstillinger. Indtil variablerne til indgående e-mail ovenfor er sat, siger triggeren, at serveren ikke er sat op til at modtage e-mail.
 
-### Trin 7: Test integrationen
+### Send en test-e-mail
 
-1. Kopiér monitorens e-mailadresse fra OneUptime-dashboardet
-2. Send en test-e-mail til den adresse med et emne, der matcher dine advarselskriterier
-3. Kontroller OneUptime-dashboardet for at bekræfte:
-   - E-mailen er modtaget (synlig i Monitor-oversigt)
-   - En advarsel er oprettet (hvis kriterierne matchede)
+Send en e-mail til monitorens adresse med et emne, der matcher dens kriterier. Monitorens oversigt viser e-mailen, og der oprettes en alarm, når kriterierne matcher.
+:::
 
-## Miljøvariabelreference
+## Reference for miljøvariabler
 
-| Variabel                       | Beskrivelse                                                                                                                                                     | Påkrævet | Standard |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-| `INBOUND_EMAIL_PROVIDER`       | Den indgående e-mailudbyder, der skal bruges                                                                                                                    | Ja       | –        |
-| `INBOUND_EMAIL_DOMAIN`         | Det underdomæne, der er konfigureret til indgående e-mails                                                                                                      | Ja       | –        |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Sammenlignes med sidste segment i `/incoming-email/sendgrid/YOUR_SECRET`. Konfigurer for offentlige endpoints; tom værdi deaktiverer kontrollen. | Anbefalet | - |
+| Variabel | Helm-værdi | Beskrivelse | Påkrævet | Standard |
+| --- | --- | --- | --- | --- |
+| `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | Udbyderen af indgående e-mail. SendGrid er den eneste. | Nej | `SendGrid` |
+| `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Det underdomæne, der er sat op til indgående e-mail. Indgående e-mail er slået fra, indtil det er sat. | Ja | Tom |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighed, der sammenlignes med det sidste segment af webhook-URL'en: `/incoming-email/sendgrid/YOUR_SECRET`. Sæt den for offentlige endpoints; en tom værdi slår valideringen fra. | Anbefalet | Tom |
 
-## Understøttede e-mailkriterier
-
-Når du konfigurerer din Indgående e-mailmonitor, kan du oprette kriterier baseret på:
-
-| Felt                | Beskrivelse                            | Tilgængelige filtre                                                                                       |
-| ------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **E-mailemne**      | Emnelinjen i e-mailen                  | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mail fra**      | Afsenderens e-mailadresse              | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mailindhold**   | Den rene tekstkrop i e-mailen          | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mail til**      | Modtagerens e-mailadresse              | Indeholder, Indeholder ikke, Er lig med, Er ikke lig med, Starter med, Slutter med, Er tomt, Er ikke tomt |
-| **E-mail modtaget** | Tid siden seneste e-mail blev modtaget | Modtaget inden for minutter, Ikke modtaget inden for minutter                                             |
-
-## Eksempel på anvendelsesscenarier
-
-### Advarsler fra ældre systemer
-
-Mange ældre systemer kan kun sende e-mailadvarsler. Opret en Indgående e-mailmonitor til at:
-
-- Oprette OneUptime-advarsler, når det ældre system sender `[KRITISK]`-e-mails
-- Løse advarsler, når `[LØST]`-e-mails modtages
-
-### Integration med tredjepartstjenester
-
-Integrer med tjenester, der sender e-mailnotifikationer:
-
-- Overvågningsværktøjer uden API-integrationer
-- Cloud-udbydernotifikationer
-- Sikkerhedsscanningsværktøjer
-
-### Hjerteslag via e-mail
-
-Brug "E-mail modtaget"-kriterier for at sikre, at du modtager periodiske e-mails:
-
-- Opret advarsel, hvis ingen e-mail modtages inden for 60 minutter
-- Nyttigt til overvågning af batchjobs eller planlagte opgaver, der sender afslutnings-e-mails
+Hvad en Incoming Email-monitor kan matche på – emnet, afsenderen, brødteksten, modtageren og om en e-mail kom frem til tiden – står i [Tilgængelige filtertyper](/docs/monitor/incoming-email-monitor#tilgængelige-filtertyper).
 
 ## Fejlfinding
 
-### E-mails modtages ikke
+:::details E-mails modtages ikke
+1. **Tjek DNS-udbredelsen:** `dig MX inbound.yourdomain.com` skal returnere `mx.sendgrid.net`.
+2. **Bekræft Inbound Parse-indstillingerne i SendGrid:** Tjek dit domæne og webhook-URL'en i SendGrid-dashboardet under **Settings** > **Inbound Parse**.
+3. **Tjek OneUptimes logs:** Se efter webhook-forespørgsler for indgående e-mail, og eventuelle fejl, i logs for OneUptime-tjenesten `app`. SendGrid gemmer ingen detaljerede logs for Inbound Parse, så disse logs er optegnelsen over, hvad der kom frem.
+:::
 
-1. **Kontroller DNS-spredning:**
+:::details Webhooks fejler
+1. **Tjek den offentlige webhook-rute:** Den fulde URL, inklusive hemmeligheden, skal nå OneUptime fra internettet. URL'en uden dens sidste hemmelige segment matcher ikke ruten.
+2. **Tjek firewallreglerne:** Tillad HTTPS POST-forespørgsler til webhook-stien uden login-omdirigeringer eller browserudfordringer, og brug ikke SendGrids IP'er til afsendelse af e-mail som tilladelsesliste for webhookens kilde.
+3. **Bekræft SSL-certifikatet:** Brug et gyldigt, offentligt betroet certifikat til webhookens værtsnavn, og medtag dets certifikatkæde.
+:::
 
-   ```bash
-   dig MX inbound.yourdomain.com
-   ```
+:::details Monitoren opretter ikke alarmer
+1. **Bekræft kriterierne:** Tjek, at dine kriterier for oprettelse af alarmer matcher e-mailens indhold, og test først med eksakte strenge, før du bruger mønstre.
+2. **Tjek monitoren:** Sørg for, at den ikke er deaktiveret, og at dens type er Incoming Email.
+3. **Gennemgå monitorens oversigt:** Tjek, om e-mailen blev modtaget og behandlet, og læs evalueringslogsene for, hvordan kriterierne matchede.
+:::
 
-   Bør returnere `mx.sendgrid.net`
-
-2. **Bekræft SendGrid Inbound Parse-indstillinger:**
-
-   - Log ind på SendGrid-dashboardet
-   - Gå til Indstillinger > Inbound Parse
-   - Bekræft dit domæne og webhook-URL er korrekte
-
-3. **Kontroller OneUptime-logs:**
-   - Se efter indgående e-mail-webhooks i OneUptimes applikationslogge (Telemetry / ProbeIngest).
-   - Kontroller for eventuelle fejlmeddelelser
-
-### Webhooks mislykkes
-
-- Hele HTTPS-URL’en inklusive hemmeligheden skal kunne nås fra internettet. Uden sidste segment matcher den ikke ruten.
-- Tillad POST uden loginomdirigering eller browserkontrol. SendGrids IP-adresser til afsendelse af e-mail er ikke en liste over webhook-kilder.
-- Brug et offentligt betroet certifikat med fuld certifikatkæde. Kontrollér levering som beskrevet under Netværksadgang.
-
-### Monitor opretter ikke advarsler
-
-1. **Bekræft kriteriekonfiguration:**
-
-   - Kontroller, at dine advarselsopretnelseskriterier matcher e-mailindholdet
-   - Test med nøjagtige strenge inden du bruger mønstermatch
-
-2. **Kontroller monitorstatus:**
-
-   - Sørg for, at monitoren ikke er deaktiveret
-   - Bekræft, at monitortypen er "Indgående e-mail"
-
-3. **Gennemgå Monitor-oversigt:**
-   - Kontroller, om e-mailen er modtaget og behandlet
-   - Gennemgå evalueringsloggene for kriteriematchning
-
-### SendGrid webhook-leveringslogge
-
-For at kontrollere, om SendGrid med succes sender webhooks:
-
-1. Desværre leverer SendGrid ikke detaljerede logge til Inbound Parse
-2. Kontroller dine OneUptime-serverlogge for indgående webhook-anmodninger
-3. Brug et værktøj som [RequestBin](https://requestbin.com) til midlertidigt at teste webhook-levering
+:::details Triggeren siger, at serveren ikke er sat op til at modtage e-mail
+`INBOUND_EMAIL_DOMAIN` er tom på serveren. Sæt den, anvend ændringen, og åbn workflowets trigger igen.
+:::
 
 ## Bedste sikkerhedspraksis
 
 1. **Brug HTTPS:** Brug altid HTTPS til dit webhook-endpoint
-2. **Webhook-hemmelighed:** Konfigurer `INBOUND_EMAIL_WEBHOOK_SECRET` og inkludér det i din webhook-URL (f.eks. `/incoming-email/sendgrid/your-secret`) til yderligere validering
-3. **Domæneverifikation:** Bekræft dit domæne i SendGrid for bedre e-mailsikkerhed
-4. **Begræns adgang:** Opret kun monitorer til betroede e-mailkilder
-5. **Overvåg logs:** Gennemgå regelmæssigt indgående e-maillogge for mistænkelig aktivitet
+2. **Webhook-hemmelighed:** Sæt `INBOUND_EMAIL_WEBHOOK_SECRET`, og medtag den i din webhook-URL (f.eks. `/incoming-email/sendgrid/your-secret`) som ekstra validering
+3. **Domænebekræftelse:** Bekræft dit domæne i SendGrid for bedre e-mailsikkerhed
+4. **Begræns adgangen:** Opret kun monitorer til betroede e-mailkilder
+5. **Overvåg logs:** Gennemgå jævnligt logs for indgående e-mail for mistænkelig aktivitet
 
-## Alternative udbydere
+## Næste trin
 
-OneUptime er designet til at understøtte flere indgående e-mailudbydere. Understøttede i øjeblikket:
-
-| Udbyder             | Status       |
-| ------------------- | ------------ |
-| SendGrid            | Understøttet |
-| Haraka (selvhostet) | Planlagt     |
-
-Hvis du har brug for understøttelse af en anden udbyder, bedes du kontakte os eller indsende en funktionsanmodning.
-
-## Support
-
-Hvis du støder på problemer med SendGrid Inbound Email-integrationen:
-
-1. Kontroller fejlfindingsafsnittet ovenfor
-2. Gennemgå OneUptime-logs for detaljerede fejlmeddelelser
-3. Kontakt os på [hello@oneuptime.com](mailto:hello@oneuptime.com)
-
-Vi byder feedback til forbedring af denne integration velkommen!
+:::cards
+- [Incoming Email Monitor](/docs/monitor/incoming-email-monitor): Kriterier, adresseformater og eksempler.
+- [Workflow-triggere](/docs/workflows/triggers): Start et workflow fra en e-mail.
+- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Hvad din server må nå på dit eget netværk.
+- [Arkitektur](/docs/self-hosted/architecture): Hvor webhooken lander i en selvhostet installation.
+:::

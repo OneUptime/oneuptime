@@ -5,6 +5,7 @@ import Dictionary from "Common/Types/Dictionary";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import Models from "Common/Models/DatabaseModels/Index";
 import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
+import { isInApiReference } from "Common/Utils/ApiReferencePage";
 
 export interface ModelDocumentation {
   name: string;
@@ -19,19 +20,19 @@ export interface ModelDocumentation {
 }
 
 export default class ResourceUtil {
-  // Get all resources that should have documentation enabled
+  /*
+   * Get all resources that should have documentation enabled. Which ones is
+   * decided by isInApiReference (Common/Utils/ApiReferencePage.ts), the rule
+   * the Dashboard's Show ID dialog also reads to offer "Go to API Docs" only
+   * for a page that is here. On the billing-enabled build it leaves the
+   * master admin API docs out.
+   */
   public static getResources(): Array<ModelDocumentation> {
     const databaseResources: Array<ModelDocumentation> = Models.filter(
       (model: { new (): BaseModel }) => {
-        const modelInstance: BaseModel = new model();
-        let showDocs: boolean = modelInstance.enableDocumentation;
-
-        // If billing is enabled, do not show master admin API docs
-        if (modelInstance.isMasterAdminApiDocs && IsBillingEnabled) {
-          showDocs = false;
-        }
-
-        return showDocs;
+        return isInApiReference(new model(), {
+          isBillingEnabled: IsBillingEnabled,
+        });
       },
     ).map((model: { new (): BaseModel }) => {
       const modelInstance: BaseModel = new model();
@@ -53,16 +54,9 @@ export default class ResourceUtil {
      */
     const analyticsResources: Array<ModelDocumentation> =
       AnalyticsModels.filter((model: { new (): AnalyticsBaseModel }) => {
-        const modelInstance: AnalyticsBaseModel = new model();
-        let showDocs: boolean =
-          modelInstance.enableDocumentation &&
-          Boolean(modelInstance.crudApiPath);
-
-        if (modelInstance.isMasterAdminApiDocs && IsBillingEnabled) {
-          showDocs = false;
-        }
-
-        return showDocs;
+        return isInApiReference(new model(), {
+          isBillingEnabled: IsBillingEnabled,
+        });
       }).map((model: { new (): AnalyticsBaseModel }) => {
         const modelInstance: AnalyticsBaseModel = new model();
 

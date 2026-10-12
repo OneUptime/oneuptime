@@ -854,10 +854,11 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
   describe("the create commands in a team channel or a group chat, where anyone there may submit the form", (): void => {
     /*
-     * Whoever types the command need not be who fills the form in, so the
-     * sender is not looked up: a sender without a linked account still gets
-     * the form, for the channel. The personal-chat tests above show the check
-     * where the sender is the only one who can submit it.
+     * The form is filled in as the person who asked for it, in a channel or
+     * a group chat as in a personal chat: its lists are what they may read.
+     * So the sender is looked up wherever they ask, and a sender without a
+     * linked account is told where to connect it instead of getting a form.
+     * Whoever then submits a form in the channel is checked as themselves.
      */
     interface SharedCreateCase {
       command: CreateCommandCase;
@@ -877,7 +878,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
       );
 
     test.each(SHARED_CREATE_CASES)(
-      "'$command.name' in a $place, from a sender without a linked account: the form, and the sender is not looked up",
+      "'$command.name' in a $place, from a sender without a linked account: where to connect it, and no form",
       async (sharedCase: SharedCreateCase): Promise<void> => {
         const { command, where } = sharedCase;
         const linkTable: LinkTableSpy = stubLinkTable(null);
@@ -893,33 +894,17 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
         await command.run(turn, activity);
 
-        // One reply: the form, with its submit button.
-        expect(turn.replies).toHaveLength(1);
-        expect(JSON.parse(turn.replies[0] || "{}") as JSONObject).toMatchObject(
-          {
-            attachments: [
-              {
-                contentType: MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
-                content: {
-                  body: expect.arrayContaining([
-                    expect.objectContaining({ text: command.formTitle }),
-                  ]),
-                  actions: [
-                    expect.objectContaining({
-                      data: expect.objectContaining({
-                        action: command.submitAction,
-                      }),
-                    }),
-                  ],
-                },
-              },
-            ],
-          },
-        );
-        expect(formLists.mock.calls).toHaveLength(1);
+        // One reply: where to connect the account, and no form posted for the channel.
+        expect(turn.replies).toEqual([connectYourAccount(command.purpose)]);
+        for (const reply of turn.replies) {
+          expect(reply).not.toContain(
+            MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
+          );
+        }
 
-        // Nobody was looked up: the submit checks whoever submits it.
-        expect(linkTable).not.toHaveBeenCalled();
+        // The sender was looked up; nobody's lists were read.
+        expect(linkTable).toHaveBeenCalledTimes(1);
+        expect(formLists.mock.calls).toHaveLength(0);
         expect(memberPropsSpy).not.toHaveBeenCalled();
         expect(assertCanCreate).not.toHaveBeenCalled();
         expect(errorLog).not.toHaveBeenCalled();

@@ -21,6 +21,10 @@ import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/Netwo
 import { NetworkDevicePollMode } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import logger from "../../../../Server/Utils/Logger";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  NetworkDeviceTransceiver,
+  TransceiverHealth,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import { FindOperator } from "typeorm";
 
 /*
@@ -1695,5 +1699,253 @@ describe("NetworkInventoryUtil.updateFromWalk — monitor-backed device guard", 
     expect(update["isReachable"]).toBe(true);
     expect(update["lastPolledAt"]).toEqual(NOW);
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The transceiver snapshot arrives already merged with the stored one
+ * (NetworkDeviceWalkUtil.applyTransceivers). Inventory stores it - which
+ * optic sits in which port is inventory, like the SNMP tables - and keeps a
+ * muted port's optic out of what the criteria judge.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — transceiver snapshot", () => {
+  function optic(interfaceIndex: number): NetworkDeviceTransceiver {
+    return {
+      interfaceIndex: interfaceIndex,
+      interfaceName: `GigabitEthernet0/${interfaceIndex}`,
+      isPresent: true,
+      measurements: {},
+      health: TransceiverHealth.NotJudged,
+    };
+  }
+
+  async function runWalkWithOptics(input: {
+    snapshot: Array<NetworkDeviceTransceiver> | undefined;
+    snmpFields?: Partial<SnmpMonitorResponse> | undefined;
+  }): Promise<SnmpMonitorResponse> {
+    const snmpResponse: SnmpMonitorResponse = buildSnmpResponse(
+      input.snmpFields,
+    );
+
+    await NetworkInventoryUtil.updateFromWalk({
+      projectId: new ObjectID(PROJECT_ID),
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: snmpResponse,
+      isOnline: true,
+      transceiverSnapshot: input.snapshot,
+    });
+
+    return snmpResponse;
+  }
+
+  test("the merged snapshot is stored on the device", async () => {
+    mockServices();
+    const snapshot: Array<NetworkDeviceTransceiver> = [optic(1), optic(2)];
+
+    await runWalkWithOptics({ snapshot: snapshot });
+
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toBe(snapshot);
+  });
+
+  test("no snapshot leaves the stored one alone; an empty one is stored as empty", async () => {
+    mockServices();
+    await runWalkWithOptics({ snapshot: undefined });
+    expect(deviceUpdatePayload()).not.toHaveProperty("transceiverSnapshot");
+
+    jest.restoreAllMocks();
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    mockServices();
+    await runWalkWithOptics({ snapshot: [] });
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toEqual([]);
+  });
+
+  test("a monitor-backed device stores it too - it is inventory, not health", async () => {
+    mockServices([], {
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+    jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined;
+    });
+
+    await runWalkWithOptics({ snapshot: [optic(1)] });
+
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toEqual([optic(1)]);
+  });
+
+  test("a muted port's optic is stored but never judged", async () => {
+    const muted: NetworkInterface = existingInterface(1);
+    muted.isMonitored = false;
+    mockServices([muted, existingInterface(2)]);
+    const snapshot: Array<NetworkDeviceTransceiver> = [optic(1), optic(2)];
+
+    const snmpResponse: SnmpMonitorResponse = await runWalkWithOptics({
+      snapshot: snapshot,
+      snmpFields: {
+        interfaces: [
+          walkedInterface({ interfaceIndex: 1 }),
+          walkedInterface({
+            interfaceIndex: 2,
+            name: "GigabitEthernet0/2",
+          }),
+        ],
+        transceivers: [optic(1), optic(2)],
+      },
+    });
+
+    expect(deviceUpdatePayload()["transceiverSnapshot"]).toHaveLength(2);
+    expect(
+      snmpResponse.transceivers!.map((entry: NetworkDeviceTransceiver) => {
+        return entry.interfaceIndex;
+      }),
+    ).toEqual([2]);
+  });
+
+  test("with nothing muted the judged optics are left as they are", async () => {
+    mockServices([existingInterface(1)]);
+
+    const snmpResponse: SnmpMonitorResponse = await runWalkWithOptics({
+      snapshot: [optic(1)],
+      snmpFields: {
+        interfaces: [walkedInterface({ interfaceIndex: 1 })],
+        transceivers: [optic(1)],
+      },
+    });
+
+    expect(snmpResponse.transceivers).toHaveLength(1);
+  });
+});
+
+/*
+ * The Wi-Fi vendors (UniFi, Aruba, Extreme, TP-Link): the poll that
+ * fingerprints an access point or a wireless controller names its maker and
+ * - for a device that opted in - seeds the Wi-Fi template's OIDs and tables,
+ * exactly as it does for any other vendor.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — Wi-Fi vendors", () => {
+  const UNIFI_ON_NET_SNMP: Partial<SnmpMonitorResponse> = {
+    systemInfo: {
+      sysObjectId: "1.3.6.1.4.1.8072.3.2.10",
+      sysDescr: "UAP-AC-HD 4.3.28.11361",
+    },
+  };
+
+  function tableKeys(update: DeviceUpdatePayload): Array<string> {
+    return ((update["snmpTables"] || []) as Array<{ key: string }>).map(
+      (table: { key: string }) => {
+        return table.key;
+      },
+    );
+  }
+
+  test("an older UniFi access point answering with Net-SNMP's arc is recorded as Ubiquiti's", async () => {
+    mockServices();
+
+    await runWalk(UNIFI_ON_NET_SNMP);
+
+    expect(deviceUpdatePayload()["vendor"]).toBe("Ubiquiti");
+  });
+
+  test("any other host on Net-SNMP's arc is still Net-SNMP's", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.8072.3.2.10",
+        sysDescr: "Linux gw01 5.15.0-91-generic",
+      },
+    });
+
+    expect(deviceUpdatePayload()["vendor"]).toBe("Net-SNMP");
+  });
+
+  test("an Extreme wireless controller on Siemens' arc is recorded as Extreme's", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.4329.15.1.1.13",
+        sysDescr:
+          "Extreme Networks Wireless Controller - V2110 Large,  System Version 10.41.03.0012",
+      },
+    });
+
+    expect(deviceUpdatePayload()["vendor"]).toBe("Extreme Networks");
+  });
+
+  test("an opted-in UniFi access point is seeded with the UniFi template's OIDs and its radio and SSID tables", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk(UNIFI_ON_NET_SNMP);
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["snmpOids"]).toEqual(
+      SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.oids,
+    );
+    expect(tableKeys(update)).toEqual([
+      "wifi_radios",
+      "wifi_ssids",
+      "cpu_cores",
+    ]);
+  });
+
+  test("a UniFi access point that already has health OIDs and no tables gets the Wi-Fi tables on its next poll, and keeps its OIDs", async () => {
+    // What an access point auto-applied with the EdgeOS template before this template existed holds.
+    const earlierOids: Array<SnmpOid> =
+      SnmpVendorTemplateUtil.getById("ubiquiti-edgeos")!.oids;
+
+    mockServices([], {
+      autoApplyVendorHealthTemplate: true,
+      snmpOids: earlierOids,
+    });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.41112",
+        sysDescr: "U6-Pro 6.6.50.15098",
+      },
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update).not.toHaveProperty("snmpOids");
+    expect(tableKeys(update)).toEqual([
+      "wifi_radios",
+      "wifi_ssids",
+      "cpu_cores",
+    ]);
+  });
+
+  test("an Aruba Instant cluster's virtual controller is seeded with its access points, radios and SSIDs", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.14823.1.2.59",
+        sysDescr: "ArubaOS (MODEL: 225), Version 8.6.0.4-8.6.0.4",
+      },
+    });
+
+    expect(tableKeys(deviceUpdatePayload())).toEqual([
+      "wifi_access_points",
+      "wifi_radios",
+      "wifi_ssids",
+    ]);
+  });
+
+  test("an Aerohive switch, on the same arc as IQ Engine access points, is given no access point tables", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.26928.1",
+        sysDescr: "SR2024P, HiveOS 6.5r5 Honolulu build-133702",
+      },
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update).not.toHaveProperty("snmpTables");
+    expect(update).not.toHaveProperty("snmpOids");
   });
 });

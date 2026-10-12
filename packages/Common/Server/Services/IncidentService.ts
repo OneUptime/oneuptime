@@ -8,7 +8,6 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -69,8 +68,6 @@ import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
-import Query from "../Types/Database/Query";
-import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -102,6 +99,8 @@ import Model from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import StateMoveCheck from "../Utils/StateMoveCheck";
+import { StateMoveRecord } from "../../Utils/StateMove";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
@@ -766,82 +765,31 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
-  @CaptureSpan()
-  public async resolveIncident(
-    incidentId: ObjectID,
-    resolvedByUserId: ObjectID,
-  ): Promise<Model> {
-    // check if the incident is already resolved.
-    const isIncidentResolved: boolean = await this.isIncidentResolved({
-      incidentId: incidentId,
-    });
-
-    if (isIncidentResolved) {
-      throw new BadDataException("Incident is already resolved.");
-    }
-
-    const incident: Model | null = await this.findOneById({
-      id: incidentId,
-      select: {
-        projectId: true,
-        incidentNumber: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!incident || !incident.projectId) {
-      throw new BadDataException("Incident not found.");
-    }
-
-    // The project's resolved state: the first from the top flagged resolved.
-    const incidentState: IncidentState =
-      await IncidentStateService.getResolvedIncidentState({
-        projectId: incident.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentState.id) {
-      throw new BadDataException(
-        "Resolved state not found for this project. Please add resolved state from settings.",
-      );
-    }
-
-    const incidentStateTimeline: IncidentStateTimeline =
-      new IncidentStateTimeline();
-    incidentStateTimeline.projectId = incident.projectId;
-    incidentStateTimeline.incidentId = incidentId;
-    incidentStateTimeline.incidentStateId = incidentState.id;
-    incidentStateTimeline.createdByUserId = resolvedByUserId;
-
-    await IncidentStateTimelineService.create({
-      data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // store incident metric
-
-    return incident;
-  }
-
   /*
-   * Acknowledges the incident, as the user: moves it into its project's
-   * acknowledged state - the first from the top flagged acknowledged. One
-   * that is acknowledged already, or further along, is refused with a
-   * sentence that says which (Common/Utils/AcknowledgedState) rather than
-   * moved back up its list - whichever channel asked: Slack, Microsoft
-   * Teams, OneUptime AI.
+   * Acknowledges the incident: moves it into its project's acknowledged
+   * state - the first from the top flagged acknowledged. One that is
+   * acknowledged already, or further along, is refused with a sentence that
+   * says which (Common/Utils/AcknowledgedState) rather than moved back up
+   * its list. The incident is read, and its state timeline row created,
+   * with `props`: a person's props hold the acknowledge to their read of the
+   * incident and their permission to create the row, and credit it to them;
+   * root props credit `acknowledgedByUserId`.
+   *
+   * A person's acknowledge is the state timeline row created with their own
+   * props: the dashboard creates it through the API, and Slack, Microsoft
+   * Teams and OneUptime AI through WorkspaceMemberActions. What is left here
+   * is OneUptime's own acknowledge, made once a responder has answered an
+   * on-call page about the incident (UserOnCallLogTimelineService), which
+   * says so by passing root props.
    */
   @CaptureSpan()
-  public async acknowledgeIncident(
-    incidentId: ObjectID,
-    acknowledgedByUserId: ObjectID,
-  ): Promise<Model> {
+  public async acknowledgeIncident(data: {
+    incidentId: ObjectID;
+    acknowledgedByUserId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Model> {
+    const { incidentId, acknowledgedByUserId } = data;
+
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
@@ -849,9 +797,7 @@ export class Service extends ProjectReferencesService<Model> {
         incidentNumber: true,
         currentIncidentStateId: true,
       },
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     if (!incident || !incident.projectId) {
@@ -898,9 +844,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await IncidentStateTimelineService.create({
       data: incidentStateTimeline,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
 
     // store incident metric
@@ -960,6 +904,35 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.validateProjectScopedReferences(updateBy);
 
+    /*
+     * An update that writes the incident's state moves it, by the rule its
+     * state timeline holds every move to (Common/Utils/StateMove): never
+     * back up the project's list of incident states. Refused before anything is
+     * written, with the timeline's own sentence - the state is recorded on
+     * the timeline once the update is saved (onUpdateSuccess), and a write
+     * the timeline then refused used to leave the record in a state its
+     * timeline never held.
+     */
+    await StateMoveCheck.assertUpdateMovesAllowed({
+      record: StateMoveRecord.Incident,
+      updateBy: updateBy,
+      stateKeys: CURRENT_STATE_KEYS,
+      stateModelName: "Incident State",
+      findRowsAndHold: (select: Select<Model>): Promise<Array<Model>> => {
+        return this.findRowsAndHoldUpdateToThem(updateBy, select);
+      },
+      getProjectStates: (
+        projectId: ObjectID,
+      ): Promise<Array<IncidentState>> => {
+        return IncidentStateService.getAllIncidentStates({
+          projectId: projectId,
+          props: {
+            isRoot: true,
+          },
+        });
+      },
+    });
+
     const carryForward: UpdateCarryForward = {};
 
     const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
@@ -978,20 +951,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data.changeMonitorStatusTo ||
       updateBy.data.changeMonitorStatusToId
     ) {
-      const incidentsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const incidentsToUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           monitors: {
             _id: true,
           },
           projectId: true,
           changeMonitorStatusToId: true,
           holdsMonitors: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: updateBy.props,
-      });
+        });
 
       /*
        * The monitor status the update writes, in any shape the API accepts
@@ -1339,43 +1307,25 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The incidents an update will write to, as they are stored, for the hooks
-   * below that decide what else joins the update.
+   * The incidents an update writes, as they are stored, for the hooks below
+   * that decide what else joins the update - the ones its caller may write,
+   * with the update held to them (findRowsAndHoldUpdateToThem), so no
+   * incident is written that those hooks did not see.
    *
    * Read as root: the answer only decides which columns join this update, and
    * the update itself is still checked against the caller's permissions
    * afterwards. Reading with the caller's props would fail the whole edit for
    * a role that may edit incidents but not read these columns. The query
-   * already carries the caller's privacy filter (applyIncidentSelfPrivacyFilter),
-   * but not their tenant: the update's permission check adds it only after
-   * this hook runs. So a non-root caller's read is limited to their own
-   * project here, or a request for another project's incident id would be
-   * answered with that incident's state (a refusal that depends on it)
-   * instead of the usual "nothing updated".
+   * carries the caller's privacy filter (applyIncidentSelfPrivacyFilter), and
+   * a request for another project's incident id reads nothing, so it is
+   * answered with the usual "nothing updated" rather than that incident's
+   * state.
    */
   private async findIncidentsForUpdateHook(data: {
     updateBy: UpdateBy<Model>;
     select: Select<Model>;
   }): Promise<Array<Model>> {
-    const updateBy: UpdateBy<Model> = data.updateBy;
-
-    const query: Query<Model> =
-      !updateBy.props.isRoot && updateBy.props.tenantId
-        ? {
-            ...updateBy.query,
-            projectId: updateBy.props.tenantId,
-          }
-        : updateBy.query;
-
-    return await this.findBy({
-      query: query,
-      select: data.select,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    return await this.findRowsAndHoldUpdateToThem(data.updateBy, data.select);
   }
 
   /*
@@ -1623,16 +1573,13 @@ export class Service extends ProjectReferencesService<Model> {
       refusal: IncidentCreatedResend.noPermissionMessage,
     });
 
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const incidents: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         subscriberNotificationStatusOnIncidentCreated: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: updateBy.props,
-    });
+    );
 
     for (const incident of incidents) {
       const refusal: string | null = IncidentCreatedResend.getRefusalReason(
@@ -2563,18 +2510,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Root/API updates do not always carry a tenantId, so fall back to the
-     * project of each incident the query actually matches.
+     * The project of every incident the update writes: the request's
+     * project for a teammate, whose update is kept to it, and each
+     * incident's own project for OneUptime and a master admin
+     * (findProjectsToCheckUpdateIn).
      */
-    const projectIds: Array<ObjectID> = updateBy.props.tenantId
-      ? [updateBy.props.tenantId]
-      : await this.getProjectIdsForUpdateQuery(updateBy);
+    const projectIds: Array<ObjectID> =
+      await this.findProjectsToCheckUpdateIn(updateBy);
 
     const heldIds: HeldRelationIds | undefined =
       relations.length > 0
         ? await ProjectScopedReferenceValidator.getHeldRelationIds({
-            service: this as unknown as DatabaseService<DatabaseBaseModel>,
-            query: updateBy.query as Query<DatabaseBaseModel>,
+            service: this,
+            updateBy: updateBy,
             columns: relations.map((relation: ProjectScopedRelation) => {
               return relation.column;
             }),
@@ -2649,32 +2597,6 @@ export class Service extends ProjectReferencesService<Model> {
       },
       ...getAffectedResourceRelations(this.getModel()),
     ];
-  }
-
-  private async getProjectIdsForUpdateQuery(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
-    const incidents: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    const projectIds: Dictionary<ObjectID> = {};
-
-    for (const incident of incidents) {
-      if (incident.projectId) {
-        projectIds[incident.projectId.toString()] = incident.projectId;
-      }
-    }
-
-    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -3260,6 +3182,14 @@ export class Service extends ProjectReferencesService<Model> {
       miscDataProps: ownersPicked,
       props: createBy.props,
     });
+
+    /*
+     * The monitors, status pages, on-call policies and the rest a template
+     * filled in above are the declarer's to name as if they had picked them:
+     * each must be one they may read, asked here, before the incident
+     * number is taken, rather than once the hooks have run.
+     */
+    await this.checkRecordsNamedSoFar(createBy);
 
     /*
      * How far along it starts (StartingStage), as read with its state above,
@@ -6057,11 +5987,10 @@ ${incidentSeverity.name}
       deleteBy.props,
     );
 
-    const incidents: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      limit: LIMIT_MAX,
-      skip: 0,
-      select: {
+    // The incidents the delete removes, and the delete held to them.
+    const incidents: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
         _id: true,
         projectId: true,
         monitors: {
@@ -6069,10 +5998,7 @@ ${incidentSeverity.name}
         },
         holdsMonitors: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     return {
       deleteBy,
@@ -6085,10 +6011,14 @@ ${incidentSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    deletedIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
-      for (const incident of onDelete.carryForward.incidents) {
+      // The incidents the delete removed, of those onBeforeDelete read.
+      for (const incident of Service.getRowsDeleted<Model>({
+        rows: onDelete.carryForward.incidents,
+        deletedIds: deletedIds,
+      })) {
         /*
          * Deleting an incident gives back the monitors it holds - and those
          * of an incident from before that was recorded, which is how

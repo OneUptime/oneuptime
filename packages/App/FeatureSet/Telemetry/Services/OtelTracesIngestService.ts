@@ -824,6 +824,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const llmFields: LlmSpanFields = LlmSpanUtil.extract(
                     spanAttributes,
                     modelPriceOverrides,
+                    /*
+                     * The answer checks (llmIssues) also read the span's
+                     * status and events: a failed call, a choice event's
+                     * finish reason, an evaluation result.
+                     */
+                    { statusCode: statusCode, events: spanEvents },
                   );
 
                   const spanEvaluationRow: JSONObject =
@@ -892,6 +898,27 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       spanRow,
                       pipelines,
                     );
+                  }
+
+                  /*
+                   * An AI call is stored with the answer issues of the
+                   * status it is STORED with (a pipeline's StatusRemapper
+                   * can change it), and with a preview of the person's
+                   * message read off the attributes it is stored with - after
+                   * the scrub rules and pipelines above, so a redaction in
+                   * the prompt is a redaction in the preview.
+                   */
+                  if (spanRow["isLlmSpan"] === true) {
+                    spanRow["llmIssues"] = LlmSpanUtil.withFinalStatus({
+                      issues: llmFields.llmIssues,
+                      failedWithoutStatus: llmFields.llmFailedWithoutStatus,
+                      statusCode: spanRow["statusCode"] as number,
+                    });
+                    spanRow["llmUserMessagePreview"] =
+                      LlmSpanUtil.getUserMessagePreview({
+                        attributes: spanRow["attributes"],
+                        events: spanRow["events"],
+                      });
                   }
 
                   /*
@@ -1575,6 +1602,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmUserId: data.llmFields.llmUserId,
       llmUserEmail: data.llmFields.llmUserEmail,
       llmTeam: data.llmFields.llmTeam,
+      // What the call did and what went wrong with its answer.
+      llmCallKind: data.llmFields.llmCallKind,
+      llmIssues: data.llmFields.llmIssues,
     };
   }
 

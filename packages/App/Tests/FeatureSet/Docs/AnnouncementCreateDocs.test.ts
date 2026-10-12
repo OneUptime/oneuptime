@@ -14,9 +14,9 @@ import path from "path";
  * Creating an announcement takes two steps. The subscribers guide
  * (status-pages/subscribers.md) walks them in every language: it names the
  * steps and the folded section as the reader's dashboard does (each
- * language's own translation, from the Dashboard's locale file - English
- * and Persian keep the English labels), quotes the line the folded section
- * shows, and says a status page's own Create picks that page. Markdown is
+ * language's own translation, from the Dashboard's locale file, Persian
+ * included), quotes the line the folded section shows, and says a status
+ * page's own Create picks that page. Markdown is
  * not compiled, so this reads the create form's fields and checks the
  * guides still tell the same story, and that none of them, in any
  * language, still walks the old four-step form.
@@ -35,8 +35,8 @@ const LOCALES_DIR: string = path.join(REPO_ROOT, DASHBOARD, "Locales");
 
 const GUIDE: string = "status-pages/subscribers.md";
 
-// The guides that keep the dashboard's English labels.
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
+// The guides that write the dashboard's English labels: the English one.
+const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en"];
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -183,11 +183,6 @@ describe("the announcement forms in the docs", () => {
           return labelIn(language, sentence);
         })
         .join(" ");
-
-      // Persian describes the line in its own words around English labels.
-      if (language === "fa") {
-        continue;
-      }
 
       expect(`${language}: ${readGuide(language).includes(line)}`).toBe(
         `${language}: true`,

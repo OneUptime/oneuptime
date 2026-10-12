@@ -41,7 +41,9 @@ import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
+import { removeHtmlMarkup } from "../../../Types/HtmlMarkup";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
+import { htmlAsText } from "../../Helpers/HtmlText";
 import {
   hrefsOf,
   renderAsDashboard,
@@ -102,7 +104,6 @@ const HTML_IMAGE_PATTERN: RegExp = /<img/;
 // The addresses the hostile title and name bring.
 const TITLE_ADDRESS_PATTERN: RegExp = /(?:evil|tracker)\.example/;
 const HTML_LINK_PATTERN: RegExp = /<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
-const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
 const SLACK_MENTION_PATTERN: RegExp = /<[!@#]/;
 const SLACK_HIDDEN_LINK_PATTERN: RegExp =
   /<https:\/\/(?:evil|tracker)\.example[^|>]*\|/;
@@ -168,7 +169,7 @@ function expectInert(markdowns: Array<string>): void {
 
         return (
           TITLE_ADDRESS_PATTERN.test(href) &&
-          match[2]!.replace(HTML_TAG_PATTERN, "") !== href
+          removeHtmlMarkup(match[2]!) !== href
         );
       })
       .map((match: RegExpMatchArray): string => {
@@ -196,14 +197,10 @@ function expectInert(markdowns: Array<string>): void {
  * word joiner that breaks a Slack mention is taken out: nobody sees it.
  */
 function readText(markdown: string): string {
-  return (marked.parse(markdown, { async: false }) as string)
-    .replace(HTML_TAG_PATTERN, "")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(WORD_JOINER_PATTERN, "");
+  return htmlAsText(marked.parse(markdown, { async: false }) as string).replace(
+    WORD_JOINER_PATTERN,
+    "",
+  );
 }
 
 let alertFeed: ReturnType<typeof jest.spyOn>;

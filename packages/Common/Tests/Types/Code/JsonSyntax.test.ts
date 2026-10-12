@@ -11,6 +11,7 @@ import {
   JSONSyntaxCheckResult,
   checkJSONSyntax,
 } from "../../../Types/Workflow/TemplateSyntax";
+import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -619,22 +620,8 @@ describe("findJsonSyntaxError — accepts exactly what JSON.parse accepts", () =
     });
   });
 
+  // Draws of the suites' seeded generator: the same sequence on every run.
   type RandomFunction = () => number;
-
-  // mulberry32: small, seeded, and the same sequence on every run.
-  type CreateRandomFunction = (seed: number) => RandomFunction;
-
-  const createRandom: CreateRandomFunction = (seed: number): RandomFunction => {
-    let state: number = seed >>> 0;
-
-    return (): number => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let mixed: number = state;
-      mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-      mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-      return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-    };
-  };
 
   type Json =
     | null
@@ -753,7 +740,7 @@ describe("findJsonSyntaxError — accepts exactly what JSON.parse accepts", () =
   };
 
   test("agrees with JSON.parse on thousands of mutated documents", () => {
-    const random: RandomFunction = createRandom(20260930);
+    const random: RandomFunction = seededRandom(20260930);
     const disagreements: Array<string> = [];
     let validCount: number = 0;
     let invalidCount: number = 0;
@@ -795,7 +782,7 @@ describe("findJsonSyntaxError — accepts exactly what JSON.parse accepts", () =
   });
 
   test("formatting never changes what a valid mutated document parses to", () => {
-    const random: RandomFunction = createRandom(4153);
+    const random: RandomFunction = seededRandom(4153);
     let formattedCount: number = 0;
 
     for (let iteration: number = 0; iteration < 1500; iteration++) {

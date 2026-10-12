@@ -9,6 +9,17 @@ import ProfileAggregationService from "../../../Server/Services/ProfileAggregati
 import ProfileService from "../../../Server/Services/ProfileService";
 import ProfileSampleService from "../../../Server/Services/ProfileSampleService";
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
+import LlmConversationService from "../../../Server/Services/LlmConversationService";
+import {
+  LLM_CONVERSATION_DEFAULT_LOOKBACK_MS,
+  LLM_CONVERSATION_HINT_PADDING_MS,
+  LLM_CONVERSATION_MAX_PAGE_SIZE,
+  LlmConversationKeyKind,
+  LlmConversationSort,
+} from "../../../Types/Telemetry/LlmConversationApi";
+import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
+import { LLM_MONITOR_DEFAULT_WINDOW_SECONDS } from "../../../Types/Monitor/MonitorStepLlmMonitor";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import TelemetrySourceMapService from "../../../Server/Services/TelemetrySourceMapService";
 import OwnerTableRegistry from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
@@ -622,6 +633,43 @@ const ROUTE_CASES: Array<RouteCase> = [
     true,
   ),
 
+  // AI / LLM conversations: AI calls are trace spans.
+  aggregationCase(
+    "/telemetry/llm/conversations",
+    LlmConversationService,
+    "listConversations",
+    { includeSummary: true },
+    { summary: null, conversations: [], hasMore: false },
+    true,
+  ),
+  aggregationCase(
+    "/telemetry/llm/conversation",
+    LlmConversationService,
+    "getConversation",
+    { key: "c:conv-1" },
+    {
+      key: "c:conv-1",
+      kind: "conversation",
+      conversationId: "conv-1",
+      transcript: { steps: [] },
+      truncated: false,
+    },
+    false,
+  ),
+  /*
+   * The AI / LLM monitor form's preview. Its apps come as the monitor
+   * step's own telemetryServiceIds, not serviceIds - pinned in the AI / LLM
+   * describe below.
+   */
+  aggregationCase(
+    "/telemetry/llm/answer-stats",
+    LlmConversationService,
+    "countAnswers",
+    {},
+    { answerCount: 0, badAnswerCount: 0 },
+    false,
+  ),
+
   // Exceptions.
   aggregationCase(
     "/telemetry/exceptions/histogram",
@@ -1132,6 +1180,315 @@ describe("/telemetry/exceptions/resolve-stack-trace", () => {
  * the session replay helpers built on it). Both are checked here, so a read
  * that skips the scope fails CI.
  */
+/*
+ * The AI conversation routes read the request body themselves; these pin
+ * what reaches the read: filters trimmed and bounded, the window, and the
+ * refusals that must answer before anything is read.
+ */
+describe("the AI / LLM monitor preview route", () => {
+  const STATS: string = "/telemetry/llm/answer-stats";
+
+  test.each(PRINCIPALS)(
+    "a %s reader asking for apps by id keeps only those they may read",
+    async (principalName: PrincipalName) => {
+      currentPrincipal = principalFor(principalName, Permission.ProjectMember);
+      const read: Spy = spyOn(LlmConversationService, "countAnswers");
+      read.mockResolvedValue({ answerCount: 0, badAnswerCount: 0 });
+
+      await callRoute({
+        uri: STATS,
+        principal: currentPrincipal,
+        body: {
+          telemetryServiceIds: [SERVICE_A.toString(), SERVICE_C.toString()],
+        },
+      });
+
+      expect(read.mock.calls.length).toBe(1);
+      expect(filterOf(read.mock.calls[0]![0])).toEqual(
+        EXPECTED_WHEN_ASKING_FOR_A_AND_C[principalName],
+      );
+    },
+  );
+
+  test("the step's settings reach the count as the monitor's check reads them", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "countAnswers");
+    read.mockResolvedValue({ answerCount: 40, badAnswerCount: 3 });
+
+    const result: CallResult = await callRoute({
+      uri: STATS,
+      principal: currentPrincipal,
+      body: {
+        issues: [LlmAnswerIssue.Refused, "bogus", LlmAnswerIssue.CutOff],
+        slowAnswerSeconds: 30,
+        model: "  gpt-4o  ",
+        lastXSecondsOfCalls: 3600,
+      },
+    });
+
+    const request: Record<string, unknown> = read.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(request["projectId"]).toEqual(PROJECT_ID);
+    expect(request["issues"]).toEqual([
+      LlmAnswerIssue.Refused,
+      LlmAnswerIssue.CutOff,
+    ]);
+    expect(request["slowAnswerMs"]).toBe(30_000);
+    expect(request["model"]).toBe("gpt-4o");
+    expect(
+      (request["endTime"] as Date).getTime() -
+        (request["startTime"] as Date).getTime(),
+    ).toBe(3600 * 1000);
+
+    expect(result.errorResponse).toBeUndefined();
+    expect(
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]![2],
+    ).toMatchObject({
+      answerCount: 40,
+      badAnswerCount: 3,
+      badAnswerPercent: 7.5,
+    });
+  });
+
+  test("an empty step reads every problem over the default window", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "countAnswers");
+    read.mockResolvedValue({ answerCount: 0, badAnswerCount: 0 });
+
+    const result: CallResult = await callRoute({
+      uri: STATS,
+      principal: currentPrincipal,
+      body: {},
+    });
+
+    const request: Record<string, unknown> = read.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(request["issues"]).toEqual([
+      LlmAnswerIssue.Failed,
+      LlmAnswerIssue.Refused,
+      LlmAnswerIssue.CutOff,
+      LlmAnswerIssue.Empty,
+      LlmAnswerIssue.Flagged,
+    ]);
+    expect(request["slowAnswerMs"]).toBeNull();
+    expect(request["model"]).toBeUndefined();
+    expect(
+      (request["endTime"] as Date).getTime() -
+        (request["startTime"] as Date).getTime(),
+    ).toBe(LLM_MONITOR_DEFAULT_WINDOW_SECONDS * 1000);
+
+    // No answers is 0%, not a division by zero.
+    expect(result.errorResponse).toBeUndefined();
+    expect(
+      (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]![2],
+    ).toMatchObject({
+      answerCount: 0,
+      badAnswerCount: 0,
+      badAnswerPercent: 0,
+    });
+  });
+});
+
+describe("the AI / LLM conversation routes", () => {
+  const LIST: string = "/telemetry/llm/conversations";
+  const DETAIL: string = "/telemetry/llm/conversation";
+
+  function firstRequest(read: Spy): Record<string, unknown> {
+    return read.mock.calls[0]![0] as Record<string, unknown>;
+  }
+
+  test("the list passes its filters through, trimmed and bounded", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "listConversations");
+    read.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
+
+    await callRoute({
+      uri: LIST,
+      principal: currentPrincipal,
+      body: {
+        ...LAST_HOUR,
+        model: "  gpt-4o  ",
+        person: "ada@",
+        search: "x".repeat(500),
+        issue: LlmAnswerIssue.Refused,
+        sort: LlmConversationSort.MostExpensive,
+        limit: 100000,
+        skip: -20,
+        includeSummary: true,
+      },
+    });
+
+    const request: Record<string, unknown> = firstRequest(read);
+
+    expect(request["projectId"]).toEqual(PROJECT_ID);
+    expect(request["model"]).toBe("gpt-4o");
+    expect(request["person"]).toBe("ada@");
+    expect((request["search"] as string).length).toBe(200);
+    expect(request["issue"]).toBe(LlmAnswerIssue.Refused);
+    expect(request["sort"]).toBe(LlmConversationSort.MostExpensive);
+    expect(request["limit"]).toBe(LLM_CONVERSATION_MAX_PAGE_SIZE);
+    expect(request["skip"]).toBe(0);
+    expect(request["includeSummary"]).toBe(true);
+  });
+
+  test("unknown or blank filters read as none, and the summary only when asked", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "listConversations");
+    read.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
+
+    await callRoute({
+      uri: LIST,
+      principal: currentPrincipal,
+      body: {
+        model: "   ",
+        issue: "bogus",
+        sort: "by-vibes",
+        includeSummary: "yes",
+      },
+    });
+
+    const request: Record<string, unknown> = firstRequest(read);
+
+    expect(request["model"]).toBeUndefined();
+    expect(request["issue"]).toBeUndefined();
+    expect(request["sort"]).toBe(LlmConversationSort.Newest);
+    expect(request["includeSummary"]).toBe(false);
+    expect(request["limit"]).toBe(25);
+  });
+
+  test("without dates the list reads the last seven days", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "listConversations");
+    read.mockResolvedValue({
+      summary: null,
+      conversations: [],
+      hasMore: false,
+    });
+
+    await callRoute({ uri: LIST, principal: currentPrincipal, body: {} });
+
+    const request: Record<string, unknown> = firstRequest(read);
+    const windowMs: number =
+      (request["endTime"] as Date).getTime() -
+      (request["startTime"] as Date).getTime();
+
+    expect(windowMs).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  test("a window that ends before it starts is refused before anything is read", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "listConversations");
+
+    const result: CallResult = await callRoute({
+      uri: LIST,
+      principal: currentPrincipal,
+      body: {
+        startTime: new Date().toISOString(),
+        endTime: new Date(Date.now() - 60_000).toISOString(),
+      },
+    });
+
+    expect(read.mock.calls.length).toBe(0);
+    expect(result.errorResponse).toBeInstanceOf(BadDataException);
+  });
+
+  test.each([
+    [undefined],
+    [""],
+    ["x:nope"],
+    ["t:not-a-trace-id"],
+    ["c:"],
+    [42],
+  ])(
+    "a conversation view of %p is refused before anything is read",
+    async (key: unknown) => {
+      currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+      const read: Spy = spyOn(LlmConversationService, "getConversation");
+
+      const result: CallResult = await callRoute({
+        uri: DETAIL,
+        principal: currentPrincipal,
+        body: { key: key as string },
+      });
+
+      expect(read.mock.calls.length).toBe(0);
+      expect(result.errorResponse).toBeInstanceOf(BadDataException);
+    },
+  );
+
+  test("a conversation view reads a padded window around its time hint", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "getConversation");
+    read.mockResolvedValue({ transcript: { steps: [] } });
+
+    const hintStart: Date = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const hintEnd: Date = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+    await callRoute({
+      uri: DETAIL,
+      principal: currentPrincipal,
+      body: {
+        key: "t:0AF7651916CD43DD8448EB211C80319C",
+        startTime: hintStart.toISOString(),
+        endTime: hintEnd.toISOString(),
+      },
+    });
+
+    const request: Record<string, unknown> = firstRequest(read);
+
+    // Trace ids are read case-insensitively.
+    expect(request["key"]).toEqual({
+      kind: LlmConversationKeyKind.Request,
+      value: "0af7651916cd43dd8448eb211c80319c",
+    });
+    expect((request["startTime"] as Date).getTime()).toBe(
+      hintStart.getTime() - LLM_CONVERSATION_HINT_PADDING_MS,
+    );
+    expect((request["endTime"] as Date).getTime()).toBe(
+      hintEnd.getTime() + LLM_CONVERSATION_HINT_PADDING_MS,
+    );
+  });
+
+  test("without a hint a conversation view reads the last 30 days", async () => {
+    currentPrincipal = principalFor("project-wide", Permission.ProjectMember);
+    const read: Spy = spyOn(LlmConversationService, "getConversation");
+    read.mockResolvedValue({ transcript: { steps: [] } });
+
+    await callRoute({
+      uri: DETAIL,
+      principal: currentPrincipal,
+      body: { key: "c:checkout-chat-77" },
+    });
+
+    const request: Record<string, unknown> = firstRequest(read);
+    const windowMs: number =
+      (request["endTime"] as Date).getTime() -
+      (request["startTime"] as Date).getTime();
+
+    expect(windowMs).toBe(LLM_CONVERSATION_DEFAULT_LOOKBACK_MS);
+    expect(request["key"]).toEqual({
+      kind: LlmConversationKeyKind.Conversation,
+      value: "checkout-chat-77",
+    });
+  });
+});
+
 describe("every /telemetry/* route", () => {
   // Routes whose scope cases live outside ROUTE_CASES, and where.
   const TESTED_ON_THEIR_OWN: Record<string, string> = {

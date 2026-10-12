@@ -11,6 +11,7 @@ import {
   FormType,
   ModelField,
   ModelFormOnBeforeCreate,
+  ModelFormOnBeforeUpdate,
 } from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import BaseModelTable, {
@@ -51,6 +52,8 @@ import React, { ReactElement, useState } from "react";
  */
 const CREATE_NEW_TEMPLATES: Record<string, string> = {
   Add: translationKey("Add New {{itemName}}"),
+  // Connecting another product makes nothing new: "Connect Huntress".
+  Connect: translationKey("Connect {{itemName}}"),
   Create: translationKey("Create New {{itemName}}"),
   Declare: translationKey("Declare New {{itemName}}"),
   Invite: translationKey("Invite New {{itemName}}"),
@@ -291,6 +294,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
             modalType: ModalType;
             modelIdToEdit?: ObjectID | undefined;
             onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
+            onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
             onSuccess?: ((item: TBaseModel) => void) | undefined;
             onClose?: (() => void) | undefined;
             existingItems?: Array<TBaseModel> | undefined;
@@ -299,6 +303,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
               modalType,
               modelIdToEdit,
               onBeforeCreate,
+              onBeforeUpdate,
               onSuccess,
               onClose,
               existingItems,
@@ -344,6 +349,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 }
                 onSuccess={onSuccess}
                 onBeforeCreate={onBeforeCreate}
+                onBeforeUpdate={onBeforeUpdate}
                 modelType={props.modelType}
                 formProps={{
                   summary: props.formSummary,

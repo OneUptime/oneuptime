@@ -7,9 +7,20 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
+import { EnterprisePluginComponent } from "../../Enterprise/EnterprisePlugins";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   const { t } = useTranslation();
+
+  /*
+   * The entries of the Enterprise settings pages (EnterpriseSettingsPage),
+   * read in render, never at module load. They draw themselves, and draw
+   * nothing for a page the license does not allow.
+   */
+  const EnterpriseSettingsItems: EnterprisePluginComponent | undefined =
+    getAdminDashboardPlugins().SettingsSideMenuItems;
+
   return (
     <SideMenu>
       <SideMenuSection title={t("sideMenu.basic")}>
@@ -22,6 +33,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Lock}
         />
+        {EnterpriseSettingsItems ? <EnterpriseSettingsItems /> : <></>}
       </SideMenuSection>
 
       {/*

@@ -47,10 +47,12 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Entrant             | Convertir les notifications Alertmanager en incidents.                                  |
 | [Grafana](/docs/integrations/grafana)                                 | Entrant             | Convertir les alertes Grafana en incidents.                                             |
 | [Datadog](/docs/integrations/datadog)                                 | Entrant             | Convertir les alertes de monitor Datadog en incidents.                                  |
+| [Huntress](/docs/integrations/huntress)                               | Entrant              | Alerter l'astreinte pour les rapports d'incident Huntress et résoudre l'incident quand le rapport est clos. |
 | [GitHub](/docs/integrations/github)                                   | Sortant             | Ouvrir un ticket GitHub pour un incident.                                               |
 | [GitLab](/docs/integrations/gitlab)                                   | Sortant             | Ouvrir un ticket GitLab pour un incident.                                               |
 | [Discord](/docs/integrations/discord)                                 | Sortant             | Publier les mises à jour d'incidents dans un canal Discord.                             |
 | [Telegram](/docs/integrations/telegram)                               | Sortant             | Envoyer les mises à jour d'incidents vers un chat Telegram.                             |
+| [IRC](/docs/integrations/irc)                                         | Sortant             | Publier les mises à jour d'incidents dans un canal IRC.                                 |
 | [Slack](/docs/workspace-connections/slack)                            | Les deux            | Connexion d'espace de travail native — canaux, alertes et astreintes.                   |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Les deux            | Connexion d'espace de travail native.                                                   |
 

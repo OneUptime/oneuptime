@@ -1,110 +1,165 @@
-# Ekstern statussidemonitor
+# Ekstern statusside-monitor
 
-Ekstern statussideovervågning giver dig mulighed for at overvåge tredjepartstatussider og blive advaret, når tjenester, du er afhængig af, oplever afbrydelser eller forringet ydeevne. OneUptime kontrollerer periodisk eksterne statussider (som AWS, GCP, Azure, GitHub, OpenAI, Anthropic og mere) og evaluerer deres status.
+En monitor for eksterne statussider holder øje med den offentlige statusside for en tjeneste, du er afhængig af — AWS, GCP, Azure, GitHub, OpenAI, Anthropic og mange flere — og advarer dig, når udbyderen melder om et nedbrud eller forringet ydeevne. Brug den til at høre om problemer hos dine leverandører, så snart udbyderen melder dem, og til at skelne dem fra dine egne.
 
-## Oversigt
+:::cards
+- [Opret monitoren](#opret-en-monitor-for-eksterne-statussider): Indsæt URL'en til en statusside, og vælg, hvad der skal overvåges.
+- [Afgræns den](#konfigurationsmuligheder): Hold øje med én komponentgruppe eller én komponent.
+- [Kriterier](#overvågningskriterier): Hvad der som standard tæller som nede.
+- [Populære statussider](#populære-statusside-urler): URL'er til de tjenester, de fleste teams er afhængige af.
+:::
 
-Eksterne statussidemonitorer kontrollerer sundheden af tjenester, du er afhængig af, ved at forespørge deres offentlige statussider. Dette giver dig mulighed for at:
+## Sådan fungerer det
 
-- Overvåge tilgængelighed af tredjepartstjenester, din applikation er afhængig af
-- Blive advaret, når opstrøms-udbydere oplever afbrydelser
-- Spore individuelle komponentstatus (f.eks. "AWS EC2 us-east-1")
-- Begrænse overvågning til en enkelt komponentgruppe (f.eks. kun OpenAIs "APIs"), så urelaterede incidents andre steder på siden ikke udløser din monitor
-- Opdage forringet ydeevne, inden det påvirker dine brugere
-- Korrelere dine egne incidents med problemer hos opstrøms-udbydere
+Ved hver kontrol henter en sonde statussiden, finder ud af, hvilket format den bruger, og læser den samlede status, komponenterne og de aktive hændelser. Hvis du har afgrænset monitoren til en komponentgruppe eller en komponent, tæller kun de med. Derefter afgør kriterierne, om monitoren er online eller offline.
+
+```mermaid title="Én kontrol af en ekstern statusside"
+flowchart TB
+    fetch["Hent statussiden"] --> detect["Find formatet"]
+    detect --> parse["Læs status, komponenter, hændelser"]
+    parse --> scope["Behold gruppen eller komponenten"]
+    scope --> criteria{"Aktiv hændelse eller nedbrud?"}
+    criteria -->|Ja| down["Offline, hændelse erklæret"]
+    criteria -->|Nej| up["Online"]
+```
+
+Du kan bruge den til at:
+
+- Overvåge tilgængeligheden af tredjepartstjenester, din applikation er afhængig af
+- Blive advaret, når dine leverandører har nedbrud
+- Følge status for de enkelte komponenter
+- Afgrænse overvågningen til en enkelt komponentgruppe (f.eks. kun OpenAI's "APIs"), så hændelser andre steder på siden, der ikke har noget med dig at gøre, ikke udløser din monitor
+- Opdage forringet ydeevne, før det rammer dine brugere
+- Sammenholde dine egne hændelser med problemer hos dine leverandører
 
 ## Understøttede udbydere
 
-OneUptime understøtter overvågning af statussider via følgende metoder:
+| Udbyder | Beskrivelse |
+| ------------------------ | ---------------------------------------------------------------------- |
+| **Auto** (standard) | Finder automatisk statussidens format |
+| **Atlassian Statuspage** | Statussider, der kører på Atlassian Statuspage (JSON-API) |
+| **incident.io** | Statussider, der kører på incident.io (f.eks. `https://status.openai.com`) |
+| **RSS** | Statussider, der tilbyder et RSS-feed |
+| **Atom** | Statussider, der tilbyder et Atom-feed |
 
-| Udbydertype              | Beskrivelse                                                        |
-| ------------------------ | ----------------------------------------------------------------- |
-| **Auto** (standard)      | Registrerer automatisk statussideformatet                         |
-| **Atlassian Statuspage** | Statussider drevet af Atlassian Statuspage (JSON API)             |
-| **incident.io**          | Statussider drevet af incident.io (f.eks. `https://status.openai.com`) |
-| **RSS**                  | Statussider, der leverer et RSS-feed                              |
-| **Atom**                 | Statussider, der leverer et Atom-feed                            |
+### Automatisk genkendelse
 
-### Auto-detektion
+Når udbyderen er sat til **Auto**, finder OneUptime automatisk statussidens format i denne rækkefølge:
 
-Når indstillet til **Auto**, forsøger OneUptime automatisk at registrere statussideformatet, i denne rækkefølge:
+1. Først prøver den statusside-API'et fra incident.io (`/proxy/<host>`).
+2. Derefter prøver den JSON-API'et fra Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` og `/api/v2/incidents/unresolved.json`).
+3. Mislykkes de, forsøger den at læse siden som et RSS- eller Atom-feed.
+4. Som sidste udvej udfører den et simpelt tjek af, om siden kan nås over HTTP.
 
-1. Først forsøger den incident.io-statussidens API (`/proxy/<host>`)
-2. Dernæst forsøger den Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json` og `/api/v2/incidents/unresolved.json`)
-3. Hvis disse mislykkes, forsøger den at parse siden som et RSS- eller Atom-feed
-4. Som en endelig reserveløsning udfører den en grundlæggende HTTP-tilgængelighedskontrol
+> [!NOTE]
+> incident.io tjekkes først, fordi nogle statussider fra incident.io (som `https://status.openai.com`) også udstiller et begrænset, Atlassian-kompatibelt endpoint, der udelader komponentgrupper og aktive hændelser. Når incident.io tjekkes først, bruges de rigere data med grupper.
 
-> **Bemærk:** incident.io kontrolleres først, fordi nogle incident.io-statussider (såsom `https://status.openai.com`) også eksponerer et begrænset Atlassian-kompatibelt endpoint, der udelader komponentgrupper og aktive incidents. At kontrollere incident.io først sikrer, at de mere righoldige, gruppe-bevidste data anvendes.
+Tjekket af, om siden kan nås, er også udvejen, når en udbyder, du udtrykkeligt har valgt, fejler. Det fortæller dig kun, om siden svarer — online ved et svar `2xx` eller `3xx` — og melder ingen komponenter eller hændelser.
 
-## Oprettelse af en Ekstern Statussidemonitor
+## Opret en monitor for eksterne statussider
 
-1. Gå til **Overvågninger** i OneUptime-dashboardet
-2. Klik på **Opret monitor**
-3. Vælg **Ekstern statusside** som monitortype
-4. Indtast statussideURL'en, du vil overvåge
-5. Vælg valgfrit en specifik udbydertype (eller lad **Auto** stå)
-6. Angiv valgfrit en **komponentgruppe** for at begrænse til en gruppe som "APIs"
-7. Angiv valgfrit et **komponentnavn** for at filtrere til en enkelt komponent (inden for gruppen, hvis en gruppe er angivet)
-8. Konfigurer overvågningskriterier efter behov
+:::steps
+### Start en ny monitor
 
-## Konfigurationsindstillinger
+Gå til **Monitorer**, og klik på **Opret monitor**. Under **Monitortype** skal du klikke på **Flere monitortyper** og vælge **External Status Page** under **Basic Monitoring** eller skrive `statuspage` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
-### Statusside URL
+### Angiv statussidens URL
 
-Indtast URL'en til den eksterne statusside, du vil overvåge. For Atlassian Statuspage- og incident.io-drevne websteder er dette typisk rod-URL'en (f.eks. `https://status.example.com`). For RSS/Atom-feeds skal du indtaste feed-URL'en direkte.
+Angiv **Statusside-URL**. Lad **Udbyder** stå på **Auto**, medmindre du kender formatet.
 
-### Udbydertype
+### Afgræns den, hvis du har brug for det
 
-Vælg udbydertypen for statussiden. Brug **Auto** (standard) for at lade OneUptime registrere formatet automatisk, eller angiv **Atlassian Statuspage**, **incident.io**, **RSS** eller **Atom**, hvis du kender det.
+Åbn **Flere felter** for at angive et **Component Group Filter (Optional)**, som `APIs`, og et **Filter for komponentnavn (valgfrit)** for at holde øje med en enkelt komponent (inden for gruppen, hvis en gruppe er angivet).
 
-### Komponentgruppefilter
+### Test den
 
-Hvis statussiden organiserer sine komponenter i grupper, kan du begrænse monitoren til en enkelt gruppe. For eksempel, på `https://status.openai.com`, begrænser indtastning af `APIs` monitoren til OpenAIs API-tjenester.
+Klik på **Test monitor** for at hente siden én gang, og tjek den udbyder, de komponenter og de hændelser, den fandt.
 
-Når en komponentgruppe er angivet, beregnes **antallet af aktive incidents** og **den overordnede status** kun ud fra komponenterne i den gruppe — en incident, der påvirker en urelateret gruppe (for eksempel ChatGPT), vil ikke udløse en monitor, der er begrænset til "APIs"-gruppen.
+### Gennemgå kriterierne
 
-Komponentgruppefiltrering understøttes for **Atlassian Statuspage**- og **incident.io**-udbydere. (RSS/Atom-feeds eksponerer ikke komponentgrupper.)
+Kriterietrinnet starter med [standardkriterierne](#standardkriterier), som markerer monitoren som offline, når udbyderen melder om en aktiv hændelse eller et nedbrud inden for afgrænsningen. Ret dem, hvis du har brug for det, og klik derefter på **Næste**.
 
-### Komponentnavnefilter
+### Vælg sonder, og opret
 
-Hvis statussiden rapporterer om flere komponenter, kan du valgfrit angive et komponentnavn for kun at overvåge den specifikke komponent. For eksempel, for kun at overvåge AWS EC2 i us-east-1, skal du indtaste `EC2 us-east-1` (det nøjagtige komponentnavn som vist på statussiden).
+Vælg **Sonder** og et **Overvågningsinterval** — det starter på **Hvert 5. minut** — og klik derefter på **Opret monitor**.
+:::
 
-Når en komponentgruppe også er angivet, anvendes komponentnavnefilteret **inden for** den gruppe, så du kan målrette en enkelt komponent inde i en større gruppe. Når ingen af filtrene er angivet, overvåges alle komponenter inden for rækkevidde.
+## Konfigurationsmuligheder
 
-### Flere felter
+| Mulighed | Hvad du angiver | Standard |
+| --- | --- | --- |
+| **Statusside-URL** | URL'en til statussiden. For sider, der kører på Atlassian Statuspage og incident.io, er det typisk rod-URL'en (f.eks. `https://status.example.com`). For RSS-/Atom-feeds skal du angive feedets URL direkte. | — |
+| **Udbyder** | **Auto** for at finde formatet, eller **Atlassian Statuspage**, **incident.io**, **RSS** eller **Atom**, hvis du kender det. | **Auto** |
+| **Component Group Filter (Optional)** | Den gruppe, monitoren afgrænses til. Under **Flere felter**. | Alle grupper |
+| **Filter for komponentnavn (valgfrit)** | Den komponent, der skal holdes øje med. Under **Flere felter**. | Alle komponenter inden for afgrænsningen |
+| **Timeout (ms)** | Den længste tid, der ventes på statussiden. Under **Flere felter**. | `10000` (10 sekunder) |
+| **Genforsøg** | Hvor mange gange der prøves igen, med et sekunds mellemrum, efter at det første forsøg er mislykkedes; `0` betyder et enkelt forsøg. Under **Flere felter**. | `3` (op til 4 forsøg) |
 
-#### Timeout
+### Component Group Filter
 
-Den maksimale tid (i millisekunder) at vente på et svar fra statussiden. Standard er 10000 ms (10 sekunder).
+Hvis statussiden inddeler sine komponenter i grupper, kan du afgrænse monitoren til en enkelt gruppe. På `https://status.openai.com` afgrænser du for eksempel monitoren til OpenAI's API-tjenester ved at angive `APIs`.
 
-#### Genforsøg
+Når en komponentgruppe er angivet, beregnes **antallet af aktive hændelser** og den **samlede status** kun ud fra komponenterne i den gruppe — en hændelse, der rammer en gruppe uden forbindelse til din (for eksempel ChatGPT), udløser ikke en monitor, der er afgrænset til gruppen "APIs".
 
-Antallet af gange anmodningen genforsøges, efter det første forsøg mislykkes; 0 betyder ét enkelt forsøg. Standard er 3 genforsøg, altså op til 4 forsøg i alt.
+Filtrering på komponentgruppe understøttes for udbyderne **Atlassian Statuspage** og **incident.io**. RSS- og Atom-feeds har ingen komponentgrupper.
+
+### Filter for komponentnavn
+
+Hvis statussiden melder om flere komponenter, kan du angive et komponentnavn for kun at overvåge den komponent. Filteret matcher enhver komponent, hvis navn indeholder det, du angiver, uden hensyn til store og små bogstaver — `actions` matcher en komponent, der hedder "Actions".
+
+Når der også er angivet en komponentgruppe, anvendes filteret for komponentnavn **inden for** den gruppe, så du kan ramme en enkelt komponent i en større gruppe. Når ingen af filtrene er angivet, overvåges alle komponenter inden for afgrænsningen. På et RSS- eller Atom-feed sammenlignes navnefilteret med titlerne på feedets elementer.
+
+> [!WARNING]
+> Et filter, der ikke matcher noget, ser sundt ud: uden komponenter inden for afgrænsningen er der intet, der kan melde om et nedbrud. Tjek stavningen op mod statussiden, og brug **Test monitor** for at se, hvad filteret beholder.
 
 ## Overvågningskriterier
 
-Du kan konfigurere kriterier til at afgøre, hvornår den eksterne tjeneste betragtes som online eller offline baseret på:
+Du kan konfigurere kriterier, der afgør, hvornår den eksterne tjeneste betragtes som online eller offline, ud fra:
 
-- **Er online** – Om statussiden er tilgængelig og returnerer statusdata
-- **Samlet status** – Den overordnede statusindikator for statussiden (f.eks. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
-- **Komponentstatus** – Status for komponenterne inden for rækkevidde (under hensyntagen til komponentgruppe-/komponentnavnefiltrene)
-- **Aktive hændelser** – Antallet af aktuelt aktive incidents rapporteret på statussiden (begrænset til komponentgruppen/komponenten, når et filter er angivet)
-- **Svartid** – Hvor lang tid det tager at hente statussidedata
+| Filtertype | Hvad den tjekker | Filterbetingelser |
+| --- | --- | --- |
+| **External Status Page Is Online** | Om statussiden kan nås og returnerer statusdata | Sand eller Falsk |
+| **External Status Page Overall Status** | Den samlede status, siden melder | Equal To, Not Equal To, Indeholder, Not Contains, Starts With, Ends With |
+| **External Status Page Component Status** | Status for komponenterne inden for afgrænsningen (med hensyn til filtrene for komponentgruppe / komponentnavn): I drift, Under Maintenance, Degraded Performance, Partial Outage, Major Outage eller Full Outage | Equal To, Not Equal To, Indeholder, Not Contains, Starts With, Ends With |
+| **External Status Page Active Incidents** | Antallet af aktuelt aktive hændelser på statussiden (afgrænset til komponentgruppen / komponenten, når et filter er angivet) | Equal To, Not Equal To og de numeriske sammenligninger |
+| **External Status Page Response Time (in ms)** | Hvor lang tid det tager at hente statussidens data | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+
+Den samlede status er det, siden siger, så dens værdier afhænger af udbyderen: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; et feed melder `operational` eller `degraded_performance`; tjekket af, om siden kan nås, melder `reachable` eller `unreachable`. Disse sammenligninger skelner mellem store og små bogstaver. Til advarsler om nedbrud er **External Status Page Active Incidents** og **External Status Page Component Status** som regel mere pålidelige.
+
+På et RSS- eller Atom-feed tæller elementerne fra de seneste 24 timer som aktive hændelser: et RSS-element ud fra dets udgivelsesdato, et Atom-element ud fra dets opdateringsdato.
 
 ### Standardkriterier
 
-Som standard opretter OneUptime kriterier baseret på, hvad der faktisk betyder noget for en statusside — dens aktive incidents og komponentsundhed, snarere end blot tilgængelighed:
+Som standard opretter OneUptime kriterier ud fra det, der virkelig betyder noget for en statusside — dens aktive hændelser og komponenternes tilstand frem for blot, om den kan nås:
 
-- Monitoren markeres som **I drift**, når der ikke er nogen aktive incidents inden for rækkevidde.
-- Monitoren markeres som **Down** (og der oprettes en incident), når der er mindst én aktiv incident inden for rækkevidde, eller når en komponent inden for rækkevidde rapporterer `degraded_performance`, `partial_outage`, `major_outage` eller `full_outage`.
+| Kriterium | Filtre | Virkning |
+| --- | --- | --- |
+| Offline | **Enhver** af: siden er ikke online; der er mindst én aktiv hændelse inden for afgrænsningen; en komponent inden for afgrænsningen melder Degraded Performance, Partial Outage, Major Outage eller Full Outage | Markerer monitoren som offline og erklærer en hændelse, der løser sig selv, når kriteriet ikke længere matcher |
+| Online | **Alle** af: siden er online; der er ingen aktive hændelser inden for afgrænsningen | Markerer monitoren som online |
 
-Fordi antallet af aktive incidents og komponentstatus respekterer komponentgruppe-/komponentnavnefiltrene, målretter disse standardkriterier automatisk kun de komponenter, du bekymrer dig om.
+Fordi antallet af aktive hændelser og komponenternes status respekterer filtrene for komponentgruppe / komponentnavn, rammer disse standardkriterier automatisk kun de komponenter, du interesserer dig for.
+
+## Skabelonvariabler
+
+Når du opretter hændelser eller advarsler fra monitorer for eksterne statussider, kan du bruge disse variabler i titler, beskrivelser og afhjælpningsnoter (se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating)):
+
+| Variabel | Beskrivelse |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `{{isOnline}}`            | Om statussiden er online (true/false) |
+| `{{responseTimeInMs}}`    | Svartid i millisekunder |
+| `{{failureCause}}`        | Årsagen til fejlen, hvis der er en |
+| `{{overallStatus}}`       | Værdien af den samlede statusindikator |
+| `{{activeIncidentCount}}` | Antal aktive hændelser (afgrænset til filteret, hvis der er et) |
+| `{{componentStatuses}}`   | JSON-array med komponenternes status (`name`, `status`, `description`, `groupName`) |
+| `{{provider}}`            | Den fundne udbyder (Atlassian Statuspage, incident.io, RSS, Atom); tom efter et tjek af, om siden kan nås |
+| `{{componentGroup}}`      | Den komponentgruppe, monitoren er afgrænset til, hvis der er en |
+| `{{componentName}}`       | Den komponent, monitoren er afgrænset til, hvis der er en |
 
 ## Populære statusside-URL'er
 
-Her er en kurateret liste over populære tjenestestatussider, du kan overvåge:
+Her er en liste over statussider for populære tjenester. Mange af dem bruger Atlassian Statuspage eller incident.io, så udbyderen **Auto** genkender dem automatisk. En side, der ikke er bygget på nogen af dem og ikke er et feed, får kun tjekket af, om den kan nås — overvåg i stedet udbyderens RSS- eller Atom-feed for dem, hvis den udgiver et.
 
-| Tjeneste                     | Statusside URL                                |
+| Tjeneste | Statusside-URL |
 | ---------------------------- | --------------------------------------------- |
 | AWS                          | `https://health.aws.amazon.com/health/status` |
 | Google Cloud Platform        | `https://status.cloud.google.com`             |
@@ -129,28 +184,35 @@ Her er en kurateret liste over populære tjenestestatussider, du kan overvåge:
 | Sentry                       | `https://status.sentry.io`                    |
 | CircleCI                     | `https://status.circleci.com`                 |
 
-> **Bemærk:** Mange af disse bruger Atlassian Statuspage eller incident.io, så **Auto**-udbydertypen vil registrere dem automatisk.
-
-## Incident- og advarselsskabeloner
-
-Når du opretter incidents eller advarsler fra Eksterne Statussidemonitorer, kan du bruge følgende skabelonvariabler:
-
-| Variabel                  | Beskrivelse                                                  |
-| ------------------------- | ------------------------------------------------------------ |
-| `{{isOnline}}`            | Om statussiden er online (sand/falsk)                        |
-| `{{responseTimeInMs}}`    | Svartid i millisekunder                                      |
-| `{{failureCause}}`        | Årsag til fejl, hvis nogen                                   |
-| `{{overallStatus}}`       | Den overordnede statusindikatorværdi                        |
-| `{{activeIncidentCount}}` | Antal aktive incidents (begrænset til filteret, hvis nogen) |
-| `{{componentStatuses}}`   | JSON-array af komponentstatus (`name`, `status`, `description`, `groupName`) |
-| `{{provider}}`            | Registreret udbyder (Atlassian Statuspage, incident.io, RSS, Atom) |
-| `{{componentGroup}}`      | Komponentgruppe, monitoren er begrænset til, hvis nogen     |
-| `{{componentName}}`       | Komponent, monitoren er begrænset til, hvis nogen           |
-
 ## Bedste praksis
 
-- **Brug Auto-udbydertype**, medmindre du kender det nøjagtige format – Auto-detektion fungerer godt til de fleste statussider
-- **Begræns til en komponentgruppe**, hvis du kun er afhængig af en del af en udbyder (f.eks. kun OpenAIs "APIs"), så urelaterede incidents ikke skaber støj
-- **Overvåg specifikke komponenter**, hvis du kun er afhængig af visse tjenester (f.eks. en specifik AWS-region)
-- **Opsæt incidentkorrelation** – Når dine monitorer opdager problemer, og den opstrøms statusside også viser problemer, hjælper det med at identificere årsager hurtigere
-- **Kombinér med andre monitorer** – Par Eksterne Statussidemonitorer med dine egne API/Website-monitorer for omfattende synlighed
+- **Brug udbyderen Auto**, medmindre du kender det nøjagtige format — automatisk genkendelse virker godt for de fleste statussider.
+- **Afgræns til en komponentgruppe**, hvis du kun er afhængig af en del af en udbyder (f.eks. kun OpenAI's "APIs"), så hændelser uden forbindelse til dig ikke giver støj.
+- **Overvåg bestemte komponenter**, hvis du kun er afhængig af bestemte tjenester.
+- **Kombinér med dine egne monitorer** — sæt monitorer for eksterne statussider sammen med dine egne API- og websitemonitorer. Når begge går ned på samme tid, peger leverandørens statusside dig hurtigere hen til årsagen.
+
+## Fejlfinding
+
+:::details Monitoren er offline, men hændelsen gælder en del af tjenesten, som jeg ikke bruger
+Afgræns monitoren med et **Component Group Filter**, et **Filter for komponentnavn** eller begge. Antallet af aktive hændelser og komponenternes status tæller så kun det, der er inden for afgrænsningen.
+:::
+
+:::details Monitoren går aldrig offline, heller ikke under et nedbrud
+Filtrene matcher måske ingenting, hvilket ser sundt ud, eller siden får måske kun tjekket af, om den kan nås. Kør **Test monitor**, og tjek den udbyder og de komponenter, den fandt.
+:::
+
+:::details Auto vælger det forkerte format eller finder ingen komponenter
+Sæt **Udbyder** til den, du ved, at siden bruger. For et RSS- eller Atom-feed skal du angive feedets egen URL i stedet for statussidens.
+:::
+
+:::details En intern statusside kan ikke nås
+En sonde afviser adresser i private netværk, medmindre den har lov til at nå dem. Sæt `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på en sonde inde i dit netværk — se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
+:::
+
+## Næste trin
+
+:::cards
+- [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating): Sæt udbyderens status ind i dine hændelsestitler.
+- [API-monitor](/docs/monitor/api-monitor): Tjek dine egne endpoints ved siden af din udbyders status.
+- [Opret en monitor](/docs/monitor/create-monitor): De trin, alle monitortyper har til fælles.
+:::

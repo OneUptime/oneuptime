@@ -1,110 +1,165 @@
-# Moniteur de page de statut externe
+# Surveillance de page de statut externe
 
-La surveillance des pages de statut externes vous permet de surveiller les pages de statut de tiers et d'être alerté lorsque les services dont vous dépendez subissent des pannes ou des dégradations de performances. OneUptime vérifie périodiquement les pages de statut externes (telles que AWS, GCP, Azure, GitHub, OpenAI, Anthropic, et plus encore) et évalue leur statut.
+Un moniteur de page de statut externe surveille la page de statut publique d'un service dont vous dépendez — AWS, GCP, Azure, GitHub, OpenAI, Anthropic et bien d'autres — et vous alerte quand ce fournisseur signale une panne ou des performances dégradées. Utilisez-le pour apprendre l'existence de problèmes en amont dès que le fournisseur les signale, et pour les distinguer des vôtres.
 
-## Vue d'ensemble
+:::cards
+- [Créer le moniteur](#créer-un-moniteur-de-page-de-statut-externe): Coller l'URL d'une page de statut et choisir quoi surveiller.
+- [Délimiter le périmètre](#options-de-configuration): Surveiller un groupe de composants ou un composant.
+- [Critères](#critères-de-surveillance): Ce qui compte comme une panne, d'emblée.
+- [Pages de statut populaires](#url-de-pages-de-statut-populaires): Les URL des services dont dépendent la plupart des équipes.
+:::
 
-Les moniteurs de pages de statut externes vérifient la santé des services dont vous dépendez en interrogeant leurs pages de statut publiques. Cela vous permet de :
+## Fonctionnement
+
+À chaque vérification, une sonde récupère la page de statut, détermine son format, et lit le statut global, les composants et les incidents actifs. Si vous avez limité le moniteur à un groupe de composants ou à un composant, seuls ceux-ci comptent. Les critères décident ensuite si le moniteur est en ligne ou hors ligne.
+
+```mermaid title="Une vérification d'une page de statut externe"
+flowchart TB
+    fetch["Récupérer la page de statut"] --> detect["Détecter le format"]
+    detect --> parse["Lire statut, composants, incidents"]
+    parse --> scope["Garder le groupe ou le composant"]
+    scope --> criteria{"Incident actif ou panne ?"}
+    criteria -->|Oui| down["Hors ligne, incident déclaré"]
+    criteria -->|Non| up["En ligne"]
+```
+
+Vous pouvez l'utiliser pour :
 
 - Surveiller la disponibilité des services tiers dont dépend votre application
-- Être alerté lorsque les fournisseurs en amont subissent des pannes
-- Suivre les statuts des composants individuels (ex. : « AWS EC2 us-east-1 »)
-- Limiter la surveillance à un seul groupe de composants (ex. : uniquement les « APIs » d'OpenAI), afin que des incidents sans rapport ailleurs sur la page ne déclenchent pas votre moniteur
-- Détecter les dégradations de performances avant qu'elles n'impactent vos utilisateurs
-- Corréler vos propres incidents avec les problèmes des fournisseurs en amont
+- Être alerté quand des fournisseurs en amont subissent des pannes
+- Suivre le statut de chaque composant
+- Limiter la surveillance à un seul groupe de composants (p. ex. seulement les "APIs" d'OpenAI), pour que des incidents sans rapport ailleurs sur la page ne déclenchent pas votre moniteur
+- Détecter des performances dégradées avant qu'elles n'affectent vos utilisateurs
+- Rapprocher vos propres incidents des problèmes des fournisseurs en amont
 
 ## Fournisseurs pris en charge
 
-OneUptime prend en charge la surveillance des pages de statut via les méthodes suivantes :
-
-| Type de fournisseur      | Description                                                            |
-| ------------------------ | --------------------------------------------------------------------- |
-| **Auto** (par défaut)    | Détecte automatiquement le format de la page de statut                |
-| **Atlassian Statuspage** | Pages de statut alimentées par Atlassian Statuspage (API JSON)        |
-| **incident.io**          | Pages de statut alimentées par incident.io (ex. `https://status.openai.com`) |
-| **RSS**                  | Pages de statut fournissant un flux RSS                               |
-| **Atom**                 | Pages de statut fournissant un flux Atom                              |
+| Fournisseur | Description |
+| ------------------------ | ---------------------------------------------------------------------- |
+| **Auto** (par défaut) | Détecte automatiquement le format de la page de statut |
+| **Atlassian Statuspage** | Pages de statut propulsées par Atlassian Statuspage (API JSON) |
+| **incident.io** | Pages de statut propulsées par incident.io (p. ex. `https://status.openai.com`) |
+| **RSS** | Pages de statut qui fournissent un flux RSS |
+| **Atom** | Pages de statut qui fournissent un flux Atom |
 
 ### Détection automatique
 
-Lorsque défini sur **Auto**, OneUptime tente de détecter automatiquement le format de la page de statut, dans cet ordre :
+Avec **Auto**, OneUptime détecte automatiquement le format de la page de statut, dans cet ordre :
 
-1. D'abord, il essaie l'API de page de statut incident.io (`/proxy/<host>`)
-2. Ensuite, il essaie l'API JSON Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` et `/api/v2/incidents/unresolved.json`)
-3. En cas d'échec, il tente d'analyser la page comme un flux RSS ou Atom
-4. En dernier recours, il effectue une vérification d'accessibilité HTTP de base
+1. D'abord, il essaie l'API de page de statut d'incident.io (`/proxy/<host>`).
+2. Ensuite, il essaie l'API JSON d'Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` et `/api/v2/incidents/unresolved.json`).
+3. Si celles-ci échouent, il tente de lire la page comme un flux RSS ou Atom.
+4. En dernier recours, il effectue une simple vérification d'accessibilité HTTP.
 
-> **Note :** incident.io est vérifié en premier car certaines pages de statut incident.io (telles que `https://status.openai.com`) exposent également un point de terminaison limité compatible Atlassian qui omet les groupes de composants et les incidents actifs. Vérifier incident.io en premier garantit l'utilisation des données plus riches et tenant compte des groupes.
+> [!NOTE]
+> incident.io est vérifié en premier parce que certaines pages de statut incident.io (comme `https://status.openai.com`) exposent aussi un point de terminaison limité compatible Atlassian, qui omet les groupes de composants et les incidents actifs. Vérifier incident.io d'abord garantit l'utilisation des données plus riches, qui connaissent les groupes.
 
-## Création d'un moniteur de page de statut externe
+La vérification d'accessibilité est aussi le recours quand un fournisseur choisi explicitement échoue. Elle indique seulement si la page répond — en ligne sur une réponse `2xx` ou `3xx` — et ne rapporte ni composants ni incidents.
 
-1. Allez dans **Moniteurs** dans le tableau de bord OneUptime
-2. Cliquez sur **Créer un moniteur**
-3. Sélectionnez **Page de statut externe** comme type de moniteur
-4. Entrez l'URL de la page de statut que vous souhaitez surveiller
-5. Sélectionnez optionnellement un type de fournisseur spécifique (ou laissez sur **Auto**)
-6. Entrez optionnellement un **groupe de composants** pour limiter la surveillance à un groupe tel que « APIs »
-7. Entrez optionnellement un **nom de composant** pour filtrer sur un seul composant (au sein du groupe, si un groupe est défini)
-8. Configurez les critères de surveillance selon vos besoins
+## Créer un moniteur de page de statut externe
+
+:::steps
+### Commencer un nouveau moniteur
+
+Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de moniteur**, cliquez sur **Plus de types de moniteurs** et choisissez **Page de statut externe** sous **Basic Monitoring**, ou tapez `statuspage` dans le champ de recherche. Saisissez un **Nom**, puis cliquez sur **Suivant**.
+
+### Saisir l'URL de la page de statut
+
+Saisissez l'**URL de la page de statut**. Laissez le **Fournisseur** sur **Auto** sauf si vous connaissez le format.
+
+### Délimiter le périmètre, si nécessaire
+
+Ouvrez **Plus de champs** pour saisir un **Filtre de groupe de composants (facultatif)**, comme `APIs`, et un **Filtre par nom de composant (facultatif)** pour surveiller un seul composant (dans le groupe, si un groupe est défini).
+
+### Le tester
+
+Cliquez sur **Tester le moniteur** pour récupérer la page une fois, et vérifiez le fournisseur, les composants et les incidents trouvés.
+
+### Passer en revue les critères
+
+L'étape des critères commence avec [les critères par défaut](#critères-par-défaut), qui marquent le moniteur hors ligne quand le fournisseur signale un incident actif ou une panne dans le périmètre. Modifiez-les si besoin, puis cliquez sur **Suivant**.
+
+### Choisir les sondes et créer
+
+Sélectionnez les **Sondes** et un **Intervalle de surveillance** — il commence à **Toutes les 5 minutes** — puis cliquez sur **Créer un moniteur**.
+:::
 
 ## Options de configuration
 
-### URL de la page de statut
-
-Entrez l'URL de la page de statut externe que vous souhaitez surveiller. Pour les sites alimentés par Atlassian Statuspage et incident.io, il s'agit généralement de l'URL racine (ex. : `https://status.example.com`). Pour les flux RSS/Atom, entrez directement l'URL du flux.
-
-### Type de fournisseur
-
-Sélectionnez le type de fournisseur pour la page de statut. Utilisez **Auto** (par défaut) pour laisser OneUptime détecter le format automatiquement, ou spécifiez **Atlassian Statuspage**, **incident.io**, **RSS** ou **Atom** si vous le connaissez.
+| Option | Ce qu'il faut saisir | Par défaut |
+| --- | --- | --- |
+| **URL de la page de statut** | L'URL de la page de statut. Pour les sites propulsés par Atlassian Statuspage et incident.io, c'est généralement l'URL racine (p. ex. `https://status.example.com`). Pour les flux RSS/Atom, saisissez directement l'URL du flux. | — |
+| **Fournisseur** | **Auto** pour détecter le format, ou **Atlassian Statuspage**, **incident.io**, **RSS** ou **Atom** si vous le connaissez. | **Auto** |
+| **Filtre de groupe de composants (facultatif)** | Le groupe auquel limiter le moniteur. Sous **Plus de champs**. | Tous les groupes |
+| **Filtre par nom de composant (facultatif)** | Le composant à surveiller. Sous **Plus de champs**. | Tous les composants du périmètre |
+| **Délai d'expiration (ms)** | Le temps maximal d'attente de la page de statut. Sous **Plus de champs**. | `10000` (10 secondes) |
+| **Tentatives** | Combien de fois réessayer, à une seconde d'intervalle, après l'échec de la première tentative ; `0` signifie une seule tentative. Sous **Plus de champs**. | `3` (jusqu'à 4 tentatives) |
 
 ### Filtre de groupe de composants
 
-Si la page de statut organise ses composants en groupes, vous pouvez limiter le moniteur à un seul groupe. Par exemple, sur `https://status.openai.com`, entrer `APIs` limite le moniteur aux services API d'OpenAI.
+Si la page de statut organise ses composants en groupes, vous pouvez limiter le moniteur à un seul groupe. Par exemple, sur `https://status.openai.com`, saisir `APIs` limite le moniteur aux services d'API d'OpenAI.
 
-Lorsqu'un groupe de composants est défini, le **nombre d'incidents actifs** et le **statut global** sont calculés en utilisant uniquement les composants de ce groupe — un incident affectant un groupe sans rapport (par exemple, ChatGPT) ne déclenchera pas un moniteur limité au groupe « APIs ».
+Quand un groupe de composants est défini, le **nombre d'incidents actifs** et le **statut global** sont calculés uniquement à partir des composants de ce groupe — un incident touchant un groupe sans rapport (par exemple ChatGPT) ne déclenchera pas un moniteur limité au groupe "APIs".
 
-Le filtrage par groupe de composants est pris en charge pour les fournisseurs **Atlassian Statuspage** et **incident.io**. (Les flux RSS/Atom n'exposent pas de groupes de composants.)
+Le filtrage par groupe de composants est pris en charge pour les fournisseurs **Atlassian Statuspage** et **incident.io**. Les flux RSS et Atom n'exposent pas de groupes de composants.
 
-### Filtre de nom de composant
+### Filtre par nom de composant
 
-Si la page de statut rapporte plusieurs composants, vous pouvez optionnellement spécifier un nom de composant pour surveiller uniquement ce composant spécifique. Par exemple, pour surveiller uniquement AWS EC2 dans us-east-1, vous entreriez `EC2 us-east-1` (le nom exact du composant tel qu'affiché sur la page de statut).
+Si la page de statut rapporte plusieurs composants, vous pouvez indiquer un nom de composant pour ne surveiller que celui-ci. Le filtre correspond à tout composant dont le nom contient ce que vous saisissez, sans tenir compte de la casse — `actions` correspond à un composant nommé "Actions".
 
-Lorsqu'un groupe de composants est également défini, le filtre de nom de composant est appliqué **au sein** de ce groupe, ce qui vous permet de cibler un seul composant à l'intérieur d'un groupe plus large. Lorsqu'aucun des deux filtres n'est spécifié, tous les composants concernés sont surveillés.
+Quand un groupe de composants est aussi défini, le filtre par nom de composant s'applique **à l'intérieur** de ce groupe, ce qui vous permet de cibler un seul composant dans un groupe plus large. Quand aucun filtre n'est indiqué, tous les composants du périmètre sont surveillés. Sur un flux RSS ou Atom, le filtre par nom est comparé aux titres des éléments du flux.
 
-### Plus de champs
-
-#### Délai d'attente
-
-Le temps maximum (en millisecondes) à attendre pour une réponse de la page de statut. La valeur par défaut est 10000ms (10 secondes).
-
-#### Tentatives
-
-Le nombre de fois où la requête est réessayée après l'échec de la première tentative ; 0 signifie une seule tentative. La valeur par défaut est de 3 nouvelles tentatives, soit jusqu'à 4 essais au total.
+> [!WARNING]
+> Un filtre qui ne correspond à rien a l'air sain : sans composants dans le périmètre, rien ne peut signaler de panne. Vérifiez l'orthographe sur la page de statut, et utilisez **Tester le moniteur** pour voir ce que garde le filtre.
 
 ## Critères de surveillance
 
-Vous pouvez configurer des critères pour déterminer quand le service externe est considéré comme en ligne ou hors ligne en fonction de :
+Vous pouvez configurer des critères pour décider quand le service externe est considéré comme en ligne ou hors ligne, en fonction de :
 
-- **En ligne** — Si la page de statut est accessible et retourne des données de statut
-- **Statut global** — L'indicateur de statut global de la page de statut (ex. : `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
-- **Statut du composant** — Le statut des composants concernés (en respectant les filtres de groupe de composants / nom de composant)
-- **Incidents actifs** — Le nombre d'incidents actifs actuellement signalés sur la page de statut (limité au groupe de composants / composant lorsqu'un filtre est défini)
-- **Temps de réponse** — Le temps nécessaire pour récupérer les données de la page de statut
+| Type de filtre | Ce qu'il vérifie | Conditions de filtre |
+| --- | --- | --- |
+| **External Status Page Is Online** | Si la page de statut est accessible et renvoie des données de statut | Vrai ou Faux |
+| **External Status Page Overall Status** | Le statut global indiqué par la page | Equal To, Not Equal To, Contient, Not Contains, Starts With, Ends With |
+| **External Status Page Component Status** | Le statut des composants du périmètre (en respectant les filtres de groupe / de nom de composant) : Opérationnel, Under Maintenance, Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Equal To, Not Equal To, Contient, Not Contains, Starts With, Ends With |
+| **External Status Page Active Incidents** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (limité au groupe / composant quand un filtre est défini) | Equal To, Not Equal To, et les comparaisons numériques |
+| **External Status Page Response Time (in ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+
+Le statut global est ce que dit la page : ses valeurs varient donc selon le fournisseur. Une Atlassian Statuspage rapporte sa propre description, comme `All Systems Operational` ; un flux rapporte `operational` ou `degraded_performance` ; la vérification d'accessibilité rapporte `reachable` ou `unreachable`. Ces comparaisons sont sensibles à la casse. Pour alerter sur les pannes, **External Status Page Active Incidents** et **External Status Page Component Status** sont généralement plus fiables.
+
+Sur un flux RSS ou Atom, les éléments des dernières 24 heures comptent comme incidents actifs : un élément RSS selon sa date de publication, une entrée Atom selon sa date de mise à jour.
 
 ### Critères par défaut
 
-Par défaut, OneUptime initialise les critères en fonction de ce qui importe réellement pour une page de statut — ses incidents actifs et la santé de ses composants, plutôt que sa simple accessibilité :
+Par défaut, OneUptime crée des critères fondés sur ce qui compte vraiment pour une page de statut — ses incidents actifs et la santé de ses composants, plutôt que la simple accessibilité :
 
-- Le moniteur est marqué **Opérationnel** lorsqu'il n'y a aucun incident actif dans le périmètre concerné.
-- Le moniteur est marqué **Hors ligne** (et un incident est créé) lorsqu'il y a au moins un incident actif dans le périmètre concerné, ou lorsqu'un composant concerné signale `degraded_performance`, `partial_outage`, `major_outage` ou `full_outage`.
+| Critère | Filtres | Effet |
+| --- | --- | --- |
+| Hors ligne | **Tout** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
+| En ligne | **Tous** parmi : la page est en ligne ; il n'y a aucun incident actif dans le périmètre | Marque le moniteur en ligne |
 
-Comme le nombre d'incidents actifs et les statuts des composants respectent les filtres de groupe de composants / nom de composant, ces critères par défaut ciblent automatiquement uniquement les composants qui vous intéressent.
+Comme le nombre d'incidents actifs et les statuts des composants respectent les filtres de groupe / de nom de composant, ces critères par défaut ne ciblent automatiquement que les composants qui vous intéressent.
 
-## URLs de pages de statut populaires
+## Variables de modèle
 
-Voici une liste organisée d'URLs de pages de statut de services populaires que vous pouvez surveiller :
+Quand vous créez des incidents ou des alertes à partir de moniteurs de page de statut externe, vous pouvez utiliser ces variables dans les titres, les descriptions et les notes de remédiation (voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating)) :
 
-| Service                      | URL de la page de statut                      |
+| Variable | Description |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `{{isOnline}}`            | Si la page de statut est en ligne (true/false) |
+| `{{responseTimeInMs}}`    | Temps de réponse en millisecondes |
+| `{{failureCause}}`        | Cause de l'échec, le cas échéant |
+| `{{overallStatus}}`       | La valeur de l'indicateur de statut global |
+| `{{activeIncidentCount}}` | Nombre d'incidents actifs (limité par le filtre, s'il y en a un) |
+| `{{componentStatuses}}`   | Tableau JSON des statuts de composants (`name`, `status`, `description`, `groupName`) |
+| `{{provider}}`            | Fournisseur détecté (Atlassian Statuspage, incident.io, RSS, Atom) ; vide après une vérification d'accessibilité |
+| `{{componentGroup}}`      | Groupe de composants auquel le moniteur est limité, le cas échéant |
+| `{{componentName}}`       | Composant auquel le moniteur est limité, le cas échéant |
+
+## URL de pages de statut populaires
+
+Voici une liste de pages de statut de services populaires. Beaucoup utilisent Atlassian Statuspage ou incident.io, donc le fournisseur **Auto** les détecte automatiquement. Une page construite sur aucun des deux, et qui n'est pas un flux, ne reçoit que la vérification d'accessibilité — pour celles-ci, surveillez plutôt le flux RSS ou Atom du fournisseur, s'il en publie un.
+
+| Service | URL de la page de statut |
 | ---------------------------- | --------------------------------------------- |
 | AWS                          | `https://health.aws.amazon.com/health/status` |
 | Google Cloud Platform        | `https://status.cloud.google.com`             |
@@ -129,28 +184,35 @@ Voici une liste organisée d'URLs de pages de statut de services populaires que 
 | Sentry                       | `https://status.sentry.io`                    |
 | CircleCI                     | `https://status.circleci.com`                 |
 
-> **Remarque :** Beaucoup d'entre eux utilisent Atlassian Statuspage ou incident.io, donc le type de fournisseur **Auto** les détectera automatiquement.
+## Bonnes pratiques
 
-## Modèles d'incidents et d'alertes
+- **Utilisez le fournisseur Auto**, sauf si vous connaissez le format exact — la détection automatique fonctionne bien pour la plupart des pages de statut.
+- **Limitez-vous à un groupe de composants** si vous ne dépendez que d'une partie d'un fournisseur (p. ex. seulement les "APIs" d'OpenAI), pour que les incidents sans rapport ne fassent pas de bruit.
+- **Surveillez des composants précis** si vous ne dépendez que de certains services.
+- **Combinez avec vos propres moniteurs** — associez les moniteurs de page de statut externe à vos propres moniteurs d'API et de site web. Quand les deux tombent en même temps, la page de statut en amont vous oriente plus vite vers la cause racine.
 
-Lors de la création d'incidents ou d'alertes à partir de moniteurs de pages de statut externes, vous pouvez utiliser les variables de modèle suivantes :
+## Dépannage
 
-| Variable                  | Description                                                  |
-| ------------------------- | ------------------------------------------------------------ |
-| `{{isOnline}}`            | Si la page de statut est en ligne (true/false)               |
-| `{{responseTimeInMs}}`    | Temps de réponse en millisecondes                            |
-| `{{failureCause}}`        | Raison de l'échec, le cas échéant                            |
-| `{{overallStatus}}`       | La valeur de l'indicateur de statut global                   |
-| `{{activeIncidentCount}}` | Nombre d'incidents actifs (limité au filtre, le cas échéant) |
-| `{{componentStatuses}}`   | Tableau JSON des statuts des composants (`name`, `status`, `description`, `groupName`) |
-| `{{provider}}`            | Fournisseur détecté (Atlassian Statuspage, incident.io, RSS, Atom) |
-| `{{componentGroup}}`      | Groupe de composants auquel le moniteur est limité, le cas échéant |
-| `{{componentName}}`       | Composant auquel le moniteur est limité, le cas échéant      |
+:::details Le moniteur est hors ligne, mais l'incident concerne une partie du service que je n'utilise pas
+Limitez le moniteur avec un **Filtre de groupe de composants**, un **Filtre par nom de composant**, ou les deux. Le nombre d'incidents actifs et les statuts des composants ne comptent alors que ce qui est dans le périmètre.
+:::
 
-## Meilleures pratiques
+:::details Le moniteur ne passe jamais hors ligne, même pendant une panne
+Les filtres ne correspondent peut-être à rien, ce qui a l'air sain, ou la page ne reçoit que la vérification d'accessibilité. Lancez **Tester le moniteur** et vérifiez le fournisseur et les composants trouvés.
+:::
 
-- **Utilisez le type de fournisseur Auto** sauf si vous connaissez le format exact — la détection automatique fonctionne bien pour la plupart des pages de statut
-- **Limitez à un groupe de composants** si vous ne dépendez que d'une partie d'un fournisseur (ex. : uniquement les « APIs » d'OpenAI), afin que des incidents sans rapport ne créent pas de bruit
-- **Surveillez des composants spécifiques** si vous ne dépendez que de certains services (ex. : une région AWS spécifique)
-- **Configurez la corrélation des incidents** — lorsque vos moniteurs détectent des problèmes et que la page de statut en amont signale également des problèmes, cela aide à identifier les causes racines plus rapidement
-- **Combinez avec d'autres moniteurs** — associez les moniteurs de pages de statut externes à vos propres moniteurs API/site web pour une visibilité complète
+:::details Auto choisit le mauvais format, ou ne trouve aucun composant
+Réglez le **Fournisseur** sur celui que vous savez utilisé par la page. Pour un flux RSS ou Atom, saisissez l'URL du flux lui-même plutôt que celle de la page de statut.
+:::
+
+:::details Une page de statut interne est injoignable
+Une sonde refuse les adresses de réseau privé, sauf si elle est autorisée à les atteindre. Définissez `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` sur une sonde de votre réseau — voir [Accès au réseau privé](/docs/self-hosted/private-network-access).
+:::
+
+## Prochaines étapes
+
+:::cards
+- [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating): Mettre le statut du fournisseur dans vos titres d'incident.
+- [Surveillance d'API](/docs/monitor/api-monitor): Vérifier vos propres points de terminaison à côté du statut de votre fournisseur.
+- [Créer un moniteur](/docs/monitor/create-monitor): Les étapes communes à tous les types de moniteurs.
+:::

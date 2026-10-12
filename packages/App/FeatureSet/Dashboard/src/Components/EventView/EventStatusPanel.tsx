@@ -9,13 +9,21 @@ import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { StateMoveList } from "Common/Utils/StateMove";
 import React, { FunctionComponent, ReactElement } from "react";
 import LiveDuration from "./LiveDuration";
+import { getEventStateMenuStates } from "./EventStateMenu";
 
 export interface EventStateItem {
   id: string;
   name: string;
   color: Color;
+  /*
+   * Its place in the project's list of states (1 is the top): what the
+   * server compares a move by, so the menu offers only the states the
+   * record may move into next.
+   */
+  order?: number | undefined;
 }
 
 export interface EventStateAction {
@@ -54,6 +62,13 @@ export interface EventStatusFact {
 
 export interface ComponentProps {
   states: Array<EventStateItem>; // ordered by state order.
+  /*
+   * The list of states the record walks down - incident states for an
+   * incident or an incident episode, alert states for an alert or an alert
+   * episode, scheduled maintenance states for an event - by which the menu
+   * offers its moves (getEventStateMenuStates).
+   */
+  stateList: StateMoveList;
   identifier?: string | undefined; // e.g. "INC-42", "#42" — shown at the start of the panel.
   /*
    * When set, the panel renders as a proper header: the identifier becomes a
@@ -160,36 +175,22 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
    * have a prominent button, so repeating them under "More actions" adds noise
    * and makes the menu look useful when it contains no additional choice.
    */
-  const visibleActionStateIds: Set<string> = new Set(
-    props.actions.map((action: EventStateAction) => {
+  /*
+   * Every state timeline refuses a move back up the list, for an episode as
+   * for an incident, an alert or a maintenance event (Common/Utils/StateMove):
+   * the menu offers only the states the record may move into next, so it
+   * never offers a change the server would refuse. A record in a state that
+   * is not in the list keeps every other state on offer, rather than losing
+   * the menu it would recover with.
+   */
+  const statesForMenu: Array<EventStateItem> = getEventStateMenuStates({
+    list: props.stateList,
+    states: props.states,
+    currentStateId: props.currentStateId,
+    buttonStateIds: props.actions.map((action: EventStateAction): string => {
       return action.stateId;
     }),
-  );
-  const includedMenuStateIds: Set<string> = new Set();
-
-  const statesForMenu: Array<EventStateItem> = props.states.filter(
-    (state: EventStateItem, stateIndex: number) => {
-      /*
-       * State timeline APIs only accept forward transitions. Hiding earlier
-       * states prevents the menu from offering a change the server will reject.
-       * If the current state is not in the supplied list, keep alternatives
-       * available rather than making the recovery menu disappear entirely.
-       */
-      const isForwardState: boolean =
-        currentStateIndex < 0 || stateIndex > currentStateIndex;
-      const shouldIncludeState: boolean =
-        isForwardState &&
-        state.id !== props.currentStateId &&
-        !visibleActionStateIds.has(state.id) &&
-        !includedMenuStateIds.has(state.id);
-
-      if (shouldIncludeState) {
-        includedMenuStateIds.add(state.id);
-      }
-
-      return shouldIncludeState;
-    },
-  );
+  });
 
   /*
    * On a phone the buttons grow from their own width (flex-auto), so two

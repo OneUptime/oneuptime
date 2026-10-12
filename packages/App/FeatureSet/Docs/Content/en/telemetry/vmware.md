@@ -6,7 +6,7 @@ The OneUptime VMware Agent is a pre-configured OpenTelemetry Collector that moni
 
 One agent monitors one vSphere endpoint — a **vCenter Server** (the normal case, covering every datacenter, cluster, and host it manages) or a **standalone ESXi host** that is not managed by a vCenter. Run one agent per vCenter.
 
-This page is the **installation guide**. For configuring VMware monitors and alerts on top of the data the agent collects, see [VMware Monitor](/docs/monitor/vmware-monitor).
+This page is the **installation guide**. For configuring VMware monitors and alerts on top of the data the agent collects, see [VMware Monitor](/docs/monitor/vmware-monitor). To monitor a vCenter without running the agent at all, see [VMware Without an Agent](/docs/telemetry/vmware-agentless): one of your probes collects the same data with a read-only account.
 
 ## Prerequisites
 

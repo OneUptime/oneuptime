@@ -41,6 +41,7 @@ import UserNotificationStatus from "../../../Types/UserNotification/UserNotifica
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -453,6 +454,15 @@ describe("UserNotificationRule administrative write guards", () => {
         .mockResolvedValue(undefined as never),
       methodFinds: methodFinds,
     };
+
+    /*
+     * The read of the rows the caller's update may write, which the update
+     * path makes before the hooks: the rules the rule read answers with.
+     */
+    stubRowsCallerMayWriteLikeFindBy(
+      UserNotificationRuleService,
+      stubs.ruleFind,
+    );
     stubProjectDirectory({});
   });
 

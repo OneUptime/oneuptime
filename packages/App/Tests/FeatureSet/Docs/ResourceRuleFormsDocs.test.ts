@@ -8,6 +8,8 @@ import {
   LABEL_RULE_ADDS_NOTHING_MESSAGE,
   OWNER_RULE_ADDS_NOTHING_MESSAGE,
 } from "Common/Utils/Rules/RuleAction";
+import { dashboardLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 
 /*
  * Every label and owner rule is created in two steps - Match, then Labels
@@ -20,7 +22,10 @@ import {
  *
  * The pages that describe those forms say so, in English and in Persian,
  * the two languages that describe them: nobody is sent looking for a Basic
- * Info step or an Inherit step, or told a rule's labels are optional.
+ * Info step or an Inherit step, or told a rule's labels are optional. The
+ * Persian SLO page and status page overview name the form as the Persian
+ * Dashboard draws it; the Persian incident pages keep the Dashboard's
+ * English names.
  */
 
 const CONTENT_DIR: string = path.join(
@@ -54,6 +59,19 @@ const EVENT_PAGES: Array<string> = [
 
 const LANGUAGES: Array<string> = ["en", "fa"];
 
+// The pages here that name the Dashboard as their language's Dashboard draws it.
+const NAMED_AS_DRAWN: ReadonlyArray<string> = [
+  "slo/label-and-owner-rules",
+  "status-pages/index",
+];
+
+// What a page in this language calls the Dashboard label written in English.
+function uiName(language: string, page: string, english: string): string {
+  return NAMED_AS_DRAWN.includes(page)
+    ? drawnDashboardLabel(language, english)
+    : dashboardLabel(language, english);
+}
+
 // The incident settings page's section on label and owner rules.
 const INCIDENT_RULES_HEADING: Record<string, string> = {
   en: "## Incident label and owner rules",
@@ -79,28 +97,48 @@ describe.each(LANGUAGES)(
       (page: string) => {
         const content: string = read(language, page);
 
-        expect(content).toContain("**Match**");
-        expect(content).toContain("**Labels**");
-        expect(content).toContain("**Name**");
-        expect(content).toContain("**More fields**");
+        for (const english of ["Match", "Labels", "Name", "More fields"]) {
+          expect(content).toContain(`**${uiName(language, page, english)}**`);
+        }
+
         expect(content).not.toContain("Basic Info");
+        expect(content).not.toContain(
+          `**${uiName(language, page, "Basic Info")}**`,
+        );
       },
     );
 
     test("the SLO page says what the name is filled in from, for both kinds", () => {
-      const content: string = read(language, "slo/label-and-owner-rules");
+      const page: string = "slo/label-and-owner-rules";
+      const content: string = read(language, page);
+      // The name the form fills in: its sentence, in the page's words, around the picks.
+      const named: (template: string, slot: string, picks: string) => string = (
+        template: string,
+        slot: string,
+        picks: string,
+      ): string => {
+        return uiName(language, page, template).replace(slot, picks);
+      };
 
-      expect(content).toContain("_Add Checkout, Production_");
-      expect(content).toContain("_Add Checkout team as owners_");
+      expect(content).toContain(
+        `_${named("Add {{labels}}", "{{labels}}", "Checkout, Production")}_`,
+      );
+      expect(content).toContain(
+        `_${named("Add {{owners}} as owners", "{{owners}}", "Checkout team")}_`,
+      );
       expect(content).toMatch(
-        /\*\*Notify Owners\*\* \([^)]*\*\*More fields\*\*/,
+        new RegExp(
+          `\\*\\*${escapeRegExp(uiName(language, page, "Notify Owners"))}\\*\\* \\([^)]*\\*\\*${escapeRegExp(uiName(language, page, "More fields"))}\\*\\*`,
+        ),
       );
     });
 
     test.each(PAGES)(
       "%s says the list marks a rule that adds nothing",
       (page: string) => {
-        expect(read(language, page)).toContain("**Adds nothing**");
+        expect(read(language, page)).toContain(
+          `**${uiName(language, page, "Adds nothing")}**`,
+        );
       },
     );
 
@@ -120,11 +158,17 @@ describe.each(LANGUAGES)(
               )
             : read(language, page);
 
-        expect(content).toContain("**Match**");
-        expect(content).toContain("**Adds nothing**");
+        const bold: (english: string) => string = (english: string): string => {
+          return `**${uiName(language, page, english)}**`;
+        };
+
+        expect(content).toContain(bold("Match"));
+        expect(content).toContain(bold("Adds nothing"));
         expect(content).toContain(`](${GENERAL_PAGE_URL})`);
-        expect(content).not.toContain("**Basic Info**");
-        expect(content).not.toContain("**Match Criteria**, **Owners**");
+        expect(content).not.toContain(bold("Basic Info"));
+        expect(content).not.toContain(
+          `${bold("Match Criteria")}, ${bold("Owners")}`,
+        );
         expect(content).not.toMatch(
           /\*\*Owners\*\* and \*\*Inherit Owners\*\*/,
         );

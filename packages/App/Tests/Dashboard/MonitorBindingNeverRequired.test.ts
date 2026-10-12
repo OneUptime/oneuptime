@@ -4,6 +4,7 @@ import {
   MONITOR_BINDING_FIELD_DESCRIPTION,
   MONITOR_BINDING_FIELD_PLACEHOLDER,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/MonitoringMethodFormFields";
+import { ADD_DEVICE_HOSTNAME_DESCRIPTION } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/AddDeviceForm";
 import fs from "fs";
 import path from "path";
 
@@ -249,8 +250,12 @@ describe("the binding is explained by the shared sentence, not a local one", () 
  * it: a device's details are edited in one place, its Settings page.)
  */
 describe("the hostname is explained the same way on every surface", () => {
+  /*
+   * Where a device of either kind is edited or adopted. The Add Device form
+   * creates probe-polled devices only, so it says what its address is for
+   * in one plain sentence of its own - see the test after these.
+   */
   const HOSTNAME_SURFACES: Array<string> = [
-    "Pages/NetworkDevice/Devices.tsx",
     "Pages/NetworkDevice/View/Settings.tsx",
     "Components/Topology/AddNeighborToMonitoringModal.tsx",
   ];
@@ -271,6 +276,22 @@ describe("the hostname is explained the same way on every surface", () => {
    * where the device is PINGED, with the SNMP walk as an upgrade that
    * happens only once credentials resolve.
    */
+  /*
+   * The Add Device form's own sentence is true of every device it creates
+   * (all of them probe-polled): the address is where the probe PINGS it. It
+   * makes none of the claims the old copy made - no promise of an SNMP walk
+   * to a device that will only ever be pinged.
+   */
+  test("the Add Device form explains its hostname plainly and truthfully", () => {
+    const devices: string = readCode("Pages/NetworkDevice/Devices.tsx");
+
+    expect(devices).toContain("description: ADD_DEVICE_HOSTNAME_DESCRIPTION");
+    expect(devices).not.toContain("description: HOSTNAME_FIELD_DESCRIPTION");
+    expect(ADD_DEVICE_HOSTNAME_DESCRIPTION).toContain("pings");
+    expect(ADD_DEVICE_HOSTNAME_DESCRIPTION).not.toMatch(/SNMP/);
+    expect(ADD_DEVICE_HOSTNAME_DESCRIPTION).not.toMatch(/monitor-backed/);
+  });
+
   test("the shared description covers both kinds of device", () => {
     expect(HOSTNAME_FIELD_DESCRIPTION).toContain("probe-polled device");
     expect(HOSTNAME_FIELD_DESCRIPTION).toContain("monitor-backed device");

@@ -83,6 +83,15 @@ const DOMAIN_BY_MODEL: Record<string, string> = {
    */
   SecurityEventConnection: "Security",
   SecurityEventConnectionRun: "Security",
+
+  /*
+   * Huntress connections and the incident reports they received. They are
+   * sources of incidents, not SIEM data: a security incident a Huntress
+   * analyst reports becomes an ordinary incident that pages on-call, so
+   * whoever reads incidents reads why one was (or was not) opened.
+   */
+  HuntressConnection: "Incident",
+  HuntressIncidentReport: "Incident",
 };
 
 /*
@@ -130,11 +139,16 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   /*
    * The inbound call policy, its attached phone numbers, and its escalation
    * rules are configured under Settings -> Calls rather than alongside on-call
-   * schedules, so they follow the Settings tiers. Their label and owner rules
-   * follow their owner models, which are on-call.
+   * schedules, so they follow the Settings tiers. So do its owners, which are
+   * read through the policy they own (OwnerTablesReadThroughResource): an
+   * on-call role, which reads no incoming call policy, sees and changes none
+   * of their owners. Its label and owner rules, which only project owners
+   * and admins write, are read by the on-call tiers.
    */
   "IncomingCallPolicy",
   "IncomingCallPolicyEscalationRule",
+  "IncomingCallPolicyOwnerTeam",
+  "IncomingCallPolicyOwnerUser",
   "IncomingCallPolicyPhoneNumber",
 ];
 

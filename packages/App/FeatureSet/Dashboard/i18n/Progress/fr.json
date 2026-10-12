@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 26121,
-    "untranslated": 9359
+    "keys": 28012,
+    "untranslated": 9611
   },
   "sameAsEnglish": [
     " incidents",
@@ -23,6 +23,7 @@
     "-----BEGIN OPENSSH PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+    "0 (kiss-o'-death {{kissCode}})",
     "1 minute",
     "10 minutes",
     "10.0.1.5 - - [10/Oct/2023:13:55:36 -0700] \"GET /health HTTP/1.1\" 200 1234",
@@ -66,6 +67,7 @@
     "Appliances",
     "Application",
     "Application / Service",
+    "Application {{application}}",
     "Architecture",
     "Aruba",
     "Audit",
@@ -98,6 +100,7 @@
     "CSS",
     "Canada",
     "Canada (+1)",
+    "Capture",
     "Chat",
     "Checkout primary",
     "Chrome, Safari, Firefox",
@@ -123,6 +126,8 @@
     "Content Security Policy",
     "Controller Manager",
     "Conversation",
+    "Conversation {{id}}",
+    "Conversations",
     "Costa Rica",
     "CrowdStrike",
     "Cuba",
@@ -157,8 +162,10 @@
     "Down + Out",
     "EKS Fargate",
     "ERR",
+    "Embedding",
     "Enterprise Edition",
     "Envoy Proxy",
+    "Europe",
     "Exception",
     "Exceptions",
     "Exclusion",
@@ -216,6 +223,7 @@
     "Instances",
     "Interaction to Next Paint",
     "Interface",
+    "Interface {{index}}",
     "Interfaces",
     "Investigation",
     "Investigations",
@@ -349,6 +357,12 @@
     "agent {{version}}",
     "cluster",
     "kubectl set image deployment/web * -n web",
-    "{{count}} minutes"
+    "services",
+    "{{count}} minutes",
+    "{{count}} option",
+    "{{count}} options",
+    "{{count}} rotation",
+    "{{count}} rotations",
+    "{{protocol}} port {{port}}"
   ]
 }

@@ -240,6 +240,19 @@ export const SlackAppClientId: string | null =
 export const MicrosoftTeamsAppClientId: string | null =
   env("MICROSOFT_TEAMS_APP_CLIENT_ID") || null;
 
+/*
+ * The apps behind the one-click Connect of a video call provider. A
+ * provider whose app this server has is connected by signing in; without
+ * one, a project connects its own app with the connection form.
+ */
+export const ZoomAppClientId: string | null = env("ZOOM_APP_CLIENT_ID") || null;
+
+export const GoogleMeetAppClientId: string | null =
+  env("GOOGLE_MEET_APP_CLIENT_ID") || null;
+
+export const MicrosoftTeamsMeetingsAppClientId: string | null =
+  env("MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID") || null;
+
 export const GitHubAppClientId: string | null =
   env("GITHUB_APP_CLIENT_ID") || null;
 

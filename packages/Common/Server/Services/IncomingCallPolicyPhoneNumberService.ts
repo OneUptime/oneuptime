@@ -5,7 +5,6 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import logger from "../Utils/Logger";
 
 const incomingCallPolicyDatabaseService: DatabaseService<IncomingCallPolicy> =
@@ -130,17 +129,10 @@ export class Service extends DatabaseService<IncomingCallPolicyPhoneNumber> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<IncomingCallPolicyPhoneNumber>,
   ): Promise<OnDelete<IncomingCallPolicyPhoneNumber>> {
+    // The numbers the delete removes, and the delete held to them.
     const phoneNumbers: Array<IncomingCallPolicyPhoneNumber> =
-      await this.findBy({
-        query: deleteBy.query,
-        select: {
-          incomingCallPolicyId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
+        incomingCallPolicyId: true,
       });
 
     const incomingCallPolicyIdMap: Map<string, ObjectID> = new Map();

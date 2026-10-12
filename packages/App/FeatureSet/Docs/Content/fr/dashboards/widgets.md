@@ -240,6 +240,14 @@ Quelques règles rapides :
 
 La plupart des tableaux de bord mélangent quelques widgets — un graphique en haut, une ou deux valeurs à côté, un séparateur en texte et une ou deux listes en dessous.
 
+## Quand un widget ne peut pas être affiché
+
+Un widget qui ne peut pas être dessiné affiche **Ce widget n'a pas pu être affiché** à sa place, et le reste du tableau de bord continue de fonctionner. Cela arrive quand OneUptime n'a aucun widget de ce type (un widget supprimé, un type mal orthographié lorsque le tableau de bord a été écrit via l'API, ou un widget ajouté par une version plus récente), ou quand le widget échoue pendant son affichage, par exemple parce que ses paramètres enregistrés sont incomplets.
+
+Si vous pouvez modifier le tableau de bord, cliquez sur **Modifier le widget** sur ce widget. Le tableau de bord passe en mode édition avec les paramètres de ce widget ouverts : corrigez-les, ou cliquez sur **Supprimer le widget**, puis sur **Enregistrer les modifications**. Un widget qui a échoué pendant son affichage propose aussi **Réessayer**, et est redessiné à la prochaine actualisation automatique ou quand vous changez la période.
+
+Les visiteurs d'un tableau de bord public voient seulement que le widget n'a pas pu être affiché.
+
 ## Pour aller plus loin
 
 - [Variables et filtres](/docs/dashboards/variables) — rendre les widgets réutilisables pour plusieurs services ou clients.

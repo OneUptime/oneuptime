@@ -117,6 +117,72 @@ function between(text: string, start: string, end: string): string {
   return text.slice(from, to);
 }
 
+// A line that opens or closes a component: ":::tabs", "@tab Standard", ":::".
+const COMPONENT_LINE: RegExp = /^(?::::[a-z]*|@tab\s.*)$/;
+
+/*
+ * The paragraph a page writes right after the code block that holds `code`:
+ * past the block's closing fence and any component lines that close around it
+ * (the install commands sit in tabs), up to the next blank line.
+ */
+function paragraphAfter(markdown: string, code: string): string {
+  const at: number = markdown.lastIndexOf(code);
+  expect(at).toBeGreaterThan(-1);
+
+  const fenceEnd: number = markdown.indexOf("```", at + code.length);
+  expect(fenceEnd).toBeGreaterThan(-1);
+
+  const lines: Array<string> = markdown.slice(fenceEnd + 3).split("\n");
+  let index: number = 0;
+
+  while (
+    index < lines.length &&
+    ((lines[index] as string).trim() === "" ||
+      COMPONENT_LINE.test((lines[index] as string).trim()))
+  ) {
+    index++;
+  }
+
+  const paragraph: Array<string> = [];
+
+  while (index < lines.length && (lines[index] as string).trim() !== "") {
+    paragraph.push(lines[index] as string);
+    index++;
+  }
+
+  return paragraph.join("\n");
+}
+
+/*
+ * One panel of a :::tabs block of a section: the lines after "@tab <label>",
+ * up to the next tab or the end of the tabs.
+ */
+function tabPanel(section: string, label: string): string {
+  const lines: Array<string> = section.split("\n");
+  const start: number = lines.findIndex((line: string): boolean => {
+    return line.trim() === `@tab ${label}`;
+  });
+
+  expect({ label, found: start > -1 }).toEqual({ label, found: true });
+
+  const panel: Array<string> = [];
+  let inFence: boolean = false;
+
+  for (const line of lines.slice(start + 1)) {
+    if (line.trimStart().startsWith("```")) {
+      inFence = !inFence;
+    }
+
+    if (!inFence && (line.startsWith("@tab ") || line.trim() === ":::")) {
+      break;
+    }
+
+    panel.push(line);
+  }
+
+  return panel.join("\n");
+}
+
 const KUBERNETES_LANGUAGES: Array<string> = fs
   .readdirSync(CONTENT_DIR)
   .filter((language: string): boolean => {
@@ -134,12 +200,19 @@ describe("the Kubernetes agent page", () => {
 
   describe.each(KUBERNETES_LANGUAGES)("in %s", (language: string) => {
     const page: string = read(`${language}/telemetry/kubernetes-agent.md`);
-    // Step 3 is the third "## " section after the overview: everything up to step 4.
+    /*
+     * The install step's three commands sit in tabs, one per preset, the
+     * EKS Fargate one last: from the first `helm install` to the end of the
+     * block that sets the eks-fargate preset.
+     */
+    const lastPreset: number = page.lastIndexOf("--set preset=eks-fargate");
     const install: string = page.slice(
       page.indexOf("helm install"),
-      page.indexOf("\n## ", page.lastIndexOf("--set preset=eks-fargate")),
+      page.indexOf("```", lastPreset) + 3,
     );
     const commands: Array<string> = helmInstallCommands(install);
+    // The paragraph right after the commands' tabs.
+    const note: string = paragraphAfter(page, "--set preset=eks-fargate");
 
     it("installs on standard clusters, GKE Autopilot and EKS Fargate, each with AI investigations on", () => {
       expect(commands).toHaveLength(3);
@@ -189,31 +262,21 @@ describe("the Kubernetes agent page", () => {
     });
 
     it("says, after the commands and before verifying, that AI investigations are on and how to install without them", () => {
-      const lastFence: number = install.lastIndexOf("```");
-      const note: string = install.slice(lastFence + 3).trim();
-
       expect(note).toMatch(/^\*\*[^*]+\*\* `aiAgent\.enabled=true`/);
       expect(note).toContain(`\`${OFF_FLAG}\``);
       expect(note).toContain("`kubectl`");
-      // One paragraph, then step 4.
+      // One paragraph, then the step that checks the pods.
       expect(note).not.toContain("\n\n");
+      const after: string = page.slice(page.indexOf(note) + note.length);
+      expect(after.trimStart().startsWith("### ")).toBe(true);
     });
 
     if (language !== "en") {
       it("in its own language, not the English note", () => {
-        const englishInstall: string = read("en/telemetry/kubernetes-agent.md");
-        const englishNote: string = englishInstall
-          .slice(
-            englishInstall.lastIndexOf(
-              "```",
-              englishInstall.indexOf("## Step 4"),
-            ) + 3,
-            englishInstall.indexOf("## Step 4"),
-          )
-          .trim();
-        const note: string = install
-          .slice(install.lastIndexOf("```") + 3)
-          .trim();
+        const englishNote: string = paragraphAfter(
+          read("en/telemetry/kubernetes-agent.md"),
+          "--set preset=eks-fargate",
+        );
 
         expect(note).not.toBe(englishNote);
         expect(note).not.toContain("AI investigations are on by default");
@@ -226,7 +289,7 @@ describe("the Kubernetes agent page", () => {
     const note: string = between(
       page,
       "**AI investigations are on by default.**",
-      "## Step 4",
+      "### Check the pods are running",
     );
 
     expect(note).toContain("[Kubernetes AI agent](#kubernetes-ai-agent)");
@@ -291,9 +354,11 @@ describe("the Kubernetes agent chart's README", () => {
 });
 
 /*
- * The Docker and Podman quick starts now start the AI agent beside the
- * collector, with the same container the agents' own docker-compose.yml
- * runs: same name, image, user, read-only root, socket and identity.
+ * The Docker and Podman installs start the AI agent beside the collector,
+ * with the same container the agents' own docker-compose.yml runs: same
+ * name, image, user, read-only root, socket and identity. The install's
+ * first step has a tab per way to run it: the CLI's two commands, and the
+ * Compose file.
  */
 describe.each<[string, string, string, string, string, string]>([
   [
@@ -315,7 +380,7 @@ describe.each<[string, string, string, string, string, string]>([
 ])(
   "the %s host page",
   (
-    _name: string,
+    name: string,
     pagePath: string,
     composePath: string,
     service: string,
@@ -323,12 +388,9 @@ describe.each<[string, string, string, string, string, string]>([
     hostNameVariable: string,
   ) => {
     const page: string = read(pagePath);
-    const quickStart: string = between(page, "## Quick Start", "\n## ");
-    const composeSection: string = between(
-      page,
-      "## Alternative",
-      "\n## Environment Variables",
-    );
+    const install: string = between(page, "## Install the agent", "\n## ");
+    const quickStart: string = tabPanel(install, `${name} CLI`);
+    const composeSection: string = tabPanel(install, `${name} Compose`);
     const repoCompose: {
       services: Record<
         string,
@@ -382,6 +444,13 @@ describe.each<[string, string, string, string, string, string]>([
       expect(page).not.toContain("Quick Start (One Command)");
     });
 
+    it("is the install's first step, with the CLI tab first", () => {
+      expect(install).toContain(":::steps\n### Start the agent");
+      expect(install.indexOf(`@tab ${name} CLI`)).toBeLessThan(
+        install.indexOf(`@tab ${name} Compose`),
+      );
+    });
+
     it("the compose file runs the AI agent too, as the agent's own compose file does", () => {
       const services: {
         services: Record<
@@ -395,7 +464,7 @@ describe.each<[string, string, string, string, string, string]>([
           }
         >;
       } = yaml.load(
-        composeSection.match(/```yaml\n([\s\S]*?)\n```/)![1]!,
+        composeSection.match(/```yaml[^\n]*\n([\s\S]*?)\n```/)![1]!,
       ) as never;
       const documented: {
         image: string;
@@ -421,7 +490,7 @@ describe.each<[string, string, string, string, string, string]>([
     it("upgrades and uninstalls both containers", () => {
       const upgrading: string = between(
         page,
-        "## Upgrading the Agent",
+        "## Upgrading the agent",
         "\n## ",
       );
 

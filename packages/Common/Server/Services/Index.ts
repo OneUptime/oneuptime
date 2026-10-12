@@ -14,6 +14,7 @@ import CallService from "./CallService";
 import DataMigrationService from "./DataMigrationService";
 import MigrationFailureService from "./MigrationFailureService";
 import InstanceHealthLogService from "./InstanceHealthLogService";
+import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -69,6 +70,7 @@ import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkDeviceDiagnosticService from "./NetworkDeviceDiagnosticService";
+import PacketCaptureService from "./PacketCaptureService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
@@ -109,6 +111,7 @@ import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
+import VMwareVCenterConnectionTestService from "./VMwareVCenterConnectionTestService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import StorageArrayLabelRuleService from "./StorageArrayLabelRuleService";
 import StorageArrayOwnerRuleService from "./StorageArrayOwnerRuleService";
@@ -358,6 +361,8 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
+import HuntressConnectionService from "./HuntressConnectionService";
+import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -507,6 +512,7 @@ const services: Array<BaseService> = [
   DataMigrationService,
   MigrationFailureService,
   InstanceHealthLogService,
+  InstanceReceivingPeriodService,
   DomainService,
 
   EmailLogService,
@@ -565,6 +571,7 @@ const services: Array<BaseService> = [
   NetworkSnmpCredentialProfileService,
   NetworkDeviceDiscoveryScanService,
   NetworkDeviceDiagnosticService,
+  PacketCaptureService,
   NetworkInterfaceService,
   NetworkSiteService,
   NetworkSiteTypeService,
@@ -610,6 +617,7 @@ const services: Array<BaseService> = [
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
+  VMwareVCenterConnectionTestService,
   DatabaseServerService,
   DatabaseServerEndpointService,
   DatabaseServerLabelRuleService,
@@ -824,6 +832,8 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
+  HuntressConnectionService,
+  HuntressIncidentReportService,
   ThreatIntelFeedService,
   AlertNoteTemplateService,
   AlertFeedService,

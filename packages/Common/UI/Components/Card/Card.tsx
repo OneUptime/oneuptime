@@ -1,5 +1,6 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
+import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -118,10 +119,38 @@ export const CARD_HEADER_STACKED_TITLE_BLOCK_CLASS_NAME: string =
 export const CARD_HEADER_ACTION_CLASS_NAME: string =
   "flex items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
 
+/*
+ * A card's frame on a page: a white box with a border, rounded corners and a
+ * shadow, and a gap under it for the next card.
+ */
+export const CARD_FRAME_CLASS_NAME: string =
+  "bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible";
+
+/*
+ * The same card drawn as a section of the card it is in (CardSections): no
+ * frame and no gap of its own, a divider across the whole card above it.
+ * Its padding is a card's, so everything drawn to a card's edges - a
+ * table's rows and footer, a switch row - still reaches the section's.
+ */
+export const CARD_SECTION_CLASS_NAME: string = "border-t border-gray-200";
+
+export const CARD_PADDING_CLASS_NAME: string = "py-6 px-5 md:px-6";
+
+/*
+ * A section's title, a step below a card's: the sections are parts of one
+ * card, and their titles say so beside the cards on the rest of the page.
+ */
+export const CARD_TITLE_CLASS_NAME: string =
+  "text-lg font-semibold leading-6 text-gray-900 text-balance break-words";
+
+export const CARD_SECTION_TITLE_CLASS_NAME: string =
+  "text-base font-semibold leading-6 text-gray-900 text-balance break-words";
+
 const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const isSection: boolean = useIsCardSection();
   const hasButtons: boolean = Boolean(
     props.buttons && props.buttons.length > 0,
   );
@@ -170,7 +199,9 @@ const Card: FunctionComponent<ComponentProps> = (
       <h2
         data-testid="card-details-heading"
         id="card-details-heading"
-        className="text-lg font-semibold leading-6 text-gray-900 text-balance break-words"
+        className={
+          isSection ? CARD_SECTION_TITLE_CLASS_NAME : CARD_TITLE_CLASS_NAME
+        }
       >
         {translatedTitle}
       </h2>
@@ -262,20 +293,32 @@ const Card: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  const content: ReactElement = (
+    <div className={CARD_PADDING_CLASS_NAME}>
+      {isStacked ? stackedHeader : defaultHeader}
+
+      {props.children && (
+        <div className={props.bodyClassName || "mt-4"}>{props.children}</div>
+      )}
+    </div>
+  );
+
+  if (isSection) {
+    return (
+      <div
+        data-testid="card"
+        data-card-surface="section"
+        className={`${CARD_SECTION_CLASS_NAME} ${props.className || ""}`}
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <React.Fragment>
       <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
-          <div className="py-6 px-5 md:px-6">
-            {isStacked ? stackedHeader : defaultHeader}
-
-            {props.children && (
-              <div className={props.bodyClassName || "mt-4"}>
-                {props.children}
-              </div>
-            )}
-          </div>
-        </div>
+        <div className={CARD_FRAME_CLASS_NAME}>{content}</div>
       </div>
     </React.Fragment>
   );

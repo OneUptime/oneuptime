@@ -1,81 +1,158 @@
 # Storage Array Monitor
 
-Storage array monitoring allows you to monitor the health and performance of your storage arrays — the array's own alerts, capacity, latency, hardware, volumes, hosts, replication, file systems and buckets — starting with Pure Storage FlashArray and Pure Storage FlashBlade. OneUptime collects metrics via a pre-configured OpenTelemetry Collector (the **OneUptime Storage Array Agent**) and evaluates them against your configured criteria.
+A storage array monitor watches one storage array and tells you when the array raises an alert of its own, runs out of space, slows down, loses hardware or a host path, or falls behind on replication. It works with Pure Storage FlashArray and Pure Storage FlashBlade, and reads the metrics the array exports itself - Pure's `purefa_*` and `purefb_*` series - which the OneUptime Storage Array Agent collects.
 
-## Overview
+:::cards
+- [Create the monitor](#create-a-storage-array-monitor): Six steps in the dashboard.
+- [Templates](#pre-built-alert-templates): Eighteen ready-made alerts, one incident per volume, host or component.
+- [How Pure's series work](#how-pures-series-are-shaped): One metric name, many figures.
+- [Metrics](#collected-metrics): Every series the monitor can alert on.
+:::
 
-Storage array monitors use the metrics the array itself exports — Pure's `purefa_*` and `purefb_*` series — to provide visibility into your storage. This enables you to:
+## How it works
 
-- Alert the moment the array raises a critical or warning alert of its own
-- Catch capacity running out before writes fail
-- Track read and write latency, IOPS and bandwidth for the whole array, each volume and each host
-- Detect failed or degraded hardware components and failed drives
-- Find hosts that lost their redundant paths to the array
-- Watch ActiveCluster / ActiveDR replication lag, and FlashBlade file systems approaching their quota
+The OneUptime Storage Array Agent runs on a machine that can reach the array's management interface. It reads the array's metrics with a read-only API token, labels them with the array's name, `storage.array.name`, and its platform, `storage.system`, and sends them to OneUptime over OTLP. The first data registers the array.
 
-## Creating a Storage Array Monitor
+A storage array monitor is tied to one array. Every minute it runs its query over that array's metrics and compares the result with its criteria.
 
-1. Go to **Monitors** in the OneUptime Dashboard
-2. Click **Create Monitor**
-3. Select **Storage Array** as the monitor type
-4. Select the storage array to monitor
-5. Pick a template under **Quick Setup**, a single metric under **Custom Metric**, or build queries and formulas under **Advanced**
-6. Configure monitoring criteria as needed
+```mermaid title="From a storage array to an incident"
+flowchart TB
+    subgraph site["Your network"]
+        direction LR
+        array["FlashArray or FlashBlade"] --> agent["OneUptime Storage<br/>Array Agent"]
+    end
+    agent -->|"purefa and purefb<br/>metrics over OTLP"| oneuptime["OneUptime"]
+    oneuptime -->|"first data"| registered["Array registered"]
+    oneuptime --> monitor["Storage array monitor"]
+    monitor -->|"every minute"| criteria{"Criteria met?"}
+    criteria -->|"yes"| incident["Incident or alert"]
+    criteria -->|"no"| online["Monitor online"]
+```
 
-## Configuration Options
+## Before you begin
 
-### Storage Array
+- **Install the Storage Array Agent** where it can reach the array over HTTPS, with the API token of a user that has the array's **readonly** role. The [Storage Array Agent guide](/docs/telemetry/storage-arrays) covers the user, the token and the install, through `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, and the array's address and token (`PURE_FA_ENDPOINT` and `PURE_FA_API_TOKEN`, or `PURE_FB_ENDPOINT` and `PURE_FB_API_TOKEN`).
+- **Check the array is registered.** It appears under **Products → Infrastructure → Storage Arrays → All Storage Arrays**, named after the agent's `STORAGE_ARRAY_NAME`, about a minute after the first scrape.
 
-Select the storage array to monitor. Arrays are auto-registered the first time the OneUptime Storage Array Agent ships telemetry from them (keyed by the `storage.array.name` resource attribute) — you do not need to create them manually. Every query the monitor runs is automatically scoped with `resource.storage.array.name` equal to the selected array's name, so two arrays that both have a volume called `vol-01` never bleed into each other's monitors. The array's platform (`storage.system`: `purestorage.flasharray` or `purestorage.flashblade`) decides which metrics and templates the form offers.
+## Create a storage array monitor
 
-### Resource Filters
+:::steps
+### Start a new monitor
 
-Optionally narrow the monitor to one object of the array. Each filter is an equality on the datapoint label the platform names that object with:
+Go to **Monitors** and click **Create Monitor**.
 
-| Filter             | Platform   | Datapoint label                                                  | Notes                                                                                                   |
-| ------------------ | ---------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Volume             | FlashArray | `name`                                                           | One volume, e.g. `vol-db-01`                                                                            |
-| Host               | FlashArray | `host`                                                           | One host as the array knows it, e.g. `esxi-01`                                                          |
-| Pod                | FlashArray | `name` (`local_pod` on replica link series)                      | One ActiveCluster / ActiveDR pod                                                                        |
-| Hardware Component | Both       | `component_name` on a FlashArray, `name` on a FlashBlade         | One hardware component, e.g. `CH0.BAY1` or `CT0`                                                        |
-| File System        | FlashBlade | `name`                                                           | One file system                                                                                         |
-| Bucket             | FlashBlade | `name`                                                           | One object store bucket                                                                                 |
+### Pick Storage Array
 
-### Metric Queries
+Under **Monitor Type**, click **More monitor types** and pick **Storage Array** under **Infrastructure**, or type `storage` in the search box. Enter a **Name** - it is used in incident and alert titles - and click **Next**.
 
-Configure one or more metric queries to evaluate. Each query specifies:
+### Choose the array
 
-- **Metric name** — The storage array metric to query (`purefa_*` or `purefb_*` series, see the catalog below)
-- **Aggregation** — How to aggregate metric values (Avg, Sum, Max, Min)
-- **Filters** — Attribute-based filtering on the datapoint labels: `dimension` (which figure a performance series carries), `space` (which capacity figure), `severity` on open alerts, `component_status` on hardware, `status` on host connectivity, `protocol` on FlashBlade performance, `type` on FlashBlade space
-- **Group By** — Optionally group by the object label (`name`, `host`, `component_name`, `local_pod`, `summary`) so each volume, host, component, pod or alert is evaluated independently — one incident per object
+Under **Storage Array Monitor Configuration**, pick the array from **Storage Array**. Every array that has sent data is in the list. Its platform decides which metrics and templates the form offers.
 
-You can also create **formulas** that combine multiple metric queries using mathematical expressions — for example used capacity from `purefa_array_space_bytes` filtered to `space=capacity` minus the same metric filtered to `space=empty`.
+### Choose what to watch
 
-### How Pure's Series Are Shaped
+Pick one of the three tabs:
 
-Pure's performance families put several figures on **one** metric name, told apart only by the `dimension` label: `purefa_array_performance_latency_usec` carries the read latency (`usec_per_read_op`), the write latency (`usec_per_write_op`), the mirrored write latency, and the SAN, queue, QoS and service-time components of each. Always filter on one `dimension` — averaging across them mixes a 200 µs read latency with a queue figure. Space families work the same way with the `space` label (`capacity`, `empty`, `snapshots`, `total_provisioned`, `total_physical`, `available_ratio`, ...).
+- **Quick Setup** - click a [template](#pre-built-alert-templates). It sets the metric, the label filters, the aggregation, the time range and the thresholds, and replaces the criteria below with its own. You can still change the **Time Range**.
+- **Custom Metric** - pick one metric from **Storage Array Metric**, then set **Aggregation** and **Time Range**. The [filters](#monitor-settings) narrow it to one volume, host, pod, component, file system or bucket.
+- **Advanced** - build queries and formulas yourself under **Select Metrics**, for example the used capacity as `purefa_array_space_bytes` filtered to `space=capacity` minus the same metric filtered to `space=empty`. Use **Group by** an object's label to judge each object on its own.
 
-Several series carry their state in a **label** with a value that is always 1: `purefa_alerts_open` (one series per open alert, labeled `severity`, `summary`, `code`, `component_type`), `purefa_hw_component_status` (labeled `component_status`), `purefa_host_connectivity_info` (labeled `status` and `details`), and `purefa_drive_capacity_bytes` (labeled `component_status`, value the drive's capacity). A series filtered to a bad state exists only while an object is in that state — absence means healthy. That makes "Max > 0 fires, = 0 recovers" the right shape for alerting on them, and it is how the templates below are built (their recover criteria treat series absence as zero).
+### Check the criteria
 
-In ClickHouse — and therefore in monitor filters and group-by keys — the agent's attributes are `resource.`-prefixed (`resource.storage.array.name`, `resource.storage.system`), while Pure's datapoint labels are bare (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+Open each criteria under **Monitor Criteria** and check its **Metric**, **Aggregation**, **Condition** and **Threshold**. A template fills these in. With **Custom Metric** or **Advanced**, the monitor starts with the [default criteria](#default-criteria), which only notice a metric dropping to zero, so set your own threshold.
 
-### Rolling Time Window
+### Create the monitor
 
-Select the time window for metric evaluation:
+Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it every minute. Incidents and alerts it raises are also listed on the array's **Incidents** and **Alerts** pages.
+:::
 
-- Past 1 Minute
-- Past 5 Minutes
-- Past 10 Minutes
-- Past 15 Minutes
-- Past 30 Minutes
-- Past 60 Minutes
+> [!TIP]
+> To set up several templates at once, open the array from **Products → Infrastructure → Storage Arrays** and go to **Recommendations**. Pick the templates you want, choose who is paged, and OneUptime creates one monitor per template.
 
-The agent reads the array endpoint every 60 seconds and volumes, hosts and pods every 2 minutes, so the form proposes 5 minutes for a custom metric; a FlashBlade's file systems and buckets are read every 5 minutes, so it proposes 15 for those. FlashArray directories are read every 30 minutes — give a directory monitor a 60-minute window.
+## Monitor settings
+
+| Field | Tab | What it does |
+| --- | --- | --- |
+| **Storage Array** | All | Required. Scopes every query to `resource.storage.array.name`, so two arrays that both have a volume called `vol-01` never mix. |
+| **Volume** | Custom Metric, Advanced | FlashArray only. One volume, by the `name` label, such as `vol-db-01`. A volume in a pod or a volume group is named `pod::volume` or `group/volume`. |
+| **Host** | Custom Metric, Advanced | FlashArray only. One host as the array knows it, by the `host` label, such as `esxi-01`. |
+| **Pod** | Custom Metric, Advanced | FlashArray only. One ActiveCluster or ActiveDR pod, by the `name` label, or `local_pod` on replica link series. |
+| **Hardware Component** | Custom Metric, Advanced | One hardware component, such as `CH0.BAY1` or `CT0`: the `component_name` label on a FlashArray, `name` on a FlashBlade. |
+| **File System** | Custom Metric, Advanced | FlashBlade only. One file system, by the `name` label. |
+| **Bucket** | Custom Metric, Advanced | FlashBlade only. One object store bucket, by the `name` label. |
+| **Storage Array Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). The form adds the label filter that gives it its meaning, and groups it by the object it describes, so each volume, host or component is judged on its own. |
+| **Aggregation** | Custom Metric | How samples are combined: **Average**, **Maximum**, **Minimum**, **Sum** or **Count**. Starts at the metric's usual aggregation. |
+| **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 5 Minutes**; a custom metric of a file system or bucket at **Past 15 Minutes**; templates set their own. |
+| **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
+
+The agent reads the array endpoint every 60 seconds, and volumes, hosts and pods every 2 minutes, so a 5-minute window always holds a sample. It reads a FlashBlade's file systems and buckets every 5 minutes, hence 15, and FlashArray directories every 30 minutes: give a directory monitor a 60-minute window.
+
+## How Pure's series are shaped
+
+Pure puts several figures on **one** metric name and tells them apart with a label:
+
+- **`dimension`** on the performance series. `purefa_array_performance_latency_usec` carries the read latency (`usec_per_read_op`), the write latency (`usec_per_write_op`), the mirrored write latency, and the SAN, queue, QoS and service time of each. Always filter on one `dimension`: an average across them mixes a 200 µs read latency with a queue figure.
+- **`space`** on the capacity series: `capacity`, `empty`, `snapshots`, `total_provisioned`, `total_physical`, `available_ratio` and more.
+
+Several series carry their state in a **label**, with a value that is always 1:
+
+| Series | State label | One series per |
+| --- | --- | --- |
+| `purefa_alerts_open` | `severity`, with `summary`, `code` and `component_type` | Open alert |
+| `purefa_hw_component_status` | `component_status` | Hardware component |
+| `purefa_host_connectivity_info` | `status`, with `details` | Host |
+| `purefa_drive_capacity_bytes` | `component_status` (the value is the drive's capacity) | Drive |
+
+A series filtered to a bad state exists only while something is in that state, so no series means healthy. That is why **Max above 0 fires and 0 recovers** is the right shape for them, and how the templates are built: their recover criteria count a missing series as zero.
+
+In monitor filters and group-by keys, the agent's attributes start with `resource.` (`resource.storage.array.name`, `resource.storage.system`), while Pure's own labels do not (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+
+## Pre-built Alert Templates
+
+OneUptime ships 18 templates — 11 for FlashArray and 7 for FlashBlade — and **Quick Setup** offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+
+A criteria fires only when the condition holds for **every** value in its window. A monitor that fired on a capacity, latency, lag or ratio threshold recovers only 10% past it, so a value hovering at the threshold does not flap; the alert and hardware templates recover as soon as the state clears.
+
+### FlashArray
+
+| Template                       | Category     | Severity | Watches                                                                                         | Fires when                                                                                                                                       |
+| ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Critical Array Alert           | Array Health | Critical | `purefa_alerts_open` filtered to `severity=critical`, Max per `summary`, past 5 minutes        | > 0 — the array has an open critical alert (a failed component, a capacity emergency, a replication failure). One incident per alert; recovers when the alert closes |
+| Warning Array Alert            | Array Health | Warning  | `purefa_alerts_open` filtered to `severity=warning`, Max per `summary`, past 5 minutes         | > 0 — the array has an open warning alert. One incident per alert; recovers when the alert closes                                               |
+| Capacity Above 80%             | Capacity     | Warning  | `purefa_array_space_utilization`, Max, past 15 minutes                                          | > 80 — Pure's own first capacity threshold; recovers at ≤ 72                                                                                     |
+| Capacity Above 90%             | Capacity     | Critical | `purefa_array_space_utilization`, Max, past 5 minutes                                           | > 90 — the array is close to refusing writes; recovers at ≤ 81                                                                                   |
+| High Read Latency              | Performance  | Warning  | `purefa_array_performance_latency_usec` filtered to `dimension=usec_per_read_op`, Avg, past 10 minutes  | > 5000 µs (5 ms) — FlashArray reads normally complete well under 1 ms; recovers at ≤ 4500                                                        |
+| High Write Latency             | Performance  | Warning  | `purefa_array_performance_latency_usec` filtered to `dimension=usec_per_write_op`, Avg, past 10 minutes | > 5000 µs (5 ms); recovers at ≤ 4500                                                                                                             |
+| Hardware Component Failed      | Hardware     | Critical | `purefa_hw_component_status` filtered to `component_status=critical`, Max per `component_name`, past 5 minutes | > 0 — a controller, power supply, fan, bay or port is critical and redundancy is gone. One incident per component; recovers when it reports ok |
+| Hardware Component Degraded    | Hardware     | Warning  | `purefa_hw_component_status` filtered to `component_status=degraded`, Max per `component_name`, past 5 minutes | > 0 — a component is degraded. One incident per component; recovers when it reports ok                                                     |
+| Drive Failed                   | Hardware     | Critical | `purefa_drive_capacity_bytes` filtered to `component_status=failed`, Max per `component_name`, past 5 minutes | > 0 — a DirectFlash module or SSD failed and the array rebuilds onto the others. One incident per drive; recovers when it is replaced          |
+| Host Lost Redundant Paths      | Hosts        | Warning  | `purefa_host_connectivity_info` filtered to `status=critical`, Max per `host`, past 5 minutes  | > 0 — the host reaches the array through one controller or none; a controller failover would take its storage offline. One incident per host; recovers when its paths are back |
+| Replication Lag Above 1 Minute | Replication  | Warning  | `purefa_pod_replica_links_lag_max_msec`, Max per `local_pod`, past 10 minutes                   | > 60000 ms (60 s) — a failover now would lose more recent writes than planned. One incident per pod; recovers at ≤ 54000                         |
+
+### FlashBlade
+
+| Template                     | Category     | Severity | Watches                                                                                                        | Fires when                                                                                                          |
+| ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Critical Array Alert         | Array Health | Critical | `purefb_alerts_open` filtered to `severity=critical`, Max per `summary`, past 5 minutes                       | > 0 — the FlashBlade has an open critical alert. One incident per alert; recovers when the alert closes              |
+| Warning Array Alert          | Array Health | Warning  | `purefb_alerts_open` filtered to `severity=warning`, Max per `summary`, past 5 minutes                        | > 0 — the FlashBlade has an open warning alert. One incident per alert; recovers when the alert closes              |
+| Capacity Above 80%           | Capacity     | Warning  | `purefb_array_space_utilization` filtered to `type=array`, Max, past 15 minutes                               | > 80; recovers at ≤ 72                                                                                              |
+| Capacity Above 90%           | Capacity     | Critical | `purefb_array_space_utilization` filtered to `type=array`, Max, past 5 minutes                                | > 90 — writes fail for every client when it fills; recovers at ≤ 81                                                 |
+| Hardware Component Unhealthy | Hardware     | Critical | `purefb_hardware_health`, Min per `name`, past 5 minutes                                                       | < 1 — a blade, fabric module, power supply or fan is not healthy (an unused slot reports 2). One incident per component; recovers at ≥ 1 |
+| High Read Latency            | Performance  | Warning  | `purefb_array_performance_latency_usec` filtered to `dimension=usec_per_read_op` and `protocol=all`, Avg, past 10 minutes | > 10000 µs (10 ms) across all protocols; recovers at ≤ 9000                                            |
+| File System Near Full        | File Systems | Warning  | `purefb_file_systems_space_bytes` filtered to `space=available_ratio`, Min per `name`, past 15 minutes        | < 0.1 — less than 10% of a file system's provisioned size is left. One incident per file system; recovers at ≥ 0.11 |
+
+**Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
+
+- **Open alerts and hardware states use Max** of a series that exists only while the alert is open or the component is in that state, so one scrape that shows it trips the threshold.
+- **Every per-object template groups by the object's own label** (`summary`, `component_name`, `host`, `local_pod`, `name`), so one incident fires per affected object, and the incident names it.
+- **Latency templates use Avg** of the array's own average per operation, and capacity templates **Max** of its own utilization percentage. Latencies are pinned in microseconds and capacity in percent.
+- **Hardware Component Unhealthy uses Min** per component: its health is 1 when healthy and drops to 0 when not.
+
+There is no template for the latency of each volume, because the right threshold depends on the workload: build it from the catalog with a group-by on `name`. Capacity forecasting needs a growth trend rather than a threshold, and drive wear has no series to alert on.
 
 ## Collected Metrics
 
-The Storage Array Agent ships everything the array exports; the series below are the catalog the monitor form offers. Every value is a gauge the array computes itself — latencies are microseconds per operation, throughput is per second — so no rate math is needed. **Filter** is the datapoint label filter that makes the series mean what its row says; the form applies it for you.
+The agent sends everything the array exports; the series below are the catalog the monitor form offers. Every value is a gauge the array computes itself - latencies are microseconds per operation and throughput is per second - so no rate math is needed. **Filter** is the label filter that gives the series the meaning its row says; the form applies it for you.
 
 ### Array Health
 
@@ -178,94 +255,46 @@ The Storage Array Agent ships everything the array exports; the series below are
 | `purefb_buckets_space_bytes`              | `space=total_physical`       | FlashBlade | `bytes` | Physical space each bucket uses                       |
 | `purefb_buckets_object_count`             | —                            | FlashBlade | `count` | Number of objects in each bucket                      |
 
-## Monitoring Criteria
+## Monitoring criteria
 
-### What Gets Evaluated
+A criteria compares one of the monitor's queries or formulas with a threshold. A storage array monitor's criteria have no **Filter Type**: every rule checks the metric value, with these fields.
 
-These monitors always evaluate the **Metric Value** — the value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**.
+| Field | What it does |
+| --- | --- |
+| **Metric** | The query or formula to check, by its variable name. |
+| **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match) or **Any Value** (one is enough). |
+| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
+| **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
+| **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |
+| **Baseline Window** | Anomaly conditions only. 14 days (the default), 28, 60 or 90 days of history. |
+| **If No Data** | Under **More fields**. What happens when the window has no samples: **Ignore** (the default), **Treat As Zero** or **Trigger**. |
 
-### Aggregation Types
+Anomaly conditions compare each value with the same hour of the week in the baseline. They stay in a "Learning" state, and raise nothing, until the baseline window holds enough history.
 
-| Aggregation   | Description                        |
-| ------------- | ---------------------------------- |
-| Average       | Average value over the time window |
-| Sum           | Sum of all values                  |
-| Maximum Value | Highest value in the time window   |
-| Minimum Value | Lowest value in the time window    |
-| All Values    | All values must match the criteria |
-| Any Value     | At least one value must match      |
+Some criteria to start from:
 
-### Conditions
+- **A volume is slow:** `purefa_volume_performance_latency_usec` filtered to `dimension=usec_per_read_op`, Average, grouped by `name`, **Greater Than** `2000`, over the past 10 minutes.
+- **The array is filling up:** `purefa_array_space_utilization`, Maximum, **Greater Than** `85`, over the past 15 minutes.
+- **A host runs on one controller:** `purefa_host_connectivity_info` filtered to `status=critical`, Maximum, grouped by `host`, **Greater Than** `0`.
+- **A FlashBlade file system is almost full:** `purefb_file_systems_space_bytes` filtered to `space=available_ratio`, Minimum, grouped by `name`, **Less Than** `0.05`.
 
-Static thresholds — compared against the **Threshold** you enter:
+### Default criteria
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+A monitor you do not build from a template starts with two criteria:
 
-Baseline anomaly detection — no threshold; the form shows **Sensitivity** and **Baseline Window** instead, and compares each sample to the same-hour-of-week baseline built from that window:
+| Order | Criteria | Matches when | Then |
+| --- | --- | --- | --- |
+| 1 | Check if _monitor name_ is offline | Any value of the first query is `0` | Marks the monitor **Offline** and declares the incident "_monitor name_ is offline", which resolves itself when the monitor recovers. |
+| 2 | Check if _monitor name_ is online | Any value is above `0` | Marks the monitor **Operational**. |
 
-- **Anomalously High** — Value rises above the expected range
-- **Anomalously Low** — Value falls below the expected range
-- **Anomalous** — Value leaves the expected range in either direction
-
-Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
-
-### Criteria Examples
-
-- **A volume is slow** — `purefa_volume_performance_latency_usec` filtered to `dimension=usec_per_read_op`, Average, grouped by `name`, **Greater Than** `2000` over the past 10 minutes.
-- **The array is filling up** — `purefa_array_space_utilization`, Maximum, **Greater Than** `85` over the past 15 minutes.
-- **A host runs on one controller** — `purefa_host_connectivity_info` filtered to `status=critical`, Maximum, grouped by `host`, **Greater Than** `0`.
-- **A FlashBlade file system is almost full** — `purefb_file_systems_space_bytes` filtered to `space=available_ratio`, Minimum, grouped by `name`, **Less Than** `0.05`.
-
-## Pre-built Alert Templates
-
-OneUptime ships 18 templates — 11 for FlashArray and 7 for FlashBlade — and the form offers the ones for the selected array's platform. Each builds a complete monitor — a metric query, label filters, a group-by on the object's own label, a fire criteria, and an auto-recover criteria — that you can edit after applying. Thresholds are starting points. A criteria must hold for **every** value in its window before it fires, and a monitor that fired on a capacity, latency, lag or ratio threshold recovers only 10% past it, so a value hovering at the threshold does not flap; the alert and hardware templates recover as soon as the state clears:
-
-### FlashArray
-
-| Template                       | Category     | Severity | Watches                                                                                         | Fires when                                                                                                                                       |
-| ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Critical Array Alert           | Array Health | Critical | `purefa_alerts_open` filtered to `severity=critical`, Max per `summary`, past 5 minutes        | > 0 — the array has an open critical alert (a failed component, a capacity emergency, a replication failure). One incident per alert; recovers when the alert closes |
-| Warning Array Alert            | Array Health | Warning  | `purefa_alerts_open` filtered to `severity=warning`, Max per `summary`, past 5 minutes         | > 0 — the array has an open warning alert. One incident per alert; recovers when the alert closes                                               |
-| Capacity Above 80%             | Capacity     | Warning  | `purefa_array_space_utilization`, Max, past 15 minutes                                          | > 80 — Pure's own first capacity threshold; recovers at ≤ 72                                                                                     |
-| Capacity Above 90%             | Capacity     | Critical | `purefa_array_space_utilization`, Max, past 5 minutes                                           | > 90 — the array is close to refusing writes; recovers at ≤ 81                                                                                   |
-| High Read Latency              | Performance  | Warning  | `purefa_array_performance_latency_usec` filtered to `dimension=usec_per_read_op`, Avg, past 10 minutes  | > 5000 µs (5 ms) — FlashArray reads normally complete well under 1 ms; recovers at ≤ 4500                                                        |
-| High Write Latency             | Performance  | Warning  | `purefa_array_performance_latency_usec` filtered to `dimension=usec_per_write_op`, Avg, past 10 minutes | > 5000 µs (5 ms); recovers at ≤ 4500                                                                                                             |
-| Hardware Component Failed      | Hardware     | Critical | `purefa_hw_component_status` filtered to `component_status=critical`, Max per `component_name`, past 5 minutes | > 0 — a controller, power supply, fan, bay or port is critical and redundancy is gone. One incident per component; recovers when it reports ok |
-| Hardware Component Degraded    | Hardware     | Warning  | `purefa_hw_component_status` filtered to `component_status=degraded`, Max per `component_name`, past 5 minutes | > 0 — a component is degraded. One incident per component; recovers when it reports ok                                                     |
-| Drive Failed                   | Hardware     | Critical | `purefa_drive_capacity_bytes` filtered to `component_status=failed`, Max per `component_name`, past 5 minutes | > 0 — a DirectFlash module or SSD failed and the array rebuilds onto the others. One incident per drive; recovers when it is replaced          |
-| Host Lost Redundant Paths      | Hosts        | Warning  | `purefa_host_connectivity_info` filtered to `status=critical`, Max per `host`, past 5 minutes  | > 0 — the host reaches the array through one controller or none; a controller failover would take its storage offline. One incident per host; recovers when its paths are back |
-| Replication Lag Above 1 Minute | Replication  | Warning  | `purefa_pod_replica_links_lag_max_msec`, Max per `local_pod`, past 10 minutes                   | > 60000 ms (60 s) — a failover now would lose more recent writes than planned. One incident per pod; recovers at ≤ 54000                         |
-
-### FlashBlade
-
-| Template                     | Category     | Severity | Watches                                                                                                        | Fires when                                                                                                          |
-| ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Critical Array Alert         | Array Health | Critical | `purefb_alerts_open` filtered to `severity=critical`, Max per `summary`, past 5 minutes                       | > 0 — the FlashBlade has an open critical alert. One incident per alert; recovers when the alert closes              |
-| Warning Array Alert          | Array Health | Warning  | `purefb_alerts_open` filtered to `severity=warning`, Max per `summary`, past 5 minutes                        | > 0 — the FlashBlade has an open warning alert. One incident per alert; recovers when the alert closes              |
-| Capacity Above 80%           | Capacity     | Warning  | `purefb_array_space_utilization` filtered to `type=array`, Max, past 15 minutes                               | > 80; recovers at ≤ 72                                                                                              |
-| Capacity Above 90%           | Capacity     | Critical | `purefb_array_space_utilization` filtered to `type=array`, Max, past 5 minutes                                | > 90 — writes fail for every client when it fills; recovers at ≤ 81                                                 |
-| Hardware Component Unhealthy | Hardware     | Critical | `purefb_hardware_health`, Min per `name`, past 5 minutes                                                       | < 1 — a blade, fabric module, power supply or fan is not healthy (an unused slot reports 2). One incident per component; recovers at ≥ 1 |
-| High Read Latency            | Performance  | Warning  | `purefb_array_performance_latency_usec` filtered to `dimension=usec_per_read_op` and `protocol=all`, Avg, past 10 minutes | > 10000 µs (10 ms) across all protocols; recovers at ≤ 9000                                            |
-| File System Near Full        | File Systems | Warning  | `purefb_file_systems_space_bytes` filtered to `space=available_ratio`, Min per `name`, past 15 minutes        | < 0.1 — less than 10% of a file system's provisioned size is left. One incident per file system; recovers at ≥ 0.11 |
-
-> Notes on the choices baked in: open-alert and hardware-state templates use **Max** of a series that exists only while the alert is open or the component is in that state, so one scrape showing it trips the threshold, and their recover criteria treat series absence as zero — the monitor returns to healthy when the alert closes or the component recovers. Every per-object template groups by the object's own label (`summary`, `component_name`, `host`, `local_pod`, `name`), so one incident fires per affected object and the alert names it. Latency templates use **Avg** of the array's own per-operation average, and capacity templates **Max** of the array's own utilization percentage. The FlashBlade hardware template uses **Min** per component, because a component's health is 1 when healthy and drops to 0 when not. Latencies are pinned in microseconds, capacity in percent.
-
-Not covered by templates, with reasons: per-volume latency is workload-specific, so there is no one threshold to ship — build it from the catalog with a group-by on `name`; capacity forecasting needs a growth fit rather than a threshold; drive wear and SMART prediction have no OpenMetrics series.
-
-## Setup Requirements
-
-To use storage array monitoring, you need to:
-
-1. Create a user with the readonly role and an API token for it on the array
-2. Install the OneUptime Storage Array Agent on a machine that can reach the array's management interface over HTTPS — see the [Storage Array Agent installation guide](/docs/telemetry/storage-arrays)
-3. Pass `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, and the array's address and API token (`PURE_FA_ENDPOINT` / `PURE_FA_API_TOKEN` or `PURE_FB_ENDPOINT` / `PURE_FB_API_TOKEN`) as environment variables
-4. Wait for the array to auto-register (about a minute after the first scrape)
+> [!IMPORTANT]
+> Silence matches neither criteria: an array that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Terraform
 
-The [OneUptime Terraform provider](/docs/terraform/monitor-steps) carries a storage array monitor step's configuration in the `storage_array_monitor` escape-hatch attribute — the raw JSON of the `storageArrayMonitor` sub-config (`arrayIdentifier`, `storageSystem`, `resourceFilters`, `metricViewConfig`, `rollingTime`), written with `jsonencode()`:
+The [OneUptime Terraform provider](/docs/terraform/monitor-steps) carries a storage array monitor step's configuration in the `storage_array_monitor` attribute: the raw JSON of the `storageArrayMonitor` configuration (`arrayIdentifier`, `storageSystem`, `resourceFilters`, `metricViewConfig`, `rollingTime`), written with `jsonencode()`:
 
-```hcl
+```hcl title="main.tf"
 monitor_steps = [{
   storage_array_monitor = jsonencode({
     arrayIdentifier = "my-storage-array"
@@ -291,26 +320,35 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` is the array's `storage.array.name` (the `STORAGE_ARRAY_NAME` the agent was started with), not its OneUptime id. `storageSystem` only picks the catalog and templates the form shows; evaluation never depends on it.
+`arrayIdentifier` is the array's `storage.array.name` - the `STORAGE_ARRAY_NAME` the agent was started with - not its OneUptime ID. `storageSystem` is `purestorage.flasharray` or `purestorage.flashblade`. It decides which catalog and templates the form shows, and whether a hardware filter reads `component_name` or `name`.
 
 ## Troubleshooting
 
-### The array does not appear in the monitor's array picker
+:::details The array is not in the Storage Array list
+Arrays register themselves from the agent's data. Check that the agent is running and sending data (see the [Storage Array Agent guide](/docs/telemetry/storage-arrays)), and that `STORAGE_ARRAY_NAME` is set.
+:::
 
-The array registers itself from the agent's telemetry. Check the agent is running and shipping (see [Verify the Installation](/docs/telemetry/storage-arrays)) and that `STORAGE_ARRAY_NAME` is set.
+:::details An alert or hardware template never fires
+That is the healthy case. `purefa_alerts_open`, `purefa_hw_component_status`, `purefa_drive_capacity_bytes` and `purefa_host_connectivity_info` carry their state in a label, and a series filtered to a bad state (`severity=critical`, `component_status=failed`) exists only while something is in that state. To see the series behind a template, run its query without the filter on the **Metrics** page.
+:::
 
-### An alert or hardware template never fires
+:::details A latency monitor reads wrong
+Pure puts read, write, mirrored-write, SAN, queue and QoS figures on one metric name, told apart only by the `dimension` label, and a query without a `dimension` filter averages them together. Filter on one dimension, as the templates and the form's catalog do. Per-volume and per-host series keep only `usec_per_read_op`, `usec_per_write_op` and `usec_per_mirrored_write_op`: the agent drops the rest to save series, and only the array-wide `purefa_array_performance_latency_usec` keeps all of them.
+:::
 
-That is the healthy case: `purefa_alerts_open`, `purefa_hw_component_status`, `purefa_drive_capacity_bytes` and `purefa_host_connectivity_info` carry the state in a label, and a series filtered to a bad state (`severity=critical`, `component_status=failed`) exists only while something is in that state. No series during a healthy period is expected. To see the series behind a template, run its query on the **Metrics** page without the filter.
+:::details A 1-minute window shows no data
+The agent reads volumes, hosts and pods every 2 minutes, a FlashBlade's file systems and buckets every 5, and FlashArray directories every 30, so a 1-minute window may hold no sample. Use 5 minutes or more: 15 for file systems and buckets, 60 for directories.
+:::
 
-### A latency monitor looks wrong
+:::details Incidents fire once for the whole array instead of once per volume
+Group the query by the object's label: `name` for volumes, pods, directories, file systems and buckets, `host` for hosts, and `component_name` for FlashArray hardware. Pure's labels have no prefix, so `resource.name` matches nothing.
+:::
 
-Pure puts read, write, mirrored-write, SAN, queue and QoS figures on one metric name, told apart only by the `dimension` label. A query without a `dimension` filter averages them together. Filter on one dimension — the templates and the form's catalog do. Per-volume and per-host series keep only `usec_per_read_op`, `usec_per_write_op` and `usec_per_mirrored_write_op`: the agent drops the rest of the breakdown to save series, and the array-wide `purefa_array_performance_latency_usec` keeps all of it.
+## Next steps
 
-### A 1-minute window shows no data
-
-The agent reads volumes, hosts and pods every 2 minutes, a FlashBlade's file systems and buckets every 5, and FlashArray directories every 30, so a 1-minute rolling window may contain no sample. Use a 5-minute window or longer (15 for file systems and buckets, 60 for directories).
-
-### Incidents fire once for the whole array instead of per volume
-
-Group the query by the object's label — `name` for volumes, pods, directories, file systems and buckets, `host` for hosts, `component_name` for FlashArray hardware. Datapoint labels are bare: `resource.name` matches nothing.
+:::cards
+- [Storage Array Agent](/docs/telemetry/storage-arrays): Install the agent that sends the metrics.
+- [Ceph Monitor](/docs/monitor/ceph-monitor): The same kind of monitor for Ceph storage clusters.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on any metric, from any source.
+- [Incidents](/docs/incidents/index): What happens after a criteria declares an incident.
+:::

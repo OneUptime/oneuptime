@@ -1,62 +1,97 @@
-# OneUptime IoT 장치
+# IoT 기기
 
-## 개요
+OneUptime은 IoT 디바이스(센서, 게이트웨이, 컨트롤러, 엣지 박스)의 플릿을 디바이스가 보내는 소수의 `iot_*` 메트릭으로 모니터링합니다. 디바이스를 플릿으로 묶고, 각 플릿의 디바이스 인벤토리를 유지하며, 배터리, 신호, 온도, CPU, 메모리, 가용성을 차트로 보여 줍니다. 디바이스에 설치할 OneUptime 에이전트는 없습니다. 디바이스는 표준 OpenTelemetry를 보내거나 OneUptime의 MQTT 엔드포인트에 게시합니다. [IoT 기기 모니터](/docs/monitor/iot-device-monitor)는 디바이스가 보낸 데이터를 기준으로 알림을 보냅니다.
 
-OneUptime은 소수의 `iot_*` 메트릭을 수집하여 IoT 장치 플릿 — 센서, 게이트웨이, 컨트롤러, 엣지 박스 — 을 모니터링합니다. 각 측정값에는 어느 **플릿**에 속하는지와 자신의 **장치 id**가 태그로 함께 전송됩니다. OneUptime은 이러한 메트릭을 플릿으로 그룹화하고, 실시간 장치 인벤토리를 구축하며, 장치별 배터리, 연결 상태, 온도, CPU, 메모리, 가용성을 추적합니다.
+:::cards
+- [전송 방법 선택](#전송-방법-선택): OpenTelemetry SDK, 게이트웨이 Collector, 또는 MQTT.
+- [MQTT를 통한 메트릭 전송](#mqtt를-통한-메트릭-전송): 토픽, 디바이스별 자격 증명, Last Will.
+- [메트릭 규칙](#메트릭-규칙): OneUptime이 차트와 알림에 사용하는 `iot_*` 이름.
+- [문제 해결](#문제-해결): 누락된 플릿, 누락된 디바이스, 오프라인 전환.
+:::
 
-장치는 두 가지 방식으로 측정값을 푸시할 수 있으며, 두 방식 모두 완전히 동일한 플릿 인벤토리, 대시보드, 모니터로 연결됩니다:
+## 작동 방식
 
-- **OpenTelemetry(OTLP)** — 장치의 OTel SDK, 또는 여러 장치로 팬아웃하는 게이트웨이에서 실행되는 OpenTelemetry Collector.
-- **MQTT** — OneUptime의 내장 MQTT 엔드포인트(`wss://<your-host>/mqtt`의 WebSocket을 통한 MQTT, 또는 자체 호스팅 배포의 원시 MQTT TCP)에 직접 연결하여 JSON 측정값을 게시하세요. collector가 필요 없으며, Last Will 지원으로 즉각적인 오프라인 감지가 가능합니다.
+모든 측정값은 하나의 플릿과 하나의 디바이스에 속합니다. OneUptime은 첫 측정값으로 플릿을 만들고, 새 디바이스를 플릿의 인벤토리에 추가하며, 그 후에는 측정값마다 디바이스의 최신 값을 업데이트합니다. OpenTelemetry로 보낸 측정값과 MQTT로 보낸 측정값은 같은 플릿, 인벤토리, 차트, 모니터에 반영됩니다.
 
-장치 쪽에 설치할 독점 에이전트는 없습니다. 이 페이지는 **수집 가이드**입니다. 푸시한 데이터를 기반으로 IoT 모니터와 알림을 구성하려면 [IoT 장치 모니터](/docs/monitor/iot-device-monitor)를 참조하세요.
+```mermaid title="디바이스에서 OneUptime의 플릿까지"
+flowchart TB
+    devices["내 디바이스"] -->|"SDK에서<br/>보내는 OTLP"| oneuptime["OneUptime"]
+    devices -->|"OTLP"| gateway["게이트웨이의<br/>Collector"]
+    gateway -->|"OTLP"| oneuptime
+    devices -->|"MQTT"| oneuptime
+    oneuptime --> fleet["플릿: 디바이스,<br/>차트, 모니터"]
+```
 
-## 사전 요구 사항
+## OneUptime의 IoT 모델
 
-- OneUptime으로 OTLP/HTTP를 전송할 수 있는 장치, 게이트웨이 또는 collector
-- 장치/게이트웨이에서 OneUptime 인스턴스로의 네트워크 도달성
-- **OneUptime 텔레메트리 수집 토큰** — _프로젝트 설정 → 텔레메트리 및 APM → 수집 키_ 에서 하나 생성하고 `x-oneuptime-token` 값을 복사하세요
+- **플릿**: `building-a-sensors`나 `field-gateways` 같은 디바이스 그룹입니다. `iot.fleet.name` 리소스 속성에서 정해지며, OneUptime에서는 텔레메트리 서비스 `iot/<fleet>`로 나타납니다. 로그와 메트릭이 같은 서비스 아래에 정렬되도록 `service.name=iot/<fleet>`도 설정하세요.
+- **디바이스**: 플릿 안의 디바이스 하나로, 각 데이터 포인트의 `device.id` 속성으로 이름이 정해집니다. 플릿의 인벤토리는 `device.id`를 키로 합니다.
 
-## OneUptime이 IoT를 모델링하는 방식
+| 속성 | 설정 위치 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `iot.fleet.name` | 리소스 | 예 | 디바이스가 속한 플릿. OneUptime 서비스 `iot/<fleet>`가 됩니다. |
+| `device.id` | 각 데이터 포인트 | 예 | 플릿 안에서 고유한, 바뀌지 않는 디바이스 ID. |
+| `iot.device.kind` | 각 데이터 포인트 | 아니요 | `Device`, `Sensor`, `Gateway` 같은 디바이스 분류. 기본값은 `Device`입니다. |
+| `iot.device.type` | 각 데이터 포인트 | 아니요 | 모니터 필터링을 위한 더 세부적인 유형이나 모델(예: `temp-sensor`). |
+| `iot.device.firmware` | 각 데이터 포인트 | 아니요 | 디바이스가 보고하는 펌웨어 버전. |
 
-OneUptime은 OpenTelemetry 리소스 속성을 사용하여 장치를 두 가지 개념으로 매핑합니다:
+MQTT에서는 토픽이 플릿과 디바이스를 정합니다.
 
-- **플릿(Fleet)** — 장치의 논리적 그룹(예: `building-a-sensors` 또는 `field-gateways`). 플릿은 `iot.fleet.name` 리소스 속성에서 파생되며 OneUptime에서 텔레메트리 서비스 `iot/<fleet>`로 나타납니다. 로그와 메트릭이 동일한 서비스 아래에 정렬되도록 `service.name=iot/<fleet>`를 설정하세요.
-- **장치(Device)** — 플릿 내의 개별 장치로, `device.id` 속성으로 식별됩니다. OneUptime은 `device.id`를 키로 하는 플릿별 장치 인벤토리를 구축하고 유지합니다.
+## 전송 방법 선택
 
-선택적 속성은 각 장치가 모니터에서 분류되고 범위가 지정되는 방식을 세분화합니다:
+| 방법 | 사용하는 경우 | 필요한 것 |
+| --- | --- | --- |
+| [OpenTelemetry SDK](#opentelemetry-sdk를-통한-메트릭-전송) | 디바이스가 OpenTelemetry SDK를 실행하고 직접 OneUptime에 도달하는 경우. | 디바이스의 수집 키. |
+| [OpenTelemetry Collector](#opentelemetry-collector를-통한-메트릭-전송) | 많은 디바이스가 게이트웨이를 통해 보고하는 경우. | Collector를 실행하는 게이트웨이. |
+| [MQTT](#mqtt를-통한-메트릭-전송) | 디바이스가 이미 MQTT를 사용하거나, 연결이 끊기는 순간 오프라인을 보고해야 하는 경우. | WebSocket으로 연결하는 MQTT 클라이언트. |
 
-| 속성                  | 필수 여부 | 설명                                                                              |
-| -------------------- | -------- | -------------------------------------------------------------------------------- |
-| `iot.fleet.name`     | 예       | 이 장치가 속한 플릿. OneUptime 서비스 `iot/<fleet>`가 됩니다                         |
-| `device.id`          | 예       | 플릿 내에서 장치를 식별하는 안정적이고 고유한 id                                       |
-| `iot.device.kind`    | 아니오    | 장치 클래스 — 예: `Device`, `Sensor`, `Gateway`. 기본값은 `Device`                  |
-| `iot.device.type`    | 아니오    | 모니터 필터링에 사용되는 더 세분화된 장치 유형/모델(예: `temp-sensor`)                |
-| `iot.device.firmware`| 아니오    | 장치가 보고하는 펌웨어 버전                                                         |
+## 시작하기 전에
+
+- 수집 키. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 만들고 값을 복사합니다. 디바이스는 이를 `x-oneuptime-token` 헤더나 MQTT 비밀번호로 보냅니다.
+- 디바이스나 게이트웨이에서 OneUptime URL로의 네트워크 접근.
+- 디바이스 그룹마다 플릿 이름, 디바이스마다 바뀌지 않는 ID.
 
 ## OpenTelemetry SDK를 통한 메트릭 전송
 
-장치가 OpenTelemetry SDK를 직접 실행하는 경우, 이를 OneUptime으로 향하게 하고 표준 `OTEL_*` 환경 변수를 통해 IoT 리소스 속성을 찍으세요. 토큰, 엔드포인트, 플릿 이름, 장치 id를 사용자 환경에 맞는 값으로 교체하세요.
+:::steps
+### SDK가 OneUptime을 가리키게 하기
+
+디바이스에서 표준 OpenTelemetry 환경 변수를 설정하세요. 키, 플릿 이름, 디바이스 ID를 자신의 값으로 바꾸세요:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sensor-001,service.name=iot/building-a-sensors
 ```
 
-| 환경 변수                       | 필수 여부 | 설명                                                                                                  |
-| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | 예       | OneUptime OTLP 엔드포인트(`https://oneuptime.com/otlp`, 또는 자체 호스팅 시 `http(s)://YOUR-ONEUPTIME-HOST/otlp`) |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | 예       | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
-| `OTEL_RESOURCE_ATTRIBUTES`    | 예       | 쉼표로 구분된 리소스 속성. `iot.fleet.name`, `device.id`, `service.name=iot/<fleet>`를 반드시 포함해야 합니다 |
+`iot.fleet.name`은 바꾸지 마세요. 바꾸면 새 플릿이 등록됩니다.
 
-아래 `iot_*` 이름을 사용하여 측정값을 메트릭으로 내보내세요(자세한 내용은 [메트릭 규칙](#메트릭-규칙) 참조). 약 1분 이내에 장치가 OneUptime 대시보드의 **IoT** 섹션에 나타납니다.
+### 측정값을 IoT 메트릭으로 기록
+
+각 측정값을 [규칙에 따른 이름](#메트릭-규칙) 중 하나로 된 메트릭으로 내보내고, 모든 데이터 포인트에 `device.id` 속성을 주세요:
+
+| 메트릭 | 값 | 데이터 포인트 속성 |
+| --- | --- | --- |
+| `iot_device_up` | `1` | `device.id=sensor-001` |
+| `iot_battery_percent` | `87` | `device.id=sensor-001` |
+| `iot_temperature_celsius` | `21.5` | `device.id=sensor-001` |
+
+인벤토리는 리소스가 아니라 데이터 포인트의 `device.id`를 키로 하므로, `OTEL_RESOURCE_ATTRIBUTES`뿐 아니라 각 측정값에도 설정하세요.
+:::
+
+그런 다음 [플릿이 나타나는지 확인](#플릿이-나타나는지-확인)하세요.
 
 ## OpenTelemetry Collector를 통한 메트릭 전송
 
-많은 장치가 게이트웨이를 통해 보고하는 경우, 게이트웨이에서 OpenTelemetry Collector를 실행하고 OneUptime으로 내보내세요. `resource` 프로세서는 플릿 속성을 찍습니다. 장치에서 측정값(OTLP, MQTT 브리지, 파일 로그 등)을 받아 전달하세요:
+많은 디바이스가 게이트웨이를 통해 보고할 때는 게이트웨이에서 OpenTelemetry Collector를 실행하세요. Collector는 디바이스에서 OTLP를 받아 모든 측정값에 플릿을 붙이고 OneUptime으로 전달합니다.
 
-```yaml
+:::steps
+### 게이트웨이 구성 저장
+
+이 내용을 게이트웨이에 `config.yaml`로 저장하세요:
+
+```yaml title="config.yaml"
 receivers:
   otlp:
     protocols:
@@ -92,41 +127,81 @@ service:
       exporters: [otlphttp]
 ```
 
-- **`resource`** 는 모든 레코드에 플릿 속성을 찍습니다. 각 게이트웨이의 장치가 올바른 플릿에 도착하도록 게이트웨이마다 `iot.fleet.name`(및 일치하는 `service.name=iot/<fleet>`)을 설정하세요.
-- OneUptime이 플릿 내에서 개별 장치를 확인할 수 있도록 각 데이터포인트에 `device.id`(및 선택적으로 `iot.device.kind` / `iot.device.type` / `iot.device.firmware`)를 유지하세요.
-- **`otlphttp`** 는 수집 토큰을 첨부하여 HTTPS를 통해 OneUptime으로 전송합니다. 기본 protobuf 인코딩과 `encoding: json` 모두 허용됩니다.
+- `otlp`는 gRPC(`4317`)와 HTTP(`4318`)로 디바이스에서 받습니다. Collector가 지원하는 다른 방법(MQTT 브리지, 파일 로그)으로 측정값을 받아 같은 파이프라인으로 보낼 수도 있습니다.
+- `resource`는 모든 측정값에 플릿을 붙입니다. 각 게이트웨이의 디바이스가 해당 플릿에 들어가도록 게이트웨이마다 `iot.fleet.name`과 그에 맞는 `service.name=iot/<fleet>`를 설정하세요.
+- OneUptime이 플릿 안의 디바이스를 구분할 수 있도록 각 데이터 포인트에 `device.id`와, 있다면 `iot.device.kind`, `iot.device.type`, `iot.device.firmware`를 유지하세요.
+- `otlphttp`는 수집 키로 HTTPS를 통해 OneUptime에 보냅니다. 기본 protobuf 인코딩과 `encoding: json` 모두 받아들여집니다.
+
+### 게이트웨이에서 Collector 실행
+
+:::tabs
+@tab Docker
+`config.yaml`이 있는 폴더에서 실행하세요:
+
+```bash
+docker run -d \
+  --name otel-collector \
+  --restart unless-stopped \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
+  otel/opentelemetry-collector-contrib:0.161.0 \
+  --config /etc/otelcol-contrib/config.yaml
+```
+@tab otelcol-contrib
+게이트웨이에 이미 `otelcol-contrib`가 있다면 이 파일을 지정하세요:
+
+```bash
+otelcol-contrib --config config.yaml
+```
+:::
+
+그러면 디바이스가 게이트웨이로 OTLP를 보냅니다. 예를 들어 각 디바이스의 SDK에서 `OTEL_EXPORTER_OTLP_ENDPOINT=http://<gateway-host>:4318`을 설정합니다.
+:::
+
+그런 다음 [플릿이 나타나는지 확인](#플릿이-나타나는지-확인)하세요.
 
 ## MQTT를 통한 메트릭 전송
 
-OneUptime은 내장 MQTT 엔드포인트를 제공하므로, 이미 MQTT를 말할 수 있는 장치는 측정값을 직접 푸시할 수 있습니다 — OpenTelemetry SDK, collector, 브리지가 필요하지 않습니다. MQTT를 통해 게시된 모든 것은 OTLP와 동일한 파이프라인에 도착합니다. 플릿이 자동으로 생성되고, 장치 인벤토리가 업데이트되며, 모든 IoT 모니터와 알림 템플릿이 변경 없이 동작합니다.
+OneUptime에는 자체 MQTT 엔드포인트가 있으므로, MQTT를 사용하는 디바이스는 SDK, Collector, 브리지 없이 직접 측정값을 게시합니다. MQTT로 도착한 것은 OTLP와 같은 파이프라인을 거칩니다. 플릿이 만들어지고, 인벤토리가 업데이트되며, 모든 IoT 모니터와 알림 템플릿이 똑같이 작동합니다.
 
-**엔드포인트**
+### 엔드포인트
 
-| 전송 방식                | 주소                                    | 참고                                                                                       |
-| ----------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| WebSocket을 통한 MQTT    | `wss://<your-host>/mqtt`               | 모든 배포에서 동작합니다 — OneUptime 인그레스를 통해 일반 HTTPS 포트를 사용합니다              |
-| TCP를 통한 MQTT          | `<app-host>:1883` (`MQTT_INGEST_PORT`) | 자체 호스팅: 기본적으로 클러스터/compose 네트워크 내부 전용입니다. 필요한 경우 노출하세요       |
+| 전송 방식 | 주소 | 참고 |
+| --- | --- | --- |
+| WebSocket을 통한 MQTT | `wss://<your-host>/mqtt` | 일반 HTTPS 포트를 통해 모든 배포에서 작동합니다. |
+| TCP를 통한 MQTT | `<app-host>:1883` | 자체 호스팅 전용이며, 노출하기 전까지는 클러스터나 Compose 네트워크 내부에서만 쓸 수 있습니다. 포트는 `MQTT_INGEST_PORT`입니다. |
 
-**인증** — 두 가지 옵션이 있습니다:
+### 인증
 
-- **프로젝트 전체**: **텔레메트리 수집 토큰**을 MQTT 비밀번호로 전송하세요(사용자 이름은 무시됩니다. 클라이언트가 사용자 이름 필드만 제공하는 경우 거기에 토큰을 넣으세요). 여러 장치를 대신하여 게시하는 게이트웨이에 적합합니다.
-- **장치별**(직접 연결하는 장치에 권장): 대시보드의 플릿 **Device Registry** 탭에서 장치를 등록하세요. 등록하면 장치별 자격 증명이 발급됩니다 — 자격 증명 ID가 MQTT **사용자 이름**이고 시크릿이 **비밀번호**입니다. 장치로 인증된 클라이언트는 자신의 `oneuptime/<fleet>/<device>/…` 토픽 아래에만 게시할 수 있고, 손상된 장치 하나를 플릿의 나머지 부분을 건드리지 않고 대시보드에서 취소할 수 있으며(취소는 연결된 세션에 대해서도 약 1분 이내에 적용됩니다), 등록된 장치는 **조용한 종료 오프라인 감지** 기능을 얻습니다. 즉, 보고를 중단해도 인벤토리에서 사라지지 않고 Offline 상태로 남아 있으며, Last Will 없이 종료되더라도 Device Offline 알림 템플릿이 발동합니다.
+- **수집 키 사용**: MQTT 비밀번호로 보냅니다. 사용자 이름은 무시됩니다. 클라이언트에 사용자 이름 필드만 있다면 거기에 키를 넣으세요. 많은 디바이스를 대신해 게시하는 게이트웨이에 적합합니다.
+- **디바이스별 자격 증명 사용**: 직접 연결하는 디바이스에 권장합니다. 플릿의 **Device Registry** 페이지를 열고 `device.id`로 사용하는 **Device ID**로 디바이스를 등록하세요. 디바이스의 **MQTT Username**이 사용자 이름이고 **MQTT Password (Secret)** 값이 비밀번호입니다.
 
-유효하지 않은 자격 증명은 CONNECT 시 반환 코드 4(잘못된 사용자 이름 또는 비밀번호)로 거부되므로, 잘못 구성된 장치는 명확하게 실패합니다.
+디바이스 자격 증명은 자체 `oneuptime/<fleet>/<device>/` 토픽 아래에만 게시할 수 있습니다. 플릿의 나머지에 영향을 주지 않고 디바이스 하나를 취소할 수 있습니다. **활성화됨** 스위치를 끄거나 삭제하면, 연결된 디바이스는 1분 정도 안에 끊깁니다. 등록된 디바이스가 조용해지면 인벤토리에 오프라인으로 남고, Last Will 없이 꺼졌더라도 Device Offline 알림 템플릿이 발생합니다.
 
-**토픽** — 고정된 `oneuptime/` 접두사 아래에 게시하세요. 플릿과 장치 세그먼트에는 `/`, `+`, `#`가 포함되어서는 안 되며 100자로 제한됩니다:
+OneUptime은 잘못된 자격 증명을 CONNECT 단계에서 반환 코드 4(bad username or password)로 거부하므로, 잘못 구성된 디바이스는 분명하게 실패합니다. 브라우저 키는 MQTT에서 거부됩니다.
 
-| 토픽                                              | 페이로드                                                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `oneuptime/<fleet>/<device>/telemetry`           | 측정값의 JSON 객체 — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, 또는 숫자 필드가 메트릭인 평면 객체 |
-| `oneuptime/<fleet>/<device>/metrics/<metricName>`| 단일 값 — 순수한 숫자(`23.4`) 또는 `{ "value": 23.4 }`                                                 |
-| `oneuptime/<fleet>/<device>/status`              | `"online"` 또는 `"offline"`(`1`/`0`, `true`/`false`, `up`/`down`도 가능) — `iot_device_up`에 매핑됩니다 |
+### 토픽과 페이로드
 
-텔레메트리 페이로드는 `"attributes"`(모든 데이터포인트에 찍히는 문자열 맵 — `iot.device.kind`, `iot.device.type`, `iot.device.firmware` 또는 사용자 정의 레이블에 사용하세요)와 `"timestamp"`(ISO-8601, 또는 유닉스 초/밀리초)를 함께 전달할 수도 있습니다. 둘 다 선택 사항이며, `timestamp`가 없으면 수집 시각이 사용됩니다.
+고정 접두사 `oneuptime/` 아래에 게시하세요. 플릿과 디바이스 세그먼트에는 `/`, `+`, `#`를 포함할 수 없고, `$`로 시작할 수 없으며, 최대 100자입니다.
 
-**Last Will을 통한 오프라인 감지** — `oneuptime/<fleet>/<device>/status`에 페이로드 `offline`로 MQTT Last Will을 등록하세요. 장치가 종료되거나 네트워크에서 떨어지면, 세션이 끝나는 순간 브로커가 장치를 대신하여 `iot_device_up = 0`을 게시합니다 — 이는 기본 **Device Offline** 알림 템플릿을 발동시키고 인벤토리에서 장치를 Down으로 전환하며, 폴링도 필요 없고 누락된 스크레이프를 기다릴 필요도 없습니다. 연결 후 동일한 토픽에 `online`을 게시하면 장치가 다시 Up으로 표시됩니다.
+| 토픽 | 페이로드 |
+| --- | --- |
+| `oneuptime/<fleet>/<device>/telemetry` | 측정값의 JSON 객체: `{"metrics":{"iot_temperature_celsius":21.5}}`, 또는 숫자 필드가 메트릭인 평평한 객체. |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>` | 단일 값: 숫자 그대로(`23.4`) 또는 `{"value":23.4}`. |
+| `oneuptime/<fleet>/<device>/status` | `online` 또는 `offline`(`1` 또는 `0`, `true` 또는 `false`, `up` 또는 `down`도 가능). `iot_device_up`을 설정합니다. |
 
-`mosquitto_pub` 예시(원시 TCP, 자체 호스팅):
+telemetry 페이로드에는 모든 데이터 포인트에 붙는 문자열 맵인 `"attributes"`(`iot.device.kind`, `iot.device.type`, `iot.device.firmware` 또는 자체 레이블에 사용)와, ISO 8601 또는 Unix 초나 밀리초로 된 `"timestamp"`도 넣을 수 있습니다. 둘 다 선택 사항입니다. `timestamp`가 없으면 OneUptime이 측정값을 받은 시간이 사용됩니다.
+
+### Last Will을 이용한 오프라인 감지
+
+`oneuptime/<fleet>/<device>/status`에 페이로드 `offline`으로 MQTT Last Will을 등록하세요. 디바이스가 꺼지거나 네트워크에서 끊기면, OneUptime은 세션이 끝나는 순간 그 디바이스의 `iot_device_up = 0`을 게시하며, 이는 폴링 없이 기본 Device Offline 알림 템플릿을 발생시키고 인벤토리에서 디바이스를 다운으로 표시합니다. 연결 후 같은 토픽에 `online`을 게시하면 디바이스가 다시 업으로 표시됩니다.
+
+### 예시
+
+:::tabs
+@tab mosquitto_pub
+자체 호스팅 인스턴스에서 원시 TCP로:
 
 ```bash
 mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
@@ -134,14 +209,14 @@ mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
   -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
   -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
 ```
-
-WebSocket을 통한 Node.js `mqtt` 예시(oneuptime.com 및 모든 자체 호스팅 인스턴스에서 동작합니다):
+@tab Node.js
+`mqtt` 패키지로, WebSocket을 통해 oneuptime.com이나 자체 호스팅 인스턴스에:
 
 ```javascript
 const mqtt = require("mqtt");
 
 const client = mqtt.connect("wss://oneuptime.com/mqtt", {
-  username: "oneuptime", // 무시됩니다 — 아래의 토큰이 인증을 수행합니다
+  username: "oneuptime", // ignored — the token below is what authenticates
   password: "YOUR_TELEMETRY_INGESTION_TOKEN",
   will: {
     topic: "oneuptime/building-a-sensors/sensor-001/status",
@@ -165,8 +240,8 @@ client.on("connect", () => {
   }, 60 * 1000);
 });
 ```
-
-WebSocket을 통한 Python `paho-mqtt` 예시:
+@tab Python
+`paho-mqtt`로, WebSocket을 통해:
 
 ```python
 import json
@@ -185,70 +260,48 @@ client.publish(
     json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
 )
 ```
+:::
 
-참고 사항:
+### 한도와 전달
 
-- 이 엔드포인트는 **수집 전용**입니다. 구독은 거부됩니다(SUBACK 실패). 브로커가 수신을 확인하기를 원하면 QoS 1을 사용하세요. 수집은 **최소 한 번(at-least-once)** 입니다 — 확인 응답이 유실된 후 QoS 1/2 재전송이 발생하면 중복 데이터포인트가 생길 수 있습니다.
-- 토픽 계약을 벗어난 게시나 잘못된 형식의 페이로드는 수락된 뒤 **폐기됩니다**(MQTT 3.1.1에는 메시지별 오류 응답이 없습니다) — 서버가 그 이유를 경고 로그로 남기므로, 데이터가 도착하지 않으면 OneUptime 앱 로그를 확인하세요.
-- WebSocket 엔드포인트에서는 MQTT keepalive를 **5분 미만**으로 유지하세요 — OneUptime 인그레스는 유휴 WebSocket 연결을 300초 후에 닫으며, 이는 Last Will을 발동시켜 잘못된 Device Offline 알림을 유발합니다. 클라이언트 라이브러리 기본값(`mqtt`와 `paho-mqtt` 모두 60초)이면 충분합니다. 원시 TCP 엔드포인트에는 그러한 상한이 없습니다.
-- 페이로드는 게시당 128KB 및 100개 메트릭으로 제한됩니다. 초과된 패킷은 연결을 끊습니다.
+- 엔드포인트는 측정값만 받습니다. 구독은 거부되고(SUBACK 실패), retained 메시지는 보관되지 않습니다.
+- 수집은 최소 한 번(at least once)입니다. OneUptime이 각 게시를 확인하게 하려면 QoS 1을 사용하세요. 확인이 유실된 뒤의 QoS 1 또는 2 재전송은 중복 데이터 포인트를 만들 수 있습니다.
+- 128 KB를 넘는 게시나 100개가 넘는 메트릭이 있는 게시는 버려지며, 그보다 큰 크기를 선언하는 패킷은 연결을 닫습니다.
+- 이 토픽 밖의 게시나 형식이 잘못된 페이로드는 받아들인 뒤 버려집니다. MQTT 3.1.1에는 메시지별 오류가 없기 때문입니다. OneUptime은 이유와 함께 경고를 기록합니다(`MQTT: dropped publish to …`).
+- WebSocket 엔드포인트에서는 MQTT keepalive를 5분 미만으로 유지하세요. 인그레스는 300초 동안 유휴 상태인 WebSocket을 닫으며, 이는 Last Will과 잘못된 Device Offline 알림을 발생시킵니다. 클라이언트 라이브러리 기본값(`mqtt`와 `paho-mqtt`에서 60초)이면 괜찮으며, TCP 엔드포인트에는 이런 제한이 없습니다.
 
 ## 메트릭 규칙
 
-OneUptime은 다음 `iot_*` 메트릭 이름을 인식합니다. 각 데이터포인트는 측정값이 올바른 장치에 귀속되도록 `device.id` 레이블을 포함해야 합니다. 장치에 적합한 메트릭만 보내면 됩니다 — 누락된 메트릭은 단순히 차트에 표시되지 않습니다.
+OneUptime은 다음 `iot_*` 메트릭 이름을 인식합니다. 디바이스에 의미 있는 것만 보내세요. 보내지 않은 것은 차트에 표시되지 않습니다. 각 데이터 포인트에는 디바이스의 `device.id`가 있습니다(MQTT에서는 토픽이 디바이스를 지정합니다).
 
-| 메트릭 이름                  | 의미                                                                            |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `iot_device_up`             | 장치 가용성. `1` = 작동/도달 가능, `0` = 다운. IoT 장치 모니터를 구동합니다       |
-| `iot_device_info`           | 식별 전용 신호. `device.id` / kind / type / firmware를 포함하여 장치가 측정값을 보고하기 전에도 인벤토리에 나타나게 합니다 |
-| `iot_battery_percent`       | 배터리 충전 수준, `0`–`100`(%)                                                  |
-| `iot_signal_strength_dbm`   | dBm 단위의 무선 신호 강도(예: Wi-Fi / LoRa / 셀룰러 RSSI)                         |
-| `iot_temperature_celsius`   | °C 단위의 장치 또는 센서 온도                                                    |
-| `iot_cpu_usage_ratio`       | `0`–`1` 비율로 표현된 CPU 사용률(OneUptime은 이를 백분율로 저장합니다)             |
-| `iot_memory_usage_bytes`    | 현재 사용 중인 메모리, bytes 단위                                                |
-| `iot_memory_size_bytes`     | 장치에서 사용 가능한 총 메모리, bytes 단위                                        |
-| `iot_uptime_seconds`        | 장치가 마지막으로 부팅된 이후의 초                                                |
+| 메트릭 이름 | 의미 |
+| --- | --- |
+| `iot_device_up` | 가용성: `1`은 업이고 도달 가능, `0`은 다운. IoT Device 모니터가 이를 읽습니다. |
+| `iot_device_info` | 식별 정보만. `device.id`, 분류, 유형, 펌웨어를 담으므로 디바이스가 측정값을 보고하기 전에도 인벤토리에 나타납니다. |
+| `iot_battery_percent` | 배터리 충전량, `0`~`100`(%). |
+| `iot_signal_strength_dbm` | dBm 단위 무선 신호 강도(Wi-Fi, LoRa, 셀룰러 RSSI 등). |
+| `iot_temperature_celsius` | °C 단위 디바이스 또는 센서 온도. |
+| `iot_cpu_usage_ratio` | `0`에서 `1`까지의 비율로 나타낸 CPU 사용량. OneUptime은 이를 백분율로 저장하고 표시합니다. |
+| `iot_memory_usage_bytes` | 사용 중인 메모리(바이트). |
+| `iot_memory_size_bytes` | 디바이스의 전체 메모리(바이트). |
+| `iot_uptime_seconds` | 디바이스가 마지막으로 부팅된 후의 초. |
 
-## 설치 확인
+## 플릿이 나타나는지 확인
 
-1. 장치 또는 게이트웨이가 오류 없이 내보내고 있는지 확인하세요(SDK/collector 로그에서 내보내기 실패 및 HTTP `401`/`403` 응답을 확인).
-2. OneUptime 대시보드에서 **IoT** 섹션을 여세요 — 플릿이 약 1분 이내에 `iot/<fleet>`로 나타나야 합니다.
-3. 플릿의 **Devices** 탭을 여세요 — 전송한 각 `device.id`가 최신 배터리, 신호, 온도, CPU, 메모리 및 작동/다운 상태와 함께 나열되어야 합니다.
-4. 플릿 아래의 **메트릭**을 열어 위의 `iot_*` 시리즈를 차트로 표시하세요.
-
-## 문제 해결
-
-### 플릿이 나타나지 않음
-
-1. `iot.fleet.name`이 데이터포인트 레이블이 아닌 **리소스** 속성으로 설정되어 있고, `service.name`이 `iot/<fleet>`인지 확인하세요.
-2. 익스포터 엔드포인트가 `https://oneuptime.com/otlp`(또는 자체 호스팅 `…/otlp`)이고 `x-oneuptime-token` 헤더에 유효한 토큰이 들어 있는지 확인하세요.
-3. MQTT를 사용하는 경우, 토픽이 `oneuptime/<fleet>/<device>/…` 형식을 정확히 따르는지 확인하세요 — 토픽의 플릿 세그먼트가 플릿을 생성하는 요소입니다.
-
-### 인벤토리에서 장치 누락
-
-1. 각 데이터포인트에 `device.id` 레이블이 포함되어 있는지 확인하세요 — 장치는 이를 키로 합니다.
-2. 아직 측정값을 보고하지 않은 장치라도 인벤토리에 표시되도록 `iot_device_info`(식별 전용)를 보내세요.
-3. `device.id` 값이 보고 간에 안정적인지 확인하세요. id가 바뀌면 중복된 장치 행이 생성됩니다.
-
-### 익스포터에서 HTTP 401 / 403 발생
-
-수집 토큰이 유효하지 않거나, 취소되었거나, 누락된 것입니다. _프로젝트 설정 → 텔레메트리 및 APM → 수집 키_ 에서 새 토큰을 생성하고 `x-oneuptime-token` 헤더를 업데이트하세요.
-
-### 메트릭이 차트에 표시되지 않음
-
-1. [메트릭 규칙](#메트릭-규칙) 표에서 정확한 `iot_*` 메트릭 이름을 사용하고 있는지 확인하세요 — 인식되지 않는 이름은 일반 메트릭으로 저장되며 IoT 차트를 채우지 않습니다.
-2. `iot_cpu_usage_ratio`는 `0`–`1` 비율임을 기억하세요. 원시 비율을 보내면 OneUptime이 이를 백분율로 렌더링합니다.
-3. 장치가 보고를 시작한 후 첫 데이터포인트가 표시되기까지 최대 1분을 기다리세요.
+1. 디바이스, 게이트웨이 Collector, 또는 MQTT 클라이언트가 오류 없이 보내는지 확인하세요. 로그에서 내보내기 실패와 HTTP `401` 또는 `422` 응답, 또는 반환 코드 4로 거부된 연결을 찾으세요.
+2. **제품 → 인프라 → IoT → All Fleets**를 엽니다. 첫 측정값 후 1분 정도 안에 플릿이 `iot/<fleet>`로 나타납니다.
+3. 플릿의 **Devices** 페이지를 엽니다. 보낸 각 디바이스가 최신 배터리, 신호, 온도, CPU, 메모리, 업 또는 다운 상태와 함께 나열되어야 합니다.
+4. 플릿의 **메트릭** 페이지를 열어 `iot_*` 시계열을 차트로 보세요.
 
 ## 자체 호스팅 OneUptime
 
-OneUptime을 자체 호스팅하는 경우, 엔드포인트를 자신의 인스턴스로 향하게 하세요:
+엔드포인트가 자신의 인스턴스를 가리키게 하세요:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-oneuptime-host.example.com/otlp
 ```
 
-또는 collector에서:
+또는 Collector에서:
 
 ```yaml
 exporters:
@@ -258,12 +311,44 @@ exporters:
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-MQTT의 경우 `wss://your-oneuptime-host.example.com/mqtt`에 연결하거나, 장치가 WebSocket을 사용할 수 없다면 앱 서비스의 원시 MQTT TCP 포트(`MQTT_INGEST_PORT`, 기본값 `1883`)를 노출하세요. MQTT 리스너를 완전히 끄려면 앱 서비스에 `MQTT_INGEST_ENABLED=false`를 설정하세요.
+MQTT의 경우 `wss://your-oneuptime-host.example.com/mqtt`에 연결하거나, WebSocket을 사용할 수 없는 디바이스를 위해 앱 서비스의 원시 MQTT TCP 포트(`MQTT_INGEST_PORT`, 기본값 `1883`)를 노출하세요. 두 MQTT 리스너를 모두 끄려면 앱 서비스에서 `MQTT_INGEST_ENABLED=false`를 설정하세요. 인스턴스가 HTTP 전용이면 `http://`(MQTT는 `ws://`)와 해당 포트를 사용하세요.
 
-인스턴스가 HTTP 전용인 경우, 스킴을 `http://`(MQTT의 경우 `ws://`)로 변경하고 적절한 포트를 사용하세요.
+## 문제 해결
+
+:::details 플릿이 나타나지 않음
+1. `iot.fleet.name`이 (데이터 포인트 레이블이 아니라) 리소스 속성이고 `service.name`이 `iot/<fleet>`인지 확인하세요.
+2. 엔드포인트가 `https://oneuptime.com/otlp`(또는 자체 호스팅 `…/otlp`)이고 `x-oneuptime-token` 헤더에 유효한 수집 키가 있는지 확인하세요.
+3. MQTT에서는 토픽이 `oneuptime/<fleet>/<device>/…`를 정확히 따르는지 확인하세요. 플릿을 만드는 것은 토픽의 플릿 세그먼트입니다.
+:::
+
+:::details 인벤토리에 디바이스가 없음
+1. 모든 데이터 포인트에 `device.id` 레이블을 주세요. 디바이스는 이를 키로 합니다. MQTT에서는 토픽의 디바이스 세그먼트입니다.
+2. 아직 측정값을 보고하지 않은 디바이스는 인벤토리에 나타나도록 `iot_device_info`(MQTT에서는 `status` 메시지)를 보내세요.
+3. `device.id` 값을 바꾸지 마세요. ID가 바뀌면 디바이스가 중복 생성됩니다.
+:::
+
+:::details 익스포터에서 HTTP 401 또는 422가 반환됨
+`401`은 수집 키가 없거나 잘못되었거나 만료되었다는 뜻이고, `422`는 키가 비활성화되었거나 디바이스 텔레메트리를 보낼 수 없는 브라우저 키라는 뜻입니다. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 새 키를 만들고 `x-oneuptime-token` 헤더를 업데이트하세요.
+:::
+
+:::details MQTT 연결이 "bad username or password"로 거부됨
+OneUptime은 잘못된 자격 증명을 CONNECT 단계에서 반환 코드 4로 거부합니다. 비밀번호가 비활성화되거나 만료되지 않은 유효한 수집 키인지, 또는 등록된 디바이스라면 **MQTT Username**을 사용자 이름으로 한 자격 증명의 시크릿인지 확인하세요. 브라우저 키는 MQTT에서 거부됩니다.
+:::
+
+:::details 실행 중인 디바이스가 오프라인으로 바뀜
+WebSocket 엔드포인트에서는 인그레스가 300초 동안 유휴 상태인 연결을 닫으며, 이는 Last Will과 잘못된 Device Offline 알림을 발생시킵니다. MQTT keepalive를 5분 미만으로 유지하세요. 클라이언트 라이브러리 기본값인 60초면 괜찮습니다.
+:::
+
+:::details 측정값이 플릿 차트에 표시되지 않음
+1. [메트릭 규칙](#메트릭-규칙)의 정확한 `iot_*` 이름을 사용하세요. 다른 이름은 일반 메트릭으로 저장되며 IoT 차트를 채우지 않습니다.
+2. `iot_cpu_usage_ratio`는 `0`에서 `1`까지의 비율로 보내세요. OneUptime이 백분율로 표시합니다.
+3. 디바이스가 보고를 시작한 뒤 첫 데이터 포인트가 나타나기까지 최대 1분 정도 기다리세요.
+:::
 
 ## 다음 단계
 
-- **IoT 장치 모니터**를 구성하여 장치 오프라인, 배터리 부족, 약한 신호, 높은 온도, 높은 CPU 조건에 대해 알림을 받으세요 — [IoT 장치 모니터](/docs/monitor/iot-device-monitor)를 참조하세요.
-- 컨테이너화되지 않은 호스트(Linux / macOS / Windows VM 및 베어메탈)의 경우, [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector)를 사용하세요.
-- 기본 OTLP 통합을 심층적으로 학습하려면 [OpenTelemetry를 OneUptime과 통합하기](/docs/telemetry/open-telemetry)를 참조하세요.
+:::cards
+- [IoT 기기 모니터](/docs/monitor/iot-device-monitor): 디바이스가 오프라인이 되거나, 배터리가 부족하거나, 과열되면 알림을 보냅니다.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): OneUptime이 SDK나 Collector에서 OTLP를 받는 방법.
+- [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): Linux, macOS, Windows 게이트웨이 자체를 모니터링합니다.
+:::

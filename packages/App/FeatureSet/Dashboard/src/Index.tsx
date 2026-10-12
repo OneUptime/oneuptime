@@ -1,4 +1,5 @@
 import App from "./App";
+import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/NotificationMethods/BrowserPushRegistration";
 import { i18nReady } from "./Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
@@ -8,6 +9,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil from "Common/UI/Utils/Theme";
 import UserUtil from "Common/UI/Utils/User";
 import API from "Common/UI/Utils/API/API";
+import { VAPID_PUBLIC_KEY } from "Common/UI/Config";
 import { enablePrivateImageSessionRefresh } from "Common/UI/Components/Markdown.tsx/SessionAwareImage";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -43,6 +45,20 @@ enablePrivateImageSessionRefresh((): Promise<boolean> => {
 Telemetry.init({
   serviceName: "dashboard",
 });
+
+/*
+ * Tell OneUptime's service worker, in a browser registered for push
+ * notifications, the server's VAPID key: it renews the browser's push
+ * subscription when the browser replaces it, and cannot read the key for
+ * itself. Signed in, because the worker also uses the moment to report a
+ * replacement it could not report when it happened.
+ */
+if (UserUtil.isLoggedIn() && "serviceWorker" in window.navigator) {
+  void sendPushConfigurationToRegisteredServiceWorker({
+    container: window.navigator.serviceWorker,
+    vapidPublicKey: VAPID_PUBLIC_KEY,
+  });
+}
 
 /*
  * Seed RUM context so browser spans carry the signed-in user and the project

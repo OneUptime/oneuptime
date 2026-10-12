@@ -50,7 +50,7 @@ const STATEMENTS: Record<string, Statements> = {
     leaving: "Si un remplacement transfère les alertes de quel",
     mcpClient: "Quitter le projet déconnecte aussi le cl",
     scim: "Les utilisateurs que SCIM crée lui-même et les utilisateurs ",
-    personalLink: "Un lien personnel n'affiche des gardes q",
+    personalLink: "Un lien personnel n'affiche des permanen",
     emptyCalendar: "Si vous avez quitté le projet, le li",
   },
   es: {
@@ -156,7 +156,7 @@ const STATEMENTS: Record<string, Statements> = {
   hi: {
     leaving: "अगर कोई ओवरराइड किसी के पेज ऐसे व्यक्ति को भेजता",
     mcpClient: "Project छोड़ने पर client भी disconnect ह",
-    scim: "जिन users को SCIM खुद बनाता है और जो users आपके project के m",
+    scim: "SCIM जिन उपयोगकर्ताओं को खुद बनाता है और जो उपयोगकर्ता आपके प्र",
     personalLink: "निजी लिंक शिफ्टें तभी तक दिखाता है जब तक",
     emptyCalendar: "अगर आपने प्रोजेक्ट छोड़ दिया है, तो ",
   },

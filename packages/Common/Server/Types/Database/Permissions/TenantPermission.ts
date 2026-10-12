@@ -49,6 +49,16 @@ export default class TenantPermission {
   public static readonly PROJECT_CONCURRENCY: number = 4;
 
   /*
+   * Why an update or a delete that names no project - or asks across
+   * projects - is refused (addTenantScopeToQuery), and what to do instead.
+   */
+  public static getWriteAcrossProjectsMessage(model: BaseModel): string {
+    const records: string = (model.pluralName || "records").toLowerCase();
+
+    return `Changes to ${records} are made in one project at a time. Please pass the project ID in the 'tenantid' header.`;
+  }
+
+  /*
    * `updateData` is what an update writes, handed on to each project's own
    * permission check in a multi-tenant request: below a table's update plan
    * only an update that switches records off passes (BillingPermission).
@@ -137,6 +147,24 @@ export default class TenantPermission {
       props.userGlobalAccessPermission &&
       (!props.tenantId || props.isMultiTenantRequest)
     ) {
+      /*
+       * A CHANGE IS MADE IN ONE PROJECT AT A TIME. A read across projects is
+       * answered below with a query per project, each checked with its own
+       * project's permissions. An update or a delete would have to read its
+       * rows by such a query before it writes them, and no read takes one
+       * (findBy turns a list into one object), so a write that names no
+       * project - or asks across projects - is refused here, before anything
+       * is read, in words that say what to do.
+       */
+      if (
+        type === DatabaseRequestType.Update ||
+        type === DatabaseRequestType.Delete
+      ) {
+        throw new BadDataException(
+          TenantPermission.getWriteAcrossProjectsMessage(model),
+        );
+      }
+
       /*
        * for each of these projectIds,
        * check if they have valid permissions for these projects

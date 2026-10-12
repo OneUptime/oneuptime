@@ -2,8 +2,11 @@ import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
+  CAN_BE_WHITE_LABELLED_DESCRIPTION,
+  CAN_BE_WHITE_LABELLED_TITLE,
   LicenseStatusPill,
   SeatUsageMeter,
+  WhiteLabelBadge,
   getLicenseLifecycle,
   isOverUserLimit,
 } from "../Components/LicenseUtil";
@@ -318,10 +321,21 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               required: false,
               placeholder: "No limit",
             },
+            {
+              field: {
+                canBeWhiteLabelled: true,
+              },
+              title: CAN_BE_WHITE_LABELLED_TITLE,
+              stepId: "license",
+              description: CAN_BE_WHITE_LABELLED_DESCRIPTION,
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
           ]}
           selectMoreFields={{
             userLimit: true,
             currentUserCount: true,
+            canBeWhiteLabelled: true,
           }}
           filters={[
             {
@@ -398,17 +412,18 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               title: "Type",
               type: FieldType.Element,
               getElement: (item: EnterpriseLicense): ReactElement => {
-                if (item.isEvaluationLicense) {
-                  return (
-                    <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
-                      Evaluation
-                    </span>
-                  );
-                }
-
                 return (
-                  <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-                    Production
+                  <span className="inline-flex flex-wrap items-center gap-1">
+                    {item.isEvaluationLicense ? (
+                      <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
+                        Evaluation
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
+                        Production
+                      </span>
+                    )}
+                    {item.canBeWhiteLabelled ? <WhiteLabelBadge /> : <></>}
                   </span>
                 );
               },

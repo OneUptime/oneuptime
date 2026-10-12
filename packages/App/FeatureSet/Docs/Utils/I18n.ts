@@ -32,12 +32,21 @@ import DocsNav, {
   NavGroup,
   NavLink,
 } from "./Nav";
+import { getDocsNavIcon } from "./NavIcons";
 
 export interface LocaleStrings {
   ui: { [key: string]: string };
+  navSections: { [key: string]: string };
   navGroups: { [key: string]: string };
   navLinks: { [key: string]: string };
 }
+
+const TRANSLATABLE_SECTIONS: Array<keyof LocaleStrings> = [
+  "ui",
+  "navSections",
+  "navGroups",
+  "navLinks",
+];
 
 const Locales: { [code: string]: LocaleStrings } = {
   en: en as LocaleStrings,
@@ -99,9 +108,9 @@ const lookup: (
 
 /*
  * Build a per-language translation function for the EJS templates.
- * Keys are of the form "ui.foo", "navGroups.Bar", "navLinks.Baz".
- * Unknown sections or missing keys fall back to the English value, then to the
- * key itself.
+ * Keys are of the form "ui.foo", "navSections.Bar", "navGroups.Bar",
+ * "navLinks.Baz". Unknown sections or missing keys fall back to the English
+ * value, then to the key itself.
  */
 export const makeT: (lang: string) => TranslateFn = (
   lang: string,
@@ -116,7 +125,7 @@ export const makeT: (lang: string) => TranslateFn = (
     }
     const section: string = key.slice(0, dot);
     const subKey: string = key.slice(dot + 1);
-    if (section !== "ui" && section !== "navGroups" && section !== "navLinks") {
+    if (!TRANSLATABLE_SECTIONS.includes(section as keyof LocaleStrings)) {
       return key;
     }
     return interpolate(
@@ -138,6 +147,9 @@ export const getLocalizedNav: (lang: string) => LocalizedNavGroup[] = (
     return {
       key: group.title,
       title: t(`navGroups.${group.title}`),
+      sectionKey: group.section,
+      sectionTitle: t(`navSections.${group.section}`),
+      icon: getDocsNavIcon(group.title),
       links: group.links.map((link: NavLink): LocalizedNavLink => {
         return {
           title: t(`navLinks.${link.title}`),

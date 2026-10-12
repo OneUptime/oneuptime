@@ -29,6 +29,9 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import { getApiReferencePagePath } from "Common/Utils/ApiReferencePage";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -1439,21 +1442,16 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         )}
 
         {groupToShowIdFor ? (
-          <ConfirmModal
-            title={
-              groupToShowIdFor.name
-                ? translator.translateTemplate("{{name}} ID", {
-                    name: groupToShowIdFor.name,
-                  })
-                : translator.translateTemplate("Group ID")
-            }
-            description={translator.translateTemplate(
-              "Status Page Group ID: {{id}}",
-              { id: groupToShowIdFor._id?.toString() || "" },
+          // The same Show ID dialog every table opens: the ID, a copy button.
+          <RecordIdModal
+            recordId={groupToShowIdFor._id}
+            recordName={groupToShowIdFor.name}
+            itemName="Status Page Group"
+            apiReferencePagePath={getApiReferencePagePath(
+              new StatusPageGroup(),
+              { isBillingEnabled: BILLING_ENABLED },
             )}
-            submitButtonText="Close"
-            submitButtonType={ButtonStyleType.NORMAL}
-            onSubmit={() => {
+            onClose={() => {
               setGroupToShowIdFor(null);
             }}
           />

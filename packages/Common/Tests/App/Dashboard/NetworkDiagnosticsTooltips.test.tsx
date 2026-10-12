@@ -23,19 +23,21 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The (i) tooltips on a device's connectivity and traffic numbers,
  * RENDERED: the on-demand ping result rows, the traceroute hop table, the
  * past hour's latency trend (device Overview and topology drawer) and the
- * Traffic tab's NetFlow top talkers.
+ * Traffic page's tiles and top lists.
  *
  * Only the network is replaced: the metrics query, the diagnostic row reads
- * (through DeviceDiagnostics' own modelAPI seam) and the top-talkers POST.
- * Every statistic is checked for an (i) whose tooltip is the matching
- * NETWORK_DEVICE_METRIC_DESCRIPTIONS entry; the rows and columns that only
- * name something (Host, Reason, Hop, Source IP) are checked for having none.
+ * (through DeviceDiagnostics' own modelAPI seam) and the traffic POST. Every
+ * statistic is checked for an (i) whose tooltip is the matching text -
+ * NETWORK_DEVICE_METRIC_DESCRIPTIONS, or the Traffic page's TILE_HELP and
+ * TRAFFIC_HELP; the rows and columns that only name something (Host, Reason,
+ * Hop) are checked for having none.
  */
 
 const DEVICE_ID: string = "11111111-1111-4111-8111-111111111111";
 const DIAGNOSTIC_ID: string = "22222222-2222-4222-8222-222222222222";
 const PROBE_ID: string = "44444444-4444-4444-8444-444444444444";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+const TRAFFIC_ROUTE: string = "/dashboard/" + PROJECT_ID + "/network-devices";
 
 const fetchResultsMock: MockFunction = getJestMockFunction();
 const apiPostMock: MockFunction = getJestMockFunction();
@@ -95,10 +97,15 @@ jest.mock(
 import DeviceDiagnostics from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnostics";
 import { DIAGNOSTIC_POLL_INTERVAL_IN_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
 import DeviceLatencyTrend from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceLatencyTrend";
-import FlowTopTalkers, {
-  FlowSectionTitle,
-  FlowStatTile,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/FlowTopTalkers";
+import NetworkTrafficView, {
+  CONVERSATIONS_TITLE,
+  TRAFFIC_HELP,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
+import TrafficSummaryTiles, {
+  TILE_HELP,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficSummaryTiles";
+import { parseNetworkTrafficSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficApi";
+import { JSONObject } from "../../../Types/JSON";
 import TracerouteHopsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/TracerouteHopsTable";
 import {
   NETWORK_DEVICE_METRIC_DESCRIPTIONS,
@@ -432,125 +439,201 @@ describe("the latency trend", () => {
   });
 });
 
-// ------------------------------------------------------- top talkers
+// ------------------------------------------------------- traffic page
 
-describe("FlowStatTile and FlowSectionTitle", () => {
-  test("the stat tile shows its value and explains it", async () => {
-    render(
-      <FlowStatTile
-        title="Flows"
-        value="1,204"
-        description={DESCRIPTIONS.flowCount}
-      />,
-    );
-
-    expect(screen.getByText("1,204")).toBeInTheDocument();
-    await expectExplained("Flows", DESCRIPTIONS.flowCount);
-  });
-
-  test("the section title explains its block", async () => {
-    render(
-      <FlowSectionTitle
-        title="Bandwidth Over Time"
-        description={DESCRIPTIONS.flowBandwidth}
-      />,
-    );
-
-    expect(screen.getByText("Bandwidth Over Time")).toBeInTheDocument();
-    await expectExplained("Bandwidth Over Time", DESCRIPTIONS.flowBandwidth);
-  });
-});
-
-function topTalkersResponse(): unknown {
+function trafficSummary(overrides: JSONObject = {}): JSONObject {
   return {
-    data: {
-      totalOctets: 5 * 1024 * 1024,
-      totalPackets: 4200,
-      totalFlows: 37,
-      topSources: [{ key: "10.0.0.5", octets: 3000, packets: 20 }],
-      topDestinations: [{ key: "10.0.0.9", octets: 2000, packets: 10 }],
-      topProtocolPorts: [
-        { protocolNumber: 6, destinationPort: 443, octets: 5000, packets: 30 },
-      ],
-      topConversations: [
-        {
-          sourceIp: "10.0.0.5",
-          destinationIp: "10.0.0.9",
-          octets: 1000,
-          packets: 5,
-        },
-      ],
-      series: [{ time: "2026-09-24T11:00:00Z", octets: 60000, packets: 50 }],
-      seriesBucketSeconds: 60,
-      windowStartAt: "2026-09-24T11:00:00.000Z",
-      windowEndAt: "2026-09-24T12:00:00.000Z",
-    },
+    windowStartAt: "2026-09-24T11:00:00.000Z",
+    windowEndAt: "2026-09-24T12:00:00.000Z",
+    bucketSeconds: 60,
+    totals: { octets: 5_000_000, packets: 4200, flows: 37 },
+    maxSamplingRate: 1,
+    series: [{ time: "2026-09-24T11:00:00Z", octets: 60000 }],
+    topSources: [{ ip: "10.0.0.5", octets: 3000, packets: 20 }],
+    topDestinations: [{ ip: "10.0.0.9", octets: 2000, packets: 10 }],
+    topConversations: [
+      {
+        sourceIp: "10.0.0.5",
+        destinationIp: "10.0.0.9",
+        octets: 1000,
+        packets: 5,
+      },
+    ],
+    topApplications: [
+      { protocolNumber: 6, port: 443, octets: 5000, packets: 30 },
+    ],
+    topInterfaces: [
+      {
+        interfaceIndex: 3,
+        name: "Gi0/3",
+        speedInMbps: 1000,
+        inOctets: 4000,
+        outOctets: 1000,
+      },
+    ],
+    topDevices: [],
+    sources: [],
+    lastFlowAt: "2026-09-24 11:59:00",
+    ...overrides,
   };
 }
 
-describe("the Traffic tab's top talkers", () => {
-  const FLOW_TITLES: Array<[string, NetworkDeviceMetric]> = [
-    ["Total Traffic", "flowTotalTraffic"],
-    ["Packets", "flowPackets"],
-    ["Flows", "flowCount"],
-    ["Bandwidth Over Time", "flowBandwidth"],
-    ["Top Sources", "flowTopSources"],
-    ["Top Destinations", "flowTopDestinations"],
-    ["Top Conversations", "flowTopConversations"],
-    ["Top Protocols & Ports", "flowTopProtocolsPorts"],
+describe("TrafficSummaryTiles", () => {
+  test("every tile shows its value and explains it", async () => {
+    render(
+      <TrafficSummaryTiles
+        summary={parseNetworkTrafficSummary(trafficSummary())}
+        windowSeconds={3600}
+      />,
+    );
+
+    expect(screen.getByTestId("traffic-tile-total-value")).toHaveTextContent(
+      "5.00 MB",
+    );
+    expect(screen.getByTestId("traffic-tile-flows-value")).toHaveTextContent(
+      "37",
+    );
+    expect(infoButtonNames()).toEqual([
+      "About Traffic",
+      "About Average",
+      "About Peak",
+      "About Flows",
+    ]);
+    await expectExplained("Traffic", TILE_HELP.traffic);
+    await expectExplained("Average", TILE_HELP.average);
+    await expectExplained("Peak", TILE_HELP.peak);
+    await expectExplained("Flows", TILE_HELP.flows);
+  });
+
+  test("sampled traffic says the numbers are estimates, with its own (i)", async () => {
+    render(
+      <TrafficSummaryTiles
+        summary={parseNetworkTrafficSummary(
+          trafficSummary({ maxSamplingRate: 512 }),
+        )}
+        windowSeconds={3600}
+      />,
+    );
+
+    expect(screen.getByTestId("traffic-sampled-note")).toHaveTextContent(
+      "Estimated from sampled traffic (up to 1 in 512 packets).",
+    );
+    await expectExplained("Sampled", TILE_HELP.sampled);
+  });
+
+  test("unsampled traffic has no such note", () => {
+    render(
+      <TrafficSummaryTiles
+        summary={parseNetworkTrafficSummary(trafficSummary())}
+        windowSeconds={3600}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("traffic-sampled-note"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+function renderDeviceTraffic(): void {
+  render(
+    <MemoryRouter initialEntries={[TRAFFIC_ROUTE]}>
+      <NetworkTrafficView
+        scope={{ kind: "device", networkDeviceId: new ObjectID(DEVICE_ID) }}
+      />
+    </MemoryRouter>,
+  );
+}
+
+describe("the Traffic page's tiles and lists", () => {
+  const TRAFFIC_TITLES: Array<[string, string]> = [
+    ["Traffic", TILE_HELP.traffic],
+    ["Average", TILE_HELP.average],
+    ["Peak", TILE_HELP.peak],
+    ["Flows", TILE_HELP.flows],
+    ["Top sources", TRAFFIC_HELP.sources],
+    ["Top destinations", TRAFFIC_HELP.destinations],
+    ["Top applications", TRAFFIC_HELP.applications],
+    ["Top interfaces", TRAFFIC_HELP.interfaces],
+    [CONVERSATIONS_TITLE, TRAFFIC_HELP.conversations],
   ];
 
-  test("every total, the chart and every top-N table carry an (i)", async () => {
-    apiPostMock.mockResolvedValue(topTalkersResponse());
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/");
+  });
 
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+  test("every tile and every top list carries an (i)", async () => {
+    apiPostMock.mockResolvedValue({ data: trafficSummary() });
+
+    renderDeviceTraffic();
     await flush();
 
-    expect(screen.getByText("5.00 MB")).toBeInTheDocument();
+    expect(screen.getByTestId("traffic-tile-total-value")).toHaveTextContent(
+      "5.00 MB",
+    );
     expect(infoButtonNames()).toEqual(
-      FLOW_TITLES.map(([title]: [string, NetworkDeviceMetric]): string => {
+      TRAFFIC_TITLES.map(([title]: [string, string]): string => {
         return `About ${title}`;
       }),
     );
   });
 
-  test.each(FLOW_TITLES)(
-    "the %s (i) reads NETWORK_DEVICE_METRIC_DESCRIPTIONS.%s",
-    async (title: string, key: NetworkDeviceMetric) => {
-      apiPostMock.mockResolvedValue(topTalkersResponse());
+  test.each(TRAFFIC_TITLES)(
+    "the %s (i) reads its text",
+    async (title: string, text: string) => {
+      apiPostMock.mockResolvedValue({ data: trafficSummary() });
 
-      render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+      renderDeviceTraffic();
       await flush();
 
-      await expectExplained(title, DESCRIPTIONS[key]);
+      await expectExplained(title, text);
     },
   );
 
-  test("no flow data yet: the setup hint, and no numbers to explain", async () => {
+  test("a device that never sent a flow: the set-up guide, and no numbers to explain", async () => {
     apiPostMock.mockResolvedValue({
-      data: { totalOctets: 0, totalPackets: 0, totalFlows: 0 },
+      data: trafficSummary({
+        totals: { octets: 0, packets: 0, flows: 0 },
+        series: [],
+        topSources: [],
+        topDestinations: [],
+        topConversations: [],
+        topApplications: [],
+        topInterfaces: [],
+        lastFlowAt: null,
+      }),
     });
 
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+    renderDeviceTraffic();
     await flush();
 
-    expect(screen.getByText("No flow data yet.")).toBeInTheDocument();
+    expect(screen.getByTestId("traffic-setup-guide")).toBeInTheDocument();
     expect(infoButtonNames()).toEqual([]);
   });
 
-  test("the query is the card's own window, which the texts call the selected range", async () => {
-    apiPostMock.mockResolvedValue(topTalkersResponse());
+  test("the query is the page's own window, for this device; the project is the request's tenant", async () => {
+    apiPostMock.mockResolvedValue({ data: trafficSummary() });
 
-    render(<FlowTopTalkers networkDeviceId={new ObjectID(DEVICE_ID)} />);
+    renderDeviceTraffic();
     await flush();
 
-    const request: { data: Record<string, unknown> } = apiPostMock.mock
-      .calls[0]![0] as { data: Record<string, unknown> };
+    const request: {
+      data: Record<string, unknown>;
+      headers: Record<string, string>;
+    } = apiPostMock.mock.calls[0]![0] as {
+      data: Record<string, unknown>;
+      headers: Record<string, string>;
+    };
 
     expect(request.data["networkDeviceId"]).toBe(DEVICE_ID);
-    expect(request.data["projectId"]).toBe(PROJECT_ID);
+    expect(request.data["networkSiteId"]).toBeUndefined();
+    expect(request.data["projectId"]).toBeUndefined();
+    expect(request.headers["tenantid"]).toBe(PROJECT_ID);
     expect(typeof request.data["startTime"]).toBe("string");
     expect(typeof request.data["endTime"]).toBe("string");
-    expect(DESCRIPTIONS.flowTotalTraffic).toContain("the selected range");
+    expect(
+      Date.parse(request.data["endTime"] as string) -
+        Date.parse(request.data["startTime"] as string),
+    ).toBe(60 * 60 * 1000);
   });
 });

@@ -82,3 +82,21 @@ export function isDataSourceComponentType(
 ): boolean {
   return DataSourceComponentTypes.includes(componentType);
 }
+
+/*
+ * Whether a stored widget type is one this version can draw. A dashboard's
+ * config is JSON anyone can write - the API, Terraform, a workflow - so a
+ * widget can name a type that was removed (HostMetricChart), comes from a
+ * newer version, or is simply misspelt. Matched exactly, as the public
+ * dashboard's Data Source strip matches: " Chart " is not a Chart.
+ */
+export function isDashboardComponentType(
+  componentType: unknown,
+): componentType is DashboardComponentType {
+  return (
+    typeof componentType === "string" &&
+    (Object.values(DashboardComponentType) as Array<string>).includes(
+      componentType,
+    )
+  );
+}

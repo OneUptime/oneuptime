@@ -1,6 +1,7 @@
 import AIInvestigationRuleService from "../../../Server/Services/AIInvestigationRuleService";
 import ProjectReferencesService from "../../../Server/Services/ProjectReferencesService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
@@ -31,6 +32,22 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    AIInvestigationRuleService,
+    jest.spyOn(AIInvestigationRuleService, "findBy"),
+  );
+});
 
 /*
  * One table holds incident and alert investigation rules, and each can only
@@ -98,23 +115,30 @@ async function createError(
   }
 }
 
+// An update of the rules `stored`, named by their ids.
 async function updateError(
   data: Record<string, unknown>,
   stored: Array<{ triggerEntityType: AIInvestigationRuleTriggerEntity }>,
 ): Promise<{ error: unknown; reads: number }> {
+  const rules: Array<AIInvestigationRule> = stored.map(
+    (row: { triggerEntityType: AIInvestigationRuleTriggerEntity }) => {
+      return Object.assign(new AIInvestigationRule(), {
+        _id: ObjectID.generate().toString(),
+        ...row,
+      });
+    },
+  );
+  const ids: Array<string> = rules.map((rule: AIInvestigationRule) => {
+    return rule._id!;
+  });
+
   const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> = jest
     .spyOn(AIInvestigationRuleService, "findBy")
-    .mockResolvedValue(
-      stored.map(
-        (row: { triggerEntityType: AIInvestigationRuleTriggerEntity }) => {
-          return Object.assign(new AIInvestigationRule(), row);
-        },
-      ),
-    );
+    .mockResolvedValue(rules);
 
   try {
     await hooks.onBeforeUpdate({
-      query: { _id: ObjectID.generate().toString() },
+      query: { _id: ids.length === 1 ? ids[0] : QueryHelper.any(ids) },
       data,
       props: { tenantId: PROJECT_ID },
     } as unknown as UpdateBy<AIInvestigationRule>);
@@ -262,11 +286,12 @@ describe("AIInvestigationRuleService", () => {
         props: { tenantId: PROJECT_ID },
       } as unknown as UpdateBy<AIInvestigationRule>);
 
-      expect(findBy.mock.calls[0]![0]).toMatchObject({
-        query: { _id: "x", projectId: PROJECT_ID },
-        select: { _id: true, triggerEntityType: true },
-        props: { isRoot: true },
-      });
+      // The rules the caller may write, found in their project.
+      expect(
+        readsOfRowsCallerMayWrite(AIInvestigationRuleService)[0]!.query,
+      ).toEqual({ _id: "x", projectId: PROJECT_ID });
+      // None of them here: nothing more is read.
+      expect(findBy).not.toHaveBeenCalled();
     });
   });
 });

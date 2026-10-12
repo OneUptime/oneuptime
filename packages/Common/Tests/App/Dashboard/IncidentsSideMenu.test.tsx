@@ -101,6 +101,7 @@ describe("Incidents side menu", () => {
         "Episodes",
         "AI",
         "Workspace",
+        "Integrations",
         "Rules",
         "Settings",
         "Developer",
@@ -109,7 +110,8 @@ describe("Incidents side menu", () => {
 
     /*
      * The maintainer's picture of this menu: Overview and Episodes open, and
-     * AI, Workspace, Rules and Settings folded down to their titles.
+     * AI, Workspace, Rules and Settings folded down to their titles - and
+     * Integrations (Huntress), set up once, folded too.
      */
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderIncidentsMenu();
@@ -118,6 +120,7 @@ describe("Incidents side menu", () => {
       expect(isExpanded("Episodes")).toBe(true);
       expect(isExpanded("AI")).toBe(false);
       expect(isExpanded("Workspace")).toBe(false);
+      expect(isExpanded("Integrations")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
       expect(isExpanded("Developer")).toBe(false);
@@ -759,6 +762,48 @@ describe("Incidents side menu", () => {
       await renderIncidentsMenu();
 
       expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
+    });
+  });
+
+  /*
+   * Integrations: the tools that open incidents here, Huntress first. Set
+   * up once and rarely revisited, so folded like Rules, opening itself on
+   * its own pages.
+   */
+  describe("the Integrations section", () => {
+    test("holds Huntress, to the Huntress page", async () => {
+      await renderIncidentsMenu();
+
+      expect(linksIn("Integrations")).toEqual([
+        {
+          title: "Huntress",
+          href: routeFor(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS),
+        },
+      ]);
+    });
+
+    test("starts collapsed, with its link still reachable", async () => {
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Integrations")).toBe(false);
+      expect(linksIn("Integrations")).toHaveLength(1);
+    });
+
+    test("opens itself on the Huntress page, and on a connection's page", async () => {
+      goTo(routeFor(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS));
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Integrations")).toBe(true);
+      expect(activeLinkTitles()).toContain("Huntress");
+
+      cleanup();
+
+      goTo(
+        `/dashboard/${PROJECT_ID}/incidents/integrations/huntress/6d1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b`,
+      );
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Integrations")).toBe(true);
     });
   });
 });

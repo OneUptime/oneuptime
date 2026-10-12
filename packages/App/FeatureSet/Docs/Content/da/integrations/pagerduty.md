@@ -73,7 +73,7 @@ PagerDutys `severity` accepterer `critical`, `error`, `warning` eller `info`. Fo
 
 ## Indgående (valgfrit)
 
-For at gå den anden vej — åbn en OneUptime-hændelse fra et PagerDuty-event — tilføj et **Webhook**-trigger-workflow og peg et PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (eller en Events Orchestration) mod dens URL, og brug derefter **Opret hændelse**. Se det [indgående mønster](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+For at gå den anden vej — åbn en OneUptime-hændelse fra et PagerDuty-event — tilføj et **Webhook**-trigger-workflow og peg et PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (eller en Events Orchestration) mod dens URL, og brug derefter **Opret hændelse**. Se det [indgående mønster](/docs/integrations/index#indgående-et-andet-værktøj-sender-data-til-oneuptime).
 
 ## Fejlfinding
 

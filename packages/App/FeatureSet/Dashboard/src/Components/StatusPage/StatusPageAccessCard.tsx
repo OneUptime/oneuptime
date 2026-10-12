@@ -81,6 +81,7 @@ import StatusPageAccessCopy, {
   STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID,
   STATUS_PAGE_ACCESS_SIGN_IN_METHODS_TEST_ID,
 } from "./StatusPageAccessCopy";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * "Who can see this status page", on Security -> Access: anyone with the
@@ -208,6 +209,7 @@ interface PasswordFormData {
 const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
   const translator: Translator = useTranslator();
 
   // A fixed English sentence in the reader's language.
@@ -651,7 +653,7 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
        * Full-bleed rows, ruled like the card's own header rule, as on the
        * "What your status page shows" card.
        */
-      <div className="-mx-5 -mb-6 border-t border-gray-200 md:-mx-6">
+      <div className={ruledBodyClassName}>
         <ChoiceRows<StatusPageAccess>
           value={pending || current}
           options={options}

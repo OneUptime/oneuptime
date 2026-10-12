@@ -40,6 +40,10 @@ import {
   expectReadableDescriptionRecord,
   expectTitleExplained,
 } from "./MetricDescriptionRules";
+import { TILE_HELP } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficSummaryTiles";
+import { TRAFFIC_HELP } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
+import { getPeakBitsPerSecond } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficFormat";
+import { NETWORK_TRAFFIC_TOP_LIMIT } from "../../../Types/NetFlow/NetworkTraffic";
 
 /*
  * The (i) texts on the network device and network site pages.
@@ -155,7 +159,7 @@ describe("the network description records read as short, finished sentences", ()
     expect(DEVICE.fleetEndpoints).toContain("ARP and MAC forwarding tables");
     expect(SITE.endpoints).toContain("ARP and MAC forwarding tables");
     expect(DEVICE.interfaceUtilization).toContain("percentage of link speed");
-    expect(DEVICE.flowCount).toContain("Each record sums up one conversation");
+    expect(TILE_HELP.flows).toContain("Each one sums up a conversation");
   });
 });
 
@@ -584,82 +588,95 @@ describe("latency and ping texts match what is fetched", () => {
   });
 });
 
-describe("flow texts match the top-talkers query", () => {
-  const flowApi: string = readFrom(
+describe("traffic texts match the traffic reads", () => {
+  const service: string = readFrom(
     PACKAGES_ROOT,
-    "App",
-    "FeatureSet",
-    "BaseAPI",
-    "API",
-    "NetworkDeviceFlow.ts",
+    "Common",
+    "Server",
+    "Services",
+    "NetworkTrafficAggregationService.ts",
+  );
+  const decoder: string = readFrom(
+    PACKAGES_ROOT,
+    "Probe",
+    "Utils",
+    "NetFlow",
+    "FlowDatagramDecoder.ts",
   );
 
-  test("the top tables are capped at ten rows", () => {
-    expect(flowApi).toContain("const TOP_LIMIT: number = 10;");
+  test("the Traffic pages' texts read as short, finished sentences", () => {
+    expectReadableDescriptionRecord(TILE_HELP, "TILE_HELP");
+    expectReadableDescriptionRecord(TRAFFIC_HELP, "TRAFFIC_HELP");
+  });
+
+  test("the top lists are capped at ten rows", () => {
+    expect(NETWORK_TRAFFIC_TOP_LIMIT).toBe(10);
+    expect(service).toContain("LIMIT ${NETWORK_TRAFFIC_TOP_LIMIT}");
 
     for (const text of [
-      DEVICE.flowTopSources,
-      DEVICE.flowTopDestinations,
-      DEVICE.flowTopConversations,
-      DEVICE.flowTopProtocolsPorts,
+      TRAFFIC_HELP.sources,
+      TRAFFIC_HELP.destinations,
+      TRAFFIC_HELP.conversations,
     ]) {
       expect(text).toContain("The 10 ");
-      expect(text).toContain("Bytes and Packets are");
     }
   });
 
-  test("records count by when the flow STARTED", () => {
-    expect(flowApi).toContain("AND flowStartAt >= ${startSql}");
-    expect(flowApi).toContain(
-      "toStartOfInterval(flowStartAt, INTERVAL ${bucketSeconds} second)",
+  test("sampled counts are scaled up by the sampling rate, and the texts call them estimates", () => {
+    // The probe multiplies each record by its device's rate before it is stored.
+    expect(decoder).toContain(
+      "octets: Math.max(0, record.octets) * samplingRate,",
     );
-    expect(DEVICE.flowTotalTraffic).toContain("flows that started in");
-    expect(DEVICE.flowPackets).toContain("flows that started in");
-    expect(DEVICE.flowBandwidth).toContain("started in that slice");
+    expect(decoder).toContain(
+      "packets: Math.max(0, record.packets) * samplingRate,",
+    );
+    expect(TILE_HELP.traffic).toContain("multiplied by its sampling rate");
+    expect(TILE_HELP.traffic).toContain("estimate");
+    expect(TILE_HELP.sampled).toContain("estimates");
   });
 
-  test("the Flows count is records by start time too, not by when they arrived", () => {
-    // The three totals come from one statement over the same WHERE clause.
-    expect(flowApi).toContain(
-      "sum(octets) AS totalOctets, sum(packets) AS totalPackets, count() AS totalFlows FROM ${tableRef} ${whereClause}",
+  test("applications key on the service port, on either side of the conversation", () => {
+    expect(service).toContain(
+      "if(protocol IN (6, 17, 33, 132), if(srcPort = 0, dstPort, if(dstPort = 0, srcPort, least(srcPort, dstPort))), 0)",
     );
-    expect(DEVICE.flowCount).toContain(
-      "records this device exported for flows that started in the selected range",
-    );
-    expect(DEVICE.flowCount).not.toContain("arrived");
+    expect(service).toContain("GROUP BY protocolNumber, servicePort");
+    expect(TRAFFIC_HELP.applications).toContain("service port");
+    expect(TRAFFIC_HELP.applications).toContain("not deep packet inspection");
   });
 
   test("conversations are directional pairs", () => {
-    expect(flowApi).toContain("GROUP BY srcIp, dstIp");
-    expect(DEVICE.flowTopConversations).toContain(
-      "counting each direction separately",
+    expect(service).toContain("GROUP BY sourceIp, destinationIp");
+    expect(TRAFFIC_HELP.conversations).toContain(
+      "from the one that sent to the one that received",
     );
   });
 
-  test("protocol/port pairs key on the DESTINATION port", () => {
-    expect(flowApi).toContain("GROUP BY protocol, dstPort");
-    expect(DEVICE.flowTopProtocolsPorts).toContain("destination port");
+  test("the Flows tile counts the records the devices sent, before the probe summed them", () => {
+    expect(service).toContain(
+      'const FLOW_COUNT_SQL: string = "greatest(flowCount, 1)";',
+    );
+    expect(TILE_HELP.flows).toContain("How many flow records the devices sent");
   });
 
-  test("sampled exports are not scaled up, and the text admits it", () => {
-    // A plain sum of what was exported; the sampling rate is never applied.
-    expect(flowApi).toContain("sum(octets) AS totalOctets");
-    expect(flowApi).not.toContain("samplingInterval");
-    expect(DEVICE.flowTotalTraffic).toContain("it is not scaled up");
+  test("the Peak tile is the busiest slice of the chart, as a rate", () => {
+    // 7.5 MB in a one-minute slice is 1 Mbps; the quiet slice does not count.
+    expect(
+      getPeakBitsPerSecond(
+        [
+          { time: "2026-09-24T11:00:00Z", octets: 7_500_000 },
+          { time: "2026-09-24T11:01:00Z", octets: 0 },
+        ],
+        60,
+      ),
+    ).toBe(1_000_000);
+    expect(TILE_HELP.peak).toContain("busiest slice of the chart below");
   });
 
-  test("the bandwidth chart fills empty slices with zero before Min / Avg / Max", () => {
-    const talkers: string = readDashboard(
-      "Components",
-      "NetworkDevice",
-      "FlowTopTalkers.tsx",
-    );
-
-    expect(talkers).toContain("series={fillFlowSeriesGaps(");
-    expect(talkers).toContain("(point.octets * 8) / 1_000_000 / bucketSeconds");
-    expect(DEVICE.flowBandwidth).toContain(
-      "slices with no records count as zero",
-    );
+  test("traffic through two exporting devices is counted by each, and the texts say so", () => {
+    // Every device's rows are summed as they are: nothing de-duplicates.
+    expect(service).not.toContain("DISTINCT");
+    expect(TILE_HELP.traffic).toContain("counted by each");
+    expect(TRAFFIC_HELP.devices).toContain("counted by each");
   });
 });
 

@@ -584,10 +584,24 @@ export default class OnCallCalendarFeedRenderer {
         gapEvents,
       });
 
+      /*
+       * lastModified is what the response's Last-Modified says, so it is when
+       * THIS body was produced, not the schedules' last edit
+       * (rendered.lastModifiedAt, which the body itself carries as
+       * LAST-MODIFIED). The body also changes without any edit: the window
+       * rolls at UTC midnight and brings in the next day's shifts, and a shift
+       * that starts gains its "past shift" line. With the last edit here, a
+       * client that revalidates with If-Modified-Since alone was told 304 Not
+       * Modified on every poll, for as long as nobody touched the schedule,
+       * and its calendar ran out of shifts once the window it first fetched
+       * had passed. A body served again from the cache keeps the time it was
+       * rendered, so that client still gets its 304 between renders, and
+       * clients that send If-None-Match match on the content-derived ETag.
+       */
       const value: CachedCalendarBody = {
         body: rendered.body,
         etag: Response.getCalendarETag(rendered.body),
-        lastModified: rendered.lastModifiedAt || now,
+        lastModified: now,
       };
 
       await OnCallCalendarFeedCache.setBody({

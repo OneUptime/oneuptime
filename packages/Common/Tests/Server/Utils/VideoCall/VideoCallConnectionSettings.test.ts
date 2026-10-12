@@ -5,6 +5,7 @@ import VideoCallConnectionSettingsUtil, {
 } from "../../../../Server/Utils/VideoCall/VideoCallConnectionSettings";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
+import VideoCallAuthMethod from "../../../../Types/VideoCall/VideoCallAuthMethod";
 import VideoCallProvider from "../../../../Types/VideoCall/VideoCallProvider";
 import {
   VideoCallProviderDefinition,
@@ -381,4 +382,68 @@ describe("VideoCallConnectionSettingsUtil.parseJsonObject", () => {
       }).toThrow("Configuration must be a JSON object.");
     },
   );
+});
+
+/*
+ * A connection made by signing in has only the settings a sign-in leaves
+ * to pick - none for Zoom, who can join for Google Meet, who skips the lobby
+ * for Microsoft Teams - and never any of the app-credential settings.
+ */
+describe("VideoCallConnectionSettingsUtil.validateOAuth", () => {
+  test("Zoom has no setting left to pick", () => {
+    expect(
+      VideoCallConnectionSettingsUtil.validateOAuth({
+        provider: VideoCallProvider.Zoom,
+        config: {},
+      }),
+    ).toEqual({
+      provider: VideoCallProvider.Zoom,
+      config: {},
+      secrets: {},
+      authMethod: VideoCallAuthMethod.OAuth,
+    });
+  });
+
+  test("Google Meet and Microsoft Teams get who joins without waiting, defaulted", () => {
+    expect(
+      VideoCallConnectionSettingsUtil.validateOAuth({
+        provider: VideoCallProvider.GoogleMeet,
+        config: {},
+      }).config,
+    ).toEqual({ accessType: "TRUSTED" });
+
+    expect(
+      VideoCallConnectionSettingsUtil.validateOAuth({
+        provider: VideoCallProvider.MicrosoftTeams,
+        config: { lobbyBypass: "everyone" },
+      }).config,
+    ).toEqual({ lobbyBypass: "everyone" });
+  });
+
+  test("refuses an app-credential setting on a connection made by signing in", () => {
+    expect(() => {
+      VideoCallConnectionSettingsUtil.validateOAuth({
+        provider: VideoCallProvider.Zoom,
+        config: { hostEmail: "someone@acme.com" },
+      });
+    }).toThrow('unknown setting "hostEmail"');
+  });
+
+  test("refuses a choice that is not an option", () => {
+    expect(() => {
+      VideoCallConnectionSettingsUtil.validateOAuth({
+        provider: VideoCallProvider.GoogleMeet,
+        config: { accessType: "EVERYONE" },
+      });
+    }).toThrow("Who can join must be one of");
+  });
+
+  test("a meeting link cannot be connected by signing in", () => {
+    expect(() => {
+      VideoCallConnectionSettingsUtil.validateOAuth({
+        provider: VideoCallProvider.CustomLink,
+        config: {},
+      });
+    }).toThrow("cannot be connected by signing in");
+  });
 });

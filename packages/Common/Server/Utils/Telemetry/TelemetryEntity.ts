@@ -1138,9 +1138,17 @@ export default class InventoryItem {
      * The make / model / serial / firmware keys are shared with mirrored
      * network devices (see InventoryEntityRegistry), so a CMDB export has
      * one column per fact across both kinds of machine.
+     *
+     * So are `os.name`, `device.type` and `device.location` (issue #4569):
+     * the network device mirror always writes them, and a host that is
+     * stamped with them - its OS name from an SDK, the rack it sits in -
+     * fills the same Asset details rows (Utils/Inventory/
+     * InventoryAssetDetails), which otherwise derive them from the OS, the
+     * name and the cloud zone.
      */
     [EntityType.Host]: [
       "os.type",
+      "os.name",
       "os.description",
       "os.version",
       "host.arch",
@@ -1151,6 +1159,8 @@ export default class InventoryItem {
       "device.manufacturer",
       "device.model.name",
       "device.firmware.version",
+      "device.type",
+      "device.location",
       "cloud.provider",
       "cloud.region",
       "cloud.availability_zone",

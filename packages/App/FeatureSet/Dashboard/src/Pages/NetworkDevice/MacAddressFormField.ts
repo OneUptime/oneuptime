@@ -1,5 +1,7 @@
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
@@ -68,6 +70,13 @@ export interface MacAddressFormFieldOptions {
    * the hostname's step.
    */
   stepId?: string | undefined;
+
+  /*
+   * The folded section the field sits in, on a form that folds it - the Add
+   * Device form keeps it under More fields: most devices never need it, and
+   * a router's ARP table fills it in for the rest.
+   */
+  collapsibleSection?: FormFieldCollapsibleSection<NetworkDevice> | undefined;
 }
 
 export function getMacAddressFormField(
@@ -85,9 +94,15 @@ export function getMacAddressFormField(
     customValidation: validateMacAddress,
   };
 
-  if (!options?.stepId) {
-    return field;
+  const placed: Field<NetworkDevice> = { ...field };
+
+  if (options?.stepId) {
+    placed.stepId = options.stepId;
   }
 
-  return { ...field, stepId: options.stepId };
+  if (options?.collapsibleSection) {
+    placed.collapsibleSection = options.collapsibleSection;
+  }
+
+  return placed;
 }

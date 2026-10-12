@@ -93,6 +93,42 @@ describe("the item overview", () => {
   test("renders the attribute inspector rather than a raw list", () => {
     expect(overview).toContain("<InventoryAttributes");
   });
+
+  /*
+   * Issue #4569: a host or a network device is described by its asset facts
+   * before its raw attributes - the same facts for both, named, with the
+   * unknown ones said to be unknown.
+   */
+  test("shows a machine's asset details before its raw attributes", () => {
+    const assets: number = overview.indexOf(
+      "<InventoryAssetDetailsCard item={entity} />",
+    );
+    expect(assets).toBeGreaterThan(-1);
+    expect(assets).toBeLessThan(overview.indexOf("<InventoryAttributes"));
+  });
+});
+
+describe("the asset details card", () => {
+  const card: string = readCode(
+    "Components",
+    "Inventory",
+    "InventoryAssetDetailsCard.tsx",
+  );
+
+  test("reads the one shared asset model, not a vocabulary of its own", () => {
+    expect(card).toContain("getInventoryAssetDetails(");
+    expect(card).toContain("INVENTORY_ASSET_FIELD_LABELS[detail.field]");
+  });
+
+  test("shows an unknown fact as Unknown rather than leaving it out", () => {
+    expect(card).toContain(
+      "<PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />",
+    );
+  });
+
+  test("renders nothing for a type that is not a machine", () => {
+    expect(card).toContain("if (!details) { return <></>; }");
+  });
 });
 
 describe("the attribute inspector", () => {

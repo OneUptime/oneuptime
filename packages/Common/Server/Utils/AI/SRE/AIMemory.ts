@@ -7,6 +7,7 @@ import IncidentStateService from "../../../Services/IncidentStateService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * AI SRE — episodic memory (Phase 4, "I've seen this before").
@@ -145,11 +146,11 @@ export default class AIMemory {
         "If the current signal matches one of these, this may be a recurrence — say so explicitly and reference the incident number and how it was resolved.\n";
 
       for (const { incident } of chosen) {
-        const rootCause: string = (incident.rootCause || "").trim();
-        const shortRootCause: string =
-          rootCause.length > MAX_ROOT_CAUSE_CHARS
-            ? `${rootCause.substring(0, MAX_ROOT_CAUSE_CHARS)}…`
-            : rootCause;
+        // A past incident's screenshot is a note here too, not its base64.
+        const shortRootCause: string = PromptText.field(
+          (incident.rootCause || "").trim(),
+          { maxLength: MAX_ROOT_CAUSE_CHARS },
+        );
 
         markdown += `\n- **#${incident.incidentNumber} — ${incident.title || "Untitled"}**`;
         markdown += `\n  Previously resolved. Root cause: ${shortRootCause}`;

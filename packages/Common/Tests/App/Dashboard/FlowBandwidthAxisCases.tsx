@@ -7,12 +7,18 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import * as React from "react";
-import { BandwidthOverTimeChart } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/FlowTopTalkers";
-import fillFlowSeriesGaps, {
-  FlowSeriesPointLike,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/FlowSeriesUtil";
+import TrafficOverTimeChart from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficOverTimeChart";
+import { fillTrafficSeriesGaps } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficSeries";
+import {
+  formatBitsPerSecond,
+  getPeakBitsPerSecond,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficFormat";
+import {
+  NetworkTrafficSeriesPoint,
+  getNetworkTrafficBucketSeconds,
+} from "../../../Types/NetFlow/NetworkTraffic";
 import { getStandInChart, resetStandInCharts } from "./ChartZoomStandIn";
 import ChartDataPoint, {
   CHART_DATA_POINT_DATE_KEY,
@@ -30,17 +36,18 @@ import { RangeStartAndEndDateTimeUtil } from "../../../Types/Time/RangeStartAndE
 import TimeRange from "../../../Types/Time/TimeRange";
 
 /*
- * Issue #4105 review, sdn-1: the Traffic page's bandwidth chart must draw
- * every flow bucket the API returns as a point of its own.
+ * Issue #4105 review, sdn-1: the Traffic pages' chart (TrafficOverTimeChart)
+ * must draw every flow bucket the API returns as a point of its own.
  *
- * It used to pin its grid only for one-minute buckets and leave every wider
- * bucket to the axis, which picks a step from the window's length: daily
- * over two weeks, for 168-minute buckets. DataPointUtil files points under
- * slots by label and AVERAGES the ones that share a slot, so 121 buckets drew
- * as 15 points and a 900 Mbps burst peaked at about 101 Mbps, under a "Max
- * 900 Mbps" printed right above the chart. The axis also started at the
- * window start, after the first (epoch-aligned) bucket, which the chart then
- * dropped for want of a slot.
+ * The chart it replaced used to pin its grid only for one-minute buckets and
+ * leave every wider bucket to the axis, which picks a step from the window's
+ * length: daily over two weeks, for 168-minute buckets. DataPointUtil files
+ * points under slots by label and AVERAGES the ones that share a slot, so 121
+ * buckets drew as 15 points and a 900 Mbps burst peaked at about 101 Mbps,
+ * under a "Max 900 Mbps" printed right above the chart. The axis also started
+ * at the window start, after the first (epoch-aligned) bucket, which the
+ * chart then dropped for want of a slot. The Peak tile over the chart is the
+ * same reading, so a burst must peak there too.
  *
  * These run the REAL DataPointUtil over exactly what the chart is handed (the
  * area chart is ChartZoomStandIn, which records its props), for every preset
@@ -51,8 +58,8 @@ import TimeRange from "../../../Types/Time/TimeRange";
  * zone behind UTC.
  */
 
-const BANDWIDTH_CHART: string = "Bandwidth [Mbps]";
-const BANDWIDTH_SERIES: string = "Bandwidth";
+const BANDWIDTH_CHART: string = "Traffic [Mbps]";
+const BANDWIDTH_SERIES: string = "Traffic";
 const SECOND: number = 1000;
 const MINUTE: number = 60 * SECOND;
 const HOUR: number = 60 * MINUTE;
@@ -155,16 +162,13 @@ export const FLOW_WINDOW_CASES: Array<FlowWindowCase> = [
 
 /*
  * The bucket width the API picks for a window: whole minutes, about 120
- * buckets a window. Mirrors pickBucketSeconds in
- * App/FeatureSet/BaseAPI/API/NetworkDeviceFlow.ts, whose formula
- * NetworkDeviceTimeRangeZoomWiring.test.ts pins.
+ * buckets a window - the server's own getNetworkTrafficBucketSeconds, as
+ * NetworkTrafficSummary sizes them.
  */
 export function serverBucketSeconds(window: FlowWindow): number {
-  const windowSeconds: number = Math.floor(
-    (window.end.getTime() - window.start.getTime()) / 1000,
+  return getNetworkTrafficBucketSeconds(
+    Math.floor((window.end.getTime() - window.start.getTime()) / 1000),
   );
-  const rawSeconds: number = Math.ceil(windowSeconds / 120);
-  return Math.max(60, Math.ceil(rawSeconds / 60) * 60);
 }
 
 /*
@@ -177,28 +181,32 @@ function serverSeries(
   window: FlowWindow,
   bucketSeconds: number,
   mbpsAt: (index: number, count: number) => number,
-): Array<FlowSeriesPointLike> {
+): Array<NetworkTrafficSeriesPoint> {
   const bucketMs: number = bucketSeconds * SECOND;
   const firstMs: number =
     Math.floor(window.start.getTime() / bucketMs) * bucketMs;
   const count: number = Math.ceil((window.end.getTime() - firstMs) / bucketMs);
-  const series: Array<FlowSeriesPointLike> = [];
+  const series: Array<NetworkTrafficSeriesPoint> = [];
   for (let index: number = 0; index < count; index++) {
     series.push({
       time: new Date(firstMs + index * bucketMs)
         .toISOString()
         .replace("T", " ")
-        .replace(/\.\d{3}Z$/, ""),
+        .replace(NAIVE_MILLISECONDS, ""),
       // Mbps back to the bucket's byte count.
       octets: (mbpsAt(index, count) * 1_000_000 * bucketSeconds) / 8,
-      packets: 1,
     });
   }
   return series;
 }
 
+// ".000Z" at the end of an ISO string: ClickHouse writes naive UTC.
+const NAIVE_MILLISECONDS: RegExp = /\.\d{3}Z$/;
+
 interface DrawnBandwidthChart {
   xAxis: XAxis;
+  // The gap-filled series the chart was handed, as the page fills it.
+  filled: Array<NetworkTrafficSeriesPoint>;
   // What the chart was handed: one point per gap-filled bucket.
   buckets: Array<DataPoint>;
   // What it draws: DataPointUtil's rows, one per slot.
@@ -206,25 +214,26 @@ interface DrawnBandwidthChart {
 }
 
 /*
- * The card's chart for a window, as FlowTopTalkers renders it (gap-filled,
- * over the window the API echoes back), and the rows the area chart builds
- * from its props.
+ * The page's chart for a window, as NetworkTrafficView renders it
+ * (gap-filled, over the window the API echoes back), and the rows the area
+ * chart builds from its props.
  */
 function drawBandwidthChart(
   window: FlowWindow,
   bucketSeconds: number,
-  series: Array<FlowSeriesPointLike>,
+  series: Array<NetworkTrafficSeriesPoint>,
 ): DrawnBandwidthChart {
   const windowStartAt: string = window.start.toISOString();
   const windowEndAt: string = window.end.toISOString();
+  const filled: Array<NetworkTrafficSeriesPoint> = fillTrafficSeriesGaps(
+    series,
+    bucketSeconds,
+    windowStartAt,
+    windowEndAt,
+  );
   render(
-    <BandwidthOverTimeChart
-      series={fillFlowSeriesGaps(
-        series,
-        bucketSeconds,
-        windowStartAt,
-        windowEndAt,
-      )}
+    <TrafficOverTimeChart
+      series={filled}
       bucketSeconds={bucketSeconds}
       windowStartAt={windowStartAt}
       windowEndAt={windowEndAt}
@@ -240,6 +249,7 @@ function drawBandwidthChart(
 
   return {
     xAxis: props.xAxis,
+    filled: filled,
     buckets: props.data[0]!.data,
     rows: DataPointUtil.getChartDataPoints({
       seriesPoints: props.data,
@@ -326,7 +336,7 @@ export default function describeFlowBandwidthAxis(
     jest.useRealTimers();
   });
 
-  describe(`Traffic bandwidth chart (${timezone}): every flow bucket is a point of its own`, () => {
+  describe(`Traffic chart (${timezone}): every flow bucket is a point of its own`, () => {
     test("the grid's wall clock and its labels' are both this zone's", () => {
       // The walker's Date setters (0 - x: UTC's offset is 0, never -0).
       expect(0 - FLOW_AXIS_NOW.getTimezoneOffset()).toBe(utcOffsetMinutes);
@@ -342,7 +352,7 @@ export default function describeFlowBandwidthAxis(
         const window: FlowWindow = windowCase.window();
         const bucketSeconds: number = serverBucketSeconds(window);
         // Every bucket a different rate, so a shared slot cannot hide.
-        const series: Array<FlowSeriesPointLike> = serverSeries(
+        const series: Array<NetworkTrafficSeriesPoint> = serverSeries(
           window,
           bucketSeconds,
           (index: number): number => {
@@ -417,12 +427,12 @@ export default function describeFlowBandwidthAxis(
     );
 
     test.each(SPIKE_CASES)(
-      "$name: a burst in the $position bucket peaks at the Max printed above the chart",
+      "$name: a burst in the $position bucket peaks at the Peak tile's reading",
       (spikeCase: { name: string; position: SpikePosition }) => {
         const window: FlowWindow = findCase(spikeCase.name).window();
         const bucketSeconds: number = serverBucketSeconds(window);
         let burstIndex: number = -1;
-        const series: Array<FlowSeriesPointLike> = serverSeries(
+        const series: Array<NetworkTrafficSeriesPoint> = serverSeries(
           window,
           bucketSeconds,
           (index: number, count: number): number => {
@@ -437,9 +447,12 @@ export default function describeFlowBandwidthAxis(
           series,
         );
 
-        expect(screen.getByText("Max").parentElement).toHaveTextContent(
-          "Max 900 Mbps",
-        );
+        // The Peak tile reads the same gap-filled series the chart draws.
+        expect(
+          formatBitsPerSecond(
+            getPeakBitsPerSecond(drawn.filled, bucketSeconds),
+          ),
+        ).toBe("900 Mbps");
         const plotted: Array<number> = plottedMbps(drawn.rows);
         expect(Math.max(...plotted)).toBe(900);
         // Drawn at the burst's own time: its row is the burst's bucket.

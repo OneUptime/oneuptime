@@ -3,7 +3,6 @@ import Model from "../../Models/DatabaseModels/TraceDropFilter";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate } from "../Types/Database/Hooks";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -79,20 +78,16 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const existingRows: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      skip: 0,
-      limit: LIMIT_MAX,
-      select: {
+    // The rows the update writes, and the update held to them.
+    const existingRows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         action: true,
         samplePercentage: true,
         filterQuery: true,
       },
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const existing of existingRows) {
       const merged: DropFilterCandidate = {

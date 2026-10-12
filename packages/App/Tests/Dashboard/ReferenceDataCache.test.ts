@@ -42,6 +42,32 @@ jest.mock("Common/UI/Config", () => {
   };
 });
 
+/*
+ * ProbeUtil asks the permission snapshot whether to list the project's
+ * probes, and the snapshot is read from localStorage, which this node test
+ * environment does not have. Before the snapshot lands both lists are asked
+ * for, which is the case these tests time.
+ */
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    ModelAction: {
+      Create: "create",
+      Read: "read",
+      Update: "update",
+      Delete: "delete",
+    },
+    default: {
+      hasPermissionSnapshot: jest.fn((): boolean => {
+        return false;
+      }),
+      check: jest.fn(() => {
+        return { isAllowed: true };
+      }),
+    },
+  };
+});
+
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import ProjectUtil from "Common/UI/Utils/Project";

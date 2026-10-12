@@ -40,6 +40,7 @@ import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import SessionReplayReadService from "Common/Server/Utils/SessionReplay/SessionReplayReadService";
 import { getRecorderVersion } from "../BrowserRecorder/Manifest";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
+import PacketCaptureAPI from "Common/Server/API/PacketCaptureAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
 import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
@@ -122,7 +123,7 @@ import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
-import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
+import NetworkTrafficAPI from "./API/NetworkTraffic";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import NetworkRuleRunAPI from "./API/NetworkRuleRun";
@@ -131,6 +132,7 @@ import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import InventoryOverviewAPI from "./API/InventoryOverview";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import ReceivingGapsAPI from "./API/ReceivingGaps";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import TopologyAPI from "./API/Topology";
 import ApiKeyPermissionService, {
@@ -171,6 +173,7 @@ import AlertCustomFieldService, {
   Service as AlertCustomFieldServiceType,
 } from "Common/Server/Services/AlertCustomFieldService";
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
+import CustomFieldDefinitionAPI from "Common/Server/API/CustomFieldDefinitionAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
 import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
@@ -584,6 +587,11 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
+import HuntressConnectionAPI from "Common/Server/API/HuntressConnectionAPI";
+import HuntressIncidentReportService, {
+  Service as HuntressIncidentReportServiceType,
+} from "Common/Server/Services/HuntressIncidentReportService";
+import HuntressIncidentReport from "Common/Models/DatabaseModels/HuntressIncidentReport";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -1581,6 +1589,7 @@ import ScheduledMaintenanceFeedService, {
 import SlackAPI from "Common/Server/API/SlackAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
 import GitHubAPI from "Common/Server/API/GitHubAPI";
+import VideoCallOAuthAPI from "Common/Server/API/VideoCallOAuthAPI";
 
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService, {
@@ -1659,6 +1668,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
@@ -2002,7 +2012,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         InventoryItemCustomField,
         InventoryItemCustomFieldServiceType
       >(
@@ -2473,10 +2483,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertCustomField, AlertCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         AlertCustomField,
-        AlertCustomFieldService,
-      ).getRouter(),
+        AlertCustomFieldServiceType
+      >(AlertCustomField, AlertCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -3712,10 +3722,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamMemberCustomField, TeamMemberCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         TeamMemberCustomField,
-        TeamMemberCustomFieldService,
-      ).getRouter(),
+        TeamMemberCustomFieldServiceType
+      >(TeamMemberCustomField, TeamMemberCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -3817,6 +3827,19 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityEventConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new HuntressConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<HuntressIncidentReport, HuntressIncidentReportServiceType>(
+        HuntressIncidentReport,
+        HuntressIncidentReportService,
+      ).getRouter(),
     );
 
     app.use(
@@ -4932,7 +4955,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         OnCallDutyPolicyCustomField,
         OnCallDutyPolicyCustomFieldServiceType
       >(
@@ -5124,6 +5147,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Import from another tool (Project Settings > Import from another
+     * tool). A bare router for the same reason as OnCallReadinessAPI: its
+     * runs are internal rows with no CRUD API, so the router's own checks
+     * are the whole gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ToolImportAPI);
 
     /*
      * On-call calendar feeds. The custom router carries the public
@@ -5376,6 +5407,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new GitHubAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new VideoCallOAuthAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new GlobalConfigAPI().getRouter(),
     );
 
@@ -5536,7 +5571,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new CustomFieldDefinitionAPI<
         ScheduledMaintenanceCustomField,
         ScheduledMaintenanceCustomFieldServiceType
       >(
@@ -5631,10 +5666,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentCustomField, IncidentCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         IncidentCustomField,
-        IncidentCustomFieldService,
-      ).getRouter(),
+        IncidentCustomFieldServiceType
+      >(IncidentCustomField, IncidentCustomFieldService).getRouter(),
     );
 
     app.use(
@@ -5650,15 +5685,15 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorCustomField, MonitorCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         MonitorCustomField,
-        MonitorCustomFieldService,
-      ).getRouter(),
+        MonitorCustomFieldServiceType
+      >(MonitorCustomField, MonitorCustomFieldService).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TeamCustomField, TeamCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<TeamCustomField, TeamCustomFieldServiceType>(
         TeamCustomField,
         TeamCustomFieldService,
       ).getRouter(),
@@ -5666,10 +5701,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<StatusPageCustomField, StatusPageCustomFieldServiceType>(
+      new CustomFieldDefinitionAPI<
         StatusPageCustomField,
-        StatusPageCustomFieldService,
-      ).getRouter(),
+        StatusPageCustomFieldServiceType
+      >(StatusPageCustomField, StatusPageCustomFieldService).getRouter(),
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, NotificationAPI);
@@ -5879,6 +5914,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // packet captures run on the project's probes (start, stop, download)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new PacketCaptureAPI().getRouter(),
+    );
+
     // network site
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5997,7 +6038,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new NetworkDeviceFlowAPI().getRouter(),
+      new NetworkTrafficAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -6017,6 +6058,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    /*
+     * When OneUptime itself was not receiving data, for the availability
+     * charts (issue #2825). No model owns /receiving-gaps.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ReceivingGapsAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

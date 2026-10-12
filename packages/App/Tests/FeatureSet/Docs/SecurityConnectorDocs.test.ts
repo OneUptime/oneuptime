@@ -5,6 +5,7 @@ import {
   SecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -85,17 +86,13 @@ function readPage(docsPath: string): string {
   return fs.readFileSync(file, "utf8");
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /*
  * A field is "named" when its exact title appears in bold or as a table
  * cell - the two ways the guides present the connection form - so a
  * passing mention in prose does not count.
  */
 function namesField(markdown: string, field: ConnectorField): boolean {
-  const title: string = escapeForRegExp(field.title);
+  const title: string = escapeRegExp(field.title);
   const bold: RegExp = new RegExp(`\\*\\*${title}\\*\\*`);
   const tableCell: RegExp = new RegExp(`\\|\\s*${title}\\s*\\|`);
 

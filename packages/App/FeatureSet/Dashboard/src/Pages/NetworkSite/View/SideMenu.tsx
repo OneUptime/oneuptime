@@ -84,6 +84,16 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Traffic",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_SITE_VIEW_TRAFFIC] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ArrowUpDown}
+        />
+        <SideMenuItem
+          link={{
             title: "Child Sites",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_SITE_VIEW_CHILD_SITES] as Route,

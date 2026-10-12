@@ -20,6 +20,12 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
+import {
+  AUTOMATIC_FIX_PULL_REQUESTS,
+  AUTOMATIC_FIX_SWITCH_COLUMNS,
+  AutomaticFixPullRequest,
+} from "Common/Types/AI/AutomaticFixSwitches";
+import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 
 /*
  * What the project's AI settings pages say, in one place: Incidents → AI
@@ -42,11 +48,17 @@ import ProjectAiDailyLimits, {
  * that Enable AI is off (with the switch that turns it on), and that the
  * project has no LLM provider OneUptime AI can use.
  *
- * Nothing here changes what the columns hold, their defaults, the API or
- * Terraform: new projects still start with every AI behaviour on
- * (ProjectService's NEW_PROJECT_AI_DEFAULT_COLUMNS) but fixing, which
- * changes infrastructure and so is turned on by the project itself, and
- * Enable AI is still the project's only AI switch.
+ * New projects start with every AI behaviour on (ProjectService's
+ * NEW_PROJECT_AI_DEFAULT_COLUMNS) but fixing, which changes infrastructure
+ * and so is turned on by the project itself, and Enable AI is still the
+ * project's only AI switch.
+ *
+ * Fixing has two switches of its own under it: the pull requests OneUptime
+ * AI opens - a fix in the code, and missing telemetry. "It should actually
+ * be a child of 'Fix new alerts automatically'" - the maintainer. They are
+ * drawn under it only while it is on, turn on and off with it in the same
+ * save, and the server opens their pull requests only while it is on
+ * (Common/Types/AI/AutomaticFixSwitches).
  *
  * Which incidents (or alerts) are investigated, and which are fixed and how,
  * can be narrowed by rules - Investigation rules and Auto remediation rules,
@@ -96,6 +108,12 @@ export interface ProjectAiSwitchDefinition<TColumn extends string> {
   description: string;
   // What it needs besides the switch, when it needs something.
   note?: string | undefined;
+  /*
+   * The switches that are part of this one, drawn under it while it is on.
+   * They turn on and off with it, in the same save. One level deep; the
+   * order they are drawn in is Common's getSwitchesInDrawnOrder.
+   */
+  children?: Array<ProjectAiSwitchDefinition<TColumn>> | undefined;
 }
 
 // The data-testid of a project AI switch, wherever it is drawn.
@@ -107,7 +125,8 @@ export const getProjectAiSwitchTestId: (column: string) => string = (
 
 /*
  * The fix pull request switches read the same for incidents and alerts:
- * both follow an investigation, whichever kind it was.
+ * both follow an investigation, whichever kind it was. They are part of
+ * fixing, so they sit under "Fix new incidents automatically" (or alerts).
  */
 const CODE_FIX_TITLE: string = translationKey(
   "Open a fix pull request when an investigation finds a code change",
@@ -128,17 +147,70 @@ const GITHUB_APP_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App.",
 );
 /*
- * Fixing is the one switch that starts off: it changes infrastructure, so a
- * project turns it on itself (ProjectService leaves it out of the new
- * project's AI defaults). Rules under More settings narrow it.
+ * Fixing starts off: it changes infrastructure, so a project turns it on
+ * itself (ProjectService leaves it, and the pull requests under it, out of
+ * the new project's AI defaults). Rules under More settings narrow it.
  */
 const REMEDIATION_NOTE: string = translationKey(
   "Needs an AI agent that is allowed to fix things, on the Kubernetes cluster or host where it happens.",
 );
 
+// What each pull request's switch says: the same for incidents and alerts.
+const FIX_PULL_REQUEST_COPY: Record<
+  AutomaticFixPullRequest,
+  { title: string; description: string; note: string }
+> = {
+  [AutomaticFixPullRequest.CodeFix]: {
+    title: CODE_FIX_TITLE,
+    description: CODE_FIX_DESCRIPTION,
+    note: CODE_FIX_NOTE,
+  },
+  [AutomaticFixPullRequest.MissingTelemetry]: {
+    title: TELEMETRY_FIX_TITLE,
+    description: TELEMETRY_FIX_DESCRIPTION,
+    note: GITHUB_APP_NOTE,
+  },
+};
+
+/*
+ * A lane's fix switch and the pull-request switches under it, by the rule
+ * the server reads (Common/Types/AI/AutomaticFixSwitches): its columns and
+ * their order come from there, the words from here. So the page can never
+ * nest a switch the server does not hold to fixing, or leave one out.
+ */
+const getFixSwitch: (data: {
+  signal: AutoRemediationTriggerEntity;
+  title: string;
+  description: string;
+}) => ProjectAiSwitchDefinition<AiLaneSwitchColumn> = (data: {
+  signal: AutoRemediationTriggerEntity;
+  title: string;
+  description: string;
+}): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
+  return {
+    column: AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal].fix,
+    title: data.title,
+    description: data.description,
+    note: REMEDIATION_NOTE,
+    children: AUTOMATIC_FIX_PULL_REQUESTS.map(
+      (
+        pullRequest: AutomaticFixPullRequest,
+      ): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
+        return {
+          column:
+            AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal].pullRequests[pullRequest],
+          ...FIX_PULL_REQUEST_COPY[pullRequest],
+        };
+      },
+    ),
+  };
+};
+
 /*
  * The switches of each lane's page, in the order they are drawn: what
- * OneUptime AI does on its own as incidents (or alerts) happen.
+ * OneUptime AI does on its own as incidents (or alerts) happen - investigate,
+ * fix (and, as part of fixing, open pull requests), and for incidents draft
+ * the postmortem.
  */
 export const AI_LANE_SWITCHES: Record<
   AiLane,
@@ -152,32 +224,19 @@ export const AI_LANE_SWITCHES: Record<
         "OneUptime AI looks into each new incident and posts the likely root cause, with the evidence for it, to the incident's timeline.",
       ),
     },
-    {
-      column: "enableAutomaticIncidentRemediation",
+    getFixSwitch({
+      signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new incident through the AI agent on the cluster or host it affects. Whether a fix waits for someone to approve it is up to that agent's settings.",
+        "OneUptime AI fixes each new incident through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
       ),
-      note: REMEDIATION_NOTE,
-    },
+    }),
     {
       column: "enableAutomaticPostmortemDraft",
       title: translationKey("Draft a postmortem when an incident resolves"),
       description: translationKey(
         "OneUptime AI writes a draft from the incident's timeline and telemetry for your team to review. It never replaces a postmortem that already exists.",
       ),
-    },
-    {
-      column: "enableAutomaticIncidentCodeFixes",
-      title: CODE_FIX_TITLE,
-      description: CODE_FIX_DESCRIPTION,
-      note: CODE_FIX_NOTE,
-    },
-    {
-      column: "enableIncidentInstrumentationFixTasks",
-      title: TELEMETRY_FIX_TITLE,
-      description: TELEMETRY_FIX_DESCRIPTION,
-      note: GITHUB_APP_NOTE,
     },
   ],
   [AiLane.Alert]: [
@@ -188,26 +247,13 @@ export const AI_LANE_SWITCHES: Record<
         "OneUptime AI looks into each new alert and posts the likely root cause, with the evidence for it, to the alert's timeline.",
       ),
     },
-    {
-      column: "enableAutomaticAlertRemediation",
+    getFixSwitch({
+      signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new alert through the AI agent on the cluster or host it affects. Whether a fix waits for someone to approve it is up to that agent's settings.",
+        "OneUptime AI fixes each new alert through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
       ),
-      note: REMEDIATION_NOTE,
-    },
-    {
-      column: "enableAutomaticAlertCodeFixes",
-      title: CODE_FIX_TITLE,
-      description: CODE_FIX_DESCRIPTION,
-      note: CODE_FIX_NOTE,
-    },
-    {
-      column: "enableAlertInstrumentationFixTasks",
-      title: TELEMETRY_FIX_TITLE,
-      description: TELEMETRY_FIX_DESCRIPTION,
-      note: GITHUB_APP_NOTE,
-    },
+    }),
   ],
 };
 
@@ -766,6 +812,11 @@ export enum ProjectAiNoticeContext {
   Insights = "Insights",
   // Project Settings → AI Features, where Enable AI is the page itself.
   AiFeatures = "AiFeatures",
+  /*
+   * The AI Insights page of a cluster, a resource, or the Incidents' and
+   * Alerts' AI section: what AI found out, which stops growing with AI off.
+   */
+  ActivityInsights = "ActivityInsights",
 }
 
 // Project.enableAi, as the page knows it.
@@ -932,6 +983,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     aiOffDescription: AI_OFF_EVENT_PAGE,
     providerConsequence: translationKey(
       "Until it has one, no AI feature in this project can run.",
+    ),
+  },
+  [ProjectAiNoticeContext.ActivityInsights]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project, so nothing new is investigated or fixed, and nothing new shows up on this page.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, nothing new is investigated, so nothing new shows up on this page.",
     ),
   },
 };

@@ -22,6 +22,7 @@ import {
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -580,15 +581,27 @@ describe("ApiKeyPermissionService update boundaries", () => {
   let findApiKey: jest.SpyInstance;
   let findPermissions: jest.SpyInstance;
   let findPermission: jest.SpyInstance;
+  // The permission row each update names, as the database holds it.
+  let stored: ApiKeyPermission;
+
+  // The row an update names, held in the table the hook reads.
+  function store(row: ApiKeyPermission): ApiKeyPermission {
+    stored = row;
+    findPermissions.mockResolvedValue([row] as never);
+    return row;
+  }
 
   beforeEach(() => {
     findApiKey = getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue({
       _id: apiKeyId.toString(),
     } as never);
-    findPermissions = getJestSpyOn(
-      ApiKeyPermissionService,
-      "findBy",
-    ).mockResolvedValue([permissionRow()] as never);
+    findPermissions = getJestSpyOn(ApiKeyPermissionService, "findBy");
+    store(permissionRow());
+    /*
+     * The rows the caller may update, read before the hook checks them
+     * (findRowsAndHoldUpdateToThem), answered as the table is.
+     */
+    stubRowsCallerMayWriteLikeFindBy(ApiKeyPermissionService, findPermissions);
     findPermission = getJestSpyOn(
       ApiKeyPermissionService,
       "findOneBy",
@@ -603,7 +616,7 @@ describe("ApiKeyPermissionService update boundaries", () => {
   test("changing a grant to ProjectOwner is denied to a project admin", async () => {
     await expect(
       hooks().onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: stored.id!.toString() },
         data: { permission: Permission.ProjectOwner },
         props: props([userPermission({ permission: Permission.ProjectAdmin })]),
       }),
@@ -613,13 +626,11 @@ describe("ApiKeyPermissionService update boundaries", () => {
 
   test("an editor may narrow a grant to a label it holds", async () => {
     const allowedLabelId: ObjectID = ObjectID.generate();
-    findPermissions.mockResolvedValue([
-      permissionRow({ labels: [allowedLabelId] }),
-    ] as never);
+    store(permissionRow({ labels: [allowedLabelId] }));
 
     await expect(
       hooks().onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: stored.id!.toString() },
         data: { labels: [label(allowedLabelId)] },
         props: props([
           userPermission({
@@ -638,13 +649,11 @@ describe("ApiKeyPermissionService update boundaries", () => {
 
   test("an editor cannot clear labels and widen a scoped grant", async () => {
     const allowedLabelId: ObjectID = ObjectID.generate();
-    findPermissions.mockResolvedValue([
-      permissionRow({ labels: [allowedLabelId] }),
-    ] as never);
+    store(permissionRow({ labels: [allowedLabelId] }));
 
     await expect(
       hooks().onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: stored.id!.toString() },
         data: { labels: [] },
         props: props([
           userPermission({
@@ -662,13 +671,11 @@ describe("ApiKeyPermissionService update boundaries", () => {
   });
 
   test("an update cannot operate on a permission row from another request tenant", async () => {
-    findPermissions.mockResolvedValue([
-      permissionRow({ project: otherProjectId }),
-    ] as never);
+    store(permissionRow({ project: otherProjectId }));
 
     await expect(
       hooks().onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: stored.id!.toString() },
         data: { labels: [] },
         props: props(
           [userPermission({ permission: Permission.ProjectOwner })],
@@ -684,7 +691,7 @@ describe("ApiKeyPermissionService update boundaries", () => {
 
     await expect(
       hooks().onBeforeUpdate({
-        query: { _id: ObjectID.generate() },
+        query: { _id: stored.id!.toString() },
         data: { isBlockPermission: false },
         props: props([userPermission({ permission: Permission.ProjectOwner })]),
       }),

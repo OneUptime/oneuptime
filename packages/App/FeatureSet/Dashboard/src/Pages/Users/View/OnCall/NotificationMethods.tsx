@@ -14,6 +14,7 @@ import PageMap from "../../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
+import { READINESS_METHOD_TYPE_PUSH } from "../../../../Components/OnCallPolicy/Readiness/ReadinessTypes";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -724,6 +725,22 @@ const UserViewNotificationMethods: FunctionComponent<
               {method.isVerified ? (
                 <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
                   {translator.translateText("Verified")}
+                </span>
+              ) : method.methodType === READINESS_METHOD_TYPE_PUSH ? (
+                /*
+                 * A push device is verified when it is registered, so one
+                 * that is not was registered and then stopped receiving
+                 * notifications: its push service or Expo said it was gone.
+                 * There is no code to wait for - its owner registers it
+                 * again from the app or browser it belongs to.
+                 */
+                <span className="ml-auto inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                  {translator.translateTemplate(
+                    "Waiting for {{name}} to register it again",
+                    {
+                      name: firstName,
+                    },
+                  )}
                 </span>
               ) : (
                 <span className="ml-auto inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">

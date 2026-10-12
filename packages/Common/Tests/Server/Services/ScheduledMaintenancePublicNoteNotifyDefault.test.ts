@@ -548,7 +548,7 @@ describe("ScheduledMaintenancePublicNoteService addNote (Slack and Microsoft Tea
       );
 
     await ScheduledMaintenancePublicNoteService.addNote({
-      userId: USER_ID,
+      props: noteCreatorProps(),
       scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
       projectId: PROJECT_ID,
       note: "Posted from the maintenance channel.",
@@ -577,7 +577,9 @@ describe("ScheduledMaintenancePublicNoteService addNote (Slack and Microsoft Tea
       SCHEDULED_MAINTENANCE_ID.toString(),
     );
     expect(createBy.data.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(createBy.props).toEqual({ isRoot: true });
+    // Created with the member's own props: the note is theirs.
+    expect(createBy.props.userId).toEqual(USER_ID);
+    expect(createBy.props.isRoot).toBeUndefined();
   });
 
   test("a note posted on a quiet event stays quiet", async () => {
@@ -665,6 +667,8 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(save.mock.calls[0]![0]).toBe(saved);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
@@ -759,13 +763,15 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
 
     const saved: ScheduledMaintenancePublicNote =
       await ScheduledMaintenancePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the maintenance channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );
@@ -779,13 +785,15 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
 
     const saved: ScheduledMaintenancePublicNote =
       await ScheduledMaintenancePublicNoteService.addNote({
-        userId: USER_ID,
+        props: noteCreatorProps(),
         scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
         projectId: PROJECT_ID,
         note: "Posted from the maintenance channel.",
       });
 
     expect(save).toHaveBeenCalledTimes(1);
+    // Posted by the member, with their own props: the note is theirs.
+    expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,

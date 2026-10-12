@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
 
 /*
@@ -59,20 +60,6 @@ function templateSource(): string {
 
 function render(): string {
   return Handlebars.compile(templateSource())(VARS);
-}
-
-// What the reader sees: tags dropped, entities decoded, whitespace collapsed.
-function textOf(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#x3D;/g, "=")
-    .replace(/&#x2F;/g, "/")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /*
@@ -135,7 +122,7 @@ beforeAll(() => {
 
 describe("EnterpriseLicenseExpiryReminder.hbs", () => {
   test("renders the license details the reminder job passes", () => {
-    const text: string = textOf(render());
+    const text: string = visibleText(render());
 
     for (const value of Object.values(VARS).filter((value: string) => {
       return value !== VARS["homeUrl"];
@@ -149,19 +136,19 @@ describe("EnterpriseLicenseExpiryReminder.hbs", () => {
 
   test("states the 30-day grace period, the one the installation applies", () => {
     expect(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS).toBe(30);
-    expect(textOf(render())).toContain(
+    expect(visibleText(render())).toContain(
       `Your self-hosted OneUptime instances keep every enterprise feature for ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS} days after the expiry date above (the grace period).`,
     );
   });
 
   test("says what stops in every release when the grace period ends", () => {
-    expect(textOf(render())).toContain(
+    expect(visibleText(render())).toContain(
       "When the grace period ends, until a renewed license is activated: SCIM provisioning stops, so your identity provider can no longer provision or deprovision users; audit logging stops recording; and enterprise configuration becomes read-only.",
     );
   });
 
   test('says single sign-on stops too on 14.0.10 and earlier, and that "Require SSO" is then no longer enforced', () => {
-    expect(textOf(render())).toContain(
+    expect(visibleText(render())).toContain(
       'On OneUptime 14.0.10 and earlier, SSO and OIDC sign-in stop too and "Require SSO" is no longer enforced, so your users sign in with their password.',
     );
   });
@@ -169,7 +156,7 @@ describe("EnterpriseLicenseExpiryReminder.hbs", () => {
   test("names single sign-on only in the sentence about 14.0.10 and earlier", () => {
     expect(namesSingleSignOnOnlyForOlderReleases(fixedSentences())).toBe(true);
     expect(
-      namesSingleSignOnOnlyForOlderReleases(sentencesOf(textOf(render()))),
+      namesSingleSignOnOnlyForOlderReleases(sentencesOf(visibleText(render()))),
     ).toBe(true);
   });
 
@@ -180,7 +167,7 @@ describe("EnterpriseLicenseExpiryReminder.hbs", () => {
   });
 
   test("never lists single sign-on with what stops in every release", () => {
-    const text: string = textOf(render());
+    const text: string = visibleText(render());
 
     expect(text).not.toContain(
       "until a renewed license is activated: SSO and OIDC sign-in stop",
@@ -189,13 +176,13 @@ describe("EnterpriseLicenseExpiryReminder.hbs", () => {
   });
 
   test("never claims single sign-on keeps working without a license", () => {
-    expect(textOf(render())).not.toMatch(
+    expect(visibleText(render())).not.toMatch(
       /\b(?:SSO|single sign-on|OIDC)\b[^.]{0,100}\b(?:keeps? (?:working|running)|never stops?|continues|still works|(?:is|are) not affected)\b/i,
     );
   });
 
   test("says everything resumes with a renewed license, and that core monitoring is not affected", () => {
-    const text: string = textOf(render());
+    const text: string = visibleText(render());
 
     expect(text).toContain(
       "Everything resumes as soon as the renewed license is activated.",
@@ -213,7 +200,7 @@ describe("EnterpriseLicenseExpiryReminder.hbs", () => {
   });
 
   test("tells the reader how to renew, and why they received the email", () => {
-    const text: string = textOf(render());
+    const text: string = visibleText(render());
 
     expect(text).toContain(
       "To renew your license, reply to this email or write to sales@oneuptime.com",

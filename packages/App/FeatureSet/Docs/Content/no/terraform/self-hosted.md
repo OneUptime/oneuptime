@@ -13,7 +13,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -41,15 +41,15 @@ Provider versions track OneUptime platform versions. The rule for self-hosted:
 > Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
 
 - Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
-- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= 11.0.7`-style pins routinely fail with `no matching version found`.
+- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= {{TERRAFORM_PROVIDER_MAJOR}}.0.7`-style pins routinely fail with `no matching version found`.
 
-Express the rule as a bounded constraint. For example, if your installation runs platform release `11.2.x`:
+Express the rule as a bounded constraint. For example, if your installation runs platform release `{{TERRAFORM_PROVIDER_MAJOR}}.2.x`:
 
 ```hcl
-version = ">= 11.0, <= 11.2"
+version = ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.2"
 ```
 
-Terraform then selects the newest published 11.x release that does not exceed 11.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `~> 11.0` is fine too.
+Terraform then selects the newest published {{TERRAFORM_PROVIDER_MAJOR}}.x release that does not exceed {{TERRAFORM_PROVIDER_MAJOR}}.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `{{TERRAFORM_PROVIDER_VERSION}}` is fine too.
 
 Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
 

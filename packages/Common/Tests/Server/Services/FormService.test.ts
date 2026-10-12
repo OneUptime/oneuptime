@@ -35,6 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * What FormService lets into the Form table, whoever writes it - the
@@ -174,6 +175,11 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<Array<Form>> => {
       return storedForms;
     }) as never) as unknown as MockedFn;
+  // The forms a teammate's update may write: the stored ones.
+  stubRowsCallerMayWriteLikeFindBy(
+    FormService,
+    jest.spyOn(FormService, "findBy"),
+  );
 
   customFieldFindBy = jest
     .spyOn(IncidentCustomFieldService, "findBy")
@@ -636,7 +642,7 @@ describe("FormService.onBeforeUpdate", () => {
     ).toBeInstanceOf(BadDataException);
     expect(
       (formFindBy.mock.calls[0]![0] as { props: JSONObject }).props,
-    ).toEqual({ isRoot: true });
+    ).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   test("a custom field the form already asks is not checked again, even once it is deleted", async () => {

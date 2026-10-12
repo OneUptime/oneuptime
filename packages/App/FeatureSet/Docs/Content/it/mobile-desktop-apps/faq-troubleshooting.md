@@ -38,7 +38,8 @@ Le push su mobile usano APNs (iOS) e FCM (Android) tramite Expo Push. Verifica q
 2. L'ottimizzazione della batteria è disattivata e l'attività in background è consentita (Android).
 3. Le modalità Do Not Disturb o Full Immersion sono disattivate, oppure l'app è nell'elenco delle eccezioni.
 4. Hai effettuato l'accesso — il token push viene registrato sul server solo dopo l'accesso.
-5. **Solo self-hosted:** Le notifiche push sono configurate sulla tua istanza OneUptime. Consulta la guida [Push Notifications](/docs/self-hosted/push-notifications).
+5. Il telefono non è contrassegnato come **Non riceve notifiche** in **User Settings > Notification Methods > Push** di OneUptime. Se lo è, apri l'app sul telefono con l'accesso effettuato per registrarlo di nuovo.
+6. **Solo self-hosted:** Le notifiche push sono configurate sulla tua istanza OneUptime. Consulta la guida [Push Notifications](/docs/self-hosted/push-notifications).
 
 ### I dati sul mio telefono sono al sicuro?
 

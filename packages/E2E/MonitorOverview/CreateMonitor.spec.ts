@@ -151,6 +151,18 @@ async function shownTypes(page: Page): Promise<Array<string>> {
     });
 }
 
+/*
+ * How many types the picker offers: its radios once More monitor types is
+ * open. The search summary counts against all of them, so a new monitor type
+ * changes this number without changing this file.
+ */
+async function offeredTypeCount(page: Page): Promise<number> {
+  await openCreate(page);
+  await page.getByTestId("card-select-more").click();
+  await expect(page.getByTestId("card-select-more")).toHaveCount(0);
+  return (await shownTypes(page)).length;
+}
+
 function option(page: Page, value: string): Locator {
   return page.getByTestId(`card-select-option-${value}`);
 }
@@ -306,12 +318,13 @@ test.describe("Create Monitor's first step", () => {
   }: {
     page: Page;
   }) => {
+    const total: number = await offeredTypeCount(page);
     await openCreate(page);
 
     await page.getByTestId("card-select-search").click();
     await page.keyboard.type("k8s");
     await expect(page.getByTestId("card-select-search-summary")).toHaveText(
-      "Showing 1 of 33",
+      `Showing 1 of ${total}`,
     );
     await page.keyboard.press("Enter");
 

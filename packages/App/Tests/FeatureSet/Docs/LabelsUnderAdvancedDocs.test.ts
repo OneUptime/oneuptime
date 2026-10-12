@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * Labels no longer have a wizard step of their own on any form: the shared
@@ -75,10 +76,14 @@ function sectionOf(markdown: string, heading: RegExp): string {
 
 const LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 
-// The step tables and lists, as each language counts them.
-const SLO_ONE_PAGE: Record<string, string> = {
-  en: "Fill in the one-page form:",
-  fa: "فرم یک‌صفحه‌ای را پر کنید:",
+/*
+ * What the SLO page introduces the table of the form's folded fields with -
+ * the fields under More fields, labels among them. Both pages name the
+ * Dashboard as their language's Dashboard draws it.
+ */
+const SLO_MORE_FIELDS_TABLE: Record<string, string> = {
+  en: `The fields under **${drawnDashboardLabel("en", "More fields")}**:`,
+  fa: `فیلدهای زیر **${drawnDashboardLabel("fa", "More fields")}**:`,
 };
 
 // What the SLO form's three steps used to be introduced with.
@@ -87,11 +92,55 @@ const SLO_OLD_STEP_COUNT: Record<string, string> = {
   fa: "سه گام را پیش ببرید:",
 };
 
-// The labels, as the SLO page names them in its More fields row.
-const SLO_LABELS: Record<string, string> = {
-  en: "**labels**",
-  fa: "**برچسب‌های**",
-};
+// The table that follows a lead line: its rows, up to the first line that is not one.
+function tableAfter(markdown: string, lead: string): Array<string> {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(lead);
+
+  expect({ lead, found: start >= 0 }).toEqual({ lead, found: true });
+
+  const rows: Array<string> = [];
+
+  for (const line of lines.slice(start + 1)) {
+    if (line === "" && rows.length === 0) {
+      continue;
+    }
+
+    if (!line.startsWith("|")) {
+      break;
+    }
+
+    rows.push(line);
+  }
+
+  return rows;
+}
+
+// A step's heading inside a :::steps block, and the hashes that open it.
+const STEP_HEADING: RegExp = /^#{3,4} /;
+const HEADING_HASHES: RegExp = /^#+ /;
+
+// The headings of the steps in a page's first :::steps block.
+function firstStepHeadings(markdown: string): Array<string> {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(":::steps");
+
+  expect(start).toBeGreaterThan(-1);
+
+  const headings: Array<string> = [];
+
+  for (const line of lines.slice(start + 1)) {
+    if (line === ":::") {
+      break;
+    }
+
+    if (STEP_HEADING.test(line)) {
+      headings.push(line.replace(HEADING_HASHES, ""));
+    }
+  }
+
+  return headings;
+}
 
 const TEMPLATE_WIZARD: Record<string, string> = {
   en: "four-step wizard",
@@ -125,21 +174,38 @@ describe.each(LANGUAGES)("the %s docs", (language: string) => {
   test("describe the one-page SLO form, with the labels under More fields", () => {
     const page: string = read(language, "slo/introduction");
 
-    expect(page).toContain(SLO_ONE_PAGE[language]!);
+    const labels: string = drawnDashboardLabel(language, "Labels");
+    const labelsRow: RegExp = new RegExp(`^\\| \\*\\*${labels}\\*\\* +\\|`);
+
     expect(page).not.toContain(SLO_OLD_STEP_COUNT[language]!);
-    // No row for a Labels step, nor for the steps the form had.
-    expect(page).not.toMatch(/^\| \*\*Labels\*\* +\|/m);
+    // No row for the steps the form had.
     expect(page).not.toMatch(/^\| \*\*Basic Info\*\* +\|/m);
     expect(page).not.toMatch(/^\| \*\*Period\*\* +\|/m);
 
-    const advanced: string | undefined = page
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.startsWith("| **More fields** ");
+    // The create steps never stop on a step of their own for the labels...
+    for (const heading of firstStepHeadings(page)) {
+      expect({ heading, namesLabels: heading.includes(labels) }).toEqual({
+        heading,
+        namesLabels: false,
       });
+    }
 
-    expect(advanced).toBeDefined();
-    expect(advanced).toContain(SLO_LABELS[language]!);
+    // ...which are one of the fields folded under More fields, and a row nowhere else.
+    const moreFields: Array<string> = tableAfter(
+      page,
+      SLO_MORE_FIELDS_TABLE[language]!,
+    );
+
+    expect(
+      moreFields.filter((row: string): boolean => {
+        return labelsRow.test(row);
+      }),
+    ).toHaveLength(1);
+    expect(
+      page.split("\n").filter((line: string): boolean => {
+        return labelsRow.test(line);
+      }),
+    ).toHaveLength(1);
   });
 
   test("walk the incident template wizard's four steps, with owners and labels under More fields", () => {

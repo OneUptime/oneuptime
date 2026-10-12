@@ -14,6 +14,7 @@ import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/Sched
 import WorkspaceNotificationLog from "../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -34,6 +35,7 @@ import WorkspaceNotificationLogService from "../../Services/WorkspaceNotificatio
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 export enum WorkspaceNoteResourceType {
   Incident = "Incident",
@@ -389,15 +391,17 @@ export default class WorkspaceReactionNote {
   }
 
   /*
-   * Saves the note unless one was already saved from the same message. The
-   * caller must have authorized the user (see getNoteModelType) and checked
-   * supportsNoteType.
+   * Saves the note unless one was already saved from the same message, as
+   * the member who reacted: `props` are theirs, as the authorization the
+   * caller ran for the note's row (see getNoteModelType) returned them. The
+   * note is created with those props, so it is held to what they may do -
+   * and is theirs - as a note they post in the dashboard is.
    */
   @CaptureSpan()
   public static async saveNote(data: {
     resource: WorkspaceNoteResource;
     noteType: WorkspaceNoteType;
-    userId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     note: string;
     sourceMessageKey: string;
   }): Promise<WorkspaceNoteSaveResult> {
@@ -473,7 +477,7 @@ export default class WorkspaceReactionNote {
   private static async addNote(data: {
     resource: WorkspaceNoteResource;
     noteType: WorkspaceNoteType;
-    userId: ObjectID;
+    props: DatabaseCommonInteractionProps;
     note: string;
     sourceMessageKey: string;
   }): Promise<void> {
@@ -481,12 +485,12 @@ export default class WorkspaceReactionNote {
     const isPublic: boolean = data.noteType === WorkspaceNoteType.Public;
     const common: {
       projectId: ObjectID;
-      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
       note: string;
       postedFromSlackMessageId: string;
     } = {
       projectId: data.resource.projectId,
-      userId: data.userId,
+      props: data.props,
       note: data.note,
       postedFromSlackMessageId: data.sourceMessageKey,
     };
@@ -599,22 +603,20 @@ export default class WorkspaceReactionNote {
   }
 
   /*
-   * The confirmation posted in the message's thread. `formatLink` renders a
-   * link in the workspace's own syntax.
+   * The confirmation posted in the message's thread, as Markdown. The label
+   * - "Incident INC-42", with the prefix the project chose - is text in the
+   * link, so it is never a link, a mention or styling of its own. Microsoft
+   * Teams posts it as it is; Slack posts it as mrkdwn (SlackUtil.slackify).
    */
   public static getConfirmationMessage(data: {
     noteType: WorkspaceNoteType;
     resourceLabel: string;
     resourceLink: string;
-    formatLink: (url: string, text: string) => string;
-    formatBold: (text: string) => string;
-  }): string {
-    const link: string = data.formatLink(data.resourceLink, data.resourceLabel);
-
+  }): MarkdownText {
     if (data.noteType === WorkspaceNoteType.Public) {
-      return `✅ Message saved as ${data.formatBold("public note")} to ${link}. This note will be visible on the status page.`;
+      return mdText`✅ Message saved as **public note** to [${data.resourceLabel}](${data.resourceLink}). This note will be visible on the status page.`;
     }
 
-    return `✅ Message saved as ${data.formatBold("private note")} to ${link}.`;
+    return mdText`✅ Message saved as **private note** to [${data.resourceLabel}](${data.resourceLink}).`;
   }
 }

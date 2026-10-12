@@ -41,6 +41,7 @@ import StatusPageChoiceSetting from "./StatusPageChoiceSetting";
 import StatusPageDaysSetting from "./StatusPageDaysSetting";
 import StatusPageDowntimeStatusesSetting from "./StatusPageDowntimeStatusesSetting";
 import StatusPageSwitchRow from "./StatusPageSwitchRow";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * "What your status page shows", on Advanced -> Advanced Settings: one row
@@ -106,6 +107,7 @@ const isSwitchOn: (
 const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledListClassName: string = useCardRuledListClassName();
   const translator: Translator = useTranslator();
   const descriptionIdPrefix: string = `display-section-${useId()}`;
   const [values, setValues] = useState<StoredValues | null>(null);
@@ -437,7 +439,7 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
        * Channels card: the body reaches the card's edges and each row brings
        * its own padding back.
        */
-      <div className="-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6">
+      <div className={ruledListClassName}>
         {DISPLAY_SECTIONS.map(
           (section: DisplaySectionDefinition): ReactElement => {
             return renderSection(values, section);

@@ -1,125 +1,85 @@
-# Архитектура OneUptime при самостоятельном хостинге
+# Архитектура
 
-Данная диаграмма показывает типичный вид OneUptime при самостоятельном хостинге в вашей среде (например, в кластере Kubernetes), включая то, как зонды отслеживают как внутренние, так и внешние ресурсы.
+Самостоятельно размещённая установка OneUptime — это несколько контейнеров: один ingress, через который входит каждый запрос, один образ приложения, который делает всю работу, пробы, выполняющие проверки ваших мониторов, и три хранилища данных. Эта страница показывает, как они связаны, что делает каждый компонент и какие соединения пересекают границу вашей сети.
 
-```mermaid
+```mermaid title="Самостоятельно размещённая установка OneUptime"
 flowchart TB
-  %% LAYOUT
-  %% Top: Users -> Ingress -> Web / API
-  %% Middle: Core services + Ingest pipeline
-  %% Bottom: Data stores
-
-  %% USERS / EDGE
-  U["Конечные пользователи / Браузеры"]
-
-  %% CLUSTER BOUNDARY
-  subgraph C["Сеть клиента (самостоятельный хостинг Kubernetes)"]
-    direction TB
-
-    subgraph Edge["Входящий трафик и маршрутизация"]
-      NGINX["NGINX Ingress (TLS)"]
+    People["Люди и браузеры"]
+    Senders["Отправители телеметрии:<br/>OpenTelemetry, Fluent Bit,<br/>syslog, агенты"]
+    Targets["То, что вы мониторите:<br/>внутреннее и публичное"]
+    subgraph Install["Ваша сеть"]
+        direction TB
+        Ingress["Ingress<br/>(Nginx, TLS)"]
+        App["Приложение<br/>дашборды, страницы статуса,<br/>API, приём данных, фоновые задачи"]
+        Probe["Пробы"]
+        Runner["Runner"]
+        subgraph Data["Хранилища данных"]
+            direction LR
+            Postgres[("PostgreSQL<br/>конфигурация<br/>и состояние")]
+            ClickHouse[("ClickHouse<br/>логи, метрики,<br/>трассировки")]
+            Valkey[("Valkey<br/>кэш и<br/>очереди")]
+        end
     end
-
-    subgraph Web["Веб и API"]
-      direction TB
-      HOME["Главная / Панель управления (UI)"]
-      STATUS["Страницы статуса (UI)"]
-      API["Сервер API"]
-      WORKER["Фоновый воркер"]
-    end
-
-    subgraph Ingest["Конвейер приёма данных"]
-      direction TB
-      PROBEINGEST["Приёмник зондов"]
-      OTELINGEST["Приёмник OpenTelemetry"]
-      FLUENTLOGS["Приёмник журналов (Fluent Bit)"]
-      SERVERMONINGEST["Приёмник мониторинга серверов"]
-      INCOMINGREQINGEST["Приёмник входящих запросов"]
-    end
-
-    subgraph Probes["Зонды OneUptime"]
-      direction TB
-      P1["Под(ы) зонда в вашем кластере"]
-      P2["Необязательный зонд на ВМ/контейнере в вашей сети"]
-    end
-
-    %% DATA STORES
-    subgraph Data["Хранилища данных"]
-      direction LR
-      PG[("PostgreSQL\n(конфигурация, состояние, метаданные)")]
-      CH[("ClickHouse\n(метрики, трассировки, журналы)")]
-      REDIS[("Valkey\n(кеш, очереди, сессии)")]
-    end
-
-  end
-
-  %% EXTERNAL / INTERNAL TARGETS
-  EXT["Внешние ресурсы\n(публичные сайты/API, SaaS)"]
-  INT["Внутренние ресурсы\n(частные приложения, БД, сервисы)"]
-
-  %% FLOWS: Edge
-  U -->|HTTPS| NGINX
-  NGINX --> HOME
-  NGINX --> STATUS
-  HOME -->|REST/gRPC| API
-  STATUS -->|REST/gRPC| API
-  NGINX --> API
-
-  %% FLOWS: Core services -> Data
-  API --> PG
-  API --> REDIS
-  API --> CH
-  WORKER --> PG
-  WORKER --> REDIS
-  WORKER --> CH
-
-  %% FLOWS: Ingest
-  P1 -->|результаты мониторинга| PROBEINGEST
-  P2 -->|результаты мониторинга| PROBEINGEST
-
-  EXT <-->|HTTPS/TCP/Ping/DNS/Custom| P1
-  INT <-->|HTTPS/TCP/Ping/DNS/Custom| P1
-  EXT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
-  INT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
-
-  OTELCOLL["Коллектор/агенты OTel"] --> OTELINGEST
-  FLUENT["Fluentd / Fluent Bit"] --> FLUENTLOGS
-  SERVERAGENTS["Агенты мониторинга серверов"] --> SERVERMONINGEST
-
-  %% Ingest flow to core processing
-  PROBEINGEST --> REDIS
-  OTELINGEST --> CH
-  FLUENTLOGS --> CH
-  SERVERMONINGEST --> CH
-  INCOMINGREQINGEST --> CH
-
-  %% Workers consume from queues and write to stores
-  REDIS --> WORKER
-
-  %% Notes / Legend
-  classDef store fill:#fef6e4,stroke:#d4a373,color:#333;
-  classDef edge fill:#e3f2fd,stroke:#64b5f6,color:#333;
-  classDef web fill:#e8f5e9,stroke:#81c784,color:#333;
-  classDef ingest fill:#f3e5f5,stroke:#ba68c8,color:#333;
-  classDef probe fill:#fff3e0,stroke:#ffb74d,color:#333;
-  classDef outside fill:#f5f5f5,stroke:#bdbdbd,color:#333,stroke-dasharray: 3 3;
-
-  class NGINX edge;
-  class HOME,STATUS,API,WORKER web;
-  class PROBEINGEST,OTELINGEST,FLUENTLOGS,SERVERMONINGEST,INCOMINGREQINGEST ingest;
-  class P1,P2 probe;
-  class PG,CH,REDIS store;
-  class EXT,INT,OTELCOLL,FLUENT,SERVERAGENTS outside;
+    People -->|"HTTPS"| Ingress
+    Senders -->|"OTLP, HTTPS"| Ingress
+    Ingress --> App
+    Probe -->|"получать задания,<br/>отправлять результаты"| App
+    Runner -->|"забирать задачи,<br/>отправлять результаты"| App
+    Probe -->|"HTTP, TCP, ping,<br/>DNS, SNMP"| Targets
+    App --> Postgres
+    App --> ClickHouse
+    App --> Valkey
 ```
 
-## Что показывает эта диаграмма
+## Что здесь показано
 
-- Конечные пользователи получают доступ к OneUptime через Ingress вашего кластера (NGINX), который маршрутизирует трафик на UI и API.
-- Основные сервисы читают/записывают состояние в PostgreSQL, Valkey (форк Redis 7.2 под лицензией BSD) и ClickHouse.
-- Зонды могут работать внутри вашего кластера (рекомендуется) и/или в другом месте вашей сети. Они могут отслеживать:
-  - Внутренние/частные сервисы за брандмауэром.
+- Люди попадают в OneUptime через **ingress**, который завершает TLS и направляет каждый запрос в приложение: Dashboard, страницы статуса, API и все эндпоинты приёма, на которые отправляется телеметрия.
+- **Приложение** читает и записывает своё состояние в PostgreSQL, хранит телеметрию в ClickHouse и использует Valkey (форк Redis 7.2 под лицензией BSD) как кэш и для очередей, которые обрабатывают его фоновые задачи.
+- **Пробы** могут работать внутри вашего кластера (рекомендуется) и/или в другом месте вашей сети. Они могут мониторить:
+  - Внутренние/частные сервисы за вашим межсетевым экраном.
   - Внешние/публичные ресурсы в интернете.
-- Результаты зондов отправляются в приёмник зондов внутри вашего кластера, помещаются в очередь через Valkey и обрабатываются фоновым воркером в ваших хранилищах данных.
-- Телеметрия (метрики/трассировки/журналы) и данные серверов/агентов могут приниматься через специализированные сервисы приёма и храниться в ClickHouse.
+- Результаты проб отправляются в приложение, ставятся в очередь в Valkey и обрабатываются фоновыми задачами в ваши хранилища данных. Проба в другом месте вашей сети обращается к приложению через ingress, по вашему URL OneUptime.
+- Телеметрию (метрики, трассировки, логи и другое) принимает то же приложение, а хранится она в ClickHouse.
 
-> Примечание: Если вы используете внешние PostgreSQL, Redis или ClickHouse вместо встроенных, соединения от API/Worker/Ingest указывают на ваши внешние конечные точки. Логический поток остаётся тем же.
+> [!NOTE]
+> Если вместо встроенных вы используете внешние PostgreSQL, Valkey (или Redis) либо ClickHouse, приложение подключается к вашим внешним эндпоинтам. Логическая схема остаётся прежней.
+
+## Компоненты
+
+| Компонент | Сервис Docker Compose | Чарт Helm | Что делает |
+| --- | --- | --- | --- |
+| Ingress | `ingress` | `nginx` | Завершает TLS, обслуживает ваше имя хоста и домены страниц статуса и направляет каждый запрос в приложение. |
+| Приложение | `app` | `app` | Dashboard, страницы статуса, эндпоинты API и приёма данных и, если вы их не вынесли отдельно, фоновые задачи. |
+| Worker | Часть `app` | `worker` (по умолчанию выключен) | Фоновые задачи в собственных подах, чтобы тяжёлая обработка очередей никогда не конкурировала с запросами к API. |
+| Telemetry writer | Часть `app` | `telemetryWriter` (по умолчанию выключен) | Слой фиксированного размера, который выполняет каждую вставку в ClickHouse, чтобы число вставок оставалось ограниченным, как бы ни масштабировались воркеры. |
+| Проба | `probe-1` | `probes` | Выполняет проверки мониторов и отправляет результаты обратно. Каждая встроенная проба — глобальная проба, которой могут пользоваться все проекты. |
+| Runner | `runner` | `runner` | Собственный Runner экземпляра, который может выполнять исправления кода с помощью ИИ для любого проекта. Шаги runbook-ов выполняются на [Runner'ах](/docs/runbooks/agents), которые вы устанавливаете там, где они должны работать. |
+| PostgreSQL | `postgres` | `postgresql` или `postgresOperator.cnpg` | Проекты, мониторы, инциденты, пользователи и все прочие настройки и состояния. |
+| ClickHouse | `clickhouse` | `clickhouse` или `clickhouseOperator.altinity` | Логи, метрики, трассировки, исключения, профили и логи мониторов. |
+| Valkey | `valkey` | `valkey` | Кэш, очереди задач и краткоживущее состояние, например ожидающие квитанции push. |
+
+Все роли приложения — один и тот же образ: Docker Compose запускает их в одном контейнере `app`, а чарт Helm может запускать worker и telemetry writer как отдельные развёртывания. О том, как подобрать размер каждого слоя, см. [Подбор размеров и планирование мощностей](/docs/installation/sizing).
+
+## Соединения за пределы вашей сети
+
+Приложение выходит наружу только ради того, что вы включили. Каждое из этих соединений необязательно, и для каждого есть страница с точными адресами, которые нужно разрешить:
+
+| Исходящее соединение | Для чего | Подробнее |
+| --- | --- | --- |
+| Почта (SMTP или API SendGrid) | Уведомления и приглашения | [SMTP](/docs/emails/smtp) |
+| Twilio | SMS и телефонные звонки | [Интеграция с Twilio](/docs/self-hosted/twilio-integration) |
+| Push-ретранслятор OneUptime или Expo | Мобильные push-уведомления | [Push-уведомления](/docs/self-hosted/push-notifications) |
+| Slack и Microsoft Teams | Уведомления и действия в рабочем пространстве | [Интеграция со Slack](/docs/self-hosted/slack-integration) |
+| Поставщик LLM, например OpenAI, Anthropic, Microsoft Foundry или модель, которую вы запускаете сами | OneUptime AI | [Поставщики LLM](/docs/ai/llm-provider) |
+| `oneuptime.com` | Онлайн-активация лицензии Enterprise | [Редакция Enterprise](/docs/self-hosted/enterprise) |
+
+Соединениям в обратную сторону — SendGrid доставляет входящую почту, Slack и Microsoft Teams делают обратные вызовы — нужно, чтобы ingress был доступен из интернета. Какие частные адреса могут достигать приложение и пробы, решаете вы: см. [Доступ к частной сети](/docs/self-hosted/private-network-access).
+
+## Дальнейшие шаги
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): Установите все компоненты на одну машину.
+- [Подбор размеров и планирование мощностей](/docs/installation/sizing): Сколько CPU, памяти и диска нужно каждому слою.
+- [Собственные пробы](/docs/probe/custom-probe): Запустите пробу внутри другой сети.
+- [Редакция Enterprise](/docs/self-hosted/enterprise): Что добавляют образы Enterprise и как устроено лицензирование.
+:::

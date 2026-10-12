@@ -195,6 +195,10 @@ export class Service extends DatabaseService<Model> {
          * either way; acknowledging the record again would be a move back
          * up its list, refused, and an error page for the responder who
          * only answered their page.
+         *
+         * It is OneUptime's acknowledge, credited to the responder: the
+         * on-call policy paged them about this record, and answering the
+         * page is what acknowledging it means.
          */
         if (
           isIncident &&
@@ -202,10 +206,13 @@ export class Service extends DatabaseService<Model> {
             incidentId: item.triggeredByIncidentId!,
           }))
         ) {
-          await IncidentService.acknowledgeIncident(
-            item.triggeredByIncidentId!,
-            item.userId!,
-          );
+          await IncidentService.acknowledgeIncident({
+            incidentId: item.triggeredByIncidentId!,
+            acknowledgedByUserId: item.userId!,
+            props: {
+              isRoot: true,
+            },
+          });
         }
 
         if (
@@ -214,10 +221,13 @@ export class Service extends DatabaseService<Model> {
             alertId: item.triggeredByAlertId!,
           }))
         ) {
-          await AlertService.acknowledgeAlert(
-            item.triggeredByAlertId!,
-            item.userId!,
-          );
+          await AlertService.acknowledgeAlert({
+            alertId: item.triggeredByAlertId!,
+            acknowledgedByUserId: item.userId!,
+            props: {
+              isRoot: true,
+            },
+          });
         }
 
         // An episode's - which also stops co-notified responders escalating.

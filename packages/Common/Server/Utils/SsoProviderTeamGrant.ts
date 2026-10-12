@@ -10,7 +10,6 @@ import DatabaseService from "../Services/DatabaseService";
 import TeamPermissionService from "../Services/TeamPermissionService";
 import TeamService from "../Services/TeamService";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -380,60 +379,41 @@ export default class SsoProviderTeamGrant {
       );
     }
 
-    const selectedRows: Array<TModel> = await data.service.findAllBy({
-      query: updateBy.query,
-      select: {
+    const model: BaseModel = data.service.getModel();
+    const updateData: Record<string, unknown> =
+      updateBy.data as unknown as Record<string, unknown>;
+
+    // The row's project and teams, and what it holds in every written column.
+    const select: Record<string, unknown> = {
+      _id: true,
+      projectId: true,
+      teams: {
         _id: true,
-      } as Select<TModel>,
-      skip: updateBy.skip,
-      limit: updateBy.limit,
-      props: {
-        isRoot: true,
       },
-    });
+    };
 
-    const selectedIds: Array<ObjectID> = selectedRows
-      .map((row: TModel): ObjectID | null => {
-        return row.id;
-      })
-      .filter((rowId: ObjectID | null): rowId is ObjectID => {
-        return Boolean(rowId);
-      });
-
-    if (selectedIds.length > 0) {
-      const model: BaseModel = data.service.getModel();
-      const updateData: Record<string, unknown> =
-        updateBy.data as unknown as Record<string, unknown>;
-
-      // The row's project and teams, and what it holds in every written column.
-      const select: Record<string, unknown> = {
-        _id: true,
-        projectId: true,
-        teams: {
-          _id: true,
-        },
-      };
-
-      for (const column of Object.keys(updateData)) {
-        if (!model.isTableColumn(column) || select[column]) {
-          continue;
-        }
-
-        select[column] = SsoProviderTeamGrant.isRelationColumn(model, column)
-          ? { _id: true }
-          : true;
+    for (const column of Object.keys(updateData)) {
+      if (!model.isTableColumn(column) || select[column]) {
+        continue;
       }
 
-      const rows: Array<TModel> = await data.service.findAllBy({
-        query: {
-          _id: QueryHelper.any(selectedIds),
-        } as Query<TModel>,
-        select: select as unknown as Select<TModel>,
-        props: {
-          isRoot: true,
-        },
-      });
+      select[column] = SsoProviderTeamGrant.isRelationColumn(model, column)
+        ? { _id: true }
+        : true;
+    }
 
+    /*
+     * The rows the update writes - their teams read whole, whatever relation
+     * filters the query sets - with the update held to them, so the write
+     * goes to exactly the rows checked, and no others
+     * (findRowsAndHoldUpdateToThem).
+     */
+    const rows: Array<TModel> = await data.service.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as unknown as Select<TModel>,
+    );
+
+    if (rows.length > 0) {
       const weighed: Set<string> = new Set<string>();
 
       for (const row of rows) {
@@ -481,13 +461,6 @@ export default class SsoProviderTeamGrant {
         });
       }
     }
-
-    // The write goes to exactly the rows that were checked, and no others.
-    updateBy.query = {
-      ...updateBy.query,
-      _id: QueryHelper.any(selectedIds),
-    } as Query<TModel>;
-    updateBy.skip = 0;
 
     return updateBy;
   }

@@ -1708,3 +1708,281 @@ describe("submitPublicForm - hidden questions, answered from a template", () => 
     nothingCreated();
   });
 });
+
+/*
+ * A template that asks the form's questions its own way (issue #4563): the
+ * server holds a submission to the questions as the template it names asks
+ * them - what it requires must be answered, what it hides is never read
+ * from the request and is answered from the template - never only the page.
+ */
+describe("submitPublicForm - a template asks the questions its own way", () => {
+  // Notes is hidden on the form: only a template that asks it shows it.
+  const FIELDS_WITH_HIDDEN_NOTES: Array<FormField> = INCIDENT_FIELDS.map(
+    (field: FormField): FormField => {
+      return field.id === "notes"
+        ? { ...field, isRequired: false, isHidden: true }
+        : field;
+    },
+  );
+
+  // Requires the office, hides the region and the steps - answering both.
+  const OUTAGE: JSONObject = {
+    id: "outage",
+    name: "Application Outage",
+    answers: {
+      title: "The application is down",
+      region: "EU",
+      steps: "1. Open the app\n2. See the error page",
+      notes: "Outage notes from the template",
+    },
+    fieldSettings: { office: "Required", region: "Hidden", steps: "Hidden" },
+  };
+
+  // Asks the hidden notes, and requires them; lets the region be left empty.
+  const PLANNED: JSONObject = {
+    id: "planned",
+    name: "Planned Maintenance",
+    answers: { title: "Planned maintenance", notes: "Suggested window" },
+    fieldSettings: { notes: "Required", region: "Optional" },
+  };
+
+  function submitFrom(
+    answers: JSONObject,
+    templateId?: string,
+  ): Promise<PublicFormSubmissionResult> {
+    const data: JSONObject = { answers };
+
+    if (templateId !== undefined) {
+      data["templateId"] = templateId;
+    }
+
+    return FormService.submitPublicForm({
+      shareKey: SHARE_KEY,
+      request: { data: data as never },
+      clientIp: CLIENT_IP,
+      captchaRemoteIp: CLIENT_IP,
+    });
+  }
+
+  function storedAnswer(fieldId: string): unknown {
+    const answers: Array<FormSubmissionAnswer> = recordedSubmission()
+      .answers as unknown as Array<FormSubmissionAnswer>;
+
+    return answers.find((answer: FormSubmissionAnswer): boolean => {
+      return answer.fieldId === fieldId;
+    })?.value;
+  }
+
+  beforeEach(() => {
+    storedForm = buildIncidentForm({
+      fields: FIELDS_WITH_HIDDEN_NOTES as unknown as JSONArray,
+      templates: [OUTAGE, PLANNED] as unknown as JSONArray,
+    });
+  });
+
+  test("a question the template makes required must be answered: refused, and nothing is created", async () => {
+    const error: Exception | undefined = await refusal(
+      submitFrom({ title: "Checkout is down" }, "outage"),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe("Which office? is required.");
+    nothingCreated();
+    expect(reserveCeiling).not.toHaveBeenCalled();
+  });
+
+  test("the same answers pass when the submission names no template: the form leaves it optional", async () => {
+    await submitFrom({ title: "Checkout is down", region: "US" });
+
+    expect(createdIncident().title).toBe("Checkout is down");
+  });
+
+  test("answered, it is created - and what the template hides is answered from the template, not the request", async () => {
+    await submitFrom(
+      {
+        title: "Checkout is down",
+        office: "London",
+        region: "US",
+        steps: "Injected steps",
+      },
+      "outage",
+    );
+
+    const incident: Incident = createdIncident();
+
+    // The region is hidden by the template: its answer, not the request's.
+    expect(incident.customFields).toEqual({
+      Region: "EU",
+      Notes: neutralizeUntrustedMarkdown("Outage notes from the template"),
+    });
+    expect(storedAnswer("office")).toBe("London");
+    expect(storedAnswer("steps")).toBe(
+      neutralizeUntrustedPlainText("1. Open the app\n2. See the error page"),
+    );
+    expect(JSON.stringify(recordedSubmission().answers)).not.toContain(
+      "Injected",
+    );
+  });
+
+  test("a question the form requires is not required when the template hides it", async () => {
+    // Without the template, the region is required.
+    const error: Exception | undefined = await refusal(
+      submitFrom({ title: "Checkout is down", office: "Berlin" }),
+    );
+
+    expect(error?.message).toBe("Region is required.");
+    nothingCreated();
+
+    await submitFrom({ title: "Checkout is down", office: "Berlin" }, "outage");
+
+    expect(createdIncident().customFields!["Region"]).toBe("EU");
+  });
+
+  test("a question the form hides is asked when the template asks it, and must then be answered", async () => {
+    const error: Exception | undefined = await refusal(
+      submitFrom({ title: "Upgrade" }, "planned"),
+    );
+
+    expect(error?.message).toBe("Notes is required.");
+    nothingCreated();
+  });
+
+  test("its answer is the submitter's: the request is read for it, and stored made safe", async () => {
+    await submitFrom(
+      { title: "Upgrade", notes: "Window approved <!channel>" },
+      "planned",
+    );
+
+    expect(createdIncident().customFields).toEqual({
+      Notes: neutralizeUntrustedMarkdown("Window approved <!channel>"),
+    });
+    expect(createdIncident().customFields!["Notes"]).not.toContain(
+      "<!channel>",
+    );
+  });
+
+  test("a template that does not ask the hidden question never has it read from the request", async () => {
+    await submitFrom(
+      {
+        title: "Checkout is down",
+        office: "Berlin",
+        notes: "Injected notes",
+      },
+      "outage",
+    );
+
+    // Outage hides it as the form does: its own answer is the one stored.
+    expect(createdIncident().customFields).toEqual({
+      Region: "EU",
+      Notes: neutralizeUntrustedMarkdown("Outage notes from the template"),
+    });
+  });
+
+  test("a question the template makes optional may be left empty, though the form requires it", async () => {
+    await submitFrom({ title: "Upgrade", notes: "Window approved" }, "planned");
+
+    expect(createdIncident().customFields).toEqual({
+      Notes: neutralizeUntrustedMarkdown("Window approved"),
+    });
+  });
+
+  test("one set of answers, judged by the template each submission names", async () => {
+    const answers: JSONObject = { title: "Checkout is down", region: "EU" };
+
+    // Outage requires the office.
+    expect((await refusal(submitFrom(answers, "outage")))?.message).toBe(
+      "Which office? is required.",
+    );
+
+    // Planned requires the notes.
+    expect((await refusal(submitFrom(answers, "planned")))?.message).toBe(
+      "Notes is required.",
+    );
+
+    // The form itself asks neither.
+    await submitFrom(answers);
+
+    expect(createdIncident().customFields).toEqual({ Region: "EU" });
+  });
+
+  test("a template deleted since the page was opened leaves the form's own rules", async () => {
+    const error: Exception | undefined = await refusal(
+      submitFrom({ title: "Checkout is down", office: "Berlin" }, "deleted"),
+    );
+
+    expect(error?.message).toBe("Region is required.");
+  });
+
+  test("the private note still names the template the submission started from", async () => {
+    await submitFrom({ title: "Upgrade", notes: "Window approved" }, "planned");
+
+    const note: string = (
+      incidentNoteCreate.mock.calls[0]![0] as { data: IncidentInternalNote }
+    ).data.note!;
+
+    expect(note).toContain(
+      "Started from the template **Planned Maintenance**.",
+    );
+  });
+
+  test("a template that hides every question creates the incident in one click, from its own answers", async () => {
+    storedForm = buildIncidentForm({
+      fields: FIELDS_WITH_HIDDEN_NOTES as unknown as JSONArray,
+      templates: [
+        {
+          id: "restored",
+          name: "Service Restored",
+          answers: { title: "Service restored", region: "EU" },
+          fieldSettings: Object.fromEntries(
+            FIELDS_WITH_HIDDEN_NOTES.map(
+              (field: FormField): [string, string] => {
+                return [field.id, "Hidden"];
+              },
+            ),
+          ),
+        },
+      ] as unknown as JSONArray,
+    });
+
+    const result: PublicFormSubmissionResult = await submitFrom(
+      { title: "Typed anyway", name: "Mallory" },
+      "restored",
+    );
+
+    expect(result.reference).toBe("INC-42");
+    expect(createdIncident().title).toBe("Service restored");
+    expect(createdIncident().customFields).toEqual({ Region: "EU" });
+    // Nothing the request sent was read: every question was the template's.
+    expect(JSON.stringify(recordedSubmission().answers)).not.toContain(
+      "Typed anyway",
+    );
+    expect(recordedSubmission().submitterName).toBeUndefined();
+  });
+
+  test("a maintenance event's start stays asked and required, even when a stored template says otherwise", async () => {
+    const starts: FormField = MAINTENANCE_FIELDS[2]!;
+
+    storedForm = buildMaintenanceForm({
+      templates: [
+        {
+          id: "night",
+          name: "Night Work",
+          // Written past the checks: the start can never be hidden.
+          answers: { starts: "2026-10-10T02:00:00.000Z" },
+          fieldSettings: { starts: "Hidden", ends: "Optional" },
+        },
+      ] as unknown as JSONArray,
+    });
+
+    const answers: JSONObject = { ...MAINTENANCE_ANSWERS };
+    delete answers["starts"];
+
+    const error: Exception | undefined = await refusal(
+      submitFrom(answers, "night"),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe(`${starts.label} is required.`);
+    nothingCreated();
+  });
+});

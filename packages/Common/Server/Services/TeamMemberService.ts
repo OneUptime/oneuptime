@@ -942,9 +942,11 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<TeamMember>,
   ): Promise<OnDelete<TeamMember>> {
-    const members: Array<TeamMember> = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The memberships the delete removes, and the delete held to them.
+    const members: Array<TeamMember> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
         userId: true,
         projectId: true,
         teamId: true,
@@ -954,59 +956,110 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           shouldHaveAtLeastOneMember: true,
         } as Select<TeamMember>,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
-    // Check if SCIM is enabled for the project
-    if (
-      // check if not root.
-      !deleteBy.props.isRoot &&
-      members.length > 0 &&
-      members[0]?.projectId &&
-      (await this.isSCIMPushGroupsEnabled(members[0].projectId))
-    ) {
-      throw new BadDataException(
-        "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
-      );
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const member of members) {
+      if (member.projectId) {
+        projectIds.set(member.projectId.toString(), member.projectId);
+      }
+    }
+
+    // Whether SCIM Push Groups manages a project's teams, asked once each.
+    const pushGroupsManaged: Map<string, boolean> = new Map<string, boolean>();
+    const isPushGroupsManaged: (
+      projectId: ObjectID,
+    ) => Promise<boolean> = async (projectId: ObjectID): Promise<boolean> => {
+      const key: string = projectId.toString().toLowerCase();
+      let managed: boolean | undefined = pushGroupsManaged.get(key);
+
+      if (managed === undefined) {
+        managed = await this.isSCIMPushGroupsEnabled(projectId);
+        pushGroupsManaged.set(key, managed);
+      }
+
+      return managed;
+    };
+
+    /*
+     * While SCIM Push Groups manages a project's teams, their members are
+     * managed from the identity provider: asked of every project the delete
+     * removes members of.
+     */
+    if (!deleteBy.props.isRoot) {
+      for (const projectId of projectIds.values()) {
+        if (await isPushGroupsManaged(projectId)) {
+          throw new BadDataException(
+            "Cannot delete team members while SCIM Push Groups is enabled for this project. Disable Push Groups to manage members from OneUptime.",
+          );
+        }
+      }
     }
 
     /*
-     * Check if there's one member in the team. The members' on-call time logs
-     * are closed once they are actually removed (onDeleteSuccess), so a
-     * removal refused here leaves them on call.
+     * A team that should have at least one member keeps one: its accepted
+     * members, less those this delete removes, must not come to none - one
+     * delete of several members is held to the same rule as several deletes
+     * of one. The members' on-call time logs are closed once they are
+     * actually removed (onDeleteSuccess), so a removal refused here leaves
+     * them on call.
      */
+    const acceptedRemovedByTeam: Map<
+      string,
+      { teamId: ObjectID; projectId: ObjectID; removed: number }
+    > = new Map();
+
     for (const member of members) {
-      if (member.team?.shouldHaveAtLeastOneMember) {
-        if (!member.hasAcceptedInvitation) {
-          continue;
-        }
+      if (
+        !member.team?.shouldHaveAtLeastOneMember ||
+        !member.hasAcceptedInvitation ||
+        !member.teamId ||
+        !member.projectId
+      ) {
+        continue;
+      }
 
-        const membersInTeam: PositiveNumber = await this.countBy({
-          query: {
-            teamId: member.teamId!,
-            hasAcceptedInvitation: true,
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          props: {
-            isRoot: true,
-          },
-        });
+      const key: string = member.teamId.toString();
+      const removedOfTeam: {
+        teamId: ObjectID;
+        projectId: ObjectID;
+        removed: number;
+      } = acceptedRemovedByTeam.get(key) || {
+        teamId: member.teamId,
+        projectId: member.projectId,
+        removed: 0,
+      };
 
-        // Skip the one-member guard when SCIM manages membership for the project.
-        const isPushGroupsManaged: boolean = await this.isSCIMPushGroupsEnabled(
-          member.projectId!,
+      removedOfTeam.removed += 1;
+      acceptedRemovedByTeam.set(key, removedOfTeam);
+    }
+
+    for (const removedOfTeam of acceptedRemovedByTeam.values()) {
+      const membersInTeam: PositiveNumber = await this.countBy({
+        query: {
+          teamId: removedOfTeam.teamId,
+          hasAcceptedInvitation: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // Skip the one-member guard when SCIM manages membership for the project.
+      const managedBySCIM: boolean = await isPushGroupsManaged(
+        removedOfTeam.projectId,
+      );
+
+      if (
+        !managedBySCIM &&
+        membersInTeam.toNumber() - removedOfTeam.removed < 1
+      ) {
+        throw new BadDataException(
+          Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
         );
-
-        if (!isPushGroupsManaged && membersInTeam.toNumber() <= 1) {
-          throw new BadDataException(
-            Errors.TeamMemberService.ONE_MEMBER_REQUIRED,
-          );
-        }
       }
     }
 

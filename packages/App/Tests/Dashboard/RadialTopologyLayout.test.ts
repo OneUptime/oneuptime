@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -500,17 +501,9 @@ describe("computeRadialTopologyModel — glyphs never overlap", () => {
   });
 
   test("a seeded pseudo-random site of switches and endpoints", () => {
-    /* xorshift32 — deterministic, so a failure here is reproducible. */
+    // Seeded, so a failure here is reproducible.
     type NextUnitFunction = () => number;
-    let state: number = 0x2f6e2b1 >>> 0;
-    const nextUnit: NextUnitFunction = (): number => {
-      state ^= state << 13;
-      state >>>= 0;
-      state ^= state >> 17;
-      state ^= state << 5;
-      state >>>= 0;
-      return state / 4294967296;
-    };
+    const nextUnit: NextUnitFunction = seededRandom(0x2f6e2b1);
 
     const nodes: Array<NetworkTopologyNode> = [makeDevice("core-01")];
     const edges: Array<NetworkTopologyEdge> = [];

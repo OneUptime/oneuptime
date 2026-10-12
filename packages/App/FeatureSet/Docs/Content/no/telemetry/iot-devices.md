@@ -1,57 +1,97 @@
-# OneUptime IoT-enheter
+# IoT-enheter
 
-## Oversikt
+OneUptime overvåker flåter av IoT-enheter — sensorer, gatewayer, kontrollere og edge-bokser — ut fra et lite sett `iot_*`-metrikker de sender. Den grupperer enhetene i flåter, fører et inventar over hver flåtes enheter og viser grafer for batteri, signal, temperatur, CPU, minne og tilgjengelighet. Det finnes ingen OneUptime-agent å installere på en enhet: enhetene sender standard OpenTelemetry, eller publiserer til MQTT-endepunktet til OneUptime. [IoT-enhetsmonitorer](/docs/monitor/iot-device-monitor) varsler på det de sender.
 
-OneUptime overvåker flåter av IoT-enheter — sensorer, gatewayer, kontrollere og edge-bokser — ved å ta imot standard OpenTelemetry (OTLP)-metrikker. Hver enhet (eller en gateway på dens vegne) sender et lite sett med `iot_*`-metrikker over OTLP HTTP, merket med hvilken **flåte** den tilhører og sin egen **enhets-id**. OneUptime grupperer disse metrikkene i en flåte, bygger en live enhetsoversikt og sporer per enhet batteri, tilkobling, temperatur, CPU, minne og tilgjengelighet.
+:::cards
+- [Velg hvordan du sender](#velg-hvordan-du-sender): En OpenTelemetry SDK, en gateway-collector eller MQTT.
+- [Sende metrikker via MQTT](#sende-metrikker-via-mqtt): Emner, legitimasjon per enhet og Last Will.
+- [Metrikkonvensjoner](#metrikkonvensjoner): `iot_*`-navnene OneUptime viser grafer for og varsler på.
+- [Feilsøking](#feilsøking): Manglende flåter, manglende enheter, uventede frakoblinger.
+:::
 
-Det finnes ingen agent å installere på enhetssiden — alt som kan snakke OTLP (en OpenTelemetry-SDK på enheten, eller en OpenTelemetry Collector som kjører på en gateway og fordeler til mange enheter) fungerer. Denne siden er **veiledningen for ingestion**. For å konfigurere IoT-monitorer og varsler oppå dataene du sender, se [IoT-enhetsmonitor](/docs/monitor/iot-device-monitor).
+## Slik fungerer det
 
-## Forutsetninger
+Hver måling tilhører en flåte og en enhet. OneUptime oppretter flåten fra den første målingen, legger hver ny enhet til i flåtens inventar og oppdaterer deretter enhetens siste verdier ved hver måling. Målinger sendt over OpenTelemetry og over MQTT forsyner de samme flåtene, inventaret, grafene og monitorene.
 
-- En enhet, gateway eller collector som kan sende OTLP/HTTP til OneUptime
-- Nettverkstilgang fra enheten/gatewayen til din OneUptime-instans
-- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_ og kopier `x-oneuptime-token`-verdien
+```mermaid title="Fra enhetene dine til en flåte i OneUptime"
+flowchart TB
+    devices["Enhetene dine"] -->|"OTLP fra<br/>en SDK"| oneuptime["OneUptime"]
+    devices -->|"OTLP"| gateway["Collectoren til<br/>en gateway"]
+    gateway -->|"OTLP"| oneuptime
+    devices -->|"MQTT"| oneuptime
+    oneuptime --> fleet["Flåten: enhetene,<br/>grafer og monitorer"]
+```
 
-## Hvordan OneUptime modellerer IoT
+## Slik modellerer OneUptime IoT
 
-OneUptime kartlegger enhetene dine til to konsepter ved hjelp av OpenTelemetry-ressursattributter:
+- **Flåte**: en gruppe enheter, for eksempel `building-a-sensors` eller `field-gateways`. Den kommer fra ressursattributtet `iot.fleet.name`, og vises i OneUptime som telemetritjenesten `iot/<fleet>`. Sett også `service.name=iot/<fleet>`, slik at logger og metrikker havner under den samme tjenesten.
+- **Enhet**: én enhet i en flåte, navngitt av attributtet `device.id` på hvert datapunkt. Flåtens inventar er nøklet på `device.id`.
 
-- **Flåte** — en logisk gruppe av enheter (for eksempel `building-a-sensors` eller `field-gateways`). Flåten utledes fra ressursattributtet `iot.fleet.name` og vises i OneUptime som telemetritjenesten `iot/<fleet>`. Sett `service.name=iot/<fleet>` slik at logger og metrikker stiller opp under samme tjeneste.
-- **Enhet** — en individuell enhet innenfor en flåte, identifisert av attributtet `device.id`. OneUptime bygger og vedlikeholder en enhetsoversikt per flåte med `device.id` som nøkkel.
+| Attributt | Settes på | Påkrevd | Beskrivelse |
+| --- | --- | --- | --- |
+| `iot.fleet.name` | Ressurs | Ja | Flåten enheten tilhører. Den blir OneUptime-tjenesten `iot/<fleet>`. |
+| `device.id` | Hvert datapunkt | Ja | En stabil ID for enheten, unik i flåten. |
+| `iot.device.kind` | Hvert datapunkt | Nei | Enhetsklassen, for eksempel `Device`, `Sensor` eller `Gateway`. Standard er `Device`. |
+| `iot.device.type` | Hvert datapunkt | Nei | En finere type eller modell for å filtrere monitorer, for eksempel `temp-sensor`. |
+| `iot.device.firmware` | Hvert datapunkt | Nei | Fastvareversjonen enheten rapporterer. |
 
-Valgfrie attributter forfiner hvordan hver enhet klassifiseres og avgrenses i monitorer:
+Over MQTT setter emnet flåten og enheten for deg.
 
-| Attributt            | Påkrevd | Beskrivelse                                                                      |
-| -------------------- | -------- | -------------------------------------------------------------------------------- |
-| `iot.fleet.name`     | Ja      | Flåten denne enheten tilhører. Blir OneUptime-tjenesten `iot/<fleet>`    |
-| `device.id`          | Ja      | Stabil, unik id for enheten innenfor flåten                                |
-| `iot.device.kind`    | Nei       | Enhetsklassen — for eksempel `Device`, `Sensor` eller `Gateway`. Standard er `Device` |
-| `iot.device.type`    | Nei       | En finere enhetstype/modell brukt for å filtrere monitorer (for eksempel `temp-sensor`) |
-| `iot.device.firmware`| Nei       | Fastvareversjon rapportert av enheten                                          |
+## Velg hvordan du sender
 
-## Sende metrikker via OpenTelemetry-SDK-en
+| Måte | Bruk den når | Trenger |
+| --- | --- | --- |
+| [OpenTelemetry SDK](#sende-metrikker-via-opentelemetry-sdk) | Enheten kjører en OpenTelemetry SDK og når OneUptime selv. | En inntaksnøkkel på enheten. |
+| [OpenTelemetry Collector](#sende-metrikker-via-en-opentelemetry-collector) | Mange enheter rapporterer gjennom en gateway. | En gateway som kjører collectoren. |
+| [MQTT](#sende-metrikker-via-mqtt) | Enheten snakker allerede MQTT, eller skal rapportere frakoblet i det øyeblikket den faller ut. | Enhver MQTT-klient som kobler til over WebSocket. |
 
-Hvis enheten din kjører en OpenTelemetry-SDK direkte, pek den mot OneUptime og stempel inn IoT-ressursattributtene via standard `OTEL_*`-miljøvariabler. Bytt ut token, endepunkt, flåtenavn og enhets-id med verdier for ditt miljø.
+## Før du begynner
+
+- En inntaksnøkkel. Opprett en under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og kopier verdien. Enhetene sender den som headeren `x-oneuptime-token`, eller som MQTT-passord.
+- Nettverkstilgang fra enheten eller gatewayen til OneUptime-URL-en din.
+- Et flåtenavn for hver gruppe enheter, og en stabil ID for hver enhet.
+
+## Sende metrikker via OpenTelemetry SDK
+
+:::steps
+### Pek SDK-en mot OneUptime
+
+Sett standard miljøvariabler for OpenTelemetry på enheten. Erstatt nøkkelen, flåtenavnet og enhets-ID-en med dine:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sensor-001,service.name=iot/building-a-sensors
 ```
 
-| Miljøvariabel          | Påkrevd | Beskrivelse                                                                                          |
-| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Ja      | OneUptime OTLP-endepunkt (`https://oneuptime.com/otlp`, eller `http(s)://YOUR-ONEUPTIME-HOST/otlp` selvhostet) |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | Ja      | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Ja      | Kommaseparerte ressursattributter. Må inkludere `iot.fleet.name`, `device.id` og `service.name=iot/<fleet>` |
+Hold `iot.fleet.name` stabilt: å endre det registrerer en ny flåte.
 
-Send avlesningene dine som metrikker med `iot_*`-navnene nedenfor (se [Metrikkonvensjoner](#metrikkonvensjoner)). I løpet av et minutt eller så dukker enheten opp under **IoT**-seksjonen i OneUptime-dashbordet.
+### Registrer målinger som IoT-metrikker
+
+Send hver måling som en metrikk med ett av de [konvensjonelle navnene](#metrikkonvensjoner), og gi hvert datapunkt et `device.id`-attributt:
+
+| Metrikk | Verdi | Datapunktattributt |
+| --- | --- | --- |
+| `iot_device_up` | `1` | `device.id=sensor-001` |
+| `iot_battery_percent` | `87` | `device.id=sensor-001` |
+| `iot_temperature_celsius` | `21.5` | `device.id=sensor-001` |
+
+Inventaret er nøklet på datapunktets `device.id`, ikke ressursens, så sett den på hver måling i tillegg til i `OTEL_RESOURCE_ATTRIBUTES`.
+:::
+
+Deretter: [sjekk at flåten vises](#sjekk-at-flåten-vises).
 
 ## Sende metrikker via en OpenTelemetry Collector
 
-Når mange enheter rapporterer gjennom en gateway, kjør en OpenTelemetry Collector på gatewayen og eksporter til OneUptime. `resource`-prosessoren stempler inn flåteattributtene; motta avlesninger fra enhetene dine (OTLP, MQTT-bro, fil-logger osv.) og videresend dem:
+Når mange enheter rapporterer gjennom en gateway, kjør en OpenTelemetry Collector på gatewayen. Den mottar OTLP fra enhetene dine, stempler flåten på hver måling og videresender dem til OneUptime.
 
-```yaml
+:::steps
+### Lagre gatewayens konfigurasjon
+
+Lagre dette som `config.yaml` på gatewayen:
+
+```yaml title="config.yaml"
 receivers:
   otlp:
     protocols:
@@ -87,41 +127,81 @@ service:
       exporters: [otlphttp]
 ```
 
-- **`resource`** stempler hver post med flåteattributtene. Sett `iot.fleet.name` (og det matchende `service.name=iot/<fleet>`) per gateway slik at hver gateways enheter havner i riktig flåte.
-- Behold `device.id` (og eventuelt `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) på hvert datapunkt slik at OneUptime kan finne den individuelle enheten inne i flåten.
-- **`otlphttp`** sender til OneUptime over HTTPS med ingestion-token vedlagt. Både standard protobuf-koding og `encoding: json` aksepteres.
+- `otlp` mottar fra enhetene dine over gRPC (`4317`) og HTTP (`4318`). Motta målinger på en hvilken som helst annen måte collectoren støtter (en MQTT-bro, fillogger), og send dem gjennom den samme pipelinen.
+- `resource` stempler hver måling med flåten. Sett `iot.fleet.name`, og den tilsvarende `service.name=iot/<fleet>`, per gateway, slik at hver gateways enheter havner i flåten sin.
+- Behold `device.id`, og eventuelt `iot.device.kind`, `iot.device.type` og `iot.device.firmware`, på hvert datapunkt, slik at OneUptime kan skille enhetene i flåten fra hverandre.
+- `otlphttp` sender til OneUptime over HTTPS med inntaksnøkkelen. Både standard protobuf-koding og `encoding: json` godtas.
+
+### Kjør collectoren på gatewayen
+
+:::tabs
+@tab Docker
+Kjør den fra mappen som inneholder `config.yaml`:
+
+```bash
+docker run -d \
+  --name otel-collector \
+  --restart unless-stopped \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
+  otel/opentelemetry-collector-contrib:0.161.0 \
+  --config /etc/otelcol-contrib/config.yaml
+```
+@tab otelcol-contrib
+Hvis gatewayen allerede har `otelcol-contrib`, pek den mot filen:
+
+```bash
+otelcol-contrib --config config.yaml
+```
+:::
+
+Enhetene sender deretter OTLP til gatewayen, for eksempel med `OTEL_EXPORTER_OTLP_ENDPOINT=http://<gateway-host>:4318` i SDK-en til hver enhet.
+:::
+
+Deretter: [sjekk at flåten vises](#sjekk-at-flåten-vises).
 
 ## Sende metrikker via MQTT
 
-OneUptime leveres med et innebygd MQTT-endepunkt, slik at enheter som allerede snakker MQTT kan sende avlesninger direkte — ingen OpenTelemetry-SDK, collector eller bro er nødvendig. Alt som publiseres over MQTT havner i den samme pipelinen som OTLP: flåter opprettes automatisk, enhetsoversikten oppdateres, og hver IoT-monitor og varselmal fungerer uendret.
+OneUptime har sitt eget MQTT-endepunkt, så enheter som snakker MQTT, publiserer målinger direkte til det, uten SDK, collector eller bro. Det som kommer inn over MQTT, går gjennom den samme pipelinen som OTLP: flåter opprettes, inventaret oppdateres, og hver IoT-monitor og varslingsmal fungerer på samme måte.
 
-**Endepunkter**
+### Endepunkter
 
-| Transport             | Adresse                                | Merknader                                                                                     |
-| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| MQTT over WebSocket   | `wss://<your-host>/mqtt`               | Fungerer på alle installasjoner — går over den vanlige HTTPS-porten gjennom OneUptime-ingressen |
-| MQTT over TCP         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | Selvhostet: intern i cluster-/compose-nettverket som standard; eksponer den hvis du trenger det |
+| Transport | Adresse | Merknader |
+| --- | --- | --- |
+| MQTT over WebSocket | `wss://<your-host>/mqtt` | Fungerer i alle utrullinger, gjennom den vanlige HTTPS-porten. |
+| MQTT over TCP | `<app-host>:1883` | Bare selvhostet, og internt i klyngen eller Compose-nettverket til du eksponerer den. Porten er `MQTT_INGEST_PORT`. |
 
-**Autentisering** — to alternativer:
+### Autentisering
 
-- **Prosjektomfattende**: send din **Telemetry Ingestion Token** som MQTT-passordet (brukernavnet ignoreres; hvis klienten din kun har et brukernavnfelt, legg tokenet der i stedet). Riktig for gatewayer som publiserer på vegne av mange enheter.
-- **Per enhet** (anbefalt for enheter som kobler til direkte): registrer enheten under flåtens **Device Registry**-fane i dashbordet. Registreringen utsteder en legitimasjon per enhet — legitimasjons-ID-en er MQTT-**brukernavnet** og hemmeligheten er **passordet**. Enhetsautentiserte klienter kan kun publisere under sine egne `oneuptime/<fleet>/<device>/…`-topics, en enkelt kompromittert enhet kan tilbakekalles fra dashbordet uten å røre resten av flåten (tilbakekalling trer i kraft innen omtrent et minutt, også for tilkoblede sesjoner), og registrerte enheter får **frakoblingsdeteksjon ved stille død**: de blir stående i oversikten som Frakoblet i stedet for å forsvinne når de slutter å rapportere, og **Device Offline**-varselmalen utløses for dem selv om de dør uten en Last Will.
+- **Med inntaksnøkkelen**: send den som MQTT-passord. Brukernavnet ignoreres; hvis klienten din bare har et felt for brukernavn, legg nøkkelen der. Dette passer en gateway som publiserer for mange enheter.
+- **Med legitimasjon per enhet**: anbefales for enheter som kobler til direkte. Åpne flåtens side **Device Registry** og registrer enheten, med **Device ID** den bruker som `device.id`. Enhetens **MQTT Username** er brukernavnet, og **MQTT Password (Secret)** er passordet.
 
-Ugyldig legitimasjon avvises ved CONNECT med returkode 4 (feil brukernavn eller passord), slik at en feilkonfigurert enhet feiler høylytt.
+En enhets legitimasjon kan bare publisere under sine egne `oneuptime/<fleet>/<device>/`-emner. Du kan tilbakekalle én enhet uten å røre resten av flåten: slå av bryteren **Aktivert**, eller slett den, så kobles en tilkoblet enhet fra innen omtrent et minutt. En registrert enhet som blir stille, blir værende i inventaret som frakoblet, og varslingsmalen Device Offline utløses for den, selv om den dør uten Last Will.
 
-**Topics** — publiser under det faste `oneuptime/`-prefikset. Flåte- og enhetssegmentene kan ikke inneholde `/`, `+` eller `#`, og er begrenset til 100 tegn:
+OneUptime avviser feil legitimasjon ved CONNECT med returkode 4 (feil brukernavn eller passord), så en feilkonfigurert enhet feiler synlig. Nettlesernøkler avvises over MQTT.
 
-| Topic                                            | Payload                                                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `oneuptime/<fleet>/<device>/telemetry`           | JSON-objekt med avlesninger — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, eller et flatt objekt der de numeriske feltene er metrikkene |
-| `oneuptime/<fleet>/<device>/metrics/<metricName>`| En enkelt verdi — et rent tall (`23.4`) eller `{ "value": 23.4 }`                                     |
-| `oneuptime/<fleet>/<device>/status`              | `"online"` eller `"offline"` (også `1`/`0`, `true`/`false`, `up`/`down`) — mapper til `iot_device_up`  |
+### Emner og nyttelaster
 
-Telemetri-payloads kan også bære `"attributes"` (et strengkart som stemples på hvert datapunkt — bruk det til `iot.device.kind`, `iot.device.type`, `iot.device.firmware` eller dine egne etiketter) og `"timestamp"` (ISO-8601, eller unix-sekunder/-millisekunder). Begge er valgfrie; tidspunktet for ingestion brukes når `timestamp` mangler.
+Publiser under det faste prefikset `oneuptime/`. Flåte- og enhetssegmentene kan ikke inneholde `/`, `+` eller `#`, kan ikke begynne med `$`, og er høyst 100 tegn lange.
 
-**Frakoblingsdeteksjon med Last Will** — registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med payloaden `offline`. Hvis enheten dør eller faller av nettverket, publiserer brokeren `iot_device_up = 0` på dens vegne i det øyeblikket sesjonen avsluttes — noe som utløser standardvarselmalen **Device Offline** og vipper enheten til Nede i oversikten, uten polling og uten å vente på en tapt scrape. Publiser `online` til det samme topicet etter tilkobling slik at enheten vises som Oppe igjen.
+| Emne | Nyttelast |
+| --- | --- |
+| `oneuptime/<fleet>/<device>/telemetry` | Et JSON-objekt med målinger: `{"metrics":{"iot_temperature_celsius":21.5}}`, eller et flatt objekt der de numeriske feltene er metrikkene. |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>` | Én verdi: et bart tall (`23.4`) eller `{"value":23.4}`. |
+| `oneuptime/<fleet>/<device>/status` | `online` eller `offline` (også `1` eller `0`, `true` eller `false`, `up` eller `down`). Det setter `iot_device_up`. |
 
-Eksempel med `mosquitto_pub` (rå TCP, selvhostet):
+En telemetrinyttelast kan også ha `"attributes"`, et kart med strenger som stemples på hvert datapunkt (bruk det for `iot.device.kind`, `iot.device.type`, `iot.device.firmware` eller dine egne etiketter), og `"timestamp"`, i ISO 8601 eller i Unix-sekunder eller -millisekunder. Begge er valgfrie: uten `timestamp` brukes tidspunktet OneUptime mottar målingen.
+
+### Frakoblingsdeteksjon med Last Will
+
+Registrer en MQTT Last Will på `oneuptime/<fleet>/<device>/status` med nyttelasten `offline`. Hvis enheten dør eller faller ut av nettverket, publiserer OneUptime `iot_device_up = 0` for den i det øyeblikket økten avsluttes, noe som utløser den innebygde varslingsmalen Device Offline og merker enheten som nede i inventaret, uten polling. Publiser `online` til det samme emnet etter tilkobling, slik at enheten vises som oppe igjen.
+
+### Eksempler
+
+:::tabs
+@tab mosquitto_pub
+Over rå TCP, på en selvhostet instans:
 
 ```bash
 mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
@@ -129,14 +209,14 @@ mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
   -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
   -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
 ```
-
-Eksempel med Node.js `mqtt` over WebSocket (fungerer mot oneuptime.com og enhver selvhostet instans):
+@tab Node.js
+Med pakken `mqtt`, over WebSocket, mot oneuptime.com eller en hvilken som helst selvhostet instans:
 
 ```javascript
 const mqtt = require("mqtt");
 
 const client = mqtt.connect("wss://oneuptime.com/mqtt", {
-  username: "oneuptime", // ignoreres — det er tokenet nedenfor som autentiserer
+  username: "oneuptime", // ignored — the token below is what authenticates
   password: "YOUR_TELEMETRY_INGESTION_TOKEN",
   will: {
     topic: "oneuptime/building-a-sensors/sensor-001/status",
@@ -160,8 +240,8 @@ client.on("connect", () => {
   }, 60 * 1000);
 });
 ```
-
-Eksempel med Python `paho-mqtt` over WebSocket:
+@tab Python
+Med `paho-mqtt`, over WebSocket:
 
 ```python
 import json
@@ -180,64 +260,42 @@ client.publish(
     json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
 )
 ```
+:::
 
-Merknader:
+### Grenser og levering
 
-- Endepunktet er **kun for ingestion**: abonnementer avvises (SUBACK-feil). Bruk QoS 1 hvis du vil at brokeren skal bekrefte mottak. Ingestion er **minst-én-gang** — en QoS 1/2-retransmisjon etter en tapt bekreftelse kan produsere dupliserte datapunkter.
-- Publiseringer utenfor topic-kontrakten eller med feilformede payloads aksepteres og **forkastes** (MQTT 3.1.1 har ingen feilrespons per melding) — serveren logger en advarsel med årsaken, så sjekk OneUptime-applikasjonsloggene hvis data ikke kommer frem.
-- På WebSocket-endepunktet må du holde MQTT-keepalive **under 5 minutter** — OneUptime-ingressen lukker inaktive WebSocket-tilkoblinger etter 300 sekunder, noe som ville utløst din Last Will og et falskt Device Offline-varsel. Standardverdiene i klientbibliotekene (60 s for `mqtt` og `paho-mqtt`) er greie. Det rå TCP-endepunktet har ingen slik grense.
-- Payloads er begrenset til 128 KB og 100 metrikker per publisering; for store pakker fører til at forbindelsen brytes.
+- Endepunktet tar bare imot målinger: abonnementer avvises (en SUBACK-feil), og meldinger med retain-flagg beholdes ikke.
+- Inntaket er minst én gang. Bruk QoS 1 for å få OneUptime til å bekrefte hver publisering; en ny sending med QoS 1 eller 2 etter en tapt bekreftelse kan gi dupliserte datapunkter.
+- En publisering over 128 KB, eller med mer enn 100 metrikker, droppes, og en pakke som oppgir mer enn det, lukker tilkoblingen.
+- En publisering utenfor disse emnene, eller med en feilformatert nyttelast, godtas og droppes, fordi MQTT 3.1.1 ikke har feil per melding. OneUptime logger en advarsel med årsaken (`MQTT: dropped publish to …`).
+- På WebSocket-endepunktet, hold MQTT-keepalive under 5 minutter. Ingressen lukker en WebSocket som er inaktiv i 300 sekunder, noe som utløser Last Will og et falskt Device Offline-varsel. Standardverdiene i klientbibliotekene (60 sekunder for `mqtt` og `paho-mqtt`) er greie, og TCP-endepunktet har ingen slik grense.
 
 ## Metrikkonvensjoner
 
-OneUptime gjenkjenner følgende `iot_*`-metrikknavn. Hvert datapunkt bør bære `device.id`-etiketten slik at avlesningen tilskrives riktig enhet. Du trenger bare å sende de metrikkene som gir mening for enheten din — de som mangler blir rett og slett ikke tegnet i diagrammer.
+OneUptime gjenkjenner disse `iot_*`-metrikknavnene. Send bare dem som gir mening for enheten din: de som mangler, vises ikke i grafer. Hvert datapunkt har enhetens `device.id` (over MQTT navngir emnet enheten).
 
-| Metrikknavn                 | Betydning                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `iot_device_up`             | Enhetstilgjengelighet. `1` = oppe/tilgjengelig, `0` = nede. Driver IoT-enhetsmonitoren |
-| `iot_device_info`           | Identitetssignal alene. Bærer `device.id` / kind / type / firmware slik at en enhet vises i oversikten selv før den rapporterer avlesninger |
-| `iot_battery_percent`       | Batteriladenivå, `0`–`100` (%)                                            |
-| `iot_signal_strength_dbm`   | Trådløs signalstyrke i dBm (for eksempel Wi-Fi / LoRa / mobil-RSSI)      |
-| `iot_temperature_celsius`   | Enhets- eller sensortemperatur i °C                                             |
-| `iot_cpu_usage_ratio`       | CPU-bruk som et forholdstall `0`–`1` (OneUptime lagrer det som en prosentandel)        |
-| `iot_memory_usage_bytes`    | Minne som er i bruk nå, i bytes                                                |
-| `iot_memory_size_bytes`     | Totalt tilgjengelig minne på enheten, i bytes                                 |
-| `iot_uptime_seconds`        | Sekunder siden enheten sist startet opp                                           |
+| Metrikknavn | Betydning |
+| --- | --- |
+| `iot_device_up` | Tilgjengelighet: `1` er oppe og nåbar, `0` er nede. IoT Device-monitoren leser den. |
+| `iot_device_info` | Bare identitet. Den har `device.id`, klassen, typen og fastvaren, slik at en enhet vises i inventaret før den rapporterer målinger. |
+| `iot_battery_percent` | Batterilading, `0` til `100` (%). |
+| `iot_signal_strength_dbm` | Trådløs signalstyrke i dBm, for eksempel RSSI for Wi-Fi, LoRa eller mobilnett. |
+| `iot_temperature_celsius` | Temperaturen til enheten eller sensoren i °C. |
+| `iot_cpu_usage_ratio` | CPU-bruk som et forhold fra `0` til `1`. OneUptime lagrer og viser det som en prosentandel. |
+| `iot_memory_usage_bytes` | Minne i bruk, i byte. |
+| `iot_memory_size_bytes` | Totalt minne på enheten, i byte. |
+| `iot_uptime_seconds` | Sekunder siden enheten sist startet. |
 
-## Verifiser installasjonen
+## Sjekk at flåten vises
 
-1. Bekreft at enheten eller gatewayen din eksporterer uten feil (sjekk SDK-/collector-loggene for eksporteringsfeil og HTTP `401`/`403`-svar).
-2. I OneUptime-dashbordet, åpne **IoT**-seksjonen — flåten din skal dukke opp som `iot/<fleet>` innen et minutt eller så.
-3. Åpne flåtens **Devices**-fane — hver `device.id` du sendte skal være oppført med sitt nyeste batteri, signal, temperatur, CPU, minne og oppe/nede-status.
-4. Åpne **Målinger** under flåten for å tegne diagram over hvilken som helst av `iot_*`-seriene ovenfor.
-
-## Feilsøking
-
-### Flåten dukker ikke opp
-
-1. Verifiser at `iot.fleet.name` er satt som et **ressurs**-attributt (ikke en datapunkt-etikett), og at `service.name` er `iot/<fleet>`.
-2. Bekreft at eksportør-endepunktet er `https://oneuptime.com/otlp` (eller din selvhostede `…/otlp`) og at `x-oneuptime-token`-headeren bærer en gyldig token.
-3. Hvis du bruker MQTT, bekreft at topicet følger `oneuptime/<fleet>/<device>/…` nøyaktig — det er flåtesegmentet i topicet som oppretter flåten.
-
-### Enheter mangler fra oversikten
-
-1. Sørg for at hvert datapunkt bærer en `device.id`-etikett — enheter har den som nøkkel.
-2. Send `iot_device_info` (kun identitet) for enheter som ennå ikke har rapportert avlesninger, slik at de likevel vises i oversikten.
-3. Sjekk at `device.id`-verdiene er stabile på tvers av rapporter; en id som endrer seg lager dupliserte enhetsrader.
-
-### HTTP 401 / 403 fra eksportøren
-
-Ingestion-token er ugyldig, tilbakekalt eller mangler. Generer en ny fra _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_ og oppdater `x-oneuptime-token`-headeren.
-
-### Metrikker tegnes ikke i diagrammer
-
-1. Bekreft at du bruker de nøyaktige `iot_*`-metrikknavnene fra tabellen [Metrikkonvensjoner](#metrikkonvensjoner) — ukjente navn lagres som generiske metrikker og fyller ikke IoT-diagrammene.
-2. Husk at `iot_cpu_usage_ratio` er et `0`–`1`-forholdstall; send det rå forholdstallet, så gjengir OneUptime det som en prosentandel.
-3. Gi det opptil et minutt før de første datapunktene viser seg etter at en enhet begynner å rapportere.
+1. Sjekk at enheten, gatewayens collector eller MQTT-klienten sender uten feil: se etter eksportfeil og HTTP-svar `401` eller `422` i loggene, eller en tilkobling som avvises med returkode 4.
+2. Åpne **Produkter → Infrastruktur → IoT → All Fleets**. Flåten vises som `iot/<fleet>` innen et minutt eller så etter de første målingene.
+3. Åpne flåtens side **Devices**. Hver enhet du har sendt fra, skal være oppført med siste batteri, signal, temperatur, CPU, minne og status oppe eller nede.
+4. Åpne flåtens side **Målinger** for å vise en hvilken som helst av `iot_*`-seriene i en graf.
 
 ## Selvhostet OneUptime
 
-Hvis du selvhoster OneUptime, pek endepunktet mot din egen instans:
+Pek endepunktet mot din egen instans:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-oneuptime-host.example.com/otlp
@@ -253,10 +311,44 @@ exporters:
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-Hvis instansen din kun er HTTP, endre skjemaet til `http://` og bruk riktig port.
+For MQTT, koble til `wss://your-oneuptime-host.example.com/mqtt`, eller eksponer app-tjenestens rå MQTT-TCP-port (`MQTT_INGEST_PORT`, `1883` som standard) for enheter som ikke kan bruke WebSocket. Sett `MQTT_INGEST_ENABLED=false` på app-tjenesten for å slå av begge MQTT-lytterne. Hvis instansen bare bruker HTTP, bruk `http://` (og `ws://` for MQTT) og porten.
 
-## Neste steg
+## Feilsøking
 
-- Konfigurer en **IoT-enhetsmonitor** for å varsle ved enhet frakoblet, lavt batteri, svakt signal, høy temperatur og høy CPU — se [IoT-enhetsmonitor](/docs/monitor/iot-device-monitor).
-- For ikke-containeriserte verter (Linux / macOS / Windows-VM-er og fysisk maskinvare), bruk [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
-- For å lære den underliggende OTLP-integrasjonen i dybden, se [Integrer OpenTelemetry med OneUptime](/docs/telemetry/open-telemetry).
+:::details Flåten vises ikke
+1. Sjekk at `iot.fleet.name` er et ressursattributt (ikke en datapunktetikett) og at `service.name` er `iot/<fleet>`.
+2. Sjekk at endepunktet er `https://oneuptime.com/otlp` (eller din selvhostede `…/otlp`) og at headeren `x-oneuptime-token` har en gyldig inntaksnøkkel.
+3. Over MQTT, sjekk at emnet følger `oneuptime/<fleet>/<device>/…` nøyaktig: det er emnets flåtesegment som oppretter flåten.
+:::
+
+:::details Enheter mangler i inventaret
+1. Gi hvert datapunkt en `device.id`-etikett: enhetene er nøklet på den. Over MQTT er det emnets enhetssegment.
+2. For en enhet som ikke har rapportert målinger ennå, send `iot_device_info` (eller, over MQTT, en `status`-melding), slik at den vises i inventaret.
+3. Hold `device.id`-verdiene stabile: en ID som endres, oppretter dupliserte enheter.
+:::
+
+:::details HTTP 401 eller 422 fra eksportøren
+`401` betyr at inntaksnøkkelen mangler, er feil eller er utløpt; `422` betyr at den er deaktivert, eller er en nettlesernøkkel, som ikke kan sende enhetstelemetri. Opprett en ny under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og oppdater headeren `x-oneuptime-token`.
+:::
+
+:::details MQTT-tilkoblingen avvises med "bad username or password"
+OneUptime avviser feil legitimasjon ved CONNECT med returkode 4. Sjekk at passordet er en gyldig inntaksnøkkel som ikke er deaktivert eller utløpt, eller, for en registrert enhet, legitimasjonens secret med **MQTT Username** som brukernavn. Nettlesernøkler avvises over MQTT.
+:::
+
+:::details Enheter veksler til frakoblet mens de kjører
+På WebSocket-endepunktet lukker ingressen en tilkobling som er inaktiv i 300 sekunder, noe som utløser Last Will og et falskt Device Offline-varsel. Hold MQTT-keepalive under 5 minutter: standardverdiene i klientbibliotekene på 60 sekunder er greie.
+:::
+
+:::details Målinger vises ikke i flåtens grafer
+1. Bruk de nøyaktige `iot_*`-navnene fra [Metrikkonvensjoner](#metrikkonvensjoner): andre navn lagres som generiske metrikker og fyller ikke IoT-grafene.
+2. Send `iot_cpu_usage_ratio` som et forhold fra `0` til `1`; OneUptime viser det som en prosentandel.
+3. Regn med opptil et minutt før de første datapunktene vises etter at en enhet begynner å rapportere.
+:::
+
+## Neste trinn
+
+:::cards
+- [IoT-enhets-overvåking](/docs/monitor/iot-device-monitor): Varsle når en enhet går frakoblet, får lavt batteri eller blir overopphetet.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Hvordan OneUptime tar imot OTLP fra en hvilken som helst SDK eller collector.
+- [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Overvåk selve en Linux-, macOS- eller Windows-gateway.
+:::

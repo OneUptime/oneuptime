@@ -112,6 +112,7 @@ import {
   PublicForm,
   PublicFormField,
   PublicFormFieldType,
+  PublicFormTemplate,
 } from "../../../Types/Form/FormPublic";
 import { FormTargetOptionsSource } from "../../../Types/Form/FormTargetCatalog";
 import FormTargetType from "../../../Types/Form/FormTargetType";
@@ -1089,5 +1090,116 @@ describe("getPublicForm - templates and hidden questions", () => {
     storedForm = buildForm();
 
     expect(await getPublicForm()).not.toHaveProperty("templates");
+  });
+});
+
+/*
+ * Templates that ask the questions their own way (issue #4563), as the
+ * public route tells the page: a question the form hides is told only when
+ * a template asks it, each template is told how it asks the page's
+ * questions, and its answers only to the questions it asks.
+ */
+describe("getPublicForm - templates that ask the questions their own way", () => {
+  const FIELDS_WITH_HIDDEN: Array<FormField> = [
+    ...FIELDS,
+    {
+      id: "window",
+      source: FormFieldSource.Question,
+      type: CustomFieldType.Text,
+      label: "Maintenance Window",
+      isRequired: false,
+      isHidden: true,
+    },
+    {
+      id: "internal",
+      source: FormFieldSource.Question,
+      type: CustomFieldType.Text,
+      label: "Routing Code",
+      isRequired: false,
+      isHidden: true,
+    },
+  ];
+
+  const TEMPLATES: JSONArray = [
+    {
+      id: "outage",
+      name: "Application Outage",
+      answers: {
+        title: "The application is down",
+        window: "Not planned",
+        internal: "ROUTE-TO-TEAM-7",
+      },
+      fieldSettings: { region: "Hidden", severity: "Required" },
+    },
+    {
+      id: "planned",
+      name: "Planned Maintenance",
+      answers: { title: "Planned maintenance", window: "Saturday 02:00" },
+      fieldSettings: { window: "Required", removed: "Required" },
+    },
+  ] as unknown as JSONArray;
+
+  beforeEach(() => {
+    storedForm = buildForm({
+      fields: FIELDS_WITH_HIDDEN as unknown as JSONArray,
+      templates: TEMPLATES,
+    });
+  });
+
+  test("tells the page a hidden question a template asks, marked hidden, and not one no template asks", async () => {
+    const form: PublicForm = await getPublicForm();
+
+    expect(
+      form.fields.map((field: PublicFormField): string => {
+        return field.id;
+      }),
+    ).toEqual(["title", "severity", "monitors", "region", "email", "window"]);
+
+    expect(
+      form.fields.find((field: PublicFormField): boolean => {
+        return field.id === "window";
+      }),
+    ).toEqual({
+      id: "window",
+      label: "Maintenance Window",
+      type: PublicFormFieldType.Text,
+      isRequired: false,
+      isHidden: true,
+      maxLength: 10000,
+    });
+  });
+
+  test("tells each template how it asks the page's questions - and nothing about a question the form does not have", async () => {
+    const form: PublicForm = await getPublicForm();
+
+    expect(
+      form.templates!.map((template: PublicFormTemplate): unknown => {
+        return [template.id, template.fieldSettings];
+      }),
+    ).toEqual([
+      ["outage", { region: "Hidden", severity: "Required" }],
+      ["planned", { window: "Required" }],
+    ]);
+  });
+
+  test("tells a template's answers only to the questions it asks", async () => {
+    const form: PublicForm = await getPublicForm();
+
+    expect(
+      form.templates!.map((template: PublicFormTemplate): unknown => {
+        return [template.id, template.answers];
+      }),
+    ).toEqual([
+      // Outage does not ask the window: its answer to it stays on the server.
+      ["outage", { title: "The application is down" }],
+      ["planned", { title: "Planned maintenance", window: "Saturday 02:00" }],
+    ]);
+
+    const told: string = JSON.stringify(form);
+
+    expect(told).not.toContain("Not planned");
+    expect(told).not.toContain("internal");
+    expect(told).not.toContain("Routing Code");
+    expect(told).not.toContain("ROUTE-TO-TEAM-7");
   });
 });

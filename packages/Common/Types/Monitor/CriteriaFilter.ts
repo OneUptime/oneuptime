@@ -56,6 +56,14 @@ export enum CheckOn {
   // Trace monitors.
   SpanCount = "Span Count",
 
+  /*
+   * AI / LLM monitors (MonitorStepLlmMonitor says what makes an answer
+   * bad). Stored in monitor criteria; never rename one.
+   */
+  LlmBadAnswerPercent = "Bad AI Answers (in %)",
+  LlmBadAnswerCount = "Bad AI Answers",
+  LlmAnswerCount = "AI Answers",
+
   // Exception monitors.
   ExceptionCount = "Exception Count",
 
@@ -116,6 +124,35 @@ export enum CheckOn {
    * snmpMonitorOptions.oid optionally narrows it to one varbind.
    */
   SnmpTrapVarbindValue = "SNMP Trap Varbind Value",
+  /*
+   * Transceivers (SFP, SFP+, QSFP), judged port by port and scoped like the
+   * interface CheckOns: snmpMonitorOptions.interfaceName narrows them to one
+   * port by name or alias, and "*" raises one alert per port.
+   *
+   * Not detected: a port that had an optic no longer reports one, for two
+   * polls in a row, while the port is still enabled.
+   */
+  SnmpTransceiverNotDetected = "SNMP Transceiver Not Detected",
+  /*
+   * A reading at or past the device's own alarm threshold, or a fault the
+   * device flags (loss of signal, transmitter fault).
+   */
+  SnmpTransceiverPastAlarmThreshold = "SNMP Transceiver Past Alarm Threshold",
+  // A reading at or past the device's warning threshold (alarms included).
+  SnmpTransceiverPastWarningThreshold = "SNMP Transceiver Past Warning Threshold",
+  /*
+   * One reading (snmpMonitorOptions.transceiverReading: RX or TX power,
+   * temperature, voltage, bias current) against a value of your own - for
+   * devices that report no thresholds. Met when any lane of any optic in
+   * scope matches.
+   */
+  SnmpTransceiverReading = "SNMP Transceiver Reading",
+  /*
+   * How far the received power is below its best daily average of the last
+   * 30 days, in dB. Catches a fibre or an optic degrading over weeks, before
+   * the link goes down.
+   */
+  SnmpTransceiverRxPowerDrop = "SNMP Transceiver RX Power Drop (in dB)",
 
   // DNS monitors.
   DnsResponseTime = "DNS Response Time (in ms)",
@@ -138,6 +175,25 @@ export enum CheckOn {
   DnssecSignatureExpiresInDays = "DNSSEC Signature Expires In Days",
   DnssecResolverConsensus = "DNSSEC Resolver Consensus (AD Flag)",
   DnssecNameserverConsistent = "DNSSEC Nameservers Are Consistent",
+
+  /*
+   * NTP monitors. Online is "answered this probe's request with an NTP
+   * reply"; synchronized is "and the time it serves is usable" (stratum 1 to
+   * 15, no leap alarm). The offset is compared whichever way the clock is
+   * off, and the stratum is the effective one - a kiss-o'-death's 0 counts
+   * as 16 (NtpMonitorUtil.getEffectiveStratum).
+   */
+  NtpIsOnline = "NTP Is Online",
+  NtpIsSynchronized = "NTP Is Synchronized",
+  NtpStratum = "NTP Stratum",
+  NtpClockOffset = "NTP Clock Offset (in ms)",
+  NtpResponseTime = "NTP Response Time (in ms)",
+  /*
+   * The server's own estimate of how far its time could be from the true
+   * time. ntpd stops trusting a server once half its root delay plus this
+   * passes 1.5 seconds, however good its stratum looks.
+   */
+  NtpRootDispersion = "NTP Root Dispersion (in ms)",
 
   // SQL Query monitors.
   SqlIsOnline = "SQL Is Online",
@@ -192,6 +248,12 @@ export interface SnmpMonitorOptions {
   tableKey?: string | undefined;
   tableColumnOid?: string | undefined;
   tableRow?: string | undefined;
+  /*
+   * For CheckOn.SnmpTransceiverReading: which reading - a
+   * TransceiverReadingKind value ("rxPower", "txPower", "temperature",
+   * "voltage", "biasCurrent").
+   */
+  transceiverReading?: string | undefined;
 }
 
 export interface DatabaseMonitorOptions {
@@ -202,6 +264,19 @@ export interface DatabaseMonitorOptions {
    * met and is reported as misconfigured rather than silently ignored.
    */
   metricType?: MonitorMetricType | undefined;
+}
+
+export interface CustomCodeMonitorOptions {
+  /*
+   * For CheckOn.ResultValue (custom code / synthetic monitors): the field
+   * inside an object/array result the filter compares against. Supports dot
+   * notation and [index] array brackets (e.g. "status", "cpu_busy_percent",
+   * "data.items[0].value", "results[2].status"). Object keys containing a
+   * literal dot are not addressable - only "[index]" reaches into arrays.
+   * Empty/undefined means "compare the whole result value" - the historical
+   * behavior for primitive results, so this stays backward compatible.
+   */
+  resultValuePath?: string | undefined;
 }
 
 export enum EvaluateOverTimeType {
@@ -313,6 +388,7 @@ export interface CriteriaFilter {
   metricMonitorOptions?: MetricMonitorOptions | undefined;
   snmpMonitorOptions?: SnmpMonitorOptions | undefined;
   databaseMonitorOptions?: DatabaseMonitorOptions | undefined;
+  customCodeMonitorOptions?: CustomCodeMonitorOptions | undefined;
   filterType: FilterType | undefined;
   value: string | number | undefined;
   evaluateOverTime?: boolean | undefined;
@@ -393,6 +469,9 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.DomainIsExpired ||
       checkOn === CheckOn.DnssecChainValid ||
@@ -400,6 +479,8 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnssecDsExists ||
       checkOn === CheckOn.DnssecResolverConsensus ||
       checkOn === CheckOn.DnssecNameserverConsistent ||
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized ||
       checkOn === CheckOn.SqlIsOnline ||
       checkOn === CheckOn.DatabaseIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline
@@ -462,7 +543,9 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
-      checkOn === CheckOn.DatabaseIsOnline
+      checkOn === CheckOn.DatabaseIsOnline ||
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized
     );
   }
 
@@ -534,6 +617,33 @@ export class CriteriaFilterUtil {
     }
   }
 
+  // The transceiver CheckOns.
+  public static isTransceiverCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.SnmpTransceiverNotDetected ||
+      checkOn === CheckOn.SnmpTransceiverPastAlarmThreshold ||
+      checkOn === CheckOn.SnmpTransceiverPastWarningThreshold ||
+      checkOn === CheckOn.SnmpTransceiverReading ||
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+    );
+  }
+
+  /*
+   * The CheckOns scoped by snmpMonitorOptions.interfaceName - a name, an
+   * alias, empty for every interface as one alert, or "*" for one alert per
+   * interface. One list, read by the criteria form and the evaluator alike.
+   */
+  public static isInterfaceScopedCheckOn(
+    checkOn: CheckOn | undefined,
+  ): boolean {
+    return (
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      CriteriaFilterUtil.isTransceiverCheckOn(checkOn)
+    );
+  }
+
   public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
     return (
       checkOn === CheckOn.ResponseStatusCode ||
@@ -557,6 +667,17 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.ExternalStatusPageResponseTime ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
+      /*
+       * Each NTP check is one sample, and a clock that is off for one check
+       * is often a slow path rather than a bad server: an offset averaged
+       * over five minutes is the steadier alert.
+       */
+      checkOn === CheckOn.NtpIsOnline ||
+      checkOn === CheckOn.NtpIsSynchronized ||
+      checkOn === CheckOn.NtpStratum ||
+      checkOn === CheckOn.NtpClockOffset ||
+      checkOn === CheckOn.NtpResponseTime ||
+      checkOn === CheckOn.NtpRootDispersion ||
       /*
        * Over time is the most useful shape for database thresholds: a single
        * sample of "connections above 90%" is a spike, five minutes of it is
@@ -591,9 +712,13 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     tableKey: Zod.string().optional(),
     tableColumnOid: Zod.string().optional(),
     tableRow: Zod.string().optional(),
+    transceiverReading: Zod.string().optional(),
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),
+  }).optional(),
+  customCodeMonitorOptions: Zod.object({
+    resultValuePath: Zod.string().optional(),
   }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),

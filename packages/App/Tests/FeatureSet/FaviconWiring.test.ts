@@ -1,8 +1,24 @@
 import { describe, expect, test } from "@jest/globals";
+import ejs from "ejs";
 import fs from "fs";
 import path from "path";
 
 const APP_ROOT: string = path.resolve(__dirname, "..", "..");
+
+/*
+ * The page as the server renders it. Without the installation's branding
+ * variables (Common/Server/Utils/ProductBrandingViewVariables.ts) it is
+ * OneUptime's page, which is what the icons below are pinned on; with a
+ * browser tab icon of its own, that icon is the only one offered.
+ */
+function renderIndexPage(
+  file: string,
+  variables: Record<string, unknown> = {},
+): string {
+  return ejs.render(fs.readFileSync(file, "utf8"), variables, {
+    filename: file,
+  });
+}
 const SHARED_FAVICON_URL: string =
   "/oneuptime-assets/brand/favicons/oneuptime-up-v1.svg";
 
@@ -10,6 +26,7 @@ interface AppShell {
   name: string;
   routePrefix: string;
   publicRoot: string;
+  file: string;
   source: string;
 }
 
@@ -18,18 +35,24 @@ const APP_SHELLS: Array<AppShell> = [
     name: "Dashboard",
     routePrefix: "/dashboard",
     publicRoot: path.join(APP_ROOT, "FeatureSet", "Dashboard", "public"),
-    source: fs.readFileSync(
+    file: path.join(APP_ROOT, "FeatureSet", "Dashboard", "views", "index.ejs"),
+    source: renderIndexPage(
       path.join(APP_ROOT, "FeatureSet", "Dashboard", "views", "index.ejs"),
-      "utf8",
     ),
   },
   {
     name: "Admin Dashboard",
     routePrefix: "/admin",
     publicRoot: path.join(APP_ROOT, "FeatureSet", "AdminDashboard", "public"),
-    source: fs.readFileSync(
+    file: path.join(
+      APP_ROOT,
+      "FeatureSet",
+      "AdminDashboard",
+      "views",
+      "index.ejs",
+    ),
+    source: renderIndexPage(
       path.join(APP_ROOT, "FeatureSet", "AdminDashboard", "views", "index.ejs"),
-      "utf8",
     ),
   },
 ];
@@ -96,5 +119,17 @@ describe.each(APP_SHELLS)("$name favicon", (shell: AppShell) => {
     expect(iconHrefs.join("\n")).not.toMatch(
       /(?:ou-wb\.svg|favicon-194x194|android-chrome-192x192)/,
     );
+  });
+
+  test("offers only the installation's own icon when it has one", () => {
+    const branded: string = renderIndexPage(shell.file, {
+      productFaviconUrl: "/api/branding/favicon?v=1",
+    });
+
+    expect(
+      ordinaryIconLinks(branded).map((tag: string) => {
+        return attribute(tag, "href");
+      }),
+    ).toEqual(["/api/branding/favicon?v=1", "/api/branding/favicon?v=1"]);
   });
 });

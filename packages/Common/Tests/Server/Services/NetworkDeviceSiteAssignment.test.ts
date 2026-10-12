@@ -13,6 +13,22 @@ import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    NetworkDeviceService,
+    jest.spyOn(NetworkDeviceService, "findBy"),
+  );
+});
 
 /*
  * The records these tests name are their project's own: the services check
@@ -782,6 +798,11 @@ describe("NetworkDeviceService site tenancy guard", () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    // The devices the caller's update may write: what the suite's read answers.
+    stubRowsCallerMayWriteLikeFindBy(
+      NetworkDeviceService,
+      jest.spyOn(NetworkDeviceService, "findBy"),
+    );
     // SITE_A_ID is the project's site; SITE_B_ID belongs to another project.
     directory = stubProjectDirectory({
       projectId: PROJECT_ID,
@@ -891,10 +912,10 @@ describe("NetworkDeviceService site tenancy guard", () => {
     ).rejects.toThrow(refusalFor(SITE_B_ID));
   });
 
-  it("onBeforeUpdate scopes the previous-device read to the caller's project", async () => {
+  it("onBeforeUpdate reads the previous devices among those the caller may write, in their project", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "findBy")
-      .mockResolvedValue([]);
+      .mockResolvedValue([fakeDevice({ siteId: SITE_A_ID })]);
 
     await (NetworkDeviceService as any).onBeforeUpdate({
       query: { _id: DEVICE_ID.toString() },
@@ -902,9 +923,14 @@ describe("NetworkDeviceService site tenancy guard", () => {
       props: { tenantId: PROJECT_ID },
     } as unknown as UpdateBy<NetworkDevice>);
 
+    // The devices the caller may write, found in their project.
+    const writable: any = readsOfRowsCallerMayWrite(NetworkDeviceService)[0]!;
+    expect(writable.query._id).toBe(DEVICE_ID.toString());
+    expect(writable.query.projectId.toString()).toBe(PROJECT_ID.toString());
+
+    // Then those, by id.
     const query: any = findBySpy.mock.calls[0]![0].query;
-    expect(query._id).toBe(DEVICE_ID.toString());
-    expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(query).toEqual({ _id: DEVICE_ID.toString() });
   });
 
   it("onUpdateSuccess recomputes nothing when the scoped update matched no rows", async () => {

@@ -1,4 +1,3 @@
-import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import PermissionGate, {
   ModelAction,
@@ -20,27 +19,20 @@ const ACKNOWLEDGE_GATE_OPTIONS: PermissionGateOptions = {
 };
 
 /*
- * Acknowledging an alert from its own page writes a state timeline row and
- * then moves the alert's current state, which is an alert update - so the
- * server checks both before it accepts the request, and so does the box, in
- * that order. The reason reads "You do not have permission to acknowledge
- * this alert..." rather than naming the timeline model.
+ * Acknowledging an alert from its own page is one write as the person: a
+ * new state timeline row. The alert then takes the new state from OneUptime
+ * itself, so it takes no permission to edit the alert. Acknowledging the
+ * alerts as the incident is declared takes the same, and the server checks
+ * the same for each alert it acknowledges (AlertStateChangeAuthorization) -
+ * so the box asks for the timeline's create permission and nothing else.
+ * The reason reads "You do not have permission to acknowledge this
+ * alert..." rather than naming the timeline model.
  */
 export const getAcknowledgeAlertsGate: () => PermissionGateResult =
   (): PermissionGateResult => {
-    const timelineGate: PermissionGateResult = PermissionGate.check(
+    return PermissionGate.check(
       new AlertStateTimeline(),
       ModelAction.Create,
-      ACKNOWLEDGE_GATE_OPTIONS,
-    );
-
-    if (!timelineGate.isAllowed) {
-      return timelineGate;
-    }
-
-    return PermissionGate.check(
-      new Alert(),
-      ModelAction.Update,
       ACKNOWLEDGE_GATE_OPTIONS,
     );
   };

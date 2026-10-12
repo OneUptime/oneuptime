@@ -30,6 +30,27 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayDeleteLikeFindBy,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, or a delete may remove,
+ * which the write path makes before the hooks: what the suite's read of them
+ * answers (stubRowsCallerMayWriteLikeFindBy, stubRowsCallerMayDeleteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    ServiceLevelObjectiveMonitorRuleService,
+    jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+  );
+  stubRowsCallerMayDeleteLikeFindBy(
+    ServiceLevelObjectiveMonitorRuleService,
+    jest.spyOn(ServiceLevelObjectiveMonitorRuleService, "findBy"),
+  );
+});
 /*
  * Contract under test - the write hooks of SLO monitor rules.
  *
@@ -39,7 +60,8 @@ import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
  *   - A pattern the engine could never match is refused at the write (#2940).
  *   - The SLO a rule points at must belong to the caller's project.
  *   - Validation reads made before the permission check pin the caller's
- *     tenant; onBeforeDelete reads with the caller's props and changes nothing.
+ *     tenant; onBeforeDelete reads the rules the delete removes - among those
+ *     the caller may delete - holds the delete to them, and changes nothing.
  *   - Every create, edit and delete re-syncs the SLO's monitors, quietly: the
  *     rule is saved even when the sync fails.
  *   - Every create, meaningful edit and delete is told to the SLO's feed as
@@ -761,7 +783,7 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeUpdate", () => {
     expect(spies.ruleFindBy).not.toHaveBeenCalled();
   });
 
-  it("reads the touched rules with the caller's tenant pinned onto the raw query", async () => {
+  it("reads the touched rules among those the caller may write, in their project", async () => {
     spies.ruleFindBy.mockResolvedValue([
       makeRule({ monitorNamePattern: ".*" }),
     ]);
@@ -778,13 +800,19 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeUpdate", () => {
       props: unknown;
     };
 
-    expect(call.query).toEqual({
+    // The rules the caller may write, found in their project.
+    expect(
+      readsOfRowsCallerMayWrite(ServiceLevelObjectiveMonitorRuleService)[0]!
+        .query,
+    ).toEqual({
       _id: RULE_ID.toString(),
       projectId: PROJECT_ID,
     });
+    // Then those, by id.
+    expect(call.query).toEqual({ _id: RULE_ID.toString() });
     expect(call.select["criteria"]).toBe(true);
     expect(call.select["serviceLevelObjectiveId"]).toBe(true);
-    expect(call.props).toEqual({ isRoot: true });
+    expect(call.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("trusts a genuinely root caller's query as it is", async () => {
@@ -1056,7 +1084,7 @@ describe("ServiceLevelObjectiveMonitorRuleService delete hooks", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads the doomed rules with the caller's own props - never as root - and changes nothing", async () => {
+  it("reads the rules the caller may delete, holds the delete to them, and changes nothing", async () => {
     const deleteBy: DeleteBy<Model> = makeDeleteBy();
     spies.ruleFindBy.mockResolvedValue([makeRule({})]);
 
@@ -1065,11 +1093,22 @@ describe("ServiceLevelObjectiveMonitorRuleService delete hooks", () => {
       deleteBy,
     )) as OnDelete<Model>;
 
+    // The rules the caller may delete, read with the caller's own permission.
+    const callerMayDelete: Record<string, unknown> = readsOfRowsCallerMayWrite(
+      ServiceLevelObjectiveMonitorRuleService,
+    )[0]!.query as Record<string, unknown>;
+    expect(callerMayDelete["projectId"]).toBe(PROJECT_ID);
+    expect(callerMayDelete["_id"]).toBe(RULE_ID.toString());
+
+    // Then the delete's rules among them, as OneUptime, by the delete's query.
     const call: { query: unknown; props: unknown } = spies.ruleFindBy.mock
       .calls[0]![0] as { query: unknown; props: unknown };
+    expect(call.query).toEqual({ _id: RULE_ID.toString() });
+    expect(call.props).toEqual({ isRoot: true, ignoreHooks: true });
 
-    expect(call.query).toBe(deleteBy.query);
-    expect(call.props).toBe(deleteBy.props);
+    // The delete removes exactly the rule read.
+    expect(result.deleteBy.query).toEqual({ _id: RULE_ID.toString() });
+    expect(result.deleteBy.limit).toBe(1);
     expect(spies.sync).not.toHaveBeenCalled();
     expect(spies.feed).not.toHaveBeenCalled();
     expect(
@@ -1077,15 +1116,30 @@ describe("ServiceLevelObjectiveMonitorRuleService delete hooks", () => {
     ).toHaveLength(1);
   });
 
-  it("does not block the delete when the rules cannot be read", async () => {
+  it("refuses the delete when the rules it removes cannot be read", async () => {
     spies.ruleFindBy.mockRejectedValue(new Error("db down"));
+
+    await expect(callHook("onBeforeDelete", makeDeleteBy())).rejects.toThrow(
+      "db down",
+    );
+    expect(spies.sync).not.toHaveBeenCalled();
+  });
+
+  it("removes no rule when the caller may delete none of those the query names", async () => {
+    // The read of the rules the caller may delete answers none.
+    spies.ruleFindBy.mockResolvedValue([]);
 
     const result: OnDelete<Model> = (await callHook(
       "onBeforeDelete",
       makeDeleteBy(),
     )) as OnDelete<Model>;
 
-    expect(result.carryForward).toEqual({ rulesToDelete: [] });
+    expect(
+      (result.carryForward as { rulesToDelete: Array<Model> }).rulesToDelete,
+    ).toEqual([]);
+    expect((result.deleteBy.query as Record<string, unknown>)["_id"]).not.toBe(
+      RULE_ID.toString(),
+    );
   });
 
   it("posts MonitorRuleRemoved per deleted rule as the person who deleted it, then re-syncs each SLO once", async () => {

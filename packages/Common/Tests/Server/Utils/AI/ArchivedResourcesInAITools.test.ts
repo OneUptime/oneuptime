@@ -35,6 +35,9 @@ import StatusPageService from "../../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../../Server/Services/StatusPageSubscriberService";
 import WorkflowLogService from "../../../../Server/Services/WorkflowLogService";
 import WorkflowService from "../../../../Server/Services/WorkflowService";
+import WorkspaceMemberActions, {
+  WorkspaceEventType,
+} from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
@@ -570,9 +573,9 @@ describe("the on-call tools and archived policies", () => {
         "findOneById",
         incident(),
       );
-      const executePolicy: AnySpy = spy(
-        OnCallDutyPolicyService,
-        "executePolicy",
+      const executeOnCallPolicy: AnySpy = spy(
+        WorkspaceMemberActions,
+        "executeOnCallPolicy",
         undefined,
       );
 
@@ -592,28 +595,42 @@ describe("the on-call tools and archived policies", () => {
       expect(
         (firstCallArg(findOneById)["select"] as JSONObject)["isArchived"],
       ).toBe(true);
-      expect(executePolicy).not.toHaveBeenCalled();
+      expect(executeOnCallPolicy).not.toHaveBeenCalled();
       expect(incidentLookup).not.toHaveBeenCalled();
     });
 
-    test("pages a live policy as before", async () => {
+    test("pages a live policy, as the person who asked", async () => {
       spy(OnCallDutyPolicyService, "findOneById", policy(false));
       spy(IncidentService, "findOneById", incident());
-      const executePolicy: AnySpy = spy(
-        OnCallDutyPolicyService,
-        "executePolicy",
+      const executeOnCallPolicy: AnySpy = spy(
+        WorkspaceMemberActions,
+        "executeOnCallPolicy",
         undefined,
       );
+      const incidentId: ObjectID = ObjectID.generate();
 
       const result: ToolExecutionResult = await PageOnCallPolicyTool.execute(
         {
           onCallDutyPolicyId: POLICY_ID.toString(),
-          incidentId: ObjectID.generate().toString(),
+          incidentId: incidentId.toString(),
         },
         pageCtx,
       );
 
-      expect(executePolicy).toHaveBeenCalledTimes(1);
+      expect(executeOnCallPolicy).toHaveBeenCalledTimes(1);
+      const call: {
+        event: { type: WorkspaceEventType; id: ObjectID };
+        onCallDutyPolicyId: ObjectID;
+        props: unknown;
+      } = executeOnCallPolicy.mock.calls[0]?.[0] as unknown as {
+        event: { type: WorkspaceEventType; id: ObjectID };
+        onCallDutyPolicyId: ObjectID;
+        props: unknown;
+      };
+      expect(call.event.type).toBe(WorkspaceEventType.Incident);
+      expect(call.event.id.toString()).toBe(incidentId.toString());
+      expect(call.onCallDutyPolicyId.toString()).toBe(POLICY_ID.toString());
+      expect(call.props).toBe(pageCtx.props);
       expect(result.dataForLlm).toContain(
         'Paged on-call policy "Payments primary"',
       );

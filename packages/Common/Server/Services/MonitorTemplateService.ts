@@ -1,5 +1,6 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
+import MonitorStatusService from "./MonitorStatusService";
 import NetworkAlertPolicyEngineService from "./NetworkAlertPolicyEngineService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkDeviceAutoImportRuleService from "./NetworkDeviceAutoImportRuleService";
@@ -27,6 +28,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MonitorTemplateCustomFieldUtil from "../../Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
+import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
@@ -140,7 +142,48 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createBy.props.tenantId || createBy.data.projectId,
     });
 
+    /*
+     * Every monitor made or synced from a template takes its steps, ids and
+     * all, so the template's ids are given here exactly as a monitor's are
+     * (see MonitorService.onBeforeCreate).
+     */
+    if (createBy.data.monitorSteps) {
+      createBy.data.monitorSteps = await this.assignWrittenMonitorStepIds({
+        monitorSteps: createBy.data.monitorSteps as MonitorSteps | JSONObject,
+        storedMonitorSteps: undefined,
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+      });
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * See MonitorService.assignWrittenMonitorStepIds: a template's steps keep
+   * their stored ids across a write that resends them without ids, so the
+   * monitors synced from it keep matching it step for step.
+   */
+  private async assignWrittenMonitorStepIds(data: {
+    monitorSteps: MonitorSteps | JSONObject;
+    storedMonitorSteps: MonitorSteps | undefined;
+    projectId: ObjectID | undefined;
+  }): Promise<MonitorSteps> {
+    const monitorSteps: MonitorSteps = MonitorSteps.fromJSON(data.monitorSteps);
+
+    const defaultMonitorStatusId: ObjectID | null =
+      !monitorSteps.data?.defaultMonitorStatusId &&
+      !data.storedMonitorSteps?.data?.defaultMonitorStatusId &&
+      data.projectId
+        ? await MonitorStatusService.findDefaultOperationalStatusIdOrNull(
+            data.projectId,
+          )
+        : null;
+
+    return MonitorStepsIdentityUtil.assignIds({
+      monitorSteps,
+      storedMonitorSteps: data.storedMonitorSteps,
+      defaultMonitorStatusId,
+    });
   }
 
   @CaptureSpan()
@@ -171,20 +214,41 @@ export class Service extends ProjectReferencesService<Model> {
      * own currently-stored ids — see MonitorService.onBeforeUpdate for why the
      * stored ids matter.
      */
-    const templates: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const templates: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         projectId: true,
         monitorSteps: true,
         monitorType: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-        ignoreHooks: true,
-      },
-    });
+    );
+
+    if (updateBy.data.monitorSteps) {
+      const projectIds: Set<string> = new Set<string>(
+        templates
+          .map((template: Model) => {
+            return template.projectId?.toString() || "";
+          })
+          .filter(Boolean),
+      );
+
+      (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
+        await this.assignWrittenMonitorStepIds({
+          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+          storedMonitorSteps:
+            templates.length === 1 ? templates[0]!.monitorSteps : undefined,
+          /*
+           * The templates' own project. Templates of more than one project -
+           * a write of OneUptime's or a master admin's - share none.
+           */
+          projectId:
+            projectIds.size === 1
+              ? new ObjectID(Array.from(projectIds)[0]!)
+              : projectIds.size === 0
+                ? updateBy.props.tenantId
+                : undefined,
+        });
+    }
 
     for (const template of templates) {
       this.validateSyncFields(
@@ -199,7 +263,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
       await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
         monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-        projectId: updateBy.props.tenantId || template.projectId,
+        projectId: Service.getProjectToCheckRowIn(
+          updateBy.props,
+          template.projectId,
+        ),
         alreadyStoredMonitorSteps: template.monitorSteps,
       });
     }
@@ -233,24 +300,17 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const templatesToDelete: Array<Model> = await this.findBy({
-      /*
-       * This hook runs BEFORE DatabaseService permission-checks the query, so
-       * a raw isRoot read of deleteBy.query would hand back other tenants'
-       * templates — and their policy names in the refusal message with them.
-       */
-      query: this.scopeQueryToCallerTenant(deleteBy.query, deleteBy.props),
-      select: {
+    /*
+     * The templates the delete removes - the ones the caller may delete, in
+     * the delete's own window - and the delete held to them: a refusal names
+     * only policies and rules of the caller's own templates.
+     */
+    const templatesToDelete: Array<Model> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         _id: true,
         templateName: true,
         projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
     for (const template of templatesToDelete) {
       if (!template.id || !template.projectId) {
@@ -326,25 +386,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { deleteBy, carryForward: null };
-  }
-
-  /*
-   * See NetworkSiteService for the full explanation: hooks run before
-   * ModelPermission scopes the caller's query, so anything a hook reads with
-   * isRoot has to be re-scoped by hand or it spans projects.
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
   }
 
   /*

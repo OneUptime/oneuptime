@@ -159,9 +159,9 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const existingItems: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingItems: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         projectId: true,
         startAnchorType: true,
         endAnchorType: true,
@@ -174,10 +174,7 @@ export class Service extends ProjectReferencesService<Model> {
         isEnabled: true,
         unit: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    );
 
     let changesDefinition: boolean = false;
 
@@ -273,13 +270,11 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const items: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { isSystemDefined: true, name: true },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    // Every measurement the delete removes, and the delete held to them.
+    const items: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { isSystemDefined: true, name: true },
+    );
 
     for (const item of items) {
       if (item.isSystemDefined) {

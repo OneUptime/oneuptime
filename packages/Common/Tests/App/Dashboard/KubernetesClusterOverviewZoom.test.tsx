@@ -60,6 +60,11 @@ type AggregateRequest = {
 
 const mockAggregate: MockFunction = getJestMockFunction();
 const mockInventorySummary: MockFunction = getJestMockFunction();
+/*
+ * When OneUptime itself was not receiving (issue #2825): asked for the
+ * charts' window, so unlike the "now" snapshots it follows the zoom.
+ */
+const mockReceivingGaps: MockFunction = getJestMockFunction();
 const mockFetchTopPods: MockFunction = getJestMockFunction();
 const mockFetchWarnings: MockFunction = getJestMockFunction();
 
@@ -100,6 +105,12 @@ jest.mock("../../../UI/Utils/API/API", () => {
     __esModule: true,
     default: {
       post: (...args: Array<unknown>) => {
+        const url: string = String(
+          (args[0] as { url?: unknown } | undefined)?.url ?? "",
+        );
+        if (url.endsWith("/receiving-gaps")) {
+          return mockReceivingGaps(...args);
+        }
         return mockInventorySummary(...args);
       },
       getFriendlyMessage: (error: unknown) => {
@@ -607,6 +618,10 @@ beforeEach(() => {
       },
     });
   });
+  mockReceivingGaps.mockReset();
+  mockReceivingGaps.mockImplementation(() => {
+    return Promise.resolve({ data: { gaps: [] } });
+  });
   mockFetchTopPods.mockReset();
   mockFetchTopPods.mockImplementation(() => {
     return Promise.resolve([]);
@@ -846,6 +861,28 @@ describe("dragging across a cluster Overview chart", () => {
     expect(mockInventorySummary.mock.calls).toHaveLength(summaries);
     expect(mockFetchTopPods.mock.calls).toHaveLength(topPods);
     expect(mockFetchWarnings.mock.calls).toHaveLength(warnings);
+  });
+
+  test("the 'Not monitored' stretches are asked for the zoomed window, every time the charts are", async () => {
+    await renderOverview();
+
+    const windowsAsked: () => Array<string> = (): Array<string> => {
+      return mockReceivingGaps.mock.calls.map((call: Array<unknown>) => {
+        const data: { startsAt: string; endsAt: string } = (
+          call[0] as { data: { startsAt: string; endsAt: string } }
+        ).data;
+        return `${data.startsAt}|${data.endsAt}`;
+      });
+    };
+
+    const before: number = windowsAsked().length;
+    expect(before).toBeGreaterThan(0);
+
+    await dragAcross("CPU", DRAG_START, DRAG_END);
+
+    expect(windowsAsked().slice(before)).toContain(
+      `${DRAG_START.toISOString()}|${DRAG_END.toISOString()}`,
+    );
   });
 });
 

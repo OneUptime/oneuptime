@@ -17,7 +17,6 @@ import UserService from "./UserService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import Timezone from "../../Types/Timezone";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import logger from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
@@ -353,19 +352,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     const previous: Array<OverrideUserPair> = [];
 
     try {
-      const rows: Array<OnCallDutyPolicyUserOverride> = await this.findBy({
-        query: updateBy.query,
-        select: {
+      const rows: Array<OnCallDutyPolicyUserOverride> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           projectId: true,
           overrideUserId: true,
           routeAlertsToUserId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-      });
+        });
 
       for (const row of rows) {
         const projectId: ObjectID | undefined | null =
@@ -506,9 +498,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnDelete<OnCallDutyPolicyUserOverride>> {
-    const itemsToDelete: OnCallDutyPolicyUserOverride[] = await this.findBy({
-      query: deleteBy.query,
-      select: {
+    // The overrides the delete removes, and the delete held to them.
+    const itemsToDelete: OnCallDutyPolicyUserOverride[] =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, {
         onCallDutyPolicyId: true,
         projectId: true,
         overrideUserId: true,
@@ -516,13 +508,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         startsAt: true,
         endsAt: true,
         createdByUserId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    });
+      });
 
     /*
      * Capture the project + override-user of each row being deleted so

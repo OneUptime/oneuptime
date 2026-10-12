@@ -1,3 +1,4 @@
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -31,17 +32,24 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * A note posted from Slack or Microsoft Teams - a button's form, or a
+   * message saved with a note emoji - made with the props of the member who
+   * posted it (WorkspaceActionAuthorization.getProjectMemberProps), as the
+   * dashboard makes the note they post there: it needs their permission to
+   * create the note and their read of the incident, it is held to the
+   * project's plan, and it is theirs - DatabaseService stamps them as its
+   * creator.
+   */
   @CaptureSpan()
   public async addNote(data: {
-    userId: ObjectID;
     incidentId: ObjectID;
     projectId: ObjectID;
     note: string;
-    attachmentFileIds?: Array<ObjectID>;
-    postedFromSlackMessageId?: string;
+    postedFromSlackMessageId?: string | undefined;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const publicNote: Model = new Model();
-    publicNote.createdByUserId = data.userId;
     publicNote.incidentId = data.incidentId;
     publicNote.projectId = data.projectId;
     publicNote.note = data.note;
@@ -51,21 +59,9 @@ export class Service extends ProjectReferencesService<Model> {
       publicNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
     }
 
-    if (data.attachmentFileIds && data.attachmentFileIds.length > 0) {
-      publicNote.attachments = data.attachmentFileIds.map(
-        (fileId: ObjectID) => {
-          const file: File = new File();
-          file.id = fileId;
-          return file;
-        },
-      );
-    }
-
     return this.create({
       data: publicNote,
-      props: {
-        isRoot: true,
-      },
+      props: data.props,
     });
   }
 

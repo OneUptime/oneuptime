@@ -7,6 +7,7 @@ import {
   ReadinessStatusValue,
   ReadinessSummaryWire,
   ReadinessTeamWire,
+  READINESS_METHOD_TYPE_PUSH,
   READINESS_STATUS_NOT_REACHABLE,
   READINESS_STATUS_PARTIALLY_READY,
   READINESS_STATUS_READY,
@@ -542,12 +543,24 @@ const ChannelMeter: FunctionComponent<ChannelMeterProps> = (
                 {method
                   ? method.isVerified
                     ? method.maskedIdentifier
-                    : translator.translateTemplate(
-                        "{{identifier}} (unverified)",
-                        {
-                          identifier: method.maskedIdentifier,
-                        },
-                      )
+                    : channel === READINESS_METHOD_TYPE_PUSH
+                      ? /*
+                         * A push device is verified when it is registered:
+                         * one that is not stopped receiving notifications,
+                         * and is registered again rather than verified.
+                         */
+                        translator.translateTemplate(
+                          "{{identifier}} (not receiving notifications)",
+                          {
+                            identifier: method.maskedIdentifier,
+                          },
+                        )
+                      : translator.translateTemplate(
+                          "{{identifier}} (unverified)",
+                          {
+                            identifier: method.maskedIdentifier,
+                          },
+                        )
                   : translator.translateText("Not set up")}
               </span>
             </li>
@@ -1970,6 +1983,18 @@ const OnCallReadinessPage: FunctionComponent<
                           {method.isVerified ? (
                             <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
                               {translator.translateText("Verified")}
+                            </span>
+                          ) : method.methodType ===
+                            READINESS_METHOD_TYPE_PUSH ? (
+                            /*
+                             * Registered, and then its push service or Expo
+                             * said it was gone: the words the person's own
+                             * device list uses for it.
+                             */
+                            <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                              {translator.translateText(
+                                "Not receiving notifications",
+                              )}
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">

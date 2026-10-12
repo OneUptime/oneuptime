@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 
 /*
  * Retry (or Resend) puts a notification's status back to Pending, and the
@@ -194,21 +195,39 @@ async function runBeforeUpdate(
   ).onBeforeUpdate(updateBy);
 }
 
-// The reads the guard made: with the caller's props, selecting the status.
-function guardReads(
-  notificationCase: NotificationCase,
-  props: DatabaseCommonInteractionProps,
-): Array<JSONObject> {
-  return findBy.mock.calls
-    .map((call: Array<unknown>): JSONObject => {
-      return call[0] as JSONObject;
-    })
-    .filter((read: JSONObject): boolean => {
-      return (
-        read["props"] === props &&
-        Boolean((read["select"] as JSONObject)[notificationCase.statusColumn])
-      );
-    });
+// The reads the guard made, while it ran, selecting the status.
+let readsWhileGuarding: Array<JSONObject> = [];
+
+function guardReads(notificationCase: NotificationCase): Array<JSONObject> {
+  return readsWhileGuarding.filter((read: JSONObject): boolean => {
+    return Boolean(
+      (read["select"] as JSONObject)[notificationCase.statusColumn],
+    );
+  });
+}
+
+// Records the reads the guard makes, and runs it as it is.
+function recordReadsWhileGuarding(): void {
+  readsWhileGuarding = [];
+
+  const guard: typeof SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent =
+    SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent.bind(
+      SubscriberNotificationResendAccess,
+    );
+
+  jest
+    .spyOn(SubscriberNotificationResendAccess, "assertNotQueuedWhileBeingSent")
+    .mockImplementation((async (data: never): Promise<void> => {
+      const before: number = findBy.mock.calls.length;
+
+      try {
+        await guard(data);
+      } finally {
+        for (const call of findBy.mock.calls.slice(before)) {
+          readsWhileGuarding.push(call[0] as JSONObject);
+        }
+      }
+    }) as never);
 }
 
 describe.each(CASES)(
@@ -229,6 +248,11 @@ describe.each(CASES)(
       jest
         .spyOn(notificationCase.service, "findBy")
         .mockImplementation(findBy as never);
+      // The rows a teammate's update may write: the stored ones.
+      stubRowsCallerMayWrite(notificationCase.service, () => {
+        return storedRows;
+      });
+      recordReadsWhileGuarding();
 
       // The incident hooks that are not what this is about.
       jest
@@ -259,11 +283,12 @@ describe.each(CASES)(
       );
     });
 
-    test("reads the notification with the caller's own permissions and the update's query", async () => {
+    test("reads the notification of the rows the update writes, and holds the update to them", async () => {
       const props: DatabaseCommonInteractionProps =
         notificationCase.senderProps();
+      const updateBy: UpdateBy<BaseModel> = retry(notificationCase, props);
 
-      await runBeforeUpdate(notificationCase, retry(notificationCase, props))
+      await runBeforeUpdate(notificationCase, updateBy)
         .then(() => {
           return undefined;
         })
@@ -271,11 +296,18 @@ describe.each(CASES)(
           return undefined;
         });
 
-      const reads: Array<JSONObject> = guardReads(notificationCase, props);
+      const reads: Array<JSONObject> = guardReads(notificationCase);
       expect(reads).toHaveLength(1);
-      expect(reads[0]!["query"]).toEqual(
-        expect.objectContaining({ _id: ROW_ID }),
-      );
+
+      // The row the update writes, by id - with an incident update's privacy filter kept.
+      const query: JSONObject = reads[0]!["query"] as JSONObject;
+      expect(query["_id"]).toBe(ROW_ID);
+      for (const key of Object.keys(query)) {
+        expect(["_id", "isPrivate"]).toContain(key);
+      }
+      expect(reads[0]!["props"]).toEqual({ isRoot: true, ignoreHooks: true });
+      // The update writes only the row checked.
+      expect((updateBy.query as JSONObject)["_id"]).toBe(ROW_ID);
     });
 
     test.each([
@@ -313,7 +345,7 @@ describe.each(CASES)(
       expect((error as Error | null)?.message).not.toBe(
         SubscriberNotificationResend.beingSentMessage,
       );
-      expect(guardReads(notificationCase, props)).toEqual([]);
+      expect(guardReads(notificationCase)).toEqual([]);
     });
 
     test("a master admin is checked too: the send's state is not a permission", async () => {
@@ -336,7 +368,7 @@ describe.each(CASES)(
           return undefined;
         });
 
-      expect(guardReads(notificationCase, props)).toEqual([]);
+      expect(guardReads(notificationCase)).toEqual([]);
     });
 
     test("an edit that does not send it again is not refused", async () => {
@@ -363,19 +395,24 @@ describe.each(CASES)(
           );
         });
 
-      expect(guardReads(notificationCase, props)).toEqual([]);
+      expect(guardReads(notificationCase)).toEqual([]);
     });
   },
 );
 
 describe("SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent", () => {
   let serviceFindBy: MockFunction;
+  let storedIncidents: Array<Incident> = [];
 
   beforeEach(() => {
     serviceFindBy = getJestMockFunction();
     jest
       .spyOn(IncidentService, "findBy")
       .mockImplementation(serviceFindBy as never);
+    // The incidents the caller's update may write: the ones each test stores.
+    stubRowsCallerMayWrite(IncidentService, () => {
+      return storedIncidents;
+    });
   });
 
   afterEach(() => {
@@ -387,13 +424,15 @@ describe("SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent", () 
     written: JSONObject;
     refusal?: string;
   }): Promise<void> {
-    serviceFindBy.mockResolvedValue(
-      data.rows.map((values: JSONObject): Incident => {
+    storedIncidents = data.rows.map(
+      (values: JSONObject, index: number): Incident => {
         const row: Incident = new Incident();
+        row._id = `a1b2c3d4-0000-4000-8000-00000000010${index}`;
         Object.assign(row, values);
         return row;
-      }) as never,
+      },
     );
+    serviceFindBy.mockResolvedValue(storedIncidents as never);
 
     return SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
       modelType: Incident,

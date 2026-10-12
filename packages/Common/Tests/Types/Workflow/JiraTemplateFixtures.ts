@@ -831,3 +831,33 @@ export type QuotedFunction = (value: JSONValue) => string;
 export const quoted: QuotedFunction = (value: JSONValue): string => {
   return JSON.stringify(value, null, 2);
 };
+
+export type JiraLinkingEventArgsFunction = (
+  event: JSONValue,
+  site?: string | null,
+) => JSONObject;
+
+/*
+ * What a script that reads a Jira event and links its issue receives: the
+ * workflow's Jira Site URL as its variable holds it (JIRA_SITE unless a test
+ * says otherwise), and the webhook's request body quoted into the JSON
+ * arguments after it. A string body is handed over as it is, the way the
+ * runtime writes text into a quoted argument, so a test can send a body
+ * that is not JSON, or the braces of a reference that never resolved. A
+ * site of null leaves the setting out, as in a workflow whose arguments no
+ * longer name it.
+ */
+export const jiraLinkingEventArgs: JiraLinkingEventArgsFunction = (
+  event: JSONValue,
+  site: string | null = JIRA_SITE,
+): JSONObject => {
+  const args: JSONObject = {};
+
+  if (site !== null) {
+    args["jiraSiteUrl"] = site;
+  }
+
+  args["payload"] = typeof event === "string" ? event : quoted(event);
+
+  return args;
+};

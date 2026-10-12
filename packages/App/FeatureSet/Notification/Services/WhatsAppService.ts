@@ -37,6 +37,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { fitWhatsAppTemplateVariables } from "Common/Utils/WhatsAppTemplateFit";
 
 const SENSITIVE_MESSAGE_PLACEHOLDER: string =
   "This message is sensitive and is not logged";
@@ -289,15 +290,21 @@ export default class WhatsAppService {
 
         const components: JSONArray = [];
 
-        if (
-          message.templateVariables &&
-          Object.keys(message.templateVariables).length > 0
-        ) {
+        /*
+         * Meta refuses a template whose text, its variables filled in, is
+         * more than 1,024 characters, and the message is lost: the longest
+         * variables are cut to fit (fitWhatsAppTemplateVariables).
+         */
+        const templateVariables: Record<string, string> | undefined =
+          fitWhatsAppTemplateVariables(
+            message.templateKey,
+            message.templateVariables,
+          );
+
+        if (templateVariables && Object.keys(templateVariables).length > 0) {
           const parameters: JSONArray = [];
 
-          for (const [key, value] of Object.entries(
-            message.templateVariables,
-          )) {
+          for (const [key, value] of Object.entries(templateVariables)) {
             parameters.push({
               type: "text",
               parameter_name: key,

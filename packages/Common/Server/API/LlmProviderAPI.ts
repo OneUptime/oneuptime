@@ -48,9 +48,16 @@ export default class LlmProviderAPI extends BaseAPI<
   public constructor() {
     super(LlmProvider, LlmProviderService);
 
+    /*
+     * The shared global providers a project falls back to, as Settings → AI
+     * lists them: their name, description and price, read as OneUptime -
+     * never their address, model or parameters - for anyone signed in. The
+     * LLM provider table itself is read by a project's own members only.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/global-llms`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const llmProviders: Array<LlmProvider> =

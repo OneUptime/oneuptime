@@ -1,60 +1,86 @@
-# Kubernetes Cost Observability
+# Kubernetes लागत ऑब्ज़र्वेबिलिटी
 
-## अवलोकन
+देखें कि हर Kubernetes वर्कलोड की लागत कितनी है — हर नेमस्पेस, वर्कलोड और पॉड का खर्च, निष्क्रिय क्षमता, और हर request का कितना हिस्सा उपयोग होता है — उन मेट्रिक्स, लॉग और ट्रेस के बगल में जिन्हें [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) पहले से इकट्ठा करता है। एक Helm मान इसे चालू करता है, बिना किसी क्लाउड क्रेडेंशियल के, और फिर क्लस्टर का **Costs** पेज आपको बताता है कि कौन-से request घटाने हैं।
 
-OneUptime आपको दिखा सकता है कि प्रत्येक Kubernetes workload की वास्तव में क्या लागत है — प्रति namespace, प्रति controller, और प्रति pod खर्च, साथ ही idle क्षमता और request-बनाम-usage दक्षता — ठीक उन मेट्रिक्स, logs, और traces के बगल में जो आप पहले से ही [Kubernetes Agent](/docs/telemetry/kubernetes-agent) से एकत्र करते हैं।
+:::cards
+- [इसे चालू करें](#लागत-ऑब्ज़र्वेबिलिटी-चालू-करें): एक `helm upgrade`।
+- [अपना इंजन लाएँ](#पहले-से-kubecost-या-opencost-चला-रहे-हैं): एजेंट को Kubecost या OpenCost की ओर इंगित करें।
+- [Right-sizing](#right-sizing): request की अनुशंसाएँ, और वे कैसे बनती हैं।
+- [समस्या निवारण](#समस्या-निवारण): खाली पेज, गायब अनुशंसाएँ।
+:::
 
-इसे सक्षम करना एक ही कमांड है:
+## यह कैसे काम करता है
+
+`cost.enabled=true` के साथ चार्ट एजेंट के बगल में चार चीज़ें चलाता है:
+
+```mermaid title="लागत के आँकड़े कहाँ से आते हैं"
+flowchart TB
+    cadvisor["API सर्वर के नोड प्रॉक्सी<br/>से cAdvisor"] --> prometheus["बंडल किया गया Prometheus"]
+    prometheus --> opencost["OpenCost"]
+    pricing["क्लाउड सूची मूल्य<br/>या आपका रेट कार्ड"] --> opencost
+    opencost -->|"एक बार में एक<br/>बंद घंटा"| poller["लागत पोलर"]
+    opencost -->|"लागत मेट्रिक्स"| collector["एजेंट का कलेक्टर"]
+    poller -->|"लागत पंक्तियाँ"| oneuptime["OneUptime"]
+    collector -->|"OTLP"| oneuptime
+```
+
+1. **OpenCost**, ओपन-सोर्स लागत इंजन (Apache-2.0, CNCF; वही [cost-model](https://github.com/kubecost/cost-model) जिस पर Kubecost भी चलता है)। यह क्लस्टर पर नज़र रखता है, आपके नोड, वॉल्यूम और लोड बैलेंसर की कीमत तय करता है, और हिसाब लगाता है कि हर वर्कलोड की लागत कितनी है।
+2. **एक छोटा Prometheus**, जिसकी OpenCost को उपयोग और कीमत के इतिहास के लिए ज़रूरत है। यह एक रेप्लिका चलाता है, 7 दिन का इतिहास रखता है, और ठीक दो लक्ष्य स्क्रैप करता है: API सर्वर के नोड प्रॉक्सी से cAdvisor, और खुद OpenCost (जो अपने संसाधन-request मेट्रिक्स खुद भेजता है, इसलिए kube-state-metrics शामिल नहीं है)। यह कभी क्लस्टर के बाहर उजागर नहीं होता, और इसका डेटा कभी उससे बाहर नहीं जाता।
+3. **लागत पोलर** (`cost.agent`)। हर बंद घंटे में एक बार यह OpenCost का Allocation API पढ़ता है और हर वर्कलोड की एक लागत पंक्ति OneUptime को भेजता है: CPU, मेमोरी, GPU, वॉल्यूम, नेटवर्क, लोड बैलेंसर और निष्क्रियता, दक्षता के साथ। हर घंटा एक बार भेजा जाता है; सर्वर वह घंटा छोड़ देता है जो उसके पास पहले से है, इसलिए फिर से शुरू होने पर खर्च दो बार नहीं गिना जा सकता।
+4. **लागत मेट्रिक्स का एक स्क्रैप** (`cost.metrics`)। एजेंट का कलेक्टर OpenCost के लागत मेट्रिक्स स्क्रैप करता है और उन्हें क्लस्टर के बाकी मेट्रिक्स के साथ भेजता है।
+
+OpenCost नोड की कीमत आपके क्लाउड प्रदाता के सार्वजनिक सूची मूल्यों (AWS, Google Cloud, Azure) से, बिना किसी क्रेडेंशियल के, तय करता है। जिन क्लस्टर का कोई क्लाउड सूची मूल्य नहीं है, वे इसके बजाय एक [रेट कार्ड](#ऑन-प्रेम-और-बेयर-मेटल-मूल्य-निर्धारण) सेट करते हैं।
+
+## लागत ऑब्ज़र्वेबिलिटी चालू करें
+
+:::steps
+### cost.enabled के साथ एजेंट अपग्रेड करें
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
-यह अपने आप में एक पूर्ण इंस्टॉल है। यह chart open-source [OpenCost](https://opencost.io) इंजन (Apache-2.0, CNCF — वही [cost-model](https://github.com/kubecost/cost-model) जो Kubecost को भी शक्ति देता है) और साथ ही एक न्यूनतम, समर्पित Prometheus बंडल करता है जिसकी उसे usage इतिहास के लिए आवश्यकता है — अदृश्य plumbing के दो छोटे pods। OpenCost आपके nodes, volumes, और load balancers की कीमत आपके cloud provider की **सार्वजनिक सूची कीमतों से स्वचालित रूप से, बिना किसी credentials के** लगाता है (AWS, GCP, Azure); on-prem क्लस्टर इसके बजाय एक rate card सेट करते हैं (नीचे देखें)।
+यह एक पूरा इंस्टॉल है: दो छोटे अतिरिक्त पॉड, OpenCost और उसका Prometheus। अगर आपने एजेंट किसी दूसरे रिलीज़ नाम या नेमस्पेस के अंतर्गत इंस्टॉल किया है, तो अपना वाला उपयोग करें (`helm list -A | grep kubernetes-agent` उन्हें दिखाता है)।
 
-लगभग एक घंटे के भीतर (पहली बंद hourly window), आपको मिलता है:
+### पहले बंद घंटे का इंतज़ार करें
 
-- **प्रति क्लस्टर एक Costs पेज** (_Kubernetes → आपका क्लस्टर → Costs_): खर्च का रुझान, cpu/memory/storage विभाजन के साथ प्रति namespace खर्च, प्रति workload खर्च, idle खर्च, और दक्षता।
-- **एक प्रोजेक्ट-स्तरीय Costs पेज** (_Kubernetes → Costs_): प्रोजेक्ट के प्रत्येक क्लस्टर में हुआ खर्च।
-- **एक Kubernetes Cost डैशबोर्ड टेम्पलेट** (_डैशबोर्ड → बनाएँ → Kubernetes Cost Dashboard_): node की hourly लागत के रुझान, CPU/RAM इकाई लागतें, persistent volume और load balancer खर्च।
-- **मेट्रिक एक्सप्लोरर** में कच्चे लागत मेट्रिक्स (`node_total_hourly_cost`, `pv_hourly_cost`, ...), जो कस्टम डैशबोर्ड और metric अलर्ट में उपयोग किए जा सकते हैं।
+पहली लागत पहला पूरा घंटा बंद होने के बाद दिखती है, और OpenCost को शुरू होने के बाद अपना पहला घंटा आँकने में कुछ मिनट लगते हैं।
 
-## यह कैसे काम करता है
+### Costs पेज खोलें
 
-`cost.enabled=true` के साथ chart चार चीज़ें चलाता है:
+- **उत्पाद → बुनियादी ढांचा → Kubernetes → Costs** प्रोजेक्ट के हर क्लस्टर का खर्च दिखाता है।
+- किसी क्लस्टर पर **Costs** उसके खर्च का रुझान, CPU, मेमोरी और स्टोरेज के बँटवारे के साथ **Spend by Namespace**, **Spend by Workload**, निष्क्रिय खर्च, दक्षता और **Right-Sizing** कार्ड दिखाता है।
+:::
 
-1. **OpenCost** (बंडल किया हुआ) — क्लस्टर पर नज़र रखता है, cloud सूची कीमतें खोजता है, और प्रति workload पूर्व-मूल्यांकित cost allocations की गणना करता है।
-2. **एक न्यूनतम Prometheus** (बंडल किया हुआ) — OpenCost को usage/कीमत इतिहास के लिए एक PromQL endpoint की आवश्यकता होती है। यह केवल इसी के लिए मौजूद है: एक single replica, 3-दिन का retention, और ठीक दो scrape targets (API-server node proxy के माध्यम से cAdvisor, और स्वयं OpenCost — OpenCost अपने KSM-शैली के resource-request मेट्रिक्स स्वयं उत्सर्जित करता है, इसलिए kube-state-metrics शामिल नहीं है)। इसे कभी क्लस्टर के बाहर उजागर नहीं किया जाता और इसका डेटा कभी क्लस्टर नहीं छोड़ता।
-3. **Cost allocation poller** (`cost.agent`) — प्रत्येक बंद hourly window पर एक बार OpenCost के Allocation API को poll करता है और प्रति-workload लागत पंक्तियाँ (cpu / ram / gpu / pv / network / load balancer / idle, साथ ही दक्षता) OneUptime को POST करता है। Windows ठीक एक बार ही भेजी जाती हैं — सर्वर उन windows को छोड़ देता है जिन्हें वह पहले ही ingest कर चुका है, इसलिए restarts खर्च की दोहरी गिनती नहीं कर सकते।
-4. **एक cost metrics scrape** (`cost.metrics`) — एजेंट का OpenTelemetry collector OpenCost के Prometheus मेट्रिक्स (लागत series तक allowlisted) को उसी OTLP पाइपलाइन के माध्यम से scrape करता है जिससे आपके बाकी क्लस्टर मेट्रिक्स जाते हैं।
+लागत मेट्रिक्स (`node_total_hourly_cost`, `pv_hourly_cost` और बाकी) सामान्य मेट्रिक्स हैं: वे मेट्रिक एक्सप्लोरर में, कस्टम डैशबोर्ड पर और मेट्रिक मॉनिटर में मिलते हैं। तैयार डैशबोर्ड के लिए **उत्पाद → डैशबोर्ड** पर जाएँ, **डैशबोर्ड बनाएँ** चुनें और **Kubernetes Cost Dashboard** चुनें: नोड की प्रति घंटा लागत के रुझान, CPU और मेमोरी की इकाई लागत, और वॉल्यूम और लोड बैलेंसर का खर्च।
 
 ## पहले से Kubecost या OpenCost चला रहे हैं?
 
-इसके बजाय chart को अपने मौजूदा इंजन की ओर इंगित करें — तब कुछ भी बंडल नहीं किया जाता:
+इसके बजाय एजेंट को अपने इंजन की ओर इंगित करें, और कुछ भी बंडल नहीं होता:
 
 ```bash
-helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
   --reset-then-reuse-values \
   --set cost.enabled=true \
   --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
 ```
 
-| इंजन     | विशिष्ट service URL                                              |
-| -------- | ---------------------------------------------------------------- |
-| OpenCost | `http://opencost.opencost.svc.cluster.local:9003`                |
-| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090`  |
+| इंजन | सामान्य सेवा URL |
+| --- | --- |
+| OpenCost | `http://opencost.opencost.svc.cluster.local:9003` |
+| Kubecost | `http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090` |
 
-Allocation API पथ स्वतः पहचाना जाता है (Kubecost के लिए `/model/allocation`, OpenCost के लिए `/allocation/compute` या `/allocation`)। `cost.engine.allocationPath` केवल गैर-मानक इंस्टॉल के लिए सेट करें।
+Allocation API का पथ अपने-आप मिल जाता है (Kubecost के लिए `/model/allocation`, OpenCost के लिए `/allocation/compute` या `/allocation`)। `cost.engine.allocationPath` सिर्फ़ किसी असामान्य इंस्टॉल के लिए सेट करें। मेमोरी अनुशंसाओं के लिए `cost.engine.prometheusUrl` भी सेट करें ([इसके पीछे का डेटा](#इसके-पीछे-का-डेटा) देखें)।
 
-## On-Prem / Bare-Metal मूल्य निर्धारण
+## ऑन-प्रेम और बेयर-मेटल मूल्य निर्धारण
 
-जिन क्लस्टरों के nodes की कोई सार्वजनिक cloud सूची कीमत नहीं है, वे एक rate card सेट कर सकते हैं — फिर OpenCost प्रत्येक संसाधन की कीमत इन्हीं आँकड़ों से लगाता है। सभी मान **USD प्रति resource-hour** हैं:
+जिन क्लस्टर के नोड का कोई सार्वजनिक क्लाउड सूची मूल्य नहीं है, वे एक रेट कार्ड सेट कर सकते हैं। तब OpenCost हर संसाधन की कीमत इन आँकड़ों से तय करता है, सभी USD प्रति संसाधन-घंटा में:
 
-```yaml
+```yaml title="values.yaml"
 cost:
   enabled: true
   opencost:
@@ -66,11 +92,11 @@ cost:
       gpuPerHour: "0.95"
 ```
 
-## उपयोगी घुंडियाँ
+## जानने लायक सेटिंग
 
-सभी वैकल्पिक हैं — पूरी सूची के लिए chart का `values.yaml` देखें:
+सभी वैकल्पिक हैं; चार्ट की `values.yaml` में पूरी सूची है:
 
-```yaml
+```yaml title="values.yaml"
 cost:
   agent:
     windowSeconds: 3600   # allocation window length (hourly = native)
@@ -85,18 +111,87 @@ cost:
     scrapeInterval: 60s
 ```
 
-## लागत पर अलर्टिंग
+## Right-sizing
 
-Scrape किए गए लागत मेट्रिक्स सामान्य OneUptime मेट्रिक्स हैं, इसलिए आप उन पर किसी भी अन्य चीज़ की तरह metric अलर्ट लगा सकते हैं — जैसे तब अलर्ट करें जब औसत `node_total_hourly_cost` किसी बजट सीमा से ऊपर उठे, या जब `pv_hourly_cost` किसी ऐसे volume class के लिए दिखाई दे जो क्लस्टर में मौजूद ही नहीं होना चाहिए।
+किसी क्लस्टर के **Costs** पेज पर **Right-Sizing** कार्ड हर उस कंटेनर के लिए एक CPU और एक मेमोरी request की अनुशंसा करता है जिसका उसके पास पर्याप्त इतिहास है, इस क्रम में कि हर बदलाव हर महीने कितना बचाता है।
 
-## डेटा मॉडल और Retention
+अनुशंसा देखी गई माँग और 25% गुंजाइश है, ऐसे मान तक गोल की गई जिसे आप मैनिफ़ेस्ट में पेस्ट कर सकें (10m CPU, 16Mi मेमोरी):
 
-Allocation पंक्तियाँ ClickHouse में संग्रहीत की जाती हैं (प्रति क्लस्टर, window, namespace, controller, pod, और container एक पंक्ति) और क्लस्टर के telemetry retention का पालन करती हैं: Kubernetes क्लस्टर संसाधन पर `retainTelemetryDataForDays` सेटिंग, जो न होने पर प्रोजेक्ट के data retention पर वापस जाती है। Idle और unallocated क्षमता `__idle__` / `__unallocated__` namespaces के अंतर्गत सामान्य पंक्तियों के रूप में संग्रहीत की जाती है ताकि उन्हें workload खर्च के समान group-bys के साथ query किया जा सके।
+- CPU का आकार प्रति घंटा औसत उपयोग के 95वें पर्सेंटाइल से तय होता है: इतना ऊँचा कि असली लोड को कवर करे, इतना नीचा कि एक स्पाइक पूरे महीने के लिए request न फुलाए।
+- मेमोरी का आकार working set के शिखर से तय होता है, कभी औसत से नहीं ([इसके पीछे का डेटा](#इसके-पीछे-का-डेटा) देखें)।
+
+request की अनुशंसा होती है; limit की नहीं। request वह है जो शेड्यूलर आरक्षित करता है और जिससे बिल बनता है, इसलिए यही वह संख्या है जो लागत बदलती है। limit इस बारे में फ़ैसला है कि गलत व्यवहार करने वाले कंटेनर को थ्रॉटल किया जाए या मार दिया जाए, और यह फ़ैसला उपयोग डेटा आपके लिए नहीं कर सकता।
+
+हर कंटेनर की तुलना उसके मौजूदा request से होती है:
+
+| निष्कर्ष | इसका अर्थ |
+| --- | --- |
+| ज़रूरत से ज़्यादा प्रावधानित | यह जितना उपयोग करता है उससे साफ़ तौर पर ज़्यादा आरक्षित करता है। बचत यहीं से आती है। |
+| ज़रूरत से कम प्रावधानित | यह जितना उपयोग करता है उससे कम आरक्षित करता है, इसलिए थ्रॉटल होता है या OOM kill के खतरे में है। इसे ठीक करने में पैसा लगता है, और कार्ड इसे बढ़ोतरी के रूप में दिखाता है। |
+| कोई request सेट नहीं | घटाने को कुछ नहीं है, पर शेड्यूलर कंटेनर को सुरक्षित रूप से नहीं रख सकता, और दबाव में सबसे पहले इसी को निकाला जाता है। |
+
+अपनी अनुशंसा के 15% के भीतर का कंटेनर सही आकार का माना जाता है और छोड़ दिया जाता है: किसी request से 3% घटाने के लिए किसी को मैनिफ़ेस्ट संपादित नहीं करना चाहिए।
+
+दो सुरक्षा उपाय सलाह को ईमानदार रखते हैं। किसी वर्कलोड का आकार तय होने से पहले उसे कम से कम 24 घंटे की लागत विंडो चाहिए, क्योंकि चार घंटे की विंडो किसी रात के बैच जॉब को आराम में पकड़ सकती है और उसे शून्य तक घटाने की सलाह दे सकती है। और बचत का अनुमान आप जिस विंडो को देख रहे हैं उसकी लंबाई से लगाया जाता है, पंक्तियों की संख्या से नहीं, इसलिए किसी Deployment की बचत उसकी रेप्लिका संख्या से गुणा नहीं होती। अनुमान मानता है कि खर्च उस चीज़ के साथ बढ़ता है जो इंजन ने आवंटित की, यानी `max(request, usage)`; ज़रूरत से ज़्यादा प्रावधानित कंटेनर के लिए यह request है, इसलिए बचत का आँकड़ा सटीक है।
+
+### इसके पीछे का डेटा
+
+खर्च के साथ-साथ पोलर वह भी इकट्ठा करता है जिसकी अनुशंसा को ज़रूरत है: हर कंटेनर के CPU और मेमोरी request, limit और उपयोग।
+
+मेमोरी को एक और स्रोत चाहिए। Allocation API हर विंडो का सिर्फ़ एक औसत बताता है, और प्रति घंटा औसत उस उछाल को छिपा देता है जो किसी कंटेनर को OOM-kill करता है, इसलिए उससे मेमोरी का आकार तय करना खतरनाक होगा। इसके बजाय पोलर हर कंटेनर का मेमोरी शिखर Prometheus से पढ़ता है, `(namespace, pod, container)` पर जोड़कर:
+
+- बंडल किए गए इंजन (डिफ़ॉल्ट) के साथ यह चार्ट का अपना Prometheus उपयोग करता है। कुछ सेट नहीं करना।
+- अपने इंजन (`cost.engine.url`) के साथ, `cost.engine.prometheusUrl` को cAdvisor स्क्रैप करने वाले Prometheus की ओर इंगित करें, और अगर उसके स्क्रैप जॉब का नाम `kubernetes-nodes-cadvisor` नहीं है तो `cost.engine.prometheusCadvisorJob` सेट करें।
+- Prometheus के बिना CPU अनुशंसाएँ सहेजे गए प्रति घंटा औसतों से फिर भी काम करती हैं, और मेमोरी अनुशंसाएँ अनुमान लगाने के बजाय छोड़ दी जाती हैं।
+
+Prometheus का बंद होना खर्च का संग्रह कभी नहीं रोकता: शिखर एक अतिरिक्त चीज़ हैं, और घंटा उनके बिना भेजा जाता है। CPU जानबूझकर Prometheus उपयोग नहीं करता: बहुत बड़ा CPU request सिर्फ़ थ्रॉटल करता है जबकि बहुत छोटा मेमोरी request कंटेनर को मार देता है, इसलिए CPU के लिए प्रति घंटा औसत सुरक्षित हैं, और पूरे क्लस्टर में हर कंटेनर की CPU दर की क्वेरी इतनी भारी है कि छोटे Prometheus को गिरा दे।
+
+## लागत पर अलर्ट करना
+
+लागत मेट्रिक्स सामान्य मेट्रिक्स हैं, इसलिए कोई [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor) बाकी किसी भी चीज़ की तरह उन पर अलर्ट कर सकता है: उदाहरण के लिए, जब औसत `node_total_hourly_cost` किसी बजट से ऊपर जाए, या जब किसी ऐसी वॉल्यूम क्लास के लिए `pv_hourly_cost` दिखे जो क्लस्टर में होनी ही नहीं चाहिए।
+
+## डेटा मॉडल और प्रतिधारण
+
+लागत पंक्तियाँ ClickHouse में सहेजी जाती हैं, हर क्लस्टर, विंडो, नेमस्पेस, कंट्रोलर, पॉड और कंटेनर के लिए एक। वे क्लस्टर के टेलीमेट्री प्रतिधारण का पालन करती हैं: क्लस्टर का `retainTelemetryDataForDays`, या उसके सेट न होने पर प्रोजेक्ट का डेटा प्रतिधारण। निष्क्रिय और अनावंटित क्षमता `__idle__` और `__unallocated__` नेमस्पेस के अंतर्गत सामान्य पंक्तियों के रूप में सहेजी जाती है, इसलिए वे वर्कलोड खर्च की तरह समूहित और फ़िल्टर होती हैं।
 
 ## समस्या निवारण
 
-- **Costs पेज खाली हैं** — cost एजेंट के logs जाँचें: `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-cost`। एक `401` का मतलब है कि ingestion key अमान्य है; `cost engine did not answer any known allocation path` का मतलब है कि इंजन अभी तक चालू नहीं है (बंडल किए गए OpenCost को इंस्टॉल के बाद अपनी पहली windows की कीमत लगाने में कुछ मिनट लगते हैं) या `cost.engine.url` गलत है।
-- **बंडल किया गया OpenCost तैयार नहीं** — `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-opencost`। यह log करता है कि उसने कौन सा cloud provider पहचाना और मूल्य डेटा लोड हुआ या नहीं।
-- **डैशबोर्ड टेम्पलेट कोई डेटा नहीं दिखाता** — टेम्पलेट scrape किए गए लागत मेट्रिक्स पढ़ता है; पुष्टि करें कि `cost.metrics.enabled` `true` है।
-- **संख्याएँ इंजन के अपने UI से भिन्न हैं** — OneUptime प्रत्येक लागत घटक में इंजन के reconciliation समायोजन शामिल करता है और पूरी बंद windows भेजता है; चालू घंटे का आंशिक खर्च window बंद होने के बाद दिखाई देता है।
-- **Prometheus pod पुनरारंभ हुआ** — डिफ़ॉल्ट `emptyDir` storage के साथ एक restart कुछ घंटों का usage इतिहास खो देता है, इसलिए उन windows के allocations छोटे हो सकते हैं। यदि यह आपके लिए मायने रखता है तो `cost.prometheus.persistence.enabled=true` सेट करें।
+:::details Costs पेज खाली हैं
+लागत पोलर के लॉग पढ़ें: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-cost`। (जब रिलीज़ नाम में `kubernetes-agent` न हो तो Deployment का नाम `<release>-kubernetes-agent-cost` होता है; `kubectl get deploy -n oneuptime-agent` उन्हें सूचीबद्ध करता है।) `HTTP 401` का अर्थ है कि OneUptime ने इंजेशन कुंजी अस्वीकार की। `did not answer any known allocation path` का अर्थ है कि इंजन अभी चालू नहीं हुआ (बंडल किए गए OpenCost को अपने पहले घंटे आँकने में कुछ मिनट लगते हैं) या `cost.engine.url` गलत है।
+:::
+
+:::details बंडल किया गया OpenCost तैयार नहीं है
+इसके लॉग पढ़ें: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`। ये बताते हैं कि इसने कौन-सा क्लाउड प्रदाता पहचाना और क्या इसका मूल्य डेटा लोड हुआ।
+:::
+
+:::details OpenCost लॉग में mkdir /var/configs: permission denied आता है
+एक पुराना चार्ट OpenCost को बिना लिखने योग्य कॉन्फ़िग डायरेक्टरी के चलाता था, इसलिए `Error downloading default pricing data` की वजह से उसका Allocation API जवाब नहीं दे पाता था और पोलर रुक जाता था, जबकि पॉड `Running` रहता था, `/healthz` हरा रहता था और नोड लागत मेट्रिक्स प्रकाशित होते रहते थे। मौजूदा चार्ट इसे ठीक करते हैं: `helm repo update` चलाएँ, फिर `--reset-then-reuse-values` के साथ अपग्रेड करें। लागत पंक्तियाँ अगले पोल पर दिखती हैं।
+:::
+
+:::details Kubernetes Cost Dashboard कोई डेटा नहीं दिखाता
+टेम्पलेट स्क्रैप किए गए लागत मेट्रिक्स पढ़ता है: जाँचें कि `cost.metrics.enabled` का मान `true` है।
+:::
+
+:::details Right-Sizing कार्ड खाली है
+या तो समय सीमा उन 24 घंटों से छोटी है जो किसी अनुशंसा को चाहिए (उसे बढ़ाएँ), या हर कंटेनर पहले से अपने अनुशंसित request के 15% के भीतर है, जो कार्ड बताता है।
+:::
+
+:::details मेमोरी अनुशंसाएँ - दिखाती हैं, पर CPU अनुशंसाएँ काम करती हैं
+कोई मेमोरी शिखर OneUptime तक नहीं पहुँचा, इसलिए औसत से अनुमान लगाने के बजाय मेमोरी का आकार तय नहीं किया गया। अपने इंजन के साथ `cost.engine.prometheusUrl` सेट करें। कार्ड बताता है कि इससे कितने कंटेनर प्रभावित हैं।
+:::
+
+:::details आँकड़े इंजन के अपने UI से अलग हैं
+OneUptime इंजन के मिलान समायोजन हर लागत घटक में शामिल करता है, और पूरे बंद घंटे भेजता है: मौजूदा घंटे का खर्च उसके बंद होने के बाद दिखता है।
+:::
+
+:::details बंडल किया गया Prometheus फिर से शुरू हुआ
+डिफ़ॉल्ट `emptyDir` स्टोरेज के साथ, फिर से शुरू होने पर कुछ घंटों का उपयोग इतिहास खो जाता है, इसलिए उन घंटों की लागत कम आ सकती है। अगर यह आपके लिए मायने रखता है तो `cost.prometheus.persistence.enabled=true` सेट करें।
+:::
+
+## अगले कदम
+
+:::cards
+- [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent): एजेंट इंस्टॉल करें, और वह सब जो यह इकट्ठा करता है।
+- [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor): जब खर्च किसी बजट को पार करे तो अलर्ट करें।
+- [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor): क्लस्टर की सेहत पर भी अलर्ट करें।
+:::

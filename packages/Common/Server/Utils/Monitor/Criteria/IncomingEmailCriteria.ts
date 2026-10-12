@@ -9,6 +9,7 @@ import {
 import IncomingEmailMonitorRequest from "../../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import Typeof from "../../../../Types/Typeof";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ReceivingSilence, { MeasuredSilence } from "../ReceivingSilence";
 
 export default class IncomingEmailCriteria {
   @CaptureSpan()
@@ -47,12 +48,8 @@ export default class IncomingEmailCriteria {
 
       logger.debug("Last Email Time: " + lastEmailTime);
 
-      const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
-        lastEmailTime,
-        emailData.checkedAt || OneUptimeDate.getCurrentDate(),
-      );
-
-      logger.debug("Difference in minutes: " + differenceInMinutes);
+      const checkedAt: Date =
+        emailData.checkedAt || OneUptimeDate.getCurrentDate();
 
       if (!value) {
         return null;
@@ -71,6 +68,27 @@ export default class IncomingEmailCriteria {
         return null;
       }
 
+      /*
+       * Mail cannot reach OneUptime while it is not receiving - a restart, an
+       * upgrade, a backed-up ingest queue - so that time is not silence held
+       * against the sender (issue #2825). With no such time this is simply
+       * the minutes since the last email.
+       */
+      const silence: MeasuredSilence = await ReceivingSilence.measure({
+        lastHeardAt: lastEmailTime,
+        now: checkedAt,
+        thresholdInMinutes: value as number,
+      });
+      const differenceInMinutes: number = silence.receivingMinutes;
+
+      logger.debug("Difference in minutes: " + differenceInMinutes);
+
+      const lastReceived: string = ReceivingSilence.describe({
+        silence,
+        verb: "received",
+        what: "email",
+      });
+
       if (input.criteriaFilter.filterType === FilterType.RecievedInMinutes) {
         logger.debug(
           "Checking RecievedInMinutes for Monitor: " +
@@ -82,7 +100,7 @@ export default class IncomingEmailCriteria {
               input.dataToProcess.monitorId.toString() +
               " is true",
           );
-          return `Email received in ${value} minutes. It was received ${differenceInMinutes} minutes ago.`;
+          return `Email received in ${value} minutes. ${lastReceived}`;
         }
         return null;
       }
@@ -98,7 +116,7 @@ export default class IncomingEmailCriteria {
               input.dataToProcess.monitorId.toString() +
               " is true",
           );
-          return `Email not received in ${value} minutes. It was received ${differenceInMinutes} minutes ago.`;
+          return `Email not received in ${value} minutes. ${lastReceived}`;
         }
         return null;
       }

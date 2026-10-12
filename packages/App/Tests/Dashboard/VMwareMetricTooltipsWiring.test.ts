@@ -391,7 +391,7 @@ describe("VMware overview (Index.tsx)", () => {
       ["Virtual Machines", "overviewVirtualMachineCount", true],
       ["Datastores", "overviewDatastoreCount", true],
       ["Resource Pools", "overviewResourcePoolCount", true],
-      ["Agent Status", "overviewAgentStatus", false],
+      ["Data Status", "overviewAgentStatus", false],
     ]);
     expect(countOf(code, "<InfoCard")).toBe(cards.length);
   });

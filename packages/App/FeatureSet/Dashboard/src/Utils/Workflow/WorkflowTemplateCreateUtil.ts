@@ -100,6 +100,85 @@ export const validateTemplateVariableValues: ValidateTemplateVariableValuesFunct
     return errors;
   };
 
+type WithoutTrailingSlashesFunction = (value: string) => string;
+
+// A loop, not a pattern: what is typed into a field can be as long as anyone likes.
+const withoutTrailingSlashes: WithoutTrailingSlashesFunction = (
+  value: string,
+): string => {
+  let end: number = value.length;
+
+  while (end > 0 && value.charAt(end - 1) === "/") {
+    end--;
+  }
+
+  return value.slice(0, end);
+};
+
+/** What typing into one setting of the Configure step does to them all. */
+export interface TemplateVariableEdit {
+  values: WorkflowTemplateVariableValues;
+  /** The settings someone has typed into, which nothing fills in any more. */
+  typedVariableNames: Array<string>;
+  /** The setting typed into, and every one filled in from it. */
+  changedVariableNames: Array<string>;
+}
+
+interface EditTemplateVariableProps {
+  template: WorkflowTemplate;
+  values: WorkflowTemplateVariableValues;
+  typedVariableNames: Array<string>;
+  variableName: string;
+  value: string;
+}
+
+export type EditTemplateVariableFunction = (
+  props: EditTemplateVariableProps,
+) => TemplateVariableEdit;
+
+/**
+ * A setting takes what is typed into it. Every setting prefilled from it
+ * (WorkflowTemplateVariable.prefilledFrom) that nobody has typed into takes
+ * it too, trimmed and without the slashes it may end with: the Jira API URL
+ * follows the Jira Site URL, and the requests built on it never get a
+ * doubled slash. A setting counts as typed into while it holds something,
+ * so emptying it lets it follow again.
+ */
+export const editTemplateVariable: EditTemplateVariableFunction = (
+  props: EditTemplateVariableProps,
+): TemplateVariableEdit => {
+  const values: WorkflowTemplateVariableValues = {
+    ...props.values,
+    [props.variableName]: props.value,
+  };
+  const changedVariableNames: Array<string> = [props.variableName];
+
+  for (const variable of props.template.variables) {
+    if (
+      variable.prefilledFrom === props.variableName &&
+      variable.name !== props.variableName &&
+      !props.typedVariableNames.includes(variable.name)
+    ) {
+      values[variable.name] = withoutTrailingSlashes(props.value.trim());
+      changedVariableNames.push(variable.name);
+    }
+  }
+
+  const others: Array<string> = props.typedVariableNames.filter(
+    (name: string): boolean => {
+      return name !== props.variableName;
+    },
+  );
+
+  return {
+    values: values,
+    typedVariableNames: isBlank(props.value)
+      ? others
+      : [...others, props.variableName],
+    changedVariableNames: changedVariableNames,
+  };
+};
+
 export type TemplateVariablesToFillFunction = (
   template: WorkflowTemplate | null,
 ) => Array<WorkflowTemplateVariable>;

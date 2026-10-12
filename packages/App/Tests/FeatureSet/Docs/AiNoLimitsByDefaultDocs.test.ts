@@ -1,3 +1,4 @@
+import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   PACKAGES_ROOT,
   UPGRADING_PAGE,
@@ -980,11 +981,8 @@ describe("AI has no limits by default", () => {
          * AI section, then the page ("KI → Auto-Behebungsregeln").
          */
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
-        const escape: (text: string) => string = (text: string): string => {
-          return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        };
         const localRulesPage: RegExp = new RegExp(
-          `${escape(labels.ai)}\\**\\s*(?:>|→)\\s*\\**${escape(labels.autoRemediationRules)}`,
+          `${escapeRegExp(labels.ai)}\\**\\s*(?:>|→)\\s*\\**${escapeRegExp(labels.autoRemediationRules)}`,
         );
 
         for (const page of pages) {

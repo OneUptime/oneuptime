@@ -19,7 +19,7 @@ import InvestigationTldr from "./InvestigationTldr";
 
 /*
  * What a completed investigation found, in one or two plain sentences, when
- * it has no TL;DR.
+ * it has no TL;DR — and the first step its report suggests.
  *
  * The TL;DR (AIRun.analysisTldr) is a separate, best-effort LLM call made
  * after the report is written — one attempt, a 60 s timeout, a 300-token
@@ -33,8 +33,11 @@ import InvestigationTldr from "./InvestigationTldr";
  * asks for a **Summary** section of one or two sentences, and the
  * dashboard's AI Logs and AI Insights pages read that instead of telling the
  * reader "No summary was recorded." about an investigation that published
- * one. Nothing here calls a model: the text is the report's own, flattened
- * to plain text and capped exactly like a TL;DR (InvestigationTldr
+ * one. It also asks for **Suggested next steps** — concrete actions for the
+ * on-call engineer — and the AI Insights page leads a problem that keeps
+ * coming back with the first of them: what OneUptime AI would do about it.
+ * Nothing here calls a model: the text is the report's own, flattened to
+ * plain text and capped exactly like a TL;DR (InvestigationTldr
  * .sanitizeTldr), so it is safe to render as text.
  *
  * Not used by the incident and alert investigation panel, which shows the
@@ -47,6 +50,27 @@ export interface InvestigationReportSummaryRun {
   aiRunId: ObjectID;
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+}
+
+// What one run's posted report concluded, as plain text.
+export interface InvestigationReportConclusion {
+  // The report's Summary (else its root cause, else its body).
+  summary?: string | undefined;
+  // The first step its Suggested next steps section names.
+  nextStep?: string | undefined;
+}
+
+// A list item's marker: "- ", "* ", "+ ", "1. ", "2) ".
+const LIST_ITEM_MARKER_REGEX: RegExp = /^[ \t]{0,3}(?:[-*+]|\d{1,3}[.)])[ \t]+/;
+const BLANK_LINE_REGEX: RegExp = /^[ \t]*$/;
+const LINE_ENDING_REGEX: RegExp = /\r\n?/g;
+// "dry [C1]." leaves "dry ." behind once the citation is gone.
+const SPACE_BEFORE_PUNCTUATION_REGEX: RegExp = /[ \t]+([.,;:!?])/g;
+
+function withoutCitations(text: string): string {
+  return text
+    .replace(getCitationMarkerRegex(), "")
+    .replace(SPACE_BEFORE_PUNCTUATION_REGEX, "$1");
 }
 
 export default class InvestigationReportSummary {
@@ -76,12 +100,81 @@ export default class InvestigationReportSummary {
       return null;
     }
 
-    const withoutCitations: string = section
-      .replace(getCitationMarkerRegex(), "")
-      // "dry [C1]." leaves "dry ." behind.
-      .replace(/[ \t]+([.,;:!?])/g, "$1");
+    return InvestigationTldr.sanitizeTldr(withoutCitations(section));
+  }
 
-    return InvestigationTldr.sanitizeTldr(withoutCitations);
+  /*
+   * The first step the report's Suggested next steps section names, as plain
+   * text: its first list item (with the lines that continue it), or — for a
+   * section written as prose — its first paragraph. Citation markers are
+   * dropped and the text is capped like a TL;DR. Null for a report without
+   * that section, or with nothing usable in it.
+   */
+  public static nextStepFromReport(
+    analysisMarkdown: string | null | undefined,
+  ): string | null {
+    if (!analysisMarkdown || !analysisMarkdown.trim()) {
+      return null;
+    }
+
+    const report: ParsedInvestigationReport =
+      parseInvestigationReport(analysisMarkdown);
+
+    if (!report.nextSteps || !report.nextSteps.trim()) {
+      return null;
+    }
+
+    return InvestigationTldr.sanitizeTldr(
+      withoutCitations(this.getFirstStep(report.nextSteps)),
+    );
+  }
+
+  /*
+   * The first item of a markdown list, or the first paragraph of prose:
+   * the text of one step, marker removed, its continuation lines kept.
+   */
+  public static getFirstStep(markdown: string): string {
+    const lines: Array<string> = markdown
+      .replace(LINE_ENDING_REGEX, "\n")
+      .split("\n");
+
+    const firstItemAt: number = lines.findIndex((line: string): boolean => {
+      return LIST_ITEM_MARKER_REGEX.test(line);
+    });
+
+    // Prose: the first paragraph.
+    if (firstItemAt < 0) {
+      const paragraph: Array<string> = [];
+
+      for (const line of lines) {
+        if (BLANK_LINE_REGEX.test(line)) {
+          if (paragraph.length > 0) {
+            break;
+          }
+
+          continue;
+        }
+
+        paragraph.push(line);
+      }
+
+      return paragraph.join(" ");
+    }
+
+    // A list: its first item, up to the next item or a blank line.
+    const item: Array<string> = [
+      lines[firstItemAt]!.replace(LIST_ITEM_MARKER_REGEX, ""),
+    ];
+
+    for (const line of lines.slice(firstItemAt + 1)) {
+      if (BLANK_LINE_REGEX.test(line) || LIST_ITEM_MARKER_REGEX.test(line)) {
+        break;
+      }
+
+      item.push(line.trim());
+    }
+
+    return item.join(" ");
   }
 
   /*
@@ -125,6 +218,71 @@ export default class InvestigationReportSummary {
     runs: Array<InvestigationReportSummaryRun>;
   }): Promise<Map<string, string>> {
     const summaries: Map<string, string> = new Map<string, string>();
+
+    for (const [aiRunId, reports] of await this.readReports(data)) {
+      // The first report that says something wins.
+      for (const markdown of reports) {
+        const summary: string | null = this.fromReport(markdown);
+
+        if (summary) {
+          summaries.set(aiRunId, summary);
+          break;
+        }
+      }
+    }
+
+    return summaries;
+  }
+
+  /*
+   * What these runs' posted reports concluded — the summary and the first
+   * suggested step — by AI run id, read the way getForRuns reads them (the
+   * run's own report on its own subject, as root, for callers that decided
+   * the caller may see the run's finding). A run whose report says neither
+   * is left out.
+   */
+  public static async getConclusionsForRuns(data: {
+    projectId: ObjectID;
+    runs: Array<InvestigationReportSummaryRun>;
+  }): Promise<Map<string, InvestigationReportConclusion>> {
+    const conclusions: Map<string, InvestigationReportConclusion> = new Map<
+      string,
+      InvestigationReportConclusion
+    >();
+
+    for (const [aiRunId, reports] of await this.readReports(data)) {
+      let summary: string | null = null;
+      let nextStep: string | null = null;
+
+      // Each part from the first report that says it.
+      for (const markdown of reports) {
+        summary = summary || this.fromReport(markdown);
+        nextStep = nextStep || this.nextStepFromReport(markdown);
+      }
+
+      if (summary || nextStep) {
+        conclusions.set(aiRunId, {
+          ...(summary ? { summary } : {}),
+          ...(nextStep ? { nextStep } : {}),
+        });
+      }
+    }
+
+    return conclusions;
+  }
+
+  /*
+   * Each run's own posted reports, by AI run id, in the order they were
+   * read: one in practice, and the first that says something wins.
+   */
+  private static async readReports(data: {
+    projectId: ObjectID;
+    runs: Array<InvestigationReportSummaryRun>;
+  }): Promise<Map<string, Array<string>>> {
+    const reports: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
 
     const incidentRuns: Array<InvestigationReportSummaryRun> = data.runs.filter(
       (run: InvestigationReportSummaryRun): boolean => {
@@ -201,7 +359,7 @@ export default class InvestigationReportSummary {
       }
     }
 
-    const reports: Array<{
+    const posted: Array<{
       aiRunId?: ObjectID | undefined;
       subjectId?: ObjectID | undefined;
       markdown?: string | undefined;
@@ -222,7 +380,7 @@ export default class InvestigationReportSummary {
       }),
     ];
 
-    for (const report of reports) {
+    for (const report of posted) {
       const aiRunId: string | undefined = report.aiRunId?.toString();
 
       /*
@@ -231,32 +389,18 @@ export default class InvestigationReportSummary {
        */
       if (
         !aiRunId ||
-        summaries.has(aiRunId) ||
         !report.subjectId ||
-        subjectOfRun.get(aiRunId) !== report.subjectId.toString()
+        subjectOfRun.get(aiRunId) !== report.subjectId.toString() ||
+        !report.markdown
       ) {
         continue;
       }
 
-      const summary: string | null = this.fromReport(report.markdown);
-
-      if (summary) {
-        summaries.set(aiRunId, summary);
-      }
+      reports.set(aiRunId, [...(reports.get(aiRunId) || []), report.markdown]);
     }
 
-    return summaries;
+    return reports;
   }
-}
-
-function getRunIds(
-  runs: Array<InvestigationReportSummaryRun>,
-): Array<ObjectID> {
-  return getUniqueIds(
-    runs.map((run: InvestigationReportSummaryRun): ObjectID => {
-      return run.aiRunId;
-    }),
-  );
 }
 
 function getUniqueIds(ids: Array<ObjectID>): Array<ObjectID> {
@@ -267,4 +411,14 @@ function getUniqueIds(ids: Array<ObjectID>): Array<ObjectID> {
   }
 
   return Array.from(byId.values());
+}
+
+function getRunIds(
+  runs: Array<InvestigationReportSummaryRun>,
+): Array<ObjectID> {
+  return getUniqueIds(
+    runs.map((run: InvestigationReportSummaryRun): ObjectID => {
+      return run.aiRunId;
+    }),
+  );
 }

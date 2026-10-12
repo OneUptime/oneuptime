@@ -13,6 +13,8 @@ import StatusPageOidc from "../../../Models/DatabaseModels/StatusPageOidc";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Color from "../../../Types/Color";
+import { JSONObject } from "../../../Types/JSON";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -357,6 +359,165 @@ describe("a monitor as Terraform", () => {
     expect(configFor(item, Monitor).resourceHcl).toContain(
       "disable_active_monitoring = true",
     );
+  });
+});
+
+/*
+ * A Result Value filter of a Custom Code (or Synthetic) monitor can compare
+ * one field of the data the script returns: its customCodeMonitorOptions
+ * name the field. The page's configuration is applied over the monitor once
+ * it is imported, so leaving the field out would make that apply drop it.
+ * The monitor goes through the model and BaseModel.toJSON, as the page's
+ * fetched monitor does.
+ */
+describe("a Custom Code monitor's Result Value field path as Terraform", () => {
+  const SCRIPT: string = "return { data: { status: 'UP' } };";
+
+  function customCodeMonitor(
+    filters: Array<JSONObject>,
+    monitorType: MonitorType = MonitorType.CustomJavaScriptCode,
+  ): Monitor {
+    const item: Monitor = new Monitor();
+    item._id = "2b3c4d5e-1234-4b2c-9d8e-0123456789ab";
+    item.name = "Health API";
+    item.monitorType = monitorType;
+    item.monitorSteps = MonitorSteps.fromJSON({
+      _type: "MonitorSteps",
+      value: {
+        monitorStepsInstanceArray: [
+          {
+            _type: "MonitorStep",
+            value: {
+              id: "3c4d5e6f-1234-4b2c-9d8e-0123456789ab",
+              customCode: SCRIPT,
+              monitorCriteria: {
+                _type: "MonitorCriteria",
+                value: {
+                  monitorCriteriaInstanceArray: [
+                    {
+                      _type: "MonitorCriteriaInstance",
+                      value: {
+                        id: "4d5e6f70-1234-4b2c-9d8e-0123456789ab",
+                        name: "Unhealthy",
+                        filterCondition: "Any",
+                        filters: filters,
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+    return item;
+  }
+
+  test("is written as custom_code_monitor_options, under its filter", () => {
+    const config: TerraformResourceConfig = configFor(
+      customCodeMonitor([
+        {
+          checkOn: "Result Value",
+          filterType: "Not Equal To",
+          value: "UP",
+          customCodeMonitorOptions: { resultValuePath: "data.items[0].status" },
+        },
+      ]),
+      Monitor,
+    );
+
+    expect(config.resourceHcl).toMatch(
+      /^\s*monitor_type\s+= "Custom JavaScript Code"$/m,
+    );
+    expect(config.resourceHcl).toContain(
+      [
+        '              check_on    = "Result Value"',
+        '              filter_type = "Not Equal To"',
+        '              value       = "UP"',
+        "              custom_code_monitor_options = jsonencode({",
+        '                resultValuePath = "data.items[0].status"',
+        "              })",
+      ].join("\n"),
+    );
+    // A field path is no secret: nothing is read from a variable.
+    expect(config.variables).toEqual([]);
+  });
+
+  test("a Synthetic monitor's field path is written the same way", () => {
+    const config: TerraformResourceConfig = configFor(
+      customCodeMonitor(
+        [
+          {
+            checkOn: "Result Value",
+            filterType: "Contains",
+            value: "timeout",
+            customCodeMonitorOptions: { resultValuePath: "errors[0].message" },
+          },
+        ],
+        MonitorType.SyntheticMonitor,
+      ),
+      Monitor,
+    );
+
+    expect(config.resourceHcl).toContain(
+      'resultValuePath = "errors[0].message"',
+    );
+  });
+
+  test("a filter without a field path writes none, and its neighbour keeps its own", () => {
+    const config: TerraformResourceConfig = configFor(
+      customCodeMonitor([
+        { checkOn: "Result Value", filterType: "Equal To", value: "DOWN" },
+        {
+          checkOn: "Result Value",
+          filterType: "Greater Than",
+          value: 500,
+          customCodeMonitorOptions: { resultValuePath: "checks[0].latency" },
+        },
+      ]),
+      Monitor,
+    );
+
+    expect(
+      config.resourceHcl.split("custom_code_monitor_options").length - 1,
+    ).toBe(1);
+    expect(config.resourceHcl).toContain(
+      [
+        '              value       = "500"',
+        "              custom_code_monitor_options = jsonencode({",
+        '                resultValuePath = "checks[0].latency"',
+        "              })",
+      ].join("\n"),
+    );
+  });
+
+  test("no field path anywhere writes no custom_code_monitor_options at all", () => {
+    expect(
+      configFor(
+        customCodeMonitor([
+          { checkOn: "Result Value", filterType: "Equal To", value: "DOWN" },
+          { checkOn: "Error", filterType: "Is Not Empty" },
+        ]),
+        Monitor,
+      ).resourceHcl,
+    ).not.toContain("custom_code_monitor_options");
+  });
+
+  test("a field path that looks like a template stays text", () => {
+    expect(
+      configFor(
+        customCodeMonitor([
+          {
+            checkOn: "Result Value",
+            filterType: "Equal To",
+            value: "UP",
+            customCodeMonitorOptions: { resultValuePath: "items.${name}" },
+          },
+        ]),
+        Monitor,
+      ).resourceHcl,
+    ).toContain('resultValuePath = "items.$${name}"');
   });
 });
 

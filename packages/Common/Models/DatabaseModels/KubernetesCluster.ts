@@ -1025,7 +1025,8 @@ export default class KubernetesCluster extends BaseModel {
    * KubernetesClusterService unless the caller holds one of
    * KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS (the permissions that may author
    * a FullAuto AutoRemediationRule), and binding a credential also needs
-   * KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS. A column ACL cannot express
+   * the read of runbook credentials (RunbookCredentialReaders - the one rule
+   * every use of a runbook credential asks). A column ACL cannot express
    * "tightening is free", which is why the rule lives in the service. The
    * descriptions say so, because they are the API and Terraform docs.
    */

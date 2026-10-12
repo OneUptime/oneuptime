@@ -18,6 +18,9 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import type { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import ProductBrandingUtil, {
+  ProductBranding,
+} from "../../Types/Branding/ProductBranding";
 
 /*
  * Which enterprise feature each enterprise configuration model belongs to,
@@ -194,6 +197,8 @@ export default class EnterpriseEdition {
 
   private static hasWarnedAboutUnknownTrialStart: boolean = false;
 
+  private static hasWarnedAboutUnreadableBranding: boolean = false;
+
   private static featureStateListeners: Array<EnterpriseFeatureStateListener> =
     [];
 
@@ -230,6 +235,7 @@ export default class EnterpriseEdition {
     EnterpriseEdition.hasWarnedAboutUnreadLicense = false;
     EnterpriseEdition.hasWarnedAboutUnreadableLicense = false;
     EnterpriseEdition.hasWarnedAboutUnknownTrialStart = false;
+    EnterpriseEdition.hasWarnedAboutUnreadableBranding = false;
     EnterpriseEdition.featureStateListeners = [];
   }
 
@@ -505,6 +511,42 @@ export default class EnterpriseEdition {
         "EnterpriseEdition: the enterprise module failed to provide its audit log recorder.",
       );
       logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * How this installation names and shows itself, or null for OneUptime's own
+   * name and logo: on the Community Edition, when the module has no say in it,
+   * and when the module answers null. Synchronous - it is asked while env.js,
+   * an index page or an email is rendered - and it never throws: a module
+   * that fails here costs a page OneUptime's branding, never the page. The
+   * answer is sanitized (ProductBrandingUtil.sanitize), so a module can hand
+   * core nothing but a usable name, an http(s) website and image paths on
+   * this host.
+   */
+  public static getProductBranding(): ProductBranding | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getProductBranding) {
+      return null;
+    }
+
+    try {
+      const branding: ProductBranding | null =
+        enterpriseModule.getProductBranding();
+
+      return branding ? ProductBrandingUtil.sanitize(branding) : null;
+    } catch (err) {
+      if (!EnterpriseEdition.hasWarnedAboutUnreadableBranding) {
+        EnterpriseEdition.hasWarnedAboutUnreadableBranding = true;
+        logger.warn(
+          "EnterpriseEdition: the enterprise module could not say how this installation is branded; showing OneUptime's branding. This warning is logged once per process.",
+        );
+        logger.warn(err);
+      }
+
       return null;
     }
   }

@@ -49,12 +49,15 @@ import AIAgentRunLimitsHelper, {
 import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationRules, {
   InvestigationRuleScope,
 } from "./InvestigationRules";
+import PromptText from "../../../../Utils/AI/PromptText";
+import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 
 /*
  * AI SRE — incident investigation.
@@ -384,6 +387,8 @@ export default class AIIncidentInvestigationRunner {
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     let resourceStatuses: Array<ResourceAiAccessStatus> = [];
+    // What the summary left out of the incident's text, for the run to say.
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
@@ -413,7 +418,8 @@ export default class AIIncidentInvestigationRunner {
         });
 
       contextSummary =
-        this.buildIncidentSummary(contextData) + priorCasesContext;
+        this.buildIncidentSummary(contextData, promptOmissions) +
+        priorCasesContext;
 
       // Direct cluster access — enrichment only, never a prerequisite.
       try {
@@ -451,6 +457,34 @@ export default class AIIncidentInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not resolve infrastructure access for incident ${incidentId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
+
+      /*
+       * The optics of the network devices the incident's monitors watch:
+       * still detected or not, readings against the device's thresholds,
+       * and received power over the last weeks. Enrichment only.
+       */
+      try {
+        contextSummary += await NetworkTransceiverContext.buildContextSection({
+          projectId,
+          monitorIds: (contextData.incident.monitors || [])
+            .map((monitor: { id?: ObjectID | null }) => {
+              return monitor.id;
+            })
+            .filter(
+              (
+                monitorId: ObjectID | null | undefined,
+              ): monitorId is ObjectID => {
+                return Boolean(monitorId);
+              },
+            ),
+          focusText: `${contextData.incident.title || ""}\n${contextData.incident.rootCause || ""}`,
+          seriesLabels: contextData.incident.seriesLabels,
+        });
+      } catch (error) {
+        logger.error(
+          `AI: could not read transceivers for incident ${incidentId.toString()}; investigating it without them: ${error}`,
         );
       }
     } catch (error) {
@@ -563,6 +597,7 @@ export default class AIIncidentInvestigationRunner {
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
         incidentId,
         contextSummary,
+        promptOmissions,
         maxLlmCalls: runLimits.maxLlmCalls,
         maxToolCalls: runLimits.maxToolCalls,
         maxWallClockMs: runLimits.maxWallClockMs,
@@ -644,9 +679,10 @@ export default class AIIncidentInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * projects with the incident instrumentation-fix setting on (on
-           * for new projects), queue an ImproveInstrumentation fix task that
-           * opens a PR adding the missing observability. Runs strictly
+           * projects with the incident instrumentation-fix setting on, under
+           * "Fix new incidents automatically" (Types/AI/AutomaticFixSwitches),
+           * queue an ImproveInstrumentation fix task that opens a PR adding
+           * the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
            * Fail direction (G6): only a POSITIVE inconclusive verdict
@@ -670,8 +706,9 @@ export default class AIIncidentInvestigationRunner {
          * The engine calls this only after it atomically persists Recommended
          * with the exact posted analysis snapshot. That durable decision is
          * the prerequisite for the optional automatic FixFromIncident task;
-         * the trigger then applies the incident lane's independent opt-in and
-         * remaining repository, budget and dedupe gates.
+         * the trigger then applies the incident lane's opt-in - its code-fix
+         * switch, under its fixing switch - and the remaining repository,
+         * budget and dedupe gates.
          */
         onCodeFixRecommended: async (data: {
           analysisMarkdown: string;
@@ -700,9 +737,15 @@ export default class AIIncidentInvestigationRunner {
     });
   }
 
-  // Build a compact incident record to seed the investigation.
-  private static buildIncidentSummary(
+  /*
+   * Build a compact incident record to seed the investigation. It is sent
+   * with every call to the model, so each free-text field goes in through
+   * PromptText.field: embedded images left out, held to a length, and what
+   * was left out added to `omissions`.
+   */
+  public static buildIncidentSummary(
     contextData: IncidentContextData,
+    omissions?: AIPromptOmissions | undefined,
   ): string {
     const { incident, internalNotes } = contextData;
 
@@ -711,7 +754,9 @@ export default class AIIncidentInvestigationRunner {
     lines.push(`Title: ${incident.title || "N/A"}`);
 
     if (incident.description) {
-      lines.push(`Description: ${incident.description}`);
+      lines.push(
+        `Description: ${PromptText.field(incident.description, { omissions })}`,
+      );
     }
 
     lines.push(`Severity: ${incident.incidentSeverity?.name || "N/A"}`);
@@ -749,13 +794,17 @@ export default class AIIncidentInvestigationRunner {
     }
 
     if (incident.rootCause) {
-      lines.push(`Root cause (as recorded so far): ${incident.rootCause}`);
+      lines.push(
+        `Root cause (as recorded so far): ${PromptText.field(incident.rootCause, { omissions })}`,
+      );
     }
 
     const recentNotes: Array<string> = (internalNotes || [])
       .slice(-5)
       .map((note: { note?: string }) => {
-        return note.note ? `- ${note.note}` : "";
+        return note.note
+          ? `- ${PromptText.field(note.note, { omissions })}`
+          : "";
       })
       .filter(Boolean);
 

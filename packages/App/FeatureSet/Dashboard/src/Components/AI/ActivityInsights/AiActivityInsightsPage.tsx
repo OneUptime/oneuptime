@@ -7,7 +7,12 @@ import {
   parseAiActivityInsights,
 } from "./AiActivityInsightsData";
 import AiActivityInsightsView, { CoverageCard } from "./AiActivityInsightsView";
-import { AiActivityInsights } from "Common/Types/AI/AiActivityInsights";
+import ProjectAiNotice from "../../AISettings/ProjectAiNotice";
+import { ProjectAiNoticeContext } from "../../AISettings/ProjectAiSettingsCopy";
+import {
+  AiActivityInsights,
+  AiActivityObject,
+} from "Common/Types/AI/AiActivityInsights";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -39,12 +44,15 @@ import React, {
 } from "react";
 
 /*
- * An AI Insights page (AI → Insights): what OneUptime AI has learned about
- * one scope from its own work there in the last 30 days, and what deserves
- * attention. It loads the scope's insights route (AiActivityInsights,
- * computed on the server behind the scope's read gate) and renders
- * AiActivityInsightsView, with one empty state when the window holds no AI
- * activity, a loader, and an error with a retry.
+ * An AI Insights page (AI → Insights): what OneUptime AI found out about one
+ * scope in the last 30 days — what keeps going wrong and why, what is behind
+ * it, what AI fixed or would fix, the risks it spotted — and, as a footnote,
+ * what it did there. It loads the scope's insights route
+ * (AiActivityInsights, computed on the server behind the scope's read gate)
+ * and renders AiActivityInsightsView, with one empty state when the window
+ * holds no AI activity (saying what will show up, and what is in the way),
+ * a loader, and an error with a retry. With AI off for the project, a notice
+ * at the top says so and holds the switch, for someone who may flip it.
  *
  * The everything-AI-did list is the scope's AI Logs page, linked from the
  * heading — and an old bookmark of the Insights URL, which used to show that
@@ -71,6 +79,11 @@ export interface ComponentProps {
   agentRoute?: Route | undefined;
   // Where what AI does on its own here is set (the incidents' AI → Settings).
   settingsRoute?: Route | undefined;
+  /*
+   * A part of the scope's own page, when it has one: a cluster's node, pod
+   * or deployment. Parts without one are named, not linked.
+   */
+  getObjectRoute?: ((object: AiActivityObject) => Route | null) | undefined;
   /*
    * The heading's line and the empty state's text in place of the noun's,
    * for a scope that is not one thing ("your incidents"). English keys,
@@ -305,6 +318,7 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
           logsRoute={props.logsRoute}
           agentRoute={props.agentRoute}
           settingsRoute={props.settingsRoute}
+          getObjectRoute={props.getObjectRoute}
         />
       </Fragment>
     );
@@ -336,6 +350,8 @@ const AiActivityInsightsPage: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
         </Link>
       </div>
+
+      <ProjectAiNotice context={ProjectAiNoticeContext.ActivityInsights} />
 
       {body}
     </Fragment>

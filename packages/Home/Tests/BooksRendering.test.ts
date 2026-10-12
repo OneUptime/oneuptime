@@ -7,6 +7,7 @@ import {
   BookStage,
 } from "../Utils/Books/BookCatalog";
 import { BookPageAssets, getBookPageAssets } from "../Utils/StaticAssets";
+import { markupAsSpaces } from "../../Common/Tests/Helpers/HtmlText";
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
@@ -94,13 +95,14 @@ function hasAttribute(attributes: string, name: string): boolean {
 }
 
 function textIn(html: string): string {
-  return html
-    .replace(/<svg\b[\s\S]*?<\/svg>/gi, " ")
-    .replace(
-      /<span\b[^>]*aria-hidden=["']true["'][^>]*>[\s\S]*?<\/span>/gi,
-      " ",
-    )
-    .replace(/<[^>]*>/g, " ")
+  return markupAsSpaces(
+    html
+      .replace(/<svg\b[\s\S]*?<\/svg>/gi, " ")
+      .replace(
+        /<span\b[^>]*aria-hidden=["']true["'][^>]*>[\s\S]*?<\/span>/gi,
+        " ",
+      ),
+  )
     .replace(/&ldquo;|&rdquo;/g, "")
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")

@@ -158,6 +158,26 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
     ...(workspaceSection ? [workspaceSection] : []),
     /*
+     * Tools that open incidents on their own: Huntress, whose incident
+     * reports page on-call here. Set up once, so folded to its title until
+     * opened, and open by itself on its pages.
+     */
+    {
+      title: "Integrations",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Huntress",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS] as Route,
+            ),
+          },
+          icon: IconProp.ShieldCheck,
+        },
+      ],
+    },
+    /*
      * Every "when an incident looks like X, do Y" page lives here. Collapsed by
      * default because these are set up once and rarely revisited, and left
      * expanded they pushed Settings off the bottom of the menu card.

@@ -130,6 +130,9 @@ describe("what a code reads as", () => {
       "Slack was not connected",
       "Microsoft Teams was not connected",
       "GitHub was not connected",
+      "Zoom was not connected",
+      "Google Meet was not connected",
+      "Microsoft Teams meetings were not connected",
     ]);
   });
 
@@ -145,6 +148,10 @@ describe("what a code reads as", () => {
       "You do not have permission to connect this project to Slack.",
       "You do not have permission to connect this project to Microsoft Teams.",
       "You do not have permission to add code repositories to this project.",
+      // Zoom, Google Meet and Microsoft Teams meetings share one question.
+      "You do not have permission to connect video call providers in this project.",
+      "You do not have permission to connect video call providers in this project.",
+      "You do not have permission to connect video call providers in this project.",
     ]);
   });
 
@@ -438,6 +445,19 @@ describe("the pages the callbacks send the browser to are the Dashboard's", () =
       [ConnectProvider.GitHub]: {
         [ConnectStartPage.ProjectSettings]: PageMap.CODE_REPOSITORY,
         [ConnectStartPage.UserSettings]: PageMap.CODE_REPOSITORY,
+      },
+      // A project's video calls live in its settings only.
+      [ConnectProvider.Zoom]: {
+        [ConnectStartPage.ProjectSettings]: PageMap.SETTINGS_VIDEO_CALLS,
+        [ConnectStartPage.UserSettings]: PageMap.SETTINGS_VIDEO_CALLS,
+      },
+      [ConnectProvider.GoogleMeet]: {
+        [ConnectStartPage.ProjectSettings]: PageMap.SETTINGS_VIDEO_CALLS,
+        [ConnectStartPage.UserSettings]: PageMap.SETTINGS_VIDEO_CALLS,
+      },
+      [ConnectProvider.MicrosoftTeamsMeetings]: {
+        [ConnectStartPage.ProjectSettings]: PageMap.SETTINGS_VIDEO_CALLS,
+        [ConnectStartPage.UserSettings]: PageMap.SETTINGS_VIDEO_CALLS,
       },
     };
 

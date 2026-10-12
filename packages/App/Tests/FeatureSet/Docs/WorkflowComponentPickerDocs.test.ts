@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -16,8 +17,11 @@ import path from "path";
  * Incident category in the Add Component panel" - triggers were never in
  * that panel. This reads all seventeen copies and holds them to the panel.
  *
- * The panel's words are not translated, so every language quotes them in
- * English, as the pages already quote Add Trigger.
+ * The panel draws its section titles and block names in the reader's
+ * language (PickerItems' SectionHeading), so the workflow pages quote them
+ * as that language's Dashboard draws them, Popular as Beliebt in German. The
+ * incident settings page, which another docs task rewrites, still quotes
+ * them in English and is held to that here.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -30,7 +34,19 @@ const PICKER_SOURCE: string = path.resolve(
   "../../../../Common/UI/Components/Workflow/ComponentsModal.tsx",
 );
 
+const PICKER_ITEMS_SOURCE: string = path.resolve(
+  __dirname,
+  "../../../../Common/UI/Components/Workflow/ComponentPicker/PickerItems.tsx",
+);
+
 const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
+
+type DrawnFunction = (language: string, english: string) => string;
+
+// A panel label, bold, as the language's Dashboard draws it.
+const drawn: DrawnFunction = (language: string, english: string): string => {
+  return "**" + drawnDashboardLabel(language, english) + "**";
+};
 
 const PAGES: Array<string> = [
   "workflows/authoring.md",
@@ -86,6 +102,11 @@ describe("docs for the Add Component and Add Trigger panels", () => {
       'translator.translateText("Browse all resources")',
     );
     expect(source).not.toContain('submitButtonText="Add to Workflow"');
+
+    // The section titles are drawn through the translator.
+    expect(fs.readFileSync(PICKER_ITEMS_SOURCE, "utf8")).toContain(
+      "{translator.translateText(props.title)}",
+    );
   });
 
   test.each(LANGUAGES)(
@@ -111,12 +132,12 @@ describe("docs for the Add Component and Add Trigger panels", () => {
     (language: string) => {
       const page: string = readPage(language, "workflows/authoring.md");
 
-      expect(page).toContain("**OneUptime resources**");
-      expect(page).toContain("**Browse all resources**");
+      expect(page).toContain(drawn(language, "OneUptime resources"));
+      expect(page).toContain(drawn(language, "Browse all resources"));
       expect(page).toContain("`create incident`");
       expect(page).toContain("`/`");
       // What the panels open on, and where Log is in the first workflow.
-      expect(countOf(page, "**Popular**")).toBe(2);
+      expect(countOf(page, drawn(language, "Popular"))).toBe(2);
     },
   );
 
@@ -125,8 +146,12 @@ describe("docs for the Add Component and Add Trigger panels", () => {
     (language: string) => {
       const page: string = readPage(language, "workflows/components.md");
 
-      lineWith(page, ["**If / Else**", "**Popular**"]);
-      lineWith(page, ["**OneUptime resources**", "**Browse all resources**"]);
+      // If / Else is no Dashboard label: it is the block's own name.
+      lineWith(page, ["**If / Else**", drawn(language, "Popular")]);
+      lineWith(page, [
+        drawn(language, "OneUptime resources"),
+        drawn(language, "Browse all resources"),
+      ]);
     },
   );
 
@@ -135,10 +160,15 @@ describe("docs for the Add Component and Add Trigger panels", () => {
     (language: string) => {
       const line: string = lineWith(
         readPage(language, "workflows/triggers.md"),
-        ["**Add Trigger**", "**Browse all resources**"],
+        [
+          drawn(language, "Add Trigger"),
+          drawn(language, "Browse all resources"),
+        ],
       );
 
-      expect(line).toContain("OneUptime resources");
+      expect(line).toContain(
+        drawnDashboardLabel(language, "OneUptime resources"),
+      );
       expect(line).toContain("`incident created`");
     },
   );

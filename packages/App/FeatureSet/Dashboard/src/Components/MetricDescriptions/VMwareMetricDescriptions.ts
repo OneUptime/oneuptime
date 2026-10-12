@@ -164,7 +164,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Number of resource pools, which group VMs so they can share and cap CPU and memory. Includes the built-in root pool that every cluster and standalone host has.",
   ),
   overviewAgentStatus: translationKey(
-    "Whether the OneUptime VMware agent is sending data for this vCenter; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
+    "Whether data is arriving for this vCenter - from the probe that collects it, or from the OneUptime VMware agent; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
   ),
 
   // ---- Overview: Top Resource Consumers ---------------------------------

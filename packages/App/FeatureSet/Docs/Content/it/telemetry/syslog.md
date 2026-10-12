@@ -1,27 +1,60 @@
-# Inviare Dati Syslog a OneUptime
+# Syslog
 
-## Panoramica
+OneUptime accetta syslog via HTTPS. Invia messaggi RFC 5424 o RFC 3164 a `/syslog/v1/logs` con la tua chiave di acquisizione, e ognuno diventa un log ricercabile, con priorità, facility, gravità, host, applicazione e dati strutturati come attributi. Usalo per inoltrare da rsyslog, syslog-ng o qualsiasi relay in grado di fare richieste HTTP.
 
-Il servizio di Ingest OpenTelemetry ora accetta payload Syslog nativi. È possibile inoltrare messaggi da qualsiasi sorgente compatibile RFC3164 o RFC5424 direttamente a OneUptime via HTTPS. OneUptime analizza la priorità syslog, la facility, la severità, i dati strutturati e il corpo del messaggio prima di archiviare tutto come log ricercabili.
+:::cards
+- [Inviare un messaggio di prova](#inviare-un-messaggio-di-prova): Una sola richiesta `curl`.
+- [Inoltrare da rsyslog](#inoltrare-da-rsyslog): Invia tutto ciò che riceve un server o un relay.
+- [Attributi estratti](#attributi-estratti): Cosa ricava OneUptime da ogni messaggio.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Richieste rifiutate e servizi inattesi.
+:::
 
-## Prerequisiti
+## Come funziona
 
-- **Token di Acquisizione Telemetria** – crearne uno da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e copiare il valore di `x-oneuptime-token`.
-- **Forwarder Syslog** – qualsiasi strumento in grado di inviare richieste HTTP POST (ad esempio `curl`, `rsyslog` tramite `omhttp`, o `syslog-ng` con il plugin di destinazione HTTP).
-- **Nome servizio (opzionale)** – impostare l'intestazione `x-oneuptime-service-name` per raggruppare i log in entrata sotto un servizio di telemetria specifico. Se omesso, OneUptime usa come fallback il syslog `APP-NAME`, l'hostname o `Syslog`.
+```mermaid title="Dalle sorgenti syslog a OneUptime"
+flowchart TB
+    subgraph sources["Sorgenti syslog"]
+        direction LR
+        servers["Server Linux"]
+        devices["Firewall e switch"]
+    end
+    servers --> relay["rsyslog o syslog-ng"]
+    devices -->|"Syslog via UDP o TCP"| relay
+    relay -->|"POST HTTPS + chiave di acquisizione"| endpoint["OneUptime /syslog/v1/logs"]
+    endpoint --> parse["Priorità, intestazione e dati<br/>strutturati analizzati"]
+    parse --> logs["Log"]
+```
+
+OneUptime risponde non appena ha letto i messaggi dalla richiesta, e li analizza e li salva un attimo dopo. Il testo del messaggio resta nel corpo del log; tutto il resto diventa un attributo.
+
+> [!TIP]
+> I dispositivi di rete che monitori con una sonda OneUptime possono inviare il loro syslog direttamente alla sonda via UDP, senza relay: i log compaiono poi sul dispositivo in OneUptime. Vedi [Guide per fornitore di rete](/docs/monitor/network-vendor-guides).
+
+## Prima di iniziare
+
+- **Un progetto OneUptime**: su OneUptime Cloud la telemetria si paga per GB acquisito, e un progetto con il piano Free ha bisogno di un metodo di pagamento prima di poter inviare telemetria.
+- **Chiave di acquisizione della telemetria**: crea una chiave **Server** in **Prodotti → Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e copia la sua **Chiave segreta**. La invii nell'header `x-oneuptime-token`.
+- **Inoltratore syslog**: qualsiasi strumento in grado di inviare richieste HTTP POST (ad esempio `curl`, `rsyslog` tramite `omhttp`, oppure `syslog-ng` con la sua destinazione HTTP).
+- **Nome del servizio (facoltativo)**: imposta l'header `x-oneuptime-service-name` per raggruppare i log in arrivo sotto uno specifico servizio di telemetria. Se manca, OneUptime ripiega sull'`APP-NAME` del syslog, sul nome host o su `Syslog`.
 
 ## Endpoint
 
-```
+```http
 POST https://oneuptime.com/syslog/v1/logs
 ```
 
-- Sostituire `oneuptime.com` con il proprio host se si ospita autonomamente OneUptime.
-- Includere sempre l'intestazione `x-oneuptime-token` nella richiesta.
+| Header | Obbligatorio | Valore |
+| --- | --- | --- |
+| `x-oneuptime-token` | Sì | La tua chiave di acquisizione. |
+| `Content-Type` | Sì, per i corpi JSON | `application/json` |
+| `x-oneuptime-service-name` | No | Il servizio a cui appartengono i log. |
+| `Content-Encoding` | No | `gzip`, per un corpo compresso. |
 
-## Corpo della Richiesta
+Sostituisci `oneuptime.com` con il tuo host se ospiti OneUptime in proprio.
 
-Inviare stringhe Syslog delimitate da newline o un payload JSON con un array `messages`. Sono supportati entrambi i formati RFC3164 (BSD) e RFC5424.
+## Corpo della richiesta
+
+Invia un payload JSON con un array `messages`. Sono supportati sia RFC 5424 sia RFC 3164 (BSD), e puoi mescolarli nella stessa richiesta:
 
 ```json
 {
@@ -32,19 +65,24 @@ Inviare stringhe Syslog delimitate da newline o un payload JSON con un array `me
 }
 ```
 
-### Content Type Supportati
+### Formati del corpo supportati
 
-- `application/json` – consigliato.
-- `text/plain` – messaggi separati da newline.
-- `application/octet-stream` – payload raw. È accettata anche la compressione Gzip (`Content-Encoding: gzip`).
+| Corpo | Come inviarlo |
+| --- | --- |
+| Un oggetto JSON con un array `messages` | `Content-Type: application/json`: consigliato. |
+| Un array JSON di messaggi | `Content-Type: application/json`. |
+| Un oggetto JSON con un solo `message` | `Content-Type: application/json`. Un valore su più righe viene letto come più messaggi. |
+| Messaggi separati da a capo | Compressi con gzip e inviati con `Content-Encoding: gzip`. |
 
-## Test Rapido con curl
+Un corpo in testo semplice non compresso con gzip non viene letto, e la richiesta viene rifiutata con `400`. Un corpo compresso con gzip viene sempre letto come messaggi separati da a capo, quindi non comprimere un corpo JSON. Mantieni ogni richiesta sotto 1 MB: l'ingress di OneUptime non alza il limite predefinito di nginx per il corpo delle richieste su questo endpoint.
+
+## Inviare un messaggio di prova
 
 ```bash
 curl \
   -X POST https://oneuptime.com/syslog/v1/logs \
   -H "Content-Type: application/json" \
-  -H "x-oneuptime-token: VOSTRA_CHIAVE_TELEMETRIA" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_KEY" \
   -H "x-oneuptime-service-name: production-web" \
   -d '{
     "messages": [
@@ -53,140 +91,165 @@ curl \
   }'
 ```
 
-## Inoltro da rsyslog
+Un `200` indica che il messaggio è stato accettato. Apri **Prodotti → Registri**: il log compare nel servizio `production-web` con il corpo `502 on /api/login`, la gravità `Error` e gli attributi descritti in [Attributi estratti](#attributi-estratti).
 
-1. Installare il modulo di output HTTP:
-   ```bash
-   sudo apt-get install rsyslog-omhttp
-   ```
-2. Aggiungere la destinazione a `/etc/rsyslog.d/oneuptime.conf`:
+## Inoltrare da rsyslog
 
-   ```
-   module(load="omhttp")
+rsyslog invia a OneUptime con il suo modulo di output HTTP, `omhttp`.
 
-   template(name="OneUptimeJson" type="list") {
-     constant(value="{\"messages\":[\"")
-     property(name="rawmsg")
-     constant(value="\"]}")
-   }
+:::steps
+### Verificare che `omhttp` sia disponibile
 
-   action(
-     type="omhttp"
-     server="oneuptime.com"
-     serverport="443"
-     usehttps="on"
-     endpoint="/syslog/v1/logs"
-     header="Content-Type: application/json"
-     header="x-oneuptime-token: VOSTRA_CHIAVE_TELEMETRIA"
-     header="x-oneuptime-service-name: rsyslog-demo"
-     template="OneUptimeJson"
-   )
-   ```
+La configurazione qui sotto lo carica con `module(load="omhttp")`. Se rsyslog segnala che non riesce a caricare il modulo, installa il pacchetto che fornisce `omhttp` per la tua distribuzione.
 
-3. Riavviare rsyslog:
-   ```bash
-   sudo systemctl restart rsyslog
-   ```
+### Aggiungere la destinazione OneUptime
 
-## Casi d'uso comuni già osservati
+Crea `/etc/rsyslog.d/oneuptime.conf`. Il template ricostruisce ogni messaggio come riga RFC 5424 e lo avvolge nel corpo JSON che OneUptime si aspetta:
 
-### 1. Apparecchi di rete e sicurezza
-
-La maggior parte degli apparati di rete espone ancora modifiche di configurazione, hit ACL e rilevamenti di minacce esclusivamente via syslog. Puntare il proprio relay esistente (Palo Alto, Fortinet, Cisco ASA, Juniper, pfSense e altri) direttamente a OneUptime, oppure mantenere un relay interno e inoltrare via HTTPS:
-
-```bash
-# Snippet rsyslog che raggruppa i messaggi in JSON e li invia a OneUptime
+```text title="/etc/rsyslog.d/oneuptime.conf"
 module(load="omhttp")
 
-template(name="OneUptimeJSON" type="list") {
-  constant(value="{\"messages\":[\"")
-  property(name="rawmsg")
-  constant(value="\"]}")
-}
+template(name="OneUptimeJson" type="string"
+         string="{\"messages\":[\"<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %MSGID% - %msg:::json%\"]}")
 
 action(
   type="omhttp"
   server="oneuptime.com"
   serverport="443"
   usehttps="on"
-  endpoint="/syslog/v1/logs"
-  header="Content-Type: application/json"
-  header="x-oneuptime-token: <TOKEN>"
-  header="x-oneuptime-service-name: perimeter-firewall"
-  template="OneUptimeJSON"
+  restpath="syslog/v1/logs"
+  httpheaders=[
+    "x-oneuptime-token: YOUR_TELEMETRY_KEY",
+    "x-oneuptime-service-name: rsyslog-demo"
+  ]
+  template="OneUptimeJson"
 )
 ```
 
-### 2. Server Linux e cron job
+`restpath` vuole il percorso senza la barra iniziale. `omhttp` invia per impostazione predefinita un `Content-Type` JSON, che è proprio ciò che produce questo template.
 
-Molti cron job e daemon legacy registrano ancora esclusivamente tramite la facility kernel/syslog. L'inoltro delle voci di `/var/log/syslog` o journald mantiene le tracce operative in un unico posto. Gli host systemd possono fare affidamento sul bridge journald → syslog:
+### Verificare la configurazione e riavviare rsyslog
 
 ```bash
-# /etc/rsyslog.d/oneuptime.conf
-module(load="imjournal" StateFile="imjournal.state")
-module(load="omhttp")
+sudo rsyslogd -N1
+sudo systemctl restart rsyslog
+```
+
+`rsyslogd -N1` convalida la configurazione senza avviare rsyslog. Dopo il riavvio, i nuovi messaggi compaiono in **Prodotti → Registri** nel servizio `rsyslog-demo`.
+:::
+
+L'azione inoltra ogni messaggio gestito da rsyslog: programmi locali, il journal di systemd quando rsyslog lo legge, e tutto ciò che riceve dalla rete.
+
+### Inoltrare il syslog dei dispositivi di rete
+
+Firewall, switch e altre appliance spesso inviano syslog solo via UDP o TCP. Puntali a un relay rsyslog e lascia che il relay inoltri via HTTPS. Aggiungi un listener alla configurazione del relay, prima dell'`action`:
+
+```text title="/etc/rsyslog.d/oneuptime.conf"
+module(load="imudp")
+input(type="imudp" port="514")
+```
+
+Imposta `x-oneuptime-service-name` su un nome come `perimeter-firewall`, oppure rimuovi l'header perché i log di ogni dispositivo vengano raggruppati per nome host. Molte appliance scrivono il messaggio come coppie `key=value`; un [Key=Value Parser](/docs/telemetry/log-pipelines#keyvalue-parser) le trasforma in attributi.
+
+:::details Inviare a blocchi invece di una richiesta per messaggio
+rsyslog può raggruppare i messaggi e comprimerli con gzip, cosa che OneUptime legge come messaggi separati da a capo. Sostituisci template e azione con:
+
+```text title="/etc/rsyslog.d/oneuptime.conf"
+template(name="OneUptimeLine" type="string"
+         string="<%PRI%>1 %TIMESTAMP:::date-rfc3339% %HOSTNAME% %APP-NAME% %PROCID% %MSGID% - %msg%")
 
 action(
   type="omhttp"
   server="oneuptime.com"
   serverport="443"
   usehttps="on"
-  endpoint="/syslog/v1/logs"
-  header="Content-Type: application/json"
-  header="x-oneuptime-token: <TOKEN>"
-  header="x-oneuptime-service-name: linux-fleet"
-  template="OneUptimeJSON"
+  restpath="syslog/v1/logs"
+  httpheaders=["x-oneuptime-token: YOUR_TELEMETRY_KEY"]
+  template="OneUptimeLine"
+  batch="on"
+  batch.format="newline"
+  compress="on"
 )
 ```
 
-Poiché vengono mappati i codici di severità, è possibile ricevere avvisi su `syslog.severity.name = "error"` o suddividere per `syslog.hostname` per isolare rapidamente gli host rumorosi.
+Mantieni `compress="on"`: OneUptime legge messaggi separati da a capo solo da un corpo compresso con gzip.
+:::
 
-### 3. Controller ingress Kubernetes e nodi edge
+### Altri inoltratori
 
-Se si esegue già Fluent Bit o Fluentd, mantenerli per i log dei container e aggiungere un sink syslog leggero per gli host o gli apparecchi edge. L'input `syslog` di Fluent Bit si abbina all'output HTTP:
+- **syslog-ng**: usa la sua destinazione HTTP con lo stesso URL, gli stessi header e lo stesso corpo JSON.
+- **Fluent Bit**: ricevi il syslog con l'input `syslog` di Fluent Bit e inoltralo come qualsiasi altro log. Vedi [Fluent Bit](/docs/telemetry/fluentbit).
 
-```ini
-[INPUT]
-    Name              syslog
-    Mode              tcp
-    Listen            0.0.0.0
-    Port              5140
+## Attributi estratti
 
-[OUTPUT]
-    Name              http
-    Match             *
-    Host              oneuptime.com
-    Port              443
-    URI               /syslog/v1/logs
-    Format            json
-    json_date_key     time
-    Header            Content-Type application/json
-    Header            x-oneuptime-token <TOKEN>
-    Header            x-oneuptime-service-name edge-ingress
-    tls               On
-```
+OneUptime aggiunge automaticamente i seguenti attributi a ogni voce di log:
 
-Questa configurazione consente di acquisire syslog da worker bare-metal o load balancer hardware senza creare un altro stack di logging.
+| Attributo | Valore | Dal messaggio di prova |
+| --- | --- | --- |
+| `syslog.priority` | La priorità, `<PRI>` | `34` |
+| `syslog.facility.code`, `syslog.facility.name` | La facility, ricavata dalla priorità | `4`, `security` |
+| `syslog.severity.code`, `syslog.severity.name` | La gravità, ricavata dalla priorità | `2`, `critical` |
+| `syslog.version` | La versione RFC 5424 | `1` |
+| `syslog.hostname` | `HOSTNAME` | `web-01` |
+| `syslog.appName` | `APP-NAME`, oppure il tag RFC 3164 | `nginx` |
+| `syslog.processId` | `PROCID` | `7421` |
+| `syslog.messageId` | `MSGID` | `ID47` |
+| `syslog.structured.raw` | I dati strutturati RFC 5424, così come inviati | `[env@32473 host="web-01"]` |
+| `syslog.structured.*` | Ogni parametro dei dati strutturati, appiattito | `syslog.structured.env_32473.host` = `web-01` |
+| `syslog.raw` | Il messaggio originale, per la tracciabilità | l'intera riga |
 
-### 4. Archivi di conformità senza l'attesa
+Questi attributi diventano ricercabili nell'explorer **Prodotti → Registri**, ad esempio `@syslog.severity.name:error` o `@syslog.hostname:web-01`. Vedi [Sintassi di ricerca](/docs/telemetry/search-syntax).
 
-È necessario conservare i log del firewall per PCI o SOX? Inviarli direttamente a OneUptime, applicare una lunga policy di conservazione al servizio di telemetria ed esportare in cold storage da un unico posto. Non più esportazioni da più relay syslog.
+Il messaggio in sé resta nel corpo del log. Firewall come Sophos XGS e Fortinet FortiGate lo scrivono come coppie `key=value` (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); aggiungi un processore **Key=Value Parser** in una [pipeline dei log](/docs/telemetry/log-pipelines#keyvalue-parser) per trasformare in attributi anche queste coppie.
 
-## Attributi Analizzati
+### Gravità
 
-OneUptime aggiunge automaticamente i seguenti attributi a ciascuna voce di log:
+| Gravità syslog | Codice | Gravità in OneUptime |
+| --- | --- | --- |
+| Emergency, Alert | `0`, `1` | `Fatal` |
+| Critical, Error | `2`, `3` | `Error` |
+| Warning | `4` | `Warning` |
+| Notice, Informational | `5`, `6` | `Information` |
+| Debug | `7` | `Debug` |
+| Nessuna priorità nel messaggio | — | `Unspecified` |
 
-- `syslog.priority`, `syslog.facility.code`, `syslog.facility.name`
-- `syslog.severity.code`, `syslog.severity.name`
-- `syslog.hostname`, `syslog.appName`, `syslog.processId`, `syslog.messageId`
-- `syslog.structured.*` (dati strutturati RFC5424 appiattiti)
-- `syslog.raw` (messaggio originale per la tracciabilità)
+Un messaggio senza timestamp viene salvato con l'ora in cui OneUptime l'ha ricevuto.
 
-Questi attributi diventano ricercabili nell'explorer **Prodotti → Log**.
+### Servizio
 
-## Risoluzione dei Problemi
+Ogni log viene archiviato sotto un servizio di telemetria, che OneUptime crea la prima volta che invia. Il servizio è il primo disponibile tra:
 
-- **HTTP 401 o risultati vuoti** – verificare che l'intestazione `x-oneuptime-token` appartenga al progetto che riceve i log.
-- **Nessun log appare** – confermare che il corpo della richiesta contenga effettivamente righe syslog. I corpi vuoti vengono rifiutati con HTTP 400.
-- **Nome servizio imprevisto** – impostare `x-oneuptime-service-name` per sovrascrivere la logica di rilevamento predefinita.
-- **Grandi burst** – il batch fino a 1.000 righe per richiesta è supportato. I burst più grandi vengono accodati ed elaborati in modo asincrono.
+1. l'header `x-oneuptime-service-name`;
+2. l'`APP-NAME` (o il tag) del messaggio;
+3. il nome host del messaggio;
+4. `Syslog`.
+
+## Risoluzione dei problemi
+
+:::details HTTP 401
+La chiave manca, è sconosciuta o è scaduta. Verifica che l'header `x-oneuptime-token` porti la **Chiave segreta** di una chiave di acquisizione del progetto che deve ricevere i log.
+:::
+
+:::details HTTP 402 o 422
+`402`: su OneUptime Cloud il progetto ha il piano Free e nessun metodo di pagamento. Aggiungine uno in **Impostazioni del progetto → Fatturazione e fatture → Fatturazione**. `422`: la chiave è disattivata, oppure è una chiave Browser. Riattiva **Abilitato** nelle impostazioni della chiave, oppure crea una chiave **Server**.
+:::
+
+:::details HTTP 400, oppure non compare nessun log
+Verifica che il corpo della richiesta contenga davvero righe syslog, come JSON con `Content-Type: application/json`. I corpi vuoti, e quelli in testo semplice non compressi con gzip, vengono rifiutati con HTTP 400.
+:::
+
+:::details HTTP 413
+La richiesta è più grande di quanto accetta l'ingress. Invia meno messaggi per richiesta.
+:::
+
+:::details I log arrivano con un nome di servizio inatteso
+Imposta `x-oneuptime-service-name` per scavalcare il rilevamento predefinito, che usa l'`APP-NAME` e poi il nome host.
+:::
+
+## Passaggi successivi
+
+:::cards
+- [Pipeline dei log](/docs/telemetry/log-pipelines): Trasforma i messaggi `key=value` in attributi.
+- [Regole di registrazione dei log](/docs/telemetry/log-recording-rules): Trasforma i numeri del tuo syslog in metriche.
+- [Monitor log](/docs/monitor/logs-monitor): Avvisa quando arrivano messaggi syslog corrispondenti.
+:::

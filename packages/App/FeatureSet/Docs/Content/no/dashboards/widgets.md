@@ -240,6 +240,14 @@ Noen raske regler:
 
 De fleste dashbord blander noen få — et diagram øverst, en verdi eller to ved siden av, en tekstdeler, og en liste eller to under.
 
+## Når en widget ikke kan vises
+
+En widget som ikke kan tegnes, viser **Denne widgeten kunne ikke vises** på sin egen plass, og resten av dashbordet fortsetter å virke. Det skjer når OneUptime ikke har noen widget av den typen (en som er fjernet, en med feilstavet type da dashbordet ble skrevet gjennom API-et, eller en fra en nyere versjon), eller når widgeten feiler mens den tegnes, for eksempel fordi de lagrede innstillingene er ufullstendige.
+
+Hvis du kan redigere dashbordet, klikker du på **Rediger widget** på den. Dashbordet går over i redigeringsmodus med innstillingene for den widgeten åpne: rett dem, eller klikk på **Slett widget** og deretter på **Lagre endringer**. En widget som feilet mens den ble tegnet, tilbyr også **Prøv igjen**, og tegnes på nytt ved neste automatiske oppdatering eller når du endrer tidsrommet.
+
+Besøkende på et offentlig dashbord får bare vite at widgeten ikke kunne vises.
+
 ## Hvor du leser videre
 
 - [Variabler & filtre](/docs/dashboards/variables) — å gjøre widgets gjenbrukbare for mange tjenester eller kunder.

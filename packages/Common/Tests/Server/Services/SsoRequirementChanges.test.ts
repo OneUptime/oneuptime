@@ -60,8 +60,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * project's lock, and - when the project would rely on more than its own
  * providers that are on - the one on the server's sign-in rules, kept while
  * the check reads, and given back once the write is done, refused or fails.
- * Asking for less - turning it off, clearing the provider - is never
- * refused and takes no lock. The server's own rule is covered with the
+ * A save that writes the rule back as the project has it asks for it all
+ * the same: it is checked, and holds its locks until it is written. Asking
+ * for less - turning it off, clearing the provider - is never refused and
+ * takes no lock. The server's own rule is covered with the
  * global providers (Tests/Server/API/GlobalSsoProviderChanges.test.ts).
  */
 
@@ -331,8 +333,13 @@ describe("turning Require SSO for Login on for a project", () => {
       `release:${PROJECT_ID.toString()}`,
       `release:${SERVER_LOCK}`,
     ]);
-    // Before the page of projects the check reads, and once it is done.
+    /*
+     * Before the page of projects the check reads, once it is done, and
+     * once more right before the write - after the auto recharge charge.
+     */
     expect(kept).toEqual([
+      PROJECT_ID.toString(),
+      SERVER_LOCK,
       PROJECT_ID.toString(),
       SERVER_LOCK,
       PROJECT_ID.toString(),
@@ -409,8 +416,32 @@ describe("turning Require SSO for Login on for a project", () => {
     ).resolves.toBe("done");
   });
 
-  test("saving back the rule it already has asks for nothing more and is not refused", async () => {
-    // Its provider went off since: that is not this write's doing.
+  test("saving back the rule it already has is checked as turning it on is: refused while the provider it requires cannot sign anyone in", async () => {
+    // Its provider went off since.
+    storedProject["requireSsoForLogin"] = true;
+    storedProject["requireSsoWithSsoProviderId"] = OWN_SAML;
+
+    await expect(
+      updateProject({
+        name: "Renamed",
+        requireSsoForLogin: true,
+        requireSsoWithSsoProviderId: OWN_SAML,
+      }),
+    ).resolves.toBe(REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE);
+
+    expect(storedProject["name"]).toBe("Acme");
+    expect(projectWrites).toEqual([]);
+    // Checked under both locks, given back once refused.
+    expect(events).toEqual([
+      `lock:${PROJECT_ID.toString()}`,
+      `lock:${SERVER_LOCK}`,
+      `release:${PROJECT_ID.toString()}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+  });
+
+  test("saving back the rule it already has, with its provider on, holds the project's lock until it is written", async () => {
+    ownSamlOn = true;
     storedProject["requireSsoForLogin"] = true;
     storedProject["requireSsoWithSsoProviderId"] = OWN_SAML;
 
@@ -423,12 +454,23 @@ describe("turning Require SSO for Login on for a project", () => {
     ).resolves.toBe("done");
 
     expect(storedProject["name"]).toBe("Renamed");
-    // The project's rule is read under its lock, which goes back at once: nothing to hold.
     expect(events).toEqual([
       `lock:${PROJECT_ID.toString()}`,
-      `release:${PROJECT_ID.toString()}`,
       "write",
+      `release:${PROJECT_ID.toString()}`,
     ]);
+    // Once the check is done, and once more right before the write.
+    expect(kept).toEqual([PROJECT_ID.toString(), PROJECT_ID.toString()]);
+  });
+
+  test("saving Require SSO for Login on again, with no provider at all, is refused, as turning it on is", async () => {
+    storedProject["requireSsoForLogin"] = true;
+
+    await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(
+      NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
+    );
+
+    expect(projectWrites).toEqual([]);
   });
 
   test("turning it off, or clearing the provider, is never refused and takes no lock", async () => {

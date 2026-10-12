@@ -63,19 +63,17 @@ export default class DeletePermission {
        * The records a delete reaches, by the rule a read and an update
        * follow: label grants, owned records, the record a model is read
        * through, and the label rule with the team's blocks
-       * (BasePermission.addRecordScopeToQuery). A request across projects
-       * comes back from the tenant scope as one query per project, each
-       * already narrowed with that project's own rows.
+       * (BasePermission.addRecordScopeToQuery). A delete is made in one
+       * project at a time - the tenant scope refuses one that names no
+       * project or asks across projects - so this is one project's query.
        */
-      if (!Array.isArray(query)) {
-        query = await BasePermission.addRecordScopeToQuery(
-          modelType,
-          query,
-          null,
-          props,
-          DatabaseRequestType.Delete,
-        );
-      }
+      query = await BasePermission.addRecordScopeToQuery(
+        modelType,
+        query,
+        null,
+        props,
+        DatabaseRequestType.Delete,
+      );
     }
 
     return query;

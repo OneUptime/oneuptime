@@ -42,6 +42,7 @@ import {
   toStoredColumns,
   toStoredKind,
 } from "./MessagingTelemetryFixtures";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 function resolveSpan(
@@ -2865,11 +2866,7 @@ describe("the resolver reads cheaply and never throws", () => {
 
   test("any mix of attribute values resolves or is null, without throwing", () => {
     // A deterministic pseudo-random walk over every input key.
-    let seed: number = 20260930;
-    const next: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed / 2147483648;
-    };
+    const next: SeededRandom = seededRandom(20260930);
     const values: Array<unknown> = [
       "",
       " ",
@@ -2924,11 +2921,10 @@ describe("the resolver reads cheaply and never throws", () => {
       const attributes: FixtureAttributes = {};
       for (const key of MESSAGING_RESOLVER_INPUT_ATTRIBUTES) {
         if (next() < 0.3) {
-          attributes[key] = values[Math.floor(next() * values.length)];
+          attributes[key] = values[next(values.length)];
         }
       }
-      const kind: string | null =
-        kinds[Math.floor(next() * kinds.length)] ?? null;
+      const kind: string | null = kinds[next(kinds.length)] ?? null;
       let threw: boolean = false;
       let resolved: ResolvedMessagingDestination | null = null;
       try {

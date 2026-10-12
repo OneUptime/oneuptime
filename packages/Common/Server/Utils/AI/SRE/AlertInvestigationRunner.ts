@@ -46,12 +46,15 @@ import AIAgentRunLimitsHelper, {
 import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
+import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationRules, {
   InvestigationRuleScope,
 } from "./InvestigationRules";
+import PromptText from "../../../../Utils/AI/PromptText";
+import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
 
 /*
  * AI SRE — alert investigation.
@@ -194,13 +197,15 @@ export default class AIAlertInvestigationRunner {
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     let resourceStatuses: Array<ResourceAiAccessStatus> = [];
+    // What the summary left out of the alert's text, for the run to say.
+    const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
     try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
         });
 
-      contextSummary = this.buildAlertSummary(contextData);
+      contextSummary = this.buildAlertSummary(contextData, promptOmissions);
 
       /*
        * Direct cluster access. Never a prerequisite: an access lookup that
@@ -242,6 +247,26 @@ export default class AIAlertInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not resolve infrastructure access for alert ${alertId.toString()}; investigating it with OneUptime data only: ${error}`,
+        );
+      }
+
+      /*
+       * The optics of the network device the alert is about, when it is:
+       * still detected or not, readings against the device's thresholds,
+       * and received power over the last weeks. Enrichment only.
+       */
+      try {
+        contextSummary += await NetworkTransceiverContext.buildContextSection({
+          projectId,
+          monitorIds: contextData.alert.monitorId
+            ? [contextData.alert.monitorId]
+            : [],
+          focusText: `${contextData.alert.title || ""}\n${contextData.alert.rootCause || ""}`,
+          seriesLabels: contextData.alert.seriesLabels,
+        });
+      } catch (error) {
+        logger.error(
+          `AI: could not read transceivers for alert ${alertId.toString()}; investigating it without them: ${error}`,
         );
       }
     } catch (error) {
@@ -354,6 +379,7 @@ export default class AIAlertInvestigationRunner {
         feature: AI_ALERT_INVESTIGATION_FEATURE,
         alertId,
         contextSummary,
+        promptOmissions,
         maxLlmCalls: runLimits.maxLlmCalls,
         maxToolCalls: runLimits.maxToolCalls,
         maxWallClockMs: runLimits.maxWallClockMs,
@@ -391,9 +417,10 @@ export default class AIAlertInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * projects with the alert instrumentation-fix setting on (on
-           * for new projects), queue an ImproveInstrumentation fix task that
-           * opens a PR adding the missing observability. Runs strictly
+           * projects with the alert instrumentation-fix setting on, under
+           * "Fix new alerts automatically" (Types/AI/AutomaticFixSwitches),
+           * queue an ImproveInstrumentation fix task that opens a PR adding
+           * the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
            * Fail direction (G6): only a POSITIVE inconclusive verdict
@@ -417,8 +444,9 @@ export default class AIAlertInvestigationRunner {
          * The engine calls this only after it atomically persists Recommended
          * with the exact posted analysis snapshot. That durable decision is
          * the prerequisite for the optional automatic FixFromIncident task;
-         * the trigger then applies the alert lane's independent opt-in and
-         * remaining repository, budget and dedupe gates.
+         * the trigger then applies the alert lane's opt-in - its code-fix
+         * switch, under its fixing switch - and the remaining repository,
+         * budget and dedupe gates.
          */
         onCodeFixRecommended: async (data: {
           analysisMarkdown: string;
@@ -619,8 +647,16 @@ export default class AIAlertInvestigationRunner {
     return floorSeverity;
   }
 
-  // Build a compact alert record to seed the investigation.
-  private static buildAlertSummary(contextData: AlertContextData): string {
+  /*
+   * Build a compact alert record to seed the investigation. It is sent with
+   * every call to the model, so each free-text field goes in through
+   * PromptText.field: embedded images left out, held to a length, and what
+   * was left out added to `omissions`.
+   */
+  public static buildAlertSummary(
+    contextData: AlertContextData,
+    omissions?: AIPromptOmissions | undefined,
+  ): string {
     const { alert, internalNotes } = contextData;
 
     const lines: Array<string> = [];
@@ -628,7 +664,9 @@ export default class AIAlertInvestigationRunner {
     lines.push(`Title: ${alert.title || "N/A"}`);
 
     if (alert.description) {
-      lines.push(`Description: ${alert.description}`);
+      lines.push(
+        `Description: ${PromptText.field(alert.description, { omissions })}`,
+      );
     }
 
     lines.push(`Severity: ${alert.alertSeverity?.name || "N/A"}`);
@@ -657,13 +695,17 @@ export default class AIAlertInvestigationRunner {
     }
 
     if (alert.rootCause) {
-      lines.push(`Root cause (as recorded so far): ${alert.rootCause}`);
+      lines.push(
+        `Root cause (as recorded so far): ${PromptText.field(alert.rootCause, { omissions })}`,
+      );
     }
 
     const recentNotes: Array<string> = (internalNotes || [])
       .slice(-5)
       .map((note: { note?: string }) => {
-        return note.note ? `- ${note.note}` : "";
+        return note.note
+          ? `- ${PromptText.field(note.note, { omissions })}`
+          : "";
       })
       .filter(Boolean);
 

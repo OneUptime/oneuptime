@@ -1238,6 +1238,58 @@ export default class Span extends AnalyticsBaseModel {
       accessControl: llmColumnAccessControl,
     });
 
+    /*
+     * What the call did and what went wrong with its answer, decided once at
+     * ingest (Common/Types/Telemetry/LlmCallKind.ts and LlmAnswerIssue.ts) so
+     * the conversation list, the AI / LLM monitor and the calls list filter
+     * on a column instead of re-reading the content of every call. Spans
+     * ingested before these columns existed read "" and [] - their failures
+     * still show through statusCode.
+     */
+    const llmCallKindColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmCallKind",
+      isLowCardinality: true,
+      title: "LLM Call Kind",
+      description:
+        "What the AI call did: answer (a model generating a response), agent, tool, embedding, retrieval or other. '' on calls ingested before this column existed.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: llmColumnAccessControl,
+    });
+
+    const llmIssuesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "llmIssues",
+      title: "LLM Answer Issues",
+      description:
+        "What went wrong with the AI call's answer: failed, refused, cut_off, empty or flagged (by an evaluation the app sent). Empty when nothing did.",
+      required: true,
+      defaultValue: [],
+      type: TableColumnType.ArrayText,
+      codec: { codec: "ZSTD", level: 1 },
+      accessControl: llmColumnAccessControl,
+    });
+
+    /*
+     * The person's newest message in the call, cut short. It is content, so
+     * it is written AFTER the project's scrub rules and pipelines ran over
+     * the attributes it is read from (OtelTracesIngestService) and carries
+     * their redactions; it is read under the same permissions as the
+     * attributes themselves.
+     */
+    const llmUserMessagePreviewColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmUserMessagePreview",
+        title: "LLM User Message Preview",
+        description:
+          "The first 300 characters of the newest message the person sent in this AI call, read after the project's scrub rules, so conversations can be listed under and searched by what was asked. '' when the prompt was not recorded.",
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        codec: { codec: "ZSTD", level: 3 },
+        accessControl: llmColumnAccessControl,
+      });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -1336,6 +1388,9 @@ export default class Span extends AnalyticsBaseModel {
         llmUserIdColumn,
         llmUserEmailColumn,
         llmTeamColumn,
+        llmCallKindColumn,
+        llmIssuesColumn,
+        llmUserMessagePreviewColumn,
         retentionDateColumn,
       ],
       projections: [
@@ -1688,5 +1743,29 @@ export default class Span extends AnalyticsBaseModel {
 
   public set llmTeam(v: string | undefined) {
     this.setColumnValue("llmTeam", v);
+  }
+
+  public get llmCallKind(): string | undefined {
+    return this.getColumnValue("llmCallKind") as string | undefined;
+  }
+
+  public set llmCallKind(v: string | undefined) {
+    this.setColumnValue("llmCallKind", v);
+  }
+
+  public get llmIssues(): Array<string> | undefined {
+    return this.getColumnValue("llmIssues") as Array<string> | undefined;
+  }
+
+  public set llmIssues(v: Array<string> | undefined) {
+    this.setColumnValue("llmIssues", v);
+  }
+
+  public get llmUserMessagePreview(): string | undefined {
+    return this.getColumnValue("llmUserMessagePreview") as string | undefined;
+  }
+
+  public set llmUserMessagePreview(v: string | undefined) {
+    this.setColumnValue("llmUserMessagePreview", v);
   }
 }

@@ -103,6 +103,7 @@ const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.SQLQuery]: Slot.Probe,
   [MonitorType.Database]: Slot.Probe,
   [MonitorType.ExternalStatusPage]: Slot.Probe,
+  [MonitorType.NTP]: Slot.Probe,
   // Its polls and traps arrive as probe responses; SnmpMonitorView reads them.
   [MonitorType.NetworkDevice]: Slot.Probe,
 
@@ -114,6 +115,8 @@ const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.SecurityEvents]: Slot.Telemetry,
   [MonitorType.Metrics]: Slot.Telemetry,
   [MonitorType.Traces]: Slot.Telemetry,
+  // Its check counts the AI answers in its window of spans.
+  [MonitorType.Llm]: Slot.Telemetry,
   [MonitorType.Exceptions]: Slot.Telemetry,
   [MonitorType.Profiles]: Slot.Telemetry,
   [MonitorType.Kubernetes]: Slot.Telemetry,

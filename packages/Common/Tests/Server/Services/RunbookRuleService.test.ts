@@ -18,6 +18,22 @@ import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerE
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  readsOfRowsCallerMayWrite,
+  stubRowsCallerMayWriteLikeFindBy,
+} from "../TestingUtils/RowsCallerMayWrite";
+
+/*
+ * The read of the rows a caller's update may write, which the update path
+ * makes before the hooks: what the suite's read of them answers
+ * (stubRowsCallerMayWriteLikeFindBy).
+ */
+beforeEach(() => {
+  stubRowsCallerMayWriteLikeFindBy(
+    RunbookRuleService,
+    jest.spyOn(RunbookRuleService, "findBy"),
+  );
+});
 
 /*
  * One table holds incident, alert and scheduled maintenance runbook rules.
@@ -309,7 +325,7 @@ describe("editing a runbook rule", () => {
     expect(findBy).not.toHaveBeenCalled();
   });
 
-  it("judges new conditions against the stored trigger, in the caller's project only", async () => {
+  it("judges new conditions against the stored trigger of the rules the caller may write, in their project", async () => {
     const findBy: SpyInstance<typeof RunbookRuleService.findBy> = storedRules(
       RunbookRuleTriggerEntity.Incident,
     );
@@ -320,15 +336,19 @@ describe("editing a runbook rule", () => {
       "Alert Severities can only be used by alert runbook rules.",
     );
 
-    expect(findBy).toHaveBeenCalledTimes(1);
-    const read: Parameters<typeof RunbookRuleService.findBy>[0] =
-      findBy.mock.calls[0]![0];
-    expect(read.query).toEqual({
+    // The rules the caller may write, found in their project.
+    expect(readsOfRowsCallerMayWrite(RunbookRuleService)[0]!.query).toEqual({
       _id: RULE_ID.toString(),
       projectId: PROJECT_ID,
     });
+
+    // Then those, by id.
+    expect(findBy).toHaveBeenCalledTimes(1);
+    const read: Parameters<typeof RunbookRuleService.findBy>[0] =
+      findBy.mock.calls[0]![0];
+    expect(read.query).toEqual({ _id: RULE_ID.toString() });
     expect(read.select).toEqual({ _id: true, triggerEntityType: true });
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
   });
 
   it("accepts new conditions of the rule's own trigger", async () => {

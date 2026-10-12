@@ -34,6 +34,7 @@ export default class MonitorTemplateSyncFieldUtil {
         MonitorType.IP,
         MonitorType.Port,
         MonitorType.SSLCertificate,
+        MonitorType.NTP,
       ].includes(monitorType)
     ) {
       add("monitorDestination", "Monitor destination");
@@ -61,7 +62,7 @@ export default class MonitorTemplateSyncFieldUtil {
       );
     }
 
-    if (monitorType === MonitorType.Port) {
+    if ([MonitorType.Port, MonitorType.NTP].includes(monitorType)) {
       add("monitorDestinationPort", "Port");
     }
 
@@ -204,6 +205,7 @@ export default class MonitorTemplateSyncFieldUtil {
         "Security event query configuration",
       ],
       [MonitorType.Traces]: ["traceMonitor", "Trace query configuration"],
+      [MonitorType.Llm]: ["llmMonitor", "AI / LLM answer configuration"],
       [MonitorType.Metrics]: ["metricMonitor", "Metric query configuration"],
       [MonitorType.Exceptions]: [
         "exceptionMonitor",

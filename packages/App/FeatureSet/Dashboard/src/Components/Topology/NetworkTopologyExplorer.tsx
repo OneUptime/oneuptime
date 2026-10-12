@@ -702,6 +702,17 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
           layoutMode={
             currentSiteId ? props.siteLayoutMode || "tiered" : "force"
           }
+          /*
+           * Names the exported PDF after the site, with the path to it.
+           * Empty at the root, where the map is every device in the project.
+           */
+          scopeNames={
+            currentSiteId
+              ? breadcrumb.map((entry: SiteBreadcrumbEntry): string => {
+                  return entry.name;
+                })
+              : []
+          }
         />
       </Fragment>
     );

@@ -73,7 +73,7 @@ PagerDuty의 `severity` 는 `critical`, `error`, `warning`, `info` 를 허용합
 
 ## 인바운드 (선택 사항)
 
-반대 방향으로 — PagerDuty 이벤트에서 OneUptime 인시던트를 열려면 — **Webhook** 트리거 워크플로를 추가하고 PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/)(또는 Events Orchestration)을 해당 URL로 지정한 다음 **Create Incident** 를 사용합니다. [인바운드 패턴](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime)을 참조하세요.
+반대 방향으로 — PagerDuty 이벤트에서 OneUptime 인시던트를 열려면 — **Webhook** 트리거 워크플로를 추가하고 PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/)(또는 Events Orchestration)을 해당 URL로 지정한 다음 **Create Incident** 를 사용합니다. [인바운드 패턴](/docs/integrations/index#인바운드-다른-도구가-oneuptime으로-데이터를-보내는-경우)을 참조하세요.
 
 ## 문제 해결
 

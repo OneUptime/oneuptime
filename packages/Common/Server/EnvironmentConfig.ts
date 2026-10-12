@@ -47,6 +47,13 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY",
   "SLACK_APP_CLIENT_ID",
   "MICROSOFT_TEAMS_APP_CLIENT_ID",
+  /*
+   * Public OAuth client ids: the Video Calls page offers the one-click
+   * Connect for a provider whose app this server has.
+   */
+  "ZOOM_APP_CLIENT_ID",
+  "GOOGLE_MEET_APP_CLIENT_ID",
+  "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
   "GITHUB_APP_CLIENT_ID",
   "GITHUB_APP_NAME",
   "CAPTCHA_ENABLED",
@@ -362,17 +369,25 @@ export const PostgresMigrationWaitTimeoutMs: number =
   );
 
 /*
- * Node-postgres client-side query timeout (ms). Belt-and-braces for the
- * server-side statement_timeout — fires even if the connection has gone
- * silent or the server-side timeout doesn't kick in.
+ * The app's client-side query timeout (ms). Belt-and-braces for the
+ * server-side statement_timeout - fires even if the connection has gone
+ * silent or the server-side timeout doesn't kick in (behind a pooler that
+ * drops the statement_timeout the app asks for, with none set on the role).
+ * A statement still running when it fires is cancelled on the database, and
+ * its connection closed rather than handed to another request
+ * (Infrastructure/Postgres/CancelOnTimeoutClient); the caller then waits a
+ * little longer for the database's answer to the cancel
+ * (CANCEL_ANSWER_WAIT_IN_MS).
  *
  * Deliberately LONGER than statement_timeout. These two used to be equal, and
  * because the client timer starts before the packet even reaches the backend,
- * the client always won by a round trip — so the app never observed Postgres's
- * real SQLSTATE and, worse, the client-side timeout only ABANDONS the query:
- * the backend keeps running and keeps its place in the lock queue. Letting the
- * server win means contention is cancelled server-side instead of accumulating
- * invisibly behind a pooler.
+ * the client always won by a round trip - so the app never observed Postgres's
+ * real SQLSTATE, and node-postgres' own timeout only ABANDONED the query: the
+ * backend kept running and kept its place in the lock queue. Letting the
+ * server win means contention is cancelled server-side, with its own answer;
+ * the client's cancel is for where the server enforces no timeout. Keep
+ * PgBouncer's query_wait_timeout below it (HelmChart/Docs/Postgres.md): a
+ * statement still queued in the pooler cannot be cancelled.
  */
 export const PostgresQueryTimeoutMs: number = parseInt(
   process.env["DATABASE_QUERY_TIMEOUT_MS"] ||
@@ -695,6 +710,19 @@ export const DisableTelemetryIngestion: boolean =
  */
 export const DisableQueueWorkers: boolean =
   process.env["DISABLE_QUEUE_WORKERS"] === "true";
+
+/*
+ * Whether ingress traffic reaches this process: the agents', collectors',
+ * probes' and heartbeat senders' requests. Default true - the single App
+ * container of docker-compose, and the Helm chart's app pods, take it. The
+ * Helm chart's worker pods run the same image with no ingress in front of
+ * them and set it to "false", so they never vouch that OneUptime was
+ * receiving (InstanceReceivingHeartbeat): if every app pod is down while the
+ * workers keep running, that time is still recorded as time OneUptime was
+ * not receiving, and nobody's hosts are marked down for it.
+ */
+export const ReceivesIngressTraffic: boolean =
+  process.env["RECEIVES_INGRESS_TRAFFIC"] !== "false";
 
 /*
  * When "false", this process does NOT run schema or data migrations on boot.
@@ -1334,6 +1362,39 @@ export const MicrosoftTeamsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
 export const MicrosoftTeamsAppTenantId: string | null =
   process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;
+
+/*
+ * The apps behind the one-click Connect of a video call provider
+ * (VideoCallAuthMethod.OAuth): someone signs in to Zoom, Google or Microsoft
+ * and allows this app to create meetings as that account. A provider whose
+ * client id and secret are both set is offered as one click on the Video
+ * Calls page; without them, a project connects its own app instead.
+ *
+ * The Teams meetings app is its own registration, not the Teams bot's
+ * (MICROSOFT_TEAMS_APP_CLIENT_ID): it asks a person for delegated meeting
+ * permissions, which the bot's admin consent does not cover, and a
+ * deployment that sets up the bot must not start sending people to a
+ * sign-in its registration has no redirect URI for.
+ *
+ * ZOOM_APP_WEBHOOK_SECRET_TOKEN verifies the events Zoom sends when someone
+ * removes the app from their Zoom account (/api/video-call-oauth/zoom/events).
+ */
+export const ZoomAppClientId: string | null =
+  process.env["ZOOM_APP_CLIENT_ID"] || null;
+export const ZoomAppClientSecret: string | null =
+  process.env["ZOOM_APP_CLIENT_SECRET"] || null;
+export const ZoomAppWebhookSecretToken: string | null =
+  process.env["ZOOM_APP_WEBHOOK_SECRET_TOKEN"] || null;
+
+export const GoogleMeetAppClientId: string | null =
+  process.env["GOOGLE_MEET_APP_CLIENT_ID"] || null;
+export const GoogleMeetAppClientSecret: string | null =
+  process.env["GOOGLE_MEET_APP_CLIENT_SECRET"] || null;
+
+export const MicrosoftTeamsMeetingsAppClientId: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID"] || null;
+export const MicrosoftTeamsMeetingsAppClientSecret: string | null =
+  process.env["MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET"] || null;
 
 // GitHub App Configuration
 export const GitHubAppId: string | null = process.env["GITHUB_APP_ID"] || null;

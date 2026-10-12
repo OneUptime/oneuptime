@@ -11,8 +11,6 @@ import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
-import Query from "../Types/Database/Query";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 // Both spellings of each end, for the same reason RelationIdUtil exists.
 const FROM_DEVICE_KEYS: Array<string> = ["fromDeviceId", "fromDevice"];
@@ -113,27 +111,6 @@ const assertNoSqlExpression: (
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
-  }
-
-  /*
-   * onBeforeUpdate runs before DatabaseService permission-checks the query,
-   * so reading the raw client query as root would hand the hook rows from
-   * other projects. Re-apply the caller's tenant here. (Same helper as
-   * NetworkDeviceService and NetworkSiteService — private per service,
-   * which is the shape the codebase already settled on.)
-   */
-  private scopeQueryToCallerTenant(
-    query: Query<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Query<Model> {
-    if (props.isRoot || !props.tenantId) {
-      return query;
-    }
-
-    return {
-      ...query,
-      projectId: props.tenantId,
-    };
   }
 
   /*
@@ -287,21 +264,16 @@ export class Service extends ProjectReferencesService<Model> {
     const isParentWritten: boolean =
       writtenKeys(data, PARENT_DEVICE_KEYS).length > 0;
 
-    const existingLinks: Array<Model> = await this.findBy({
-      query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
-      select: {
+    const existingLinks: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         fromDeviceId: true,
         toDeviceId: true,
         parentDeviceId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     /*
      * An end that MOVED has to be re-checked for tenancy, exactly as

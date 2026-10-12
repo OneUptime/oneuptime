@@ -267,6 +267,8 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
         "HealthRedis",
         "HealthTelemetry",
         "LicenseManager",
+        "SettingsPages",
+        "SettingsSideMenuItems",
       ].sort(),
     );
     expect(new Set(ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS).size).toBe(

@@ -5,7 +5,7 @@
 {{> EmailTitle title=title }}
 
 {{#ifCond isProbeDisconnected "true"}}
-{{> InfoBlock plainInfo=(concat "Probe " probeName " stopped reporting to OneUptime. The monitors below have no other connected probe, so they are not being monitored until a probe reconnects.") }}
+{{> InfoBlock plainInfo=(concat "Probe " probeName " stopped reporting to " (brandName) ". The monitors below have no other connected probe, so they are not being monitored until a probe reconnects.") }}
 {{else}}
 {{> InfoBlock plainInfo=(concat "Probe " probeName " is connected again. The monitors below are being monitored again.") }}
 {{/ifCond}}

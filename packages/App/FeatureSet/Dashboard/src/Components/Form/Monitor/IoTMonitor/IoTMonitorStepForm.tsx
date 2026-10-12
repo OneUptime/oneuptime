@@ -248,9 +248,12 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Filter precedence in the worker (MonitorTelemetryMonitor): deviceId
-   * (raw `device.id` label) wins over everything; scope and deviceType map
-   * to their `iot.scope` / `iot.device.type` attributes independently.
+   * The worker (MonitorTelemetryMonitor.monitorIoT) turns every filter that
+   * is set into its own equality on the datapoints, next to the fleet:
+   * Device ID on the raw `device.id` label, Device Type and Resource Scope on
+   * the `iot.device.type` / `iot.scope` attributes. So a datapoint must match
+   * every filter set. Nothing takes precedence: unlike the Proxmox form's
+   * guest ID, a Device ID does not set the other filters aside.
    */
   const renderResourceFilters: () => ReactElement = (): ReactElement => {
     return (
@@ -287,7 +290,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
           <FieldLabelElement
             title="Device ID"
             description={
-              "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set."
+              "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match."
             }
             required={false}
           />

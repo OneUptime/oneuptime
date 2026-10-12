@@ -340,15 +340,10 @@ describe("Home page request waterfall", () => {
 
     expect(entries.length).toBe(7);
 
-    // The three state-independent counts sit directly in the parallel batch…
+    // The state-independent counts sit directly in the parallel batch…
     expect(
       entries.some((entry: string): boolean => {
         return entry.includes("ModelAPI.count<Monitor>");
-      }),
-    ).toBe(true);
-    expect(
-      entries.some((entry: string): boolean => {
-        return entry.includes("ScheduledMaintenance");
       }),
     ).toBe(true);
     expect(
@@ -357,7 +352,12 @@ describe("Home page request waterfall", () => {
       }),
     ).toBe(true);
 
-    // …next to the two state-dependent chains, not behind them.
+    /*
+     * …next to the three state-dependent chains, not behind them: the open
+     * incidents and alerts, and the maintenance in progress - Ongoing, or a
+     * state of the project's own between Ongoing and Ended, which only the
+     * project's states can name (Common/Utils/ScheduledMaintenanceStart).
+     */
     expect(
       entries.some((entry: string): boolean => {
         return entry.includes("Incident");
@@ -366,6 +366,11 @@ describe("Home page request waterfall", () => {
     expect(
       entries.some((entry: string): boolean => {
         return entry.includes("Alert");
+      }),
+    ).toBe(true);
+    expect(
+      entries.some((entry: string): boolean => {
+        return entry.includes("fetchOngoingMaintenanceCount");
       }),
     ).toBe(true);
   });
@@ -437,6 +442,31 @@ describe("Home page request waterfall", () => {
     expect(queryOf(atRisk[0]!)).toContain("isArchived: false");
   });
 
+  test("the maintenance count reads the cached state list, then counts by the in-progress states", () => {
+    /*
+     * The one state read behind the maintenance tile is the list the Home
+     * side menu reads on the same mount, through ModelListCache - so it is
+     * one request for both - and the count asks for the events in any state
+     * the event is in progress in, never by the ongoing flag alone.
+     */
+    const body: string = arrowFunctionBody(
+      OVERVIEW_STATS_SOURCE,
+      "fetchOngoingMaintenanceCount",
+    );
+
+    expect(body).toContain(
+      "ScheduledMaintenanceStateUtil.getInProgressScheduledMaintenanceStates(",
+    );
+    expect(body).toContain("ModelAPI.count<ScheduledMaintenance>");
+    expect(body).toMatch(
+      /currentScheduledMaintenanceStateId:\s*new Includes\(/,
+    );
+    expect(body).not.toContain("isOngoingState");
+
+    // No states in progress: no count is asked for at all.
+    expect(body).toMatch(/inProgressStates\.length === 0[\s\S]*return 0;/);
+  });
+
   test("the batch's results are destructured in the order the counts are issued", () => {
     /*
      * Promise.all answers positionally. The totals were appended after the
@@ -480,7 +510,7 @@ describe("Home page request waterfall", () => {
     expect(entries[1]).toContain("fetchActiveAlertsCount");
     expect(entries[2]).toContain("ModelAPI.count<Monitor>");
     expect(entries[2]).toContain("isOperationalState: false");
-    expect(entries[3]).toContain("ModelAPI.count<ScheduledMaintenance>");
+    expect(entries[3]).toContain("fetchOngoingMaintenanceCount");
     expect(entries[4]).toContain("ModelAPI.count<ServiceLevelObjective>");
     expect(entries[4]).toContain("sloStatus");
     expect(entries[5]).toContain("ModelAPI.count<Monitor>");

@@ -11,6 +11,7 @@ import {
   PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
   PROBE_MONITOR_RETRY_LIMIT,
   PROBE_PRIVATE_NETWORK_MONITOR_POLICY,
+  PROBE_PACKET_CAPTURE_SETTINGS,
 } from "./Config";
 import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
@@ -18,12 +19,16 @@ import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import FetchDiscoveryScans from "./Jobs/Discovery/FetchScans";
 import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
+import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
+import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
+import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
+import { describePacketCaptureSettings } from "./Utils/PacketCapture/PacketCaptureSettings";
 import Register from "./Services/Register";
 import NetFlowReceiver from "./Services/NetFlowReceiver";
 import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
 import SyslogReceiver from "./Services/SyslogReceiver";
 import MetricsAPI from "./API/Metrics";
-import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
+import { createIngressApp } from "./API/IncomingRequestIngress";
 import ProbeApiDiagnostics from "./Utils/ProbeApiDiagnostics";
 import ProxyConfig from "./Utils/ProxyConfig";
 import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
@@ -33,13 +38,7 @@ import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
-import Express, {
-  ExpressApplication,
-  ExpressJson,
-  ExpressRaw,
-  ExpressUrlEncoded,
-  createExpressApp,
-} from "Common/Server/Utils/Express";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
 const APP_NAME: string = "probe";
@@ -100,6 +99,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     );
 
     /*
+     * Whether this probe may capture packets is its operator's call, so say
+     * which it is at every start, with any setting it could not use.
+     */
+    logger.info(describePacketCaptureSettings(PROBE_PACKET_CAPTURE_SETTINGS));
+
+    for (const warning of PROBE_PACKET_CAPTURE_SETTINGS.warnings) {
+      logger.warn(warning);
+    }
+
+    /*
      * Print the whole connectivity-relevant environment once, and start
      * watching for event-loop stalls — a probe that cannot talk to the
      * server is nearly always explained by one of the two, and asking a
@@ -133,11 +142,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     if (PROBE_INGRESS_PORT !== null && PROBE_INGRESS_PORT.toNumber() > 0) {
       const ingressPortNumber: number = PROBE_INGRESS_PORT.toNumber();
-      const ingressApp: ExpressApplication = createExpressApp();
-      ingressApp.use(ExpressJson({ limit: "50mb" }));
-      ingressApp.use(ExpressUrlEncoded({ extended: true, limit: "50mb" }));
-      ingressApp.use(ExpressRaw({ type: "application/octet-stream" }));
-      ingressApp.use(IncomingRequestIngressAPI);
+      const ingressApp: ExpressApplication = createIngressApp();
 
       ingressApp.listen(ingressPortNumber, () => {
         logger.info(
@@ -161,13 +166,31 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       // On-demand ping / traceroute the dashboard asked this probe to run.
       FetchNetworkDeviceDiagnostics();
 
+      /*
+       * Packet captures: what this probe can capture on, reported whether
+       * or not captures are on, and - only when PROBE_PACKET_CAPTURE_ENABLED
+       * is true - the captures the dashboard asks for.
+       */
+      ReportPacketCaptureCapability();
+      FetchPacketCaptures();
+
+      /*
+       * vCenters this probe collects with the read-only account saved in
+       * OneUptime - VMware monitoring without an agent - and the connection
+       * tests people start from the dashboard.
+       */
+      FetchVMwareWork();
+
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();
 
       // Optional syslog receiver (PROBE_SYSLOG_RECEIVER_ENABLED).
       SyslogReceiver.start();
 
-      // Optional NetFlow v5 receiver (PROBE_NETFLOW_RECEIVER_ENABLED).
+      /*
+       * Flow collector: NetFlow v5/v9, IPFIX and sFlow on UDP 2055, 4739
+       * and 6343. On unless PROBE_NETFLOW_RECEIVER_ENABLED=false.
+       */
       NetFlowReceiver.start();
 
       await Register.reportIfOffline();

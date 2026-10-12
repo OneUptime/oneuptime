@@ -15,6 +15,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { PublicFormImage } from "Common/Types/Form/FormBranding";
 import {
   findPublicFormTemplate,
+  getPublicFormForTemplate,
   getPublicFormStartTemplate,
   PublicForm,
   PublicFormSubmissionResult,
@@ -83,9 +84,11 @@ import { Params, useParams } from "react-router-dom";
  * the template its link names (?template=<id>), else the form's default,
  * else none; choosing another starts the form over from that template's
  * answers, and the address follows the choice, so the link in the address
- * bar opens the form the way it is now. The submission names the template
- * it started from, and the server answers the form's hidden questions from
- * it.
+ * bar opens the form the way it is now. A template can ask the questions its
+ * own way - make one required, optional or hidden - so the page asks the
+ * form as the chosen template asks it (getPublicFormForTemplate). The
+ * submission names the template it started from, and the server holds it to
+ * the same questions and answers the ones it was not asked from it.
  */
 
 const CAPTCHA_TOKEN_KEY: string = "captchaToken";
@@ -325,12 +328,27 @@ const FormPage: () => JSX.Element = () => {
     };
   };
 
+  // The template the form is filled in from, while the form has it.
+  const template: PublicFormTemplate | undefined = useMemo(():
+    | PublicFormTemplate
+    | undefined => {
+    return form ? findPublicFormTemplate(form, templateId) : undefined;
+  }, [form, templateId]);
+
+  /*
+   * The form as that template asks it: the questions it asks, each required
+   * as it says. The server holds the submission to the same questions.
+   */
+  const askedForm: PublicForm | null = useMemo((): PublicForm | null => {
+    return form ? getPublicFormForTemplate({ form, template }) : null;
+  }, [form, template]);
+
   const fields: Fields<JSONObject> = useMemo((): Fields<JSONObject> => {
-    if (!form) {
+    if (!askedForm) {
       return [];
     }
 
-    const formFields: Fields<JSONObject> = buildPublicFormFields(form);
+    const formFields: Fields<JSONObject> = buildPublicFormFields(askedForm);
 
     if (isCaptchaShown) {
       formFields.push({
@@ -360,20 +378,15 @@ const FormPage: () => JSX.Element = () => {
     }
 
     return formFields;
-  }, [form, t, isCaptchaShown, captchaResetSignal]);
+  }, [askedForm, t, isCaptchaShown, captchaResetSignal]);
 
   /*
    * The option a question chooses to begin with (the form's own severity),
    * and the answers of the template the form is filled in from.
    */
   const initialValues: JSONObject = useMemo((): JSONObject => {
-    return form
-      ? getPublicFormInitialValues(
-          form,
-          findPublicFormTemplate(form, templateId),
-        )
-      : {};
-  }, [form, templateId]);
+    return form ? getPublicFormInitialValues(form, template) : {};
+  }, [form, template]);
 
   type ChooseTemplateFunction = (chosen: string | null) => void;
 

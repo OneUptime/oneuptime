@@ -85,18 +85,6 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
     reason:
       "Only the rule type and the one or two fields that type uses ever show: From and To to rename, Key and Value to add an attribute, a replacement to redact, a percentage to sample. The other fields are alternatives, never on screen together.",
   },
-  ...[
-    "ModelTable: Network Device Discovery Scans",
-    "ModelFormModal: Edit Discovery Scan",
-  ].map((form: string): ListedStep => {
-    return {
-      file: `${DASHBOARD}/Pages/NetworkDevice/Discovery.tsx`,
-      form,
-      step: "scan-target",
-      reason:
-        "The target, its probe and three switches about the sweep, already grouped under the headings What to check and Device names. Where each switch sits is pinned by issues #3445, #3677 and #3678 (the method switch before the SNMP step it removes, the NetBIOS and naming switches on a step an ICMP-only scan keeps), and the create wizard and the Edit dialog must keep one layout between them.",
-    };
-  }),
   /*
    * The mail server forms (Common/UI/Components/SmtpConfig): Server, then
    * Sender. The Admin Dashboard's instance server is the same step without

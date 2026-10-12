@@ -38,15 +38,9 @@
  *     `serviceView=map`.
  */
 
-const K8S_ALPHABET = "bcdfghjklmnpqrstvwxz2456789";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
-function seededRandom(seed) {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
-}
+const K8S_ALPHABET = "bcdfghjklmnpqrstvwxz2456789";
 
 function k8sSuffix(random, length) {
   let out = "";

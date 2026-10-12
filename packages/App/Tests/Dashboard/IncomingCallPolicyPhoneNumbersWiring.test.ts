@@ -158,14 +158,29 @@ describe("the incoming-call phone-number manager", () => {
     expect(MANAGER_CODE).toContain(
       "!props.projectCallSMSConfigId && props.phoneNumbers.length === 0",
     );
-    expect(MANAGER_CODE).toContain("disabled={!props.projectCallSMSConfigId}");
-    expect(MANAGER_CODE).toContain("disabled: !props.projectCallSMSConfigId");
+    /*
+     * Both Add controls - the inline button and the card's - are disabled
+     * without a config, and for someone the phone-number routes would
+     * refuse (IncomingCallPhoneNumberLock), and say why through one helper.
+     */
+    expect(MANAGER_CODE).toContain(
+      "disabled={!props.projectCallSMSConfigId || addLock.isLocked}",
+    );
+    expect(MANAGER_CODE).toContain(
+      "disabled: !props.projectCallSMSConfigId || addLock.isLocked",
+    );
+    expect(countMatches(MANAGER_CODE, /getAddButtonTooltip\(\)/g)).toBe(2);
     expect(
       countMatches(
         MANAGER_CODE,
         /Link a Twilio configuration before adding another number\./g,
       ),
-    ).toBe(2);
+    ).toBe(1);
+  });
+
+  test("locks Release for someone who may not change the policy's numbers", () => {
+    expect(MANAGER_CODE).toContain("disabled={releaseLock.isLocked}");
+    expect(MANAGER_CODE).toContain("tooltip={releaseLock.tooltip}");
   });
 });
 

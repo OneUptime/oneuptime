@@ -10,6 +10,8 @@ import MicrosoftTeamsComponents from "../../../Types/Workflow/Components/Microso
 import SlackComponents from "../../../Types/Workflow/Components/Slack";
 import SMSEagleComponents from "../../../Types/Workflow/Components/SMSEagle";
 import TelegramComponents from "../../../Types/Workflow/Components/Telegram";
+import IRCComponents from "../../../Types/Workflow/Components/IRC";
+import MattermostComponents from "../../../Types/Workflow/Components/Mattermost";
 import { describe, expect, test } from "@jest/globals";
 
 function findById<T extends { id: string }>(items: Array<T>, id: string): T {
@@ -81,6 +83,34 @@ describe("workflow integration credential metadata", () => {
     {
       component: componentById(EmailComponents, ComponentID.SendEmail),
       argumentId: "smtp-password",
+    },
+    {
+      component: componentById(
+        IRCComponents,
+        ComponentID.IRCSendMessageToChannel,
+      ),
+      argumentId: "server-password",
+    },
+    {
+      component: componentById(
+        IRCComponents,
+        ComponentID.IRCSendMessageToChannel,
+      ),
+      argumentId: "sasl-password",
+    },
+    {
+      component: componentById(
+        IRCComponents,
+        ComponentID.IRCSendMessageToChannel,
+      ),
+      argumentId: "channel-key",
+    },
+    {
+      component: componentById(
+        MattermostComponents,
+        ComponentID.MattermostSendMessageToChannel,
+      ),
+      argumentId: "webhook-url",
     },
   ];
 

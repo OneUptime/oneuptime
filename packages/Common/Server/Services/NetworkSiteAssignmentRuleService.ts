@@ -6,7 +6,6 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import RuleCriteria, {
@@ -151,21 +150,16 @@ export class Service extends ProjectReferencesService<Model> {
      * The update may clear one criterion while the other only exists on the
      * stored row, so validate the RESULTING state of every matched row.
      */
-    const existingRules: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const existingRules: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         projectId: true,
         subnetCidr: true,
         hostnamePattern: true,
         criteria: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     for (const existingRule of existingRules) {
       if (isCriteriaChange) {

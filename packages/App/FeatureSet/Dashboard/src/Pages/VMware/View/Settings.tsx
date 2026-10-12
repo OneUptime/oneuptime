@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
+import VMwareDataCollectionCard from "../../../Components/VMware/VMwareDataCollectionCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import PageMap from "../../../Utils/PageMap";
@@ -26,13 +27,14 @@ const VMwareVCenterSettings: FunctionComponent<
         nameField={{
           title: "Name",
           description:
-            "Must match the vmware.vcenter.name the VMware Agent reports (its VMWARE_VCENTER_NAME). Telemetry is matched to this vCenter by it: rename it on the agent too, or the agent's next report creates a new vCenter.",
+            "Must match the vmware.vcenter.name the VMware Agent reports (its VMWARE_VCENTER_NAME), for a vCenter the agent sends: rename it on the agent too, or the agent's next report creates a new vCenter. A vCenter a probe collects can be renamed freely.",
           placeholder: "prod-vcenter",
         }}
         descriptionField={{
           placeholder: "Production vCenter Server in the US East datacenter",
         }}
       />
+      <VMwareDataCollectionCard modelId={modelId} />
       <TelemetryResourceRetentionSettings<VMwareVCenter>
         modelType={VMwareVCenter}
         modelId={modelId}

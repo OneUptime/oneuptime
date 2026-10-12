@@ -73,7 +73,7 @@ PagerDuty's `severity` accepteert `critical`, `error`, `warning` of `info`. Om t
 
 ## Inbound (optioneel)
 
-Om het omgekeerde te doen — een OneUptime-incident openen vanuit een PagerDuty-event — voeg je een workflow met **Webhook**-trigger toe en wijs je een PagerDuty [V3-webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (of een Events Orchestration) naar de URL ervan, gevolgd door **Incident maken**. Zie het [inbound-patroon](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+Om het omgekeerde te doen — een OneUptime-incident openen vanuit een PagerDuty-event — voeg je een workflow met **Webhook**-trigger toe en wijs je een PagerDuty [V3-webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (of een Events Orchestration) naar de URL ervan, gevolgd door **Incident maken**. Zie het [inbound-patroon](/docs/integrations/index#inbound-een-andere-tool-stuurt-data-naar-oneuptime).
 
 ## Probleemoplossing
 

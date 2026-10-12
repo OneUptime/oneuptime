@@ -21,6 +21,9 @@ import DomainMonitorUtil from "./MonitorTypes/DomainMonitor";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
 import DnssecMonitorUtil from "./MonitorTypes/DnssecMonitor";
+import NtpMonitor from "./MonitorTypes/NtpMonitor";
+import NtpMonitorResponse from "Common/Types/Monitor/NtpMonitor/NtpMonitorResponse";
+import { DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import DnssecMonitorResponse from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import SqlMonitor from "./MonitorTypes/SqlMonitor";
@@ -551,16 +554,77 @@ export default class MonitorUtil {
       result.requestFailedDetails = response.requestFailedDetails;
     }
 
+    if (monitorType === MonitorType.NTP) {
+      /*
+       * A step with no server is a misconfiguration, and it has to produce
+       * a verdict criteria can act on - a bare result would leave isOnline
+       * undefined, which matches nothing and reads as healthy.
+       */
+      if (!monitorStep.data?.monitorDestination) {
+        result.isOnline = false;
+        result.failureCause = "NTP server is not specified.";
+
+        return result;
+      }
+
+      result.monitorDestination = monitorStep.data.monitorDestination;
+
+      const target: { host: string; port: number } = NtpMonitor.getTarget({
+        host: monitorStep.data.monitorDestination,
+        port: monitorStep.data.monitorDestinationPort,
+      });
+
+      result.monitorDestinationPort = new Port(target.port);
+
+      const response: NtpMonitorResponse | null = await NtpMonitor.query({
+        host: monitorStep.data.monitorDestination,
+        port: monitorStep.data.monitorDestinationPort,
+        options: {
+          retry: retryCount,
+          monitorId: monitorId,
+          /*
+           * Five seconds per attempt unless the step says otherwise - not the
+           * 60-second default of the TCP and HTTP checks. An NTP reply that
+           * has not come in five seconds is not coming.
+           */
+          timeout: MonitorUtil.resolveTimeoutInMs({
+            stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+            monitorConfigTimeoutInMs: undefined,
+            defaultTimeoutInMs: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS,
+          }),
+        },
+      });
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.isOnline
+        ? response.responseTimeInMs
+        : undefined;
+      result.failureCause = response.failureCause;
+      result.requestFailedDetails = response.requestFailedDetails;
+      result.ntpResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
+    }
+
     /*
      * When a network check fails, capture the path (traceroute + DNS lookup)
      * at the moment of failure. It is attached to the response as diagnostic
      * evidence, so whoever gets paged sees where the route broke — not just
      * that the target is down.
+     *
+     * For NTP that is a server that did not answer at all. One that answered
+     * with a bad clock is reachable, so there is no path to blame.
      */
     if (
       (monitorType === MonitorType.Ping ||
         monitorType === MonitorType.IP ||
-        monitorType === MonitorType.Port) &&
+        monitorType === MonitorType.Port ||
+        monitorType === MonitorType.NTP) &&
       result.isOnline === false &&
       monitorStep.data?.monitorDestination
     ) {

@@ -35,6 +35,7 @@ import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaIn
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import { removeHtmlMarkup } from "../../../../Types/HtmlMarkup";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import {
   hrefsOf,
@@ -111,7 +112,6 @@ const WORD_JOINER_PATTERN: RegExp = new RegExp(WORD_JOINER, "g");
 const SLACK_MENTION_PATTERN: RegExp = /<[!@#][A-Za-z0-9]/;
 const SLACK_LINK_PATTERN: RegExp = /<(https?:\/\/[^|>]+)\|([^>]*)>/g;
 const HTML_ANCHOR_PATTERN: RegExp = /<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g;
-const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
 // The addresses the sent text brings.
 const SENT_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
 
@@ -194,7 +194,7 @@ function expectInert(markdowns: Array<string>): void {
         ...Array.from(html.matchAll(HTML_ANCHOR_PATTERN))
           .filter((match: RegExpMatchArray): boolean => {
             return hidesWhereItGoes(
-              match[2]!.replace(HTML_TAG_PATTERN, ""),
+              removeHtmlMarkup(match[2]!),
               hrefsOf(match[0])[0]!,
             );
           })

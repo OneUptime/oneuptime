@@ -544,8 +544,10 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
             id: state.id?.toString() || "",
             name: state.name || "",
             color: state.color || Black,
+            order: state.order,
           };
         })}
+        stateList={StateListType.AlertState}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentAlertState?.id?.toString()}

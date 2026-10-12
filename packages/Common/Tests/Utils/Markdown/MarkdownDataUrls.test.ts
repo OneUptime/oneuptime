@@ -8,6 +8,7 @@ import {
   DashboardDataUrls,
   dataUrlUsesAsDashboard,
 } from "./DashboardMarkdownDataUrls";
+import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -435,18 +436,6 @@ const PIECES: Array<string> = [
   "]: ",
   '[r](/u "t")',
 ];
-
-// A seeded generator, so a failure can be read again.
-function seededRandom(seed: number): () => number {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) | 0;
-    let mixed: number = Math.imul(state ^ (state >>> 15), 1 | state);
-    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function generateTexts(count: number, seed: number): Array<string> {
   const random: () => number = seededRandom(seed);

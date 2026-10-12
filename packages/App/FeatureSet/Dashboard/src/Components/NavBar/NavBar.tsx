@@ -24,7 +24,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     navItems,
     moreMenuItems,
     moreMenuCategoriesOpenByDefault,
-    moreMenuCategoryIcons,
     rightElement,
   }: DashboardNavigationItems = useDashboardNavigationItems();
 
@@ -52,8 +51,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
        * is opened (on a phone too). Search still finds every product.
        */
       moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
-      // Each category's row is drawn with its own icon.
-      moreMenuCategoryIcons={moreMenuCategoryIcons}
       moreMenuFooter={moreMenuFooter}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
       moreMenuNoResultsText={t("navbar.search.noResults")}

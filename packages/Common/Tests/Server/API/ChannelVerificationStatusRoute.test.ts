@@ -221,7 +221,7 @@ describe.each(CHANNELS)("$name verification status", (channel: Channel) => {
   });
 
   it("requires a session", async () => {
-    mockRequest.userAuthorization = undefined;
+    delete mockRequest.userAuthorization;
 
     await callStatus({ itemId: ITEM_ID });
 

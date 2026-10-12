@@ -1131,17 +1131,23 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     let resource: Model | null = null;
 
     if (!deleteBy.props.isRoot) {
-      resource = await this.findOneBy({
-        query: deleteBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+      /*
+       * The one rule the delete removes, and the delete held to it:
+       * its users, teams and schedules go first, and the rules after
+       * it move up a place once it is gone.
+       */
+      const found: { row: Model | null; deletesMore: boolean } =
+        await this.findOneRowAndHoldDeleteToIt(deleteBy, {
           order: true,
           onCallDutyPolicyId: true,
           projectId: true,
-        },
-      });
+        });
+
+      if (found.deletesMore) {
+        throw new BadDataException("Delete one escalation rule at a time.");
+      }
+
+      resource = found.row;
 
       if (!resource) {
         throw new BadDataException(
@@ -1250,10 +1256,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     let move: RuleMove | null = null;
 
-    if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
+    // The one row an update names by its id is the one it moves.
+    const movedId: ObjectID | null = Service.getOneRowIdNamedBy(updateBy.query);
+
+    if (updateBy.data.order && !updateBy.props.isRoot && movedId) {
       const resource: Model | null = await this.findOneBy({
         query: {
-          _id: updateBy.query._id!,
+          _id: movedId,
         },
         props: {
           isRoot: true,

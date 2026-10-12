@@ -1125,6 +1125,72 @@ describe("DuplicateModel", () => {
       expect(sent._id).toBeUndefined();
     });
 
+    test("a prepareCopy that reads first is waited for: the copy is saved as it leaves it", async () => {
+      serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
+
+      let release: () => void = (): void => {};
+      const gate: Promise<void> = new Promise<void>((resolve: () => void) => {
+        release = resolve;
+      });
+
+      render(
+        <DuplicateModel<Workflow>
+          modelType={Workflow}
+          modelId={WORKFLOW_ID}
+          fieldsToDuplicate={WORKFLOW_FIELDS_TO_DUPLICATE}
+          fieldsToChange={WORKFLOW_FIELDS_TO_CHANGE}
+          navigateToOnSuccess={LIST_ROUTE}
+          prepareCopy={async (copy: Workflow): Promise<void> => {
+            await gate;
+            copy.description = "Prepared after a read";
+          }}
+        />,
+      );
+
+      await openDialog();
+      await pressDuplicateInDialog();
+
+      // Nothing is saved while it still reads.
+      expect(mockCreate).not.toHaveBeenCalled();
+
+      await act(async () => {
+        release();
+      });
+
+      await waitFor(() => {
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      expect(sentModel<Workflow>().description).toBe("Prepared after a read");
+    });
+
+    test("a prepareCopy that fails saves nothing", async () => {
+      serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
+
+      render(
+        <DuplicateModel<Workflow>
+          modelType={Workflow}
+          modelId={WORKFLOW_ID}
+          fieldsToDuplicate={WORKFLOW_FIELDS_TO_DUPLICATE}
+          fieldsToChange={WORKFLOW_FIELDS_TO_CHANGE}
+          navigateToOnSuccess={LIST_ROUTE}
+          prepareCopy={async (): Promise<void> => {
+            throw new Error("Could not read what the copy needs.");
+          }}
+        />,
+      );
+
+      await openDialog();
+      await pressDuplicateInDialog();
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Could not read what the copy needs."),
+        ).toBeInTheDocument();
+      });
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
     test("without prepareCopy the copy is saved as it was read", async () => {
       serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
 

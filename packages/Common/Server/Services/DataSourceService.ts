@@ -100,30 +100,32 @@ export class Service extends DatabaseService<Model> {
       "databaseHost" in updateData;
 
     if (touchesShape) {
-      const existing: Model | null = await this.findOneBy({
-        query: updateBy.query,
-        select: {
+      // Every data source the update writes, and the update held to them.
+      const existingRows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        {
           _id: true,
           dataSourceType: true,
           url: true,
           databaseHost: true,
         },
-        props: { isRoot: true },
-      });
+      );
 
       /*
        * A field present in the update wins even when cleared (null/"" →
        * undefined, which validation treats as missing); an absent field
        * falls back to the stored row.
        */
-      this.validateDataSourceShape({
-        dataSourceType: data.dataSourceType || existing?.dataSourceType,
-        url: "url" in updateData ? data.url || undefined : existing?.url,
-        databaseHost:
-          "databaseHost" in updateData
-            ? data.databaseHost || undefined
-            : existing?.databaseHost,
-      });
+      for (const existing of existingRows) {
+        this.validateDataSourceShape({
+          dataSourceType: data.dataSourceType || existing.dataSourceType,
+          url: "url" in updateData ? data.url || undefined : existing.url,
+          databaseHost:
+            "databaseHost" in updateData
+              ? data.databaseHost || undefined
+              : existing.databaseHost,
+        });
+      }
     }
 
     return { updateBy, carryForward: null };
