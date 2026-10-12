@@ -220,16 +220,16 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     ),
   },
   "rum/applications": {
-    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr"),
   },
   "rum/session-replay-troubleshooting": {
-    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr"),
   },
   "rum/troubleshooting": {
-    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr"),
   },
   "telemetry/session-replay": {
-    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de", "fr"),
   },
   "terraform/complete-guide": {
     codeLanguage: EN,
