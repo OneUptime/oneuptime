@@ -160,6 +160,20 @@ export const CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM: string = "slackTeam";
 export const SLACK_ID_PATTERN: RegExp = /^[A-Z0-9]{2,32}$/;
 
 /*
+ * CONNECTING FROM THE LINK IN A SLACK CHANNEL'S NOTE.
+ *
+ * The note OneUptime posts in a Slack channel it could not add somebody to
+ * (Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice) has a
+ * Connect Slack account link: the Slack settings page of whoever opens it,
+ * with `?connectAccount=true`. The page connects that person's account at
+ * once when it is not connected yet. There is no press behind it to finish
+ * and nobody else's account it could connect, so it carries nothing but
+ * the flag.
+ */
+export const CONNECT_ACCOUNT_QUERY_PARAM: string = "connectAccount";
+export const CONNECT_ACCOUNT_QUERY_VALUE: string = "true";
+
+/*
  * The Dashboard's connect-return page, under the Dashboard's root
  * (/dashboard/connect-return): where a callback that cannot tell the project
  * sends the browser.
@@ -267,6 +281,11 @@ export default class ConnectCallbackUtil {
       CONNECT_REQUEST_TOKEN_PATTERN.test(value)
       ? value
       : null;
+  }
+
+  // Whether a `?connectAccount=` asks the page to connect the account.
+  public static readConnectAccount(value: unknown): boolean {
+    return value === CONNECT_ACCOUNT_QUERY_VALUE;
   }
 
   // The outcome a `?pressed=` names, or null for anything else.

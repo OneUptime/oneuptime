@@ -16,6 +16,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * it, that it is read once, and that whatever is read is checked again
  * before it becomes a navigation: the cookie is browser storage.
  *
+ * The Connect Slack account link in a Slack channel's note - the people
+ * OneUptime could not add to it - is the Slack page with
+ * `?connectAccount=true`, and waits the same way.
+ *
  * universal-cookie writes straight through to `document.cookie` in jsdom,
  * which applies a cookie's path as a browser does.
  */
@@ -140,6 +144,53 @@ describe("WorkspaceConnectPendingLink.getConnectRoute", () => {
         search: search,
       }),
     ).toBeNull();
+  });
+});
+
+describe("WorkspaceConnectPendingLink.getConnectRoute: a note's Connect Slack account link", () => {
+  test("takes the Slack page with ?connectAccount=true, and keeps the flag alone", () => {
+    expect(
+      WorkspaceConnectPendingLink.getConnectRoute({
+        pathname: SLACK_PAGE,
+        search: "?from=slack&connectAccount=true&next=https://evil.test",
+      })?.toString(),
+    ).toBe(`${SLACK_PAGE}?connectAccount=true`);
+  });
+
+  test("a token, when there is one, is what is kept: it finishes a press", () => {
+    expect(
+      WorkspaceConnectPendingLink.getConnectRoute({
+        pathname: SLACK_PAGE,
+        search: `?connectAccount=true&connect=${TOKEN}`,
+      })?.toString(),
+    ).toBe(`${SLACK_PAGE}?connect=${TOKEN}`);
+  });
+
+  test.each([
+    ["the Microsoft Teams page - no note links there", TEAMS_PAGE, "true"],
+    ["any other value", SLACK_PAGE, "1"],
+    ["an empty value", SLACK_PAGE, ""],
+    ["a value that would add a parameter", SLACK_PAGE, "true%26next%3Dx"],
+  ])("refuses %s", (_name: string, pathname: string, value: string) => {
+    expect(
+      WorkspaceConnectPendingLink.getConnectRoute({
+        pathname: pathname,
+        search: `?connectAccount=${value}`,
+      }),
+    ).toBeNull();
+  });
+
+  test("is remembered across a sign-in and picked up once", () => {
+    goTo(`${SLACK_PAGE}?connectAccount=true`);
+
+    expect(WorkspaceConnectPendingLink.rememberCurrentPage()).toBe(true);
+
+    goTo(`/dashboard/${PROJECT_ID}/home`);
+
+    expect(WorkspaceConnectPendingLink.consumeRoute()?.toString()).toBe(
+      `${SLACK_PAGE}?connectAccount=true`,
+    );
+    expect(WorkspaceConnectPendingLink.consumeRoute()).toBeNull();
   });
 });
 

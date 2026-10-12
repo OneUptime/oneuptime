@@ -1,6 +1,8 @@
 import { DashboardRoute } from "../../ServiceRoute";
 import Route from "../../Types/API/Route";
 import ConnectCallbackUtil, {
+  CONNECT_ACCOUNT_QUERY_PARAM,
+  CONNECT_ACCOUNT_QUERY_VALUE,
   CONNECT_REQUEST_QUERY_PARAM,
 } from "../../Types/Workspace/ConnectCallback";
 import UniversalCookies from "universal-cookie";
@@ -26,13 +28,17 @@ import UniversalCookies from "universal-cookie";
  * once its project list has loaded for a signed-in user, reads it back and
  * opens the page (Dashboard Utils/WorkspaceConnectResume).
  *
+ * The Connect Slack account link in a Slack channel's note - the people
+ * OneUptime could not add to it - waits the same way: the Slack page with
+ * `?connectAccount=true`, which connects the account of whoever opens it.
+ *
  * WHAT IS IN IT
  *
- * The page's path and its token, each checked for its shape, and nothing
- * else. It is not a credential: the token only names a press on the
- * server, and connecting still takes the person's own session and their own
- * sign-in to Slack or Microsoft. It lasts as long as the press does (thirty
- * minutes), and it is used once: reading it removes it.
+ * The page's path and its token (or the note's flag), each checked for its
+ * shape, and nothing else. It is not a credential: the token only names a
+ * press on the server, and connecting still takes the person's own session
+ * and their own sign-in to Slack or Microsoft. It lasts as long as the press
+ * does (thirty minutes), and it is used once: reading it removes it.
  */
 
 const COOKIE_NAME: string = "oneuptime-workspace-connect-pending";
@@ -50,11 +56,16 @@ const MAX_AGE_IN_SECONDS: number = 30 * 60;
 const CONNECT_PAGE_PATH_PATTERN: RegExp =
   /^\/dashboard\/[0-9a-fA-F-]{36}\/user-settings\/(?:slack|microsoft-teams)-integration\/?$/;
 
+// The page a note's Connect Slack account link opens: Slack only.
+const CONNECT_ACCOUNT_PAGE_PATH_PATTERN: RegExp =
+  /^\/dashboard\/[0-9a-fA-F-]{36}\/user-settings\/slack-integration\/?$/;
+
 export default class WorkspaceConnectPendingLink {
   /*
    * The page `pathname` and `search` describe, as a route, when it is a
    * Connect link: one of the settings pages above, with a token shaped like
-   * one. Null for any other page.
+   * one - or the Slack page with a note's `?connectAccount=true`. Null for
+   * any other page.
    */
   public static getConnectRoute(data: {
     pathname: string;
@@ -64,23 +75,40 @@ export default class WorkspaceConnectPendingLink {
       return null;
     }
 
-    let token: string | null = null;
+    let params: URLSearchParams | null = null;
 
     try {
-      token = ConnectCallbackUtil.readConnectRequestToken(
-        new URLSearchParams(data.search).get(CONNECT_REQUEST_QUERY_PARAM),
-      );
+      params = new URLSearchParams(data.search);
     } catch {
-      token = null;
+      params = null;
     }
 
-    if (!token) {
+    if (!params) {
       return null;
     }
 
-    return new Route(
-      `${data.pathname}?${CONNECT_REQUEST_QUERY_PARAM}=${token}`,
+    const token: string | null = ConnectCallbackUtil.readConnectRequestToken(
+      params.get(CONNECT_REQUEST_QUERY_PARAM),
     );
+
+    if (token) {
+      return new Route(
+        `${data.pathname}?${CONNECT_REQUEST_QUERY_PARAM}=${token}`,
+      );
+    }
+
+    if (
+      CONNECT_ACCOUNT_PAGE_PATH_PATTERN.test(data.pathname) &&
+      ConnectCallbackUtil.readConnectAccount(
+        params.get(CONNECT_ACCOUNT_QUERY_PARAM),
+      )
+    ) {
+      return new Route(
+        `${data.pathname}?${CONNECT_ACCOUNT_QUERY_PARAM}=${CONNECT_ACCOUNT_QUERY_VALUE}`,
+      );
+    }
+
+    return null;
   }
 
   /*

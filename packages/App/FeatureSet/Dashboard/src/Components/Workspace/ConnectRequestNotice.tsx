@@ -6,6 +6,7 @@ import {
 } from "../../Utils/Workspace/ConnectRequestMessage";
 import URL from "Common/Types/API/URL";
 import ConnectCallbackUtil, {
+  CONNECT_ACCOUNT_QUERY_PARAM,
   CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
   CONNECT_REQUEST_QUERY_PARAM,
   CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM,
@@ -36,11 +37,22 @@ import React, {
  * shows, with a link back to the Slack channel the press was in. Every value
  * is read once and taken off the address, so a reload or a shared link does
  * not say it again.
+ *
+ * The Connect Slack account link in a Slack channel's note (the people
+ * OneUptime could not add to it) opens the Slack page with
+ * `?connectAccount=true` instead: there is no press to finish, so the page
+ * only connects the account of whoever opened it, when it is not connected
+ * yet.
  */
 
 export interface ConnectRequestState {
   // The token of the `?connect=` the page was opened with, until it is used.
   connectToken: string | null;
+  /*
+   * Opened from a note's Connect Slack account link (`?connectAccount=`),
+   * until the page has acted on it.
+   */
+  connectAccount: boolean;
   // What the page says once the account is connected from the chat.
   notice: ConnectRequestNoticeText | null;
   // The Slack channel the press was in, to go back to.
@@ -49,6 +61,8 @@ export interface ConnectRequestState {
   linkGone: ConnectRequestNoticeText | null;
   // The token was handed to the sign-in: it is not used again.
   takeToken: () => void;
+  // The page acted on `?connectAccount=`: it does not act on it again.
+  takeConnectAccount: () => void;
   // The sign-in refused the token: say so.
   markLinkGone: () => void;
   dismiss: () => void;
@@ -65,6 +79,12 @@ export const useConnectRequest: (data: {
   const [connectToken, setConnectToken] = useState<string | null>(() => {
     return ConnectCallbackUtil.readConnectRequestToken(
       Navigation.getQueryStringByName(CONNECT_REQUEST_QUERY_PARAM),
+    );
+  });
+
+  const [connectAccount, setConnectAccount] = useState<boolean>(() => {
+    return ConnectCallbackUtil.readConnectAccount(
+      Navigation.getQueryStringByName(CONNECT_ACCOUNT_QUERY_PARAM),
     );
   });
 
@@ -90,6 +110,7 @@ export const useConnectRequest: (data: {
   useEffect(() => {
     const params: Array<string> = [
       CONNECT_REQUEST_QUERY_PARAM,
+      CONNECT_ACCOUNT_QUERY_PARAM,
       CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
       CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM,
       CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM,
@@ -112,6 +133,7 @@ export const useConnectRequest: (data: {
 
   return {
     connectToken: connectToken,
+    connectAccount: connectAccount,
     notice: getConnectRequestNotice({
       provider: data.provider,
       pressed: pressed,
@@ -126,6 +148,9 @@ export const useConnectRequest: (data: {
       : null,
     takeToken: (): void => {
       setConnectToken(null);
+    },
+    takeConnectAccount: (): void => {
+      setConnectAccount(false);
     },
     markLinkGone: (): void => {
       setConnectToken(null);

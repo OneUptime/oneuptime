@@ -12,7 +12,9 @@ import WorkspaceConnectPendingLink from "Common/UI/Utils/WorkspaceConnectPending
  * kind of sign-in ends on the dashboard's home page - so the link is
  * remembered before that first request goes out, and once the project list
  * has loaded (which proves there is a session) the browser is sent back to
- * it (Common/UI/Utils/WorkspaceConnectPendingLink).
+ * it (Common/UI/Utils/WorkspaceConnectPendingLink). The Connect Slack
+ * account link in a Slack channel's note (the Slack page with
+ * `?connectAccount=true`) comes back the same way.
  */
 
 // Remembers the page when it is a Connect link; called before the first request.

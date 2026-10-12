@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import ConnectCallbackUtil, {
+  CONNECT_ACCOUNT_QUERY_PARAM,
+  CONNECT_ACCOUNT_QUERY_VALUE,
   CONNECT_REQUEST_TOKEN_PATTERN,
   ConnectCallbackError,
   ConnectRequestOutcome,
@@ -9,9 +11,10 @@ import ConnectCallbackUtil, {
  * What a settings page reads off its address once a Connect button in Slack
  * or Microsoft Teams sent the browser there: the token of the press
  * (`?connect=`), what became of it (`?pressed=`), and the Slack channel to
- * go back to (`?slackChannel=`, `?slackTeam=`). Each is read for its shape
- * alone, so the address can never put a value of anyone's choosing into a
- * request, a sentence or a link.
+ * go back to (`?slackChannel=`, `?slackTeam=`) - or the flag of a Slack
+ * channel note's Connect Slack account link (`?connectAccount=true`). Each
+ * is read for its shape alone, so the address can never put a value of
+ * anyone's choosing into a request, a sentence or a link.
  */
 
 describe("ConnectCallbackUtil.readConnectRequestToken", () => {
@@ -44,6 +47,21 @@ describe("ConnectCallbackUtil.readConnectRequestToken", () => {
       false,
     );
   });
+});
+
+describe("ConnectCallbackUtil.readConnectAccount", () => {
+  test("the note's link asks for it with ?connectAccount=true", () => {
+    expect(CONNECT_ACCOUNT_QUERY_PARAM).toBe("connectAccount");
+    expect(CONNECT_ACCOUNT_QUERY_VALUE).toBe("true");
+    expect(ConnectCallbackUtil.readConnectAccount("true")).toBe(true);
+  });
+
+  test.each([null, undefined, "", "TRUE", "1", "yes", "false", true, ["true"]])(
+    "reads %p as not asked",
+    (value: unknown) => {
+      expect(ConnectCallbackUtil.readConnectAccount(value)).toBe(false);
+    },
+  );
 });
 
 describe("ConnectCallbackUtil.readConnectRequestOutcome", () => {

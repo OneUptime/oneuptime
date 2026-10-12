@@ -88,6 +88,17 @@ describe("resumeWorkspaceConnect", () => {
     expect(navigateMock.mock.calls[0]![1]).toEqual({ forceNavigate: true });
   });
 
+  test("a Slack channel note's Connect Slack account link waiting is opened the same way", () => {
+    const noteLink: Route = new Route(`${SLACK_PAGE}?connectAccount=true`);
+    consumeRouteMock.mockReturnValue(noteLink);
+
+    expect(resumeWorkspaceConnect()).toBe(true);
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigateMock.mock.calls[0]![0]).toBe(noteLink);
+    expect(navigateMock.mock.calls[0]![1]).toEqual({ forceNavigate: true });
+  });
+
   test("with nothing waiting, navigates nowhere", () => {
     consumeRouteMock.mockReturnValue(null);
 

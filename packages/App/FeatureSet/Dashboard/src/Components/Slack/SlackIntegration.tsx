@@ -81,7 +81,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   /*
    * A Connect button pressed in Slack (?connect=), and what became of the
-   * press once the account was connected (?pressed=).
+   * press once the account was connected (?pressed=); or a note's Connect
+   * Slack account link (?connectAccount=).
    */
   const connectRequest: ConnectRequestState = useConnectRequest({
     provider: ConnectProvider.Slack,
@@ -211,27 +212,34 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
    * Starts "sign in with Slack" for the press a Connect button in Slack
    * stands for (`connect`), and takes the browser there. A press that can no
    * longer be used - spent, or expired - is answered by the server with a
-   * 400: the page says so, its own Connect button right below.
+   * 400: the page says so, its own Connect button right below. Without a
+   * token (a note's Connect Slack account link) it is the sign-in the
+   * page's own Connect button starts.
    */
-  type StartSignInFromSlackFunction = (token: string) => Promise<void>;
+  type StartSignInFromSlackFunction = (token: string | null) => Promise<void>;
 
   const startSignInFromSlack: StartSignInFromSlackFunction = async (
-    token: string,
+    token: string | null,
   ): Promise<void> => {
+    const signInUrl: URL = URL.fromURL(APP_API_URL)
+      .addRoute("/slack/sign-in-url")
+      .addQueryParam(
+        CONNECT_START_PAGE_QUERY_PARAM,
+        props.startPage || ConnectStartPage.ProjectSettings,
+      );
+
+    if (token) {
+      signInUrl.addQueryParam(CONNECT_REQUEST_QUERY_PARAM, token);
+    }
+
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.get<JSONObject>({
-        url: URL.fromURL(APP_API_URL)
-          .addRoute("/slack/sign-in-url")
-          .addQueryParam(
-            CONNECT_START_PAGE_QUERY_PARAM,
-            props.startPage || ConnectStartPage.ProjectSettings,
-          )
-          .addQueryParam(CONNECT_REQUEST_QUERY_PARAM, token),
+        url: signInUrl,
         headers: ModelAPI.getCommonHeaders(),
       });
 
     if (response instanceof HTTPErrorResponse) {
-      if (response.statusCode === 400) {
+      if (token && response.statusCode === 400) {
         setIsConnectingFromSlack(false);
         connectRequest.markLinkGone();
         return;
@@ -278,6 +286,38 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
     });
   }, [isLoading, isProjectAccountConnected]);
+
+  /*
+   * Opened from the Connect Slack account link in a Slack channel's note
+   * (the people OneUptime could not add to it): somebody whose account is
+   * not connected yet is taken to Slack to connect it straight away.
+   * Somebody connected already sees the page as usual - it says so - and
+   * so does everybody while the project itself is not connected to Slack.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectAccount) {
+      return;
+    }
+
+    connectRequest.takeConnectAccount();
+
+    if (
+      // A Connect button's press, opened with it, signs in for that press.
+      connectRequest.connectToken ||
+      isUserAccountConnected ||
+      !isProjectAccountConnected ||
+      !SlackAppClientId
+    ) {
+      return;
+    }
+
+    setIsConnectingFromSlack(true);
+
+    startSignInFromSlack(null).catch((error: Exception) => {
+      setIsConnectingFromSlack(false);
+      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+    });
+  }, [isLoading, isProjectAccountConnected, isUserAccountConnected]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

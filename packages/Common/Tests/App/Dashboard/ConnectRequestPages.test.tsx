@@ -25,6 +25,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Connect button that can no longer be used says so, the page's own Connect
  * button right below. Every value is taken off the address once read, and
  * nothing the address carries is shown as itself.
+ *
+ * The Connect Slack account link in a Slack channel's note - the people
+ * OneUptime could not add to it - opens the Slack page with
+ * `?connectAccount=true`: somebody not connected yet is taken to Slack to
+ * connect at once, with no press to finish; anybody connected already sees
+ * the page as usual.
  */
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
@@ -122,7 +128,10 @@ jest.mock("../../../UI/Utils/API/API", () => {
         return String(error);
       },
       getFriendlyErrorMessage: (error: unknown) => {
-        return String(error);
+        // An HTTPErrorResponse reads as the message the server sent.
+        const message: unknown = (error as { message?: unknown } | null)
+          ?.message;
+        return typeof message === "string" && message ? message : String(error);
       },
     },
   };
@@ -156,8 +165,13 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 // Whether the project is connected to the chat, as the page reads it.
 let projectConnected: boolean = true;
-// What the sign-in start answers: its authorization address, or a 400.
-let signInAnswer: "start" | "gone" = "start";
+// Whether the person's own chat account is connected.
+let userConnected: boolean = false;
+/*
+ * What the sign-in start answers: its authorization address, a 400 for a
+ * Connect button that can no longer be used, or a 400 for anything else.
+ */
+let signInAnswer: "start" | "gone" | "refused" = "start";
 
 beforeEach(() => {
   for (const name of Object.keys(query)) {
@@ -165,6 +179,7 @@ beforeEach(() => {
   }
 
   projectConnected = true;
+  userConnected = false;
   signInAnswer = "start";
   setQueryStringMock.mockReset();
   navigateMock.mockReset();
@@ -177,22 +192,35 @@ beforeEach(() => {
       options as { query: { workspaceType?: unknown } }
     ).query.workspaceType;
 
-    const data: Array<unknown> =
-      modelName === "WorkspaceProjectAuthToken" && projectConnected
-        ? [
-            {
-              id: {
-                toString: () => {
-                  return "project-auth";
-                },
-              },
-              miscData:
-                workspaceType === WorkspaceType.MicrosoftTeams
-                  ? { adminConsentGranted: true }
-                  : { teamName: "Acme" },
+    let data: Array<unknown> = [];
+
+    if (modelName === "WorkspaceProjectAuthToken" && projectConnected) {
+      data = [
+        {
+          id: {
+            toString: () => {
+              return "project-auth";
             },
-          ]
-        : [];
+          },
+          miscData:
+            workspaceType === WorkspaceType.MicrosoftTeams
+              ? { adminConsentGranted: true }
+              : { teamName: "Acme" },
+        },
+      ];
+    }
+
+    if (modelName === "WorkspaceUserAuthToken" && userConnected) {
+      data = [
+        {
+          id: {
+            toString: () => {
+              return "user-auth";
+            },
+          },
+        },
+      ];
+    }
 
     return { data: data, count: data.length, skip: 0, limit: 1 };
   });
@@ -209,6 +237,14 @@ beforeEach(() => {
             message:
               "This Connect button has expired or was already used. Press the button in Slack again.",
           },
+          {},
+        );
+      }
+
+      if (signInAnswer === "refused") {
+        return new HTTPErrorResponse(
+          400,
+          { message: "Slack sign-in is not set up on this server." },
           {},
         );
       }
@@ -389,6 +425,76 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
     expect(screen.queryByTestId("connect-request-notice")).toBeNull();
     expect(document.body.textContent).not.toContain("Sign in again");
     expect(document.querySelector("img")).toBeNull();
+  });
+});
+
+describe("the Slack page, opened from the Connect Slack account link in a channel's note", () => {
+  test("somebody not connected yet is taken to Slack at once: no token, no press to finish", async () => {
+    query["connectAccount"] = "true";
+
+    await renderSlack();
+
+    const starts: Array<globalThis.URL> = signInStarts();
+    expect(starts).toHaveLength(1);
+    expect(starts[0]!.pathname.endsWith("/slack/sign-in-url")).toBe(true);
+    expect(starts[0]!.searchParams.get("connect")).toBeNull();
+    expect(starts[0]!.searchParams.get("from")).toBe("user-settings");
+    expect(navigatedTo()).toEqual([SLACK_AUTHORIZE]);
+    // Taken off the address: a reload, or the back button, does not start it again.
+    expect(setQueryStringMock).toHaveBeenCalledWith({ connectAccount: null });
+    expect(screen.getByTestId("connect-request-connecting")).toHaveTextContent(
+      "Connecting your Slack account…",
+    );
+  });
+
+  test("somebody connected already: nothing starts, and the page says they are connected", async () => {
+    query["connectAccount"] = "true";
+    userConnected = true;
+
+    await renderSlack();
+
+    expect(signInStarts()).toEqual([]);
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    expect(
+      screen.getByText("Your account is already connected with Slack."),
+    ).toBeInTheDocument();
+  });
+
+  test("in a project not connected to Slack, nothing starts: installing the app is a choice for the page", async () => {
+    query["connectAccount"] = "true";
+    projectConnected = false;
+
+    await renderSlack();
+
+    expect(signInStarts()).toEqual([]);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test.each(["1", "yes", "TRUE", ""])(
+    "?connectAccount=%p starts nothing",
+    async (value: string) => {
+      query["connectAccount"] = value;
+
+      await renderSlack();
+
+      expect(signInStarts()).toEqual([]);
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a sign-in that cannot start says why - and never that a Connect button expired, as there was none", async () => {
+    query["connectAccount"] = "true";
+    signInAnswer = "refused";
+
+    await renderSlack();
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    expect(screen.queryByTestId("connect-request-link-gone")).toBeNull();
+    expect(
+      screen.getByText("Slack sign-in is not set up on this server."),
+    ).toBeInTheDocument();
   });
 });
 
