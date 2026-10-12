@@ -187,7 +187,7 @@ To skip the detector, or to give every browser a platform, set the attributes yo
 const resource = defaultResource().merge(
   resourceFromAttributes({
     [ATTR_SERVICE_NAME]: "storefront-web",
-    // Any one of these three marks the telemetry as browser RUM.
+    // browser.language or browser.platform marks the telemetry as browser RUM.
     "browser.language": navigator.language,
     "browser.platform":
       (navigator as any).userAgentData?.platform ?? "unknown",

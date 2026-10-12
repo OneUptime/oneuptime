@@ -13,6 +13,13 @@ import { PATH_SEPARATOR } from "./DocsPageShape";
  * that opens a product from the menu names it as the menu draws it, and
  * every other segment of a path as a label (drawnDashboardLabel).
  *
+ * The menu files its products under groups (navbar.categories.<group>),
+ * whose names some languages also word apart from the flat key: the Dutch
+ * menu's Resources group reads "Bronnen" where a "Resources" label elsewhere
+ * reads "Middelen". A path that names the group, "Products → Resources →
+ * Real User Monitoring", draws it from the group's key, and the product after
+ * it from the menu's.
+ *
  * A path is one bold span with " → " between its segments, as the docs'
  * English pages write it. Persian, written right to left, bolds each segment
  * on its own and joins them with " > ", which is mirrored with the text
@@ -20,7 +27,8 @@ import { PATH_SEPARATOR } from "./DocsPageShape";
  *
  * The AI observability, AI tooling and security translation suites share
  * these (AiObservabilityDocsTranslations, AiToolingAndSecurityDocs-
- * Translations), so a product reads the same on all their pages.
+ * Translations), and so do the RUM setup pages (RumDocsTranslations), so a
+ * product reads the same on all their pages.
  */
 
 // The menu a product's paths start from.
@@ -43,6 +51,16 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   Monitors: "navbar.items.monitorsTitle",
   Alerts: "navbar.items.alertsTitle",
   Workflows: "navbar.items.workflowsTitle",
+  Services: "navbar.items.servicesTitle",
+  "Real User Monitoring": "navbar.items.rumTitle",
+};
+
+/*
+ * The groups of the Products menu a path names, by the navbar key the menu
+ * draws each group's name from.
+ */
+export const PRODUCTS_MENU_GROUP_KEYS: Readonly<Record<string, string>> = {
+  Resources: "navbar.categories.resources",
 };
 
 // A value of a locale file by its dotted key, or null.
@@ -74,10 +92,35 @@ export function drawnMenuItem(language: string, english: string): string {
   return nestedValue(dashboardLocale(language), key) || english;
 }
 
+// How the Products menu draws the name of one of its groups in a language.
+export function drawnMenuGroup(language: string, english: string): string {
+  if (language === "en") {
+    return english;
+  }
+
+  const key: string | undefined = PRODUCTS_MENU_GROUP_KEYS[english];
+
+  if (!key) {
+    throw new Error(`Not a Products menu group: ${english}`);
+  }
+
+  return nestedValue(dashboardLocale(language), key) || english;
+}
+
+// Whether a path's segment is a group the Products menu opens.
+function isMenuGroup(segments: Array<string>, index: number): boolean {
+  return (
+    index > 0 &&
+    segments[index - 1] === PRODUCTS_MENU &&
+    PRODUCTS_MENU_GROUP_KEYS[segments[index] as string] !== undefined
+  );
+}
+
 /*
- * A segment of a menu path as a language draws it: a product opened from
- * the Products menu (the first segment, or the one after "Products") from
- * the menu's key, every other segment as a label.
+ * A segment of a menu path as a language draws it: a group of the Products
+ * menu (the segment after "Products") from the group's key, a product opened
+ * from the menu (the first segment, the one after "Products", or the one
+ * after a group) from the menu's key, every other segment as a label.
  */
 export function drawnPathSegment(
   language: string,
@@ -85,9 +128,16 @@ export function drawnPathSegment(
   index: number,
 ): string {
   const segment: string = segments[index] as string;
+
+  if (isMenuGroup(segments, index)) {
+    return drawnMenuGroup(language, segment);
+  }
+
   const fromMenu: boolean =
     PRODUCTS_MENU_ITEM_KEYS[segment] !== undefined &&
-    (index === 0 || segments[index - 1] === PRODUCTS_MENU);
+    (index === 0 ||
+      segments[index - 1] === PRODUCTS_MENU ||
+      isMenuGroup(segments, index - 1));
 
   return fromMenu
     ? drawnMenuItem(language, segment)

@@ -306,7 +306,7 @@ These monitors read the `web_vital.*` names only. If your app sends a vital unde
 
 ## Troubleshooting
 
-:::details The card says No web vitals reported yet
+:::details The card says "No web vitals reported yet"
 The card fills only from metrics your app sends. Check, in order:
 
 1. You have a metrics pipeline at all: traces alone never fill this card.

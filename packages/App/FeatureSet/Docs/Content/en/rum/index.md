@@ -1,6 +1,6 @@
 # RUM Overview
 
-Real User Monitoring (RUM) shows what real users experience in your web and mobile apps: page loads, requests, errors and Core Web Vitals, reported by the app itself rather than by a probe. OneUptime files that telemetry under a **RUM application** you can chart, search and alert on.
+Real User Monitoring (RUM) shows what real users experience in your web and mobile apps: page loads, requests, errors and Core Web Vitals, reported by the app itself rather than by a probe. OneUptime files that telemetry under a RUM application you can chart, search and alert on.
 
 :::cards
 - [How it works](#how-it-works): One OpenTelemetry pipeline, filed as RUM when it arrives.
