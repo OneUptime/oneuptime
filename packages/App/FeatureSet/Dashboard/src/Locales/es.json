@@ -28120,5 +28120,6 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "No se pudieron leer los casos de este paso, así que cada ejecución se detiene aquí. Abre el paso y añade sus casos de nuevo.",
   "Value for case {{number}}": "Valor del caso {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "El caso {{earlier}} pregunta lo mismo y se comprueba antes, así que este caso nunca se toma.",
-  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» no es una comparación que este paso conozca, así que cada ejecución se detiene aquí. Elige una de la lista."
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» no es una comparación que este paso conozca, así que cada ejecución se detiene aquí. Elige una de la lista.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Captura el tráfico que ve esta sonda y luego descarga el archivo y ábrelo en Wireshark."
 }

@@ -8,7 +8,10 @@ import {
   screen,
 } from "@testing-library/react";
 import * as React from "react";
-import PacketCaptureFilterInput from "../../../../App/FeatureSet/Dashboard/src/Components/PacketCapture/PacketCaptureFilterInput";
+import PacketCaptureFilterInput, {
+  FILTER_ROW_DROPDOWN_CLASS_NAME,
+  FILTER_ROW_INPUT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/PacketCapture/PacketCaptureFilterInput";
 import {
   getDefaultFilterValue,
   PacketCaptureFilterMode,
@@ -149,6 +152,40 @@ describe("the host, port and protocol boxes", () => {
     expect(preview()).toHaveTextContent(
       "ICMP has no ports. Clear the port, or pick TCP or UDP.",
     );
+  });
+
+  /*
+   * One row, one top and one height. The boxes kept the Input's 38px and
+   * Protocol the Dropdown's own form-field margin (mt-2 mb-1), so Protocol
+   * sat 4px lower and stood 2px taller than the boxes beside it (the
+   * customer's screenshot shows it). The browser suite measures the row.
+   */
+  test("share one top and one height: the boxes take the dropdown's 40px, and nothing in the row adds a margin of its own", () => {
+    renderInput();
+
+    for (const testId of [
+      "packet-capture-filter-host",
+      "packet-capture-filter-port",
+    ]) {
+      expect(screen.getByTestId(testId)).toHaveClass(
+        ...FILTER_ROW_INPUT_CLASS_NAME.split(" "),
+      );
+      expect(screen.getByTestId(testId)).toHaveClass("h-10");
+    }
+
+    const row: HTMLElement = screen
+      .getByTestId("packet-capture-filter-host")
+      .closest(".grid") as HTMLElement;
+
+    expect(row).toContainElement(
+      screen.getByRole("combobox", { name: "Protocol" }),
+    );
+    expect(row.querySelectorAll(".mt-2, .mb-1")).toHaveLength(0);
+    expect(
+      row.querySelectorAll(
+        `[class="${FILTER_ROW_DROPDOWN_CLASS_NAME}"]`,
+      ),
+    ).toHaveLength(1);
   });
 
   test("a host that is a word of the filter language is refused", () => {

@@ -43,6 +43,20 @@ const PROTOCOL_LABELS: Record<PacketCaptureProtocol, string> = {
   [PacketCaptureProtocol.ICMP]: "ICMP",
 };
 
+/*
+ * Host, port and protocol share one row, so their boxes share one top and one
+ * height: the dropdown's 40px (Dropdown's control). The Input's own look,
+ * with that height. Drawn with the Input's 38px and the Dropdown's own top
+ * margin, Protocol sat 4px lower and stood 2px taller than the two boxes
+ * beside it.
+ */
+export const FILTER_ROW_INPUT_CLASS_NAME: string =
+  "block h-10 w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
+
+// The Dropdown's own frame, without the margins it keeps for a form field.
+export const FILTER_ROW_DROPDOWN_CLASS_NAME: string =
+  "relative w-full overflow-visible rounded-md";
+
 function readInitialValue(
   value: PacketCaptureFilterValue | string | undefined,
 ): PacketCaptureFilterValue {
@@ -135,6 +149,7 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
             <Input
               id={`${id}-host`}
               dataTestId="packet-capture-filter-host"
+              className={FILTER_ROW_INPUT_CLASS_NAME}
               outerDivClassName="mt-1"
               placeholder="10.0.0.5 or 10.0.0.0/24"
               value={value.host}
@@ -153,6 +168,7 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
             <Input
               id={`${id}-port`}
               dataTestId="packet-capture-filter-port"
+              className={FILTER_ROW_INPUT_CLASS_NAME}
               outerDivClassName="mt-1"
               placeholder="443"
               value={value.port}
@@ -170,6 +186,7 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
             </span>
             <div className="mt-1">
               <Dropdown
+                className={FILTER_ROW_DROPDOWN_CLASS_NAME}
                 dataTestId="packet-capture-filter-protocol"
                 ariaLabelledby={`${id}-protocol-label`}
                 options={protocolOptions}

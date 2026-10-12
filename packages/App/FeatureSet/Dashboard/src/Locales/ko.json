@@ -28120,5 +28120,6 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "이 단계의 케이스를 읽을 수 없어 모든 실행이 여기서 멈춥니다. 단계를 열고 케이스를 다시 추가하세요.",
   "Value for case {{number}}": "케이스 {{number}}의 값",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "케이스 {{earlier}}이(가) 같은 조건으로 먼저 확인되므로 이 케이스는 선택되지 않습니다.",
-  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "\"{{comparison}}\"은(는) 이 단계가 알지 못하는 비교이므로 모든 실행이 여기서 멈춥니다. 목록에서 선택하세요."
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "\"{{comparison}}\"은(는) 이 단계가 알지 못하는 비교이므로 모든 실행이 여기서 멈춥니다. 목록에서 선택하세요.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "이 프로브가 보는 트래픽을 캡처한 다음 파일을 다운로드해 Wireshark에서 여세요."
 }

@@ -28120,5 +28120,6 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "Tilfellene i dette trinnet kunne ikke leses, så hver kjøring stopper her. Åpne trinnet og legg til tilfellene på nytt.",
   "Value for case {{number}}": "Verdi for tilfelle {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Tilfelle {{earlier}} spør om det samme og sjekkes først, så dette tilfellet blir aldri valgt.",
-  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» er ikke en sammenligning dette trinnet kjenner, så hver kjøring stopper her. Velg en fra listen."
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» er ikke en sammenligning dette trinnet kjenner, så hver kjøring stopper her. Velg en fra listen.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Ta opp trafikken denne sonden ser, last deretter ned filen og åpne den i Wireshark."
 }

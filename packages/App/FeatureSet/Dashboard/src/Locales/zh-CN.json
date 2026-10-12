@@ -28120,5 +28120,6 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "无法读取此步骤的分支，因此每次运行都会在此停止。请打开该步骤并重新添加分支。",
   "Value for case {{number}}": "分支 {{number}} 的值",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "分支 {{earlier}} 条件相同且先被检查，因此此分支永远不会被选中。",
-  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "“{{comparison}}”不是此步骤能识别的比较方式，因此每次运行都会在此停止。请从列表中选择一种。"
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "“{{comparison}}”不是此步骤能识别的比较方式，因此每次运行都会在此停止。请从列表中选择一种。",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "抓取此探测器看到的流量，然后下载文件并在 Wireshark 中打开。"
 }
