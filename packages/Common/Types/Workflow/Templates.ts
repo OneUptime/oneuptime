@@ -7197,7 +7197,8 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
           componentType: ComponentType.Component,
           position: { x: 100, y: 540 },
           args: {
-            value: "🧪 Staging webhook received. Logged for the team to look at.",
+            value:
+              "🧪 Staging webhook received. Logged for the team to look at.",
           },
         },
         {

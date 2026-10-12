@@ -516,8 +516,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
       const selectedNode: Node | undefined = nodes.find((node: Node) => {
         return (
-          (node.data as NodeDataProp).internalId ===
-          selectedNodeData.internalId
+          (node.data as NodeDataProp).internalId === selectedNodeData.internalId
         );
       });
 

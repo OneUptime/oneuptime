@@ -388,6 +388,8 @@ export interface SwitchErrors {
   cases: Dictionary<SwitchCaseErrors>;
   // The stored cases cannot be read at all.
   unreadableCases?: string | undefined;
+  // There is no case: every run would take Default.
+  noCases?: string | undefined;
 }
 
 type ValidateSwitchFunction = (state: SwitchState) => SwitchErrors;
@@ -405,6 +407,10 @@ export const validateSwitch: ValidateSwitchFunction = (
   if (!state.isReadable) {
     errors.unreadableCases = translationKey(
       "The cases saved for this step could not be read. Add the cases again.",
+    );
+  } else if (state.cases.length === 0) {
+    errors.noCases = translationKey(
+      "Add a case for each way the workflow can go.",
     );
   }
 
@@ -430,6 +436,7 @@ export const hasSwitchErrors: HasSwitchErrorsFunction = (
   return Boolean(
     errors.valueToCheck ||
       errors.unreadableCases ||
+      errors.noCases ||
       Object.keys(errors.cases).length > 0,
   );
 };
@@ -587,9 +594,7 @@ const describeValueToCheck: DescribeValueToCheckFunction = (
   return named.length > 40 ? `${named.slice(0, 39).trimEnd()}…` : named;
 };
 
-type SummarizeSwitchFunction = (
-  args: JSONObject | undefined,
-) => string | null;
+type SummarizeSwitchFunction = (args: JSONObject | undefined) => string | null;
 
 /**
  * The step in one line, for the canvas: what it checks, and against how many

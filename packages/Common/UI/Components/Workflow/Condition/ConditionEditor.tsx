@@ -116,18 +116,18 @@ export const CHOOSE_FROM_LIST_LABEL: string = translationKey(
 export const CONDITION_COMPARISON_OPTIONS: Array<
   DropdownOption | DropdownOptionGroup
 > = CONDITION_COMPARISON_GROUPS.flatMap(
-    (
-      group: ConditionComparisonGroup,
-    ): Array<DropdownOption | DropdownOptionGroup> => {
-      const options: Array<DropdownOption> = group.ids.map(
-        (id: ConditionComparisonId): DropdownOption => {
-          return { value: id, label: getConditionComparison(id).label };
-        },
-      );
+  (
+    group: ConditionComparisonGroup,
+  ): Array<DropdownOption | DropdownOptionGroup> => {
+    const options: Array<DropdownOption> = group.ids.map(
+      (id: ConditionComparisonId): DropdownOption => {
+        return { value: id, label: getConditionComparison(id).label };
+      },
+    );
 
-      return group.title ? [{ label: group.title, options: options }] : options;
-    },
-  );
+    return group.title ? [{ label: group.title, options: options }] : options;
+  },
+);
 
 type CompareWithPlaceholderFunction = (
   translator: Translator,

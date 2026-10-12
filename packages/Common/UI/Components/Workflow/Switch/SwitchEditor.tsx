@@ -24,7 +24,10 @@
 
 import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
 import CollapsibleSection from "../../CollapsibleSection/CollapsibleSection";
-import Dropdown, { DropdownOption, DropdownValue } from "../../Dropdown/Dropdown";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "../../Dropdown/Dropdown";
 import Icon from "../../Icon/Icon";
 import DragHandle from "../../Table/DragHandle";
 import {
@@ -169,31 +172,39 @@ const ConnectionLine: FunctionComponent<ConnectionLineProps> = (
     );
   }
 
+  /*
+   * The arrow keeps its place on the left, and the steps wrap beside it: a
+   * long id breaks rather than running past the case on a phone.
+   */
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-600"
+      className="flex min-w-0 items-start gap-1.5 text-xs text-gray-600"
       data-testid={props.dataTestId}
     >
-      <Icon
-        icon={IconProp.ArrowCircleRight}
-        className="h-3.5 w-3.5 shrink-0 text-gray-400"
-      />
-      <span className="sr-only">{translator.translateText("Leads to")}</span>
-      {steps.map((step: ConnectedStep, index: number) => {
-        return (
-          <span key={step.componentId} className="min-w-0 break-words">
-            <span className="font-medium text-gray-800">{step.title}</span>{" "}
-            <code className="font-mono text-[11px] text-gray-500">
-              {step.componentId}
-            </code>
-            {index < steps.length - 1 ? (
-              <span className="text-gray-500">,</span>
-            ) : (
-              <></>
-            )}
-          </span>
-        );
-      })}
+      <div className="mt-px shrink-0">
+        <Icon
+          icon={IconProp.ArrowCircleRight}
+          className="h-3.5 w-3.5 text-gray-400"
+        />
+      </div>
+      <p className="min-w-0 break-words">
+        <span className="sr-only">{translator.translateText("Leads to")} </span>
+        {steps.map((step: ConnectedStep, index: number) => {
+          return (
+            <React.Fragment key={step.componentId}>
+              <span className="font-medium text-gray-800">{step.title}</span>{" "}
+              <code className="break-all font-mono text-[11px] text-gray-500">
+                {step.componentId}
+              </code>
+              {index < steps.length - 1 ? (
+                <span className="text-gray-500">, </span>
+              ) : (
+                <></>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </p>
     </div>
   );
 };
@@ -480,8 +491,13 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             <Dropdown
               options={CONDITION_COMPARISON_OPTIONS}
               value={selectedComparison}
-              onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-                chooseComparison(switchCase, Array.isArray(value) ? null : value);
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                chooseComparison(
+                  switchCase,
+                  Array.isArray(value) ? null : value,
+                );
               }}
               placeholder="Choose a comparison"
               ariaLabel={translator.translateTemplate(
@@ -535,9 +551,12 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
           <div className="pt-0.5">
             <Button
               title="Remove"
-              ariaLabel={translator.translateTemplate("Remove case {{number}}", {
-                number: number,
-              })}
+              ariaLabel={translator.translateTemplate(
+                "Remove case {{number}}",
+                {
+                  number: number,
+                },
+              )}
               buttonStyle={ButtonStyleType.ICON}
               icon={IconProp.Trash}
               dataTestId={`switch-case-remove-${index}`}
@@ -606,10 +625,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
 
       <div className="space-y-2" data-testid={SWITCH_TEST_IDS.cases}>
         <div>
-          <p
-            id={casesLabelId}
-            className="text-sm font-medium text-gray-700"
-          >
+          <p id={casesLabelId} className="text-sm font-medium text-gray-700">
             {translator.translateText(CASES_LABEL)}
           </p>
           <p className="text-xs text-gray-500">
@@ -674,6 +690,73 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
           <p className="text-sm text-red-600">
             {translator.translateText(errors.unreadableCases)}
           </p>
+        ) : (
+          <></>
+        )}
+
+        {/*
+          Right under the list, where the case was taken out: what saving
+          disconnects, case by case, and a way to put each case back.
+        */}
+        {removedCases.length > 0 ? (
+          <div
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"
+            data-testid={SWITCH_TEST_IDS.removedCases}
+            role="status"
+          >
+            <p className="text-sm font-medium text-amber-900">
+              {translator.translateText(
+                "Saving removes the connections of the cases you took out",
+              )}
+            </p>
+            <ul className="mt-1.5 space-y-1.5">
+              {removedCases.map(
+                (removed: RemovedConnectedCase, index: number) => {
+                  return (
+                    <li
+                      key={removed.switchCase.id}
+                      className="flex flex-wrap items-center justify-between gap-2"
+                      data-testid={`switch-removed-case-${index}`}
+                    >
+                      <p className="min-w-0 break-words text-xs text-amber-800">
+                        {translator.translateTemplate(
+                          "Case “{{case}}” led to {{steps}}.",
+                          {
+                            case: removed.label,
+                            steps: removed.steps
+                              .map((step: ConnectedStep): string => {
+                                return `${step.title} (${step.componentId})`;
+                              })
+                              .join(", "),
+                          },
+                        )}
+                      </p>
+                      <Button
+                        title="Put back"
+                        buttonSize={ButtonSize.Small}
+                        buttonStyle={ButtonStyleType.OUTLINE}
+                        icon={IconProp.ArrowUturnLeft}
+                        dataTestId={`switch-removed-case-undo-${index}`}
+                        ariaLabel={translator.translateTemplate(
+                          "Put case “{{case}}” back",
+                          { case: removed.label },
+                        )}
+                        onClick={() => {
+                          setCases(
+                            putCaseBack(
+                              cases,
+                              removed.switchCase,
+                              removed.index,
+                            ),
+                          );
+                        }}
+                      />
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
         ) : (
           <></>
         )}
@@ -816,64 +899,6 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
           <></>
         )}
       </div>
-
-      {removedCases.length > 0 ? (
-        <div
-          className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"
-          data-testid={SWITCH_TEST_IDS.removedCases}
-          role="status"
-        >
-          <p className="text-sm font-medium text-amber-900">
-            {translator.translateText(
-              "Saving removes the connections of the cases you took out",
-            )}
-          </p>
-          <ul className="mt-1.5 space-y-1.5">
-            {removedCases.map((removed: RemovedConnectedCase, index: number) => {
-              return (
-                <li
-                  key={removed.switchCase.id}
-                  className="flex flex-wrap items-center justify-between gap-2"
-                  data-testid={`switch-removed-case-${index}`}
-                >
-                  <p className="min-w-0 text-xs text-amber-800">
-                    {translator.translateTemplate(
-                      "{{case}} led to {{steps}}.",
-                      {
-                        case: removed.label,
-                        steps: removed.steps
-                          .map((step: ConnectedStep): string => {
-                            return `${step.title} (${step.componentId})`;
-                          })
-                          .join(", "),
-                      },
-                    )}
-                  </p>
-                  <Button
-                    title="Put back"
-                    buttonSize={ButtonSize.Small}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    icon={IconProp.ArrowUturnLeft}
-                    dataTestId={`switch-removed-case-undo-${index}`}
-                    ariaLabel={translator.translateTemplate(
-                      "Put {{case}} back",
-                      { case: removed.label },
-                    )}
-                    onClick={() => {
-                      setCases(
-                        putCaseBack(cases, removed.switchCase, removed.index),
-                      );
-                    }}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : (
-        <></>
-      )}
-
     </div>
   );
 };

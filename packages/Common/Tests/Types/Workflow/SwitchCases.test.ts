@@ -366,10 +366,7 @@ describe("a reference, in a word or two", () => {
       "local.components.api-get-1.returnValues.response-status",
       "response-status",
     ],
-    [
-      "local.components.find-1.returnValues.models[0].title",
-      "models[0].title",
-    ],
+    ["local.components.find-1.returnValues.models[0].title", "models[0].title"],
     ["local.components.x.returnValues.model._id", "model._id"],
     // Not a whole reference: left as written.
     ["local.components.x.returnValues", "local.components.x.returnValues"],
@@ -416,9 +413,7 @@ describe("what a case's output is called", () => {
   });
 
   test("a comparison that needs no value is named by the comparison", () => {
-    expect(getSwitchCaseLabel(aCase("case-1", "is empty"), 0)).toBe(
-      "is empty",
-    );
+    expect(getSwitchCaseLabel(aCase("case-1", "is empty"), 0)).toBe("is empty");
     expect(getSwitchCaseLabel(aCase("case-1", "is not empty"), 0)).toBe(
       "is not empty",
     );
@@ -518,14 +513,14 @@ describe("the step's outputs", () => {
   });
 
   test("a case's output is its id, its name and when it runs", () => {
-    expect(getSwitchCasePort(aCase("case-5", "contains", "timeout"), 1)).toEqual(
-      {
-        id: "case-5",
-        title: "contains timeout",
-        description:
-          "Runs next when the value contains “timeout” and no case above it matches.",
-      },
-    );
+    expect(
+      getSwitchCasePort(aCase("case-5", "contains", "timeout"), 1),
+    ).toEqual({
+      id: "case-5",
+      title: "contains timeout",
+      description:
+        "Runs next when the value contains “timeout” and no case above it matches.",
+    });
   });
 });
 
@@ -565,7 +560,8 @@ describe("which case a value takes", () => {
       for (const compareAs of SWEEP_TYPES) {
         for (const value of SWEEP_VALUES) {
           const compareWith: string =
-            comparison.fixedCompareWith || (comparison.usesCompareWith ? value : "");
+            comparison.fixedCompareWith ||
+            (comparison.usesCompareWith ? value : "");
 
           for (const valueToCheck of SWEEP_VALUES) {
             const ifElse: boolean = evaluateCondition({
@@ -922,7 +918,10 @@ describe("cases that can never be taken", () => {
   test("cases that are not set up yet are not counted: two new cases are not a mistake", () => {
     expect(findShadowedSwitchCases(getStarterSwitchCases())).toEqual([]);
     expect(
-      findShadowedSwitchCases([aCase("case-1", "~=", "x"), aCase("case-2", "~=", "x")]),
+      findShadowedSwitchCases([
+        aCase("case-1", "~=", "x"),
+        aCase("case-2", "~=", "x"),
+      ]),
     ).toEqual([]);
   });
 

@@ -609,7 +609,9 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
         }
       });
 
-      for (const shadowed of findShadowedSwitchCases(reading.cases) as Array<ShadowedSwitchCase>) {
+      for (const shadowed of findShadowedSwitchCases(
+        reading.cases,
+      ) as Array<ShadowedSwitchCase>) {
         addNodeIssue({
           rule: WorkflowLintRule.SwitchCaseNeverTaken,
           severity: WorkflowLintSeverity.Warning,

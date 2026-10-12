@@ -215,20 +215,11 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    */
   const isCondition: boolean = component.metadata.id === ComponentID.IfElse;
 
-  // A Switch / Case step's settings are its cases.
-  const isSwitch: boolean = component.metadata.id === ComponentID.Switch;
-
   const settingsSection: ReactElement | null = hasSettings ? (
     <ComponentSettingsSection
       id="settings"
-      icon={
-        isCondition
-          ? IconProp.Condition
-          : isSwitch
-            ? IconProp.Switch
-            : IconProp.Settings
-      }
-      title={isCondition ? "Condition" : isSwitch ? "Cases" : "Settings"}
+      icon={isCondition ? IconProp.Condition : IconProp.Settings}
+      title={isCondition ? "Condition" : "Settings"}
     >
       <ArgumentsForm
         graphComponents={props.graphComponents}

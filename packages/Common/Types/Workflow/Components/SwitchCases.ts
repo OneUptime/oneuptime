@@ -789,19 +789,18 @@ type DescribeSwitchCaseCheckFunction = (data: {
 }) => string;
 
 /** One line of the run's log for one case checked. */
-export const describeSwitchCaseCheck: DescribeSwitchCaseCheckFunction =
-  (data: {
-    check: SwitchCaseCheck;
-    configuredCases: Array<SwitchCase>;
-  }): string => {
-    const configured: SwitchCase =
-      data.configuredCases[data.check.index] || data.check.switchCase;
+export const describeSwitchCaseCheck: DescribeSwitchCaseCheckFunction = (data: {
+  check: SwitchCaseCheck;
+  configuredCases: Array<SwitchCase>;
+}): string => {
+  const configured: SwitchCase =
+    data.configuredCases[data.check.index] || data.check.switchCase;
 
-    return `Case ${data.check.index + 1} (${getSwitchCaseLabel(
-      configured,
-      data.check.index,
-    )}): ${data.check.isMatch ? "matched" : "no match"}.`;
-  };
+  return `Case ${data.check.index + 1} (${getSwitchCaseLabel(
+    configured,
+    data.check.index,
+  )}): ${data.check.isMatch ? "matched" : "no match"}.`;
+};
 
 type SameCaseFunction = (first: SwitchCase, second: SwitchCase) => boolean;
 
@@ -875,7 +874,10 @@ export const findShadowedSwitchCases: FindShadowedSwitchCasesFunction = (
     for (let earlier: number = 0; earlier < index; earlier++) {
       const earlierCase: SwitchCase = cases[earlier] as SwitchCase;
 
-      if (isSwitchCaseSetUp(earlierCase) && asksTheSame(earlierCase, switchCase)) {
+      if (
+        isSwitchCaseSetUp(earlierCase) &&
+        asksTheSame(earlierCase, switchCase)
+      ) {
         shadowed.push({ index: index, sameAsIndex: earlier });
         break;
       }
