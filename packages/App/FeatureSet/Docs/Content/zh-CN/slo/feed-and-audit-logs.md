@@ -67,7 +67,7 @@ SLO 的 **审计日志** 页面列出对以下内容所做的更改：
 
 ### 开启审计日志
 
-审计日志是 Enterprise 功能：需要 OneUptime Cloud 上的 **Enterprise** 套餐，或自托管安装上的 Enterprise Edition。在其他套餐上，SLO 的 **审计日志** 页面会说明如何获得。在自托管安装上，没有有效许可证时审计日志会停止记录（14 天试用期结束后，或许可证过期 30 天后），一旦激活许可证就会恢复（请参阅 [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)）。**审计日志** 页面会在未记录时予以提示。
+审计日志是 Enterprise 功能：需要 OneUptime Cloud 上的 **Enterprise** 套餐，或自托管安装上的 Enterprise Edition。在其他套餐上，SLO 的 **审计日志** 页面会说明如何获得。在自托管安装上，没有有效许可证时审计日志会停止记录（14 天试用期结束后，或许可证过期 30 天后），一旦激活许可证就会恢复（请参阅 [When a license expires or is missing](/docs/self-hosted/enterprise#许可证过期或缺失时)）。**审计日志** 页面会在未记录时予以提示。
 
 审计日志在每个项目中默认也是关闭的。要开启它们：
 

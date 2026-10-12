@@ -67,7 +67,7 @@ To ting er utelatt:
 
 ### Slå på revisjonslogger
 
-Revisjonslogger er en Enterprise-funksjon: de krever **Enterprise**-abonnementet på OneUptime Cloud, eller Enterprise Edition på en selvhostet installasjon. På andre abonnementer forklarer siden **Revisjonslogger** til SLO-et hvordan du får den. På en selvhostet installasjon slutter revisjonsloggen å registrere uten en gyldig lisens (etter prøveperioden på 14 dager, eller 30 dager etter at en lisens utløper), og den fortsetter så snart en lisens aktiveres (se [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Sidene **Revisjonslogger** sier fra når det ikke registreres.
+Revisjonslogger er en Enterprise-funksjon: de krever **Enterprise**-abonnementet på OneUptime Cloud, eller Enterprise Edition på en selvhostet installasjon. På andre abonnementer forklarer siden **Revisjonslogger** til SLO-et hvordan du får den. På en selvhostet installasjon slutter revisjonsloggen å registrere uten en gyldig lisens (etter prøveperioden på 14 dager, eller 30 dager etter at en lisens utløper), og den fortsetter så snart en lisens aktiveres (se [When a license expires or is missing](/docs/self-hosted/enterprise#når-en-lisens-utløper-eller-mangler)). Sidene **Revisjonslogger** sier fra når det ikke registreres.
 
 Revisjonslogger er også slått av som standard i hvert prosjekt. Slik slår du dem på:
 

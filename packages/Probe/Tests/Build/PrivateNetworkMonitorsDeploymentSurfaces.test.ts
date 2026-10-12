@@ -356,9 +356,15 @@ const docsContent: Record<DocsLocale, string> = {
 };
 
 interface CodeFence {
+  // The language that opens the info string: yaml in ```yaml title="values.yaml".
   language: string;
+  // The whole info string, a title included.
+  info: string;
   body: string;
 }
+
+// The spaces between the words of a fence's info string.
+const INFO_STRING_SPACE: RegExp = /\s+/;
 
 const codeFences: (markdown: string) => Array<CodeFence> = (
   markdown: string,
@@ -367,10 +373,34 @@ const codeFences: (markdown: string) => Array<CodeFence> = (
   const pattern: RegExp = /^```([^\n]*)\n([\s\S]*?)^```[ \t]*$/gm;
   let match: RegExpExecArray | null = pattern.exec(markdown);
   while (match) {
-    fences.push({ language: (match[1] ?? "").trim(), body: match[2] ?? "" });
+    const info: string = (match[1] ?? "").trim();
+
+    fences.push({
+      language: info.split(INFO_STRING_SPACE)[0] ?? "",
+      info: info,
+      body: match[2] ?? "",
+    });
     match = pattern.exec(markdown);
   }
   return fences;
+};
+
+/*
+ * A diagram's labels are prose, which a translation words in its own
+ * language; every other fence is code an operator copies.
+ */
+const isDiagram: (fence: CodeFence) => boolean = (
+  fence: CodeFence,
+): boolean => {
+  return fence.language === "mermaid";
+};
+
+const codeBlocks: (markdown: string) => Array<CodeFence> = (
+  markdown: string,
+): Array<CodeFence> => {
+  return codeFences(markdown).filter((fence: CodeFence) => {
+    return !isDiagram(fence);
+  });
 };
 
 const FENCE_LINE: RegExp = /^\s*```/;
@@ -1193,7 +1223,20 @@ describe("private network monitors across deployment surfaces (issue #3879)", ()
 
   describe("the fa translation of private-network-access", () => {
     test("keeps every code block byte-identical to en", () => {
-      expect(codeFences(docsContent.fa)).toEqual(codeFences(docsContent.en));
+      expect(codeBlocks(docsContent.en).length).toBeGreaterThan(0);
+      expect(codeBlocks(docsContent.fa)).toEqual(codeBlocks(docsContent.en));
+    });
+
+    test("draws as many diagrams as en", () => {
+      const diagrams: (markdown: string) => Array<CodeFence> = (
+        markdown: string,
+      ): Array<CodeFence> => {
+        return codeFences(markdown).filter(isDiagram);
+      };
+
+      expect(diagrams(docsContent.fa).length).toBe(
+        diagrams(docsContent.en).length,
+      );
     });
 
     test("keeps every quoted error string byte-identical to en", () => {

@@ -67,7 +67,7 @@ Quedan fuera dos cosas:
 
 ### Activar los registros de auditoría
 
-Los registros de auditoría son una función Enterprise: necesitan el plan **Enterprise** en OneUptime Cloud, o la Enterprise Edition en una instalación autoalojada. En otros planes, la página **Registros de auditoría** del SLO explica cómo conseguirla. En una instalación autoalojada, el registro de auditoría deja de grabar sin una licencia válida (tras la prueba de 14 días, o 30 días después de que caduque una licencia), y se reanuda en cuanto se activa una licencia (consulta [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Las páginas **Registros de auditoría** indican cuándo no se está grabando.
+Los registros de auditoría son una función Enterprise: necesitan el plan **Enterprise** en OneUptime Cloud, o la Enterprise Edition en una instalación autoalojada. En otros planes, la página **Registros de auditoría** del SLO explica cómo conseguirla. En una instalación autoalojada, el registro de auditoría deja de grabar sin una licencia válida (tras la prueba de 14 días, o 30 días después de que caduque una licencia), y se reanuda en cuanto se activa una licencia (consulta [When a license expires or is missing](/docs/self-hosted/enterprise#cuando-una-licencia-caduca-o-falta)). Las páginas **Registros de auditoría** indican cuándo no se está grabando.
 
 Los registros de auditoría también están desactivados de forma predeterminada en cada proyecto. Para activarlos:
 

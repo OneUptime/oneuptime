@@ -1,125 +1,85 @@
-# معماری خودمیزبان OneUptime
+# معماری
 
-این نمودار نشان می‌دهد وقتی OneUptime در محیط شما خودمیزبانی می‌شود (برای نمونه در خوشه Kubernetes شما) معمولاً چه شکلی دارد، از جمله اینکه پراب‌ها چگونه منابع داخلی و بیرونی را پایش می‌کنند.
+یک نصب خودمیزبان OneUptime از چند کانتینر تشکیل می‌شود: یک ingress که هر درخواستی از آن وارد می‌شود، یک ایمیج برنامه که کار را انجام می‌دهد، پراب‌هایی که بررسی‌های مانیتورهای شما را اجرا می‌کنند، و سه مخزن داده. این صفحه نشان می‌دهد این‌ها چطور کنار هم قرار می‌گیرند، هر کدام چه می‌کند و کدام اتصال‌ها از مرز شبکهٔ شما عبور می‌کنند.
 
-```mermaid
+```mermaid title="یک نصب خودمیزبان OneUptime"
 flowchart TB
-  %% LAYOUT
-  %% Top: Users -> Ingress -> Web / API
-  %% Middle: Core services + Ingest pipeline
-  %% Bottom: Data stores
-
-  %% USERS / EDGE
-  U["End Users / Browsers"]
-
-  %% CLUSTER BOUNDARY
-  subgraph C["Customer Network (Self-hosted Kubernetes Cluster)"]
-    direction TB
-
-    subgraph Edge["Ingress & Routing"]
-      NGINX["NGINX Ingress (TLS)"]
+    People["افراد و مرورگرها"]
+    Senders["فرستندگان تله‌متری:<br/>OpenTelemetry، Fluent Bit،<br/>syslog، عامل‌ها"]
+    Targets["آنچه پایش می‌کنید:<br/>داخلی و عمومی"]
+    subgraph Install["شبکهٔ شما"]
+        direction TB
+        Ingress["Ingress<br/>(Nginx، TLS)"]
+        App["برنامه<br/>داشبوردها، صفحه‌های وضعیت،<br/>API، دریافت داده، کارهای پس‌زمینه"]
+        Probe["پراب‌ها"]
+        Runner["Runner"]
+        subgraph Data["مخزن‌های داده"]
+            direction LR
+            Postgres[("PostgreSQL<br/>پیکربندی<br/>و وضعیت")]
+            ClickHouse[("ClickHouse<br/>لاگ‌ها، متریک‌ها،<br/>ردها")]
+            Valkey[("Valkey<br/>کش و<br/>صف‌ها")]
+        end
     end
-
-    subgraph Web["Web & API"]
-      direction TB
-      HOME["Home / Dashboard (UI)"]
-      STATUS["Status Pages (UI)"]
-      API["API Server"]
-      WORKER["Background Worker"]
-    end
-
-    subgraph Ingest["Ingest Pipeline"]
-      direction TB
-      PROBEINGEST["Probe Ingest"]
-      OTELINGEST["OpenTelemetry Ingest"]
-      FLUENTLOGS["Logs Ingest (Fluent Bit)"]
-      SERVERMONINGEST["Server Monitor Ingest"]
-      INCOMINGREQINGEST["Incoming Request Ingest"]
-    end
-
-    subgraph Probes["OneUptime Probes"]
-      direction TB
-      P1["Probe Pod(s) in your cluster"]
-      P2["Optional Probe VM/Container on your network"]
-    end
-
-    %% DATA STORES
-    subgraph Data["Data Stores"]
-      direction LR
-      PG[("PostgreSQL\n(config, state, metadata)")]
-      CH[("ClickHouse\n(metrics, traces, logs)")]
-      REDIS[("Valkey\n(cache, queues, sessions)")]
-    end
-
-  end
-
-  %% EXTERNAL / INTERNAL TARGETS
-  EXT["External Resources\n(public websites/APIs, SaaS)"]
-  INT["Internal Resources\n(private apps, DBs, services)"]
-
-  %% FLOWS: Edge
-  U -->|HTTPS| NGINX
-  NGINX --> HOME
-  NGINX --> STATUS
-  HOME -->|REST/gRPC| API
-  STATUS -->|REST/gRPC| API
-  NGINX --> API
-
-  %% FLOWS: Core services -> Data
-  API --> PG
-  API --> REDIS
-  API --> CH
-  WORKER --> PG
-  WORKER --> REDIS
-  WORKER --> CH
-
-  %% FLOWS: Ingest
-  P1 -->|monitoring results| PROBEINGEST
-  P2 -->|monitoring results| PROBEINGEST
-
-  EXT <-->|HTTPS/TCP/Ping/DNS/Custom| P1
-  INT <-->|HTTPS/TCP/Ping/DNS/Custom| P1
-  EXT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
-  INT <-->|HTTPS/TCP/Ping/DNS/Custom| P2
-
-  OTELCOLL["OTel Collector/Agents"] --> OTELINGEST
-  FLUENT["Fluentd / Fluent Bit"] --> FLUENTLOGS
-  SERVERAGENTS["Server Monitor Agents"] --> SERVERMONINGEST
-
-  %% Ingest flow to core processing
-  PROBEINGEST --> REDIS
-  OTELINGEST --> CH
-  FLUENTLOGS --> CH
-  SERVERMONINGEST --> CH
-  INCOMINGREQINGEST --> CH
-
-  %% Workers consume from queues and write to stores
-  REDIS --> WORKER
-
-  %% Notes / Legend
-  classDef store fill:#fef6e4,stroke:#d4a373,color:#333;
-  classDef edge fill:#e3f2fd,stroke:#64b5f6,color:#333;
-  classDef web fill:#e8f5e9,stroke:#81c784,color:#333;
-  classDef ingest fill:#f3e5f5,stroke:#ba68c8,color:#333;
-  classDef probe fill:#fff3e0,stroke:#ffb74d,color:#333;
-  classDef outside fill:#f5f5f5,stroke:#bdbdbd,color:#333,stroke-dasharray: 3 3;
-
-  class NGINX edge;
-  class HOME,STATUS,API,WORKER web;
-  class PROBEINGEST,OTELINGEST,FLUENTLOGS,SERVERMONINGEST,INCOMINGREQINGEST ingest;
-  class P1,P2 probe;
-  class PG,CH,REDIS store;
-  class EXT,INT,OTELCOLL,FLUENT,SERVERAGENTS outside;
+    People -->|"HTTPS"| Ingress
+    Senders -->|"OTLP, HTTPS"| Ingress
+    Ingress --> App
+    Probe -->|"گرفتن کار،<br/>فرستادن نتایج"| App
+    Runner -->|"برداشتن کارها،<br/>فرستادن نتایج"| App
+    Probe -->|"HTTP، TCP، ping،<br/>DNS، SNMP"| Targets
+    App --> Postgres
+    App --> ClickHouse
+    App --> Valkey
 ```
 
-## این نمودار چه چیزی را نشان می‌دهد
+## این نمودار چه نشان می‌دهد
 
-- کاربران نهایی از طریق Ingress خوشه شما (NGINX) به OneUptime دسترسی پیدا می‌کنند، که آن‌ها را به رابط کاربری و API مسیریابی می‌کند.
-- سرویس‌های اصلی وضعیت را در PostgreSQL، Valkey (فورک با مجوز BSD از Redis 7.2) و ClickHouse می‌خوانند و می‌نویسند.
-- پراب‌ها می‌توانند درون خوشه شما (توصیه‌شده) و/یا جای دیگری در شبکه شما اجرا شوند. آن‌ها می‌توانند این‌ها را پایش کنند:
+- افراد از راه **ingress** به OneUptime می‌رسند، که TLS را پایان می‌دهد و هر درخواست را به برنامه می‌فرستد: Dashboard، صفحه‌های وضعیت، API، و هر نقطهٔ دریافتی که تله‌متری به آن فرستاده می‌شود.
+- **برنامه** وضعیت خود را در PostgreSQL می‌خواند و می‌نویسد، تله‌متری را در ClickHouse نگه می‌دارد، و از Valkey (انشعاب دارای مجوز BSD از Redis 7.2) برای کش و برای صف‌هایی که کارهای پس‌زمینه‌اش پردازش می‌کنند استفاده می‌کند.
+- **پراب‌ها** می‌توانند درون کلاستر شما (توصیه می‌شود) و/یا جای دیگری در شبکهٔ شما اجرا شوند. آن‌ها می‌توانند این‌ها را پایش کنند:
   - سرویس‌های داخلی/خصوصی پشت دیوار آتش شما.
-  - منابع بیرونی/عمومی روی اینترنت.
-- نتایج پراب به Probe Ingest درون خوشه شما فرستاده می‌شود، از طریق Valkey در صف قرار می‌گیرد و توسط Background Worker پردازش و در پایگاه‌های داده شما ذخیره می‌شود.
-- تله‌متری (متریک/ترِیس/لاگ) و داده سرور/عامل می‌تواند از طریق سرویس‌های اختصاصی دریافت وارد شود و در ClickHouse ذخیره گردد.
+  - منابع خارجی/عمومی در اینترنت.
+- نتایج پراب‌ها به برنامه فرستاده می‌شوند، در Valkey به صف می‌روند و کارهای پس‌زمینه آن‌ها را پردازش می‌کنند و در مخزن‌های داده‌تان می‌نویسند. پرابی که جای دیگری در شبکهٔ شماست، از راه ingress و با نشانی OneUptime شما به برنامه می‌رسد.
+- تله‌متری (متریک‌ها، ردها، لاگ‌ها و بیشتر) را همان برنامه دریافت می‌کند و در ClickHouse ذخیره می‌شود.
 
-> توجه: اگر به‌جای نمونه‌های داخلی از PostgreSQL، Redis یا ClickHouse بیرونی استفاده می‌کنید، اتصال‌های API/Worker/Ingest به نقاط پایانی بیرونی شما اشاره می‌کنند. جریان منطقی همان می‌ماند.
+> [!NOTE]
+> اگر به‌جای نمونه‌های داخلی از PostgreSQL، Valkey (یا Redis) یا ClickHouse خارجی استفاده کنید، برنامه به‌جای آن‌ها به نقطه‌های پایانی خارجی شما وصل می‌شود. جریان منطقی همان می‌ماند.
+
+## اجزا
+
+| جزء | سرویس Docker Compose | چارت Helm | چه می‌کند |
+| --- | --- | --- | --- |
+| Ingress | `ingress` | `nginx` | TLS را پایان می‌دهد، نام میزبان و دامنه‌های صفحه‌های وضعیت شما را سرو می‌کند و هر درخواست را به برنامه می‌فرستد. |
+| برنامه | `app` | `app` | Dashboard، صفحه‌های وضعیت، نقطه‌های پایانی API و دریافت داده، و اگر جدایشان نکنید، کارهای پس‌زمینه. |
+| Worker | بخشی از `app` | `worker` (به‌طور پیش‌فرض خاموش) | کارهای پس‌زمینه در پادهای جداگانهٔ خودشان، تا پردازش سنگین صف هرگز با درخواست‌های API رقابت نکند. |
+| Telemetry writer | بخشی از `app` | `telemetryWriter` (به‌طور پیش‌فرض خاموش) | لایه‌ای با اندازهٔ ثابت که هر درج در ClickHouse را انجام می‌دهد، تا درج‌ها هر قدر هم workerها مقیاس بگیرند محدود بمانند. |
+| پراب | `probe-1` | `probes` | بررسی‌های مانیتور را اجرا می‌کند و نتایج را برمی‌گرداند. هر پراب همراه، یک پراب سراسری است که همهٔ پروژه‌ها می‌توانند از آن استفاده کنند. |
+| Runner | `runner` | `runner` | Runner خودِ نمونه، که می‌تواند اصلاح کد با هوش مصنوعی را برای هر پروژه اجرا کند. گام‌های رانبوک روی [Runnerهایی](/docs/runbooks/agents) اجرا می‌شوند که خودتان همان جایی نصب می‌کنید که باید اجرا شوند. |
+| PostgreSQL | `postgres` | `postgresql`، یا `postgresOperator.cnpg` | پروژه‌ها، مانیتورها، حادثه‌ها، کاربران و هر تنظیم و وضعیت دیگر. |
+| ClickHouse | `clickhouse` | `clickhouse`، یا `clickhouseOperator.altinity` | لاگ‌ها، متریک‌ها، ردها، استثناها، پروفایل‌ها و لاگ‌های مانیتور. |
+| Valkey | `valkey` | `valkey` | کش، صف‌های کار و وضعیت کوتاه‌مدت، مانند رسیدهای پوش در انتظار. |
+
+همهٔ نقش‌های برنامه یک ایمیج‌اند: Docker Compose آن‌ها را در یک کانتینر `app` اجرا می‌کند، و چارت Helm می‌تواند worker و telemetry writer را به‌صورت استقرارهای جداگانه اجرا کند. برای تعیین اندازهٔ هر لایه، [اندازه‌گذاری و برنامه‌ریزی ظرفیت](/docs/installation/sizing) را ببینید.
+
+## اتصال‌های رو به بیرون از شبکهٔ شما
+
+برنامه فقط برای چیزهایی که روشن می‌کنید به بیرون وصل می‌شود. هر یک از این‌ها اختیاری است، و هر کدام صفحه‌ای دارد که نشانی‌های دقیقی را که باید مجاز کنید نام می‌برد:
+
+| اتصال خروجی | برای چه | بیشتر بخوانید |
+| --- | --- | --- |
+| ایمیل (SMTP، یا API سرویس SendGrid) | اعلان‌ها و دعوت‌نامه‌ها | [SMTP](/docs/emails/smtp) |
+| Twilio | پیامک و تماس تلفنی | [یکپارچه‌سازی Twilio](/docs/self-hosted/twilio-integration) |
+| رلهٔ پوش OneUptime، یا Expo | اعلان‌های پوش موبایل | [اعلان‌های پوش](/docs/self-hosted/push-notifications) |
+| Slack و Microsoft Teams | اعلان‌ها و کنش‌های فضای کاری | [یکپارچه‌سازی Slack](/docs/self-hosted/slack-integration) |
+| یک ارائه‌دهندهٔ LLM، مانند OpenAI، Anthropic، Microsoft Foundry یا مدلی که خودتان اجرا می‌کنید | OneUptime AI | [ارائه‌دهندگان LLM](/docs/ai/llm-provider) |
+| `oneuptime.com` | فعال‌سازی آنلاین مجوز Enterprise | [نسخه سازمانی](/docs/self-hosted/enterprise) |
+
+اتصال‌های جهت مخالف - SendGrid که ایمیل ورودی را تحویل می‌دهد، و Slack و Microsoft Teams که فراخوانی برگشتی انجام می‌دهند - نیاز دارند که ingress از اینترنت در دسترس باشد. اینکه برنامه و پراب‌ها به کدام نشانی‌های خصوصی برسند با شماست: [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access) را ببینید.
+
+## گام‌های بعدی
+
+:::cards
+- [Docker Compose](/docs/installation/docker-compose): همهٔ اجزا را روی یک ماشین نصب کنید.
+- [اندازه‌گذاری و برنامه‌ریزی ظرفیت](/docs/installation/sizing): هر لایه چقدر CPU، حافظه و دیسک نیاز دارد.
+- [پراب‌های سفارشی](/docs/probe/custom-probe): یک پراب را درون شبکه‌ای دیگر اجرا کنید.
+- [نسخه سازمانی](/docs/self-hosted/enterprise): ایمیج‌های Enterprise چه چیزی اضافه می‌کنند و مجوزدهی چطور کار می‌کند.
+:::

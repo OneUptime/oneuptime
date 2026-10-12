@@ -1,3 +1,4 @@
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -55,12 +56,48 @@ function languages(): Array<string> {
     .sort();
 }
 
+// A character a regular expression reads as more than itself.
+const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
+
+interface TeamPageNames {
+  members: string;
+  permissions: string;
+  blockPermissions: string;
+  moreSettings: string;
+}
+
+// The team's pages and its folded section, as a language's Dashboard draws them.
+function teamPageNames(language: string): TeamPageNames {
+  return {
+    members: drawnDashboardLabel(language, "Members"),
+    permissions: drawnDashboardLabel(language, "Permissions"),
+    blockPermissions: drawnDashboardLabel(language, "Block Permissions"),
+    moreSettings: drawnDashboardLabel(language, "More settings"),
+  };
+}
+
+function escaped(text: string): string {
+  return text.replace(REGEX_SPECIAL, "\\$&");
+}
+
 /*
- * "**Members**, **Permissions** and **Block Permissions**", in any of the
- * languages' list separators (and "، " / "、" / "و" / "和" between them).
+ * "**Members**, **Permissions** and **Block Permissions**", in a language's
+ * words and any of the languages' list separators (and "، " / "、" / "و" /
+ * "和" between them).
  */
-const THREE_TEAM_PAGES: RegExp =
-  /\*\*Members\*\*[,、،]\s*\*\*Permissions\*\*[,、،]?\s*[^*\n]{0,12}\*\*Block Permissions\*\*/;
+function threeTeamPages(language: string): RegExp {
+  const names: TeamPageNames = teamPageNames(language);
+
+  return new RegExp(
+    [
+      `\\*\\*${escaped(names.members)}\\*\\*`,
+      "[,、،]\\s*",
+      `\\*\\*${escaped(names.permissions)}\\*\\*`,
+      "[,、،]?\\s*[^*\\n]{0,12}",
+      `\\*\\*${escaped(names.blockPermissions)}\\*\\*`,
+    ].join(""),
+  );
+}
 
 // The Access card titles, each once, as the form's source writes them.
 function accessTitles(): Array<string> {
@@ -161,29 +198,49 @@ describe("where a team's Block Permissions are", () => {
     expect(languages()).toHaveLength(17);
   });
 
+  /*
+   * Each language names the pages and the folded section as its Dashboard
+   * draws them (the Dashboard translates the team's menu and the More
+   * settings fold), Persian included.
+   */
   it.each(languages())(
     "%s: not a team page beside Members and Permissions, but under More settings",
     (language: string) => {
       const page: string = readPage(language, "permissions/index");
+      const names: TeamPageNames = teamPageNames(language);
 
       // The sentence that sends the reader into a team.
       const line: string | undefined = page
         .split("\n")
         .find((candidate: string): boolean => {
           return (
-            candidate.includes("**Members**") &&
-            candidate.includes("**Permissions**") &&
-            candidate.includes("**Block Permissions**")
+            candidate.includes(`**${names.members}**`) &&
+            candidate.includes(`**${names.permissions}**`) &&
+            candidate.includes(`**${names.blockPermissions}**`)
           );
         });
 
       expect(line).toBeDefined();
-      expect(line).toContain("**More settings**");
+      expect(line).toContain(`**${names.moreSettings}**`);
 
       // Never three team pages in a row, as every language used to say.
-      expect(page).not.toMatch(THREE_TEAM_PAGES);
+      expect(page).not.toMatch(threeTeamPages(language));
     },
   );
+
+  it("refuses the three team pages in a row, in a language's words, and nothing else", () => {
+    const names: TeamPageNames = teamPageNames("de");
+
+    expect(
+      `**${names.members}**, **${names.permissions}** und **${names.blockPermissions}**`,
+    ).toMatch(threeTeamPages("de"));
+    expect(
+      `**${names.members}** und **${names.permissions}**; **${names.blockPermissions}**`,
+    ).not.toMatch(threeTeamPages("de"));
+    expect("**Members**, **Permissions** and **Block Permissions**").toMatch(
+      threeTeamPages("en"),
+    );
+  });
 
   it("English: the allow and block lists are both on the Permissions page", () => {
     expect(readPage("en", "permissions/index")).toContain(

@@ -1,4 +1,5 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -17,7 +18,8 @@ import path from "path";
  * pages point to it, and the upgrade notes say what changes for custom roles.
  * Acknowledging the alerts of an incident as it is declared takes the same as
  * acknowledging each of them on its own page (AlertStateChangeAuthorization),
- * and the English pages say so.
+ * and Linked Alerts says so in every docs language: the timeline's create
+ * permission, and no Edit Alert.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -36,6 +38,37 @@ const STATE_TIMELINE_PERMISSIONS: Array<string> = [
   "**Create Scheduled Maintenance State Timeline**",
   "**Create Monitor Status Timeline**",
 ];
+
+const LINKED_ALERTS_PAGE: string = "incidents/linked-alerts.md";
+
+// What acknowledging an alert takes, and the edit permission it does not.
+const ACKNOWLEDGE_PERMISSION: string = "**Create Alert State Timeline**";
+const EDIT_ALERT: string = "**Edit Alert**";
+
+/*
+ * How each language's Linked Alerts page says that acknowledging the alerts
+ * as you declare takes no Edit Alert, in the paragraph that names what it
+ * takes.
+ */
+const NO_EDIT_ALERT: Record<string, string> = {
+  en: "and no **Edit Alert**",
+  de: "und kein **Edit Alert**",
+  fr: "et pas **Edit Alert**",
+  es: "y no **Edit Alert**",
+  it: "e nessun **Edit Alert**",
+  pt: "e nenhuma **Edit Alert**",
+  nl: "en geen **Edit Alert**",
+  da: "og ingen **Edit Alert**",
+  no: "og ingen **Edit Alert**",
+  sv: "och ingen **Edit Alert**",
+  ru: "и никакого **Edit Alert**",
+  ja: "**Edit Alert** は不要",
+  ko: "**Edit Alert**는 필요하지 않습니다",
+  "zh-CN": "而不需要 **Edit Alert**",
+  "zh-TW": "而不需要 **Edit Alert**",
+  hi: "और कोई **Edit Alert** नहीं",
+  fa: "و نه **Edit Alert**",
+};
 
 function read(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
@@ -236,6 +269,64 @@ describe("Docs: changing a state takes the state timeline's create permission", 
       "**Create Alert State Timeline** and **Edit Alert**",
     );
   });
+
+  test("every docs language words the linked alerts page's 'no Edit Alert'", () => {
+    expect(Object.keys(NO_EDIT_ALERT)).toEqual(LANGUAGES);
+  });
+
+  test.each(LANGUAGES)(
+    "%s: linked alerts says acknowledging on declare takes the timeline's permission and no Edit Alert, in all three places",
+    (language: string) => {
+      const page: string = read(language, LINKED_ALERTS_PAGE);
+
+      // The permission paragraph, the API refusal and the permissions section.
+      const naming: Array<string> = page
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.includes(ACKNOWLEDGE_PERMISSION);
+        });
+
+      expect([language, naming.length]).toEqual([language, 3]);
+
+      const [paragraph, refusal, permissions] = naming as [
+        string,
+        string,
+        string,
+      ];
+
+      // Users, Teams & Permissions' state change section, in this language.
+      const changingAState: string = stateChangeSection(
+        read(language, "permissions/index.md"),
+      ).heading.replace(/^###\s+/, "");
+
+      expect({
+        language: language,
+        // Named once on the page, to say it is not needed.
+        editAlertMentions: page.split(EDIT_ALERT).length - 1,
+        saysNoEditAlert: paragraph.includes(NO_EDIT_ALERT[language] as string),
+        permissionFirst:
+          paragraph.indexOf(ACKNOWLEDGE_PERMISSION) <
+          paragraph.indexOf(EDIT_ALERT),
+        linksChangingAState: paragraph.includes(
+          `](/docs/permissions/index#${slugifyMarkdownHeading(changingAState)})`,
+        ),
+        refusalIsABullet: refusal.startsWith("- "),
+        refusalNamesNoEditAlert: !refusal.includes(EDIT_ALERT),
+        permissionsLinkTheSection: permissions.includes("](#"),
+        permissionsNameNoEditAlert: !permissions.includes(EDIT_ALERT),
+      }).toEqual({
+        language: language,
+        editAlertMentions: 1,
+        saysNoEditAlert: true,
+        permissionFirst: true,
+        linksChangingAState: true,
+        refusalIsABullet: true,
+        refusalNamesNoEditAlert: true,
+        permissionsLinkTheSection: true,
+        permissionsNameNoEditAlert: true,
+      });
+    },
+  );
 
   test("the upgrade notes say acknowledging alerts on declare no longer takes Edit Alert", () => {
     const page: string = read("en", "installation/upgrading.md");

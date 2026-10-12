@@ -67,7 +67,7 @@ SLO の **監査ログ** ページには、次のものに加えられた変更�
 
 ### 監査ログをオンにする
 
-監査ログは Enterprise 機能で、OneUptime Cloud の **Enterprise** プラン、またはセルフホストのインストールの Enterprise Edition が必要です。ほかのプランでは、SLO の **監査ログ** ページに入手方法が表示されます。セルフホストのインストールでは、有効なライセンスがないと監査ログは記録を停止し (14 日間の試用期間の後、またはライセンスの期限切れから 30 日後)、ライセンスが有効化されるとすぐに再開します ([When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing) を参照)。記録していないときは、**監査ログ** ページにそのことが表示されます。
+監査ログは Enterprise 機能で、OneUptime Cloud の **Enterprise** プラン、またはセルフホストのインストールの Enterprise Edition が必要です。ほかのプランでは、SLO の **監査ログ** ページに入手方法が表示されます。セルフホストのインストールでは、有効なライセンスがないと監査ログは記録を停止し (14 日間の試用期間の後、またはライセンスの期限切れから 30 日後)、ライセンスが有効化されるとすぐに再開します ([When a license expires or is missing](/docs/self-hosted/enterprise#ライセンスの期限切れまたは未設定のとき) を参照)。記録していないときは、**監査ログ** ページにそのことが表示されます。
 
 監査ログは、どのプロジェクトでも既定ではオフです。オンにするには:
 

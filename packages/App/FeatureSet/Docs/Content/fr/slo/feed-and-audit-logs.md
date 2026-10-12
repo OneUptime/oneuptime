@@ -67,7 +67,7 @@ Deux choses n'y figurent pas :
 
 ### Activer les journaux d'audit
 
-Les journaux d'audit sont une fonctionnalité Enterprise : ils demandent l'offre **Enterprise** sur OneUptime Cloud, ou l'Enterprise Edition sur une installation auto-hébergée. Sur les autres offres, la page **Journaux d'audit** du SLO explique comment l'obtenir. Sur une installation auto-hébergée, la journalisation d'audit cesse d'enregistrer sans licence valide (après l'essai de 14 jours, ou 30 jours après l'expiration d'une licence), et reprend dès qu'une licence est activée (voir [When a license expires or is missing](/docs/self-hosted/enterprise#when-a-license-expires-or-is-missing)). Les pages **Journaux d'audit** indiquent quand rien n'est enregistré.
+Les journaux d'audit sont une fonctionnalité Enterprise : ils demandent l'offre **Enterprise** sur OneUptime Cloud, ou l'Enterprise Edition sur une installation auto-hébergée. Sur les autres offres, la page **Journaux d'audit** du SLO explique comment l'obtenir. Sur une installation auto-hébergée, la journalisation d'audit cesse d'enregistrer sans licence valide (après l'essai de 14 jours, ou 30 jours après l'expiration d'une licence), et reprend dès qu'une licence est activée (voir [When a license expires or is missing](/docs/self-hosted/enterprise#quand-une-licence-expire-ou-manque)). Les pages **Journaux d'audit** indiquent quand rien n'est enregistré.
 
 Les journaux d'audit sont aussi désactivés par défaut dans chaque projet. Pour les activer :
 
