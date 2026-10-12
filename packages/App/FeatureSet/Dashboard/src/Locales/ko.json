@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "{{percent}}% 이상",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "\"{{step}}\"(으)로 가는 연결이 이 단계에 더 이상 없는 출력에서 나가므로 여기서는 실행되지 않습니다. \"{{step}}\"을(를) 이 단계에 있는 출력 중 하나에 연결하세요.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "한 단계에는 케이스를 최대 {{count}}개까지 넣을 수 있습니다.",
   "Add a case for each way the workflow can go.": "워크플로가 갈 수 있는 경로마다 케이스를 추가하세요.",
   "Add case": "케이스 추가",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "케이스 {{number}}에는 비교할 값이 필요합니다.",
   "Case “{{case}}” led to {{steps}}.": "케이스 \"{{case}}\"은(는) {{steps}}(으)로 이어졌습니다.",
   "Cases": "케이스",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "위에서부터 확인합니다. 처음 일치하는 케이스가 선택되며, 각 케이스는 캤버스의 출력입니다.",
   "Checks {{value}} against {{count}} cases": "{{value}}을(를) 케이스 {{count}}개와 비교",
   "Checks {{value}} against {{count}} cases_one": "{{value}}을(를) 케이스 {{count}}개와 비교",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "저장하면 제거한 케이스의 연결도 삭제됩니다",
   "The cases saved for this step could not be read. Add the cases again.": "이 단계에 저장된 케이스를 읽을 수 없습니다. 케이스를 다시 추가하세요.",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "이 단계의 케이스를 읽을 수 없어 모든 실행이 여기서 멈춥니다. 단계를 열고 케이스를 다시 추가하세요.",
-  "Value for case {{number}}": "케이스 {{number}}의 값"
+  "Value for case {{number}}": "케이스 {{number}}의 값",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

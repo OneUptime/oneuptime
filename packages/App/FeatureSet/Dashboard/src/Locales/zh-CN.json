@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "{{percent}}% 或以上",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "通往“{{step}}”的连接从此步骤已不再拥有的输出发出，因此永远不会从这里运行。请将“{{step}}”连接到此步骤现有的某个输出。",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "一个步骤最多包含 {{count}} 个分支。",
   "Add a case for each way the workflow can go.": "为工作流可能走的每条路径添加一个分支。",
   "Add case": "添加分支",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "分支 {{number}} 需要一个用于比较的值。",
   "Case “{{case}}” led to {{steps}}.": "分支“{{case}}”原本通往 {{steps}}。",
   "Cases": "分支",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "从上到下检查。选择第一个匹配的分支，每个分支都是画布上的一个输出。",
   "Checks {{value}} against {{count}} cases": "将 {{value}} 与 {{count}} 个分支比较",
   "Checks {{value}} against {{count}} cases_one": "将 {{value}} 与 {{count}} 个分支比较",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "保存后，已移除分支的连接也会被删除",
   "The cases saved for this step could not be read. Add the cases again.": "无法读取此步骤保存的分支。请重新添加分支。",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "无法读取此步骤的分支，因此每次运行都会在此停止。请打开该步骤并重新添加分支。",
-  "Value for case {{number}}": "分支 {{number}} 的值"
+  "Value for case {{number}}": "分支 {{number}} 的值",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

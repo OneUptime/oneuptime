@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "{{percent}} % o más",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "Una conexión a \"{{step}}\" sale de este paso por una salida que ya no tiene, así que nunca se ejecuta desde aquí. Conecta \"{{step}}\" a una de las salidas que tiene este paso.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "Un paso admite como máximo {{count}} casos.",
   "Add a case for each way the workflow can go.": "Añade un caso por cada camino que puede tomar el flujo de trabajo.",
   "Add case": "Añadir caso",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "El caso {{number}} necesita un valor con el que comparar.",
   "Case “{{case}}” led to {{steps}}.": "El caso «{{case}}» llevaba a {{steps}}.",
   "Cases": "Casos",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "Se comprueban desde arriba. Se toma el primer caso que coincide, y cada caso es una salida en el lienzo.",
   "Checks {{value}} against {{count}} cases": "Compara {{value}} con {{count}} casos",
   "Checks {{value}} against {{count}} cases_one": "Compara {{value}} con {{count}} caso",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "Al guardar se eliminan las conexiones de los casos que quitaste",
   "The cases saved for this step could not be read. Add the cases again.": "No se pudieron leer los casos guardados de este paso. Añade los casos de nuevo.",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "No se pudieron leer los casos de este paso, así que cada ejecución se detiene aquí. Abre el paso y añade sus casos de nuevo.",
-  "Value for case {{number}}": "Valor del caso {{number}}"
+  "Value for case {{number}}": "Valor del caso {{number}}",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

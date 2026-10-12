@@ -536,12 +536,24 @@ describe("BillingService", () => {
         expect(mockStripe.subscriptions.retrieve).toHaveBeenCalledWith(
           mockSubscription.id,
         );
-        expect(mockStripe.subscriptionItems.update).toHaveBeenCalledWith(
-          mockSubscription.items?.data[0]?.id,
+
+        /*
+         * One update carries the new quantity and how it is invoiced - see
+         * BillingServiceChangeQuantityTrial.test.ts for the trial cases.
+         */
+        expect(mockStripe.subscriptions.update).toHaveBeenCalledWith(
+          mockSubscription.id,
           {
-            quantity: newQuantity,
+            items: [
+              {
+                id: mockSubscription.items?.data[0]?.id,
+                quantity: newQuantity,
+              },
+            ],
+            proration_behavior: "always_invoice",
           },
         );
+        expect(mockStripe.subscriptionItems.update).not.toHaveBeenCalled();
       });
 
       it("should handle subscription not found scenario in change quantity", async () => {

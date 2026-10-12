@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "{{percent}} % eller mer",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "En koppling till \"{{step}}\" lämnar det här steget från en utgång som steget inte längre har, så den körs aldrig härifrån. Koppla \"{{step}}\" till en av utgångarna som det här steget har.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "Ett steg rymmer högst {{count}} fall.",
   "Add a case for each way the workflow can go.": "Lägg till ett fall för varje väg som arbetsflödet kan ta.",
   "Add case": "Lägg till fall",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "Fall {{number}} behöver ett värde att jämföra med.",
   "Case “{{case}}” led to {{steps}}.": "Fall ”{{case}}” ledde till {{steps}}.",
   "Cases": "Fall",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "Kontrolleras uppifrån. Det första fallet som matchar väljs, och varje fall är en utgång på arbetsytan.",
   "Checks {{value}} against {{count}} cases": "Jämför {{value}} med {{count}} fall",
   "Checks {{value}} against {{count}} cases_one": "Jämför {{value}} med {{count}} fall",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "När du sparar försvinner kopplingarna från fallen du tog bort",
   "The cases saved for this step could not be read. Add the cases again.": "Fallen som sparats för det här steget kunde inte läsas. Lägg till fallen igen.",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "Det här stegets fall kunde inte läsas, så varje körning stannar här. Öppna steget och lägg till dess fall igen.",
-  "Value for case {{number}}": "Värde för fall {{number}}"
+  "Value for case {{number}}": "Värde för fall {{number}}",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

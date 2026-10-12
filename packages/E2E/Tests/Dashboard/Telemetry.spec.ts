@@ -6,6 +6,7 @@ import { JSONish, requestJson } from "./Helpers/MonitorAlerting";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import {
   createTelemetryIngestionKey,
+  postOtlpClaudeCodeLlmRequest,
   postOtlpLlmCall,
   postOtlpLogs,
   postOtlpMetrics,
@@ -285,6 +286,86 @@ test.describe("Telemetry Ingestion", () => {
     await page.getByTestId("llm-replay-show-all").click();
     await expect(transcript).toContainText(answer);
     await expect(page.getByTestId("llm-replay-play")).toHaveText(/Replay/);
+  });
+
+  /*
+   * Claude Code's traces beta writes a model request's usage under its own
+   * keys, not gen_ai.usage.*, and its calls used to be stored with no
+   * tokens and a cost of $0. The call is stored with every token it read
+   * (the cache counts added to input_tokens) and a cost at Claude Opus
+   * 4.8's list prices: 12 x $5 + 48,000 x $0.50 + 2,100 x $6.25 + 640 x $25
+   * per million tokens, $0.053185.
+   */
+  test("should store a Claude Code traces beta call with its tokens and a cost", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const projectId: string = await registerAndCreateProject({
+      page,
+      projectNamePrefix: "E2E Claude Code Project",
+    });
+
+    const ingestionKey: string = await createTelemetryIngestionKey({
+      page,
+      projectId,
+      keyName: "E2E Claude Code Key " + Faker.generateName().toString(),
+    });
+
+    const suffix: string = Faker.generateName().toString().toLowerCase();
+    const model: string = "claude-opus-4-8";
+
+    await postOtlpClaudeCodeLlmRequest({
+      page,
+      ingestionKey,
+      serviceName: "e2e-claude-code-" + suffix,
+      model: model,
+      sessionId: "e2e-claude-code-session-" + suffix,
+      usage: {
+        inputTokens: 12,
+        outputTokens: 640,
+        cacheReadTokens: 48000,
+        cacheCreationTokens: 2100,
+      },
+    });
+
+    const llmCallsUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(`/dashboard/${projectId}/llm/calls`)
+      .toString();
+
+    await waitForTelemetryText({
+      page,
+      projectId,
+      url: llmCallsUrl,
+      ready: page.getByRole("heading", { name: "AI / LLM Calls" }),
+      text: model,
+    });
+
+    const listed: JSONish = await requestJson({
+      page,
+      projectId,
+      path: "/api/span/get-list",
+      body: {
+        query: { projectId, llmRequestModel: model },
+        select: {
+          llmInputTokens: true,
+          llmOutputTokens: true,
+          llmTotalTokens: true,
+          llmCost: true,
+        },
+        limit: 1,
+        skip: 0,
+        sort: {},
+      },
+    });
+    const call: JSONish = ((listed["data"] || []) as Array<JSONish>)[0] || {};
+
+    expect({
+      input: Number(call["llmInputTokens"]),
+      output: Number(call["llmOutputTokens"]),
+      total: Number(call["llmTotalTokens"]),
+      cost: Number(call["llmCost"]),
+    }).toEqual({ input: 50112, output: 640, total: 50752, cost: 0.053185 });
   });
 
   test("should ingest OTLP metrics and show them on the Metrics dashboard", async ({

@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "٪{{percent}} یا بیشتر",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "اتصالی به «{{step}}» از خروجی‌ای از این گام بیرون می‌رود که دیگر وجود ندارد، پس هرگز از اینجا اجرا نمی‌شود. «{{step}}» را به یکی از خروجی‌های فعلی این گام وصل کنید.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "هر گام حداکثر {{count}} حالت دارد.",
   "Add a case for each way the workflow can go.": "برای هر مسیری که گردش کار می‌تواند برود، یک حالت اضافه کنید.",
   "Add case": "افزودن حالت",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "حالت {{number}} به مقداری برای مقایسه نیاز دارد.",
   "Case “{{case}}” led to {{steps}}.": "حالت «{{case}}» به {{steps}} می‌رسید.",
   "Cases": "حالت‌ها",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "از بالا بررسی می‌شوند. اولین حالتی که مطابقت داشته باشد انتخاب می‌شود و هر حالت یک خروجی روی بوم است.",
   "Checks {{value}} against {{count}} cases": "{{value}} را با {{count}} حالت مقایسه می‌کند",
   "Checks {{value}} against {{count}} cases_one": "{{value}} را با {{count}} حالت مقایسه می‌کند",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "با ذخیره کردن، اتصال‌های حالت‌هایی که برداشتید حذف می‌شود",
   "The cases saved for this step could not be read. Add the cases again.": "حالت‌های ذخیره‌شده برای این گام خوانده نشد. حالت‌ها را دوباره اضافه کنید.",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "حالت‌های این گام خوانده نشد، پس هر اجرا اینجا متوقف می‌شود. گام را باز کنید و حالت‌هایش را دوباره اضافه کنید.",
-  "Value for case {{number}}": "مقدار برای حالت {{number}}"
+  "Value for case {{number}}": "مقدار برای حالت {{number}}",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "{{percent}}% या अधिक",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "\"{{step}}\" तक का कनेक्शन इस चरण के ऐसे आउटपुट से निकलता है जो अब मौजूद नहीं है, इसलिए यह यहाँ से कभी नहीं चलता। \"{{step}}\" को इस चरण के किसी मौजूदा आउटपुट से जोड़ें।",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "एक चरण में अधिकतम {{count}} केस हो सकते हैं।",
   "Add a case for each way the workflow can go.": "वर्कफ़्लो जिस भी रास्ते जा सकता है, हर एक के लिए एक केस जोड़ें।",
   "Add case": "केस जोड़ें",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "केस {{number}} को तुलना के लिए एक मान चाहिए।",
   "Case “{{case}}” led to {{steps}}.": "केस “{{case}}” {{steps}} तक ले जाता था।",
   "Cases": "केस",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "ऊपर से जाँचे जाते हैं। मेल खाने वाला पहला केस चुना जाता है, और हर केस कैनवास पर एक आउटपुट है।",
   "Checks {{value}} against {{count}} cases": "{{value}} की तुलना {{count}} केस से करता है",
   "Checks {{value}} against {{count}} cases_one": "{{value}} की तुलना {{count}} केस से करता है",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "सहेजने पर हटाए गए केस के कनेक्शन भी हट जाते हैं",
   "The cases saved for this step could not be read. Add the cases again.": "इस चरण के लिए सहेजे गए केस पढ़े नहीं जा सके। केस फिर से जोड़ें।",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "इस चरण के केस पढ़े नहीं जा सके, इसलिए हर रन यहीं रुक जाता है। चरण खोलें और उसके केस फिर से जोड़ें।",
-  "Value for case {{number}}": "केस {{number}} का मान"
+  "Value for case {{number}}": "केस {{number}} का मान",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

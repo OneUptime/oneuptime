@@ -28086,6 +28086,7 @@
   "{{percent}}% or more": "{{percent}}% of meer",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
   "A connection to \"{{step}}\" leaves this step from an output it no longer has, so it never runs from here. Connect \"{{step}}\" to one of the outputs this step has.": "Een verbinding naar \"{{step}}\" verlaat deze stap via een uitgang die de stap niet meer heeft, dus vanaf hier wordt die nooit uitgevoerd. Verbind \"{{step}}\" met een van de uitgangen van deze stap.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
   "A step holds at most {{count}} cases.": "Een stap bevat maximaal {{count}} gevallen.",
   "Add a case for each way the workflow can go.": "Voeg een geval toe voor elke weg die de workflow kan gaan.",
   "Add case": "Geval toevoegen",
@@ -28095,6 +28096,7 @@
   "Case {{number}} needs a value to compare with.": "Geval {{number}} heeft een waarde nodig om mee te vergelijken.",
   "Case “{{case}}” led to {{steps}}.": "Geval ‘{{case}}’ leidde naar {{steps}}.",
   "Cases": "Gevallen",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
   "Checked from the top. The first case that matches is taken, and each case is an output on the canvas.": "Van boven af gecontroleerd. Het eerste geval dat overeenkomt wordt gekozen, en elk geval is een uitgang op het canvas.",
   "Checks {{value}} against {{count}} cases": "Vergelijkt {{value}} met {{count}} gevallen",
   "Checks {{value}} against {{count}} cases_one": "Vergelijkt {{value}} met {{count}} geval",
@@ -28111,5 +28113,7 @@
   "Saving removes the connections of the cases you took out": "Opslaan verwijdert de verbindingen van de gevallen die u hebt weggehaald",
   "The cases saved for this step could not be read. Add the cases again.": "De opgeslagen gevallen van deze stap konden niet worden gelezen. Voeg de gevallen opnieuw toe.",
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "De gevallen van deze stap konden niet worden gelezen, dus elke uitvoering stopt hier. Open de stap en voeg de gevallen opnieuw toe.",
-  "Value for case {{number}}": "Waarde voor geval {{number}}"
+  "Value for case {{number}}": "Waarde voor geval {{number}}",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }

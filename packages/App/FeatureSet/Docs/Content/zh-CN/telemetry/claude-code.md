@@ -231,8 +231,8 @@ export CLAUDE_CODE_ENHANCED_TELEMETRY_BETA=1
 export OTEL_TRACES_EXPORTER=otlp
 ```
 
-> [!WARNING]
-> 不要把测试版跟踪发送到你用于统计支出的项目。它的模型 span 带有 `gen_ai.system` 和 `gen_ai.request.model`，因此 OneUptime 会在 **调用** 中列出它们，但它们的 token 位于 `input_tokens` 和 `output_tokens`，而不是 `gen_ai.usage.*` 键中，所以到达时既没有 token 也没有成本。一旦它们存在， **员工** 、 **团队** 和 **模型** 表显示的就是这些成本为 $0 的行，而不是指标中的支出。
+> [!NOTE]
+> 测试版跟踪的模型 span 带有 `gen_ai.system` 和 `gen_ai.request.model`，因此 OneUptime 会在 **调用** 中列出它们，把它们的 `input_tokens`、`output_tokens`、`cache_read_tokens` 和 `cache_creation_tokens` 读作这次调用的 token，并按模型的标价为每次调用定价。一旦它们存在， **员工** 、 **团队** 和 **模型** 表显示的就是这些行，而不是指标中的支出。这是 OneUptime 的估算：缓存写入按 5 分钟的费率计算，不含快速模式的价格，因此可能与 `claude_code.cost.usage` 不同。
 
 在 Agent SDK 会话和非交互式 `-p` 会话中，Claude Code 会接收传入的 `TRACEPARENT`，因此它的 span 会加入调用方的跟踪；交互式会话会忽略它。只有当 `ANTHROPIC_BASE_URL` 未设置或指向 Anthropic API 时，它才会向模型发送 `traceparent` 请求头；在你自己的代理后面，请设置 `CLAUDE_CODE_PROPAGATE_TRACEPARENT=1`。
 
