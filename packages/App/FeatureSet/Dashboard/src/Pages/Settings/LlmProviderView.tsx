@@ -5,7 +5,8 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import TestLlmProviderModal from "Common/UI/Components/AI/TestLlmProviderModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -15,9 +16,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import TestLLMProvider, {
-  LLMProviderTestResult,
-} from "Common/UI/Utils/TestLLMProvider";
+import TestLLMProvider from "Common/UI/Utils/TestLLMProvider";
+import { LLM_PROVIDER_TEST_TOOLTIP } from "Common/UI/Utils/LlmProviderTestCopy";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, {
@@ -28,7 +28,9 @@ import React, {
 } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
-import PermissionGate from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -54,28 +56,33 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
   );
 
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
-  const [isTesting, setIsTesting] = useState<boolean>(false);
-  const [testError, setTestError] = useState<string>("");
-  const [testMessage, setTestMessage] = useState<string>("");
 
-  const runTest: () => Promise<void> = async (): Promise<void> => {
-    setIsTesting(true);
-    setTestError("");
-    setTestMessage("");
+  /*
+   * Test is for whoever may change the provider, as the server asks it.
+   * Anyone else who may read it sees Test locked, saying who may; before the
+   * permission snapshot has landed it is not offered.
+   */
+  const testGate: PermissionGateResult = TestLLMProvider.getTestGate();
 
-    const result: LLMProviderTestResult = await TestLLMProvider.test({
-      llmProviderId: modelId.toString(),
-      headers: ModelAPI.getCommonHeaders(),
-    });
-
-    if (result.success) {
-      setTestMessage(result.message);
-    } else {
-      setTestError(result.message);
-    }
-
-    setIsTesting(false);
-  };
+  const testButtons: Array<CardButtonSchema> =
+    testGate.isAllowed || testGate.disabledReason
+      ? [
+          {
+            title: "Test",
+            icon: IconProp.Play,
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !testGate.isAllowed,
+            tooltip: testGate.isAllowed
+              ? LLM_PROVIDER_TEST_TOOLTIP
+              : testGate.disabledReason,
+            onClick: () => {
+              if (testGate.isAllowed) {
+                setShowTestModal(true);
+              }
+            },
+          },
+        ]
+      : [];
 
   return (
     <Fragment>
@@ -89,19 +96,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
         name="LLM Provider Details"
         cardProps={{
           title: "LLM Provider Details",
-          buttons: [
-            {
-              title: "Test",
-              icon: IconProp.Play,
-              buttonStyle: ButtonStyleType.NORMAL,
-              onClick: () => {
-                setShowTestModal(true);
-                runTest().catch(() => {
-                  // errors are surfaced via the test result modal
-                });
-              },
-            },
-          ],
+          buttons: testButtons,
         }}
         isEditable={true}
         // As on the create form: Advanced is folded into Provider Settings.
@@ -318,21 +313,11 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
       />
 
       {showTestModal ? (
-        <ConfirmModal
-          title={"Test LLM Provider"}
-          error={testError}
-          description={
-            isTesting
-              ? "Sending a test prompt to your LLM provider…"
-              : testMessage ||
-                "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL."
-          }
-          submitButtonText={"Close"}
-          isLoading={isTesting}
-          onSubmit={async () => {
+        <TestLlmProviderModal
+          llmProviderId={modelId.toString()}
+          headers={ModelAPI.getCommonHeaders()}
+          onClose={() => {
             setShowTestModal(false);
-            setTestError("");
-            setTestMessage("");
           }}
         />
       ) : null}

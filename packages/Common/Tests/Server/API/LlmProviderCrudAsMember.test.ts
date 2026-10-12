@@ -650,7 +650,7 @@ describe("who may only read providers", () => {
       expect(
         (sendErrorResponseMock.mock.calls[0]![2] as Exception).message,
       ).toBe(
-        "You do not have permission to test this LLM Provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.",
+        "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.",
       );
       expect(getCompletion).not.toHaveBeenCalled();
 

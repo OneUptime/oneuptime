@@ -4,11 +4,11 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import TestLlmProviderModal from "Common/UI/Components/AI/TestLlmProviderModal";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -20,9 +20,6 @@ import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
-import TestLLMProvider, {
-  LLMProviderTestResult,
-} from "Common/UI/Utils/TestLLMProvider";
 import { BILLING_ENABLED } from "Common/UI/Config";
 
 /*
@@ -37,31 +34,10 @@ const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
 
-  const [showTestModal, setShowTestModal] = useState<boolean>(false);
-  const [isTesting, setIsTesting] = useState<boolean>(false);
-  const [testError, setTestError] = useState<string>("");
-  const [testMessage, setTestMessage] = useState<string>("");
-
-  const runTest: (item: LlmProvider) => Promise<void> = async (
-    item: LlmProvider,
-  ): Promise<void> => {
-    setIsTesting(true);
-    setTestError("");
-    setTestMessage("");
-
-    const result: LLMProviderTestResult = await TestLLMProvider.test({
-      llmProviderId: item["_id"]?.toString() || "",
-      headers: AdminModelAPI.getCommonHeaders(),
-    });
-
-    if (result.success) {
-      setTestMessage(result.message);
-    } else {
-      setTestError(result.message);
-    }
-
-    setIsTesting(false);
-  };
+  // The global provider whose Test dialog is open.
+  const [testedProviderId, setTestedProviderId] = useState<string | null>(
+    null,
+  );
 
   return (
     <Page
@@ -109,19 +85,9 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Test",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Play,
-            onClick: async (
-              item: LlmProvider,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ) => {
-              try {
-                setShowTestModal(true);
-                await runTest(item);
-                onCompleteAction();
-              } catch (err) {
-                onCompleteAction();
-                onError(err as Error);
-              }
+            onClick: (item: LlmProvider, onCompleteAction: VoidFunction) => {
+              setTestedProviderId(item.id?.toString() || null);
+              onCompleteAction();
             },
           },
         ]}
@@ -335,22 +301,14 @@ const Settings: FunctionComponent = (): ReactElement => {
         ]}
       />
 
-      {showTestModal ? (
-        <ConfirmModal
-          title={"Test LLM Provider"}
-          error={testError}
-          description={
-            isTesting
-              ? "Sending a test prompt to the LLM provider…"
-              : testMessage ||
-                "Testing the connection to this global LLM provider. This sends a small prompt using its configured API key, model, and base URL."
-          }
-          submitButtonText={"Close"}
-          isLoading={isTesting}
-          onSubmit={async () => {
-            setShowTestModal(false);
-            setTestError("");
-            setTestMessage("");
+      {testedProviderId ? (
+        <TestLlmProviderModal
+          llmProviderId={testedProviderId}
+          // No project: a global provider is the instance's own.
+          headers={AdminModelAPI.getCommonHeaders()}
+          testingDescription="Testing the connection to this global LLM provider. This sends a small prompt using its configured API key, model, and base URL."
+          onClose={() => {
+            setTestedProviderId(null);
           }}
         />
       ) : (

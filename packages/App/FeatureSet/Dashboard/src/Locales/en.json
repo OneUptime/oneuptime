@@ -28121,5 +28121,19 @@
   "Value for case {{number}}": "Value for case {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Case {{earlier}} asks the same and is checked first, so this case is never taken.",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.",
-  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Capture the traffic this probe sees, then download the file and open it in Wireshark."
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Capture the traffic this probe sees, then download the file and open it in Wireshark.",
+  "Change the provider's settings, then test again.": "Change the provider's settings, then test again.",
+  "Content Hash": "Content Hash",
+  "Destination Type": "Destination Type",
+  "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.": "Internal record of the Slack and Microsoft Teams messages OneUptime keeps up to date in place, such as the progress of an on-call policy run.",
+  "Message Data": "Message Data",
+  "Message ID": "Message ID",
+  "Message Key": "Message Key",
+  "Send this provider a short prompt to check its API key, model and Base URL.": "Send this provider a short prompt to check its API key, model and Base URL.",
+  "Test failed": "Test failed",
+  "Test passed": "Test passed",
+  "Test passed, with a warning": "Test passed, with a warning",
+  "Workspace Live Message": "Workspace Live Message",
+  "Workspace Live Messages": "Workspace Live Messages",
+  "You do not have permission to test this LLM provider.": "You do not have permission to test this LLM provider."
 }

@@ -138,6 +138,7 @@ import LlmType from "../../../Types/LLM/LlmType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { LLM_PROVIDER_TEST_REFUSED_SENTENCE } from "../../../UI/Utils/LlmProviderTestCopy";
 import { customDomainCaller } from "./CustomDomainCallers";
 import {
   InMemoryTable,
@@ -226,7 +227,7 @@ const savedPlanEnvironment: Record<string, string | undefined> = {};
 
 // The provider update list, as the refusal names it.
 const REFUSAL: string =
-  "You do not have permission to test this LLM Provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.";
+  "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.";
 
 let props: DatabaseCommonInteractionProps;
 let providers: InMemoryTable;
@@ -505,6 +506,15 @@ describe("Test, refused: who may read providers but not change one, and who may 
 
     expect(refusal().message).toBe(REFUSAL);
     expect(getCompletion).not.toHaveBeenCalled();
+  });
+
+  test("the refusal's first sentence is the locked Test button's, word for word", () => {
+    expect(LlmProviderTestAccess.REFUSED_SENTENCE).toBe(
+      LLM_PROVIDER_TEST_REFUSED_SENTENCE,
+    );
+    expect(REFUSAL.startsWith(`${LLM_PROVIDER_TEST_REFUSED_SENTENCE} `)).toBe(
+      true,
+    );
   });
 
   test("the refusal names exactly the provider's update list", () => {

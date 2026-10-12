@@ -69,15 +69,18 @@ export default class LlmProviderTestAccess {
 
   /*
    * What a member who may not test the provider is told: the sentence the
-   * Dashboard's locked Test button says, and who may - the provider's
-   * update list, by title.
+   * Dashboard's locked Test button says (LlmProviderTestCopy), and who may -
+   * the provider's update list, by title, as the button lists them.
    */
+  public static readonly REFUSED_SENTENCE: string =
+    "You do not have permission to test this LLM provider.";
+
   public static getRefusalMessage(): string {
     const titles: Array<string> = PermissionHelper.getPermissionTitles(
       new LlmProvider().getUpdatePermissions(),
     );
 
-    return `You do not have permission to test this LLM Provider. You need one of these permissions: ${titles.join(", ")}.`;
+    return `${LlmProviderTestAccess.REFUSED_SENTENCE} You need one of these permissions: ${titles.join(", ")}.`;
   }
 
   /*
