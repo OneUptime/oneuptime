@@ -870,7 +870,11 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
     to: DATABASES,
     anchor: "alerts-on-a-database",
   },
-  { from: "monitor/sql-monitor", to: DATABASES, anchor: "alerts-on-a-database" },
+  {
+    from: "monitor/sql-monitor",
+    to: DATABASES,
+    anchor: "alerts-on-a-database",
+  },
   {
     // Service Bus-triggered functions.
     from: QUEUES,
@@ -1406,9 +1410,9 @@ describe("the helpers, on these pages' shapes", () => {
       `**${drawnActionLabel("nl", "Products")} → ${navbarValue("nl", "categories", "resources")} → ${navbarValue("nl", "items", "databasesTitle")}**`,
     );
     expect(navbarValue("nl", "categories", "resources")).toBe("Bronnen");
-    expect(drawnMenuPath("ru", ["Products", "Resources", "Databases"])).toContain(
-      "Базы данных",
-    );
+    expect(
+      drawnMenuPath("ru", ["Products", "Resources", "Databases"]),
+    ).toContain("Базы данных");
     // Storage Arrays is drawn in English in the menu, whatever the flat key says.
     expect(
       drawnMenuPath("de", ["Products", "Infrastructure", "Storage Arrays"]),

@@ -278,9 +278,7 @@ describe("VMware docs", (): void => {
     });
 
     it("open with the titles the nav uses", (): void => {
-      expect(readPage(TELEMETRY_PAGE).split("\n")[0]).toBe(
-        "# VMware Agent",
-      );
+      expect(readPage(TELEMETRY_PAGE).split("\n")[0]).toBe("# VMware Agent");
       expect(readPage(MONITOR_PAGE).split("\n")[0]).toBe("# VMware Monitor");
     });
 

@@ -77,9 +77,7 @@ import {
 } from "Common/Types/Monitor/CephMetricCatalog";
 import { CEPH_SNAPSHOT_METRIC_NAMES } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import { DEFAULT_MESSAGE_QUEUE_MIN_SPANS } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
-import {
-  FAAS_CLOUD_PLATFORM_VALUES,
-} from "Common/Types/Cloud/CloudPlatform";
+import { FAAS_CLOUD_PLATFORM_VALUES } from "Common/Types/Cloud/CloudPlatform";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";

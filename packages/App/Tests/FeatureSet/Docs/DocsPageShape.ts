@@ -313,7 +313,9 @@ export function tabPanel(
   )[index];
 
   if (!found) {
-    throw new Error(`No tab panel "${label}" (number ${index + 1}) on the page`);
+    throw new Error(
+      `No tab panel "${label}" (number ${index + 1}) on the page`,
+    );
   }
 
   return found.body;

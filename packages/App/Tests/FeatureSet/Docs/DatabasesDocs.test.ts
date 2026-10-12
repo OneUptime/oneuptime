@@ -665,9 +665,7 @@ describe("Databases docs", (): void => {
           .sort();
       };
 
-      expect(envSample(readPage(), "@tab Docker Compose")).toEqual(
-        compose,
-      );
+      expect(envSample(readPage(), "@tab Docker Compose")).toEqual(compose);
       expect(
         envSample(
           readAgentFile("README.md"),

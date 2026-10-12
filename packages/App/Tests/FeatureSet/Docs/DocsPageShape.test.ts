@@ -3,6 +3,7 @@ import {
   boldPaths,
   detailsBlocks,
   detailsBody,
+  DocsTabPanel,
   lineShape,
   PATH_SEPARATOR,
   stepCount,
@@ -216,7 +217,12 @@ describe("tabPanels and tabPanel", () => {
     expect(tabPanels(PAGE)).toEqual([
       {
         label: "Docker",
-        body: ["```bash", "# a comment, not a heading", "docker run **not-bold**", "```"].join("\n"),
+        body: [
+          "```bash",
+          "# a comment, not a heading",
+          "docker run **not-bold**",
+          "```",
+        ].join("\n"),
       },
       { label: "Kubernetes", body: "Text." },
     ]);
@@ -244,15 +250,22 @@ describe("tabPanels and tabPanel", () => {
     ].join("\n");
 
     expect(tabPanel(page, "install.sh")).toBe(
-      ["Run it.", ":::details Why", "Because.", ":::", "After the details."].join("\n"),
+      [
+        "Run it.",
+        ":::details Why",
+        "Because.",
+        ":::",
+        "After the details.",
+      ].join("\n"),
     );
     expect(tabPanel(page, "Docker Compose")).toBe(
       ["```yaml", ":::", "@tab not a tab", "```"].join("\n"),
     );
-    expect(tabPanels(page).map((panel) => panel.label)).toEqual([
-      "install.sh",
-      "Docker Compose",
-    ]);
+    expect(
+      tabPanels(page).map((panel: DocsTabPanel): string => {
+        return panel.label;
+      }),
+    ).toEqual(["install.sh", "Docker Compose"]);
   });
 
   it("picks a later panel with the same label by its place, and fails on a label the page lacks", () => {

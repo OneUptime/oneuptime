@@ -282,7 +282,9 @@ describe("the English guides' other commands are the ones the upgrade dialog sho
       expect(section).toContain(
         "```bash\n" + DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND + "\n```",
       );
-      expect(section.indexOf(getDockerSwarmAgentInstallScriptCommand())).toBeLessThan(
+      expect(
+        section.indexOf(getDockerSwarmAgentInstallScriptCommand()),
+      ).toBeLessThan(
         section.indexOf(DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND),
       );
       expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
@@ -298,7 +300,9 @@ describe("the English guides' other commands are the ones the upgrade dialog sho
         "telemetry/databases",
         "### Upgrading and uninstalling",
       );
-      expect(section).toContain(`**${drawnLabelIn(language, "Agent version")}**`);
+      expect(section).toContain(
+        `**${drawnLabelIn(language, "Agent version")}**`,
+      );
       expect(section).toContain(`**${drawnLabelIn(language, "Overview")}**`);
       expect(section).toContain("`install.sh`");
       expect(section).toContain("`docker compose up -d --force-recreate`");

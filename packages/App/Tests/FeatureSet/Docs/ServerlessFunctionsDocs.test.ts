@@ -607,10 +607,7 @@ describe("Serverless Functions docs", (): void => {
     });
 
     it("sets the exporter with a well-formed az command", (): void => {
-      const text: string = section(
-        azure(),
-        "### Point the host at OneUptime",
-      );
+      const text: string = section(azure(), "### Point the host at OneUptime");
       const { command, options, settings }: AzAppSettingsCommand =
         azAppSettingsCommand(text);
 
@@ -637,10 +634,7 @@ describe("Serverless Functions docs", (): void => {
     });
 
     it("names only OTLP routes ingest serves", (): void => {
-      const text: string = section(
-        azure(),
-        "### Point the host at OneUptime",
-      );
+      const text: string = section(azure(), "### Point the host at OneUptime");
       const router: string = fs.readFileSync(OTEL_INGEST_ROUTER_FILE, "utf8");
       const routes: Array<string> = Array.from(
         text.matchAll(/`(\/otlp\/v1\/[a-z]+)`/g),
@@ -661,10 +655,7 @@ describe("Serverless Functions docs", (): void => {
     });
 
     it("keeps Application Insights optional: both destinations receive the data when both are set", (): void => {
-      const text: string = section(
-        azure(),
-        "### Point the host at OneUptime",
-      );
+      const text: string = section(azure(), "### Point the host at OneUptime");
 
       expect(text).toContain("`APPLICATIONINSIGHTS_CONNECTION_STRING`");
       expect(text).toContain(
@@ -682,10 +673,7 @@ describe("Serverless Functions docs", (): void => {
      * cloud-gcp-cloud-run) say the same.
      */
     it("says the Key Vault secret holds the whole header, and who may read it", (): void => {
-      const text: string = section(
-        azure(),
-        "### Point the host at OneUptime",
-      );
+      const text: string = section(azure(), "### Point the host at OneUptime");
       const note: string | undefined = text
         .split("\n")
         .find((line: string): boolean => {
