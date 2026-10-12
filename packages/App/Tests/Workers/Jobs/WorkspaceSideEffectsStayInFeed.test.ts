@@ -110,6 +110,10 @@ describe("the notification jobs' feed entries in Slack and Microsoft Teams", () 
       "ScheduledMaintenancePublicNote/SendNotificationToSubscribers.ts",
       "Notification sent to subscribers",
     ],
+    [
+      "ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled.ts",
+      "Reminder Notification Sent to Subscribers",
+    ],
   ])(
     "REGRESSION: %s - every subscriber reached stays in the feed",
     (job: string, phrase: string) => {

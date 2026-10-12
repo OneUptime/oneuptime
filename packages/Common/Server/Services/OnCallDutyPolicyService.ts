@@ -27,7 +27,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
@@ -667,9 +669,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     }
 
     // send message to workspaces - slack, teams,   etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const workspaceResult: WorkspaceChannelsCreated | null =
       await OnCallDutyPolicyWorkspaceMessages.createChannelsAndInviteUsersToChannels(
         {
           projectId: onCallPolicy.projectId!,
@@ -711,6 +711,12 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
         appendMessageBlocks: onCallDutyPolicyCreateMessageBlocks,
         sendWorkspaceNotification: true,
       },
+    });
+
+    // Under "On Call Policy Created": who could not be added to the new channels.
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: createdItem.projectId,
+      membersNotAdded: workspaceResult?.membersNotAdded,
     });
 
     return createdItem;

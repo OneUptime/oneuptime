@@ -378,9 +378,18 @@ describe("an incident in its Microsoft Teams channel", () => {
 
   test("who could not be added is not said in Teams: nothing to fix there", async () => {
     await world.channelCreated([NB_USER_3]);
+
+    // Setting the channel up sends nothing.
+    expect(connector.requests).toEqual([]);
+
+    await world.incidentCreated();
     await world.invitedToRecordChannels([NB_USER_3]);
 
-    expect(connector.requests).toEqual([]);
+    // The incident's card, and nothing after it.
+    expect(connector.posts().map(headline)).toEqual([
+      expect.stringContaining("Incident INC-8 Created"),
+    ]);
+    expect(connector.updates()).toEqual([]);
   });
 
   test("a note reaches the channel with its author", async () => {

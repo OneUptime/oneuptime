@@ -104,10 +104,19 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     expect(markdown).not.toContain("repeat");
   });
 
-  test("a policy allowed one repeat says it repeats once", () => {
+  test("a policy allowed one repeat says it repeats once - never 'up to once'", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      run({ repeatsAllowed: 1 }),
+    );
+
+    expect(markdown).toContain("· repeats once if nobody acknowledges");
+    expect(markdown).not.toContain("up to once");
+  });
+
+  test("a policy allowed several repeats says up to how many", () => {
     expect(
-      OnCallPolicyRunMessageView.getMarkdown(run({ repeatsAllowed: 1 })),
-    ).toContain("· repeats up to once if nobody acknowledges");
+      OnCallPolicyRunMessageView.getMarkdown(run({ repeatsAllowed: 3 })),
+    ).toContain("· repeats up to 3 times if nobody acknowledges");
   });
 
   test("before its first rule has started, the run says it is starting", () => {
@@ -351,7 +360,7 @@ describe("OnCallPolicyRunMessageView.getAlarms - loud only where somebody has to
     expect(alarms).toEqual([
       {
         key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
-        markdown: `⚠️ Nobody was paged for **[Incident INC-8](${RECORD_URL})** at escalation rule 3 of 3 (third) of **[PolicyX](${POLICY_URL})**: nobody was on call in schedule sec; NB User 2: not a member of this project. If nobody is on it yet, page someone or fix the policy.`,
+        markdown: `⚠️ Nobody was paged for **[Incident INC-8](${RECORD_URL})** at escalation rule 3 of 3 (third) of **[PolicyX](${POLICY_URL})** (nobody was on call in schedule sec; NB User 2: not a member of this project). If nobody is on it yet, page someone or fix the policy.`,
       },
     ]);
   });

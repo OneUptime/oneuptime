@@ -290,3 +290,121 @@ describe("ChannelMembersNotAddedNotice", () => {
     expect(text).not.toContain("](evil-target)");
   });
 });
+
+/*
+ * The notes of channels OneUptime has just created: channel setup hands back
+ * who it could not add, and the record's service notes them all at once,
+ * right after the record's own first message (noteAll).
+ */
+describe("ChannelMembersNotAddedNotice.noteAll", () => {
+  test("notes every list it is handed, channel by channel, each person once", async () => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [CHANNEL],
+          userIds: [NB_USER_3],
+        },
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [{ id: "C0OTHER", name: "other" }],
+          userIds: [NB_USER_3, JANE],
+        },
+      ],
+    });
+
+    expect(postSpy).toHaveBeenCalledTimes(2);
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
+    ).toEqual([CHANNEL.id]);
+    expect(postedText(0)).toContain("**NB User 3** has not connected");
+    expect(
+      postSpy.mock.calls[1]![0].messagePayloadsByWorkspace[0]!.channelIds,
+    ).toEqual(["C0OTHER"]);
+    expect(postedText(1)).toContain("**NB User 3**, **Jane Doe** have not");
+  });
+
+  test.each([
+    ["no list", undefined],
+    ["a null list", null],
+    ["an empty list", []],
+  ])("%s: nothing is posted or read", async (_label: string, list: unknown) => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: list as never,
+    });
+
+    expect(postSpy).not.toHaveBeenCalled();
+    expect(UserService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("no project: nothing is posted", async () => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: undefined,
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [CHANNEL],
+          userIds: [NB_USER_3],
+        },
+      ],
+    });
+
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("a Microsoft Teams list says nothing; the Slack list next to it is noted", async () => {
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          channels: [{ id: "19:inc8@thread.tacv2", name: "inc-8" }],
+          userIds: [NB_USER_3],
+        },
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [CHANNEL],
+          userIds: [NB_USER_3],
+        },
+      ],
+    });
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.workspaceType,
+    ).toBe(WorkspaceType.Slack);
+  });
+
+  test("never throws: a list that cannot be noted is logged, and the next one is still noted", async () => {
+    const noteSpy: SpyInstance<
+      typeof ChannelMembersNotAddedNotice.noteMembersNotAdded
+    > = jest.spyOn(ChannelMembersNotAddedNotice, "noteMembersNotAdded");
+    noteSpy.mockRejectedValueOnce(new Error("Valkey is down"));
+
+    await expect(
+      ChannelMembersNotAddedNotice.noteAll({
+        projectId: PROJECT_ID,
+        membersNotAdded: [
+          {
+            workspaceType: WorkspaceType.Slack,
+            channels: [{ id: "C0FIRST", name: "first" }],
+            userIds: [JANE],
+          },
+          {
+            workspaceType: WorkspaceType.Slack,
+            channels: [CHANNEL],
+            userIds: [NB_USER_3],
+          },
+        ],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(noteSpy).toHaveBeenCalledTimes(2);
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect(
+      postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
+    ).toEqual([CHANNEL.id]);
+  });
+});

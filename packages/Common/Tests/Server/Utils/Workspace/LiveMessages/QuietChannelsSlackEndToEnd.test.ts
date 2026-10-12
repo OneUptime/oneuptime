@@ -41,10 +41,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  * Here the same incident runs through OneUptime's real services, workspace
  * layer and SlackUtil, against a fake Slack API that records every request
  * (QuietChannelsWorld has the database in memory). The channel now gets
- * one message per event: the incident, the one note about who could not
- * be added, the on-call run's one message (edited as the run goes), one
- * alarm when a step reached nobody, and each later state change. Every
- * request is checked: how many, in which order, what it says.
+ * one message per event: the incident first, then the one note about who
+ * could not be added, the on-call run's one message (edited as the run
+ * goes), one alarm when a step reached nobody, and each later state change.
+ * Every request is checked: how many, in which order, what it says.
  */
 
 const SLACK_INCIDENT_CHANNEL: string = "C0INC8";
@@ -243,8 +243,8 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     const posts: Array<SlackRequest> = slack.posts();
 
     expect(posts.map(headline)).toEqual([
-      expect.stringContaining("Not everyone could be added to this channel"),
       expect.stringContaining("Incident INC-8 Created"),
+      expect.stringContaining("Not everyone could be added to this channel"),
       expect.stringContaining("PolicyX"),
       expect.stringContaining("Nobody was paged for"),
       expect.stringContaining("State"),
@@ -256,14 +256,14 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       expect(post.channel).toBe(SLACK_INCIDENT_CHANNEL);
     }
 
-    // 1. Who could not be added - once, naming NB User 3 and how to fix it.
-    expect(posts[0]!.text).toContain("NB User 3");
-    expect(posts[0]!.text).toContain("User Settings → Slack");
+    // 1. The incident - the channel opens on it: its state, severity, buttons.
+    expect(posts[0]!.text).toContain("Incident State");
+    expect(posts[0]!.text).toContain("Identified");
+    expect(posts[0]!.text).toContain("Acknowledge Incident");
 
-    // 2. The incident, its state and severity, and its buttons.
-    expect(posts[1]!.text).toContain("Incident State");
-    expect(posts[1]!.text).toContain("Identified");
-    expect(posts[1]!.text).toContain("Acknowledge Incident");
+    // 2. Who could not be added - once, naming NB User 3 and how to fix it.
+    expect(posts[1]!.text).toContain("NB User 3");
+    expect(posts[1]!.text).toContain("User Settings → Slack");
 
     // 3. The on-call run: posted as it began paging Nitin.
     expect(posts[2]!.text).toContain("is paging for");
@@ -333,7 +333,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
 
     expect(last).toContain("is paging for");
     expect(last).toContain("Escalation rule 2 of 3 (second)");
-    expect(last).toContain("repeats up to once if nobody acknowledges");
+    expect(last).toContain("repeats once if nobody acknowledges");
     expect(last).toContain("escalation rule 3 of 3 (third) is next");
     expect(last).toContain("within 7 minutes");
   });
@@ -431,6 +431,11 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
 
   test("'NB User 3 cannot be invited to the channel ...' once at creation and again every time NB User 3 is paged", async () => {
     await world.channelCreated([NITIN, NB_USER_3]);
+
+    // Nothing is said while the channel is set up...
+    expect(slack.posts()).toHaveLength(0);
+
+    await world.incidentCreated();
     await world.invitedToRecordChannels([NB_USER_3]);
     await world.invitedToRecordChannels([NB_USER_3, NITIN]);
 
@@ -442,6 +447,12 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
 
     expect(notes).toHaveLength(1);
     expect(slack.updates()).toHaveLength(0);
+
+    // ... and the note comes right under the incident, not above it.
+    expect(slack.posts().map(headline)).toEqual([
+      expect.stringContaining("Incident INC-8 Created"),
+      expect.stringContaining("Not everyone could be added"),
+    ]);
 
     for (const post of slack.posts()) {
       expect(post.text).not.toContain("cannot be invited");
@@ -458,13 +469,32 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     world.members.add(NB_USER_2.toString());
 
     await world.channelCreated([NB_USER_3]);
+    await world.incidentCreated();
     await world.invitedToRecordChannels([NB_USER_2]);
 
-    expect(slack.posts()).toHaveLength(1);
+    // The incident, then the note; the note is edited, not posted again.
+    expect(slack.posts()).toHaveLength(2);
+    const note: SlackRequest = slack.posts()[1]!;
+    expect(note.text).toContain("Not everyone could be added");
+
     expect(slack.updates()).toHaveLength(1);
-    expect(slack.updates()[0]!.ts).toBe(slack.posts()[0]!.ts);
+    expect(slack.updates()[0]!.ts).toBe(note.ts);
     expect(slack.updates()[0]!.text).toContain("NB User 3");
     expect(slack.updates()[0]!.text).toContain("NB User 2");
+  });
+
+  test("a channel everybody could be added to gets no note at all", async () => {
+    await world.channelCreated([NITIN, JANE]);
+    await world.incidentCreated();
+    await world.invitedToRecordChannels([NITIN]);
+
+    expect(slack.posts().map(headline)).toEqual([
+      expect.stringContaining("Incident INC-8 Created"),
+    ]);
+    expect(world.invites[0]).toEqual({
+      channelNames: ["inc-inc-8"],
+      userIds: ["U0NITIN", "U0JANE"],
+    });
   });
 
   test("two 'On-Call Alert Skipped' paragraphs for one rule that paged nobody: one alarm, once per run", async () => {

@@ -94,7 +94,13 @@ import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
 import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorService from "./MonitorService";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
@@ -1114,6 +1120,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let aiInvestigationEnqueued: boolean = false;
 
+    /*
+     * Who could not be added to the alert's new Slack channels: set by the
+     * workspace step, told in those channels right after "Alert Created"
+     * (ChannelMembersNotAddedNotice).
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
@@ -1141,7 +1154,9 @@ export class Service extends ProjectReferencesService<Model> {
          */
         if (createdItem.projectId && createdItem.id && isOngoing) {
           try {
-            return await this.handleAlertWorkspaceOperationsAsync(createdItem);
+            membersNotAddedToNewChannels =
+              await this.handleAlertWorkspaceOperationsAsync(createdItem);
+            return Promise.resolve();
           } catch (error) {
             logger.error(
               `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
@@ -1168,6 +1183,13 @@ export class Service extends ProjectReferencesService<Model> {
           );
           return Promise.resolve(); // Continue chain even on error
         }
+      })
+      .then(async () => {
+        // Under "Alert Created": who could not be added to the new channels.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
       })
       .then(() => {
         /*
@@ -1449,10 +1471,15 @@ export class Service extends ProjectReferencesService<Model> {
     return createdItem;
   }
 
+  /*
+   * Creates the alert's own channels and adds its people to them. Hands back
+   * who could not be added, for the channels to be told after "Alert
+   * Created".
+   */
   @CaptureSpan()
   private async handleAlertWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -1461,9 +1488,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       // send message to workspaces - slack, teams, etc.
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await AlertWorkspaceMessages.createChannelsAndInviteUsersToChannels({
           projectId: createdItem.projectId,
           alertId: createdItem.id,
@@ -1496,6 +1521,8 @@ export class Service extends ProjectReferencesService<Model> {
           },
         });
       }
+
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),

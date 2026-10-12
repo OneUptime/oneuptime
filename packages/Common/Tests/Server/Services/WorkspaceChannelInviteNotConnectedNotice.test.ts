@@ -4,7 +4,9 @@ import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceN
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
-import ChannelMembersNotAddedNotice from "../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
 import ObjectID from "../../../Types/ObjectID";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
@@ -187,10 +189,16 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
   });
 });
 
+/*
+ * A channel just created: the people who could not be added are handed back,
+ * not told yet - the record's service tells the channel right after the
+ * record's own first message ("Incident INC-8 Created"), so the channel
+ * opens on what happened (NewChannelNoteFollowsCreatedMessage.test.ts).
+ */
 describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", () => {
   async function createChannels(
     workspaceType: WorkspaceType = WorkspaceType.Slack,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     jest
       .spyOn(WorkspaceNotificationRuleService, "getUsersIdsToInviteToChannel")
       .mockResolvedValue([
@@ -205,7 +213,7 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
     projectAuth.authToken = "xoxb-project";
     projectAuth.workspaceProjectId = "T0001";
 
-    await WorkspaceNotificationRuleService.inviteUsersAndTeamsToChannelsBasedOnRules(
+    return await WorkspaceNotificationRuleService.inviteUsersAndTeamsToChannelsBasedOnRules(
       {
         projectId: PROJECT_ID,
         projectAuth: projectAuth,
@@ -228,27 +236,37 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
     });
   });
 
-  test("the rule's own channels get one note naming everybody not connected; no message per person", async () => {
-    await createChannels();
+  test("everybody not connected is handed back once, for the rule's own channels - nothing is posted yet, no message per person", async () => {
+    const membersNotAdded: Array<ChannelMembersNotAdded> =
+      await createChannels();
 
+    expect(membersNotAdded).toEqual([
+      {
+        workspaceType: WorkspaceType.Slack,
+        channels: [{ id: "C0INC8", name: "inc-inc-8" }],
+        userIds: [NOT_CONNECTED_1, NOT_CONNECTED_2],
+      },
+    ]);
+
+    // Not before the record's own first message: nothing is said here.
     expect(sendMessage).not.toHaveBeenCalled();
-    expect(noticeSpy).toHaveBeenCalledTimes(1);
-    expect(noticeSpy.mock.calls[0]![0]).toEqual({
-      projectId: PROJECT_ID,
-      workspaceType: WorkspaceType.Slack,
-      channels: [{ id: "C0INC8", name: "inc-inc-8" }],
-      userIds: [NOT_CONNECTED_1, NOT_CONNECTED_2],
-    });
+    expect(noticeSpy).not.toHaveBeenCalled();
   });
 
-  test("an invite Slack refuses does not end the channel's setup", async () => {
+  test("an invite Slack refuses does not end the channel's setup, and the people not connected are still handed back", async () => {
     invite.mockRejectedValueOnce(new Error("Error from Slack ratelimited"));
 
-    await expect(createChannels()).resolves.toBeUndefined();
-    expect(noticeSpy).toHaveBeenCalledTimes(1);
+    const membersNotAdded: Array<ChannelMembersNotAdded> =
+      await createChannels();
+
+    expect(membersNotAdded).toHaveLength(1);
+    expect(membersNotAdded[0]!.userIds).toEqual([
+      NOT_CONNECTED_1,
+      NOT_CONNECTED_2,
+    ]);
   });
 
-  test("nobody connected: no invite is sent, the note still names them", async () => {
+  test("nobody connected: no invite is sent, and everybody is handed back", async () => {
     jest
       .spyOn(
         WorkspaceNotificationRuleService,
@@ -256,20 +274,35 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
       )
       .mockResolvedValue(null);
 
-    await createChannels();
+    const membersNotAdded: Array<ChannelMembersNotAdded> =
+      await createChannels();
 
     expect(invite).not.toHaveBeenCalled();
-    expect(noticeSpy.mock.calls[0]![0].userIds).toEqual([
+    expect(membersNotAdded[0]!.userIds).toEqual([
       CONNECTED,
       NOT_CONNECTED_1,
       NOT_CONNECTED_2,
     ]);
   });
 
-  test("Microsoft Teams goes through the same path; the note itself says nothing there (ChannelMembersNotAddedNotice)", async () => {
-    await createChannels(WorkspaceType.MicrosoftTeams);
+  test("everybody connected: nothing to hand back", async () => {
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getWorkspaceUserIdFromOneUptimeUserId",
+      )
+      .mockResolvedValue("U0SOMEBODY");
 
-    expect(noticeSpy.mock.calls[0]![0].workspaceType).toBe(
+    expect(await createChannels()).toEqual([]);
+    expect(invite).toHaveBeenCalledTimes(1);
+  });
+
+  test("Microsoft Teams goes through the same path; the note itself says nothing there (ChannelMembersNotAddedNotice)", async () => {
+    const membersNotAdded: Array<ChannelMembersNotAdded> = await createChannels(
+      WorkspaceType.MicrosoftTeams,
+    );
+
+    expect(membersNotAdded[0]!.workspaceType).toBe(
       WorkspaceType.MicrosoftTeams,
     );
     expect(sendMessage).not.toHaveBeenCalled();

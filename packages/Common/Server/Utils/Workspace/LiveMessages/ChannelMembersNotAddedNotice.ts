@@ -27,6 +27,17 @@ export interface ChannelMembersNotAddedChannel {
 }
 
 /*
+ * The people OneUptime could not add to some channels of one workspace: what
+ * a channel's note names. Channel setup hands these back (rather than posting
+ * the note itself) so the note comes after the record's own first message.
+ */
+export interface ChannelMembersNotAdded {
+  workspaceType: WorkspaceType;
+  channels: Array<ChannelMembersNotAddedChannel>;
+  userIds: Array<ObjectID>;
+}
+
+/*
  * "SOME PEOPLE COULD NOT BE ADDED TO THIS CHANNEL", SAID ONCE PER CHANNEL.
  *
  * OneUptime adds people to the Slack channels it creates for an incident,
@@ -42,12 +53,52 @@ export interface ChannelMembersNotAddedChannel {
  * and how to fix it. Somebody new who cannot be added is added to that note,
  * which is edited in place; somebody it names already changes nothing.
  *
+ * In a channel OneUptime has just created, the note comes after the record's
+ * own first message ("Incident INC-8 Created"): channel setup hands back who
+ * it could not add, and the record's service notes them (noteAll) once that
+ * message is posted. So the channel opens on what happened, not on who is
+ * missing from it.
+ *
  * Slack only. OneUptime never adds people to a Microsoft Teams channel - a
  * standard channel is open to everyone in its team - so connecting a
  * Microsoft Teams account would not add anybody either, and the note would
  * only tell people to do something that changes nothing.
  */
 export default class ChannelMembersNotAddedNotice {
+  /*
+   * Notes everybody channel setup could not add, channel by channel. Never
+   * throws: a note that cannot be posted is logged, and the record's other
+   * messages go on.
+   */
+  @CaptureSpan()
+  public static async noteAll(data: {
+    projectId: ObjectID | undefined | null;
+    membersNotAdded: Array<ChannelMembersNotAdded> | undefined | null;
+  }): Promise<void> {
+    if (!data.projectId || !data.membersNotAdded) {
+      return;
+    }
+
+    for (const membersNotAdded of data.membersNotAdded) {
+      try {
+        await this.noteMembersNotAdded({
+          projectId: data.projectId,
+          workspaceType: membersNotAdded.workspaceType,
+          channels: membersNotAdded.channels,
+          userIds: membersNotAdded.userIds,
+        });
+      } catch (err) {
+        logger.error(
+          "Could not tell the new channels who OneUptime could not add to them.",
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        logger.error(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+    }
+  }
+
   @CaptureSpan()
   public static async noteMembersNotAdded(data: {
     projectId: ObjectID;

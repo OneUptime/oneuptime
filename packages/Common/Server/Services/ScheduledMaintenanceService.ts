@@ -89,7 +89,13 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
@@ -2056,14 +2062,22 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       throw new BadDataException("Scheduled Maintenance not found");
     }
 
+    /*
+     * Who could not be added to the event's new Slack channels: set by the
+     * workspace step, told in those channels right after "Scheduled
+     * Maintenance Created" (ChannelMembersNotAddedNotice).
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
         try {
           if (createdItem.projectId && createdItem.id) {
-            return await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
-              createdItem,
-            );
+            membersNotAddedToNewChannels =
+              await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+                createdItem,
+              );
           }
           return Promise.resolve();
         } catch (error) {
@@ -2092,6 +2106,13 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
           );
           return Promise.resolve();
         }
+      })
+      .then(async () => {
+        // Under "Scheduled Maintenance Created": who could not be added.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
       })
       .then(async () => {
         try {
@@ -2224,10 +2245,15 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     return createdItem;
   }
 
+  /*
+   * Creates the event's own channels and adds its people to them. Hands back
+   * who could not be added, for the channels to be told after "Scheduled
+   * Maintenance Created".
+   */
   @CaptureSpan()
   private async handleScheduledMaintenanceWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -2236,9 +2262,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
       }
 
       // send message to workspaces - slack, teams, etc.
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await ScheduledMaintenanceWorkspaceMessages.createChannelsAndInviteUsersToChannels(
           {
             projectId: createdItem.projectId,
@@ -2260,6 +2284,8 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
           },
         });
       }
+
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(
         `Error in handleScheduledMaintenanceWorkspaceOperationsAsync: ${error}`,

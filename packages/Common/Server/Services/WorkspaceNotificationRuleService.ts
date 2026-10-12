@@ -68,11 +68,25 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
-import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
   messageBlocks: Array<WorkspaceMessageBlock>;
+}
+
+/*
+ * What setting up a record's own channels came to: the channels OneUptime
+ * created, and who it could not add to them. The record's service posts its
+ * first message ("Incident INC-8 Created") and then has the channels told
+ * who is missing (ChannelMembersNotAddedNotice.noteAll), so a new channel
+ * opens on what happened.
+ */
+export interface WorkspaceChannelsCreated {
+  channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+  membersNotAdded: Array<ChannelMembersNotAdded>;
 }
 
 export interface NotificationFor {
@@ -1684,9 +1698,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     channelNameSiffix: string;
     isPrivate?: boolean;
-  }): Promise<{
-    channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       logger.debug(
         "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
@@ -1697,6 +1709,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       } as LogAttributes);
 
       const channelsCreated: Array<NotificationRuleWorkspaceChannel> = [];
+      const membersNotAdded: Array<ChannelMembersNotAdded> = [];
 
       const projectAuths: Array<WorkspaceProjectAuthToken> =
         await WorkspaceProjectAuthTokenService.getProjectAuths({
@@ -1778,13 +1791,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug("Inviting users and teams to channels based on rules", {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
-          await this.inviteUsersAndTeamsToChannelsBasedOnRules({
-            projectId: data.projectId,
-            projectAuth: projectAuth,
-            workspaceType: workspaceType,
-            notificationRules: notificationRules,
-            notificationChannels: createdWorkspaceChannels,
-          });
+          membersNotAdded.push(
+            ...(await this.inviteUsersAndTeamsToChannelsBasedOnRules({
+              projectId: data.projectId,
+              projectAuth: projectAuth,
+              workspaceType: workspaceType,
+              notificationRules: notificationRules,
+              notificationChannels: createdWorkspaceChannels,
+            })),
+          );
 
           logger.debug(
             "Getting existing channel names from notification rules",
@@ -1858,6 +1873,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       } as LogAttributes);
       return {
         channelsCreated: channelsCreated,
+        membersNotAdded: membersNotAdded,
       };
     } catch (err) {
       logger.error(
@@ -1935,6 +1951,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return result;
   }
 
+  /*
+   * Adds the rules' people to the channels just created for a record, and
+   * hands back who could not be added (no account connected to this
+   * workspace), per rule's channels. It does not tell the channels: the
+   * record's service does, after the record's own first message
+   * (ChannelMembersNotAddedNotice.noteAll).
+   */
   @CaptureSpan()
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
     projectId: ObjectID;
@@ -1942,7 +1965,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     workspaceType: WorkspaceType;
     notificationRules: Array<WorkspaceNotificationRule>;
     notificationChannels: Array<NotificationRuleWorkspaceChannel>;
-  }): Promise<void> {
+  }): Promise<Array<ChannelMembersNotAdded>> {
     logger.debug(
       "inviteUsersAndTeamsToChannelsBasedOnRules called with data:",
       { projectId: data.projectId?.toString() } as LogAttributes,
@@ -1965,6 +1988,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug(inviteUserPayloads, {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
+
+    const membersNotAdded: Array<ChannelMembersNotAdded> = [];
 
     for (const inviteUserPayload of inviteUserPayloads) {
       const userIds: Array<ObjectID> = inviteUserPayload.userIds;
@@ -2042,23 +2067,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       /*
        * Who could not be added is said once per channel, in one note that
        * names them all (ChannelMembersNotAddedNotice) - not in a message per
-       * person.
+       * person, and not before the record's own first message.
        */
-      await ChannelMembersNotAddedNotice.noteMembersNotAdded({
-        projectId: data.projectId,
-        workspaceType: data.workspaceType,
-        channels: channelsOfRule.map(
-          (channel: NotificationRuleWorkspaceChannel) => {
-            return { id: channel.id, name: channel.name };
-          },
-        ),
-        userIds: userIdsNotConnected,
-      });
+      if (userIdsNotConnected.length > 0 && channelsOfRule.length > 0) {
+        membersNotAdded.push({
+          workspaceType: data.workspaceType,
+          channels: channelsOfRule.map(
+            (channel: NotificationRuleWorkspaceChannel) => {
+              return { id: channel.id, name: channel.name };
+            },
+          ),
+          userIds: userIdsNotConnected,
+        });
+      }
     }
 
     logger.debug("Users invited to channels successfully", {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
+
+    return membersNotAdded;
   }
 
   @CaptureSpan()

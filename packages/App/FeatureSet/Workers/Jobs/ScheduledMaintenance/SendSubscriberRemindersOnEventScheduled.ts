@@ -115,8 +115,13 @@ Reminder notification sent to status page subscribers for this scheduled mainten
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: scheduledMaintenanceFeedText,
+        /*
+         * The feed only: that subscribers were reminded is a side effect of
+         * the event, as their other notifications are, not news for the
+         * event's channel.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

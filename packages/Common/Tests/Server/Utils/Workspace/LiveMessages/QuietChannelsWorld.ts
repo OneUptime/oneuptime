@@ -48,6 +48,9 @@ import WorkspaceUserAuthTokenService from "../../../../../Server/Services/Worksp
 import ProjectMembership from "../../../../../Server/Utils/TeamMember/ProjectMembership";
 import AIIncidentPostmortemRunner from "../../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../../../../../Server/Utils/AI/SRE/InvestigationGrader";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../../../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceStateChangePosting from "../../../../../Server/Utils/Workspace/WorkspaceStateChangePosting";
@@ -250,6 +253,12 @@ export default class QuietChannelsWorld {
     channelNames: Array<string>;
     userIds: Array<string>;
   }> = [];
+
+  /*
+   * Who the new channel's setup could not add, until the record's created
+   * message is out: the record's service notes them right after it.
+   */
+  public membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
   // The on-call run, its steps and its deliveries.
   public run: OnCallDutyPolicyExecutionLog | null = null;
@@ -1276,6 +1285,26 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
         sendWorkspaceNotification: true,
       },
     });
+
+    await this.noteMembersNotAddedToNewChannels();
+  }
+
+  /*
+   * What IncidentService, AlertService and ScheduledMaintenanceService do
+   * right after the record's created message: tell its new channels who
+   * their setup could not add (NewChannelNoteFollowsCreatedMessage.test.ts
+   * holds the services to it).
+   */
+  private async noteMembersNotAddedToNewChannels(): Promise<void> {
+    const membersNotAdded: Array<ChannelMembersNotAdded> =
+      this.membersNotAddedToNewChannels;
+
+    this.membersNotAddedToNewChannels = [];
+
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: PROJECT_ID,
+      membersNotAdded: membersNotAdded,
+    });
   }
 
   // The incident's state timeline gets a row, through its real hook.
@@ -1417,7 +1446,10 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
     ];
   }
 
-  // A channel was created for the record: the rule's people are invited.
+  /*
+   * A channel was created for the record: the rule's people are invited, and
+   * who could not be added is held for the record's created message.
+   */
   public async channelCreated(userIds: Array<ObjectID>): Promise<void> {
     jest
       .spyOn(WorkspaceNotificationRuleService, "getUsersIdsToInviteToChannel")
@@ -1437,14 +1469,16 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
           workspaceType: workspaceType,
         });
 
-      await WorkspaceNotificationRuleService.inviteUsersAndTeamsToChannelsBasedOnRules(
-        {
-          projectId: PROJECT_ID,
-          projectAuth: projectAuth!,
-          workspaceType: workspaceType,
-          notificationRules: [this.workspaceRule(workspaceType)],
-          notificationChannels: channel ? [channel] : [],
-        },
+      this.membersNotAddedToNewChannels.push(
+        ...(await WorkspaceNotificationRuleService.inviteUsersAndTeamsToChannelsBasedOnRules(
+          {
+            projectId: PROJECT_ID,
+            projectAuth: projectAuth!,
+            workspaceType: workspaceType,
+            notificationRules: [this.workspaceRule(workspaceType)],
+            notificationChannels: channel ? [channel] : [],
+          },
+        )),
       );
     }
   }
@@ -1517,6 +1551,8 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
         sendWorkspaceNotification: true,
       },
     });
+
+    await this.noteMembersNotAddedToNewChannels();
   }
 
   public async alertState(data: {
@@ -1630,6 +1666,8 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
         sendWorkspaceNotification: true,
       },
     });
+
+    await this.noteMembersNotAddedToNewChannels();
   }
 
   /*

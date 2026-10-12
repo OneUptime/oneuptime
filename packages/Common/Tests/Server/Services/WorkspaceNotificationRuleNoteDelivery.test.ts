@@ -16,7 +16,9 @@ import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeServ
 import IncidentService from "../../../Server/Services/IncidentService";
 import UserService from "../../../Server/Services/UserService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
-import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, {
+  WorkspaceChannelsCreated,
+} from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -398,7 +400,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
         WorkspaceNotificationRuleService,
         "inviteUsersAndTeamsToChannelsBasedOnRules",
       )
-      .mockResolvedValue(undefined);
+      .mockResolvedValue([]);
     jest
       .spyOn(
         WorkspaceNotificationRuleService,
@@ -406,9 +408,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
       )
       .mockReturnValue([]);
 
-    const result: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const result: WorkspaceChannelsCreated | null =
       await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
         {
           projectId: projectId,
@@ -422,7 +422,110 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
     expect(createChannelsSpy.mock.calls[0]![0].workspaceType).toBe(
       WorkspaceType.MicrosoftTeams,
     );
-    expect(result).toEqual({ channelsCreated: [TEAMS_CHANNEL] });
+    expect(result).toEqual({
+      channelsCreated: [TEAMS_CHANNEL],
+      membersNotAdded: [],
+    });
+  });
+
+  test("who could not be added to the new channels is handed back, workspace by workspace - not posted before the record's first message", async () => {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
+      .mockResolvedValue([
+        projectAuth(WorkspaceType.Slack),
+        projectAuth(WorkspaceType.MicrosoftTeams),
+      ]);
+
+    (
+      WorkspaceNotificationRuleService.getMatchingNotificationRules as unknown as SpyInstance<
+        typeof WorkspaceNotificationRuleService.getMatchingNotificationRules
+      >
+    ).mockImplementation(
+      async (data: {
+        workspaceType: WorkspaceType;
+      }): Promise<Array<WorkspaceNotificationRule>> => {
+        const rule: WorkspaceNotificationRule = new WorkspaceNotificationRule();
+        rule.id = ObjectID.generate();
+        rule.workspaceType = data.workspaceType;
+        rule.notificationRule = {} as never;
+        return [rule];
+      },
+    );
+
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "createChannelsBasedOnRules")
+      .mockImplementation(
+        async (data: {
+          workspaceType: WorkspaceType;
+        }): Promise<Array<NotificationRuleWorkspaceChannel>> => {
+          return data.workspaceType === WorkspaceType.Slack
+            ? [SLACK_CHANNEL]
+            : [TEAMS_CHANNEL];
+        },
+      );
+
+    const notConnected: ObjectID = ObjectID.generate();
+
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "inviteUsersAndTeamsToChannelsBasedOnRules",
+      )
+      .mockImplementation(
+        async (data: {
+          workspaceType: WorkspaceType;
+        }): Promise<
+          Awaited<
+            ReturnType<
+              typeof WorkspaceNotificationRuleService.inviteUsersAndTeamsToChannelsBasedOnRules
+            >
+          >
+        > => {
+          return data.workspaceType === WorkspaceType.Slack
+            ? [
+                {
+                  workspaceType: WorkspaceType.Slack,
+                  channels: [{ id: SLACK_CHANNEL.id, name: SLACK_CHANNEL.name }],
+                  userIds: [notConnected],
+                },
+              ]
+            : [];
+        },
+      );
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getExistingChannelNamesFromNotificationRules",
+      )
+      .mockReturnValue([]);
+
+    const slackSendSpy: SpyInstance<typeof SlackUtil.sendMessage> = jest
+      .spyOn(SlackUtil, "sendMessage")
+      .mockResolvedValue({} as never);
+
+    const result: WorkspaceChannelsCreated | null =
+      await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
+        {
+          projectId: projectId,
+          notificationRuleEventType: NotificationRuleEventType.Incident,
+          notificationFor: { incidentId: incidentId },
+          channelNameSiffix: "42",
+        },
+      );
+
+    expect(result).toEqual({
+      channelsCreated: [SLACK_CHANNEL, TEAMS_CHANNEL],
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [{ id: SLACK_CHANNEL.id, name: SLACK_CHANNEL.name }],
+          userIds: [notConnected],
+        },
+      ],
+    });
+
+    // Setting the channels up says nothing in them.
+    expect(slackSendSpy).not.toHaveBeenCalled();
   });
 
   test("no rule in any workspace creates nothing", async () => {
@@ -439,9 +542,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
       "createChannelsBasedOnRules",
     );
 
-    const result: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const result: WorkspaceChannelsCreated | null =
       await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
         {
           projectId: projectId,
@@ -452,7 +553,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
       );
 
     expect(createChannelsSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ channelsCreated: [] });
+    expect(result).toEqual({ channelsCreated: [], membersNotAdded: [] });
   });
 
   test("no connected workspace returns null", async () => {

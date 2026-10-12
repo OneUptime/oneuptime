@@ -209,10 +209,11 @@ ${FeedMarkdown.bulletList(
     if (run.firstRuleThatReachedNobody) {
       const reasons: Array<string> = run.firstRuleThatReachedNobody.reasons;
 
+      // Why, in brackets: the reasons themselves read "NB User 2: not a member ...".
       alarms.push({
         key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
         markdown:
-          mdText`⚠️ Nobody was paged for ${record} at ${this.getRuleLabel(run.firstRuleThatReachedNobody.rule, run.ruleCount)} of ${policy}${reasons.length > 0 ? mdText`: ${FeedMarkdown.join(reasons, "; ")}` : FeedMarkdown.empty()}. If nobody is on it yet, page someone or fix the policy.`.toString(),
+          mdText`⚠️ Nobody was paged for ${record} at ${this.getRuleLabel(run.firstRuleThatReachedNobody.rule, run.ruleCount)} of ${policy}${reasons.length > 0 ? mdText` (${FeedMarkdown.join(reasons, "; ")})` : FeedMarkdown.empty()}. If nobody is on it yet, page someone or fix the policy.`.toString(),
       });
     }
 
@@ -292,7 +293,10 @@ ${FeedMarkdown.bulletList(
     }
 
     if (run.repeatNumber <= 0) {
-      return mdText`${where} · repeats up to ${this.getTimes(run.repeatsAllowed)} if nobody acknowledges`;
+      // "repeats once", "repeats up to twice", "repeats up to 3 times".
+      return run.repeatsAllowed === 1
+        ? mdText`${where} · repeats once if nobody acknowledges`
+        : mdText`${where} · repeats up to ${this.getTimes(run.repeatsAllowed)} if nobody acknowledges`;
     }
 
     return mdText`${where} · repeat ${run.repeatNumber} of ${run.repeatsAllowed}`;
