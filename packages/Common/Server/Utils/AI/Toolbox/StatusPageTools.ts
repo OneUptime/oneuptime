@@ -92,11 +92,6 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
 }
 
 /*
- * "Checkout (monitor: checkout-api)" — the display name the public sees plus
- * the backing monitor/group, so the model can pivot from a public resource to
- * the internal monitor it maps to.
- */
-/*
  * The resources a page shows: an archived monitor's are left off the public
  * page (ArchivedMonitorResources). Whether a resource's monitor is archived
  * is read here as OneUptime, for the monitors of the resources the caller
@@ -162,6 +157,11 @@ async function withoutArchivedMonitors(
   return ArchivedMonitorResources.withoutArchivedMonitors(resources);
 }
 
+/*
+ * "Checkout (monitor: checkout-api)" — the display name the public sees plus
+ * the backing monitor/group, so the model can pivot from a public resource to
+ * the internal monitor it maps to.
+ */
 function describeResource(resource: StatusPageResource): string {
   const monitorName: string =
     resource.monitor?.name || resource.monitorGroup?.name || "";
