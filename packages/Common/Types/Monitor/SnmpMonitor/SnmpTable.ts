@@ -1,3 +1,5 @@
+import { FIRST_PROBE_VERSION_WITH_SNMP_TABLES } from "../../Probe/ProbeCapability";
+
 /*
  * SNMP tables: data that lives in rows rather than scalars.
  *
@@ -224,6 +226,24 @@ export interface SnmpTableSnapshotRow {
   cells: Record<string, SnmpTableSnapshotCell>;
 }
 
+/*
+ * Why a table was not read, where the product knows more than the cause's
+ * text: the views explain a known reason in their own words, and the stored
+ * failureCause says the same for every other reader.
+ */
+export enum SnmpTableFailureReason {
+  /*
+   * The probe that polls the device answered its poll without walking its
+   * tables: a probe from before SNMP tables (ProbeCapability.SnmpTables)
+   * reads the device's OIDs and interfaces and ignores the tables it is
+   * handed. Nothing changes until the probe is updated.
+   */
+  ProbeDidNotWalkTables = "ProbeDidNotWalkTables",
+}
+
+// The failureCause stored with SnmpTableFailureReason.ProbeDidNotWalkTables.
+export const PROBE_DID_NOT_WALK_TABLES_CAUSE: string = `The probe that polls this device answered its last poll without walking its SNMP tables. Probes released before version ${FIRST_PROBE_VERSION_WITH_SNMP_TABLES} do not walk them: update the probe to the latest version.`;
+
 export interface SnmpTableSnapshot {
   key: string;
   name: string;
@@ -232,6 +252,8 @@ export interface SnmpTableSnapshot {
   rows: Array<SnmpTableSnapshotRow>;
   isTruncated?: boolean | undefined;
   failureCause?: string | undefined;
+  // Set beside failureCause when the reason is one the views explain.
+  failureReason?: SnmpTableFailureReason | undefined;
   // ISO timestamp of the walk that produced these rows.
   collectedAt?: string | undefined;
 }

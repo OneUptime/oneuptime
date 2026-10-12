@@ -8,12 +8,21 @@ import NetworkDeviceOidTemplateService from "../../../../Server/Services/Network
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOidTemplate from "../../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpDataType from "../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
 import {
+  PROBE_DID_NOT_WALK_TABLES_CAUSE,
   SnmpTableDefinition,
+  SnmpTableFailureReason,
+  SnmpTableKind,
   SnmpTableResult,
   SnmpTableSnapshot,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpVendorTemplateUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../../Types/ObjectID";
+import ProbeCapability from "../../../../Types/Probe/ProbeCapability";
+import WifiRadioUtil, {
+  WifiTablesState,
+} from "../../../../Utils/NetworkDevice/WifiRadioUtil";
 import logger from "../../../../Server/Utils/Logger";
 
 /*
@@ -152,6 +161,30 @@ describe("NetworkDeviceWalkUtil.applyTableDefinitions", () => {
   });
 
   test("costs no query for a device with no tables at all", async () => {
+    // A probe that walks tables, handed none.
+    await expect(
+      NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ oidTemplateId: TEMPLATE_ID }),
+        snmpResponse: walk(),
+        probeCapabilities: [ProbeCapability.SnmpTables],
+        monitoredAt: MONITORED_AT,
+      }),
+    ).resolves.toBeUndefined();
+
+    // A device that cannot have tables, whatever the probe.
+    await expect(
+      NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device(),
+        snmpResponse: walk(),
+        monitoredAt: MONITORED_AT,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(templateFindSpy).not.toHaveBeenCalled();
+  });
+
+  test("reads the template once to tell whether a probe that does not walk tables skipped any", async () => {
+    // A template with no tables: nothing was skipped, nothing to store.
     await expect(
       NetworkDeviceWalkUtil.applyTableDefinitions({
         device: device({ oidTemplateId: TEMPLATE_ID }),
@@ -160,7 +193,27 @@ describe("NetworkDeviceWalkUtil.applyTableDefinitions", () => {
       }),
     ).resolves.toBeUndefined();
 
-    expect(templateFindSpy).not.toHaveBeenCalled();
+    expect(templateFindSpy).toHaveBeenCalledTimes(1);
+
+    // A template with tables: they were skipped.
+    const template: NetworkDeviceOidTemplate = new NetworkDeviceOidTemplate(
+      TEMPLATE_ID,
+    );
+    template.tables = [IPSEC_TABLE];
+    templateFindSpy.mockResolvedValue(template);
+
+    const snapshot: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ oidTemplateId: TEMPLATE_ID }),
+        snmpResponse: walk(),
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(templateFindSpy).toHaveBeenCalledTimes(2);
+    expect(snapshot![0]!.key).toBe("ipsec_tunnels");
+    expect(snapshot![0]!.failureReason).toBe(
+      SnmpTableFailureReason.ProbeDidNotWalkTables,
+    );
   });
 
   test("materializes device-specific tables onto the response and returns the snapshot to store", async () => {
@@ -272,7 +325,8 @@ describe("NetworkDeviceWalkUtil.applyTableDefinitions", () => {
     ).resolves.toEqual([]);
   });
 
-  test("leaves the stored rows alone when an older probe walked no tables", async () => {
+  test("leaves the stored rows alone when a probe that walks tables was handed none", async () => {
+    // The tables were added after the probe claimed this poll.
     await expect(
       NetworkDeviceWalkUtil.applyTableDefinitions({
         device: device({
@@ -280,9 +334,269 @@ describe("NetworkDeviceWalkUtil.applyTableDefinitions", () => {
           snmpTableSnapshot: [storedSnapshot(1)],
         }),
         snmpResponse: walk(),
+        probeCapabilities: [
+          ProbeCapability.NetworkDevicePing,
+          ProbeCapability.SnmpTables,
+        ],
         monitoredAt: MONITORED_AT,
       }),
     ).resolves.toBeUndefined();
+
+    await expect(
+      NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ snmpTables: [IPSEC_TABLE] }),
+        snmpResponse: walk(),
+        probeCapabilities: [ProbeCapability.SnmpTables],
+        monitoredAt: MONITORED_AT,
+      }),
+    ).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * A probe from before SNMP tables (14.0.18) walks a device's OIDs and
+ * interfaces and ignores the tables its poll config lists - on every poll.
+ * The customer's Cambium access point showed CPU, memory and clients, and a
+ * Wi-Fi tab that promised radios "after its next successful SNMP poll"
+ * forever: the snapshot was left alone because no tables came back. Now the
+ * tables are stored as not walked, with why, so the views can say to
+ * update the probe.
+ */
+describe("NetworkDeviceWalkUtil.applyTableDefinitions with a probe that does not walk tables", () => {
+  const CAMBIUM_TABLES: Array<SnmpTableDefinition> =
+    SnmpVendorTemplateUtil.getById("cambium-wifi-ap")!.tables!;
+
+  beforeEach(() => {
+    templateFindSpy = jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneBy")
+      .mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    ["declares no capabilities at all", undefined],
+    ["declares an empty list", []],
+    ["declares only ping-first polling", [ProbeCapability.NetworkDevicePing]],
+  ])(
+    "stores every defined table as not walked when the probe %s",
+    async (_label: string, probeCapabilities: Array<string> | undefined) => {
+      const snmpResponse: SnmpMonitorResponse = walk();
+
+      const snapshot: Array<SnmpTableSnapshot> | undefined =
+        await NetworkDeviceWalkUtil.applyTableDefinitions({
+          device: device({ snmpTables: [IPSEC_TABLE, FAN_TABLE] }),
+          snmpResponse: snmpResponse,
+          probeCapabilities: probeCapabilities,
+          monitoredAt: MONITORED_AT,
+        });
+
+      expect(
+        snapshot!.map((table: SnmpTableSnapshot) => {
+          return table.key;
+        }),
+      ).toEqual(["ipsec_tunnels", "fans"]);
+
+      for (const table of snapshot!) {
+        expect(table.rows).toEqual([]);
+        expect(table.failureCause).toBe(PROBE_DID_NOT_WALK_TABLES_CAUSE);
+        expect(table.failureReason).toBe(
+          SnmpTableFailureReason.ProbeDidNotWalkTables,
+        );
+        // Nothing was collected, so there is no collection time to show.
+        expect(table.collectedAt).toBeUndefined();
+      }
+
+      // Named and described from the definition, so the views can list it.
+      expect(snapshot![0]!.name).toBe("IPsec Tunnels");
+      expect(snapshot![0]!.columns.map((column) => column.oid)).toEqual([
+        IPSEC_STATUS,
+      ]);
+
+      // Criteria judge what this walk read: still nothing.
+      expect(snmpResponse.tables).toBeUndefined();
+    },
+  );
+
+  test("the stored cause says what to do, and names the first probe version that walks tables", () => {
+    expect(PROBE_DID_NOT_WALK_TABLES_CAUSE).toContain("14.0.18");
+    expect(PROBE_DID_NOT_WALK_TABLES_CAUSE).toContain("update the probe");
+  });
+
+  test("keeps the rows an earlier walk stored, marked with the reason", async () => {
+    const snapshot: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({
+          snmpTables: [IPSEC_TABLE],
+          snmpTableSnapshot: [
+            { ...storedSnapshot(1), collectedAt: "2026-10-06T09:00:00.000Z" },
+          ],
+        }),
+        snmpResponse: walk(),
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(snapshot).toHaveLength(1);
+    expect(snapshot![0]!.rows).toEqual(storedSnapshot(1).rows);
+    // When those rows were really collected.
+    expect(snapshot![0]!.collectedAt).toBe("2026-10-06T09:00:00.000Z");
+    expect(snapshot![0]!.failureReason).toBe(
+      SnmpTableFailureReason.ProbeDidNotWalkTables,
+    );
+    expect(snapshot![0]!.failureCause).toBe(PROBE_DID_NOT_WALK_TABLES_CAUSE);
+  });
+
+  test("polls by the same probe store the same thing, however many there are", async () => {
+    let stored: Array<SnmpTableSnapshot> | undefined = undefined;
+
+    const results: Array<Array<SnmpTableSnapshot> | undefined> = [];
+
+    for (let poll: number = 0; poll < 3; poll++) {
+      stored = await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({
+          snmpTables: [IPSEC_TABLE],
+          ...(stored ? { snmpTableSnapshot: stored } : {}),
+        }),
+        snmpResponse: walk(),
+        monitoredAt: new Date(MONITORED_AT.getTime() + poll * 300000),
+      });
+      results.push(stored);
+    }
+
+    expect(results[1]).toEqual(results[0]);
+    expect(results[2]).toEqual(results[0]);
+  });
+
+  test("an updated probe's walk replaces the not-walked tables completely", async () => {
+    const notWalked: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ snmpTables: [IPSEC_TABLE] }),
+        snmpResponse: walk(),
+        monitoredAt: MONITORED_AT,
+      });
+
+    const snmpResponse: SnmpMonitorResponse = walk({
+      tableResults: [ipsecResult(1)],
+    });
+
+    const walked: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({
+          snmpTables: [IPSEC_TABLE],
+          snmpTableSnapshot: notWalked!,
+        }),
+        snmpResponse: snmpResponse,
+        probeCapabilities: [ProbeCapability.SnmpTables],
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(walked![0]!.rows[0]!.cells[IPSEC_STATUS]!.display).toBe("active");
+    expect(walked![0]!.failureCause).toBeUndefined();
+    expect(walked![0]!.failureReason).toBeUndefined();
+    expect(walked![0]!.collectedAt).toBe(MONITORED_AT.toISOString());
+  });
+
+  test("a walk that then fails says why it failed, not that the probe cannot walk", async () => {
+    const notWalked: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({
+          snmpTables: [IPSEC_TABLE],
+          snmpTableSnapshot: [storedSnapshot(1)],
+        }),
+        snmpResponse: walk(),
+        monitoredAt: MONITORED_AT,
+      });
+
+    const failed: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({
+          snmpTables: [IPSEC_TABLE],
+          snmpTableSnapshot: notWalked!,
+        }),
+        snmpResponse: walk({
+          tableResults: [
+            {
+              key: "ipsec_tunnels",
+              rows: [],
+              failureCause: "Request timed out",
+            },
+          ],
+        }),
+        probeCapabilities: [ProbeCapability.SnmpTables],
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(failed![0]!.rows).toEqual(storedSnapshot(1).rows);
+    expect(failed![0]!.failureCause).toBe("Request timed out");
+    expect(failed![0]!.failureReason).toBeUndefined();
+  });
+
+  test("a failed walk or no walk at all still leaves the snapshot alone", async () => {
+    await expect(
+      NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ snmpTables: [IPSEC_TABLE] }),
+        snmpResponse: walk({ isOnline: false }),
+        monitoredAt: MONITORED_AT,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(
+      NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ snmpTables: [IPSEC_TABLE] }),
+        snmpResponse: undefined,
+        monitoredAt: MONITORED_AT,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  test("a device with no tables costs nothing, whatever the probe", async () => {
+    await expect(
+      NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device(),
+        snmpResponse: walk(),
+        monitoredAt: MONITORED_AT,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(templateFindSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The customer's case, from the poll to what the Wi-Fi tab decides: a
+   * Cambium access point with the Enterprise Wi-Fi template's tables,
+   * polled by a probe that does not walk them.
+   */
+  test("a Cambium access point polled by such a probe: the Wi-Fi tab is told to ask for a probe update", async () => {
+    const snapshot: Array<SnmpTableSnapshot> | undefined =
+      await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device({ snmpTables: CAMBIUM_TABLES }),
+        snmpResponse: walk({
+          oidResponses: [
+            {
+              oid: "1.3.6.1.4.1.17713.22.1.1.1.6.0",
+              name: "CPU %",
+              value: 53,
+              type: SnmpDataType.Integer,
+            },
+          ],
+        }),
+        probeCapabilities: [ProbeCapability.NetworkDevicePing],
+        monitoredAt: MONITORED_AT,
+      });
+
+    expect(
+      snapshot!.map((table: SnmpTableSnapshot) => {
+        return table.kind;
+      }),
+    ).toEqual([SnmpTableKind.WifiRadio, SnmpTableKind.WifiSsid]);
+
+    // Before: no Wi-Fi table stored, so the tab waited for a poll forever.
+    expect(WifiRadioUtil.hasWifiTables(snapshot)).toBe(true);
+    expect(
+      WifiRadioUtil.getTablesState(WifiRadioUtil.getSummary(snapshot)),
+    ).toBe(WifiTablesState.NotWalkedByProbe);
   });
 });
 
@@ -351,6 +665,48 @@ describe("NetworkDeviceWalkUtil.processWalkResult with tables", () => {
     const metricArgs: { snmpResponse: SnmpMonitorResponse } = metricsSpy.mock
       .calls[0]![0] as { snmpResponse: SnmpMonitorResponse };
     expect(metricArgs.snmpResponse.tables![0]!.key).toBe("ipsec_tunnels");
+  });
+
+  test("tells the tables apart by what the probe declared", async () => {
+    // A probe that walks tables, handed none: the snapshot is left alone.
+    await NetworkDeviceWalkUtil.processWalkResult({
+      probeId: PROBE_ID,
+      networkDeviceId: DEVICE_ID,
+      snmpResponse: walk(),
+      probeCapabilities: [ProbeCapability.SnmpTables],
+      monitoredAt: MONITORED_AT,
+    });
+
+    expect(
+      (inventorySpy.mock.calls[0]![0] as { snmpTableSnapshot: unknown })
+        .snmpTableSnapshot,
+    ).toBeUndefined();
+
+    // A probe that does not: the tables are stored as not walked.
+    await NetworkDeviceWalkUtil.processWalkResult({
+      probeId: PROBE_ID,
+      networkDeviceId: DEVICE_ID,
+      snmpResponse: walk(),
+      monitoredAt: MONITORED_AT,
+    });
+
+    const stored: Array<SnmpTableSnapshot> = (
+      inventorySpy.mock.calls[1]![0] as {
+        snmpTableSnapshot: Array<SnmpTableSnapshot>;
+      }
+    ).snmpTableSnapshot;
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.failureReason).toBe(
+      SnmpTableFailureReason.ProbeDidNotWalkTables,
+    );
+
+    // The metrics and criteria see no tables either way.
+    for (const call of metricsSpy.mock.calls) {
+      expect(
+        (call[0] as { snmpResponse: SnmpMonitorResponse }).snmpResponse.tables,
+      ).toBeUndefined();
+    }
   });
 
   test("a table lookup failure is logged and never stops the poll", async () => {
