@@ -104,9 +104,13 @@ const LEFT_OUT_LANGUAGES = {
 
 /*
  * The extensions of the source files CodeQL reads as each language it
- * analyses. The templates and data files the JavaScript extractor also reads
- * (HTML, EJS, Handlebars, JSON, YAML, XML) are no language's code of their
- * own; GitHub Actions is read from where workflows and actions live, below.
+ * analyses, from the "Supported languages and frameworks" page of CodeQL's
+ * documentation (.cjs from the JavaScript extractor's own list). The
+ * project, manifest and markup files it also recognizes (.csproj, .sln,
+ * .xaml, Cargo.toml), and the templates and data files the JavaScript
+ * extractor reads (HTML, EJS, Handlebars, JSON, YAML, XML), are no language's
+ * code of their own; GitHub Actions is read from where workflows and actions
+ * live, below.
  * Objective-C, which the session replay SDK's iOS module also holds, is not
  * a language CodeQL analyses.
  */
@@ -711,7 +715,9 @@ describe("the checks on the languages files hold code in", () => {
       ["agents/ebpf/probe.cpp", "c-cpp"],
       ["agents/ebpf/probe.c++", "c-cpp"],
       ["Examples/otel-dotnet/Program.cs", "csharp"],
+      ["Examples/otel-dotnet/Views/Home/Index.cshtml", "csharp"],
       ["Examples/otel-dotnet/otel-dotnet.csproj", null],
+      ["Examples/otel-dotnet/App.xaml", null],
       ["agents/InfrastructureAgent/agent.go", "go"],
       [
         "packages/App/FeatureSet/MobileRecorder/android/src/main/java/com/oneuptime/replay/OneUptimeReplayPackage.java",
@@ -751,6 +757,7 @@ describe("the checks on the languages files hold code in", () => {
         null,
       ],
       ["agents/collector/src/main.rs", "rust"],
+      ["agents/collector/Cargo.toml", null],
       [
         "packages/App/FeatureSet/MobileRecorder/ios/OneUptimeReplayViewTreeModule.swift",
         "swift",
