@@ -110,9 +110,10 @@ describe("the notification jobs' feed entries in Slack and Microsoft Teams", () 
       "ScheduledMaintenancePublicNote/SendNotificationToSubscribers.ts",
       "Notification sent to subscribers",
     ],
+    // "Reminder Notification Sent to Subscribers", built above the call.
     [
       "ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled.ts",
-      "Reminder Notification Sent to Subscribers",
+      "ScheduledMaintenanceFeedEventType.SubscriberNotificationSent",
     ],
   ])(
     "REGRESSION: %s - every subscriber reached stays in the feed",
