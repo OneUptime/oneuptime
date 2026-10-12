@@ -205,7 +205,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 幾乎每個文字欄位都接受變數：
 
 - API 區塊上的 URL。
-- Slack、Teams、Discord、Telegram、IRC、Email 上的訊息文字。
+- Slack、Teams、Discord、Telegram、IRC、Mattermost、Email 上的訊息文字。
 - 電子郵件的主旨和內文。
 - 標頭和內文欄位（在字串值內）。
 - **If / Else** 區塊的兩側。

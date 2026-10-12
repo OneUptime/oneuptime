@@ -205,7 +205,7 @@ I valori dei blocchi esistono solo durante l'esecuzione corrente. Ogni nuova ese
 Quasi tutti i campi di testo accettano variabili:
 
 - L'URL di un blocco API.
-- Il testo del messaggio su Slack, Teams, Discord, Telegram, IRC, Email.
+- Il testo del messaggio su Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - L'oggetto e il corpo di un'email.
 - Gli header e i campi del corpo (all'interno dei valori stringa).
 - Entrambi i lati di un blocco **If / Else**.

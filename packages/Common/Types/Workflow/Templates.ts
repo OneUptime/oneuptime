@@ -26,6 +26,7 @@ import IconProp from "../Icon/IconProp";
 import ComponentID from "./ComponentID";
 import { ComponentType, NodeType } from "./Component";
 import { ConditionOperator, ConditionValueType } from "./Components/Condition";
+import { MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN } from "./Components/Mattermost";
 import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
@@ -486,6 +487,28 @@ const IRC_CHANNEL: WorkflowTemplateVariable = {
   format: {
     pattern: /^[#&][^\s,]+$/,
     message: "Enter a channel that starts with #, such as #ops.",
+  },
+};
+
+/*
+ * Mattermost is usually self-hosted, so its webhook URL is on the team's own
+ * server rather than one vendor's host. The format catches what people paste
+ * by mistake - the server's address alone, a page of its System Console -
+ * before the first incident does; the step checks the rest when it runs.
+ */
+const MATTERMOST_WEBHOOK_URL: WorkflowTemplateVariable = {
+  name: "mattermostWebhookUrl",
+  title: "Mattermost Incoming Webhook URL",
+  description:
+    "In Mattermost, open Integrations, then Incoming Webhooks, add one for the channel the message should land in, and copy its URL.",
+  placeholder:
+    "https://mattermost.example.com/hooks/xxxxxxxxxxxxxxxxxxxxxxxxxx",
+  required: true,
+  isSecret: true,
+  format: {
+    pattern: MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN,
+    message:
+      "Enter the webhook's whole URL as Mattermost shows it: the server's address, then /hooks/ and the webhook's ID.",
   },
 };
 
@@ -7418,6 +7441,68 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     },
   },
   {
+    id: "incident-created-mattermost",
+    name: "Tell Mattermost when an incident opens",
+    description:
+      "Posts a clear incident summary to a Mattermost channel the moment the incident is declared.",
+    teaches:
+      "How a database trigger feeds a chat on a server of your own, through its incoming webhook.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Chat,
+    workflowName: "Notify Mattermost on new incident",
+    workflowDescription:
+      "Posts to Mattermost whenever an incident is created in this project.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":rotating_light: **Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared**",
+              "**Title:** {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "**Severity:** {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+              "**State:** {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the incident notification: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
     id: "incident-state-changed-slack",
     name: "Tell Slack when an incident changes state",
     description:
@@ -7475,6 +7560,70 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "slack-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-state-changed-mattermost",
+    name: "Tell Mattermost when an incident changes state",
+    description:
+      "Posts to a Mattermost channel each time an incident moves to a new state: acknowledged, resolved, and anything else.",
+    teaches:
+      "How Listen On keeps an update trigger to the one field a channel wants to hear about.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.ArrowPath,
+    workflowName: "Notify Mattermost on incident state change",
+    workflowDescription:
+      "Posts to Mattermost whenever an incident's state changes. Edit Listen On to watch other fields.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-update-1",
+          metadataId: "incident-on-update",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": { currentIncidentStateId: true },
+            select: INCIDENT_SELECT,
+          },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":arrows_counterclockwise: **Incident {{local.components.incident-on-update-1.returnValues.model.incidentNumberWithPrefix}} changed state**",
+              "**Title:** {{local.components.incident-on-update-1.returnValues.model.title}}",
+              "**New state:** {{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the incident state update: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-update-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },
@@ -7795,6 +7944,68 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       ],
     },
   },
+  {
+    id: "alert-created-mattermost",
+    name: "Tell Mattermost when an alert fires",
+    description:
+      "Posts the alert's title, severity and state to a Mattermost channel as soon as it is raised.",
+    teaches:
+      "How one secret setting, kept as a variable, serves the whole workflow.",
+    category: WorkflowTemplateCategory.Alerts,
+    icon: IconProp.Chat,
+    workflowName: "Notify Mattermost on new alert",
+    workflowDescription:
+      "Posts to Mattermost whenever an alert is created in this project.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "alert-on-create-1",
+          metadataId: "alert-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: ALERT_SELECT },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":warning: **Alert {{local.components.alert-on-create-1.returnValues.model.alertNumberWithPrefix}} fired**",
+              "**Title:** {{local.components.alert-on-create-1.returnValues.model.title}}",
+              "**Severity:** {{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}",
+              "**State:** {{local.components.alert-on-create-1.returnValues.model.currentAlertState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the alert notification: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "alert-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
 
   /* ----------------------------- Monitors ----------------------------- */
   {
@@ -7947,6 +8158,67 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "slack-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "monitor-status-changed-mattermost",
+    name: "Tell Mattermost when a monitor changes status",
+    description:
+      "Posts to a Mattermost channel every time a monitor goes down, comes back, or changes status in any way.",
+    teaches:
+      "How a status change is a record of its own, which names the monitor and its new status.",
+    category: WorkflowTemplateCategory.Monitors,
+    icon: IconProp.Heartbeat,
+    workflowName: "Notify Mattermost on monitor status change",
+    workflowDescription:
+      "Posts to Mattermost whenever a monitor's status changes in this project.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "monitor-status-timeline-on-create-1",
+          metadataId: "monitor-status-timeline-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: MONITOR_STATUS_TIMELINE_SELECT },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":satellite: **Monitor status changed**",
+              "**Monitor:** {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitor.name}}",
+              "**New status:** {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the monitor status update: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "monitor-status-timeline-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },
@@ -8460,6 +8732,76 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         },
         {
           fromComponentId: "slack-1",
+          toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "maintenance-scheduled-mattermost",
+    name: "Announce scheduled maintenance in Mattermost",
+    description:
+      "Posts the title and window to a Mattermost channel as soon as a maintenance event is scheduled.",
+    teaches:
+      "How a record's dates come out of a trigger, as the times they hold.",
+    category: WorkflowTemplateCategory.ScheduledMaintenance,
+    icon: IconProp.Calendar,
+    workflowName: "Announce maintenance in Mattermost",
+    workflowDescription:
+      "Posts to Mattermost whenever a scheduled maintenance event is created.",
+    variables: [MATTERMOST_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "maintenance-on-create-1",
+          metadataId: "scheduled-maintenance-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            select: {
+              _id: true,
+              title: true,
+              scheduledMaintenanceNumberWithPrefix: true,
+              startsAt: true,
+              endsAt: true,
+            },
+          },
+        },
+        {
+          componentId: "mattermost-1",
+          metadataId: ComponentID.MattermostSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "webhook-url": "{{local.variables.mattermostWebhookUrl}}",
+            text: [
+              ":calendar: **Scheduled maintenance {{local.components.maintenance-on-create-1.returnValues.model.scheduledMaintenanceNumberWithPrefix}}**",
+              "**Title:** {{local.components.maintenance-on-create-1.returnValues.model.title}}",
+              "**Starts (UTC):** {{local.components.maintenance-on-create-1.returnValues.model.startsAt.value}}",
+              "**Ends (UTC):** {{local.components.maintenance-on-create-1.returnValues.model.endsAt.value}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-delivery-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Mattermost could not deliver the maintenance announcement: {{local.components.mattermost-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "maintenance-on-create-1",
+          toComponentId: "mattermost-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "mattermost-1",
           toComponentId: "log-delivery-failed",
           fromPort: "error",
         },

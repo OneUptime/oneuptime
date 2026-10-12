@@ -205,7 +205,7 @@ Os valores dos blocos só existem durante a execução atual. Cada nova execuç�
 Quase todo campo de texto aceita variáveis:
 
 - A URL de um bloco API.
-- O texto da mensagem no Slack, Teams, Discord, Telegram, IRC, Email.
+- O texto da mensagem no Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - O assunto e o corpo de um e-mail.
 - Cabeçalhos e campos do corpo (dentro de valores de string).
 - Os dois lados de um bloco **If / Else**.

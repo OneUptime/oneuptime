@@ -57,6 +57,7 @@ IPv6-schrijfwijzen die een IPv4-doel in zich dragen – IPv4-mapped (`::ffff:10.
 Deze bestemmingen vallen eronder, omdat het doel een URL is die een geauthenticeerd lid van uw project heeft geschreven:
 
 - **API**-componenten in workflows (GET / POST / PUT / PATCH / DELETE)
+- De **Mattermost**-component in workflows
 - HTTP-verzoeken van de workflowcomponent **Custom JavaScript**
 - Webhookmeldingen van projecten (incidenten, waarschuwingen, monitors, dienst, gepland onderhoud, gebeurtenissen van statuspagina's)
 - **Gebruikerswebhooks** voor de dienst
