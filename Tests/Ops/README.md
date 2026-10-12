@@ -365,9 +365,10 @@ The VMware agent also installs without Docker: the `otelcol-contrib` release
 the agent pins, run by systemd with
 `agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service`. The suite
 lifts the install, settings, start, upgrade and uninstall commands out of the
-docs page (`telemetry/vmware.md`) and runs them for real, with the install's
-`/opt` and `/etc/systemd/system` moved under a scratch root and `sudo`,
-`sudoedit`, `systemctl`, `curl` and `uname` replaced by recording stubs. It
+docs page's systemd tabs (`telemetry/vmware.md`) and runs them for real, with
+the install's `/opt` and `/etc/systemd/system` moved under a scratch root and
+`sudo`, `sudoedit`, `systemctl`, `curl` and `uname` replaced by recording
+stubs. It
 pins that the release the agent pins is downloaded for the machine's
 architecture (`x86_64` → `amd64`, `aarch64` → `arm64`) and that a release it
 cannot download stops the install before anything is installed; that every
