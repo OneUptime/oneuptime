@@ -261,29 +261,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/cloud-aws-ecs": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-azure-container-apps": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-environments": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-gcp-cloud-run": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-other-platforms": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-resources": {
-    uniqueHeadings: EN,
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-troubleshooting": {
-    translated: EVERY_TRANSLATION,
-  },
   "telemetry/databases": {
     translated: EVERY_TRANSLATION,
   },
