@@ -48,7 +48,7 @@ import { escapeRegExp } from "../../Utils/RegExpEscape";
  * after the merge. Run over master before these fixes, it reports exactly
  * those 23 alerts, on their lines. Like the product code guard, and with
  * the same options, it also fails on a copy of the regular expression
- * escape where the shared one can be imported - 55 test files carried one,
+ * escape where the shared one can be imported - 57 test files carried one,
  * and the partial escapes were written beside them - and on a pattern
  * literal Unicode normalization would change.
  *

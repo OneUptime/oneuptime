@@ -205,6 +205,14 @@ describe("negative controls: the same reading catches an ee/ test that escapes i
         FIRST_AMPERSAND,
       ),
       "ee/Tests/UI/License/Helpers/Letters.ts": WIDE_RANGE,
+      // A page fixture: code scanning reads its inline script.
+      "ee/Tests/UI/License/Fixtures/banner.html": code(
+        "<html><body>",
+        "<script>",
+        '  var html = text.replace("&", "&amp;");',
+        "</script>",
+        "</body></html>",
+      ),
       "ee/Dashboard/License/LicenseCard.test.tsx": ESCAPE_COPY,
       "ee/Tests/Server/License/Clean.test.ts": code(
         'import { escapeRegExp } from "Common/Utils/RegExpEscape";',
@@ -237,6 +245,7 @@ describe("negative controls: the same reading catches an ee/ test that escapes i
         "ee/Dashboard/License/LicenseCard.test.tsx",
         "ee/Tests/Server/License/Clean.test.ts",
         "ee/Tests/Server/License/LicenseHost.test.ts",
+        "ee/Tests/UI/License/Fixtures/banner.html",
         "ee/Tests/UI/License/Helpers/Letters.ts",
         "ee/Tests/UI/License/LicenseBanner.test.tsx",
       ]);
@@ -252,15 +261,19 @@ describe("negative controls: the same reading catches an ee/ test that escapes i
       ).toEqual([
         "ee/Dashboard/License/LicenseCard.test.tsx:1 [own regular expression escape]",
         "ee/Tests/Server/License/LicenseHost.test.ts:3 [js/incomplete-sanitization]",
+        "ee/Tests/UI/License/Fixtures/banner.html:3 [js/incomplete-sanitization]",
         "ee/Tests/UI/License/Helpers/Letters.ts:1 [js/overly-large-range]",
         "ee/Tests/UI/License/LicenseBanner.test.tsx:2 [js/incomplete-sanitization]",
       ]);
       expect(findings[1]).toContain(
         CODE_SCANNING_FIXES["js/incomplete-sanitization"],
       );
-      expect(findings[3]).toContain(
-        'This replaces only the first occurrence of "&".',
-      );
+
+      for (const index of [2, 4]) {
+        expect(findings[index]).toContain(
+          'This replaces only the first occurrence of "&".',
+        );
+      }
     });
   });
 });
