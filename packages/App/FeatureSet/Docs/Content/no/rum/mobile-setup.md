@@ -193,7 +193,7 @@ Kjør appen og bruk den et øyeblikk. Den vises under **Produkter → Ressurser 
 
 ## Session Replay på mobil
 
-React Native-apper kan ta opp økter med `@oneuptime/react-native-replay`. Det tar opp det native visningstreet som en trådramme, aldri skjermbilder eller teksten på skjermen, og opptakene åpnes i den samme avspilleren som opptak fra nettet. Det sender med en **Browser**-nøkkel der **Allowed Origins** lister appen din som `app://` etterfulgt av Android-applikasjons-ID-en eller iOS-bundle-ID-en: en annen nøkkel enn Server-nøkkelen OpenTelemetry-SDK-et ditt bruker. [Installere i React Native](/docs/telemetry/session-replay#install-in-react-native) viser deg hvordan.
+React Native-apper kan ta opp økter med `@oneuptime/react-native-replay`. Det tar opp det native visningstreet som en trådramme, aldri skjermbilder eller teksten på skjermen, og opptakene åpnes i den samme avspilleren som opptak fra nettet. Det sender med en **Browser**-nøkkel der **Allowed Origins** lister appen din som `app://` etterfulgt av Android-applikasjons-ID-en eller iOS-bundle-ID-en: en annen nøkkel enn Server-nøkkelen OpenTelemetry-SDK-et ditt bruker. [Installere i React Native](/docs/telemetry/session-replay#installasjon-i-react-native) viser deg hvordan.
 
 Native Android- og iOS-apper og de andre plattformene har ingen øktopptaker: Siden **Session Replay** forblir tom, mens spor, logger, målinger, unntak og siden **Klienter** virker som vanlig.
 
