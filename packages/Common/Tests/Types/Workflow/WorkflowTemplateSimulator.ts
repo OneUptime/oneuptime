@@ -16,7 +16,7 @@
  * them. What is real and what is faked is deliberate:
  *
  *   - Real: VMAPI substitution, the JavaScript component in the isolated-vm
- *     sandbox, the If / Else component, the Log component, the API
+ *     sandbox, the If / Else and Switch / Case components, the Log component, the API
  *     components themselves — sanitizeArgs, URL parsing, HTTPResponse and the
  *     choice of port included — and the Slack component, which posts the
  *     message's blocks through the same API.fetch.
@@ -54,6 +54,7 @@ import ComponentCode, {
 } from "../../../Server/Types/Workflow/ComponentCode";
 import JavaScriptCode from "../../../Server/Types/Workflow/Components/JavaScript";
 import IfElse from "../../../Server/Types/Workflow/Components/Conditions/IfElse";
+import Switch from "../../../Server/Types/Workflow/Components/Conditions/Switch";
 import Log from "../../../Server/Types/Workflow/Components/Log";
 import ApiGet from "../../../Server/Types/Workflow/Components/API/Get";
 import ApiPost from "../../../Server/Types/Workflow/Components/API/Post";
@@ -357,6 +358,7 @@ export const DATABASE_FAILURE: DatabaseReply = {
 const COMPONENT_CODE: Dictionary<ComponentCode> = {
   [ComponentID.JavaScriptCode]: new JavaScriptCode(),
   [ComponentID.IfElse]: new IfElse(),
+  [ComponentID.Switch]: new Switch(),
   [ComponentID.Log]: new Log(),
   [ComponentID.ApiGet]: new ApiGet(),
   [ComponentID.ApiPost]: new ApiPost(),
@@ -516,6 +518,8 @@ const executeStep: ExecuteStepFunction = async (data: {
   let errorMessage: string | null = null;
 
   const options: RunOptions = {
+    // As the runner hands them: the step's settings before substitution.
+    configuredArguments: node.arguments,
     log: (item: JSONValue | Error): void => {
       data.trace.runLog.push(
         typeof item === "string" ? item : JSON.stringify(item),

@@ -659,6 +659,8 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
     expect(received).toBeDefined();
     expect(Object.keys(received!).sort()).toEqual(
       [
+        // The step's own settings, as saved: no person in them either.
+        "configuredArguments",
         "executeWorkflow",
         "getRemainingExecutionTimeInMs",
         "log",
@@ -669,5 +671,53 @@ describe("RunWorkflow hands each step the workflow it runs for", () => {
         "workflowName",
       ].sort(),
     );
+  });
+
+  /*
+   * A step that names something after its settings - a Switch / Case names
+   * its outputs after its cases - reads them as configured: what the canvas
+   * shows, {{...}} and all, never the values a run resolved them to.
+   */
+  test("hands each step its settings as configured, before any {{...}} in them was resolved", async () => {
+    let received: RunOptions | undefined = undefined;
+    let receivedArgs: JSONObject | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        receivedArgs = args;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = {
+      ...node(metadata({ arguments: [argument("message")] })),
+      arguments: { message: "Hello {{local.variables.NAME}}" },
+    };
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: {
+        local: { variables: { NAME: "Ada" }, components: {} },
+        global: { variables: {} },
+      },
+      variables: [],
+    });
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    expect(receivedArgs!["message"]).toBe("Hello Ada");
+    expect(received!.configuredArguments).toEqual({
+      message: "Hello {{local.variables.NAME}}",
+    });
   });
 });
