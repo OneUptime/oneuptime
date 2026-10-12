@@ -142,7 +142,7 @@ flowchart TB
 
 Proxmox VE 9 और बाद के संस्करण अपने अंतर्निहित OpenTelemetry मेट्रिक सर्वर से कुछ भी इंस्टॉल किए बिना मेट्रिक्स पुश कर सकते हैं – [Proxmox एजेंट गाइड](/docs/telemetry/proxmox) देखें। OneUptime पुश को उन्हीं `pve_*` सीरीज़ में बदलता है, इसलिए कैटलॉग और CPU, मेमोरी और स्टोरेज टेम्पलेट इसके साथ काम करते हैं।
 
-**Node Offline** और **Cluster Quorum at Risk** भी काम करते हैं: हर नोड सिर्फ़ अपनी स्थिति पुश करता है, इसलिए जो नोड रिपोर्ट करना बंद कर देता है उसे अब भी चालू नोड डाउन (`pve_up` = 0) रिपोर्ट करते हैं – [जब कोई नोड रिपोर्ट करना बंद कर दे](/docs/telemetry/proxmox#when-a-node-stops-reporting) देखें। **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** और **Replication Failing** को ऐसे डेटा की ज़रूरत है जिसे सिर्फ़ एजेंट इकट्ठा करता है।
+**Node Offline** और **Cluster Quorum at Risk** भी काम करते हैं: हर नोड सिर्फ़ अपनी स्थिति पुश करता है, इसलिए जो नोड रिपोर्ट करना बंद कर देता है उसे अब भी चालू नोड डाउन (`pve_up` = 0) रिपोर्ट करते हैं – [जब कोई नोड रिपोर्ट करना बंद कर दे](/docs/telemetry/proxmox#जब-कोई-नोड-रिपोर्ट-करना-बंद-कर-दे) देखें। **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** और **Replication Failing** को ऐसे डेटा की ज़रूरत है जिसे सिर्फ़ एजेंट इकट्ठा करता है।
 
 ## इकट्ठा किए गए मेट्रिक्स
 
