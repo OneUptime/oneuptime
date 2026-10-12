@@ -425,6 +425,33 @@ function dashboardPaths(page: string): Array<Array<string>> {
   );
 }
 
+/*
+ * Every bold label, create button, menu item and menu path of the English
+ * page, as the English page writes it and as a page in the language must:
+ * [English bold, drawn bold]. A Persian path is one bold span per segment.
+ */
+function englishBoldDrawings(
+  language: string,
+  page: string,
+): Array<[string, string]> {
+  return [
+    ...dashboardLabels(page).map((label: string): [string, string] => {
+      return [`**${label}**`, `**${drawnDashboardLabel(language, label)}**`];
+    }),
+    ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
+      return [`**${button}**`, `**${drawnCreateButton(language, button)}**`];
+    }),
+    ...listed(MENU_ITEMS, page).map((item: string): [string, string] => {
+      return [`**${item}**`, `**${drawnMenuItem(language, item)}**`];
+    }),
+    ...dashboardPaths(page).map(
+      (segments: Array<string>): [string, string] => {
+        return [drawnPath("en", segments), drawnPath(language, segments)];
+      },
+    ),
+  ];
+}
+
 function numbersIn(text: string): Array<string> {
   return Array.from(
     toLatinDigits(text)
@@ -786,6 +813,50 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
 
       expect(missing).toEqual([]);
+    });
+
+    it("leaves no label, button, menu item or path in English where this language's Dashboard draws it otherwise", () => {
+      const translated: string = readPage(language, entry.page);
+      const drawnHere: Array<[string, string]> = englishBoldDrawings(
+        language,
+        entry.page,
+      );
+      /*
+       * A word this page writes in bold on purpose: drawn so, kept as
+       * written, or a segment of a Persian path, which is bold on its own.
+       */
+      const meant: Set<string> = new Set([
+        ...drawnHere.map((drawing: [string, string]): string => {
+          return drawing[1];
+        }),
+        ...keptAsWritten(entry.page).map((name: string): string => {
+          return `**${name}**`;
+        }),
+        ...(language === "fa"
+          ? dashboardPaths(entry.page).flatMap(
+              (segments: Array<string>): Array<string> => {
+                return segments.map((_segment: string, index: number): string => {
+                  return `**${drawnSegment(language, segments, index)}**`;
+                });
+              },
+            )
+          : []),
+      ]);
+      const leftover: Array<string> = drawnHere
+        .filter((drawing: [string, string]): boolean => {
+          const [englishBold, drawnBold] = drawing;
+
+          return (
+            englishBold !== drawnBold &&
+            !meant.has(englishBold) &&
+            translated.includes(englishBold)
+          );
+        })
+        .map((drawing: [string, string]): string => {
+          return drawing[0];
+        });
+
+      expect(leftover).toEqual([]);
     });
 
     it("gives every menu path, segment by segment, as this language's Dashboard draws it", () => {
