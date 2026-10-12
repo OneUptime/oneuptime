@@ -274,7 +274,7 @@ Pauzeer de uitvoering vóór het volgende blok, om een ander systeem even tijd t
 
 **Days**, **Hours**, **Minutes** en **Seconds** worden bij elkaar opgeteld. De langste wachttijd is 30 dagen: een langere wordt ingekort tot 30 dagen, en het logboek van de uitvoering zegt dat.
 
-Tijdens het wachten wordt de uitvoering opzijgezet met de status **Wachten** en weer opgepakt als de tijd om is, dus een lange wachttijd houdt niets op. Een uitvoering waarvan de workflow intussen is uitgezet of gearchiveerd, wordt bij het ontwaken geannuleerd.
+Tijdens het wachten wordt de uitvoering opzijgezet met de status **Wachten** en weer opgepakt als de tijd om is, dus een lange wachttijd houdt niets op. Een uitvoering waarvan de workflow intussen is uitgezet of gearchiveerd, wordt bij het ontwaken geannuleerd. Een testrun, gestart terwijl de workflow uit stond, wordt niet geannuleerd omdat hij uit staat.
 
 ## Log
 

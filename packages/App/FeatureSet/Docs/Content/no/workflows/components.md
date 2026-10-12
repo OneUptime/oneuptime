@@ -274,7 +274,7 @@ Sett kjøringen på pause før neste blokk, for å gi et annet system et øyebli
 
 **Days**, **Hours**, **Minutes** og **Seconds** legges sammen. Den lengste ventetiden er 30 dager: en lengre kuttes til 30 dager, og kjøringens logg sier det.
 
-Mens den venter, legges kjøringen til side med status **Venter** og plukkes opp igjen når tiden er ute, så en lang ventetid holder ingenting opp. En kjøring der arbeidsflyten i mellomtiden ble slått av eller arkivert, avbrytes når den våkner.
+Mens den venter, legges kjøringen til side med status **Venter** og plukkes opp igjen når tiden er ute, så en lang ventetid holder ingenting opp. En kjøring der arbeidsflyten i mellomtiden ble slått av eller arkivert, avbrytes når den våkner. En testkjøring, startet mens arbeidsflyten var av, avbrytes ikke fordi den er av.
 
 ## Log
 

@@ -11,7 +11,7 @@ Velg hvordan du vil begynne:
 
 Klikk på en mal for å se hva den gjør: triggeren, blokkene den består av, og innstillingene den vil spørre om. Klikk deretter på **Bruk denne malen**, eller dobbeltklikk på malen. I søkefeltet velger piltastene en mal, og **Enter** bruker den. `/` tar deg tilbake til søkefeltet.
 
-Arbeidsflyter opprettes avslått, så ingenting kjører før du slår dem på. En ny arbeidsflyt åpnes i **Bygger**, lerretet der du designer den.
+Arbeidsflyter opprettes avslått, så triggeren deres starter dem ikke før du slår dem på. En ny arbeidsflyt åpnes i **Bygger**, lerretet der du designer den.
 
 ## Lerretet
 
@@ -130,9 +130,8 @@ Den raskeste måten å bli kjent med lerretet på er en arbeidsflyt med to blokk
 1. Klikk på den stiplede plassholderblokken, og klikk deretter på **Manual** i panelet **Add Trigger**.
 2. Klikk på **Legg til komponent**, og klikk deretter på **Logg** under **Popular**. Den nye blokken havner under triggeren. Koble triggerens punkt **Execute** ned til inngangspunktet på Log-blokken.
 3. Klikk på Log-blokken, der det står **Click to set up**, og skriv `Hello from ` i **Value**. Klikk på **{ }**, og klikk deretter på **JSON** under **Manual**. Innstillingen viser **Manual › JSON** og lagrer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klikk på **Lagre**.
-4. Slå på **Aktivert** øverst i Bygger. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, heller ikke manuelt; hopper du over dette, ber **Kjør arbeidsflyt** deg slå den på først.
-5. Tilbake i **Bygger** klikker du på **Kjør arbeidsflyt**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Run Workflow Manually** og bekrefter med **Run**.
-6. Et panel **Arbeidsflytkjøring** åpnes av seg selv og følger kjøringen. Loggen viser `Value:` etterfulgt av `Hello from { "name": "Ada" }`.
+4. Tilbake i **Bygger** klikker du på **Kjør arbeidsflyt**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Run Workflow Manually** og bekrefter med **Run**. Arbeidsflyten er fortsatt slått av, og den trenger ikke være på: en kjøring du starter selv, er en **Testkjøring**.
+5. Et panel **Arbeidsflytkjøring** åpnes av seg selv og følger kjøringen. Øverst står det **Testkjøring**, og loggen viser `Value:` etterfulgt av `Hello from { "name": "Ada" }`.
 :::
 
 Den syklusen — legg til, koble, konfigurer, kjør, les loggen — er slik du bygger hver arbeidsflyt.
@@ -142,22 +141,22 @@ Den syklusen — legg til, koble, konfigurer, kjør, les loggen — er slik du b
 
 ## Slå den på
 
-Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer. Mens en arbeidsflyt er slått av, sier Bygger det over lerretet, med en knapp **Slå på arbeidsflyt**.
+Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer. Avslått er triggeren til arbeidsflyten satt på pause, så ingenting starter den av seg selv, men du kan fortsatt teste den. Mens en arbeidsflyt er slått av, sier Bygger det over lerretet, med en knapp **Slå på arbeidsflyt**.
 
 Bryteren **Aktivert** sitter øverst i **Bygger**, ved siden av **Legg til komponent** og **Kjør arbeidsflyt**. Den finnes også på arbeidsflytens side **Oversikt**, der kortet **Arbeidsflytdetaljer** viser gjeldende tilstand som en grønn pille **Aktivert** eller en rød pille **Deaktivert**: klikk på **Rediger arbeidsflyt**, og åpne **Flere felt**. Bare personer som har lov til å redigere arbeidsflyten, kan slå den på eller av; alle andre ser bryteren nedtonet.
 
-En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, uansett hvordan den startes:
+Mens en arbeidsflyt er slått av, avgjør det som starter den, om den kjører:
 
 | Startet av                                                 | Mens arbeidsflyten er slått av                                                                                                                                                            |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Triggeren: en tidsplan, en OneUptime-begivenhet eller en e-post | Ignorert.                                                                                                                                                                            |
-| **Kjør arbeidsflyt** eller **Run just this step**          | Bygger spør i stedet **Slå på denne arbeidsflyten?**. **Slå på og kjør** (eller **Slå på og kjør trinn**) slår arbeidsflyten på og kjører deretter det du ba om, med verdiene du ga.      |
-| Et kall til webhook-URL-en                                 | Avvist med HTTP 400 og "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
-| En annen arbeidsflyts **Execute Workflow**-blokk           | Den blokken tar veien **Error**, og feilen nevner arbeidsflyten den kalte.                                                                                                                |
+| **Kjør arbeidsflyt** eller **Run just this step**          | Kjører, som **Testkjøring**. Blokkene kjører på ekte: en melding blir virkelig sendt, og en post blir virkelig endret. Kjøringen er merket som **Testkjøring** i listene over kjøringer og øverst i kjøringen, med hvem som startet den. |
+| Et kall til webhook-URL-en                                 | Avvist med HTTP 400 og "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
+| En annen arbeidsflyts **Execute Workflow**-blokk           | Den blokken tar veien **Error**, og feilen nevner arbeidsflyten den kalte. Det gjelder også i en testkjøring: en arbeidsflyt den kaller, må være slått på. |
 
-Rekkefølgen er altså: bygg den, test den med **Kjør arbeidsflyt**, les kjøringens logg, og slå **Aktivert** av igjen hvis du ikke er klar for at triggeren skal utløses. For å teste én blokk uten å kjøre alt bruker du **Run just this step** i innstillingene til den blokken.
+Rekkefølgen er altså: bygg den, test den med **Kjør arbeidsflyt** mens den fortsatt er slått av, les kjøringens logg, og slå på **Aktivert** når du er klar for at triggeren skal utløses. For å teste én blokk uten å kjøre alt bruker du **Run just this step** i innstillingene til den blokken.
 
-For å sette en arbeidsflyt på pause uten å slette den slår du av **Aktivert**. Ingen nye kjøringer starter. En kjøring som er i gang, gjør seg ferdig, men en som venter ved en **Sleep**-blokk, avbrytes når den våkner, og registreres som en feil.
+For å sette en arbeidsflyt på pause uten å slette den slår du av **Aktivert**. Triggeren slutter å starte kjøringer. En kjøring som er i gang, gjør seg ferdig, men en som triggeren startet, og som venter ved en **Sleep**-blokk, avbrytes når den våkner, og registreres som en feil. En testkjøring fortsetter.
 
 ## Rydd opp
 

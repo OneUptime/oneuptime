@@ -104,7 +104,7 @@ Se a sua organização usa a gestão centralizada de usuários da Atlassian, há
 
 A descrição parece pesada porque a API v3 do Jira Cloud recebe rich text como **Atlassian Document Format** — uma árvore de documento, não uma string. O formato acima é o documento válido mínimo: um parágrafo contendo um nó de texto. O mesmo vale para `environment` e para qualquer campo personalizado de texto de várias linhas; campos personalizados de texto de uma linha ainda aceitam uma string simples.
 
-Agora ligue o workflow em **Visão geral → Editar fluxo de trabalho → Habilitado**, declare um incidente de teste e abra **Registros → Execuções**. O bloco `create-issue` deve exibir um `201` e um corpo contendo o `id`, a `key` e o `self` do novo issue. As mudanças no canvas se salvam sozinhas — não há botão de salvar, e um workflow desabilitado não roda de jeito nenhum, nem à mão.
+Agora ligue o workflow em **Visão geral → Editar fluxo de trabalho → Habilitado**, declare um incidente de teste e abra **Registros → Execuções**. O bloco `create-issue` deve exibir um `201` e um corpo contendo o `id`, a `key` e o `self` do novo issue. As mudanças no canvas se salvam sozinhas — não há botão de salvar, e enquanto o workflow está desligado, um novo incidente não o inicia.
 
 A chave do novo issue fica disponível para qualquer bloco depois deste:
 

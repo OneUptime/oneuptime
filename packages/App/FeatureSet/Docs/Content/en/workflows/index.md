@@ -93,8 +93,8 @@ Every workflow comes together the same way:
 1. **Create** — pick a starting point, then give your workflow a name. See [Authoring a Workflow](/docs/workflows/authoring).
 2. **Pick a trigger** — manual, scheduled, webhook, incoming email, or an event from OneUptime. See [Triggers](/docs/workflows/triggers).
 3. **Add components** — add actions to the canvas and connect them. See [Components](/docs/workflows/components).
-4. **Turn it on** — switch **Enabled** on at the top of the **Builder**. A disabled workflow can't run at all, not even by hand.
-5. **Test** — click **Run Workflow** on the **Builder** and watch the run as it happens.
+4. **Test** — click **Run Workflow** on the **Builder** and watch the run as it happens. This works while the workflow is still off: it's a **Test run**.
+5. **Turn it on** — switch **Enabled** on at the top of the **Builder** when it's ready. From then on, its trigger starts it.
 :::
 
 The example below follows these steps for a real workflow.
@@ -156,15 +156,15 @@ Click **Add Component**, then click **Log**. Connect the API block's **Error** d
 
 A request that fails — an unreachable URL, or an answer that isn't 2xx — now takes this path, and the run's log says why.
 
+### Test it
+
+Click **Run Workflow**, enter the **Incident ID** of an incident in this project, click **Run Workflow Manually**, and confirm with **Run**. The workflow is still off, so this is a **Test run**, and the request is really sent.
+
+A **Workflow Run** panel opens and follows the run. Open the **API Post (JSON)** step to see the body it sent and the response it got.
+
 ### Turn it on
 
 Switch **Enabled** on at the top of the **Builder**.
-
-### Test it
-
-Click **Run Workflow**, enter the **Incident ID** of an incident in this project, click **Run Workflow Manually**, and confirm with **Run**.
-
-A **Workflow Run** panel opens and follows the run. Open the **API Post (JSON)** step to see the body it sent and the response it got.
 :::
 
 From now on, every new incident in the project starts a run. You'll find them all under the workflow's [Runs](/docs/workflows/runs-and-logs).

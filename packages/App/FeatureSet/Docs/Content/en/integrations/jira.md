@@ -378,7 +378,7 @@ If your organization is on Atlassian's centralized user management, there is a t
 
 The description looks heavy because Jira Cloud's v3 API takes rich text as **Atlassian Document Format** — a document tree, not a string. The shape above is the minimum valid document: one paragraph holding one text node. The same applies to `environment` and to any multi-line text custom field; single-line text custom fields still take a plain string.
 
-Now turn the workflow on from **Overview → Edit Workflow → Enabled**, declare a test incident, and open **Logs → Runs**. The `create-issue` block should show a `201` and a body containing the new issue's `id`, `key` and `self`. Changes on the canvas save themselves — there is no Save button, and a disabled workflow cannot run at all, not even by hand.
+Now turn the workflow on from **Overview → Edit Workflow → Enabled**, declare a test incident, and open **Logs → Runs**. The `create-issue` block should show a `201` and a body containing the new issue's `id`, `key` and `self`. Changes on the canvas save themselves — there is no Save button, and while the workflow is off, a new incident doesn't start it.
 
 The new issue key is available to any block after this one:
 

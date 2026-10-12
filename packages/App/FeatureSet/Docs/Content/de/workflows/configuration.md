@@ -3,7 +3,7 @@
 Was Sie wissen sollten, bevor Sie einen Workflow auf echten Betrieb loslassen: wie Sie ihn sicher einschalten, wer was tun darf, wie Geheimnisse und URLs privat bleiben, was die Schritte eines Workflows ändern dürfen und innerhalb welcher Grenzen jede Ausführung arbeitet.
 
 :::cards
-- [Live gehen](#einen-workflow-ein-oder-ausschalten): Mit Arbeitsablauf ausführen testen, dann den Workflow eingeschaltet lassen.
+- [Live gehen](#einen-workflow-ein-oder-ausschalten): Mit Arbeitsablauf ausführen testen, solange er aus ist, dann einschalten.
 - [Berechtigungen](#berechtigungen): Die Workflow-Rollen und die einzelnen Berechtigungen dahinter.
 - [Was Schritte tun dürfen](#was-workflow-schritte-dürfen): Schritte handeln als Project Admin des Projekts des Workflows.
 - [Grenzen](#plan-grenzen): Ausführungen pro Plan, Laufzeit und Aufrufe zwischen Workflows.
@@ -11,18 +11,18 @@ Was Sie wissen sollten, bevor Sie einen Workflow auf echten Betrieb loslassen: w
 
 ## Einen Workflow ein- oder ausschalten
 
-Jeder Workflow hat einen Schalter **Aktiviert** oben in seinem **Editor** und auf seiner Seite **Übersicht**. Ist er aus, läuft der Workflow nicht – Webhook-Aufrufe, eingehende E-Mails, geplante Zeiten und OneUptime-Ereignisse werden alle ignoriert, ebenso **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen**. Neue Workflows beginnen deaktiviert.
+Jeder Workflow hat einen Schalter **Aktiviert** oben in seinem **Editor** und auf seiner Seite **Übersicht**. Ist er aus, ist sein Trigger pausiert – Webhook-Aufrufe, eingehende E-Mails, geplante Zeiten, OneUptime-Ereignisse und die **Execute Workflow**-Schritte anderer Workflows starten ihn nicht. **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen** schon: Eine Ausführung, die Sie selbst starten, während der Workflow aus ist, ist ein **Testlauf**. Neue Workflows beginnen deaktiviert.
 
 Verwenden Sie diesen Schalter als Ihr "startklar"-Tor:
 
 :::steps
 1. Bauen Sie den Workflow.
-2. Klicken Sie im **Editor** mit realistischen Werten auf **Arbeitsablauf ausführen**. Ein deaktivierter Workflow kann nicht einmal von Hand laufen, daher bittet der Editor zuerst darum, ihn einzuschalten: Klicken Sie auf **Einschalten und ausführen**.
+2. Klicken Sie im **Editor** mit realistischen Werten auf **Arbeitsablauf ausführen**, solange der Workflow noch aus ist. Die Ausführung ist ein **Testlauf**: Jeder Baustein läuft wirklich, richten Sie ihn also zuerst auf einen Testkanal oder einen Testdatensatz.
 3. Öffnen Sie die Ausführung und prüfen Sie, dass jeder Baustein dorthin ging, wo Sie es erwartet haben. Siehe [Ausführungen](/docs/workflows/runs-and-logs).
-4. Lassen Sie **Aktiviert** eingeschaltet, wenn er bereit ist. Ist er es nicht, schalten Sie ihn aus, bis er es ist: Solange er an ist, löst sein Trigger bei echten Ereignissen aus.
+4. Schalten Sie **Aktiviert** ein, wenn er bereit ist: Von da an löst sein Trigger bei echten Ereignissen aus.
 :::
 
-Einen Workflow auszuschalten verhindert, dass neue Ausführungen starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen.
+Einen Workflow auszuschalten hält seinen Trigger davon ab, neue Ausführungen zu starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die sein Trigger gestartet hat und die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen. Testläufe laufen weiter.
 
 ## Einen Workflow archivieren
 
@@ -85,7 +85,7 @@ Die Datei enthält Name, Beschreibung und Aktivierungszustand des Workflows sowi
 - **Globale Variablen.** Ein Baustein, der `{{global.variables.MY_SECRET}}` liest, behält diesen Verweis, aber der Wert steht nicht in der Datei. Legen Sie die Variablen im Zielprojekt an, bevor Sie den importierten Workflow ausführen.
 - **Eigentümer und Beschriftungen.** Die eigenen Beschriftungs- und Eigentümerregeln Ihres Projekts laufen für den importierten Workflow, genauso, als hätten Sie ihn von Hand angelegt.
 
-Ein importierter Workflow wird immer **deaktiviert** angelegt, auch wenn er dort, wo er exportiert wurde, aktiviert war – sein Graph kann auf Monitore, Bereitschaftsrichtlinien oder andere Workflows zeigen, die es im Zielprojekt nicht gibt. Prüfen Sie ihn, aktivieren Sie ihn, testen Sie ihn mit **Arbeitsablauf ausführen** und lassen Sie ihn dann eingeschaltet. Einen Workflow zu duplizieren verhält sich genauso, damit eine Kopie nie neben dem Original zu feuern beginnt, bevor Sie sie bearbeitet haben.
+Ein importierter Workflow wird immer **deaktiviert** angelegt, auch wenn er dort, wo er exportiert wurde, aktiviert war – sein Graph kann auf Monitore, Bereitschaftsrichtlinien oder andere Workflows zeigen, die es im Zielprojekt nicht gibt. Prüfen Sie ihn, testen Sie ihn mit **Arbeitsablauf ausführen** und schalten Sie ihn dann ein. Einen Workflow zu duplizieren verhält sich genauso, damit eine Kopie nie neben dem Original zu feuern beginnt, bevor Sie sie bearbeitet haben.
 
 Weil der Graph unverändert mitreist, reist alles, was direkt in einen Baustein getippt wurde, mit. Das ist der praktische Grund, Anmeldedaten in geheimen Variablen aufzubewahren: Einen Workflow mit einem fest eingetragenen Token zu exportieren, übergibt dieses Token jedem, der die Datei bekommt.
 

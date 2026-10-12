@@ -104,7 +104,7 @@ Er organisasjonen din på Atlassians sentraliserte brukeradministrasjon, finnes 
 
 Beskrivelsen ser tung ut fordi Jira Clouds v3-API tar imot rik tekst som **Atlassian Document Format** — et dokumenttre, ikke en streng. Formen ovenfor er det minste gyldige dokumentet: ett avsnitt som rommer én tekstnode. Det samme gjelder `environment` og alle flerlinjes tekstfelt av typen egendefinert felt; enlinjes egendefinerte tekstfelt tar fortsatt en vanlig streng.
 
-Slå nå på arbeidsflyten fra **Oversikt → Rediger arbeidsflyt → Aktivert**, opprett en testhendelse, og åpne **Logger → Kjøringer**. `create-issue`-blokken bør vise en `201` og en kropp som inneholder den nye sakens `id`, `key` og `self`. Endringer på lerretet lagrer seg selv — det finnes ingen Lagre-knapp, og en deaktivert arbeidsflyt kan ikke kjøre i det hele tatt, ikke engang manuelt.
+Slå nå på arbeidsflyten fra **Oversikt → Rediger arbeidsflyt → Aktivert**, opprett en testhendelse, og åpne **Logger → Kjøringer**. `create-issue`-blokken bør vise en `201` og en kropp som inneholder den nye sakens `id`, `key` og `self`. Endringer på lerretet lagrer seg selv — det finnes ingen Lagre-knapp, og mens arbeidsflyten er av, starter ikke en ny hendelse den.
 
 Den nye saksnøkkelen er tilgjengelig for enhver blokk etter denne:
 

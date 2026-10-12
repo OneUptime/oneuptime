@@ -3,7 +3,7 @@
 Cosa sapere prima di mettere un workflow davanti al traffico reale: come attivarlo in sicurezza, chi può fare cosa, come segreti e URL restano privati, cosa possono modificare i passaggi di un workflow e i limiti entro cui lavora ogni esecuzione.
 
 :::cards
-- [Andare in produzione](#accendere-o-spegnere-un-workflow): Prova con Esegui flusso di lavoro, poi lascia il workflow attivo.
+- [Andare in produzione](#accendere-o-spegnere-un-workflow): Prova con Esegui flusso di lavoro mentre è spento, poi accendilo.
 - [Autorizzazioni](#autorizzazioni): I ruoli dei workflow e i singoli permessi che li compongono.
 - [Cosa possono fare i passaggi](#cosa-possono-fare-i-passaggi-di-un-workflow): I passaggi agiscono come Project Admin del progetto del workflow.
 - [Limiti](#limiti-di-piano): Esecuzioni per piano, durata di un'esecuzione e chiamate tra workflow.
@@ -11,18 +11,18 @@ Cosa sapere prima di mettere un workflow davanti al traffico reale: come attivar
 
 ## Accendere o spegnere un workflow
 
-Ogni workflow ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il workflow non viene eseguito: chiamate webhook, email in arrivo, orari pianificati ed eventi di OneUptime vengono tutti ignorati, così come **Esegui flusso di lavoro** e **Run just this step**. I nuovi workflow partono disabilitati.
+Ogni workflow ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il suo trigger è in pausa: chiamate webhook, email in arrivo, orari pianificati, eventi di OneUptime e i passaggi **Execute Workflow** di altri workflow non lo avviano. **Esegui flusso di lavoro** e **Run just this step** invece sì: un'esecuzione che avvii tu stesso mentre il workflow è spento è un'**Esecuzione di prova**. I nuovi workflow partono disabilitati.
 
 Usa questo interruttore come via libera per la produzione:
 
 :::steps
 1. Costruisci il workflow.
-2. Fai clic su **Esegui flusso di lavoro** nel **Costruttore** con valori realistici. Un workflow disabilitato non può essere eseguito nemmeno a mano, quindi il Costruttore chiede prima di attivarlo: fai clic su **Attiva ed esegui**.
+2. Fai clic su **Esegui flusso di lavoro** nel **Costruttore** con valori realistici, mentre il workflow è ancora spento. L'esecuzione è un'**Esecuzione di prova**: ogni blocco viene eseguito davvero, quindi puntalo prima su un canale di prova o su un record di prova.
 3. Apri l'esecuzione e verifica che ogni blocco sia andato dove ti aspettavi. Vedi [Esecuzioni](/docs/workflows/runs-and-logs).
-4. Lascia **Abilitato** acceso se è pronto. Se non lo è, spegnilo finché non lo sarà: mentre è acceso, il suo trigger scatta sugli eventi reali.
+4. Accendi **Abilitato** quando è pronto: da quel momento, il suo trigger scatta sugli eventi reali.
 :::
 
-Spegnere un workflow impedisce che partano nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione in attesa su un blocco **Sleep** viene annullata al risveglio.
+Spegnere un workflow impedisce al suo trigger di avviare nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione avviata dal suo trigger e in attesa su un blocco **Sleep** viene annullata al risveglio. Le esecuzioni di prova continuano.
 
 ## Archiviare un workflow
 
@@ -85,7 +85,7 @@ Il file contiene il nome del workflow, la descrizione, lo stato di attivazione e
 - **Le variabili globali.** Un blocco che legge `{{global.variables.MY_SECRET}}` mantiene quel riferimento, ma il valore non è nel file. Crea le variabili nel progetto di destinazione prima di eseguire il workflow importato.
 - **I proprietari e le etichette.** Le regole di etichette e proprietari del tuo progetto si applicano al workflow importato, come se lo avessi creato a mano.
 
-Un workflow importato viene sempre creato **disabilitato**, anche se era abilitato dove è stato esportato: il suo grafo può puntare a monitor, policy di reperibilità o altri workflow che non esistono nel progetto di destinazione. Rivedilo, attivalo, provalo con **Esegui flusso di lavoro** e poi lascialo acceso. Duplicare un workflow funziona allo stesso modo, così una copia non inizia mai a scattare accanto all'originale prima che tu l'abbia modificata.
+Un workflow importato viene sempre creato **disabilitato**, anche se era abilitato dove è stato esportato: il suo grafo può puntare a monitor, policy di reperibilità o altri workflow che non esistono nel progetto di destinazione. Rivedilo, provalo con **Esegui flusso di lavoro** e poi accendilo. Duplicare un workflow funziona allo stesso modo, così una copia non inizia mai a scattare accanto all'originale prima che tu l'abbia modificata.
 
 Poiché il grafo viaggia così com'è, tutto ciò che è scritto direttamente in un blocco viaggia con esso. È il motivo pratico per tenere le credenziali in variabili segrete: esportare un workflow con un token scritto a mano consegna quel token a chiunque riceva il file.
 

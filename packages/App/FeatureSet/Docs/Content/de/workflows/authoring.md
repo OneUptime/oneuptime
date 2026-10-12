@@ -11,7 +11,7 @@ Wählen Sie, wie Sie beginnen:
 
 Klicken Sie auf eine Vorlage, um zu sehen, was sie tut: ihren Trigger, die Bausteine, aus denen sie besteht, und die Einstellungen, nach denen sie fragen wird. Klicken Sie dann auf **Diese Vorlage verwenden** oder doppelklicken Sie auf die Vorlage. Im Suchfeld wählen die Pfeiltasten eine Vorlage aus, und **Enter** verwendet sie. `/` bringt Sie zurück ins Suchfeld.
 
-Workflows werden ausgeschaltet angelegt, sodass nichts läuft, bevor Sie sie einschalten. Ein neuer Workflow öffnet sich im **Editor**, der Arbeitsfläche, auf der Sie ihn gestalten.
+Workflows werden ausgeschaltet angelegt, sodass ihr Trigger sie erst startet, wenn Sie sie einschalten. Ein neuer Workflow öffnet sich im **Editor**, der Arbeitsfläche, auf der Sie ihn gestalten.
 
 ## Die Arbeitsfläche
 
@@ -130,9 +130,8 @@ Am schnellsten lernen Sie die Arbeitsfläche mit einem Workflow aus zwei Baustei
 1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Bereich **Add Trigger** auf **Manuell**.
 2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **Protokoll**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
 3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und tippen Sie `Hello from ` in seinen **Value**. Klicken Sie auf **{ }** und dann unter **Manuell** auf **JSON**. Die Einstellung zeigt **Manual › JSON** und speichert `{{local.components.manual-1.returnValues.value}}`. `manual-1` ist die **Kennung** des Triggers, die auf dem Trigger-Baustein steht. Klicken Sie auf **Speichern**.
-4. Schalten Sie **Aktiviert** oben im Editor ein. Ein deaktivierter Workflow lässt sich überhaupt nicht ausführen, auch nicht von Hand; lassen Sie diesen Schritt aus, bittet **Arbeitsablauf ausführen** zuerst darum, ihn einzuschalten.
-5. Klicken Sie zurück im **Editor** auf **Arbeitsablauf ausführen**, tragen Sie `{ "name": "Ada" }` in das Feld **JSON** ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**.
-6. Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich von selbst und verfolgt die Ausführung. Das Protokoll zeigt `Value:` und dahinter `Hello from { "name": "Ada" }`.
+4. Klicken Sie zurück im **Editor** auf **Arbeitsablauf ausführen**, tragen Sie `{ "name": "Ada" }` in das Feld **JSON** ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, und er muss nicht an sein: Eine Ausführung, die Sie selbst starten, ist ein **Testlauf**.
+5. Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich von selbst und verfolgt die Ausführung. Oben steht **Testlauf**, und das Protokoll zeigt `Value:` und dahinter `Hello from { "name": "Ada" }`.
 :::
 
 Dieser Kreislauf – hinzufügen, verbinden, einrichten, ausführen, das Protokoll lesen – ist, wie Sie jeden Workflow bauen werden.
@@ -142,22 +141,22 @@ Dieser Kreislauf – hinzufügen, verbinden, einrichten, ausführen, das Protoko
 
 ## Einschalten
 
-Neue Workflows beginnen deaktiviert, ebenso jeder Workflow, den Sie duplizieren oder importieren. Solange ein Workflow aus ist, sagt der Editor das über der Arbeitsfläche, mit einer Schaltfläche **Arbeitsablauf einschalten**.
+Neue Workflows beginnen deaktiviert, ebenso jeder Workflow, den Sie duplizieren oder importieren. Aus pausiert den Trigger des Workflows, sodass nichts ihn von selbst startet, aber Sie können ihn trotzdem testen. Solange ein Workflow aus ist, sagt der Editor das über der Arbeitsfläche, mit einer Schaltfläche **Arbeitsablauf einschalten**.
 
 Der Schalter **Aktiviert** steht oben im **Editor**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Er steht auch auf der Seite **Übersicht** des Workflows, deren Karte **Details zum Arbeitsablauf** den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert** zeigt: Klicken Sie auf **Arbeitsablauf bearbeiten** und öffnen Sie **Weitere Felder**. Nur Personen, die den Workflow bearbeiten dürfen, können ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
 
-Ein deaktivierter Workflow kann überhaupt nicht laufen, wie auch immer er gestartet wird:
+Solange ein Workflow aus ist, entscheidet das, was ihn startet, ob er läuft:
 
 | Gestartet durch                                        | Solange der Workflow aus ist                                                                                                                                                                       |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Seinen Trigger: einen Zeitplan, ein OneUptime-Ereignis oder eine E-Mail | Ignoriert.                                                                                                                                                                         |
-| **Arbeitsablauf ausführen** oder **Nur diesen Schritt ausführen** | Der Editor fragt stattdessen **Diesen Arbeitsablauf einschalten?**. **Einschalten und ausführen** (oder **Einschalten und Schritt ausführen**) schaltet den Workflow ein und führt dann aus, worum Sie gebeten haben, mit den Werten, die Sie angegeben haben. |
-| Einen Aufruf seiner Webhook-URL                        | Abgelehnt mit HTTP 400 und "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
-| Den **Execute Workflow**-Baustein eines anderen Workflows | Dieser Baustein nimmt seinen Pfad **Error**, und der Fehler nennt den Workflow, den er aufgerufen hat.                                                                                          |
+| **Arbeitsablauf ausführen** oder **Nur diesen Schritt ausführen** | Läuft, als **Testlauf**. Seine Bausteine laufen wirklich: Eine Nachricht wird wirklich gesendet und ein Datensatz wirklich geändert. Die Ausführung ist in den Listen der Ausführungen und oben in der Ausführung als **Testlauf** markiert, mit dem, der sie gestartet hat. |
+| Einen Aufruf seiner Webhook-URL                        | Abgelehnt mit HTTP 400 und "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
+| Den **Execute Workflow**-Baustein eines anderen Workflows | Dieser Baustein nimmt seinen Pfad **Error**, und der Fehler nennt den Workflow, den er aufgerufen hat. Das gilt auch in einem Testlauf: Ein Workflow, den er aufruft, muss an sein. |
 
-Die Reihenfolge ist also: bauen, mit **Arbeitsablauf ausführen** testen, das Protokoll der Ausführung lesen und **Aktiviert** wieder ausschalten, wenn Sie noch nicht bereit sind, dass sein Trigger auslöst. Um einen einzelnen Baustein zu testen, ohne das Ganze auszuführen, verwenden Sie **Nur diesen Schritt ausführen** in den Einstellungen dieses Bausteins.
+Die Reihenfolge ist also: bauen, mit **Arbeitsablauf ausführen** testen, solange er noch aus ist, das Protokoll der Ausführung lesen und **Aktiviert** einschalten, wenn Sie bereit sind, dass sein Trigger auslöst. Um einen einzelnen Baustein zu testen, ohne das Ganze auszuführen, verwenden Sie **Nur diesen Schritt ausführen** in den Einstellungen dieses Bausteins.
 
-Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert** aus. Es starten keine neuen Ausführungen. Eine Ausführung, die gerade läuft, wird zu Ende geführt, aber eine, die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen und als Fehler verbucht.
+Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert** aus. Sein Trigger startet dann keine Ausführungen mehr. Eine Ausführung, die gerade läuft, wird zu Ende geführt, aber eine, die sein Trigger gestartet hat und die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen und als Fehler verbucht. Ein Testlauf läuft weiter.
 
 ## Aufräumen
 

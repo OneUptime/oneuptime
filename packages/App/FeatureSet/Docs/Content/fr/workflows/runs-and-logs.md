@@ -76,6 +76,7 @@ Les étapes en échec, les étapes avec un avertissement et l'unique étape d'un
 
 Quelques exécutions se lisent différemment :
 
+- **Une exécution de test.** Une exécution que quelqu'un a lancée avec **Exécuter le flux de travail** ou **Run just this step** pendant que le workflow était désactivé indique **Exécution de test** en haut, avec la personne qui l'a lancée, et les deux listes d'exécutions la marquent **Exécution de test** à côté de son statut. Ses blocs se sont exécutés pour de vrai ; seul le déclencheur du workflow était en pause. Filtrez sur **Exécution de test** pour ne lister que les exécutions de test, ou que les autres.
 - **Un test d'une seule étape.** Une exécution lancée avec **Run just this step** indique **Seule cette étape s'est exécutée** en haut. Les étapes précédentes ne se sont pas exécutées : les valeurs qu'elle y lit manquent donc (attendez-vous à un avertissement **Non résolu** pour celles-ci), et les étapes suivantes indiquent **(not run in this test)**. Utilisez **Exécuter le flux de travail** pour essayer tout le chemin.
 - **Une exécution arrêtée entre deux étapes.** Si l'exécution s'est arrêtée pour une raison qu'aucune étape n'explique — elle a dépassé son délai entre deux étapes, ou a échoué avant sa première étape —, le chemin se termine par **The run stopped here** et la raison.
 - **Une exécution endormie.** Une exécution qui attend sur un bloc **Sleep** se termine par **Sleeping** et l'heure à laquelle elle reprendra d'elle-même ; les étapes après le Sleep indiquent **(not run yet)**.
@@ -106,7 +107,7 @@ Un téléchargement ne contient rien que vous ne pourriez déjà lire dans l'ex�
 ## Dépannage
 
 :::details Mon workflow ne s'est pas exécuté
-1. Assurez-vous que le workflow est **Activé** : l'interrupteur se trouve en haut de son **Constructeur**, qui l'indique au-dessus du canevas quand le workflow est désactivé. Les nouveaux workflows démarrent désactivés, et un workflow désactivé refuse toutes les exécutions — y compris manuelles. Un appel de webhook vers lui reçoit HTTP 400 avec un message expliquant comment l'activer.
+1. Assurez-vous que le workflow est **Activé** : l'interrupteur se trouve en haut de son **Constructeur**, qui l'indique au-dessus du canevas quand le workflow est désactivé. Les nouveaux workflows démarrent désactivés, et tant qu'un workflow est désactivé, son déclencheur ne le lance pas : seuls **Exécuter le flux de travail** et **Run just this step** le font, en tant qu'exécutions de test. Un appel de webhook vers lui reçoit HTTP 400 avec un message expliquant comment l'activer.
 2. Pour un déclencheur d'événement OneUptime, vérifiez que l'événement a bien eu lieu : ouvrez l'enregistrement et consultez son historique. Un déclencheur **On Update** avec **Listen on** ne se produit que si l'un de ces champs a changé.
 3. Pour un déclencheur webhook, vérifiez que l'autre système envoie bien vers la bonne URL. La plupart des outils journalisent l'envoi d'un webhook — regardez-y.
 4. Pour un déclencheur de planification, vérifiez que l'expression cron correspond à l'heure attendue. Les planifications s'exécutent en UTC.

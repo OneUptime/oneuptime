@@ -11,7 +11,7 @@ Kies hoe je begint:
 
 Klik op een sjabloon om te zien wat het doet: de trigger, de blokken waaruit het bestaat en de instellingen waarom het gaat vragen. Klik daarna op **Dit sjabloon gebruiken**, of dubbelklik op het sjabloon. In het zoekveld kiezen de pijltjestoetsen een sjabloon en gebruikt **Enter** het. Met `/` ga je terug naar het zoekveld.
 
-Workflows worden uitgeschakeld aangemaakt, zodat er niets draait totdat je ze inschakelt. Een nieuwe workflow opent in de **Bouwer**, het canvas waarop je hem ontwerpt.
+Workflows worden uitgeschakeld aangemaakt, zodat hun trigger ze pas start als je ze inschakelt. Een nieuwe workflow opent in de **Bouwer**, het canvas waarop je hem ontwerpt.
 
 ## Het canvas
 
@@ -130,9 +130,8 @@ De snelste manier om het canvas te leren kennen is een workflow van twee blokken
 1. Klik op het gestippelde plaatshouderblok en daarna op **Manual** in het paneel **Add Trigger**.
 2. Klik op **Component toevoegen** en daarna op **Logboek** onder **Popular**. Het nieuwe blok komt onder de trigger terecht. Verbind het punt **Execute** van de trigger met het invoerpunt van het Log-blok eronder.
 3. Klik op het Log-blok, waarop **Click to set up** staat, en typ `Hello from ` in de **Value** ervan. Klik op **{ }** en daarna op **JSON** onder **Manual**. De instelling toont **Manual › JSON** en slaat `{{local.components.manual-1.returnValues.value}}` op. `manual-1` is de **Identifier** van de trigger, die op het triggerblok staat. Klik op **Opslaan**.
-4. Zet **Ingeschakeld** aan, bovenaan de Bouwer. Een uitgeschakelde workflow kan helemaal niet worden uitgevoerd, ook niet handmatig; sla je dit over, dan vraagt **Workflow uitvoeren** eerst om hem in te schakelen.
-5. Klik terug in de **Bouwer** op **Workflow uitvoeren**, zet `{ "name": "Ada" }` in het veld **JSON**, klik op **Run Workflow Manually** en bevestig met **Run**.
-6. Er opent vanzelf een paneel **Workflow-uitvoering** dat de uitvoering volgt. Het logboek toont `Value:` gevolgd door `Hello from { "name": "Ada" }`.
+4. Klik terug in de **Bouwer** op **Workflow uitvoeren**, zet `{ "name": "Ada" }` in het veld **JSON**, klik op **Run Workflow Manually** en bevestig met **Run**. De workflow staat nog uit, en hij hoeft niet aan te staan: een uitvoering die je zelf start, is een **Testrun**.
+5. Er opent vanzelf een paneel **Workflow-uitvoering** dat de uitvoering volgt. Bovenaan staat **Testrun**, en het logboek toont `Value:` gevolgd door `Hello from { "name": "Ada" }`.
 :::
 
 Die cyclus — toevoegen, verbinden, instellen, uitvoeren, het logboek lezen — is hoe je elke workflow bouwt.
@@ -142,22 +141,22 @@ Die cyclus — toevoegen, verbinden, instellen, uitvoeren, het logboek lezen —
 
 ## Inschakelen
 
-Nieuwe workflows beginnen uitgeschakeld, net als elke workflow die je dupliceert of importeert. Zolang een workflow uit staat, zegt de Bouwer dat boven het canvas, met een knop **Workflow inschakelen**.
+Nieuwe workflows beginnen uitgeschakeld, net als elke workflow die je dupliceert of importeert. Uit pauzeert de trigger van de workflow, zodat niets hem uit zichzelf start, maar je kunt hem nog steeds testen. Zolang een workflow uit staat, zegt de Bouwer dat boven het canvas, met een knop **Workflow inschakelen**.
 
 De schakelaar **Ingeschakeld** staat bovenaan de **Bouwer**, naast **Component toevoegen** en **Workflow uitvoeren**. Hij staat ook op de pagina **Overzicht** van de workflow, waarvan de kaart **Workflow-details** de huidige toestand toont als groen label **Ingeschakeld** of rood label **Uitgeschakeld**: klik op **Workflow bewerken** en open **Meer velden**. Alleen mensen die de workflow mogen bewerken, kunnen hem aan- of uitzetten; anderen zien de schakelaar grijs.
 
-Een uitgeschakelde workflow kan helemaal niet draaien, hoe hij ook wordt gestart:
+Zolang een workflow uit staat, bepaalt wat hem start of hij draait:
 
 | Gestart door                                               | Zolang de workflow uit staat                                                                                                                                                              |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Zijn trigger: een schema, een OneUptime-gebeurtenis of een e-mail | Genegeerd.                                                                                                                                                                         |
-| **Workflow uitvoeren** of **Run just this step**            | De Bouwer vraagt in plaats daarvan **Deze workflow inschakelen?**. **Inschakelen en uitvoeren** (of **Inschakelen en stap uitvoeren**) zet de workflow aan en voert daarna uit waar je om vroeg, met de waarden die je gaf. |
-| Een aanroep van zijn webhook-URL                           | Geweigerd met HTTP 400 en "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
-| Het **Execute Workflow**-blok van een andere workflow       | Dat blok neemt zijn pad **Error**, en de fout noemt de workflow die het aanriep.                                                                                                          |
+| **Workflow uitvoeren** of **Run just this step**            | Draait, als **Testrun**. Zijn blokken draaien echt: een bericht wordt echt verstuurd en een record wordt echt gewijzigd. De uitvoering is gemarkeerd als **Testrun** in de lijsten met uitvoeringen en bovenaan de uitvoering, met wie hem startte. |
+| Een aanroep van zijn webhook-URL                           | Geweigerd met HTTP 400 en "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
+| Het **Execute Workflow**-blok van een andere workflow       | Dat blok neemt zijn pad **Error**, en de fout noemt de workflow die het aanriep. Dat geldt ook in een testrun: een workflow die het aanroept, moet aan staan. |
 
-De volgorde is dus: bouwen, testen met **Workflow uitvoeren**, het logboek van de uitvoering lezen en **Ingeschakeld** weer uitzetten als je nog niet wilt dat de trigger afgaat. Gebruik **Run just this step** in de instellingen van een blok om één blok te testen zonder het geheel uit te voeren.
+De volgorde is dus: bouwen, testen met **Workflow uitvoeren** terwijl hij nog uit staat, het logboek van de uitvoering lezen en **Ingeschakeld** aanzetten als je wilt dat de trigger afgaat. Gebruik **Run just this step** in de instellingen van een blok om één blok te testen zonder het geheel uit te voeren.
 
-Wil je een workflow pauzeren zonder hem te verwijderen, zet dan **Ingeschakeld** uit. Er starten geen nieuwe uitvoeringen. Een uitvoering die halverwege is, maakt haar werk af, maar een uitvoering die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd en als fout vastgelegd.
+Wil je een workflow pauzeren zonder hem te verwijderen, zet dan **Ingeschakeld** uit. Zijn trigger start dan geen uitvoeringen meer. Een uitvoering die halverwege is, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd en als fout vastgelegd. Een testrun gaat door.
 
 ## Opruimen
 

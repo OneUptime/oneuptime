@@ -274,7 +274,7 @@ Pause a execução antes do próximo bloco, para dar a outro sistema um tempo pa
 
 **Days**, **Hours**, **Minutes** e **Seconds** se somam. A espera mais longa é de 30 dias: uma mais longa é reduzida a 30 dias, e o log da execução avisa.
 
-Enquanto espera, a execução é colocada de lado com o status **Aguardando** e retomada quando o tempo acaba, então uma espera longa não segura nada. Uma execução cujo workflow foi desligado ou arquivado nesse meio-tempo é cancelada ao acordar.
+Enquanto espera, a execução é colocada de lado com o status **Aguardando** e retomada quando o tempo acaba, então uma espera longa não segura nada. Uma execução cujo workflow foi desligado ou arquivado nesse meio-tempo é cancelada ao acordar. Uma execução de teste, iniciada enquanto o workflow estava desligado, não é cancelada por ele estar desligado.
 
 ## Log
 

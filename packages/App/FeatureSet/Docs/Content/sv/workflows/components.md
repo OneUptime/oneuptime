@@ -274,7 +274,7 @@ Pausa körningen före nästa block, för att ge ett annat system en stund att k
 
 **Days**, **Hours**, **Minutes** och **Seconds** läggs ihop. Den längsta väntetiden är 30 dagar: en längre kortas till 30 dagar, och körningens logg säger det.
 
-Medan den väntar läggs körningen åt sidan med statusen **Väntar** och plockas upp igen när tiden har gått, så en lång väntan håller inte upp något. En körning vars arbetsflöde under tiden stängdes av eller arkiverades avbryts när den vaknar.
+Medan den väntar läggs körningen åt sidan med statusen **Väntar** och plockas upp igen när tiden har gått, så en lång väntan håller inte upp något. En körning vars arbetsflöde under tiden stängdes av eller arkiverades avbryts när den vaknar. En testkörning, startad medan arbetsflödet var avstängt, avbryts inte för att det är avstängt.
 
 ## Log
 

@@ -11,7 +11,7 @@ Choisissez comment commencer :
 
 Cliquez sur un modèle pour voir ce qu'il fait : son déclencheur, les blocs qui le composent et les paramètres qu'il vous demandera. Cliquez ensuite sur **Utiliser ce modèle**, ou double-cliquez sur le modèle. Dans le champ de recherche, les flèches choisissent un modèle et **Entrée** l'utilise. `/` vous ramène au champ de recherche.
 
-Les workflows sont créés désactivés, si bien que rien ne s'exécute avant que vous les activiez. Un nouveau workflow s'ouvre dans le **Constructeur**, le canevas sur lequel vous le concevez.
+Les workflows sont créés désactivés, si bien que leur déclencheur ne les lance pas avant que vous les activiez. Un nouveau workflow s'ouvre dans le **Constructeur**, le canevas sur lequel vous le concevez.
 
 ## Le canevas
 
@@ -130,9 +130,8 @@ Le plus rapide pour prendre le canevas en main est un workflow de deux blocs que
 1. Cliquez sur le bloc d'espace réservé en pointillés, puis sur **Manuel** dans le panneau **Add Trigger**.
 2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Popular**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log, en dessous.
 3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et tapez `Hello from ` dans sa **Value**. Cliquez sur **{ }**, puis sur **JSON** sous **Manuel**. Le paramètre affiche **Manual › JSON** et enregistre `{{local.components.manual-1.returnValues.value}}`. `manual-1` est l'**Identifiant** du déclencheur, affiché sur le bloc déclencheur. Cliquez sur **Enregistrer**.
-4. Basculez **Activé**, en haut du Constructeur. Un workflow désactivé ne peut pas être exécuté du tout, pas même à la main ; si vous sautez cette étape, **Exécuter le flux de travail** vous demande d'abord de l'activer.
-5. De retour dans le **Constructeur**, cliquez sur **Exécuter le flux de travail**, mettez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Run Workflow Manually** et confirmez avec **Run**.
-6. Un panneau **Exécution du flux de travail** s'ouvre de lui-même et suit l'exécution. Le journal affiche `Value:` suivi de `Hello from { "name": "Ada" }`.
+4. De retour dans le **Constructeur**, cliquez sur **Exécuter le flux de travail**, mettez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Run Workflow Manually** et confirmez avec **Run**. Le workflow est toujours désactivé, et il n'a pas besoin d'être activé : une exécution que vous lancez vous-même est une **Exécution de test**.
+5. Un panneau **Exécution du flux de travail** s'ouvre de lui-même et suit l'exécution. Il indique **Exécution de test** en haut, et le journal affiche `Value:` suivi de `Hello from { "name": "Ada" }`.
 :::
 
 Ce cycle — ajouter, relier, configurer, exécuter, lire le journal — est la façon dont vous construirez chaque workflow.
@@ -142,22 +141,22 @@ Ce cycle — ajouter, relier, configurer, exécuter, lire le journal — est la 
 
 ## L'activer
 
-Les nouveaux workflows démarrent désactivés, tout comme les workflows que vous dupliquez ou importez. Tant qu'un workflow est désactivé, le Constructeur l'indique au-dessus du canevas, avec un bouton **Activer le flux de travail**.
+Les nouveaux workflows démarrent désactivés, tout comme les workflows que vous dupliquez ou importez. La désactivation met en pause le déclencheur du workflow : rien ne le lance de lui-même, mais vous pouvez toujours le tester. Tant qu'un workflow est désactivé, le Constructeur l'indique au-dessus du canevas, avec un bouton **Activer le flux de travail**.
 
 L'interrupteur **Activé** se trouve en haut du **Constructeur**, à côté de **Ajouter un composant** et de **Exécuter le flux de travail**. Il figure aussi sur la page **Vue d'ensemble** du workflow, dont la carte **Détails du flux de travail** montre l'état actuel par une pastille verte **Activé** ou rouge **Désactivé** : cliquez sur **Modifier le flux de travail** et ouvrez **Plus de champs**. Seules les personnes qui peuvent modifier le workflow peuvent l'activer ou le désactiver ; les autres voient l'interrupteur grisé.
 
-Un workflow désactivé ne peut pas s'exécuter du tout, quelle que soit la façon dont on le lance :
+Tant qu'un workflow est désactivé, ce qui le lance décide s'il s'exécute :
 
 | Lancé par                                                | Tant que le workflow est désactivé                                                                                                                                                         |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Son déclencheur : une planification, un événement OneUptime ou un e-mail | Ignoré.                                                                                                                                                                      |
-| **Exécuter le flux de travail** ou **Run just this step** | Le Constructeur demande plutôt **Activer ce flux de travail ?**. **Activer et exécuter** (ou **Activer et exécuter l'étape**) active le workflow puis exécute ce que vous avez demandé, avec les valeurs que vous avez données. |
-| Un appel à son URL de webhook                            | Refusé avec HTTP 400 et "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
-| Le bloc **Execute Workflow** d'un autre workflow          | Ce bloc prend son chemin **Error**, et l'erreur nomme le workflow qu'il a appelé.                                                                                                           |
+| **Exécuter le flux de travail** ou **Run just this step** | S'exécute, en tant qu'**Exécution de test**. Ses blocs s'exécutent pour de vrai : un message est vraiment envoyé et un enregistrement est vraiment modifié. L'exécution est marquée **Exécution de test** dans les listes d'exécutions et en haut de l'exécution, avec la personne qui l'a lancée. |
+| Un appel à son URL de webhook                            | Refusé avec HTTP 400 et "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
+| Le bloc **Execute Workflow** d'un autre workflow          | Ce bloc prend son chemin **Error**, et l'erreur nomme le workflow qu'il a appelé. C'est vrai aussi dans une exécution de test : un workflow qu'il appelle doit être activé. |
 
-L'ordre est donc : le construire, le tester avec **Exécuter le flux de travail**, lire le journal de l'exécution, et rebasculer **Activé** sur arrêt si vous n'êtes pas prêt à ce que son déclencheur se produise. Pour tester un seul bloc sans exécuter l'ensemble, utilisez **Run just this step** dans les paramètres de ce bloc.
+L'ordre est donc : le construire, le tester avec **Exécuter le flux de travail** tant qu'il est encore désactivé, lire le journal de l'exécution, et basculer **Activé** quand vous êtes prêt à ce que son déclencheur se produise. Pour tester un seul bloc sans exécuter l'ensemble, utilisez **Run just this step** dans les paramètres de ce bloc.
 
-Pour mettre un workflow en pause sans le supprimer, désactivez **Activé**. Aucune nouvelle exécution ne démarre. Une exécution en cours se termine, mais une exécution en attente sur un bloc **Sleep** est annulée à son réveil et enregistrée comme une erreur.
+Pour mettre un workflow en pause sans le supprimer, désactivez **Activé**. Son déclencheur ne lance plus d'exécutions. Une exécution en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil et enregistrée comme une erreur. Une exécution de test continue.
 
 ## Mettre de l'ordre
 

@@ -76,6 +76,7 @@ Mislykkede trinn, trinn med en advarsel og det eneste trinnet i en kjøring star
 
 Noen kjøringer leses annerledes:
 
+- **En testkjøring.** En kjøring som noen startet med **Kjør arbeidsflyt** eller **Run just this step** mens arbeidsflyten var av, sier **Testkjøring** øverst, med hvem som startet den, og begge listene over kjøringer merker den som **Testkjøring** ved siden av statusen. Blokkene kjørte på ekte; bare triggeren til arbeidsflyten var satt på pause. Filtrer på **Testkjøring** for å vise bare testkjøringene, eller bare de andre.
 - **En test av ett trinn.** En kjøring som ble startet med **Run just this step**, sier **Only this step ran** øverst. Trinnene før det kjørte ikke, så verdier det leser fra dem, mangler (forvent en advarsel **Did not resolve** for dem), og trinnene etter det sier **(not run in this test)**. Bruk **Kjør arbeidsflyt** for å prøve hele veien.
 - **En kjøring som stoppet mellom trinn.** Stoppet kjøringen av en grunn som ikke noe trinn forklarer — den gikk tom for tid mellom to trinn, eller den mislyktes før det første trinnet —, slutter veien med **The run stopped here** og årsaken.
 - **En sovende kjøring.** En kjøring som venter ved en **Sleep**-blokk, slutter med **Sleeping** og tidspunktet den fortsetter av seg selv; trinnene etter Sleep sier **(not run yet)**.
@@ -106,7 +107,7 @@ En nedlasting inneholder ingenting du ikke allerede kunne lese i kjøringen. Hem
 ## Feilsøking
 
 :::details Arbeidsflyten min kjørte ikke
-1. Sørg for at arbeidsflyten er **Aktivert**: bryteren sitter øverst i **Bygger**, som sier det over lerretet når arbeidsflyten er slått av. Nye arbeidsflyter starter deaktivert, og en deaktivert arbeidsflyt avviser alle kjøringer — også manuelle. Et webhook-kall til den får HTTP 400 med en melding om hvordan du slår den på.
+1. Sørg for at arbeidsflyten er **Aktivert**: bryteren sitter øverst i **Bygger**, som sier det over lerretet når arbeidsflyten er slått av. Nye arbeidsflyter starter deaktivert, og mens en arbeidsflyt er av, starter ikke triggeren den: bare **Kjør arbeidsflyt** og **Run just this step** gjør det, som testkjøringer. Et webhook-kall til den får HTTP 400 med en melding om hvordan du slår den på.
 2. For en OneUptime-begivenhetstrigger bekrefter du at begivenheten faktisk skjedde: åpne posten, og sjekk historikken. En **On Update**-trigger med **Listen on** utløses bare når ett av de feltene endret seg.
 3. For en webhook-trigger bekrefter du at det andre systemet sender til riktig URL. De fleste verktøy logger når de sender en webhook — sjekk der.
 4. For en tidsplantrigger bekrefter du at cron-uttrykket stemmer med tidspunktet du forventer. Tidsplaner kjører i UTC.

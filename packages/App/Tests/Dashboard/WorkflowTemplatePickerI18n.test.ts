@@ -79,7 +79,12 @@ const PICKER_STRINGS: Array<string> = [
  */
 const MODAL_STRINGS: Array<string> = [
   "Create a workflow",
-  "Workflows are created switched off, so nothing runs until you turn them on.",
+  /*
+   * Off pauses the trigger, not a test from the Builder ("Why do I have to
+   * enable a workflow in order to test run it?"), so the note no longer says
+   * nothing runs.
+   */
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
   "Use this template",
   "Name",
   "Workflow names are unique within a project.",
@@ -139,7 +144,7 @@ const NEW_STRINGS: Array<string> = [
   // The simpler dialog.
   "Begin with an empty canvas and add your own trigger and steps.",
   "Or start from a template",
-  "Workflows are created switched off, so nothing runs until you turn them on.",
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.",
   "{{templateName}} needs a few details before it can run. These are saved as workflow variables, so you can change them later without editing the workflow itself.",
   // Translated with it: the wizard's own words, English until now.
   "Create a workflow",
@@ -229,6 +234,8 @@ const RETIRED_STRINGS: Array<string> = [
   "Every template, grouped by what it is for.",
   "Start from",
   "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
+  // The note before test runs: off no longer means nothing runs.
+  "Workflows are created switched off, so nothing runs until you turn them on.",
 ];
 
 // Retired strings no other part of the Dashboard draws, so no locale keeps them.
@@ -245,6 +252,7 @@ const RETIRED_KEYS: Array<string> = [
   "Every template, grouped by what it is for.",
   "Start from",
   "Start from a template or build your own. Workflows are created switched off, so nothing runs until you turn them on.",
+  "Workflows are created switched off, so nothing runs until you turn them on.",
 ];
 
 const CONFIGURE_SENTENCE: string =

@@ -11,7 +11,7 @@ Elige cómo empezar:
 
 Haz clic en una plantilla para ver lo que hace: su disparador, los bloques que la forman y los ajustes que te pedirá. Después haz clic en **Usar esta plantilla**, o haz doble clic en la plantilla. En el cuadro de búsqueda, las teclas de flecha eligen una plantilla e **Intro** la usa. `/` te devuelve al cuadro de búsqueda.
 
-Los flujos de trabajo se crean desactivados, así que nada se ejecuta hasta que los actives. Un flujo de trabajo nuevo se abre en el **Constructor**, el lienzo donde lo diseñas.
+Los flujos de trabajo se crean desactivados, así que su disparador no los inicia hasta que los actives. Un flujo de trabajo nuevo se abre en el **Constructor**, el lienzo donde lo diseñas.
 
 ## El lienzo
 
@@ -130,9 +130,8 @@ La forma más rápida de familiarizarte con el lienzo es un flujo de trabajo de 
 1. Haz clic en el bloque marcador discontinuo y, luego, en **Manual** en el panel **Añadir desencadenante**.
 2. Haz clic en **Añadir componente** y, luego, en **Registro**, en **Populares**. El bloque nuevo aparece debajo del disparador. Conecta el punto **Execute** del disparador con el punto de entrada del bloque Log, más abajo.
 3. Haz clic en el bloque Log, que dice **Haz clic para configurar**, y escribe `Hello from ` en su **Value**. Haz clic en **{ }** y, luego, en **JSON**, en **Manual**. El ajuste muestra **Manual › JSON** y guarda `{{local.components.manual-1.returnValues.value}}`. `manual-1` es el **Identificador** del disparador, que aparece en el bloque disparador. Haz clic en **Guardar**.
-4. Activa **Habilitado** en la parte superior del Constructor. Un flujo de trabajo deshabilitado no se puede ejecutar en absoluto, ni siquiera a mano; si te saltas esto, **Ejecutar flujo de trabajo** te pide activarlo primero.
-5. De vuelta en el **Constructor**, haz clic en **Ejecutar flujo de trabajo**, pon `{ "name": "Ada" }` en el campo **JSON**, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**.
-6. Se abre solo un panel **Ejecución del flujo de trabajo** que sigue la ejecución. El registro muestra `Value:` seguido de `Hello from { "name": "Ada" }`.
+4. De vuelta en el **Constructor**, haz clic en **Ejecutar flujo de trabajo**, pon `{ "name": "Ada" }` en el campo **JSON**, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El flujo de trabajo sigue desactivado, y no hace falta que esté activado: una ejecución que inicias tú mismo es una **Ejecución de prueba**.
+5. Se abre solo un panel **Ejecución del flujo de trabajo** que sigue la ejecución. Dice **Ejecución de prueba** en la parte superior, y el registro muestra `Value:` seguido de `Hello from { "name": "Ada" }`.
 :::
 
 Ese ciclo — añadir, conectar, configurar, ejecutar, leer el registro — es como construirás todos los flujos de trabajo.
@@ -142,22 +141,22 @@ Ese ciclo — añadir, conectar, configurar, ejecutar, leer el registro — es c
 
 ## Activarlo
 
-Los flujos de trabajo nuevos empiezan deshabilitados, igual que cualquier flujo de trabajo que dupliques o importes. Mientras un flujo de trabajo está desactivado, el Constructor lo indica encima del lienzo, con un botón **Activar flujo de trabajo**.
+Los flujos de trabajo nuevos empiezan deshabilitados, igual que cualquier flujo de trabajo que dupliques o importes. Desactivado, su disparador queda en pausa, así que nada lo inicia por sí solo, pero puedes probarlo igualmente. Mientras un flujo de trabajo está desactivado, el Constructor lo indica encima del lienzo, con un botón **Activar flujo de trabajo**.
 
 El interruptor **Habilitado** está en la parte superior del **Constructor**, junto a **Añadir componente** y **Ejecutar flujo de trabajo**. También está en la página **Vista general** del flujo de trabajo, cuya tarjeta **Detalles del flujo de trabajo** muestra el estado actual con una píldora verde **Habilitado** o roja **Deshabilitado**: haz clic en **Editar flujo de trabajo** y abre **Más campos**. Solo las personas que pueden editar el flujo de trabajo pueden activarlo o desactivarlo; los demás ven el interruptor en gris.
 
-Un flujo de trabajo deshabilitado no puede ejecutarse en absoluto, se inicie como se inicie:
+Mientras un flujo de trabajo está desactivado, lo que lo inicia decide si se ejecuta:
 
 | Iniciado por                                               | Mientras el flujo de trabajo está desactivado                                                                                                                                              |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Su disparador: una programación, un evento de OneUptime o un correo | Se ignora.                                                                                                                                                                        |
-| **Ejecutar flujo de trabajo** o **Ejecutar solo este paso** | El Constructor pregunta en su lugar **¿Activar este flujo de trabajo?**. **Activar y ejecutar** (o **Activar y ejecutar paso**) activa el flujo de trabajo y después ejecuta lo que pediste, con los valores que diste. |
-| Una llamada a su URL de webhook                            | Se rechaza con HTTP 400 y "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
-| El bloque **Execute Workflow** de otro flujo de trabajo     | Ese bloque toma su camino **Error**, y el error nombra el flujo de trabajo al que llamó.                                                                                                    |
+| **Ejecutar flujo de trabajo** o **Ejecutar solo este paso** | Se ejecuta, como **Ejecución de prueba**. Sus bloques se ejecutan de verdad: un mensaje se envía de verdad y un registro se cambia de verdad. La ejecución queda marcada como **Ejecución de prueba** en las listas de ejecuciones y en la parte superior de la ejecución, con quién la inició. |
+| Una llamada a su URL de webhook                            | Se rechaza con HTTP 400 y "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
+| El bloque **Execute Workflow** de otro flujo de trabajo     | Ese bloque toma su camino **Error**, y el error nombra el flujo de trabajo al que llamó. También en una ejecución de prueba: un flujo de trabajo al que llama tiene que estar activado. |
 
-Así que el orden es: constrúyelo, pruébalo con **Ejecutar flujo de trabajo**, lee el registro de la ejecución y vuelve a desactivar **Habilitado** si aún no quieres que salte su disparador. Para probar un solo bloque sin ejecutarlo todo, usa **Ejecutar solo este paso** en los ajustes de ese bloque.
+Así que el orden es: constrúyelo, pruébalo con **Ejecutar flujo de trabajo** mientras sigue desactivado, lee el registro de la ejecución y activa **Habilitado** cuando quieras que salte su disparador. Para probar un solo bloque sin ejecutarlo todo, usa **Ejecutar solo este paso** en los ajustes de ese bloque.
 
-Para pausar un flujo de trabajo sin eliminarlo, desactiva **Habilitado**. No se inicia ninguna ejecución nueva. Una ejecución que está en curso termina, pero una que está aparcada en un bloque **Sleep** se cancela al despertar y se registra como un error.
+Para pausar un flujo de trabajo sin eliminarlo, desactiva **Habilitado**. Su disparador deja de iniciar ejecuciones. Una ejecución que está en curso termina, pero una que inició su disparador y que está aparcada en un bloque **Sleep** se cancela al despertar y se registra como un error. Una ejecución de prueba continúa.
 
 ## Ordenar el lienzo
 

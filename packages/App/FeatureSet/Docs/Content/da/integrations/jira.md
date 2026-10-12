@@ -104,7 +104,7 @@ Hvis din organisation kører på Atlassians centraliserede brugeradministration,
 
 Beskrivelsen ser tung ud, fordi Jira Clouds v3-API modtager rig tekst som **Atlassian Document Format** — et dokumenttræ, ikke en streng. Formen ovenfor er det mindste gyldige dokument: ét afsnit med én tekstnode. Det samme gælder `environment` og ethvert flerlinjet brugerdefineret tekstfelt; enkeltlinjede brugerdefinerede tekstfelter tager stadig en almindelig streng.
 
-Tænd nu for workflowet under **Oversigt → Rediger arbejdsgang → Aktiveret**, erklær en testhændelse, og åbn **Protokoller → Kørsler**. Blokken `create-issue` bør vise en `201` og en body, der indeholder den nye sags `id`, `key` og `self`. Ændringer på lærredet gemmer sig selv — der er ingen Gem-knap, og et deaktiveret workflow kan slet ikke køre, heller ikke manuelt.
+Tænd nu for workflowet under **Oversigt → Rediger arbejdsgang → Aktiveret**, erklær en testhændelse, og åbn **Protokoller → Kørsler**. Blokken `create-issue` bør vise en `201` og en body, der indeholder den nye sags `id`, `key` og `self`. Ændringer på lærredet gemmer sig selv — der er ingen Gem-knap, og mens workflowet er slået fra, starter en ny hændelse det ikke.
 
 Den nye sagsnøgle er tilgængelig for enhver blok efter denne:
 

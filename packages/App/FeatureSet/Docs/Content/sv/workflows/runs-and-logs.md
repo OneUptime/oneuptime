@@ -76,6 +76,7 @@ Misslyckade steg, steg med en varning och en körnings enda steg börjar öppna.
 
 Några körningar läses annorlunda:
 
+- **En testkörning.** En körning som någon startade med **Kör arbetsflöde** eller **Run just this step** medan arbetsflödet var avstängt säger **Testkörning** högst upp, med vem som startade den, och båda listorna över körningar markerar den som **Testkörning** bredvid dess status. Dess block kördes på riktigt; bara arbetsflödets utlösare var pausad. Filtrera på **Testkörning** för att bara visa testkörningarna, eller bara de andra.
 - **Ett test av ett steg.** En körning som startades med **Run just this step** säger **Only this step ran** högst upp. Stegen före det kördes inte, så värden som det läser från dem saknas (räkna med en varning **Did not resolve** för dem), och stegen efter det säger **(not run in this test)**. Använd **Kör arbetsflöde** för att prova hela vägen.
 - **En körning som stoppades mellan steg.** Om körningen stoppades av en orsak som inget steg förklarar — den fick slut på tid mellan två steg, eller misslyckades före sitt första steg — slutar vägen med **The run stopped here** och orsaken.
 - **En sovande körning.** En körning som väntar vid ett **Sleep**-block slutar med **Sleeping** och tidpunkten då den fortsätter av sig själv; stegen efter Sleep säger **(not run yet)**.
@@ -106,7 +107,7 @@ En nedladdning innehåller inget som du inte redan kunde läsa i körningen. Hem
 ## Felsökning
 
 :::details Mitt arbetsflöde kördes inte
-1. Se till att arbetsflödet är **Aktiverad**: brytaren sitter högst upp i dess **Byggare**, som säger det ovanför arbetsytan när arbetsflödet är avstängt. Nya arbetsflöden börjar inaktiverade, och ett inaktiverat arbetsflöde avvisar varje körning — även manuella. Ett webhook-anrop till det får HTTP 400 med ett meddelande om hur du slår på det.
+1. Se till att arbetsflödet är **Aktiverad**: brytaren sitter högst upp i dess **Byggare**, som säger det ovanför arbetsytan när arbetsflödet är avstängt. Nya arbetsflöden börjar inaktiverade, och medan ett arbetsflöde är avstängt startar dess utlösare det inte: bara **Kör arbetsflöde** och **Run just this step** gör det, som testkörningar. Ett webhook-anrop till det får HTTP 400 med ett meddelande om hur du slår på det.
 2. För en utlösare för OneUptime-händelser bekräftar du att händelsen faktiskt inträffade: öppna posten och kontrollera dess historik. En **On Update**-utlösare med **Listen on** aktiveras bara när något av de fälten ändrades.
 3. För en webhook-utlösare bekräftar du att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kontrollera där.
 4. För en schemautlösare bekräftar du att cron-uttrycket stämmer med tiden du förväntar dig. Scheman körs i UTC.

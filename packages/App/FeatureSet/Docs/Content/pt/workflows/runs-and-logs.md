@@ -76,6 +76,7 @@ Os passos com falha, os passos com aviso e o único passo de uma execução já 
 
 Algumas execuções são lidas de outro jeito:
 
+- **Uma execução de teste.** Uma execução que alguém iniciou com **Executar fluxo de trabalho** ou **Run just this step** enquanto o workflow estava desligado diz **Execução de teste** no topo, com quem a iniciou, e as duas listas de execuções a marcam como **Execução de teste** ao lado do status. Os blocos dela rodaram de verdade; só o gatilho do workflow estava pausado. Filtre por **Execução de teste** para listar só as execuções de teste, ou só as outras.
 - **Um teste de um só passo.** Uma execução iniciada com **Run just this step** diz **Only this step ran** no topo. Os passos anteriores não rodaram, então os valores que ele lê deles estão faltando (espere um aviso **Did not resolve** para esses), e os passos seguintes dizem **(not run in this test)**. Use **Executar fluxo de trabalho** para testar o caminho inteiro.
 - **Uma execução que parou entre passos.** Se a execução parou por um motivo que nenhum passo explica — o tempo esgotou entre passos, ou ela falhou antes do primeiro passo —, o caminho termina com **The run stopped here** e o motivo.
 - **Uma execução adormecida.** Uma execução que espera em um bloco **Sleep** termina com **Sleeping** e o horário em que ela continua sozinha; os passos depois do Sleep dizem **(not run yet)**.
@@ -106,7 +107,7 @@ Um download não contém nada que você já não pudesse ler na execução. Segr
 ## Solução de problemas
 
 :::details O meu workflow não rodou
-1. Confira se o workflow está **Habilitado**: a chave fica no topo do **Construtor** dele, que avisa acima do canvas quando o workflow está desligado. Os novos workflows começam desabilitados, e um workflow desabilitado recusa todas as execuções — inclusive as manuais. Uma chamada de webhook para ele recebe HTTP 400 com uma mensagem dizendo como ligá-lo.
+1. Confira se o workflow está **Habilitado**: a chave fica no topo do **Construtor** dele, que avisa acima do canvas quando o workflow está desligado. Os novos workflows começam desabilitados, e enquanto um workflow está desligado o gatilho dele não o inicia: só **Executar fluxo de trabalho** e **Run just this step** o iniciam, como execuções de teste. Uma chamada de webhook para ele recebe HTTP 400 com uma mensagem dizendo como ligá-lo.
 2. Para um gatilho de evento do OneUptime, confirme que o evento aconteceu de fato: abra o registro e veja o histórico dele. Um gatilho **On Update** com **Listen on** só dispara quando um desses campos mudou.
 3. Para um gatilho de webhook, confirme que o outro sistema está enviando para a URL certa. A maioria das ferramentas registra quando envia um webhook — confira lá.
 4. Para um gatilho agendado, confirme que a expressão cron corresponde ao horário que você espera. Os agendamentos rodam em UTC.

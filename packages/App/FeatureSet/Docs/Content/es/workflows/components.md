@@ -274,7 +274,7 @@ Pausa la ejecución antes del bloque siguiente, para dar a otro sistema un momen
 
 **Days**, **Hours**, **Minutes** y **Seconds** se suman. La espera más larga es de 30 días: una más larga se recorta a 30 días, y el registro de la ejecución lo indica.
 
-Mientras espera, la ejecución se aparta con el estado **Esperando** y se retoma cuando se cumple el tiempo, así que una espera larga no bloquea nada. Una ejecución cuyo flujo de trabajo se desactivó o se archivó mientras tanto se cancela al despertar.
+Mientras espera, la ejecución se aparta con el estado **Esperando** y se retoma cuando se cumple el tiempo, así que una espera larga no bloquea nada. Una ejecución cuyo flujo de trabajo se desactivó o se archivó mientras tanto se cancela al despertar. Una ejecución de prueba, iniciada mientras el flujo de trabajo estaba desactivado, no se cancela por estarlo.
 
 ## Log
 

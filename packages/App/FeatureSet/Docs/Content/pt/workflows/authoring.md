@@ -11,7 +11,7 @@ Escolha como começar:
 
 Clique em um modelo para ver o que ele faz: o gatilho, os blocos que o compõem e as configurações que ele vai pedir. Depois clique em **Usar este modelo**, ou dê um clique duplo no modelo. Na caixa de busca, as setas escolhem um modelo e **Enter** o usa. `/` leva você de volta à caixa de busca.
 
-Os workflows são criados desligados, então nada roda até você ligá-los. Um novo workflow abre no **Construtor**, o canvas onde você o projeta.
+Os workflows são criados desligados, então o gatilho deles não os inicia até você ligá-los. Um novo workflow abre no **Construtor**, o canvas onde você o projeta.
 
 ## O canvas
 
@@ -130,9 +130,8 @@ O jeito mais rápido de pegar o jeito do canvas é um workflow de dois blocos qu
 1. Clique no bloco tracejado de espaço reservado e depois em **Manual**, no painel **Add Trigger**.
 2. Clique em **Adicionar componente** e depois em **Registro**, em **Popular**. O novo bloco aparece abaixo do gatilho. Ligue o ponto **Execute** do gatilho ao ponto de entrada do bloco Log, mais abaixo.
 3. Clique no bloco Log, que mostra **Click to set up**, e digite `Hello from ` no **Value** dele. Clique em **{ }** e depois em **JSON**, em **Manual**. A configuração mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` é o **Identifier** do gatilho, mostrado no bloco do gatilho. Clique em **Salvar**.
-4. Ative **Habilitado**, no topo do Construtor. Um workflow desabilitado não pode ser executado de jeito nenhum, nem manualmente; se você pular isso, **Executar fluxo de trabalho** pede para ligá-lo primeiro.
-5. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Run Workflow Manually** e confirme com **Run**.
-6. Um painel **Execução do Fluxo de Trabalho** se abre sozinho e acompanha a execução. O log mostra `Value:` seguido de `Hello from { "name": "Ada" }`.
+4. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Run Workflow Manually** e confirme com **Run**. O workflow continua desligado, e não precisa estar ligado: uma execução que você mesmo inicia é uma **Execução de teste**.
+5. Um painel **Execução do Fluxo de Trabalho** se abre sozinho e acompanha a execução. Ele mostra **Execução de teste** no topo, e o log mostra `Value:` seguido de `Hello from { "name": "Ada" }`.
 :::
 
 Esse ciclo — adicionar, ligar, configurar, executar, ler o log — é como você vai montar todo workflow.
@@ -142,22 +141,22 @@ Esse ciclo — adicionar, ligar, configurar, executar, ler o log — é como voc
 
 ## Ligar o workflow
 
-Os novos workflows começam desabilitados, assim como qualquer workflow que você duplique ou importe. Enquanto um workflow está desligado, o Construtor avisa acima do canvas, com um botão **Ativar fluxo de trabalho**.
+Os novos workflows começam desabilitados, assim como qualquer workflow que você duplique ou importe. Desligado, o gatilho do workflow fica pausado, então nada o inicia sozinho, mas você ainda pode testá-lo. Enquanto um workflow está desligado, o Construtor avisa acima do canvas, com um botão **Ativar fluxo de trabalho**.
 
 A chave **Habilitado** fica no topo do **Construtor**, ao lado de **Adicionar componente** e **Executar fluxo de trabalho**. Ela também está na página **Visão geral** do workflow, cujo cartão **Detalhes do Fluxo de Trabalho** mostra o estado atual com um selo verde **Habilitado** ou vermelho **Desabilitado**: clique em **Editar fluxo de trabalho** e abra **Mais campos**. Só quem pode editar o workflow pode ligá-lo ou desligá-lo; os demais veem a chave em cinza.
 
-Um workflow desabilitado não roda de jeito nenhum, seja como for iniciado:
+Enquanto um workflow está desligado, o que o inicia decide se ele roda:
 
 | Iniciado por                                               | Enquanto o workflow está desligado                                                                                                                                                         |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | O gatilho dele: um agendamento, um evento do OneUptime ou um e-mail | Ignorado.                                                                                                                                                                          |
-| **Executar fluxo de trabalho** ou **Run just this step**    | O Construtor pergunta em vez disso **Ativar este fluxo de trabalho?**. **Ativar e executar** (ou **Ativar e executar etapa**) liga o workflow e depois executa o que você pediu, com os valores que você deu. |
-| Uma chamada à URL de webhook dele                          | Recusada com HTTP 400 e "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
-| O bloco **Execute Workflow** de outro workflow              | Esse bloco toma o caminho **Error**, e o erro nomeia o workflow que ele chamou.                                                                                                            |
+| **Executar fluxo de trabalho** ou **Run just this step**    | Roda, como **Execução de teste**. Os blocos dele rodam de verdade: uma mensagem é realmente enviada e um registro é realmente alterado. A execução fica marcada como **Execução de teste** nas listas de execuções e no topo da execução, com quem a iniciou. |
+| Uma chamada à URL de webhook dele                          | Recusada com HTTP 400 e "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
+| O bloco **Execute Workflow** de outro workflow              | Esse bloco toma o caminho **Error**, e o erro nomeia o workflow que ele chamou. Isso vale também em uma execução de teste: um workflow que ele chama precisa estar ligado. |
 
-Então a ordem é: monte, teste com **Executar fluxo de trabalho**, leia o log da execução e desligue **Habilitado** de novo se ainda não quiser que o gatilho dispare. Para testar um único bloco sem rodar o resto, use **Run just this step** nas configurações desse bloco.
+Então a ordem é: monte, teste com **Executar fluxo de trabalho** enquanto ele ainda está desligado, leia o log da execução e ligue **Habilitado** quando quiser que o gatilho dispare. Para testar um único bloco sem rodar o resto, use **Run just this step** nas configurações desse bloco.
 
-Para pausar um workflow sem excluí-lo, desligue **Habilitado**. Nenhuma execução nova começa. Uma execução que está em andamento termina, mas uma que está parada em um bloco **Sleep** é cancelada ao acordar e registrada como erro.
+Para pausar um workflow sem excluí-lo, desligue **Habilitado**. O gatilho dele para de iniciar execuções. Uma execução que está em andamento termina, mas uma que o gatilho iniciou e que está parada em um bloco **Sleep** é cancelada ao acordar e registrada como erro. Uma execução de teste continua.
 
 ## Organizar o canvas
 

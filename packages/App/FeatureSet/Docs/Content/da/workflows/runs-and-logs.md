@@ -76,6 +76,7 @@ Mislykkede trin, trin med en advarsel og en kørsels eneste trin starter åbne. 
 
 Nogle få kørsler læses anderledes:
 
+- **En testkørsel.** En kørsel, som nogen startede med **Kør arbejdsgang** eller **Run just this step**, mens workflowet var slået fra, siger **Testkørsel** øverst, med hvem der startede den, og begge lister over kørsler markerer den som **Testkørsel** ved siden af dens status. Dens blokke kørte for alvor; kun workflowets trigger var sat på pause. Filtrér på **Testkørsel** for kun at vise testkørslerne, eller kun de andre.
 - **En test af ét trin.** En kørsel, der blev startet med **Run just this step**, siger **Only this step ran** øverst. Trinnene før det kørte ikke, så værdier, det læser fra dem, mangler (forvent en advarsel **Did not resolve** for dem), og trinnene efter det siger **(not run in this test)**. Brug **Kør arbejdsgang** til at prøve hele vejen.
 - **En kørsel, der stoppede mellem trin.** Stoppede kørslen af en grund, som intet trin forklarer — den løb tør for tid mellem to trin, eller den mislykkedes før sit første trin —, slutter vejen med **The run stopped here** og årsagen.
 - **En sovende kørsel.** En kørsel, der venter ved en **Sleep**-blok, slutter med **Sleeping** og det tidspunkt, hvor den fortsætter af sig selv; trinnene efter Sleep siger **(not run yet)**.
@@ -106,7 +107,7 @@ En download indeholder intet, du ikke allerede kunne læse i kørslen. Hemmeligh
 ## Fejlfinding
 
 :::details Mit workflow kørte ikke
-1. Sørg for, at workflowet er **Aktiveret**: kontakten sidder øverst i dets **Bygger**, som siger det over lærredet, når workflowet er slået fra. Nye workflows starter deaktiveret, og et deaktiveret workflow afviser alle kørsler — også manuelle. Et webhook-kald til det får HTTP 400 med en meddelelse om, hvordan du slår det til.
+1. Sørg for, at workflowet er **Aktiveret**: kontakten sidder øverst i dets **Bygger**, som siger det over lærredet, når workflowet er slået fra. Nye workflows starter deaktiveret, og mens et workflow er slået fra, starter dets trigger det ikke: kun **Kør arbejdsgang** og **Run just this step** gør, som testkørsler. Et webhook-kald til det får HTTP 400 med en meddelelse om, hvordan du slår det til.
 2. For en OneUptime-begivenhedstrigger skal du bekræfte, at begivenheden faktisk skete: åbn posten, og tjek dens historik. En **On Update**-trigger med **Listen on** udløses kun, når et af de felter ændrede sig.
 3. For en webhook-trigger skal du bekræfte, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek dér.
 4. For en tidsplantrigger skal du bekræfte, at cron-udtrykket svarer til det tidspunkt, du forventer. Tidsplaner kører i UTC.

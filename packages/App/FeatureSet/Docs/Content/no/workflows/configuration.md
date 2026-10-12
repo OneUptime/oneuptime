@@ -3,7 +3,7 @@
 Dette bør du vite før du retter en arbeidsflyt mot ekte trafikk: hvordan du slår den trygt på, hvem som kan gjøre hva, hvordan hemmeligheter og URL-er forblir private, hva trinnene i en arbeidsflyt kan endre, og grensene hver kjøring arbeider innenfor.
 
 :::cards
-- [Gå live](#å-slå-en-arbeidsflyt-på-eller-av): Test med Kjør arbeidsflyt, og la deretter arbeidsflyten stå på.
+- [Gå live](#å-slå-en-arbeidsflyt-på-eller-av): Test med Kjør arbeidsflyt mens den er av, og slå den deretter på.
 - [Tillatelser](#tillatelser): Arbeidsflytrollene og de enkelte tillatelsene bak dem.
 - [Hva trinn kan gjøre](#hva-arbeidsflyttrinn-kan-gjøre): Trinn handler som Project Admin i prosjektet til arbeidsflyten.
 - [Grenser](#plangrenser): Kjøringer per plan, kjøretid og kall mellom arbeidsflyter.
@@ -11,18 +11,18 @@ Dette bør du vite før du retter en arbeidsflyt mot ekte trafikk: hvordan du sl
 
 ## Å slå en arbeidsflyt på eller av
 
-Hver arbeidsflyt har en bryter, **Aktivert**, øverst i **Bygger** og på siden **Oversikt**. Når den er av, kjører ikke arbeidsflyten — webhook-kall, innkommende e-post, planlagte tidspunkter og OneUptime-begivenheter ignoreres alle, og det samme gjør **Kjør arbeidsflyt** og **Run just this step**. Nye arbeidsflyter starter deaktivert.
+Hver arbeidsflyt har en bryter, **Aktivert**, øverst i **Bygger** og på siden **Oversikt**. Når den er av, er triggeren satt på pause — webhook-kall, innkommende e-post, planlagte tidspunkter, OneUptime-begivenheter og andre arbeidsflyters **Execute Workflow**-trinn starter den ikke. **Kjør arbeidsflyt** og **Run just this step** gjør det: en kjøring du starter selv mens arbeidsflyten er av, er en **Testkjøring**. Nye arbeidsflyter starter deaktivert.
 
 Bruk denne bryteren som «klar til bruk»-porten din:
 
 :::steps
 1. Bygg arbeidsflyten.
-2. Klikk på **Kjør arbeidsflyt** i **Bygger** med realistiske verdier. En deaktivert arbeidsflyt kan ikke kjøre, heller ikke manuelt, så Bygger ber deg slå den på først: klikk på **Slå på og kjør**.
+2. Klikk på **Kjør arbeidsflyt** i **Bygger** med realistiske verdier, mens arbeidsflyten fortsatt er av. Kjøringen er en **Testkjøring**: hver blokk kjører på ekte, så pek den først mot en testkanal eller en testpost.
 3. Åpne kjøringen, og sjekk at hver blokk gikk dit du forventet. Se [Kjøringer](/docs/workflows/runs-and-logs).
-4. La **Aktivert** stå på hvis den er klar. Er den ikke det, slår du den av til den er det: mens den er på, utløses triggeren ved ekte begivenheter.
+4. Slå på **Aktivert** når den er klar: fra da av utløses triggeren ved ekte begivenheter.
 :::
 
-Å slå av en arbeidsflyt hindrer nye kjøringer i å starte. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som venter ved en **Sleep**-blokk, avbrytes når den våkner.
+Å slå av en arbeidsflyt hindrer triggeren i å starte nye kjøringer. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som triggeren startet, og som venter ved en **Sleep**-blokk, avbrytes når den våkner. Testkjøringer fortsetter.
 
 ## Å arkivere en arbeidsflyt
 
@@ -85,7 +85,7 @@ Filen inneholder navnet, beskrivelsen, aktiveringstilstanden og grafen til arbei
 - **Globale variabler.** En blokk som leser `{{global.variables.MY_SECRET}}`, beholder den referansen, men verdien er ikke i filen. Opprett variablene i målprosjektet før du kjører den importerte arbeidsflyten.
 - **Eiere og etiketter.** Prosjektets egne etikett- og eierregler kjører mot den importerte arbeidsflyten, akkurat som om du hadde opprettet den manuelt.
 
-En importert arbeidsflyt opprettes alltid **deaktivert**, selv om den var aktivert der den ble eksportert fra — grafen kan peke på monitorer, vaktpolicyer eller andre arbeidsflyter som ikke finnes i målprosjektet. Gå gjennom den, aktiver den, test den med **Kjør arbeidsflyt**, og la den så stå på. Duplisering av en arbeidsflyt oppfører seg på samme måte, slik at en kopi aldri begynner å kjøre ved siden av originalen før du har redigert den.
+En importert arbeidsflyt opprettes alltid **deaktivert**, selv om den var aktivert der den ble eksportert fra — grafen kan peke på monitorer, vaktpolicyer eller andre arbeidsflyter som ikke finnes i målprosjektet. Gå gjennom den, test den med **Kjør arbeidsflyt**, og slå den så på. Duplisering av en arbeidsflyt oppfører seg på samme måte, slik at en kopi aldri begynner å kjøre ved siden av originalen før du har redigert den.
 
 Fordi grafen følger med uendret, følger alt som er skrevet rett inn i en blokk, også med. Det er den praktiske grunnen til å holde påloggingsinformasjon i hemmelige variabler: eksporterer du en arbeidsflyt med et hardkodet token, gir du det tokenet til den som får filen.
 

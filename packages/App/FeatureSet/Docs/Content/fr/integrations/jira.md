@@ -104,7 +104,7 @@ Si votre organisation utilise la gestion centralisée des utilisateurs d'Atlassi
 
 La description paraît lourde parce que l'API v3 de Jira Cloud attend le texte enrichi au format **Atlassian Document Format** — un arbre de document, pas une chaîne. La forme ci-dessus est le document valide minimal : un paragraphe contenant un nœud de texte. Il en va de même pour `environment` et pour tout champ personnalisé de texte multiligne ; les champs personnalisés de texte sur une seule ligne acceptent encore une chaîne simple.
 
-Activez maintenant le workflow depuis **Vue d'ensemble → Modifier le flux de travail → Activé**, déclarez un incident de test, et ouvrez **Journaux → Exécutions**. Le bloc `create-issue` devrait afficher un `201` et un corps contenant l'`id`, la `key` et le `self` du nouveau ticket. Les modifications faites sur le canevas s'enregistrent d'elles-mêmes — il n'y a pas de bouton Enregistrer, et un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
+Activez maintenant le workflow depuis **Vue d'ensemble → Modifier le flux de travail → Activé**, déclarez un incident de test, et ouvrez **Journaux → Exécutions**. Le bloc `create-issue` devrait afficher un `201` et un corps contenant l'`id`, la `key` et le `self` du nouveau ticket. Les modifications faites sur le canevas s'enregistrent d'elles-mêmes — il n'y a pas de bouton Enregistrer, et tant que le workflow est désactivé, un nouvel incident ne le lance pas.
 
 La clé du nouveau ticket est disponible pour tout bloc situé après celui-ci :
 

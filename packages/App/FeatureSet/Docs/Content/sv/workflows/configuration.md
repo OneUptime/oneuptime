@@ -3,7 +3,7 @@
 Det här behöver du veta innan du riktar ett arbetsflöde mot riktig trafik: hur du slår på det säkert, vem som får göra vad, hur hemligheter och URL:er förblir privata, vad ett arbetsflödes steg får ändra och de gränser som varje körning arbetar inom.
 
 :::cards
-- [Gå live](#slå-på-eller-av-ett-arbetsflöde): Testa med Kör arbetsflöde och låt sedan arbetsflödet vara påslaget.
+- [Gå live](#slå-på-eller-av-ett-arbetsflöde): Testa med Kör arbetsflöde medan det är avstängt och slå sedan på det.
 - [Behörigheter](#behörigheter): Arbetsflödesrollerna och de enskilda behörigheterna bakom dem.
 - [Vad steg får göra](#vad-arbetsflödessteg-får-göra): Steg agerar som Project Admin i arbetsflödets projekt.
 - [Gränser](#plangränser): Körningar per plan, körtid och anrop mellan arbetsflöden.
@@ -11,18 +11,18 @@ Det här behöver du veta innan du riktar ett arbetsflöde mot riktig trafik: hu
 
 ## Slå på eller av ett arbetsflöde
 
-Varje arbetsflöde har en brytare, **Aktiverad**, högst upp i sin **Byggare** och på sin sida **Översikt**. När den är avslagen körs inte arbetsflödet — webhook-anrop, inkommande e-post, schemalagda tider och OneUptime-händelser ignoreras alla, och det gör även **Kör arbetsflöde** och **Run just this step**. Nya arbetsflöden börjar inaktiverade.
+Varje arbetsflöde har en brytare, **Aktiverad**, högst upp i sin **Byggare** och på sin sida **Översikt**. När den är avslagen är dess utlösare pausad — webhook-anrop, inkommande e-post, schemalagda tider, OneUptime-händelser och andra arbetsflödens **Execute Workflow**-steg startar det inte. **Kör arbetsflöde** och **Run just this step** gör det: en körning som du startar själv medan arbetsflödet är avstängt är en **Testkörning**. Nya arbetsflöden börjar inaktiverade.
 
 Använd den här brytaren som din ”redo att köra”-spärr:
 
 :::steps
 1. Bygg arbetsflödet.
-2. Klicka på **Kör arbetsflöde** i **Byggare** med realistiska värden. Ett inaktiverat arbetsflöde kan inte köras ens manuellt, så Byggare ber dig först att slå på det: klicka på **Slå på och kör**.
+2. Klicka på **Kör arbetsflöde** i **Byggare** med realistiska värden, medan arbetsflödet fortfarande är avstängt. Körningen är en **Testkörning**: varje block körs på riktigt, så rikta det först mot en testkanal eller en testpost.
 3. Öppna körningen och kontrollera att varje block gick dit du förväntade dig. Se [Körningar](/docs/workflows/runs-and-logs).
-4. Låt **Aktiverad** vara påslagen om det är klart. Är det inte det slår du av det tills det är klart: medan det är påslaget aktiveras dess utlösare av riktiga händelser.
+4. Slå på **Aktiverad** när det är klart: därefter aktiveras dess utlösare av riktiga händelser.
 :::
 
-Att slå av ett arbetsflöde hindrar nya körningar från att starta. En körning som redan pågår gör klart, men en körning som väntar vid ett **Sleep**-block avbryts när den vaknar.
+Att slå av ett arbetsflöde hindrar dess utlösare från att starta nya körningar. En körning som redan pågår gör klart, men en körning som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar. Testkörningar fortsätter.
 
 ## Arkivera ett arbetsflöde
 
@@ -85,7 +85,7 @@ Filen innehåller arbetsflödets namn, beskrivning, aktiveringsläge och graf. D
 - **Globala variabler.** Ett block som läser `{{global.variables.MY_SECRET}}` behåller den referensen, men värdet finns inte i filen. Skapa variablerna i målprojektet innan du kör det importerade arbetsflödet.
 - **Ägare och etiketter.** Ditt projekts egna etikett- och ägarregler körs mot det importerade arbetsflödet, precis som om du hade skapat det manuellt.
 
-Ett importerat arbetsflöde skapas alltid **inaktiverat**, även om det var aktiverat där det exporterades från — dess graf kan peka på monitorer, jourpolicyer eller andra arbetsflöden som inte finns i målprojektet. Granska det, aktivera det, testa det med **Kör arbetsflöde** och låt det sedan vara påslaget. Att duplicera ett arbetsflöde fungerar på samma sätt, så att en kopia aldrig börjar köras sida vid sida med originalet innan du har redigerat den.
+Ett importerat arbetsflöde skapas alltid **inaktiverat**, även om det var aktiverat där det exporterades från — dess graf kan peka på monitorer, jourpolicyer eller andra arbetsflöden som inte finns i målprojektet. Granska det, testa det med **Kör arbetsflöde** och slå sedan på det. Att duplicera ett arbetsflöde fungerar på samma sätt, så att en kopia aldrig börjar köras sida vid sida med originalet innan du har redigerat den.
 
 Eftersom grafen följer med oförändrad följer allt som skrivits direkt i ett block också med. Det är det praktiska skälet till att hålla autentiseringsuppgifter i hemliga variabler: exporterar du ett arbetsflöde med en hårdkodad token ger du den token till den som får filen.
 

@@ -104,7 +104,7 @@ Zit je organisatie op Atlassians centrale gebruikersbeheer, dan is er een derde 
 
 De beschrijving oogt zwaar omdat de v3-API van Jira Cloud rijke tekst aanneemt als **Atlassian Document Format** — een documentboom, geen string. De vorm hierboven is het minimale geldige document: één alinea met één tekstknoop. Hetzelfde geldt voor `environment` en voor elk aangepast tekstveld met meerdere regels; aangepaste tekstvelden van één regel accepteren nog steeds een gewone string.
 
-Zet de workflow nu aan via **Overzicht → Workflow bewerken → Ingeschakeld**, roep een testincident uit, en open **Logboeken → Uitvoeringen**. Het blok `create-issue` hoort een `201` te tonen en een body met de `id`, `key` en `self` van de nieuwe issue. Wijzigingen op het canvas slaan zichzelf op — er is geen opslaanknop, en een uitgeschakelde workflow kan helemaal niet draaien, ook niet met de hand.
+Zet de workflow nu aan via **Overzicht → Workflow bewerken → Ingeschakeld**, roep een testincident uit, en open **Logboeken → Uitvoeringen**. Het blok `create-issue` hoort een `201` te tonen en een body met de `id`, `key` en `self` van de nieuwe issue. Wijzigingen op het canvas slaan zichzelf op — er is geen opslaanknop, en zolang de workflow uit staat, start een nieuw incident hem niet.
 
 De key van de nieuwe issue is beschikbaar voor elk blok na dit blok:
 

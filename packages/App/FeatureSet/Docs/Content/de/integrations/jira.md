@@ -104,7 +104,7 @@ Wenn Ihre Organisation Atlassians zentralisierte Benutzerverwaltung nutzt, gibt 
 
 Die Beschreibung wirkt schwerfällig, weil die v3-API von Jira Cloud Rich Text als **Atlassian Document Format** entgegennimmt – einen Dokumentbaum, keine Zeichenkette. Die Form oben ist das minimal gültige Dokument: ein Absatz mit einem Textknoten. Dasselbe gilt für `environment` und für jedes mehrzeilige benutzerdefinierte Textfeld; einzeilige benutzerdefinierte Textfelder nehmen weiterhin eine einfache Zeichenkette entgegen.
 
-Schalten Sie den Workflow nun über **Übersicht → Arbeitsablauf bearbeiten → Aktiviert** ein, erklären Sie einen Test-Vorfall und öffnen Sie **Protokolle → Ausführungen**. Der Baustein `create-issue` sollte einen `201` zeigen und einen Body, der `id`, `key` und `self` des neuen Issues enthält. Änderungen auf der Arbeitsfläche speichern sich selbst – es gibt keinen Speichern-Knopf, und ein deaktivierter Workflow läuft überhaupt nicht, nicht einmal von Hand.
+Schalten Sie den Workflow nun über **Übersicht → Arbeitsablauf bearbeiten → Aktiviert** ein, erklären Sie einen Test-Vorfall und öffnen Sie **Protokolle → Ausführungen**. Der Baustein `create-issue` sollte einen `201` zeigen und einen Body, der `id`, `key` und `self` des neuen Issues enthält. Änderungen auf der Arbeitsfläche speichern sich selbst – es gibt keinen Speichern-Knopf, und solange der Workflow aus ist, startet ihn ein neuer Vorfall nicht.
 
 Der Key des neuen Issues steht jedem Baustein nach diesem zur Verfügung:
 

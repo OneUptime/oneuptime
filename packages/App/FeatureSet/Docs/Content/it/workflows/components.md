@@ -274,7 +274,7 @@ Metti in pausa l'esecuzione prima del blocco successivo, per dare a un altro sis
 
 **Days**, **Hours**, **Minutes** e **Seconds** si sommano. L'attesa più lunga è di 30 giorni: una più lunga viene ridotta a 30 giorni, e il registro dell'esecuzione lo dice.
 
-Durante l'attesa, l'esecuzione viene messa da parte con lo stato **In attesa** e ripresa quando il tempo è scaduto, quindi un'attesa lunga non blocca nulla. Un'esecuzione il cui workflow è stato disattivato o archiviato nel frattempo viene annullata al risveglio.
+Durante l'attesa, l'esecuzione viene messa da parte con lo stato **In attesa** e ripresa quando il tempo è scaduto, quindi un'attesa lunga non blocca nulla. Un'esecuzione il cui workflow è stato disattivato o archiviato nel frattempo viene annullata al risveglio. Un'esecuzione di prova, avviata mentre il workflow era disattivato, non viene annullata perché lo è.
 
 ## Log
 

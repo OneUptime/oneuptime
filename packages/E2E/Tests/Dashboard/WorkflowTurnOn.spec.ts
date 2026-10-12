@@ -19,6 +19,12 @@ interface WorkflowRecord {
   isEnabled?: boolean;
 }
 
+interface WorkflowRunRecord {
+  _id: string;
+  isTestRun?: boolean;
+  startedByUserId?: string | { value?: string } | null;
+}
+
 const urlFor: (path: string) => string = (path: string): string => {
   return URL.fromString(BASE_URL.toString()).addRoute(path).toString();
 };
@@ -26,7 +32,10 @@ const urlFor: (path: string) => string = (path: string): string => {
 // For assertions that wait on the server; the suite's 5s default is for the screen.
 const SERVER: { timeout: number } = { timeout: 30000 };
 
-const WORKFLOW_NAME: string = "e2e-workflow-turn-on";
+const WORKFLOW_NAME: string = "e2e-workflow-test-run-while-off";
+
+// registerAndCreateProject's person, as a test run names them.
+const PERSON_NAME: string = "E2E Test User";
 
 // A Manual trigger on its own: Run Workflow starts it, nothing else does.
 const MANUAL_TRIGGER_GRAPH: Record<string, unknown> = {
@@ -95,26 +104,58 @@ const isEnabledOnServer: IsEnabledOnServerFunction = async (
   return Boolean((await readWorkflow(page, projectId)).isEnabled);
 };
 
+type ReadRunsFunction = (
+  page: Page,
+  projectId: string,
+  workflowId: string,
+) => Promise<Array<WorkflowRunRecord>>;
+
+// The workflow's runs as the server recorded them.
+const readRuns: ReadRunsFunction = async (
+  page: Page,
+  projectId: string,
+  workflowId: string,
+): Promise<Array<WorkflowRunRecord>> => {
+  const response: APIResponse = await page.request.post(
+    urlFor("/api/workflow-log/get-list"),
+    {
+      headers: { tenantid: projectId },
+      data: {
+        query: { workflowId },
+        select: { _id: true, isTestRun: true, startedByUserId: true },
+        limit: 10,
+        skip: 0,
+        sort: {},
+      },
+    },
+  );
+  expect(response.ok(), await response.text()).toBe(true);
+
+  return ((await response.json()) as { data: Array<WorkflowRunRecord> }).data;
+};
+
 /*
- * "When workflow is not enabled, it doesnt tell me how to enable this
- * workflow." - the maintainer, after running a step of a workflow that was
- * off and getting an Error dialog that said "This workflow is not enabled",
- * with only a Close button.
+ * "Run - Why do I have to enable a workflow in order to test run it? Can you
+ * please fix it?" - the maintainer. The Builder used to answer Run Workflow
+ * on a workflow that was off with "Turn on this workflow?", whose only way
+ * forward turned it on - letting its trigger loose just to try it once.
  *
- * Against a real project and server: the Builder shows the Enabled switch
- * and a notice while the workflow is off; Run Workflow on a workflow that is
- * off asks "Turn on this workflow?", and Turn on and run turns it on and
- * runs it; the switch and the notice's Turn on workflow change what the
- * server stores. A temporary project isolates it and is deleted even when
- * the test fails. Growth, because workflows are a Growth feature when
- * billing is on.
+ * Against a real project and server: the Builder shows the Enabled switch and
+ * a notice while the workflow is off, saying the trigger is paused and Run
+ * Workflow still tests it; Run Workflow on a workflow that is off says it will
+ * be a test run, runs it without turning anything on, opens the run with a
+ * Test run note naming who started it, and the server records it as a test
+ * run by that person; the runs list marks it; the notice's Turn on workflow
+ * and the switch still change what the server stores. A temporary project
+ * isolates it and is deleted even when the test fails. Growth, because
+ * workflows are a Growth feature when billing is on.
  *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
  *   npx playwright test Tests/Dashboard/WorkflowTurnOn.spec.ts \
  *   --project=chromium --retries=0
  */
-test.describe("Turning a workflow on from the Builder", () => {
-  test("the Builder says the workflow is off, and turns it on: from the run it blocked, the notice and the switch", async ({
+test.describe("Testing a workflow that is off, and turning it on, from the Builder", () => {
+  test("Run Workflow runs a workflow that is off as a test run, and the notice and the switch turn it on and off", async ({
     page,
   }: {
     page: Page;
@@ -123,7 +164,7 @@ test.describe("Turning a workflow on from the Builder", () => {
 
     const projectId: string = await registerAndCreateProject({
       page,
-      projectNamePrefix: "E2E Workflow Turn On",
+      projectNamePrefix: "E2E Workflow Test Run",
       preferredPlanName: "Growth",
       enablePaidUsage: false,
     });
@@ -163,17 +204,17 @@ test.describe("Turning a workflow on from the Builder", () => {
         ready: notice,
       });
 
-      // Off, said up front, with the one thing to do about it.
+      // Off, said up front: the trigger is paused, and Run Workflow still tests it.
       await expect(notice).toContainText("This workflow is off");
       await expect(notice).toContainText(
-        "Its trigger is ignored and it can't be run or tested until you turn it on.",
+        "Its trigger is paused until you turn it on.",
+      );
+      await expect(notice).toContainText(
+        "You can still test it with Run Workflow.",
       );
       await expect(enabledSwitch).toHaveAttribute("aria-checked", "false");
 
-      /*
-       * Run Workflow while it is off: the run panel, its confirmation, and
-       * then - instead of an Error dialog - the offer to turn it on.
-       */
+      // Run Workflow while it is off: the panel says this will be a test run.
       await page
         .getByRole("button", { name: "Run Workflow", exact: true })
         .click();
@@ -186,6 +227,10 @@ test.describe("Turning a workflow on from the Builder", () => {
       await expect(
         runPanel.getByRole("heading", { name: "Run Workflow", exact: true }),
       ).toBeVisible(SERVER);
+      await expect(
+        runPanel.getByTestId("workflow-run-panel-test-run-note"),
+      ).toContainText("This workflow is off, so this is a test run.");
+
       await runPanel
         .getByTestId("side-over-footer")
         .getByRole("button", { name: "Run Workflow Manually" })
@@ -195,30 +240,6 @@ test.describe("Turning a workflow on from the Builder", () => {
         hasText: "Are you sure you want to run this workflow manually?",
       });
       await expect(confirmRun).toBeVisible();
-      await confirmRun.getByTestId("modal-footer-submit-button").click();
-
-      const prompt: Locator = page
-        .getByTestId("modal")
-        .filter({ has: page.getByTestId("workflow-turn-on-prompt") });
-      await expect(prompt).toBeVisible(SERVER);
-      await expect(prompt).toContainText("Turn on this workflow?");
-      await expect(prompt).toContainText(
-        "This workflow is off, so it can't run. Turn it on to run it now.",
-      );
-      await expect(prompt).toContainText(
-        "You can turn it off again with the Enabled switch above the canvas.",
-      );
-      await expect(page.getByText("This workflow is not enabled")).toHaveCount(
-        0,
-      );
-
-      // Nothing has been changed or sent yet.
-      expect(await isEnabledOnServer(page, projectId)).toBe(false);
-
-      const turnOnAndRun: Locator = prompt.getByTestId(
-        "modal-footer-submit-button",
-      );
-      await expect(turnOnAndRun).toHaveText("Turn on and run");
 
       const runRequest: Promise<Response> = page.waitForResponse(
         (response: Response) => {
@@ -230,22 +251,74 @@ test.describe("Turning a workflow on from the Builder", () => {
         SERVER,
       );
 
-      await turnOnAndRun.click();
+      await confirmRun.getByTestId("modal-footer-submit-button").click();
 
-      // Turned on, then run: the run the user asked for opens.
+      // Sent and accepted as it is - no dialog asks to turn the workflow on.
       expect((await runRequest).ok()).toBe(true);
-      await expect(
-        page.getByText("This is the run you just started."),
-      ).toBeVisible(SERVER);
-      await expect(notice).toHaveCount(0);
-      await expect(enabledSwitch).toHaveAttribute("aria-checked", "true");
-      expect(await isEnabledOnServer(page, projectId)).toBe(true);
+      await expect(page.getByTestId("workflow-turn-on-prompt")).toHaveCount(0);
+      await expect(page.getByText("Turn on this workflow?")).toHaveCount(0);
 
-      await page
+      // The run opens, and says it is a test run, started by this person.
+      const runModal: Locator = page
         .getByTestId("modal")
-        .filter({ hasText: "This is the run you just started." })
-        .getByTestId("close-button")
+        .filter({ hasText: "This is the run you just started." });
+      await expect(runModal).toBeVisible(SERVER);
+      const testRunNote: Locator = runModal.getByTestId(
+        "workflow-run-test-run-note",
+      );
+      await expect(testRunNote).toBeVisible(SERVER);
+      await expect(testRunNote).toContainText("Test run");
+      await expect(testRunNote).toContainText(
+        `Started by ${PERSON_NAME} while this workflow was off.`,
+      );
+
+      // Nothing was turned on.
+      await expect(enabledSwitch).toHaveAttribute("aria-checked", "false");
+      expect(await isEnabledOnServer(page, projectId)).toBe(false);
+
+      // The server recorded it as a test run, by a person.
+      await expect
+        .poll(async () => {
+          const runs: Array<WorkflowRunRecord> = await readRuns(
+            page,
+            projectId,
+            workflow._id,
+          );
+
+          return runs.map((run: WorkflowRunRecord) => {
+            return {
+              isTestRun: run.isTestRun === true,
+              hasPerson: Boolean(run.startedByUserId),
+            };
+          });
+        }, SERVER)
+        .toEqual([{ isTestRun: true, hasPerson: true }]);
+
+      await runModal.getByTestId("close-button").click();
+      await expect(notice).toBeVisible();
+
+      // The notice's Turn on workflow turns it on without running anything.
+      await notice.getByTestId("workflow-turn-on-button").click();
+      await expect(notice).toHaveCount(0, SERVER);
+      await expect(enabledSwitch).toHaveAttribute("aria-checked", "true");
+      await expect
+        .poll(async () => {
+          return isEnabledOnServer(page, projectId);
+        }, SERVER)
+        .toBe(true);
+      expect(await readRuns(page, projectId, workflow._id)).toHaveLength(1);
+
+      // On, the run panel no longer calls a run a test run.
+      await page
+        .getByRole("button", { name: "Run Workflow", exact: true })
         .click();
+      await expect(
+        runPanel.getByRole("heading", { name: "Run Workflow", exact: true }),
+      ).toBeVisible(SERVER);
+      await expect(
+        runPanel.getByTestId("workflow-run-panel-test-run-note"),
+      ).toHaveCount(0);
+      await runPanel.getByTestId("close-button").click();
 
       // The switch turns it off again, and the notice comes back.
       await enabledSwitch.click();
@@ -257,24 +330,26 @@ test.describe("Turning a workflow on from the Builder", () => {
         }, SERVER)
         .toBe(false);
 
-      // The notice's Turn on workflow turns it on without running anything.
-      await notice.getByTestId("workflow-turn-on-button").click();
-      await expect(notice).toHaveCount(0, SERVER);
-      await expect(enabledSwitch).toHaveAttribute("aria-checked", "true");
-      await expect
-        .poll(async () => {
-          return isEnabledOnServer(page, projectId);
-        }, SERVER)
-        .toBe(true);
-
-      // It stays on after a full load.
+      // It stays off after a full load.
       await page.reload();
       await expect(enabledSwitch).toHaveAttribute(
         "aria-checked",
-        "true",
+        "false",
         SERVER,
       );
-      await expect(notice).toHaveCount(0);
+      await expect(notice).toBeVisible();
+
+      // The workflow's runs list marks the test run beside its status.
+      await gotoProjectPage({
+        page,
+        projectId,
+        url: urlFor(`/dashboard/${projectId}/workflows/${workflow._id}/logs`),
+        ready: page.getByTestId("workflow-test-run-pill").first(),
+      });
+      await expect(page.getByTestId("workflow-test-run-pill")).toHaveCount(1);
+      await expect(
+        page.getByTestId("workflow-test-run-pill").first(),
+      ).toContainText("Test run");
     } finally {
       const response: APIResponse = await page.request.delete(
         urlFor(`/api/project/${projectId}`),
