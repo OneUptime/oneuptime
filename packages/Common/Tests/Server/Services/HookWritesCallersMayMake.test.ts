@@ -287,24 +287,29 @@ describe("every service's write hooks, held to who may write", () => {
 
     expect(writes.length).toBeGreaterThan(400);
 
-    const has: (file: string, kind: HookWriteKind, column: string) => boolean =
-      (file: string, kind: HookWriteKind, column: string): boolean => {
-        return writes.some((write: HookColumnWrite): boolean => {
-          return (
-            write.file === file &&
-            write.kind === kind &&
-            write.column === column
-          );
-        });
-      };
+    const has: (
+      file: string,
+      kind: HookWriteKind,
+      column: string,
+    ) => boolean = (
+      file: string,
+      kind: HookWriteKind,
+      column: string,
+    ): boolean => {
+      return writes.some((write: HookColumnWrite): boolean => {
+        return (
+          write.file === file && write.kind === kind && write.column === column
+        );
+      });
+    };
 
     // A stamp through a constant list of names.
     expect(has("PacketCaptureService.ts", "create", "probeId")).toBe(true);
     // A computed column the hook decides.
     expect(has("PacketCaptureService.ts", "create", "status")).toBe(true);
-    expect(has("IncidentStateTimelineService.ts", "create", "isOwnerNotified")).toBe(
-      true,
-    );
+    expect(
+      has("IncidentStateTimelineService.ts", "create", "isOwnerNotified"),
+    ).toBe(true);
     expect(has("MonitorService.ts", "create", "currentMonitorStatusId")).toBe(
       true,
     );
@@ -343,7 +348,10 @@ describe("it would have caught the writes it was written for", () => {
 
     // The service as it is writes nothing a starter may not.
     expect(
-      refusalsOf("PacketCaptureService.ts", serviceSource("PacketCaptureService.ts")),
+      refusalsOf(
+        "PacketCaptureService.ts",
+        serviceSource("PacketCaptureService.ts"),
+      ),
     ).toEqual([]);
   });
 
@@ -443,7 +451,11 @@ describe("findHookColumnWrites: what counts as a write", () => {
     Object.assign(updateBy.data, { maxPackets: 5, interfaceName });
     return { updateBy, carryForward: null };
   }`),
-    ).toEqual(["update:bpfFilter", "update:maxPackets", "update:interfaceName"]);
+    ).toEqual([
+      "update:bpfFilter",
+      "update:maxPackets",
+      "update:interfaceName",
+    ]);
   });
 
   test("leaving a column out writes nothing: undefined, void 0, RelationIdUtil.leaveOut", () => {
@@ -529,16 +541,43 @@ ${statements}
   }
 
   test.each([
-    ["under !== undefined", `if (data["name"] !== undefined) { data["name"] = trim(data["name"]); }`],
+    [
+      "under !== undefined",
+      `if (data["name"] !== undefined) { data["name"] = trim(data["name"]); }`,
+    ],
     ["under a truthy test", `if (data.name) { data.name = trim(data.name); }`],
-    ["after leaving when it is undefined", `if (data.name === undefined) { return { createBy, carryForward: null }; }\n    data.name = trim(data.name);`],
-    ["after throwing when it is falsy", `if (!data.name) { throw new Error("x"); }\n    data.name = trim(data.name);`],
-    ["after throwing when it is not text", `if (typeof data.name !== "string" || isBlank(data.name)) { throw new Error("x"); }\n    data.name = data.name.trim();`],
-    ["after leaving when it is == null", `if (data.name == null) { return { createBy, carryForward: null }; }\n    data.name = trim(data.name);`],
-    ["in the else of === undefined", `if (data.name === undefined) { log(); } else { data.name = trim(data.name); }`],
-    ["under && with the test", `if (ready && data.name !== undefined) { data.name = trim(data.name); }`],
-    ["after leaving on an || that holds the test", `if (data.name === undefined || skip) { return { createBy, carryForward: null }; }\n    data.name = trim(data.name);`],
-    ["under RelationIdUtil.isPresent of its names", `if (RelationIdUtil.isPresent(data, ["probeId", "probe"])) { RelationIdUtil.stamp(data, ["probeId", "probe"], id); }`],
+    [
+      "after leaving when it is undefined",
+      `if (data.name === undefined) { return { createBy, carryForward: null }; }\n    data.name = trim(data.name);`,
+    ],
+    [
+      "after throwing when it is falsy",
+      `if (!data.name) { throw new Error("x"); }\n    data.name = trim(data.name);`,
+    ],
+    [
+      "after throwing when it is not text",
+      `if (typeof data.name !== "string" || isBlank(data.name)) { throw new Error("x"); }\n    data.name = data.name.trim();`,
+    ],
+    [
+      "after leaving when it is == null",
+      `if (data.name == null) { return { createBy, carryForward: null }; }\n    data.name = trim(data.name);`,
+    ],
+    [
+      "in the else of === undefined",
+      `if (data.name === undefined) { log(); } else { data.name = trim(data.name); }`,
+    ],
+    [
+      "under && with the test",
+      `if (ready && data.name !== undefined) { data.name = trim(data.name); }`,
+    ],
+    [
+      "after leaving on an || that holds the test",
+      `if (data.name === undefined || skip) { return { createBy, carryForward: null }; }\n    data.name = trim(data.name);`,
+    ],
+    [
+      "under RelationIdUtil.isPresent of its names",
+      `if (RelationIdUtil.isPresent(data, ["probeId", "probe"])) { RelationIdUtil.stamp(data, ["probeId", "probe"], id); }`,
+    ],
   ])("%s", (_how: string, statements: string) => {
     const writes: Array<string> = written(hook(statements));
 
@@ -547,12 +586,27 @@ ${statements}
   });
 
   test.each([
-    ["under === undefined: the hook's own value", `if (data.name === undefined) { data.name = "default"; }`],
+    [
+      "under === undefined: the hook's own value",
+      `if (data.name === undefined) { data.name = "default"; }`,
+    ],
     ["under a falsy test", `if (!data.name) { data.name = "default"; }`],
-    ["under a test of another column", `if (data.bpfFilter !== undefined) { data.name = "x"; }`],
-    ["under || with the test", `if (ready || data.name !== undefined) { data.name = trim(data.name); }`],
-    ["after an if that does not leave", `if (data.name === undefined) { log(); }\n    data.name = "x";`],
-    ["under !== null, which undefined passes", `if (data.name !== null) { data.name = "x"; }`],
+    [
+      "under a test of another column",
+      `if (data.bpfFilter !== undefined) { data.name = "x"; }`,
+    ],
+    [
+      "under || with the test",
+      `if (ready || data.name !== undefined) { data.name = trim(data.name); }`,
+    ],
+    [
+      "after an if that does not leave",
+      `if (data.name === undefined) { log(); }\n    data.name = "x";`,
+    ],
+    [
+      "under !== null, which undefined passes",
+      `if (data.name !== null) { data.name = "x"; }`,
+    ],
     ["unconditionally", `data.name = "x";`],
   ])("not %s", (_how: string, statements: string) => {
     const writes: Array<string> = written(hook(statements));

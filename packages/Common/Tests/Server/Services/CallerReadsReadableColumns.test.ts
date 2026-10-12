@@ -162,7 +162,11 @@ describe("reads made with a caller's props", () => {
 
     // Through an imported service, with the request's props.
     expect(
-      has("packages/Common/Server/API/LlmProviderAPI.ts", "select", "projectId"),
+      has(
+        "packages/Common/Server/API/LlmProviderAPI.ts",
+        "select",
+        "projectId",
+      ),
     ).toBe(true);
     // Through `this`, inside a service.
     expect(

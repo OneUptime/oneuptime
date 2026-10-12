@@ -48,7 +48,9 @@ jest.mock("../../../../../Server/Utils/Logger");
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 
-function caller(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function caller(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: ObjectID.generate(),
     userType: UserType.User,
@@ -77,10 +79,13 @@ function refusal(run: () => void): Error {
     return error as Error;
   }
 
-  throw new Error("Expected the gate to refuse, but it let the request through.");
+  throw new Error(
+    "Expected the gate to refuse, but it let the request through.",
+  );
 }
 
-const START_TITLES: string = "Project Owner, Project Admin, Start Packet Capture";
+const START_TITLES: string =
+  "Project Owner, Project Admin, Start Packet Capture";
 
 describe("ColumnRefusalMessage: the words", () => {
   test.each([
@@ -291,11 +296,11 @@ describe("every gate refuses a column in those words", () => {
     }
 
     function bodyColumn(): AnalyticsTableColumn {
-      return new Log().getTableColumns().find(
-        (column: AnalyticsTableColumn): boolean => {
+      return new Log()
+        .getTableColumns()
+        .find((column: AnalyticsTableColumn): boolean => {
           return column.key === "body";
-        },
-      )!;
+        })!;
     }
 
     function titlesOf(permissions: Array<Permission>): string {

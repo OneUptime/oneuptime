@@ -898,7 +898,10 @@ describePostgres("packet capture SQL against Postgres", () => {
       permissions: Array<Permission>,
     ): DatabaseCommonInteractionProps {
       return {
-        ...customDomainCaller({ permissions: permissions, projectId: projectId }),
+        ...customDomainCaller({
+          permissions: permissions,
+          projectId: projectId,
+        }),
         ...ON_HIGHEST_PLAN,
       };
     }
@@ -1045,7 +1048,9 @@ describePostgres("packet capture SQL against Postgres", () => {
       expect(recordDownload).toHaveBeenCalledTimes(1);
 
       // 4. A viewer sees it in the list; the file's id is never theirs to read.
-      const viewer: DatabaseCommonInteractionProps = member([Permission.Viewer]);
+      const viewer: DatabaseCommonInteractionProps = member([
+        Permission.Viewer,
+      ]);
       const listed: Array<PacketCapture> = await PacketCaptureService.findBy({
         query: { probeId: probeId },
         select: {

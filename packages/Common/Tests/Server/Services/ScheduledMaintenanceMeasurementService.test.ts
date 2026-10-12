@@ -68,7 +68,9 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
   ): Promise<OnUpdate<ScheduledMaintenanceMeasurement>>;
-  onUpdatePermitted(updateBy: UpdateBy<ScheduledMaintenanceMeasurement>): Promise<void>;
+  onUpdatePermitted(
+    updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
+  ): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<ScheduledMaintenanceMeasurement>,
   ): Promise<OnDelete<ScheduledMaintenanceMeasurement>>;
@@ -85,7 +87,9 @@ const hooks: MeasurementHooks =
  * held to the caller's column permissions and refused every member's change
  * (MeasurementEditsAsMember runs the whole update).
  */
-async function runUpdateHooks(updateBy: UpdateBy<ScheduledMaintenanceMeasurement>): Promise<void> {
+async function runUpdateHooks(
+  updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
+): Promise<void> {
   await hooks.onBeforeUpdate(updateBy);
   await hooks.onUpdatePermitted(updateBy);
 }

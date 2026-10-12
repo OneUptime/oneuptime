@@ -110,14 +110,12 @@ describe("ColumnWriteRefusedException", () => {
   );
 
   test("given the column's list, it says who may write it", () => {
-    const error: ColumnWriteRefusedException = new ColumnWriteRefusedException(
-      {
-        requestType: "update",
-        columnName: "enableAutoRechargeAiBalance",
-        modelName: "Project",
-        permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-      },
-    );
+    const error: ColumnWriteRefusedException = new ColumnWriteRefusedException({
+      requestType: "update",
+      columnName: "enableAutoRechargeAiBalance",
+      modelName: "Project",
+      permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    });
 
     expect(error.message).toBe(
       "User is not allowed to update on enableAutoRechargeAiBalance column of Project. You need one of these permissions: Project Owner, Manage Billing.",

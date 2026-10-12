@@ -404,7 +404,9 @@ describe("what Start Capture sends to the server", () => {
       expect(onStarted).toHaveBeenCalledTimes(1);
     });
 
-    const sent: Array<string> = Object.keys(request().data["data"] as JSONObject);
+    const sent: Array<string> = Object.keys(
+      request().data["data"] as JSONObject,
+    );
 
     for (const column of sent) {
       expect([column, DASHBOARD_START_COLUMNS.includes(column)]).toEqual([

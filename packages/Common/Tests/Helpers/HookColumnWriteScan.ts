@@ -369,8 +369,10 @@ export function findHookColumnWrites(
         const member: MethodNode | undefined = serviceClass.methods.get(
           visit.method,
         );
-        const fn: ts.FunctionLikeDeclaration | ts.GetAccessorDeclaration | null =
-          member ? functionOf(member) : null;
+        const fn:
+          | ts.FunctionLikeDeclaration
+          | ts.GetAccessorDeclaration
+          | null = member ? functionOf(member) : null;
 
         if (!fn || !fn.body) {
           continue;
@@ -489,9 +491,7 @@ export function findHookColumnWrites(
             isPayload(expression.arguments[0]) &&
             expression.arguments[1]
           ) {
-            const keysArgument: ts.Expression = unwrap(
-              expression.arguments[1],
-            );
+            const keysArgument: ts.Expression = unwrap(expression.arguments[1]);
             const keys: Array<string> = ts.isArrayLiteralExpression(
               keysArgument,
             )

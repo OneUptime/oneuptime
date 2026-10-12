@@ -80,7 +80,9 @@ const hooks: MeasurementHooks =
  * held to the caller's column permissions and refused every member's change
  * (MeasurementEditsAsMember runs the whole update).
  */
-async function runUpdateHooks(updateBy: UpdateBy<AlertMeasurement>): Promise<void> {
+async function runUpdateHooks(
+  updateBy: UpdateBy<AlertMeasurement>,
+): Promise<void> {
   await hooks.onBeforeUpdate(updateBy);
   await hooks.onUpdatePermitted(updateBy);
 }

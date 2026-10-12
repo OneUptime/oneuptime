@@ -69,7 +69,8 @@ const DOMAINS: Array<Domain> = [
   {
     label: "an incident measurement",
     modelName: "Incident Measurement",
-    service: IncidentMeasurementService as unknown as DatabaseService<BaseModel>,
+    service:
+      IncidentMeasurementService as unknown as DatabaseService<BaseModel>,
     stateService: IncidentStateService as unknown as Domain["stateService"],
     edit: Permission.EditIncidentMeasurement,
     read: Permission.ReadIncidentMeasurement,
@@ -276,8 +277,10 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
 
       await hooks.onBeforeUpdate(updateBy);
 
-      const data: Record<string, unknown> =
-        updateBy.data as unknown as Record<string, unknown>;
+      const data: Record<string, unknown> = updateBy.data as unknown as Record<
+        string,
+        unknown
+      >;
 
       for (const column of [
         "backfillRequestedAt",
@@ -294,8 +297,10 @@ describe.each(DOMAINS)("changing $label", (domain: Domain) => {
       await hooks.onBeforeUpdate(updateBy);
       await hooks.onUpdatePermitted(updateBy);
 
-      const data: Record<string, unknown> =
-        updateBy.data as unknown as Record<string, unknown>;
+      const data: Record<string, unknown> = updateBy.data as unknown as Record<
+        string,
+        unknown
+      >;
 
       expect(data["backfillRequestedAt"]).toBeInstanceOf(Date);
 

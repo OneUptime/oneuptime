@@ -180,9 +180,10 @@ describe("what a start writes, held to who may start", () => {
       "packetCount",
       "fileSizeInBytes",
     ]) {
-      expect([column, model().getColumnAccessControlFor(column)!.create]).toEqual(
-        [column, []],
-      );
+      expect([
+        column,
+        model().getColumnAccessControlFor(column)!.create,
+      ]).toEqual([column, []]);
     }
   });
 

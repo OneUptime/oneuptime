@@ -166,7 +166,10 @@ const STARTERS: Array<[string, Array<Permission>]> = [
     "a viewer whose team was given Start Packet Capture",
     [Permission.Viewer, Permission.CreatePacketCapture],
   ],
-  ["someone holding only Start Packet Capture", [Permission.CreatePacketCapture]],
+  [
+    "someone holding only Start Packet Capture",
+    [Permission.CreatePacketCapture],
+  ],
 ];
 
 // Who may not, though they may see captures, download or delete them.
@@ -262,9 +265,7 @@ function probeRow(): Probe {
 }
 
 // A capture the probe finished, with its file - as recordCompletion leaves it.
-function completedCapture(
-  overrides: StoredRow = {},
-): StoredRow {
+function completedCapture(overrides: StoredRow = {}): StoredRow {
   return {
     _id: CAPTURE_ID,
     projectId: PROJECT_ID.toString(),
@@ -336,7 +337,9 @@ beforeEach(() => {
 
   captures = useInMemoryTable(PacketCaptureService, []);
 
-  jest.spyOn(ProbeService, "findOneById").mockResolvedValue(probeRow() as never);
+  jest
+    .spyOn(ProbeService, "findOneById")
+    .mockResolvedValue(probeRow() as never);
 
   hardDeleteFiles = jest
     .spyOn(FileService, "hardDeleteBy")
@@ -625,7 +628,9 @@ describe("the list: POST /packet-capture/get-list with the select the dashboard'
     statusMessage: true,
   };
 
-  async function list(select: JSONObject): Promise<{ error: Error | undefined }> {
+  async function list(
+    select: JSONObject,
+  ): Promise<{ error: Error | undefined }> {
     return await callRoute("POST", LIST_ROUTE, {
       body: {
         query: JSONFunctions.serialize({ probeId: PROBE_ID.toString() }),
@@ -769,7 +774,10 @@ describe("the whole walk, as the members the docs name", () => {
       .spyOn(AuditLogService, "recordDownload")
       .mockResolvedValue(undefined as never) as unknown as MockedFn;
 
-    props = caller([Permission.ProjectMember, Permission.DownloadPacketCapture]);
+    props = caller([
+      Permission.ProjectMember,
+      Permission.DownloadPacketCapture,
+    ]);
 
     const download: { error: Error | undefined } = await callRoute(
       "POST",

@@ -62,7 +62,8 @@ function propertyNamed(
     return (
       (ts.isPropertyAssignment(property) ||
         ts.isShorthandPropertyAssignment(property)) &&
-      (ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)) &&
+      (ts.isIdentifier(property.name) ||
+        ts.isStringLiteralLike(property.name)) &&
       property.name.text === name
     );
   });
@@ -250,7 +251,10 @@ function resolveModule(fromFile: string, specifier: string): string | null {
  * Every column one file reads with a caller's props, through a service it
  * imports or - inside a service - through `this`.
  */
-export function findCallerReads(filePath: string, text: string): Array<CallerRead> {
+export function findCallerReads(
+  filePath: string,
+  text: string,
+): Array<CallerRead> {
   const source: ts.SourceFile = parse(path.basename(filePath), text);
   const services: Map<string, string> = importedServiceModels(source, filePath);
   const ownModel: string | null = modelFileOf(text);
@@ -291,8 +295,10 @@ export function findCallerReads(filePath: string, text: string): Array<CallerRea
         !isOneUptimesProps(props.initializer)
       ) {
         for (const kind of ["select", "query"] as Array<ReadKind>) {
-          const clause: ts.ObjectLiteralElementLike | undefined =
-            propertyNamed(argument, kind);
+          const clause: ts.ObjectLiteralElementLike | undefined = propertyNamed(
+            argument,
+            kind,
+          );
 
           const keys: Array<ts.Node> =
             clause && ts.isPropertyAssignment(clause)
@@ -305,10 +311,7 @@ export function findCallerReads(filePath: string, text: string): Array<CallerRea
               line:
                 source.getLineAndCharacterOfPosition(key.getStart(source))
                   .line + 1,
-              text: node
-                .getText(source)
-                .replace(WHITESPACE, " ")
-                .slice(0, 160),
+              text: node.getText(source).replace(WHITESPACE, " ").slice(0, 160),
               kind: kind,
               modelFile: modelFile,
               column: keyName(key),
