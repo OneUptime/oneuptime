@@ -1,12 +1,11 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import { ApiComponentUtils } from "../API/Utils";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
 import APIException from "../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
-import { JSONArray, JSONObject } from "../../../../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../../../../Types/JSON";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
@@ -17,6 +16,23 @@ import SSRFProtection from "../../../../Utils/SSRFProtection";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class MakeCall extends ComponentCode {
+  public static getErrorMessage(response: HTTPErrorResponse): string {
+    const message: JSONValue | undefined = response.data?.["message"];
+
+    if (message && typeof message === "object") {
+      return Object.entries(message as JSONObject)
+        .map(([parameter, error]: [string, JSONValue]) => {
+          return `${parameter}: ${error}`;
+        })
+        .join("; ");
+    }
+
+    return (
+      (message as string) ||
+      `SMSEagle answered with HTTP ${response.statusCode}.`
+    );
+  }
+
   public constructor() {
     super();
 
@@ -136,11 +152,13 @@ export default class MakeCall extends ComponentCode {
         headers: {
           "access-token": accessToken,
         },
-        options: ApiComponentUtils.requestOptions,
+        options: {
+          doNotFollowRedirects: true,
+        },
       });
 
       if (apiResult instanceof HTTPErrorResponse) {
-        const smsEagleError: string = apiResult.message || "Server Error.";
+        const smsEagleError: string = MakeCall.getErrorMessage(apiResult);
         return Promise.resolve({
           returnValues: {
             error: smsEagleError,
@@ -173,7 +191,7 @@ export default class MakeCall extends ComponentCode {
       });
     } catch (err) {
       if (err instanceof HTTPErrorResponse) {
-        const smsEagleError: string = err.message || "Server Error.";
+        const smsEagleError: string = MakeCall.getErrorMessage(err);
         return Promise.resolve({
           returnValues: {
             error: smsEagleError,

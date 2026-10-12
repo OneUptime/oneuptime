@@ -220,12 +220,36 @@ describe("SMSEagle MakeCall - SMSEagle errors go to the error port", () => {
 
     expect(result.executePort?.id).toBe("error");
     expect(result.returnValues["error"]).toBe(
-      '{"voice_id":"This value should not be blank."}',
+      "voice_id: This value should not be blank.",
     );
   });
 
-  test("an HTTP error with no message falls back to a generic message", async () => {
-    apiPostMock.mockResolvedValue(new HTTPErrorResponse(502, {}, {}));
+  test("a 400 for several parameters names each of them", async () => {
+    apiPostMock.mockResolvedValue(
+      new HTTPErrorResponse(
+        400,
+        {
+          message: {
+            to: "This value should not be blank.",
+            voice_id: "Resource with specified ID not found.",
+          },
+        },
+        {},
+      ),
+    );
+
+    const result: RunReturnType = await new MakeCall().run(
+      makeArgs(),
+      makeOptions(),
+    );
+
+    expect(result.returnValues["error"]).toBe(
+      "to: This value should not be blank.; voice_id: Resource with specified ID not found.",
+    );
+  });
+
+  test("an HTTP error with no message names the HTTP status", async () => {
+    apiPostMock.mockResolvedValue(new HTTPErrorResponse(500, {}, {}));
 
     const result: RunReturnType = await new MakeCall().run(
       makeArgs(),
@@ -233,7 +257,29 @@ describe("SMSEagle MakeCall - SMSEagle errors go to the error port", () => {
     );
 
     expect(result.executePort?.id).toBe("error");
-    expect(result.returnValues["error"]).toBe("Server Error.");
+    expect(result.returnValues["error"]).toBe(
+      "SMSEagle answered with HTTP 500.",
+    );
+  });
+
+  test("an HTML error page is not quoted, the HTTP status is", async () => {
+    apiPostMock.mockResolvedValue(
+      new HTTPErrorResponse(
+        403,
+        "<html><head><title>Error 403</title></head></html>" as unknown as JSONObject,
+        {},
+      ),
+    );
+
+    const result: RunReturnType = await new MakeCall().run(
+      makeArgs(),
+      makeOptions(),
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe(
+      "SMSEagle answered with HTTP 403.",
+    );
   });
 
   test("a 200 that is not queued is still an error", async () => {
