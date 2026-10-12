@@ -254,21 +254,12 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/ai-agent-circuit-breaker": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/ai-coding-assistants": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/ai-gateways": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/ceph": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "telemetry/claude-code": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/cursor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/databases": {
     translated: EVERY_TRANSLATION,
@@ -297,9 +288,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "telemetry/kubernetes-cost": {
     sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/openai-codex": {
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/podman-host": {
     codeLanguage: EN,
