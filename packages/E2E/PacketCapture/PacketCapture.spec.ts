@@ -855,6 +855,22 @@ test.describe("at phone width, in the dark and in Japanese", () => {
     await expect(modal(page)).toContainText(
       "1 分、100,000 パケット、10 MB のいずれかに先に達した時点で停止します。",
     );
+
+    /*
+     * "Any protocol" is longer in most languages than in English, and the
+     * Protocol box cut it short ("すべてのプロト…", "Beliebiges Pr…"). The
+     * box is wide enough for the longest of them.
+     */
+    const protocol: Locator = page
+      .getByTestId("packet-capture-filter")
+      .locator(".ou-select__single-value");
+
+    await expect(protocol).toHaveText("すべてのプロトコル");
+    expect(
+      await protocol.evaluate((element: Element) => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
     await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
       "キャプチャを開始",
     );

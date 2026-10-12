@@ -138,7 +138,12 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_10rem]">
+        /*
+         * Protocol is as wide as the longest "Any protocol" needs
+         * ("Qualsiasi protocollo", "Beliebiges Protokoll"). At 10rem nine of
+         * the seventeen languages were cut short.
+         */
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_13rem]">
           <div className="min-w-0">
             <label
               htmlFor={`${id}-host`}
