@@ -15,9 +15,12 @@ not parse (on the docs and the blog, ahead of the other two); the docs and the
 blog also take `interactive` (a click that calls a page function, a
 `javascript:` link and HTML labels), and the Dashboard page `plain` (no KaTeX
 needed), `mixed` (the broken one, then the other two) and `?theme=dark`. The
-docs page takes `?lang=fa` (Persian, right to left), and the blog post
-`?html=broken`, a diagram that does not parse written as HTML rather than as a
-fenced block.
+docs page takes `?lang=fa` (Persian, right to left), two more sets of diagrams,
+`persian` (a flowchart, a sequence diagram and a state diagram written as the
+Persian docs write them, captioned) and `rules` (an English diagram whose lines
+end in a colon), and `&content=en`, which serves its article as the English
+copy of an untranslated page; the blog post takes `?html=broken`, a diagram
+that does not parse written as HTML rather than as a fenced block.
 
 `Fixture/server.js` runs `Common/Scripts/build-mermaid-browser.js` the way the
 App and Home images do, and serves what it writes at `/oneuptime-assets/mermaid/`,
@@ -38,7 +41,12 @@ checked: each surface draws every diagram and sets a `$$...$$` label with
 KaTeX's MathML (the Dashboard keeps only KaTeX's MathML and no HTML), KaTeX is
 fetched once, as its own chunk, only for a page that needs it, and holds the
 version npm installed for Common, none of mermaid's prebuilt bundles is ever
-requested, and the dark themes apply and redraw.
+requested, and the dark themes apply and redraw. It is also where the docs'
+diagram text is seen read in the right order: on a Persian page every line of
+a label, a sequence diagram's text and the caption are laid out right to
+left, a line that opens with a Latin word too, while an English diagram, and
+the English copy of an untranslated page on a Persian URL, keep each line in
+the direction of its first letter.
 
 A diagram that cannot be drawn fails softly: the others are drawn, and mermaid
 leaves nothing anywhere else on the page (it used to leave its "Syntax error"

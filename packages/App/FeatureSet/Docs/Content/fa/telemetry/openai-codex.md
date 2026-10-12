@@ -15,7 +15,7 @@ Codex CLI سه صادرکنندهٔ داخلی OpenTelemetry دارد، یکی �
 
 ```mermaid title="سه صادرکنندهٔ Codex"
 flowchart TB
-    config["~/.codex/config.toml"] --> codex["Codex"]
+    config["config.toml (~/.codex)"] --> codex["Codex"]
     codex --> logs["لاگ‌ها"]
     codex --> traces["ترِیس‌ها"]
     codex --> metrics["متریک‌ها"]
