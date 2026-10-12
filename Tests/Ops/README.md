@@ -805,6 +805,17 @@ boots (each file's services merged over the last, those behind a profile left
 out) plus the e2e overlay: a job that started before one of its images was
 pushed would not fail, it would test the previous push's image.
 
+Nothing writes the GitHub release once release.yml has published it: every
+job with a step that creates, fills or edits the release
+(`softprops/action-gh-release`, `ncipollo/release-action`, `gh release
+create|upload|edit`) must be one `finalize-github-release` waits for. The app
+jobs were not, and 14.0.46 shipped without its Android APK: the APK finished
+after the publish, and GitHub refused the upload. The app jobs are waited for
+but not required, so the suite reads the publish job's `if` the way Actions
+does (an `if` with no status function is `success() && if`). The release
+publishes after an app build fails, and not when a job it requires did not
+succeed, when the run was cancelled, or off `release`.
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather
