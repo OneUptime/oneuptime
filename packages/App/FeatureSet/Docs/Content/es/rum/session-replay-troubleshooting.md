@@ -73,7 +73,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
 };
 ```
 @tab En el despliegue
-En el despliegue de OneUptime, el único interruptor que no necesita a nadie delante del navegador que falla. Define `SESSION_REPLAY_DEBUG=true` y reinicia. Cada grabador que sirve esta instancia registra entonces, en cada página donde se ejecuta, así que actívalo, recoge una recarga y desactívalo. No cambia ninguna política: ni el muestreo, ni el enmascaramiento, ni el consentimiento. Consulta [Notas para instalaciones propias](/docs/telemetry/session-replay#notas-para-instalaciones-autoalojadas) para los demás ajustes del despliegue.
+En el despliegue de OneUptime, el único interruptor que no necesita a nadie delante del navegador que falla. Define `SESSION_REPLAY_DEBUG=true` y reinicia. Cada grabador que sirve esta instancia registra entonces, en cada página donde se ejecuta, así que actívalo, recoge una recarga y desactívalo. No cambia ninguna política: ni el muestreo, ni el enmascaramiento, ni el consentimiento. Consulta [Notas para instalaciones autoalojadas](/docs/telemetry/session-replay#notas-para-instalaciones-autoalojadas) para los demás ajustes del despliegue.
 @tab En tiempo de ejecución
 Una vez cargado el grabador:
 
