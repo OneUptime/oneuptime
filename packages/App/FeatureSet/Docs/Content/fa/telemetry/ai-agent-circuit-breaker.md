@@ -9,8 +9,8 @@
 ```mermaid
 flowchart LR
     A[Agent emits<br/>gen_ai.* spans] --> B[OneUptime<br/>OTLP ingest]
-    B --> C{Trip-wire:<br/>budget metrics monitor<br/>or Traces monitor}
-    C -->|Alert created| D[Workflow:<br/>Alert On Create]
+    B --> C{Trip-wire<br/>budget metrics monitor<br/>or Traces monitor}
+    C -->|Alert created| D[Workflow<br/>Alert On Create]
     D --> E[API Post to your<br/>kill endpoint]
     E --> F[Your runner aborts<br/>or pauses the agent]
 ```

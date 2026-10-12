@@ -23,7 +23,7 @@ sequenceDiagram
     Sender->>SendGrid: ایمیل به نشانی مانیتور (از راه رکورد MX شما)
     SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
     OneUptime->>OneUptime: تطبیق نشانی با یک مانیتور یا یک گردش‌کار
-    OneUptime-->>SendGrid: 200 OK
+    OneUptime-->>SendGrid: HTTP 200 OK
 ```
 
 1. شما در OneUptime یک **Incoming Email Monitor** می‌سازید

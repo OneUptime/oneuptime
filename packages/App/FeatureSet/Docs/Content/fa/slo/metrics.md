@@ -12,7 +12,7 @@
 
 ```mermaid title="عددهای یک SLO به کجا می‌روند"
 flowchart TB
-    eval["ارزیابی SLO،<br/>هر ۵ دقیقه"] --> metrics["متریک‌های<br/>oneuptime.slo.*"]
+    eval["ارزیابی SLO،<br/>هر ۵ دقیقه"] --> metrics["متریک‌های<br/>oneuptime.slo"]
     eval --> history["تاریخچه بودجه خطا،<br/>نگه‌داری‌شده ۴۰۰ روز"]
     metrics --> uses["صفحه متریک‌های SLO،<br/>کاوشگر متریک<br/>و داشبوردها"]
     history --> tab["زبانه Error Budget<br/>History"]

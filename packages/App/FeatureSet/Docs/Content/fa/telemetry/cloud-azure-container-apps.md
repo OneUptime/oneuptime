@@ -14,7 +14,7 @@
 ```mermaid title="ویژگی‌های یک رپلیکای Container Apps از کجا می‌آیند"
 flowchart TB
     detector["تشخیص‌دهندهٔ Azure:<br/>بستر و رپلیکا"] --> exporter
-    manual["OTEL_RESOURCE_<br/>ATTRIBUTES:<br/>منطقه و اشتراک"] --> exporter
+    manual["منطقه و اشتراک در<br/>OTEL_RESOURCE_ATTRIBUTES"] --> exporter
     exporter["برنامهٔ شما یا<br/>کالکتور sidecar آن"] -->|"ارسال OTLP روی HTTPS"| ou["OneUptime"]
     ou --> env["محیط ابری<br/>اشتراک و منطقه"]
     ou --> inst["نمونه‌ها<br/>یک ردیف برای هر رپلیکا"]
