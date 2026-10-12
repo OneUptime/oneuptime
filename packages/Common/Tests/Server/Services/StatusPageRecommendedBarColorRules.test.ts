@@ -367,7 +367,7 @@ describe("a status page created with addRecommendedBarColorRules", () => {
     );
 
     const withoutProject: StatusPage = createdPage();
-    withoutProject.projectId = undefined;
+    delete withoutProject.projectId;
 
     await runSuccessHook(
       { [ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY]: true },
