@@ -267,29 +267,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/claude-code": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/cloud-aws-ecs": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-azure-container-apps": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-environments": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-gcp-cloud-run": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-other-platforms": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-resources": {
-    uniqueHeadings: EN,
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/cloud-troubleshooting": {
-    translated: EVERY_TRANSLATION,
-  },
   "telemetry/cursor": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
