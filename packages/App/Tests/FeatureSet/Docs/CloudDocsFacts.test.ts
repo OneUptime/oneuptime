@@ -29,7 +29,12 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { PATH_SEPARATOR, boldLabels, boldPaths, tabLabels } from "./DocsPageShape";
+import {
+  PATH_SEPARATOR,
+  boldLabels,
+  boldPaths,
+  tabLabels,
+} from "./DocsPageShape";
 import { prose } from "./DocsTranslationChecks";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -111,7 +116,8 @@ const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
 const SECTION_OPEN: RegExp =
   /\{\s*title:\s*"([^"]+)",(?:\s*defaultCollapsed:\s*\w+,)?\s*items:/g;
 const MENU_ITEM: RegExp = /link:\s*\{\s*title:\s*"([^"]+)"/g;
-const VIEW_MENU_ITEM: RegExp = /title:\s*(?:isResource \? "([^"]+)" : )?"([^"]+)"/g;
+const VIEW_MENU_ITEM: RegExp =
+  /title:\s*(?:isResource \? "([^"]+)" : )?"([^"]+)"/g;
 const FENCE_INFO_TITLE: RegExp = /title="([^"]+)"/;
 
 interface MenuSection {
@@ -166,11 +172,11 @@ function menuSections(relativePath: string): Array<MenuSection> {
 
       return {
         title: start.title,
-        items: Array.from(
-          source.slice(start.at, end).matchAll(MENU_ITEM),
-        ).map((match: RegExpMatchArray): string => {
-          return match[1] as string;
-        }),
+        items: Array.from(source.slice(start.at, end).matchAll(MENU_ITEM)).map(
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
+        ),
       };
     },
   );
@@ -206,9 +212,10 @@ function englishLocale(): Record<string, unknown> {
 }
 
 function navbarTitle(key: string): string {
-  const navbar: Record<string, unknown> = englishLocale()[
-    "navbar"
-  ] as Record<string, unknown>;
+  const navbar: Record<string, unknown> = englishLocale()["navbar"] as Record<
+    string,
+    unknown
+  >;
 
   return (navbar["items"] as Record<string, string>)[key] as string;
 }
@@ -246,7 +253,10 @@ function mapAt(value: unknown, ...keys: Array<string>): YamlMap {
   let current: unknown = value;
 
   for (const key of keys) {
-    expect({ key, isMap: typeof current === "object" && current !== null }).toEqual({
+    expect({
+      key,
+      isMap: typeof current === "object" && current !== null,
+    }).toEqual({
       key,
       isMap: true,
     });
@@ -305,9 +315,11 @@ function collectorContainers(document: YamlMap): Array<YamlMap> {
   const containers: Array<YamlMap> = [];
   const candidates: Array<unknown> = [
     (
-      ((document["spec"] as YamlMap | undefined)?.["template"] as
-        | YamlMap
-        | undefined)?.["spec"] as YamlMap | undefined
+      (
+        (document["spec"] as YamlMap | undefined)?.["template"] as
+          | YamlMap
+          | undefined
+      )?.["spec"] as YamlMap | undefined
     )?.["containers"],
     (
       (document["properties"] as YamlMap | undefined)?.["template"] as
@@ -360,7 +372,11 @@ describe("the menu paths", () => {
       );
 
       for (const consolePath of CONSOLE_PATHS[page] as Array<string>) {
-        expect({ page, consolePath, found: written.includes(consolePath) }).toEqual({
+        expect({
+          page,
+          consolePath,
+          found: written.includes(consolePath),
+        }).toEqual({
           page,
           consolePath,
           found: true,
@@ -405,7 +421,9 @@ describe("the menu paths", () => {
     expect(isMenuPath("Cloud", ["All Environments"])).toBe(true);
     expect(isMenuPath("Cloud", ["Settings", "Label Rules"])).toBe(true);
     expect(isMenuPath("Cloud", ["Label Rules"])).toBe(false);
-    expect(isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"])).toBe(true);
+    expect(
+      isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"]),
+    ).toBe(true);
     expect(isMenuPath("Project Settings", ["Ingestion Keys"])).toBe(false);
   });
 
@@ -459,7 +477,11 @@ describe("the environments list and its create form", () => {
   it("names the form's fields, and the fold the display name is in", () => {
     const source: string = readSource(ENVIRONMENTS_PAGE);
 
-    for (const field of ["Cloud Platform", "Cloud Account ID", "Cloud Region"]) {
+    for (const field of [
+      "Cloud Platform",
+      "Cloud Account ID",
+      "Cloud Region",
+    ]) {
       expect(source).toContain(`title: "${field}",`);
       expect(boldLabels(englishPage(HUB))).toContain(field);
       expect(boldLabels(englishPage(TROUBLESHOOTING))).toContain(field);
@@ -518,7 +540,9 @@ describe("an environment's overview and instances", () => {
     expect(source).toContain(
       'const TOP_INSTANCES_TITLE: string = "Top instances by CPU";',
     );
-    expect(source).toContain('{ label: "Environment Key", value: r.resourceIdentifier');
+    expect(source).toContain(
+      '{ label: "Environment Key", value: r.resourceIdentifier',
+    );
 
     const hub: Array<string> = boldLabels(englishPage(HUB));
 
@@ -534,7 +558,9 @@ describe("an environment's overview and instances", () => {
       expect(hub).toContain(label);
     }
 
-    expect(boldLabels(englishPage(TROUBLESHOOTING))).toContain("Environment Key");
+    expect(boldLabels(englishPage(TROUBLESHOOTING))).toContain(
+      "Environment Key",
+    );
   });
 
   it("quotes the window an instance counts as live in, and the Stale pill", () => {
@@ -555,7 +581,9 @@ describe("an environment's overview and instances", () => {
     expect(pageProse(TROUBLESHOOTING)).toContain(
       `has not reported in the last ${minutes} minutes`,
     );
-    expect(pageProse(ECS)).toContain("A task that stops reporting turns **Stale**");
+    expect(pageProse(ECS)).toContain(
+      "A task that stops reporting turns **Stale**",
+    );
   });
 });
 
@@ -623,7 +651,9 @@ describe("the token check", () => {
 
     expect(api).toContain('"/otlp/v1/validate"');
     expect(api).toContain("valid: true,");
-    expect(api).toContain("This ingestion token is unknown or has been revoked.");
+    expect(api).toContain(
+      "This ingestion token is unknown or has been revoked.",
+    );
     expect(api).toContain("This ingestion key has been disabled.");
     expect(api).toContain("This ingestion key has expired.");
     expect(api).toContain("{ statusCode: new StatusCode(401) }");
@@ -643,7 +673,10 @@ describe("the token check", () => {
   });
 
   it("names the key types the answer reports", () => {
-    expect(Object.values(TelemetryIngestionKeyType)).toEqual(["Server", "Browser"]);
+    expect(Object.values(TelemetryIngestionKeyType)).toEqual([
+      "Server",
+      "Browser",
+    ]);
     expect(readSource(OTLP_INGEST_API)).toContain("keyType: policy.keyType,");
     expect(pageProse(TROUBLESHOOTING)).toContain(
       "Its `keyType` should be `Server`: a `Browser` key is refused from a collector or a backend service.",
@@ -686,7 +719,9 @@ describe("the platform spellings ingest rewrites", () => {
     expect(pageProse(TROUBLESHOOTING)).toContain(
       "write `azure.container_apps`, `azure.app_service` and `azure.functions`",
     );
-    expect(pageProse(CONTAINER_APPS)).toContain("`azure.container_apps`, with a dot");
+    expect(pageProse(CONTAINER_APPS)).toContain(
+      "`azure.container_apps`, with a dot",
+    );
     expect(pageProse(OTHER)).toContain("`azure.app_service`, with a dot");
   });
 });
@@ -786,7 +821,11 @@ describe("the code samples", () => {
       expect(configs.length).toBeGreaterThan(0);
 
       for (const config of configs) {
-        const exporter: YamlMap = mapAt(config, "exporters", "otlphttp/oneuptime");
+        const exporter: YamlMap = mapAt(
+          config,
+          "exporters",
+          "otlphttp/oneuptime",
+        );
 
         expect(exporter["endpoint"]).toBe("https://oneuptime.com/otlp");
         expect(exporter["headers"]).toEqual({
@@ -815,13 +854,17 @@ describe("the code samples", () => {
     // The jq command on the page writes containerDefinitions[1].environment[0].
     expect(containers.indexOf(collector)).toBe(1);
 
-    const environment: Array<YamlMap> = collector["environment"] as Array<YamlMap>;
+    const environment: Array<YamlMap> = collector[
+      "environment"
+    ] as Array<YamlMap>;
 
     expect(environment[0]!["name"]).toBe("OTEL_COLLECTOR_CONFIG");
     expect(yamlOf(environment[0]!["value"] as string)).toEqual(
       yamlOf(titledFence(ECS, "OTEL_COLLECTOR_CONFIG")),
     );
-    expect(collector["command"]).toEqual(["--config=env:OTEL_COLLECTOR_CONFIG"]);
+    expect(collector["command"]).toEqual([
+      "--config=env:OTEL_COLLECTOR_CONFIG",
+    ]);
     expect((collector["secrets"] as Array<YamlMap>)[0]!["name"]).toBe(
       "ONEUPTIME_TOKEN",
     );
@@ -832,7 +875,9 @@ describe("the code samples", () => {
         fencesOf(ECS).find((fence: DocsFence): boolean => {
           return (
             fence.lang === "bash" &&
-            fence.code.includes("OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318")
+            fence.code.includes(
+              "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318",
+            )
           );
         }) as DocsFence
       ).code,
@@ -856,9 +901,11 @@ describe("the code samples", () => {
     const containers: Array<YamlMap> = mapAt(template, "spec")[
       "containers"
     ] as Array<YamlMap>;
-    const names: Array<string> = containers.map((container: YamlMap): string => {
-      return container["name"] as string;
-    });
+    const names: Array<string> = containers.map(
+      (container: YamlMap): string => {
+        return container["name"] as string;
+      },
+    );
     const dependencies: Record<string, Array<string>> = JSON.parse(
       annotations["run.googleapis.com/container-dependencies"] as string,
     ) as Record<string, Array<string>>;
@@ -894,7 +941,9 @@ describe("the code samples", () => {
   });
 
   it("Container Apps: the sidecar's attributes are the SDK direct ones, and it keeps the app's service.name", () => {
-    const app: YamlMap = yamlOf(titledFence(CONTAINER_APPS, "checkout-api.yaml"));
+    const app: YamlMap = yamlOf(
+      titledFence(CONTAINER_APPS, "checkout-api.yaml"),
+    );
     const collector: YamlMap = collectorContainers(app)[0] as YamlMap;
     const attributes: string = containerEnvironment(collector)[
       "OTEL_RESOURCE_ATTRIBUTES"
@@ -946,7 +995,9 @@ describe("the in-app guide's tabs", () => {
     const guide: string = readSource(CLOUD_SETUP_GUIDE);
 
     expect(SHAPE_TABS).toEqual(["Sidecar collector", "SDK direct"]);
-    expect(guide).toContain('const SIDECAR_COLLECTOR: string = "Sidecar collector";');
+    expect(guide).toContain(
+      'const SIDECAR_COLLECTOR: string = "Sidecar collector";',
+    );
     expect(guide).toContain('const SDK_DIRECT: string = "SDK direct";');
 
     for (const page of [HUB, ...PLATFORM_PAGES]) {

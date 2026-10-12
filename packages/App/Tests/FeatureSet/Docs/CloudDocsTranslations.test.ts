@@ -112,7 +112,7 @@ const HEADING_LINE: RegExp = /^(#{1,6})\s/;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
-const THOUSANDS: RegExp = /(\d)[,.٬   '](?=\d{3}\b)/g;
+const THOUSANDS: RegExp = /(\d)[,.٬\u00a0\u202f '](?=\d{3}\b)/g;
 // The Arabic decimal separator (U+066B) Persian writes inside a number.
 const ARABIC_DECIMAL_SEPARATOR: RegExp = /(\d)٫(?=\d)/g;
 // A letter of a script written right to left: Persian's (Arabic), Hebrew.
@@ -271,8 +271,9 @@ function linesLaidOutBackwards(markdown: string): Array<string> {
         .startsWith("stateDiagram");
       const transitions: Array<string> = isStateDiagram
         ? fence.code.split("\n").flatMap((line: string): Array<string> => {
-            const label: string | undefined =
-              line.match(STATE_TRANSITION_LABEL)?.[1];
+            const label: string | undefined = line.match(
+              STATE_TRANSITION_LABEL,
+            )?.[1];
 
             return label === undefined ? [] : label.trim().split("<br/>");
           })
@@ -542,9 +543,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
 
     it("opens every diagram line that holds right-to-left words with one, so the line reads in their direction", () => {
-      expect(linesLaidOutBackwards(readPage(language, entry.page))).toEqual(
-        [],
-      );
+      expect(linesLaidOutBackwards(readPage(language, entry.page))).toEqual([]);
     });
 
     it("keeps every piece of inline code: the attributes, variables and commands", () => {
@@ -554,9 +553,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
 
     it("states every number the English page states", () => {
-      expect(Array.from(statedNumbers(readPage(language, entry.page))).sort()).toEqual(
-        Array.from(statedNumbers(english)).sort(),
-      );
+      expect(
+        Array.from(statedNumbers(readPage(language, entry.page))).sort(),
+      ).toEqual(Array.from(statedNumbers(english)).sort());
     });
 
     it("keeps the tab labels: the in-app guide's names for the setups", () => {
@@ -740,12 +739,12 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw the environments table's create button from the Create template", () => {
-    expect(
-      drawnLabel("en", CLOUD_ENVIRONMENTS, "Create Cloud Resource"),
-    ).toBe("Create Cloud Resource");
-    expect(
-      drawnLabel("de", CLOUD_ENVIRONMENTS, "Create Cloud Resource"),
-    ).toBe(drawnCreateButton("de", "Create Cloud Resource"));
+    expect(drawnLabel("en", CLOUD_ENVIRONMENTS, "Create Cloud Resource")).toBe(
+      "Create Cloud Resource",
+    );
+    expect(drawnLabel("de", CLOUD_ENVIRONMENTS, "Create Cloud Resource")).toBe(
+      drawnCreateButton("de", "Create Cloud Resource"),
+    );
   });
 
   it("find a right-to-left diagram line that opens with a Latin word, in a label, a title or a state's transition", () => {
@@ -792,13 +791,12 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("read numbers however a language writes them", () => {
-    expect(Array.from(statedNumbers("**5,000** and 12.000 and ۱۵ and 1 000"))).toEqual([
-      "5000",
-      "12000",
-      "15",
-      "1000",
-    ]);
-    expect(Array.from(statedNumbers("`4318` and [x](/docs/a/b#c-2)"))).toEqual([]);
+    expect(
+      Array.from(statedNumbers("**5,000** and 12.000 and ۱۵ and 1 000")),
+    ).toEqual(["5000", "12000", "15", "1000"]);
+    expect(Array.from(statedNumbers("`4318` and [x](/docs/a/b#c-2)"))).toEqual(
+      [],
+    );
   });
 
   it("find the resource type tables of Cloud Resources under their headings", () => {
@@ -809,7 +807,9 @@ describe("the helpers, on these pages' shapes", () => {
     expect(indexes).toHaveLength(IDENTITY_TABLE_HEADINGS.length);
     expect(
       indexes.map((index: number): string => {
-        return ((all[index] as Array<Array<string>>)[1] as Array<string>)[0] as string;
+        return (
+          (all[index] as Array<Array<string>>)[1] as Array<string>
+        )[0] as string;
       }),
     ).toEqual([
       "`Microsoft.Compute/virtualMachines`",
