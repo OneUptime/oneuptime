@@ -3,13 +3,10 @@ import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Mock } from "jest-mock";
 import React from "react";
-import IconProp from "../../../Types/Icon/IconProp";
-import Icon from "../../../UI/Components/Icon/Icon";
 import NavBarCategoryToggle, {
   CATEGORY_LIST_COLUMNS,
   COLUMN_PLACEMENT,
   ComponentProps,
-  DEFAULT_CATEGORY_ICON,
   NavBarCategoryToggleLayout,
 } from "../../../UI/Components/Navbar/NavBarCategoryToggle";
 
@@ -33,10 +30,10 @@ jest.mock("../../../UI/Utils/Translation", () => {
  * It used to be a line of small spaced capitals - the same style as the
  * Essentials heading - with a run-on list of products after it, so a folded
  * category read as a heading with nothing under it. It is now a row to
- * open: the category's icon, its name drawn as a product's title is, what it
- * holds, how many, and a chevron. On the desktop the rows are a list whose
- * columns line up (a subgrid of the list); on a phone the row is drawn as
- * the product rows around it are.
+ * open: the category's name drawn as a product's title is, what it holds,
+ * how many, and a chevron. It has no icon: it heads its products and is not
+ * one of them. On the desktop the rows are a list whose columns line up (a
+ * subgrid of the list); on a phone the name sits over what it holds.
  */
 
 const HOSTS: Array<string> = ["Hosts", "Kubernetes", "Docker"];
@@ -83,22 +80,9 @@ function svgs(): Array<SVGElement> {
   return Array.from(row().querySelectorAll<SVGElement>("svg"));
 }
 
-// The glyph a row draws for its category: the first svg in it.
-function drawnIcon(): string {
-  return svgs()[0]!.innerHTML;
-}
-
 // The chevron: the last svg in the row.
 function chevron(): SVGElement {
   return svgs()[svgs().length - 1]!;
-}
-
-// What <Icon icon={icon} /> draws, to compare the row's glyph against.
-function glyphOf(icon: IconProp): string {
-  const { container, unmount } = render(<Icon icon={icon} />);
-  const markup: string = container.querySelector("svg")!.innerHTML;
-  unmount();
-  return markup;
 }
 
 afterEach(() => {
@@ -215,41 +199,35 @@ describe("an open category row", () => {
   });
 });
 
-describe("the category's icon", () => {
-  test.each([[IconProp.ServerStack], [IconProp.Sparkles], [IconProp.Code]])(
-    "draws %s when given it",
-    (icon: IconProp) => {
-      const expected: string = glyphOf(icon);
+describe("no icon for the category", () => {
+  test.each([
+    [NavBarCategoryToggleLayout.Columns],
+    [NavBarCategoryToggleLayout.Stacked],
+  ])("%s: the chevron is the row's only glyph", (layout: string) => {
+    renderRow({ layout: layout as NavBarCategoryToggleLayout });
 
-      renderRow({ icon });
+    expect(svgs()).toHaveLength(1);
+    expect(svgs()[0]).toBe(chevron());
+    expect(
+      screen.getByRole("heading", { level: 3 }).querySelector("svg"),
+    ).toBeNull();
+  });
 
-      expect(drawnIcon()).toBe(expected);
+  test.each([[false], [true]])(
+    "open: %s, the row draws no icon tile",
+    (isOpen: boolean) => {
+      renderRow({ layout: NavBarCategoryToggleLayout.Columns, isOpen });
+
+      expect(row().querySelector(".ring-1")).toBeNull();
+      expect(row().querySelector(".h-8.w-8")).toBeNull();
     },
   );
 
-  test("a category given no icon gets the products menu's own", () => {
-    const expected: string = glyphOf(DEFAULT_CATEGORY_ICON);
-
+  test("the chevron is decoration: the row's name is the category's name alone", () => {
     renderRow();
 
-    expect(DEFAULT_CATEGORY_ICON).toBe(IconProp.Squares);
-    expect(drawnIcon()).toBe(expected);
-  });
-
-  test("the icon is decoration: the row's name is the category's name alone", () => {
-    renderRow({ icon: IconProp.ServerStack });
-
     expect(button()).toHaveAccessibleName("Infrastructure");
-    for (const svg of svgs()) {
-      expect(svg.closest('[aria-hidden="true"]')).not.toBeNull();
-    }
-  });
-
-  test("a row draws exactly two glyphs: its icon and its chevron", () => {
-    renderRow({ icon: IconProp.ServerStack });
-
-    expect(svgs()).toHaveLength(2);
-    expect(drawnIcon()).not.toBe(chevron().innerHTML);
+    expect(button()).not.toContainElement(chevron() as unknown as HTMLElement);
   });
 });
 
@@ -270,51 +248,46 @@ describe("in the desktop menu's list (columns)", () => {
     expect(row()).not.toHaveClass("flex");
   });
 
-  test("from sm up the list's columns are icon, name, products, count and chevron", () => {
+  test("from sm up the list's columns are name, products, count and chevron", () => {
     expect(CATEGORY_LIST_COLUMNS.split(" ")).toEqual([
-      // Narrower: icon, name over products, count, chevron.
-      "grid-cols-[auto_minmax(0,1fr)_auto_auto]",
-      "sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]",
+      // Narrower: name over products, count, chevron.
+      "grid-cols-[minmax(0,1fr)_auto_auto]",
+      "sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]",
     ]);
   });
 
   test("its parts are in that order, and every one is placed on the list's columns", () => {
-    columnsRow({ icon: IconProp.ServerStack });
+    columnsRow();
 
     const parts: Array<Element> = Array.from(row().children);
 
-    expect(parts).toHaveLength(5);
-    // The icon's tile.
-    expect(parts[0]).toHaveClass("h-8", "w-8", "rounded-lg", "ring-1");
-    expect(parts[0]).toHaveAttribute("aria-hidden", "true");
-    expect(parts[0]).toHaveClass(COLUMN_PLACEMENT.icon);
-    // The name.
-    expect(parts[1]!.tagName).toBe("H3");
-    expect(parts[1]).toHaveClass(COLUMN_PLACEMENT.name);
+    expect(parts).toHaveLength(4);
+    // The name, first.
+    expect(parts[0]!.tagName).toBe("H3");
+    expect(parts[0]).toHaveClass(COLUMN_PLACEMENT.name);
     // The products, the count and the chevron, pinned to their columns.
-    expect(parts[2]).toBe(summary());
-    expect(parts[2]).toHaveClass(
+    expect(parts[1]).toBe(summary());
+    expect(parts[1]).toHaveClass(
       COLUMN_PLACEMENT.products,
       "min-w-0",
       "truncate",
     );
-    expect(parts[3]).toBe(countPill());
-    expect(parts[3]).toHaveClass(COLUMN_PLACEMENT.count, "justify-self-end");
-    expect(parts[4]).toHaveClass(COLUMN_PLACEMENT.chevron);
-    expect(parts[4]).toContainElement(chevron() as unknown as HTMLElement);
+    expect(parts[2]).toBe(countPill());
+    expect(parts[2]).toHaveClass(COLUMN_PLACEMENT.count, "justify-self-end");
+    expect(parts[3]).toHaveClass(COLUMN_PLACEMENT.chevron);
+    expect(parts[3]).toContainElement(chevron() as unknown as HTMLElement);
   });
 
   test("from sm up, the row is one line: each part in its own column of the first row", () => {
     expect(COLUMN_PLACEMENT).toEqual({
-      icon: expect.stringContaining("sm:row-end-2"),
-      name: "col-start-2 row-start-1",
-      products: expect.stringContaining("sm:col-start-3 sm:row-start-1"),
-      count: expect.stringContaining("sm:col-start-4 sm:row-end-2"),
-      chevron: expect.stringContaining("sm:col-start-5 sm:row-end-2"),
+      name: "col-start-1 row-start-1",
+      products: expect.stringContaining("sm:col-start-2 sm:row-start-1"),
+      count: expect.stringContaining("sm:col-start-3 sm:row-end-2"),
+      chevron: expect.stringContaining("sm:col-start-4 sm:row-end-2"),
     });
   });
 
-  test("narrower, the products go under the name, and the icon, count and chevron sit across both lines", () => {
+  test("narrower, the products go under the name, and the count and chevron sit across both lines", () => {
     const narrow: (placement: string) => Array<string> = (
       placement: string,
     ): Array<string> => {
@@ -323,26 +296,21 @@ describe("in the desktop menu's list (columns)", () => {
       });
     };
 
-    expect(narrow(COLUMN_PLACEMENT.icon)).toEqual([
-      "col-start-1",
-      "row-start-1",
-      "row-end-3",
-    ]);
     expect(narrow(COLUMN_PLACEMENT.name)).toEqual([
-      "col-start-2",
+      "col-start-1",
       "row-start-1",
     ]);
     expect(narrow(COLUMN_PLACEMENT.products)).toEqual([
-      "col-start-2",
+      "col-start-1",
       "row-start-2",
     ]);
     expect(narrow(COLUMN_PLACEMENT.count)).toEqual([
-      "col-start-3",
+      "col-start-2",
       "row-start-1",
       "row-end-3",
     ]);
     expect(narrow(COLUMN_PLACEMENT.chevron)).toEqual([
-      "col-start-4",
+      "col-start-3",
       "row-start-1",
       "row-end-3",
     ]);
@@ -360,10 +328,10 @@ describe("in the desktop menu's list (columns)", () => {
 
     const parts: Array<Element> = Array.from(row().children);
 
-    expect(parts).toHaveLength(4);
-    expect(parts[2]).toBe(countPill());
-    expect(parts[2]).toHaveClass(COLUMN_PLACEMENT.count);
-    expect(parts[3]).toHaveClass(COLUMN_PLACEMENT.chevron);
+    expect(parts).toHaveLength(3);
+    expect(parts[1]).toBe(countPill());
+    expect(parts[1]).toHaveClass(COLUMN_PLACEMENT.count);
+    expect(parts[2]).toHaveClass(COLUMN_PLACEMENT.chevron);
   });
 
   test("from sm up the name keeps some room before the products column; narrower, it needs it for itself", () => {
@@ -395,22 +363,6 @@ describe("in the desktop menu's list (columns)", () => {
     expect(row().className).not.toMatch(/(^|\s)border/);
     expect(button().className).not.toMatch(/after:rounded/);
   });
-
-  test("its icon sits in a tile, as a product card's does", () => {
-    columnsRow({ icon: IconProp.ServerStack });
-
-    const tile: Element = row().children[0]!;
-
-    expect(tile).toHaveClass("bg-gray-50", "ring-gray-200");
-    expect(tile.querySelector("svg")).toHaveClass(
-      "h-4",
-      "w-4",
-      "text-gray-500",
-    );
-    expect(tile.querySelector("svg")!.innerHTML).toBe(
-      glyphOf(IconProp.ServerStack),
-    );
-  });
 });
 
 describe("on a phone (stacked, the default)", () => {
@@ -421,39 +373,22 @@ describe("on a phone (stacked, the default)", () => {
     expect(row()).not.toHaveClass("grid-cols-subgrid");
   });
 
-  test("draws its icon before its name, as the product rows around it do (NavBarItem)", () => {
-    renderRow({
-      icon: IconProp.ServerStack,
-      layout: NavBarCategoryToggleLayout.Stacked,
-    });
+  test("draws its name in the type of the product rows around it (NavBarItem), with no icon before it", () => {
+    renderRow({ layout: NavBarCategoryToggleLayout.Stacked });
 
     const heading: HTMLElement = screen.getByRole("heading", { level: 3 });
-    const icon: SVGElement | null = heading.querySelector("svg");
 
-    expect(heading).toHaveClass("flex", "items-center");
-    expect(icon).not.toBeNull();
-    // The same size, gap and stroke as a product row's icon.
-    expect(icon).toHaveClass("mr-1", "h-4", "w-4");
-    expect(icon).toHaveClass("stroke-2");
-    expect(icon!.innerHTML).toBe(glyphOf(IconProp.ServerStack));
-    // Before the button, not inside it: the name stays the name.
-    expect(
-      icon!.compareDocumentPosition(button()) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(heading.querySelector("svg")).toBeNull();
+    expect(heading.firstElementChild).toBe(button());
     expect(button()).toHaveClass("text-base", "font-medium");
-  });
-
-  test("has no icon tile", () => {
-    renderRow({ icon: IconProp.ServerStack });
-
-    expect(row().querySelector(".ring-1")).toBeNull();
   });
 
   test("lists the products on a line below the name, lined up with the name", () => {
     renderRow();
 
-    expect(summary()).toHaveClass("block", "pl-5", "text-xs", "truncate");
+    expect(summary()).toHaveClass("block", "text-xs", "truncate");
+    // No icon before the name, so nothing to indent past.
+    expect(summary()).not.toHaveClass("pl-5");
     // In the name's column, not beside it.
     expect(summary()!.parentElement).toBe(
       screen.getByRole("heading", { level: 3 }).parentElement,
@@ -488,15 +423,11 @@ describe("the products menu's keyboard cursor", () => {
     expect(chevron()).toHaveClass("text-gray-400");
   });
 
-  test("on the row, the row, its icon, its count and its chevron are lit", () => {
+  test("on the row, the row, its count and its chevron are lit", () => {
     renderRow({ layout: NavBarCategoryToggleLayout.Columns, isActive: true });
-
-    const tile: Element = row().children[0]!;
 
     expect(row()).toHaveClass("bg-indigo-50");
     expect(row()).not.toHaveClass("hover:bg-gray-50");
-    expect(tile).toHaveClass("bg-white", "ring-indigo-200");
-    expect(tile.querySelector("svg")).toHaveClass("text-indigo-600");
     expect(countPill()).toHaveClass("bg-indigo-100", "text-indigo-700");
     expect(chevron()).toHaveClass("text-indigo-500");
   });
