@@ -367,7 +367,7 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 | `ebpf.enabled` | `true` | eBPF 트레이스와 요청 메트릭. [eBPF로 수집하는 애플리케이션 트레이스](#ebpf로-수집하는-애플리케이션-트레이스)를 참고하세요. |
 | `profiling.enabled` | `false` | CPU 플레임 그래프. [지속적인 CPU 프로파일링](#지속적인-cpu-프로파일링)을 참고하세요. |
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics에서 가져오는 클러스터 상태. |
-| `aiAgent.enabled` | `true` | Kubernetes AI 에이전트. 무엇을 할 수 있는지는 [Kubernetes AI 에이전트](/docs/telemetry/kubernetes-agent)를 참고하세요. |
+| `aiAgent.enabled` | `true` | Kubernetes AI 에이전트. 무엇을 할 수 있는지는 [Kubernetes AI 에이전트](/docs/telemetry/kubernetes-agent#kubernetes-ai-에이전트)를 참고하세요. |
 
 차트의 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml)에 모든 옵션이 나열되고 설명되어 있으며, [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)에서는 필터링, 샘플링, 데이터 양 줄이기를 다룹니다.
 

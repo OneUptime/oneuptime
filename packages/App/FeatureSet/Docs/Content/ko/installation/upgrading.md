@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-릴리스 이름과 네임스페이스가 다르면 자신의 것을 사용하십시오. 자세한 내용은 Kubernetes 에이전트 페이지의 [에이전트 업그레이드](/docs/telemetry/kubernetes-agent) 에 있으며, [AI SRE – 클러스터 접근](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) 은 에이전트가 할 수 있는 일과 찾은 문제를 고치게 하는 방법을 설명합니다.
+릴리스 이름과 네임스페이스가 다르면 자신의 것을 사용하십시오. 자세한 내용은 Kubernetes 에이전트 페이지의 [에이전트 업그레이드](/docs/telemetry/kubernetes-agent#에이전트-업그레이드) 에 있으며, [AI SRE – 클러스터 접근](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) 은 에이전트가 할 수 있는 일과 찾은 문제를 고치게 하는 방법을 설명합니다.
 
 ### AI가 할 수 있는 일은 AI 에이전트에서 설정합니다
 
