@@ -18,11 +18,19 @@
  * documented as such, or it would hide OneUptime's own code from code
  * scanning: each directory it names needs a README that says so and lists
  * every file in it with its source.
+ *
+ * When the repository gains a language, default setup starts scanning it by
+ * itself, as it did python on 4 October 2026; this setup scans only what its
+ * matrix lists. So these tests read git's index for code in every language
+ * CodeQL analyses: each such language is scanned, or left out with the
+ * reason (LEFT_OUT_LANGUAGES), and each language scanned has code for its
+ * analysis to read - an analysis that finds none fails.
  */
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { execFileSync } = require("child_process");
 const yaml = require("js-yaml");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -51,6 +59,99 @@ const SECTION_HEADING = /^## /m;
 const BACKTICKED_PATH = /^`([^`]+)`$/;
 const THIRD_PARTY = /third-party/i;
 const VENDORED = /vendored/i;
+// A ${{ matrix.<key> }} expression in a workflow value.
+const MATRIX_EXPRESSION = /\$\{\{\s*matrix\.([A-Za-z0-9_-]+)\s*\}\}/g;
+
+/*
+ * What the repository's default setup scans, and how: the languages
+ * `gh api repos/OneUptime/oneuptime/code-scanning/default-setup` listed on
+ * 12 October 2026 (actions, go, javascript-typescript - which it also lists
+ * as javascript and typescript - and python), each with the build mode of
+ * its analyses on master. Python is interpreted, so none is the only build
+ * mode CodeQL has for it.
+ */
+const DEFAULT_SETUP_MATRIX = [
+  { language: "actions", "build-mode": "none" },
+  { language: "go", "build-mode": "autobuild" },
+  { language: "javascript-typescript", "build-mode": "none" },
+  { language: "python", "build-mode": "none" },
+];
+// The categories of default setup's analyses on master, one per language.
+const DEFAULT_SETUP_CATEGORIES = [
+  "/language:actions",
+  "/language:go",
+  "/language:javascript-typescript",
+  "/language:python",
+];
+
+/*
+ * Languages CodeQL analyses that the repository holds code in, but neither
+ * default setup nor this setup scans, each with the reason. Default setup
+ * tries each language GitHub detects in the repository, and goes back to the
+ * languages it had when that first analysis fails. Add a language here only
+ * with a reason as plain as these.
+ */
+const LEFT_OUT_LANGUAGES = {
+  "c-cpp":
+    "The Probe's two native helpers for synthetic monitors (packages/Probe/Utils/Monitors/SyntheticRuntime/Native). Default setup tried C/C++ on 15 September 2026, with autobuild, and the analysis failed.",
+  csharp:
+    "Only an example app, Examples/otel-dotnet. GitHub's language detection does not count it, so default setup never tried C#.",
+  "java-kotlin":
+    "The Android module of the React Native session replay SDK (packages/App/FeatureSet/MobileRecorder/android). Default setup tried Java/Kotlin on 14 September 2026, with autobuild, and the analysis failed.",
+  swift:
+    "The iOS module of the same SDK (packages/App/FeatureSet/MobileRecorder/ios). Default setup tried Swift on 14 September 2026, with autobuild on macOS, and the analysis failed.",
+};
+
+/*
+ * The extensions of the source files CodeQL reads as each language it
+ * analyses. The templates and data files the JavaScript extractor also reads
+ * (HTML, EJS, Handlebars, JSON, YAML, XML) are no language's code of their
+ * own; GitHub Actions is read from where workflows and actions live, below.
+ * Objective-C, which the session replay SDK's iOS module also holds, is not
+ * a language CodeQL analyses.
+ */
+const SOURCE_EXTENSIONS = {
+  "c-cpp": [
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".c++",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".hxx",
+    ".h++",
+  ],
+  csharp: [".cs", ".cshtml"],
+  go: [".go"],
+  "java-kotlin": [".java", ".kt"],
+  "javascript-typescript": [
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".es",
+    ".es6",
+    ".vue",
+    ".ts",
+    ".tsx",
+    ".mts",
+    ".cts",
+  ],
+  python: [".py"],
+  ruby: [".rb", ".erb", ".gemspec"],
+  rust: [".rs"],
+  swift: [".swift"],
+};
+// The Ruby files CodeQL knows by their name rather than an extension.
+const RUBY_FILE_NAMES = ["Gemfile"];
+// A workflow: a YAML file directly in .github/workflows.
+const WORKFLOW_FILE = /^\.github\/workflows\/[^/]+\.ya?ml$/;
+// An action's metadata, wherever the action lives.
+const ACTION_METADATA_FILE = /(^|\/)action\.ya?ml$/;
+// How many of a language's files a failure names.
+const FILES_NAMED = 5;
 
 /*
  * Whether a paths-ignore entry names one path of the repository exactly: no
@@ -155,6 +256,107 @@ function missingContents(directory) {
     });
 }
 
+// A workflow value with each ${{ matrix.<key> }} in it read off one entry.
+function withMatrixValues(text, entry) {
+  return text.replace(MATRIX_EXPRESSION, (expression, key) => {
+    return String(entry[key]);
+  });
+}
+
+// The languages the matrix scans, in its order.
+function scannedLanguages() {
+  return analyze.strategy.matrix.include.map((entry) => {
+    return entry.language;
+  });
+}
+
+/*
+ * The repository's files, as git's index lists them: what a checkout, and so
+ * code scanning, sees. Without git there is nothing to check, so a missing
+ * git fails these tests rather than letting them pass.
+ */
+function trackedFiles() {
+  try {
+    return execFileSync("git", ["ls-files", "-z"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\0")
+      .filter(Boolean);
+  } catch (error) {
+    throw new Error(
+      `Could not run \`git ls-files\` in ${REPO_ROOT}: these tests read git's index, so they need a git checkout. ${String(error)}`,
+    );
+  }
+}
+
+// The language CodeQL reads a file of the repository as, or null for none.
+function codeQlLanguageOf(file) {
+  if (WORKFLOW_FILE.test(file) || ACTION_METADATA_FILE.test(file)) {
+    return "actions";
+  }
+
+  if (RUBY_FILE_NAMES.includes(path.posix.basename(file))) {
+    return "ruby";
+  }
+
+  const extension = path.posix.extname(file).toLowerCase();
+  const language = Object.keys(SOURCE_EXTENSIONS).find((candidate) => {
+    return SOURCE_EXTENSIONS[candidate].includes(extension);
+  });
+
+  return language || null;
+}
+
+// Whether code scanning skips a file: it is under a path of paths-ignore.
+function isSkippedByCodeScanning(file) {
+  return ignoredPaths.some((ignored) => {
+    return file === ignored || file.startsWith(`${ignored}/`);
+  });
+}
+
+/*
+ * The languages CodeQL analyses that the given files hold code in, each with
+ * its files, leaving out the files under the paths code scanning skips.
+ */
+function languagesIn(files) {
+  const languages = {};
+
+  for (const file of files) {
+    const language = isSkippedByCodeScanning(file)
+      ? null
+      : codeQlLanguageOf(file);
+
+    if (language) {
+      if (!languages[language]) {
+        languages[language] = [];
+      }
+
+      languages[language].push(file);
+    }
+  }
+
+  return languages;
+}
+
+/*
+ * The languages files hold code in that a matrix neither scans nor leaves out
+ * with a reason - what default setup would start scanning by itself - each
+ * with the first of its files.
+ */
+function languagesUnaccountedFor(languages, scanned, leftOut) {
+  return Object.keys(languages)
+    .filter((language) => {
+      return !scanned.includes(language) && !Object.hasOwn(leftOut, language);
+    })
+    .sort()
+    .map((language) => {
+      return [language, languages[language].slice(0, FILES_NAMED)];
+    });
+}
+
 describe(WORKFLOW, () => {
   test("scans pull requests, nightly, and on demand - not pushes", () => {
     expect(Object.keys(triggers).sort()).toEqual(
@@ -164,12 +366,8 @@ describe(WORKFLOW, () => {
   });
 
   test("analyses what default setup did, the way it did", () => {
-    // From the repository's default setup analyses (build-mode per language).
-    expect(analyze.strategy.matrix.include).toEqual([
-      { language: "actions", "build-mode": "none" },
-      { language: "go", "build-mode": "autobuild" },
-      { language: "javascript-typescript", "build-mode": "none" },
-    ]);
+    // Every language default setup scans, python included: switching loses none.
+    expect(analyze.strategy.matrix.include).toEqual(DEFAULT_SETUP_MATRIX);
   });
 
   test("uploads under default setup's categories, so its alerts carry over", () => {
@@ -178,6 +376,23 @@ describe(WORKFLOW, () => {
     });
 
     expect(upload.with.category).toBe("/language:${{ matrix.language }}");
+  });
+
+  test("uploads each language under the category default setup uses for it, python's under /language:python", () => {
+    /*
+     * A pull request without an analysis under one of master's categories
+     * is reported as missing that configuration, and the category's alerts
+     * would no longer be compared with master's.
+     */
+    const upload = analyze.steps.find((step) => {
+      return /^github\/codeql-action\/analyze@/.test(step.uses || "");
+    });
+
+    expect(
+      analyze.strategy.matrix.include.map((entry) => {
+        return withMatrixValues(upload.with.category, entry);
+      }),
+    ).toEqual(DEFAULT_SETUP_CATEGORIES);
   });
 
   test("initializes each language with its build mode and the default query suite", () => {
@@ -206,6 +421,82 @@ describe(WORKFLOW, () => {
       contents: "read",
       "security-events": "write",
     });
+  });
+});
+
+describe(`${WORKFLOW}: the languages it scans`, () => {
+  // The languages CodeQL analyses that the repository holds code in.
+  let repositoryLanguages = {};
+
+  beforeAll(() => {
+    repositoryLanguages = languagesIn(trackedFiles());
+  });
+
+  test("scans every language CodeQL analyses that the repository holds code in, or leaves it out with the reason", () => {
+    /*
+     * Default setup would start scanning a language like that by itself;
+     * this setup scans only what its matrix lists.
+     */
+    expect(
+      languagesUnaccountedFor(
+        repositoryLanguages,
+        scannedLanguages(),
+        LEFT_OUT_LANGUAGES,
+      ),
+    ).toEqual([]);
+  });
+
+  test("each language it scans has code for its analysis to read, outside the paths code scanning skips", () => {
+    // An analysis that finds no code fails, on every pull request.
+    for (const language of scannedLanguages()) {
+      expect([
+        language,
+        (repositoryLanguages[language] || []).length > 0,
+      ]).toEqual([language, true]);
+    }
+  });
+
+  test("reports any language it scans once the matrix drops it, as it would have reported python from 4 October 2026", () => {
+    for (const language of scannedLanguages()) {
+      const others = scannedLanguages().filter((scanned) => {
+        return scanned !== language;
+      });
+
+      expect(
+        languagesUnaccountedFor(
+          repositoryLanguages,
+          others,
+          LEFT_OUT_LANGUAGES,
+        ).map(([unscanned]) => {
+          return unscanned;
+        }),
+      ).toEqual([language]);
+    }
+  });
+
+  test("leaves out only languages the repository holds code in and default setup does not scan, each with the reason", () => {
+    const defaultSetupLanguages = DEFAULT_SETUP_MATRIX.map((entry) => {
+      return entry.language;
+    });
+
+    expect(Object.keys(LEFT_OUT_LANGUAGES).length).toBeGreaterThan(0);
+
+    for (const [language, reason] of Object.entries(LEFT_OUT_LANGUAGES)) {
+      expect([
+        language,
+        scannedLanguages().includes(language),
+        defaultSetupLanguages.includes(language),
+      ]).toEqual([language, false, false]);
+      // A language whose code is gone comes off the list with it.
+      expect([
+        language,
+        (repositoryLanguages[language] || []).length > 0,
+      ]).toEqual([language, true]);
+      expect([
+        language,
+        typeof reason === "string" && reason.trim().length > 0,
+      ]).toEqual([language, true]);
+    }
   });
 });
 
@@ -396,5 +687,218 @@ describe("the checks on the directories code scanning leaves out", () => {
     ]) {
       expect([entry, isPlainPath(entry)]).toEqual([entry, false]);
     }
+  });
+});
+
+describe("the checks on the languages files hold code in", () => {
+  test("a file is read as the language CodeQL reads it as, by where it is, its name or its extension", () => {
+    for (const [file, language] of [
+      [".github/workflows/codeql.yml", "actions"],
+      [".github/workflows/test.ops.yaml", "actions"],
+      [".github/actions/npm-install/action.yml", "actions"],
+      ["Scripts/GHA/publish/action.yaml", "actions"],
+      // GitHub runs only the workflows directly in .github/workflows.
+      [".github/workflows/templates/job.yml", null],
+      [".github/codeql/codeql-config.yml", null],
+      [".github/dependabot.yml", null],
+      ["Scripts/GHA/publish/my-action.yml", null],
+      ["HelmChart/Public/oneuptime/values.yaml", null],
+      [
+        "packages/Probe/Utils/Monitors/SyntheticRuntime/Native/synthetic-no-sync.c",
+        "c-cpp",
+      ],
+      ["agents/ebpf/probe.h", "c-cpp"],
+      ["agents/ebpf/probe.cpp", "c-cpp"],
+      ["agents/ebpf/probe.c++", "c-cpp"],
+      ["Examples/otel-dotnet/Program.cs", "csharp"],
+      ["Examples/otel-dotnet/otel-dotnet.csproj", null],
+      ["agents/InfrastructureAgent/agent.go", "go"],
+      [
+        "packages/App/FeatureSet/MobileRecorder/android/src/main/java/com/oneuptime/replay/OneUptimeReplayPackage.java",
+        "java-kotlin",
+      ],
+      ["android/app/src/main/java/com/example/MainActivity.kt", "java-kotlin"],
+      ["packages/App/FeatureSet/MobileRecorder/android/build.gradle", null],
+      ["packages/Common/Types/Date.ts", "javascript-typescript"],
+      [
+        "packages/App/FeatureSet/Dashboard/src/App.tsx",
+        "javascript-typescript",
+      ],
+      ["Tests/Ops/CodeQlWorkflow.test.js", "javascript-typescript"],
+      [
+        "packages/Probe/Tests/TestingUtils/FakeTcpdump.cjs",
+        "javascript-typescript",
+      ],
+      ["Scripts/build.mjs", "javascript-typescript"],
+      ["src/Widget.jsx", "javascript-typescript"],
+      ["src/config.mts", "javascript-typescript"],
+      ["src/config.cts", "javascript-typescript"],
+      ["src/Widget.vue", "javascript-typescript"],
+      ["Tests/Ops/agent-ebpf-e2e/analyze.py", "python"],
+      ["Tests/Ops/agent-ebpf-e2e/tests/test_analyze.py", "python"],
+      ["Gemfile", "ruby"],
+      ["docs/Gemfile", "ruby"],
+      ["lib/tasks/seed.rb", "ruby"],
+      ["app/views/index.html.erb", "ruby"],
+      ["oneuptime.gemspec", "ruby"],
+      /*
+       * GitHub's language detection counts a podspec as Ruby, so default
+       * setup tried Ruby on 14 September 2026, the day this one arrived -
+       * but it is not a file CodeQL reads as Ruby, and that analysis failed.
+       */
+      [
+        "packages/App/FeatureSet/MobileRecorder/OneUptimeReactNativeReplay.podspec",
+        null,
+      ],
+      ["agents/collector/src/main.rs", "rust"],
+      [
+        "packages/App/FeatureSet/MobileRecorder/ios/OneUptimeReplayViewTreeModule.swift",
+        "swift",
+      ],
+      // Objective-C is not a language CodeQL analyses.
+      [
+        "packages/App/FeatureSet/MobileRecorder/ios/OneUptimeReplayViewTreeModule.m",
+        null,
+      ],
+      ["packages/Home/Views/index.ejs", null],
+      ["packages/App/FeatureSet/Notification/Templates/Welcome.hbs", null],
+      ["packages/Home/Static/index.html", null],
+      ["package.json", null],
+      ["README.md", null],
+      ["packages/App/Dockerfile", null],
+      ["Scripts/Install/configure.sh", null],
+      ["Terraform/main.tf", null],
+      [".gitignore", null],
+    ]) {
+      expect([file, codeQlLanguageOf(file)]).toEqual([file, language]);
+    }
+  });
+
+  test("files under a path code scanning skips hold no language's code, but a path that only begins the same way does", () => {
+    expect(
+      languagesIn([
+        "packages/Common/Server/Static/Vendor/README.md",
+        "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+        "packages/Common/Server/Static/Vendor/highlight/languages/go.min.js",
+      ]),
+    ).toEqual({});
+    expect(
+      languagesIn([
+        "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+        "packages/Common/Server/Static/VendorAssets.js",
+        "packages/Common/Server/Utils/VendorAssets.ts",
+        "packages/Common/Server/Static/Vendor.py",
+      ]),
+    ).toEqual({
+      "javascript-typescript": [
+        "packages/Common/Server/Static/VendorAssets.js",
+        "packages/Common/Server/Utils/VendorAssets.ts",
+      ],
+      python: ["packages/Common/Server/Static/Vendor.py"],
+    });
+  });
+
+  test("files are grouped by language, in the order git lists them, leaving out files of no language", () => {
+    expect(
+      languagesIn([
+        ".github/workflows/build.yml",
+        "README.md",
+        "Tests/Ops/agent-ebpf-e2e/analyze.py",
+        "agents/InfrastructureAgent/agent.go",
+        "packages/Common/Types/Date.ts",
+        "Tests/Ops/agent-ebpf-e2e/tests/test_analyze.py",
+        "package.json",
+      ]),
+    ).toEqual({
+      actions: [".github/workflows/build.yml"],
+      python: [
+        "Tests/Ops/agent-ebpf-e2e/analyze.py",
+        "Tests/Ops/agent-ebpf-e2e/tests/test_analyze.py",
+      ],
+      go: ["agents/InfrastructureAgent/agent.go"],
+      "javascript-typescript": ["packages/Common/Types/Date.ts"],
+    });
+    expect(languagesIn([])).toEqual({});
+  });
+
+  test("a language files hold code in that a matrix neither scans nor leaves out is reported, with its first files", () => {
+    const languages = languagesIn([
+      ".github/workflows/build.yml",
+      "packages/Common/Types/Date.ts",
+      "agents/InfrastructureAgent/agent.go",
+      "Tests/Ops/agent-ebpf-e2e/analyze.py",
+      "Tests/Ops/agent-ebpf-e2e/tests/test_analyze.py",
+      "agents/collector/src/main.rs",
+      "packages/App/FeatureSet/MobileRecorder/ios/OneUptimeReplayViewTreeModule.swift",
+      "packages/App/FeatureSet/MobileRecorder/ios/OneUptimeReplayViewTreeModule.m",
+    ]);
+    const leftOut = { swift: "The iOS module of a mobile SDK." };
+
+    // The matrix as it was before python: python and rust go unscanned.
+    expect(
+      languagesUnaccountedFor(
+        languages,
+        ["actions", "go", "javascript-typescript"],
+        leftOut,
+      ),
+    ).toEqual([
+      [
+        "python",
+        [
+          "Tests/Ops/agent-ebpf-e2e/analyze.py",
+          "Tests/Ops/agent-ebpf-e2e/tests/test_analyze.py",
+        ],
+      ],
+      ["rust", ["agents/collector/src/main.rs"]],
+    ]);
+    expect(
+      languagesUnaccountedFor(
+        languages,
+        ["actions", "go", "javascript-typescript", "python", "rust"],
+        leftOut,
+      ),
+    ).toEqual([]);
+    // Left out without its entry, swift is reported too.
+    expect(
+      languagesUnaccountedFor(
+        languages,
+        ["actions", "go", "javascript-typescript", "python", "rust"],
+        {},
+      ),
+    ).toEqual([
+      [
+        "swift",
+        [
+          "packages/App/FeatureSet/MobileRecorder/ios/OneUptimeReplayViewTreeModule.swift",
+        ],
+      ],
+    ]);
+  });
+
+  test("a failure names a language's first files, not all of them", () => {
+    const files = Array.from({ length: FILES_NAMED + 3 }, (unused, index) => {
+      return `agents/collector/src/module${index}.rs`;
+    });
+
+    expect(languagesUnaccountedFor(languagesIn(files), [], {})).toEqual([
+      ["rust", files.slice(0, FILES_NAMED)],
+    ]);
+  });
+
+  test("a value's matrix expressions are read off a matrix entry, every one of them", () => {
+    const entry = { language: "python", "build-mode": "none" };
+
+    expect(withMatrixValues("/language:${{ matrix.language }}", entry)).toBe(
+      "/language:python",
+    );
+    expect(
+      withMatrixValues(
+        "${{matrix.language}}-${{ matrix.build-mode }}-${{ matrix.language }}",
+        entry,
+      ),
+    ).toBe("python-none-python");
+    expect(withMatrixValues("/language:javascript", entry)).toBe(
+      "/language:javascript",
+    );
   });
 });
