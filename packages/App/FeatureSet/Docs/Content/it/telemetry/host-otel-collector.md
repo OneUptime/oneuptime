@@ -801,7 +801,7 @@ Niente sulla macchina riporta una versione del firmware disponibile come aggiorn
 
 #### Verificare che abbia funzionato
 
-Apri l'elemento dell'host in **Prodotti → Inventory** e guarda la sua scheda **Dettagli dell'asset**. I valori compaiono pochi minuti dopo il batch successivo; un dettaglio che il collector non ha riportato risulta sconosciuto, con un link a questa sezione. Poiché vengono applicati e non rilevati, non si aggiornano da soli: applicali di nuovo dopo una sostituzione della scheda madre, un aggiornamento del firmware o una reinstallazione.
+Apri l'elemento dell'host in **Prodotti → Inventario** e guarda la sua scheda **Dettagli dell'asset**. I valori compaiono pochi minuti dopo il batch successivo; un dettaglio che il collector non ha riportato risulta sconosciuto, con un link a questa sezione. Poiché vengono applicati e non rilevati, non si aggiornano da soli: applicali di nuovo dopo una sostituzione della scheda madre, un aggiornamento del firmware o una reinstallazione.
 
 ## Altri modi di eseguire il collector
 

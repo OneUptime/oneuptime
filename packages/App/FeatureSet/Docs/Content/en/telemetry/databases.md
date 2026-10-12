@@ -733,6 +733,9 @@ The monitor does not name the database. Filter or group a Metrics or Logs monito
 
 ## Next steps
 
-- Open a database's **Recommendations** tab to create the monitors recommended for its engine, or build your own [Metrics monitor](/docs/monitor/metrics-monitor) over its engine metrics filtered on `oneuptime.database.server.id` (see [Alerts on a database](#alerts-on-a-database)).
-- Connect a probe with the [Database Health Monitor](/docs/monitor/database-health-monitor) (PostgreSQL, MySQL, SQL Server) — no agent required; its alerts land on the database whose endpoint it connects to.
-- Instrument your applications with [OpenTelemetry](/docs/telemetry/open-telemetry) so their database calls fill the **Queries from applications** section.
+:::cards
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on a database's engine metrics, filtered on its `oneuptime.database.server.id`.
+- [Database Health Monitor](/docs/monitor/database-health-monitor): Check PostgreSQL, MySQL or SQL Server from a probe, with no agent.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Instrument your applications, so their database calls fill **Queries from applications**.
+- [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): What the Database AI agent may run, and how fixes work.
+:::

@@ -801,7 +801,7 @@ Nada na máquina informa uma versão de firmware disponível como atualização,
 
 #### Verificando se funcionou
 
-Abra o item do host em **Produtos → Inventory** e veja o cartão **Detalhes do ativo**. Os valores aparecem alguns minutos depois do próximo lote; um detalhe que o coletor não informou aparece como desconhecido, com um link para esta seção. Como eles são marcados e não detectados, não se atualizam sozinhos: marque-os de novo depois de uma troca de placa-mãe, de uma atualização do firmware ou de uma reinstalação.
+Abra o item do host em **Produtos → Inventário** e veja o cartão **Detalhes do ativo**. Os valores aparecem alguns minutos depois do próximo lote; um detalhe que o coletor não informou aparece como desconhecido, com um link para esta seção. Como eles são marcados e não detectados, não se atualizam sozinhos: marque-os de novo depois de uma troca de placa-mãe, de uma atualização do firmware ou de uma reinstalação.
 
 ## Outras formas de executar o coletor
 

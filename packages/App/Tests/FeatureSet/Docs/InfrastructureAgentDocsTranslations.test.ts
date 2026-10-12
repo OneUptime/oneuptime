@@ -9,6 +9,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
+  dashboardLocale,
   drawnActionLabel,
   drawnCreateButton,
   isActionLabel,
@@ -32,15 +33,17 @@ import {
   PATH_SEPARATOR,
   PERSIAN_PATH_SEPARATOR,
   anchorInLanguage,
+  drawnNetworkLabel,
   drawnPath,
 } from "./NetworkDocsLabels";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * Docs overhaul task 21: the infrastructure agent pages (the host
+ * Docs overhaul tasks 21 and 22: the Infrastructure Agents pages (the host
  * OpenTelemetry Collector, the Kubernetes agent and its cost observability,
- * the Docker, Podman and Proxmox agents, and IoT devices) in every docs
- * language. Each translation says what the English page says:
+ * the Docker, Podman, Proxmox, Ceph, Storage Array, Docker Swarm and VMware
+ * agents, IoT devices, Databases, Queues and Serverless Functions) in every
+ * docs language. Each translation says what the English page says:
  *
  *   - line for line: the same number of lines, with each heading, table row
  *     and code fence on the English one's line, so the two can be laid side
@@ -58,7 +61,10 @@ import { describe, expect, it } from "@jest/globals";
  *     drawn as its table draws it (drawnCreateButton).
  *   - A menu path is drawn segment by segment: one bold span with " → "
  *     between the segments, or, in Persian, a bold span per segment with
- *     " > " between them.
+ *     " > " between them. A product opened from the Products menu, and its
+ *     category there, are drawn as that menu draws them (navbar.items and
+ *     navbar.categories), and a table's create button as the table draws
+ *     it (drawnMenuPath).
  *   - What every Dashboard shows in English stays English: alert template
  *     names and labels with no locale key (SHOWN_IN_ENGLISH); so do
  *     permission names (PERMISSIONS), the labels of another product's
@@ -91,6 +97,13 @@ const DOCKER: string = "telemetry/docker-host";
 const IOT: string = "telemetry/iot-devices";
 const PODMAN: string = "telemetry/podman-host";
 const PROXMOX: string = "telemetry/proxmox";
+const CEPH: string = "telemetry/ceph";
+const STORAGE_ARRAYS: string = "telemetry/storage-arrays";
+const DOCKER_SWARM: string = "telemetry/docker-swarm";
+const VMWARE: string = "telemetry/vmware";
+const DATABASES: string = "telemetry/databases";
+const QUEUES: string = "telemetry/queues";
+const SERVERLESS: string = "telemetry/serverless-functions";
 
 const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: HOST, navTitle: "Host OpenTelemetry Collector" },
@@ -100,6 +113,14 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: IOT, navTitle: "IoT Devices" },
   { page: PODMAN, navTitle: "Podman Agent" },
   { page: PROXMOX, navTitle: "Proxmox Agent" },
+  // Docs overhaul task 22.
+  { page: CEPH, navTitle: "Ceph Agent" },
+  { page: STORAGE_ARRAYS, navTitle: "Storage Array Agent" },
+  { page: DOCKER_SWARM, navTitle: "Docker Swarm Agent" },
+  { page: VMWARE, navTitle: "VMware Agent" },
+  { page: DATABASES, navTitle: "Databases" },
+  { page: QUEUES, navTitle: "Queues" },
+  { page: SERVERLESS, navTitle: "Serverless Functions" },
 ];
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
@@ -127,6 +148,17 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Node Offline",
     "Cluster Quorum at Risk",
   ],
+  /*
+   * The pod and container pages' link to a database (OPEN_DATABASE_LABEL),
+   * a recommended monitor's template name, and two of the Overview's
+   * engine charts, which their metric catalog titles in English.
+   */
+  [DATABASES]: [
+    "Open database",
+    "Engine Metrics Stopped",
+    "Row operations",
+    "Handler operations",
+  ],
 };
 
 // Permission names, which the docs write as the product names them, in English.
@@ -134,7 +166,11 @@ const PERMISSIONS: Record<string, Array<string>> = {
   [KUBERNETES]: ["Edit Auto Remediation Rule"],
 };
 
-// Labels of the Proxmox web UI, which the page names as that console does.
+/*
+ * Labels of another product's console, which the page names as that
+ * console does: the Proxmox web UI, the vSphere Client, the FlashArray GUI
+ * and Azure's role names.
+ */
 const OTHER_CONSOLES: Record<string, Array<string>> = {
   [PROXMOX]: [
     "Add",
@@ -142,6 +178,17 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "API Token Permission",
     "User Permission",
   ],
+  [VMWARE]: ["Read-Only", "Add", "Permissions", "Propagate to children"],
+  [STORAGE_ARRAYS]: [
+    "readonly",
+    "Users",
+    "Create User…",
+    "Create API Token…",
+    "Expires In",
+  ],
+  [SERVERLESS]: ["Key Vault Secrets User"],
+  // A CloudWatch Metric Stream's output format, and Azure's and Google Cloud's roles.
+  [QUEUES]: ["OpenTelemetry 1.0", "Monitoring Reader", "Monitoring Viewer"],
 };
 
 // What an agent writes to its log, quoted as it is written.
@@ -175,6 +222,43 @@ const NAMES: Record<string, Array<string>> = {
   ],
   [COST]: ["OpenCost"],
   [PROXMOX]: ["PVEAuditor", "n"],
+  [VMWARE]: ["vCenter Server"],
+  [STORAGE_ARRAYS]: [
+    "Pure Storage FlashArray",
+    "Pure Storage FlashBlade",
+    "Everpure",
+  ],
+  [DATABASES]: [
+    "PostgreSQL",
+    "MySQL / MariaDB",
+    "SQL Server",
+    "Oracle",
+    "Redis / Valkey / KeyDB / Dragonfly",
+    "MongoDB",
+    "Elasticsearch / OpenSearch",
+    "Memcached",
+    "Docker / Podman",
+    "Database Agent",
+  ],
+  [QUEUES]: [
+    "Azure Service Bus",
+    "Azure Event Hubs",
+    "JMS",
+    "Apache ActiveMQ",
+    "Google Cloud Pub/Sub",
+    "RabbitMQ.Client",
+    "MassTransit",
+    "Confluent.Kafka",
+    "BullMQ",
+    "Kafka",
+  ],
+  [SERVERLESS]: [
+    "C# (isolated worker)",
+    "JavaScript / TypeScript",
+    "Java",
+    "Python",
+    "PowerShell",
+  ],
 };
 
 /*
@@ -184,6 +268,12 @@ const NAMES: Record<string, Array<string>> = {
 const PROSE: Record<string, Array<string>> = {
   // "The agent is **on by default** and **read-only**": the stress.
   [KUBERNETES]: ["read-only"],
+  // "It is **read-only** unless you set ...": the stress.
+  [CEPH]: ["read-only"],
+  [VMWARE]: ["read-only"],
+  [DATABASES]: ["read-only"],
+  // The third of the three containers, "**AI agent**: oneuptime-docker-swarm-ai-agent".
+  [DOCKER_SWARM]: ["AI agent", "read-only"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
 };
@@ -230,10 +320,135 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "AI investigations are on by default.",
   ],
   [PROXMOX]: ["AI investigations are on by default."],
+  [CEPH]: [
+    "Every mgr, every 30 seconds.",
+    "`honor_labels: true`.",
+    "`ceph-exporter` (Reef 18.2 and later).",
+    "`node_exporter`.",
+    "AI investigations are on by default.",
+    "Its own Ceph client is the hard limit.",
+  ],
+  [DOCKER_SWARM]: [
+    "Collector",
+    "Inventory poller",
+    "manager",
+    "AI investigations are on by default.",
+    "must run on a manager node",
+  ],
+  [VMWARE]: [
+    "standalone ESXi host",
+    "without",
+    "resource attributes",
+    "datapoint attributes",
+    "only for powered-on VMs",
+    "whole collection at a time",
+    "AI investigations are on by default.",
+    "The vSphere role is the hard limit.",
+    "not",
+  ],
+  [STORAGE_ARRAYS]: [
+    "without an expiry",
+    "Purity//FA 6.7.0 and later",
+    "One scrape job per endpoint, each read as often as it is worth.",
+    "Every job labels its series `scrape_endpoint: <endpoint>`.",
+    "Per-volume and per-host latency keeps three dimensions.",
+    "The API token is a Bearer token.",
+    "No `send_batch_max_size`.",
+    "datapoint labels",
+  ],
+  [SERVERLESS]: [
+    "yes",
+    "Function App",
+    "one Serverless Function per Function App",
+    "C# in-process apps",
+    "Log streaming",
+    "error rate",
+  ],
+  [DATABASES]: [
+    "Application traces",
+    "family",
+    "Created from traces",
+    "created",
+    "Clusters and host lists.",
+    "Operator and chart labels first",
+    "Container images otherwise",
+    "no",
+    "One agent monitors one database server.",
+    "applications",
+    "AI investigations are on by default.",
+    "The login is the hard limit",
+    "Every batch must name the server.",
+    "Keep `service.name` off the resource.",
+    "Name the server your applications use.",
+    "One owner.",
+    "Adding or removing an alias is an edit.",
+    "Merging two databases that are one server.",
+    "Canonical forms.",
+    "SQL Server named instances.",
+    "Local-only names never identify a database.",
+    "Names that only resolve inside one network",
+    "Calls from Kubernetes carry their cluster.",
+    "Naming the cluster yourself.",
+    "Engine-agnostic.",
+    "Discovered endpoints move on.",
+    "By id.",
+    "By endpoint.",
+    "Archive to dismiss.",
+    "archive",
+    "Databases created for a client's port.",
+    "Automatic archiving.",
+    "Restoring.",
+    "Retention.",
+    "receiver batches that do not name their server are ignored",
+  ],
+  [QUEUES]: [
+    "Application traces",
+    "Broker metrics",
+    "The system",
+    "The destination",
+    "The direction",
+    "created",
+    "system",
+    "destination",
+    "JMS and ActiveMQ are one family.",
+    "SERVER spans",
+    "Destinations marked temporary or anonymous",
+    "Placeholders instrumentations report instead of a name",
+    "Generated and reply destinations",
+    "SNS text messages and mobile push",
+    "Names that cannot be one queue",
+    "UUIDs are templated.",
+    "Archive to dismiss.",
+    "archive",
+    "Automatic archiving.",
+    "Restoring.",
+    "Azure Service Bus and Event Hubs",
+    "Amazon SQS and SNS",
+    "Polling CloudWatch",
+    "Leave `stats` unset.",
+    "Late metrics",
+    "Streaming",
+    "From the queue's page.",
+    "Counters.",
+    "By hand",
+    "Late metrics.",
+    "Same-named destinations on two clusters or accounts are one queue.",
+    "Kafka clients on Event Hubs are Kafka.",
+    "Service Bus spans without a namespace host key apart.",
+    "RabbitMQ spans usually name exchanges; the broker's metrics name queues.",
+    "Pub/Sub publishers name topics; subscribers name subscriptions.",
+    "Pulsar's per-consumer series are left out of charts",
+    "Azure Storage Queues have no per-queue metrics.",
+    "RocketMQ's retry and system topics are not filtered out of broker metrics.",
+  ],
 };
 
 // Create buttons, drawn as their table draws them.
-const CREATE_BUTTONS: Array<string> = ["Create Dashboard"];
+const CREATE_BUTTONS: Array<string> = [
+  "Create Dashboard",
+  "Create Database",
+  "Create Queue",
+];
 
 // Tab labels are names (platforms, presets, install methods), the same in every language.
 const TAB_LINE: RegExp = /^@tab\s+(.+)$/;
@@ -305,6 +520,115 @@ function drawnLabel(language: string, english: string): string {
   }
 
   return drawnActionLabel(language, english);
+}
+
+/*
+ * The Products menu: a product in it, and the product's category there,
+ * are drawn from the Dashboard's navbar.items and navbar.categories keys
+ * (Utils/NavigationItems), which can differ from the flat key of the same
+ * English words: Dutch draws the Resources category "Bronnen", Russian the
+ * Databases product "Базы данных", and every language draws Storage Arrays
+ * in English there.
+ */
+const PRODUCTS_MENU: string = "Products";
+
+type NavbarGroup = "categories" | "items";
+
+// The navbar keys of a group, by the English title they hold.
+function navbarKeys(group: NavbarGroup): Record<string, string> {
+  const navbar: Record<string, Record<string, string>> = dashboardLocale("en")[
+    "navbar"
+  ] as Record<string, Record<string, string>>;
+  const keys: Record<string, string> = {};
+
+  for (const [key, title] of Object.entries(navbar[group] || {})) {
+    if (group === "items" && !key.endsWith("Title")) {
+      continue;
+    }
+
+    keys[title] = keys[title] || key;
+  }
+
+  return keys;
+}
+
+const MENU_CATEGORY_KEYS: Record<string, string> = navbarKeys("categories");
+const MENU_ITEM_KEYS: Record<string, string> = navbarKeys("items");
+
+// A navbar key's value in a language, or null when the locale has none.
+function navbarValue(
+  language: string,
+  group: NavbarGroup,
+  key: string,
+): string | null {
+  const navbar: Record<string, Record<string, unknown>> | undefined =
+    dashboardLocale(language)["navbar"] as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+  const value: unknown = navbar?.[group]?.[key];
+
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+/*
+ * One segment of a menu path as a language draws it: a create button as
+ * its table draws it, a Products menu category and product as that menu
+ * draws them, and every other segment as the flat locale key.
+ */
+function drawnMenuSegment(
+  language: string,
+  segments: Array<string>,
+  index: number,
+): string {
+  const segment: string = segments[index] as string;
+
+  if (CREATE_BUTTONS.includes(segment)) {
+    return drawnCreateButton(language, segment);
+  }
+
+  if (segments[0] === PRODUCTS_MENU && index > 0) {
+    const categoryKey: string | undefined = MENU_CATEGORY_KEYS[segment];
+
+    if (index === 1 && categoryKey) {
+      return (
+        navbarValue(language, "categories", categoryKey) ||
+        drawnNetworkLabel(language, segment)
+      );
+    }
+
+    const productIndex: number = MENU_CATEGORY_KEYS[segments[1] as string]
+      ? 2
+      : 1;
+    const itemKey: string | undefined = MENU_ITEM_KEYS[segment];
+
+    if (index === productIndex && itemKey) {
+      return (
+        navbarValue(language, "items", itemKey) ||
+        drawnNetworkLabel(language, segment)
+      );
+    }
+  }
+
+  return drawnNetworkLabel(language, segment);
+}
+
+// A menu path as a page in a language writes it.
+function drawnMenuPath(language: string, segments: Array<string>): string {
+  const drawn: Array<string> = segments.map(
+    (_segment: string, index: number): string => {
+      return drawnMenuSegment(language, segments, index);
+    },
+  );
+
+  if (language === "fa") {
+    return drawn
+      .map((segment: string): string => {
+        return `**${segment}**`;
+      })
+      .join(PERSIAN_PATH_SEPARATOR);
+  }
+
+  return `**${drawn.join(PATH_SEPARATOR)}**`;
 }
 
 // The labels a page keeps as the English page writes them.
@@ -513,6 +837,36 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
     from: "installation/upgrading",
     to: KUBERNETES,
     anchor: "upgrading-the-agent",
+  },
+  // Docs overhaul task 22.
+  {
+    // The probe-collected vCenter needs the same read-only user.
+    from: "telemetry/vmware-agentless",
+    to: VMWARE,
+    anchor: "create-the-read-only-vsphere-user",
+  },
+  {
+    // Where a VMware monitor's data starts flowing.
+    from: "monitor/vmware-monitor",
+    to: VMWARE,
+    anchor: "verify-the-installation",
+  },
+  { from: "ai/infrastructure-ai-agents", to: DOCKER_SWARM, anchor: "ai-agent" },
+  { from: "ai/infrastructure-ai-agents", to: VMWARE, anchor: "ai-agent" },
+  { from: "ai/infrastructure-ai-agents", to: CEPH, anchor: "ai-agent" },
+  { from: "ai/infrastructure-ai-agents", to: DATABASES, anchor: "ai-agent" },
+  {
+    // A Database Health monitor's alerts land on the database.
+    from: "monitor/database-health-monitor",
+    to: DATABASES,
+    anchor: "alerts-on-a-database",
+  },
+  { from: "monitor/sql-monitor", to: DATABASES, anchor: "alerts-on-a-database" },
+  {
+    // Service Bus-triggered functions.
+    from: QUEUES,
+    to: SERVERLESS,
+    anchor: "azure-functions",
   },
 ];
 
@@ -947,7 +1301,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
         .map((path: string): string => {
-          return drawnPath(language, segmentsOf(path));
+          return drawnMenuPath(language, segmentsOf(path));
         })
         .filter((drawn: string): boolean => {
           return !translated.includes(drawn);
@@ -1046,6 +1400,42 @@ describe("the helpers, on these pages' shapes", () => {
     );
     expect(drawnPath("en", ["Products", "Infrastructure"])).toBe(
       "**Products → Infrastructure**",
+    );
+  });
+
+  it("draw a Products menu path as that menu draws it, and a create button in a path as its table does", () => {
+    // The category and the product, from navbar.categories and navbar.items.
+    expect(drawnMenuPath("nl", ["Products", "Resources", "Databases"])).toBe(
+      `**${drawnActionLabel("nl", "Products")} → ${navbarValue("nl", "categories", "resources")} → ${navbarValue("nl", "items", "databasesTitle")}**`,
+    );
+    expect(navbarValue("nl", "categories", "resources")).toBe("Bronnen");
+    expect(drawnMenuPath("ru", ["Products", "Resources", "Databases"])).toContain(
+      "Базы данных",
+    );
+    // Storage Arrays is drawn in English in the menu, whatever the flat key says.
+    expect(
+      drawnMenuPath("de", ["Products", "Infrastructure", "Storage Arrays"]),
+    ).toBe("**Produkte → Infrastruktur → Storage Arrays**");
+    // Past the product, the flat keys: the product's own side menu.
+    expect(
+      drawnMenuPath("de", [
+        "Products",
+        "Infrastructure",
+        "Storage Arrays",
+        "All Storage Arrays",
+      ]),
+    ).toBe(
+      `**Produkte → Infrastruktur → Storage Arrays → ${drawnActionLabel("de", "All Storage Arrays")}**`,
+    );
+    // A path that does not start at the Products menu reads the flat keys.
+    expect(drawnMenuPath("ru", ["Databases", "Create Database"])).toBe(
+      `**${drawnActionLabel("ru", "Databases")} → ${drawnCreateButton("ru", "Create Database")}**`,
+    );
+    expect(drawnMenuPath("fa", ["Products", "Resources", "Queues"])).toBe(
+      `**${drawnActionLabel("fa", "Products")}**${PERSIAN_PATH_SEPARATOR}**${navbarValue("fa", "categories", "resources")}**${PERSIAN_PATH_SEPARATOR}**${navbarValue("fa", "items", "queuesTitle")}**`,
+    );
+    expect(drawnMenuPath("en", ["Products", "Resources", "Queues"])).toBe(
+      "**Products → Resources → Queues**",
     );
   });
 
