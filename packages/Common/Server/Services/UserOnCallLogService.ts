@@ -996,28 +996,29 @@ export class Service extends DatabaseService<Model> {
     statusMessage: string;
   }): Promise<void> {
     /*
-     * The on-call timeline first: the log's own update (below) carries its
-     * Completed status over to the timeline as "Notification Sent"
-     * (onUpdateSuccess), which this outcome is not - nothing was sent. Written
-     * the other way round, every responder skipped here showed first as
+     * Without the log's own hook: it would carry the log's status over to
+     * the on-call timeline (onUpdateSuccess) - Completed as "Notification
+     * Sent" - and the timeline write below says what this outcome really is.
+     * Through the hook, every responder skipped here showed first as
      * "Notification Sent" and then as "Skipped", in the record's feed and in
      * Slack and Microsoft Teams alike.
      */
-    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
-      id: data.createdItem.onCallDutyPolicyExecutionLogTimelineId!,
-      data: {
-        status: data.timelineStatus,
-        statusMessage: data.statusMessage,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
     await this.updateOneById({
       id: data.createdItem.id!,
       data: {
         status: data.status,
+        statusMessage: data.statusMessage,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+      id: data.createdItem.onCallDutyPolicyExecutionLogTimelineId!,
+      data: {
+        status: data.timelineStatus,
         statusMessage: data.statusMessage,
       },
       props: {

@@ -762,22 +762,35 @@ export class Service extends ProjectReferencesService<Model> {
      * The episode's state and severity, as an incident's created entry
      * names them: its first state is not posted to Slack and Microsoft
      * Teams on its own (WorkspaceStateChangePosting), so this is where a
-     * channel reads it. Names are plain text.
+     * channel reads it. Names are plain text. A read that fails leaves
+     * them out: the created entry still goes out.
      */
-    const episodeWithState: Model | null = await this.findOneById({
-      id: episode.id,
-      select: {
-        currentIncidentState: {
-          name: true,
+    let episodeWithState: Model | null = null;
+
+    try {
+      episodeWithState = await this.findOneById({
+        id: episode.id,
+        select: {
+          currentIncidentState: {
+            name: true,
+          },
+          incidentSeverity: {
+            name: true,
+          },
         },
-        incidentSeverity: {
-          name: true,
+        props: {
+          isRoot: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
+    } catch (error) {
+      logger.error(
+        `Reading the state of a new incident episode for its created entry failed: ${error}`,
+        {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        } as LogAttributes,
+      );
+    }
 
     if (episodeWithState?.currentIncidentState?.name) {
       feedInfoInMarkdown += mdText`🔴 **Episode State**: ${episodeWithState.currentIncidentState.name} \n\n`;

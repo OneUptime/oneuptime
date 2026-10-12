@@ -432,19 +432,12 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${onC
       OnCallDutyExecutionLogTimelineStatus | undefined
     > = {};
 
-    if (updateBy.data.status && updateBy.query) {
-      const itemsBeforeUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        props: {
-          isRoot: true,
-        },
-        select: {
+    if (updateBy.data.status) {
+      const itemsBeforeUpdate: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
           _id: true,
           status: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      });
+        });
 
       for (const item of itemsBeforeUpdate) {
         if (item.id) {

@@ -691,6 +691,14 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
         displayColor: Blue500,
         feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident INC-7](${INCIDENT_LINK}).**: Owners have been notified about the state change of the incident because the incident state changed to **Acknowledged**.`,
         moreInformationInMarkdown: `**Notified:** @${USER_1_ID.toString()})\n**Notified:** @${USER_2_ID.toString()})\n**Notified:** @${USER_3_ID.toString()})\n`,
+        /*
+         * The feed only: the incident's Slack and Microsoft Teams channels
+         * were told of the state change itself, and used to get this right
+         * under it as well.
+         */
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
       }),
     );
   });
