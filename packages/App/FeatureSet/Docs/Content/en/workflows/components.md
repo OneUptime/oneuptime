@@ -274,7 +274,7 @@ Pause the run before the next block, to give another system a moment to catch up
 
 **Days**, **Hours**, **Minutes** and **Seconds** add up. The longest wait is 30 days: a longer one is cut to 30 days, and the run's log says so.
 
-While it waits, the run is put aside with the status **Waiting** and picked up again when the time is up, so a long wait holds nothing up. A run whose workflow was turned off or archived in the meantime is cancelled when it wakes.
+While it waits, the run is put aside with the status **Waiting** and picked up again when the time is up, so a long wait holds nothing up. A run whose workflow was turned off or archived in the meantime is cancelled when it wakes. A test run, started while the workflow was off, isn't cancelled for being off.
 
 ## Log
 

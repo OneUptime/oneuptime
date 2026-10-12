@@ -93,8 +93,8 @@ Todo flujo de trabajo se construye de la misma manera:
 1. **Crear** — elige un punto de partida y, luego, dale un nombre a tu flujo de trabajo. Consulta [Crear un flujo de trabajo](/docs/workflows/authoring).
 2. **Elegir un disparador** — manual, programado, webhook, correo entrante o un evento de OneUptime. Consulta [Disparadores](/docs/workflows/triggers).
 3. **Añadir componentes** — añade acciones al lienzo y conéctalas. Consulta [Componentes](/docs/workflows/components).
-4. **Activarlo** — activa **Habilitado** en la parte superior del **Constructor**. Un flujo de trabajo deshabilitado no puede ejecutarse en absoluto, ni siquiera a mano.
-5. **Probar** — haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y observa la ejecución mientras ocurre.
+4. **Probar** — haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y observa la ejecución mientras ocurre. Funciona aunque el flujo de trabajo siga desactivado: es una **Ejecución de prueba**.
+5. **Activarlo** — activa **Habilitado** en la parte superior del **Constructor** cuando esté listo. A partir de entonces, su disparador lo inicia.
 :::
 
 El ejemplo siguiente recorre estos pasos para un flujo de trabajo real.
@@ -156,15 +156,15 @@ Haz clic en **Añadir componente** y, luego, en **Registro**. Conecta a él el p
 
 Una solicitud que falla — una URL inaccesible o una respuesta que no es 2xx — toma ahora este camino, y el registro de la ejecución dice por qué.
 
+### Probarlo
+
+Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de este proyecto, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**. El flujo de trabajo sigue desactivado, así que es una **Ejecución de prueba**, y la solicitud se envía de verdad.
+
+Se abre un panel **Ejecución del flujo de trabajo** que sigue la ejecución. Abre el paso **API Post (JSON)** para ver el cuerpo que envió y la respuesta que recibió.
+
 ### Activarlo
 
 Activa **Habilitado** en la parte superior del **Constructor**.
-
-### Probarlo
-
-Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente de este proyecto, haz clic en **Ejecutar flujo de trabajo manualmente** y confirma con **Ejecutar**.
-
-Se abre un panel **Ejecución del flujo de trabajo** que sigue la ejecución. Abre el paso **API Post (JSON)** para ver el cuerpo que envió y la respuesta que recibió.
 :::
 
 A partir de ahora, cada incidente nuevo del proyecto inicia una ejecución. Las encontrarás todas en las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo.

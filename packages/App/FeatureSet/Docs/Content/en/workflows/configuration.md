@@ -3,7 +3,7 @@
 What to know before you point a workflow at real traffic: how to turn it on safely, who can do what, how secrets and URLs stay private, what a workflow's steps may change, and the limits every run works within.
 
 :::cards
-- [Going live](#turning-a-workflow-on-or-off): Test with Run Workflow, then leave the workflow on.
+- [Going live](#turning-a-workflow-on-or-off): Test with Run Workflow while it's off, then turn it on.
 - [Permissions](#permissions): The workflow roles, and the single permissions behind them.
 - [What steps can do](#what-workflow-steps-can-do): Steps act as a Project Admin of the workflow's project.
 - [Limits](#plan-limits): Runs per plan, run time, and calls between workflows.
@@ -11,18 +11,18 @@ What to know before you point a workflow at real traffic: how to turn it on safe
 
 ## Turning a workflow on or off
 
-Every workflow has an **Enabled** switch at the top of its **Builder**, and on its **Overview** page. When it's off, the workflow doesn't run — webhook calls, incoming email, scheduled times, and OneUptime events are all ignored, and so are **Run Workflow** and **Run just this step**. New workflows start disabled.
+Every workflow has an **Enabled** switch at the top of its **Builder**, and on its **Overview** page. When it's off, its trigger is paused — webhook calls, incoming email, scheduled times, OneUptime events and other workflows' **Execute Workflow** steps don't start it. **Run Workflow** and **Run just this step** still do: a run you start yourself while the workflow is off is a **Test run**. New workflows start disabled.
 
 Use this switch as your "ready to go" gate:
 
 :::steps
 1. Build the workflow.
-2. Click **Run Workflow** on the **Builder** with realistic values. A disabled workflow can't run even by hand, so the Builder asks to turn it on first: click **Turn on and run**.
+2. Click **Run Workflow** on the **Builder** with realistic values, while the workflow is still off. The run is a **Test run**: every block runs for real, so point it at a test channel or a test record first.
 3. Open the run and check that every block went where you expected. See [Runs](/docs/workflows/runs-and-logs).
-4. Leave **Enabled** on if it's ready. If it isn't, switch it off until it is: while it's on, its trigger fires on real events.
+4. Switch **Enabled** on when it's ready: from then on, its trigger fires on real events.
 :::
 
-Turning a workflow off stops new runs from starting. A run already in progress finishes, but a run waiting on a **Sleep** block is cancelled when it wakes.
+Turning a workflow off stops its trigger from starting new runs. A run already in progress finishes, but a run its trigger started that is waiting on a **Sleep** block is cancelled when it wakes. Test runs carry on.
 
 ## Archiving a workflow
 
@@ -85,7 +85,7 @@ The file holds the workflow's name, description, enabled state, and its graph. I
 - **Global variables.** A block that reads `{{global.variables.MY_SECRET}}` keeps that reference, but the value is not in the file. Create the variables in the destination project before you run the imported workflow.
 - **Owners and labels.** Your project's own label and owner rules run against the imported workflow, the same as if you had created it by hand.
 
-An imported workflow is always created **disabled**, even if it was enabled where it was exported from — its graph can point at monitors, on-call policies, or other workflows that don't exist in the destination project. Review it, enable it, test it with **Run Workflow**, and then leave it on. Duplicating a workflow behaves the same way, so a copy never starts firing alongside the original before you've edited it.
+An imported workflow is always created **disabled**, even if it was enabled where it was exported from — its graph can point at monitors, on-call policies, or other workflows that don't exist in the destination project. Review it, test it with **Run Workflow**, and then turn it on. Duplicating a workflow behaves the same way, so a copy never starts firing alongside the original before you've edited it.
 
 Because the graph travels verbatim, anything typed straight into a block travels with it. That's the practical reason to keep credentials in secret variables: exporting a workflow with a hardcoded token hands that token to whoever receives the file.
 

@@ -274,7 +274,7 @@ Mettez l'exécution en pause avant le bloc suivant, pour laisser à un autre sys
 
 **Days**, **Hours**, **Minutes** et **Seconds** s'additionnent. L'attente la plus longue est de 30 jours : une attente plus longue est ramenée à 30 jours, et le journal de l'exécution le signale.
 
-Pendant l'attente, l'exécution est mise de côté avec le statut **En attente** et reprise quand le temps est écoulé : une longue attente ne bloque donc rien. Une exécution dont le workflow a été désactivé ou archivé entre-temps est annulée à son réveil.
+Pendant l'attente, l'exécution est mise de côté avec le statut **En attente** et reprise quand le temps est écoulé : une longue attente ne bloque donc rien. Une exécution dont le workflow a été désactivé ou archivé entre-temps est annulée à son réveil. Une exécution de test, lancée pendant que le workflow était désactivé, n'est pas annulée parce qu'il l'est.
 
 ## Log
 

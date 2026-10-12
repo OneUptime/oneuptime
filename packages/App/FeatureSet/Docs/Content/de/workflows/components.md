@@ -274,7 +274,7 @@ Die Ausführung vor dem nächsten Baustein anhalten, um einem anderen System ein
 
 **Days**, **Hours**, **Minutes** und **Seconds** werden addiert. Die längste Wartezeit sind 30 Tage: Eine längere wird auf 30 Tage gekürzt, und das Protokoll der Ausführung sagt das.
 
-Während sie wartet, wird die Ausführung mit dem Status **Wartet** beiseitegelegt und wieder aufgenommen, wenn die Zeit um ist, daher hält eine lange Wartezeit nichts auf. Eine Ausführung, deren Workflow in der Zwischenzeit ausgeschaltet oder archiviert wurde, wird beim Aufwachen abgebrochen.
+Während sie wartet, wird die Ausführung mit dem Status **Wartet** beiseitegelegt und wieder aufgenommen, wenn die Zeit um ist, daher hält eine lange Wartezeit nichts auf. Eine Ausführung, deren Workflow in der Zwischenzeit ausgeschaltet oder archiviert wurde, wird beim Aufwachen abgebrochen. Ein Testlauf, gestartet, während der Workflow aus war, wird nicht abgebrochen, weil er aus ist.
 
 ## Log
 

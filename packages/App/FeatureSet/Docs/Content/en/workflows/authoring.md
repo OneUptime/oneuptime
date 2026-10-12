@@ -11,7 +11,7 @@ Choose how to begin:
 
 Click a template to see what it does: its trigger, the blocks it is made of, and the settings it will ask for. Then click **Use this template**, or double-click the template. In the search box, the arrow keys pick a template and **Enter** uses it. `/` takes you back to the search box.
 
-Workflows are created switched off, so nothing runs until you turn them on. A new workflow opens in the **Builder**, the canvas where you design it.
+Workflows are created switched off, so their trigger doesn't start them until you turn them on. A new workflow opens in the **Builder**, the canvas where you design it.
 
 ## The canvas
 
@@ -130,9 +130,8 @@ The quickest way to feel out the canvas is a two-block workflow you start by han
 1. Click the dashed placeholder block, then click **Manual** in the **Add Trigger** panel.
 2. Click **Add Component**, then click **Log** under **Popular**. The new block lands below the trigger. Connect the trigger's **Execute** dot down to the Log block's input dot.
 3. Click the Log block, which says **Click to set up**, and type `Hello from ` in its **Value**. Click **{ }**, then click **JSON** under **Manual**. The setting shows **Manual › JSON**, and saves `{{local.components.manual-1.returnValues.value}}`. `manual-1` is the trigger's **Identifier**, shown on the trigger block. Click **Save**.
-4. Switch **Enabled** on, at the top of the Builder. A disabled workflow can't be run at all, not even by hand; if you skip this, **Run Workflow** asks to turn it on first.
-5. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**.
-6. A **Workflow Run** panel opens by itself and follows the run. The log shows `Value:` followed by `Hello from { "name": "Ada" }`.
+4. Back on the **Builder**, click **Run Workflow**, put `{ "name": "Ada" }` in the **JSON** field, click **Run Workflow Manually**, and confirm with **Run**. The workflow is still off, and it doesn't need to be on: a run you start yourself is a **Test run**.
+5. A **Workflow Run** panel opens by itself and follows the run. It says **Test run** at the top, and the log shows `Value:` followed by `Hello from { "name": "Ada" }`.
 :::
 
 That cycle — add, connect, configure, run, read the log — is how you'll build every workflow.
@@ -142,22 +141,22 @@ That cycle — add, connect, configure, run, read the log — is how you'll buil
 
 ## Turning it on
 
-New workflows start disabled, and so does any workflow you duplicate or import. While a workflow is off, the Builder says so above the canvas, with a **Turn on workflow** button.
+New workflows start disabled, and so does any workflow you duplicate or import. Off pauses the workflow's trigger, so nothing starts it on its own, but you can still test it. While a workflow is off, the Builder says so above the canvas, with a **Turn on workflow** button.
 
 The **Enabled** switch is at the top of the **Builder**, next to **Add Component** and **Run Workflow**. It is also on the workflow's **Overview** page, whose **Workflow Details** card shows the current state as a green **Enabled** or red **Disabled** pill: click **Edit Workflow** and open **More fields**. Only people who can edit the workflow can turn it on or off; anyone else sees the switch greyed out.
 
-A disabled workflow can't run at all, however it is started:
+While a workflow is off, what starts it decides whether it runs:
 
-| Started by                                          | While the workflow is off                                                                                                                                                   |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Its trigger: a schedule, a OneUptime event or an email | Ignored.                                                                                                                                                                 |
-| **Run Workflow** or **Run just this step**          | The Builder asks **Turn on this workflow?** instead. **Turn on and run** (or **Turn on and run step**) turns the workflow on and then runs what you asked for, with the values you gave. |
-| A call to its webhook URL                           | Refused with HTTP 400 and "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                      |
-| Another workflow's **Execute Workflow** block       | That block takes its **Error** path, and the error names the workflow it called.                                                                                            |
+| Started by                                             | While the workflow is off                                                                                                                                                     |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Its trigger: a schedule, a OneUptime event or an email | Ignored.                                                                                                                                                                      |
+| **Run Workflow** or **Run just this step**             | Runs, as a **Test run**. Its blocks run for real: a message is really sent and a record is really changed. The run is marked **Test run** in the run lists and at the top of the run, with who started it. |
+| A call to its webhook URL                              | Refused with HTTP 400 and "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."           |
+| Another workflow's **Execute Workflow** block          | That block takes its **Error** path, and the error names the workflow it called. This holds in a test run too: a workflow it calls has to be on.                             |
 
-So the order is: build it, test it with **Run Workflow**, read the run's log, and switch **Enabled** back off if you're not ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
+So the order is: build it, test it with **Run Workflow** while it's still off, read the run's log, and switch **Enabled** on when you're ready for its trigger to fire. To test a single block without running the whole thing, use **Run just this step** in that block's settings.
 
-To pause a workflow without deleting it, switch **Enabled** off. No new runs start. A run that is mid-execution finishes, but one parked on a **Sleep** block is cancelled when it wakes and recorded as an error.
+To pause a workflow without deleting it, switch **Enabled** off. Its trigger stops starting runs. A run that is mid-execution finishes, but one its trigger started that is parked on a **Sleep** block is cancelled when it wakes and recorded as an error. A test run carries on.
 
 ## Tidying up
 

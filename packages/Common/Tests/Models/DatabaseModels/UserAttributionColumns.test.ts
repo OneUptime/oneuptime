@@ -241,6 +241,13 @@ describe("which columns record a person doing something", () => {
       "projectCreated",
       "projectDeleted",
       "requested",
+      /*
+       * WorkflowLog.startedByUserId: who ran a workflow by hand from its
+       * Builder (Run Workflow or Run just this step), which is what lets a
+       * run of a workflow that is off go ahead as a test run. OneUptime
+       * records it from the signed-in caller; no request chooses it.
+       */
+      "started",
       "triggered",
       "viewed",
     ];

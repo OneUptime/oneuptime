@@ -274,7 +274,7 @@ Sæt kørslen på pause før den næste blok, for at give et andet system et øj
 
 **Days**, **Hours**, **Minutes** og **Seconds** lægges sammen. Den længste ventetid er 30 dage: en længere afkortes til 30 dage, og kørslens log siger det.
 
-Mens den venter, lægges kørslen til side med status **Venter** og samles op igen, når tiden er gået, så en lang ventetid holder intet op. En kørsel, hvis workflow i mellemtiden blev slået fra eller arkiveret, annulleres, når den vågner.
+Mens den venter, lægges kørslen til side med status **Venter** og samles op igen, når tiden er gået, så en lang ventetid holder intet op. En kørsel, hvis workflow i mellemtiden blev slået fra eller arkiveret, annulleres, når den vågner. En testkørsel, startet mens workflowet var slået fra, annulleres ikke, fordi det er slået fra.
 
 ## Log
 

@@ -76,6 +76,7 @@ Failed steps, steps with a warning, and a run's only step start open. The **Step
 
 A few runs read differently:
 
+- **A test run.** A run someone started with **Run Workflow** or **Run just this step** while the workflow was off says **Test run** at the top, with who started it, and both run lists mark it **Test run** beside its status. Its blocks ran for real; only the workflow's trigger was paused. Filter on **Test Run** to list only the test runs, or only the others.
 - **A test of one step.** A run started with **Run just this step** says **Only this step ran** at the top. The steps before it did not run, so values it reads from them are missing (expect a **Did not resolve** warning for those), and the steps after it say **(not run in this test)**. Use **Run Workflow** to try the whole path.
 - **A run that stopped between steps.** If the run stopped for a reason no step explains — it timed out between steps, or failed before its first step — the path ends with **The run stopped here** and the reason.
 - **A sleeping run.** A run waiting on a **Sleep** block ends with **Sleeping** and the time it carries on by itself; the steps after the Sleep say **(not run yet)**.
@@ -106,7 +107,7 @@ A download holds nothing you could not already read in the run. Secrets and fiel
 ## Troubleshooting
 
 :::details My workflow didn't run
-1. Make sure the workflow is **Enabled**: the switch is at the top of its **Builder**, which says so above the canvas when the workflow is off. New workflows start disabled, and a disabled workflow rejects every run — including manual ones. A webhook call to it gets HTTP 400 with a message saying how to turn it on.
+1. Make sure the workflow is **Enabled**: the switch is at the top of its **Builder**, which says so above the canvas when the workflow is off. New workflows start disabled, and while a workflow is off its trigger doesn't start it: only **Run Workflow** and **Run just this step** do, as test runs. A webhook call to it gets HTTP 400 with a message saying how to turn it on.
 2. For a OneUptime event trigger, confirm the event actually happened: open the record and check its history. An **On Update** trigger with **Listen on** fires only when one of those fields changed.
 3. For a webhook trigger, confirm the other system is sending to the right URL. Most tools log when they send a webhook — check there.
 4. For a schedule trigger, confirm the cron expression matches the time you expect. Schedules run in UTC.

@@ -23,13 +23,13 @@ import { ComponentProps as CanvasProps } from "../../../UI/Components/Workflow/W
  * The Builder of an archived workflow.
  *
  * An archived workflow does not run, from any trigger, whatever its Enabled
- * switch says; the banner across the top of its pages says so and offers
- * Unarchive. So the Builder does not also offer to turn it on: no "This
- * workflow is off" notice, and a run started from it is not held behind the
- * turn-on dialog (turning it on would flip the switch and still not run it).
- * The run is refused in the server's own words instead, and nothing is sent.
- * Unarchived on the page, the Builder goes back to the ordinary behaviour at
- * once.
+ * switch says - not even as a test run from the Builder; the banner across
+ * the top of its pages says so and offers Unarchive. So the Builder does not
+ * also offer to turn it on: no "This workflow is off" notice, and the Run
+ * Workflow panel does not call its runs test runs. A run started from it is
+ * refused in the server's own words instead, and nothing is sent. Unarchived
+ * on the page, the Builder goes back to the ordinary behaviour at once: a
+ * workflow that is off is tested with Run Workflow, as a test run.
  *
  * The harness is WorkflowBuilderTurnOn.test.tsx's: the real Builder page, a
  * stand-in canvas that hands over its run callbacks, and the API answered
@@ -157,7 +157,6 @@ import {
   NodeDataProp,
   NodeType,
 } from "../../../Types/Workflow/Component";
-import { WORKFLOW_TURNED_OFF_MESSAGE } from "../../../Types/Workflow/WorkflowEnabled";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "../../../Types/Workflow/WorkflowArchive";
 import { announceArchiveStateChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ArchiveStateEvents";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -305,14 +304,6 @@ const enabledSwitch: ElementFunction = (): HTMLElement => {
   return screen.getByRole("switch", { name: "Enabled" });
 };
 
-const prompt: () => Promise<HTMLElement> = async (): Promise<HTMLElement> => {
-  const body: HTMLElement = await screen.findByTestId(
-    "workflow-turn-on-prompt",
-  );
-
-  return body.closest('[role="dialog"]') as HTMLElement;
-};
-
 type UpdatesFunction = () => Array<JSONObject>;
 
 const savedSwitchValues: UpdatesFunction = (): Array<JSONObject> => {
@@ -373,20 +364,15 @@ beforeEach(() => {
     return { data: [], count: 0, skip: 0, limit: 1 };
   });
 
-  // The server: an archived workflow does not run, nor one that is off.
+  /*
+   * The server: an archived workflow does not run. One that is off runs
+   * when a person starts it, as a test run.
+   */
   mockPost.mockImplementation(async () => {
     if (stored.isArchived) {
       return new HTTPErrorResponse(
         400,
         { error: WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE },
-        {},
-      );
-    }
-
-    if (!stored.isEnabled) {
-      return new HTTPErrorResponse(
-        400,
-        { error: WORKFLOW_TURNED_OFF_MESSAGE },
         {},
       );
     }
@@ -435,6 +421,12 @@ describe("the Builder of an archived workflow", () => {
     expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
   });
 
+  test("its Run Workflow panel does not promise a test run: archived runs nothing", async () => {
+    await renderBuilder();
+
+    expect(canvas().runsAreTestRuns).toBe(false);
+  });
+
   test("Run just this step is refused in the server's words, and nothing is sent or switched", async () => {
     await renderBuilder();
 
@@ -471,11 +463,17 @@ describe("the Builder of an archived workflow", () => {
       await screen.findByTestId("workflow-turned-off-notice"),
     ).toBeInTheDocument();
 
-    // A run is held behind the turn-on dialog again.
+    // A run is a test run again: sent at once, nothing turned on.
+    expect(canvas().runsAreTestRuns).toBe(true);
+
     await runTheStep();
 
-    expect(await prompt()).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
     expect(errorDialog()).toBeNull();
+    expect(savedSwitchValues()).toEqual([]);
   });
 
   test("a workflow that is not archived still gets the notice", async () => {

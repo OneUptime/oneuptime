@@ -490,6 +490,44 @@ describe("Webhook trigger: the URL is what it is opened for", () => {
   });
 });
 
+describe("Webhook trigger: while the workflow is off", () => {
+  /*
+   * The canvas tells the dialog the workflow is off (Workflow's
+   * runsAreTestRuns): its URL refuses requests until it is turned on, and
+   * the panel says so above the URL, with Run Workflow as what still tests it.
+   */
+  test("the URL's panel says requests to it are refused, above the URL", () => {
+    renderModal(makeNode(ComponentID.Webhook, "webhook-1"), {
+      isWorkflowOff: true,
+    });
+
+    const note: HTMLElement = within(section("webhook-url")).getByTestId(
+      "webhook-trigger-workflow-off",
+    );
+
+    expect(note).toHaveTextContent(
+      "While this workflow is off, requests to this URL are refused. You can still test it with Run Workflow.",
+    );
+    expect(
+      note.compareDocumentPosition(screen.getByTestId("webhook-trigger-url")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test.each([false, undefined])(
+    "on, it says nothing of the kind (isWorkflowOff %p)",
+    (isWorkflowOff: boolean | undefined) => {
+      renderModal(makeNode(ComponentID.Webhook, "webhook-1"), {
+        isWorkflowOff: isWorkflowOff,
+      });
+
+      expect(
+        screen.queryByTestId("webhook-trigger-workflow-off"),
+      ).not.toBeInTheDocument();
+    },
+  );
+});
+
 describe("Webhook trigger: its URL's secret key is managed here, not in Settings", () => {
   const NEW_SECRET: string = "0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
 
