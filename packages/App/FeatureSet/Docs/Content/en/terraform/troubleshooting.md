@@ -32,7 +32,7 @@ This error means Terraform detected the provider returning different values than
 **Fix:**
 
 1. Make sure you are on a current provider: `version = "{{TERRAFORM_PROVIDER_VERSION}}"` then `terraform init -upgrade`.
-2. Re-run the apply. A resource the failed apply left tainted is replaced once, and plans are empty after that. To keep the resource as it is instead, run `terraform untaint` on its address first.
+2. Re-run the apply. A resource the failed apply left tainted is replaced once, and plans are empty after that. To keep the resource as it is instead, untaint it by its address first: `terraform untaint oneuptime_status_page_history_chart_bar_color.operational`.
 
 If a current provider still produces the error, that is a provider bug worth reporting. Open an issue at [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues) and include: the provider version, the resource type, the minimal `resource` block that reproduces it, and the full error output (it names the exact attribute that flip-flopped). That attribute name is the single most useful thing you can provide.
 
