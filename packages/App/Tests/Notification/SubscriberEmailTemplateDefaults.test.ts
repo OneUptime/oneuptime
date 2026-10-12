@@ -8,6 +8,7 @@ import {
   DefaultSubscriberNotificationTemplate,
   getDefaultSubscriberNotificationTemplate,
 } from "../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Exercise the same substitution method that subscriber workers use for custom
@@ -306,10 +307,6 @@ function render(
       variables,
     ),
   };
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function expectAction(html: string, label: string, destination: string): void {

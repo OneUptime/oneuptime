@@ -51,6 +51,7 @@ import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluato
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import ValueFormatter from "../../../Utils/ValueFormatter";
 import { describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * The database alert library is the only way a Database's Alerts and
@@ -541,11 +542,6 @@ describe("DatabaseAlertTemplates — every metric is one the receiver emits and 
       "configs",
       `${receiver}.yaml`,
     );
-  }
-
-  // Every regex metacharacter, backslash included, taken literally.
-  function escapeRegExp(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   function metricSwitchPattern(metricName: string, enabled: boolean): RegExp {

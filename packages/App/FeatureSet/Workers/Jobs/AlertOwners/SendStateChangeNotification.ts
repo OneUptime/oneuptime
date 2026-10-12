@@ -409,8 +409,13 @@ RunCron(
         feedInfoInMarkdown:
           mdText`🔔 **Owners have been notified about the state change of the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`.toString(),
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * state change, which the channel was told of itself: posting it to
+         * Slack and Microsoft Teams said the same change twice.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

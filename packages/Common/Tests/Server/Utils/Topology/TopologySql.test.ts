@@ -33,6 +33,7 @@ import {
   SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS,
 } from "../../../../Types/Topology/TopologyTypeRules";
 import { describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * The Topology API's statements, checked as text and parameters without a
@@ -182,10 +183,6 @@ function ownScopeOf(
 
 function countOf(text: string, pattern: string): number {
   return Array.from(text.matchAll(new RegExp(pattern, "g"))).length;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /*

@@ -2,6 +2,10 @@ import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
+import {
+  getOnCallPolicyRunRecordHandledMessage,
+  ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -112,8 +116,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           id: executionLog.id!,
           data: {
             status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              "Execution completed because alert is acknowledged or resolved.",
+            statusMessage: getOnCallPolicyRunRecordHandledMessage("alert"),
           },
           props: {
             isRoot: true,
@@ -144,8 +147,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           id: executionLog.id!,
           data: {
             status: OnCallDutyPolicyStatus.Completed,
-            statusMessage:
-              "Execution completed because incident is acknowledged or resolved.",
+            statusMessage: getOnCallPolicyRunRecordHandledMessage("incident"),
           },
           props: {
             isRoot: true,
@@ -177,7 +179,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           data: {
             status: OnCallDutyPolicyStatus.Completed,
             statusMessage:
-              "Execution completed because alert episode is acknowledged or resolved.",
+              getOnCallPolicyRunRecordHandledMessage("alert episode"),
           },
           props: {
             isRoot: true,
@@ -209,7 +211,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           data: {
             status: OnCallDutyPolicyStatus.Completed,
             statusMessage:
-              "Execution completed because incident episode is acknowledged or resolved.",
+              getOnCallPolicyRunRecordHandledMessage("incident episode"),
           },
           props: {
             isRoot: true,
@@ -354,7 +356,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
             id: executionLog.id!,
             data: {
               status: OnCallDutyPolicyStatus.Completed,
-              statusMessage: "Execution completed.",
+              statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
             },
             props: {
               isRoot: true,
@@ -425,7 +427,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
             ? OnCallDutyPolicyStatus.Completed
             : OnCallDutyPolicyStatus.CompletedWithNoNotifications,
           statusMessage: notifiedSomeone
-            ? "Execution completed."
+            ? ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE
             : "Execution completed, but no one was notified. Every escalation rule in this policy reached no one - usually because the on-call schedules it targets had nobody on call.",
         },
         props: {

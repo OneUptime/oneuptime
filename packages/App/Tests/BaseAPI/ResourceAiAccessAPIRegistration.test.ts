@@ -12,6 +12,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The resource AI access API (Common/Server/API/ResourceAiAccessAPI.ts:
@@ -184,9 +185,7 @@ function expressPattern(route: string): RegExp {
   const source: string = route
     .split("/")
     .map((segment: string): string => {
-      return segment.startsWith(":")
-        ? "[^/]+"
-        : segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return segment.startsWith(":") ? "[^/]+" : escapeRegExp(segment);
     })
     .join("/");
   return new RegExp(`^${source}/?$`, "i");

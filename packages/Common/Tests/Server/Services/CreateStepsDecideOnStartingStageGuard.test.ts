@@ -71,6 +71,8 @@ const SERVICES: Array<ServiceSteps> = [
       "IncidentPrivacyRuleEngineService.applyRulesToIncident":
         "who may see the incident",
       "this.createIncidentFeedAsync": "the created feed entry",
+      "ChannelMembersNotAddedNotice.noteAll":
+        "who its new channels could not add - nobody, when it opened none",
       "IncidentAlertService.createDeclaredFromAlertsFeedItem":
         "the alerts it was declared from",
       "IncidentAlertService.copyAlertOwnersToIncident":
@@ -106,6 +108,8 @@ const SERVICES: Array<ServiceSteps> = [
       "AlertPrivacyRuleEngineService.applyRulesToAlert":
         "who may see the alert",
       "this.createAlertFeedAsync": "the created feed entry",
+      "ChannelMembersNotAddedNotice.noteAll":
+        "who its new channels could not add - nobody, when it opened none",
       "this.handleAlertStateChangeAsync": "its first state",
       "this.addOwners": "its owners",
       "AlertOwnerRuleEngineService.applyRulesToAlert": "its owners",
@@ -132,6 +136,8 @@ const SERVICES: Array<ServiceSteps> = [
         "who may see the episode",
       "this.changeEpisodeState": "its first state",
       "this.createEpisodeCreatedFeed": "the created feed entry",
+      "ChannelMembersNotAddedNotice.noteAll":
+        "who its new channels could not add - nobody, when it opened none",
       "AlertEpisodeOwnerRuleEngineService.applyRulesToEpisode": "its owners",
       "AlertEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode":
@@ -148,6 +154,8 @@ const SERVICES: Array<ServiceSteps> = [
         "who may see the episode",
       "this.changeEpisodeState": "its first state",
       "this.createEpisodeCreatedFeed": "the created feed entry",
+      "ChannelMembersNotAddedNotice.noteAll":
+        "who its new channels could not add - nobody, when it opened none",
       "IncidentEpisodeOwnerRuleEngineService.applyRulesToEpisode": "its owners",
       "IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode":

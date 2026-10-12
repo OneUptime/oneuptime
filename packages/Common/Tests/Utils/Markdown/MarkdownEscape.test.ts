@@ -519,6 +519,9 @@ function slackTextOf(markdown: string): string {
 
 const SLACK_CONTROL_SEQUENCE_PATTERN: RegExp = /<(?:![a-z]|@[A-Z0-9]|#C)/;
 
+// Every ASCII punctuation character: what a CommonMark backslash escapes.
+const ASCII_PUNCTUATION: RegExp = /[!-/:-@[-`{-~]/g;
+
 describe("both escapers break chat control sequences", () => {
   test("the word joiner is U+2060, and both modules share one neutralizer", () => {
     expect(WORD_JOINER).toBe("⁠");
@@ -568,10 +571,14 @@ describe("both escapers break chat control sequences", () => {
       expect(slackTextOf(value)).toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
 
       /*
-       * A backslash escape alone does not stop them: slackify reads the
-       * Markdown first, which consumes the backslash.
+       * A backslash escape alone does not stop them, not even one before
+       * every punctuation character, backslashes included: slackify reads
+       * the Markdown first, which consumes the backslashes.
        */
-      expect(slackTextOf(value.replace(/</g, "\\<"))).toMatch(
+      const backslashEscaped: string = value.replace(ASCII_PUNCTUATION, "\\$&");
+
+      expect(backslashEscaped).toContain("\\<\\!channel\\>");
+      expect(slackTextOf(backslashEscaped)).toMatch(
         SLACK_CONTROL_SEQUENCE_PATTERN,
       );
 

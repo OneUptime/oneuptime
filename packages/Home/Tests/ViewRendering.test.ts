@@ -88,6 +88,7 @@ import { buildMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQu
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Render the real templates. Unit tests over the data model cannot tell you
@@ -1114,10 +1115,6 @@ function numericConstantIn(relativePath: string, name: string): number {
   return Number(match[1]);
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 // The circle-stack glyph IconProp.Database draws in the dashboard.
 const DATABASE_GLYPH_PATH_START: string =
   "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375";
@@ -1350,7 +1347,7 @@ describe("databases.ejs", () => {
     ] as Array<[string, string, string]>) {
       expect(html).toMatch(
         new RegExp(
-          `>${escapeForRegExp(templateName)}</div>\\s*<div[^>]*>${escapeForRegExp(engineLabel)} `,
+          `>${escapeRegExp(templateName)}</div>\\s*<div[^>]*>${escapeRegExp(engineLabel)} `,
         ),
       );
       expect(
@@ -2112,7 +2109,7 @@ describe("queues.ejs", () => {
       expect(template!.severity.toUpperCase()).toBe(severity);
       expect(html).toMatch(
         new RegExp(
-          `>${severity}</span>[\\s\\S]{0,300}?>${escapeForRegExp(templateName)}</div>\\s*<div[^>]*>${escapeForRegExp(getMessagingSystemDisplayName(system))} `,
+          `>${severity}</span>[\\s\\S]{0,300}?>${escapeRegExp(templateName)}</div>\\s*<div[^>]*>${escapeRegExp(getMessagingSystemDisplayName(system))} `,
         ),
       );
     }
@@ -2203,7 +2200,7 @@ describe("queues.ejs", () => {
     expect(total?.values).toEqual(["ready", "unacknowledged"]);
     expect(html).toMatch(
       new RegExp(
-        `Ready and unacknowledged, added up</span>\\s*<span[^>]*>${escapeForRegExp(depth.metricName)}</span>`,
+        `Ready and unacknowledged, added up</span>\\s*<span[^>]*>${escapeRegExp(depth.metricName)}</span>`,
       ),
     );
   });
@@ -2299,7 +2296,7 @@ describe("queues.ejs", () => {
     const tile: (title: string) => string = (title: string): string => {
       return block.match(
         new RegExp(
-          `data-queue-tile="${escapeForRegExp(title)}">[\\s\\S]*?<div class="text-lg font-bold text-gray-900">([^<]+)</div>\\s*<div[^>]*>([^<]+)</div>`,
+          `data-queue-tile="${escapeRegExp(title)}">[\\s\\S]*?<div class="text-lg font-bold text-gray-900">([^<]+)</div>\\s*<div[^>]*>([^<]+)</div>`,
         ),
       )![1]!;
     };

@@ -89,6 +89,8 @@ Eine Regel wird in vier Schritten angelegt:
 
 Ein Kanal, den die Regel anlegt, wird aus **New Microsoft Teams Channel Name** und der Nummer des Datensatzes benannt, etwa `oneuptime-incident-42`, und nur ein angelegter Kanal bekommt die Personen, die die Regel einlädt. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal. Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen und Chats gepostet.
 
+Kanäle und Chats bleiben lesbar: Jedes Ereignis wird einmal gepostet, und der erste Status eines Datensatzes steht in der Karte, die den Datensatz ankündigt, nicht in einer eigenen Karte. Ein Durchlauf einer Bereitschaftsrichtlinie ist eine einzige Karte, die bearbeitet wird, während der Durchlauf eskaliert: wer alarmiert wurde, wie oft und wie, wer nicht und warum, und wer bestätigt hat. Eine neue Karte wird nur gepostet, wenn jemand handeln muss: Eine Eskalationsregel hat niemanden erreicht, oder der Durchlauf endete, ohne dass jemand bestätigt hat. Dass die Eigentümer eines Datensatzes oder die Statusseiten-Abonnenten benachrichtigt wurden, steht in seinem Feed in OneUptime.
+
 **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** listet die Kanäle, die OneUptime in Ihren Teams sieht, und die Chats, denen es hinzugefügt wurde, mit **Test senden** neben jedem. Ein Chat erscheint, sobald die OneUptime-App ihm in Microsoft Teams hinzugefügt wurde; **Chats aktualisieren** holt neue Chats und ihre aktuellen Namen.
 
 ## Eine Regel testen

@@ -2,6 +2,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
  * type annotations below must resolve to the same @types/jest global
@@ -144,10 +145,6 @@ function moduleSpecifierFor(fromDir: string, filePath: string): string {
   return relative.startsWith(".") ? relative : "./" + relative;
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 const UNREGISTERED_JOB_NAME: string = "ThreatIntel:NotARealJob";
 const DEFAULT_JOB_TIMEOUT_IN_MS: number = JobDictionary.getTimeoutInMs(
   UNREGISTERED_JOB_NAME,
@@ -172,7 +169,7 @@ describe("threat-intel jobs — wired into the worker at all", () => {
       const specifier: string = moduleSpecifierFor(WORKERS_DIR, job.file);
 
       const sideEffectImport: RegExp = new RegExp(
-        `^\\s*import\\s+["']${escapeForRegExp(specifier)}["']\\s*;?\\s*$`,
+        `^\\s*import\\s+["']${escapeRegExp(specifier)}["']\\s*;?\\s*$`,
         "m",
       );
 

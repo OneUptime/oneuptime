@@ -23,6 +23,7 @@ import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import Navigation from "../../../UI/Utils/Navigation";
 import Clipboard from "../../../UI/Utils/Clipboard";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import SecurityEventDetailPanel, {
   SECURITY_EVENT_DETAIL_ATTRIBUTES_TAB_ID,
@@ -611,7 +612,7 @@ describe("showing an attribute on the list's rows", () => {
   function columnButton(key: string): HTMLElement {
     return screen.getByRole("button", {
       name: new RegExp(
-        `(Show|Stop showing) ${key.replace(/\./g, "\\.")} on event rows`,
+        `(Show|Stop showing) ${escapeRegExp(key)} on event rows`,
       ),
     });
   }

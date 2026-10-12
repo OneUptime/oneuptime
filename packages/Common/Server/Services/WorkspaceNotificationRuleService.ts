@@ -58,6 +58,7 @@ import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotifica
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import ProjectService from "./ProjectService";
@@ -67,10 +68,26 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
   messageBlocks: Array<WorkspaceMessageBlock>;
+}
+
+/*
+ * What setting up a record's own channels came to: the channels OneUptime
+ * created, and who it could not add to them. The record's service posts its
+ * first message ("Incident INC-8 Created") and then has the channels told
+ * who is missing (ChannelMembersNotAddedNotice.noteAll), so a new channel
+ * opens on what happened.
+ */
+export interface WorkspaceChannelsCreated {
+  channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+  membersNotAdded: Array<ChannelMembersNotAdded>;
 }
 
 export interface NotificationFor {
@@ -239,10 +256,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           projectId: data.projectId,
           notificationRules: [rule],
           userIds: [data.testByUserId],
+          // A test says when the tester could not be invited.
+          throwOnInviteError: true,
         });
       } catch (err) {
+        /*
+         * What the workspace answered, readable whatever was thrown: Slack's
+         * invite throws its HTTP response itself on a transport error.
+         */
         throw new BadDataException(
-          "Cannot invite users to the channel. " + (err as Error)?.message,
+          "Cannot invite users to the channel. " +
+            WorkspaceBase.getSendErrorMessage(err),
         );
       }
     }
@@ -1203,6 +1227,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     notificationFor: NotificationFor;
     feedInfoInMarkdown: string;
+    /*
+     * What the message's notification shows, as plain text
+     * (WorkspaceMessagePayload.text). Without it, a Slack notification has
+     * nothing to show and Microsoft Teams says only that a card was sent.
+     */
+    notificationText?: string | undefined;
     workspaceNotification: {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
       sendWorkspaceNotification: boolean;
@@ -1240,69 +1270,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
 
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
-      const existingChannels: Array<WorkspaceChannel> =
-        await this.getExistingChannelNamesBasedOnEventType({
-          projectId: data.projectId,
-          notificationRuleEventType: this.getNotificationRuleEventType(
-            data.notificationFor,
-          ),
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-          notificationFor: data.notificationFor,
-        });
-
-      const monitorChannels: Array<WorkspaceChannel> =
-        await this.getWorkspaceChannelsByNotificationFor({
+      const destinations: Array<WorkspaceMessagePayload> =
+        await this.getMessageDestinations({
           projectId: data.projectId,
           notificationFor: data.notificationFor,
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
         });
 
-      for (const monitorChannel of monitorChannels) {
-        const workspaceMessagePayload: WorkspaceMessagePayload = {
-          _type: "WorkspaceMessagePayload",
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+      for (const destination of destinations) {
+        workspaceNotificationPaylaods.push({
+          ...destination,
           messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-          channelNames: [],
-          channelIds: [monitorChannel.id], // we use channel ids here as channel names can change,
-          teamId: monitorChannel.teamId,
-        };
-
-        workspaceNotificationPaylaods.push(workspaceMessagePayload);
-      }
-
-      for (const existingChannel of existingChannels) {
-        const workspaceMessagePayload: WorkspaceMessagePayload = {
-          _type: "WorkspaceMessagePayload",
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-          messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-          channelNames: [existingChannel.name],
-          channelIds: [], // we use channel names here as we don't have channel ids.
-          teamId: existingChannel.teamId,
-        };
-        workspaceNotificationPaylaods.push(workspaceMessagePayload);
-      }
-
-      // Microsoft Teams chats (group / personal chats the OneUptime app was added to).
-      const existingChatIds: Array<string> =
-        await this.getExistingChatIdsBasedOnEventType({
-          projectId: data.projectId,
-          notificationRuleEventType: this.getNotificationRuleEventType(
-            data.notificationFor,
-          ),
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-          notificationFor: data.notificationFor,
+          ...(data.notificationText ? { text: data.notificationText } : {}),
         });
-
-      for (const chatId of existingChatIds) {
-        const workspaceMessagePayload: WorkspaceMessagePayload = {
-          _type: "WorkspaceMessagePayload",
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-          messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-          channelNames: [],
-          channelIds: [],
-          chatIds: [chatId],
-        };
-        workspaceNotificationPaylaods.push(workspaceMessagePayload);
       }
     }
 
@@ -1312,12 +1292,113 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         messagePayloadsByWorkspace: workspaceNotificationPaylaods,
       });
 
-    // Create logs for each response/thread
+    await this.logSendResponses({
+      projectId: data.projectId,
+      notificationFor: data.notificationFor,
+      responses: responses,
+      messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
+      notifyUserId: data.workspaceNotification.notifyUserId,
+    });
+  }
+
+  /*
+   * Every place a message about a record goes in one workspace, one payload
+   * per destination: the channels OneUptime created for the record (by id:
+   * a channel's name can change), the existing channels its matching rules
+   * name (by name), and - Microsoft Teams only - the chats those rules name.
+   * The payloads carry no blocks; the caller adds what to say.
+   */
+  @CaptureSpan()
+  public async getMessageDestinations(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    workspaceType: WorkspaceType;
+  }): Promise<Array<WorkspaceMessagePayload>> {
+    const destinations: Array<WorkspaceMessagePayload> = [];
+
+    const existingChannels: Array<WorkspaceChannel> =
+      await this.getExistingChannelNamesBasedOnEventType({
+        projectId: data.projectId,
+        notificationRuleEventType: this.getNotificationRuleEventType(
+          data.notificationFor,
+        ),
+        workspaceType: data.workspaceType,
+        notificationFor: data.notificationFor,
+      });
+
+    const recordChannels: Array<WorkspaceChannel> =
+      await this.getWorkspaceChannelsByNotificationFor({
+        projectId: data.projectId,
+        notificationFor: data.notificationFor,
+        workspaceType: data.workspaceType,
+      });
+
+    for (const recordChannel of recordChannels) {
+      destinations.push({
+        _type: "WorkspaceMessagePayload",
+        workspaceType: data.workspaceType,
+        messageBlocks: [],
+        channelNames: [],
+        channelIds: [recordChannel.id], // we use channel ids here as channel names can change,
+        teamId: recordChannel.teamId,
+      });
+    }
+
+    for (const existingChannel of existingChannels) {
+      destinations.push({
+        _type: "WorkspaceMessagePayload",
+        workspaceType: data.workspaceType,
+        messageBlocks: [],
+        channelNames: [existingChannel.name],
+        channelIds: [], // we use channel names here as we don't have channel ids.
+        teamId: existingChannel.teamId,
+      });
+    }
+
+    // Microsoft Teams chats (group / personal chats the OneUptime app was added to).
+    const existingChatIds: Array<string> =
+      await this.getExistingChatIdsBasedOnEventType({
+        projectId: data.projectId,
+        notificationRuleEventType: this.getNotificationRuleEventType(
+          data.notificationFor,
+        ),
+        workspaceType: data.workspaceType,
+        notificationFor: data.notificationFor,
+      });
+
+    for (const chatId of existingChatIds) {
+      destinations.push({
+        _type: "WorkspaceMessagePayload",
+        workspaceType: data.workspaceType,
+        messageBlocks: [],
+        channelNames: [],
+        channelIds: [],
+        chatIds: [chatId],
+      });
+    }
+
+    return destinations;
+  }
+
+  /*
+   * A Notification Logs row for every channel a message about a record
+   * reached, and for every one it failed to reach - otherwise a chat or
+   * channel send that errors (e.g. the OneUptime app was removed from a chat
+   * a rule still references) is invisible in the notification logs.
+   */
+  @CaptureSpan()
+  public async logSendResponses(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    responses: Array<WorkspaceSendMessageResponse>;
+    messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType>;
+    notifyUserId?: ObjectID | undefined;
+  }): Promise<void> {
     const getMessageSummary: (wt: WorkspaceType) => string = (
       wt: WorkspaceType,
     ): string => {
       const blocks: Array<WorkspaceMessageBlock> | undefined =
-        messageBlocksByWorkspaceTypes.find(
+        data.messageBlocksByWorkspaceTypes.find(
           (b: MessageBlocksByWorkspaceType) => {
             return b.workspaceType === wt;
           },
@@ -1334,11 +1415,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           texts.push((block as WorkspacePayloadMarkdown).text);
         }
       }
-      const joined: string = texts.join(" \n").trim();
+      /*
+       * A moment a message names in each reader's own time reads as its
+       * time in UTC here: the log shows no workspace's own formatting.
+       */
+      const joined: string = WorkspaceMessageTime.toPlainText(
+        texts.join(" \n").trim(),
+      );
       return joined;
     };
 
-    for (const res of responses) {
+    for (const res of data.responses) {
       const messageSummary: string = getMessageSummary(res.workspaceType);
 
       for (const thread of res.threads) {
@@ -1370,8 +1457,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           log.alertEpisodeId = data.notificationFor.alertEpisodeId;
         }
 
-        if (data.workspaceNotification.notifyUserId) {
-          log.userId = data.workspaceNotification.notifyUserId;
+        if (data.notifyUserId) {
+          log.userId = data.notifyUserId;
         }
 
         await WorkspaceNotificationLogService.create({
@@ -1415,8 +1502,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           log.alertEpisodeId = data.notificationFor.alertEpisodeId;
         }
 
-        if (data.workspaceNotification.notifyUserId) {
-          log.userId = data.workspaceNotification.notifyUserId;
+        if (data.notifyUserId) {
+          log.userId = data.notifyUserId;
         }
 
         await WorkspaceNotificationLogService.create({
@@ -1632,9 +1719,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     channelNameSiffix: string;
     isPrivate?: boolean;
-  }): Promise<{
-    channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-  } | null> {
+  }): Promise<WorkspaceChannelsCreated | null> {
     try {
       logger.debug(
         "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
@@ -1645,6 +1730,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       } as LogAttributes);
 
       const channelsCreated: Array<NotificationRuleWorkspaceChannel> = [];
+      const membersNotAdded: Array<ChannelMembersNotAdded> = [];
 
       const projectAuths: Array<WorkspaceProjectAuthToken> =
         await WorkspaceProjectAuthTokenService.getProjectAuths({
@@ -1726,13 +1812,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug("Inviting users and teams to channels based on rules", {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
-          await this.inviteUsersAndTeamsToChannelsBasedOnRules({
-            projectId: data.projectId,
-            projectAuth: projectAuth,
-            workspaceType: workspaceType,
-            notificationRules: notificationRules,
-            notificationChannels: createdWorkspaceChannels,
-          });
+          membersNotAdded.push(
+            ...(await this.inviteUsersAndTeamsToChannelsBasedOnRules({
+              projectId: data.projectId,
+              projectAuth: projectAuth,
+              workspaceType: workspaceType,
+              notificationRules: notificationRules,
+              notificationChannels: createdWorkspaceChannels,
+            })),
+          );
 
           logger.debug(
             "Getting existing channel names from notification rules",
@@ -1806,6 +1894,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       } as LogAttributes);
       return {
         channelsCreated: channelsCreated,
+        membersNotAdded: membersNotAdded,
       };
     } catch (err) {
       logger.error(
@@ -1883,6 +1972,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return result;
   }
 
+  /*
+   * Adds the rules' people to the channels just created for a record, and
+   * hands back who could not be added (no account connected to this
+   * workspace), per rule's channels. It does not tell the channels: the
+   * record's service does, after the record's own first message
+   * (ChannelMembersNotAddedNotice.noteAll).
+   */
   @CaptureSpan()
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
     projectId: ObjectID;
@@ -1890,7 +1986,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     workspaceType: WorkspaceType;
     notificationRules: Array<WorkspaceNotificationRule>;
     notificationChannels: Array<NotificationRuleWorkspaceChannel>;
-  }): Promise<void> {
+  }): Promise<Array<ChannelMembersNotAdded>> {
     logger.debug(
       "inviteUsersAndTeamsToChannelsBasedOnRules called with data:",
       { projectId: data.projectId?.toString() } as LogAttributes,
@@ -1914,9 +2010,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
 
+    const membersNotAdded: Array<ChannelMembersNotAdded> = [];
+
     for (const inviteUserPayload of inviteUserPayloads) {
       const userIds: Array<ObjectID> = inviteUserPayload.userIds;
       const workspaceUserIds: Array<string> = [];
+      const userIdsNotConnected: Array<ObjectID> = [];
+
+      const channelsOfRule: Array<NotificationRuleWorkspaceChannel> =
+        data.notificationChannels.filter(
+          (channel: NotificationRuleWorkspaceChannel) => {
+            return (
+              channel.notificationRuleId ===
+              inviteUserPayload.notificationRuleId
+            );
+          },
+        );
 
       for (const userId of userIds) {
         const workspaceUserId: string | null =
@@ -1929,102 +2038,67 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         if (workspaceUserId) {
           workspaceUserIds.push(workspaceUserId);
         } else {
-          try {
-            // send a message to channel that user cannot be invited because the account is not connected to workspace.
-
-            const channelIds: Array<string> =
-              data.notificationChannels
-                ?.filter((channel: NotificationRuleWorkspaceChannel) => {
-                  return (
-                    channel.notificationRuleId ===
-                    inviteUserPayload.notificationRuleId
-                  );
-                })
-                ?.map((channel: NotificationRuleWorkspaceChannel) => {
-                  return channel.id as string;
-                }) || [];
-
-            logger.debug("Channel IDs to send message to:", {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-            logger.debug(channelIds, {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-
-            const sendMessageData: {
-              userId: string;
-              authToken: string;
-              workspaceMessagePayload: WorkspaceMessagePayload;
-              projectId: ObjectID;
-              teamId?: string;
-            } = {
-              userId: data.projectAuth.workspaceProjectId!,
-              authToken: data.projectAuth.authToken!,
-              workspaceMessagePayload: {
-                _type: "WorkspaceMessagePayload",
-                channelNames: [],
-
-                channelIds: channelIds,
-                workspaceType: data.workspaceType,
-                messageBlocks: [
-                  {
-                    _type: "WorkspacePayloadMarkdown",
-                    text: mdText`${await UserService.getUserMarkdownString({
-                      userId: userId,
-                      projectId: data.projectId,
-                    })} cannot be invited to the channel because the account is not connected to ${data.workspaceType}. Please go to User Settings > ${data.workspaceType} on OneUptime Dashboard and connect the account.`.toString(),
-                  } as WorkspacePayloadMarkdown,
-                ],
-              } as WorkspaceMessagePayload,
-              projectId: data.projectId,
-            };
-
-            // Add teamId for Microsoft Teams
-            if (
-              data.workspaceType === WorkspaceType.MicrosoftTeams &&
-              data.projectAuth.miscData?.["teamId"]
-            ) {
-              sendMessageData.teamId = data.projectAuth.miscData["teamId"];
-            }
-
-            await WorkspaceUtil.getWorkspaceTypeUtil(
-              data.workspaceType,
-            ).sendMessage(sendMessageData);
-          } catch (e) {
-            logger.error("Error in sending message to channel", {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-            logger.error(e, {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-          }
+          userIdsNotConnected.push(userId);
         }
+      }
 
-        logger.debug("Workspace User IDs to invite:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.debug(workspaceUserIds, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+      logger.debug("Workspace User IDs to invite:", {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      logger.debug(workspaceUserIds, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
 
-        await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
-        ).inviteUsersToChannels({
-          authToken: data.projectAuth.authToken!,
-          workspaceChannelInvitationPayload: {
-            channelNames: data.notificationChannels
-              .filter((channel: NotificationRuleWorkspaceChannel) => {
-                return (
-                  channel.notificationRuleId ===
-                  inviteUserPayload.notificationRuleId
-                );
-              })
-              .map((channel: NotificationRuleWorkspaceChannel) => {
-                return channel.name;
-              }),
-            workspaceUserIds: workspaceUserIds,
-          },
-          projectId: data.projectId,
+      /*
+       * Everybody connected is invited in one go. This used to run once per
+       * person, inside the loop above, inviting the list built so far each
+       * time: the first person was invited as many times as there were people.
+       *
+       * An invite Slack refuses is logged and does not stop the rest: it used
+       * to end the whole channel setup, so the channel OneUptime had just
+       * created was never recorded on the record, and none of the record's
+       * later messages reached it.
+       */
+      if (workspaceUserIds.length > 0) {
+        try {
+          await WorkspaceUtil.getWorkspaceTypeUtil(
+            data.workspaceType,
+          ).inviteUsersToChannels({
+            authToken: data.projectAuth.authToken!,
+            workspaceChannelInvitationPayload: {
+              channelNames: channelsOfRule.map(
+                (channel: NotificationRuleWorkspaceChannel) => {
+                  return channel.name;
+                },
+              ),
+              workspaceUserIds: workspaceUserIds,
+            },
+            projectId: data.projectId,
+          });
+        } catch (err) {
+          logger.error("Error inviting users to the new channels", {
+            projectId: data.projectId?.toString(),
+          } as LogAttributes);
+          logger.error(err, {
+            projectId: data.projectId?.toString(),
+          } as LogAttributes);
+        }
+      }
+
+      /*
+       * Who could not be added is said once per channel, in one note that
+       * names them all (ChannelMembersNotAddedNotice) - not in a message per
+       * person, and not before the record's own first message.
+       */
+      if (userIdsNotConnected.length > 0 && channelsOfRule.length > 0) {
+        membersNotAdded.push({
+          workspaceType: data.workspaceType,
+          channels: channelsOfRule.map(
+            (channel: NotificationRuleWorkspaceChannel) => {
+              return { id: channel.id, name: channel.name };
+            },
+          ),
+          userIds: userIdsNotConnected,
         });
       }
     }
@@ -2032,6 +2106,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug("Users invited to channels successfully", {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
+
+    return membersNotAdded;
   }
 
   @CaptureSpan()
@@ -2040,6 +2116,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     notificationRules: Array<WorkspaceNotificationRule>;
     userIds: Array<ObjectID>;
+    /*
+     * Throw what the workspace answered when it refuses an invite, rather
+     * than log it and go on: a rule's test reports it to the person testing.
+     */
+    throwOnInviteError?: boolean | undefined;
   }): Promise<void> {
     // if no rules then return.
     if (data.notificationRules.length === 0) {
@@ -2157,6 +2238,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       // inivte users to channels.
 
       const workspaceUserIds: Array<string> = [];
+      const invitedUserIds: Array<ObjectID> = [];
+      const userIdsNotConnected: Array<ObjectID> = [];
 
       for (const userId of userIds) {
         const workspaceUserId: string | null =
@@ -2168,70 +2251,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         if (workspaceUserId) {
           workspaceUserIds.push(workspaceUserId);
+          invitedUserIds.push(userId);
         } else {
-          try {
-            // send a message to channel that user cannot be invited because the account is not connected to workspace.
-
-            const channelIds: Array<string> = channelsToInviteToBasedOnRule.map(
-              (channel: NotificationRuleWorkspaceChannel) => {
-                return channel.id as string;
-              },
-            );
-
-            logger.debug("Channel IDs to send message to:", {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-            logger.debug(channelIds, {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-
-            const sendMessageData: {
-              userId: string;
-              authToken: string;
-              workspaceMessagePayload: WorkspaceMessagePayload;
-              projectId: ObjectID;
-              teamId?: string;
-            } = {
-              userId: projectAuth.workspaceProjectId!,
-              authToken: projectAuth.authToken!,
-              workspaceMessagePayload: {
-                _type: "WorkspaceMessagePayload",
-                channelNames: [],
-
-                channelIds: channelIds,
-                workspaceType: workspaceType,
-                messageBlocks: [
-                  {
-                    _type: "WorkspacePayloadMarkdown",
-                    text: mdText`${await UserService.getUserMarkdownString({
-                      userId: userId,
-                      projectId: data.projectId,
-                    })} cannot be invited to the channel because the account is not connected to ${workspaceType}. Please go to User Settings > ${workspaceType} on OneUptime Dashboard and connect the account.`.toString(),
-                  } as WorkspacePayloadMarkdown,
-                ],
-              } as WorkspaceMessagePayload,
-              projectId: data.projectId,
-            };
-
-            // Add teamId for Microsoft Teams
-            if (
-              workspaceType === WorkspaceType.MicrosoftTeams &&
-              projectAuth.miscData?.["teamId"]
-            ) {
-              sendMessageData.teamId = projectAuth.miscData["teamId"];
-            }
-
-            await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage(
-              sendMessageData,
-            );
-          } catch (e) {
-            logger.error("Error in sending message to channel", {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-            logger.error(e, {
-              projectId: data.projectId?.toString(),
-            } as LogAttributes);
-          }
+          userIdsNotConnected.push(userId);
         }
       }
 
@@ -2255,20 +2277,58 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         projectId: data.projectId?.toString(),
       } as LogAttributes);
 
-      await WorkspaceUtil.getWorkspaceTypeUtil(
-        workspaceType,
-      ).inviteUsersToChannels({
-        authToken: projectAuth.authToken!,
-        workspaceChannelInvitationPayload: {
-          channelNames: channelNames,
-          workspaceUserIds: workspaceUserIds,
-        },
+      /*
+       * An invite Slack refuses is logged, and still lets the channel be
+       * told who could not be added below.
+       */
+      let invited: boolean = true;
+
+      try {
+        await WorkspaceUtil.getWorkspaceTypeUtil(
+          workspaceType,
+        ).inviteUsersToChannels({
+          authToken: projectAuth.authToken!,
+          workspaceChannelInvitationPayload: {
+            channelNames: channelNames,
+            workspaceUserIds: workspaceUserIds,
+          },
+          projectId: data.projectId,
+        });
+      } catch (err) {
+        invited = false;
+        logger.error("Error inviting users to the record's channels", {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
+        logger.error(err, {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
+
+        if (data.throwOnInviteError) {
+          throw err;
+        }
+      }
+
+      /*
+       * Who could not be added - not connected to this workspace - is said
+       * once per channel, in one note naming them all, however often they
+       * are owners again or paged again (ChannelMembersNotAddedNotice). It
+       * used to be a message per person every time: each page of the same
+       * person repeated it.
+       */
+      await ChannelMembersNotAddedNotice.noteMembersNotAdded({
         projectId: data.projectId,
+        workspaceType: workspaceType,
+        channels: channelsToInviteToBasedOnRule.map(
+          (channel: NotificationRuleWorkspaceChannel) => {
+            return { id: channel.id, name: channel.name };
+          },
+        ),
+        userIds: userIdsNotConnected,
       });
 
-      // Log user invitations
+      // Log user invitations: only the people who were invited.
       try {
-        for (const userId of userIds) {
+        for (const userId of invited ? invitedUserIds : []) {
           for (const channel of channelsToInviteToBasedOnRule) {
             const logData: {
               projectId: ObjectID;
@@ -3491,6 +3551,80 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           incidentEpisode.labels?.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
+      };
+    }
+
+    /*
+     * Alert episodes. This branch was missing, so matching rules for an alert
+     * episode threw "NotificationFor is not supported": no alert episode
+     * channel was ever created, and nothing about an alert episode - created,
+     * state changes, notes - reached Slack or Microsoft Teams, even in
+     * channels its rules named.
+     */
+    if (data.notificationFor.alertEpisodeId) {
+      const alertEpisode: AlertEpisode | null =
+        await AlertEpisodeService.findOneById({
+          id: data.notificationFor.alertEpisodeId,
+          select: {
+            title: true,
+            description: true,
+            alertSeverity: true,
+            currentAlertState: true,
+            labels: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!alertEpisode) {
+        throw new BadDataException("Alert Episode ID not found");
+      }
+
+      return {
+        [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
+        [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertState]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
+          undefined,
+        [NotificationRuleConditionCheckOn.Monitors]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertEpisodeTitle]:
+          alertEpisode.title || "",
+        [NotificationRuleConditionCheckOn.AlertEpisodeDescription]:
+          alertEpisode.description || "",
+        [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]:
+          alertEpisode.alertSeverity?._id?.toString() || "",
+        [NotificationRuleConditionCheckOn.AlertEpisodeState]:
+          alertEpisode.currentAlertState?._id?.toString() || "",
+        [NotificationRuleConditionCheckOn.AlertEpisodeLabels]:
+          alertEpisode.labels?.map((label: Label) => {
+            return label._id?.toString() || "";
+          }) || [],
+        [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
       };
     }
 

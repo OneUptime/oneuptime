@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * A Service Map `database` node (EntityType.Database: engine + host +
@@ -170,9 +171,7 @@ function useTable(rows: Array<StoredEndpoint>): void {
               .toString()
               .split("")
               .map((char: string): string => {
-                return char === "_"
-                  ? "."
-                  : char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                return char === "_" ? "." : escapeRegExp(char);
               })
               .join("")}`,
           );

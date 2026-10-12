@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 const DASHBOARD_SRC: string = path.join(
   __dirname,
@@ -21,10 +22,6 @@ function readChangeStateSource(component: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/\/\/.*$/gm, " ")
     .replace(/\s+/g, " ");
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function actionBlocksForId(source: string, id: string): Array<string> {

@@ -89,6 +89,8 @@ Creare una regola passa per quattro passaggi:
 
 Un canale creato dalla regola prende il nome da **New Microsoft Teams Channel Name** seguito dal numero del record, come `oneuptime-incident-42`, e solo un canale creato riceve le persone che la regola invita. Un incidente, un avviso o un episodio privato riceve un canale privato. Ogni aggiornamento successivo del record — un cambio di stato, una nota, un nuovo proprietario — viene pubblicato nei suoi canali e nelle sue chat.
 
+I canali e le chat restano leggibili: ogni evento viene pubblicato una volta sola, e il primo stato di un record è nella scheda che annuncia il record, non in una scheda a sé. Un'esecuzione di una policy di reperibilità è una sola scheda, modificata man mano che l'esecuzione scala: chi è stato chiamato, quante volte e come, chi no e perché, e chi ha confermato. Una nuova scheda viene pubblicata solo quando qualcuno deve agire: una regola di escalation non ha raggiunto nessuno, o l'esecuzione è finita senza che nessuno confermasse. Che i proprietari del record o gli iscritti alla pagina di stato siano stati informati resta nel suo feed in OneUptime.
+
 **Impostazioni del progetto** > **Area di lavoro** > **Microsoft Teams** elenca i canali che OneUptime vede nei tuoi team, e le chat a cui è stato aggiunto, con **Invia prova** accanto a ciascuno. Una chat compare non appena l'app di OneUptime vi viene aggiunta in Microsoft Teams; **Refresh Chats** recupera le nuove chat e i loro nomi attuali.
 
 ## Provare una regola

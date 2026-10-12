@@ -3,6 +3,7 @@ import fs from "fs";
 import Path from "path";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Registers the product's real `concat` / `ifCond` / `ifNotCond` helpers as
@@ -59,10 +60,6 @@ function render(name: string, vars: Record<string, unknown>): string {
 
 function renderPartial(name: string, vars: Record<string, unknown>): string {
   return Handlebars.compile(partialSource(name))(vars);
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 beforeAll(() => {

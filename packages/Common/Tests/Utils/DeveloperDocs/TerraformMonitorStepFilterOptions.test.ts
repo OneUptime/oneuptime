@@ -9,6 +9,7 @@ import {
 } from "../../../Utils/DeveloperDocs/TerraformMonitorSteps";
 import { TerraformVariableCollector } from "../../../Utils/DeveloperDocs/TerraformValues";
 import { HclTestValue, toTestValue } from "./HclTestValue";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * Every option a monitor criteria filter accepts reaches Terraform in two
@@ -44,8 +45,6 @@ const GO_RAW_JSON_READ: RegExp =
 // The description the registry docs render for custom_code_monitor_options.
 const GO_CUSTOM_CODE_DESCRIPTION: RegExp =
   /"custom_code_monitor_options": schema\.StringAttribute\{\s+MarkdownDescription: "([^"]+)"/;
-const REGEXP_SPECIAL_CHARACTERS: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 // A Go function of monitorsteps.go, from its signature to its closing brace.
 function goFunction(name: string): string {
   const start: number = MONITOR_STEPS_GO.indexOf(`\nfunc ${name}(`);
@@ -65,10 +64,6 @@ function captures(source: string, pattern: RegExp): Array<string> {
       return match[1] as string;
     })
     .sort();
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(REGEXP_SPECIAL_CHARACTERS, "\\$&");
 }
 
 /*

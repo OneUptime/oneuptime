@@ -3,6 +3,7 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * DeleteOldShiftReminderLogs — retention for the shift-reminder ledger
@@ -103,10 +104,6 @@ function moduleSpecifierFor(fromDir: string, filePath: string): string {
   return relative.startsWith(".") ? relative : "./" + relative;
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 beforeEach(() => {
   mockDeleteOldLogs.mockReset();
   mockDeleteOldLogs.mockResolvedValue({
@@ -126,7 +123,7 @@ describe("DeleteOldShiftReminderLogs - wiring", () => {
     );
 
     const sideEffectImport: RegExp = new RegExp(
-      `^\\s*import\\s+["']${escapeForRegExp(specifier)}["']\\s*;?\\s*$`,
+      `^\\s*import\\s+["']${escapeRegExp(specifier)}["']\\s*;?\\s*$`,
       "m",
     );
 

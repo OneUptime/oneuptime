@@ -86,7 +86,9 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
 } from "./WorkspaceNotificationRuleService";
+import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import { UnreadableParentException } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import ProjectScopedReferenceValidator, {
@@ -2344,9 +2346,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     createdByUserId: ObjectID | undefined | null;
   }): Promise<void> {
     // send message to workspaces - slack, teams, etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const workspaceResult: WorkspaceChannelsCreated | null =
       await MonitorWorkspaceMessages.createChannelsAndInviteUsersToChannels({
         projectId: data.projectId,
         monitorId: data.monitorId,
@@ -2383,6 +2383,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
         appendMessageBlocks: monitorCreateMessageBlocks,
         sendWorkspaceNotification: true,
       },
+    });
+
+    // Under "Monitor Created": who could not be added to the new channels.
+    await ChannelMembersNotAddedNotice.noteAll({
+      projectId: data.projectId,
+      membersNotAdded: workspaceResult?.membersNotAdded,
     });
   }
 

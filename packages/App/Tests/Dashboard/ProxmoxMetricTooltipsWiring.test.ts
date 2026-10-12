@@ -5,6 +5,7 @@ import {
   PROXMOX_METRIC_DESCRIPTIONS,
   ProxmoxMetric,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Every metric on the Proxmox pages carries an (i) that explains it. The
@@ -60,12 +61,6 @@ function between(source: string, from: string, to: string): string {
 
 function count(source: string, needle: string): number {
   return source.split(needle).length - 1;
-}
-
-const REGEX_SPECIALS: RegExp = /[.*+?^${}()|[\]\\]/g;
-
-function escapeRegExp(text: string): string {
-  return text.replace(REGEX_SPECIALS, "\\$&");
 }
 
 /*

@@ -35,6 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * OneUptime/oneuptime#4030: "Reminder scheduling failed in
@@ -140,10 +141,6 @@ const UNQUOTED_QUALIFIER: RegExp =
 
 // A positional parameter such as `$2` at the start of a string.
 const LEADING_PLACEHOLDER: RegExp = /^\$(\d+)/;
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
 
 // `Alias.` anywhere in the statement without a double quote in front of it.
 const unquotedReferenceTo: (alias: string) => RegExp = (
