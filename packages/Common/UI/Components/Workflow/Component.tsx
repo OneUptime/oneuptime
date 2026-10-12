@@ -148,6 +148,7 @@ const getCategoryColors: (
     lowerCategory.includes("telegram") ||
     // Exactly: "irc" is inside other words, such as "circuit".
     lowerCategory === "irc" ||
+    lowerCategory.includes("mattermost") ||
     lowerCategory.includes("email") ||
     lowerCategory.includes("notification")
   ) {

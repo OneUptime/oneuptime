@@ -120,7 +120,7 @@
 
 | Блоки                                                          | Loopback, link-local, облачные метаданные                                    | Частные сетевые адреса                                                                                                                            |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Блоки **API** и запросы **Run Custom JavaScript**              | Отклоняются, если точный хост не указан в `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Отклоняются, если администратор собственной установки не разрешил их через `ALLOW_PRIVATE_NETWORK_WEBHOOKS` или `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| Блоки **API** и **Mattermost**, а также запросы **Run Custom JavaScript** | Отклоняются, если точный хост не указан в `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Отклоняются, если администратор собственной установки не разрешил их через `ALLOW_PRIVATE_NETWORK_WEBHOOKS` или `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
 | **Send Email**, **IRC** и URL токенов OAuth 2.0                | Отклоняются                                                                  | Отклоняются в OneUptime Cloud. Разрешены в собственной установке, если `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` не равно `true`                     |
 | Slack, Microsoft Teams, Discord и Telegram                     | Отклоняются                                                                  | Отклоняются: каждый отправляет только на адреса своего сервиса                                                                                    |
 
@@ -201,7 +201,7 @@
 
 Когда проверка отклоняет шаг, шаг идёт по своему выходу **Error**, не внося отклонённое изменение, а журнал запуска называет шаг и причину простыми словами, например *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Прочитайте его в разделе [Запуски](/docs/workflows/runs-and-logs) рабочего процесса. Шаг Create Many создаёт записи по одной и останавливается на первой отклонённой: записи, созданные до неё, сохраняются.
 
-Шаги, которые общаются с другими системами, — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code и Generate Text with AI — не читают и не изменяют записи OneUptime, поэтому для них ничего из этого не меняется.
+Шаги, которые общаются с другими системами, — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code и Generate Text with AI — не читают и не изменяют записи OneUptime, поэтому для них ничего из этого не меняется.
 
 ## Ограничения тарифного плана
 

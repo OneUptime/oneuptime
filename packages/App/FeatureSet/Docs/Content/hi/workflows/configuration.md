@@ -120,7 +120,7 @@ API और दूसरे HTTP ब्लॉक अपने अनुरोध 
 
 | ब्लॉक                                                          | लूपबैक, लिंक-लोकल, क्लाउड मेटाडेटा                                           | निजी नेटवर्क पते                                                                                                                                  |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API** ब्लॉक और **Run Custom JavaScript** अनुरोध              | अस्वीकार, जब तक सटीक होस्ट का नाम `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` में न हो | अस्वीकार, जब तक कोई स्व-होस्टेड व्यवस्थापक `ALLOW_PRIVATE_NETWORK_WEBHOOKS` या `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` से उनकी अनुमति न दे            |
+| **API** और **Mattermost** ब्लॉक, साथ ही **Run Custom JavaScript** अनुरोध | अस्वीकार, जब तक सटीक होस्ट का नाम `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` में न हो | अस्वीकार, जब तक कोई स्व-होस्टेड व्यवस्थापक `ALLOW_PRIVATE_NETWORK_WEBHOOKS` या `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` से उनकी अनुमति न दे            |
 | **Send Email**, **IRC** और OAuth 2.0 टोकन URL                  | अस्वीकार                                                                     | OneUptime Cloud पर अस्वीकार। स्व-होस्टेड इंस्टॉलेशन पर अनुमति, जब तक `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` न हो                           |
 | Slack, Microsoft Teams, Discord और Telegram                    | अस्वीकार                                                                     | अस्वीकार: हर एक सिर्फ़ अपनी सेवा के पतों पर भेजता है                                                                                              |
 
@@ -201,7 +201,7 @@ API और दूसरे HTTP ब्लॉक अपने अनुरोध 
 
 जब कोई जाँच किसी चरण को अस्वीकार करती है, तो चरण अस्वीकार किया गया बदलाव किए बिना अपना **Error** आउटपुट लेता है, और रन का लॉग चरण और कारण सीधे शब्दों में बताता है, उदाहरण के लिए *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*। इसे वर्कफ़्लो के [रन](/docs/workflows/runs-and-logs) के अंतर्गत पढ़ें। Create Many चरण अपने रिकॉर्ड एक-एक करके बनाता है और पहले अस्वीकार हुए पर रुक जाता है: उससे पहले बनाए गए रिकॉर्ड रखे जाते हैं।
 
-दूसरे सिस्टम से बात करने वाले चरण — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Custom Code और Generate Text with AI — OneUptime रिकॉर्ड न पढ़ते हैं न बदलते हैं, इसलिए इनमें से कुछ भी उन्हें नहीं बदलता।
+दूसरे सिस्टम से बात करने वाले चरण — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code और Generate Text with AI — OneUptime रिकॉर्ड न पढ़ते हैं न बदलते हैं, इसलिए इनमें से कुछ भी उन्हें नहीं बदलता।
 
 ## प्लान की सीमाएँ
 

@@ -5,7 +5,7 @@ Components are the blocks you add after the trigger. Each one does one job — s
 You rarely need it open while you build. Every block's settings end with **How to use**: what the block does, the steps to set it up, an example built from your own workflow, and the mistakes people commonly make. For adding and connecting blocks, see [Authoring a Workflow](/docs/workflows/authoring).
 
 :::cards
-- [Send a message](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC and email.
+- [Send a message](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost and email.
 - [Call an API](#api): Send a request to any HTTP API and read the answer.
 - [Add logic](#conditions): Branch on a value, reshape data, wait or log.
 - [Work with OneUptime records](#oneuptime-data-components): Find, create, update and delete monitors, incidents and more.
@@ -15,7 +15,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 
 | To…                                                   | Use                                                               |
 | ----------------------------------------------------- | ----------------------------------------------------------------- |
-| Post to a chat tool                                   | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram) or [IRC](#irc) |
+| Post to a chat tool                                   | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) or [Mattermost](#mattermost) |
 | Send an email through your own mail server            | [Email](#email)                                                   |
 | Call any other API, or your own service               | [API](#api)                                                       |
 | Summarize, classify or draft text                     | [Generate Text with AI](#generate-text-with-ai)                   |
@@ -156,6 +156,27 @@ Under **More fields**:
 Each run of the block is a connection of its own, and IRC networks limit how often one address may connect: a burst of messages can be refused with a reason such as "Reconnecting too fast", and takes **Error** like any other refusal. For a workflow that can fire many times a minute, gather what it has to say into one message, or send it through a server of your own.
 
 Keep the passwords in [secret global variables](/docs/workflows/variables#global-variables) and use the variable in the setting; they're hidden in run logs either way. Connections to loopback (`localhost`, `127.0.0.1`), link-local and cloud metadata addresses are refused. On OneUptime Cloud, a server on a private network address, or a name that resolves to one, is refused too. Self-hosted installs can reach an IRC server on their own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is set to `true`.
+
+## Mattermost
+
+Post a message to a Mattermost channel through an incoming webhook, on Mattermost Cloud or on a server of your own.
+
+| Setting                             | What it does                                                                                                                                                                                                                                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mattermost Incoming Webhook URL** | The webhook to post through, as Mattermost shows it under Integrations, Incoming Webhooks: the server's address, then `/hooks/` and the webhook's ID. Mattermost's guide shows how to [create one](https://docs.mattermost.com/developers/integrate/webhooks/incoming).            |
+| **Message Text**                    | The text to send. It's sent exactly as you type it, and Mattermost reads Markdown: `**bold**`, `_italic_`, links, tables and emoji such as `:rotating_light:`. A Mattermost post holds 16,383 characters: a longer message is cut to fit and ends with "… (truncated — see OneUptime for the full text)". |
+
+Under **More fields**:
+
+| Setting      | What it does                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel**  | Posts somewhere other than the webhook's own channel: the channel's name as its URL shows it, such as `town-square`, or `@` and a username for a direct message. A webhook locked to its channel refuses any other. |
+| **Username** | The name to post under. Mattermost uses it only where a system admin lets integrations override usernames.                                                                                                     |
+| **Icon URL** | The picture to post with, an `https` address. Mattermost uses it only where a system admin lets integrations override profile picture icons.                                                                   |
+
+**Success** fires when Mattermost took the message. **Error** fires when the server can't be reached or Mattermost refuses the message, and passes along Mattermost's reason. A missing **Mattermost Incoming Webhook URL** or **Message Text**, a URL that is not an incoming webhook's, or a setting that could never work stops the run instead.
+
+Keep the webhook URL in a [secret global variable](/docs/workflows/variables#global-variables): anyone who has it can post to the channel. It's hidden in run logs either way. The message goes out from OneUptime, and a redirect is not followed. A webhook on a loopback (`localhost`, `127.0.0.1`), link-local or cloud metadata address is refused, and so is one on a private network address, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. See [Private Network Access](/docs/self-hosted/private-network-access).
 
 ## Email
 

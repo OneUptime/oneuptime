@@ -205,7 +205,7 @@ Blokkverdier finnes bare under den gjeldende kjøringen. Hver ny kjøring starte
 Nesten alle tekstfelt tar imot variabler:
 
 - URL-en på en API-blokk.
-- Meldingsteksten på Slack, Teams, Discord, Telegram, IRC, Email.
+- Meldingsteksten på Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - Emnet og bodyen i en e-post.
 - Headere og felt i bodyen (inne i strengverdier).
 - Begge sider av en **If / Else**-blokk.

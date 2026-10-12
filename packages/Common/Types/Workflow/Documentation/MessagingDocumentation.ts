@@ -1,6 +1,6 @@
 /*
  * Help for the steps that send a message somewhere: Slack, Microsoft Teams,
- * Discord, Telegram, IRC and email.
+ * Discord, Telegram, IRC, Mattermost and email.
  *
  * Their example is a message with a real value in it, taken from another step
  * of the same workflow - the trigger's, where there is one - so it shows the
@@ -29,6 +29,7 @@ import {
   IRC_DEFAULT_TLS_PORT,
   IRC_MAX_LINES,
 } from "../Components/IRC";
+import { MATTERMOST_MAX_MESSAGE_LENGTH } from "../Components/Mattermost";
 
 export type MessagingDocumentationFunction = (
   context: ComponentDocumentationContext,
@@ -337,6 +338,77 @@ export const getIRCDocumentation: MessagingDocumentationFunction = (
         "https://libera.chat/guides/sasl",
       ),
       docsLink("IRC step guide", WorkflowDocsPaths.irc),
+    ],
+  };
+};
+
+export const getMattermostDocumentation: MessagingDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary: "Posts a message to a Mattermost channel.",
+    steps: [
+      "In Mattermost, add an incoming webhook for the channel ([Mattermost's guide](https://docs.mattermost.com/developers/integrate/webhooks/incoming)) and paste its URL into **Mattermost Incoming Webhook URL**.",
+      "Write the message in **Message Text**. Mattermost's Markdown works in it.",
+      "Connect **Success** to what runs next, and **Error** to what should happen if Mattermost refuses the message.",
+    ],
+    examples: [
+      messageExample({
+        context,
+        prefix: "**Heads up:** ",
+        plainMessage: "**Heads up:** the nightly export has finished.",
+      }),
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Warning,
+        text: "Only incoming webhook URLs work: the server's address, then `/hooks/` and the webhook's ID, as Mattermost shows it.",
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `A post holds at most ${MATTERMOST_MAX_MESSAGE_LENGTH.toLocaleString("en-US")} characters. A longer message is cut to fit, and ends with a note that the rest is in OneUptime.`,
+      },
+    ],
+    learnMore: [
+      {
+        title: "Formatting",
+        paragraphs: [
+          "The message is sent exactly as you type it, and Mattermost reads Markdown: `**bold**`, `_italic_`, `~~strikethrough~~`, `[links](https://example.com)`, tables and emoji such as `:rotating_light:`. `@channel` and `@here` notify everyone in the channel.",
+        ],
+      },
+      {
+        title: "Another channel, name or picture",
+        paragraphs: [
+          "**Channel** posts somewhere other than the webhook's own channel: the channel's name as its URL shows it, such as `town-square`, or `@` and a username for a direct message. A webhook locked to its channel refuses any other.",
+          "**Username** and **Icon URL** change who the message seems to come from. Mattermost uses them only where a system admin lets integrations override usernames and profile picture icons; elsewhere it posts as the webhook.",
+        ],
+      },
+      {
+        title: "Keeping the webhook URL private",
+        paragraphs: [
+          "Anyone with the URL can post to the channel. It is hidden in run logs, and the step never quotes it. To share it between workflows, save it in a secret global variable and use the variable here instead.",
+        ],
+        example: {
+          title: "Mattermost Incoming Webhook URL",
+          code: "{{global.variables.MATTERMOST_WEBHOOK_URL}}",
+        },
+      },
+      {
+        title: "Which servers it can reach",
+        paragraphs: [
+          "The message is sent from OneUptime, and a redirect is not followed. Servers on `localhost`, link-local and cloud metadata addresses are refused. A server on a private network is refused too, unless a self-hosted administrator allows it with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`.",
+          "The server's TLS certificate must be one OneUptime trusts. A self-hosted install can trust its own certificate authority with `NODE_EXTRA_CA_CERTS`.",
+        ],
+      },
+      whenRefusedTopic(context, "Mattermost"),
+    ],
+    links: [
+      externalLink(
+        "Mattermost: incoming webhooks",
+        "https://docs.mattermost.com/developers/integrate/webhooks/incoming",
+      ),
+      docsLink("Mattermost step guide", WorkflowDocsPaths.mattermost),
+      docsLink("Outbound network access", WorkflowDocsPaths.networkAccess),
     ],
   };
 };

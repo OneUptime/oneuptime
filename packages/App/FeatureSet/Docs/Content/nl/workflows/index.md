@@ -40,7 +40,7 @@ Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaa
 
 ## Wat je met workflows kunt doen
 
-- **OneUptime koppelen aan je andere tools** — posten in Slack, Microsoft Teams, Discord, Telegram of IRC, Jira-tickets aanmaken of een verzoek sturen naar elke API in je stack.
+- **OneUptime koppelen aan je andere tools** — posten in Slack, Microsoft Teams, Discord, Telegram, IRC of Mattermost, Jira-tickets aanmaken of een verzoek sturen naar elke API in je stack.
 - **Reageren op wat er in OneUptime gebeurt** — als er een incident wordt aangemaakt, het juiste kanaal informeren en automatisch een ticket openen.
 - **Taken volgens een schema uitvoeren** — elke vijf minuten, elke nacht, elke maandagochtend.
 - **Gegevens van buitenaf ontvangen** — andere systemen een workflow laten starten door de URL ervan aan te roepen of naar het adres ervan te mailen.

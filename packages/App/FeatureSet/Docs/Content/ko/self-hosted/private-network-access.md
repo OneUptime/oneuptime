@@ -57,6 +57,7 @@ Ping, Port, SSL 인증서, DNS, DNSSEC, SNMP / 네트워크 장치, SQL 쿼리, 
 다음 대상이 적용 범위에 포함됩니다. 대상이 프로젝트의 인증된 멤버가 작성한 URL이기 때문입니다.
 
 - 워크플로 **API** 구성 요소(GET / POST / PUT / PATCH / DELETE)
+- 워크플로 **Mattermost** 구성 요소
 - 워크플로 **Custom JavaScript** 구성 요소가 보내는 HTTP 요청
 - 프로젝트 웹후크 알림(인시던트, 알림, 모니터, 온콜, 예약된 유지 관리, 상태 페이지 이벤트)
 - 온콜 **사용자 웹후크**

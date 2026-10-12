@@ -57,6 +57,7 @@ Las formas de escribir IPv6 que llevan dentro un destino IPv4 – IPv4-mapped (`
 Estos destinos están cubiertos, porque el destino es una URL que escribió un miembro autenticado de tu proyecto:
 
 - Los componentes **API** de los workflows (GET / POST / PUT / PATCH / DELETE)
+- El componente **Mattermost** de los workflows
 - Las peticiones HTTP que hace el componente de workflow **Custom JavaScript**
 - Las notificaciones de webhook del proyecto (incidentes, alertas, monitores, guardia, mantenimiento programado, eventos de páginas de estado)
 - Los **webhooks de usuario** de guardia

@@ -205,7 +205,7 @@ Die Werte von Bausteinen gibt es nur während der aktuellen Ausführung. Jede ne
 Fast jedes Textfeld nimmt Variablen an:
 
 - Die URL eines API-Bausteins.
-- Der Nachrichtentext bei Slack, Teams, Discord, Telegram, IRC, E-Mail.
+- Der Nachrichtentext bei Slack, Teams, Discord, Telegram, IRC, Mattermost, E-Mail.
 - Betreff und Body einer E-Mail.
 - Header und Body-Felder (innerhalb von Zeichenkettenwerten).
 - Beide Seiten eines **If / Else**-Bausteins.

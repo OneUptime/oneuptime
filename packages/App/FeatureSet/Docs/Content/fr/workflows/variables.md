@@ -205,7 +205,7 @@ Les valeurs des blocs n'existent que pendant l'exécution en cours. Chaque nouve
 Presque tous les champs de texte acceptent des variables :
 
 - L'URL d'un bloc API.
-- Le texte du message sur Slack, Teams, Discord, Telegram, IRC, Email.
+- Le texte du message sur Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - L'objet et le corps d'un e-mail.
 - Les en-têtes et les champs du corps (à l'intérieur des valeurs de chaîne).
 - Les deux côtés d'un bloc **If / Else**.
