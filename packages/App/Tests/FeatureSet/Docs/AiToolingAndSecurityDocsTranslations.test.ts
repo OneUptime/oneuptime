@@ -109,15 +109,17 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: DocsPageEntry): string => {
  * Each page's diagrams fit the 590px docs column, measured in a browser with
  * the docs' own font, in every language: their label lines are broken
  * (<br/>) to be no wider than this, counting a Chinese, Japanese or Korean
- * character twice. A label put back on one line runs its diagram off the
+ * character twice. Each cap is the widest line the 17 languages drew when
+ * they were measured; the widest diagram of all, the Italian security
+ * sources, drew 566px. A label put back on one line runs its diagram off the
  * column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [GEMINI_COPILOT]: 32,
-  [AI_GATEWAYS]: 32,
-  [CIRCUIT_BREAKER]: 32,
-  [SECURITY_EVENTS]: 32,
-  [THREAT_INTELLIGENCE]: 32,
+  [GEMINI_COPILOT]: 28,
+  [AI_GATEWAYS]: 25,
+  [CIRCUIT_BREAKER]: 26,
+  [SECURITY_EVENTS]: 29,
+  [THREAT_INTELLIGENCE]: 28,
 };
 
 // Bold words that name a product opened from the Products menu.

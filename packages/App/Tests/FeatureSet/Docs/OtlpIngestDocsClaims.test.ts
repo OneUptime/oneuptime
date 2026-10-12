@@ -1120,10 +1120,12 @@ describe("OTLP ingest claims across the docs (issue #3978)", () => {
       const expected: Array<string> = [
         "en/telemetry/open-telemetry.md",
         "en/telemetry/iot-devices.md",
-        "en/telemetry/gemini-cli-and-copilot.md",
-        "fa/telemetry/gemini-cli-and-copilot.md",
         ...SUPPORTED_DOCS_LANGUAGE_CODES.map((lang: string): string => {
           return `${lang}/telemetry/iot-devices.md`;
+        }),
+        // Gemini CLI's collector example, in every language's copy.
+        ...SUPPORTED_DOCS_LANGUAGE_CODES.map((lang: string): string => {
+          return `${lang}/telemetry/gemini-cli-and-copilot.md`;
         }),
       ].map((page: string): string => {
         return relativeToRepo(path.join(CONTENT_DIR, page));
