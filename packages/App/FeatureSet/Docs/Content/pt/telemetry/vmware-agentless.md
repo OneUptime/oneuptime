@@ -35,7 +35,7 @@ Ambos enviam os mesmos dados. Você pode trocar um vCenter de um para o outro a 
 ## Antes de começar
 
 - **Uma sonda que consiga alcançar o vCenter pela porta TCP 443.** Normalmente é uma [sonda personalizada](/docs/probe/custom-probe) na rede do vCenter. No OneUptime Cloud, as sondas compartilhadas nunca recebem a senha de um vCenter, então adicione uma sonda própria. Em uma instância auto-hospedada, as sondas da própria instância também podem coletar.
-- **Um usuário do vSphere com a função Read-Only** no objeto vCenter de nível superior, com **Propagate to children** marcado. Siga [Criar o usuário somente leitura do vSphere](/docs/telemetry/vmware#create-the-read-only-vsphere-user): a conta é a mesma que o agente usa.
+- **Um usuário do vSphere com a função Read-Only** no objeto vCenter de nível superior, com **Propagate to children** marcado. Siga [Criar o usuário somente leitura do vSphere](/docs/telemetry/vmware#criar-o-usuário-somente-leitura-do-vsphere): a conta é a mesma que o agente usa.
 
 > [!IMPORTANT]
 > Sem **Propagate to children**, o usuário entra mas não vê nada, e a sonda informa que a conta não consegue ler o inventário do vCenter.

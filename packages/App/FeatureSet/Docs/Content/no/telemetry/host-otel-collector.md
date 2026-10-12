@@ -801,7 +801,7 @@ Ingenting på maskinen rapporterer en fastvareversjon som er tilgjengelig som op
 
 #### Sjekke at det fungerte
 
-Åpne vertens element under **Produkter → Inventory** og se på kortet **Eiendelsdetaljer**. Verdiene vises innen noen minutter etter neste batch; en detalj collectoren ikke har rapportert, vises som ukjent, med en lenke tilbake til denne seksjonen. Fordi de er stemplet og ikke oppdaget, oppdaterer de seg ikke selv: stemple dem på nytt etter et hovedkortbytte, en fastvareoppdatering eller en ny installasjon av systemet.
+Åpne vertens element under **Produkter → Inventar** og se på kortet **Eiendelsdetaljer**. Verdiene vises innen noen minutter etter neste batch; en detalj collectoren ikke har rapportert, vises som ukjent, med en lenke tilbake til denne seksjonen. Fordi de er stemplet og ikke oppdaget, oppdaterer de seg ikke selv: stemple dem på nytt etter et hovedkortbytte, en fastvareoppdatering eller en ny installasjon av systemet.
 
 ## Andre måter å kjøre collectoren på
 

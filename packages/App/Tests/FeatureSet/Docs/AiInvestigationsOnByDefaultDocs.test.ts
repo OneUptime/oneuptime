@@ -1,4 +1,5 @@
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { drawnActionLabel } from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -553,15 +554,22 @@ describe.each<[string, string, string]>([
   });
 });
 
+/*
+ * The Persian page words the note as every other Persian agent page does,
+ * and names the AI agent page's controls as the Persian Dashboard draws them.
+ */
+const PERSIAN_ON_BY_DEFAULT: string =
+  "بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن‌اند";
+
 describe("the VMware page in Persian", () => {
   it("says it too, in Persian, in the same place", () => {
     const page: string = read("fa/telemetry/vmware.md");
     const english: string = read("en/telemetry/vmware.md");
 
     expect(page).not.toContain("AI investigations are on by default");
-    expect(page).toContain("بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن هستند");
-    expect(page).toContain("**What AI may do**");
-    expect(page).toContain("**Overview**");
+    expect(page).toContain(PERSIAN_ON_BY_DEFAULT);
+    expect(page).toContain(`**${drawnActionLabel("fa", "What AI may do")}**`);
+    expect(page).toContain(`**${drawnActionLabel("fa", "Overview")}**`);
 
     // Same place: the first note under the AI agent paragraph, as in English.
     const noteIndex: (markdown: string) => number = (
@@ -576,9 +584,7 @@ describe("the VMware page in Persian", () => {
       });
     };
     const persianLines: Array<string> = page.split("\n");
-    expect(persianLines[noteIndex(page)]).toContain(
-      "بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن هستند",
-    );
+    expect(persianLines[noteIndex(page)]).toContain(PERSIAN_ON_BY_DEFAULT);
     expect(english.split("\n")[noteIndex(english)]).toContain(
       "**AI investigations are on by default.**",
     );

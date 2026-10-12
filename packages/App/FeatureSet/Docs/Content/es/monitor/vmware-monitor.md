@@ -333,7 +333,7 @@ monitor_steps = [{
 ## Solución de problemas
 
 :::details El vCenter no está en la lista vCenter
-Un vCenter que recoge el agente se registra solo a partir de los datos del agente. Compruebe que el agente se está ejecutando y enviando datos (consulte [Verificar la instalación](/docs/telemetry/vmware#verify-the-installation)), que `VMWARE_VCENTER_NAME` está definido y que ha pasado un intervalo de recogida: no se envía nada hasta que termina el primer recorrido completo del inventario.
+Un vCenter que recoge el agente se registra solo a partir de los datos del agente. Compruebe que el agente se está ejecutando y enviando datos (consulte [Verificar la instalación](/docs/telemetry/vmware#verificar-la-instalación)), que `VMWARE_VCENTER_NAME` está definido y que ha pasado un intervalo de recogida: no se envía nada hasta que termina el primer recorrido completo del inventario.
 :::
 
 :::details Los hosts tienen métricas, pero las VM, los almacenes de datos o los clústeres no

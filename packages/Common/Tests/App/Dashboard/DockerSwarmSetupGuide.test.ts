@@ -481,7 +481,9 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
       );
     } else {
       expect(topic).toContain("Download the three files again");
-      expect(topic).toContain("docker compose pull\ndocker compose up -d");
+      expect(topic).toContain(
+        "docker compose pull\ndocker compose up -d --force-recreate",
+      );
       expect(topic).toContain("docker compose down");
     }
   });

@@ -1,8 +1,15 @@
 # Queues
 
-## Overview
+**Queues** gives every message queue, topic and subscription your applications use its own page: which services publish to it and which consume from it, how many messages go through, how many fail and how long processing takes, its traces and metrics — and, once the broker's own metrics reach OneUptime, its backlog, consumer lag, dead letters and throttling. Queues have labels, owners, label and owner rules and archiving, like every other resource. Open them under **Products → Resources → Queues**.
 
-**Queues** (_Resources → Queues_ in the dashboard) gives every message queue, topic and subscription your applications use its own page: which services publish to it and which consume from it, how many messages go through, how many fail and how long processing takes, its traces and metrics — and, once the broker's own metrics reach OneUptime, its backlog, consumer lag, dead letters and throttling. Queues have labels, owners, label and owner rules and archiving, like every other resource.
+:::cards
+- [Instrumenting applications](#instrumenting-applications): The messaging spans your OpenTelemetry instrumentation already sends.
+- [Broker health metrics](#broker-health-metrics): Backlog, lag and dead letters from your broker, system by system.
+- [Alerting](#alerting): Ready-made templates, and late or counted metrics.
+- [Troubleshooting](#troubleshooting): A queue that was not created, or broker health that stays empty.
+:::
+
+## How it works
 
 It works the same way for every broker — Apache Kafka, RabbitMQ, Apache ActiveMQ and other JMS brokers, Amazon SQS and SNS, Google Cloud Pub/Sub, Azure Service Bus, Event Hubs and Event Grid, Apache Pulsar, Apache RocketMQ, NATS and BullMQ (see [Supported messaging systems](#supported-messaging-systems)) — and for any other broker your spans name in `messaging.system`. Most queues appear on their own, from two sources:
 
@@ -11,11 +18,32 @@ It works the same way for every broker — Apache Kafka, RabbitMQ, Apache Active
 | **Application traces** | Instrumented applications (OpenTelemetry) — see [Instrumenting applications](#instrumenting-applications) | Messages published and consumed, errors and processing time, the services on each side, and the traces themselves |
 | **Broker metrics** (an OpenTelemetry Collector) | The collector receiver or scrape for your broker — see [Broker health metrics](#broker-health-metrics) | **Broker health**: backlog, consumer lag, dead letters, oldest message age, throttling and the broker's own message rates |
 
+```mermaid title="Two sources, one queue page"
+flowchart TB
+    apps["Your applications'<br/>messaging spans"] -->|"published, consumed,<br/>errors, timing"| queue["The queue's page"]
+    broker["Your broker, or its<br/>cloud's monitoring API"] --> collector["OpenTelemetry Collector"]
+    collector -->|"backlog, lag,<br/>dead letters"| queue
+```
+
 Traces tell OneUptime that a queue exists and how applications use it, but not how full it is. That comes from the broker itself or its cloud provider's monitoring API — or, for [BullMQ](#bullmq), which keeps its jobs in Redis and has no broker to ask, from a gauge the application reports.
 
 You can also add a queue by hand: **Queues → Create Queue**, with its messaging system and destination name — and, for Azure Service Bus and Event Hubs, its namespace. The form asks for those on its first step, **Messaging System**, then for an optional name and description, with labels under **More fields** (**Queue Info**). Leave the namespace empty only for a queue your applications reach through an emulator or a custom domain name: their spans name no namespace, and Azure Monitor's metrics never reach such a queue (see [Limitations](#limitations)).
 
-This page covers the [supported messaging systems](#supported-messaging-systems), [how queues are discovered](#how-queues-are-discovered) and what makes two sightings one queue, [instrumenting applications](#instrumenting-applications), setting up [broker health metrics](#broker-health-metrics) for each system, [alerting](#alerting), [limitations](#limitations) and [troubleshooting](#troubleshooting).
+## Get started
+
+:::steps
+### Send your applications' traces
+
+Instrument the applications that publish and consume, and send their traces to OneUptime (see [Instrumenting applications](#instrumenting-applications)). Nothing OneUptime-specific is needed: the messaging spans your instrumentation already makes name the queues.
+
+### Send your broker's metrics
+
+Find your messaging system under [Broker health metrics](#broker-health-metrics), and run its collector configuration with your ingestion key. Each queue's **Documentation** tab has the configuration for that queue, ready to copy.
+
+### Open the queue
+
+Open **Products → Resources → Queues**. Discovery runs every 10 minutes: a queue appears once at least 3 of its spans arrived within 15 minutes, or a broker metric named it.
+:::
 
 ## Supported messaging systems
 
@@ -139,15 +167,13 @@ Traces and broker metrics create queues on their own only while the project hold
 
 Queues come from the messaging spans your OpenTelemetry instrumentation already produces; nothing OneUptime-specific is needed. Send the traces to OneUptime as [OpenTelemetry](/docs/telemetry/open-telemetry) describes, then check the list for your language.
 
-### Java
-
+:::tabs
+@tab Java
 The OpenTelemetry Java agent traces Kafka, RabbitMQ, JMS (ActiveMQ, Artemis, IBM MQ and every other JMS broker), Amazon SQS and SNS, Pulsar, RocketMQ and NATS clients without code changes. OneUptime reads both the attribute names it emits by default and the newer ones it emits with `OTEL_SEMCONV_STABILITY_OPT_IN=messaging` (agent 2.31.0 and later). JMS spans say `jms` whichever broker is behind them (see [JMS](#jms)).
 
 - **Azure Service Bus and Event Hubs**: the Azure SDK for Java traces itself, and the Java agent connects that tracing to OpenTelemetry.
 - **Google Cloud Pub/Sub**: the client traces itself once its `Publisher` and `Subscriber` builders get an OpenTelemetry instance and the tracing switch — `setOpenTelemetry(GlobalOpenTelemetry.get())` and `setEnableOpenTelemetryTracing(true)`. Either call alone traces nothing.
-
-### .NET
-
+@tab .NET
 - **Azure Service Bus and Event Hubs** (`Azure.Messaging.ServiceBus`, `Azure.Messaging.EventHubs`): their OpenTelemetry spans are experimental in the Azure SDK. Turn them on with the environment variable `AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE=true` (or the `Azure.Experimental.EnableActivitySource` switch below), and subscribe to the `Azure.*` sources.
 - **RabbitMQ.Client** 7 traces itself: subscribe to `RabbitMQ.Client.*`.
 - **MassTransit** traces itself: subscribe to `MassTransit` (see [Limitations](#limitations) for what its spans leave out).
@@ -165,31 +191,26 @@ builder.Services.AddOpenTelemetry()
         .AddSource("MassTransit")
         .AddOtlpExporter());
 ```
-
-### Node.js
-
+@tab Node.js
 - `@opentelemetry/auto-instrumentations-node` traces `amqplib` (RabbitMQ), `kafkajs` and the AWS SDK (SQS and SNS).
 - **Azure Service Bus and Event Hubs**: register `createAzureSdkInstrumentation()` from `@azure/opentelemetry-instrumentation-azure-sdk`.
 - **Google Cloud Pub/Sub**: `new PubSub({ enableOpenTelemetryTracing: true })`.
 - **BullMQ**: see [BullMQ](#bullmq) — its own telemetry needs two attributes added.
-
-### Python
-
+@tab Python
 - Kafka: `opentelemetry-instrumentation-kafka-python`, `opentelemetry-instrumentation-confluent-kafka` or `opentelemetry-instrumentation-aiokafka`. RabbitMQ: `opentelemetry-instrumentation-pika` or `opentelemetry-instrumentation-aio-pika`. SQS and SNS: `opentelemetry-instrumentation-botocore`, or `opentelemetry-instrumentation-boto3sqs` for SQS. `opentelemetry-bootstrap -a install` picks the ones your installed libraries need.
 - **Azure Service Bus and Event Hubs**: install `azure-core-tracing-opentelemetry` and set `settings.tracing_implementation = "opentelemetry"` (from `azure.core.settings`).
 - **Google Cloud Pub/Sub**: `PublisherOptions(enable_open_telemetry_tracing=True)` and `SubscriberOptions(enable_open_telemetry_tracing=True)`.
 - Celery's spans carry no `messaging.system` and name no broker, so they do not create queues.
-
-### Go
-
+@tab Go
 - **Amazon SQS and SNS**: `otelaws` (`go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws`), added with `otelaws.AppendMiddlewares(&cfg.APIOptions)`. Its SQS spans carry the queue URL in `server.address`, which OneUptime reads as the queue.
 - **Google Cloud Pub/Sub**: `pubsub.ClientConfig{EnableOpenTelemetryTracing: true}`.
 - **Kafka** with `segmentio/kafka-go`: OpenTelemetry Go auto-instrumentation (`go.opentelemetry.io/auto`, eBPF, on Linux) traces its producers and consumers without code changes.
 - OpenTelemetry's Go contrib libraries have no Kafka, RabbitMQ or NATS instrumentation. For other clients, use the client library's own OpenTelemetry support, or set `messaging.system`, `messaging.destination.name` and the span kind on the spans around your sends and handlers.
+:::
 
 ## Broker health metrics
 
-A broker knows what no application can see: how many messages are waiting, how far each consumer group is behind, what went to a dead-letter queue. Each section below has the collector configuration for one system — a complete OpenTelemetry Collector config ending in the OTLP exporter that sends to OneUptime. Put a telemetry ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) in `x-oneuptime-token`, replace `https://oneuptime.com` with your own host if you self-host, and run it with `otel/opentelemetry-collector-contrib` 0.161.0 or later (every config here is validated against 0.161.0). Recent collectors log that `otlphttp` is deprecated in favour of `otlp_http`; both names are the same exporter. To collect several systems, merge their receivers into one collector.
+A broker knows what no application can see: how many messages are waiting, how far each consumer group is behind, what went to a dead-letter queue. Each section below has the collector configuration for one system — a complete OpenTelemetry Collector config ending in the OTLP exporter that sends to OneUptime. Put a telemetry ingestion key (**Project Settings → Telemetry & APM → Ingestion Keys**) in `x-oneuptime-token`, replace `https://oneuptime.com` with your own host if you self-host, and run it with `otel/opentelemetry-collector-contrib` 0.161.0 or later (every config here is validated against 0.161.0). Recent collectors log that `otlphttp` is deprecated in favour of `otlp_http`; both names are the same exporter. To collect several systems, merge their receivers into one collector.
 
 Each queue's **Broker health** section charts the metrics listed for its system — a gauge as its value, a count per period summed per interval, a counter as a rate per second — combining a queue's series the way each metric needs (a RabbitMQ queue's ready and unacknowledged messages add up; the consumer group furthest behind is the lag). Everything the collector sends is also in the **Metrics** explorer. While no listed metric has arrived for a queue, the section shows where that system's metrics come from, with a link to its section here.
 
@@ -1038,6 +1059,8 @@ A destination named per request or per consumer that OneUptime does not recognis
 
 ## Next steps
 
-- [Instrument your applications](#instrumenting-applications) so their queues appear, and set up [broker health metrics](#broker-health-metrics) for your broker.
-- Build a [Metrics monitor](/docs/monitor/metrics-monitor) on a queue's backlog, lag or dead letters (see [Alerting](#alerting)).
-- For Azure Functions triggered by Service Bus, see [Serverless Functions](/docs/telemetry/serverless-functions#azure-functions).
+:::cards
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on a queue's backlog, lag or dead letters.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send your applications' traces, so their queues appear.
+- [Serverless Functions](/docs/telemetry/serverless-functions#azure-functions): Azure Functions triggered by Service Bus or Event Hubs.
+:::

@@ -10,6 +10,8 @@ import {
   STORAGE_ARRAY_AGENT_RAW_URL,
   STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
   STORAGE_ARRAY_AGENT_SOURCE_URL,
+  STORAGE_ARRAY_AGENT_SYSTEMD_UNIT,
+  STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE,
   STORAGE_ARRAY_COLLECTOR_CONFIGS,
   STORAGE_ARRAY_EXAMPLE_NAME,
   STORAGE_ARRAY_FA_EXPORTER_SERVICE,
@@ -1107,7 +1109,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
       ...STORAGE_ARRAY_AGENT_FILES,
       "install.sh",
       "troubleshoot.sh",
-      "systemd/oneuptime-storage-array-agent.service",
+      STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE,
     ]) {
       expect({
         file,
@@ -1160,10 +1162,13 @@ describe("drift guards against agents/StorageArrayAgent", () => {
   });
 
   test("the systemd unit the guide installs is the shipped one", () => {
-    const unit: string = readAgentFile(
-      "systemd/oneuptime-storage-array-agent.service",
+    const unit: string = readAgentFile(STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE);
+    expect(unit).toContain(
+      `WorkingDirectory=${STORAGE_ARRAY_AGENT_INSTALL_DIR}`,
     );
-    expect(unit).toContain(STORAGE_ARRAY_AGENT_INSTALL_DIR);
+    expect(STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE).toBe(
+      `systemd/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
+    );
     const topic: string = topicTitled(
       guideFor("flasharray").advanced,
       "Run as a systemd service",
@@ -1171,5 +1176,35 @@ describe("drift guards against agents/StorageArrayAgent", () => {
     expect(topic).toContain(
       "sudo systemctl enable --now oneuptime-storage-array-agent",
     );
+  });
+
+  /*
+   * install.sh puts only the compose file and the configs in the agent's
+   * folder, never its systemd/ directory, so "cd <folder> && sudo cp
+   * systemd/..." failed after a script install. The topic downloads the
+   * shipped unit, as the Storage Array Agent docs page does.
+   */
+  test("the systemd topic downloads the unit, which install.sh never fetches", () => {
+    expect(readAgentFile("install.sh")).not.toContain("systemd/");
+
+    for (const platform of PLATFORMS) {
+      const topic: string = topicTitled(
+        guideFor(platform).advanced,
+        "Run as a systemd service",
+      ).markdown;
+
+      expect(topic).not.toContain("cp systemd/");
+      expect(topic).toContain(
+        codeBlock(
+          "bash",
+          [
+            `sudo curl -fsSL ${STORAGE_ARRAY_AGENT_RAW_URL}/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE} -o /etc/systemd/system/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
+            "sudo systemctl daemon-reload",
+            `sudo systemctl enable --now ${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}`,
+          ].join("\n"),
+        ),
+      );
+      expect(topic).toContain(`\`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\``);
+    }
   });
 });

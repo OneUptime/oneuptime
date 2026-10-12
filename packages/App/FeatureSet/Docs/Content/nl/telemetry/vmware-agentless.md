@@ -35,7 +35,7 @@ Beide verzenden dezelfde gegevens. U kunt een vCenter op elk moment van de een n
 ## Voordat u begint
 
 - **Een sonde die vCenter via TCP 443 kan bereiken.** Meestal is dat een [aangepaste sonde](/docs/probe/custom-probe) in het netwerk van vCenter. Op OneUptime Cloud ontvangen de gedeelde sondes nooit een vCenter-wachtwoord, dus voeg een eigen sonde toe. Op een zelf gehoste instantie kunnen ook de eigen sondes van de instantie verzamelen.
-- **Een vSphere-gebruiker met de rol Read-Only** op het bovenste vCenter-object, met **Propagate to children** aangevinkt. Volg [De alleen-lezengebruiker in vSphere aanmaken](/docs/telemetry/vmware#create-the-read-only-vsphere-user): het account is hetzelfde als dat van de agent.
+- **Een vSphere-gebruiker met de rol Read-Only** op het bovenste vCenter-object, met **Propagate to children** aangevinkt. Volg [De alleen-lezengebruiker in vSphere aanmaken](/docs/telemetry/vmware#de-alleen-lezen-vsphere-gebruiker-aanmaken): het account is hetzelfde als dat van de agent.
 
 > [!IMPORTANT]
 > Zonder **Propagate to children** meldt de gebruiker zich aan maar ziet hij niets, en meldt de sonde dat het account de inventaris van vCenter niet kan lezen.
