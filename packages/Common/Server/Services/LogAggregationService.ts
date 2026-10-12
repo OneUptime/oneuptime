@@ -733,9 +733,7 @@ export class LogAggregationService {
       LogAggregationService.validateFacetKey(request.aggregationField);
 
       if (LogAggregationService.isTopLevelColumn(request.aggregationField)) {
-        return new Statement().append(
-          `uniqExact(${request.aggregationField})`,
-        );
+        return new Statement().append(`uniqExact(${request.aggregationField})`);
       }
 
       return SQL`uniqExact(attributes[${{

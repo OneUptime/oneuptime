@@ -83,18 +83,26 @@ describe("readLinkHeader", () => {
         '  < https://a.example/1 >\t;\trel = "next" ,\t<https://a.example/2>;rel=last  ',
       ),
     ).toEqual([
-      { url: "https://a.example/1", relations: ["next"], parameters: { rel: "next" } },
-      { url: "https://a.example/2", relations: ["last"], parameters: { rel: "last" } },
+      {
+        url: "https://a.example/1",
+        relations: ["next"],
+        parameters: { rel: "next" },
+      },
+      {
+        url: "https://a.example/2",
+        relations: ["last"],
+        parameters: { rel: "last" },
+      },
     ]);
   });
 
   test("reads links written one after another with no comma", () => {
     expect(
-      readLinkHeader('<https://a.example/1>; rel=next<https://a.example/2>; rel=last').map(
-        (link: LinkHeaderLink): string => {
-          return link.url;
-        },
-      ),
+      readLinkHeader(
+        "<https://a.example/1>; rel=next<https://a.example/2>; rel=last",
+      ).map((link: LinkHeaderLink): string => {
+        return link.url;
+      }),
     ).toEqual(["https://a.example/1", "https://a.example/2"]);
   });
 
@@ -128,7 +136,11 @@ describe("readLinkHeader", () => {
     expect(readLinkHeader("<https://a.example/1")).toEqual([]);
     // An unclosed quote takes the rest of the header as its value.
     expect(readLinkHeader('<https://a.example/1>; rel="next')).toEqual([
-      { url: "https://a.example/1", relations: ["next"], parameters: { rel: "next" } },
+      {
+        url: "https://a.example/1",
+        relations: ["next"],
+        parameters: { rel: "next" },
+      },
     ]);
   });
 
@@ -175,8 +187,11 @@ describe("readLinkHeader", () => {
     ];
 
     for (let round: number = 0; round < 2000; round++) {
-      const links: Array<{ url: string; relations: Array<string>; title: string }> =
-        [];
+      const links: Array<{
+        url: string;
+        relations: Array<string>;
+        title: string;
+      }> = [];
       const count: number = 1 + random(4);
 
       for (let index: number = 0; index < count; index++) {
@@ -197,7 +212,11 @@ describe("readLinkHeader", () => {
 
       const header: string = links
         .map(
-          (link: { url: string; relations: Array<string>; title: string }): string => {
+          (link: {
+            url: string;
+            relations: Array<string>;
+            title: string;
+          }): string => {
             const quotedTitle: string = Array.from(link.title)
               .map((character: string): string => {
                 return character === '"' || character === "\\"
@@ -213,7 +232,11 @@ describe("readLinkHeader", () => {
 
       expect(readLinkHeader(header)).toEqual(
         links.map(
-          (link: { url: string; relations: Array<string>; title: string }): LinkHeaderLink => {
+          (link: {
+            url: string;
+            relations: Array<string>;
+            title: string;
+          }): LinkHeaderLink => {
             return {
               url: link.url,
               relations: link.relations,

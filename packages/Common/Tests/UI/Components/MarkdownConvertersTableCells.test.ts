@@ -191,15 +191,12 @@ describe("reading a table row", () => {
   });
 
   it("reads each row's cells as marked reads them", () => {
-    const rows: Array<string> = generatedTexts(3000, 1984, [
-      "a",
-      "b",
-      " ",
-      "|",
-      "\\",
-      "\\|",
-      "\\\\",
-    ], 10);
+    const rows: Array<string> = generatedTexts(
+      3000,
+      1984,
+      ["a", "b", " ", "|", "\\", "\\|", "\\\\"],
+      10,
+    );
 
     for (const row of rows) {
       const markdown: string = `| h |\n| --- |\n| ${row} |`;
@@ -232,15 +229,12 @@ describe("a table across save and reopen", () => {
   });
 
   it("every generated table reaches a fixed point after one save, every row as wide as the header", () => {
-    const cells: Array<string> = generatedTexts(2000, 4321, [
-      "x",
-      "y",
-      " ",
-      "|",
-      "\\",
-      "\\|",
-      "-",
-    ], 8);
+    const cells: Array<string> = generatedTexts(
+      2000,
+      4321,
+      ["x", "y", " ", "|", "\\", "\\|", "-"],
+      8,
+    );
 
     for (let index: number = 0; index + 3 < cells.length; index += 4) {
       const html: string = tableHtml([

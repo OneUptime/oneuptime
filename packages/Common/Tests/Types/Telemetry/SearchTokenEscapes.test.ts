@@ -235,10 +235,9 @@ describe("buildSearchTokenValue - a literal value", () => {
     expect(changed.length).toBeGreaterThan(0);
 
     for (const literal of changed) {
-      expect([
-        literal,
-        BRACKET.test(literal) || literal.endsWith(":"),
-      ]).toEqual([literal, true]);
+      expect([literal, BRACKET.test(literal) || literal.endsWith(":")]).toEqual(
+        [literal, true],
+      );
       expect([literal, buildSearchTokenValue(literal)]).toEqual([
         literal,
         `"${oldLiteralToken(literal)}"`,
@@ -438,15 +437,24 @@ describe("the values a search string carries reach ClickHouse as bound parameter
   const MARKER: string = "zq'\\\"x";
 
   test.each([
-    ["a literal", (text: string): string => {
-      return buildSearchTokenValue(text);
-    }],
-    ["a glob", (text: string): string => {
-      return buildSearchTokenGlob(`${escapeWildcards(text)}*`);
-    }],
-    ["a contains", (text: string): string => {
-      return `~${buildSearchTokenValue(text)}`;
-    }],
+    [
+      "a literal",
+      (text: string): string => {
+        return buildSearchTokenValue(text);
+      },
+    ],
+    [
+      "a glob",
+      (text: string): string => {
+        return buildSearchTokenGlob(`${escapeWildcards(text)}*`);
+      },
+    ],
+    [
+      "a contains",
+      (text: string): string => {
+        return `~${buildSearchTokenValue(text)}`;
+      },
+    ],
   ] as Array<[string, (text: string) => string]>)(
     "%s: the text is in the parameters, never in the query",
     (_name: string, spell: (text: string) => string) => {

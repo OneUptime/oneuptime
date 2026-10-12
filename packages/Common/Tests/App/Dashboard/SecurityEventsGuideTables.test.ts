@@ -32,9 +32,12 @@ const BACKSLASH: string = "\\";
 const GUIDES_DIRECTORY: string =
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks";
 
-type GuideModule = typeof import("../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide");
-type DetectionModule = typeof import("../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide");
-type ThreatIntelModule = typeof import("../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide");
+type GuideModule =
+  typeof import("../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide");
+type DetectionModule =
+  typeof import("../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide");
+type ThreatIntelModule =
+  typeof import("../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide");
 
 interface Guides {
   guide: GuideModule;
@@ -155,12 +158,11 @@ function writtenTables(markdown: string): Array<Array<number>> {
 
 describe("the security events guides' tables", () => {
   const loaded: LoadedGuides = loadGuides();
-  const guides: Array<
-    [string, Parameters<GuideModule["guideToMarkdown"]>[0]]
-  > = [
-    ["detection rules", loaded.detection.default],
-    ["threat intel", loaded.threatIntel.default],
-  ];
+  const guides: Array<[string, Parameters<GuideModule["guideToMarkdown"]>[0]]> =
+    [
+      ["detection rules", loaded.detection.default],
+      ["threat intel", loaded.threatIntel.default],
+    ];
 
   test("the guides place their cells through markdownTableCell", () => {
     expect(loaded.placedCells.length).toBeGreaterThan(100);

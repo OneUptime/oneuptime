@@ -221,10 +221,10 @@ const FIXED_ALERTS: Array<FixedAlert> = [
       "    <% for(var faqIdx=0; faqIdx < productConfig.faq.length; faqIdx++) { %>",
       "    {",
       '      "@type": "Question",',
-      "      \"name\": \"<%= productConfig.faq[faqIdx].question.replace(/\"/g, '\\\\\"') %>\",",
+      '      "name": "<%= productConfig.faq[faqIdx].question.replace(/"/g, \'\\\\"\') %>",',
       '      "acceptedAnswer": {',
       '        "@type": "Answer",',
-      "        \"text\": \"<%= productConfig.faq[faqIdx].answer.replace(/\"/g, '\\\\\"') %>\"",
+      '        "text": "<%= productConfig.faq[faqIdx].answer.replace(/"/g, \'\\\\"\') %>"',
       "      }",
       "    }<%= faqIdx < productConfig.faq.length - 1 ? ',' : '' %>",
       "    <% } %>",
@@ -341,18 +341,18 @@ describe("CodeScanning - js/incomplete-sanitization, as code scanning reads it",
 
   test("an escape that misses a backslash is reported; one that escapes it, in the pass or before, is not", () => {
     const reportedCode: Array<string> = [
-      'x.replace(/"/g, \'\\\\"\');',
+      "x.replace(/\"/g, '\\\\\"');",
       'x.replace(/\\|/g, "\\\\|");',
       'x.replace(/([*?])/g, "\\\\$1");',
       'x.replace(new RegExp("[<>]", "g"), "\\\\$&");',
-      'let y: string = f(x); y = y.replace(/\'/g, "\\\\\'");',
+      "let y: string = f(x); y = y.replace(/'/g, \"\\\\'\");",
       'x.trim().replace(/\\|/g, "\\\\|");',
     ];
     const cleanCode: Array<string> = [
       'x.replace(/[\\\\"]/g, "\\\\$&");',
       'x.replace(/\'|\\\\/g, "\\\\$&");',
       'x.replace(/\\\\/g, "\\\\\\\\").replace(/"/g, \'\\\\"\');',
-      'JSON.stringify(x).replace(/"/g, \'\\\\"\');',
+      "JSON.stringify(x).replace(/\"/g, '\\\\\"');",
       'let y: string = x.replace(/\\\\/g, "\\\\\\\\"); y = y.replace(/\'/g, "\\\\\'");',
       // A pattern that is not a union of constants: taken to match a backslash.
       'x.replace(/[^a-z]/g, "\\\\$&");',
@@ -524,7 +524,7 @@ describe("CodeScanning - js/overly-large-range, as code scanning reads it", () =
 
 describe("CodeScanning - one regular expression escape", () => {
   const COPY: string =
-    'export const quote = (text: string): string => { return text.replace(/[.*+?^$' +
+    "export const quote = (text: string): string => { return text.replace(/[.*+?^$" +
     '{}()|[\\]\\\\]/g, "\\\\$&"); };';
 
   test("a copy of the escape is reported where Common can be imported", () => {
@@ -559,7 +559,10 @@ describe("CodeScanning - one regular expression escape", () => {
         ),
       ),
     ).toEqual([
-      ["own regular expression escape", "escapeRegex is a copy of escapeRegExp."],
+      [
+        "own regular expression escape",
+        "escapeRegex is a copy of escapeRegExp.",
+      ],
     ]);
   });
 
@@ -591,7 +594,7 @@ describe("CodeScanning - the code of templates", () => {
   test("a template's own code is read at its lines; comments and literal text are not code", () => {
     const template: string = code(
       "<html>",
-      "<%# a comment: x.replace(\"<\", \"\") %>",
+      '<%# a comment: x.replace("<", "") %>',
       "<p><%%= not code %></p>",
       "<% if (items.length > 0) { %>",
       '  <span><%= items[0].replace("<", "") %></span>',
@@ -629,11 +632,9 @@ describe("CodeScanning - the code of templates", () => {
       ),
     ).toEqual([5]);
     expect(
-      templateScripts(page).map(
-        (script: { kind: string }): string => {
-          return script.kind;
-        },
-      ),
+      templateScripts(page).map((script: { kind: string }): string => {
+        return script.kind;
+      }),
     ).toEqual(["template code", "inline script"]);
   });
 });

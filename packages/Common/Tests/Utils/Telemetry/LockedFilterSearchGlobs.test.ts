@@ -60,7 +60,9 @@ function compiledMeaning(compiled: unknown): [string, string] | null {
 
   if (compiled instanceof Wildcard || compiled instanceof NotWildcard) {
     const globs: Array<string> = (
-      (compiled as { toJSON: () => JSONObject }).toJSON()["value"] as Array<string>
+      (compiled as { toJSON: () => JSONObject }).toJSON()[
+        "value"
+      ] as Array<string>
     ).slice();
 
     return globs.length === 1 ? ["pattern", toLikePattern(globs[0]!)] : null;
@@ -88,10 +90,7 @@ describe("a locked filter's glob, pasted with another filter after it", () => {
       [new Wildcard([glob]), false],
       [new NotWildcard([glob]), true],
     ] as Array<[Wildcard<string> | NotWildcard<string>, boolean]>) {
-      const token: string | null = buildSearchTokenForOperatorValue(
-        KEY,
-        value,
-      );
+      const token: string | null = buildSearchTokenForOperatorValue(KEY, value);
 
       expect(token).not.toBeNull();
 
@@ -104,9 +103,11 @@ describe("a locked filter's glob, pasted with another filter after it", () => {
       ]);
 
       if (hasWildcard(glob)) {
-        expect([glob, (filter.attributes?.[KEY] as object).constructor]).toEqual(
-          [glob, negated ? NotWildcard : Wildcard],
-        );
+        expect([
+          glob,
+          filter.attributes?.[KEY] instanceof
+            (negated ? NotWildcard : Wildcard),
+        ]).toEqual([glob, true]);
       }
     }
   });
@@ -117,44 +118,40 @@ describe("a locked filter's glob, pasted with another filter after it", () => {
     ["a space and a star", "a b*c"],
     ["a bracket left open", "f(x"],
     ["a colon at the end", "Error:"],
-  ])("starts with and ends with %s keep the text literal", (_name: string, text: string) => {
-    for (const [value, glob] of [
-      [new StartsWith(text), "starts"],
-      [new EndsWith(text), "ends"],
-    ] as Array<[StartsWith<string> | EndsWith<string>, string]>) {
-      const filter: LogFilter = pasted(
-        buildSearchTokenForOperatorValue(KEY, value) as string,
-      );
-      const like: string =
-        glob === "starts"
-          ? toLikePattern(`${escapeWildcards(text)}*`)
-          : toLikePattern(`*${escapeWildcards(text)}`);
+  ])(
+    "starts with and ends with %s keep the text literal",
+    (_name: string, text: string) => {
+      for (const [value, glob] of [
+        [new StartsWith(text), "starts"],
+        [new EndsWith(text), "ends"],
+      ] as Array<[StartsWith<string> | EndsWith<string>, string]>) {
+        const filter: LogFilter = pasted(
+          buildSearchTokenForOperatorValue(KEY, value) as string,
+        );
+        const like: string =
+          glob === "starts"
+            ? toLikePattern(`${escapeWildcards(text)}*`)
+            : toLikePattern(`*${escapeWildcards(text)}`);
 
-      expect([text, glob, filter.severityText]).toEqual([text, glob, "Error"]);
-      expect([text, glob, compiledMeaning(filter.attributes?.[KEY])]).toEqual([
-        text,
-        glob,
-        ["pattern", like],
-      ]);
-    }
-  });
+        expect([text, glob, filter.severityText]).toEqual([
+          text,
+          glob,
+          "Error",
+        ]);
+        expect([text, glob, compiledMeaning(filter.attributes?.[KEY])]).toEqual(
+          [text, glob, ["pattern", like]],
+        );
+      }
+    },
+  );
 
   test("every generated glob means what it meant, and the filter after it still applies", () => {
-    const globs: Array<string> = generatedTexts(10000, 6060, [
-      "a",
-      " ",
-      "*",
-      "?",
-      "\\",
-      "\\*",
-      '\\"',
-      '"',
-      "~",
-      "(",
-      ")",
-      "-",
-      ":",
-    ], 10).filter((glob: string): boolean => {
+    const globs: Array<string> = generatedTexts(
+      10000,
+      6060,
+      ["a", " ", "*", "?", "\\", "\\*", '\\"', '"', "~", "(", ")", "-", ":"],
+      10,
+    ).filter((glob: string): boolean => {
       // The form splits on " OR "; a lone "*" reads as "has a value".
       return glob.trim().length > 0 && glob.trim() !== "*";
     });

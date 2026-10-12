@@ -228,10 +228,7 @@ describe("markdownTableCell - read by marked (the emails and the docs)", () => {
         markedHtmlOf(tableWith(markdownTableCell(cell))),
       );
 
-      expect([cell, cells[0]]).toEqual([
-        cell,
-        paragraphOf(markedHtmlOf(cell)),
-      ]);
+      expect([cell, cells[0]]).toEqual([cell, paragraphOf(markedHtmlOf(cell))]);
     }
   });
 
@@ -292,13 +289,11 @@ describe("markdownTableCell - read by the dashboard (micromark with GitHub's ext
   });
 
   test("escaping only the pipe leaves rows that lose their shape", () => {
-    const broken: number = renderedPipeOnly.filter(
-      (html: string): boolean => {
-        const cells: Array<string> = cellsOf(html);
+    const broken: number = renderedPipeOnly.filter((html: string): boolean => {
+      const cells: Array<string> = cellsOf(html);
 
-        return cells.length !== 2 || cells[1] !== "z";
-      },
-    ).length;
+      return cells.length !== 2 || cells[1] !== "z";
+    }).length;
 
     expect(broken).toBeGreaterThan(0);
   });

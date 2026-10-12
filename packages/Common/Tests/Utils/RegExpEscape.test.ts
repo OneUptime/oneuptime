@@ -115,9 +115,7 @@ describe("escapeRegExp", () => {
 
   test("the pattern matches no other text", () => {
     const texts: Array<string> = Array.from(
-      new Set(
-        generatedTexts(600, 1618, [...SYNTAX_CHARACTERS, "a", "b"], 6),
-      ),
+      new Set(generatedTexts(600, 1618, [...SYNTAX_CHARACTERS, "a", "b"], 6)),
     );
 
     for (const text of texts) {

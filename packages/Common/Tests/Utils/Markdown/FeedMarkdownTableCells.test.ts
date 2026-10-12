@@ -86,10 +86,14 @@ const VALUE_ALPHABET: ReadonlyArray<string> = [
   "é",
 ];
 
-const values: Array<string> = generatedTexts(1500, 5150, VALUE_ALPHABET, 12)
-  .map((text: string): string => {
-    return `v ${text}`.trimEnd();
-  });
+const values: Array<string> = generatedTexts(
+  1500,
+  5150,
+  VALUE_ALPHABET,
+  12,
+).map((text: string): string => {
+  return `v ${text}`.trimEnd();
+});
 
 describe("mdText - a value in a table row keeps its cell and reads as typed", () => {
   test("in the emails (marked)", () => {

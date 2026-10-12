@@ -188,8 +188,7 @@ describe("the comparison pages' FAQ structured data", () => {
     const product: Product = ProductCompare(slug);
     const faq: FAQ = {
       question: 'Is it "really" R&D\'s pick at 50% < 60%?',
-      answer:
-        'Yes \\ no: "</script><b>after</b>" & <b>bold</b>\nnext line',
+      answer: 'Yes \\ no: "</script><b>after</b>" & <b>bold</b>\nnext line',
     };
     const html: string = await renderCompare(slug, { ...product, faq: [faq] });
 
@@ -292,7 +291,9 @@ describe("the blog post's structured data", () => {
       "Diagrams everywhere",
       "Drawing diagrams in Markdown.",
     );
-    const data: Array<StructuredData> = structuredDataIn(await renderPost(post));
+    const data: Array<StructuredData> = structuredDataIn(
+      await renderPost(post),
+    );
 
     expect(data).toEqual([
       {
@@ -353,7 +354,7 @@ describe("every page's head: organization, breadcrumbs, web page and software", 
 
   test("a page's title and description read as written in its web page block", async () => {
     const html: string = await renderHead({
-      title: "Pricing & Plans | It's \"OneUptime\"",
+      title: 'Pricing & Plans | It\'s "OneUptime"',
       description: "Plans for teams of 1 < n < 100 & more.",
       fullCanonicalUrl: `${HOME_URL}/pricing`,
       pageType: "other",
@@ -373,7 +374,7 @@ describe("every page's head: organization, breadcrumbs, web page and software", 
       }),
     ).toEqual(["Organization", "BreadcrumbList", "WebPage"]);
     expect(data[2]).toMatchObject({
-      name: "Pricing & Plans | It's \"OneUptime\"",
+      name: 'Pricing & Plans | It\'s "OneUptime"',
       description: "Plans for teams of 1 < n < 100 & more.",
       url: `${HOME_URL}/pricing`,
     });
@@ -402,9 +403,10 @@ describe("every page's head: organization, breadcrumbs, web page and software", 
       "/product/incident-management",
       "/books",
     ]) {
-      const seo: PageSEOData & { fullCanonicalUrl: string } =
-        seoFor(pagePath);
-      const html: string = await renderHead(seo as unknown as Record<string, unknown>);
+      const seo: PageSEOData & { fullCanonicalUrl: string } = seoFor(pagePath);
+      const html: string = await renderHead(
+        seo as unknown as Record<string, unknown>,
+      );
 
       expectReadableStructuredData(html, pagePath);
 
@@ -436,7 +438,9 @@ describe("one way to write structured data", () => {
       if (entry.isDirectory()) {
         files.push(...viewFiles(fullPath));
       } else if (entry.name.endsWith(".ejs")) {
-        files.push(path.relative(VIEWS_ROOT, fullPath).split(path.sep).join("/"));
+        files.push(
+          path.relative(VIEWS_ROOT, fullPath).split(path.sep).join("/"),
+        );
       }
     }
 

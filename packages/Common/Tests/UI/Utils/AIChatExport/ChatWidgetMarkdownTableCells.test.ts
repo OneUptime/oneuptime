@@ -78,17 +78,12 @@ describe("an exported table keeps its columns", () => {
   });
 
   test("every generated value keeps its row's two columns", () => {
-    const values: Array<string> = generatedTexts(3000, 2112, [
-      "a",
-      " ",
-      "|",
-      "\\",
-      "\\|",
-      "\r",
-      "\n",
-      "`",
-      "*",
-    ], 10).filter((value: string): boolean => {
+    const values: Array<string> = generatedTexts(
+      3000,
+      2112,
+      ["a", " ", "|", "\\", "\\|", "\r", "\n", "`", "*"],
+      10,
+    ).filter((value: string): boolean => {
       return value.trim().length > 0;
     });
 

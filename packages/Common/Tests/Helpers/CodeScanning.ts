@@ -99,17 +99,16 @@ export const SHARED_REGEXP_ESCAPE_FILE: string =
   "packages/Common/Utils/RegExpEscape.ts";
 
 // What each finding asks for instead.
-export const CODE_SCANNING_FIXES: Readonly<Record<CodeScanningRule, string>> =
-  {
-    "js/incomplete-sanitization":
-      "escape every character the sink reads as syntax, the backslash first and in the same pass (escapeRegExp for a pattern, markdownTableCell for a Markdown table cell, the query's parameter binding for SQL), replace every occurrence, or read the text with a walk instead of a replace",
-    "js/overly-large-range":
-      "list exactly the characters meant: a range within one block of letters or digits, a \\p{Script=...} class with the u flag, or code points written as escapes",
-    "own regular expression escape":
-      "escape text for a pattern with escapeRegExp from Common/Utils/RegExpEscape",
-    "normalized character":
-      "write the character as an escape (\\u{...}): Unicode normalization turns it into another character",
-  };
+export const CODE_SCANNING_FIXES: Readonly<Record<CodeScanningRule, string>> = {
+  "js/incomplete-sanitization":
+    "escape every character the sink reads as syntax, the backslash first and in the same pass (escapeRegExp for a pattern, markdownTableCell for a Markdown table cell, the query's parameter binding for SQL), replace every occurrence, or read the text with a walk instead of a replace",
+  "js/overly-large-range":
+    "list exactly the characters meant: a range within one block of letters or digits, a \\p{Script=...} class with the u flag, or code points written as escapes",
+  "own regular expression escape":
+    "escape text for a pattern with escapeRegExp from Common/Utils/RegExpEscape",
+  "normalized character":
+    "write the character as an escape (\\u{...}): Unicode normalization turns it into another character",
+};
 
 /*
  * ---------------------------------------------------------------------------
@@ -129,8 +128,10 @@ type RegExpTerm =
   // A group, capturing or not (not a lookaround).
   | { kind: "group"; child: RegExpTerm }
   | { kind: "class"; negated: boolean; items: Array<RegExpTerm> }
-  // A range of a class, a class escape (\d), an anchor, a dot, a quantified
-  // term, a lookaround, a backreference: no constant of its own.
+  /*
+   * A range of a class, a class escape (\d), an anchor, a dot, a quantified
+   * term, a lookaround, a backreference: no constant of its own.
+   */
   | { kind: "other" };
 
 const OTHER: RegExpTerm = { kind: "other" };
@@ -689,8 +690,10 @@ function visit(node: ts.Node, onNode: (node: ts.Node) => void): void {
 }
 
 // What valuesOfIdentifier found for a declaration, read once per file.
-const valuesOfDeclaration: WeakMap<ts.Node, Array<ts.Expression>> =
-  new WeakMap<ts.Node, Array<ts.Expression>>();
+const valuesOfDeclaration: WeakMap<ts.Node, Array<ts.Expression>> = new WeakMap<
+  ts.Node,
+  Array<ts.Expression>
+>();
 
 /*
  * The values a variable can hold where it is used: its initializer and
@@ -749,7 +752,10 @@ function valuesOfIdentifier(identifier: ts.Identifier): Array<ts.Expression> {
 }
 
 // The initializers of a class field named `name` in the file.
-function valuesOfField(source: ts.SourceFile, name: string): Array<ts.Expression> {
+function valuesOfField(
+  source: ts.SourceFile,
+  name: string,
+): Array<ts.Expression> {
   const values: Array<ts.Expression> = [];
 
   visit(source, (node: ts.Node) => {
@@ -792,8 +798,7 @@ function sourcesOf(node: ts.Expression): Array<ts.Expression> {
   if (
     ts.isBinaryExpression(value) &&
     (value.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
-      value.operatorToken.kind ===
-        ts.SyntaxKind.QuestionQuestionToken)
+      value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
   ) {
     return [value.left, value.right];
   }
@@ -875,7 +880,10 @@ function stringValuesOf(node: ts.Expression): Array<string> {
   const values: Array<string> = [];
 
   for (const origin of originsOf(node)) {
-    if (ts.isStringLiteral(origin) || ts.isNoSubstitutionTemplateLiteral(origin)) {
+    if (
+      ts.isStringLiteral(origin) ||
+      ts.isNoSubstitutionTemplateLiteral(origin)
+    ) {
       values.push(origin.text);
     }
   }
@@ -1072,10 +1080,7 @@ function feedsItsOwnText(replace: ReplaceCall): boolean {
 }
 
 // A replace of a string (no pattern) with nothing: CodeQL's removesFirstOccurrence.
-function removesFirstOccurrence(
-  node: ts.Node | null,
-  text: string,
-): boolean {
+function removesFirstOccurrence(node: ts.Node | null, text: string): boolean {
   const replace: ReplaceCall | null = node ? replaceCallOf(node) : null;
 
   return (
@@ -1372,15 +1377,14 @@ function inlineScripts(text: string): Array<string> {
   for (const start of text.matchAll(SCRIPT_START)) {
     const type: RegExpMatchArray | null = (start[1] || "").match(SCRIPT_TYPE);
 
-    if (
-      type &&
-      !JAVASCRIPT_TYPES.includes((type[1] || "").toLowerCase())
-    ) {
+    if (type && !JAVASCRIPT_TYPES.includes((type[1] || "").toLowerCase())) {
       continue;
     }
 
     const bodyStart: number = start.index! + start[0].length;
-    const end: RegExpMatchArray | null = text.slice(bodyStart).match(SCRIPT_END);
+    const end: RegExpMatchArray | null = text
+      .slice(bodyStart)
+      .match(SCRIPT_END);
     const bodyEnd: number =
       end && end.index !== undefined ? bodyStart + end.index : text.length;
     let body: string = text.slice(bodyStart, bodyEnd);
@@ -1391,7 +1395,10 @@ function inlineScripts(text: string): Array<string> {
     while (tagStart !== -1) {
       const tagEnd: number = body.indexOf("%>", tagStart + 2);
       const stop: number = tagEnd === -1 ? body.length : tagEnd + 2;
-      body = body.slice(0, tagStart) + blank(body.slice(tagStart, stop)) + body.slice(stop);
+      body =
+        body.slice(0, tagStart) +
+        blank(body.slice(tagStart, stop)) +
+        body.slice(stop);
       tagStart = body.indexOf("<%", stop);
     }
 
@@ -1401,9 +1408,7 @@ function inlineScripts(text: string): Array<string> {
   return scripts;
 }
 
-export type TemplateScriptsFunction = (
-  text: string,
-) => Array<TemplateScript>;
+export type TemplateScriptsFunction = (text: string) => Array<TemplateScript>;
 
 // The code of an EJS or HTML template, as code scanning extracts it.
 export const templateScripts: TemplateScriptsFunction = (
@@ -1476,10 +1481,15 @@ function scanProgram(
     node: ts.Node,
     rule: CodeScanningRule,
     message: string,
-  ) => void = (node: ts.Node, rule: CodeScanningRule, message: string): void => {
+  ) => void = (
+    node: ts.Node,
+    rule: CodeScanningRule,
+    message: string,
+  ): void => {
     findings.push({
       file: file,
-      line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+      line:
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
       rule: rule,
       message: message,
       code: node

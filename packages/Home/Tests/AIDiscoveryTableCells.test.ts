@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import * as MarkdownTableCellModule from "Common/Utils/Markdown/MarkdownTableCell";
 import {

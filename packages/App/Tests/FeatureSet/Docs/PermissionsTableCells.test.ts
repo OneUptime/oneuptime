@@ -7,7 +7,14 @@ import {
 } from "../../../FeatureSet/Docs/Utils/PermissionsTable";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import * as MarkdownTableCellModule from "Common/Utils/Markdown/MarkdownTableCell";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
