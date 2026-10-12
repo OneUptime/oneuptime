@@ -24,6 +24,7 @@ import TestLlmProviderModal, {
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
 import { LLM_PROVIDER_TEST_FAILED_NEXT_STEP } from "../../../UI/Utils/LlmProviderTestCopy";
@@ -42,8 +43,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * under it, as if still at work, "Testing the connection to your LLM
  * provider...". Now: while the test runs, what is happening (and Close
  * works); after it, one alert with a headline - passed, passed with a
- * warning, failed - and the server's verdict, the next step under a failure,
- * and Test again.
+ * warning, failed - and the server's verdict, the next step under a
+ * provider's failure (not under a refusal: changing the provider would not
+ * help), and Test again.
  */
 
 const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -63,6 +65,13 @@ const BAD_KEY: string =
 
 const CUSTOMER_REFUSAL: string =
   "You do not have permissions to select on - isGlobalLlm. No permission allows it: the column is not readable through the API.";
+
+const REFUSAL: string =
+  "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.";
+
+// The statuses the server refuses with: NotAuthorized and PaymentRequired.
+const NOT_AUTHORIZED: number = ExceptionCode.NotAuthorizedException;
+const PAYMENT_REQUIRED: number = ExceptionCode.PaymentRequiredException;
 
 const TESTING: string = "Sending a test prompt to your LLM provider…";
 
@@ -334,13 +343,52 @@ describe("after the test", () => {
     expect(within(modal()).queryByTestId("modal-error")).toBeNull();
   });
 
-  test("a refusal reads as a failure, in the server's words", async () => {
-    fetchMock.mockResolvedValue(
-      failure(
-        403,
-        "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.",
-      ) as never,
+  test("a refusal reads as a failure, in the server's words, with no next step: changing the provider would not help", async () => {
+    fetchMock.mockResolvedValue(failure(NOT_AUTHORIZED, REFUSAL) as never);
+
+    renderModal();
+
+    await settled(LlmProviderTestOutcome.Failed);
+
+    const result: HTMLElement = within(modal()).getByTestId(
+      "llm-provider-test-result",
     );
+    expect(result).toHaveTextContent("Test failed");
+    expect(result).toHaveTextContent(REFUSAL);
+    expect(
+      within(modal()).queryByTestId("llm-provider-test-next-step"),
+    ).toBeNull();
+    expect(testAgainButton()).toBeEnabled();
+  });
+
+  test.each([
+    [
+      "below the plan that sells providers",
+      PAYMENT_REQUIRED,
+      "Please upgrade your plan to Growth to access this feature",
+    ],
+    ["a server error", 500, "Server Error"],
+    ["a gateway that gave up waiting", 504, "Gateway Timeout"],
+  ])(
+    "%s (HTTP %s): the server's words, and no next step",
+    async (_case: string, status: number, message: string) => {
+      fetchMock.mockResolvedValue(failure(status, message) as never);
+
+      renderModal();
+
+      await settled(LlmProviderTestOutcome.Failed);
+
+      expect(
+        within(modal()).getByTestId("llm-provider-test-result"),
+      ).toHaveTextContent(message);
+      expect(
+        within(modal()).queryByTestId("llm-provider-test-next-step"),
+      ).toBeNull();
+    },
+  );
+
+  test("a request that never reached the server: a failure, and no next step", async () => {
+    fetchMock.mockRejectedValue(new Error("Network Error") as never);
 
     renderModal();
 
@@ -348,13 +396,53 @@ describe("after the test", () => {
 
     expect(
       within(modal()).getByTestId("llm-provider-test-result"),
-    ).toHaveTextContent(
-      "You do not have permission to test this LLM provider.",
-    );
+    ).toHaveTextContent("Network Error");
+    expect(
+      within(modal()).queryByTestId("llm-provider-test-next-step"),
+    ).toBeNull();
+  });
+
+  test("the next step follows each run: a refusal after a provider's failure drops it, a provider's failure after a refusal brings it back", async () => {
+    fetchMock
+      .mockResolvedValueOnce(failure(400, BAD_KEY) as never)
+      .mockResolvedValueOnce(failure(NOT_AUTHORIZED, REFUSAL) as never)
+      .mockResolvedValueOnce(failure(400, BAD_KEY) as never);
+
+    renderModal();
+
+    await waitFor(() => {
+      expect(
+        within(modal()).getByTestId("llm-provider-test-next-step"),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(testAgainButton());
+
+    await waitFor(() => {
+      expect(
+        within(modal()).getByTestId("llm-provider-test-result"),
+      ).toHaveTextContent(REFUSAL);
+    });
+    expect(
+      within(modal()).queryByTestId("llm-provider-test-next-step"),
+    ).toBeNull();
+
+    fireEvent.click(testAgainButton());
+
+    await waitFor(() => {
+      expect(
+        within(modal()).getByTestId("llm-provider-test-result"),
+      ).toHaveTextContent(BAD_KEY);
+    });
+    expect(
+      within(modal()).getByTestId("llm-provider-test-next-step"),
+    ).toBeInTheDocument();
   });
 
   test("an older server's refusal - the customer's - is shown whole, never as if the test were still running", async () => {
-    fetchMock.mockResolvedValue(failure(403, CUSTOMER_REFUSAL) as never);
+    fetchMock.mockResolvedValue(
+      failure(NOT_AUTHORIZED, CUSTOMER_REFUSAL) as never,
+    );
 
     renderModal();
 
@@ -367,6 +455,9 @@ describe("after the test", () => {
       within(modal()).queryByText(
         "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.",
       ),
+    ).toBeNull();
+    expect(
+      within(modal()).queryByTestId("llm-provider-test-next-step"),
     ).toBeNull();
   });
 

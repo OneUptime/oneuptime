@@ -327,7 +327,41 @@ test.describe("a provider's own page: the Test dialog", () => {
         "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL.",
       ),
     ).toHaveCount(0);
+    await expect(page.getByTestId("llm-provider-test-next-step")).toHaveCount(
+      0,
+    );
   });
+
+  for (const [verdict, role, words] of [
+    [
+      "refused",
+      "member",
+      "You do not have permission to test this LLM provider.",
+    ],
+    ["plan", "owner", "Please upgrade your plan to Growth"],
+  ]) {
+    test(`${verdict}: the server's words alone - no next step, since changing the provider would not help`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `role=${role}&verdict=${verdict}`);
+
+      await testButton(page).click();
+      await settledOn(page, "failed");
+
+      await expect(result(page)).toContainText("Test failed");
+      await expect(result(page)).toContainText(words!);
+      await expect(page.getByTestId("llm-provider-test-next-step")).toHaveCount(
+        0,
+      );
+      await expect(page.getByTestId("llm-provider-test-again")).toBeVisible();
+
+      if (verdict === "plan") {
+        await shoot(page, "plan-1280");
+      }
+    });
+  }
 });
 
 test.describe("Project Settings > AI > LLM Providers: a row's Test", () => {

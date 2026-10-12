@@ -20,7 +20,19 @@ export interface LLMProviderTestResult {
    * Undefined for an older server that does not report it.
    */
   supportsToolCalling?: boolean | undefined;
+  /*
+   * A failure the provider's settings can fix: the server asked the provider
+   * and it failed - refused the key, had no such model, was not reached - or
+   * the settings are incomplete, said as LlmProviderTestFailure says it (an
+   * HTTP 400). Not one when the test was refused - who may test, the plan -
+   * or the request failed on its way: the message says why, and changing
+   * the provider would not help.
+   */
+  isProviderFailure?: boolean | undefined;
 }
+
+// The status the test route answers a provider's failure with (BadData).
+const PROVIDER_FAILURE_STATUS: number = 400;
 
 export default class TestLLMProvider {
   /*
@@ -65,6 +77,7 @@ export default class TestLLMProvider {
         return {
           success: false,
           message: API.getFriendlyMessage(response),
+          isProviderFailure: response.statusCode === PROVIDER_FAILURE_STATUS,
         };
       }
 
@@ -83,6 +96,7 @@ export default class TestLLMProvider {
       return {
         success: false,
         message: API.getFriendlyMessage(err),
+        isProviderFailure: false,
       };
     }
   }

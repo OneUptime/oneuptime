@@ -34,7 +34,10 @@ import React, {
  *    out of room before it could - Ask AI and investigations read data
  *    through tools, so the server's words say what that means;
  *  - failed: what went wrong and what to check, then the provider's own
- *    words (LlmProviderTestFailure), and the next step.
+ *    words (LlmProviderTestFailure), and the next step - when the provider
+ *    failed it. A test refused (who may test, the plan) or a request that
+ *    failed on its way is said in the server's words alone: changing the
+ *    provider would not help.
  *
  * Each outcome is one alert with a headline in the reader's language and the
  * server's verdict under it. "Test again" runs it again - the verdict for a
@@ -109,6 +112,8 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     LlmProviderTestOutcome.Testing,
   );
   const [verdict, setVerdict] = useState<string>("");
+  // Whether the provider's settings can fix the failure (the next step).
+  const [isProviderFailure, setIsProviderFailure] = useState<boolean>(false);
 
   /*
    * Which run's verdict may still be shown: a run started again, or a
@@ -122,6 +127,7 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
 
     setOutcome(LlmProviderTestOutcome.Testing);
     setVerdict("");
+    setIsProviderFailure(false);
 
     const result: LLMProviderTestResult = await TestLLMProvider.test({
       llmProviderId: props.llmProviderId,
@@ -133,6 +139,7 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
     }
 
     setVerdict(result.message);
+    setIsProviderFailure(!result.success && result.isProviderFailure === true);
     setOutcome(getLlmProviderTestOutcome(result));
   }, [props.llmProviderId, props.headers]);
 
@@ -200,7 +207,7 @@ const TestLlmProviderModal: FunctionComponent<ComponentProps> = (
               dataTestId="llm-provider-test-result"
               textClassName="whitespace-pre-wrap"
             />
-            {outcome === LlmProviderTestOutcome.Failed ? (
+            {outcome === LlmProviderTestOutcome.Failed && isProviderFailure ? (
               <p
                 className="text-sm leading-6 text-gray-600"
                 data-testid="llm-provider-test-next-step"

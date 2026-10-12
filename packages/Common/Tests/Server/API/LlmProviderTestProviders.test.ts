@@ -69,6 +69,9 @@ import {
 import LLMService from "../../../Server/Utils/LLM/LLMService";
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
 import LlmType from "../../../Types/LLM/LlmType";
 import ObjectID from "../../../Types/ObjectID";
@@ -291,9 +294,21 @@ function dialogSays(): { success: boolean; message: string } {
     };
   }
 
+  const failure: Exception = failures[0]![2] as Exception;
+
+  /*
+   * Every failure of the provider is answered as bad data (HTTP 400): the
+   * status the dialog reads as the provider's failure, and puts the next
+   * step under ("Change the provider's settings, then test again."). A
+   * refusal - who may test, the plan - is answered otherwise, and gets none.
+   */
+  expect(failure).toBeInstanceOf(BadDataException);
+  expect(failure.code).toBe(ExceptionCode.BadDataException);
+  expect(failure.code).toBe(400);
+
   return {
     success: false,
-    message: (failures[0]![2] as Error).message,
+    message: failure.message,
   };
 }
 

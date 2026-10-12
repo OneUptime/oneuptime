@@ -37,7 +37,7 @@ import UserUtil from "Common/UI/Utils/User";
  *   ?role=     owner (default) | member | settingsmember | editllm | viewer
  *              | readllm | blocked | loading
  *   ?verdict=  passed (default) | warning | truncated | badkey | badmodel
- *              | unreachable | refused | legacy | slow
+ *              | unreachable | refused | plan | legacy | slow
  *   ?theme=dark   ?lang=ja|de
  */
 
@@ -234,16 +234,24 @@ const VERDICTS = {
         "OneUptime could not reach OpenAI: the LLM provider refused the connection. Check the Base URL, and that the OneUptime server can reach it.",
     },
   },
+  // A refusal is not bad data: NotAuthorizedException's status, 422.
   refused: {
-    status: 403,
+    status: 422,
     body: {
       message:
         "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.",
     },
   },
+  // Below the plan that sells providers: PaymentRequiredException's, 402.
+  plan: {
+    status: 402,
+    body: {
+      message: "Please upgrade your plan to Growth to access this feature",
+    },
+  },
   // What an older server answered every member: the customer's report.
   legacy: {
-    status: 403,
+    status: 422,
     body: {
       message:
         "You do not have permissions to select on - isGlobalLlm. No permission allows it: the column is not readable through the API.",
