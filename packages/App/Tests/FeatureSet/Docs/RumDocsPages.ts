@@ -87,12 +87,11 @@ export const APPLICATION_SIDE_MENU: ReadonlyArray<{
  * A table's create button, drawn as translateNamedAction draws it
  * (drawnCreateButton): the Telemetry Ingestion Keys table's.
  */
-export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> =
-  {
-    [RUM_INDEX]: ["Create Ingestion Key"],
-    [BROWSER_SETUP]: ["Create Ingestion Key"],
-    [MOBILE_SETUP]: ["Create Ingestion Key"],
-  };
+export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [RUM_INDEX]: ["Create Ingestion Key"],
+  [BROWSER_SETUP]: ["Create Ingestion Key"],
+  [MOBILE_SETUP]: ["Create Ingestion Key"],
+};
 
 /*
  * Bold names every language's Dashboard draws in English, so every page
@@ -106,17 +105,16 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> =
  *   - the web vital recommendations' names, which a recommendation card
  *     draws as the template writes them.
  */
-export const KEPT_AS_WRITTEN: Readonly<
-  Record<string, ReadonlyArray<string>>
-> = {
-  [BROWSER_SETUP]: ["Create Telemetry Ingestion Key"],
-  [WEB_VITALS]: [
-    ...WEB_VITAL_RATING_LABELS,
-    "P75",
-    "INP by route",
-    ...WEB_VITAL_RECOMMENDATION_NAMES,
-  ],
-};
+export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
+  {
+    [BROWSER_SETUP]: ["Create Telemetry Ingestion Key"],
+    [WEB_VITALS]: [
+      ...WEB_VITAL_RATING_LABELS,
+      "P75",
+      "INP by route",
+      ...WEB_VITAL_RECOMMENDATION_NAMES,
+    ],
+  };
 
 /*
  * Bold words that are emphasis or a lead-in, not a Dashboard label: a

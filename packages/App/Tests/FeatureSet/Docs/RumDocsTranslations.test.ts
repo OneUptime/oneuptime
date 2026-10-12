@@ -109,14 +109,15 @@ const PAGE_NAMES: Array<string> = RUM_SETUP_PAGES.map(
  * the docs' own font, in every language: their label lines are broken
  * (<br/>) to be no wider than this, counting a Chinese, Japanese or Korean
  * character twice. Each cap is the widest line the 17 languages drew when
- * they were measured. A label put back on one line runs its diagram off the
- * column, and the docs scroll it rather than shrink it.
+ * they were measured; the widest diagram of all, the Russian single-page
+ * app diagram, drew 521px. A label put back on one line runs its diagram off
+ * the column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [RUM_INDEX]: 30,
-  [BROWSER_SETUP]: 30,
-  [MOBILE_SETUP]: 30,
-  [WEB_VITALS]: 30,
+  [RUM_INDEX]: 25,
+  [BROWSER_SETUP]: 20,
+  [MOBILE_SETUP]: 29,
+  [WEB_VITALS]: 28,
 };
 
 /*
@@ -538,7 +539,11 @@ describe("the lists this test keeps", () => {
       const titles: string = detailsTitles(englishPage(page)).join("\n");
 
       for (const word of DETAILS_WORDS[page] || []) {
-        expect({ page, word: word.english, named: titles.includes(word.english) }).toEqual({
+        expect({
+          page,
+          word: word.english,
+          named: titles.includes(word.english),
+        }).toEqual({
           page,
           word: word.english,
           named: true,
@@ -926,7 +931,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const englishTitles: Array<string> = detailsTitles(english);
       const missing: Array<string> = (DETAILS_WORDS[entry.page] || [])
         .filter(
-          (word: { english: string; drawn: (l: string) => string }): boolean => {
+          (word: {
+            english: string;
+            drawn: (l: string) => string;
+          }): boolean => {
             const index: number = englishTitles.findIndex(
               (title: string): boolean => {
                 return title.includes(word.english);
@@ -1045,8 +1053,6 @@ describe("the helpers, on these pages' shapes", () => {
         "/docs/telemetry/session-replay#install-in-react-native",
       ),
     ).toBeNull();
-    expect(
-      anchorsOf("fa", "telemetry/session-replay").size,
-    ).toBeGreaterThan(0);
+    expect(anchorsOf("fa", "telemetry/session-replay").size).toBeGreaterThan(0);
   });
 });

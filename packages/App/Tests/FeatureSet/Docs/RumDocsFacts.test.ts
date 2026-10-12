@@ -147,7 +147,8 @@ const SOURCES: Record<string, string> = {
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 // A side menu's section or a link's title: `title="Basic"` or `title: "Overview"`.
-const MENU_TITLE: RegExp = /<SideMenuSection title="([^"]+)">|title: "([^"]+)"/g;
+const MENU_TITLE: RegExp =
+  /<SideMenuSection title="([^"]+)">|title: "([^"]+)"/g;
 // The Developer section, added to a view menu by a helper.
 const DEVELOPER_SECTION_CALL: string = "getDeveloperSideMenuSection(";
 // A Developer page's title in DeveloperDocsPages.ts.
@@ -166,6 +167,8 @@ const HISTOGRAM_BUCKETS: RegExp =
 // The regular expression of the page's toRoutePattern.
 const ROUTE_PATTERN_LITERAL: RegExp = /path\.replace\(\/(.+)\/gi, "\/:id"\)/;
 const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
+// A numbered list item: "1. ".
+const NUMBERED_ITEM: RegExp = /^\d\. /;
 
 function source(name: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[name] as string), "utf8");
@@ -275,7 +278,11 @@ function menuSections(
   let developerAdded: boolean = false;
 
   for (const match of Array.from(text.matchAll(MENU_TITLE))) {
-    if (!developerAdded && developerAt >= 0 && (match.index || 0) > developerAt) {
+    if (
+      !developerAdded &&
+      developerAt >= 0 &&
+      (match.index || 0) > developerAt
+    ) {
       sections.push({ section: "Developer", items: developerItems });
       developerAdded = true;
     }
@@ -349,14 +356,14 @@ describe("the RUM setup pages in the docs' nav", () => {
   it("open the Real User Monitoring group, in this order", () => {
     expect(group).toBeDefined();
     expect(
-      (group as NavGroup).links.slice(0, RUM_SETUP_PAGES.length).map(
-        (link: NavLink): { page: string; navTitle: string } => {
+      (group as NavGroup).links
+        .slice(0, RUM_SETUP_PAGES.length)
+        .map((link: NavLink): { page: string; navTitle: string } => {
           return {
             page: link.url.slice("/docs/".length),
             navTitle: link.title,
           };
-        },
-      ),
+        }),
     ).toEqual(
       RUM_SETUP_PAGES.map((entry: RumDocsPageEntry) => {
         return { page: entry.page, navTitle: entry.navTitle };
@@ -499,7 +506,7 @@ describe("RUM Overview: how OneUptime recognises RUM", () => {
   const rules: Array<string> = recognises
     .split("\n")
     .filter((line: string): boolean => {
-      return /^\d\. /.test(line);
+      return NUMBERED_ITEM.test(line);
     });
 
   it("states four rules, in the classifier's order", () => {
@@ -614,12 +621,15 @@ describe("RUM Overview: how OneUptime recognises RUM", () => {
     expect(base).toContain(
       'const clientName: string | null =\n          this.getStringAttribute(data.attributes, "browser.platform") ||\n          this.getStringAttribute(data.attributes, "device.model.identifier");',
     );
-    expect(rowOf(recognises, "`browser.platform`, `browser.language`, `browser.brands`")[2]).toContain(
-      "`browser.platform` also fills the **Clients** page",
-    );
-    expect(rowOf(recognises, "`device.id`, `device.model.identifier`")[2]).toContain(
-      "`device.model.identifier` also fills the **Clients** page",
-    );
+    expect(
+      rowOf(
+        recognises,
+        "`browser.platform`, `browser.language`, `browser.brands`",
+      )[2],
+    ).toContain("`browser.platform` also fills the **Clients** page");
+    expect(
+      rowOf(recognises, "`device.id`, `device.model.identifier`")[2],
+    ).toContain("`device.model.identifier` also fills the **Clients** page");
   });
 
   it("promotes oneuptime.label.<name> to the label <name>:<value>", () => {
@@ -754,9 +764,7 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
       expect(browser).toContain(`**${title}**`);
     }
 
-    expect(form).toContain(
-      "The key type cannot be changed after creation.",
-    );
+    expect(form).toContain("The key type cannot be changed after creation.");
     expect(browser).toContain(
       "The key type cannot be changed after the key is created.",
     );
@@ -809,7 +817,10 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
   });
 
   it("holds a Browser key to 6000 requests a minute unless the key sets its own", () => {
-    const allows: string = section(BROWSER_SETUP, "## What a Browser key allows");
+    const allows: string = section(
+      BROWSER_SETUP,
+      "## What a Browser key allows",
+    );
     const row: Array<string> = rowOf(allows, "**Requests Per Minute Limit**");
 
     expect(DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE).toBe(6000);
@@ -819,7 +830,10 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
   });
 
   it("matches a *. origin the way the Allowed Origins row says", () => {
-    const allows: string = section(BROWSER_SETUP, "## What a Browser key allows");
+    const allows: string = section(
+      BROWSER_SETUP,
+      "## What a Browser key allows",
+    );
 
     expect(rowOf(allows, "**Allowed Origins**")[1]).toContain(
       "`https://*.example.com` covers every subdomain of `example.com`, but not `example.com` itself.",
@@ -830,12 +844,10 @@ describe("Ingestion keys: a Browser key for the web, a Server key for mobile", (
     expect(OriginAllowList.matches("https://app.example.com", allowed)).toBe(
       true,
     );
-    expect(
-      OriginAllowList.matches("https://eu.app.example.com", allowed),
-    ).toBe(true);
-    expect(OriginAllowList.matches("https://example.com", allowed)).toBe(
-      false,
+    expect(OriginAllowList.matches("https://eu.app.example.com", allowed)).toBe(
+      true,
     );
+    expect(OriginAllowList.matches("https://example.com", allowed)).toBe(false);
     expect(OriginAllowList.matches("https://evilexample.com", allowed)).toBe(
       false,
     );
@@ -954,8 +966,15 @@ describe("Browser Setup: the SDK setup", () => {
       "browser.mobile",
       "user_agent.original",
     ]);
-    expect(classify({ "service.name": "storefront-web", "browser.language": "en" })).toBe("browser");
-    expect(classify({ "service.name": "storefront-web", "browser.platform": "macOS" })).toBe("browser");
+    expect(
+      classify({ "service.name": "storefront-web", "browser.language": "en" }),
+    ).toBe("browser");
+    expect(
+      classify({
+        "service.name": "storefront-web",
+        "browser.platform": "macOS",
+      }),
+    ).toBe("browser");
     // Why the comment names two of the four: the others mark nothing.
     expect(classify({ "browser.mobile": "false" })).toBeNull();
     expect(classify({ "user_agent.original": "Mozilla/5.0" })).toBeNull();
@@ -996,8 +1015,12 @@ describe("Browser Setup: the SDK setup", () => {
 
     const middleware: string = source("otelRequestMiddleware");
 
-    expect(middleware).toContain('contentType.includes("application/x-protobuf")');
-    expect(reference).toContain("OneUptime accepts OTLP/JSON and OTLP/protobuf.");
+    expect(middleware).toContain(
+      'contentType.includes("application/x-protobuf")',
+    );
+    expect(reference).toContain(
+      "OneUptime accepts OTLP/JSON and OTLP/protobuf.",
+    );
 
     // Any origin, and whatever request headers the browser asks to send.
     expect(source("startServer")).toContain(
@@ -1113,7 +1136,10 @@ describe("Core Web Vitals", () => {
   }
 
   it("lists the names OneUptime probes for each vital, in its order, with each unit", () => {
-    const names: string = section(WEB_VITALS, "## Metric names OneUptime recognises");
+    const names: string = section(
+      WEB_VITALS,
+      "## Metric names OneUptime recognises",
+    );
     const rows: Array<Array<string>> = (tables(names)[0] || []).slice(1);
 
     expect(
@@ -1195,7 +1221,9 @@ describe("Core Web Vitals", () => {
     expect(source("metricQuery")).toContain(
       "DropdownUtil.getDropdownOptionsFromEnum(MetricsAggregationType)",
     );
-    expect(vitals).toContain("The card shows the **mean** over the selected range");
+    expect(vitals).toContain(
+      "The card shows the **mean** over the selected range",
+    );
     expect(vitals).toContain("with the **P75** aggregation");
   });
 
@@ -1268,9 +1296,7 @@ describe("Core Web Vitals", () => {
       (literal as RegExpMatchArray)[1] as string,
       "gi",
     );
-    const toRoutePattern: (path: string) => string = (
-      path: string,
-    ): string => {
+    const toRoutePattern: (path: string) => string = (path: string): string => {
       return path.replace(pattern, "/:id");
     };
 
@@ -1279,7 +1305,9 @@ describe("Core Web Vitals", () => {
       toRoutePattern("/orders/0b9a43c2-6c4e-4f1e-9a62-2d8f1f7f2a10/items"),
     ).toBe("/orders/:id/items");
     expect(toRoutePattern("/products")).toBe("/products");
-    expect(code).toContain('// "/products/42" -> "/products/:id", also for UUIDs.');
+    expect(code).toContain(
+      '// "/products/42" -> "/products/:id", also for UUIDs.',
+    );
   });
 
   it("reads the route from app.route, then url.template, for INP by route", () => {
@@ -1341,8 +1369,8 @@ describe("Core Web Vitals", () => {
         const step: MonitorStep = template.getMonitorStep(args);
         const metric: any = step.data?.metricMonitor;
         const breach: any =
-          step.data?.monitorCriteria.data?.monitorCriteriaInstanceArray[0]
-            ?.data?.filters[0];
+          step.data?.monitorCriteria.data?.monitorCriteriaInstanceArray[0]?.data
+            ?.filters[0];
 
         expect(metric.rollingTime).toBe(RollingTime.Past5Minutes);
         expect(
