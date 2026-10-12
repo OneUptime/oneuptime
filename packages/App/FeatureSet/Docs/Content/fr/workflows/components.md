@@ -20,6 +20,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Appeler toute autre API, ou votre propre service              | [API](#api)                                                       |
 | Résumer, classer ou rédiger du texte                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | Prendre un chemin ou un autre selon une valeur                | [Conditions](#conditions)                                         |
+| Prendre un chemin parmi plusieurs selon une valeur            | [Switch / Case](#switch-case)                                     |
 | Transformer des données entre deux blocs                      | [JSON](#json) ou [Custom Code](#custom-code)                      |
 | Attendre avant le bloc suivant                                | [Sleep](#sleep)                                                   |
 | Démarrer un autre workflow                                    | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - Les **Paramètres** sont ce que vous remplissez. Les paramètres marqués **(Optionnel)** peuvent rester vides. Les paramètres moins utilisés sont repliés sous **Plus de champs**.
-- Les **Outputs** sont les points du bord inférieur. La plupart des blocs ont **Success** et **Error** ; [Conditions](#conditions) a **Yes** et **No**.
+- Les **Outputs** sont les points du bord inférieur. La plupart des blocs ont **Success** et **Error** ; [Conditions](#conditions) a **Yes** et **No**, et [Switch / Case](#switch-case) en a une pour chacun de ses cas, plus **Default**.
 - Les **Returns** sont les valeurs qu'un bloc transmet aux blocs suivants, comme le **Response Body** d'une API. Un bloc suivant en lit une avec `{{local.components.<block ID>.returnValues.<value ID>}}` ; le bouton **{ }** d'un paramètre l'insère pour vous. Voir [Variables](/docs/workflows/variables#sorties-des-composants-données-des-blocs-précédents).
 
 Un bloc qui prend **Error** ne fait pas échouer l'exécution : l'exécution suit le chemin **Error**, ou s'arrête là si rien n'y est relié. Un paramètre obligatoire laissé vide, ou un paramètre qui ne peut jamais fonctionner, arrête au contraire l'exécution avec une erreur.
@@ -240,7 +241,7 @@ Convertissez entre texte et JSON, ou combinez deux objets JSON.
 
 ## Conditions
 
-Créez un embranchement à partir d'une comparaison. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **If / Else**, sous **Popular**.
+Créez un embranchement à partir d'une comparaison. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **If / Else**, sous **Popular**. Pour choisir entre plus de deux chemins, utilisez [Switch / Case](#switch-case).
 
 Ses paramètres se lisent comme une phrase : **Si** *valeur à vérifier* *comparaison* *valeur de comparaison*, continuer sur **Yes**, sinon sur **No**. Sous les paramètres, la condition est relue en toutes lettres, pour que vous puissiez vérifier qu'elle dit ce que vous voulez. Sur le canevas, le bloc affiche aussi sa condition, par exemple *Si environment is equal to “production”*.
 
@@ -267,6 +268,25 @@ Les comparaisons de nombres comparent des nombres et les comparaisons de texte c
 - **est vide** est satisfait par l'absence de toute valeur, un texte vide, une liste ou un objet vide, ou une valeur que le bloc précédent n'avait pas, comme un champ que le webhook n'a pas envoyé. `0` et `false` sont des valeurs : ils ne sont donc pas vides.
 
 **Yes** s'exécute quand la condition est remplie et **No** quand elle ne l'est pas. Les blocs configurés avant que les paramètres portent ces noms s'exécutent exactement comme avant. Un ancien choix n'est plus proposé : comparer une valeur en tant que **Null** ou **Undefined**, ce qui ignorait ce que contenait la valeur. Un bloc qui l'utilise encore le signale quand vous l'ouvrez ; choisissez **est vide** pour vérifier qu'une valeur manque.
+
+## Switch / Case
+
+Prendre un chemin parmi plusieurs selon une valeur. Dans le panneau **Ajouter un composant**, ce bloc s'appelle **Switch / Case**, sous **Popular**.
+
+Il compare une valeur à chacun de ses cas tour à tour, depuis le haut, et continue par le premier cas qui correspond, ou par **Default** si aucun ne correspond. Un seul chemin s'exécute : une valeur qui correspond à deux cas prend le premier des deux.
+
+| Paramètre          | Ce qu'il fait |
+| ------------------ | ------------- |
+| **Value to check** | La valeur à laquelle chaque cas est comparé, en général celle d'un bloc précédent. Appuyez sur **{ }** dans la zone pour en choisir une, ou tapez `{{`. |
+| **Cases**          | Une comparaison et une valeur pour chaque chemin, vérifiées depuis le haut. Appuyez sur **Ajouter un cas** pour en ajouter un autre, et faites glisser un cas par sa poignée pour le déplacer. Un bloc contient au maximum 25 cas. |
+
+Chaque cas est une sortie sur le canevas, nommée d'après sa valeur : un cas qui demande **is equal to** `production` est la sortie *production*, et un cas qui demande **est supérieur à** `500` est *is greater than 500*. **Default** est toujours la dernière sortie. Reliez chaque sortie à ce qui doit s'exécuter ensuite.
+
+Un cas correspond exactement quand un [If / Else](#conditions) avec la même comparaison et la même valeur prendrait **Yes** : les comparaisons sont les mêmes, et les valeurs sont comparées de la même façon. **Compare as** est replié sous les cas, avec un choix pour chaque cas.
+
+Quand vous retirez un cas qui a une connexion, les paramètres indiquent vers quels blocs il menait, et **Rétablir** remet le cas en place. L'enregistrement supprime la connexion avec le cas. Les vérifications du Constructeur signalent un cas auquel rien n'est relié, et un cas qui n'est jamais pris parce qu'un cas au-dessus demande la même chose.
+
+Une exécution qui prend une sortie à laquelle rien n'est relié, **Default** compris, s'arrête là sans erreur. L'onglet **Étapes** de l'exécution indique quel cas a correspondu et pourquoi, par exemple *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

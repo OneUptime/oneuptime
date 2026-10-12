@@ -20,6 +20,7 @@
 | 调用其他任何 API 或你自己的服务                               | [API](#api)                                                       |
 | 总结、分类或起草文本                                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | 根据某个值走这条或那条路径                                    | [Conditions](#conditions)                                         |
+| 根据某个值走多条路径中的一条                                   | [Switch / Case](#switch-case)                                     |
 | 在两个块之间转换数据                                          | [JSON](#json) 或 [Custom Code](#custom-code)                      |
 | 在下一个块之前等待                                            | [Sleep](#sleep)                                                   |
 | 启动另一个工作流                                              | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - **设置** 是你要填写的内容。标有 **（可选）** 的设置可以留空。不常用的设置折叠在 **更多字段** 下。
-- **Outputs** 是底部边缘的点。大多数块有 **Success** 和 **Error**；[Conditions](#conditions) 有 **Yes** 和 **No**。
+- **Outputs** 是底部边缘的点。大多数块有 **Success** 和 **Error**；[Conditions](#conditions) 有 **Yes** 和 **No**；[Switch / Case](#switch-case) 每个分支有一个，另有 **Default**。
 - **Returns** 是块传给后续块的值，例如 API 的 **Response Body**。后续块用 `{{local.components.<block ID>.returnValues.<value ID>}}` 读取；设置中的 **{ }** 按钮会替你插入。参见 [变量](/docs/workflows/variables#组件输出来自前面块的数据)。
 
 选择了 **Error** 的块不会让运行失败：运行会沿着 **Error** 路径继续，如果没有连接任何东西就在那里结束。而留空的必填设置，或者永远不可能生效的设置，会以错误停止运行。
@@ -240,7 +241,7 @@ return {
 
 ## Conditions
 
-根据比较进行分支。在 **添加组件** 面板中，这个块叫 **If / Else**，位于 **Popular** 下。
+根据比较进行分支。在 **添加组件** 面板中，这个块叫 **If / Else**，位于 **Popular** 下。要在两条以上的路径中选择，请使用 [Switch / Case](#switch-case)。
 
 它的设置读起来像一句话：**如果** *要检查的值* *比较方式* *要比较的值*，就继续走 **Yes**，否则走 **No**。设置下方会用文字把条件复述一遍，方便你确认它说的正是你想表达的。在画布上，块也会显示它的条件，例如 *如果 environment is equal to “production”*。
 
@@ -267,6 +268,25 @@ return {
 - **为空** 在以下情况满足：完全没有值、空白文本、空列表或空对象，或者前面的块没有的值，例如 Webhook 没有发送的字段。`0` 和 `false` 都是值，所以不算空。
 
 条件成立时运行 **Yes**，不成立时运行 **No**。在设置采用这些名称之前配置的块，仍会与以前完全一样地运行。有一个旧选项不再提供：把值按 **Null** 或 **Undefined** 来比较，这会忽略值的内容。仍在使用它的块会在你打开时提示；要检查值是否缺失，请选择 **为空**。
+
+## Switch / Case
+
+根据某个值走多条路径中的一条。在 **添加组件** 面板中，这个块叫 **Switch / Case**，位于 **Popular** 下。
+
+它从上到下依次把一个值与每个分支比较，沿第一个匹配的分支继续；没有分支匹配时，沿 **Default** 继续。只会走一条路径：同时匹配两个分支的值走其中第一个。
+
+| 设置               | 作用 |
+| ------------------ | ---- |
+| **Value to check** | 每个分支都与之比较的值，通常来自前面的块。在输入框中按 **{ }** 来选择，或者输入 `{{`。 |
+| **Cases**          | 每条路径的比较方式和值，从上到下检查。按 **添加分支** 再添加一个，拖动分支的手柄可以移动它。一个块最多包含 25 个分支。 |
+
+每个分支都是画布上的一个输出，以它的值命名：比较方式为 **is equal to**、值为 `production` 的分支是输出 *production*，比较方式为 **大于**、值为 `500` 的分支是 *is greater than 500*。**Default** 总是最后一个输出。把每个输出连接到接下来要运行的内容。
+
+当比较方式和值相同的 [If / Else](#conditions) 会走 **Yes** 时，分支就匹配，两者完全一致：比较方式相同，值的比较方法也相同。**Compare as** 折叠在分支下面，每个分支可以单独选择。
+
+移除一个有连接的分支时，设置会显示它原本通往哪些块，按 **恢复** 可以把分支找回来。保存时，连接会随分支一起移除。生成器的检查会指出没有连接任何内容的分支，以及因为上方分支条件相同而永远不会被选中的分支。
+
+走向一个没有连接任何内容的输出（包括 **Default**）的运行会在那里结束，不会报错。运行的 **步骤** 选项卡会说明哪个分支匹配以及原因，例如 *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

@@ -20,6 +20,7 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | Chamar qualquer outra API ou um serviço seu                   | [API](#api)                                                       |
 | Resumir, classificar ou redigir texto                         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Seguir um caminho ou outro conforme um valor                  | [Conditions](#conditions)                                         |
+| Seguir um de vários caminhos conforme um valor                | [Switch / Case](#switch-case)                                     |
 | Transformar dados entre dois blocos                           | [JSON](#json) ou [Custom Code](#custom-code)                      |
 | Esperar antes do próximo bloco                                | [Sleep](#sleep)                                                   |
 | Iniciar outro workflow                                        | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - As **Configurações** são o que você preenche. As configurações marcadas como **(Opcional)** podem ficar vazias. As configurações menos usadas ficam recolhidas em **Mais campos**.
-- Os **Outputs** são os pontos da borda de baixo. A maioria dos blocos tem **Success** e **Error**; [Conditions](#conditions) tem **Yes** e **No**.
+- Os **Outputs** são os pontos da borda de baixo. A maioria dos blocos tem **Success** e **Error**; [Conditions](#conditions) tem **Yes** e **No**, e [Switch / Case](#switch-case) tem uma para cada um dos seus casos, além de **Default**.
 - Os **Returns** são os valores que um bloco entrega aos blocos seguintes, como o **Response Body** de uma API. Um bloco seguinte lê um deles com `{{local.components.<block ID>.returnValues.<value ID>}}`; o botão **{ }** de uma configuração o insere para você. Veja [Variáveis](/docs/workflows/variables#saídas-de-componentes-dados-de-blocos-anteriores).
 
 Um bloco que toma **Error** não faz a execução falhar: a execução segue o caminho **Error**, ou termina ali se nada estiver ligado a ele. Já uma configuração obrigatória deixada vazia, ou uma configuração que nunca pode funcionar, para a execução com um erro.
@@ -240,7 +241,7 @@ Converta entre texto e JSON, ou combine dois objetos JSON.
 
 ## Conditions
 
-Ramifique conforme uma comparação. No painel **Adicionar componente**, este bloco se chama **If / Else**, em **Popular**.
+Ramifique conforme uma comparação. No painel **Adicionar componente**, este bloco se chama **If / Else**, em **Popular**. Para escolher entre mais de dois caminhos, use [Switch / Case](#switch-case).
 
 As configurações dele se leem como uma frase: **Se** *valor a verificar* *comparação* *valor de comparação*, continue em **Yes**, senão em **No**. Abaixo das configurações, a condição é lida de volta em palavras, para você ver que ela diz o que você quer. No canvas, o bloco também mostra a condição dele, por exemplo *Se environment is equal to “production”*.
 
@@ -267,6 +268,25 @@ As comparações de números comparam números e as de texto comparam texto, ent
 - **está vazio** é satisfeito pela ausência de valor, um texto em branco, uma lista ou um objeto vazio, ou um valor que o bloco anterior não tinha, como um campo que o webhook não enviou. `0` e `false` são valores, então não estão vazios.
 
 **Yes** roda quando a condição é atendida e **No** quando não é. Os blocos configurados antes de as configurações terem esses nomes rodam exatamente como antes. Uma opção antiga não é mais oferecida: comparar um valor como **Null** ou **Undefined**, o que ignorava o que o valor continha. Um bloco que ainda a usa avisa quando você o abre; escolha **está vazio** para verificar um valor ausente.
+
+## Switch / Case
+
+Siga um de vários caminhos conforme um valor. No painel **Adicionar componente**, este bloco se chama **Switch / Case**, em **Popular**.
+
+Ele compara um valor com cada um dos seus casos, um de cada vez, de cima para baixo, e continua pelo primeiro caso que corresponde, ou por **Default** quando nenhum corresponde. Só um caminho roda: um valor que corresponde a dois casos segue o primeiro deles.
+
+| Configuração       | O que faz |
+| ------------------ | --------- |
+| **Value to check** | O valor com que cada caso é comparado, normalmente de um bloco anterior. Pressione **{ }** na caixa para escolher um, ou digite `{{`. |
+| **Cases**          | Uma comparação e um valor para cada caminho, verificados de cima para baixo. Pressione **Adicionar caso** para adicionar outro, e arraste um caso pela alça para movê-lo. Um bloco comporta no máximo 25 casos. |
+
+Cada caso é uma saída no canvas, com o nome do seu valor: um caso que pergunta **is equal to** `production` é a saída *production*, e um que pergunta **é maior que** `500` é *is greater than 500*. **Default** é sempre a última saída. Conecte cada saída ao que deve rodar em seguida.
+
+Um caso corresponde exatamente quando um [If / Else](#conditions) com a mesma comparação e o mesmo valor seguiria por **Yes**: as comparações são as mesmas, e os valores são comparados do mesmo jeito. **Compare as** fica recolhido sob os casos, com uma escolha para cada caso.
+
+Quando você remove um caso que tem uma conexão, as configurações dizem a quais blocos ele levava, e **Restaurar** traz o caso de volta. Salvar remove a conexão junto com o caso. As verificações do Construtor apontam um caso sem nada conectado e um caso que nunca é escolhido porque um caso acima dele pergunta o mesmo.
+
+Uma execução que segue por uma saída sem nada conectado, **Default** incluída, termina ali sem erro. A aba **Etapas** da execução diz qual caso correspondeu e por quê, por exemplo *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

@@ -20,6 +20,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Een andere API of je eigen dienst aan te roepen               | [API](#api)                                                       |
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |
 | Afhankelijk van een waarde het ene of het andere pad te nemen | [Conditions](#conditions)                                         |
+| Afhankelijk van een waarde een van meerdere paden te nemen    | [Switch / Case](#switch-case)                                     |
 | Gegevens tussen twee blokken om te vormen                     | [JSON](#json) of [Custom Code](#custom-code)                      |
 | Te wachten vóór het volgende blok                             | [Sleep](#sleep)                                                   |
 | Een andere workflow te starten                                | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - **Instellingen** zijn wat je invult. Instellingen met **(Optioneel)** mogen leeg blijven. Minder gebruikte instellingen zijn ingeklapt onder **Meer velden**.
-- **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Success** en **Error**; [Conditions](#conditions) heeft **Yes** en **No**.
+- **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Success** en **Error**; [Conditions](#conditions) heeft **Yes** en **No**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Default**.
 - **Returns** zijn de waarden die een blok aan latere blokken doorgeeft, zoals de **Response Body** van een API. Een later blok leest er een met `{{local.components.<block ID>.returnValues.<value ID>}}`; de knop **{ }** in een instelling voegt hem voor je in. Zie [Variabelen](/docs/workflows/variables#componentuitvoer-data-uit-eerdere-blokken).
 
 Een blok dat **Error** neemt, laat de uitvoering niet mislukken: de uitvoering volgt het pad **Error**, of eindigt daar als er niets op is aangesloten. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
@@ -240,7 +241,7 @@ Zet tekst om naar JSON en terug, of combineer twee JSON-objecten.
 
 ## Conditions
 
-Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder **Popular**.
+Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder **Popular**. Om tussen meer dan twee paden te kiezen, gebruik je [Switch / Case](#switch-case).
 
 De instellingen lezen als een zin: **Als** *waarde om te controleren* *vergelijking* *waarde om mee te vergelijken*, ga verder op **Yes**, anders op **No**. Onder de instellingen wordt de voorwaarde in woorden teruggelezen, zodat je ziet dat ze zegt wat je bedoelt. Op het canvas toont het blok de voorwaarde ook, bijvoorbeeld *Als environment is equal to “production”*.
 
@@ -267,6 +268,25 @@ De getalvergelijkingen vergelijken getallen en de tekstvergelijkingen vergelijke
 - Aan **is leeg** wordt voldaan door helemaal niets, lege tekst, een lege lijst of een leeg object, of een waarde die het eerdere blok niet had, zoals een veld dat de webhook niet stuurde. `0` en `false` zijn waarden, dus die zijn niet leeg.
 
 **Yes** draait als aan de voorwaarde wordt voldaan en **No** als dat niet zo is. Blokken die zijn ingesteld voordat de instellingen deze namen hadden, draaien precies zoals voorheen. Eén oude keuze wordt niet meer aangeboden: een waarde vergelijken als **Null** of **Undefined**, wat negeerde wat de waarde bevatte. Een blok dat die nog gebruikt, zegt dat als je het opent; kies **is leeg** om op een ontbrekende waarde te controleren.
+
+## Switch / Case
+
+Neem afhankelijk van een waarde een van meerdere paden. In het paneel **Component toevoegen** heet dit blok **Switch / Case**, onder **Popular**.
+
+Het vergelijkt één waarde om de beurt met elk van zijn gevallen, van boven af, en gaat verder via het eerste geval dat overeenkomt, of via **Default** als geen enkel geval overeenkomt. Er draait maar één pad: een waarde die met twee gevallen overeenkomt, neemt het eerste daarvan.
+
+| Instelling         | Wat het doet |
+| ------------------ | ------------ |
+| **Value to check** | De waarde waarmee elk geval wordt vergeleken, meestal uit een eerder blok. Druk op **{ }** in het vak om er een te kiezen, of typ `{{`. |
+| **Cases**          | Een vergelijking en een waarde voor elk pad, van boven af gecontroleerd. Druk op **Geval toevoegen** voor nog een, en sleep een geval aan zijn greep om het te verplaatsen. Een blok bevat maximaal 25 gevallen. |
+
+Elk geval is een uitgang op het canvas, genoemd naar zijn waarde: een geval dat vraagt **is equal to** `production` is de uitgang *production*, en een geval dat vraagt **is groter dan** `500` is *is greater than 500*. **Default** is altijd de laatste uitgang. Verbind elke uitgang met wat daarna moet draaien.
+
+Een geval komt precies overeen wanneer een [If / Else](#conditions) met dezelfde vergelijking en waarde **Yes** zou nemen: de vergelijkingen zijn dezelfde, en de waarden worden op dezelfde manier vergeleken. **Compare as** is ingeklapt onder de gevallen, met een keuze voor elk geval.
+
+Als je een geval verwijdert dat een verbinding heeft, zeggen de instellingen naar welke blokken het leidde, en **Terugzetten** zet het geval terug. Opslaan verwijdert de verbinding samen met het geval. De controles van de Bouwer wijzen op een geval waarmee niets is verbonden, en op een geval dat nooit wordt gekozen omdat een geval erboven hetzelfde vraagt.
+
+Een uitvoering die een uitgang neemt waarmee niets is verbonden, **Default** inbegrepen, eindigt daar zonder fout. Het tabblad **Stappen** van de uitvoering zegt welk geval overeenkwam en waarom, bijvoorbeeld *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

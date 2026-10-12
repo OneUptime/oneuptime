@@ -20,6 +20,7 @@ Du trenger sjelden å ha den åpen mens du bygger. Innstillingene til hver blokk
 | Kalle et hvilket som helst annet API eller din egen tjeneste  | [API](#api)                                                       |
 | Oppsummere, klassifisere eller skrive utkast til tekst        | [Generate Text with AI](#generate-text-with-ai)                   |
 | Ta den ene eller den andre veien avhengig av en verdi         | [Conditions](#conditions)                                         |
+| Ta én av flere veier avhengig av en verdi                     | [Switch / Case](#switch-case)                                     |
 | Omforme data mellom to blokker                                | [JSON](#json) eller [Custom Code](#custom-code)                   |
 | Vente før neste blokk                                         | [Sleep](#sleep)                                                   |
 | Starte en annen arbeidsflyt                                   | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - **Innstillinger** er det du fyller ut. Innstillinger merket **(Valgfritt)** kan stå tomme. Mindre brukte innstillinger er foldet sammen under **Flere felt**.
-- **Outputs** er punktene på den nederste kanten. De fleste blokker har **Success** og **Error**; [Conditions](#conditions) har **Yes** og **No**.
+- **Outputs** er punktene på den nederste kanten. De fleste blokker har **Success** og **Error**; [Conditions](#conditions) har **Yes** og **No**, og [Switch / Case](#switch-case) har én for hvert av tilfellene sine, i tillegg til **Default**.
 - **Returns** er verdiene en blokk gir videre til senere blokker, som et API sin **Response Body**. En senere blokk leser en med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en innstilling setter den inn for deg. Se [Variabler](/docs/workflows/variables#komponentutdata-data-fra-tidligere-blokker).
 
 En blokk som tar **Error**, får ikke kjøringen til å mislykkes: kjøringen følger veien **Error**, eller slutter der hvis ingenting er koblet til den. En påkrevd innstilling som er latt stå tom, eller en innstilling som aldri kan virke, stopper derimot kjøringen med en feil.
@@ -240,7 +241,7 @@ Konverter mellom tekst og JSON, eller kombiner to JSON-objekter.
 
 ## Conditions
 
-Forgren på en sammenligning. I panelet **Legg til komponent** heter denne blokken **If / Else**, under **Popular**.
+Forgren på en sammenligning. I panelet **Legg til komponent** heter denne blokken **If / Else**, under **Popular**. Bruk [Switch / Case](#switch-case) for å velge mellom mer enn to veier.
 
 Innstillingene leses som en setning: **Hvis** *verdi som skal sjekkes* *sammenligning* *verdi det sammenlignes med*, fortsett på **Yes**, ellers på **No**. Under innstillingene leses betingelsen tilbake med ord, slik at du kan se at den sier det du mener. På lerretet viser blokken også betingelsen sin, for eksempel *Hvis environment is equal to “production”*.
 
@@ -267,6 +268,25 @@ Tallsammenligningene sammenligner tall, og tekstsammenligningene sammenligner te
 - **er tom** oppfylles av ingenting i det hele tatt, blank tekst, en tom liste eller et tomt objekt, eller en verdi den tidligere blokken ikke hadde, som et felt webhooken ikke sendte. `0` og `false` er verdier, så de er ikke tomme.
 
 **Yes** kjører når betingelsen er oppfylt, og **No** når den ikke er det. Blokker som ble satt opp før innstillingene fikk disse navnene, kjører nøyaktig som før. Ett gammelt valg tilbys ikke lenger: å sammenligne en verdi som **Null** eller **Undefined**, som ignorerte hva verdien inneholdt. En blokk som fortsatt bruker det, sier det når du åpner den; velg **er tom** for å sjekke etter en manglende verdi.
+
+## Switch / Case
+
+Ta én av flere veier avhengig av en verdi. I panelet **Legg til komponent** heter denne blokken **Switch / Case**, under **Popular**.
+
+Den sammenligner én verdi med hvert av tilfellene sine etter tur, ovenfra, og fortsetter langs det første tilfellet som passer, eller langs **Default** når ingen passer. Bare én vei kjører: en verdi som passer med to tilfeller, tar det første av dem.
+
+| Innstilling        | Hva den gjør |
+| ------------------ | ------------ |
+| **Value to check** | Verdien hvert tilfelle sammenlignes med, vanligvis fra en tidligere blokk. Trykk på **{ }** i feltet for å velge en, eller skriv `{{`. |
+| **Cases**          | En sammenligning og en verdi for hver vei, sjekket ovenfra. Trykk på **Legg til tilfelle** for å legge til ett til, og dra et tilfelle i håndtaket for å flytte det. En blokk kan ha maks 25 tilfeller. |
+
+Hvert tilfelle er en utgang på lerretet, oppkalt etter verdien sin: et tilfelle som spør **is equal to** `production`, er utgangen *production*, og ett som spør **er større enn** `500`, er *is greater than 500*. **Default** er alltid den siste utgangen. Koble hver utgang til det som skal kjøre etterpå.
+
+Et tilfelle passer nøyaktig når en [If / Else](#conditions) med samme sammenligning og verdi ville tatt **Yes**: sammenligningene er de samme, og verdiene sammenlignes på samme måte. **Compare as** er foldet bort under tilfellene, med et valg for hvert tilfelle.
+
+Når du fjerner et tilfelle som har en tilkobling, viser innstillingene hvilke blokker det førte til, og **Gjenopprett** henter tilfellet tilbake. Når du lagrer, fjernes tilkoblingen sammen med tilfellet. Byggerens kontroller gjør oppmerksom på et tilfelle som ingenting er koblet til, og på et tilfelle som aldri blir valgt fordi et tilfelle over det spør om det samme.
+
+En kjøring som tar en utgang som ingenting er koblet til, **Default** medregnet, slutter der uten feil. Fanen **Trinn** for kjøringen viser hvilket tilfelle som passet og hvorfor, for eksempel *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

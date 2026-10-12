@@ -20,6 +20,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 | Call any other API, or your own service               | [API](#api)                                                       |
 | Summarize, classify or draft text                     | [Generate Text with AI](#generate-text-with-ai)                   |
 | Take one path or another depending on a value         | [Conditions](#conditions)                                         |
+| Take one of several paths depending on a value        | [Switch / Case](#switch-case)                                     |
 | Reshape data between two blocks                       | [JSON](#json) or [Custom Code](#custom-code)                      |
 | Wait before the next block                            | [Sleep](#sleep)                                                   |
 | Start another workflow                                | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - **Settings** are what you fill in. Settings marked **(Optional)** can be left empty. Less-used settings are folded under **More fields**.
-- **Outputs** are the dots on the bottom edge. Most blocks have **Success** and **Error**; [Conditions](#conditions) has **Yes** and **No**.
+- **Outputs** are the dots on the bottom edge. Most blocks have **Success** and **Error**; [Conditions](#conditions) has **Yes** and **No**, and [Switch / Case](#switch-case) has one for each of its cases, and **Default**.
 - **Returns** are the values a block hands to later blocks, such as an API's **Response Body**. A later block reads one with `{{local.components.<block ID>.returnValues.<value ID>}}`; the **{ }** button in a setting inserts it for you. See [Variables](/docs/workflows/variables#component-outputs-data-from-earlier-blocks).
 
 A block that takes **Error** does not fail the run: the run follows the **Error** path, or ends there if nothing is connected to it. A required setting left empty, or a setting that can never work, stops the run with an error instead.
@@ -240,7 +241,7 @@ Convert between text and JSON, or combine two JSON objects.
 
 ## Conditions
 
-Branch on a comparison. In the **Add Component** panel this block is called **If / Else**, under **Popular**.
+Branch on a comparison. In the **Add Component** panel this block is called **If / Else**, under **Popular**. To choose between more than two paths, use [Switch / Case](#switch-case).
 
 Its settings read as a sentence: **If** *value to check* *comparison* *compare with*, continue on **Yes**, otherwise on **No**. Under the settings, the condition is read back in words, so you can see it says what you mean. On the canvas the block shows its condition too, for example *If environment is equal to “production”*.
 
@@ -267,6 +268,25 @@ The number comparisons compare numbers and the text comparisons compare text, so
 - **is empty** is met by nothing at all, blank text, an empty list or object, or a value the earlier block did not have, such as a field the webhook did not send. `0` and `false` are values, so they are not empty.
 
 **Yes** runs when the condition is met and **No** when it is not. Blocks set up before the settings had these names run exactly as they did. One old choice is no longer offered: comparing a value as **Null** or **Undefined**, which ignored what the value held. A block that still uses it says so when you open it; choose **is empty** to check for a missing value.
+
+## Switch / Case
+
+Take one of several paths depending on a value. In the **Add Component** panel this block is called **Switch / Case**, under **Popular**.
+
+It compares one value with each of its cases in turn, from the top, and continues down the first case that matches, or down **Default** when none does. Only one path runs: a value that matches two cases takes the first of them.
+
+| Setting            | What it does                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Value to check** | The value every case is compared with, usually from an earlier block. Press **{ }** in the box to pick one, or type `{{`.                                         |
+| **Cases**          | A comparison and a value for each path, checked from the top. Press **Add case** for another, and drag a case by its grip to move it. A block holds at most 25 cases. |
+
+Each case is an output on the canvas, named after its value: a case asking **is equal to** `production` is the output *production*, and one asking **is greater than** `500` is *is greater than 500*. **Default** is always the last output. Connect each output to what should run next.
+
+A case matches exactly when an [If / Else](#conditions) with the same comparison and value would take **Yes**: the comparisons are the same, and so is how values are compared. **Compare as** is folded away under the cases, with a choice for each case.
+
+When you remove a case that has a connection, the settings say which blocks it led to, and **Put back** brings the case back. Saving removes the connection along with the case. The Builder's checks point out a case with nothing connected to it, and a case that is never taken because one above it asks the same.
+
+A run that takes an output with nothing connected, **Default** included, ends there without an error. The run's **Steps** tab says which case matched and why, for example *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 

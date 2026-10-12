@@ -125,7 +125,8 @@ export const getSwitchDocumentation: UtilityDocumentationFunction = (
               { name: "Value to check", value: sample.reference },
               {
                 name: "Cases",
-                value: "is equal to the first value, then the second",
+                value:
+                  "is equal to the first value, then is equal to the second",
               },
             ],
             description: `The first case runs when ${sample.description} is the first value, the second when it is the second, and **Default** for anything else.`,
