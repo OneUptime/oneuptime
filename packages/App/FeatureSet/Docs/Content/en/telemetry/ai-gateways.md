@@ -182,10 +182,13 @@ Portkey also has an OpenTelemetry endpoint of its own (`api.portkey.ai/v1/otel`)
 
 Set these variables on the gateway's container:
 
-```yaml title="Gateway environment"
-EXPERIMENTAL_GEN_AI_OTEL_TRACES_ENABLED: "true"
-EXPERIMENTAL_GEN_AI_OTEL_EXPORTER_OTLP_ENDPOINT: "https://oneuptime.com/otlp"
-EXPERIMENTAL_GEN_AI_OTEL_EXPORTER_OTLP_HEADERS: "x-oneuptime-token=YOUR_INGESTION_TOKEN"
+```yaml title="docker-compose.yml"
+services:
+  portkey-gateway:
+    environment:
+      EXPERIMENTAL_GEN_AI_OTEL_TRACES_ENABLED: "true"
+      EXPERIMENTAL_GEN_AI_OTEL_EXPORTER_OTLP_ENDPOINT: "https://oneuptime.com/otlp"
+      EXPERIMENTAL_GEN_AI_OTEL_EXPORTER_OTLP_HEADERS: "x-oneuptime-token=YOUR_INGESTION_TOKEN"
 ```
 
 - Give the base OTLP URL: Portkey adds `/v1/traces` itself.

@@ -13,10 +13,10 @@ A threat intel feed brings known-bad IP addresses, domains, URLs, email addresse
 
 ```mermaid title="From a TAXII collection to an alert"
 flowchart TB
-    taxii["TAXII 2.1 collection"] -->|"Polled on the<br/>feed's interval"| indicators["Indicators: IPs, domains,<br/>URLs, emails, hashes"]
-    events["New security events"] --> tag["Tagged as they arrive<br/>with threat.* attributes"]
+    taxii["TAXII 2.1 collection"] -->|"Polled on the<br/>feed's interval"| indicators["Indicators: IPs,<br/>domains, URLs,<br/>emails, hashes"]
+    events["New security<br/>events"] --> tag["Tagged as they<br/>arrive with threat.*<br/>attributes"]
     indicators --> tag
-    indicators --> match["Matched every minute<br/>against recent events"]
+    indicators --> match["Matched every<br/>minute against<br/>recent events"]
     match --> act["An alert, an optional<br/>incident and a finding"]
 ```
 
@@ -116,7 +116,7 @@ Every incoming security event, from the ingest API or a connection, is checked a
 
 When several indicators match one event, the one with the highest confidence fills in these values. They are ordinary attributes, so you can search on them in **Events**, filter Security Events monitors with them, and use them in detection rules:
 
-```yaml title="Sigma rule"
+```yaml title="threat-intel-logon.yml"
 title: High-confidence indicator in a successful logon
 level: critical
 detection:

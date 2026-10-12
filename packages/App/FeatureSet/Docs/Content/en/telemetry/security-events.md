@@ -234,7 +234,7 @@ flowchart TB
 
 A first rule, which matches failed logons from outside `10.x.x.x`:
 
-```yaml title="Sigma rule"
+```yaml title="failed-logon-burst.yml"
 title: Failed logon burst
 description: Repeated authentication failures from one source.
 level: high

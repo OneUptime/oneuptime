@@ -116,8 +116,8 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [GEMINI_COPILOT]: 26,
   [AI_GATEWAYS]: 26,
   [CIRCUIT_BREAKER]: 26,
-  [SECURITY_EVENTS]: 30,
-  [THREAT_INTELLIGENCE]: 30,
+  [SECURITY_EVENTS]: 32,
+  [THREAT_INTELLIGENCE]: 32,
 };
 
 // Bold words that name a product opened from the Products menu.
@@ -192,6 +192,22 @@ const NAME_TABS: ReadonlyArray<string> = [
   "OCSF",
   "Google UDM",
   "Generic JSON",
+];
+
+/*
+ * Names a translation writes as the English does, in prose too: products and
+ * tools. A line made of them alone, such as the header of the table that
+ * sets Gemini CLI beside GitHub Copilot, is not a line left untranslated.
+ */
+const PRODUCT_NAMES: ReadonlyArray<string> = [
+  "Gemini CLI",
+  "GitHub Copilot",
+  "Copilot CLI",
+  "Copilot SDK",
+  "VS Code",
+  "LiteLLM Proxy",
+  "OneUptime",
+  "OpenTelemetry",
 ];
 
 const ONLY_CODE: RegExp = /^`[^`]+`$/;
@@ -345,8 +361,9 @@ function linksByLine(markdown: string): Array<string> {
 
 /*
  * The prose lines of a translation that are still the English line in their
- * place: three or more Latin words of four letters, once code, link targets
- * and the bold words a page keeps in English are taken out. The title is the
+ * place: three or more Latin words of four letters, once code, link targets,
+ * product names and the bold words a page keeps in English are taken out.
+ * The title is the
  * nav link's, which some languages keep as the English writes it ("Gemini
  * CLI & GitHub Copilot"), and is held to it on its own.
  */
@@ -372,6 +389,10 @@ function untranslatedLines(language: string, page: string): Array<string> {
 
     for (const kept of keptAsWritten(page)) {
       text = text.split(`**${kept}**`).join(" ");
+    }
+
+    for (const name of PRODUCT_NAMES) {
+      text = text.split(name).join(" ");
     }
 
     if ((text.match(LATIN_WORD) || []).length >= 3) {

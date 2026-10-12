@@ -184,7 +184,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 ```
 @tab Managed settings
-```json title="Copilot enterprise managed settings"
+```json
 {
   "telemetry": {
     "enabled": true,
