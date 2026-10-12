@@ -203,11 +203,10 @@ describe("every trigger's Testing it says Run Workflow works while the workflow 
     const missing: Array<string> = [];
 
     for (const entry of TRIGGERS_WITH_A_TESTING_TOPIC) {
-      const runWorkflowParagraphs: Array<string> = entry.topic.paragraphs.filter(
-        (paragraph: string): boolean => {
+      const runWorkflowParagraphs: Array<string> =
+        entry.topic.paragraphs.filter((paragraph: string): boolean => {
           return paragraph.includes(RUN_WORKFLOW);
-        },
-      );
+        });
 
       if (
         runWorkflowParagraphs.length === 0 ||
