@@ -131,16 +131,20 @@ describe("network-device job — deadline and fetch-only overlap guard", () => {
    * The capability gate. The server hands credential-less (ping-only)
    * devices only to probes that declare they can ping them; a probe that
    * stops sending this silently loses every ping-only device in its fleet
-   * (they stay Pending server-side) with no error anywhere.
+   * (they stay Pending server-side) with no error anywhere. "snmpTables"
+   * tells the server a walk with no tableResults was handed no tables.
    */
-  test("the device list fetch declares the networkDevicePing capability", async () => {
+  test("the device list fetch declares the networkDevicePing and snmpTables capabilities", async () => {
     const runFunction: PromiseVoidFunction = capturedRunFunction();
 
     await runFunction();
 
     const arg: JSONObject = fetchSpy.mock.calls[0]![0] as unknown as JSONObject;
     const body: JSONObject = arg["data"] as JSONObject;
-    expect(body["probeCapabilities"]).toEqual(["networkDevicePing"]);
+    expect(body["probeCapabilities"]).toEqual([
+      "networkDevicePing",
+      "snmpTables",
+    ]);
   });
 
   test("a tick that arrives while the list fetch is still in flight is skipped", async () => {
