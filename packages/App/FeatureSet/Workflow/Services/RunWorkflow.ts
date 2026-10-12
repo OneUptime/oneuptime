@@ -41,7 +41,10 @@ import {
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
   getChildWorkflowArchivedMessage,
 } from "Common/Types/Workflow/WorkflowArchive";
-import { getChildWorkflowTurnedOffMessage } from "Common/Types/Workflow/WorkflowEnabled";
+import {
+  getChildWorkflowTurnedOffMessage,
+  getWorkflowTestRunLogLine,
+} from "Common/Types/Workflow/WorkflowEnabled";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -486,6 +489,19 @@ export default class RunWorkflow {
       this.callChain = runProps.callChain || [];
       this.runStartedAt = new Date();
 
+      /*
+       * A test run - a person ran the workflow from its Builder while it was
+       * turned off - opens its log by saying so, and who started it. The row
+       * QueueWorkflow wrote says it too, but this run's log replaces that
+       * when it is saved, so it is said again, first, before anything that
+       * could fail. A resumed run keeps the log it had.
+       */
+      if (runProps.isTestRun && !runProps.isResume) {
+        this.log(
+          getWorkflowTestRunLogLine({ startedBy: runProps.testRunStartedBy }),
+        );
+      }
+
       let didWorkflowErrorOut: boolean = false;
       this.workflowDeadlineAtInMs = Date.now() + Math.max(runProps.timeout, 0);
 
@@ -540,6 +556,7 @@ export default class RunWorkflow {
               resumeData: true,
               logs: true,
               stepTrace: true,
+              isTestRun: true,
             },
             props: {
               isRoot: true,
@@ -605,7 +622,14 @@ export default class RunWorkflow {
           return;
         }
 
-        if (!workflow.isEnabled) {
+        /*
+         * Turning a workflow off is how a live one is paused, so a run its
+         * trigger started, asleep when that happened, is cancelled. A test
+         * run was started while the workflow was off: the switch is no reason
+         * to stop it now, and it carries on as it would have without the
+         * Sleep, or a workflow with a Sleep step could never be tested.
+         */
+        if (!workflow.isEnabled && !existingLog.isTestRun) {
           this.log(
             "Workflow was disabled while it was waiting. Cancelling the run.",
           );

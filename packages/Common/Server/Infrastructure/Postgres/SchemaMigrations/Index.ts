@@ -80,6 +80,8 @@ import { DropWorkflowLastSavedBy1801200000000 } from "./1801200000000-DropWorkfl
 import { AddNetworkDeviceOtherAddresses1801250000000 } from "./1801250000000-AddNetworkDeviceOtherAddresses";
 import { AddVMwareProbeCollection1801300000000 } from "./1801300000000-AddVMwareProbeCollection";
 import { AddVMwareProbeCollectionIndexes1801350000000 } from "./1801350000000-AddVMwareProbeCollectionIndexes";
+import { AddWorkflowLogTestRun1801400000000 } from "./1801400000000-AddWorkflowLogTestRun";
+import { AddWorkflowLogStartedByForeignKey1801450000000 } from "./1801450000000-AddWorkflowLogStartedByForeignKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1360,4 +1362,6 @@ export default [
   AddNetworkDeviceOtherAddresses1801250000000,
   AddVMwareProbeCollection1801300000000,
   AddVMwareProbeCollectionIndexes1801350000000,
+  AddWorkflowLogTestRun1801400000000,
+  AddWorkflowLogStartedByForeignKey1801450000000,
 ];

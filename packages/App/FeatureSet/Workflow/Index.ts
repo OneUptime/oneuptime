@@ -5,8 +5,8 @@ import ModelSchemaAPI from "./API/ModelSchema";
 import StepSamplesAPI from "./API/StepSamples";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
+import { getRunPropsFromJobData } from "./Utils/WorkflowRunJob";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -59,20 +59,13 @@ const WorkflowFeatureSet: FeatureSet = {
         QueueWorker.getWorker(
           QueueName.Workflow,
           async (job: QueueJob) => {
-            await new RunWorkflow().runWorkflow({
-              workflowId: new ObjectID(job.data["workflowId"] as string),
-              workflowLogId: job.data["workflowLogId"]
-                ? new ObjectID(job.data["workflowLogId"] as string)
-                : null,
-              arguments: job.data.data as JSONObject,
-              timeout: WorkflowTimeoutInMs || 120000,
-              callChain:
-                (job.data["callChain"] as Array<string> | undefined) || [],
-              isResume: job.data["isResume"] === true,
-              runOnlyComponentId:
-                (job.data["runOnlyComponentId"] as string | undefined) ||
-                undefined,
-            });
+            // What QueueWorkflow wrote (Utils/WorkflowRunJob).
+            await new RunWorkflow().runWorkflow(
+              getRunPropsFromJobData(
+                (job.data as JSONObject) || {},
+                WorkflowTimeoutInMs || 120000,
+              ),
+            );
           },
           { concurrency: 100 },
         );

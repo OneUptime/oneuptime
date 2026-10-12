@@ -91,9 +91,18 @@ export default class ManualAPI {
         workflowId: workflowId,
       });
 
+      /*
+       * The run is recorded as this person's. That is also what lets it go
+       * ahead while the workflow is turned off, as a test run: off pauses
+       * the workflow's trigger, not a person testing it from its Builder
+       * (QueueWorkflow, Types/Workflow/WorkflowEnabled). The caller was
+       * checked above, so the id is a signed-in member's, never one a
+       * request names.
+       */
       await QueueWorkflow.addWorkflowToQueue({
         workflowId: workflowId,
         returnValues: req.body.data || {},
+        startedByUserId: databaseProps.userId,
       });
 
       return Response.sendJsonObjectResponse(req, res, {

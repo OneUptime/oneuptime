@@ -272,7 +272,7 @@ export const ARCHIVED_WORKFLOW_NOTE: string =
 export const QueryWorkflowsTool: ObservabilityTool = {
   name: "query_workflows",
   description:
-    "Query automation workflows in this project. List mode returns each workflow (name, description, enabled) with its recent run outcomes — last run status/time and how many of the recent runs failed. Archived workflows are left out of the list, as they never run. Pass workflowId (from the list mode `id` field) to get detail mode: the workflow plus its most recent runs (status, startedAt, completedAt, duration) including the tail of the run log for failed runs — use that to answer 'why did this workflow fail?'.",
+    "Query automation workflows in this project. List mode returns each workflow (name, description, enabled) with its recent run outcomes — last run status/time and how many of the recent runs failed. Archived workflows are left out of the list, as they never run. Pass workflowId (from the list mode `id` field) to get detail mode: the workflow plus its most recent runs (status, startedAt, completedAt, duration) including the tail of the run log for failed runs — use that to answer 'why did this workflow fail?'. A run marked testRun was started by a person from the Builder while the workflow was turned off, not by its trigger.",
   inputSchema: {
     type: "object",
     properties: {
@@ -363,6 +363,7 @@ export const QueryWorkflowsTool: ObservabilityTool = {
           resumeAt: true,
           createdAt: true,
           logs: true,
+          isTestRun: true,
         },
         sort: {
           createdAt: SortOrder.Descending,
@@ -401,6 +402,12 @@ export const QueryWorkflowsTool: ObservabilityTool = {
                 )
               : undefined,
           resumeAt: run.resumeAt,
+          /*
+           * A person ran it from the Builder while the workflow was off: a
+           * test, which its trigger did not start. Said only when true, so
+           * a disabled workflow's test runs are not read as it running.
+           */
+          testRun: run.isTestRun === true ? true : undefined,
           // Only failed runs carry log text: that is where the answer lives.
           logTail: isFailedRun ? tailOfLog(run.logs) : undefined,
         };

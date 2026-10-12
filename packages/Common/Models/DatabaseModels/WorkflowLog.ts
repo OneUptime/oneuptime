@@ -386,6 +386,114 @@ export default class WorkflowLog extends BaseModel {
   })
   public stepTrace?: JSONObject = undefined;
 
+  /*
+   * A run a person started by hand from the Builder - Run Workflow or Run
+   * just this step - while the workflow was turned off. Off pauses the
+   * workflow's trigger, not a person testing it, so such a run goes ahead:
+   * its steps run for real, as in any run, and it is marked so that it is
+   * never mistaken for one its trigger started (Types/Workflow/
+   * WorkflowEnabled). OneUptime sets it when it queues the run; no request
+   * writes it. False for every run before this column existed: a workflow
+   * that was off did not run at all then.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Test Run",
+    description:
+      "True for a run a person started by hand from the Builder while the workflow was turned off. Its steps ran for real; the workflow's trigger stayed paused.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isTestRun?: boolean = undefined;
+
+  /*
+   * The person who started this run by hand from the Builder, with Run
+   * Workflow or Run just this step, whether the workflow was on or off. Empty
+   * for a run its trigger or another workflow started. OneUptime records it
+   * when it queues the run (UserAttribution: no request writes it).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "startedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Started by User",
+    description:
+      "The person who started this run by hand from the Builder, with Run Workflow or Run just this step. Empty for a run its trigger or another workflow started.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "startedByUserId" })
+  public startedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Started by User ID",
+    description:
+      "ID of the person who started this run by hand from the Builder. Empty for a run its trigger or another workflow started.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public startedByUserId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

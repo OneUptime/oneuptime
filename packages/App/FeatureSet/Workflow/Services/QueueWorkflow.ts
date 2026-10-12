@@ -9,9 +9,14 @@ import CronTab from "Common/Utils/CronTab";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
-import { WORKFLOW_TURNED_OFF_MESSAGE } from "Common/Types/Workflow/WorkflowEnabled";
+import {
+  WORKFLOW_TURNED_OFF_MESSAGE,
+  getWorkflowTestRunLogLine,
+  getWorkflowTestRunStarter,
+} from "Common/Types/Workflow/WorkflowEnabled";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import ProjectService from "Common/Server/Services/ProjectService";
+import UserService from "Common/Server/Services/UserService";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -19,6 +24,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { ExecuteWorkflowType } from "Common/Server/Types/Workflow/TriggerCode";
 import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import logger from "Common/Server/Utils/Logger";
+import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
@@ -27,6 +33,7 @@ import {
   getSecretWorkflowVariableValues,
   redactSecretsFromString,
 } from "../Utils/SecretRedaction";
+import { buildWorkflowRunJobData } from "../Utils/WorkflowRunJob";
 
 const WORKFLOW_ID_PATTERN: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -215,21 +222,80 @@ export default class QueueWorkflow {
     }
 
     /*
-     * A workflow that is turned off does not run, however it is started: Run
-     * Workflow, Run just this step, its webhook URL or another workflow's
-     * Execute Workflow step. The refusal says how to turn it on, because a
-     * webhook sender's delivery log or a script may be the only place it is
-     * read. The Builder asks before it ever gets here (UseWorkflowEnabled).
+     * A workflow that is turned off is started by nothing but a person.
+     *
+     * Off pauses what starts it on its own - its webhook URL here, and its
+     * schedule, OneUptime events, incoming email and other workflows'
+     * Execute Workflow steps, which also check the switch before they get
+     * here - so those are refused, in words that say how to turn it on: a
+     * webhook sender's delivery log or a script may be the only place the
+     * refusal is read.
+     *
+     * A person testing the workflow from its Builder - Run Workflow or Run
+     * just this step, the only two routes that pass startedByUserId - may
+     * run it whether it is on or off: "Why do I have to enable a workflow in
+     * order to test run it?" Their run goes ahead as a test run, marked as
+     * one with who started it. A schedule is never a person.
      */
-    if (!workflow.isEnabled) {
+    const startedByUserId: ObjectID | undefined = scheduleAt
+      ? undefined
+      : executeWorkflow.startedByUserId;
+
+    if (!workflow.isEnabled && !startedByUserId) {
       throw new BadDataException(WORKFLOW_TURNED_OFF_MESSAGE);
     }
+
+    const isTestRun: boolean = !workflow.isEnabled;
 
     if (!workflow.projectId) {
       throw new BadDataException(
         "This workflow does not belong to a project and cannot be run",
       );
     }
+
+    const projectId: ObjectID = workflow.projectId;
+
+    // Who started a test run, as its log names them.
+    const testRunStartedBy: string | undefined =
+      isTestRun && startedByUserId
+        ? await QueueWorkflow.getTestRunStarter(startedByUserId)
+        : undefined;
+
+    type NewRunLogFunction = (lines: Array<string>) => WorkflowLog;
+
+    /*
+     * A row of this run's log, whatever becomes of the run: it says who
+     * started it, and a test run's opens with the line that says it is one.
+     */
+    const newRunLog: NewRunLogFunction = (
+      lines: Array<string>,
+    ): WorkflowLog => {
+      const time: string = OneUptimeDate.getCurrentDateAsFormattedString({
+        showSeconds: true,
+      });
+
+      const runLog: WorkflowLog = new WorkflowLog();
+      runLog.workflowId = workflowId;
+      runLog.projectId = projectId;
+      runLog.isTestRun = isTestRun;
+
+      if (startedByUserId) {
+        runLog.startedByUserId = startedByUserId;
+      }
+
+      runLog.logs = [
+        ...(isTestRun
+          ? [getWorkflowTestRunLogLine({ startedBy: testRunStartedBy })]
+          : []),
+        ...lines,
+      ]
+        .map((line: string): string => {
+          return `${time}: ${line}`;
+        })
+        .join("\n");
+
+      return runLog;
+    };
 
     /*
      * Resolve the cron pattern for scheduled workflows. The "Schedule at" value
@@ -290,14 +356,10 @@ export default class QueueWorkflow {
     if (projectPlan.isSubscriptionUnpaid) {
       // Add Workflow Run Log.
 
-      const runLog: WorkflowLog = new WorkflowLog();
-      runLog.workflowId = workflowId;
-      runLog.projectId = workflow.projectId;
+      const runLog: WorkflowLog = newRunLog([
+        "Workflow cannot run because subscription is unpaid.",
+      ]);
       runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
-      runLog.logs =
-        OneUptimeDate.getCurrentDateAsFormattedString({
-          showSeconds: true,
-        }) + ": Workflow cannot run because subscription is unpaid.";
 
       await WorkflowLogService.create({
         data: runLog,
@@ -326,17 +388,12 @@ export default class QueueWorkflow {
       if (workflowCount.toNumber() > WorkflowPlan[projectPlan.plan]) {
         // Add Workflow Run Log.
 
-        const runLog: WorkflowLog = new WorkflowLog();
-        runLog.workflowId = workflowId;
-        runLog.projectId = workflow.projectId;
-        runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
-        runLog.logs =
-          OneUptimeDate.getCurrentDateAsFormattedString({
-            showSeconds: true,
-          }) +
-          `: Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
+        const runLog: WorkflowLog = newRunLog([
+          `Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
             WorkflowPlan[projectPlan.plan]
-          }`;
+          }`,
+        ]);
+        runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
 
         await WorkflowLogService.create({
           data: runLog,
@@ -353,14 +410,10 @@ export default class QueueWorkflow {
     let workflowLog: WorkflowLog | null = null;
     if (!scheduleAt) {
       // if the workflow is to be run immediately.
-      const runLog: WorkflowLog = new WorkflowLog();
-      runLog.workflowId = workflowId;
-      runLog.projectId = workflow.projectId;
+      const runLog: WorkflowLog = newRunLog([
+        `Workflow ${workflowId.toString()} Scheduled.`,
+      ]);
       runLog.workflowStatus = WorkflowStatus.Scheduled;
-      runLog.logs =
-        OneUptimeDate.getCurrentDateAsFormattedString({
-          showSeconds: true,
-        }) + `: Workflow ${workflowId.toString()} Scheduled.`;
 
       workflowLog = await WorkflowLogService.create({
         data: runLog,
@@ -378,13 +431,15 @@ export default class QueueWorkflow {
       workflowLog
         ? (workflowLog._id?.toString() as string)
         : (workflow._id?.toString() as string),
-      {
-        data: executeWorkflow.returnValues,
-        workflowLogId: workflowLog?._id || null,
-        workflowId: workflow._id,
-        callChain: executeWorkflow.callChain || [],
-        runOnlyComponentId: executeWorkflow.runOnlyComponentId || null,
-      },
+      buildWorkflowRunJobData({
+        workflowId: workflow._id?.toString() as string,
+        workflowLogId: workflowLog?._id?.toString() || null,
+        returnValues: executeWorkflow.returnValues,
+        callChain: executeWorkflow.callChain,
+        runOnlyComponentId: executeWorkflow.runOnlyComponentId,
+        isTestRun: isTestRun,
+        testRunStartedBy: testRunStartedBy,
+      }),
       {
         scheduleAt: resolvedScheduleAt,
         repeatableKey: workflow.repeatableJobKey || undefined,
@@ -414,6 +469,38 @@ export default class QueueWorkflow {
      */
     if (resolvedScheduleAt) {
       await QueueWorkflow.reconcileSchedule(workflowId);
+    }
+  }
+
+  /*
+   * Who started a test run, as its log names them: their name, or their email
+   * when they have not set one. Undefined when the person cannot be read -
+   * the log then says the run was started by hand - because a run that has
+   * been asked for is not refused over a line of its log.
+   */
+  private static async getTestRunStarter(
+    userId: ObjectID,
+  ): Promise<string | undefined> {
+    try {
+      const user: User | null = await UserService.findOneById({
+        id: userId,
+        select: {
+          name: true,
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const startedBy: string =
+        getWorkflowTestRunStarter(user?.name?.toString()) ||
+        getWorkflowTestRunStarter(user?.email?.toString());
+
+      return startedBy || undefined;
+    } catch (err) {
+      logger.error(err);
+      return undefined;
     }
   }
 
