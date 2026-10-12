@@ -198,7 +198,7 @@ describe("turning auto recharge on", () => {
     // Refused by the column check: the auto recharge columns need billing.
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toBe(
-      "User is not allowed to update on enableAutoRechargeSmsOrCallBalance column of Project",
+      "User is not allowed to update on enableAutoRechargeSmsOrCallBalance column of Project. You need one of these permissions: Project Owner, Manage Billing.",
     );
     expect(recharge).not.toHaveBeenCalled();
     expect(table.updates).toEqual([]);
@@ -311,7 +311,7 @@ describe("turning AI credits' auto recharge on", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toBe(
-      "User is not allowed to update on enableAutoRechargeAiBalance column of Project",
+      "User is not allowed to update on enableAutoRechargeAiBalance column of Project. You need one of these permissions: Project Owner, Manage Billing.",
     );
     expect(aiRecharge).not.toHaveBeenCalled();
     expect(table.updates).toEqual([]);
@@ -419,7 +419,7 @@ describe("changing the invoice details", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toBe(
-      "User is not allowed to update on businessDetails column of Project",
+      "User is not allowed to update on businessDetails column of Project. You need one of these permissions: Project Owner, Manage Billing, Billing Admin, Billing Member.",
     );
     expect(syncInvoiceDetails).not.toHaveBeenCalled();
     expect(table.get(PROJECT_ID)!["businessDetails"]).toBe(

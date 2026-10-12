@@ -63,6 +63,7 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<AlertMeasurement>,
   ): Promise<OnUpdate<AlertMeasurement>>;
+  onUpdatePermitted(updateBy: UpdateBy<AlertMeasurement>): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<AlertMeasurement>,
   ): Promise<OnDelete<AlertMeasurement>>;
@@ -70,6 +71,21 @@ interface MeasurementHooks {
 
 const hooks: MeasurementHooks =
   AlertMeasurementService as unknown as MeasurementHooks;
+
+/*
+ * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+ * decides whether the change rewrites the history, and onUpdatePermitted -
+ * once the caller has passed every permission check - asks for the backfill.
+ * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+ * held to the caller's column permissions and refused every member's change
+ * (MeasurementEditsAsMember runs the whole update).
+ */
+async function runUpdateHooks(
+  updateBy: UpdateBy<AlertMeasurement>,
+): Promise<void> {
+  await hooks.onBeforeUpdate(updateBy);
+  await hooks.onUpdatePermitted(updateBy);
+}
 
 function buildCreateBy(input: {
   key?: string;
@@ -467,7 +483,7 @@ describe("AlertMeasurementService", () => {
         endStateOccurrence: "Last",
       });
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -505,7 +521,7 @@ describe("AlertMeasurementService", () => {
           [key]: value,
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect({
           key,
@@ -530,7 +546,7 @@ describe("AlertMeasurementService", () => {
         isEnabled: false,
       });
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -551,7 +567,7 @@ describe("AlertMeasurementService", () => {
         name: "Time to Acknowledge (v2)",
       });
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -571,7 +587,7 @@ describe("AlertMeasurementService", () => {
           [key]: undefined,
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(dataOf(updateBy)["backfillRequestedAt"]).toBeUndefined();
       }

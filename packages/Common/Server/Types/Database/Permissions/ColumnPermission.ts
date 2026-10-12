@@ -47,6 +47,26 @@ export default class ColumnPermissions {
   }
 
   /*
+   * A column's own list for a write - who may give a new record a value in
+   * it (create), or change it (update) - as a refusal of the write names
+   * them (ColumnRefusalMessage). Empty for a column only OneUptime writes.
+   */
+  public static getColumnWriteList(
+    model: BaseModel,
+    column: string,
+    requestType: DatabaseRequestType,
+  ): Array<Permission> {
+    const accessControl: ColumnAccessControl | null =
+      model.getColumnAccessControlFor(column);
+
+    if (requestType === DatabaseRequestType.Update) {
+      return accessControl?.update || [];
+    }
+
+    return accessControl?.create || [];
+  }
+
+  /*
    * The caller's permission rows as a column check reads them - the rows the
    * table check weighs (DatabaseCommonInteractionPropsUtil
    * .getPermissionRows), so a column follows the rule a table does.
@@ -192,6 +212,12 @@ export default class ColumnPermissions {
           requestType: requestType,
           columnName: key,
           modelName: model.singularName,
+          // Who may, for the refusal to say so - or that nobody may.
+          permissions: ColumnPermissions.getColumnWriteList(
+            model,
+            key,
+            requestType,
+          ),
         });
       }
 

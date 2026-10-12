@@ -244,4 +244,31 @@ export default class RelationIdUtil {
       delete data[key];
     }
   }
+
+  /*
+   * Leave a reference out of a write altogether, under every name: a
+   * reference the server fills in later - a packet capture's file, written
+   * when the probe uploads it - so the record starts without one, and
+   * whatever a request sent for it is dropped rather than stored.
+   *
+   * Not stamp(data, keys, null). A null is a value: it is written, and a
+   * create's column check holds every value of the record as written - after
+   * its hooks - to the CALLER's create permission. On a column nobody may
+   * create (create: []), a null stamped by a hook refuses every create made
+   * in a project, whoever makes it: "User is not allowed to create on fileId
+   * column of Packet Capture". A key left unset is not written - the column
+   * starts empty, as a reference with no default does - and no permission is
+   * asked for it (ColumnPermissions skips an undefined value).
+   *
+   * Cleared, not deleted: `data` may be the caller's model instance (see
+   * BaseAPI.createItem).
+   */
+  public static leaveOut(
+    data: Record<string, unknown>,
+    keys: Array<string>,
+  ): void {
+    for (const key of keys) {
+      data[key] = undefined;
+    }
+  }
 }

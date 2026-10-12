@@ -28121,6 +28121,7 @@
   "Value for case {{number}}": "Значение для варианта {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Вариант {{earlier}} проверяет то же самое и проверяется раньше, поэтому этот вариант никогда не выбирается.",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» — сравнение, которого этот шаг не знает, поэтому каждый запуск останавливается здесь. Выберите сравнение из списка.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Захватите трафик, который видит этот зонд, затем скачайте файл и откройте его в Wireshark.",
   "Back to Slack": "Вернуться в Slack",
   "Connecting your {{workspace}} account…": "Подключаем ваш аккаунт {{workspace}}…",
   "Content Hash": "Хеш содержимого",

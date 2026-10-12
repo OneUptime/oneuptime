@@ -28121,6 +28121,7 @@
   "Value for case {{number}}": "分支 {{number}} 的值",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "分支 {{earlier}} 條件相同且先被檢查，因此此分支永遠不會被選中。",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "「{{comparison}}」不是此步驟能辨識的比較方式，因此每次執行都會在此停止。請從清單中選擇一種。",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "擷取此探測器看到的流量，然後下載檔案並在 Wireshark 中開啟。",
   "Back to Slack": "返回 Slack",
   "Connecting your {{workspace}} account…": "正在連接您的 {{workspace}} 帳戶…",
   "Content Hash": "內容雜湊",

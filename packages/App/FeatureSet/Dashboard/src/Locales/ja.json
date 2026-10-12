@@ -28121,6 +28121,7 @@
   "Value for case {{number}}": "ケース {{number}} の値",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "ケース {{earlier}} が同じ条件で先に確認されるため、このケースが選ばれることはありません。",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "「{{comparison}}」はこのステップが認識できない比較方法のため、すべての実行がここで止まります。一覧から選んでください。",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "このプローブが見ているトラフィックをキャプチャし、ファイルをダウンロードして Wireshark で開きます。",
   "Back to Slack": "Slack に戻る",
   "Connecting your {{workspace}} account…": "{{workspace}} アカウントを接続しています…",
   "Content Hash": "コンテンツハッシュ",

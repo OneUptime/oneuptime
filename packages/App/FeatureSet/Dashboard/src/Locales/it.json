@@ -28121,6 +28121,7 @@
   "Value for case {{number}}": "Valore per il caso {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Il caso {{earlier}} chiede la stessa cosa e viene controllato prima, quindi questo caso non viene mai scelto.",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» non è un confronto che questo passaggio conosce, quindi ogni esecuzione si ferma qui. Scegline uno dall'elenco.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Cattura il traffico che vede questa sonda, poi scarica il file e aprilo in Wireshark.",
   "Back to Slack": "Torna a Slack",
   "Connecting your {{workspace}} account…": "Collegamento del tuo account {{workspace}}…",
   "Content Hash": "Hash del contenuto",

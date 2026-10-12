@@ -28121,6 +28121,7 @@
   "Value for case {{number}}": "مقدار برای حالت {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "حالت {{earlier}} همین را می‌پرسد و زودتر بررسی می‌شود، پس این حالت هرگز انتخاب نمی‌شود.",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "«{{comparison}}» مقایسه‌ای نیست که این گام آن را بشناسد، پس هر اجرا اینجا متوقف می‌شود. یکی را از فهرست انتخاب کنید.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "ترافیکی را که این پراب می‌بیند ضبط کنید، سپس فایل را دانلود کنید و در Wireshark باز کنید.",
   "Back to Slack": "بازگشت به Slack",
   "Connecting your {{workspace}} account…": "در حال اتصال حساب {{workspace}} شما…",
   "Content Hash": "هش محتوا",

@@ -5,10 +5,19 @@ import { AddPacketCapture1800800000000 } from "../../Server/Infrastructure/Postg
 import SchemaMigrations from "../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AllServices from "../../Server/Services/Index";
 import PacketCaptureService from "../../Server/Services/PacketCaptureService";
+import DatabaseRequestType from "../../Server/Types/BaseDatabase/DatabaseRequestType";
+import ColumnPermissions from "../../Server/Types/Database/Permissions/ColumnPermission";
+import ColumnWriteRefusedException from "../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ObjectID from "../../Types/ObjectID";
+import { PACKET_CAPTURE_START_PERMISSIONS } from "../../Types/PacketCapture/PacketCapturePermissions";
+import PacketCaptureStatus from "../../Types/PacketCapture/PacketCaptureStatus";
 import Permission from "../../Types/Permission";
+import UserType from "../../Types/UserType";
+import { DASHBOARD_START_COLUMNS } from "../Helpers/PacketCaptureStartBody";
 import { describe, expect, test } from "@jest/globals";
 import { MigrationInterface, QueryRunner } from "typeorm";
 
@@ -76,6 +85,155 @@ describe("the PacketCapture table", () => {
     });
   });
 });
+
+/*
+ * What a start may write, and what it may not. DatabaseService checks the
+ * record as PacketCaptureService.onBeforeCreate leaves it against the
+ * starter's create permission, so every column on it must be one each
+ * starter may create - or be computed (a value the server decides, which
+ * that check skips on create). The hook once stamped fileId null, and every
+ * start was refused: "User is not allowed to create on fileId column of
+ * Packet Capture".
+ */
+describe("what a start writes, held to who may start", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "11111111-1111-4111-8111-111111111111",
+  );
+
+  function starter(permission: Permission): DatabaseCommonInteractionProps {
+    return {
+      userId: ObjectID.generate(),
+      userType: UserType.User,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            },
+          ],
+        },
+      },
+    };
+  }
+
+  // A capture as onBeforeCreate leaves it, before createdByUserId is stamped.
+  function startedRecord(): PacketCapture {
+    const capture: PacketCapture = new PacketCapture();
+    capture.projectId = PROJECT_ID;
+    capture.probeId = ObjectID.generate();
+    capture.interfaceName = "ens18";
+    capture.bpfFilter = "net 192.168.50.0/24 and tcp";
+    capture.maxDurationInSeconds = 60;
+    capture.maxPackets = 100000;
+    capture.maxFileSizeInMB = 10;
+    capture.name = "ens18: net 192.168.50.0/24 and tcp";
+    capture.status = PacketCaptureStatus.Pending;
+    return capture;
+  }
+
+  test("whoever may start a capture is who the model lets create one", () => {
+    expect(model().createRecordPermissions).toEqual([
+      ...PACKET_CAPTURE_START_PERMISSIONS,
+    ]);
+  });
+
+  test.each([...PACKET_CAPTURE_START_PERMISSIONS])(
+    "a starter holding %s may create every column the dashboard's start sends",
+    (permission: Permission) => {
+      const creatable: Array<string> =
+        ColumnPermissions.getModelColumnsByPermissions(
+          PacketCapture,
+          ColumnPermissions.getColumnCheckRows(starter(permission)),
+          DatabaseRequestType.Create,
+        ).columns;
+
+      for (const column of DASHBOARD_START_COLUMNS) {
+        expect([column, creatable.includes(column)]).toEqual([column, true]);
+      }
+    },
+  );
+
+  test("what the server decides at the start - the name, the status - is computed, so no starter is asked for it", () => {
+    for (const column of ["name", "status"]) {
+      expect([
+        column,
+        Boolean(model().getTableColumnMetadata(column)!.computed),
+      ]).toEqual([column, true]);
+    }
+  });
+
+  test("what the probe writes later - the file and the run - nobody may create, so the start leaves it out", () => {
+    for (const column of [
+      "file",
+      "fileId",
+      "statusMessage",
+      "endReason",
+      "startedAt",
+      "completedAt",
+      "stopRequestedAt",
+      "packetCount",
+      "fileSizeInBytes",
+    ]) {
+      expect([
+        column,
+        model().getColumnAccessControlFor(column)!.create,
+      ]).toEqual([column, []]);
+    }
+  });
+
+  test.each([...PACKET_CAPTURE_START_PERMISSIONS])(
+    "the record a start leaves passes the create column check for a starter holding %s",
+    (permission: Permission) => {
+      expect(() => {
+        ColumnPermissions.checkDataColumnPermissions(
+          PacketCapture,
+          startedRecord(),
+          starter(permission),
+          DatabaseRequestType.Create,
+        );
+      }).not.toThrow();
+    },
+  );
+
+  test.each([...PACKET_CAPTURE_START_PERMISSIONS])(
+    "regression: with fileId stamped null it is refused, for a starter holding %s - the customer's message",
+    (permission: Permission) => {
+      const record: PacketCapture = startedRecord();
+      (record as unknown as Record<string, unknown>)["fileId"] = null;
+
+      let refusal: unknown = null;
+
+      try {
+        ColumnPermissions.checkDataColumnPermissions(
+          PacketCapture,
+          record,
+          starter(permission),
+          DatabaseRequestType.Create,
+        );
+      } catch (error) {
+        refusal = error;
+      }
+
+      expect(refusal).toBeInstanceOf(ColumnWriteRefusedException);
+      expect((refusal as ColumnWriteRefusedException).columnName).toBe(
+        "fileId",
+      );
+      expect((refusal as Error).message).toContain(
+        "User is not allowed to create on fileId column of Packet Capture",
+      );
+    },
+  );
+});
+
+function model(): PacketCapture {
+  return new PacketCapture();
+}
 
 describe("its migration", () => {
   test("is registered, after every migration before it", () => {

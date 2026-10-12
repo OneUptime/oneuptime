@@ -1,11 +1,13 @@
 import fs from "fs";
 import path from "path";
 import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import QueryPermission from "../../../../../Server/Types/Database/Permissions/QueryPermission";
 import SelectPermission from "../../../../../Server/Types/Database/Permissions/SelectPermission";
 import Log from "../../../../../Models/AnalyticsModels/Log";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
+import PacketCapture from "../../../../../Models/DatabaseModels/PacketCapture";
 import Probe from "../../../../../Models/DatabaseModels/Probe";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -319,6 +321,59 @@ describe("select-rejection messages the Terraform provider parses", () => {
         "enableSearchEngineIndexing",
       );
     });
+
+    /*
+     * The second sentence is ColumnRefusalMessage's: who may read the
+     * column, on the same line - it used to sit on a line of its own after
+     * twenty spaces. Whatever it says, the column is still the first thing
+     * after "select on - ".
+     */
+    it("says who may read a gated column, on one line, after the column the provider reads", () => {
+      const error: Exception = caught(() => {
+        return SelectPermission.checkSelectPermission(
+          StatusPage,
+          { enableSearchEngineIndexing: true } as never,
+          makeProps([]),
+        );
+      });
+
+      expect(error.message).not.toContain("\n");
+      expect(
+        error.message.startsWith(
+          "You do not have permissions to select on - enableSearchEngineIndexing. You need one of these permissions: Project Owner, ",
+        ),
+      ).toBe(true);
+      expect(error.message.endsWith(".")).toBe(true);
+      expect(columnTheProviderWouldDrop(wireBody("error", error.message))).toBe(
+        "enableSearchEngineIndexing",
+      );
+    });
+
+    /*
+     * A column nobody may read through the API: its list is empty. The
+     * refusal used to end "You need any one of these permissions:" with
+     * nothing after it; it says so plainly now, and the provider still drops
+     * the column and reads the rest.
+     */
+    it("says plainly that no permission reads a column nobody may, and the provider still recovers", () => {
+      const error: Exception = caught(() => {
+        return SelectPermission.checkSelectPermission(
+          PacketCapture,
+          { fileId: true } as never,
+          makeProps([Permission.ProjectOwner]),
+        );
+      });
+
+      expect(error.code).toBe(ExceptionCode.NotAuthorizedException);
+      expect(error.message).toBe(
+        "You do not have permissions to select on - fileId. No permission allows it: the column is not readable through the API.",
+      );
+      for (const envelope of ["error", "message"] as const) {
+        expect(
+          columnTheProviderWouldDrop(wireBody(envelope, error.message)),
+        ).toBe("fileId");
+      }
+    });
   });
 
   describe("ClickHouse-backed models", () => {
@@ -415,6 +470,23 @@ describe("select-rejection messages the Terraform provider parses", () => {
             "You do not have permissions to query on - name. You need any one of these permissions: Project Owner",
           ),
         ),
+      ).toBeNull();
+    });
+
+    it("ignores the query refusal the gate words today, for a column nobody may filter by", () => {
+      const error: Exception = caught(() => {
+        return QueryPermission.checkQueryPermission(
+          PacketCapture,
+          { fileId: ObjectID.generate().toString() } as never,
+          makeProps([Permission.ProjectOwner]),
+        );
+      });
+
+      expect(error.message).toBe(
+        "You do not have permissions to query on - fileId. No permission allows it: the column cannot be filtered on through the API.",
+      );
+      expect(
+        columnTheProviderWouldDrop(wireBody("message", error.message)),
       ).toBeNull();
     });
 

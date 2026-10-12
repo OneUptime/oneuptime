@@ -18,8 +18,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
- * The three backfill columns onBeforeUpdate rewrites, named so they are still
- * checked against the model. Spelt out rather than reached through
+ * The three backfill columns onUpdatePermitted rewrites, named so they are
+ * still checked against the model. Spelt out rather than reached through
  * Partial<Model>: this model carries enough relations that instantiating a
  * mapped type over all of it blows tsc's instantiation depth limit.
  */
@@ -45,6 +45,14 @@ const TIMESTAMP_ANCHOR_SOURCES: Record<string, string> = {
 export class Service extends ProjectReferencesService<Model> {
   public static readonly METRIC_NAME_PREFIX: string =
     "oneuptime.scheduled-maintenance.measurement.";
+
+  /*
+   * The updates onBeforeUpdate found to change what a measurement means, for
+   * onUpdatePermitted to ask the backfill for once they are permitted. Keyed
+   * on the update itself, so nothing outlives it.
+   */
+  private readonly updatesThatRewriteHistory: WeakSet<UpdateBy<Model>> =
+    new WeakSet<UpdateBy<Model>>();
 
   public constructor() {
     super(Model);
@@ -253,8 +261,34 @@ export class Service extends ProjectReferencesService<Model> {
      * Changing what a measurement means rewrites its history in place, under
      * the same metric point identity -- one series, one current definition.
      * Keeping the old numbers means creating a new definition instead, which
-     * the settings page says.
+     * the settings page says. The backfill is asked for once the change has
+     * passed every permission check (onUpdatePermitted).
      */
+    this.updatesThatRewriteHistory.add(updateBy);
+
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Asks the backfill worker to work the history out again, for a change of
+   * what the measurement means (onBeforeUpdate decides which). Written here,
+   * after every permission check, and never in onBeforeUpdate: the backfill
+   * columns are OneUptime's (create: [], update: []), and DatabaseService
+   * holds what onBeforeUpdate leaves to the caller's column permissions - so
+   * written there, they refused the change for everyone who may edit a
+   * measurement ("User is not allowed to update on backfillRequestedAt
+   * column").
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    if (!this.updatesThatRewriteHistory.delete(updateBy)) {
+      return;
+    }
+
     const backfillFields: BackfillFields =
       updateBy.data as unknown as BackfillFields;
 
@@ -262,8 +296,6 @@ export class Service extends ProjectReferencesService<Model> {
     // Cleared, not left stale: the backfill must restart from the beginning.
     backfillFields.backfillCursorCreatedAt = null as unknown as Date;
     backfillFields.backfillCompletedAt = null as unknown as Date;
-
-    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()

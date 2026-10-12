@@ -28121,6 +28121,7 @@
   "Value for case {{number}}": "केस {{number}} का मान",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "केस {{earlier}} वही पूछता है और पहले जाँचा जाता है, इसलिए यह केस कभी नहीं चुना जाता।",
   "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "“{{comparison}}” ऐसी तुलना नहीं है जिसे यह चरण पहचानता है, इसलिए हर रन यहीं रुक जाता है। सूची से कोई तुलना चुनें।",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "यह प्रोब जो ट्रैफ़िक देखता है उसे कैप्चर करें, फिर फ़ाइल डाउनलोड करके Wireshark में खोलें।",
   "Back to Slack": "Slack पर वापस जाएँ",
   "Connecting your {{workspace}} account…": "आपका {{workspace}} खाता कनेक्ट किया जा रहा है…",
   "Content Hash": "सामग्री हैश",
