@@ -28052,5 +28052,8 @@
   "Twilio Configs": "پیکربندی‌های Twilio",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "متغیری که مقداری ندارد همان‌طور که نوشته شده باقی می‌ماند، پس نامی که اشتباه تایپ شده در متن دیده می‌شود.",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "فیلتر بر اساس شناسهٔ دستگاه — برچسب خام نقطهٔ داده `device.id` (اختیاری). هر فیلتری که تنظیم می‌کنید باید مطابقت داشته باشد.",
-  "The name of the metric the monitor's first query reads.": "نام متریکی که اولین کوئری مانیتور می‌خواند."
+  "The name of the metric the monitor's first query reads.": "نام متریکی که اولین کوئری مانیتور می‌خواند.",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }

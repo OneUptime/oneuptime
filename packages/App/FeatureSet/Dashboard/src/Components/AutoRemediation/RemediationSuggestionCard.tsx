@@ -51,11 +51,14 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RemediationDecisionList from "./RemediationDecisionList";
 import {
   getRemediationDecisionLines,
+  getRemediationDecisionStatus,
   pickRemediationDecision,
   REMEDIATION_DECISION_CARD_DESCRIPTION,
   RemediationDecision,
   RemediationDecisionLine,
+  RemediationDecisionStatus,
 } from "./RemediationDecisionLines";
+import RemediationDecisionStatusBadge from "./RemediationDecisionStatusBadge";
 import React, {
   Fragment,
   FunctionComponent,
@@ -963,13 +966,31 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
+  const hasSuggestions: boolean = suggestions.length > 0;
+
+  /*
+   * The header's pill sums up the decision while the decision is all the
+   * card says. Once there are fixes, each carries a pill of its own that
+   * follows it (waiting, approved, verified), and a pill drawn from the
+   * decision - written once, when the signal was evaluated - would sit
+   * above them saying something older.
+   */
+  const decisionStatus: RemediationDecisionStatus | null = hasSuggestions
+    ? null
+    : getRemediationDecisionStatus(decisionLines);
+
   return (
     <Card
       title="Remediation"
       description={
-        suggestions.length > 0
+        hasSuggestions
           ? getRemediationCardDescription(suggestions)
           : REMEDIATION_DECISION_CARD_DESCRIPTION
+      }
+      rightElement={
+        decisionStatus ? (
+          <RemediationDecisionStatusBadge status={decisionStatus} />
+        ) : undefined
       }
     >
       <div className="flex flex-col gap-4">
@@ -991,7 +1012,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <RemediationDecisionList lines={decisionLines} />
+        <RemediationDecisionList
+          lines={decisionLines}
+          showHeading={hasSuggestions}
+        />
 
         {suggestions.map(
           (suggestion: AutoRemediationSuggestion): ReactElement => {

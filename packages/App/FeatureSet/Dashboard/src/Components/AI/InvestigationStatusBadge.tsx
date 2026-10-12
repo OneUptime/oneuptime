@@ -81,6 +81,14 @@ export function renderInvestigationStatusIndicator(
 }
 
 /*
+ * The neutral pill itself, shared with the Remediation card's status
+ * (AutoRemediation/RemediationDecisionStatusBadge), which sits on the same
+ * page and should read the same way.
+ */
+export const STATUS_BADGE_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
+
+/*
  * The AI Investigation card's status, in the card header in every state.
  * Every state gets the same neutral pill; only the small mark in front of
  * the words carries colour. The card used to change the whole pill's colour
@@ -98,7 +106,7 @@ const InvestigationStatusBadge: FunctionComponent<ComponentProps> = (
     <div
       aria-label={translator.translateText("Investigation status")}
       data-indicator={props.indicator}
-      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+      className={STATUS_BADGE_CLASS_NAME}
     >
       {renderInvestigationStatusIndicator(props.indicator)}
       <span>{translator.translateText(props.text)}</span>
