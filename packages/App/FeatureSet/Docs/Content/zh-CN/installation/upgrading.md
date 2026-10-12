@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-如果你的发布名称和命名空间不同，请使用你自己的。Kubernetes 代理页面上的 [升级代理](/docs/telemetry/kubernetes-agent) 有详细说明，[AI SRE – 集群访问](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) 解释了代理可以做什么，以及如何让它修复它发现的问题。
+如果你的发布名称和命名空间不同，请使用你自己的。Kubernetes 代理页面上的 [升级代理](/docs/telemetry/kubernetes-agent#升级代理) 有详细说明，[AI SRE – 集群访问](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) 解释了代理可以做什么，以及如何让它修复它发现的问题。
 
 ### AI 可以做什么由 AI 代理设置
 

@@ -142,7 +142,7 @@ flowchart TB
 
 Proxmox VE 9 及更高版本可以通过内置的 OpenTelemetry 指标服务器推送指标，无需安装任何东西，参见 [Proxmox 代理指南](/docs/telemetry/proxmox)。OneUptime 会把推送转换成相同的 `pve_*` 序列，所以目录以及 CPU、内存和存储模板都能配合它使用。
 
-**Node Offline** 和 **Cluster Quorum at Risk** 同样可用：每个节点只推送自己的状态，所以停止报告的节点会被仍然存活的节点报告为停机（`pve_up` = 0），参见 [节点停止报告时](/docs/telemetry/proxmox#when-a-node-stops-reporting)。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up** 和 **Replication Failing** 需要只有代理才会收集的数据。
+**Node Offline** 和 **Cluster Quorum at Risk** 同样可用：每个节点只推送自己的状态，所以停止报告的节点会被仍然存活的节点报告为停机（`pve_up` = 0），参见 [节点停止报告时](/docs/telemetry/proxmox#节点停止报告时)。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up** 和 **Replication Failing** 需要只有代理才会收集的数据。
 
 ## 收集的指标
 
