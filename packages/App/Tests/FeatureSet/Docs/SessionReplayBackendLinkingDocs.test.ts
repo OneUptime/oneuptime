@@ -1051,7 +1051,10 @@ describe("the Persian mirrors carry the same change", (): void => {
         "<16 hex parent id>",
       )}`,
     );
-    expect(tableRow(sessionReplay, SWITCH_TITLE)).toContain("| **روشن** |");
+    // The default, "On", unbolded as the English privacy table writes it.
+    expect(tableRow(sessionReplay, `**${SWITCH_TITLE}**`)).toContain(
+      "| روشن |",
+    );
 
     for (const snippet of [
       "remoteParentSampled: new TraceIdRatioBasedSampler(0.1)",

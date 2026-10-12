@@ -425,8 +425,8 @@ function inEnglishShape(language: string, page: string): boolean {
  * page, and the anchor of the heading in the English heading's place in the
  * reader's language. The page's own anchors ("#x") open the page itself.
  *
- * A page whose copy in this language still has its old shape (the Persian
- * Session Replay page, until it is translated again) has no heading in the
+ * A page whose copy in this language still has its old shape (a page of
+ * another group a translation has not caught up with) has no heading in the
  * English one's place: a link into it keeps the page, and either drops the
  * anchor or names a heading that page has (anchorProblems holds it to one).
  * The result is null when either is fine.
@@ -1141,7 +1141,7 @@ describe("the helpers, on these pages' shapes", () => {
     ).toBeLessThan(3);
   });
 
-  it("name every link's anchor by the heading in the English heading's place, and tolerate a stale page", () => {
+  it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
     expect(expectedLink("en", WEB_VITALS, "#single-page-apps")).toBe(
       "#single-page-apps",
     );
@@ -1151,15 +1151,38 @@ describe("the helpers, on these pages' shapes", () => {
     expect(expectedLink("en", RUM_INDEX, "/docs/rum/web-vitals")).toBe(
       "/docs/rum/web-vitals",
     );
-    // The Persian Session Replay page keeps its old shape for now.
-    expect(inEnglishShape("fa", "telemetry/session-replay")).toBe(false);
+
+    /*
+     * Every copy of these pages has its English page's headings, the
+     * Persian Session Replay page included, so no link into the group is
+     * excused for naming no heading.
+     */
+    for (const language of LANGUAGES) {
+      for (const page of PAGE_NAMES) {
+        if (hasPage(language, page)) {
+          expect({
+            language,
+            page,
+            inShape: inEnglishShape(language, page),
+          }).toEqual({
+            language,
+            page,
+            inShape: true,
+          });
+        }
+      }
+    }
+
+    // A Persian link into Session Replay names the Persian heading in the English heading's place.
+    const install: string | null = expectedLink(
+      "fa",
+      MOBILE_SETUP,
+      "/docs/telemetry/session-replay#install-in-react-native",
+    );
+
+    expect(install).toBe("/docs/telemetry/session-replay#نصب-در-react-native");
     expect(
-      expectedLink(
-        "fa",
-        MOBILE_SETUP,
-        "/docs/telemetry/session-replay#install-in-react-native",
-      ),
-    ).toBeNull();
-    expect(anchorsOf("fa", "telemetry/session-replay").size).toBeGreaterThan(0);
+      anchorsOf("fa", "telemetry/session-replay").has("نصب-در-react-native"),
+    ).toBe(true);
   });
 });
