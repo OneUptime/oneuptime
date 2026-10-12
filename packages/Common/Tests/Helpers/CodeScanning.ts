@@ -145,6 +145,8 @@ const CONTROL_ESCAPE_CHARACTERS: Readonly<Record<string, string>> = {
   "0": "\0",
 };
 const QUANTIFIER_BRACE: RegExp = /^\{\d+(?:,\d*)?\}/;
+// A template whose code is read: EJS and HTML.
+const TEMPLATE_FILE: RegExp = /\.(?:ejs|html?)$/i;
 const CONTROL_LETTER: RegExp = /^[A-Za-z]$/;
 
 class PatternReader {
@@ -1441,8 +1443,6 @@ function scriptKindOf(fileName: string): ts.ScriptKind {
   return ts.ScriptKind.TS;
 }
 
-const TEMPLATE_FILE: RegExp = /\.(?:ejs|html?)$/i;
-
 function scanProgram(
   file: string,
   code: string,
@@ -1695,11 +1695,18 @@ export const isProductCode: IsProductCodeFunction = (
   );
 };
 
-export type ListProductFilesFunction = (root?: string) => Array<string>;
+export type ListProductFilesFunction = (
+  root?: string,
+  codeRoots?: ReadonlyArray<string>,
+) => Array<string>;
 
-// Every product code file under `root` (the repository's), by its path from it.
+/*
+ * Every product code file under `root` (the repository's) in its code
+ * folders (CODE_ROOTS, or the ones given), by its path from `root`.
+ */
 export const listProductFiles: ListProductFilesFunction = (
   root: string = REPOSITORY_DIRECTORY,
+  codeRoots: ReadonlyArray<string> = CODE_ROOTS,
 ): Array<string> => {
   const files: Array<string> = [];
 
@@ -1727,7 +1734,7 @@ export const listProductFiles: ListProductFilesFunction = (
     }
   };
 
-  for (const codeRoot of CODE_ROOTS) {
+  for (const codeRoot of codeRoots) {
     const directory: string = path.join(root, codeRoot);
 
     if (fs.existsSync(directory)) {
