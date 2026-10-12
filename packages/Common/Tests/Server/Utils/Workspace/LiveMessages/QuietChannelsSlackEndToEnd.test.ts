@@ -393,7 +393,9 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
     // Nobody acknowledged: the policy repeats from rule "fhirst".
     await world.escalate();
     message = runMessage();
-    expect(message).toContain("Escalation rule 1 of 3 (fhirst)*\u200b · repeat 1 of 1");
+    expect(message).toContain(
+      "Escalation rule 1 of 3 (fhirst)*\u200b · repeat 1 of 1",
+    );
     expect(message).toContain("Nitin*\u200b: paged 3 times · by SMS, email");
 
     // Nitin acknowledged.

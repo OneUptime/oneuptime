@@ -485,7 +485,9 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
             ? [
                 {
                   workspaceType: WorkspaceType.Slack,
-                  channels: [{ id: SLACK_CHANNEL.id, name: SLACK_CHANNEL.name }],
+                  channels: [
+                    { id: SLACK_CHANNEL.id, name: SLACK_CHANNEL.name },
+                  ],
                   userIds: [notConnected],
                 },
               ]

@@ -203,7 +203,10 @@ beforeEach(() => {
   }) as never);
 
   alarmSpy = jest
-    .spyOn(WorkspaceNotificationRuleService, "sendWorkspaceMarkdownNotification")
+    .spyOn(
+      WorkspaceNotificationRuleService,
+      "sendWorkspaceMarkdownNotification",
+    )
     .mockImplementation((async (data: {
       feedInfoInMarkdown: string;
     }): Promise<void> => {
@@ -241,7 +244,11 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
 
     await OnCallPolicyRunMessage.syncRun(RUN_ID);
 
-    expect(sent.map((item: Sent) => item.method)).toEqual(["post"]);
+    expect(
+      sent.map((item: Sent) => {
+        return item.method;
+      }),
+    ).toEqual(["post"]);
     expect(lastSent().text).toContain("is paging for");
 
     const kept: Array<unknown> = store.forKey(
@@ -257,7 +264,11 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
 
     await OnCallPolicyRunMessage.syncRun(RUN_ID);
 
-    expect(sent.map((item: Sent) => item.method)).toEqual(["post"]);
+    expect(
+      sent.map((item: Sent) => {
+        return item.method;
+      }),
+    ).toEqual(["post"]);
     expect(alarmSpy).not.toHaveBeenCalled();
     expect(store.rows[0]!.messageData).toEqual({
       alarms: [ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE],
@@ -272,11 +283,11 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     await OnCallPolicyRunMessage.syncRun(RUN_ID);
     await OnCallPolicyRunMessage.syncRun(RUN_ID);
 
-    expect(sent.map((item: Sent) => item.method)).toEqual([
-      "post",
-      "alarm",
-      "update",
-    ]);
+    expect(
+      sent.map((item: Sent) => {
+        return item.method;
+      }),
+    ).toEqual(["post", "alarm", "update"]);
     expect(sent[1]!.text).toContain("Nobody was paged for");
     expect(sent[2]!.text).toContain("Escalation rule 2 of 2 (second)");
     expect(store.rows[0]!.messageData).toEqual({
@@ -365,7 +376,11 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     await Promise.all([workerA, workerB]);
 
     // A posted what it read; B, reading after it, edited that to the newer state.
-    expect(sent.map((item: Sent) => item.method)).toEqual(["post", "update"]);
+    expect(
+      sent.map((item: Sent) => {
+        return item.method;
+      }),
+    ).toEqual(["post", "update"]);
     expect(lastSent().text).toContain("acknowledged");
     expect(lastSent().text).not.toContain("is paging for");
   });
@@ -418,15 +433,18 @@ describe("OnCallPolicyRunMessage.refresh", () => {
     ["undefined", undefined],
     ["null", null],
     ["an empty id", ""],
-  ])("a change without a run (%s) asks for nothing", async (_label: string, id: unknown) => {
-    const syncSpy: SpyInstance<typeof OnCallPolicyRunMessage.syncRun> =
-      jest.spyOn(OnCallPolicyRunMessage, "syncRun");
+  ])(
+    "a change without a run (%s) asks for nothing",
+    async (_label: string, id: unknown) => {
+      const syncSpy: SpyInstance<typeof OnCallPolicyRunMessage.syncRun> =
+        jest.spyOn(OnCallPolicyRunMessage, "syncRun");
 
-    OnCallPolicyRunMessage.refresh(id as never);
-    await OnCallPolicyRunMessage.whenIdle();
+      OnCallPolicyRunMessage.refresh(id as never);
+      await OnCallPolicyRunMessage.whenIdle();
 
-    expect(syncSpy).not.toHaveBeenCalled();
-  });
+      expect(syncSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test("never throws: a sync that fails is logged, and the next change tries again", async () => {
     const syncSpy: SpyInstance<typeof OnCallPolicyRunMessage.syncRun> = jest

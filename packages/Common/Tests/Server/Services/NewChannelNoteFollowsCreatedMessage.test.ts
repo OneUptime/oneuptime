@@ -213,10 +213,14 @@ describe("an incident's new channel", () => {
       .mockResolvedValue(incident as never);
 
     step(IncidentPrivacyRuleEngineService, "applyRulesToIncident", "privacy");
-    step(IncidentService, "handleIncidentWorkspaceOperationsAsync", "workspace", {
-      result:
-        "workspace" in options ? options.workspace : MEMBERS_NOT_ADDED,
-    });
+    step(
+      IncidentService,
+      "handleIncidentWorkspaceOperationsAsync",
+      "workspace",
+      {
+        result: "workspace" in options ? options.workspace : MEMBERS_NOT_ADDED,
+      },
+    );
     step(IncidentService, "createIncidentFeedAsync", "Incident Created", {
       fail: Boolean(options.createdFails),
     });
@@ -246,7 +250,10 @@ describe("an incident's new channel", () => {
     incident.projectId = PROJECT_ID;
 
     await hookOf(IncidentService, "onCreateSuccess")(
-      { createBy: { data: incident, props: { isRoot: true } }, carryForward: null },
+      {
+        createBy: { data: incident, props: { isRoot: true } },
+        carryForward: null,
+      },
       incident,
     );
   }
@@ -280,9 +287,14 @@ describe("an incident's new channel", () => {
 
   test("channel setup that failed outright: nothing to note, and the rest goes on", async () => {
     const ended: Promise<void> = standIn();
-    step(IncidentService, "handleIncidentWorkspaceOperationsAsync", "workspace", {
-      fail: true,
-    });
+    step(
+      IncidentService,
+      "handleIncidentWorkspaceOperationsAsync",
+      "workspace",
+      {
+        fail: true,
+      },
+    );
     await create();
     await waitFor(ended);
 
@@ -322,7 +334,10 @@ describe("an alert's new channel", () => {
     alert.currentAlertStateId = ObjectID.generate();
 
     await hookOf(AlertService, "onCreateSuccess")(
-      { createBy: { data: alert, props: { isRoot: true } }, carryForward: null },
+      {
+        createBy: { data: alert, props: { isRoot: true } },
+        carryForward: null,
+      },
       alert,
     );
     await waitFor(ended);
@@ -349,8 +364,16 @@ describe("an episode's new channel", () => {
     );
     step(IncidentEpisodeService, "changeEpisodeState", "first state");
     step(IncidentEpisodeService, "createEpisodeCreatedFeed", "Episode Created");
-    step(IncidentEpisodeOwnerRuleEngineService, "applyRulesToEpisode", "owners");
-    step(IncidentEpisodeLabelRuleEngineService, "applyRulesToEpisode", "labels");
+    step(
+      IncidentEpisodeOwnerRuleEngineService,
+      "applyRulesToEpisode",
+      "owners",
+    );
+    step(
+      IncidentEpisodeLabelRuleEngineService,
+      "applyRulesToEpisode",
+      "labels",
+    );
     step(
       IncidentEpisodeOnCallRuleEngineService,
       "applyRulesToEpisode",
@@ -384,7 +407,11 @@ describe("an episode's new channel", () => {
   test("REGRESSION: an alert episode - the note comes right after the episode's created message", async () => {
     const { ended, end } = chainEnd();
 
-    step(AlertEpisodePrivacyRuleEngineService, "applyRulesToEpisode", "privacy");
+    step(
+      AlertEpisodePrivacyRuleEngineService,
+      "applyRulesToEpisode",
+      "privacy",
+    );
     step(
       AlertEpisodeService,
       "handleEpisodeWorkspaceOperationsAsync",
@@ -459,13 +486,20 @@ describe("a scheduled maintenance event's new channel", () => {
       "applyRulesToScheduledMaintenance",
       "labels",
     );
-    step(RunbookRuleEngineService, "applyRulesToScheduledMaintenance", "runbooks");
+    step(
+      RunbookRuleEngineService,
+      "applyRulesToScheduledMaintenance",
+      "runbooks",
+    );
     step(ScheduledMaintenanceService, "refreshReminderSchedule", "reminders", {
       done: end,
     });
 
     await hookOf(ScheduledMaintenanceService, "onCreateSuccess")(
-      { createBy: { data: event, props: { isRoot: true } }, carryForward: null },
+      {
+        createBy: { data: event, props: { isRoot: true } },
+        carryForward: null,
+      },
       event,
     );
     await waitFor(ended);
@@ -501,7 +535,10 @@ describe("a monitor's and an on-call policy's new channel", () => {
     });
     step(MonitorFeedService, "createMonitorFeedItem", "Monitor Created");
 
-    await hookOf(MonitorService, "handleWorkspaceOperationsAsync")({
+    await hookOf(
+      MonitorService,
+      "handleWorkspaceOperationsAsync",
+    )({
       projectId: PROJECT_ID,
       monitorId: RECORD_ID,
       monitorName: "Checkout API",
@@ -554,7 +591,10 @@ describe("a monitor's and an on-call policy's new channel", () => {
     );
 
     await hookOf(OnCallDutyPolicyService, "onCreateSuccess")(
-      { createBy: { data: policy, props: { isRoot: true } }, carryForward: null },
+      {
+        createBy: { data: policy, props: { isRoot: true } },
+        carryForward: null,
+      },
       policy,
     );
 
