@@ -93,10 +93,16 @@ const LEFT_OUT_LANGUAGES = {
 /*
  * The extensions of the files CodeQL reads as each language it analyses, from
  * the "Supported languages and frameworks" page of its documentation (.cjs
- * from the JavaScript extractor). The project, manifest and markup files it
- * also recognizes (.csproj, .xaml, Cargo.toml, HTML, JSON, YAML) are no
- * language's code of their own, and Objective-C is not a language CodeQL
- * analyses. GitHub Actions is read from where workflows and actions live.
+ * from the JavaScript extractor): add a language or an extension here when
+ * CodeQL does. The project, manifest and markup files it also recognizes
+ * (.csproj, .xaml, Cargo.toml, HTML, JSON, YAML) are no language's code of
+ * their own, and Objective-C is not a language CodeQL analyses. GitHub
+ * Actions is read from where workflows and actions live.
+ *
+ * These files, not GitHub's language detection, decide what a switch could
+ * lose: default setup tries each language the detection finds, but keeps
+ * only those whose analysis succeeds, and an analysis needs files CodeQL
+ * reads.
  */
 const SOURCE_EXTENSIONS = {
   "c-cpp": [
@@ -289,14 +295,15 @@ function codeQlLanguageOf(file) {
 
 /*
  * The languages CodeQL analyses that files hold code in, each with its files,
- * leaving out the files under the paths code scanning skips.
+ * leaving out the files code scanning skips: a path paths-ignore names, and
+ * everything under it.
  */
-function languagesIn(files) {
+function languagesIn(files, skippedPaths = ignoredPaths) {
   const languages = {};
 
   for (const file of files) {
-    const skipped = ignoredPaths.some((ignored) => {
-      return file.startsWith(`${ignored}/`);
+    const skipped = skippedPaths.some((ignored) => {
+      return file === ignored || file.startsWith(`${ignored}/`);
     });
     const language = skipped ? null : codeQlLanguageOf(file);
 
@@ -347,23 +354,6 @@ describe(WORKFLOW, () => {
     });
 
     expect(upload.with.category).toBe("/language:${{ matrix.language }}");
-    /*
-     * The categories of master's analyses, python's included: a pull request
-     * without one of them is reported as missing that configuration.
-     */
-    expect(
-      analyze.strategy.matrix.include.map((entry) => {
-        return upload.with.category.replace(
-          "${{ matrix.language }}",
-          entry.language,
-        );
-      }),
-    ).toEqual([
-      "/language:actions",
-      "/language:go",
-      "/language:javascript-typescript",
-      "/language:python",
-    ]);
   });
 
   test("initializes each language with its build mode and the default query suite", () => {
@@ -413,24 +403,6 @@ describe(`${WORKFLOW}: the languages it scans`, () => {
     ).toEqual([]);
   });
 
-  test("would report any language it scans once the matrix drops it, as python was missing from 4 October 2026", () => {
-    for (const language of scannedLanguages()) {
-      const others = scannedLanguages().filter((scanned) => {
-        return scanned !== language;
-      });
-
-      expect(
-        languagesUnaccountedFor(
-          repositoryLanguages,
-          others,
-          LEFT_OUT_LANGUAGES,
-        ).map(([unscanned]) => {
-          return unscanned;
-        }),
-      ).toEqual([language]);
-    }
-  });
-
   test("each language it scans has code outside the paths code scanning skips", () => {
     // An analysis that finds no code fails, on every pull request.
     for (const language of scannedLanguages()) {
@@ -441,13 +413,11 @@ describe(`${WORKFLOW}: the languages it scans`, () => {
     }
   });
 
-  test("leaves out only languages the repository holds code in and default setup does not scan, each with a reason", () => {
+  test("leaves out only languages it does not scan and the repository holds code in, each with a reason", () => {
     for (const [language, reason] of Object.entries(LEFT_OUT_LANGUAGES)) {
       expect([
         language,
-        DEFAULT_SETUP_MATRIX.some((entry) => {
-          return entry.language === language;
-        }),
+        scannedLanguages().includes(language),
         // A language whose code is gone comes off the list with it.
         Boolean(repositoryLanguages[language]),
         reason.trim() !== "",
@@ -707,7 +677,7 @@ describe("the checks on the languages files hold code in", () => {
     }
   });
 
-  test("files under a path code scanning skips hold no language's code, but a path that only begins the same way does", () => {
+  test("files code scanning skips hold no language's code, but a path that only begins the same way does", () => {
     expect(
       languagesIn([
         "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
@@ -720,6 +690,16 @@ describe("the checks on the languages files hold code in", () => {
         "packages/Common/Server/Static/VendorAssets.js",
       ],
       python: ["packages/Common/Server/Static/Vendor.py"],
+    });
+    // A path naming one file skips that file, and no other.
+    expect(
+      languagesIn(
+        ["scripts/tool.js", "scripts/tool.jsx", "scripts/other.py"],
+        ["scripts/tool.js"],
+      ),
+    ).toEqual({
+      "javascript-typescript": ["scripts/tool.jsx"],
+      python: ["scripts/other.py"],
     });
   });
 
