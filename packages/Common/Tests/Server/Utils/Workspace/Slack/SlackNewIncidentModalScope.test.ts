@@ -7,6 +7,25 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+
+/*
+ * The press a Connect button carries (WorkspaceConnectRequest) is kept in
+ * the cache: in memory here.
+ */
+jest.mock("../../../../../Server/Infrastructure/GlobalCache", () => {
+  return {
+    __esModule: true,
+    default: (
+      jest.requireActual("../../../API/WorkspaceOAuthTestHelpers") as Record<
+        string,
+        () => unknown
+      >
+    )["createInMemoryGlobalCache"]!(),
+  };
+});
+
+import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import URL from "../../../../../Types/API/URL";
 import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
@@ -37,6 +56,7 @@ import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions
 import SlackAlertActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../../../../../Server/Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackAuthAction, {
+  SlackAuthRefusalReason,
   SlackRequest,
 } from "../../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Incident";
@@ -57,6 +77,7 @@ import {
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
+  WorkspacePayloadButtons,
   WorkspacePayloadMarkdown,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 
@@ -66,13 +87,13 @@ import {
  * OneUptime member the Slack account is connected to:
  *
  *  - /incident and its submit need a connected account of a current member,
- *    like every other Slack action: someone who never connected one is told
- *    to, in a direct message, and nothing is created by nobody. (They used
- *    to be open to anyone in the workspace; no project setting asks for
- *    that.)
+ *    like every other Slack action: someone who never connected one is
+ *    asked to, where they asked (a message only they see, in the channel),
+ *    with a Connect button, and nothing is created by nobody. (They used to
+ *    be open to anyone in the workspace; no project setting asks for that.)
  *  - The member must be allowed to declare an incident (create an event,
- *    execute a policy): one who may not is told so before any form opens,
- *    and before anything is created.
+ *    execute a policy): one who may not is told so, where they asked,
+ *    before any form opens, and before anything is created.
  *  - Every list a form offers - severities, monitors, monitor statuses,
  *    on-call policies, labels - is read with the member's own props, never as
  *    root, so a form offers only what they may read; a list they may not read
@@ -93,6 +114,7 @@ const slackTeamId: string = "T0WORKSPACE";
 const projectAuthToken: string = "xoxb-project-token";
 
 let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
+let ephemeralSpy: SpyInstance<typeof SlackUtil.sendEphemeralMessageToChannel>;
 let showModalSpy: SpyInstance<typeof SlackUtil.showModalToUser>;
 
 function createTenantPermission(
@@ -167,6 +189,43 @@ function directMessageTexts(): Array<string> {
       return (block as WorkspacePayloadMarkdown).text;
     },
   );
+}
+
+// An answer only the person sees, in the channel they asked in.
+interface ChannelAnswer {
+  channelId: string;
+  userId: string;
+  text: string;
+  // The Connect button's link, when the answer has one.
+  connectUrl: string | null;
+}
+
+function channelAnswers(): Array<ChannelAnswer> {
+  return ephemeralSpy.mock.calls.map(
+    (
+      call: Parameters<typeof SlackUtil.sendEphemeralMessageToChannel>,
+    ): ChannelAnswer => {
+      const blocks: Array<WorkspaceMessageBlock> = call[0].messageBlocks;
+      const buttons: WorkspacePayloadButtons | undefined = blocks.find(
+        (block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        },
+      ) as WorkspacePayloadButtons | undefined;
+
+      return {
+        channelId: call[0].channelId,
+        userId: call[0].userId,
+        text: (blocks[0] as WorkspacePayloadMarkdown).text,
+        connectUrl: buttons?.buttons[0]?.url?.toString() || null,
+      };
+    },
+  );
+}
+
+function channelAnswerTexts(): Array<string> {
+  return channelAnswers().map((answer: ChannelAnswer): string => {
+    return answer.text;
+  });
 }
 
 // The one form Slack was asked to show.
@@ -303,6 +362,12 @@ beforeEach((): void => {
   directMessageSpy = jest
     .spyOn(SlackUtil, "sendDirectMessageToUser")
     .mockResolvedValue();
+  ephemeralSpy = jest
+    .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
+    .mockResolvedValue();
+  jest
+    .spyOn(DatabaseConfig, "getDashboardUrl")
+    .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
   showModalSpy = jest.spyOn(SlackUtil, "showModalToUser").mockResolvedValue();
   jest.spyOn(SlackUtil, "sendMessage").mockResolvedValue({
     channelsPosted: [],
@@ -375,7 +440,7 @@ describe("/incident and its form need a connected account of a current member", 
     { name: "/incident", request: slashCommand },
     { name: "the New Incident form's submit", request: formSubmission },
   ])(
-    "$name from a Slack user who never connected an account: refused, and told to connect it",
+    "$name from a Slack user who never connected an account: refused, and asked in the channel to connect it, with a Connect button",
     async (row: { name: string; request: () => ExpressRequest }) => {
       mockConnectedWorkspace(null);
 
@@ -384,11 +449,34 @@ describe("/incident and its form need a connected account of a current member", 
       });
 
       expect(result.isAuthorized).toBe(false);
-      expect(directMessageTexts()).toHaveLength(1);
-      expect(directMessageTexts()[0]).toContain(
-        "your slack account is not connected to OneUptime",
+      expect(result.refusal?.reason).toBe(SlackAuthRefusalReason.NotConnected);
+      // Nothing is said before the press is acknowledged to Slack.
+      expect(ephemeralSpy).not.toHaveBeenCalled();
+      expect(directMessageSpy).not.toHaveBeenCalled();
+
+      await SlackAuthAction.answerRefusal(result);
+
+      /*
+       * master: "Unfortunately your slack account is not connected to
+       * OneUptime. Please log into your OneUptime account, click on User
+       * Settings and then connect your Slack account." in a direct message.
+       */
+      expect(directMessageSpy).not.toHaveBeenCalled();
+      const answers: Array<ChannelAnswer> = channelAnswers();
+      expect(answers).toHaveLength(1);
+      expect(answers[0]).toMatchObject({
+        channelId: "C0CHANNEL",
+        userId: slackUserId,
+        text: "🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **/incident** again.",
+      });
+
+      const url: globalThis.URL = new globalThis.URL(
+        answers[0]!.connectUrl || "",
       );
-      expect(directMessageTexts()[0]).toContain("connect your Slack account");
+      expect(`${url.origin}${url.pathname}`).toBe(
+        `https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/slack-integration`,
+      );
+      expect(url.searchParams.get("connect")).toHaveLength(43);
     },
   );
 
@@ -396,7 +484,7 @@ describe("/incident and its form need a connected account of a current member", 
     { name: "/incident", request: slashCommand },
     { name: "the New Incident form's submit", request: formSubmission },
   ])(
-    "$name from someone removed from the project: refused as not a member",
+    "$name from someone removed from the project: refused as not a member, in the channel",
     async (row: { name: string; request: () => ExpressRequest }) => {
       mockConnectedWorkspace(connectedAccount());
       jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
@@ -406,9 +494,19 @@ describe("/incident and its form need a connected account of a current member", 
       });
 
       expect(result.isAuthorized).toBe(false);
-      expect(directMessageTexts()[0]).toContain(
-        WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-      );
+      expect(result.refusal?.reason).toBe(SlackAuthRefusalReason.NotAMember);
+
+      await SlackAuthAction.answerRefusal(result);
+
+      expect(channelAnswers()).toEqual([
+        {
+          channelId: "C0CHANNEL",
+          userId: slackUserId,
+          text: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+          connectUrl: null,
+        },
+      ]);
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 
@@ -422,12 +520,14 @@ describe("/incident and its form need a connected account of a current member", 
 
     expect(result.isAuthorized).toBe(true);
     expect(result.userId).toBe(userId);
+    expect(result.refusal).toBeUndefined();
     expect(directMessageSpy).not.toHaveBeenCalled();
+    expect(ephemeralSpy).not.toHaveBeenCalled();
   });
 });
 
 describe("the New Incident form is filled in as the member", (): void => {
-  test("a member who may not declare an incident is told so in a direct message, and no form opens", async () => {
+  test("a member who may not declare an incident is told so in the channel they asked in, and no form opens", async () => {
     mockMember([Permission.Viewer]);
     const reads: Array<ListRead> = stubLists();
 
@@ -437,10 +537,11 @@ describe("the New Incident form is filled in as the member", (): void => {
 
     expect(showModalSpy).not.toHaveBeenCalled();
     expect(reads).toEqual([]);
-    expect(directMessageTexts()).toHaveLength(1);
-    expect(directMessageTexts()[0]).toContain(
+    expect(channelAnswerTexts()).toHaveLength(1);
+    expect(channelAnswerTexts()[0]).toContain(
       "You do not have permission to declare an incident.",
     );
+    expect(directMessageSpy).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -540,7 +641,7 @@ describe("submitting the New Incident form", (): void => {
     );
 
     expect(createSpy).not.toHaveBeenCalled();
-    expect(directMessageTexts()[0]).toContain(
+    expect(channelAnswerTexts()[0]).toContain(
       "You do not have permission to declare an incident.",
     );
   });
@@ -579,7 +680,7 @@ describe("the New Scheduled Maintenance form is filled in as the member", (): vo
 
     expect(showModalSpy).not.toHaveBeenCalled();
     expect(reads).toEqual([]);
-    expect(directMessageTexts()[0]).toContain(
+    expect(channelAnswerTexts()[0]).toContain(
       "You do not have permission to create a scheduled maintenance event.",
     );
   });
@@ -696,7 +797,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
 
       expect(showModalSpy).not.toHaveBeenCalled();
       expect(reads).toEqual([]);
-      expect(directMessageTexts()[0]).toContain(
+      expect(channelAnswerTexts()[0]).toContain(
         `You do not have permission to ${picker.refusal}.`,
       );
     },

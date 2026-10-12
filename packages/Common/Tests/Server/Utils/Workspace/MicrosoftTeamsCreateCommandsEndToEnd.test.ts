@@ -191,6 +191,7 @@ import { ProjectScopedReferenceException } from "../../../../Server/Utils/Databa
 import { UnreadableReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
@@ -1316,6 +1317,105 @@ function dashboardLink(route: string): string {
   return `${DASHBOARD_URL}/${projectId.toString()}${route}`;
 }
 
+// ---- Reading an answer card ----
+
+// Who sends every activity here (SENDER), as the bot's answers mention them.
+const SENDER_MENTION: string = "<at>Customer User</at>";
+
+/*
+ * A call that is an answer card (MicrosoftTeamsActionAnswer) - a refusal, or
+ * a request to connect the account - read as what it says after mentioning
+ * the sender, whom the card mentions. Any other call reads as its label.
+ */
+function answerOf(call: ConnectorCall): string {
+  if (call.kind !== "card" || !call.card) {
+    return call.label;
+  }
+
+  const texts: Array<string> = getTextBlocks(call.card);
+
+  if (texts.length !== 1 || !texts[0]!.startsWith(`${SENDER_MENTION} `)) {
+    return call.label;
+  }
+
+  expect(asObject(call.card["msteams"])["entities"]).toEqual([
+    {
+      type: "mention",
+      text: SENDER_MENTION,
+      mentioned: { id: SENDER["id"], name: SENDER["name"] },
+    },
+  ]);
+
+  return texts[0]!.substring(SENDER_MENTION.length + 1);
+}
+
+function answersOf(calls: Array<ConnectorCall>): Array<string> {
+  return calls.map((call: ConnectorCall) => {
+    return answerOf(call);
+  });
+}
+
+// The Connect button an answer card carries, or null.
+function connectUrlOf(call: ConnectorCall | undefined): string | null {
+  const button: JSONObject | undefined = getActions(cardOf(call)).find(
+    (action: JSONObject) => {
+      return (
+        action["type"] === "Action.OpenUrl" &&
+        action["title"] === "Connect Microsoft Teams account"
+      );
+    },
+  );
+
+  return button ? String(button["url"]) : null;
+}
+
+/*
+ * The Connect button opens the sender's own Microsoft Teams settings in the
+ * project, with the press it carries.
+ */
+function expectOneClickConnect(call: ConnectorCall | undefined): void {
+  const url: globalThis.URL = new globalThis.URL(connectUrlOf(call) || "");
+
+  expect(`${url.origin}${url.pathname}`).toBe(
+    dashboardLink("/user-settings/microsoft-teams-integration"),
+  );
+  expect(url.searchParams.get("connect")).toMatch(
+    CONNECT_REQUEST_TOKEN_PATTERN,
+  );
+}
+
+/*
+ * The presses Connect buttons carry (WorkspaceConnectRequest) live in Redis,
+ * which is not connected here: they live in this map instead.
+ */
+const keptConnectRequests: Map<string, string> = new Map<string, string>();
+
+function keepConnectRequestsInMemory(): void {
+  keptConnectRequests.clear();
+
+  jest
+    .spyOn(GlobalCache, "setString")
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        keptConnectRequests.set(`${namespace}:${key}`, value);
+      },
+    );
+  jest
+    .spyOn(GlobalCache, "getString")
+    .mockImplementation(async (namespace: string, key: string) => {
+      return keptConnectRequests.get(`${namespace}:${key}`) ?? null;
+    });
+  jest
+    .spyOn(GlobalCache, "getAndDeleteString")
+    .mockImplementation(async (namespace: string, key: string) => {
+      const value: string | undefined = keptConnectRequests.get(
+        `${namespace}:${key}`,
+      );
+      keptConnectRequests.delete(`${namespace}:${key}`);
+      return value ?? null;
+    });
+}
+
 interface CardListExpectation {
   choiceSetId: string;
   pluralNoun: string;
@@ -1463,6 +1563,7 @@ beforeEach(() => {
   stubTenantAndInstallCapture(projectId);
   stubSenderCheck(projectId);
   stubDashboardUrl();
+  keepConnectRequestsInMemory();
 
   loggedErrors = [];
   loggedErrorCalls = [];
@@ -2097,21 +2198,21 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
   // A type, not an interface: test.each wants a Record<string, unknown> row.
   type NotLinkedCase = {
     command: string;
-    // How the reply starts: why the sender needs a connected account.
+    // What the sender is asked to connect their account for.
     purpose: string;
   };
 
   test.each<NotLinkedCase>([
     {
       command: "create incident",
-      purpose: "To create incidents from Microsoft Teams",
+      purpose: "declare an incident",
     },
     {
       command: "create maintenance",
-      purpose: "To schedule maintenance from Microsoft Teams",
+      purpose: "create a scheduled maintenance event",
     },
   ])(
-    "'$command' from a Teams user with no connected account: one reply pointing at User Settings → Microsoft Teams, no form",
+    "'$command' from a Teams user with no connected account: one reply, mentioning them, with a one-click Connect button and the command to type again; no form",
     async (notLinked: NotLinkedCase) => {
       stubProjectData({ monitors: 800 });
       /*
@@ -2137,12 +2238,11 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
       expect(view.httpStatuses).toEqual([200]);
       expect(view.refused).toEqual([]);
       expect(view.bubbles).toHaveLength(1);
-      const reply: string = textOf(view.bubbles[0]);
-      expect(reply.startsWith(notLinked.purpose)).toBe(true);
-      expect(reply).toContain("User Settings → Microsoft Teams");
-      expect(reply).toContain(
-        dashboardLink("/user-settings/microsoft-teams-integration"),
+      // master: a line of text naming nobody, then "try again".
+      expect(answerOf(view.bubbles[0]!)).toBe(
+        `🔗 **Connect your Microsoft Teams account to ${notLinked.purpose}.** It takes one click. Then run **${notLinked.command}** again.`,
       );
+      expectOneClickConnect(view.bubbles[0]);
       // The link looked for was this sender's, in this project.
       expect(WorkspaceUserAuthTokenService.findOneBy).toHaveBeenCalledTimes(1);
       expect(WorkspaceUserAuthTokenService.findOneBy).toHaveBeenCalledWith(
@@ -2355,7 +2455,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
       conversationId: CHANNEL_CONVERSATION_ID,
     },
   ])(
-    "'$command' in a $conversation, from a sender without a connected account: told where to connect it, and no form is posted for everyone there",
+    "'$command' in a $conversation, from a sender without a connected account: asked, by name, to connect it, and no form is posted for everyone there",
     async (sharedChat: SharedChatCase) => {
       stubProjectData({ monitors: 5 });
       // Each check would refuse this sender, were it asked.
@@ -2394,15 +2494,20 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
       expect(view.httpStatuses).toEqual([200]);
       expect(view.refused).toEqual([]);
-      // One text bubble, in the chat it was asked in: where to connect the account.
+      // One answer card, in the chat it was asked in: connect the account.
       expect(
         view.bubbles.map((call: ConnectorCall) => {
           return [call.kind, call.conversationId];
         }),
-      ).toEqual([["text", sharedChat.conversationId]]);
-      expect(view.bubbles[0]!.label).toMatch(
-        /^To (create incidents|schedule maintenance) from Microsoft Teams, first connect your Microsoft Teams account to OneUptime/,
+      ).toEqual([["card", sharedChat.conversationId]]);
+      expect(answerOf(view.bubbles[0]!)).toBe(
+        `🔗 **Connect your Microsoft Teams account to ${
+          sharedChat.command === "create incident"
+            ? "declare an incident"
+            : "create a scheduled maintenance event"
+        }.** It takes one click. Then run **${sharedChat.command}** again.`,
       );
+      expectOneClickConnect(view.bubbles[0]);
       expect(
         MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId,
       ).toHaveBeenCalledTimes(1);
@@ -2442,7 +2547,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
       );
 
       expect(view.httpStatuses).toEqual([200]);
-      expect(labelsOf(view.bubbles)).toEqual([
+      expect(answersOf(view.bubbles)).toEqual([
         "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
       ]);
       // The one checked is the sender, in this project, from the database.
@@ -2477,7 +2582,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the maintenance submit tests).
-    expect(labelsOf(view.bubbles)).toEqual([
+    expect(answersOf(view.bubbles)).toEqual([
       "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Scheduled Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
@@ -2508,7 +2613,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the incident submit tests).
-    expect(labelsOf(view.bubbles)).toEqual([
+    expect(answersOf(view.bubbles)).toEqual([
       "You do not have permission to declare an incident. You do not have permissions to create Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident",
     ]);
     expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
@@ -2652,7 +2757,7 @@ describe("questions for the AI assistant (#4111 review): one answer, and the que
   ];
 
   test.each<QuestionCase>(QUESTIONS)(
-    "$description from a Teams user with no connected account: one reply that says where to connect it, with the link; nothing logged as an error",
+    "$description from a Teams user with no connected account: one reply, mentioning them, with a one-click Connect button and to ask again; nothing logged as an error",
     async (question: QuestionCase) => {
       // The real account lookup runs, and finds no link.
       jest
@@ -2672,9 +2777,10 @@ describe("questions for the AI assistant (#4111 review): one answer, and the que
       );
 
       expect(view.httpStatuses).toEqual([200]);
-      expect(labelsOf(view.bubbles)).toEqual([
-        `To ask OneUptime questions from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](${dashboardLink("/user-settings/microsoft-teams-integration")}), then try again.`,
+      expect(answersOf(view.bubbles)).toEqual([
+        "🔗 **Connect your Microsoft Teams account to ask OneUptime AI.** It takes one click. Then ask your question again.",
       ]);
+      expectOneClickConnect(view.bubbles[0]);
       expect(loggedErrors).toEqual([]);
     },
   );
@@ -3713,7 +3819,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     ).toEqual([200]);
     expect(
       deliveries[0]!.calls.map((call: ConnectorCall) => {
-        return [call.method, call.label, call.connectorStatus];
+        return [call.method, answerOf(call), call.connectorStatus];
       }),
     ).toEqual([
       [
@@ -3790,7 +3896,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     );
 
     expect(view.httpStatuses).toEqual([200]);
-    expect(labelsOf(view.bubbles)).toEqual([
+    expect(answersOf(view.bubbles)).toEqual([
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
     ]);
     expect(IncidentService.create).not.toHaveBeenCalled();

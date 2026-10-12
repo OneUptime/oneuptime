@@ -428,8 +428,11 @@ describe("Microsoft Teams inbound route authentication", () => {
         turnContext: turnContext,
       });
 
+      // Answered in the conversation, as a card (MicrosoftTeamsActionAnswer).
       expect(turnContext.sendActivity).toHaveBeenCalledWith(
-        WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+        expect.objectContaining({
+          summary: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+        }),
       );
     }
 

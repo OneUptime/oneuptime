@@ -32,8 +32,11 @@ import {
  * into guidance - a card button (handleBotInvokeActivity), the create
  * commands (MicrosoftTeamsCreateCommands) and the AI assistant ("ask ...",
  * through handleBotMessageActivity) - with only the link table, the tenant
- * and the dashboard URL stubbed. Each says where to connect the account,
- * with the link to User Settings, and takes nothing else for "not linked".
+ * and the dashboard URL stubbed (and the cache kept in memory). Each answers
+ * with a card that mentions who pressed and asks them to connect their
+ * account for what they pressed, with a one-click Connect button that
+ * carries the press (MicrosoftTeamsConnectPrompt), and takes nothing else
+ * for "not linked".
  *
  * The AI assistant used to answer every lookup failure - a database error
  * included - with "Please connect your Microsoft Teams account in OneUptime
@@ -87,6 +90,18 @@ jest.mock("botbuilder", () => {
   };
 });
 
+jest.mock("../../../../../Server/Infrastructure/GlobalCache", () => {
+  return {
+    __esModule: true,
+    default: (
+      jest.requireActual("../../../API/WorkspaceOAuthTestHelpers") as Record<
+        string,
+        () => unknown
+      >
+    )["createInMemoryGlobalCache"]!(),
+  };
+});
+
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -117,6 +132,12 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestAgainKind,
+  WorkspaceConnectRequestRecord,
+  WorkspacePendingActionKind,
+} from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import { WorkspaceEventType } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
@@ -124,6 +145,7 @@ import ExceptionCode from "../../../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
@@ -510,12 +532,146 @@ function askActivity(activityId: string): JSONObject {
   };
 }
 
-function connectYourAccount(purpose: string): string {
-  return `To ${purpose}, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](${SETTINGS_LINK}), then try again.`;
+// A card the bot replied with, read back from what the fake turn recorded.
+interface CardReply {
+  // The card's one text block: the mention, then the answer.
+  text: string;
+  // What a notification shows.
+  summary: string;
+  // The card's buttons.
+  actions: Array<JSONObject>;
+  // Who the card mentions.
+  mentions: Array<JSONObject>;
+  // Every element of the card's body that is not its text: a form's inputs.
+  otherElements: Array<JSONObject>;
 }
 
-// What every "connect your account" reply says, whatever its wording.
-const CONNECT_YOUR_ACCOUNT: string = "connect your Microsoft Teams account";
+function readCardReply(reply: string | undefined): CardReply {
+  const activity: JSONObject = JSON.parse(reply || "null") as JSONObject;
+  const attachments: Array<JSONObject> = activity[
+    "attachments"
+  ] as Array<JSONObject>;
+
+  expect(attachments).toHaveLength(1);
+  expect(attachments[0]!["contentType"]).toBe(
+    MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
+  );
+
+  const card: JSONObject = attachments[0]!["content"] as JSONObject;
+  const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+
+  expect(body[0]!["type"]).toBe("TextBlock");
+
+  return {
+    text: body[0]!["text"] as string,
+    summary: activity["summary"] as string,
+    actions: (card["actions"] as Array<JSONObject> | undefined) || [],
+    mentions:
+      ((card["msteams"] as JSONObject | undefined)?.["entities"] as
+        | Array<JSONObject>
+        | undefined) || [],
+    otherElements: body.slice(1),
+  };
+}
+
+// The sender, as every reply mentions them (fromSender).
+const MENTION: string = "<at>Alex</at>";
+const MENTION_ENTITY: JSONObject = {
+  type: "mention",
+  text: MENTION,
+  mentioned: { id: "29:teams-user", name: "Alex" },
+};
+
+// What a press is asked to connect the account for, and what happens then.
+interface ConnectPromptCase {
+  purpose: string;
+  next: string;
+}
+
+const ACKNOWLEDGE_PROMPT: ConnectPromptCase = {
+  purpose: "acknowledge this incident",
+  next: "It takes one click, and OneUptime acknowledges it for you as soon as you're connected.",
+};
+
+const ASK_PROMPT: ConnectPromptCase = {
+  purpose: "ask OneUptime AI",
+  next: "It takes one click. Then ask your question again.",
+};
+
+/*
+ * The one reply a press from a Teams user without a linked account gets: a
+ * card that mentions them and asks them to connect their account, for what
+ * they pressed, with a Connect button to their own Microsoft Teams settings
+ * page in the project carrying the press - recorded, for them, to be
+ * finished or answered once they connect. The record is returned.
+ */
+async function expectConnectPrompt(
+  replies: Array<string>,
+  expected: ConnectPromptCase,
+): Promise<WorkspaceConnectRequestRecord> {
+  expect(replies).toHaveLength(1);
+
+  const reply: CardReply = readCardReply(replies[0]);
+
+  expect(reply.text).toBe(
+    `${MENTION} 🔗 **Connect your Microsoft Teams account to ${expected.purpose}.** ${expected.next}`,
+  );
+  expect(reply.summary).toBe(
+    `Connect your Microsoft Teams account to ${expected.purpose}`,
+  );
+  expect(reply.mentions).toEqual([MENTION_ENTITY]);
+  // A prompt, not a form: no inputs, and no button that submits.
+  expect(reply.otherElements).toEqual([]);
+  expect(reply.actions).toHaveLength(1);
+  expect(reply.actions[0]).toMatchObject({
+    type: "Action.OpenUrl",
+    title: "Connect Microsoft Teams account",
+  });
+
+  const url: globalThis.URL = new globalThis.URL(
+    reply.actions[0]!["url"] as string,
+  );
+  const token: string | null = url.searchParams.get("connect");
+
+  expect(`${url.origin}${url.pathname}`).toBe(SETTINGS_LINK);
+  expect(token).toMatch(CONNECT_REQUEST_TOKEN_PATTERN);
+
+  const request: WorkspaceConnectRequestRecord | null =
+    await WorkspaceConnectRequest.peek(token);
+
+  expect(request).not.toBeNull();
+  expect(request!.workspaceType).toBe(WorkspaceType.MicrosoftTeams);
+  expect(request!.projectId.toString()).toBe(PROJECT_ID.toString());
+  // Only the Microsoft account that pressed can finish it when signing in.
+  expect(request!.workspaceUserId).toBe(TEAMS_USER_ID);
+  expect(request!.purpose).toBe(expected.purpose);
+
+  return request!;
+}
+
+/*
+ * With no address of the server's own to link to, the card says where the
+ * setting is, and to press again - and has no button.
+ */
+function expectConnectWithoutLink(
+  replies: Array<string>,
+  expected: { purpose: string; again: string },
+): void {
+  expect(replies).toHaveLength(1);
+
+  const reply: CardReply = readCardReply(replies[0]);
+
+  expect(reply.text).toBe(
+    `${MENTION} 🔗 **Connect your Microsoft Teams account to ${expected.purpose}.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, ${expected.again}.`,
+  );
+  expect(reply.actions).toEqual([]);
+  expect(reply.mentions).toEqual([MENTION_ENTITY]);
+}
+
+// Whether a reply asks the sender to connect their account, whatever its form.
+function asksToConnect(reply: string | undefined): boolean {
+  return Boolean(reply && reply.includes("Connect your Microsoft Teams account"));
+}
 
 /*
  * A private static of MicrosoftTeamsUtil, reached through a cast the way
@@ -576,23 +732,32 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     }
 
     test.each(UNLINKED)(
-      "$name: one reply that says where to connect the account; the action does not run",
+      "$name: one reply, mentioning them, that asks them to connect the account to acknowledge it, with a one-click Connect button; the action does not run yet",
       async (unlinked: UnlinkedCase): Promise<void> => {
         stubLinkTable(unlinked.row());
 
         const turn: FakeTurn = await pressAcknowledge();
 
         // master: ["Sorry, that action failed. Please try again later."]
-        expect(turn.replies).toEqual([
-          connectYourAccount("use OneUptime actions in Microsoft Teams"),
-        ]);
+        const request: WorkspaceConnectRequestRecord =
+          await expectConnectPrompt(turn.replies, ACKNOWLEDGE_PROMPT);
+
+        // Kept, to be acknowledged as the member the account gets linked to.
+        expect(request.pendingAction!.kind).toBe(
+          WorkspacePendingActionKind.Acknowledge,
+        );
+        expect(request.pendingAction!.eventType).toBe(
+          WorkspaceEventType.Incident,
+        );
+        expect(request.pendingAction!.eventId.toString()).toBe(INCIDENT_ID);
+
         expect(memberPropsSpy).not.toHaveBeenCalled();
         expect(acknowledgeSpy).not.toHaveBeenCalled();
         expect(errorLog).not.toHaveBeenCalled();
       },
     );
 
-    test("without a dashboard URL the reply still says where to connect the account", async (): Promise<void> => {
+    test("without a dashboard URL the reply still says where to connect the account, and to press again", async (): Promise<void> => {
       stubLinkTable(null);
       jest
         .spyOn(DatabaseConfig, "getDashboardUrl")
@@ -600,9 +765,10 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
       const turn: FakeTurn = await pressAcknowledge();
 
-      expect(turn.replies).toEqual([
-        "To use OneUptime actions in Microsoft Teams, first connect your Microsoft Teams account to OneUptime in OneUptime under User Settings → Microsoft Teams, then try again.",
-      ]);
+      expectConnectWithoutLink(turn.replies, {
+        purpose: "acknowledge this incident",
+        again: "press the button again",
+      });
       expect(errorLog).not.toHaveBeenCalled();
     });
 
@@ -674,6 +840,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
   interface CreateCommandCase {
     name: string;
+    // What the command is asked to connect the account for.
     purpose: string;
     what: string;
     run: (turn: FakeTurn, activity: JSONObject) => Promise<void>;
@@ -697,7 +864,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
   const CREATE_COMMANDS: ReadonlyArray<CreateCommandCase> = [
     {
       name: "create incident",
-      purpose: "create incidents from Microsoft Teams",
+      purpose: "declare an incident",
       what: "an incident",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
         return MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
@@ -743,7 +910,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     },
     {
       name: "create maintenance",
-      purpose: "schedule maintenance from Microsoft Teams",
+      purpose: "create a scheduled maintenance event",
       what: "a scheduled maintenance event",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
         return MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
@@ -798,7 +965,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
   describe("the create commands (MicrosoftTeamsCreateCommands)", (): void => {
     test.each(CREATE_COMMANDS)(
-      "'$name': one reply that says where to connect the account, and no form",
+      "'$name': one reply that asks to connect the account, then to type the command again, and no form",
       async (command: CreateCommandCase): Promise<void> => {
         stubLinkTable(null);
         const formLists: { mock: { calls: Array<unknown> } } =
@@ -808,7 +975,17 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
         await command.run(turn, activity);
 
-        expect(turn.replies).toEqual([connectYourAccount(command.purpose)]);
+        const request: WorkspaceConnectRequestRecord =
+          await expectConnectPrompt(turn.replies, {
+            purpose: command.purpose,
+            next: `It takes one click. Then run **${command.name}** again.`,
+          });
+        // A form opens only on a fresh command: nothing is finished for them.
+        expect(request.pendingAction).toBeUndefined();
+        expect(request.again).toEqual({
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: command.name,
+        });
         // Told before filling the form in: its lists were never read.
         expect(formLists.mock.calls).toHaveLength(0);
         expect(memberPropsSpy).not.toHaveBeenCalled();
@@ -878,7 +1055,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
       );
 
     test.each(SHARED_CREATE_CASES)(
-      "'$command.name' in a $place, from a sender without a linked account: where to connect it, and no form",
+      "'$command.name' in a $place, from a sender without a linked account: asked to connect it, and no form",
       async (sharedCase: SharedCreateCase): Promise<void> => {
         const { command, where } = sharedCase;
         const linkTable: LinkTableSpy = stubLinkTable(null);
@@ -894,13 +1071,12 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
         await command.run(turn, activity);
 
-        // One reply: where to connect the account, and no form posted for the channel.
-        expect(turn.replies).toEqual([connectYourAccount(command.purpose)]);
-        for (const reply of turn.replies) {
-          expect(reply).not.toContain(
-            MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
-          );
-        }
+        // One reply: asked to connect the account; no form posted for the channel.
+        await expectConnectPrompt(turn.replies, {
+          purpose: command.purpose,
+          next: `It takes one click. Then run **${command.name}** again.`,
+        });
+        expect(turn.replies[0]).not.toContain(command.formTitle);
 
         // The sender was looked up; nobody's lists were read.
         expect(linkTable).toHaveBeenCalledTimes(1);
@@ -912,7 +1088,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     );
 
     test.each(SHARED_CREATE_CASES)(
-      "the '$command.name' form submitted in a $place by someone without a linked account: where to connect it, and nothing is created",
+      "the '$command.name' form submitted in a $place by someone without a linked account: asked to connect it, then to type the command again, and nothing is created",
       async (sharedCase: SharedCreateCase): Promise<void> => {
         const { command, where } = sharedCase;
         stubLinkTable(null);
@@ -936,9 +1112,10 @@ describe("what a Teams user without a linked account is told (the real lookup; o
           turnContext: turn.turnContext,
         });
 
-        expect(turn.replies).toEqual([
-          connectYourAccount("use OneUptime actions in Microsoft Teams"),
-        ]);
+        await expectConnectPrompt(turn.replies, {
+          purpose: command.purpose,
+          next: `It takes one click. Then run **${command.name}** again.`,
+        });
         expect(create.mock.calls).toHaveLength(0);
         expect(memberPropsSpy).not.toHaveBeenCalled();
         expect(errorLog).not.toHaveBeenCalled();
@@ -983,25 +1160,25 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     }
 
     test.each(UNLINKED)(
-      "$name: one reply that says to connect the account; the assistant is not asked",
+      "$name: one reply that asks to connect the account, then to ask again; the assistant is not asked",
       async (unlinked: UnlinkedCase): Promise<void> => {
         stubLinkTable(unlinked.row());
 
         const turn: FakeTurn = await ask();
 
-        expect(turn.replies).toHaveLength(1);
-        expect(turn.replies[0]).toContain(CONNECT_YOUR_ACCOUNT);
-        // The same guidance as a card button's, with the link to the setting.
-        expect(turn.replies).toEqual([
-          connectYourAccount("ask OneUptime questions from Microsoft Teams"),
-        ]);
+        // The same card as a button's, with the one-click Connect button.
+        const request: WorkspaceConnectRequestRecord =
+          await expectConnectPrompt(turn.replies, ASK_PROMPT);
+        expect(request.again).toEqual({
+          kind: WorkspaceConnectRequestAgainKind.Question,
+        });
         expect(memberPropsSpy).not.toHaveBeenCalled();
         expect(aiEnabledSpy).not.toHaveBeenCalled();
         expect(errorLog).not.toHaveBeenCalled();
       },
     );
 
-    test("without a dashboard URL the reply still says where to connect the account", async (): Promise<void> => {
+    test("without a dashboard URL the reply still says where to connect the account, and to ask again", async (): Promise<void> => {
       stubLinkTable(null);
       jest
         .spyOn(DatabaseConfig, "getDashboardUrl")
@@ -1009,9 +1186,10 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
       const turn: FakeTurn = await ask();
 
-      expect(turn.replies).toEqual([
-        "To ask OneUptime questions from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in OneUptime under User Settings → Microsoft Teams, then try again.",
-      ]);
+      expectConnectWithoutLink(turn.replies, {
+        purpose: "ask OneUptime AI",
+        again: "ask your question again",
+      });
       expect(errorLog).not.toHaveBeenCalled();
     });
 
@@ -1030,7 +1208,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
       const turn: FakeTurn = await ask();
 
       expect(turn.replies).toHaveLength(1);
-      expect(turn.replies[0]).not.toContain(CONNECT_YOUR_ACCOUNT);
+      expect(asksToConnect(turn.replies[0])).toBe(false);
       expect(memberPropsSpy).not.toHaveBeenCalled();
       expect(aiEnabledSpy).not.toHaveBeenCalled();
       expect(errorLog).toHaveBeenCalledWith(

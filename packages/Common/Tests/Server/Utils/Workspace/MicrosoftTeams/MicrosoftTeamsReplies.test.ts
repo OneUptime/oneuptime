@@ -33,9 +33,11 @@
  *   fixed reply for a submit that references a record the project does not
  *   have: the reference check's own message names the other project's
  *   record, which is not for the chat.
- * - getDashboardLink / getAccountNotLinkedMessage: the links the bot hands
- *   out (never changing the dashboard URL they start from), and what the bot
- *   says when the dashboard URL is not known.
+ * - getDashboardLink, and the Connect button a Teams user without a linked
+ *   account is answered with (WorkspaceConnectRequest, which replaced
+ *   getAccountNotLinkedMessage): the links the bot hands out (never
+ *   changing the dashboard URL they start from), and what the bot says when
+ *   the dashboard URL is not known.
  */
 
 import {
@@ -67,6 +69,12 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
   MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
+import WorkspaceActionAnswers from "../../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectButton,
+  WorkspaceConnectLink,
+  WorkspaceConnectRequestAgainKind,
+} from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -74,6 +82,7 @@ import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequ
 import ServerException from "../../../../../Types/Exception/ServerException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "4af3a31b-58b0-4746-8025-f9cd4db1945e",
@@ -1907,62 +1916,75 @@ describe("MicrosoftTeamsReplies.getDashboardLink", () => {
   });
 });
 
-describe("MicrosoftTeamsReplies.getAccountNotLinkedMessage", () => {
-  test("links to the user's Microsoft Teams settings in the project", async () => {
+/*
+ * A Teams user without a linked account is answered with a Connect button
+ * (MicrosoftTeamsConnectPrompt) that opens their own Microsoft Teams
+ * settings in the project - where getAccountNotLinkedMessage linked to.
+ */
+describe("the Connect button's link (WorkspaceConnectRequest)", () => {
+  const TOKEN: string = "t".repeat(43);
+
+  test("opens the user's Microsoft Teams settings in the project, carrying the press", async () => {
     stubDashboardUrl(DASHBOARD_URL);
 
-    await expect(
-      MicrosoftTeamsReplies.getAccountNotLinkedMessage({
-        projectId: PROJECT_ID,
-        purpose: "create incidents from Microsoft Teams",
-      }),
-    ).resolves.toBe(
-      `To create incidents from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration), then try again.`,
+    const url: URL = await WorkspaceConnectRequest.getConnectUrl({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: PROJECT_ID,
+      token: TOKEN,
+    });
+
+    expect(url.toString()).toBe(
+      `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration?connect=${TOKEN}`,
     );
   });
 
-  test("reads as a sentence for the AI assistant as well", async () => {
-    // What "ask" answers a Teams user whose account is not connected yet.
-    stubDashboardUrl(DASHBOARD_URL);
-
-    await expect(
-      MicrosoftTeamsReplies.getAccountNotLinkedMessage({
-        projectId: PROJECT_ID,
-        purpose: "ask OneUptime questions from Microsoft Teams",
-      }),
-    ).resolves.toBe(
-      `To ask OneUptime questions from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration), then try again.`,
-    );
-  });
-
-  test("says where to go in words when the dashboard URL is not known", async () => {
+  test("says where to go in words when the dashboard URL is not known, and has no button", async () => {
     stubDashboardUrlUnavailable(new Error("HOST is not configured."));
 
-    const message: string =
-      await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
+    const link: WorkspaceConnectLink =
+      await WorkspaceConnectRequest.getConnectLink({
+        workspaceType: WorkspaceType.MicrosoftTeams,
         projectId: PROJECT_ID,
-        purpose: "create scheduled maintenance events from Microsoft Teams",
+        workspaceUserId: "e3f4a5b6-c7d8-4e9f-8a1b-2c3d4e5f6a7b",
+        purpose: "create a scheduled maintenance event",
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: "create maintenance",
+        },
       });
 
-    expect(message).toBe(
-      "To create scheduled maintenance events from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in OneUptime under User Settings → Microsoft Teams, then try again.",
+    expect(link).toEqual({ button: WorkspaceConnectButton.None });
+
+    const markdown: string = WorkspaceActionAnswers.getConnectPrompt({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      purpose: "create a scheduled maintenance event",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "create maintenance",
+      },
+      button: link.button,
+    }).markdown;
+
+    expect(markdown).toBe(
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, run **create maintenance** again.",
     );
-    expect(message).not.toContain("](");
+    expect(markdown).not.toContain("](");
   });
 
   test("links to a page the dashboard really has", async () => {
     /*
-     * A real cross-file check: the bot's link is only useful if the Dashboard
+     * A real cross-file check: the button is only useful if the Dashboard
      * still serves /dashboard/<projectId>/user-settings/microsoft-teams-integration.
      */
     stubDashboardUrl(DASHBOARD_URL);
-    const message: string =
-      await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
-        projectId: PROJECT_ID,
-        purpose: "use OneUptime from Microsoft Teams",
-      });
-    expect(message).toContain(
-      `/dashboard/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration)`,
+
+    const url: URL = await WorkspaceConnectRequest.getSettingsUrl({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: PROJECT_ID,
+    });
+
+    expect(url.toString()).toBe(
+      `${DASHBOARD_URL}/${PROJECT_ID.toString()}${USER_SETTINGS_ROUTE}`,
     );
 
     const routeMapSource: string = fs

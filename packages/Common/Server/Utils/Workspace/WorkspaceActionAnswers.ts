@@ -37,6 +37,7 @@ import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import {
+  WorkspaceConnectButton,
   WorkspaceConnectRequestAgain,
   WorkspaceConnectRequestAgainKind,
   WorkspacePendingActionKind,
@@ -77,19 +78,6 @@ export interface WorkspaceAnswer {
   markdown: string;
   // One line of plain text: what a notification or a preview shows.
   text: string;
-}
-
-/*
- * What the Connect button that goes with a connect prompt opens
- * (getConnectPrompt).
- */
-export enum WorkspaceConnectButton {
-  // The settings page, carrying the press: connecting finishes it.
-  OneClick = "OneClick",
-  // The settings page alone: the press could not be kept to finish later.
-  SettingsPage = "SettingsPage",
-  // No button: the server knows no address of its own to link to.
-  None = "None",
 }
 
 // What a press that comes too late was trying to do (getAlreadyAnswer).

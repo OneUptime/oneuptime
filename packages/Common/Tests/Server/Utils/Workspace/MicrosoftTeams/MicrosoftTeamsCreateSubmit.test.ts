@@ -179,8 +179,42 @@ const MAINTENANCE_UNEXPECTED_FAILURE_WITHOUT_LINK: string =
   "❌ Could not create the scheduled maintenance event because of an unexpected error. Please try again, or create it in OneUptime.";
 
 type ReplyEvent = { kind: "reply"; text: string };
+/*
+ * An answer card (MicrosoftTeamsActionAnswer): a refusal is a reply to the
+ * person who pressed, in a card that mentions them; read as its text.
+ */
+type AnswerEvent = { kind: "answer"; text: string };
 type DeleteEvent = { kind: "delete"; activityId: string };
-type TurnEvent = ReplyEvent | DeleteEvent;
+type TurnEvent = ReplyEvent | AnswerEvent | DeleteEvent;
+
+// What the handler sent, as the event a test compares.
+function toReplyEvent(reply: unknown): ReplyEvent | AnswerEvent {
+  if (typeof reply === "string") {
+    return { kind: "reply", text: reply };
+  }
+
+  const attachments: Array<JSONObject> | undefined = (reply as JSONObject)?.[
+    "attachments"
+  ] as Array<JSONObject> | undefined;
+  const card: JSONObject | undefined = attachments?.[0]?.["content"] as
+    | JSONObject
+    | undefined;
+  const body: Array<JSONObject> | undefined = card?.["body"] as
+    | Array<JSONObject>
+    | undefined;
+
+  // An answer card is one text block, without a form's inputs.
+  if (
+    attachments?.length === 1 &&
+    body?.length === 1 &&
+    body[0]!["type"] === "TextBlock" &&
+    !card?.["actions"]
+  ) {
+    return { kind: "answer", text: body[0]!["text"] as string };
+  }
+
+  return { kind: "reply", text: JSON.stringify(reply) };
+}
 
 interface FakeTurn {
   turnContext: TurnContext;
@@ -203,10 +237,7 @@ function createFakeTurn(options?: {
   const turnContext: TurnContext = {
     activity: options?.activity || submitActivity(),
     sendActivity: async (reply: unknown): Promise<{ id: string }> => {
-      events.push({
-        kind: "reply",
-        text: typeof reply === "string" ? reply : JSON.stringify(reply),
-      });
+      events.push(toReplyEvent(reply));
 
       if (options?.replyError) {
         throw options.replyError;
@@ -445,7 +476,7 @@ function expectRefusedAsNonMember(submitted: NonMemberSubmit): void {
   });
   expect(submitted.turn.events).toEqual([
     {
-      kind: "reply",
+      kind: "answer",
       text: "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
     },
   ]);
@@ -963,7 +994,7 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
 
         expect(turn.events).toEqual([
           {
-            kind: "reply",
+            kind: "answer",
             text: expect.stringMatching(
               /^You do not have permission to declare an incident\./,
             ),

@@ -51,6 +51,9 @@ import ScheduledMaintenanceService from "../../../../../Server/Services/Schedule
 import ScheduledMaintenanceStateService from "../../../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
+import UserService from "../../../../../Server/Services/UserService";
+import User from "../../../../../Models/DatabaseModels/User";
+import Name from "../../../../../Types/Name";
 import WorkspaceNotificationLogService from "../../../../../Server/Services/WorkspaceNotificationLogService";
 import {
   ExpressRequest,
@@ -168,15 +171,35 @@ function handlerArgs(
 }
 
 let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
+let ephemeralSpy: SpyInstance<typeof SlackUtil.sendEphemeralMessageToChannel>;
 let showModalSpy: SpyInstance<typeof SlackUtil.showModalToUser>;
 
-function directMessageTexts(): Array<string> {
-  return directMessageSpy.mock.calls.map(
-    (call: Parameters<typeof SlackUtil.sendDirectMessageToUser>): string => {
+/*
+ * What the member was told, in order: a message only they see, in the
+ * channel they pressed in (SlackActionAnswer) - never a direct message,
+ * where the customer who reported it never looked.
+ */
+function answerTexts(): Array<string> {
+  expect(directMessageSpy).not.toHaveBeenCalled();
+
+  return ephemeralSpy.mock.calls.map(
+    (
+      call: Parameters<typeof SlackUtil.sendEphemeralMessageToChannel>,
+    ): string => {
+      expect(call[0]).toMatchObject({
+        channelId: "C0CHANNEL",
+        userId: SLACK_USER_ID,
+      });
       const block: WorkspaceMessageBlock | undefined = call[0].messageBlocks[0];
       return (block as WorkspacePayloadMarkdown).text;
     },
   );
+}
+
+// The press was done and needed no answer: nothing in the channel, no DM.
+function expectNoAnswer(): void {
+  expect(directMessageSpy).not.toHaveBeenCalled();
+  expect(ephemeralSpy).not.toHaveBeenCalled();
 }
 
 beforeEach((): void => {
@@ -192,6 +215,9 @@ beforeEach((): void => {
     .mockResolvedValue(undefined as never);
   directMessageSpy = jest
     .spyOn(SlackUtil, "sendDirectMessageToUser")
+    .mockResolvedValue();
+  ephemeralSpy = jest
+    .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
     .mockResolvedValue();
   showModalSpy = jest.spyOn(SlackUtil, "showModalToUser").mockResolvedValue();
 });
@@ -748,7 +774,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       expect(readSpy.mock.calls[0]![0].query).toMatchObject({
         projectId: projectId,
       });
-      expect(directMessageSpy).not.toHaveBeenCalled();
+      expectNoAnswer();
     });
 
     test("a member who may only read is told why, and nothing is written", async (): Promise<void> => {
@@ -767,7 +793,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       );
 
       expect(createSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(
           `You do not have permission to ${move.refusal}.`,
         ),
@@ -791,7 +817,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       );
 
       expect(createSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(
           `the ${kind.noun} was not found in this project, or you do not have access to it.`,
         ),
@@ -849,7 +875,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       );
 
       expect(createSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(
           `You do not have permission to ${kind.changeState.refusal}.`,
         ),
@@ -882,7 +908,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         }),
       );
 
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(
           "The state you are trying to reference does not exist.",
         ),
@@ -934,7 +960,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         { label: "Investigating", value: first.id.toString() },
         { label: "Mitigated", value: second.id.toString() },
       ]);
-      expect(directMessageSpy).not.toHaveBeenCalled();
+      expectNoAnswer();
     });
 
     /*
@@ -974,7 +1000,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       expect(dropdown.options).toEqual([
         { label: "Last", value: states.resolved.toString() },
       ]);
-      expect(directMessageSpy).not.toHaveBeenCalled();
+      expectNoAnswer();
     });
 
     test("in the last state it can reach, the member is told there is no later state, and no form opens", async (): Promise<void> => {
@@ -1002,7 +1028,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       );
 
       expect(showModalSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(
           `There is no later state to move this ${kind.noun} to.`,
         ),
@@ -1031,7 +1057,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       );
 
       expect(showModalSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(kind.changeState.noStates),
       ]);
     });
@@ -1049,7 +1075,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
       expect(statesSpy).not.toHaveBeenCalled();
       expect(showModalSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
+      expect(answerTexts()).toEqual([
         expect.stringContaining(
           `You do not have permission to ${kind.changeState.refusal}.`,
         ),
@@ -1089,7 +1115,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         );
         // Who wrote it is OneUptime's to stamp, from the props: not sent.
         expect(data["createdByUserId"]).toBeUndefined();
-        expect(directMessageSpy).not.toHaveBeenCalled();
+        expectNoAnswer();
       });
 
       test("a member who may only read is told why, and nothing is posted", async (): Promise<void> => {
@@ -1105,7 +1131,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         );
 
         expect(createSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()).toEqual([
+        expect(answerTexts()).toEqual([
           expect.stringContaining(
             `You do not have permission to ${noteAction.refusal}.`,
           ),
@@ -1131,7 +1157,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         );
 
         expect(createSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()[0]).toContain(
+        expect(answerTexts()[0]).toContain(
           `the ${kind.noun} was not found in this project`,
         );
       });
@@ -1179,7 +1205,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         expect(data["userNotificationEventType"]).toBe(
           execute.userNotificationEventType,
         );
-        expect(directMessageSpy).not.toHaveBeenCalled();
+        expectNoAnswer();
       });
 
       test("a member who may not execute on-call policies is told why, and no one is paged", async (): Promise<void> => {
@@ -1196,7 +1222,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         );
 
         expect(createSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()).toEqual([
+        expect(answerTexts()).toEqual([
           expect.stringContaining(
             `You do not have permission to ${execute.refusal}.`,
           ),
@@ -1224,7 +1250,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         );
 
         expect(createSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()[0]).toContain(
+        expect(answerTexts()[0]).toContain(
           "the on-call policy was not found in this project",
         );
       });
@@ -1232,16 +1258,47 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
   }
 });
 
+// Who got there first, in a press that comes too late.
+const SIMON: ObjectID = ObjectID.generate();
+const FIRST_AT: string = "2026-10-08T18:07:00Z";
+
+/*
+ * What an answer to a press that comes too late reads, besides the record:
+ * the record's state timeline (who moved it, and when) and that person's
+ * name.
+ */
+function stubLateAnswerReads(data: {
+  timelineService: unknown;
+  rows: Array<Record<string, unknown>>;
+}): void {
+  (
+    jest.spyOn(
+      data.timelineService as { findBy: () => Promise<unknown> },
+      "findBy",
+    ) as AnySpy
+  ).mockResolvedValue(data.rows);
+
+  const simon: User = new User();
+  simon.name = new Name("Simon Lee");
+
+  (jest.spyOn(UserService, "findOneBy") as AnySpy).mockImplementation(
+    async (findBy: { query: { _id: ObjectID } }): Promise<User | null> => {
+      return findBy.query._id.toString() === SIMON.toString() ? simon : null;
+    },
+  );
+}
+
 /*
  * Mark as Ongoing on an event that has started already is answered with
- * what the event is: ongoing, or over. Nothing is written either way.
+ * what the event is - ongoing, or over - who took it there, and when, as
+ * news rather than as an error. Nothing is written either way.
  */
 describe("Slack Mark as Ongoing on an event that has started already", (): void => {
   test.each([
-    ["ongoing", false, "is already in ongoing state."],
-    ["over", true, "is already complete."],
+    ["ongoing", false, "was already marked as ongoing"],
+    ["over", true, "was already completed"],
   ])(
-    "an event that is %s is refused with what it is, and nothing is written",
+    "an event that is %s: told what it is, by whom and when, and nothing is written",
     async (
       _label: string,
       isCompleted: boolean,
@@ -1285,6 +1342,18 @@ describe("Slack Mark as Ongoing on an event that has started already", (): void 
       const createSpy: AnySpy = stubCreate(
         ScheduledMaintenanceStateTimelineService,
       );
+      stubLateAnswerReads({
+        timelineService: ScheduledMaintenanceStateTimelineService,
+        rows: [
+          {
+            scheduledMaintenanceStateId: isCompleted
+              ? states.resolved
+              : states.acknowledged,
+            startsAt: new Date(FIRST_AT),
+            createdByUserId: SIMON,
+          },
+        ],
+      });
 
       await SlackScheduledMaintenanceActions.handleScheduledMaintenanceAction(
         handlerArgs(
@@ -1294,8 +1363,9 @@ describe("Slack Mark as Ongoing on an event that has started already", (): void 
       );
 
       expect(createSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()).toEqual([
-        `@member, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance SM-7](https://oneuptime.test/sm/7)** ${ending}`,
+      // master: "@member, unfortunately you cannot change the state to ongoing because ..."
+      expect(answerTexts()).toEqual([
+        `✅ **[Scheduled Maintenance SM-7](https://oneuptime.test/sm/7)** ${ending} by **Simon Lee** at {{TIME(${FIRST_AT})}}.`,
       ]);
       expect(readSpy).toHaveBeenCalledTimes(1);
       for (const otherRead of otherReads) {
@@ -1311,7 +1381,7 @@ describe("Slack Mark as Ongoing on an event that has started already", (): void 
  * person it answers is named as text.
  */
 describe("Slack buttons answered from the one read", (): void => {
-  test("Acknowledge on an incident acknowledged already says so, with its number, and writes nothing", async (): Promise<void> => {
+  test("Acknowledge on an incident acknowledged already says who acknowledged it and when, with its number, and writes nothing", async (): Promise<void> => {
     mockMember([Permission.IncidentMember]);
     const states: ProjectStates = incidentStates();
     const readSpy: AnySpy = stubRecord({
@@ -1331,6 +1401,20 @@ describe("Slack buttons answered from the one read", (): void => {
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/incident/42"));
     const createSpy: AnySpy = stubCreate(IncidentStateTimelineService);
+    stubLateAnswerReads({
+      timelineService: IncidentStateTimelineService,
+      rows: [
+        {
+          incidentStateId: states.created,
+          startsAt: new Date("2026-10-08T18:00:00Z"),
+        },
+        {
+          incidentStateId: states.acknowledged,
+          startsAt: new Date(FIRST_AT),
+          createdByUserId: SIMON,
+        },
+      ],
+    });
 
     await SlackIncidentActions.handleIncidentAction(
       handlerArgs(
@@ -1340,8 +1424,12 @@ describe("Slack buttons answered from the one read", (): void => {
     );
 
     expect(createSpy).not.toHaveBeenCalled();
-    expect(directMessageTexts()).toEqual([
-      "@member, unfortunately you cannot acknowledge the **[Incident INC-42](https://oneuptime.test/incident/42)**. It has already been acknowledged.",
+    /*
+     * master: "@member, unfortunately you cannot acknowledge the **[Incident
+     * INC-42](...)**. It has already been acknowledged." - by direct message.
+     */
+    expect(answerTexts()).toEqual([
+      `✅ **[Incident INC-42](https://oneuptime.test/incident/42)** was already acknowledged by **Simon Lee** at {{TIME(${FIRST_AT})}}.`,
     ]);
     expect(readSpy).toHaveBeenCalledTimes(1);
     for (const otherRead of otherReads) {
@@ -1369,20 +1457,22 @@ describe("Slack buttons answered from the one read", (): void => {
       .spyOn(AlertService, "getAlertLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/alert/9"));
     const createSpy: AnySpy = stubCreate(AlertStateTimelineService);
+    // Resolved by a monitor: no one's name to give, nor a moment.
+    stubLateAnswerReads({ timelineService: AlertStateTimelineService, rows: [] });
 
     await SlackAlertActions.handleAlertAction(
       handlerArgs(SlackActionType.ResolveAlert, ObjectID.generate().toString()),
     );
 
     expect(createSpy).not.toHaveBeenCalled();
-    expect(directMessageTexts()[0]).toContain(
-      "**[Alert #9](https://oneuptime.test/alert/9)**",
-    );
+    expect(answerTexts()).toEqual([
+      "✅ **[Alert #9](https://oneuptime.test/alert/9)** is already resolved.",
+    ]);
     expect(readSpy).toHaveBeenCalledTimes(1);
     expect(numberRead).not.toHaveBeenCalled();
   });
 
-  test("a Slack name with Markdown in it is text in the answer", async (): Promise<void> => {
+  test("a Slack name with Markdown in it is not repeated in the answer, which only they see", async (): Promise<void> => {
     mockMember([Permission.Viewer]);
     const states: ProjectStates = incidentStates();
     stubRecord({
@@ -1403,10 +1493,13 @@ describe("Slack buttons answered from the one read", (): void => {
 
     await SlackIncidentActions.handleIncidentAction(args);
 
-    const text: string = directMessageTexts()[0]!;
-    expect(text).toContain("You do not have permission to acknowledge");
-    expect(text).toContain("\\*\\*boss\\*\\*");
-    expect(text).toContain("\\[docs\\]");
+    const text: string = answerTexts()[0]!;
+    // master: "@\*\*boss\*\* ..., you do not have permission ..."
+    expect(text.startsWith("You do not have permission to acknowledge")).toBe(
+      true,
+    );
+    expect(text).not.toContain("boss");
+    expect(text).not.toContain("docs");
     expect(text).not.toContain("<!channel>");
   });
 });

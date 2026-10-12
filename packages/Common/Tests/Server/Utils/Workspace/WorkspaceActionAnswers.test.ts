@@ -14,10 +14,10 @@ import UserService from "../../../../Server/Services/UserService";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import WorkspaceActionAnswers, {
   WorkspaceAnswer,
-  WorkspaceConnectButton,
   WorkspaceLatePress,
 } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import {
+  WorkspaceConnectButton,
   WorkspaceConnectRequestAgainKind,
   WorkspacePendingActionKind,
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";

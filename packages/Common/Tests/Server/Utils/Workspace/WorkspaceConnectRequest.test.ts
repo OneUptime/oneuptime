@@ -2,8 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
+import logger from "../../../../Server/Utils/Logger";
 import WorkspaceConnectRequest, {
+  WorkspaceConnectButton,
+  WorkspaceConnectLink,
   WorkspaceConnectRequestAgainKind,
+  WorkspaceConnectRequestData,
   WorkspaceConnectRequestRecord,
   WorkspacePendingActionKind,
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
@@ -378,5 +382,93 @@ describe("WorkspaceConnectRequest links", () => {
     expect(url.toString()).toBe(
       `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/user-settings/slack-integration`,
     );
+  });
+});
+
+describe("WorkspaceConnectRequest.getConnectLink", () => {
+  function teamsAcknowledge(): WorkspaceConnectRequestData {
+    return {
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      projectId: PROJECT_ID,
+      workspaceUserId: "e3f4a5b6-c7d8-4e9f-8a1b-2c3d4e5f6a7b",
+      purpose: "acknowledge this incident",
+      pendingAction: {
+        kind: WorkspacePendingActionKind.Acknowledge,
+        eventType: WorkspaceEventType.Incident,
+        eventId: INCIDENT_ID,
+      },
+    };
+  }
+
+  test("records the press, and links to the settings page with its token: one click", async () => {
+    const link: WorkspaceConnectLink =
+      await WorkspaceConnectRequest.getConnectLink(teamsAcknowledge());
+
+    expect(link.button).toBe(WorkspaceConnectButton.OneClick);
+
+    const url: globalThis.URL = new globalThis.URL(link.url!.toString());
+    const token: string = url.searchParams.get("connect")!;
+
+    expect(`${url.origin}${url.pathname}`).toBe(
+      `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration`,
+    );
+    expect(Array.from(url.searchParams.keys())).toEqual(["connect"]);
+    expect(token).toMatch(CONNECT_REQUEST_TOKEN_PATTERN);
+
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(token);
+
+    expect(record).toMatchObject({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      workspaceUserId: "e3f4a5b6-c7d8-4e9f-8a1b-2c3d4e5f6a7b",
+      purpose: "acknowledge this incident",
+    });
+    expect(record!.pendingAction!.eventId.toString()).toBe(
+      INCIDENT_ID.toString(),
+    );
+  });
+
+  test("a press that cannot be recorded links to the settings page alone, and says so in the log", async () => {
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValueOnce(new Error("Redis is down"));
+    const errorLog: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
+
+    const link: WorkspaceConnectLink =
+      await WorkspaceConnectRequest.getConnectLink(teamsAcknowledge());
+
+    expect(link.button).toBe(WorkspaceConnectButton.SettingsPage);
+    expect(link.url!.toString()).toBe(
+      `https://oneuptime.test/dashboard/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration`,
+    );
+    expect(store.size).toBe(0);
+    expect(errorLog).toHaveBeenCalledWith(
+      "Could not record a press to finish once the account is connected.",
+      {
+        projectId: PROJECT_ID.toString(),
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      },
+    );
+  });
+
+  test("with no address of the server's own, there is no button, nothing is recorded, and nothing is logged as an error", async () => {
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockRejectedValue(new Error("No host is configured."));
+    // The in-memory cache's own mock: it counts every test's writes.
+    (GlobalCache.setString as jest.Mock).mockClear();
+    const errorLog: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
+
+    const link: WorkspaceConnectLink =
+      await WorkspaceConnectRequest.getConnectLink(teamsAcknowledge());
+
+    expect(link).toEqual({ button: WorkspaceConnectButton.None });
+    expect(store.size).toBe(0);
+    expect(GlobalCache.setString).not.toHaveBeenCalled();
+    expect(errorLog).not.toHaveBeenCalled();
   });
 });

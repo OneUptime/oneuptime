@@ -1,14 +1,12 @@
-import URL from "../../../../../Types/API/URL";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
-import logger from "../../../Logger";
 import ProductBrandingText from "../../../ProductBrandingText";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAnswers, {
   WorkspaceAnswer,
-  WorkspaceConnectButton,
 } from "../../WorkspaceActionAnswers";
 import WorkspaceConnectRequest, {
+  WorkspaceConnectLink,
   WorkspaceConnectRequestAgainKind,
   WorkspacePendingActionKind,
   WorkspacePressDescription,
@@ -353,7 +351,8 @@ export default class SlackConnectPrompt {
    * OneUptime, where it was made, with a Connect button for that account in
    * the project. The press is recorded to be finished once it is connected.
    * When it cannot be recorded (the cache is down), the answer still says to
-   * connect, with a link to the settings page without the press.
+   * connect, with a link to the settings page without the press
+   * (WorkspaceConnectRequest.getConnectLink).
    */
   @CaptureSpan()
   public static async prompt(data: {
@@ -362,11 +361,8 @@ export default class SlackConnectPrompt {
     slackTeamId?: string | undefined;
     description: SlackPressDescription;
   }): Promise<SlackAnswerDelivery> {
-    let connectUrl: URL | undefined = undefined;
-    let button: WorkspaceConnectButton = WorkspaceConnectButton.None;
-
-    try {
-      const { token } = await WorkspaceConnectRequest.create({
+    const link: WorkspaceConnectLink =
+      await WorkspaceConnectRequest.getConnectLink({
         workspaceType: WorkspaceType.Slack,
         projectId: data.projectId,
         workspaceUserId: data.place.slackUserId,
@@ -381,43 +377,18 @@ export default class SlackConnectPrompt {
         },
       });
 
-      connectUrl = await WorkspaceConnectRequest.getConnectUrl({
-        workspaceType: WorkspaceType.Slack,
-        projectId: data.projectId,
-        token: token,
-      });
-      button = WorkspaceConnectButton.OneClick;
-    } catch (err) {
-      logger.error(
-        "Could not record a Slack press to finish once the account is connected.",
-        { projectId: data.projectId.toString() },
-      );
-      logger.error(err, { projectId: data.projectId.toString() });
-
-      try {
-        connectUrl = await WorkspaceConnectRequest.getSettingsUrl({
-          workspaceType: WorkspaceType.Slack,
-          projectId: data.projectId,
-        });
-        button = WorkspaceConnectButton.SettingsPage;
-      } catch (linkError) {
-        logger.debug("Could not build the Slack settings link either.");
-        logger.debug(linkError);
-      }
-    }
-
     const answer: WorkspaceAnswer = WorkspaceActionAnswers.getConnectPrompt({
       workspaceType: WorkspaceType.Slack,
       purpose: data.description.purpose,
       pendingAction: data.description.pendingAction,
       again: data.description.again,
-      button: button,
+      button: link.button,
     });
 
     return await SlackActionAnswer.answer({
       place: data.place,
       answer: answer,
-      connectUrl: connectUrl,
+      connectUrl: link.url,
     });
   }
 

@@ -22,6 +22,13 @@ import SlackActionAnswer, {
   SlackAnswerPlace,
 } from "./Answer";
 import SlackConnectPrompt from "./ConnectPrompt";
+import { SLACK_ID_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
+
+// The forms whose value is the channel they were opened in.
+const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
+  SlackActionType.SubmitNewIncident,
+  SlackActionType.SubmitNewScheduledMaintenance,
+];
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -342,6 +349,20 @@ export default class SlackAuthAction {
 
       if (!slackThreadTs && metadata.origin.threadTs) {
         slackThreadTs = metadata.origin.threadTs;
+      }
+
+      /*
+       * The New Incident and New Scheduled Maintenance forms carry the
+       * channel they were opened in as their value - bare, in a form opened
+       * before forms carried where they were opened.
+       */
+      if (
+        !slackChannelId &&
+        NEW_RECORD_FORMS.includes(view["callback_id"] as SlackActionType) &&
+        metadata.value &&
+        SLACK_ID_PATTERN.test(metadata.value)
+      ) {
+        slackChannelId = metadata.value;
       }
 
       // add actionId and actionValue

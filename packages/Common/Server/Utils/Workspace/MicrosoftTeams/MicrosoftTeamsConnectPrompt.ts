@@ -1,15 +1,14 @@
 import { TurnContext } from "botbuilder";
-import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import WorkspaceActionAnswers, {
-  WorkspaceConnectButton,
-} from "../WorkspaceActionAnswers";
+import WorkspaceActionAnswers from "../WorkspaceActionAnswers";
 import WorkspaceConnectRequest, {
+  WorkspaceConnectButton,
+  WorkspaceConnectLink,
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestTeamsPlace,
   WorkspacePendingActionKind,
@@ -395,48 +394,22 @@ export default class MicrosoftTeamsConnectPrompt {
         | string
         | undefined) || "";
 
-    let connectUrl: URL | undefined = undefined;
-    let button: WorkspaceConnectButton = WorkspaceConnectButton.None;
-
-    try {
-      if (!teamsUserId) {
-        throw new Error("The press names no Microsoft Entra user.");
-      }
-
-      const { token } = await WorkspaceConnectRequest.create({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        projectId: data.projectId,
-        workspaceUserId: teamsUserId,
-        purpose: data.description.purpose,
-        pendingAction: data.description.pendingAction,
-        again: data.description.again,
-        teams: MicrosoftTeamsConnectPrompt.getPlace(activity),
-      });
-
-      connectUrl = await WorkspaceConnectRequest.getConnectUrl({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        projectId: data.projectId,
-        token: token,
-      });
-      button = WorkspaceConnectButton.OneClick;
-    } catch (err) {
-      logger.error(
-        "Could not record a Microsoft Teams press to finish once the account is connected.",
-        { projectId: data.projectId.toString() },
-      );
-      logger.error(err, { projectId: data.projectId.toString() });
-
-      try {
-        connectUrl = await WorkspaceConnectRequest.getSettingsUrl({
+    /*
+     * A press that names no Microsoft Entra user cannot be matched to who
+     * signs in later: it is not recorded, and the button opens the settings
+     * page alone.
+     */
+    const link: WorkspaceConnectLink = teamsUserId
+      ? await WorkspaceConnectRequest.getConnectLink({
           workspaceType: WorkspaceType.MicrosoftTeams,
           projectId: data.projectId,
-        });
-        button = WorkspaceConnectButton.SettingsPage;
-      } catch (linkError) {
-        logger.debug("Could not build the Microsoft Teams settings link either.");
-        logger.debug(linkError);
-      }
-    }
+          workspaceUserId: teamsUserId,
+          purpose: data.description.purpose,
+          pendingAction: data.description.pendingAction,
+          again: data.description.again,
+          teams: MicrosoftTeamsConnectPrompt.getPlace(activity),
+        })
+      : await MicrosoftTeamsConnectPrompt.getSettingsLink(data.projectId);
 
     await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
@@ -445,10 +418,31 @@ export default class MicrosoftTeamsConnectPrompt {
         purpose: data.description.purpose,
         pendingAction: data.description.pendingAction,
         again: data.description.again,
-        button: button,
+        button: link.button,
       }),
-      connectUrl: connectUrl,
+      connectUrl: link.url,
     });
+  }
+
+  // The settings page alone, for a press that cannot be recorded.
+  private static async getSettingsLink(
+    projectId: ObjectID,
+  ): Promise<WorkspaceConnectLink> {
+    try {
+      return {
+        button: WorkspaceConnectButton.SettingsPage,
+        url: await WorkspaceConnectRequest.getSettingsUrl({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          projectId: projectId,
+        }),
+      };
+    } catch (err) {
+      logger.debug(
+        "No address of this server's own to link a Connect button to.",
+      );
+      logger.debug(err);
+      return { button: WorkspaceConnectButton.None };
+    }
   }
 
   /*

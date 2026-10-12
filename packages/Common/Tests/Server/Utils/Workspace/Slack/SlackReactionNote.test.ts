@@ -218,6 +218,8 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
       projectId: projectId,
       projectAuthToken: "xoxb-" + projectId.toString(),
       slackUserId: SLACK_USER_ID,
+      // A refusal is told in the channel the reaction was made in.
+      slackChannelId: CHANNEL_ID,
     });
     expect(args.modelType).toBe(IncidentPublicNote);
     expect(args.action).toBe("add a public note to this incident");

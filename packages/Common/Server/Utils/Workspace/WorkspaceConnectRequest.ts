@@ -135,6 +135,25 @@ export interface WorkspaceConnectRequestRecord extends WorkspaceConnectRequestDa
   expiresAt: Date;
 }
 
+/*
+ * What the Connect button that answers a press opens (getConnectLink,
+ * WorkspaceActionAnswers.getConnectPrompt).
+ */
+export enum WorkspaceConnectButton {
+  // The settings page, carrying the press: connecting finishes it.
+  OneClick = "OneClick",
+  // The settings page alone: the press could not be kept to finish later.
+  SettingsPage = "SettingsPage",
+  // No button: the server knows no address of its own to link to.
+  None = "None",
+}
+
+export interface WorkspaceConnectLink {
+  button: WorkspaceConnectButton;
+  // Where the button goes; none for WorkspaceConnectButton.None.
+  url?: URL | undefined;
+}
+
 const NAMESPACE: string = "workspace-connect-request";
 
 const KNOWN_WORKSPACE_TYPES: Array<WorkspaceType> = [
@@ -260,6 +279,57 @@ export default class WorkspaceConnectRequest {
         WorkspaceConnectRequest.hash(wellFormedToken),
       ),
     );
+  }
+
+  /*
+   * The Connect button for a press: the press recorded, and the link that
+   * carries it (OneClick). A press that cannot be recorded - the cache is
+   * down - gets a link to the settings page alone (SettingsPage), and the
+   * person presses again once connected; with no address of the server's
+   * own to link to, there is no button (None), and nothing is recorded.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async getConnectLink(
+    data: WorkspaceConnectRequestData,
+  ): Promise<WorkspaceConnectLink> {
+    let settingsUrl: URL;
+
+    try {
+      settingsUrl = await WorkspaceConnectRequest.getSettingsUrl({
+        workspaceType: data.workspaceType,
+        projectId: data.projectId,
+      });
+    } catch (err) {
+      logger.debug(
+        "No address of this server's own to link a Connect button to.",
+      );
+      logger.debug(err);
+      return { button: WorkspaceConnectButton.None };
+    }
+
+    try {
+      const { token } = await WorkspaceConnectRequest.create(data);
+
+      return {
+        button: WorkspaceConnectButton.OneClick,
+        url: URL.fromString(settingsUrl.toString()).addQueryParam(
+          CONNECT_REQUEST_QUERY_PARAM,
+          token,
+        ),
+      };
+    } catch (err) {
+      logger.error(
+        "Could not record a press to finish once the account is connected.",
+        {
+          projectId: data.projectId.toString(),
+          workspaceType: data.workspaceType,
+        },
+      );
+      logger.error(err, { projectId: data.projectId.toString() });
+
+      return { button: WorkspaceConnectButton.SettingsPage, url: settingsUrl };
+    }
   }
 
   /*
