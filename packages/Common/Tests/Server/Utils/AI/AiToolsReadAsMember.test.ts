@@ -71,7 +71,10 @@ function memberContext(permissions: Array<Permission>): ToolContext {
   return {
     projectId: PROJECT_ID,
     props: {
-      ...customDomainCaller({ permissions: permissions, projectId: PROJECT_ID }),
+      ...customDomainCaller({
+        permissions: permissions,
+        projectId: PROJECT_ID,
+      }),
       ...ON_HIGHEST_PLAN,
     },
   };

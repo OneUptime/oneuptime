@@ -376,13 +376,11 @@ beforeEach(() => {
   providers = useInMemoryTable(LlmProviderService, rows());
 
   // The provider answers the probe by calling its tool.
-  getCompletion = jest
-    .spyOn(LLMService, "getCompletion")
-    .mockResolvedValue({
-      content: "OK",
-      toolCalls: [{ id: "call_1", name: "connection_test_ping", arguments: {} }],
-      usage: undefined,
-    } as never) as unknown as MockedFn;
+  getCompletion = jest.spyOn(LLMService, "getCompletion").mockResolvedValue({
+    content: "OK",
+    toolCalls: [{ id: "call_1", name: "connection_test_ping", arguments: {} }],
+    usage: undefined,
+  } as never) as unknown as MockedFn;
 
   props = caller([Permission.ProjectOwner]);
 
@@ -676,7 +674,9 @@ describe("Test, on a global provider: server administrators, from the Admin Dash
     await pressTest(PROVIDER_ID);
 
     expect(verdict()["success"]).toBe(true);
-    expect(sentRequests()[0]!.llmProviderConfig.isGlobalProvider).toBeUndefined();
+    expect(
+      sentRequests()[0]!.llmProviderConfig.isGlobalProvider,
+    ).toBeUndefined();
   });
 
   test.each(TESTERS)(
@@ -701,7 +701,9 @@ describe("Test, on a global provider: server administrators, from the Admin Dash
 
     expect(verdict()["success"]).toBe(true);
     // Its members chose where it points, so it is not run as global.
-    expect(sentRequests()[0]!.llmProviderConfig.isGlobalProvider).toBeUndefined();
+    expect(
+      sentRequests()[0]!.llmProviderConfig.isGlobalProvider,
+    ).toBeUndefined();
   });
 
   test("a row no project owns, even one not marked global, is a server administrator's", async () => {

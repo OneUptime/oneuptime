@@ -16,7 +16,6 @@ import LLMService, {
 } from "../../../Server/Utils/LLM/LLMService";
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
-import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";

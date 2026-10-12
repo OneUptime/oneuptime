@@ -266,8 +266,7 @@ describe("reads made with a caller's props", () => {
   const narrow: Array<CallerRead> = reads.filter((read: CallerRead) => {
     return readersLeftOut(read).length > 0;
   });
-  const relationRefused: Array<CallerRead> =
-    reads.filter(unreadableOnRelation);
+  const relationRefused: Array<CallerRead> = reads.filter(unreadableOnRelation);
 
   test("never select or filter by a column nobody may read", () => {
     expect(
@@ -645,7 +644,10 @@ describe("the guard's three refusals", () => {
     );
     expect(
       readersLeftOut(
-        read({ modelFile: "CodeRepository", column: "gitHubAppInstallationId" }),
+        read({
+          modelFile: "CodeRepository",
+          column: "gitHubAppInstallationId",
+        }),
       ),
     ).toEqual(
       expect.arrayContaining([Permission.ProjectMember, Permission.Viewer]),
@@ -657,9 +659,9 @@ describe("the guard's three refusals", () => {
       expect(readByNobody(read({ modelFile: "LlmProvider", column }))).toBe(
         false,
       );
-      expect(readersLeftOut(read({ modelFile: "LlmProvider", column }))).toEqual(
-        [],
-      );
+      expect(
+        readersLeftOut(read({ modelFile: "LlmProvider", column })),
+      ).toEqual([]);
     }
   });
 

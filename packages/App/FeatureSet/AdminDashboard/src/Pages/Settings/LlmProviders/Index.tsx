@@ -35,9 +35,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
 
   // The global provider whose Test dialog is open.
-  const [testedProviderId, setTestedProviderId] = useState<string | null>(
-    null,
-  );
+  const [testedProviderId, setTestedProviderId] = useState<string | null>(null);
 
   return (
     <Page

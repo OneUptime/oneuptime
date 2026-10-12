@@ -152,7 +152,7 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     file: "packages/Common/Server/API/LlmProviderAPI.ts",
     path: "/test",
     rule: "check",
-    why: "Asks an LLM provider for a reply; sends nobody a message.",
+    why: "Asks an LLM provider for a reply, as whoever may change it in its project or a server administrator for a global one (LlmProviderTestAccess); sends nobody a message.",
   },
   {
     file: "packages/Common/Server/API/DataSourceAPI.ts",

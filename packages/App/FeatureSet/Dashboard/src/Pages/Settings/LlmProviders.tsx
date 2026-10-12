@@ -45,9 +45,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
 
   // The provider whose Test dialog is open.
-  const [testedProviderId, setTestedProviderId] = useState<string | null>(
-    null,
-  );
+  const [testedProviderId, setTestedProviderId] = useState<string | null>(null);
 
   /*
    * Who may test a provider: whoever may change it (the server asks the

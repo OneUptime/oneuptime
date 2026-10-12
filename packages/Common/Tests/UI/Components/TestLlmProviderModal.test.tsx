@@ -114,9 +114,7 @@ function modal(): HTMLElement {
 }
 
 function outcome(): string | null {
-  return screen
-    .getByTestId("llm-provider-test")
-    .getAttribute("data-outcome");
+  return screen.getByTestId("llm-provider-test").getAttribute("data-outcome");
 }
 
 async function settled(expected: LlmProviderTestOutcome): Promise<void> {
@@ -136,7 +134,11 @@ function closeButton(): HTMLElement {
 beforeEach(() => {
   fetchMock = getJestMockFunction();
   fetchMock.mockResolvedValue(
-    verdict({ success: true, supportsToolCalling: true, message: PASSED }) as never,
+    verdict({
+      success: true,
+      supportsToolCalling: true,
+      message: PASSED,
+    }) as never,
   );
   onClose = getJestMockFunction();
 
@@ -169,9 +171,9 @@ describe("what Test sends", () => {
     } = fetchMock.mock.calls[0]![0] as never;
 
     expect(request.method).toBe(HTTPMethod.POST);
-    expect(new URL(request.url.toString()).pathname.endsWith(DASHBOARD_TEST_ROUTE)).toBe(
-      true,
-    );
+    expect(
+      new URL(request.url.toString()).pathname.endsWith(DASHBOARD_TEST_ROUTE),
+    ).toBe(true);
     expect(request.data).toEqual(dashboardTestBody(PROVIDER_ID));
     expect(request.headers).toEqual(PROJECT_HEADERS);
   });
@@ -205,7 +207,9 @@ describe("while the test runs", () => {
     // Nothing to run again yet: not a disabled button that looks pressable.
     expect(within(modal()).queryByTestId("llm-provider-test-again")).toBeNull();
     expect(closeButton()).toBeEnabled();
-    expect(within(modal()).queryByTestId("llm-provider-test-result")).toBeNull();
+    expect(
+      within(modal()).queryByTestId("llm-provider-test-result"),
+    ).toBeNull();
 
     // A provider that never answers can take minutes: the dialog closes at once.
     fireEvent.click(closeButton());
@@ -379,7 +383,9 @@ describe("after the test", () => {
 
     expect(outcome()).toBe(LlmProviderTestOutcome.Testing);
     expect(within(modal()).getByText(TESTING)).toBeInTheDocument();
-    expect(within(modal()).queryByTestId("llm-provider-test-result")).toBeNull();
+    expect(
+      within(modal()).queryByTestId("llm-provider-test-result"),
+    ).toBeNull();
     expect(within(modal()).queryByTestId("llm-provider-test-again")).toBeNull();
 
     await act(async () => {

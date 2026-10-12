@@ -294,7 +294,11 @@ test.describe("a provider's own page: the Test dialog", () => {
     ["badmodel", "Test failed"],
     ["unreachable", "Test failed"],
   ]) {
-    test(`${verdict}: headed "${headline}"`, async ({ page }: { page: Page }) => {
+    test(`${verdict}: headed "${headline}"`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
       await open(page, `role=owner&verdict=${verdict}`);
 
       await testButton(page).click();
@@ -448,7 +452,9 @@ test.describe("the dialog at phone width, in the dark theme and in Japanese", ()
     await page.getByRole("button", { name: "テスト", exact: true }).click();
     await settledOn(page, "failed");
 
-    await expect(dialog(page).getByText("LLM プロバイダーをテスト")).toBeVisible();
+    await expect(
+      dialog(page).getByText("LLM プロバイダーをテスト"),
+    ).toBeVisible();
     await expect(result(page)).toContainText("テストに失敗しました");
     await expect(page.getByTestId("llm-provider-test-next-step")).toHaveText(
       "プロバイダーの設定を変更してから、もう一度テストしてください。",

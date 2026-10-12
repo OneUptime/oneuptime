@@ -75,7 +75,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Sleep from "../../../Types/Sleep";
 import { customDomainCaller } from "./CustomDomainCallers";
-import { StoredRow, useInMemoryTable } from "../TestingUtils/InMemoryRepository";
+import {
+  StoredRow,
+  useInMemoryTable,
+} from "../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   DASHBOARD_TEST_ROUTE,
@@ -321,15 +324,13 @@ beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {});
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
 
-  jest
-    .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-    .mockResolvedValue({
-      ...customDomainCaller({
-        permissions: [Permission.ProjectMember],
-        projectId: PROJECT_ID,
-      }),
-      ...ON_HIGHEST_PLAN,
-    });
+  jest.spyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockResolvedValue({
+    ...customDomainCaller({
+      permissions: [Permission.ProjectMember],
+      projectId: PROJECT_ID,
+    }),
+    ...ON_HIGHEST_PLAN,
+  });
 });
 
 afterEach(() => {
@@ -338,30 +339,30 @@ afterEach(() => {
 });
 
 describe("a provider that works: the dialog says the connection works, tool calling included", () => {
-  test.each(["OpenAI", "Anthropic", "Ollama", "Azure OpenAI / Microsoft Foundry"])(
-    "%s",
-    async (name: string) => {
-      const providerCase: ProviderCase = caseNamed(name);
-      useProvider(providerCase);
-      answer(providerCase.calledTheTool);
+  test.each([
+    "OpenAI",
+    "Anthropic",
+    "Ollama",
+    "Azure OpenAI / Microsoft Foundry",
+  ])("%s", async (name: string) => {
+    const providerCase: ProviderCase = caseNamed(name);
+    useProvider(providerCase);
+    answer(providerCase.calledTheTool);
 
-      await pressTest();
+    await pressTest();
 
-      expect(dialogSays()).toEqual({ success: true, message: CONNECTED });
+    expect(dialogSays()).toEqual({ success: true, message: CONNECTED });
 
-      // One request, to the provider's own address, with its own key.
-      const sent: Array<AxiosRequestConfig> = requestsSent();
-      expect(sent).toHaveLength(1);
-      expect(sent[0]!.url?.toString()).toBe(providerCase.requestUrl);
+    // One request, to the provider's own address, with its own key.
+    const sent: Array<AxiosRequestConfig> = requestsSent();
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.url?.toString()).toBe(providerCase.requestUrl);
 
-      if (providerCase.keyHeader) {
-        const [header, value] = providerCase.keyHeader;
-        expect((sent[0]!.headers as Record<string, string>)[header]).toBe(
-          value,
-        );
-      }
-    },
-  );
+    if (providerCase.keyHeader) {
+      const [header, value] = providerCase.keyHeader;
+      expect((sent[0]!.headers as Record<string, string>)[header]).toBe(value);
+    }
+  });
 });
 
 describe("a wrong API key: the dialog says the key was not accepted, then the provider's words", () => {
@@ -499,9 +500,9 @@ describe("a model the provider does not have: the dialog says to check the Model
     const said: { success: boolean; message: string } = dialogSays();
     expect(said.success).toBe(false);
     // Azure's advice first: the deployment, by the provider's Model Name.
-    expect(said.message.startsWith("This resource has no deployment named")).toBe(
-      true,
-    );
+    expect(
+      said.message.startsWith("This resource has no deployment named"),
+    ).toBe(true);
     expect(said.message).toContain("gpt-5.1");
     expect(
       said.message.endsWith(
@@ -512,23 +513,25 @@ describe("a model the provider does not have: the dialog says to check the Model
 });
 
 describe("a Base URL nothing answers at: the dialog says OneUptime could not reach the provider", () => {
-  test.each(["OpenAI", "Anthropic", "Ollama", "Azure OpenAI / Microsoft Foundry"])(
-    "%s, a refused connection",
-    async (name: string) => {
-      useProvider(caseNamed(name));
-      failToConnect("ECONNREFUSED", "connect ECONNREFUSED 203.0.113.10:443");
+  test.each([
+    "OpenAI",
+    "Anthropic",
+    "Ollama",
+    "Azure OpenAI / Microsoft Foundry",
+  ])("%s, a refused connection", async (name: string) => {
+    useProvider(caseNamed(name));
+    failToConnect("ECONNREFUSED", "connect ECONNREFUSED 203.0.113.10:443");
 
-      await pressTest();
+    await pressTest();
 
-      const provider: string =
-        name === "Azure OpenAI / Microsoft Foundry" ? "Azure" : name;
+    const provider: string =
+      name === "Azure OpenAI / Microsoft Foundry" ? "Azure" : name;
 
-      expect(dialogSays()).toEqual({
-        success: false,
-        message: `OneUptime could not reach ${provider}: the LLM provider refused the connection. ${NO_ANSWER_ADVICE}`,
-      });
-    },
-  );
+    expect(dialogSays()).toEqual({
+      success: false,
+      message: `OneUptime could not reach ${provider}: the LLM provider refused the connection. ${NO_ANSWER_ADVICE}`,
+    });
+  });
 
   test("a host name that does not resolve", async () => {
     useProvider(caseNamed("Ollama"));

@@ -119,7 +119,10 @@ const TESTERS: Array<[string, Array<Permission>]> = [
   ["a project member", [Permission.ProjectMember]],
   ["a settings admin", [Permission.SettingsAdmin]],
   ["a settings member", [Permission.SettingsMember]],
-  ["someone holding Edit LLM", [Permission.ReadProjectLlm, Permission.EditProjectLlm]],
+  [
+    "someone holding Edit LLM",
+    [Permission.ReadProjectLlm, Permission.EditProjectLlm],
+  ],
 ];
 
 const NOT_TESTERS: Array<[string, Array<Permission>]> = [
@@ -130,7 +133,10 @@ const NOT_TESTERS: Array<[string, Array<Permission>]> = [
 
 let fetchMock: MockFunction;
 
-function row(permission: Permission, isBlockPermission: boolean): UserPermission {
+function row(
+  permission: Permission,
+  isBlockPermission: boolean,
+): UserPermission {
   return {
     _type: "UserPermission",
     permission: permission,
@@ -312,7 +318,9 @@ describe("a provider's own page: the card's Test", () => {
     "%s may press it",
     (_who: string, permissions: Array<Permission>) => {
       signedInAs(permissions);
-      render(<LlmProviderViewPage {...({} as unknown as PageComponentProps)} />);
+      render(
+        <LlmProviderViewPage {...({} as unknown as PageComponentProps)} />,
+      );
 
       expect(cardTest()?.disabled).toBe(false);
       expect(cardTest()?.tooltip).toBe(LLM_PROVIDER_TEST_TOOLTIP);
@@ -323,7 +331,9 @@ describe("a provider's own page: the card's Test", () => {
     "%s finds it locked, with the server's refusal as its reason, and pressing it opens nothing",
     async (_who: string, permissions: Array<Permission>) => {
       signedInAs(permissions);
-      render(<LlmProviderViewPage {...({} as unknown as PageComponentProps)} />);
+      render(
+        <LlmProviderViewPage {...({} as unknown as PageComponentProps)} />,
+      );
 
       expect(cardTest()?.disabled).toBe(true);
       expect(cardTest()?.tooltip).toBe(REFUSAL);

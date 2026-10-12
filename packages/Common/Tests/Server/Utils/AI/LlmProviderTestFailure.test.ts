@@ -88,9 +88,12 @@ describe("an answer with an HTTP error: a sentence for its status, what to check
       "OpenAI refused the test request (HTTP 422). Check the Model Name and the Additional Parameters.",
     ],
   ])("HTTP %d", (statusCode: number, expected: string) => {
-    expect(LlmProviderTestFailure.describe(httpError({ statusCode }), LlmType.OpenAI)).toBe(
-      expected,
-    );
+    expect(
+      LlmProviderTestFailure.describe(
+        httpError({ statusCode }),
+        LlmType.OpenAI,
+      ),
+    ).toBe(expected);
     expect(LlmProviderTestFailure.describeStatus(statusCode, "OpenAI")).toBe(
       expected,
     );
@@ -323,9 +326,9 @@ describe("LLMService hands an HTTP error over in parts, its message unchanged", 
     expect(parts.hint).toBe(
       "Azure did not accept the API key. Copy KEY 1 or KEY 2 from the Keys and Endpoint page of the same resource the Base URL points to.",
     );
-    expect(error.message.startsWith(`Azure OpenAI API error: ${parts.hint}`)).toBe(
-      true,
-    );
+    expect(
+      error.message.startsWith(`Azure OpenAI API error: ${parts.hint}`),
+    ).toBe(true);
   });
 
   test("a request too large for the model's context window keeps its own message, as before", async () => {

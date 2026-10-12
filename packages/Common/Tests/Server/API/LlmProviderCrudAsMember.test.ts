@@ -212,7 +212,9 @@ const sendErrorResponseMock: MockedFn =
 const sendEmptySuccessResponseMock: MockedFn =
   Response.sendEmptySuccessResponse as unknown as MockedFn;
 
-function caller(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function caller(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     ...customDomainCaller({ permissions: permissions, projectId: PROJECT_ID }),
     ...ON_HIGHEST_PLAN,
@@ -338,13 +340,11 @@ beforeEach(async () => {
     },
   ]);
 
-  getCompletion = jest
-    .spyOn(LLMService, "getCompletion")
-    .mockResolvedValue({
-      content: "OK",
-      toolCalls: [{ id: "call_1", name: "connection_test_ping", arguments: {} }],
-      usage: { promptTokens: 60, completionTokens: 12, totalTokens: 72 },
-    } as never) as unknown as MockedFn;
+  getCompletion = jest.spyOn(LLMService, "getCompletion").mockResolvedValue({
+    content: "OK",
+    toolCalls: [{ id: "call_1", name: "connection_test_ping", arguments: {} }],
+    usage: { promptTokens: 60, completionTokens: 12, totalTokens: 72 },
+  } as never) as unknown as MockedFn;
 
   props = caller([Permission.ProjectOwner]);
 
