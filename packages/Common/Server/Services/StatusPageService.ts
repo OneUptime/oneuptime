@@ -117,6 +117,13 @@ import StatusPageReportScheduleUtil, {
   StatusPageReportScheduleWrite,
 } from "../../Utils/StatusPage/ReportSchedule";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
+import StatusPageHistoryChartBarColorRuleService from "./StatusPageHistoryChartBarColorRuleService";
+import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import Color from "../../Types/Color";
+import {
+  ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY,
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+} from "../../Utils/StatusPage/HistoryChartBarColors";
 
 export {
   StatusPageReport,
@@ -641,6 +648,34 @@ export class Service extends ProjectReferencesService<StatusPage> {
     });
 
     /*
+     * Before the create returns, so the page the dashboard opens next
+     * already has them. A failure is logged, and the page kept: it then
+     * colors its days by status, as every page without rules does.
+     */
+    if (
+      onCreate.createBy.miscDataProps?.[
+        ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY
+      ] === true &&
+      createdItem.projectId &&
+      createdItem.id
+    ) {
+      try {
+        await this.addRecommendedHistoryChartBarColorRules({
+          projectId: createdItem.projectId,
+          statusPageId: createdItem.id,
+        });
+      } catch (error) {
+        logger.error(
+          `Error adding the recommended bar color rules in StatusPageService.onCreateSuccess: ${error}`,
+          {
+            projectId: createdItem.projectId?.toString(),
+            statusPageId: createdItem.id?.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+
+    /*
      * Apply label rules first so rule-added labels are persisted before owner
      * rules run. Owner rules re-fetch labels from the DB, so this lets owner
      * rules key on rule-added labels.
@@ -669,6 +704,86 @@ export class Service extends ProjectReferencesService<StatusPage> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * The recommended bar color rules (Utils/StatusPage/HistoryChartBarColors),
+   * in their order, for a status page that has none yet. Asked for on a
+   * create with miscDataProps.addRecommendedBarColorRules: the dashboard and
+   * the tool importer always ask; Terraform and scripts declare their own
+   * rules, and rules added for them would sit above theirs and win. Made as
+   * part of making the page, like its default bar color, so as OneUptime
+   * rather than as a creator whose role may not reach the rules.
+   */
+  @CaptureSpan()
+  public async addRecommendedHistoryChartBarColorRules(data: {
+    projectId: ObjectID;
+    statusPageId: ObjectID;
+  }): Promise<Array<StatusPageHistoryChartBarColorRule>> {
+    const created: Array<StatusPageHistoryChartBarColorRule> = [];
+    let order: number = 1;
+
+    try {
+      for (const recommended of RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES) {
+        const rule: StatusPageHistoryChartBarColorRule =
+          new StatusPageHistoryChartBarColorRule();
+        rule.projectId = data.projectId;
+        rule.statusPageId = data.statusPageId;
+        rule.uptimePercentGreaterThanOrEqualTo =
+          recommended.uptimePercentGreaterThanOrEqualTo;
+        rule.barColor = new Color(recommended.barColor.toString());
+        rule.order = order++;
+
+        created.push(
+          await StatusPageHistoryChartBarColorRuleService.create({
+            data: rule,
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
+      }
+    } catch (error) {
+      /*
+       * All of them or none. Some of them would be worse than none: a day
+       * the rules made so far do not reach takes the page's default bar
+       * color, green on a new page - a day spent down drawn as a good one.
+       * With none, a day takes the color of its worst status, as before.
+       */
+      await this.removeHistoryChartBarColorRules(created);
+
+      throw error;
+    }
+
+    return created;
+  }
+
+  // Best effort: a rule that cannot be removed is logged.
+  private async removeHistoryChartBarColorRules(
+    rules: Array<StatusPageHistoryChartBarColorRule>,
+  ): Promise<void> {
+    for (const rule of rules) {
+      if (!rule.id) {
+        continue;
+      }
+
+      try {
+        await StatusPageHistoryChartBarColorRuleService.deleteOneById({
+          id: rule.id,
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (error) {
+        logger.error(
+          `Error removing a recommended bar color rule after a failed add: ${error}`,
+          {
+            projectId: rule.projectId?.toString(),
+            statusPageId: rule.statusPageId?.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
