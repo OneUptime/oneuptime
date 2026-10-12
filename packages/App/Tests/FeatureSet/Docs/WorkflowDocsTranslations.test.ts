@@ -170,6 +170,9 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Value to check",
     "Comparison",
     "Compare with",
+    // Switch / Case: its setting, and the output taken when no case matches.
+    "Cases",
+    "Default",
     // Sleep.
     "Days",
     "Hours",
@@ -263,6 +266,8 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
   "workflows/components": [
     "… (truncated — see OneUptime for the full text)",
     "Reconnecting too fast",
+    // Why a Switch / Case took its output, as a run's Steps tab shows it.
+    "Case 2 matched: the value is equal to “staging”. Case 1 did not.",
   ],
   "workflows/runs-and-logs": ["… (truncated)"],
   "workflows/configuration": [WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE],
@@ -656,6 +661,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "customCode",
   "json",
   "conditions",
+  "switchCase",
   "sleep",
   "log",
   "executeWorkflow",

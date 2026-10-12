@@ -50,6 +50,12 @@ jest.mock("reactflow", () => {
       Left: "left",
       Right: "right",
     },
+    useNodeId: (): string => {
+      return "canvas-node";
+    },
+    useUpdateNodeInternals: (): ((nodeId: string) => void) => {
+      return (): void => {};
+    },
   };
 });
 
