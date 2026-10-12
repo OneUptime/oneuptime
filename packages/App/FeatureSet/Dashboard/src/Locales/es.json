@@ -28052,5 +28052,8 @@
   "Twilio Configs": "Configuraciones de Twilio",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "Una variable sin valor se queda tal como está escrita, así que un nombre mal escrito se ve en el texto.",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "Filtrar por el ID del dispositivo: la etiqueta de datos `device.id` sin procesar (opcional). Deben coincidir todos los filtros que defina.",
-  "The name of the metric the monitor's first query reads.": "El nombre de la métrica que lee la primera consulta del monitor."
+  "The name of the metric the monitor's first query reads.": "El nombre de la métrica que lee la primera consulta del monitor.",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }

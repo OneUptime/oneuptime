@@ -28052,5 +28052,8 @@
   "Twilio Configs": "Twilio 구성",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "값이 없는 변수는 작성된 그대로 남으므로 잘못 입력한 이름이 텍스트에 그대로 보입니다.",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "디바이스 ID로 필터링 — 원시 `device.id` 데이터 포인트 레이블(선택 사항). 설정한 필터는 모두 일치해야 합니다.",
-  "The name of the metric the monitor's first query reads.": "모니터의 첫 번째 쿼리가 읽는 메트릭의 이름입니다."
+  "The name of the metric the monitor's first query reads.": "모니터의 첫 번째 쿼리가 읽는 메트릭의 이름입니다.",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }

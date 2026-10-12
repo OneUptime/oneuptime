@@ -28052,5 +28052,8 @@
   "Twilio Configs": "Twilio कॉन्फ़िगरेशन",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "बिना मान वाला वेरिएबल जैसा लिखा है वैसा ही रहता है, इसलिए गलत टाइप किया गया नाम टेक्स्ट में दिखता है।",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "डिवाइस आईडी द्वारा फ़िल्टर करें — कच्चा `device.id` डेटापॉइंट लेबल (वैकल्पिक)। आपके सेट किए गए हर फ़िल्टर का मेल खाना ज़रूरी है।",
-  "The name of the metric the monitor's first query reads.": "उस मेट्रिक का नाम जिसे मॉनिटर की पहली क्वेरी पढ़ती है।"
+  "The name of the metric the monitor's first query reads.": "उस मेट्रिक का नाम जिसे मॉनिटर की पहली क्वेरी पढ़ती है।",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }
