@@ -301,7 +301,7 @@ docker exec oneuptime-vmware-ai-agent wget -qO- http://127.0.0.1:3877/status
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
 
 ```bash
-sudo cp systemd/oneuptime-vmware-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```

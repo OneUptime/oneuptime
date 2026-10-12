@@ -288,7 +288,7 @@ Proxmox VE 9.0 и новее поставляется с сервером мет
 Чтобы агент запускался вместе с машиной и перезапускался при сбое, установите его юнит systemd. Он предполагает, что агент находится в `/opt/oneuptime-proxmox-agent`, куда его помещает скрипт установки:
 
 ```bash
-sudo cp systemd/oneuptime-proxmox-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```

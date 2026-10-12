@@ -1392,9 +1392,25 @@ const SYSTEMD_UNITS: Array<SystemdUnit> = [
     installDir: VMWARE_AGENT_INSTALL_DIR,
     folderLine: "Its unit wraps Docker Compose and assumes the agent lives in",
   },
+  // Task 21's page, which had the same "sudo cp systemd/..." step.
+  {
+    page: PROXMOX_PAGE,
+    agent: "ProxmoxAgent",
+    unit: "oneuptime-proxmox-agent",
+    installDir: PROXMOX_AGENT_INSTALL_DIR,
+    folderLine: "It assumes the agent lives in",
+  },
 ];
 
-describe("the systemd units the task 22 agent pages install", () => {
+// The agents' own READMEs, which GitHub shows beside the files.
+const AGENT_READMES: Array<string> = fs
+  .readdirSync(path.join(REPO_ROOT, "agents"))
+  .filter((agent: string): boolean => {
+    return fs.existsSync(path.join(REPO_ROOT, "agents", agent, "README.md"));
+  })
+  .sort();
+
+describe("the systemd units the agent pages install", () => {
   /*
    * The install scripts put only the compose file and configs in the
    * agent's folder, never the agent's systemd/ directory, so a page that
@@ -1423,6 +1439,60 @@ describe("the systemd units the task 22 agent pages install", () => {
       lineWith(entry.page, `${entry.folderLine} \`${entry.installDir}\``);
     },
   );
+
+  it.each(SYSTEMD_UNITS)(
+    "$agent's README installs $unit.service, if it does, the way $page does",
+    (entry: SystemdUnit) => {
+      const readme: string = repoFile(`agents/${entry.agent}/README.md`);
+      const installsUnit: boolean = readme.includes(
+        `/etc/systemd/system/${entry.unit}.service`,
+      );
+
+      // Every README but Docker Swarm's has a systemd section.
+      expect({ agent: entry.agent, installsUnit }).toEqual({
+        agent: entry.agent,
+        installsUnit: entry.agent !== "DockerSwarmAgent",
+      });
+
+      if (installsUnit) {
+        expect(readme).toContain(
+          `sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${entry.agent}/systemd/${entry.unit}.service -o /etc/systemd/system/${entry.unit}.service`,
+        );
+      }
+    },
+  );
+
+  /*
+   * A README may copy a unit out of the agent's folder only when its
+   * install script downloads systemd/ there (the Database Agent's does).
+   */
+  it.each(AGENT_READMES)(
+    "agents/%s/README.md copies no unit its install script never downloads",
+    (agent: string) => {
+      const installScript: string = path.join(
+        REPO_ROOT,
+        "agents",
+        agent,
+        "install.sh",
+      );
+      const fetchesSystemd: boolean =
+        fs.existsSync(installScript) &&
+        fs.readFileSync(installScript, "utf8").includes("/systemd/");
+
+      if (!fetchesSystemd) {
+        expect(repoFile(`agents/${agent}/README.md`)).not.toContain(
+          "cp systemd/",
+        );
+      }
+    },
+  );
+
+  it("knows the agents whose READMEs it reads", () => {
+    for (const entry of SYSTEMD_UNITS) {
+      expect(AGENT_READMES).toContain(entry.agent);
+    }
+    expect(AGENT_READMES).toContain("DatabaseAgent");
+  });
 });
 
 describe("the Ceph agent page, against the catalog and the inventory scan", () => {

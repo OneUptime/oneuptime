@@ -288,7 +288,7 @@ Proxmox VE 9.0 及更新版本隨附一個 OpenTelemetry 指標伺服器，可�
 若要讓代理程式隨機器啟動，並在失敗時重新啟動，請安裝它的 systemd 單元。它假設代理程式位於 `/opt/oneuptime-proxmox-agent`，也就是安裝指令碼放置它的位置：
 
 ```bash
-sudo cp systemd/oneuptime-proxmox-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```

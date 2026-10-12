@@ -288,7 +288,7 @@ If you need those, run the agent instead, and remove the metric server: running 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-proxmox-agent`, where the install script puts it:
 
 ```bash
-sudo cp systemd/oneuptime-proxmox-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/systemd/oneuptime-proxmox-agent.service -o /etc/systemd/system/oneuptime-proxmox-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-proxmox-agent
 ```
