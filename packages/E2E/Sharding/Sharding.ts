@@ -1,3 +1,4 @@
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -255,7 +256,7 @@ export function filesForShard(data: {
 export function exactFileMatcher(testDir: string, file: string): RegExp {
   const absolutePath: string = path.join(testDir, ...file.split("/"));
 
-  return new RegExp(`^${absolutePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+  return new RegExp(`^${escapeRegExp(absolutePath)}$`);
 }
 
 /**
