@@ -406,7 +406,16 @@ export class Service extends ProjectReferencesService<Model> {
     data["project"] = undefined;
     RelationIdUtil.stamp(data, PROBE_RELATION_KEYS, probeId);
     RelationIdUtil.stamp(data, NETWORK_DEVICE_RELATION_KEYS, networkDeviceId);
-    RelationIdUtil.stamp(data, FILE_RELATION_KEYS, null);
+
+    /*
+     * A capture starts with no file: the probe's upload writes it, through
+     * recordCompletion's own SQL. Left out of the write - never stamped
+     * null, which is a value the create's column check holds to the
+     * caller's permission, and nobody may create fileId (create: []): that
+     * refused every capture started from the dashboard, the project owner's
+     * included. RelationIdUtil.leaveOut says why.
+     */
+    RelationIdUtil.leaveOut(data, FILE_RELATION_KEYS);
 
     createBy.data.interfaceName = interfaceName;
     createBy.data.bpfFilter = bpfFilter;

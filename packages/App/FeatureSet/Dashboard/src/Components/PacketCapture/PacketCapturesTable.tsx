@@ -50,7 +50,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -357,9 +357,16 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Handed to the card, which translates it. Marked for the extractor: a
+   * default kept in a variable is not a literal prop it reads, so the
+   * probe's card read English in every language.
+   */
   const cardDescription: string =
     props.description ||
-    "Capture the traffic this probe sees, then download the file and open it in Wireshark.";
+    translationKey(
+      "Capture the traffic this probe sees, then download the file and open it in Wireshark.",
+    );
 
   if (!isReady && hasPastCaptures !== true) {
     return (

@@ -27232,7 +27232,7 @@
   "All interfaces": "Alla gränssnitt",
   "All interfaces (any)": "Alla gränssnitt (any)",
   "All traffic": "All trafik",
-  "Any protocol": "Vilket protokoll som helst",
+  "Any protocol": "Alla protokoll",
   "BPF filter": "BPF-filter",
   "Capture": "Inspelning",
   "Capture File": "Inspelningsfil",
@@ -28120,5 +28120,6 @@
   "This step's cases could not be read, so every run stops here. Open the step and add its cases again.": "Det här stegets fall kunde inte läsas, så varje körning stannar här. Öppna steget och lägg till dess fall igen.",
   "Value for case {{number}}": "Värde för fall {{number}}",
   "Case {{earlier}} asks the same and is checked first, so this case is never taken.": "Fall {{earlier}} frågar samma sak och kontrolleras först, så det här fallet väljs aldrig.",
-  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "”{{comparison}}” är inte en jämförelse som det här steget känner till, så varje körning stannar här. Välj en i listan."
+  "“{{comparison}}” is not a comparison this step knows, so every run stops here. Choose one from the list.": "”{{comparison}}” är inte en jämförelse som det här steget känner till, så varje körning stannar här. Välj en i listan.",
+  "Capture the traffic this probe sees, then download the file and open it in Wireshark.": "Spela in trafiken som den här sonden ser, ladda sedan ner filen och öppna den i Wireshark."
 }

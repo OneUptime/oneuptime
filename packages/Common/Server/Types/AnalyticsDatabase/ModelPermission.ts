@@ -36,6 +36,7 @@ import Permission, {
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../Utils/Billing/CallerPlan";
 import PlanGates from "../Database/Permissions/PlanGates";
+import ColumnRefusalMessage from "../Database/Permissions/ColumnRefusalMessage";
 import ColumnWriteRefusedException from "../Database/Permissions/ColumnWriteRefusedException";
 import HeldPermissionsUtil, {
   HeldPermissions,
@@ -414,6 +415,11 @@ export default class ModelPermission {
           requestType: requestType,
           columnName: key,
           modelName: model.singularName,
+          // Who may, for the refusal to say so - or that nobody may.
+          permissions:
+            (requestType === DatabaseRequestType.Update
+              ? column.accessControl?.update
+              : column.accessControl?.create) || [],
         });
       }
 
@@ -651,10 +657,12 @@ export default class ModelPermission {
           );
         }
 
+        // Who may read it, or that nobody may (ColumnRefusalMessage).
         throw new NotAuthorizedException(
-          `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-            column.accessControl?.read || [],
-          ).join(", ")}`,
+          ColumnRefusalMessage.getQueryRefusal({
+            column: key,
+            permissions: column.accessControl?.read || [],
+          }),
         );
       }
     }
@@ -880,11 +888,12 @@ export default class ModelPermission {
           );
         }
 
+        // Who may read it, or that nobody may (ColumnRefusalMessage).
         throw new NotAuthorizedException(
-          `You do not have permissions to select on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                      column.accessControl?.read || [],
-                    ).join(", ")}`,
+          ColumnRefusalMessage.getSelectRefusal({
+            column: key,
+            permissions: column.accessControl?.read || [],
+          }),
         );
       }
     }
