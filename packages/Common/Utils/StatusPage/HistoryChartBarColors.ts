@@ -46,8 +46,8 @@ export interface HistoryChartBarColorRuleInput {
 }
 
 /*
- * A day's uptime on a full day, and the downtime it allows: 100% is no
- * downtime at all, 99% is under 15 minutes down, 95% under 72 minutes.
+ * A day's uptime, and on a full day the downtime it allows: 100% is no
+ * downtime at all, 99% up to 14 minutes 24 seconds, 95% up to 72 minutes.
  */
 export const RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES: ReadonlyArray<HistoryChartBarColorRuleValues> =
   [
@@ -65,6 +65,19 @@ export const RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES: ReadonlyArray<HistoryCha
  */
 export const ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY: string =
   "addRecommendedBarColorRules";
+
+/*
+ * A day nobody measured: a fixed neutral grey that no rule and no default
+ * colour reaches, drawn hatched (NO_DATA_BAR_CLASS_NAME). The grey alone is
+ * as light as a green bar, and to someone with red-green colour blindness
+ * that green is grey too (Utils/ColorVision), so a day nobody measured
+ * looked like a good one to them; stripes are not a colour. Here rather
+ * than in DayUptimeGraph so what is not React can draw a no-data swatch.
+ */
+export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
+
+// The hatch, drawn over that grey by DayUptimeGraph.css.
+export const NO_DATA_BAR_CLASS_NAME: string = "uptime-bar-no-data";
 
 /*
  * A rule's percentage as a number, or null when it has none. Read the way

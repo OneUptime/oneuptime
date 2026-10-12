@@ -11,7 +11,11 @@ import DayUptimeGraphUtil, {
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
-import { getBarColorForUptimePercent } from "../../../Utils/StatusPage/HistoryChartBarColors";
+import {
+  NO_DATA_BAR_CLASS_NAME,
+  NO_DATA_BAR_COLOR,
+  getBarColorForUptimePercent,
+} from "../../../Utils/StatusPage/HistoryChartBarColors";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -72,18 +76,12 @@ export interface DayReading {
  * stand for "we have no idea" is exactly the conflation that made a page with
  * a green default claim uptime it never recorded, and a page with a grey
  * default look unmonitored while it was passing every check. This is a fixed
- * neutral, drawn with a hatch so it is still distinguishable in greyscale and
- * to a colour-blind reader.
+ * neutral, drawn with a hatch (DayUptimeGraph.css) so it is still
+ * distinguishable in greyscale and to a colour-blind reader. Both live in
+ * Utils/StatusPage/HistoryChartBarColors, where a legend's no-data swatch
+ * reads them too.
  */
-export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
-
-/*
- * The hatch, drawn over that grey by DayUptimeGraph.css. The grey alone is as
- * light as a green bar, and to someone with red-green colour blindness that
- * green is grey too (Utils/ColorVision) - so a day nobody measured looked
- * like a good one to them. A legend's no-data swatch takes the same class.
- */
-export const NO_DATA_BAR_CLASS_NAME: string = "uptime-bar-no-data";
+export { NO_DATA_BAR_CLASS_NAME, NO_DATA_BAR_COLOR };
 
 export interface ComponentProps {
   startDate: Date;

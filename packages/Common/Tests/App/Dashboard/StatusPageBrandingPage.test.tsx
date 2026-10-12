@@ -86,7 +86,22 @@ jest.mock(
 import StatusPageBranding from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding";
 import StatusPageBrandingCopy, {
   BRANDING_ADVANCED_SECTION_TEST_ID,
+  USE_RECOMMENDED_RULES_EMPTY_STATE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageBrandingCopy";
+import {
+  BAR_COLOR_PREVIEW_SWATCH_TEST_ID,
+  BAR_COLOR_PREVIEW_TEST_ID,
+  BAR_COLOR_PREVIEW_WARNING_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/HistoryChartBarColorPreview";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import IconProp from "../../../Types/Icon/IconProp";
+import EmptyStateOptions from "../../../UI/Components/ModelTable/EmptyStateOptions";
+import { TableEmptyStateAction } from "../../../UI/Components/Table/TableEmptyState";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  HistoryChartBarColorRuleValues,
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+} from "../../../Utils/StatusPage/HistoryChartBarColors";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageFooterLink from "../../../Models/DatabaseModels/StatusPageFooterLink";
@@ -149,6 +164,13 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  // The bar color preview reads the project's statuses while there are no rules.
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: [],
+    count: 0,
+    skip: 0,
+    limit: 0,
+  } as never);
 });
 
 afterEach(() => {
@@ -234,7 +256,10 @@ async function loadInto(name: string, item: StatusPage): Promise<void> {
   });
 }
 
-async function rulesFetched(count: number): Promise<void> {
+async function rulesFetched(
+  count: number,
+  rules: Array<StatusPageHistoryChartBarColorRule> = [],
+): Promise<void> {
   const onFetchSuccess: (
     data: Array<StatusPageHistoryChartBarColorRule>,
     totalCount: number,
@@ -243,8 +268,31 @@ async function rulesFetched(count: number): Promise<void> {
   ] as (data: Array<StatusPageHistoryChartBarColorRule>, total: number) => void;
 
   await act(async () => {
-    onFetchSuccess([], count);
+    onFetchSuccess(rules, count);
   });
+}
+
+// A rule as the rules table loads it.
+function ruleOf(
+  uptimePercentGreaterThanOrEqualTo: number,
+  barColor: string,
+): StatusPageHistoryChartBarColorRule {
+  const rule: StatusPageHistoryChartBarColorRule =
+    new StatusPageHistoryChartBarColorRule();
+  rule.uptimePercentGreaterThanOrEqualTo = uptimePercentGreaterThanOrEqualTo;
+  rule.barColor = new Color(barColor);
+  return rule;
+}
+
+function recommendedRules(): Array<StatusPageHistoryChartBarColorRule> {
+  return RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES.map(
+    (rule: HistoryChartBarColorRuleValues) => {
+      return ruleOf(
+        rule.uptimePercentGreaterThanOrEqualTo,
+        rule.barColor.toString(),
+      );
+    },
+  );
 }
 
 async function indexingIs(isOn: boolean): Promise<void> {
@@ -518,8 +566,60 @@ describe("the cards under Advanced", () => {
     expect(rules["modelType"]).toBe(StatusPageHistoryChartBarColorRule);
     expect(rules["enableDragAndDrop"]).toBe(true);
     expect((rules["cardProps"] as Record<string, unknown>)["title"]).toBe(
-      "Rules for Bar Colors of History Chart",
+      "Bar Color Rules",
     );
+  });
+
+  /*
+   * Issue #486: the cards said the default color was for a day with no data
+   * (a day with no data is always the hatched grey), and that without rules
+   * a day took "the lowest monitor state color" (it takes the most severe).
+   * They say what the strip does now, under the names the folded header
+   * already gave them.
+   */
+  test("the two history chart cards say what they do, by the names the folded header gives them", async () => {
+    await renderPage();
+
+    expect(cardPropsOf("Status Page > Branding > Default Bar Color")).toEqual({
+      title: "Default Bar Color",
+      description:
+        "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.",
+    });
+    expect(
+      cardPropsOf("Status Page > Branding > History Chart Bar Color Rules"),
+    ).toEqual({
+      title: "Bar Color Rules",
+      description:
+        "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.",
+    });
+  });
+
+  test("an empty rules table says how days are colored without rules, and offers the recommended rules", async () => {
+    await renderPage();
+
+    const rules: Record<string, unknown> = propsOf(
+      "Status Page > Branding > History Chart Bar Color Rules",
+    );
+    const emptyState: EmptyStateOptions = rules[
+      "emptyState"
+    ] as EmptyStateOptions;
+
+    expect(rules["noItemsMessage"]).toBeUndefined();
+    expect(emptyState.title).toBe("No bar color rules");
+    expect(emptyState.description).toBe(
+      "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.",
+    );
+    expect(
+      (emptyState.actions || []).map((action: TableEmptyStateAction) => {
+        return [action.title, action.icon, action.dataTestId];
+      }),
+    ).toEqual([
+      [
+        "Use Recommended Rules",
+        IconProp.Swatch,
+        USE_RECOMMENDED_RULES_EMPTY_STATE_TEST_ID,
+      ],
+    ]);
   });
 
   test("Languages is one card and one dialog: the default language, then the ones the footer offers", async () => {
@@ -702,6 +802,296 @@ describe("Configured, on the folded Advanced section", () => {
 
     fireEvent.click(advancedHeader());
 
+    expect(setChips(advancedHeader())).toEqual([]);
+  });
+});
+
+/*
+ * Issue #486: the recommended bar color rules, one click away on a page
+ * that has none, and what the page's colors look like under them.
+ */
+describe("the recommended bar color rules, on a page that has none", () => {
+  type CreateArgs = {
+    model: StatusPageHistoryChartBarColorRule;
+    modelType: unknown;
+  };
+
+  function rulesTable(): Record<string, unknown> {
+    return propsOf("Status Page > Branding > History Chart Bar Color Rules");
+  }
+
+  async function useRecommendedRulesFromTheEmptyTable(): Promise<void> {
+    const emptyState: EmptyStateOptions = rulesTable()[
+      "emptyState"
+    ] as EmptyStateOptions;
+
+    await act(async () => {
+      emptyState.actions![0]!.onClick();
+    });
+  }
+
+  function answerCreates(
+    refuseAt?: number | undefined,
+  ): Array<StatusPageHistoryChartBarColorRule> {
+    const made: Array<StatusPageHistoryChartBarColorRule> = [];
+    let attempts: number = 0;
+
+    jest.spyOn(ModelAPI, "create").mockImplementation((async (
+      args: CreateArgs,
+    ) => {
+      attempts++;
+
+      if (attempts === refuseAt) {
+        throw new Error("You do not have permission to create rules.");
+      }
+
+      args.model.id = ObjectID.generate();
+      made.push(args.model);
+
+      return { data: args.model } as never;
+    }) as never);
+
+    return made;
+  }
+
+  beforeEach(() => {
+    // The preview reads the project's statuses while there are no rules.
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 0,
+    } as never);
+  });
+
+  test("makes the four recommended rules on this page, in their order, and reloads the table", async () => {
+    await renderPage();
+    await rulesFetched(0);
+
+    const made: Array<StatusPageHistoryChartBarColorRule> = answerCreates();
+
+    expect(rulesTable()["refreshToggle"]).toBeUndefined();
+
+    await useRecommendedRulesFromTheEmptyTable();
+
+    expect(
+      made.map((rule: StatusPageHistoryChartBarColorRule) => {
+        return [
+          rule.uptimePercentGreaterThanOrEqualTo,
+          rule.barColor?.toString(),
+          rule.statusPageId?.toString(),
+          rule.projectId?.toString(),
+        ];
+      }),
+    ).toEqual([
+      [100, "#22c55e", STATUS_PAGE_ID, PROJECT_ID],
+      [99, "#fde047", STATUS_PAGE_ID, PROJECT_ID],
+      [95, "#c2410c", STATUS_PAGE_ID, PROJECT_ID],
+      [0, "#7f1d1d", STATUS_PAGE_ID, PROJECT_ID],
+    ]);
+    expect(rulesTable()["refreshToggle"]).toBe("1");
+    expect(rulesTable()["topContent"]).toBeUndefined();
+  });
+
+  test("says it is working while it makes them, and a second click makes no second set", async () => {
+    await renderPage();
+    await rulesFetched(0);
+
+    let finish: () => void = (): void => {};
+    const created: Array<number> = [];
+
+    jest.spyOn(ModelAPI, "create").mockImplementation((async (
+      args: CreateArgs,
+    ) => {
+      created.push(1);
+
+      if (created.length === 1) {
+        await new Promise<void>((resolve: () => void) => {
+          finish = resolve;
+        });
+      }
+
+      return { data: args.model } as never;
+    }) as never);
+
+    const emptyState: () => EmptyStateOptions = (): EmptyStateOptions => {
+      return rulesTable()["emptyState"] as EmptyStateOptions;
+    };
+
+    act(() => {
+      emptyState().actions![0]!.onClick();
+    });
+
+    expect(emptyState().actions![0]!.isLoading).toBe(true);
+
+    await act(async () => {
+      emptyState().actions![0]!.onClick();
+    });
+
+    await act(async () => {
+      finish();
+    });
+
+    expect(created).toHaveLength(4);
+    expect(emptyState().actions![0]!.isLoading).toBe(false);
+  });
+
+  test("a refused add takes back the rules it made, says why above the table, and reloads it", async () => {
+    await renderPage();
+    await rulesFetched(0);
+
+    const made: Array<StatusPageHistoryChartBarColorRule> = answerCreates(3);
+    const deleted: Array<string> = [];
+
+    jest.spyOn(ModelAPI, "deleteItem").mockImplementation((async (args: {
+      id: ObjectID;
+    }) => {
+      deleted.push(args.id.toString());
+    }) as never);
+
+    await useRecommendedRulesFromTheEmptyTable();
+
+    expect(made).toHaveLength(2);
+    expect(deleted).toEqual(
+      made.map((rule: StatusPageHistoryChartBarColorRule) => {
+        return rule.id!.toString();
+      }),
+    );
+    expect(rulesTable()["refreshToggle"]).toBe("1");
+
+    const { container } = render(rulesTable()["topContent"] as ReactElement);
+
+    expect(container).toHaveTextContent(
+      "You do not have permission to create rules.",
+    );
+  });
+
+  test("the preview under the rules shows the recommended rules, and nothing to warn about", async () => {
+    await renderPage();
+    await rulesFetched(4, recommendedRules());
+
+    const preview: HTMLElement = screen.getByTestId(BAR_COLOR_PREVIEW_TEST_ID);
+    const swatches: Array<HTMLElement> = within(preview).getAllByTestId(
+      BAR_COLOR_PREVIEW_SWATCH_TEST_ID,
+    );
+
+    // Four rules and no data, in three kinds of vision.
+    expect(swatches).toHaveLength(15);
+    expect(
+      within(preview).queryAllByTestId(BAR_COLOR_PREVIEW_WARNING_TEST_ID),
+    ).toHaveLength(0);
+    expect(preview).toHaveTextContent("99% or more");
+  });
+
+  test("the preview is drawn after the rules, before the languages", async () => {
+    await renderPage();
+    await rulesFetched(4, recommendedRules());
+
+    const section: HTMLElement = advancedSection();
+    const preview: HTMLElement = screen.getByTestId(BAR_COLOR_PREVIEW_TEST_ID);
+    const rules: HTMLElement = within(section)
+      .getAllByTestId("recorded-card")
+      .find((element: HTMLElement): boolean => {
+        return (
+          element.getAttribute("data-card") ===
+          "Status Page > Branding > History Chart Bar Color Rules"
+        );
+      })!;
+    const languages: HTMLElement = within(section)
+      .getAllByTestId("recorded-card")
+      .find((element: HTMLElement): boolean => {
+        return element.getAttribute("data-card") === "Status Page > Languages";
+      })!;
+
+    expect(
+      rules.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      preview.compareDocumentPosition(languages) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("without rules, the preview warns that the statuses' green and red look alike, and offers the rules too", async () => {
+    const operational: MonitorStatus = new MonitorStatus();
+    operational.name = "Operational";
+    operational.color = new Color("#2ab57d");
+    operational.priority = 1;
+
+    const offline: MonitorStatus = new MonitorStatus();
+    offline.name = "Offline";
+    offline.color = new Color("#fd625e");
+    offline.priority = 3;
+
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [offline, operational],
+      count: 2,
+      skip: 0,
+      limit: 2,
+    } as never);
+
+    await renderPage();
+    await rulesFetched(0);
+
+    const preview: HTMLElement = screen.getByTestId(BAR_COLOR_PREVIEW_TEST_ID);
+
+    expect(
+      within(preview)
+        .getAllByTestId(BAR_COLOR_PREVIEW_WARNING_TEST_ID)
+        .map((warning: HTMLElement) => {
+          return warning.textContent;
+        }),
+    ).toEqual([
+      "Operational and Offline look alike to people with red-green color blindness.",
+    ]);
+
+    const made: Array<StatusPageHistoryChartBarColorRule> = answerCreates();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Use Recommended Rules" }),
+      );
+    });
+
+    expect(made).toHaveLength(4);
+  });
+});
+
+describe("Configured, now that a new page starts with the recommended rules", () => {
+  beforeEach(() => {
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 0,
+    } as never);
+  });
+
+  test("is not said for the recommended rules, as a page made in the dashboard has them", async () => {
+    await renderPage();
+
+    await rulesFetched(4, recommendedRules());
+
+    expect(setChips(advancedHeader())).toEqual([]);
+  });
+
+  test("is said once one of them is changed, removed or added to", async () => {
+    await renderPage();
+
+    const changed: Array<StatusPageHistoryChartBarColorRule> =
+      recommendedRules();
+    changed[1] = ruleOf(99, "#ffff00");
+
+    await rulesFetched(4, changed);
+    expect(hasSetChip(advancedHeader())).toBe(true);
+
+    await rulesFetched(3, recommendedRules().slice(0, 3));
+    expect(hasSetChip(advancedHeader())).toBe(true);
+
+    await rulesFetched(5, [...recommendedRules(), ruleOf(50, "#000000")]);
+    expect(hasSetChip(advancedHeader())).toBe(true);
+
+    await rulesFetched(4, recommendedRules());
     expect(setChips(advancedHeader())).toEqual([]);
   });
 });
