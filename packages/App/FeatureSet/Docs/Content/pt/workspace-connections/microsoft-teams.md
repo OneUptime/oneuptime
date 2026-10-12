@@ -89,6 +89,8 @@ Criar uma regra passa por quatro etapas:
 
 Um canal que a regra cria recebe o nome de **New Microsoft Teams Channel Name** seguido do número do registro, como `oneuptime-incident-42`, e só um canal criado recebe as pessoas que a regra convida. Um incidente, alerta ou episódio privado recebe um canal privado. Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais e chats.
 
+Canais e chats continuam legíveis: cada evento é publicado uma vez, e o primeiro estado de um registro vem no cartão que anuncia o registro, não em um cartão à parte. Uma execução de uma política de plantão é um só cartão, editado à medida que a execução escala: quem foi acionado, quantas vezes e como, quem não foi e por quê, e quem confirmou. Um novo cartão só é publicado quando alguém precisa agir: uma regra de escalonamento não alcançou ninguém, ou a execução terminou sem que ninguém confirmasse. Que os proprietários do registro ou os assinantes da página de status foram avisados fica no feed dele no OneUptime.
+
 **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams** lista os canais que o OneUptime vê nas suas equipes, e os chats aos quais ele foi adicionado, com **Enviar teste** ao lado de cada um. Um chat aparece assim que o app do OneUptime é adicionado a ele no Microsoft Teams; **Refresh Chats** traz os novos chats e os nomes atuais deles.
 
 ## Testar uma regra

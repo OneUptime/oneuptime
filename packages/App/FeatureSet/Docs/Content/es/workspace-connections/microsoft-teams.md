@@ -89,6 +89,8 @@ Crear una regla recorre cuatro pasos:
 
 Un canal que crea la regla se nombra con **New Microsoft Teams Channel Name** seguido del número del registro, como `oneuptime-incident-42`, y solo un canal creado recibe a las personas que invita la regla. Un incidente, una alerta o un episodio privado recibe un canal privado. Cada actualización posterior del registro — un cambio de estado, una nota, un nuevo propietario — se publica en sus canales y chats.
 
+Los canales y chats siguen siendo legibles: cada evento se publica una vez, y el primer estado de un registro va en la tarjeta que anuncia el registro, no en una tarjeta aparte. Una ejecución de una política de guardia es una sola tarjeta que se edita a medida que la ejecución escala: a quién se avisó, cuántas veces y cómo, a quién no y por qué, y quién lo reconoció. Solo se publica una tarjeta nueva cuando alguien tiene que actuar: una regla de escalado no llegó a nadie, o la ejecución terminó sin que nadie lo reconociera. Que se avisó a los propietarios del registro o a los suscriptores de la página de estado queda en su feed en OneUptime.
+
 **Ajustes del proyecto** > **Espacio de trabajo** > **Microsoft Teams** lista los canales que OneUptime ve en tus equipos, y los chats a los que se ha añadido, con **Enviar prueba** junto a cada uno. Un chat aparece en cuanto se añade a él la app de OneUptime en Microsoft Teams; **Actualizar chats** recoge los chats nuevos y sus nombres actuales.
 
 ## Probar una regla

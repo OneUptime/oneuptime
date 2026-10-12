@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateTimeline";
+import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../../../Models/DatabaseModels/IncidentFeed";
 import { AlertFeedEventType } from "../../../../../Models/DatabaseModels/AlertFeed";
@@ -56,6 +57,7 @@ import ScheduledMaintenanceWorkspaceMessages from "../../../../../Server/Utils/W
 import URL from "../../../../../Types/API/URL";
 import { Red500 } from "../../../../../Types/BrandColors";
 import Email from "../../../../../Types/Email";
+import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
@@ -222,11 +224,8 @@ export interface FeedEntry {
 const NAME_SPACE: RegExp = /\s/g;
 
 // A copy of a model, as a read from the database hands one out.
-function copyOf<T extends object>(model: T): T {
-  return Object.assign(
-    Object.create(Object.getPrototypeOf(model) as object) as T,
-    model,
-  );
+function copyOf<T extends BaseModel>(model: T): T {
+  return Object.assign(Object.create(Object.getPrototypeOf(model)) as T, model);
 }
 
 function user(userId: ObjectID): User {
@@ -463,7 +462,7 @@ export default class QuietChannelsWorld {
     return rule;
   }
 
-  private miscDataFor(workspaceType: WorkspaceType): object {
+  private miscDataFor(workspaceType: WorkspaceType): JSONObject {
     if (workspaceType === WorkspaceType.Slack) {
       return { botUserId: "B0BOT", teamId: "T0WORKSPACE", teamName: "Ops" };
     }

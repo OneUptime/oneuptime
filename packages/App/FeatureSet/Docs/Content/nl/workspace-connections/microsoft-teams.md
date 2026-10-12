@@ -89,6 +89,8 @@ Een regel aanmaken gaat in vier stappen:
 
 Een kanaal dat de regel aanmaakt, krijgt zijn naam van **New Microsoft Teams Channel Name** gevolgd door het nummer van het record, zoals `oneuptime-incident-42`, en alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen en chats geplaatst.
 
+Kanalen en chats blijven leesbaar: elke gebeurtenis wordt één keer geplaatst, en de eerste status van een record staat in de kaart die het record aankondigt, niet in een eigen kaart. Een uitvoering van een bereikbaarheidsbeleid is één kaart die wordt bewerkt terwijl de uitvoering escaleert: wie werd opgeroepen, hoe vaak en hoe, wie niet en waarom, en wie bevestigde. Een nieuwe kaart wordt alleen geplaatst als iemand moet handelen: een escalatieregel bereikte niemand, of de uitvoering eindigde zonder dat iemand bevestigde. Dat de eigenaren van het record of de abonnees van de statuspagina bericht kregen, blijft in zijn feed in OneUptime staan.
+
 **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** toont de kanalen die OneUptime in je teams ziet, en de chats waaraan het is toegevoegd, met **Test verzenden** naast elk ervan. Een chat verschijnt zodra de OneUptime-app er in Microsoft Teams aan wordt toegevoegd; **Refresh Chats** haalt nieuwe chats en hun huidige namen op.
 
 ## Een regel testen

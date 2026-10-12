@@ -89,6 +89,8 @@ Att skapa en regel går igenom fyra steg:
 
 En kanal som regeln skapar får sitt namn från **New Microsoft Teams Channel Name** följt av postens nummer, som `oneuptime-incident-42`, och bara en skapad kanal får de personer som regeln bjuder in. En privat incident, ett privat larm eller en privat episod får en privat kanal. Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler och chattar.
 
+Kanaler och chattar förblir läsbara: varje händelse publiceras en gång, och postens första tillstånd står i kortet som annonserar posten, inte i ett eget kort. En körning av en jourpolicy är ett enda kort som redigeras allteftersom körningen eskalerar: vem som larmades, hur ofta och hur, vem som inte larmades och varför, och vem som bekräftade. Ett nytt kort publiceras bara när någon måste agera: en eskaleringsregel nådde ingen, eller körningen tog slut utan att någon bekräftade. Att postens ägare eller statussidans prenumeranter meddelades står kvar i dess flöde i OneUptime.
+
 **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** visar de kanaler som OneUptime ser i dina team, och de chattar som den har lagts till i, med **Skicka test** bredvid var och en. En chatt visas så snart OneUptime-appen har lagts till i den i Microsoft Teams; **Refresh Chats** hämtar nya chattar och deras aktuella namn.
 
 ## Testa en regel

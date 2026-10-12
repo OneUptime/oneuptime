@@ -89,6 +89,8 @@ At oprette en regel går gennem fire trin:
 
 En kanal, som reglen opretter, får sit navn fra **New Microsoft Teams Channel Name** efterfulgt af postens nummer, som `oneuptime-incident-42`, og kun en oprettet kanal får de folk, reglen inviterer. En privat hændelse, advarsel eller episode får en privat kanal. Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og chats.
 
+Kanaler og chats forbliver læsbare: hver begivenhed slås op én gang, og postens første tilstand står i det kort, der annoncerer posten, ikke i et kort for sig. En kørsel af en vagtpolitik er ét kort, der redigeres, efterhånden som kørslen eskalerer: hvem der blev tilkaldt, hvor ofte og hvordan, hvem der ikke blev det og hvorfor, og hvem der bekræftede. Et nyt kort slås kun op, når nogen skal handle: en eskaleringsregel nåede ingen, eller kørslen sluttede, uden at nogen bekræftede. At postens ejere eller statussidens abonnenter har fået besked, står i dens feed i OneUptime.
+
 **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams** viser de kanaler, OneUptime kan se i dine teams, og de chats, den er føjet til, med **Send test** ved siden af hver. En chat vises, så snart OneUptime-appen er føjet til den i Microsoft Teams; **Refresh Chats** henter nye chats og deres nuværende navne.
 
 ## Test en regel

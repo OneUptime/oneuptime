@@ -57,7 +57,7 @@ const ALERT_ID: ObjectID = ObjectID.generate();
 const STARTS_AT: Date = new Date("2026-10-08T17:15:00.000Z");
 
 describe("WorkspaceStateChangePosting", () => {
-  const row: object = { id: "row" };
+  const row: Record<string, unknown> = { id: "row" };
 
   test("the record's first state - nothing before it, nothing after it - is not posted", () => {
     expect(

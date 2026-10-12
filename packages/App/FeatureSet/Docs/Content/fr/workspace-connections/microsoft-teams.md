@@ -89,6 +89,8 @@ Créer une règle passe par quatre étapes :
 
 Un canal que la règle crée prend le nom de **New Microsoft Teams Channel Name** suivi du numéro de l'enregistrement, par exemple `oneuptime-incident-42`, et seul un canal créé reçoit les personnes que la règle invite. Un incident, une alerte ou un épisode privé reçoit un canal privé. Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux et conversations.
 
+Les canaux et les conversations restent lisibles : chaque événement est publié une seule fois, et le premier état d'un enregistrement figure dans la carte qui annonce l'enregistrement, pas dans une carte à part. Une exécution d'une politique d'astreinte est une seule carte, modifiée au fil de l'escalade : qui a été alerté, combien de fois et comment, qui ne l'a pas été et pourquoi, et qui l'a pris en compte. Une nouvelle carte n'est publiée que lorsque quelqu'un doit agir : une règle d'escalade n'a atteint personne, ou l'exécution s'est terminée sans que personne ne le prenne en compte. Le fait que les propriétaires de l'enregistrement ou les abonnés de la page de statut ont été prévenus reste dans son fil d'activité dans OneUptime.
+
 **Paramètres du projet** > **Espace de travail** > **Microsoft Teams** liste les canaux que OneUptime voit dans vos équipes, et les conversations auxquelles il a été ajouté, avec **Envoyer le test** à côté de chacun. Une conversation apparaît dès que l'application OneUptime y est ajoutée dans Microsoft Teams ; **Refresh Chats** récupère les nouvelles conversations et leurs noms actuels.
 
 ## Tester une règle
