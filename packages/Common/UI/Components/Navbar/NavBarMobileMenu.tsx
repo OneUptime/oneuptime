@@ -1,7 +1,5 @@
 import NavBarCategoryToggle from "./NavBarCategoryToggle";
 import NavBarItem from "./NavBarItem";
-import Dictionary from "../../../Types/Dictionary";
-import IconProp from "../../../Types/Icon/IconProp";
 import type { MoreMenuItem, NavItem } from "./NavBar";
 import {
   CategoryFolds,
@@ -18,8 +16,6 @@ export interface ComponentProps {
   moreMenuItems: Array<MoreMenuItem>;
   // See NavBar's moreMenuCategoriesOpenByDefault.
   categoriesOpenByDefault?: Array<string> | undefined;
-  // See NavBar's moreMenuCategoryIcons.
-  categoryIcons?: Dictionary<IconProp> | undefined;
   // The right-hand entry (User Settings), listed last.
   rightElement?: NavItem | undefined;
   // Following a link closes the menu.
@@ -121,7 +117,6 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                       return item.title;
                     },
                   )}
-                  icon={props.categoryIcons?.[category.title]}
                   isOpen={isOpen}
                   onToggle={() => {
                     folds.toggle(category.title);

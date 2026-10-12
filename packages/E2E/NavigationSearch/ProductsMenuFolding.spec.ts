@@ -3,8 +3,9 @@ import { expect, Locator, Page, test } from "@playwright/test";
 /*
  * The products menu opens on the essentials instead of every product.
  *
- * Every section of the Dashboard's menu is a row of one list: its icon, its
- * name, what its products are called, how many and a chevron. The menu
+ * Every section of the Dashboard's menu is a row of one list: its name,
+ * what its products are called, how many and a chevron, with no icon of its
+ * own - only the products carry icons. The menu
  * always opens with the first row, its seven Essentials, open, their cards
  * under the row: folding them lasts until the menu closes, and no
  * remembered fold hides them. Every other section starts folded. A click
@@ -261,16 +262,16 @@ test.describe("the desktop products menu", () => {
 
     const rows: Array<{
       line: Box;
-      icon: Box;
       name: Box;
       products: Box;
       count: Box;
     }> = [];
     for (const section of FOLDED_SECTIONS) {
       const line: Locator = sectionLine(page, section);
+      // No icon: the chevron is the row's only glyph.
+      await expect(line.locator("svg")).toHaveCount(1);
       rows.push({
         line: await boxOf(line),
-        icon: await boxOf(line.locator("div[aria-hidden='true']").first()),
         name: await boxOf(sectionToggle(page, section)),
         products: await boxOf(sectionProducts(page, section)),
         count: await boxOf(sectionCount(page, section)),
@@ -281,10 +282,6 @@ test.describe("the desktop products menu", () => {
     for (const [index, row] of rows.entries()) {
       const section: string = FOLDED_SECTIONS[index]!;
       // Each part starts (or, for the count, ends) where the first row's does.
-      expect([section, Math.round(row.icon.x)]).toEqual([
-        section,
-        Math.round(first.icon.x),
-      ]);
       expect([section, Math.round(row.name.x)]).toEqual([
         section,
         Math.round(first.name.x),
@@ -319,17 +316,14 @@ test.describe("the desktop products menu", () => {
     }
 
     /*
-     * The open Essentials row lists no products, and lines up its icon, its
-     * name and its count with the folded rows below it.
+     * The open Essentials row lists no products, draws no icon either, and
+     * lines up its name and its count with the folded rows below it.
      */
     const essentialsLine: Locator = sectionLine(page, "Essentials");
-    const essentialsIcon: Box = await boxOf(
-      essentialsLine.locator("div[aria-hidden='true']").first(),
-    );
+    await expect(essentialsLine.locator("svg")).toHaveCount(1);
     const essentialsName: Box = await boxOf(sectionToggle(page, "Essentials"));
     const essentialsCount: Box = await boxOf(sectionCount(page, "Essentials"));
     await expect(sectionProducts(page, "Essentials")).toHaveCount(0);
-    expect(Math.round(essentialsIcon.x)).toBe(Math.round(first.icon.x));
     expect(Math.round(essentialsName.x)).toBe(Math.round(first.name.x));
     expect(Math.round(essentialsCount.x + essentialsCount.width)).toBe(
       Math.round(first.count.x + first.count.width),
@@ -765,27 +759,24 @@ test("on a phone, the menu toggle lists the essentials and folds the other secti
   await expect(infrastructure).toHaveAttribute("aria-expanded", "false");
 
   /*
-   * A section's row is drawn as the top-level rows are: its icon before its
-   * name, where Home's is, with what a folded one holds on a second line
-   * under the name.
+   * A section's row has no icon: its name starts where Home's icon does,
+   * with what a folded one holds on a second line under the name.
    */
   const homeIcon: Box = await boxOf(navLink(navbar, "Home").locator("svg"));
-  const sectionIcon: (name: string) => Promise<Box> = async (
-    name: string,
-  ): Promise<Box> => {
-    return boxOf(
-      navbar.getByRole("heading", { name, exact: true }).locator("svg"),
-    );
-  };
-  const infrastructureIcon: Box = await sectionIcon("Infrastructure");
-  const essentialsIcon: Box = await sectionIcon("Essentials");
+  for (const section of ["Essentials", "Infrastructure"]) {
+    await expect(
+      navbar
+        .getByRole("heading", { name: section, exact: true })
+        .locator("svg"),
+    ).toHaveCount(0);
+  }
+  const essentialsName: Box = await boxOf(essentials);
   const name: Box = await boxOf(infrastructure);
   const products: Box = await boxOf(
     navbar.getByText(/^Hosts, Kubernetes, Docker/),
   );
-  expect(Math.round(infrastructureIcon.x)).toBe(Math.round(homeIcon.x));
-  expect(Math.round(essentialsIcon.x)).toBe(Math.round(homeIcon.x));
-  expect(infrastructureIcon.x).toBeLessThan(name.x);
+  expect(Math.round(name.x)).toBe(Math.round(homeIcon.x));
+  expect(Math.round(essentialsName.x)).toBe(Math.round(homeIcon.x));
   expect(products.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
   expect(Math.round(products.x)).toBe(Math.round(name.x));
 
@@ -793,7 +784,7 @@ test("on a phone, the menu toggle lists the essentials and folds the other secti
   const monitorsIcon: Box = await boxOf(
     navLink(navbar, "Monitors").locator("svg"),
   );
-  expect(monitorsIcon.x).toBeGreaterThan(essentialsIcon.x + 8);
+  expect(monitorsIcon.x).toBeGreaterThan(essentialsName.x + 8);
 
   // One rule sets the sections apart from Home above them.
   await expect(

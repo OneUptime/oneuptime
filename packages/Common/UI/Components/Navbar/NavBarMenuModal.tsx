@@ -8,7 +8,6 @@ import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import URL from "../../../Types/API/URL";
-import Dictionary from "../../../Types/Dictionary";
 import type { MoreMenuItem } from "./NavBar";
 import NavBarCategoryToggle, {
   CATEGORY_LIST_COLUMNS,
@@ -143,11 +142,6 @@ export interface ComponentProps {
    * NavBarMenuCatalog.ts for the rules.
    */
   categoriesOpenByDefault?: Array<string> | undefined;
-  /*
-   * Category name -> the icon its row is drawn with, in a menu that folds.
-   * A category without one gets the products menu's own icon.
-   */
-  categoryIcons?: Dictionary<IconProp> | undefined;
   footer?:
     | {
         title: string;
@@ -755,7 +749,6 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
             itemTitles={group.items.map((item: MoreMenuItem): string => {
               return item.title;
             })}
-            icon={props.categoryIcons?.[group.title]}
             isOpen={group.isOpen}
             onToggle={() => {
               toggleCategory(toggle);
@@ -776,7 +769,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
           /*
            * In a menu that folds, a plain heading (Recent, or any category
            * while searching) lines its text up with the icons of the cards
-           * and of the category rows.
+           * and the names of the category rows.
            */
           <div
             className={`mb-2.5 flex items-center gap-1.5 ${
