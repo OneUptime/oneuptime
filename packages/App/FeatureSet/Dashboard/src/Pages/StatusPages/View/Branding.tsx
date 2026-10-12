@@ -1,6 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import HistoryChartBarColorPreview from "../../../Components/StatusPage/HistoryChartBarColorPreview";
-import { addRecommendedBarColorRules } from "../../../Components/StatusPage/HistoryChartBarColorPreviewModel";
+import {
+  addRecommendedBarColorRules,
+  formatRuleUptimePercent,
+} from "../../../Components/StatusPage/HistoryChartBarColorPreviewModel";
 import SearchEngineIndexingCard from "../../../Components/StatusPage/SearchEngineIndexingCard";
 import StatusPageBrandingCopy, {
   BRANDING_ADVANCED_SECTION_TEST_ID,
@@ -767,6 +770,16 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               title: "When Uptime Percent >=",
               type: FieldType.Percent,
+              /*
+               * As the preview below names the rule: 99.9306%, not the
+               * 99.93055555555556 a Terraform configuration's
+               * 100 * (1 - 1 / 1440) is kept as. Edit shows every digit.
+               */
+              getElement: (
+                rule: StatusPageHistoryChartBarColorRule,
+              ): ReactElement => {
+                return <span>{formatRuleUptimePercent(rule)}</span>;
+              },
             },
             {
               field: {

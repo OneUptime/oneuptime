@@ -571,6 +571,87 @@ describe("the cards under Advanced", () => {
   });
 
   /*
+   * #4719: the API answers a rule's percentage as a number now, where it
+   * answered the decimal column's text ("100.00"), and Terraform can apply
+   * rules a configuration computed, such as a day with one minute of
+   * downtime, which the API keeps as 99.93055555555556. The table reads
+   * them all the way the preview under it names them; the rule's Edit form
+   * keeps every digit.
+   */
+  test("the rules table reads each rule's percentage as the preview under it names it", async () => {
+    await renderPage();
+
+    type RuleColumn = {
+      field?: Record<string, unknown>;
+      title?: string;
+      type?: FieldType;
+      getElement?: (rule: StatusPageHistoryChartBarColorRule) => ReactElement;
+    };
+
+    const columns: Array<RuleColumn> = propsOf(
+      "Status Page > Branding > History Chart Bar Color Rules",
+    )["columns"] as Array<RuleColumn>;
+
+    expect(
+      columns.map((column: RuleColumn): Array<unknown> => {
+        return [
+          Object.keys(column.field || {})[0],
+          column.title,
+          column.type,
+          Boolean(column.getElement),
+        ];
+      }),
+    ).toEqual([
+      [
+        "uptimePercentGreaterThanOrEqualTo",
+        "When Uptime Percent >=",
+        FieldType.Percent,
+        true,
+      ],
+      ["barColor", "Then, Bar Color is", FieldType.Color, false],
+    ]);
+
+    const cell: (percent: number | string) => string = (
+      percent: number | string,
+    ): string => {
+      const rule: StatusPageHistoryChartBarColorRule =
+        new StatusPageHistoryChartBarColorRule();
+      (
+        rule as unknown as {
+          uptimePercentGreaterThanOrEqualTo: number | string;
+        }
+      ).uptimePercentGreaterThanOrEqualTo = percent;
+      rule.barColor = new Color("#fde047");
+
+      const { container } = render(columns[0]!.getElement!(rule));
+
+      return container.textContent || "";
+    };
+
+    expect([100, 99.999, 100 * (1 - 1 / 1440), 99.65, 0].map(cell)).toEqual([
+      "100%",
+      "99.999%",
+      "99.9306%",
+      "99.65%",
+      "0%",
+    ]);
+
+    // As servers before #4719 answered it: the decimal column's text.
+    expect(["100.00", "99.650", "99.93055555555556", "0.00"].map(cell)).toEqual(
+      ["100%", "99.65%", "99.9306%", "0%"],
+    );
+
+    // The preview's own names for the same rules.
+    await rulesFetched(2, [ruleOf(100 * (1 - 1 / 1440), "#fde047")]);
+
+    expect(
+      within(screen.getByTestId(BAR_COLOR_PREVIEW_TEST_ID)).getByText(
+        "99.9306% or more",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  /*
    * Issue #486: the cards said the default color was for a day with no data
    * (a day with no data is always the hatched grey), and that without rules
    * a day took "the lowest monitor state color" (it takes the most severe).
