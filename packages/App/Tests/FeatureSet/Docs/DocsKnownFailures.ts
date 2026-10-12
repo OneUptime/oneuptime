@@ -335,9 +335,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/databases": {
     translated: EVERY_TRANSLATION,
   },
-  "telemetry/docker-host": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/docker-swarm": {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
@@ -345,27 +342,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/gemini-cli-and-copilot": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/host-otel-collector": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/iot-devices": {
-    sameShape: ["sv"],
-  },
-  "telemetry/kubernetes-agent": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/kubernetes-cost": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/openai-codex": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/podman-host": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/proxmox": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "telemetry/queues": {
     translated: EVERY_TRANSLATION,
