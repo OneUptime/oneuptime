@@ -99,10 +99,12 @@ const LEFT_OUT_LANGUAGES = {
  * their own, and Objective-C is not a language CodeQL analyses. GitHub
  * Actions is read from where workflows and actions live.
  *
- * These files, not GitHub's language detection, decide what a switch could
- * lose: default setup tries each language the detection finds, but keeps
- * only those whose analysis succeeds, and an analysis needs files CodeQL
- * reads.
+ * The guard looks for these files rather than for what GitHub's language
+ * detection finds: default setup keeps a language only when its analysis
+ * succeeds, and an analysis needs files CodeQL reads, so every language a
+ * switch could lose has some. It can find more than default setup scans -
+ * C# in Examples/, which the detection counts as documentation - and
+ * LEFT_OUT_LANGUAGES says why each of those is left out.
  */
 const SOURCE_EXTENSIONS = {
   "c-cpp": [
@@ -294,18 +296,26 @@ function codeQlLanguageOf(file) {
 }
 
 /*
+ * Whether code scanning skips a file: paths-ignore names it, or a directory
+ * it is in. The same rule as the product code guard's isIgnoredByCodeScanning.
+ */
+function isSkipped(file, skippedPaths = ignoredPaths) {
+  return skippedPaths.some((ignored) => {
+    return file === ignored || file.startsWith(`${ignored}/`);
+  });
+}
+
+/*
  * The languages CodeQL analyses that files hold code in, each with its files,
- * leaving out the files code scanning skips: a path paths-ignore names, and
- * everything under it.
+ * leaving out the files code scanning skips.
  */
 function languagesIn(files, skippedPaths = ignoredPaths) {
   const languages = {};
 
   for (const file of files) {
-    const skipped = skippedPaths.some((ignored) => {
-      return file === ignored || file.startsWith(`${ignored}/`);
-    });
-    const language = skipped ? null : codeQlLanguageOf(file);
+    const language = isSkipped(file, skippedPaths)
+      ? null
+      : codeQlLanguageOf(file);
 
     if (language) {
       if (!languages[language]) {
@@ -353,6 +363,10 @@ describe(WORKFLOW, () => {
       return /^github\/codeql-action\/analyze@/.test(step.uses || "");
     });
 
+    /*
+     * The categories of master's analyses, /language:python included: a
+     * pull request missing one is reported as missing that configuration.
+     */
     expect(upload.with.category).toBe("/language:${{ matrix.language }}");
   });
 
@@ -413,15 +427,18 @@ describe(`${WORKFLOW}: the languages it scans`, () => {
     }
   });
 
-  test("leaves out only languages it does not scan and the repository holds code in, each with a reason", () => {
+  test("leaves out only languages neither setup scans and the repository holds code in, each with a reason", () => {
     for (const [language, reason] of Object.entries(LEFT_OUT_LANGUAGES)) {
       expect([
         language,
         scannedLanguages().includes(language),
+        DEFAULT_SETUP_MATRIX.some((entry) => {
+          return entry.language === language;
+        }),
         // A language whose code is gone comes off the list with it.
         Boolean(repositoryLanguages[language]),
         reason.trim() !== "",
-      ]).toEqual([language, false, true, true]);
+      ]).toEqual([language, false, false, true, true]);
     }
   });
 });
@@ -443,7 +460,7 @@ describe(CONFIG_FILE, () => {
   test("leaves out the vendored Tailwind build, where code scanning's open alerts in vendored code were", () => {
     expect(
       ignoredPaths.filter((ignored) => {
-        return VENDORED_TAILWIND.startsWith(`${ignored}/`);
+        return isSkipped(VENDORED_TAILWIND, [ignored]);
       }),
     ).toEqual(["packages/Common/Server/Static/Vendor"]);
     expect(fs.existsSync(path.join(REPO_ROOT, VENDORED_TAILWIND))).toBe(true);
