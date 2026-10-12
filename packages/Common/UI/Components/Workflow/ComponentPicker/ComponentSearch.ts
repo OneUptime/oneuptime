@@ -177,7 +177,23 @@ export const COMPONENT_KEYWORDS: Readonly<
     "comparison",
     "check",
     "filter",
-    "switch",
+  ],
+  /*
+   * "case" is the maintainer's own word for it. "route" and "paths" are what
+   * other workflow tools call one value going one of several ways.
+   */
+  [ComponentID.Switch]: [
+    "case",
+    "condition",
+    "conditional",
+    "branch",
+    "compare",
+    "match",
+    "route",
+    "router",
+    "paths",
+    "multiple",
+    "several",
   ],
   [ComponentID.ApiGet]: [...HTTP_KEYWORDS, "fetch", "read", "download"],
   [ComponentID.ApiPost]: [...HTTP_KEYWORDS, "webhook", "send", "submit"],

@@ -27,6 +27,7 @@ import ComponentID from "./ComponentID";
 import { ComponentType, NodeType } from "./Component";
 import { ConditionOperator, ConditionValueType } from "./Components/Condition";
 import { MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN } from "./Components/Mattermost";
+import { SWITCH_DEFAULT_PORT_ID } from "./Components/Switch";
 import {
   OAuth2ClientAuthenticationMethod,
   OAuth2GrantType,
@@ -510,6 +511,30 @@ const MATTERMOST_WEBHOOK_URL: WorkflowTemplateVariable = {
     message:
       "Enter the webhook's whole URL as Mattermost shows it: the server's address, then /hooks/ and the webhook's ID.",
   },
+};
+
+/*
+ * The two Slack channels the severity template posts to. Each is a webhook
+ * of its own, since a Slack webhook posts to the one channel it was made for.
+ */
+const SLACK_CRITICAL_WEBHOOK_URL: WorkflowTemplateVariable = {
+  name: "slackCriticalWebhookUrl",
+  title: "Slack Webhook URL for critical incidents",
+  description:
+    "The channel critical incidents go to, such as #incidents-urgent. Create a webhook for it at api.slack.com/messaging/webhooks.",
+  placeholder: "https://hooks.slack.com/services/T000/B000/XXXX",
+  required: true,
+  isSecret: true,
+};
+
+const SLACK_MAJOR_WEBHOOK_URL: WorkflowTemplateVariable = {
+  name: "slackMajorWebhookUrl",
+  title: "Slack Webhook URL for major incidents",
+  description:
+    "The channel major incidents go to, such as #incidents. It can be the same webhook as the one for critical incidents.",
+  placeholder: "https://hooks.slack.com/services/T000/B000/YYYY",
+  required: true,
+  isSecret: true,
 };
 
 /** The select every incident trigger uses. Anything referenced below must be in here. */
@@ -7113,6 +7138,104 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     },
   },
   {
+    id: "webhook-switch",
+    name: "Take one of several paths",
+    description:
+      "Reads a field out of the webhook body and logs a different line for each value it can have, and another for anything else.",
+    teaches:
+      "How Switch / Case sends one value down the first case it matches, or down Default.",
+    category: WorkflowTemplateCategory.Basics,
+    icon: IconProp.Switch,
+    workflowName: "Route webhook by environment",
+    workflowDescription:
+      "Posts to this workflow's webhook take one path for production, another for staging, and a third for anything else.",
+    variables: [],
+    graph: {
+      nodes: [
+        {
+          componentId: "webhook-1",
+          metadataId: ComponentID.Webhook,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+        },
+        {
+          componentId: "switch-1",
+          metadataId: ComponentID.Switch,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            value:
+              "{{local.components.webhook-1.returnValues.request-body.environment}}",
+            cases: [
+              {
+                id: "case-1",
+                comparison: ConditionOperator.EqualTo,
+                value: "production",
+                compareAs: ConditionValueType.Text,
+              },
+              {
+                id: "case-2",
+                comparison: ConditionOperator.EqualTo,
+                value: "staging",
+                compareAs: ConditionValueType.Text,
+              },
+            ],
+          },
+        },
+        {
+          componentId: "log-production",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -220, y: 540 },
+          args: {
+            value: "🚨 Production webhook received. Treating it as urgent.",
+          },
+        },
+        {
+          componentId: "log-staging",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 540 },
+          args: {
+            value: "🧪 Staging webhook received. Logged for the team to look at.",
+          },
+        },
+        {
+          componentId: "log-other",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 420, y: 540 },
+          args: {
+            value:
+              "ℹ️ Webhook from another environment: {{local.components.webhook-1.returnValues.request-body.environment}}. Logged without alerting.",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "webhook-1",
+          toComponentId: "switch-1",
+          fromPort: "out",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-production",
+          fromPort: "case-1",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-staging",
+          fromPort: "case-2",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-other",
+          fromPort: SWITCH_DEFAULT_PORT_ID,
+        },
+      ],
+    },
+  },
+  {
     id: "javascript-transform",
     name: "Reshape data with a few lines of JavaScript",
     description:
@@ -7497,6 +7620,145 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         {
           fromComponentId: "mattermost-1",
           toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-severity-slack",
+    name: "Send each new incident to the right Slack channel by severity",
+    description:
+      "Posts critical incidents to one Slack channel and major ones to another, and only logs the rest.",
+    teaches:
+      "How Switch / Case sends one value - the incident's severity - down a different path for each case, and the rest down Default.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Switch,
+    workflowName: "Route new incidents to Slack by severity",
+    workflowDescription:
+      "Critical incidents go to the urgent Slack channel, major ones to the team's, and every other severity is logged. If your severities have other names, change the cases to match them.",
+    variables: [SLACK_CRITICAL_WEBHOOK_URL, SLACK_MAJOR_WEBHOOK_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "switch-1",
+          metadataId: ComponentID.Switch,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            value:
+              "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",
+            cases: [
+              {
+                id: "case-1",
+                comparison: ConditionOperator.EqualTo,
+                value: "Critical Incident",
+                compareAs: ConditionValueType.Text,
+              },
+              {
+                id: "case-2",
+                comparison: ConditionOperator.EqualTo,
+                value: "Major Incident",
+                compareAs: ConditionValueType.Text,
+              },
+            ],
+          },
+        },
+        {
+          componentId: "slack-critical",
+          metadataId: ComponentID.SlackSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 560 },
+          args: {
+            "webhook-url": "{{local.variables.slackCriticalWebhookUrl}}",
+            text: [
+              ":rotating_light: *Critical incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared*",
+              "*Title:* {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "*State:* {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "slack-major",
+          metadataId: ComponentID.SlackSendMessageToChannel,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 560 },
+          args: {
+            "webhook-url": "{{local.variables.slackMajorWebhookUrl}}",
+            text: [
+              ":warning: *Major incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} declared*",
+              "*Title:* {{local.components.incident-on-create-1.returnValues.model.title}}",
+              "*State:* {{local.components.incident-on-create-1.returnValues.model.currentIncidentState.name}}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-other-severity",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 460, y: 560 },
+          args: {
+            value:
+              "ℹ️ Incident {{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}} is {{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}, so it was not posted to Slack.",
+          },
+        },
+        {
+          componentId: "log-critical-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -260, y: 800 },
+          args: {
+            value:
+              "❌ Slack could not deliver the critical incident: {{local.components.slack-critical.returnValues.error}}",
+          },
+        },
+        {
+          componentId: "log-major-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 800 },
+          args: {
+            value:
+              "❌ Slack could not deliver the major incident: {{local.components.slack-major.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "switch-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "slack-critical",
+          fromPort: "case-1",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "slack-major",
+          fromPort: "case-2",
+        },
+        {
+          fromComponentId: "switch-1",
+          toComponentId: "log-other-severity",
+          fromPort: SWITCH_DEFAULT_PORT_ID,
+        },
+        {
+          fromComponentId: "slack-critical",
+          toComponentId: "log-critical-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "slack-major",
+          toComponentId: "log-major-failed",
           fromPort: "error",
         },
       ],
@@ -9515,7 +9777,12 @@ export interface WorkflowTemplateOutline {
  * leave them out: "Check an API and notify Slack if it fails" posts to Slack
  * from its Error port, and that is the whole point of it.
  */
-const SIDE_PORTS: ReadonlyArray<string> = ["no", "error"];
+const SIDE_PORTS: ReadonlyArray<string> = [
+  "no",
+  "error",
+  // A Switch / Case's Default: where everything no case matched goes.
+  SWITCH_DEFAULT_PORT_ID,
+];
 
 export type GetWorkflowTemplateOutlineFunction = (
   templateId: string,

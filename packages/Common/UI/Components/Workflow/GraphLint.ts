@@ -26,10 +26,25 @@ import {
   ComponentType,
   NodeDataProp,
   NodeType,
+  Port,
   ReturnValue,
   isArgumentRequired,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
+import { SWITCH_ARGUMENT_IDS } from "../../../Types/Workflow/Components/Switch";
+import {
+  ShadowedSwitchCase,
+  SwitchCase,
+  SwitchCasesReading,
+  findShadowedSwitchCases,
+  getSwitchCaseComparison,
+  getSwitchCaseLabel,
+  isSwitchCaseSetUp,
+  parseSwitchCases,
+} from "../../../Types/Workflow/Components/SwitchCases";
+import { ConditionComparison } from "../../../Types/Workflow/Components/ConditionComparison";
 import {
   ParsedReferencePath,
   ReferenceRootType,
@@ -62,6 +77,16 @@ export enum WorkflowLintRule {
   ComponentIdContainsDot = "ComponentIdContainsDot",
   UnreachableComponent = "UnreachableComponent",
   NoTrigger = "NoTrigger",
+  /*
+   * A connection leaves a step from an output the step does not have - a
+   * Switch / Case case that was taken out - so it never carries a run.
+   */
+  ConnectionFromMissingOutput = "ConnectionFromMissingOutput",
+  // Switch / Case: what is wrong with one of its cases.
+  SwitchCasesUnreadable = "SwitchCasesUnreadable",
+  SwitchCaseUnknownComparison = "SwitchCaseUnknownComparison",
+  SwitchCaseNeverTaken = "SwitchCaseNeverTaken",
+  SwitchCaseNotConnected = "SwitchCaseNotConnected",
 }
 
 export interface WorkflowLintIssue {
@@ -99,6 +124,11 @@ export interface LintGraphNode {
 export interface LintGraphEdge {
   source: string;
   target: string;
+  /*
+   * The output of the source step the connection leaves from. Absent on a
+   * connection that does not say, which is then taken to leave from one.
+   */
+  sourceHandle?: string | null | undefined;
 }
 
 /*
@@ -297,13 +327,66 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
     }
   }
 
+  /*
+   * Each step's outputs as it is set up now, by react-flow id: a Switch /
+   * Case's change with its cases.
+   */
+  const outputIdsByNodeId: Dictionary<Set<string>> = {};
+
+  for (const node of nodes) {
+    outputIdsByNodeId[node.id] = new Set<string>(
+      getComponentOutPorts({
+        metadata: node.data.metadata,
+        arguments: node.data.arguments as JSONObject | undefined,
+      }).map((port: Port): string => {
+        return port.id;
+      }),
+    );
+  }
+
+  type IsFromMissingOutputFunction = (edge: LintGraphEdge) => boolean;
+
+  /*
+   * A connection that says which output it leaves from, from a step that
+   * does not have that output: the runner never follows it.
+   */
+  const isFromMissingOutput: IsFromMissingOutputFunction = (
+    edge: LintGraphEdge,
+  ): boolean => {
+    const outputs: Set<string> | undefined = outputIdsByNodeId[edge.source];
+
+    return Boolean(
+      outputs && edge.sourceHandle && !outputs.has(edge.sourceHandle),
+    );
+  };
+
   const adjacency: Dictionary<Array<string>> = {};
 
   for (const edge of edges) {
+    // It never carries a run, so it does not make anything reachable.
+    if (isFromMissingOutput(edge)) {
+      continue;
+    }
+
     if (!adjacency[edge.source]) {
       adjacency[edge.source] = [];
     }
     adjacency[edge.source]?.push(edge.target);
+  }
+
+  // The steps each output is connected to, by react-flow id and output id.
+  const connectedOutputsByNodeId: Dictionary<Set<string>> = {};
+
+  for (const edge of edges) {
+    if (!edge.sourceHandle) {
+      continue;
+    }
+
+    if (!connectedOutputsByNodeId[edge.source]) {
+      connectedOutputsByNodeId[edge.source] = new Set<string>();
+    }
+
+    connectedOutputsByNodeId[edge.source]?.add(edge.sourceHandle);
   }
 
   const triggerNodes: Array<LintGraphNode> = nodes.filter(
@@ -426,6 +509,120 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
             "Nothing connects to this step from the trigger, so it will never run.",
           ) || "",
       });
+    }
+
+    // -- outputs -----------------------------------------------------------
+
+    for (const edge of edges) {
+      if (edge.source !== node.id || !isFromMissingOutput(edge)) {
+        continue;
+      }
+
+      const target: LintGraphNode | undefined = nodes.find(
+        (candidate: LintGraphNode): boolean => {
+          return candidate.id === edge.target;
+        },
+      );
+
+      addNodeIssue({
+        rule: WorkflowLintRule.ConnectionFromMissingOutput,
+        severity: WorkflowLintSeverity.Warning,
+        message: translateTemplate(
+          'A connection to "{{step}}" leaves this step from an output it no longer has, so it never runs from here. Connect "{{step}}" to one of the outputs this step has.',
+          {
+            step:
+              target?.data.id || target?.data.metadata?.title || edge.target,
+          },
+        ),
+      });
+    }
+
+    // -- Switch / Case -----------------------------------------------------
+
+    if (data.metadata.id === ComponentID.Switch) {
+      const reading: SwitchCasesReading = parseSwitchCases(
+        argumentValues[SWITCH_ARGUMENT_IDS.cases],
+      );
+
+      if (!reading.isReadable) {
+        addNodeIssue({
+          rule: WorkflowLintRule.SwitchCasesUnreadable,
+          severity: WorkflowLintSeverity.Error,
+          argumentId: SWITCH_ARGUMENT_IDS.cases,
+          message:
+            translateText(
+              "This step's cases could not be read, so every run stops here. Open the step and add its cases again.",
+            ) || "",
+        });
+      }
+
+      const connected: Set<string> =
+        connectedOutputsByNodeId[node.id] || new Set<string>();
+
+      reading.cases.forEach((switchCase: SwitchCase, index: number) => {
+        const comparison: ConditionComparison | null =
+          getSwitchCaseComparison(switchCase);
+
+        if (!comparison) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseUnknownComparison,
+            severity: WorkflowLintSeverity.Error,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} has a comparison this step does not know, so every run stops here. Choose one, such as is equal to.",
+              { number: index + 1 },
+            ),
+          });
+          return;
+        }
+
+        /*
+         * A case with nothing to compare with is not set up yet: the step
+         * says "Click to set up", as it does for an empty setting.
+         */
+        if (!isSwitchCaseSetUp(switchCase)) {
+          addNodeIssue({
+            rule: WorkflowLintRule.MissingRequiredArgument,
+            severity: WorkflowLintSeverity.Error,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              "Case {{number}} needs a value to compare with.",
+              { number: index + 1 },
+            ),
+          });
+          return;
+        }
+
+        if (!connected.has(switchCase.id)) {
+          addNodeIssue({
+            rule: WorkflowLintRule.SwitchCaseNotConnected,
+            severity: WorkflowLintSeverity.Warning,
+            argumentId: SWITCH_ARGUMENT_IDS.cases,
+            message: translateTemplate(
+              'Nothing is connected to case {{number}}, "{{case}}", so a run that matches it stops at this step.',
+              {
+                number: index + 1,
+                case: getSwitchCaseLabel(switchCase, index),
+              },
+            ),
+          });
+        }
+      });
+
+      for (const shadowed of findShadowedSwitchCases(reading.cases) as Array<ShadowedSwitchCase>) {
+        addNodeIssue({
+          rule: WorkflowLintRule.SwitchCaseNeverTaken,
+          severity: WorkflowLintSeverity.Warning,
+          argumentId: SWITCH_ARGUMENT_IDS.cases,
+          message: translateTemplate(
+            "Case {{number}} asks the same as case {{earlier}}, which is checked first, so case {{number}} is never taken. Change it or remove it.",
+            {
+              number: shadowed.index + 1,
+              earlier: shadowed.sameAsIndex + 1,
+            },
+          ),
+        });
+      }
     }
 
     // -- arguments ---------------------------------------------------------

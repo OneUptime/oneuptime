@@ -36,6 +36,7 @@ import {
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { isOutPortFromSettings } from "Common/Types/Workflow/ComponentOutPorts";
 import {
   WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE,
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
@@ -270,6 +271,13 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
           ? redactSecretsFromString(entry.errorMessage, secrets)
           : undefined,
       };
+
+      if (entry.executedPortReason) {
+        redactedEntry.executedPortReason = redactSecretsFromString(
+          String(entry.executedPortReason),
+          secrets,
+        );
+      }
 
       if (entry.argumentTemplates) {
         redactedEntry.argumentTemplates = redactSecretValues(
@@ -925,6 +933,7 @@ export default class RunWorkflow {
           args: receivedArgs,
           returnValues: result.returnValues,
           port: result.executePort || null,
+          portReason: result.executePortReason,
           startedAt: stepStartedAt,
           variables: variables,
           errorMessage: didWorkflowErrorOut
@@ -1206,6 +1215,8 @@ export default class RunWorkflow {
     args: JSONObject;
     returnValues: JSONObject;
     port: Port | null;
+    // Why the step took that port, when it says (a Switch / Case).
+    portReason?: string | undefined;
     startedAt: Date;
     variables: Array<WorkflowVariable>;
     errorMessage?: string | undefined;
@@ -1278,6 +1289,25 @@ export default class RunWorkflow {
 
       if (params.port.description) {
         entry.executedPortDescription = params.port.description;
+      }
+
+      /*
+       * A Switch / Case names each case's output after the case: the
+       * person's own words, which the Steps view shows as written.
+       */
+      if (
+        isOutPortFromSettings({
+          metadata: params.node.metadata,
+          portId: params.port.id,
+        })
+      ) {
+        entry.executedPortTitleIsFromSettings = true;
+      }
+
+      if (params.portReason) {
+        entry.executedPortReason = truncateTraceValue(
+          redactSecretsFromString(String(params.portReason), secrets),
+        ) as string;
       }
 
       entry.nextSteps = this.getStepsWiredToPort(
@@ -1427,15 +1457,23 @@ export default class RunWorkflow {
     before: JSONValue;
     after: JSONValue;
   }): void {
-    if (typeof params.before !== "string" || typeof params.after !== "string") {
+    /*
+     * A setting kept as a list or an object - a Switch / Case's cases, a
+     * request's headers - is compared as its JSON, where a {{...}} stands as
+     * it was written: it holds no character JSON would escape.
+     */
+    const before: string | null = this.getTextForReferenceCheck(params.before);
+    const after: string | null = this.getTextForReferenceCheck(params.after);
+
+    if (before === null || after === null) {
       return;
     }
 
-    const unresolved: Array<string> = parseTemplateExpressions(params.before)
+    const unresolved: Array<string> = parseTemplateExpressions(before)
       .filter((expression: TemplateExpression) => {
         return (
           expression.kind === TemplateExpressionKind.Reference &&
-          (params.after as string).includes(expression.raw)
+          after.includes(expression.raw)
         );
       })
       .map((expression: TemplateExpression) => {
@@ -1458,6 +1496,23 @@ export default class RunWorkflow {
       },
       "Warning: ",
     );
+  }
+
+  // A setting's value as text to look for {{...}} in, or null for neither.
+  private getTextForReferenceCheck(value: JSONValue): string | null {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (value && typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
   }
 
   /*
@@ -1734,6 +1789,8 @@ export default class RunWorkflow {
         log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
           this.log(data);
         },
+        // What the canvas shows: a Switch / Case names its outputs from it.
+        configuredArguments: node.arguments || {},
         workflowId: this.workflowId!,
         workflowName: this.workflowName || undefined,
         workflowLogId: this.workflowLogId!,

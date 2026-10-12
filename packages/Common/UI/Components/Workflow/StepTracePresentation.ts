@@ -58,7 +58,17 @@ export interface StepOutcome {
   kind: StepOutcomeKind;
   /** The port's name as the canvas shows it ("No"), or null for no port. */
   portTitle: string | null;
+  /**
+   * The name was written from the step's settings - a Switch / Case case,
+   * named after its value - so it is shown as written, never translated.
+   */
+  isPortTitleFromSettings: boolean;
   portDescription: string | null;
+  /**
+   * Why the step took the port, when it said: which case a Switch / Case
+   * matched, and that the ones above it did not.
+   */
+  portReason: string | null;
   portTone: StepPortTone;
   nextSteps: Array<StepOutcomeNextStep>;
 }
@@ -137,7 +147,9 @@ export const getStepOutcome: GetStepOutcomeFunction = (
     return {
       kind: StepOutcomeKind.NoPort,
       portTitle: null,
+      isPortTitleFromSettings: false,
       portDescription: null,
+      portReason: null,
       portTone: StepPortTone.Normal,
       nextSteps: [],
     };
@@ -152,11 +164,22 @@ export const getStepOutcome: GetStepOutcomeFunction = (
     ? step.executedPortDescription
     : null;
 
+  const portReason: string | null = isText(step.executedPortReason)
+    ? step.executedPortReason
+    : null;
+
+  // Only a title the trace recorded can be the person's own words.
+  const isPortTitleFromSettings: boolean =
+    step.executedPortTitleIsFromSettings === true &&
+    isText(step.executedPortTitle);
+
   if (!Array.isArray(step.nextSteps)) {
     return {
       kind: StepOutcomeKind.PortOnly,
       portTitle: portTitle,
+      isPortTitleFromSettings: isPortTitleFromSettings,
       portDescription: portDescription,
+      portReason: portReason,
       portTone: portTone,
       nextSteps: [],
     };
@@ -188,7 +211,9 @@ export const getStepOutcome: GetStepOutcomeFunction = (
         ? StepOutcomeKind.LedTo
         : StepOutcomeKind.NothingConnected,
     portTitle: portTitle,
+    isPortTitleFromSettings: isPortTitleFromSettings,
     portDescription: portDescription,
+    portReason: portReason,
     portTone: portTone,
     nextSteps: nextSteps,
   };

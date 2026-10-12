@@ -36,6 +36,8 @@ export const POPULAR_COMPONENT_IDS: Readonly<
   [ComponentType.Component]: [
     ComponentID.Log,
     ComponentID.IfElse,
+    // Beside If / Else: one value, several ways to go.
+    ComponentID.Switch,
     ComponentID.ApiPost,
     ComponentID.ApiGet,
     ComponentID.SlackSendMessageToChannel,

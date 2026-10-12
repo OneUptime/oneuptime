@@ -61,6 +61,8 @@ enum IconProp {
   Grid = "Grid",
   More = "More",
   Condition = "Condition",
+  // One path splitting into several: a workflow's Switch / Case step.
+  Switch = "Switch",
   Activity = "Activity",
   Alert = "Alert",
   Call = "Call",

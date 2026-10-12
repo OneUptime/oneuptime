@@ -8,6 +8,8 @@ import {
   getWorkflowNodeIssuePresentation,
 } from "./GraphLintSummary";
 import { describeReference } from "./ValuePicker/ReferenceDescription";
+import { OutputLayout, getOutputLayout } from "./PortLayout";
+import { summarizeSwitch } from "./Switch/SwitchModel";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
@@ -15,10 +17,18 @@ import {
   Port,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
-import React, { FunctionComponent, useState } from "react";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
+import React, { FunctionComponent, useEffect, useRef, useState } from "react";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import { Connection, Handle, Position } from "reactflow";
+import {
+  Connection,
+  Handle,
+  Position,
+  UpdateNodeInternals,
+  useNodeId,
+  useUpdateNodeInternals,
+} from "reactflow";
 
 export interface ComponentProps {
   data: WorkflowNodeRenderData;
@@ -40,7 +50,20 @@ type StepSummaryFunction = (data: WorkflowNodeRenderData) => string | null;
 export const getStepSummary: StepSummaryFunction = (
   data: WorkflowNodeRenderData,
 ): string | null => {
-  if (data.isPreview || data.metadata.id !== ComponentID.IfElse) {
+  if (data.isPreview) {
+    return null;
+  }
+
+  /*
+   * A Switch / Case says what it checks and against how many cases -
+   * "Checks incidentSeverity.name against 2 cases" - and its outputs below
+   * are named after the cases.
+   */
+  if (data.metadata.id === ComponentID.Switch) {
+    return summarizeSwitch(data.arguments);
+  }
+
+  if (data.metadata.id !== ComponentID.IfElse) {
     return null;
   }
 
@@ -274,6 +297,51 @@ const getPortPosition: GetPortPositionFunction = (
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const translator: Translator = useTranslator();
   const [isHovering, setIsHovering] = useState<boolean>(false);
+  const updateNodeInternals: UpdateNodeInternals = useUpdateNodeInternals();
+  // The card's react-flow id, which react-flow tells every card it draws.
+  const nodeId: string | null = useNodeId();
+
+  /*
+   * The outputs as the step is set up now: a Switch / Case has one per case,
+   * named after it, and Default.
+   */
+  const outPorts: Array<Port> = getComponentOutPorts({
+    metadata: props.data.metadata,
+    arguments: props.data.arguments,
+  });
+
+  const outputLayout: OutputLayout = getOutputLayout(
+    outPorts.map((port: Port): string => {
+      return port.title || "";
+    }),
+  );
+
+  /*
+   * React Flow measures where a card's dots are when it first draws the
+   * card, and again only when the card changes size. A case added, removed
+   * or moved changes the dots without always changing the size, and a
+   * connection drawn from a dot it has not measured goes nowhere. So it is
+   * told to measure again whenever the outputs change.
+   */
+  const outputsSignature: string = `${outPorts
+    .map((port: Port): string => {
+      return port.id;
+    })
+    .join("|")}#${outputLayout.widerCardWidth || 0}`;
+  const measuredOutputsRef: React.MutableRefObject<string> =
+    useRef<string>(outputsSignature);
+
+  useEffect(() => {
+    if (measuredOutputsRef.current === outputsSignature) {
+      return;
+    }
+
+    measuredOutputsRef.current = outputsSignature;
+
+    if (nodeId) {
+      updateNodeInternals(nodeId);
+    }
+  }, [outputsSignature]);
 
   const colors: CategoryColorScheme = getCategoryColors(
     props.data.metadata.category || "",
@@ -386,7 +454,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         setIsHovering(false);
       }}
       style={{
-        width: "16rem",
+        width: outputLayout.widerCardWidth
+          ? `${outputLayout.widerCardWidth}px`
+          : "16rem",
         borderRadius: "12px",
         border: `2px solid ${
           hasError
@@ -542,11 +612,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           padding: "0.75rem 0.875rem",
           backgroundColor: colors.bg,
           minHeight: "3rem",
-          borderRadius:
-            !props.data.metadata.outPorts ||
-            props.data.metadata.outPorts.length === 0
-              ? "0 0 10px 10px"
-              : undefined,
+          borderRadius: outPorts.length === 0 ? "0 0 10px 10px" : undefined,
         }}
       >
         {/* Component ID badge */}
@@ -636,30 +702,45 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         )}
       </div>
 
-      {/* Out ports section */}
-      {!props.data.isPreview &&
-        props.data.metadata.outPorts &&
-        props.data.metadata.outPorts.length > 0 && (
-          <>
-            {/* Port labels */}
-            <div
-              style={{
-                borderTop: `1px solid ${colors.border}`,
-                padding: "0.375rem 0.875rem",
-                display: "flex",
-                justifyContent:
-                  props.data.metadata.outPorts.length === 1
-                    ? "center"
-                    : "space-between",
-                backgroundColor: "var(--ou-surface-primary, #ffffff)",
-                borderRadius: "0 0 10px 10px",
-              }}
-            >
-              {props.data.metadata.outPorts.map((port: Port, i: number) => {
-                return (
-                  <Tooltip key={i} text={port.description || ""}>
+      {/*
+        Out ports: the names in equal columns along the bottom, each right
+        above its dot.
+      */}
+      {!props.data.isPreview && outPorts.length > 0 && (
+        <>
+          {/* Port labels */}
+          <div
+            data-testid="workflow-node-outputs"
+            style={{
+              borderTop: `1px solid ${colors.border}`,
+              padding: "0.375rem 0",
+              display: "flex",
+              backgroundColor: "var(--ou-surface-primary, #ffffff)",
+              borderRadius: "0 0 10px 10px",
+            }}
+          >
+            {outPorts.map((port: Port) => {
+              return (
+                <div
+                  key={port.id}
+                  style={{
+                    flex: "1 1 0",
+                    minWidth: 0,
+                    padding: "0 0.375rem",
+                    textAlign: "center",
+                  }}
+                >
+                  <Tooltip text={port.description || ""}>
                     <span
+                      data-testid="workflow-node-output"
+                      data-port-id={port.id}
                       style={{
+                        display: "inline-block",
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        verticalAlign: "bottom",
                         color: "var(--ou-text-subtle, #94a3b8)",
                         fontSize: "0.6875rem",
                         fontWeight: 500,
@@ -668,40 +749,37 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       {port.title}
                     </span>
                   </Tooltip>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
 
-            {/* Bottom handles */}
-            <div>
-              {props.data.metadata.outPorts.map((port: Port, i: number) => {
-                return (
-                  <Handle
-                    key={i}
-                    type="source"
-                    id={port.id}
-                    onConnect={(_params: Connection) => {}}
-                    isConnectable={true}
-                    position={Position.Bottom}
-                    style={{
-                      background: colors.handleBg,
-                      height: "10px",
-                      width: "10px",
-                      border: `2px solid ${colors.handleBorder}`,
-                      bottom: "-5px",
-                      transition: "all 0.15s ease",
-                      ...getPortPosition(
-                        i + 1,
-                        props.data.metadata.outPorts.length,
-                        false,
-                      ),
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </>
-        )}
+          {/* Bottom handles, each in the middle of its name's column */}
+          <div>
+            {outPorts.map((port: Port, i: number) => {
+              return (
+                <Handle
+                  key={port.id}
+                  type="source"
+                  id={port.id}
+                  onConnect={(_params: Connection) => {}}
+                  isConnectable={true}
+                  position={Position.Bottom}
+                  style={{
+                    background: colors.handleBg,
+                    height: "10px",
+                    width: "10px",
+                    border: `2px solid ${colors.handleBorder}`,
+                    bottom: "-5px",
+                    transition: "all 0.15s ease",
+                    left: `${outputLayout.dotLeftPercents[i]}%`,
+                  }}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 };

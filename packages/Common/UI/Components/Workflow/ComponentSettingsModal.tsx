@@ -12,14 +12,16 @@ import ComponentPortViewer from "./ComponentPortViewer";
 import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import ComponentSettingsSection from "./ComponentSettingsSection";
 import DocumentationViewer from "./DocumentationViewer";
+import { OutputConnections } from "./Switch/SwitchModel";
 import { StepValueSources } from "./ValuePicker/StepGraph";
 import { WORKFLOW_URL } from "../../Config";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { NodeDataProp } from "../../../Types/Workflow/Component";
+import { NodeDataProp, Port } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
+import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
 import ComponentDocumentation from "../../../Types/Workflow/Documentation/ComponentDocumentation";
 import { getComponentDocumentation } from "../../../Types/Workflow/Documentation/Index";
 import { getWebhookTriggerUrl } from "../../../Types/Workflow/WebhookTrigger";
@@ -62,6 +64,12 @@ export interface ComponentProps {
    * values that will exist when it runs. See ValuePicker/StepGraph.
    */
   valueSources?: StepValueSources | undefined;
+  /*
+   * The steps each of this step's outputs leads to on the canvas, by output
+   * id: a Switch / Case says where each case's output leads, and what
+   * removing a case disconnects.
+   */
+  outputConnections?: OutputConnections | undefined;
   workflowId: ObjectID;
   webhookSecretKey?: string | undefined;
   /*
@@ -163,9 +171,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const hasInputs: boolean =
     Array.isArray(component.metadata.inPorts) &&
     component.metadata.inPorts.length > 0;
-  const hasOutputs: boolean =
-    Array.isArray(component.metadata.outPorts) &&
-    component.metadata.outPorts.length > 0;
+
+  /*
+   * As the step is set up in this dialog: a Switch / Case has an output per
+   * case, which change as its cases do.
+   */
+  const outPorts: Array<Port> = getComponentOutPorts({
+    metadata: component.metadata,
+    arguments: component.arguments,
+  });
+  const hasOutputs: boolean = outPorts.length > 0;
   const hasReturns: boolean =
     Array.isArray(component.metadata.returnValues) &&
     component.metadata.returnValues.length > 0;
@@ -200,17 +215,27 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    */
   const isCondition: boolean = component.metadata.id === ComponentID.IfElse;
 
+  // A Switch / Case step's settings are its cases.
+  const isSwitch: boolean = component.metadata.id === ComponentID.Switch;
+
   const settingsSection: ReactElement | null = hasSettings ? (
     <ComponentSettingsSection
       id="settings"
-      icon={isCondition ? IconProp.Condition : IconProp.Settings}
-      title={isCondition ? "Condition" : "Settings"}
+      icon={
+        isCondition
+          ? IconProp.Condition
+          : isSwitch
+            ? IconProp.Switch
+            : IconProp.Settings
+      }
+      title={isCondition ? "Condition" : isSwitch ? "Cases" : "Settings"}
     >
       <ArgumentsForm
         graphComponents={props.graphComponents}
         valueSources={props.valueSources}
         workflowId={props.workflowId}
         webhookUrl={webhookUrl}
+        outputConnections={props.outputConnections}
         component={component}
         onFormChange={(c: NodeDataProp) => {
           setComponent({ ...c });
@@ -313,11 +338,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       title="Outputs"
       description="What runs after this step."
     >
-      <ComponentPortViewer
-        name=""
-        description=""
-        ports={component.metadata.outPorts}
-      />
+      <ComponentPortViewer name="" description="" ports={outPorts} />
     </ComponentSettingsSection>
   ) : null;
 

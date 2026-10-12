@@ -88,6 +88,18 @@ export interface WorkflowStepTraceEntry {
   /** What the taken port is for, as the canvas's tooltip says it. */
   executedPortDescription?: string | undefined;
   /**
+   * The taken port was made from the step's settings - a Switch / Case case,
+   * named after the case - so its title is the person's own words, shown as
+   * written rather than looked up as one of the product's labels.
+   */
+  executedPortTitleIsFromSettings?: boolean | undefined;
+  /**
+   * Why the step took that port, when the step says: which case a Switch /
+   * Case matched, and that the cases above it did not. Redacted like the
+   * error message.
+   */
+  executedPortReason?: string | undefined;
+  /**
    * The steps wired to the port taken, in the order the canvas connects them.
    * Empty when nothing is connected to that port. Recorded only when a port
    * was taken.
