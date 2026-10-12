@@ -6,6 +6,15 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import {
+  ASSISTANTS,
+  AI_OBSERVABILITY_PAGES,
+  CLAUDE_CODE,
+  CODEX,
+  CURSOR,
+  DocsPageEntry,
+  LLM,
+} from "./AiObservabilityDocsPages";
+import {
   dashboardLocale,
   drawnCreateButton,
   drawnDashboardLabel,
@@ -21,6 +30,13 @@ import {
   tables,
   unbalancedLines,
 } from "./DocsPageShape";
+import {
+  PRODUCTS_MENU_ITEM_KEYS,
+  drawnMenuItem,
+  drawnPath,
+  drawnPathSegment,
+  nestedValue,
+} from "./DocsProductsMenu";
 import {
   CARD_LINE,
   anchorProblems,
@@ -61,12 +77,13 @@ import { describe, expect, it } from "@jest/globals";
  *     drawnCreateButton (CREATE_BUTTONS).
  *   - A product opened from the Products menu (AI / LLM, Traces, Logs,
  *     Metrics, Project Settings) is drawn from the menu's own key
- *     (MENU_ITEM_KEYS), which some languages word differently from the flat
- *     key of the same English text.
- *   - A menu path is drawn segment by segment: one bold span with " → "
- *     between the segments, as the other telemetry pages write it; Persian,
- *     written right to left, writes a bold span per segment with " > "
- *     between them, as the other Persian pages do.
+ *     (DocsProductsMenu's PRODUCTS_MENU_ITEM_KEYS), which some languages
+ *     word differently from the flat key of the same English text.
+ *   - A menu path is drawn segment by segment (DocsProductsMenu's
+ *     drawnPath): one bold span with " → " between the segments, as the
+ *     other telemetry pages write it; Persian, written right to left, writes
+ *     a bold span per segment with " > " between them, as the other Persian
+ *     pages do.
  *
  * What every Dashboard shows in English stays English: the monitor status a
  * project is created with (RECORD_NAMES), keyboard keys (KEYS), the names of
@@ -83,25 +100,9 @@ const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   },
 );
 
-interface TranslatedPage {
-  page: string;
-  // The page's nav link, as the docs' English locale keys it.
-  navTitle: string;
-}
+type TranslatedPage = DocsPageEntry;
 
-export const LLM: string = "telemetry/ai-llm-observability";
-export const ASSISTANTS: string = "telemetry/ai-coding-assistants";
-export const CLAUDE_CODE: string = "telemetry/claude-code";
-export const CURSOR: string = "telemetry/cursor";
-export const CODEX: string = "telemetry/openai-codex";
-
-const PAGES: ReadonlyArray<TranslatedPage> = [
-  { page: LLM, navTitle: "AI / LLM Observability" },
-  { page: ASSISTANTS, navTitle: "AI Coding Assistants" },
-  { page: CLAUDE_CODE, navTitle: "Claude Code" },
-  { page: CURSOR, navTitle: "Cursor" },
-  { page: CODEX, navTitle: "OpenAI Codex" },
-];
+const PAGES: ReadonlyArray<TranslatedPage> = AI_OBSERVABILITY_PAGES;
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
@@ -121,23 +122,6 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [CURSOR]: 22,
   [CODEX]: 22,
 };
-
-/*
- * Products the pages open from the Products menu, by the key the menu draws
- * them with. Some languages word a menu item differently from the flat key
- * of the same English text: the Italian menu reads "AI / LLM" where the
- * product's page title reads "IA / LLM".
- */
-const MENU_ITEM_KEYS: Record<string, string> = {
-  "AI / LLM": "navbar.items.llmObservabilityTitle",
-  Traces: "navbar.items.tracesTitle",
-  Logs: "navbar.items.logsTitle",
-  Metrics: "navbar.items.metricsTitle",
-  "Project Settings": "navbar.items.projectSettingsTitle",
-};
-
-// The menu the product's paths start from.
-const PRODUCTS_MENU: string = "Products";
 
 // Bold words that name a product opened from the Products menu.
 const MENU_ITEMS: Record<string, Array<string>> = {
@@ -302,9 +286,6 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
   },
 ];
 
-// How a Persian page joins the bold segments of a menu path.
-const PERSIAN_PATH_SEPARATOR: string = " > ";
-
 const ONLY_CODE: RegExp = /^`[^`]+`$/;
 /*
  * A number as a table states it: 5, 1.5. A translation may write its
@@ -324,74 +305,6 @@ function listed(
   page: string,
 ): Array<string> {
   return lists[page] || [];
-}
-
-// A value of a locale file by its dotted key, or null.
-function nestedValue(
-  locale: Record<string, unknown>,
-  key: string,
-): string | null {
-  let value: unknown = locale;
-
-  for (const part of key.split(".")) {
-    value = (value as Record<string, unknown> | undefined)?.[part];
-  }
-
-  return typeof value === "string" && value.trim() ? value : null;
-}
-
-// How the Products menu draws one of its items in a language.
-export function drawnMenuItem(language: string, english: string): string {
-  if (language === "en") {
-    return english;
-  }
-
-  const key: string | undefined = MENU_ITEM_KEYS[english];
-
-  if (!key) {
-    throw new Error(`Not a Products menu item: ${english}`);
-  }
-
-  return nestedValue(dashboardLocale(language), key) || english;
-}
-
-/*
- * A segment of a menu path as a language draws it: a product opened from
- * the Products menu (the first segment, or the one after "Products") from
- * the menu's key, every other segment as a label.
- */
-function drawnSegment(
-  language: string,
-  segments: Array<string>,
-  index: number,
-): string {
-  const segment: string = segments[index] as string;
-  const fromMenu: boolean =
-    MENU_ITEM_KEYS[segment] !== undefined &&
-    (index === 0 || segments[index - 1] === PRODUCTS_MENU);
-
-  return fromMenu
-    ? drawnMenuItem(language, segment)
-    : drawnDashboardLabel(language, segment);
-}
-
-// A menu path as a page in a language writes it.
-export function drawnPath(language: string, segments: Array<string>): string {
-  const drawn: Array<string> = segments.map(
-    (_segment: string, index: number): string => {
-      return drawnSegment(language, segments, index);
-    },
-  );
-
-  if (language === "fa") {
-    return drawn
-      .map((segment: string): string => {
-        return `**${segment}**`;
-      })
-      .join(PERSIAN_PATH_SEPARATOR);
-  }
-
-  return `**${drawn.join(PATH_SEPARATOR)}**`;
 }
 
 // Bold words a translation keeps exactly as the English page writes them.
@@ -564,7 +477,7 @@ describe("the lists this test keeps", () => {
   });
 
   it("draw the menu items from keys the English Dashboard has, as the English pages write them", () => {
-    for (const [english, key] of Object.entries(MENU_ITEM_KEYS)) {
+    for (const [english, key] of Object.entries(PRODUCTS_MENU_ITEM_KEYS)) {
       expect({ key, drawn: nestedValue(dashboardLocale("en"), key) }).toEqual({
         key,
         drawn: english,
@@ -573,7 +486,7 @@ describe("the lists this test keeps", () => {
 
     for (const page of PAGE_NAMES) {
       for (const item of listed(MENU_ITEMS, page)) {
-        expect(MENU_ITEM_KEYS[item]).toBeDefined();
+        expect(PRODUCTS_MENU_ITEM_KEYS[item]).toBeDefined();
       }
     }
   });
@@ -846,7 +759,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
               (segments: Array<string>): Array<string> => {
                 return segments.map(
                   (_segment: string, index: number): string => {
-                    return `**${drawnSegment(language, segments, index)}**`;
+                    return `**${drawnPathSegment(language, segments, index)}**`;
                   },
                 );
               },
