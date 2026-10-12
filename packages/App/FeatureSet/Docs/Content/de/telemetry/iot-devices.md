@@ -1,57 +1,97 @@
-# OneUptime IoT-Geräte
+# IoT-Geräte
 
-## Überblick
+OneUptime überwacht Flotten von IoT-Geräten — Sensoren, Gateways, Controller und Edge-Boxen — anhand einer kleinen Menge von `iot_*`-Metriken, die sie senden. Es gruppiert die Geräte in Flotten, führt ein Inventar der Geräte jeder Flotte und stellt deren Akku, Signal, Temperatur, CPU, Speicher und Verfügbarkeit in Diagrammen dar. Auf einem Gerät ist kein OneUptime-Agent zu installieren: Geräte senden Standard-OpenTelemetry oder veröffentlichen an den MQTT-Endpunkt von OneUptime. [IoT-Gerätemonitore](/docs/monitor/iot-device-monitor) alarmieren anhand dessen, was sie senden.
 
-OneUptime überwacht Flotten von IoT-Geräten — Sensoren, Gateways, Controller und Edge-Boxen — indem es standardmäßige OpenTelemetry-Metriken (OTLP) erfasst. Jedes Gerät (oder ein Gateway in seinem Namen) sendet einen kleinen Satz von `iot_*`-Metriken über OTLP HTTP, versehen mit der **Flotte**, zu der es gehört, und seiner eigenen **Geräte-ID**. OneUptime gruppiert diese Metriken zu einer Flotte, erstellt ein Live-Geräteinventar und verfolgt pro Gerät Akku, Konnektivität, Temperatur, CPU, Arbeitsspeicher und Verfügbarkeit.
+:::cards
+- [Sendeweg wählen](#sendeweg-wählen): Ein OpenTelemetry-SDK, ein Gateway-Collector oder MQTT.
+- [Metriken über MQTT senden](#metriken-über-mqtt-senden): Topics, Zugangsdaten pro Gerät und Last Will.
+- [Metrikkonventionen](#metrikkonventionen): Die `iot_*`-Namen, die OneUptime darstellt und für Alarme nutzt.
+- [Fehlerbehebung](#fehlerbehebung): Fehlende Flotten, fehlende Geräte, Wechsel auf offline.
+:::
 
-Auf der Geräteseite muss kein Agent installiert werden — alles, was OTLP sprechen kann (ein OpenTelemetry-SDK auf dem Gerät oder ein OpenTelemetry Collector, der auf einem Gateway läuft und an viele Geräte verteilt), funktioniert. Diese Seite ist der **Erfassungsleitfaden**. Informationen zur Konfiguration von IoT-Monitoren und Warnungen auf Basis der gesendeten Daten finden Sie unter [IoT Device Monitor](/docs/monitor/iot-device-monitor).
+## So funktioniert es
 
-## Voraussetzungen
+Jeder Messwert gehört zu einer Flotte und einem Gerät. OneUptime legt die Flotte mit ihrem ersten Messwert an, fügt jedes neue Gerät dem Inventar der Flotte hinzu und aktualisiert danach mit jedem Messwert die neuesten Werte des Geräts. Über OpenTelemetry und über MQTT gesendete Messwerte speisen dieselben Flotten, dasselbe Inventar, dieselben Diagramme und Monitore.
 
-- Ein Gerät, Gateway oder Collector, der OTLP/HTTP an OneUptime senden kann
-- Netzwerkerreichbarkeit vom Gerät/Gateway zu Ihrer OneUptime-Instanz
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den `x-oneuptime-token`-Wert
+```mermaid title="Von Ihren Geräten zu einer Flotte in OneUptime"
+flowchart TB
+    devices["Ihre Geräte"] -->|"OTLP aus<br/>einem SDK"| oneuptime["OneUptime"]
+    devices -->|"OTLP"| gateway["Collector auf<br/>einem Gateway"]
+    gateway -->|"OTLP"| oneuptime
+    devices -->|"MQTT"| oneuptime
+    oneuptime --> fleet["Die Flotte: ihre Geräte,<br/>Diagramme und Monitore"]
+```
 
-## Wie OneUptime IoT modelliert
+## Wie OneUptime IoT abbildet
 
-OneUptime ordnet Ihre Geräte mithilfe von OpenTelemetry-Ressourcenattributen zwei Konzepten zu:
+- **Flotte**: eine Gruppe von Geräten, etwa `building-a-sensors` oder `field-gateways`. Sie kommt aus dem Ressourcenattribut `iot.fleet.name` und erscheint in OneUptime als der Telemetriedienst `iot/<fleet>`. Setzen Sie auch `service.name=iot/<fleet>`, damit Logs und Metriken unter demselben Dienst zusammenkommen.
+- **Gerät**: ein Gerät in einer Flotte, benannt durch das Attribut `device.id` an jedem Datenpunkt. Das Inventar der Flotte ist nach `device.id` geschlüsselt.
 
-- **Flotte** — eine logische Gruppe von Geräten (zum Beispiel `building-a-sensors` oder `field-gateways`). Die Flotte wird aus dem Ressourcenattribut `iot.fleet.name` abgeleitet und erscheint in OneUptime als der Telemetrie-Service `iot/<fleet>`. Setzen Sie `service.name=iot/<fleet>`, damit Logs und Metriken unter demselben Service zusammenlaufen.
-- **Gerät** — ein einzelnes Gerät innerhalb einer Flotte, identifiziert durch das Attribut `device.id`. OneUptime erstellt und pflegt ein Geräteinventar pro Flotte, das auf `device.id` basiert.
+| Attribut | Gesetzt an | Erforderlich | Beschreibung |
+| --- | --- | --- | --- |
+| `iot.fleet.name` | Ressource | Ja | Die Flotte, zu der das Gerät gehört. Daraus wird der OneUptime-Dienst `iot/<fleet>`. |
+| `device.id` | Jedem Datenpunkt | Ja | Eine stabile ID für das Gerät, eindeutig in seiner Flotte. |
+| `iot.device.kind` | Jedem Datenpunkt | Nein | Die Geräteklasse, etwa `Device`, `Sensor` oder `Gateway`. Standard ist `Device`. |
+| `iot.device.type` | Jedem Datenpunkt | Nein | Ein feinerer Typ oder ein Modell zum Filtern von Monitoren, etwa `temp-sensor`. |
+| `iot.device.firmware` | Jedem Datenpunkt | Nein | Die Firmware-Version, die das Gerät meldet. |
 
-Optionale Attribute verfeinern, wie jedes Gerät klassifiziert und in Monitoren eingegrenzt wird:
+Über MQTT legt das Topic die Flotte und das Gerät für Sie fest.
 
-| Attribut             | Erforderlich | Beschreibung                                                                     |
-| -------------------- | -------- | -------------------------------------------------------------------------------- |
-| `iot.fleet.name`     | Ja      | Die Flotte, zu der dieses Gerät gehört. Wird zum OneUptime-Service `iot/<fleet>`    |
-| `device.id`          | Ja      | Stabile, eindeutige ID für das Gerät innerhalb der Flotte                                |
-| `iot.device.kind`    | Nein       | Die Geräteklasse — zum Beispiel `Device`, `Sensor` oder `Gateway`. Standardwert ist `Device` |
-| `iot.device.type`    | Nein       | Ein feinerer Gerätetyp/-modell, der zum Filtern von Monitoren verwendet wird (zum Beispiel `temp-sensor`) |
-| `iot.device.firmware`| Nein       | Vom Gerät gemeldete Firmware-Version                                          |
+## Sendeweg wählen
+
+| Weg | Verwenden, wenn | Braucht |
+| --- | --- | --- |
+| [OpenTelemetry-SDK](#metriken-über-das-opentelemetry-sdk-senden) | Das Gerät führt ein OpenTelemetry-SDK aus und erreicht OneUptime selbst. | Einen Ingestion-Schlüssel auf dem Gerät. |
+| [OpenTelemetry Collector](#metriken-über-einen-opentelemetry-collector-senden) | Viele Geräte melden über ein Gateway. | Ein Gateway, auf dem der Collector läuft. |
+| [MQTT](#metriken-über-mqtt-senden) | Das Gerät spricht bereits MQTT oder soll sich in dem Moment offline melden, in dem es wegfällt. | Einen beliebigen MQTT-Client, der sich über WebSocket verbindet. |
+
+## Bevor Sie beginnen
+
+- Ein Ingestion-Schlüssel. Legen Sie ihn unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** an und kopieren Sie seinen Wert. Geräte senden ihn als Header `x-oneuptime-token` oder als MQTT-Passwort.
+- Netzwerkzugriff vom Gerät oder Gateway auf Ihre OneUptime-URL.
+- Ein Flottenname für jede Gruppe von Geräten und eine stabile ID für jedes Gerät.
 
 ## Metriken über das OpenTelemetry-SDK senden
 
-Wenn Ihr Gerät ein OpenTelemetry-SDK direkt ausführt, richten Sie es auf OneUptime aus und versehen Sie die IoT-Ressourcenattribute über die standardmäßigen `OTEL_*`-Umgebungsvariablen. Ersetzen Sie Token, Endpunkt, Flottennamen und Geräte-ID durch die Werte für Ihre Umgebung.
+:::steps
+### Das SDK auf OneUptime verweisen
+
+Setzen Sie auf dem Gerät die Standard-Umgebungsvariablen von OpenTelemetry. Ersetzen Sie den Schlüssel, den Flottennamen und die Geräte-ID durch Ihre Werte:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://oneuptime.com/otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sensor-001,service.name=iot/building-a-sensors
 ```
 
-| Umgebungsvariable             | Erforderlich | Beschreibung                                                                                         |
-| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Ja      | OneUptime OTLP-Endpunkt (`https://oneuptime.com/otlp` oder `http(s)://YOUR-ONEUPTIME-HOST/otlp` bei Self-Hosting) |
-| `OTEL_EXPORTER_OTLP_HEADERS`  | Ja      | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Ja      | Kommagetrennte Ressourcenattribute. Muss `iot.fleet.name`, `device.id` und `service.name=iot/<fleet>` enthalten |
+Halten Sie `iot.fleet.name` stabil: Eine Änderung registriert eine neue Flotte.
 
-Senden Sie Ihre Messwerte als Metriken unter Verwendung der `iot_*`-Namen unten (siehe [Metrikkonventionen](#metrikkonventionen)). Innerhalb von etwa einer Minute erscheint das Gerät im Abschnitt **IoT** des OneUptime-Dashboards.
+### Messwerte als IoT-Metriken erfassen
+
+Geben Sie jeden Messwert als Metrik mit einem der [konventionellen Namen](#metrikkonventionen) aus und geben Sie jedem Datenpunkt ein Attribut `device.id`:
+
+| Metrik | Wert | Datenpunkt-Attribut |
+| --- | --- | --- |
+| `iot_device_up` | `1` | `device.id=sensor-001` |
+| `iot_battery_percent` | `87` | `device.id=sensor-001` |
+| `iot_temperature_celsius` | `21.5` | `device.id=sensor-001` |
+
+Das Inventar ist nach der `device.id` des Datenpunkts geschlüsselt, nicht nach der der Ressource; setzen Sie sie daher an jeder Messung und zusätzlich in `OTEL_RESOURCE_ATTRIBUTES`.
+:::
+
+[Prüfen Sie dann, ob die Flotte erscheint](#prüfen-ob-die-flotte-erscheint).
 
 ## Metriken über einen OpenTelemetry Collector senden
 
-Wenn viele Geräte über ein Gateway melden, betreiben Sie einen OpenTelemetry Collector auf dem Gateway und exportieren Sie an OneUptime. Der `resource`-Prozessor versieht die Daten mit den Flottenattributen; empfangen Sie Messwerte von Ihren Geräten (OTLP, MQTT-Bridge, Datei-Logs usw.) und leiten Sie sie weiter:
+Wenn viele Geräte über ein Gateway melden, führen Sie auf dem Gateway einen OpenTelemetry Collector aus. Er empfängt OTLP von Ihren Geräten, versieht jeden Messwert mit der Flotte und leitet ihn an OneUptime weiter.
 
-```yaml
+:::steps
+### Die Konfiguration des Gateways speichern
+
+Speichern Sie dies als `config.yaml` auf dem Gateway:
+
+```yaml title="config.yaml"
 receivers:
   otlp:
     protocols:
@@ -87,41 +127,81 @@ service:
       exporters: [otlphttp]
 ```
 
-- **`resource`** versieht jeden Datensatz mit den Flottenattributen. Setzen Sie `iot.fleet.name` (und das passende `service.name=iot/<fleet>`) pro Gateway, damit die Geräte jedes Gateways in der richtigen Flotte landen.
-- Behalten Sie `device.id` (und optional `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) an jedem Datenpunkt bei, damit OneUptime das einzelne Gerät innerhalb der Flotte auflösen kann.
-- **`otlphttp`** sendet über HTTPS an OneUptime mit angehängtem Erfassungstoken. Sowohl die standardmäßige Protobuf-Kodierung als auch `encoding: json` werden akzeptiert.
+- `otlp` empfängt von Ihren Geräten über gRPC (`4317`) und HTTP (`4318`). Empfangen Sie Messwerte auf jedem anderen Weg, den der Collector unterstützt (eine MQTT-Bridge, Logdateien), und senden Sie sie durch dieselbe Pipeline.
+- `resource` versieht jeden Messwert mit der Flotte. Setzen Sie `iot.fleet.name` und das passende `service.name=iot/<fleet>` pro Gateway, damit die Geräte jedes Gateways in ihrer Flotte landen.
+- Behalten Sie `device.id` und gegebenenfalls `iot.device.kind`, `iot.device.type` und `iot.device.firmware` an jedem Datenpunkt, damit OneUptime die Geräte der Flotte auseinanderhalten kann.
+- `otlphttp` sendet per HTTPS mit dem Ingestion-Schlüssel an OneUptime. Sowohl die standardmäßige Protobuf-Kodierung als auch `encoding: json` werden akzeptiert.
+
+### Den Collector auf dem Gateway ausführen
+
+:::tabs
+@tab Docker
+Führen Sie ihn in dem Ordner aus, der `config.yaml` enthält:
+
+```bash
+docker run -d \
+  --name otel-collector \
+  --restart unless-stopped \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \
+  otel/opentelemetry-collector-contrib:0.161.0 \
+  --config /etc/otelcol-contrib/config.yaml
+```
+@tab otelcol-contrib
+Hat das Gateway bereits `otelcol-contrib`, verweisen Sie es auf die Datei:
+
+```bash
+otelcol-contrib --config config.yaml
+```
+:::
+
+Geräte senden dann OTLP an das Gateway, zum Beispiel mit `OTEL_EXPORTER_OTLP_ENDPOINT=http://<gateway-host>:4318` im SDK jedes Geräts.
+:::
+
+[Prüfen Sie dann, ob die Flotte erscheint](#prüfen-ob-die-flotte-erscheint).
 
 ## Metriken über MQTT senden
 
-OneUptime bringt einen integrierten MQTT-Endpunkt mit, sodass Geräte, die bereits MQTT sprechen, Messwerte direkt senden können — kein OpenTelemetry-SDK, kein Collector und keine Bridge erforderlich. Alles, was über MQTT veröffentlicht wird, landet in derselben Pipeline wie OTLP: Flotten werden automatisch erstellt, das Geräteinventar wird aktualisiert, und jeder IoT-Monitor und jede Warnungsvorlage funktioniert unverändert.
+OneUptime hat einen eigenen MQTT-Endpunkt; Geräte, die MQTT sprechen, veröffentlichen Messwerte daher direkt dorthin, ohne SDK, Collector oder Bridge. Was über MQTT ankommt, durchläuft dieselbe Pipeline wie OTLP: Flotten werden angelegt, das Inventar wird aktualisiert, und jeder IoT-Monitor und jede Alarmvorlage funktioniert genauso.
 
-**Endpunkte**
+### Endpunkte
 
-| Transport             | Adresse                                | Hinweise                                                                                  |
-| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| MQTT über WebSocket   | `wss://<your-host>/mqtt`               | Funktioniert bei jeder Bereitstellung — läuft über den normalen HTTPS-Port durch den OneUptime-Ingress |
-| MQTT über TCP         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | Self-Hosting: standardmäßig intern im Cluster-/Compose-Netzwerk; geben Sie ihn frei, wenn Sie ihn benötigen |
+| Transport | Adresse | Hinweise |
+| --- | --- | --- |
+| MQTT über WebSocket | `wss://<your-host>/mqtt` | Funktioniert bei jeder Bereitstellung, über den normalen HTTPS-Port. |
+| MQTT über TCP | `<app-host>:1883` | Nur selbst gehostet, und intern im Cluster- oder Compose-Netzwerk, bis Sie ihn freigeben. Der Port ist `MQTT_INGEST_PORT`. |
 
-**Authentifizierung** — zwei Möglichkeiten:
+### Authentifizierung
 
-- **Projektweit**: Senden Sie Ihr **Telemetry Ingestion Token** als MQTT-Passwort (der Benutzername wird ignoriert; wenn Ihr Client nur ein Benutzernamensfeld bietet, tragen Sie das Token stattdessen dort ein). Richtig für Gateways, die im Namen vieler Geräte veröffentlichen.
-- **Pro Gerät** (empfohlen für Geräte, die sich direkt verbinden): Registrieren Sie das Gerät im Tab **Device Registry** der Flotte im Dashboard. Die Registrierung stellt Zugangsdaten für dieses Gerät aus — die Credential-ID ist der MQTT-**Benutzername** und das Secret ist das **Passwort**. Geräteauthentifizierte Clients dürfen nur unter ihren eigenen `oneuptime/<fleet>/<device>/…`-Topics veröffentlichen, ein einzelnes kompromittiertes Gerät kann über das Dashboard widerrufen werden, ohne den Rest der Flotte anzutasten (der Widerruf wird innerhalb von etwa einer Minute wirksam, auch bei bereits verbundenen Sitzungen), und registrierte Geräte erhalten eine **Offline-Erkennung bei stillem Ausfall**: Sie bleiben als Offline im Inventar, anstatt zu verschwinden, wenn sie keine Meldungen mehr senden, und die Warnungsvorlage **Device Offline** wird für sie ausgelöst, selbst wenn sie ohne Last Will ausfallen.
+- **Mit dem Ingestion-Schlüssel**: Senden Sie ihn als MQTT-Passwort. Der Benutzername wird ignoriert; hat Ihr Client nur ein Feld für den Benutzernamen, tragen Sie den Schlüssel dort ein. Das passt zu einem Gateway, das für viele Geräte veröffentlicht.
+- **Mit Zugangsdaten pro Gerät**: empfohlen für Geräte, die sich direkt verbinden. Öffnen Sie die Seite **Geräteregister** der Flotte und registrieren Sie das Gerät, mit der **Geräte-ID**, die es als `device.id` verwendet. Der **MQTT-Benutzername** des Geräts ist sein Benutzername und sein **MQTT-Passwort (Secret)** sein Passwort.
 
-Ungültige Zugangsdaten werden bereits beim CONNECT mit Rückgabecode 4 (falscher Benutzername oder falsches Passwort) abgelehnt, sodass ein falsch konfiguriertes Gerät laut scheitert.
+Zugangsdaten eines Geräts können nur unter dessen eigenen Topics `oneuptime/<fleet>/<device>/` veröffentlichen. Sie können ein Gerät widerrufen, ohne den Rest der Flotte anzutasten: Schalten Sie seinen Schalter **Aktiviert** aus oder löschen Sie es, und ein verbundenes Gerät wird innerhalb etwa einer Minute getrennt. Ein registriertes Gerät, das verstummt, bleibt als offline im Inventar, und die Alarmvorlage Device Offline löst für es aus, auch wenn es ohne Last Will ausfällt.
 
-**Topics** — veröffentlichen Sie unter dem festen Präfix `oneuptime/`. Flotten- und Gerätesegmente dürfen kein `/`, `+` oder `#` enthalten und sind auf 100 Zeichen begrenzt:
+OneUptime lehnt falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab (falscher Benutzername oder falsches Passwort), sodass ein falsch konfiguriertes Gerät sichtbar scheitert. Browser-Schlüssel werden über MQTT abgelehnt.
 
-| Topic                                            | Payload                                                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `oneuptime/<fleet>/<device>/telemetry`           | JSON-Objekt mit Messwerten — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, oder ein flaches Objekt, dessen numerische Felder die Metriken sind |
-| `oneuptime/<fleet>/<device>/metrics/<metricName>`| Ein einzelner Wert — eine bloße Zahl (`23.4`) oder `{ "value": 23.4 }`                                |
-| `oneuptime/<fleet>/<device>/status`              | `"online"` oder `"offline"` (auch `1`/`0`, `true`/`false`, `up`/`down`) — wird auf `iot_device_up` abgebildet |
+### Topics und Payloads
 
-Telemetrie-Payloads können außerdem `"attributes"` (eine String-Map, die an jeden Datenpunkt angehängt wird — verwenden Sie sie für `iot.device.kind`, `iot.device.type`, `iot.device.firmware` oder Ihre eigenen Labels) und `"timestamp"` (ISO-8601 oder Unix-Sekunden/-Millisekunden) tragen. Beide sind optional; fehlt `timestamp`, wird der Erfassungszeitpunkt verwendet.
+Veröffentlichen Sie unter dem festen Präfix `oneuptime/`. Die Segmente für Flotte und Gerät dürfen `/`, `+` oder `#` nicht enthalten, nicht mit `$` beginnen und höchstens 100 Zeichen lang sein.
 
-**Offline-Erkennung mit Last Will** — registrieren Sie ein MQTT Last Will auf `oneuptime/<fleet>/<device>/status` mit dem Payload `offline`. Wenn das Gerät ausfällt oder das Netzwerk verlässt, veröffentlicht der Broker in seinem Namen `iot_device_up = 0`, sobald die Sitzung endet — das löst die standardmäßige Warnungsvorlage **Device Offline** aus und setzt das Gerät im Inventar auf Down, ohne Polling und ohne Warten auf einen verpassten Scrape. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als Up angezeigt wird.
+| Topic | Payload |
+| --- | --- |
+| `oneuptime/<fleet>/<device>/telemetry` | Ein JSON-Objekt mit Messwerten: `{"metrics":{"iot_temperature_celsius":21.5}}`, oder ein flaches Objekt, dessen numerische Felder die Metriken sind. |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>` | Ein Wert: eine bloße Zahl (`23.4`) oder `{"value":23.4}`. |
+| `oneuptime/<fleet>/<device>/status` | `online` oder `offline` (auch `1` oder `0`, `true` oder `false`, `up` oder `down`). Es setzt `iot_device_up`. |
 
-Beispiel mit `mosquitto_pub` (rohes TCP, Self-Hosting):
+Ein Telemetrie-Payload kann außerdem `"attributes"` enthalten, eine Map von Zeichenketten, die an jeden Datenpunkt gehängt wird (verwenden Sie sie für `iot.device.kind`, `iot.device.type`, `iot.device.firmware` oder eigene Labels), sowie `"timestamp"`, in ISO 8601 oder in Unix-Sekunden oder -Millisekunden. Beides ist optional: Ohne `timestamp` wird der Zeitpunkt verwendet, zu dem OneUptime den Messwert empfängt.
+
+### Offline-Erkennung mit Last Will
+
+Registrieren Sie einen MQTT-Last-Will auf `oneuptime/<fleet>/<device>/status` mit dem Payload `offline`. Fällt das Gerät aus oder verschwindet es aus dem Netzwerk, veröffentlicht OneUptime für es `iot_device_up = 0` in dem Moment, in dem seine Sitzung endet; das löst die mitgelieferte Alarmvorlage Device Offline aus und markiert das Gerät im Inventar als ausgefallen, ohne Polling. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als verfügbar erscheint.
+
+### Beispiele
+
+:::tabs
+@tab mosquitto_pub
+Über rohes TCP, auf einer selbst gehosteten Instanz:
 
 ```bash
 mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
@@ -129,14 +209,14 @@ mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
   -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
   -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
 ```
-
-Beispiel mit Node.js `mqtt` über WebSocket (funktioniert gegen oneuptime.com und jede selbst gehostete Instanz):
+@tab Node.js
+Mit dem Paket `mqtt`, über WebSocket, gegen oneuptime.com oder jede selbst gehostete Instanz:
 
 ```javascript
 const mqtt = require("mqtt");
 
 const client = mqtt.connect("wss://oneuptime.com/mqtt", {
-  username: "oneuptime", // ignoriert — authentifiziert wird über das Token unten
+  username: "oneuptime", // ignored — the token below is what authenticates
   password: "YOUR_TELEMETRY_INGESTION_TOKEN",
   will: {
     topic: "oneuptime/building-a-sensors/sensor-001/status",
@@ -160,8 +240,8 @@ client.on("connect", () => {
   }, 60 * 1000);
 });
 ```
-
-Beispiel mit Python `paho-mqtt` über WebSocket:
+@tab Python
+Mit `paho-mqtt`, über WebSocket:
 
 ```python
 import json
@@ -180,70 +260,48 @@ client.publish(
     json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
 )
 ```
+:::
 
-Hinweise:
+### Limits und Zustellung
 
-- Der Endpunkt dient **ausschließlich der Erfassung**: Subscriptions werden abgelehnt (SUBACK-Fehler). Verwenden Sie QoS 1, wenn der Broker den Empfang bestätigen soll. Die Erfassung erfolgt **mindestens einmal** — eine QoS-1/2-Neuübertragung nach einer verlorenen Bestätigung kann doppelte Datenpunkte erzeugen.
-- Veröffentlichungen außerhalb des Topic-Vertrags oder mit fehlerhaften Payloads werden angenommen und **verworfen** (MQTT 3.1.1 kennt keine Fehlerantwort pro Nachricht) — der Server protokolliert eine Warnung mit dem Grund; prüfen Sie also die Logs der OneUptime-App, wenn keine Daten ankommen.
-- Halten Sie am WebSocket-Endpunkt das MQTT-Keepalive **unter 5 Minuten** — der OneUptime-Ingress schließt inaktive WebSocket-Verbindungen nach 300 Sekunden, was Ihr Last Will und eine falsche Device-Offline-Warnung auslösen würde. Die Standardwerte der Client-Bibliotheken (60 s bei `mqtt` und `paho-mqtt`) sind in Ordnung. Der rohe TCP-Endpunkt hat keine solche Obergrenze.
-- Payloads sind auf 128 KB und 100 Metriken pro Veröffentlichung begrenzt; zu große Pakete führen zum Verbindungsabbruch.
+- Der Endpunkt nimmt nur Messwerte an: Abonnements werden abgelehnt (ein SUBACK-Fehler), und Retained Messages werden nicht aufbewahrt.
+- Die Ingestion erfolgt mindestens einmal. Verwenden Sie QoS 1, damit OneUptime jede Veröffentlichung bestätigt; ein erneutes Senden mit QoS 1 oder 2 nach einer verlorenen Bestätigung kann doppelte Datenpunkte erzeugen.
+- Eine Veröffentlichung über 128 KB oder mit mehr als 100 Metriken wird verworfen, und ein Paket, das mehr als das angibt, schließt die Verbindung.
+- Eine Veröffentlichung außerhalb dieser Topics oder mit fehlerhaftem Payload wird angenommen und verworfen, weil MQTT 3.1.1 keinen Fehler pro Nachricht kennt. OneUptime protokolliert eine Warnung mit dem Grund (`MQTT: dropped publish to …`).
+- Halten Sie am WebSocket-Endpunkt das MQTT-Keepalive unter 5 Minuten. Der Ingress schließt einen WebSocket, der 300 Sekunden lang untätig ist, was den Last Will und einen falschen Alarm Device Offline auslöst. Die Standardwerte der Client-Bibliotheken (60 Sekunden für `mqtt` und `paho-mqtt`) sind in Ordnung, und der TCP-Endpunkt hat keine solche Grenze.
 
 ## Metrikkonventionen
 
-OneUptime erkennt die folgenden `iot_*`-Metriknamen. Jeder Datenpunkt sollte das Label `device.id` tragen, damit der Messwert dem richtigen Gerät zugeordnet wird. Sie müssen nur die Metriken senden, die für Ihr Gerät sinnvoll sind — fehlende werden einfach nicht dargestellt.
+OneUptime erkennt diese `iot_*`-Metriknamen. Senden Sie nur die, die für Ihr Gerät sinnvoll sind: Fehlende werden nicht dargestellt. Jeder Datenpunkt trägt die `device.id` des Geräts (über MQTT benennt das Topic das Gerät).
 
-| Metrikname                  | Bedeutung                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `iot_device_up`             | Geräteverfügbarkeit. `1` = oben/erreichbar, `0` = unten. Steuert den IoT Device Monitor |
-| `iot_device_info`           | Reines Identitätssignal. Trägt `device.id` / kind / type / firmware, damit ein Gerät im Inventar erscheint, noch bevor es Messwerte meldet |
-| `iot_battery_percent`       | Akkuladestand, `0`–`100` (%)                                            |
-| `iot_signal_strength_dbm`   | Drahtlose Signalstärke in dBm (zum Beispiel Wi-Fi / LoRa / Mobilfunk-RSSI)      |
-| `iot_temperature_celsius`   | Geräte- oder Sensortemperatur in °C                                             |
-| `iot_cpu_usage_ratio`       | CPU-Auslastung als Verhältnis `0`–`1` (OneUptime speichert sie als Prozentsatz)        |
-| `iot_memory_usage_bytes`    | Aktuell genutzter Arbeitsspeicher, in bytes                                                |
-| `iot_memory_size_bytes`     | Insgesamt auf dem Gerät verfügbarer Arbeitsspeicher, in bytes                                 |
-| `iot_uptime_seconds`        | Sekunden seit dem letzten Start des Geräts                                           |
+| Metrikname | Bedeutung |
+| --- | --- |
+| `iot_device_up` | Verfügbarkeit: `1` heißt verfügbar und erreichbar, `0` ausgefallen. Der IoT-Gerätemonitor liest sie. |
+| `iot_device_info` | Nur Identität. Sie trägt `device.id`, die Klasse, den Typ und die Firmware, damit ein Gerät im Inventar erscheint, bevor es Messwerte meldet. |
+| `iot_battery_percent` | Akkuladung, `0` bis `100` (%). |
+| `iot_signal_strength_dbm` | Funksignalstärke in dBm, etwa der RSSI von WLAN, LoRa oder Mobilfunk. |
+| `iot_temperature_celsius` | Geräte- oder Sensortemperatur in °C. |
+| `iot_cpu_usage_ratio` | CPU-Nutzung als Verhältnis von `0` bis `1`. OneUptime speichert und zeigt sie als Prozentsatz. |
+| `iot_memory_usage_bytes` | Genutzter Speicher, in Bytes. |
+| `iot_memory_size_bytes` | Gesamtspeicher des Geräts, in Bytes. |
+| `iot_uptime_seconds` | Sekunden seit dem letzten Start des Geräts. |
 
-## Installation überprüfen
+## Prüfen, ob die Flotte erscheint
 
-1. Bestätigen Sie, dass Ihr Gerät oder Gateway fehlerfrei exportiert (prüfen Sie die SDK-/Collector-Logs auf Exportfehler und HTTP-`401`/`403`-Antworten).
-2. Öffnen Sie im OneUptime-Dashboard den Abschnitt **IoT** — Ihre Flotte sollte innerhalb von etwa einer Minute als `iot/<fleet>` erscheinen.
-3. Öffnen Sie den Tab **Devices** der Flotte — jede gesendete `device.id` sollte mit ihren neuesten Werten für Akku, Signal, Temperatur, CPU, Arbeitsspeicher und Up/Down-Status aufgelistet sein.
-4. Öffnen Sie **Metriken** unter der Flotte, um beliebige der oben genannten `iot_*`-Serien darzustellen.
-
-## Fehlerbehebung
-
-### Flotte erscheint nicht
-
-1. Stellen Sie sicher, dass `iot.fleet.name` als **Ressourcen**attribut gesetzt ist (nicht als Datenpunkt-Label) und dass `service.name` `iot/<fleet>` lautet.
-2. Bestätigen Sie, dass der Exporter-Endpunkt `https://oneuptime.com/otlp` (oder Ihr selbst gehostetes `…/otlp`) ist und der Header `x-oneuptime-token` ein gültiges Token trägt.
-3. Wenn Sie MQTT verwenden, prüfen Sie, dass das Topic exakt `oneuptime/<fleet>/<device>/…` folgt — das Flottensegment des Topics ist es, das die Flotte anlegt.
-
-### Geräte fehlen im Inventar
-
-1. Stellen Sie sicher, dass jeder Datenpunkt ein `device.id`-Label trägt — Geräte werden danach indiziert.
-2. Senden Sie `iot_device_info` (reine Identität) für Geräte, die noch keine Messwerte gemeldet haben, damit sie dennoch im Inventar erscheinen.
-3. Prüfen Sie, dass die `device.id`-Werte über Meldungen hinweg stabil sind; eine sich ändernde ID erzeugt doppelte Gerätezeilen.
-
-### HTTP 401 / 403 vom Exporter
-
-Das Erfassungstoken ist ungültig, widerrufen oder fehlt. Erstellen Sie ein neues unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_ und aktualisieren Sie den Header `x-oneuptime-token`.
-
-### Metriken werden nicht dargestellt
-
-1. Bestätigen Sie, dass Sie die exakten `iot_*`-Metriknamen aus der Tabelle [Metrikkonventionen](#metrikkonventionen) verwenden — unbekannte Namen werden als generische Metriken gespeichert und füllen keine IoT-Diagramme.
-2. Denken Sie daran, dass `iot_cpu_usage_ratio` ein Verhältnis `0`–`1` ist; senden Sie das rohe Verhältnis, und OneUptime stellt es als Prozentsatz dar.
-3. Rechnen Sie mit bis zu einer Minute, bis die ersten Datenpunkte erscheinen, nachdem ein Gerät mit dem Melden beginnt.
+1. Prüfen Sie, ob das Gerät, der Collector des Gateways oder der MQTT-Client fehlerfrei sendet: Suchen Sie in seinen Logs nach Exportfehlern und HTTP-Antworten `401` oder `422` oder nach einer mit Rückgabecode 4 abgelehnten Verbindung.
+2. Öffnen Sie **Produkte → Infrastruktur → IoT → Alle Flotten**. Die Flotte erscheint innerhalb etwa einer Minute nach ihren ersten Messwerten als `iot/<fleet>`.
+3. Öffnen Sie die Seite **Geräte** der Flotte. Jedes Gerät, für das Sie gesendet haben, sollte mit seinen neuesten Werten für Akku, Signal, Temperatur, CPU, Speicher und Verfügbarkeit aufgeführt sein.
+4. Öffnen Sie die Seite **Metriken** der Flotte, um jede der `iot_*`-Serien darzustellen.
 
 ## Selbst gehostetes OneUptime
 
-Wenn Sie OneUptime selbst hosten, richten Sie den Endpunkt auf Ihre eigene Instanz aus:
+Verweisen Sie den Endpunkt auf Ihre eigene Instanz:
 
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-oneuptime-host.example.com/otlp
 ```
 
-Oder, in einem Collector:
+Oder in einem Collector:
 
 ```yaml
 exporters:
@@ -253,10 +311,44 @@ exporters:
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-Wenn Ihre Instanz nur HTTP unterstützt, ändern Sie das Schema auf `http://` und verwenden Sie den entsprechenden Port.
+Für MQTT verbinden Sie sich mit `wss://your-oneuptime-host.example.com/mqtt` oder geben für Geräte, die kein WebSocket nutzen können, den rohen MQTT-TCP-Port des App-Dienstes frei (`MQTT_INGEST_PORT`, standardmäßig `1883`). Setzen Sie `MQTT_INGEST_ENABLED=false` am App-Dienst, um beide MQTT-Listener abzuschalten. Spricht die Instanz nur HTTP, verwenden Sie `http://` (und `ws://` für MQTT) und ihren Port.
+
+## Fehlerbehebung
+
+:::details Die Flotte erscheint nicht
+1. Prüfen Sie, ob `iot.fleet.name` ein Ressourcenattribut ist (kein Datenpunkt-Label) und ob `service.name` gleich `iot/<fleet>` ist.
+2. Prüfen Sie, ob der Endpunkt `https://oneuptime.com/otlp` ist (oder Ihr selbst gehostetes `…/otlp`) und ob der Header `x-oneuptime-token` einen gültigen Ingestion-Schlüssel trägt.
+3. Prüfen Sie bei MQTT, ob das Topic genau `oneuptime/<fleet>/<device>/…` folgt: Das Flottensegment des Topics legt die Flotte an.
+:::
+
+:::details Geräte fehlen im Inventar
+1. Geben Sie jedem Datenpunkt ein Label `device.id`: Geräte sind danach geschlüsselt. Über MQTT ist es das Gerätesegment des Topics.
+2. Senden Sie für ein Gerät, das noch keine Messwerte gemeldet hat, `iot_device_info` (oder über MQTT eine `status`-Nachricht), damit es im Inventar erscheint.
+3. Halten Sie die Werte von `device.id` stabil: Eine wechselnde ID erzeugt doppelte Geräte.
+:::
+
+:::details HTTP 401 oder 422 vom Exporter
+`401` bedeutet, dass der Ingestion-Schlüssel fehlt, falsch oder abgelaufen ist; `422` bedeutet, dass er deaktiviert wurde oder ein Browser-Schlüssel ist, der keine Gerätetelemetrie senden kann. Legen Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** einen neuen an und aktualisieren Sie den Header `x-oneuptime-token`.
+:::
+
+:::details Die MQTT-Verbindung wird mit „bad username or password“ abgelehnt
+OneUptime lehnt falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab. Prüfen Sie, ob das Passwort ein gültiger Ingestion-Schlüssel ist, der weder deaktiviert noch abgelaufen ist, oder bei einem registrierten Gerät das Secret der Zugangsdaten, mit seinem **MQTT-Benutzername** als Benutzername. Browser-Schlüssel werden über MQTT abgelehnt.
+:::
+
+:::details Geräte springen auf offline, obwohl sie laufen
+Am WebSocket-Endpunkt schließt der Ingress eine Verbindung, die 300 Sekunden lang untätig ist, was den Last Will und einen falschen Alarm Device Offline auslöst. Halten Sie das MQTT-Keepalive unter 5 Minuten: Die Standardwerte der Client-Bibliotheken von 60 Sekunden sind in Ordnung.
+:::
+
+:::details Messwerte erscheinen nicht in den Diagrammen der Flotte
+1. Verwenden Sie die genauen `iot_*`-Namen aus [Metrikkonventionen](#metrikkonventionen): Andere Namen werden als allgemeine Metriken gespeichert und füllen die IoT-Diagramme nicht.
+2. Senden Sie `iot_cpu_usage_ratio` als Verhältnis von `0` bis `1`; OneUptime zeigt es als Prozentsatz.
+3. Rechnen Sie mit bis zu einer Minute, bis die ersten Datenpunkte erscheinen, nachdem ein Gerät zu melden beginnt.
+:::
 
 ## Nächste Schritte
 
-- Konfigurieren Sie einen **IoT Device Monitor**, um bei Bedingungen wie Gerät offline, niedrigem Akkustand, schwachem Signal, hoher Temperatur und hoher CPU-Auslastung zu warnen — siehe [IoT Device Monitor](/docs/monitor/iot-device-monitor).
-- Für nicht containerisierte Hosts (Linux- / macOS- / Windows-VMs und Bare Metal) verwenden Sie den [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
-- Um die zugrunde liegende OTLP-Integration eingehend kennenzulernen, siehe [OpenTelemetry in OneUptime integrieren](/docs/telemetry/open-telemetry).
+:::cards
+- [IoT-Geräte-Überwachung](/docs/monitor/iot-device-monitor): Alarmieren, wenn ein Gerät offline geht, der Akku zur Neige geht oder es überhitzt.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Wie OneUptime OTLP von jedem SDK oder Collector annimmt.
+- [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector): Ein Linux-, macOS- oder Windows-Gateway selbst überwachen.
+:::

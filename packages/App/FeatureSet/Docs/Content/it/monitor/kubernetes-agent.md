@@ -367,7 +367,7 @@ La profilazione richiede **Linux 5.10** o successivo, e un pod privilegiato con 
 | `ebpf.enabled` | `true` | Tracce eBPF e metriche delle richieste. Vedi [Tracce applicative con eBPF](#tracce-applicative-con-ebpf). |
 | `profiling.enabled` | `false` | Flame graph della CPU. Vedi [Profilazione continua della CPU](#profilazione-continua-della-cpu). |
 | `kubeStateMetrics.enabled` | `false` | Lo stato del cluster da kube-state-metrics. |
-| `aiAgent.enabled` | `true` | L'agente AI di Kubernetes. Vedi [Agente AI di Kubernetes](/docs/telemetry/kubernetes-agent) per cosa può fare. |
+| `aiAgent.enabled` | `true` | L'agente AI di Kubernetes. Vedi [Agente AI di Kubernetes](/docs/telemetry/kubernetes-agent#agente-ia-kubernetes) per cosa può fare. |
 
 Il [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) del chart elenca e spiega ogni opzione, e [Agent Kubernetes](/docs/telemetry/kubernetes-agent) tratta filtraggio, campionamento e come contenere il volume dei dati.
 

@@ -142,7 +142,7 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 
 Proxmox VE 9 en later kan metrieken pushen via zijn ingebouwde OpenTelemetry-metriekserver, zonder iets te installeren – zie de [handleiding voor de Proxmox-agent](/docs/telemetry/proxmox). OneUptime zet de push om in dezelfde reeksen `pve_*`, dus de catalogus en de sjablonen voor CPU, geheugen en opslag werken ermee.
 
-**Node Offline** en **Cluster Quorum at Risk** werken ook: elke node pusht alleen zijn eigen status, dus een node die niet meer rapporteert, wordt door de nodes die nog leven als uitgevallen gemeld (`pve_up` = 0) – zie [Als een node niet meer rapporteert](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** en **Replication Failing** hebben gegevens nodig die alleen de agent verzamelt.
+**Node Offline** en **Cluster Quorum at Risk** werken ook: elke node pusht alleen zijn eigen status, dus een node die niet meer rapporteert, wordt door de nodes die nog leven als uitgevallen gemeld (`pve_up` = 0) – zie [Als een node niet meer rapporteert](/docs/telemetry/proxmox#als-een-node-niet-meer-rapporteert). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** en **Replication Failing** hebben gegevens nodig die alleen de agent verzamelt.
 
 ## Verzamelde metrieken
 

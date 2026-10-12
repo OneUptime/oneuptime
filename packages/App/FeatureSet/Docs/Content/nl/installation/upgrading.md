@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-Gebruik uw eigen releasenaam en namespace als die afwijken. Het onderdeel [De agent upgraden](/docs/telemetry/kubernetes-agent) van de pagina over de Kubernetes-agent geeft de details, en [AI SRE – Clustertoegang](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) legt uit wat de agent mag doen en hoe u hem laat herstellen wat hij vindt.
+Gebruik uw eigen releasenaam en namespace als die afwijken. Het onderdeel [De agent upgraden](/docs/telemetry/kubernetes-agent#de-agent-upgraden) van de pagina over de Kubernetes-agent geeft de details, en [AI SRE – Clustertoegang](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) legt uit wat de agent mag doen en hoe u hem laat herstellen wat hij vindt.
 
 ### Wat AI mag doen, stelt u in op de AI-agent
 

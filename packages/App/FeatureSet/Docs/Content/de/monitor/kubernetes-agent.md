@@ -190,7 +190,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 Der Log-Tailer läuft dann neben den Knoten-Collectors, nur für die Pods auf Windows-Knoten. Linux-Pods behalten das günstigere Mitlesen der Dateien, und beide teilen die Pods nach Betriebssystem des Knotens auf, sodass keine Logzeile doppelt gesendet wird.
 
 - **Version des Tailer-Images.** Die Aufteilung nur für Windows ist im Image `kubernetes-log-tailer` eingebaut. Ein älteres Image ignoriert sie und liest *jeden* Pod mit, sodass die Logs jedes Linux-Pods doppelt gesendet werden. Pinnen Sie `logs.api.image.tag` nicht auf eine Version, die älter ist als das Release des Charts, und wenn ein Knoten ein altes `release`-Image zwischengespeichert haben könnte, fügen Sie dem Upgrade `--set logs.api.image.pullPolicy=Always` hinzu.
-- **Filtern nach Schweregrad.** Ist `filters.logs.minSeverity` gesetzt, wird eine Zeile ohne erkennbaren Schweregrad auf dem Weg des Knoten-Collectors verworfen, auf dem des Log-Tailers aber behalten - siehe [Nach Log-Schweregrad filtern](/docs/telemetry/kubernetes-agent#filterung-nach-log-schweregrad). Windows-Pods können dann mehr Zeilen ohne Stufe senden als Linux-Pods.
+- **Filtern nach Schweregrad.** Ist `filters.logs.minSeverity` gesetzt, wird eine Zeile ohne erkennbaren Schweregrad auf dem Weg des Knoten-Collectors verworfen, auf dem des Log-Tailers aber behalten - siehe [Filterung nach Log-Schweregrad](/docs/telemetry/kubernetes-agent#filterung-nach-log-schweregrad). Windows-Pods können dann mehr Zeilen ohne Stufe senden als Linux-Pods.
 
 ## Anwendungs-Traces mit eBPF
 
@@ -367,7 +367,7 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | `ebpf.enabled` | `true` | eBPF-Traces und Anfragemetriken. Siehe [Anwendungs-Traces mit eBPF](#anwendungs-traces-mit-ebpf). |
 | `profiling.enabled` | `false` | CPU-Flammengrafiken. Siehe [Fortlaufendes CPU-Profiling](#fortlaufendes-cpu-profiling). |
 | `kubeStateMetrics.enabled` | `false` | Cluster-Zustand aus kube-state-metrics. |
-| `aiAgent.enabled` | `true` | Der Kubernetes-KI-Agent. Siehe [Kubernetes-KI-Agent](/docs/telemetry/kubernetes-agent) dazu, was er tun darf. |
+| `aiAgent.enabled` | `true` | Der Kubernetes-KI-Agent. Siehe [Kubernetes-KI-Agent](/docs/telemetry/kubernetes-agent#kubernetes-ki-agent) dazu, was er tun darf. |
 
 Die [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) des Charts listet und erklärt jede Option, und [Kubernetes-Agent](/docs/telemetry/kubernetes-agent) behandelt Filtern, Sampling und das Begrenzen der Datenmenge.
 

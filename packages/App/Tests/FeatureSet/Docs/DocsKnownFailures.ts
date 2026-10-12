@@ -254,9 +254,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "telemetry/ai-agent-circuit-breaker": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/ai-coding-assistants": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/ai-gateways": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
@@ -264,18 +261,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/claude-code": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/cursor": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/databases": {
     translated: EVERY_TRANSLATION,
-  },
-  "telemetry/docker-host": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
   },
   "telemetry/docker-swarm": {
     translated: EVERY_TRANSLATION_BUT_FA,
@@ -283,31 +270,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "telemetry/gemini-cli-and-copilot": {
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/host-otel-collector": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/iot-devices": {
-    sameShape: ["sv"],
-  },
-  "telemetry/kubernetes-agent": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/kubernetes-cost": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/openai-codex": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/podman-host": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/proxmox": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "telemetry/queues": {
     translated: EVERY_TRANSLATION,

@@ -367,7 +367,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `ebpf.enabled` | `true` | Трассировки eBPF и метрики запросов. См. [Трассировки приложений с eBPF](#трассировки-приложений-с-ebpf). |
 | `profiling.enabled` | `false` | Flame-графы CPU. См. [Непрерывное профилирование CPU](#непрерывное-профилирование-cpu). |
 | `kubeStateMetrics.enabled` | `false` | Состояние кластера из kube-state-metrics. |
-| `aiAgent.enabled` | `true` | ИИ-агент Kubernetes. Что ему разрешено делать, см. в [ИИ-агент Kubernetes](/docs/telemetry/kubernetes-agent). |
+| `aiAgent.enabled` | `true` | ИИ-агент Kubernetes. Что ему разрешено делать, см. в [ИИ-агент Kubernetes](/docs/telemetry/kubernetes-agent#ии-агент-kubernetes). |
 
 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) чарта перечисляет и объясняет каждый параметр, а [Агент Kubernetes](/docs/telemetry/kubernetes-agent) рассказывает о фильтрации, сэмплировании и о том, как сократить объём данных.
 

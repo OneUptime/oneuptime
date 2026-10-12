@@ -367,7 +367,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `ebpf.enabled` | `true` | eBPF 追蹤和請求指標。請參閱 [使用 eBPF 的應用程式追蹤](#使用-ebpf-的應用程式追蹤)。 |
 | `profiling.enabled` | `false` | CPU 火焰圖。請參閱 [持續 CPU 剖析](#持續-cpu-剖析)。 |
 | `kubeStateMetrics.enabled` | `false` | 來自 kube-state-metrics 的叢集狀態。 |
-| `aiAgent.enabled` | `true` | Kubernetes AI 代理程式。它可以做什麼，請參閱 [Kubernetes AI 代理程式](/docs/telemetry/kubernetes-agent)。 |
+| `aiAgent.enabled` | `true` | Kubernetes AI 代理程式。它可以做什麼，請參閱 [Kubernetes AI 代理程式](/docs/telemetry/kubernetes-agent#kubernetes-ai-代理程式)。 |
 
 Chart 的 [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) 列出並說明了每個選項，[Kubernetes 代理程式](/docs/telemetry/kubernetes-agent) 則介紹了篩選、取樣以及如何控制資料量。
 

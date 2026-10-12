@@ -1,21 +1,45 @@
-# OneUptime Docker Agent
+# Agent Docker
 
-## Panoramica
+L'agent Docker di OneUptime è un container che esegui su un host Docker. Legge le statistiche e i file di log di ogni container dell'host e li invia a OneUptime, dove l'host compare con i suoi container, le metriche e i log. Un secondo container, l'agente IA Docker, permette a OneUptime AI di indagare sull'host. I [monitor Docker](/docs/monitor/docker-monitor) generano avvisi in base a ciò che l'agent invia.
 
-OneUptime Docker Agent è un'immagine container pre-compilata che include una configurazione ottimizzata di OpenTelemetry Collector. Eseguilo accanto ai tuoi container esistenti e rileverà automaticamente ogni container presente sull'host, raccoglierà metriche di CPU / memoria / rete / I/O a blocchi oltre ai log dei container e inoltrerà tutto a OneUptime tramite OTLP. Una sola immagine, un solo comando.
+:::cards
+- [Installa l'agent](#installa-lagent): Due container, con `docker run` o Docker Compose.
+- [Cosa raccoglie l'agent](#cosa-raccoglie-lagent): Metriche, log e un inventario di ogni container.
+- [I log dei container richiedono json-file](#i-log-dei-container-richiedono-il-driver-json-file): Verificare e cambiare il driver di log di un container.
+- [Risoluzione dei problemi](#risoluzione-dei-problemi): Riavvii in loop, metriche mancanti, log mancanti.
+:::
 
-Questa pagina è la **guida all'installazione**. Per configurare i monitor e gli avvisi Docker basati sui dati raccolti dall'agent, consulta [Docker Monitor](/docs/monitor/docker-monitor).
+## Come funziona
 
-## Prerequisiti
+L'agent è un OpenTelemetry Collector con la configurazione di OneUptime integrata. Tramite il socket di Docker legge le statistiche di ogni container ogni 30 secondi ed elenca ogni container, immagine, rete e volume ogni 5 minuti. Segue i file di log dei container e invia tutto al tuo URL di OneUptime tramite OTLP, con la chiave di acquisizione che gli fornisci.
 
-- Docker Engine 20.10+
-- Accesso a `/var/run/docker.sock` sull'host
-- Un **token di acquisizione della telemetria di OneUptime** — creane uno da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e copia il valore
+```mermaid title="Due container sul tuo host Docker"
+flowchart TB
+    containers["I tuoi container"] -->|"statistiche, file di log,<br/>inventario"| agent["Agent Docker"]
+    agent -->|"OTLP su HTTPS"| oneuptime["OneUptime"]
+    oneuptime -->|"indaga su un incidente<br/>o un avviso"| ai["Agente IA Docker"]
+    ai -->|"comandi docker<br/>in sola lettura"| containers
+```
 
-## Avvio rapido (un solo comando)
+L'host si registra con i suoi primi dati, con il nome che gli dai in `DOCKER_HOST_NAME`. L'agente IA è opzionale: se lo ometti, il collector funziona allo stesso modo.
 
-Sostituisci `YOUR_ONEUPTIME_URL`, `YOUR_TELEMETRY_INGESTION_TOKEN` e il nome dell'host con i valori del tuo ambiente. Il nome dell'host è il modo in cui questo host Docker apparirà in OneUptime — scegli qualcosa come `prod-docker-01`.
+## Prima di iniziare
 
+- Docker Engine 20.10 o successivo, e accesso root sull'host: l'agent legge `/var/run/docker.sock`.
+- Docker Compose v2 (il comando `docker compose`), se installi con Docker Compose.
+- Una chiave di acquisizione. Creane una in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e copiane il valore.
+- HTTPS in uscita dall'host verso il tuo URL di OneUptime.
+- Per i log dei container, container che usano il driver di log `json-file` di Docker, che è quello predefinito di Docker. Vedi [I log dei container richiedono il driver json-file](#i-log-dei-container-richiedono-il-driver-json-file).
+
+## Installa l'agent
+
+:::steps
+### Avvia l'agent
+
+Sostituisci `YOUR_ONEUPTIME_URL` con il tuo URL di OneUptime, `YOUR_TELEMETRY_INGESTION_TOKEN` con la chiave di acquisizione e `my-docker-host` con un nome per questo host, come `prod-docker-01`. Il nome è quello con cui l'host compare in OneUptime, quindi mantienilo stabile: un nome nuovo registra un nuovo host.
+
+:::tabs
+@tab Docker CLI
 ```bash
 docker run -d \
   --name oneuptime-docker-agent \
@@ -29,13 +53,25 @@ docker run -d \
   oneuptime/docker-agent:release
 ```
 
-Tutto qui. Una volta che l'agent si connette, il tuo host Docker apparirà automaticamente nella sezione **Docker** della dashboard di OneUptime.
+Poi avvia accanto l'[agente IA](#agente-ia), con gli stessi valori. **Le indagini IA sono attive per impostazione predefinita**: mentre OneUptime AI indaga su un incidente o un avviso su questo host, esegue comandi `docker` in sola lettura tramite l'agente IA, e non modifica nulla a meno che tu non consenta le correzioni. Per installare senza indagini IA, salta questo comando.
 
-## Alternativa — Docker Compose
+```bash
+docker run -d \
+  --name oneuptime-docker-ai-agent \
+  --user 0:0 \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  oneuptime/resource-ai-agent:release
+```
+@tab Docker Compose
+Salva questo file come `docker-compose.yml` in una cartella sull'host. Il secondo servizio è l'[agente IA](#agente-ia): omettilo per eseguire il collector senza indagini IA.
 
-Se preferisci Docker Compose, inserisci quanto segue in un file `docker-compose.yml`:
-
-```yaml
+```yaml title="docker-compose.yml"
 services:
   oneuptime-docker-agent:
     image: oneuptime/docker-agent:release
@@ -54,138 +90,225 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  oneuptime-docker-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    container_name: oneuptime-docker-ai-agent
+    user: "0:0"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+      - ONEUPTIME_SERVICE_TOKEN=YOUR_TELEMETRY_INGESTION_TOKEN
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker
+      - DOCKER_HOST_NAME=my-docker-host
 ```
 
-Avvialo:
+Avvialo in quella cartella:
 
 ```bash
 docker compose up -d
 ```
+:::
 
-## Variabili d'ambiente
-
-| Variabile                 | Obbligatoria | Descrizione                                                                                                                                                                                                                        |
-| ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Sì           | L'URL della tua istanza OneUptime (ad esempio `https://oneuptime.com` o il tuo host self-hosted)                                                                                                                                   |
-| `ONEUPTIME_SERVICE_TOKEN` | Sì           | Token di acquisizione della telemetria da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_                                                                                                                  |
-| `DOCKER_HOST_NAME`        | No           | Nome descrittivo per questo host. Il valore predefinito è `docker-host`. Impostalo su un valore stabile per ciascun host (ad es. `prod-docker-01`)                                                                                 |
-| `DOCKER_API_VERSION`      | No           | Versione dell'API di Docker Engine utilizzata dall'agent. Il valore predefinito è `1.44`; abbassala sugli host con un daemon meno recente oppure lasciala vuota per negoziarla automaticamente (consulta Risoluzione dei problemi) |
-
-## Verifica dell'installazione
-
-Verifica che l'agent sia in esecuzione:
+### Verifica che l'agent sia in esecuzione
 
 ```bash
 docker ps --filter name=oneuptime-docker-agent
-```
-
-Controlla i log dell'agent:
-
-```bash
 docker logs -f oneuptime-docker-agent
 ```
 
-Cerca: `"Everything is ready. Begin running and processing data."`
+I log dovrebbero mostrare questa riga una volta avviato il collector:
 
-Entro un minuto circa l'host dovrebbe apparire nella dashboard di OneUptime con metriche e log in arrivo.
-
-## Aggiornamento dell'agent
-
-Quando l'agent è più vecchio del tuo OneUptime, accanto a **Versione dell'agente** nella **Panoramica** dell'host Docker compare un segnale di avviso. Selezionalo per vedere questi comandi.
-
-```bash
-docker pull oneuptime/docker-agent:release
-docker rm -f oneuptime-docker-agent
-# Riesegui il comando `docker run` riportato sopra
+```text
+Everything is ready. Begin running and processing data.
 ```
 
-Oppure con Docker Compose:
+### Trova l'host in OneUptime
 
+Apri **Prodotti → Infrastruttura → Docker → Tutti gli host**. L'host compare con il suo `DOCKER_HOST_NAME` entro un minuto circa, con i suoi container, le metriche e i log. L'agente IA risulta connesso nella pagina **Agente IA** dell'host e in fondo alla sua **Panoramica**.
+:::
+
+## Variabili d'ambiente
+
+| Variabile | Obbligatoria | Descrizione |
+| --- | --- | --- |
+| `ONEUPTIME_URL` | Sì | Il tuo URL di OneUptime, come `https://oneuptime.com` o la tua istanza self-hosted. Usa `http://` e la sua porta se l'istanza usa solo HTTP. |
+| `ONEUPTIME_SERVICE_TOKEN` | Sì | La chiave di acquisizione da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. |
+| `DOCKER_HOST_NAME` | No | Il nome dell'host in OneUptime. Il valore predefinito è `docker-host`, quindi dai a ogni host il suo. |
+| `DOCKER_API_VERSION` | No | La versione dell'API di Docker Engine che l'agent usa. Il valore predefinito è `1.44`. Abbassala con un daemon più vecchio, oppure impostala su un valore vuoto per negoziarla con il daemon (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)). |
+
+Per cambiare un valore, rimuovi l'agent ed esegui di nuovo il suo comando (Docker CLI), oppure modifica `docker-compose.yml` ed esegui `docker compose up -d` (Docker Compose).
+
+## Cosa raccoglie l'agent
+
+| Dati | Cosa sono |
+| --- | --- |
+| Metriche dei container | CPU (utilizzo, percentuale, limitazione), memoria (utilizzo, limite, percentuale), I/O di rete e di blocco, uptime, riavvii e numero di processi, per container, ogni 30 secondi. |
+| Log dei container | stdout e stderr di ogni container, dal suo file di log `json-file`. |
+| Inventario | Ogni container in qualsiasi stato, e ogni immagine, rete e volume, ogni 5 minuti. |
+
+Le metriche e i log di ogni container vengono archiviati sotto un servizio con il nome del container. Ogni riga di log riceve una severità in base al livello che indica, come `[ERROR]`, `level=warn` o `{"level":"info"}`; una riga che non ne indica nessuno prende quella del suo flusso: stderr è `ERROR`, stdout è `INFO`. Le righe che iniziano con uno spazio o una parentesi di chiusura vengono unite alla riga precedente, quindi uno stack trace arriva come un unico record. I log dell'agent stesso vengono esclusi.
+
+[Monitor Docker](/docs/monitor/docker-monitor#metriche-raccolte) elenca ogni metrica e il suo significato.
+
+## I log dei container richiedono il driver json-file
+
+L'agent segue `/var/lib/docker/containers/*/*-json.log`, i file che scrive il driver di log `json-file` di Docker. Un container che usa un altro driver non lascia alcun file da leggere: `local` scrive file binari, e `journald`, `syslog`, `fluentd` e `gelf` inviano i log altrove. Le sue metriche arrivano comunque; i suoi log no.
+
+Controlla il driver di log di un container e quello predefinito del daemon:
+
+```bash
+docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
+docker info --format '{{.LoggingDriver}}'
+```
+
+Passa un servizio Compose a `json-file`, con rotazione:
+
+```yaml
+services:
+  my-app:
+    image: my-app:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+```
+
+Oppure rendilo il predefinito per ogni container creato in seguito, in `/etc/docker/daemon.json`:
+
+```json title="/etc/docker/daemon.json"
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "5"
+  }
+}
+```
+
+Poi riavvia Docker e ricrea i container. Un container mantiene il driver di log con cui è stato creato, quindi riavviarlo non basta.
+
+## Aggiornare l'agent
+
+Quando l'agent è più vecchio del tuo OneUptime, compare un segnale di avviso accanto a **Versione dell'agente** nella **Panoramica** dell'host. Selezionalo per vedere questi comandi.
+
+:::tabs
+@tab Docker CLI
+```bash
+docker pull oneuptime/docker-agent:release
+docker pull oneuptime/resource-ai-agent:release
+docker rm -f oneuptime-docker-agent oneuptime-docker-ai-agent
+```
+
+Poi esegui di nuovo entrambi i comandi `docker run` di [Avvia l'agent](#avvia-lagent).
+@tab Docker Compose
 ```bash
 docker compose pull
 docker compose up -d
 ```
+:::
 
-## Disinstallazione dell'agent
+Il tag `release` punta sempre alla release più recente. Per fissare una versione, usa `oneuptime/docker-agent:<version>`, come `oneuptime/docker-agent:10.0.31`. La stessa immagine si trova nel GitHub Container Registry come `ghcr.io/oneuptime/docker-agent:release`.
 
+## Disinstallare l'agent
+
+:::tabs
+@tab Docker CLI
 ```bash
 docker rm -f oneuptime-docker-agent
+docker rm -f oneuptime-docker-ai-agent
 ```
-
-Se hai utilizzato Docker Compose:
-
+@tab Docker Compose
 ```bash
 docker compose down
 ```
+:::
 
-## Cosa viene raccolto
+L'host resta in OneUptime con i dati che ha inviato. Se non ti serve più, eliminalo con **Elimina host** nel suo menu.
 
-| Categoria                      | Dati                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| **Metriche CPU**               | Utilizzo totale, percentuale di utilizzo, tempo di throttling (per container) |
-| **Metriche di memoria**        | Utilizzo, limite, percentuale, RSS, cache (per container)                     |
-| **Metriche di rete**           | Byte e pacchetti ricevuti / trasmessi (per container)                         |
-| **Metriche di I/O a blocchi**  | Byte e operazioni di lettura / scrittura (per container)                      |
-| **Informazioni sul container** | Uptime, conteggio dei riavvii, numero di processi                             |
-| **Log dei container**          | Log stdout / stderr di tutti i container                                      |
+## Agente IA
 
-## OneUptime self-hosted
+I comandi e il file Compose qui sopra, l'`install.sh` dell'agent Docker e il `docker-compose.yml` nella sua [directory DockerAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerAgent) eseguono tutti l'**Agente IA Docker**: un secondo container, `oneuptime-docker-ai-agent` (immagine `oneuptime/resource-ai-agent:release`), che esegue i comandi `docker` in sola lettura richiesti da OneUptime AI mentre indaga su un incidente o un avviso su questo host — `docker ps -a`, `docker logs --tail 200 web`, `docker container inspect web`, `docker stats --no-stream` — e, solo se lo consenti, applica correzioni come il riavvio di un container specifico. Legge gli stessi `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN` e `DOCKER_HOST_NAME` del collector, quindi serve esattamente questo host, e compare nella pagina **Agente IA** dell'host in OneUptime.
 
-Se stai eseguendo OneUptime in self-hosting, imposta `ONEUPTIME_URL` sulla tua istanza:
+- **Le indagini IA sono attive per impostazione predefinita.** Appena l'agent si connette, OneUptime AI lo usa per indagare sugli incidenti e sugli avvisi di questo host, e la **Panoramica** dell'host mostra lo stato dell'agent. Per fermarlo, imposta `ONEUPTIME_AI_INVESTIGATION=false` dove viene eseguito l'agent (**Cambia** sotto **Cosa può fare l'IA**, nella pagina dell'agente IA, mostra come), oppure ometti l'agent.
+- È in sola lettura a meno che tu non lo avvii con `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (per esempio `web-*,api-*`) limita i container che una correzione può toccare. Avvialo anche con `ONEUPTIME_AI_FIXES` per indicare come vengono eseguite le correzioni — `ask-for-approval` (una persona approva ciascuna), `automatic` o `bypass-approval` — e la pagina dell'agente IA lo mostra in sola lettura ([Cosa può fare l'IA, impostato dall'agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- Viene eseguito come root con il socket di Docker montato, perché il socket appartiene a root — e chi può usare il socket è root su questo host, `:ro` o no. Il limite è la policy dei comandi dell'agent: non esegue mai `exec`, `run`, `rm` o `prune`, e non modifica mai sé stesso, il collector o qualsiasi cosa in `ONEUPTIME_AI_PROTECTED_TARGETS` (glob di nomi di container). I valori d'ambiente nell'output di `docker inspect` vengono mascherati prima che qualcosa lasci l'host.
+- `install.sh --no-ai-agent` lo omette; `docker rm -f oneuptime-docker-ai-agent` lo rimuove. Aggiornalo come il collector: `docker pull oneuptime/resource-ai-agent:release`, rimuovilo e avvialo di nuovo.
 
-```bash
--e ONEUPTIME_URL="https://your-oneuptime-host.example.com"
-```
-
-Se la tua istanza è solo HTTP, usa `http://` e la porta appropriata.
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts).
 
 ## Risoluzione dei problemi
 
-### Autorizzazione al socket Docker negata
+:::details L'agent si riavvia con "client version is too new"
+I log dell'agent mostrano:
 
-Il container dell'agent deve essere eseguito come root (`--user 0:0`) per accedere a `/var/run/docker.sock`. Assicurati che sia presente il flag `--user 0:0` (oppure `user: "0:0"` in Compose).
-
-### L'agent si riavvia con "client version is too new"
-
-```
+```text
 Error: cannot start pipelines: failed to start "docker_stats" receiver:
 Error response from daemon: client version 1.44 is too new.
 Maximum supported API version is 1.41
 ```
 
-Un daemon rifiuta un client più recente della propria versione massima supportata, quindi il receiver non si avvia mai e il collector termina insieme a esso. Verifica la versione massima supportata dal daemon e passala all'agent:
+Un daemon rifiuta un client più recente del proprio massimo, quindi il receiver non parte mai e il collector termina con esso. Trova il massimo del daemon:
 
 ```bash
 docker version --format '{{ .Server.APIVersion }}'
 ```
 
-Poi aggiungi `-e DOCKER_API_VERSION=1.41` (o il valore che hai ottenuto) al comando `docker run`, oppure imposta `DOCKER_API_VERSION` in Compose. I daemon più recenti continuano a servire anche le versioni precedenti dell'API, quindi l'impostazione resta valida dopo un aggiornamento.
+Poi aggiungi `-e DOCKER_API_VERSION=1.41` (o il valore che hai ottenuto) a `docker run`, oppure imposta `DOCKER_API_VERSION` in Compose. I daemon più recenti servono ancora le versioni più vecchie dell'API, quindi l'impostazione resta valida dopo un aggiornamento.
 
-Se preferisci non cercare il numero, imposta `DOCKER_API_VERSION` sulla **stringa vuota**. In questo caso l'agent chiede all'SDK di Docker di negoziare la versione con il daemon (una `HEAD /_ping`, poi la versione massima supportata dal daemon stesso), soluzione che funziona sia con i daemon meno recenti sia con quelli più recenti:
+Preferisci non cercare il numero? Imposta `DOCKER_API_VERSION` sulla stringa vuota. L'agent negozia allora la versione con il daemon (un `HEAD /_ping`, poi il massimo del daemon stesso), il che funziona sia con daemon vecchi sia con daemon nuovi:
 
 ```bash
 docker run -d ... -e DOCKER_API_VERSION= ...
 ```
+:::
 
-### L'agent risulta disconnesso
+:::details Permesso negato sul socket di Docker
+L'agent deve essere eseguito come root per leggere `/var/run/docker.sock`. Verifica che `--user 0:0` sia nel tuo comando `docker run`, oppure `user: "0:0"` in Compose.
+:::
 
+:::details L'host risulta disconnesso
 1. Verifica che l'agent sia in esecuzione: `docker ps --filter name=oneuptime-docker-agent`
-2. Controlla i log dell'agent: `docker logs oneuptime-docker-agent | grep -i error`
-3. Verifica che l'URL di OneUptime e il token del servizio siano corretti
-4. Assicurati che il tuo host Docker possa raggiungere l'istanza di OneUptime tramite la rete
+2. Cerca errori nei suoi log: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`
+3. Controlla `ONEUPTIME_URL` e `ONEUPTIME_SERVICE_TOKEN`: la chiave deve essere una chiave di acquisizione valida che non è stata disattivata.
+4. Verifica che l'host raggiunga il tuo URL di OneUptime in rete.
+:::
 
-### Nessuna metrica visualizzata
+:::details Non compare nessuna metrica
+1. Verifica che il socket di Docker sia montato nell'agent. La sua immagine non ha una shell, quindi guarda da un container usa e getta che ne condivide i mount: `docker run --rm --volumes-from oneuptime-docker-agent alpine:3.19 ls -la /var/run/docker.sock`
+2. Cerca errori di esportazione nei suoi log: `docker logs oneuptime-docker-agent 2>&1 | tail -100`
+3. Verifica che la chiave di acquisizione sia valida e non sia scaduta.
+:::
 
-1. Verifica che il socket Docker sia accessibile all'interno dell'agent: `docker exec oneuptime-docker-agent ls -la /var/run/docker.sock`
-2. Controlla i log del collector per individuare errori di esportazione: `docker logs oneuptime-docker-agent | tail -100`
-3. Assicurati che il tuo token del servizio sia valido e non scaduto
+:::details Le metriche arrivano, ma i log dei container no
+Molto probabilmente i tuoi container usano un driver di log diverso da `json-file`. Controlla quali file osserva l'agent e quale driver usa un container:
 
-### Il nome dell'host appare come un ID di container
+```bash
+docker logs oneuptime-docker-agent 2>&1 | grep -E "Started watching file|no files match"
+docker inspect <container> --format '{{.HostConfig.LogConfig.Type}}'
+```
 
-Imposta la variabile d'ambiente `DOCKER_HOST_NAME` su un nome descrittivo e ricrea il container.
+Se l'agent segnala `no files match the configured criteria`, passa i container a `json-file` e ricreali, come mostra [I log dei container richiedono il driver json-file](#i-log-dei-container-richiedono-il-driver-json-file).
+:::
+
+:::details I log finiscono su un altro host, oppure l'host si chiama docker-host
+Il nome dell'host viene da `DOCKER_HOST_NAME`. Un agent avviato senza di esso riporta `docker-host`, quindi ogni host configurato così sembra lo stesso; se cambi il nome in seguito, OneUptime registra un secondo host, che riceve i nuovi dati. Imposta `DOCKER_HOST_NAME` su un nome proprio per ogni host e ricrea l'agent. Per verificare il nome che riporta l'agent:
+
+```bash
+docker inspect oneuptime-docker-agent --format '{{range .Config.Env}}{{println .}}{{end}}' | grep DOCKER_HOST_NAME
+```
+:::
 
 ## Passaggi successivi
 
-- Configura i **Docker Monitor** per ricevere avvisi sulle condizioni di CPU / memoria / riavvio dei container — consulta [Docker Monitor](/docs/monitor/docker-monitor).
-- Per i cluster Kubernetes anziché host Docker autonomi, usa [OneUptime Kubernetes Agent](/docs/telemetry/kubernetes-agent).
-- Per host non containerizzati (VM e bare metal Linux / macOS / Windows), usa [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).
+:::cards
+- [Monitor Docker](/docs/monitor/docker-monitor): Ricevere avvisi su CPU, memoria e riavvii dei container.
+- [Database](/docs/telemetry/databases): I container di database sull'host vengono rilevati e ottengono pagine proprie.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent): Monitorare invece un cluster Kubernetes.
+- [Collector OpenTelemetry sull'host](/docs/telemetry/host-otel-collector): Monitorare la macchina stessa: CPU, dischi, processi e log.
+:::
