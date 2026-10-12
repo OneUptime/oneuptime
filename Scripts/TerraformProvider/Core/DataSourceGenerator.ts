@@ -33,7 +33,11 @@ export class DataSourceGenerator {
       await this.generateDataSource(dataSource);
     }
 
-    // Lookup helpers shared by every data source, and their tests.
+    /*
+     * Lookup helpers shared by every data source, and their tests. The
+     * number reader data sources share with resources, numberFromAPI, comes
+     * with the resources' helpers (apinumber.go, ResourceGenerator).
+     */
     for (const fileName of ["lookup.go", "lookup_test.go"]) {
       const content: string = this.fileGenerator.readTemplateFile(
         path.join(__dirname, "..", "StaticFiles", fileName),
@@ -80,16 +84,13 @@ export class DataSourceGenerator {
         return attr.type === "set";
       },
     );
-    const needsMathBigImport: boolean = Object.values(dataSource.schema).some(
-      (attr: any) => {
-        return attr.type === "number";
-      },
-    );
-
+    /*
+     * No "math/big": numbers are read by numberFromAPI (apinumber.go), and
+     * Go refuses to build a file that imports a package it does not use.
+     */
     const conditionalImports: string = [
       // http.StatusNotFound is only referenced by the get-item branch.
       dataSource.operations.read ? '\n    "net/http"' : "",
-      needsMathBigImport ? '\n    "math/big"' : "",
       needsAttrImport
         ? '\n    "github.com/hashicorp/terraform-plugin-framework/attr"'
         : "",
@@ -564,17 +565,11 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
         ${fieldName} = types.StringNull()
     }`;
       case "number":
-        return `if val, ok := ${responseValue}.(float64); ok {
-        ${fieldName} = types.NumberValue(big.NewFloat(val))
-    } else if obj, ok := ${responseValue}.(map[string]interface{}); ok {
-        if val, ok := obj["value"].(float64); ok {
-            ${fieldName} = types.NumberValue(big.NewFloat(val))
-        } else {
-            ${fieldName} = types.NumberNull()
-        }
-    } else {
-        ${fieldName} = types.NumberNull()
-    }`;
+        /*
+         * A lookup argument keeps the number it was given when the item
+         * found has the same one (see GoCodeGenerator.generateNumberFromAPI).
+         */
+        return GoCodeGenerator.generateNumberFromAPI(fieldName, responseValue);
       case "bool":
         return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)

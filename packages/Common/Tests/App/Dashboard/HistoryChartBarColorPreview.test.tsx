@@ -306,6 +306,42 @@ describe("Bar Color Preview, with rules of the operator's own", () => {
     expect(swatchesOf(ColorVision.Full)[4]).toHaveClass("opacity-40");
     expect(swatchesOf(ColorVision.Full)[0]).not.toHaveClass("opacity-40");
   });
+
+  /*
+   * Rules a Terraform configuration computed, which apply since #4719: each
+   * is named with at most four decimals, and none is rounded into a rule it
+   * is not - a hair under 100 is not the 100% rule above it, and a hair
+   * over 0 leaves days under it, not "Under 0%".
+   */
+  test("names rules with many decimals by four of them, never as the 100% or 0% they are not", async () => {
+    await renderPreview({
+      rules: [
+        { uptimePercentGreaterThanOrEqualTo: 100, barColor: "#86efac" },
+        {
+          uptimePercentGreaterThanOrEqualTo: 99.99999999999999,
+          barColor: "#2563eb",
+        },
+        {
+          uptimePercentGreaterThanOrEqualTo: 100 * (1 - 1 / 1440),
+          barColor: "#fde047",
+        },
+        { uptimePercentGreaterThanOrEqualTo: 0.000001, barColor: "#7f1d1d" },
+      ],
+      fallbackColor: Green,
+    });
+
+    expect(columnLabels()).toEqual([
+      "100%",
+      "99.9999% or more",
+      "99.9306% or more",
+      "0.0001% or more",
+      "Under 0.0001%",
+      "No data",
+    ]);
+    expect(notes()).toEqual([
+      "A day under 0.0001% uptime matches no rule, so it takes the default bar color.",
+    ]);
+  });
 });
 
 describe("Bar Color Preview, without rules", () => {
