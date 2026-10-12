@@ -771,7 +771,15 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     width: "10px",
                     border: `2px solid ${colors.handleBorder}`,
                     bottom: "-5px",
-                    transition: "all 0.15s ease",
+                    /*
+                     * Only the hover grows smoothly. A dot that moves - a
+                     * case added, removed or dragged elsewhere - jumps to
+                     * its place at once: React Flow measures where the dots
+                     * are as soon as they change, and a dot measured half
+                     * way through a glide sent its connections out of where
+                     * it had been.
+                     */
+                    transition: "transform 0.15s ease",
                     left: `${outputLayout.dotLeftPercents[i]}%`,
                   }}
                 />

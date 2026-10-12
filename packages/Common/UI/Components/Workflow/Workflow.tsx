@@ -952,8 +952,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             stroke: #6366f1 !important;
             stroke-width: 2.5px !important;
           }
+          /*
+           * A dot grows where it is. React Flow centres a top or bottom dot
+           * with translate(-50%, 0); a bare scale() replaced that, and the
+           * dot jumped half its width to the right under the pointer.
+           */
           .react-flow__handle:hover {
             transform: scale(1.3) !important;
+          }
+          .react-flow__handle-top:hover,
+          .react-flow__handle-bottom:hover {
+            transform: translate(-50%, 0) scale(1.3) !important;
           }
           .react-flow__connection-line {
             stroke: #6366f1 !important;

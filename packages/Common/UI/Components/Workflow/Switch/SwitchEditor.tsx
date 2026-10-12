@@ -767,6 +767,8 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
             icon={IconProp.Add}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
+            // Flush with the cases above, not a modal footer's gap in from them.
+            className="md:!ml-0"
             dataTestId={SWITCH_TEST_IDS.addCase}
             disabled={isFull}
             onClick={add}

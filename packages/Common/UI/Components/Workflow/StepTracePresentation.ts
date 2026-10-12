@@ -13,6 +13,14 @@
  */
 
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import { SWITCH_ARGUMENT_IDS } from "../../../Types/Workflow/Components/Switch";
+import {
+  SwitchCase,
+  SwitchCasesReading,
+  describeSwitchCaseCondition,
+  parseSwitchCases,
+} from "../../../Types/Workflow/Components/SwitchCases";
 import {
   WorkflowStepStatus,
   WorkflowStepTrace,
@@ -374,6 +382,47 @@ const templateText: TemplateTextFunction = (
   }
 };
 
+type DescribeSwitchCasesFunction = (value: unknown) => string | null;
+
+/**
+ * A Switch / Case's cases as a run received them, one line each in the words
+ * of the canvas and of the run's reason - "Case 2: is equal to “staging”" -
+ * rather than as the JSON of the list. Null when they are not a list of
+ * cases, which is then shown as it was.
+ */
+export const describeSwitchCasesForTrace: DescribeSwitchCasesFunction = (
+  value: unknown,
+): string | null => {
+  const reading: SwitchCasesReading = parseSwitchCases(value);
+
+  if (!reading.isReadable || reading.cases.length === 0) {
+    return null;
+  }
+
+  return reading.cases
+    .map((switchCase: SwitchCase, index: number): string => {
+      return `Case ${index + 1}: ${
+        describeSwitchCaseCondition(switchCase) || "not set up"
+      }`;
+    })
+    .join("\n");
+};
+
+type IsSwitchCasesFunction = (
+  step: WorkflowStepTraceEntry,
+  argumentId: string,
+) => boolean;
+
+const isSwitchCases: IsSwitchCasesFunction = (
+  step: WorkflowStepTraceEntry,
+  argumentId: string,
+): boolean => {
+  return (
+    step.metadataId === ComponentID.Switch &&
+    argumentId === SWITCH_ARGUMENT_IDS.cases
+  );
+};
+
 type GetReceivedRowsFunction = (
   step: WorkflowStepTraceEntry,
 ) => Array<StepValueRow>;
@@ -388,8 +437,26 @@ export const getReceivedRows: GetReceivedRowsFunction = (
 
   return orderedKeys(values, step.argumentNames).map(
     (id: string): StepValueRow => {
-      const value: TraceValueDisplay = formatTraceValue(values[id]);
-      const template: string | null = templateText(templates[id]);
+      /*
+       * A Switch / Case's cases read as the sentences the canvas and the
+       * run's reason use, as received and, when a case had a {{...}} in it,
+       * as configured.
+       */
+      const casesText: string | null = isSwitchCases(step, id)
+        ? describeSwitchCasesForTrace(values[id])
+        : null;
+      const configuredCasesText: string | null = isSwitchCases(step, id)
+        ? describeSwitchCasesForTrace(templates[id])
+        : null;
+
+      const value: TraceValueDisplay =
+        casesText !== null
+          ? { kind: TraceValueKind.Text, text: casesText, isBlock: true }
+          : formatTraceValue(values[id]);
+      const template: string | null =
+        configuredCasesText !== null
+          ? configuredCasesText
+          : templateText(templates[id]);
 
       const unresolvedReferences: Array<string> = [];
 

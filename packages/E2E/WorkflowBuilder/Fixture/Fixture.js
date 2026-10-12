@@ -7,6 +7,10 @@
  * ?scenario=graph         a Manual trigger connected to a set-up Log step
  * ?scenario=trigger-only  just a Manual trigger
  * ?scenario=empty         the dashed "choose a trigger" placeholder
+ * ?scenario=switch        a Manual trigger, then a Switch / Case on an
+ *                         environment: "production" leads to log-1,
+ *                         "staging" to log-2 and Default to log-3; log-4 is
+ *                         on the canvas, connected to nothing yet
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -72,10 +76,42 @@ function step(metadataId, number, x, y, args) {
 let initialNodes = [];
 let initialEdges = [];
 
+function edge(source, sourceHandle, target) {
+  return {
+    id: `${source}-${sourceHandle}-to-${target}`,
+    source: source,
+    sourceHandle: sourceHandle,
+    target: target,
+    targetHandle: "in",
+  };
+}
+
 if (scenario === "empty") {
   initialNodes = [getPlaceholderTriggerNode()];
 } else if (scenario === "trigger-only") {
   initialNodes = [step("manual", 1, 160, 64)];
+} else if (scenario === "switch") {
+  // As the Switch / Case settings save it: a value and a list of cases.
+  initialNodes = [
+    step("manual", 1, 160, 32),
+    step("switch", 1, 160, 240, {
+      value: "{{local.components.manual-1.returnValues.value.environment}}",
+      cases: [
+        { id: "case-1", comparison: "==", value: "production", compareAs: "" },
+        { id: "case-2", comparison: "==", value: "staging", compareAs: "" },
+      ],
+    }),
+    step("log", 1, -224, 480, { value: "Production" }),
+    step("log", 2, 160, 480, { value: "Staging" }),
+    step("log", 3, 544, 480, { value: "Anything else" }),
+    step("log", 4, 160, 704, { value: "Development" }),
+  ];
+  initialEdges = [
+    edge("canvas-manual-1", "success", "canvas-switch-1"),
+    edge("canvas-switch-1", "case-1", "canvas-log-1"),
+    edge("canvas-switch-1", "case-2", "canvas-log-2"),
+    edge("canvas-switch-1", "default", "canvas-log-3"),
+  ];
 } else {
   initialNodes = [
     step("manual", 1, 160, 64),
