@@ -29,6 +29,7 @@ import {
 } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { AiRemediationCommandPolicyVerdict } from "../../../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 import { describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * Contract under test — the ceph command policy (CephCommandPolicy), the
@@ -1468,11 +1469,8 @@ describe("the command guides", () => {
                 return `${word} `;
               })
               .join("")}`;
-      const escape: (text: string) => string = (text: string): string => {
-        return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      };
       const pattern: RegExp = new RegExp(
-        `${escape(prefix)}(?:[\\w-]+\\|)*${escape(last)}(?:\\|[\\w-]+)*(?=[ \`])`,
+        `${escapeRegExp(prefix)}(?:[\\w-]+\\|)*${escapeRegExp(last)}(?:\\|[\\w-]+)*(?=[ \`])`,
       );
 
       expect(both).toMatch(pattern);

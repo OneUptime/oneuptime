@@ -13,6 +13,7 @@ import {
   TAILWIND_BREAKPOINTS_IN_PX,
   describeVisibility,
 } from "../../ResponsiveVisibility";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * The logs explorer on a phone.
@@ -548,9 +549,7 @@ describe("dark mode", () => {
       .replace(/:/g, "\\:")
       .replace(/\//g, "\\/");
     // Followed by a non-identifier character, so bg-gray-50 is not bg-gray-500.
-    const asClass: RegExp = new RegExp(
-      `\\.${escaped.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`,
-    );
+    const asClass: RegExp = new RegExp(`\\.${escapeRegExp(escaped)}(?![\\w-])`);
 
     return DARK_SELECTORS.some((selector: string): boolean => {
       return selector.includes(`[class~="${token}"]`) || asClass.test(selector);

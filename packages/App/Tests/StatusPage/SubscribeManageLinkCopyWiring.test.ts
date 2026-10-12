@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * POST /status-page/manage-subscription/:statusPageId answers with the same
@@ -98,10 +99,6 @@ function readCode(relativePath: string): string {
 
 function occurrences(source: string, search: string): number {
   return source.split(search).length - 1;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function translationCall(key: string): string {

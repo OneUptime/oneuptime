@@ -15,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * A table's buttons read the permission snapshot by the rule the server
@@ -128,7 +129,7 @@ const givenSnapshot: GivenSnapshotFunction = (
 };
 
 const containing: (text: string) => RegExp = (text: string): RegExp => {
-  return new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(escapeRegExp(text));
 };
 
 type BlockedSentenceFunction = (permission: Permission) => string;

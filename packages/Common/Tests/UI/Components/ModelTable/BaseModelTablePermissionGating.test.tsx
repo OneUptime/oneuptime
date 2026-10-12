@@ -15,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * What a table offers a viewer who is not allowed to change anything.
@@ -149,7 +150,7 @@ const DELETE_DENIED_MESSAGE: string =
  * AsymmetricMatcher. The sentence is escaped so its full stop is literal.
  */
 const containing: (text: string) => RegExp = (text: string): RegExp => {
-  return new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(escapeRegExp(text));
 };
 
 type TableOptions = {

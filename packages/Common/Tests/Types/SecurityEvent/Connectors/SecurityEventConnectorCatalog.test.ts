@@ -14,6 +14,7 @@ import SecurityEventConnectorProvider, {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 /*
  * The catalog is the one place the dashboard form, the server validator
@@ -56,10 +57,6 @@ function allFields(
   definition: SecurityEventConnectorDefinition,
 ): Array<ConnectorField> {
   return [...definition.configFields, ...definition.secretFields];
-}
-
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 describe("SecurityEventConnectorCatalog - one definition per provider", () => {
@@ -315,7 +312,7 @@ describe.each(DEFINITION_CASES)(
        * cannot break the test and a mention in a comment cannot fake it.
        */
       const link: RegExp = new RegExp(
-        `url:\\s*["']${escapeForRegExp(definition.docsPath)}["']`,
+        `url:\\s*["']${escapeRegExp(definition.docsPath)}["']`,
       );
 
       expect({

@@ -1,4 +1,5 @@
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { escapeRegExp as repositoryEscapeRegExp } from "Common/Utils/RegExpEscape";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
 import { describe, expect, it } from "@jest/globals";
 
@@ -64,6 +65,10 @@ const exactly: (text: string, flags?: string) => RegExp = (
 };
 
 describe("escapeRegExp", () => {
+  it("is the repository's one escape (Common/Utils/RegExpEscape), handed on by DocsTranslationChecks", () => {
+    expect(escapeRegExp).toBe(repositoryEscapeRegExp);
+  });
+
   it("puts a backslash before each character a pattern reads as syntax", () => {
     for (const character of SYNTAX_CHARACTERS) {
       expect({ character, escaped: escapeRegExp(character) }).toEqual({

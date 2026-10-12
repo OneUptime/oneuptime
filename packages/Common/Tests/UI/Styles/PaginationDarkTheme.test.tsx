@@ -9,6 +9,7 @@ import Pagination, {
   ComponentProps,
 } from "../../../UI/Components/Pagination/Pagination";
 import { THEME_RULES, StyleRule, declaredValue } from "./ThemeStylesheet";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * The pagination bar in the dark theme.
@@ -92,10 +93,6 @@ function colourTokensIn(root: Element): Array<string> {
   return Array.from(tokens).sort();
 }
 
-function escapeForRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-}
-
 /*
  * Whether Theme.css remaps the class: as a class selector for a plain
  * utility, by its exact token in a [class~="..."] selector, or by a prefix in
@@ -109,7 +106,7 @@ function isRemappedForDarkTheme(token: string): boolean {
   if (
     !token.includes(":") &&
     !token.includes("/") &&
-    new RegExp(`\\.${escapeForRegExp(token)}(?![\\w-])`).test(THEME_CSS)
+    new RegExp(`\\.${escapeRegExp(token)}(?![\\w-])`).test(THEME_CSS)
   ) {
     return true;
   }

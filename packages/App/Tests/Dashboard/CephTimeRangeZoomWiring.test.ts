@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Issue #4105 wiring pins for the Ceph cluster pages: drag across any chart
@@ -44,9 +45,7 @@ function scopeOpening(
   onTimeRangeChange: string,
 ): number {
   const opening: string = `<TimeRangeZoomScope timeRange={${timeRange}} onTimeRangeChange={${onTimeRangeChange}}`;
-  const index: number = code.search(
-    new RegExp(`${opening.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} ?>`),
-  );
+  const index: number = code.search(new RegExp(`${escapeRegExp(opening)} ?>`));
   if (index < 0) {
     throw new Error(`Expected the source to contain "${opening}>".`);
   }

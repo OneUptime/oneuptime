@@ -36,6 +36,7 @@ import {
   ManagedCloudPlatform,
   ManagedCloudPlatformDescriptor,
 } from "../../../Types/Cloud/CloudPlatform";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * The cloud guide as it reaches the screen.
@@ -143,10 +144,6 @@ const descriptorOf: (
       return descriptor.platform === platform;
     },
   )!;
-};
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /*
