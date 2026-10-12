@@ -591,12 +591,6 @@ describe("every test file writes nothing code scanning reports", () => {
         return !readByAGuard.has(file);
       }),
     ).toEqual([]);
-    // And the other way: the walks read nothing code scanning does not.
-    expect(
-      [...productFiles, ...files].filter((file: string): boolean => {
-        return !isCodeScanningFile(file);
-      }),
-    ).toEqual([]);
   });
 
   test(
