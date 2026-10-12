@@ -148,7 +148,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!userAuth || !userAuth.workspaceUserId) {
       throw new BadDataException(
-        "Your Slack account is not connected to OneUptime for this project. Please go to User Settings > Slack Integration and connect your Slack account first.",
+        "Your Slack account is not connected to OneUptime in this project yet. Connect it in User Settings > Workspace > Slack with Connect my account with Slack, then add it here.",
       );
     }
 

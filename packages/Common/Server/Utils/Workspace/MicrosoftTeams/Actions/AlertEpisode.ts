@@ -20,6 +20,8 @@ import AlertEpisodeInternalNoteService from "../../../../Services/AlertEpisodeIn
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -95,6 +97,16 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           event: { type: WorkspaceEventType.AlertEpisode, id: episodeId },
         });
 
+      // Somebody got there first: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(episode)).isAcknowledged) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: episode,
+          press: WorkspaceLatePress.Acknowledge,
+        });
+        return;
+      }
+
       /*
        * Acknowledged by the member, as the dashboard acknowledges it for
        * them (WorkspaceMemberActions). A refusal is theirs to read:
@@ -128,6 +140,16 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           action: "resolve this alert episode",
           event: { type: WorkspaceEventType.AlertEpisode, id: episodeId },
         });
+
+      // Resolved already: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(episode)).isResolved) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: episode,
+          press: WorkspaceLatePress.Resolve,
+        });
+        return;
+      }
 
       // Resolved by the member, as the dashboard resolves it for them.
       await WorkspaceMemberActions.resolve({

@@ -149,7 +149,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!userAuth || !userAuth.workspaceUserId) {
       throw new BadDataException(
-        "Your Microsoft Teams account is not connected to OneUptime for this project. Please go to User Settings > Microsoft Teams Integration and connect your Microsoft Teams account first.",
+        "Your Microsoft Teams account is not connected to OneUptime in this project yet. Connect it in User Settings > Workspace > Microsoft Teams with Connect my account with Microsoft Teams, then add it here.",
       );
     }
 

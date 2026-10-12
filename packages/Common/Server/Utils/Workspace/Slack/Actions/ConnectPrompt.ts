@@ -8,10 +8,9 @@ import WorkspaceActionAnswers, {
   WorkspaceAnswer,
 } from "../../WorkspaceActionAnswers";
 import WorkspaceConnectRequest, {
-  WorkspaceConnectRequestAgain,
   WorkspaceConnectRequestAgainKind,
-  WorkspacePendingAction,
   WorkspacePendingActionKind,
+  WorkspacePressDescription,
 } from "../../WorkspaceConnectRequest";
 import WorkspaceMemberActions, {
   WorkspaceEventType,
@@ -37,12 +36,7 @@ import SlackActionAnswer, {
  */
 
 // What a press asks to be connected for (describe).
-export interface SlackPressDescription {
-  // Completes "Connect your Slack account to ...".
-  purpose: string;
-  pendingAction?: WorkspacePendingAction | undefined;
-  again?: WorkspaceConnectRequestAgain | undefined;
-}
+export type SlackPressDescription = WorkspacePressDescription;
 
 interface PendingPress {
   kind: WorkspacePendingActionKind;

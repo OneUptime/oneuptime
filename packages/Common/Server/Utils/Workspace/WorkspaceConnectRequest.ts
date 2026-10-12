@@ -77,6 +77,17 @@ export interface WorkspaceConnectRequestAgain {
   label?: string | undefined;
 }
 
+/*
+ * What a press asks to be connected for, worked out from the press alone:
+ * nothing about its record is read, since the person may not read it yet.
+ */
+export interface WorkspacePressDescription {
+  // Completes "Connect your Slack account to ...": "acknowledge this incident".
+  purpose: string;
+  pendingAction?: WorkspacePendingAction | undefined;
+  again?: WorkspaceConnectRequestAgain | undefined;
+}
+
 // Where Slack answers the press: the channel, its thread, the press's response_url.
 export interface WorkspaceConnectRequestSlackPlace {
   teamId?: string | undefined;

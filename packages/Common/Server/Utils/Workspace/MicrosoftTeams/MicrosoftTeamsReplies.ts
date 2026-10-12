@@ -11,7 +11,6 @@ import logger, { LogAttributes } from "../../Logger";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES,
 } from "./MicrosoftTeamsMessageSize";
-import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Replies the Microsoft Teams bot sends, and the rule they follow: an inbound
@@ -230,26 +229,5 @@ export default class MicrosoftTeamsReplies {
       logger.debug(error);
       return null;
     }
-  }
-
-  /*
-   * What to tell a Teams user who has not connected their Microsoft Teams
-   * account to OneUptime yet: where to do it. `purpose` completes "To ...",
-   * e.g. "create incidents from Microsoft Teams".
-   */
-  public static async getAccountNotLinkedMessage(data: {
-    projectId: ObjectID;
-    purpose: string;
-  }): Promise<string> {
-    const settingsLink: string | null = await this.getDashboardLink({
-      projectId: data.projectId,
-      route: "/user-settings/microsoft-teams-integration",
-    });
-
-    const where: MarkdownText | string = settingsLink
-      ? mdText`in [OneUptime → User Settings → Microsoft Teams](${settingsLink})`
-      : "in OneUptime under User Settings → Microsoft Teams";
-
-    return mdText`To ${data.purpose}, first connect your Microsoft Teams account to OneUptime ${where}, then try again.`.toString();
   }
 }
