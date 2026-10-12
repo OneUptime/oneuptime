@@ -1113,9 +1113,25 @@ describe("the AI / LLM Observability page", () => {
       "or any attribute that starts with `gen_ai.`, `llm.` or `traceloop.`",
     );
     expect(prefixes).toBe("`gen_ai.`, `llm.`, `traceloop.`");
+    // "Total tokens are input plus output when no total is reported."
     expect(source("tokenUsage")).toContain(
-      "totalTokens = inputTokens + outputCount;",
+      "const derivedTotal: number = this.count(inputTokens + outputCount);",
     );
+    expect(
+      LlmTokenUsageUtil.read({
+        numberOf: (key: string): number | null => {
+          return (
+            (
+              {
+                "gen_ai.usage.input_tokens": 1200,
+                "gen_ai.usage.output_tokens": 350,
+              } as Record<string, number>
+            )[key] ?? null
+          );
+        },
+        namesModelOrProvider: true,
+      }).totalTokens,
+    ).toBe(1550);
     expect(source("llmSpan")).toContain(
       "fields.llmTotalTokens = usage.totalTokens;",
     );
