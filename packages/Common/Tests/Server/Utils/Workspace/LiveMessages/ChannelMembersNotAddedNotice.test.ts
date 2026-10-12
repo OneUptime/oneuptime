@@ -103,11 +103,13 @@ beforeEach(() => {
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
 
-  jest.spyOn(UserService, "findBy").mockResolvedValue([
-    person(NB_USER_3, "NB User 3"),
-    person(JANE, "Jane Doe"),
-    person(NO_NAME, undefined, "noname@example.com"),
-  ]);
+  jest
+    .spyOn(UserService, "findBy")
+    .mockResolvedValue([
+      person(NB_USER_3, "NB User 3"),
+      person(JANE, "Jane Doe"),
+      person(NO_NAME, undefined, "noname@example.com"),
+    ]);
 
   jest
     .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")

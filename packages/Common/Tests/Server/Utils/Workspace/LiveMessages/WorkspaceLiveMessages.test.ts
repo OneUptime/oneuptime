@@ -73,7 +73,9 @@ let store: InMemoryLiveMessages;
 let postSpy: SpyInstance<
   typeof WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot
 >;
-let logSpy: SpyInstance<typeof WorkspaceNotificationRuleService.logSendResponses>;
+let logSpy: SpyInstance<
+  typeof WorkspaceNotificationRuleService.logSendResponses
+>;
 
 function answerPost(
   threads: WorkspaceSendMessageResponse["threads"],
@@ -226,9 +228,7 @@ describe("WorkspaceLiveMessages.getContentHash", () => {
     const a: string = WorkspaceLiveMessages.getContentHash([markdown("one")]);
 
     expect(WorkspaceLiveMessages.getContentHash([markdown("one")])).toBe(a);
-    expect(WorkspaceLiveMessages.getContentHash([markdown("two")])).not.toBe(
-      a,
-    );
+    expect(WorkspaceLiveMessages.getContentHash([markdown("two")])).not.toBe(a);
     expect(a).toMatch(/^[0-9a-f]{64}$/);
   });
 });
@@ -789,9 +789,7 @@ describe("WorkspaceLiveMessages.updateKept", () => {
       jest
         .spyOn(MicrosoftTeamsUtil, "updateMessage")
         .mockRejectedValue({ statusCode: 404, code: "NotFound" });
-    jest
-      .spyOn(MicrosoftTeamsUtil, "isMessageGoneError")
-      .mockReturnValue(true);
+    jest.spyOn(MicrosoftTeamsUtil, "isMessageGoneError").mockReturnValue(true);
 
     const chatMessage: WorkspaceLiveMessage = new WorkspaceLiveMessage();
     chatMessage.id = ObjectID.generate();

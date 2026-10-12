@@ -564,15 +564,18 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         mdText`${stateEmoji} Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **${stateName}**`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
-      /*
-       * Not posted to Slack and Microsoft Teams for the record's first
-       * state: the message that announced the record names it already
-       * (WorkspaceStateChangePosting). The feed keeps the entry.
-       */
-        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace({
-          stateBeforeThis: onCreate.carryForward.statusTimelineBeforeThisStatus,
-          stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
-        }),
+        /*
+         * Not posted to Slack and Microsoft Teams for the record's first
+         * state: the message that announced the record names it already
+         * (WorkspaceStateChangePosting). The feed keeps the entry.
+         */
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace(
+          {
+            stateBeforeThis:
+              onCreate.carryForward.statusTimelineBeforeThisStatus,
+            stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+          },
+        ),
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },

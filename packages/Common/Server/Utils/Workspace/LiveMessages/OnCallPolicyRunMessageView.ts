@@ -210,7 +210,8 @@ ${FeedMarkdown.bulletList(
 
       alarms.push({
         key: ON_CALL_RUN_ALARM_NOBODY_PAGED_AT_A_RULE,
-        markdown: mdText`⚠️ Nobody was paged for ${record} at ${this.getRuleLabel(run.firstRuleThatReachedNobody.rule, run.ruleCount)} of ${policy}${reasons.length > 0 ? mdText`: ${FeedMarkdown.join(reasons, "; ")}` : FeedMarkdown.empty()}. If nobody is on it yet, page someone or fix the policy.`.toString(),
+        markdown:
+          mdText`⚠️ Nobody was paged for ${record} at ${this.getRuleLabel(run.firstRuleThatReachedNobody.rule, run.ruleCount)} of ${policy}${reasons.length > 0 ? mdText`: ${FeedMarkdown.join(reasons, "; ")}` : FeedMarkdown.empty()}. If nobody is on it yet, page someone or fix the policy.`.toString(),
       });
     }
 
@@ -218,25 +219,29 @@ ${FeedMarkdown.bulletList(
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown: mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)} and went through every escalation rule${this.getRepeatsDoneClause(run)}. Someone needs to take it.`.toString(),
+          markdown:
+            mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)} and went through every escalation rule${this.getRepeatsDoneClause(run)}. Someone needs to take it.`.toString(),
         });
         break;
       case OnCallPolicyRunOutcome.NobodyReached:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown: mdText`⚠️ Nobody was paged for ${record}: no escalation rule of ${policy} reached anyone. Check who is on call, or page someone yourself.`.toString(),
+          markdown:
+            mdText`⚠️ Nobody was paged for ${record}: no escalation rule of ${policy} reached anyone. Check who is on call, or page someone yourself.`.toString(),
         });
         break;
       case OnCallPolicyRunOutcome.Failed:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown: mdText`❌ ${policy} could not page anyone for ${record}${run.outcomeDetail ? mdText`: ${run.outcomeDetail}` : FeedMarkdown.empty()}`.toString(),
+          markdown:
+            mdText`❌ ${policy} could not page anyone for ${record}${run.outcomeDetail ? mdText`: ${run.outcomeDetail}` : FeedMarkdown.empty()}`.toString(),
         });
         break;
       case OnCallPolicyRunOutcome.PolicyArchived:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown: mdText`⏹️ ${policy} stopped paging for ${record} because the policy was archived. Nobody else will be paged: someone needs to take it.`.toString(),
+          markdown:
+            mdText`⏹️ ${policy} stopped paging for ${record} because the policy was archived. Nobody else will be paged: someone needs to take it.`.toString(),
         });
         break;
       default:

@@ -54,7 +54,10 @@ const OTHER_RULE_CHANNEL: NotificationRuleWorkspaceChannel = {
   notificationRuleId: OTHER_RULE_ID.toString(),
 };
 
-function rule(id: ObjectID, workspaceType: WorkspaceType): WorkspaceNotificationRule {
+function rule(
+  id: ObjectID,
+  workspaceType: WorkspaceType,
+): WorkspaceNotificationRule {
   const model: WorkspaceNotificationRule = new WorkspaceNotificationRule();
   model.id = id;
   model.workspaceType = workspaceType;
@@ -63,8 +66,12 @@ function rule(id: ObjectID, workspaceType: WorkspaceType): WorkspaceNotification
 
 let invite: Mock<(data: unknown) => Promise<void>>;
 let sendMessage: Mock<(data: unknown) => Promise<void>>;
-let noticeSpy: SpyInstance<typeof ChannelMembersNotAddedNotice.noteMembersNotAdded>;
-let inviteLogSpy: SpyInstance<typeof WorkspaceNotificationLogService.logInviteUser>;
+let noticeSpy: SpyInstance<
+  typeof ChannelMembersNotAddedNotice.noteMembersNotAdded
+>;
+let inviteLogSpy: SpyInstance<
+  typeof WorkspaceNotificationLogService.logInviteUser
+>;
 
 beforeEach(() => {
   jest
@@ -164,7 +171,9 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
 
     expect(inviteLogSpy).toHaveBeenCalledTimes(1);
     expect(
-      (inviteLogSpy.mock.calls[0]![0] as { userId: ObjectID }).userId.toString(),
+      (
+        inviteLogSpy.mock.calls[0]![0] as { userId: ObjectID }
+      ).userId.toString(),
     ).toBe(CONNECTED.toString());
   });
 

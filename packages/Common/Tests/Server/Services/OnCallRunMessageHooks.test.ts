@@ -84,7 +84,8 @@ afterEach(() => {
 
 describe("OnCallDutyPolicyExecutionLogService", () => {
   function newRun(): OnCallDutyPolicyExecutionLog {
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = RUN_ID;
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = ObjectID.generate();
@@ -105,32 +106,26 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
       .mockResolvedValue(1);
     jest
-      .spyOn(
-        IncidentService,
-        "getIncidentNumber",
-      )
+      .spyOn(IncidentService, "getIncidentNumber")
       .mockResolvedValue({ number: 8, numberWithPrefix: "INC-8" });
     jest
-      .spyOn(
-        IncidentService,
-        "getIncidentLinkInDashboard",
-      )
-      .mockResolvedValue(
-        URL.fromString(
-          "https://oneuptime.test/incident",
-        ),
-      );
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident"));
 
     await hookOf(OnCallDutyPolicyExecutionLogService, "onCreateSuccess")(
-      { createBy: { data: newRun(), props: { isRoot: true } }, carryForward: {} },
+      {
+        createBy: { data: newRun(), props: { isRoot: true } },
+        carryForward: {},
+      },
       newRun(),
     );
 
     expect(refreshedIds()).toEqual([RUN_ID.toString()]);
 
     expect(feedSpy).toHaveBeenCalledTimes(1);
-    const feed: Parameters<typeof IncidentFeedService.createIncidentFeedItem>[0] =
-      feedSpy.mock.calls[0]![0];
+    const feed: Parameters<
+      typeof IncidentFeedService.createIncidentFeedItem
+    >[0] = feedSpy.mock.calls[0]![0];
     expect(feed.feedInfoInMarkdown).toContain(
       "On Call Policy Started Executing",
     );
@@ -190,21 +185,13 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
     } as never);
     jest
       .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
-      .mockResolvedValue(
-        URL.fromString(
-          "https://oneuptime.test/policy",
-        ),
-      );
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/policy"));
     jest
       .spyOn(IncidentService, "getIncidentNumber")
       .mockResolvedValue({ number: 8, numberWithPrefix: "INC-8" });
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
-      .mockResolvedValue(
-        URL.fromString(
-          "https://oneuptime.test/incident",
-        ),
-      );
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident"));
 
     await hookOf(OnCallDutyPolicyExecutionLogService, "onUpdateSuccess")(
       {
@@ -246,7 +233,10 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
   beforeEach(() => {
     feedBuilt = [];
     jest
-      .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "addToIncidentOrAlertFeed")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogTimelineService,
+        "addToIncidentOrAlertFeed",
+      )
       .mockImplementation((async (data: {
         onCallDutyPolicyExecutionLogTimelineId: ObjectID;
       }): Promise<void> => {
@@ -259,8 +249,14 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
       OnCallDutyExecutionLogTimelineStatus.Executing,
     );
 
-    await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onCreateSuccess")(
-      { createBy: { data: created, props: { isRoot: true } }, carryForward: null },
+    await hookOf(
+      OnCallDutyPolicyExecutionLogTimelineService,
+      "onCreateSuccess",
+    )(
+      {
+        createBy: { data: created, props: { isRoot: true } },
+        carryForward: null,
+      },
       created,
     );
 
@@ -294,14 +290,15 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
 
     // What the step said before: Notification Sent already.
     const onUpdate: { updateBy: unknown; carryForward: unknown } =
-      (await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onBeforeUpdate")(
-        updateBy,
-      )) as { updateBy: unknown; carryForward: unknown };
+      (await hookOf(
+        OnCallDutyPolicyExecutionLogTimelineService,
+        "onBeforeUpdate",
+      )(updateBy)) as { updateBy: unknown; carryForward: unknown };
 
-    await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onUpdateSuccess")(
-      onUpdate,
-      [row.id],
-    );
+    await hookOf(
+      OnCallDutyPolicyExecutionLogTimelineService,
+      "onUpdateSuccess",
+    )(onUpdate, [row.id]);
 
     expect(feedBuilt).toEqual([]);
     // The run's message still hears of it (and sends nothing if nothing changed).
@@ -328,7 +325,10 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
       .mockResolvedValue([after]);
 
     const onUpdate: { updateBy: unknown; carryForward: unknown } =
-      (await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onBeforeUpdate")({
+      (await hookOf(
+        OnCallDutyPolicyExecutionLogTimelineService,
+        "onBeforeUpdate",
+      )({
         query: { _id: before.id!.toString() },
         data: { status: OnCallDutyExecutionLogTimelineStatus.NotificationSent },
         props: { isRoot: true },
@@ -340,10 +340,10 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
       },
     });
 
-    await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onUpdateSuccess")(
-      onUpdate,
-      [before.id],
-    );
+    await hookOf(
+      OnCallDutyPolicyExecutionLogTimelineService,
+      "onUpdateSuccess",
+    )(onUpdate, [before.id]);
 
     expect(feedBuilt).toEqual([before.id!.toString()]);
     expect(refreshedIds()).toEqual([RUN_ID.toString()]);
@@ -366,7 +366,10 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
       .mockResolvedValue([row]);
 
     const onUpdate: { updateBy: unknown; carryForward: unknown } =
-      (await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onBeforeUpdate")({
+      (await hookOf(
+        OnCallDutyPolicyExecutionLogTimelineService,
+        "onBeforeUpdate",
+      )({
         query: { _id: row.id!.toString() },
         data: { statusMessage: "Retrying" },
         props: { isRoot: true },
@@ -374,10 +377,10 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
 
     expect(heldRead).not.toHaveBeenCalled();
 
-    await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onUpdateSuccess")(
-      onUpdate,
-      [row.id],
-    );
+    await hookOf(
+      OnCallDutyPolicyExecutionLogTimelineService,
+      "onUpdateSuccess",
+    )(onUpdate, [row.id]);
 
     expect(feedBuilt).toEqual([]);
     expect(refreshedIds()).toEqual([RUN_ID.toString()]);
@@ -392,7 +395,10 @@ describe("OnCallDutyPolicyExecutionLogTimelineService", () => {
       .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
       .mockResolvedValue([row]);
 
-    await hookOf(OnCallDutyPolicyExecutionLogTimelineService, "onUpdateSuccess")(
+    await hookOf(
+      OnCallDutyPolicyExecutionLogTimelineService,
+      "onUpdateSuccess",
+    )(
       {
         updateBy: {
           query: { _id: row.id!.toString() },
@@ -417,7 +423,10 @@ describe("UserOnCallLogTimelineService - how a page reached somebody", () => {
     delivery.status = UserNotificationStatus.Sending;
 
     await hookOf(UserOnCallLogTimelineService, "onCreateSuccess")(
-      { createBy: { data: delivery, props: { isRoot: true } }, carryForward: null },
+      {
+        createBy: { data: delivery, props: { isRoot: true } },
+        carryForward: null,
+      },
       delivery,
     );
 
@@ -429,8 +438,9 @@ describe("UserOnCallLogTimelineService - how a page reached somebody", () => {
     sent.id = ObjectID.generate();
     sent.onCallDutyPolicyExecutionLogId = RUN_ID;
 
-    const findBy: SpyInstance<typeof UserOnCallLogTimelineService.findBy> =
-      jest.spyOn(UserOnCallLogTimelineService, "findBy").mockResolvedValue([sent]);
+    const findBy: SpyInstance<typeof UserOnCallLogTimelineService.findBy> = jest
+      .spyOn(UserOnCallLogTimelineService, "findBy")
+      .mockResolvedValue([sent]);
 
     await hookOf(UserOnCallLogTimelineService, "onUpdateSuccess")(
       {
@@ -449,8 +459,9 @@ describe("UserOnCallLogTimelineService - how a page reached somebody", () => {
   });
 
   test("an update that writes no status asks for nothing", async () => {
-    const findBy: SpyInstance<typeof UserOnCallLogTimelineService.findBy> =
-      jest.spyOn(UserOnCallLogTimelineService, "findBy").mockResolvedValue([]);
+    const findBy: SpyInstance<typeof UserOnCallLogTimelineService.findBy> = jest
+      .spyOn(UserOnCallLogTimelineService, "findBy")
+      .mockResolvedValue([]);
 
     await hookOf(UserOnCallLogTimelineService, "onUpdateSuccess")(
       {
@@ -497,7 +508,10 @@ describe("UserOnCallLogService - a skipped page never shows as sent", () => {
     createdItem.id = ObjectID.generate();
     createdItem.onCallDutyPolicyExecutionLogTimelineId = ObjectID.generate();
 
-    await hookOf(UserOnCallLogService, "writeNoRuleOutcome")({
+    await hookOf(
+      UserOnCallLogService,
+      "writeNoRuleOutcome",
+    )({
       createdItem: createdItem,
       status: UserNotificationExecutionStatus.Completed,
       timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
@@ -556,9 +570,9 @@ describe("UserOnCallLogService - a skipped page never shows as sent", () => {
   }
 
   test("a completed log marks a step still going out as Notification Sent, as it always did", async () => {
-    expect(await complete(OnCallDutyExecutionLogTimelineStatus.Executing)).toEqual([
-      OnCallDutyExecutionLogTimelineStatus.NotificationSent,
-    ]);
+    expect(
+      await complete(OnCallDutyExecutionLogTimelineStatus.Executing),
+    ).toEqual([OnCallDutyExecutionLogTimelineStatus.NotificationSent]);
     expect(
       await complete(OnCallDutyExecutionLogTimelineStatus.NotificationSent),
     ).toEqual([OnCallDutyExecutionLogTimelineStatus.NotificationSent]);

@@ -179,8 +179,8 @@ export default class WorkspaceLiveMessages {
       }
 
       for (const destination of destinations) {
-        const keptMessage: WorkspaceLiveMessage | null =
-          await this.postAndKeep({
+        const keptMessage: WorkspaceLiveMessage | null = await this.postAndKeep(
+          {
             projectId: data.projectId,
             messageKey: data.messageKey,
             destination: {
@@ -189,7 +189,8 @@ export default class WorkspaceLiveMessages {
             },
             messageData: data.messageData,
             notificationFor: data.notificationFor,
-          });
+          },
+        );
 
         if (keptMessage) {
           kept.push(keptMessage);

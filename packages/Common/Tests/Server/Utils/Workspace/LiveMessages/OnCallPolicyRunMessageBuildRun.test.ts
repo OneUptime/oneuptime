@@ -154,7 +154,8 @@ function executionLog(options: {
   acknowledgedBy?: User | undefined;
   policyName?: string | undefined;
 }): OnCallDutyPolicyExecutionLog {
-  const model: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+  const model: OnCallDutyPolicyExecutionLog =
+    new OnCallDutyPolicyExecutionLog();
   model.id = ObjectID.generate();
 
   if (options.ruleId) {
@@ -173,8 +174,7 @@ function executionLog(options: {
 
   const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
   policy.name = options.policyName ?? "PolicyX";
-  policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes =
-    options.repeatsAllowed ?? 2;
+  policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = options.repeatsAllowed ?? 2;
   model.onCallDutyPolicy = policy;
 
   if (options.acknowledgedBy) {
@@ -371,7 +371,12 @@ describe("OnCallPolicyRunMessage.buildRun - each kind of step", () => {
     const built: OnCallPolicyRun = build({
       log: executionLog({ ruleId: RULE_1 }),
       timeline: [
-        step({ status: SENT, ruleId: RULE_1, userId: NITIN, userName: "Nitin" }),
+        step({
+          status: SENT,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+        }),
         step({
           status: SKIPPED,
           ruleId: RULE_1,
@@ -612,7 +617,12 @@ describe("OnCallPolicyRunMessage.buildRun - how pages reached people", () => {
     const built: OnCallPolicyRun = build({
       log: executionLog({ ruleId: RULE_1 }),
       timeline: [
-        step({ status: SENT, ruleId: RULE_1, userId: NITIN, userName: "Nitin" }),
+        step({
+          status: SENT,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+        }),
       ],
       deliveries: [
         delivery(NITIN, UserNotificationStatus.Sent, "userEmailId"),
@@ -643,9 +653,16 @@ describe("OnCallPolicyRunMessage.buildRun - how pages reached people", () => {
     const built: OnCallPolicyRun = build({
       log: executionLog({ ruleId: RULE_1 }),
       timeline: [
-        step({ status: SENT, ruleId: RULE_1, userId: NITIN, userName: "Nitin" }),
+        step({
+          status: SENT,
+          ruleId: RULE_1,
+          userId: NITIN,
+          userName: "Nitin",
+        }),
       ],
-      deliveries: [delivery(NB_USER_3, UserNotificationStatus.Sent, "userSmsId")],
+      deliveries: [
+        delivery(NB_USER_3, UserNotificationStatus.Sent, "userSmsId"),
+      ],
     });
 
     expect(built.paged).toHaveLength(1);

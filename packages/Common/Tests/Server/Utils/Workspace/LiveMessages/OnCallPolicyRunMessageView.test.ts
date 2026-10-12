@@ -17,7 +17,8 @@ import OnCallPolicyRunMessageView, {
  * every way a run can stand.
  */
 
-const POLICY_URL: string = "https://oneuptime.test/dashboard/p/on-call-duty/policies/x";
+const POLICY_URL: string =
+  "https://oneuptime.test/dashboard/p/on-call-duty/policies/x";
 const RUN_URL: string =
   "https://oneuptime.test/dashboard/p/on-call-duty/execution-logs/run-1";
 const RECORD_URL: string = "https://oneuptime.test/dashboard/p/incidents/inc-8";

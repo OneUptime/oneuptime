@@ -285,7 +285,9 @@ export default class OnCallPolicyRunMessage {
   }
 
   // The alarm keys any message of the run already raised.
-  private static getRaisedAlarms(kept: Array<WorkspaceLiveMessage>): Array<string> {
+  private static getRaisedAlarms(
+    kept: Array<WorkspaceLiveMessage>,
+  ): Array<string> {
     const raised: Array<string> = [];
 
     for (const keptMessage of kept) {
@@ -669,7 +671,8 @@ export default class OnCallPolicyRunMessage {
 
         if (
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent ||
-          status === OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+          status ===
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
         ) {
           person.timesPaged++;
         } else {
@@ -832,7 +835,10 @@ export default class OnCallPolicyRunMessage {
   private static async getOutcome(data: {
     executionLog: OnCallDutyPolicyExecutionLog;
     record: RunRecord;
-  }): Promise<{ outcome: OnCallPolicyRunOutcome; detail?: string | undefined }> {
+  }): Promise<{
+    outcome: OnCallPolicyRunOutcome;
+    detail?: string | undefined;
+  }> {
     const executionLog: OnCallDutyPolicyExecutionLog = data.executionLog;
 
     switch (executionLog.status) {
@@ -981,8 +987,8 @@ export default class OnCallPolicyRunMessage {
 
     if (executionLog.triggeredByAlertEpisodeId) {
       const episodeId: ObjectID = executionLog.triggeredByAlertEpisodeId;
-      const episode: AlertEpisode | null = await AlertEpisodeService.findOneById(
-        {
+      const episode: AlertEpisode | null =
+        await AlertEpisodeService.findOneById({
           id: episodeId,
           select: {
             episodeNumber: true,
@@ -994,8 +1000,7 @@ export default class OnCallPolicyRunMessage {
           props: {
             isRoot: true,
           },
-        },
-      );
+        });
 
       if (!episode) {
         return null;
