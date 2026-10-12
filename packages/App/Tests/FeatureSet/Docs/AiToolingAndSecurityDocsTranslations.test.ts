@@ -24,7 +24,6 @@ import {
 } from "./DocsDashboardLabels";
 import { linesLaidOutBackwards } from "./DocsDiagramDirection";
 import {
-  PATH_SEPARATOR,
   boldLabels,
   boldPaths,
   lineShape,
@@ -915,7 +914,11 @@ describe("the helpers, on these pages' shapes", () => {
       ),
     ).toBe("/docs/telemetry/security-events#retention-and-billing");
     expect(
-      expectedLink("en", THREAT_INTELLIGENCE, "/docs/telemetry/security-events"),
+      expectedLink(
+        "en",
+        THREAT_INTELLIGENCE,
+        "/docs/telemetry/security-events",
+      ),
     ).toBe("/docs/telemetry/security-events");
     expect(expectedLink("en", THREAT_INTELLIGENCE, "#no-such-heading")).toBe(
       null,
