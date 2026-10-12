@@ -224,19 +224,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "rum/browser-setup": {
-    pageLinks: ["fa"],
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "rum/index": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "rum/mobile-setup": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "rum/session-replay-troubleshooting": {
     pageLinks: ["fa"],
     codeLanguage: EN,
@@ -246,10 +233,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "rum/troubleshooting": {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "rum/web-vitals": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "telemetry/ceph": {
     translated: EVERY_TRANSLATION_BUT_FA,
