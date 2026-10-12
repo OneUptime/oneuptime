@@ -235,7 +235,7 @@ config:
 - the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
   so a fork reports itself), `server.address`,
   `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
-  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+"true"` and `oneuptime.agent.version` (equal to the compose image pin), and
   deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
   `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
   Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
@@ -832,6 +832,18 @@ languages with the same build modes and default query suite under the same
 categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
+
+It also pins the configuration the setup reads,
+`.github/codeql/codeql-config.yml`: a `paths-ignore` and nothing else (queries,
+packs or threat models would change what default setup analysed), naming only
+`packages/Common/Server/Static/Vendor`, the third-party browser assets vendored
+for offline installs. So that list cannot grow to hide OneUptime's own code,
+every directory on it must be a plain path with a README that says it holds
+vendored third-party files, names the configuration, and lists every file in
+it with its source under `## Contents` - a file added there without its row
+fails, as does a row whose file is gone. The suite also checks that the
+product code guard (`packages/Common/Tests/Helpers/CodeScanning.ts`) reads the
+same list rather than keeping its own.
 
 ### `JestIgnorePatterns.test.js`
 

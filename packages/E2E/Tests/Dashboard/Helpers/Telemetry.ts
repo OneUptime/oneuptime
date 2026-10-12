@@ -419,6 +419,128 @@ export const postOtlpLlmCall: PostOtlpLlmCallFunction = async (data: {
   expect(response.ok()).toBe(true);
 };
 
+/*
+ * A claude_code.llm_request span as Claude Code's traces beta exports it
+ * (code.claude.com/docs/en/monitoring-usage): the model under gen_ai.system
+ * and gen_ai.request.model, and its usage under Claude Code's own keys -
+ * input_tokens (which leaves the cache out), output_tokens,
+ * cache_read_tokens and cache_creation_tokens - with no gen_ai.usage.* key.
+ */
+export interface ClaudeCodeLlmRequestUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+}
+
+type PostOtlpClaudeCodeLlmRequestFunction = (data: {
+  page: Page;
+  ingestionKey: string;
+  serviceName: string;
+  model: string;
+  sessionId: string;
+  usage: ClaudeCodeLlmRequestUsage;
+}) => Promise<void>;
+
+export const postOtlpClaudeCodeLlmRequest: PostOtlpClaudeCodeLlmRequestFunction =
+  async (data: {
+    page: Page;
+    ingestionKey: string;
+    serviceName: string;
+    model: string;
+    sessionId: string;
+    usage: ClaudeCodeLlmRequestUsage;
+  }): Promise<void> => {
+    const otlpTracesUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute("/otlp/v1/traces")
+      .toString();
+
+    const startNano: string = nowUnixNano();
+    const endNano: string = `${Date.now() + 5}000000`;
+
+    const response: APIResponse = await data.page.request.post(otlpTracesUrl, {
+      headers: {
+        "content-type": "application/json",
+        "x-oneuptime-token": data.ingestionKey,
+      },
+      data: {
+        resourceSpans: [
+          {
+            resource: {
+              attributes: [
+                {
+                  key: "service.name",
+                  value: { stringValue: data.serviceName },
+                },
+              ],
+            },
+            scopeSpans: [
+              {
+                scope: { name: "com.anthropic.claude_code" },
+                spans: [
+                  {
+                    traceId: randomHex(16),
+                    spanId: randomHex(8),
+                    name: "claude_code.llm_request",
+                    kind: 3,
+                    startTimeUnixNano: startNano,
+                    endTimeUnixNano: endNano,
+                    attributes: [
+                      {
+                        key: "span.type",
+                        value: { stringValue: "llm_request" },
+                      },
+                      {
+                        key: "session.id",
+                        value: { stringValue: data.sessionId },
+                      },
+                      { key: "model", value: { stringValue: data.model } },
+                      {
+                        key: "gen_ai.system",
+                        value: { stringValue: "anthropic" },
+                      },
+                      {
+                        key: "gen_ai.request.model",
+                        value: { stringValue: data.model },
+                      },
+                      {
+                        key: "input_tokens",
+                        value: { intValue: String(data.usage.inputTokens) },
+                      },
+                      {
+                        key: "output_tokens",
+                        value: { intValue: String(data.usage.outputTokens) },
+                      },
+                      {
+                        key: "cache_read_tokens",
+                        value: {
+                          intValue: String(data.usage.cacheReadTokens),
+                        },
+                      },
+                      {
+                        key: "cache_creation_tokens",
+                        value: {
+                          intValue: String(data.usage.cacheCreationTokens),
+                        },
+                      },
+                      {
+                        key: "stop_reason",
+                        value: { stringValue: "end_turn" },
+                      },
+                    ],
+                    status: { code: 0 },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(response.ok()).toBe(true);
+  };
+
 type PostOtlpMetricsFunction = (data: {
   page: Page;
   ingestionKey: string;
