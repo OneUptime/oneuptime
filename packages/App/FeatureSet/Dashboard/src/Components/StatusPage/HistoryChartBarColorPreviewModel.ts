@@ -189,9 +189,40 @@ export function getLookAlikeEntryPairs(
   return pairs;
 }
 
-// A percentage as a person writes it: 99, 99.5, 99.95 - never 99.00.
+/*
+ * A percentage as a person writes it: 99, 99.5, 99.95 - never 99.00 - with
+ * at most four decimals, so a rule Terraform wrote as 100 * (1 - 1 / 1440)
+ * reads 99.9306, not the 99.93055555555556 the API keeps (#4719).
+ *
+ * Rounding never makes a rule read as 100 or 0 when it is not: a rule a
+ * hair under 100 would read like the 100% rule above it, and one a hair
+ * over 0 would leave the preview saying "Under 0%".
+ */
 export function formatUptimePercent(percent: number): string {
-  return String(Number(percent.toFixed(4)));
+  const rounded: number = Number(percent.toFixed(4));
+
+  if (rounded >= 100 && percent < 100) {
+    return "99.9999";
+  }
+
+  if (rounded <= 0 && percent > 0) {
+    return "0.0001";
+  }
+
+  return String(rounded);
+}
+
+/*
+ * A rule's percentage as the rules table draws it - 100%, 99.65%, 99.9306% -
+ * by the same rule the preview under the table names it with. The rule's
+ * Edit form keeps every digit. A rule without a percentage reads as nothing.
+ */
+export function formatRuleUptimePercent(
+  rule: HistoryChartBarColorRuleInput,
+): string {
+  const percent: number | null = getRuleUptimePercent(rule);
+
+  return percent === null ? "" : `${formatUptimePercent(percent)}%`;
 }
 
 /*
