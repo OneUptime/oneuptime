@@ -1,3 +1,4 @@
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -390,6 +391,145 @@ describePostgres(
 
       expect(rules).toHaveLength(1);
       expect(getRuleUptimePercent(rules[0]!)).toBe(0);
+    });
+
+    /*
+     * Issue #4719: Postgres hands a decimal back as text, and the column had
+     * no transformer, so a rule read back with "100" for its uptime percent
+     * and the API answered it as that text, for a field its spec calls a
+     * number. The Terraform provider read the text as null, and every apply
+     * of oneuptime_status_page_history_chart_bar_color failed with "Provider
+     * produced inconsistent result after apply".
+     */
+    describe("the uptime percent, read back from the decimal column", () => {
+      async function makeRule(
+        page: StatusPage,
+        uptime: number | string,
+      ): Promise<StatusPageHistoryChartBarColorRule> {
+        const rule: StatusPageHistoryChartBarColorRule =
+          new StatusPageHistoryChartBarColorRule();
+        rule.projectId = projectId;
+        rule.statusPageId = page.id!;
+        // Text too, as the dashboard's number field once sent it.
+        rule.uptimePercentGreaterThanOrEqualTo = uptime as number;
+        rule.barColor = new Color("#86efac");
+
+        return await StatusPageHistoryChartBarColorRuleService.create({
+          data: rule,
+          props: { isRoot: true },
+        });
+      }
+
+      async function storedText(
+        rule: StatusPageHistoryChartBarColorRule,
+      ): Promise<unknown> {
+        const rows: Array<{ uptime: unknown }> = await database.query(
+          `SELECT "uptimePercentGreaterThanOrEqualTo" AS "uptime"
+             FROM "${schema}"."StatusPageHistoryChartBarColorRule"
+            WHERE "_id" = $1`,
+          [rule.id!.toString()],
+        );
+
+        return rows[0]?.uptime;
+      }
+
+      test("is text in the row, and the number it spells in the rule the service reads", async () => {
+        const page: StatusPage = await seedStatusPage("Reported rule");
+        const made: StatusPageHistoryChartBarColorRule = await makeRule(
+          page,
+          100,
+        );
+
+        // What node-postgres hands over: the issue's "100".
+        expect(await storedText(made)).toBe("100");
+
+        const read: StatusPageHistoryChartBarColorRule | null =
+          await StatusPageHistoryChartBarColorRuleService.findOneById({
+            id: made.id!,
+            select: { uptimePercentGreaterThanOrEqualTo: true },
+            props: { isRoot: true },
+          });
+
+        expect(read?.uptimePercentGreaterThanOrEqualTo).toBe(100);
+      });
+
+      test.each([
+        [100, "100", 100],
+        [99.65, "99.65", 99.65],
+        [0, "0", 0],
+        [99.999, "99.999", 99.999],
+        // A day with one minute down: the nearest number JavaScript has.
+        [100 * (1 - 1 / 1440), "99.93055555555556", 99.93055555555556],
+        // The dashboard's number field sent text, kept with its zeros.
+        ["99.650", "99.650", 99.65],
+        ["100.00", "100.00", 100],
+      ])(
+        "written as %p, Postgres keeps %p and the rule reads back %p",
+        async (
+          written: number | string,
+          stored: string,
+          expected: number,
+        ) => {
+          const page: StatusPage = await seedStatusPage(`Rule ${written}`);
+          const made: StatusPageHistoryChartBarColorRule = await makeRule(
+            page,
+            written,
+          );
+
+          expect(await storedText(made)).toBe(stored);
+
+          const rules: Array<StatusPageHistoryChartBarColorRule> =
+            await rulesOf(page.id!);
+
+          expect(rules).toHaveLength(1);
+          expect(typeof rules[0]!.uptimePercentGreaterThanOrEqualTo).toBe(
+            "number",
+          );
+          expect(rules[0]!.uptimePercentGreaterThanOrEqualTo).toBe(expected);
+        },
+      );
+
+      test("the API answers it as a JSON number", async () => {
+        const page: StatusPage = await seedStatusPage("Answered");
+        await makeRule(page, 99.65);
+        await makeRule(page, "100.00");
+
+        const answered: Array<JSONObject> = (await rulesOf(page.id!)).map(
+          (rule: StatusPageHistoryChartBarColorRule): JSONObject => {
+            // As Response.sendEntityArrayResponse sends it, over the wire.
+            return JSON.parse(
+              JSON.stringify(
+                BaseModel.toJSON(rule, StatusPageHistoryChartBarColorRule),
+              ),
+            ) as JSONObject;
+          },
+        );
+
+        expect(
+          answered.map((rule: JSONObject): unknown => {
+            return rule["uptimePercentGreaterThanOrEqualTo"];
+          }),
+        ).toEqual([99.65, 100]);
+      });
+
+      test("a rule whose uptime percent changes reads back the new number", async () => {
+        const page: StatusPage = await seedStatusPage("Changed");
+        const made: StatusPageHistoryChartBarColorRule = await makeRule(
+          page,
+          99.65,
+        );
+
+        await StatusPageHistoryChartBarColorRuleService.updateOneById({
+          id: made.id!,
+          data: { uptimePercentGreaterThanOrEqualTo: 99.9 },
+          props: { isRoot: true },
+        });
+
+        expect(await storedText(made)).toBe("99.9");
+        expect(
+          (await rulesOf(page.id!))[0]?.uptimePercentGreaterThanOrEqualTo,
+        ).toBe(99.9);
+      });
     });
   },
 );
