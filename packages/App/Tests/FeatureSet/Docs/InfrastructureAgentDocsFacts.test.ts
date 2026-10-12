@@ -78,6 +78,10 @@ import {
 import { CEPH_SNAPSHOT_METRIC_NAMES } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import { DEFAULT_MESSAGE_QUEUE_MIN_SPANS } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
 import { FAAS_CLOUD_PLATFORM_VALUES } from "Common/Types/Cloud/CloudPlatform";
+import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+} from "Common/Types/AI/AgentAiSettings";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1964,6 +1968,79 @@ describe("the Serverless Functions page, against ingest", () => {
     expect(english("configuration/run-rules-now")).toContain(
       "serverless functions",
     );
+  });
+});
+
+/*
+ * How fixes run is set where the agent runs (ONEUPTIME_AI_FIXES in its
+ * .env), and the AI agent page only shows it (Infrastructure AI Agents,
+ * "What AI may do, set by the agent"). The Ceph and VMware pages say so;
+ * the two agents' READMEs sent readers to the page to choose a mode.
+ */
+interface FixModeSource {
+  page: string;
+  readme: string;
+}
+
+const FIX_MODE_SOURCES: ReadonlyArray<FixModeSource> = [
+  { page: CEPH_PAGE, readme: "agents/CephAgent/README.md" },
+  { page: VMWARE_PAGE, readme: "agents/VMwareAgent/README.md" },
+];
+
+describe("where the Ceph and VMware agents' fix mode is set", () => {
+  it.each(FIX_MODE_SOURCES)(
+    "$readme sets it in .env, as $page does, and the AI agent page only shows it",
+    (source: FixModeSource) => {
+      const readme: string = repoFile(source.readme);
+      const start: number = readme.indexOf("### Allowing fixes");
+
+      expect(start).toBeGreaterThan(-1);
+
+      const fixes: string = readme.slice(start, readme.indexOf("\n## ", start));
+
+      expect(fixes).toContain(`\`${AI_FIXES_ENV}\``);
+      expect(fixes).toContain(
+        "**AI → AI agent** page shows the mode, read-only",
+      );
+      expect(readme).not.toContain("choose how fixes are applied");
+      lineWith(
+        source.page,
+        `\`${AI_FIXES_ENV}\` in the same \`.env\` says how fixes run`,
+        "the AI agent page shows it read-only",
+      );
+    },
+  );
+
+  it("names the fix modes the agent reads, as the Infrastructure AI Agents page does", () => {
+    const modes: Array<string> = Object.values(AGENT_AI_FIXES_SETTING_VALUES);
+    const table: string = lineWith(
+      "ai/infrastructure-ai-agents",
+      `| \`${AI_FIXES_ENV}\``,
+    );
+
+    expect(modes.sort()).toEqual(
+      ["off", "ask-for-approval", "automatic", "bypass-approval"].sort(),
+    );
+
+    for (const mode of modes) {
+      expect(table).toContain(`\`${mode}\``);
+    }
+
+    for (const source of FIX_MODE_SOURCES) {
+      const readme: string = repoFile(source.readme);
+
+      for (const mode of modes) {
+        expect({
+          readme: source.readme,
+          mode,
+          named: readme.includes(`\`${mode}\``),
+        }).toEqual({
+          readme: source.readme,
+          mode,
+          named: true,
+        });
+      }
+    }
   });
 });
 

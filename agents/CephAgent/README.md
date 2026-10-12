@@ -177,7 +177,7 @@ FLAG is one of `noout`, `norebalance`, `nobackfill`, `norecover`, `noscrub`, `no
    ONEUPTIME_AI_PROTECTED_TARGETS=osd.0,.mgr
    ```
 
-3. On the cluster's **AI → AI agent** page in OneUptime, choose how fixes are applied (*Ask for approval*, *Automatic* or *Bypass approval*).
+3. Fixes then wait for a person to approve each one (`ask-for-approval`, the default once writes are allowed). For another mode, set `ONEUPTIME_AI_FIXES` in the same `.env` (`automatic` or `bypass-approval`; `off` keeps the agent read-only) and run `docker compose up -d` again. The cluster's **AI → AI agent** page shows the mode, read-only.
 
 `install.sh` asks about fixes on a fresh install and, when it creates the client, gives it these caps for you.
 
