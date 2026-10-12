@@ -777,10 +777,45 @@ export const buildSearchTokenGlob: BuildSearchTokenGlobFunction = (
 
 type AsSearchTokenValueFunction = (escaped: string) => string;
 
+type LeavesBracketOpenFunction = (token: string) => boolean;
+
+/*
+ * Whether the tokenizer, reading a token's unquoted text, is still inside a
+ * bracket at its end. It counts every unescaped "(" and "[" and every ")"
+ * and "]" wherever they are, so that a list's spaces stay in its token; a
+ * value that leaves one open ("f(x", ":)(") would take the space after it,
+ * and the filters after that, into itself.
+ */
+const leavesBracketOpen: LeavesBracketOpenFunction = (
+  token: string,
+): boolean => {
+  let depth: number = 0;
+
+  for (let index: number = 0; index < token.length; index++) {
+    const character: string = token[index]!;
+
+    if (character === BACKSLASH) {
+      index++;
+      continue;
+    }
+
+    if (character === "(" || character === "[") {
+      depth++;
+    } else if (character === ")" || character === "]") {
+      depth = Math.max(0, depth - 1);
+    }
+  }
+
+  return depth > 0;
+};
+
 /*
  * A value whose characters are already escaped, as a token: its leading
  * operator character and a bracket pair wrapping it escaped (only there do
- * they mean anything), and quoted when it holds whitespace.
+ * they mean anything to the value), and quoted wherever the tokenizer would
+ * not end the token where the value ends - when it holds whitespace, leaves
+ * a bracket open, or ends in a ":" (read as a key still waiting for its
+ * value, it would take the next word). Quotes protect all three.
  */
 const asSearchTokenValue: AsSearchTokenValueFunction = (
   escaped: string,
@@ -789,7 +824,11 @@ const asSearchTokenValue: AsSearchTokenValueFunction = (
     .replace(LEADING_OPERATOR_REGEX, "\\$1")
     .replace(WRAPPED_LIST_REGEX, "\\$&");
 
-  return WHITESPACE_REGEX.test(token) ? `"${token}"` : token;
+  return WHITESPACE_REGEX.test(token) ||
+    leavesBracketOpen(token) ||
+    token.endsWith(":")
+    ? `"${token}"`
+    : token;
 };
 
 type CompileAttributeChipValuesFunction = (
