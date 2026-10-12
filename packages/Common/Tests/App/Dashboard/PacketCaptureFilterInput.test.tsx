@@ -182,9 +182,7 @@ describe("the host, port and protocol boxes", () => {
     );
     expect(row.querySelectorAll(".mt-2, .mb-1")).toHaveLength(0);
     expect(
-      row.querySelectorAll(
-        `[class="${FILTER_ROW_DROPDOWN_CLASS_NAME}"]`,
-      ),
+      row.querySelectorAll(`[class="${FILTER_ROW_DROPDOWN_CLASS_NAME}"]`),
     ).toHaveLength(1);
   });
 

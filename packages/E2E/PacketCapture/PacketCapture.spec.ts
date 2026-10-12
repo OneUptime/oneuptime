@@ -469,7 +469,9 @@ test.describe("starting a capture", () => {
     await body.evaluate((element: Element) => {
       element.scrollTop = element.scrollHeight;
     });
-    await expect(page.getByTestId("packet-capture-sensitive-data")).not.toBeInViewport();
+    await expect(
+      page.getByTestId("packet-capture-sensitive-data"),
+    ).not.toBeInViewport();
 
     await page.getByTestId("modal-footer-submit-button").click();
 

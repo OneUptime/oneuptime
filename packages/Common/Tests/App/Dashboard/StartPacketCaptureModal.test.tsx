@@ -291,6 +291,37 @@ describe("starting a capture", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  /*
+   * The customer's screenshot: the red refusal drawn flush on the yellow
+   * notice, two banners reading as one. It is the dialog's own alert, above
+   * the notice, with the gap the dialog's blocks keep (ModalBody).
+   */
+  test("a refusal is the dialog's alert, above the notice and apart from it", async () => {
+    const refusal: string =
+      "User is not allowed to create on bpfFilter column of Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture.";
+
+    createMock.mockRejectedValue(new Error(refusal) as never);
+
+    renderModal();
+
+    await submit();
+
+    const alert: HTMLElement = await within(modal()).findByTestId(
+      "modal-error",
+    );
+    const notice: HTMLElement = within(modal()).getByTestId(
+      "packet-capture-sensitive-data",
+    );
+
+    expect(alert).toHaveTextContent(refusal);
+    expect(alert).toHaveAttribute("role", "alert");
+    expect(alert).toHaveClass("mb-4");
+    expect(
+      alert.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(alert.contains(notice)).toBe(false);
+  });
+
   test("Cancel closes the form and starts nothing", () => {
     renderModal();
 
