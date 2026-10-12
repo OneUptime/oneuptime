@@ -1,26 +1,64 @@
 # Session Replay
 
-## Overview
+Session Replay records what real users saw in your web or React Native app, and plays it back next to the errors, traces and logs of the same session. You add one script tag, choose what is masked, and watch any session from its RUM application.
 
-Session Replay records what a real user saw in your web or React Native app and lets you play it back next to the error, trace and log data from the same session. **By default every session is recorded and uploaded as it happens**, not only the ones that broke — the sessions where nothing threw are where you find the checkout nobody completed, the form everybody abandoned and the page a customer says "looked wrong".
+:::cards
+- [How it works](#how-it-works): A loader, a policy and a recorder that uploads as it goes.
+- [Install](#install): One script tag on every page, or the React Native SDK.
+- [Privacy](#privacy): What is masked, consent, and who may send recordings.
+- [Correlating with your other telemetry](#correlating-with-your-other-telemetry): Backend traces, logs and errors, linked with no code.
+- [Watching a session](#watching-a-session): The session list, the Users page, user flows and the player.
+- [Recording health](#recording-health): Why nothing arrives, and alerts before a budget runs out.
+:::
 
-If you would rather store less, there are two dials and they compose:
+## How it works
 
-- **Sample percentage** (100% by default) decides how many sessions are eligible at all. Halve it and you halve both the bytes stored and the end-user data at rest. The decision is made once per session from a hash of the session id, so a session is never half-recorded.
-- **Capture trigger** set to _On error or frustration_ makes the recorder hold a rolling buffer in memory and upload **only when something actually goes wrong**. A recording then exists for very nearly every failed session while costing roughly 15x less than recording everyone — at the price of never being able to watch a session that did not fail.
+The script on your page is a small loader. It checks the browser's privacy signals, fetches the application's policy from OneUptime, and only then loads the recorder, which masks the page as it records it and uploads it in chunks while the user is active.
 
-## Prerequisites
+```mermaid title="From a page load to a recording you can watch"
+flowchart TB
+    page["Your page loads<br/>the script tag"] --> dnt{"Do Not Track<br/>or GPC signal?"}
+    dnt -->|"Yes"| none["Nothing is<br/>recorded"]
+    dnt -->|"No"| policy["The loader fetches<br/>the policy"]
+    policy --> recorder["The recorder masks<br/>and records the page"]
+    recorder -->|"Chunks while the<br/>user is active"| ingest["OneUptime"]
+    ingest --> player["Session list<br/>and player"]
+```
 
-- A RUM application — create one from _Resources → Real User Monitoring_, or let one be auto-discovered from your telemetry. See [Real User Monitoring](/docs/rum/index).
-- A **Telemetry Ingestion Token** — _Project Settings → Telemetry & APM → Ingestion Keys_. Create it with the **Browser** surface; see [Set your allowed origins in production](#set-your-allowed-origins-in-production) for why.
-- Session Replay is **on by default**. Settings live in two places:
-  - **Per application**, under _Real User Monitoring → your application → Replay Policy_: the recording policy (masking, consent, sampling, retention, budgets), a **Recording health** summary, the privacy summary, the **Test your installation** panel and **Record a specific user's next session**.
-  - Whether recordings are actually arriving has its own page, _Real User Monitoring → your application → **Health**_ (see [Recording health](#recording-health)).
-  - **Project-wide**, under _Real User Monitoring → Settings → Session Replay_: the master switch that stops every application at once, and a read-only roster of every application's policy.
+By default every session is recorded and uploaded as it happens, not only the ones that broke. The sessions where nothing threw are where you find the checkout nobody completed, the form everybody abandoned and the page a customer says "looked wrong".
+
+To store less, two settings of the application's policy work together:
+
+| Setting | Default | What it changes |
+| --- | --- | --- |
+| **Sample percentage** | 100 | How many sessions are eligible at all. Halve it and you halve both the bytes stored and the end-user data at rest. The decision is made once per session from a hash of the session id, so a session is never half-recorded. |
+| **When to upload a recording** | _Always_ | Set to _On error or frustration_, the recorder keeps a rolling buffer in memory and uploads only when something goes wrong. A recording then exists for nearly every failed session at roughly 15x less cost than recording everyone, but you cannot watch a session that did not fail. |
+
+## Before you begin
+
+- A RUM application. Create one under **Products → Resources → Real User Monitoring**, or let your telemetry create it: see [Managing Applications](/docs/rum/applications).
+- A **Browser** ingestion key, from **Project Settings → Telemetry & APM → Ingestion Keys**. A Browser key works only from the origins you list on it: see [Set your allowed origins in production](#set-your-allowed-origins-in-production).
+
+Session Replay is on by default. Its settings are in three places:
+
+| Where | What is there |
+| --- | --- |
+| The application's **Replay Policy** page | The policy (recording, masking, consent, tracing and limits), a **Recording health** summary, the **What a recording contains** card, the **Test your installation** panel and **Record a specific user's next session**. |
+| The application's **Health** page | Whether recordings arrive, and why not when they do not. See [Recording health](#recording-health). |
+| **Real User Monitoring → Settings → Session Replay** | The project-wide switch that stops every application at once, and a read-only list of every application's policy. |
 
 ## Install
 
-Add one script tag. Replace the token and the application identifier with your own — or copy the snippet the dashboard generates for you on the sessions page of a new application, which already has both filled in and offers Next.js and Google Tag Manager variants.
+Add one script tag to every page you want to record.
+
+:::steps
+### Create a Browser key
+
+Under **Project Settings → Telemetry & APM → Ingestion Keys**, click **Create Ingestion Key**, pick **Browser** as the **Key Type** and list your site's origins in **Allowed Origins**. Then copy the key's **Secret Key**. [Browser Setup](/docs/rum/browser-setup#set-it-up) shows each screen.
+
+### Add the script tag
+
+Put the tag on every page, with your key and your application's identifier:
 
 ```html
 <script
@@ -32,21 +70,26 @@ Add one script tag. Replace the token and the application identifier with your o
 ></script>
 ```
 
-`data-oneuptime-app-identifier` must match the RUM application's identifier (the same value you use for `service.name`).
+`data-oneuptime-app-identifier` must match the RUM application's identifier, the same value you use for `service.name`. The application's **Documentation** page, in the **Session Replay** section of its side menu, shows this snippet with both values filled in, with Next.js / React and Google Tag Manager versions of it.
 
-The script at `/v1/recorder.js` is a small loader. It fetches your application's policy, checks consent and Do Not Track, and only then loads `/latest/recorder.js`. Both live config and the mutable recorder response are `no-store`, so policy and recorder changes reach the next page load without waiting out a browser cache.
+### Check that recordings arrive
+
+Open one of your pages and click around for a few seconds. Within a minute or so, the session is on the application's **Session Replay** page, marked **Recording now**. If it is not, the application's **Health** page says why: see [Recording health](#recording-health).
+:::
+
+The script at `/v1/recorder.js` is a small loader. It checks Do Not Track, fetches your application's policy, and only then loads `/latest/recorder.js`. The policy and the recorder are both served `no-store`, so a change to either reaches the next page load without waiting out a browser cache.
 
 ### Script tag attributes
 
 | Attribute | Required | What it does |
 | --- | --- | --- |
-| `data-oneuptime-token` | **yes** | Your telemetry ingestion token. |
-| `data-oneuptime-app-identifier` | **yes** | The RUM application's identifier. |
-| `data-oneuptime-host` | no | The OneUptime origin. Derived from the script's own `src` when omitted, so you only need it when you proxy the script through your own domain. |
-| `data-oneuptime-user-ref` | no | The end-user reference known at page load (a user id, never an email you would not want stored). The same thing `identify()` sets later; it is the only form that works for [Record a specific user's next session](#recording-a-specific-users-next-session). |
-| `data-oneuptime-respect-do-not-track` | no | Defaults to honouring Do Not Track and Global Privacy Control. Set it to `"false"` to record regardless of the signal; see [Do Not Track](#do-not-track). |
-| `data-oneuptime-debug` | no | `"true"` prints the recorder's decisions to the console. See [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting). |
-| `data-oneuptime-offline-storage` | no | Set it to `"false"` to keep chunks recorded while the visitor is offline in memory only, instead of also in the browser's IndexedDB. See [Offline mode](#offline-mode). |
+| `data-oneuptime-token` | Yes | Your telemetry ingestion token. |
+| `data-oneuptime-app-identifier` | Yes | The RUM application's identifier. |
+| `data-oneuptime-host` | No | The OneUptime origin. Derived from the script's own `src` when omitted, so you only need it when you proxy the script through your own domain. |
+| `data-oneuptime-user-ref` | No | The end-user reference known at page load (a user id, never an email you would not want stored). The same thing `identify()` sets later; it is the only form that works for [Record a specific user's next session](#recording-a-specific-users-next-session). |
+| `data-oneuptime-respect-do-not-track` | No | Defaults to honouring Do Not Track and Global Privacy Control. Set it to `"false"` to record regardless of the signal; see [Do Not Track](#do-not-track). |
+| `data-oneuptime-debug` | No | `"true"` prints the recorder's decisions to the console. See [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting). |
+| `data-oneuptime-offline-storage` | No | Set it to `"false"` to keep chunks recorded while the visitor is offline in memory only, instead of also in the browser's IndexedDB. See [Offline mode](#offline-mode). |
 
 The same options can be supplied on a global instead of the tag, which is what tag managers and bundled installs use:
 
@@ -67,14 +110,17 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
 Open DevTools → Network and filter for `session-replay`. A working page makes:
 
 1. **One `GET .../session-replay/v1/config`** per page load — the policy fetch.
-2. **A `POST .../session-replay/v1/chunk` about every 15 seconds while the user is doing something**, or sooner when 256 KB of events have accumulated. An idle tab produces no events and therefore **no POST at all**: move the mouse or click before you judge an install from the Network tab.
-3. When the tab is hidden, and again when the page goes away, **one** `POST` sent with `keepalive`. The page going away — the tab closed, reloaded or navigated to another page, or the page put into the browser's back/forward cache (every `pagehide`) — marks it final, which tells OneUptime that tab's recording is over; a page the user brings back from the back/forward cache records on as a new tab of the same session. A tab that is merely hidden stays open, so the recording continues when the user comes back to it. Its whole body stays under **56 KB** — the recorder's share of the browser's 64 KB per-origin keepalive quota — and it can carry several chunks as frames of that one request: the closing chunk, the pieces a large closing chunk was cut into (at most 48 KB of events each, so the frame header still fits), and any chunk that was still waiting to be retried. A chunk already larger than that budget when the tab is merely hidden goes out on the ordinary path instead, while the page is still alive to send it.
+2. **A `POST .../session-replay/v1/chunk` about every 15 seconds while the user is doing something**, or sooner when 256 KB of events have accumulated. An idle tab produces no events and therefore no POST at all: move the mouse or click before you judge an install from the Network tab.
+3. When the tab is hidden, and again when the page goes away, one `POST` sent with `keepalive`. The page going away — the tab closed, reloaded or navigated to another page, or the page put into the browser's back/forward cache (every `pagehide`) — marks it final, which tells OneUptime that tab's recording is over; a page the user brings back from the back/forward cache records on as a new tab of the same session. A tab that is merely hidden stays open, so the recording continues when the user comes back to it. Its whole body stays under 56 KB — the recorder's share of the browser's 64 KB per-origin keepalive quota — and it can carry several chunks as frames of that one request: the closing chunk, the pieces a large closing chunk was cut into (at most 48 KB of events each, so the frame header still fits), and any chunk that was still waiting to be retried. A chunk already larger than that budget when the tab is merely hidden goes out on the ordinary path instead, while the page is still alive to send it.
 
 Under the _On error or frustration_ trigger, step 2 does not happen until a trigger fires — see [Troubleshooting](#troubleshooting).
 
 ## Install in React Native
 
-The React Native SDK records the native view hierarchy as rrweb-compatible synthetic events, so mobile recordings open in the same session list and player as web recordings. It does **not** take screenshots. The player clearly labels the recording as a **React Native app** and its Fidelity tab explains the native surfaces that could not be represented.
+The React Native SDK records the native view hierarchy as rrweb-compatible synthetic events, so mobile recordings open in the same session list and player as web recordings. It does not take screenshots. The player labels each recording as a React Native app, and its **Fidelity** tab explains the native surfaces that could not be represented.
+
+:::steps
+### Install the SDK
 
 The SDK supports iOS and Android React Native applications. Install it with its persistent-outbox peer dependency:
 
@@ -83,6 +129,8 @@ npm install @oneuptime/react-native-replay @react-native-async-storage/async-sto
 ```
 
 For a bare iOS project, run your normal CocoaPods install after adding the packages; current React Native versions autolink Android without manual registration. The recorder has its own view-tree native module in addition to Async Storage, so Expo projects must use a custom development or production build (for example EAS Build or a prebuild). Expo Go cannot run this SDK because neither native module can be added to the fixed Expo Go binary.
+
+### Start the recorder and wrap your app
 
 Start the singleton once, then place the provider above the part of the app you want to record:
 
@@ -111,6 +159,7 @@ export default function App() {
 ```
 
 `appIdentifier` is the RUM application identifier. `mobileAppIdentifier` is the Android application id or iOS bundle identifier shipped in the binary, not a display name. Use the same value in the [`app://` allowlists](#set-your-allowed-origins-in-production). The SDK fetches the application's Replay Policy from `host`; sampling, trigger, consent, retention and upload budgets remain server-controlled.
+:::
 
 The provider owns a non-collapsable native root and records its view tree and touch start/move/end events. If you already construct recorder instances yourself, pass one with `<OneUptimeReplayProvider recorder={recorder}>`. `MobileReplayRecorder` is also exported for isolated or multi-client integrations; most apps should use the singleton.
 
@@ -122,7 +171,7 @@ Import `OneUptimeReplay` directly, or call `useOneUptimeReplay()` below the prov
 | --- | --- |
 | `start(options)` | Fetch policy and start capture. Required options are `host`, `token`, `appIdentifier` and `mobileAppIdentifier`; `appName` and `appVersion` are optional display metadata, and `connectivity` is an optional network-state source for [offline mode](#offline-mode). |
 | `stop()` | Flush what can be sent, stop capture and detach lifecycle handlers. |
-| `identify(userRef, traits?)` | Attach the signed-in user and optional traits, subject to **Capture user identity**. |
+| `identify(userRef, traits?)` | Attach the signed-in user and optional traits, subject to **Capture end-user identity**. |
 | `setTags(tags)` / `addTag(key, value)` | Replace all searchable session tags, or add one tag without replacing the others. |
 | `track(name, properties?)` | Put an application event on the replay timeline. |
 | `setRoute(route)` | Record a sanitized logical screen or route after navigation. Call it from your navigator's route-change callback. |
@@ -170,21 +219,21 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 ```
 
 - The reference is what the session list shows and what `user:` searches match. The traits are shown in the player header and on the session's details panel.
-- **The identity belongs to the session, not just the page.** A session spans every page load and every tab of the visit, and once any page of it calls `identify()` the whole session is that user's — the pages before the sign-in included, since they are the same visit. Every later page and tab of the session names the user too, even one that never calls `identify()` itself: the sign-in redirect's landing page, a link opened in a new tab. While **Capture user identity** is on the recorder remembers whose the current session is in `localStorage` under `oneuptime.replay.user` — the session id and the reference, nothing else, and under _Require explicit_ consent only once consent is granted — and only for that session: the next session (after 30 minutes idle or the 4-hour cap) starts anonymous until a page identifies it, unless the page that started it had identified the user itself. So call `identify()` on every page load where your app knows the user, not only straight after sign-in.
+- **The identity belongs to the session, not just the page.** A session spans every page load and every tab of the visit, and once any page of it calls `identify()` the whole session is that user's — the pages before the sign-in included, since they are the same visit. Every later page and tab of the session names the user too, even one that never calls `identify()` itself: the sign-in redirect's landing page, a link opened in a new tab. While **Capture end-user identity** is on the recorder remembers whose the current session is in `localStorage` under `oneuptime.replay.user` — the session id and the reference, nothing else, and under _Require explicit_ consent only once consent is granted — and only for that session: the next session (after 30 minutes idle or the 4-hour cap) starts anonymous until a page identifies it, unless the page that started it had identified the user itself. So call `identify()` on every page load where your app knows the user, not only straight after sign-in.
 - **A different user gets a session of their own.** When `identify()` names someone other than the user the session already belongs to — one person signed out and another signed in on the same browser, in this tab or another one — the current session ends, still filed under the first user, and a new session starts for the second. `onSessionChange` listeners are told, and the player shows the switch as the end of one recording and the start of the next. Identifying the same user again changes nothing; references are compared after trimming whitespace and are case-sensitive, exactly as the server matches them.
-- What `identify()` gives the recorder is uploaded with the recording only while **Capture user identity** is on for the application (the default). With it off the recorder leaves the reference and the traits out of the chunk, and the server stores **nothing at all** about the person — no reference, no keyed hash of it, no traits. Those sessions are genuinely pseudonymous, and the price of that is that they cannot be erased _by user_: an erasure request has nothing to match, so use `BySessionId`, `ByDateRange` or `ByRumApplication` instead (see [Erasing sessions](#erasing-sessions)). If honouring a per-user deletion request matters more to you than storing no identifier, leave the switch on — the stored key is a one-way keyed hash, so it is matchable but not readable, and only the separate label carries the reference itself.
+- What `identify()` gives the recorder is uploaded with the recording only while **Capture end-user identity** is on for the application (the default). With it off the recorder leaves the reference and the traits out of the chunk, and the server stores **nothing at all** about the person — no reference, no keyed hash of it, no traits. Those sessions are genuinely pseudonymous, and the price of that is that they cannot be erased _by user_: an erasure request has nothing to match, so use `BySessionId`, `ByDateRange` or `ByRumApplication` instead (see [Erasing sessions](#erasing-sessions)). If honouring a per-user deletion request matters more to you than storing no identifier, leave the switch on — the stored key is a one-way keyed hash, so it is matchable but not readable, and only the separate label carries the reference itself.
 - One reference does leave the browser regardless of that switch, by design: the one your page supplies **at load time** via `data-oneuptime-user-ref` or `userRef` on the init global travels as a request header on the policy fetch of every page load, because that is how [Record a specific user's next session](#recording-a-specific-users-next-session) matches a visitor before any recorder exists. The server compares it against the armed target and discards it; it is not written to the session unless identity capture is on and the recorder sends it again with the recording. A reference passed to `identify()` is never sent this way.
 - Traits are capped at 20 keys, 40 characters per key and 200 per value, stringified, and passed through the application's masking mode: under _Mask all text_ they are masked before upload.
 - Reading identity back in the dashboard requires the same permission as watching the recording (see [Who can watch a recording](#who-can-watch-a-recording)); other roles see "Identity hidden".
 
 ### Anonymous visitors
 
-A page that never calls `identify()` still needs its sessions to be groupable, or a list of forty _Anonymous_ rows cannot tell you whether one person hit the same error forty times or forty people hit it once. So the recorder mints **one random visitor id per browser profile and origin** — 32 lowercase hex characters, kept in `localStorage` under `oneuptime.replay.visitor`, next to the session record, so a site served from two hostnames or ports appears as two visitors and only `identify()` joins them — and sends it as `meta.visitorId` on every chunk that carries metadata: the first chunk, the closing chunk, and the chunk after an `identify()` or `setTags()` call. The server checks the shape and stores it on the session under the same access rules as the rest of the session header. It outlives the session id on purpose: the 30-minute idle rollover and the 4-hour cap start a new session, and the new session carries the same visitor id, so two visits from the same browser a week apart sit together on the [Users page](#the-users-page) and in the player's other-sessions menu (see [The player](#the-player)).
+A page that never calls `identify()` still needs its sessions to be groupable, or a list of forty _Anonymous_ rows cannot tell you whether one person hit the same error forty times or forty people hit it once. So the recorder mints one random visitor id per browser profile and origin — 32 lowercase hex characters, kept in `localStorage` under `oneuptime.replay.visitor`, next to the session record, so a site served from two hostnames or ports appears as two visitors and only `identify()` joins them — and sends it as `meta.visitorId` on every chunk that carries metadata: the first chunk, the closing chunk, and the chunk after an `identify()` or `setTags()` call. The server checks the shape and stores it on the session under the same access rules as the rest of the session header. It outlives the session id on purpose: the 30-minute idle rollover and the 4-hour cap start a new session, and the new session carries the same visitor id, so two visits from the same browser a week apart sit together on the [Users page](#the-users-page) and in the player's other-sessions menu (see [The player](#the-player)).
 
 Be precise about what it is not:
 
 - **It is not an identity.** It is random, minted in the browser, and derived from nothing your page supplied and nothing about the device. Two browsers on one laptop, or the same person on a phone and a desktop, are two visitors; only `identify()` joins them. A private window gets a fresh id that goes when the window does, and where storage cannot be written at all (Safari private mode, blocked site data) the id lasts one page load.
-- **It is not governed by Capture user identity.** That switch decides whether the reference and traits leave the browser; the visitor id is sent either way, because it names nobody. If you want no id minted at all, the answer is no recorder: turn Session Replay off for the application, or leave [Do Not Track](#do-not-track) honoured.
+- **It is not governed by Capture end-user identity.** That switch decides whether the reference and traits leave the browser; the visitor id is sent either way, because it names nobody. If you want no id minted at all, the answer is no recorder: turn Session Replay off for the application, or leave [Do Not Track](#do-not-track) honoured.
 - **It follows the consent rules of the session id.** `revokeConsent()` removes it from storage along with the session, nothing is written while consent is withdrawn, and a later `grantConsent()` mints a new one — so a user who withdraws consent and comes back is not re-linked to the sessions they asked you to forget. Under Do Not Track or Global Privacy Control no recorder runs, so no id is minted.
 - **It never travels on your own requests.** The trace context the recorder adds to requests your page makes to its own origin names the session, never the visitor (see [What your own requests carry](#what-your-own-requests-carry)); the visitor id only goes to OneUptime, on the recording.
 - **It cannot be the target of an erasure request.** The request types are unchanged (see [Erasing sessions](#erasing-sessions)); a `visitor:` search narrows the list to one browser's sessions, from which you take the session ids to erase.
@@ -204,11 +253,11 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 );
 ```
 
-`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` and `addTag` are applied **before** the recorder starts, so a queued consent decision decides whether anything uploads at all and a queued identity rides on the very first chunk. `track`, `captureSession` and `onSessionChange` run right after it starts.
+`grantConsent`, `revokeConsent`, `stop`, `identify`, `setTags` and `addTag` are applied before the recorder starts, so a queued consent decision decides whether anything uploads at all and a queued identity rides on the very first chunk. `track`, `captureSession` and `onSessionChange` run right after it starts.
 
 | Method | What it does |
 | --- | --- |
-| `identify(userRef, traits?)` | Attach the end user to the session — to every page and tab of it, from its start (see [Identify your users](#identify-your-users)). `traits` is an object of string, number or boolean values (≤ 20 keys, key ≤ 40 chars, value ≤ 200 chars), masked under _Mask all text_ and only uploaded when **Capture user identity** is on. Calling it again for the same user re-sends the identity (and any new traits) on the next chunk; naming a different user ends the session and starts a new one for them. |
+| `identify(userRef, traits?)` | Attach the end user to the session — to every page and tab of it, from its start (see [Identify your users](#identify-your-users)). `traits` is an object of string, number or boolean values (≤ 20 keys, key ≤ 40 chars, value ≤ 200 chars), masked under _Mask all text_ and only uploaded when **Capture end-user identity** is on. Calling it again for the same user re-sends the identity (and any new traits) on the next chunk; naming a different user ends the session and starts a new one for them. |
 | `track(name, properties?)` | Record a business event (`"checkout_failed"`) on the timeline. `name` ≤ 64 chars, ≤ 20 property keys with the same value caps as traits. Up to 50 per 15-second chunk; beyond that the chunk carries one "events dropped" marker with the count. |
 | `setTags(tags)` / `addTag(key, value)` | Per-session tags (`{ build: "1.4.2", experiment: "new-checkout" }`), ≤ 20 tags, key ≤ 32 chars, value ≤ 128. Searchable from the session list with `tag:key=value` and shown on the session's details. `setTags` **replaces** the whole map, so a second `setTags({ experiment })` drops a `build` tag set by the first one; `addTag` sets one key and keeps the rest. Build the map in one `setTags` call, or use `addTag` as you learn each value. |
 | `captureSession(reason?)` | Under _On error or frustration_, force this session to upload from its rolling buffer onwards; under _Always_ it is a no-op for uploading but the `reason` (≤ 80 chars) is still marked on the timeline. Use it from your own "report a problem" button. |
@@ -216,7 +265,7 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 | `grantConsent()` | Under consent mode _Require explicit_, allow uploads. Nothing is uploaded before this. |
 | `revokeConsent()` | Drop everything buffered and stop uploading. The recorder keeps running into memory only, so a later `grantConsent()` continues on a fresh session id. |
 | `getSessionId()` | The current session id, or `null` when nothing is recording. Prefer `onSessionChange()`, which also follows rotations. |
-| `getVisitorId()` | The [anonymous visitor id](#anonymous-visitors) — 32 hex characters, one per browser profile, the same across session rotations — or `""` before the recorder has started, after `stop()`, and while consent is withdrawn. Random and not an identity; not governed by **Capture user identity**. |
+| `getVisitorId()` | The [anonymous visitor id](#anonymous-visitors) — 32 hex characters, one per browser profile, the same across session rotations — or `""` before the recorder has started, after `stop()`, and while consent is withdrawn. Random and not an identity; not governed by **Capture end-user identity**. |
 | `stop()` | Upload the last chunk, seal the session, and stop for the rest of the page's life. |
 | `setDebug(enabled)` | Print the recorder's decisions to the console from now on. |
 | `getDiagnostics()` | Everything the recorder decided, whether or not diagnostics were on. See below. |
@@ -241,28 +290,29 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 ## Privacy
 
-**Masking happens at capture, on the end user's device, before anything is uploaded.** The server never receives what was masked, so a masking decision cannot be undone after the fact — and cannot be applied retroactively either. On the web, what gets masked depends on the mode; React Native always sends the stricter structural wireframe described under [React Native privacy and masking](#react-native-privacy-and-masking). The **Privacy summary** card on the application's _Replay Policy_ page restates these decisions in plain sentences for whatever you have configured.
+**Masking happens at capture, on the end user's device, before anything is uploaded.** The server never receives what was masked, so a masking decision cannot be undone after the fact, and cannot be applied retroactively either. On the web, what gets masked depends on the mode; React Native always sends the stricter structural wireframe described under [React Native privacy and masking](#react-native-privacy-and-masking). The **What a recording contains** card on the application's **Replay Policy** page restates these decisions in plain sentences for whatever you have configured.
 
-| Control | Default | What it does |
+The policy's privacy settings, by the name **Edit Policy** gives each:
+
+| Setting | Default | What it does |
 | --- | --- | --- |
-| Session Replay enabled | **on** | Per-application switch. Turn it off to stop recording for one application. |
-| Masking mode | **Mask sensitive inputs only** | Passwords and card / one-time-code fields are masked. The rest of the page — static text and ordinary input values — is recorded as it looked. See the warning below. |
-| Consent mode | **Not required** | Uploads start immediately. Set *Require explicit* if you need a per-session consent handshake, which most EU deployments will. |
-| Capture trigger | **Always** | Every sampled session uploads from its first event. Set *On error or frustration* to upload only when something goes wrong. |
-| Sample percentage | **100%** | Share of sessions eligible for recording. This is the dial for cost. Note that 0% together with *Always* records nothing at all; the policy page warns when you configure that. |
-| Allowed origins | **empty (any origin)** | List your domains to restrict who may send recordings. See the warning below. |
-| Capture user identity | **on** | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous — with it off nothing about the person is stored, including the key an erase-by-user request would have to match ([Identify your users](#identify-your-users)). It does not govern the [anonymous visitor id](#anonymous-visitors), which is random, names nobody and is sent either way. |
-| Same-origin trace propagation | **on** | While a session uploads, requests your page makes to its own origin carry a W3C `traceparent` and a `tracestate` naming the session, so your backend's telemetry links to the recording with no code. Your backend's OpenTelemetry forwards both to every service it calls. See [What your own requests carry](#what-your-own-requests-carry). |
-| Capture country | **on** | Country only, never an IP address. |
-| Record canvas | **off** | Canvas and WebGL are not recorded. |
-| Retention | **7 days** | Shorter than other telemetry, on purpose. 1, 14, 30 and 90 days are also available. |
-| Monthly budget (GB) | **blank** | An optional ceiling on bytes ingested per calendar month for this application. Blank or 0 means no ceiling. |
+| **Record sessions for this application** | On | The application's own switch. Turn it off to stop recording this application. |
+| **Masking mode** | _Mask sensitive inputs only_ | Passwords and card and one-time-code fields are masked. The rest of the page, its static text and ordinary input values, is recorded as it looked. See [Choose a masking mode deliberately](#choose-a-masking-mode-deliberately). |
+| **Consent** | _Not required_ | Uploads start at once. Pick _Require explicit_ if you need a consent handshake for each session, which most EU deployments will. |
+| **When to upload a recording** | _Always_ | Every sampled session uploads from its first event. Pick _On error or frustration_ to upload only when something goes wrong. |
+| **Sample percentage** | 100% | The share of sessions eligible for recording, and the setting for cost. 0% together with _Always_ records nothing at all, and the policy page warns when you set that. |
+| **Allowed origins** | Empty: any origin | List your domains to restrict who may send recordings. See [Set your allowed origins in production](#set-your-allowed-origins-in-production). |
+| **Capture end-user identity** | On | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous: with it off nothing about the person is stored, including the key an erase-by-user request would have to match ([Identify your users](#identify-your-users)). It does not govern the [anonymous visitor id](#anonymous-visitors), which is random, names nobody and is sent either way. |
+| **Same-origin trace propagation** | On | While a session uploads, requests your page makes to its own origin carry a W3C `traceparent` and a `tracestate` naming the session, so your backend's telemetry links to the recording with no code. Your backend's OpenTelemetry forwards both to every service it calls. See [What your own requests carry](#what-your-own-requests-carry). |
+| **Capture country** | On | Country only, never an IP address. |
+| **Record canvas contents** | Off | Canvas and WebGL are not recorded. |
+| **Retention** | 7 days | Shorter than other telemetry, on purpose. 1, 14, 30 and 90 days are also available. |
+| **Monthly budget (GB)** | Blank | An optional ceiling on the bytes uploaded per calendar month for this application. Blank or 0 means no ceiling. |
 
 ### Choose a masking mode deliberately
 
-The default records a readable page, because a wireframe is rarely enough to debug from. Be clear about what that means: **anything rendered into your page is in the recording** — an order id, an email address in a header, an error banner quoting user data — and so is anything typed into a field your markup does not declare as sensitive.
-
-Masking happens in the browser before upload, so this cannot be repaired after the fact: tightening the mode later does not scrub recordings already taken.
+> [!WARNING]
+> The default records a readable page, because a wireframe is rarely enough to debug from. Anything rendered into your page is in the recording: an order id, an email address in a header, an error banner quoting user data. So is anything typed into a field your markup does not declare as sensitive. Masking happens in the browser before upload, so tightening the mode later does not scrub recordings already taken.
 
 The three modes, least to most private:
 
@@ -274,7 +324,7 @@ The three modes, least to most private:
 
 Under _Mask all text_ the replay is a wireframe: text nodes, the labels the recorder attaches to clicks, `identify()` traits and `track()` properties are all masked before upload, and the player loads none of the page's images or web fonts from their addresses. The recording still holds those addresses, and a session recorded in this mode plays back without them, with one exception: an image the page held as a `data:` URL is part of the recording itself, and still shows. Block elements that can show a personal image that way, such as the preview of a document the user uploads. Stylesheets still load, so the layout keeps its shape (see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback)).
 
-If your pages render personal data, either move up a mode or add **mask** / **block** selectors for the specific elements — see *Marking your own content* below. Selectors are the right tool when only a few regions are sensitive; a stricter mode is the right tool when you cannot enumerate them.
+If your pages render personal data, either move up a mode or add mask or block selectors for the specific elements: see [Marking your own content](#marking-your-own-content). Selectors are the right tool when only a few regions are sensitive; a stricter mode is the right tool when you cannot enumerate them.
 
 ### Set your allowed origins in production
 
@@ -282,8 +332,8 @@ Session replay works out of the box with an empty origin allowlist, which accept
 
 Your ingestion token is shipped to the client — in page JavaScript or the mobile binary — so there are two fences, and they compose:
 
-- **On the key.** Create the ingestion key with the **Browser** surface. For web, list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). For React Native, add the exact application identity as `app://com.example.storefront`. Give the key an **Expires At** too: a copied token then stops working on a date you chose rather than never.
-- **On the application.** _Replay Policy → Allowed origins_ restricts who may write recordings into **this application**, whichever key they present. Add the same web origins and exact `app://` mobile identities here.
+- **On the key.** Create the ingestion key with **Browser** as its **Key Type**. For web, list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). For React Native, add the exact application identity as `app://com.example.storefront`. Give the key an **Expires At** too: a copied token then stops working on a date you chose rather than never.
+- **On the application.** **Replay Policy → Allowed origins** restricts who may write recordings into this application, whichever key they present. Add the same web origins and exact `app://` mobile identities here.
 
 An `app://` entry is the literal prefix plus the normalized Android application id or iOS bundle identifier supplied as `mobileAppIdentifier`. Matching is case-insensitive after trimming and lowercasing a valid reverse-DNS identifier. Mobile identities do **not** accept wildcards: `app://*.example.com` is invalid. The mobile SDK sends no browser `Origin`; it sends its recorder kind and app identity in dedicated headers. If a request does carry a real `Origin`, that origin always wins — mobile headers can never be used to bypass the browser-origin check.
 
@@ -305,7 +355,7 @@ Always masked regardless of mode, and not configurable:
 - **Request and response bodies and headers** are never recorded. A network row in the player carries the method, URL, status, timing, byte counts and the trace id — nothing else. (The recorder does _add_ trace context to requests to your own origin; see [What your own requests carry](#what-your-own-requests-carry).)
 - **Click labels** come from an element's `aria-label` or visible text, never from a form control's value, and are dropped entirely inside masked regions.
 
-Masked values are **not length-preserving**. A masked field is a fixed-width placeholder, so it cannot be used to infer how long a password or card number was.
+Masked values are not length-preserving. A masked field is a fixed-width placeholder, so it cannot be used to infer how long a password or card number was.
 
 ### Marking your own content
 
@@ -320,13 +370,13 @@ Masked values are **not length-preserving**. A masked field is a fixed-width pla
 <div class="oneuptime-ignore">...</div>
 ```
 
-You can also add **Additional mask selectors** and **Block selectors** under your application's _Replay Policy_ settings, without changing your markup. Under the default masking mode these are the main tool for protecting content your markup does not declare as sensitive.
+You can also add **Additional mask selectors** and **Block selectors** on your application's **Replay Policy** page, without changing your markup. Under the default masking mode these are the main tool for protecting content your markup does not declare as sensitive.
 
 ### What your own requests carry
 
 The recorder never records a request's headers or body, but it does **add** trace context to some of your page's own requests, and that goes to your backend rather than to OneUptime. This is what links backend telemetry to a recording (see [Correlating with your other telemetry](#correlating-with-your-other-telemetry)):
 
-```
+```text
 traceparent: 00-<32 hex trace id>-<16 hex parent id>-01
 tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 ```
@@ -334,10 +384,10 @@ tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
 - **Which requests.** `fetch` and `XMLHttpRequest` calls to the page's **own origin**, made while the session is **uploading**, except the page's own OpenTelemetry exports (`POST` requests to paths ending in `/v1/traces`, `/v1/logs` or `/v1/metrics`). Nothing is added before consent under _Require explicit_, after `revokeConsent()`, under _On error or frustration_ until a trigger fires, in a session that was not sampled, while recording is [paused because nobody is at the page](#idle-time), or after `stop()`. A `traceparent` or `tracestate` the request already carries is never replaced: it keeps its own, and the recorder adds only what is missing. `;p:` appears only when the recorder minted the `traceparent` itself. Requests to other origins get nothing unless you list the origin in **Trace propagation origins**, and then only a `traceparent`, which carries no session id.
 - **What the session id is.** The same random 32-hex id the recording is filed under. It says nothing about the person and stays the same for the whole visit, until 30 minutes idle or the 4-hour cap end the session, `identify()` names a different user, or a `revokeConsent()` followed by `grantConsent()` mints a fresh one. A session that ended idle sends no id at all until the user comes back, which starts the next session. The [anonymous visitor id](#anonymous-visitors), the user reference and the traits never travel this way.
 - **Where it goes.** Your backend's OpenTelemetry keeps `tracestate` with the trace and forwards it on every call it makes, to your other services and to any third-party API it calls with trace context, exactly as it does the trace id. OneUptime reads the member off each span at ingest, stores the session id in the span's session id column and removes the member from the trace state it stores.
-- **What it links.** A backend span, log or exception that names the user (an `enduser.id` attribute, an email in a log line) is now one click from the recording, even with **Capture user identity** off: that switch decides what the recording stores, not what your backend logs. If recordings must not be linkable to who the user was, turn **Same-origin trace propagation** off as well.
+- **What it links.** A backend span, log or exception that names the user (an `enduser.id` attribute, an email in a log line) is now one click from the recording, even with **Capture end-user identity** off: that switch decides what the recording stores, not what your backend logs. If recordings must not be linkable to who the user was, turn **Same-origin trace propagation** off as well.
 - **Who can assert it.** Like any trace context, the member is written by the client. Someone who knew a session id could send it to your API and have their own requests' spans filed under that session. Session ids are random 128-bit values, so they would need the id first. The same holds for the trace a client names: a request that sends a `traceparent` for a trace it knows, next to its own session's member, brings that trace's backend rows into its session's rail and into the scope of that session's erasure. Erasure removes a trace as a whole only when it belongs to the erased sessions alone; from a trace shared with other sessions it removes only the rows stamped with the erased ids (see [Erasing sessions](#erasing-sessions)).
 
-Switch it off per application with **Same-origin trace propagation** on the _Replay Policy_ page; see [Turning automatic linking off](#turning-automatic-linking-off).
+Switch it off per application with **Same-origin trace propagation** on the **Replay Policy** page; see [Turning automatic linking off](#turning-automatic-linking-off).
 
 ### Consent
 
@@ -360,23 +410,26 @@ Under _Require explicit_ the recorder records into memory from the first event a
 
 `revokeConsent()` forgets three things, and a later `grantConsent()` mints the first two afresh:
 
-- The **session id**, so a user who withdraws consent and comes back is not re-linked to the same session.
-- The **[anonymous visitor id](#anonymous-visitors)**, removed from storage with the session. Nothing is written while consent is withdrawn, and `getVisitorId()` answers `""` until the next grant — so the sessions recorded after a re-grant are grouped with each other, never with the ones the user asked you to forget.
-- **Whose the session was** (`oneuptime.replay.user`), removed from storage with the session. A page that called `identify()` keeps the reference in memory, and the session a later grant starts belongs to that user again; nothing about the withdrawn session's user is left for a later page to pick up.
+- The session id, so a user who withdraws consent and comes back is not re-linked to the same session.
+- The [anonymous visitor id](#anonymous-visitors), removed from storage with the session. Nothing is written while consent is withdrawn, and `getVisitorId()` answers `""` until the next grant — so the sessions recorded after a re-grant are grouped with each other, never with the ones the user asked you to forget.
+- Whose the session was (`oneuptime.replay.user`), removed from storage with the session. A page that called `identify()` keeps the reference in memory, and the session a later grant starts belongs to that user again; nothing about the withdrawn session's user is left for a later page to pick up.
 
 The same gate governs the [trace context the recorder adds to your own requests](#what-your-own-requests-carry): no session id is sent before `grantConsent()` or after `revokeConsent()`, and after a new grant the requests carry the new session's id, never the withdrawn one.
 
 ### Do Not Track
 
-`navigator.doNotTrack` and `navigator.globalPrivacyControl` are honoured **before the config request is made**: a page that says nothing on its script tag stands down for a user who sends either signal, without a request being made about them just to find out whether they would have been recorded. The loader logs `privacy-signal` and nothing else happens.
+`navigator.doNotTrack` and `navigator.globalPrivacyControl` are honoured before the config request is made: a page that says nothing on its script tag stands down for a user who sends either signal, without a request being made about them just to find out whether they would have been recorded. The loader logs `privacy-signal` and nothing else happens.
 
 The rule has one override. Set `data-oneuptime-respect-do-not-track="false"` (or `respectDoNotTrack: false` on the init global) to record regardless of the signal, if your lawful basis genuinely does not depend on it. The page's own markup is the only thing that can say so: nothing in the dashboard policy loosens it, and a page that says nothing honours the signal.
 
 ## Content Security Policy
 
-**If your site sends a CSP, the recorder will fail silently until you allow it.** There is no error we can surface from your users' browsers, so this is the first thing to check when no recordings appear. Add OneUptime's origin to the directives you already have — do not replace them, or you lock your own scripts out of your page:
+> [!IMPORTANT]
+> If your site sends a Content Security Policy, the recorder fails silently until you allow it. No error reaches OneUptime from your users' browsers, so this is the first thing to check when no recordings appear.
 
-```
+Add OneUptime's origin to the directives you already have. Do not replace them, or you lock your own scripts out of your page:
+
+```text
 script-src  'self' https://oneuptime.com;
 connect-src 'self' https://oneuptime.com;
 ```
@@ -385,16 +438,27 @@ If you self-host OneUptime, use your own host instead.
 
 One more CSP-adjacent detail, about stylesheets rather than your policy: the recorder can only store a stylesheet it can read. A stylesheet from another origin is readable only when its server sends an `Access-Control-Allow-Origin` header that allows your site **and** your `<link>` carries `crossorigin="anonymous"`. Otherwise the recording keeps only its address, and playback loads it from there in the viewer's browser; see [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback). Add the attribute only once the header is in place: `crossorigin` without the header makes your own page refuse the stylesheet.
 
-Use the **Test your installation** panel on the application's _Replay Policy_ page to confirm the token, the policy switches and the origin allowlists from the server's side. **It cannot check your CSP** — a CSP is a header your own site sends to your own visitors, and nothing server-side ever sees it. A CSP block shows up there only indirectly: `script-src` blocks the recorder, so the panel's _Recorder loaded on your site_ row stays waiting; `connect-src` blocks the upload, so that row passes while the recording-received row below it stays waiting. Either way the browser console on the blocked page logs the refusal, and that is the only positive proof.
+Use the **Test your installation** panel on the application's **Replay Policy** page to confirm the token, the policy switches and the origin allowlists from the server's side. It cannot check your CSP: a CSP is a header your own site sends to your own visitors, and nothing server-side ever sees it. A CSP block shows up there only indirectly: `script-src` blocks the recorder, so the panel's _Recorder loaded on your site_ row stays waiting; `connect-src` blocks the upload, so that row passes while the recording-received row below it stays waiting. Either way the browser console on the blocked page logs the refusal, and that is the only positive proof.
 
 ## Correlating with your other telemetry
 
 Installing the recorder is enough to link a recording to your backend's traces, logs and exceptions. There is no code to add to the page or to your services.
 
+```mermaid title="How a backend span is filed under the recording"
+sequenceDiagram
+    participant R as Recorder
+    participant B as Your backend
+    participant O as OneUptime
+    R->>B: A request with<br/>traceparent and tracestate
+    B->>B: Both go on to<br/>every service it calls
+    B->>O: Spans and logs<br/>over OTLP
+    Note over O: Spans get the session id,<br/>logs join by trace id
+```
+
 While a session uploads, every `fetch` and `XMLHttpRequest` your page makes **to its own origin** carries the session's W3C trace context:
 
-- a **`traceparent`**, minted by the recorder, unless the request already has one or another tracing agent on the page is set up to trace it, in which case the recorder leaves that to the agent;
-- a **`tracestate`** member, `oneuptime=sid:<session id>`, unless the request already carries a `tracestate`.
+- a `traceparent`, minted by the recorder, unless the request already has one or another tracing agent on the page is set up to trace it, in which case the recorder leaves that to the agent;
+- a `tracestate` member, `oneuptime=sid:<session id>`, unless the request already carries a `tracestate`.
 
 The recorder leaves the `traceparent` to another agent only when that agent is configured to trace the request: the OpenTelemetry browser SDK's fetch or XMLHttpRequest instrumentation; Datadog RUM, once it has started and tracks the session, when the first entry of its `allowedTracingUrls` that matches the request's URL uses the `tracecontext` propagator (an entry without `propagatorTypes` does); an active Elastic APM RUM agent with distributed tracing on and its default `traceparent` header name (`distributedTracingHeaderName`); or New Relic with distributed tracing enabled. It still adds its `tracestate` member. With the first three, the request is linked only if that agent really sends a W3C `traceparent` with it, and Datadog sends one only in a tracked, trace-sampled Datadog session. New Relic sends its own `tracestate` with its `traceparent`, and that takes the place of the member, so New Relic's requests are never stamped with the session and link only by trace id (see [What is not linked automatically](#what-is-not-linked-automatically)). An agent that is merely loaded does not stop the recorder from minting one: Datadog RUM with no `allowedTracingUrls` entry for your origin, before it has started or its `trackingConsent` is granted, or in a session it does not track.
 
@@ -406,18 +470,19 @@ The player's **Logs**, **Traces** and **Errors** tabs then list those rows on th
 
 ### APIs on another origin
 
-A request to another origin gets nothing by default: adding any header turns a simple cross-origin request into a preflighted one, and an API that does not allow the header would start failing because you installed a recorder. To link one, add its origin to **Trace propagation origins** on the _Replay Policy_ page (Performance & Tracing step). Only list an origin whose API allows `traceparent` in `Access-Control-Allow-Headers`; that is the whole reason it is an explicit allowlist.
+A request to another origin gets nothing by default: adding any header turns a simple cross-origin request into a preflighted one, and an API that does not allow the header would start failing because you installed a recorder. To link one, add its origin to **Trace propagation origins** on the **Replay Policy** page, on the **Performance & Tracing** step of **Edit Policy**. Only list an origin whose API allows `traceparent` in `Access-Control-Allow-Headers`; that is the whole reason it is an explicit allowlist.
 
 Requests to a listed origin get a `traceparent` only, with no `tracestate` and so no session id, and their backend telemetry is matched to the recording **by trace id**, through the trace ids the recording observed. Requests that already carry a `traceparent`, and `fetch` calls made with a `Request` object rather than a URL, are left untouched on this path.
 
 ### Sampling of browser-started traces
 
-The recorder mints its `traceparent` with the sampled flag set (`-01`), because a backend that follows its parent's decision would otherwise drop every span of the request. The flip side is that the default `ParentBased` samplers keep **every** trace the recorder starts, even if your backend samples its own root traces at, say, 10%: the same-origin requests of every session that uploads, and the requests to origins in **Trace propagation origins** from every session the recorder runs in, recorded or not. Trace volume and ingest cost can rise once your pages run the recorder. `OTEL_TRACES_SAMPLER=parentbased_traceidratio` behaves the same way: its ratio applies to root spans only.
+The recorder mints its `traceparent` with the sampled flag set (`-01`), because a backend that follows its parent's decision would otherwise drop every span of the request. The flip side is that the default `ParentBased` samplers keep every trace the recorder starts, even if your backend samples its own root traces at, say, 10%: the same-origin requests of every session that uploads, and the requests to origins in **Trace propagation origins** from every session the recorder runs in, recorded or not. Trace volume and ingest cost can rise once your pages run the recorder. `OTEL_TRACES_SAMPLER=parentbased_traceidratio` behaves the same way: its ratio applies to root spans only.
 
 To keep ratio sampling for browser-started traces, give a ratio sampler for sampled remote parents **only to the service(s) your pages call directly**. Leave the default `ParentBased` sampler on every service those call, so they follow the first hop's decision:
 
+:::tabs
+@tab Node.js
 ```js
-// Node.js
 import {
   ParentBasedSampler,
   TraceIdRatioBasedSampler,
@@ -428,16 +493,14 @@ const sampler = new ParentBasedSampler({
   remoteParentSampled: new TraceIdRatioBasedSampler(0.1),
 });
 ```
-
+@tab Java
 ```java
-// Java
 Sampler sampler = Sampler.parentBasedBuilder(Sampler.traceIdRatioBased(0.1))
     .setRemoteParentSampled(Sampler.traceIdRatioBased(0.1))
     .build();
 ```
-
+@tab Python
 ```python
-# Python
 from opentelemetry.sdk.trace.sampling import ParentBased, TraceIdRatioBased
 
 sampler = ParentBased(
@@ -445,14 +508,14 @@ sampler = ParentBased(
     remote_parent_sampled=TraceIdRatioBased(0.1),
 )
 ```
-
+@tab Go
 ```go
-// Go
 sampler := sdktrace.ParentBased(
     sdktrace.TraceIDRatioBased(0.1),
     sdktrace.WithRemoteParentSampled(sdktrace.TraceIDRatioBased(0.1)),
 )
 ```
+:::
 
 Do not put this delegate on the services further down. `TraceIdRatioBased` hashes the trace id differently in each language SDK: JavaScript XORs its 32-bit words, Go and Python use its low 64 bits, and Java uses the absolute value of the signed low 64 bits. A downstream service in another language would drop spans from traces the first hop kept, and it would re-sample the traces that start in your backend as well. The OpenTelemetry specification recommends this sampler for root spans only. For one consistent sampling rate across services, use tail sampling in an OpenTelemetry Collector instead.
 
@@ -460,7 +523,7 @@ A trace your backend then drops never reaches OneUptime, so it is not linked eit
 
 ### Turning automatic linking off
 
-**Same-origin trace propagation**, on the _Replay Policy_ page next to **Trace propagation origins**, is on by default for every application. Turned off, the recorder adds nothing to same-origin requests from the next page load on, and **Trace propagation origins** keeps working as before, for every origin it lists. So if you listed your own origin there (earlier versions of this page said to), remove it as well, or your own requests keep getting a `traceparent`. With diagnostics on, the recorder says which applies when it starts: `same-origin-propagation`, with `enabled` and a `reason` (see [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#codes)).
+**Same-origin trace propagation**, on the **Replay Policy** page next to **Trace propagation origins**, is on by default for every application. Turned off, the recorder adds nothing to same-origin requests from the next page load on, and **Trace propagation origins** keeps working as before, for every origin it lists. So if you listed your own origin there (earlier versions of this page said to), remove it as well, or your own requests keep getting a `traceparent`. With diagnostics on, the recorder says which applies when it starts: `same-origin-propagation`, with `enabled` and a `reason` (see [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#codes)).
 
 ### Redirects to another origin
 
@@ -519,7 +582,7 @@ An exception in the dashboard shows a **Watch what the user saw** card when a re
 
 ### The session list
 
-_Real User Monitoring → your application → Session Replay_ lists the sessions in the selected time range (the past 24 hours by default), newest first. Whether recordings are arriving right now, and why not if they are not, is on the application's **Health** page (see [Recording health](#recording-health)); when the list is empty, its empty state names the same cause.
+The application's **Session Replay** page lists the sessions in the selected time range (the past 24 hours by default), newest first. Whether recordings are arriving right now, and why not if they are not, is on the application's **Health** page (see [Recording health](#recording-health)); when the list is empty, its empty state names the same cause.
 
 Each row shows:
 
@@ -543,6 +606,15 @@ The Recording badge states:
 | **Metadata only** | Only the session's metadata remains — the signals, device and page list — and the footage is no longer stored. |
 | **Recording lost** | A session was opened but its footage never arrived, or expired before it could be processed. The signals and counts are still accurate; there is nothing to play. |
 
+```mermaid title="How a session's Recording badge settles"
+flowchart TB
+    now["Recording now"] -->|"Every tab ended,<br/>about a minute later"| ended["Recording ended"]
+    ended -->|"Finalized"| final{"Did every<br/>chunk arrive?"}
+    now -->|"No word from the browser:<br/>10 to 15 minutes after<br/>the last chunk"| final
+    final -->|"Yes"| playable["Playable"]
+    final -->|"No"| partial["Partial"]
+```
+
 **When a session ends idle.** Thirty minutes with no key, click, mouse movement, wheel or touch on any tab of the session ends it — where its footage ended, not when the recorder noticed — so a page left open on a desk is listed as long as the time someone actually spent on it, and its duration matches the footage you can play. Recording has already been [paused](#idle-time) for 25 of those minutes, so nothing was captured or stored for them. The tab then records nothing until the user comes back; their first click, scroll or keystroke starts a new session on a fresh snapshot, under the same visitor id. A tab left open overnight therefore produces one session, not one every half hour.
 
 **When a session is finalized.** A session's duration, pages and signals are counted, and its badge settles on _Playable_ or _Partial_, once nothing more will arrive for it. A tab has ended when its page went away — closed, reloaded, navigated away from, or put into the back/forward cache — or when it reached the chunk cap (480 chunks, about two hours of continuous recording), after which OneUptime accepts nothing more from it. Once every tab of a session has ended, OneUptime waits about a minute in case the next page of the same app picks the session up; if none does, the row reads **Recording ended**, and the session is usually finalized within about another minute. When the browser never says the tab ended — a mobile browser was swiped away, the browser crashed, or it discarded a background tab — the session is finalized 10–15 minutes after its last chunk instead, and reads **Recording now** until then. So does a page still running a recorder older than the one this version of OneUptime publishes when it goes into the back/forward cache: older recorders did not mark that as an end.
@@ -562,7 +634,7 @@ While the page of the list you are on shows a session that is not finalized, the
 | `browser:Chrome` `os:macOS` `device:mobile` `country:DE` | Device facts. `device:` is `desktop`, `mobile` or `tablet`. |
 | `trigger:error` | The trigger reason: `error`, `frustration` (or `rage`), `slow` (or `performance`), `sampled` (or `always`), `manual`. |
 | `min:2m` | Minimum duration: `90`, `90s`, `2m`, `1h30m` or `1:30`. |
-| `id:<sessionId>` | Narrows the list to ids with that prefix; pressing **Enter** opens the session directly. |
+| `id:<sessionId>` | Narrows the list to ids with that prefix; pressing `Enter` opens the session directly. |
 
 Bare text is routed by shape: something starting with `/` or `http` is a URL prefix, something containing `@` is a user reference, and anything else is a free-text search over the session id prefix, entry and exit URLs, visited routes, exact trace ids and — when your role may read it — the user label. Free text is capped at 200 characters and at a 30-day window; a wider range answers "narrow the range" rather than an empty list. Quote a value that contains spaces. The **Filters** button opens the same fields as a form, plus an exact-route filter the box does not cover.
 
@@ -574,13 +646,13 @@ If your role cannot read end-user identity, a `user:` filter is dropped by the s
 
 ### The Users page
 
-The Users page is its own page beside the session list: in the side menu under **Real User Monitoring → your application → Replay Users**, at `.../session-replay-users`, and reachable from the **Users** button on the session list and from the `identify()` banner above it. It shows the same time range rolled up by person. Where the session list answers "what happened", the Users page answers "who had trouble, and how often": one row per identified user, one per [anonymous visitor](#anonymous-visitors), and at most one **Unlinked sessions** row for recordings made by a recorder that sent no visitor id. Rows are ordered by when the person was last seen. The page has no search, sort or filter controls because the rollup takes none of them; only the time range applies, and it is the one thing the two pages share — the URL carries it under the same `range` or `startTime`/`endTime` keys, so a link into either page opens the other on the same window.
+The Users page is its own page beside the session list: **Replay Users** in the **Session Replay** section of the application's side menu, at `.../session-replay-users`, and reachable from the **Users** button on the session list and from the `identify()` banner above it. It shows the same time range rolled up by person. Where the session list answers "what happened", the Users page answers "who had trouble, and how often": one row per identified user, one per [anonymous visitor](#anonymous-visitors), and at most one **Unlinked sessions** row for recordings made by a recorder that sent no visitor id. Rows are ordered by when the person was last seen. The page has no search, sort or filter controls because the rollup takes none of them; only the time range applies, and it is the one thing the two pages share — the URL carries it under the same `range` or `startTime`/`endTime` keys, so a link into either page opens the other on the same window.
 
 A visitor row counts only the sessions in which nobody was identified; opening its sessions shows every session from that browser, including the ones recorded after the person signed in, so the list can hold more rows than the count.
 
 | Column | What it shows |
 | --- | --- |
-| **User** | The avatar and name by the same rules as the session list — the reference, _Visitor a1b2c3_, or _Hidden_ — with the browser, OS and country of the person's **newest** session and, for an identified user, how many traits it carried. |
+| **User** | The avatar and name by the same rules as the session list — the reference, _Visitor a1b2c3_, or _Hidden_ — with the browser, OS and country of the person's newest session and, for an identified user, how many traits it carried. |
 | **Sessions** | How many sessions in the range, and how many are still recording ("2 live") or, when none are, when the person was first seen. |
 | **Last seen** | When their newest session started. |
 | **Time** | Recorded time summed over their sessions, and the total number of pages. |
@@ -593,9 +665,9 @@ The rollup is computed on the server (`POST /telemetry/rum/session-replay/users`
 
 ### User flows
 
-**User Flows** is in the side menu under **Real User Monitoring → your application → User Flows**, at `.../user-flows`. It draws how people move through your application page to page, from the recordings in the selected range (a week by default): where they land, which page they go to next, where they leave, and where they go in circles.
+**User Flows** is in the **Session Replay** section of the application's side menu, at `.../user-flows`. It draws how people move through your application page to page, from the recordings in the selected range (a week by default): where they land, which page they go to next, where they leave, and where they go in circles.
 
-The flow map has one column per step. A page is a box whose height is the number of sessions at that step, and a band between two boxes is as thick as the number of sessions that made that move. A red stub off a box is the sessions that left the application there; a grey fade means the journey continues past the last column. A band drawn in amber is one where most sessions were going **back** to a page they had already seen. A red dot on a box means sessions hit an error on that page. Hover a box or a band to follow its traffic through the map; click it for the detail panel.
+The flow map has one column per step. A page is a box whose height is the number of sessions at that step, and a band between two boxes is as thick as the number of sessions that made that move. A red stub off a box is the sessions that left the application there; a grey fade means the journey continues past the last column. A band drawn in amber is one where most sessions were going back to a page they had already seen. A red dot on a box means sessions hit an error on that page. Hover a box or a band to follow its traffic through the map; click it for the detail panel.
 
 | Control | What it does |
 | --- | --- |
@@ -622,7 +694,7 @@ The player opens wide by default — the RUM side menu steps aside so the stage 
 
 From 1280px wide the player is sized to the window: the stage takes every pixel the header, the timeline and the transport do not, so the recording is drawn as large as the screen allows rather than inside a fixed box. It is never shorter than 720px, so on a short laptop window the page scrolls a little rather than squeezing the recording into the strip left over after the chrome — hiding the timeline's signal lanes from the transport's menu gives about another 90px back to the picture. Below that width the page falls back to ordinary flow — the stage keeps the recording's aspect ratio, capped at 70% of the window height, and the events rail stacks underneath it.
 
-**This person's other sessions.** Beside the identity the header says **N sessions**: every session by the same person in the 30 days before this one, up to now — matched by the pseudonymous user key for an identified user, otherwise by the visitor id, and by both when the session carries both, so the sessions a user recorded before signing in on the same browser are included. Thirty days is a fixed window that keeps the lookup cheap; retention can run to 90 days, and older sessions stay reachable through the list's `user:` and `visitor:` filters. The count opens a dropdown listing them newest first — when, the entry page, browser and device, duration, an error count, a red dot for one still recording, and _Watching_ on the one on screen — and **Older** / **Newer** buttons beside it step through them; `{` and `}` do the same from the keyboard and are on the `?` shortcuts sheet. A session with no sibling in the window reads _Only session in 30 days_. A session that carries neither a user key nor a visitor id — recorded by an older recorder for a page that never identified anyone — reads _Not linked to other sessions_, because there is nothing to look its siblings up by. When a recording plays out and the same person has a newer session, the ended card over the stage offers **Next session by this user** beside **Watch again**, which opens the same recording `}` would.
+**This person's other sessions.** Beside the identity the header says how many sessions there are, such as _3 sessions_: every session by the same person in the 30 days before this one, up to now — matched by the pseudonymous user key for an identified user, otherwise by the visitor id, and by both when the session carries both, so the sessions a user recorded before signing in on the same browser are included. Thirty days is a fixed window that keeps the lookup cheap; retention can run to 90 days, and older sessions stay reachable through the list's `user:` and `visitor:` filters. The count opens a dropdown listing them newest first — when, the entry page, browser and device, duration, an error count, a red dot for one still recording, and _Watching_ on the one on screen — and **Older** / **Newer** buttons beside it step through them; `{` and `}` do the same from the keyboard and are on the `?` shortcuts sheet. A session with no sibling in the window reads _Only session in 30 days_. A session that carries neither a user key nor a visitor id — recorded by an older recorder for a page that never identified anyone — reads _Not linked to other sessions_, because there is nothing to look its siblings up by. When a recording plays out and the same person has a newer session, the ended card over the stage offers **Next session by this user** beside **Watch again**, which opens the same recording `}` would.
 
 Above the stage a URL bar shows the page the user was on at the playhead, with copy and open buttons, and a chip shows the recorded viewport and the scale it is drawn at. Beside them the stage fit has three settings: **Fit** scales the whole page to the stage, **Width** fills the stage's width and scrolls the recording vertically — which is how you read a tall page at full detail instead of as a thumbnail — and **1:1** draws it at recorded pixels and scrolls both ways (the chip drops the percentage there, since 1:1 is 100% by definition). `Z` steps through the three, and the setting is remembered for the next recording you open. Mobile recordings are drawn in a phone-shaped frame.
 
@@ -634,23 +706,23 @@ The controls under the stage sit on one row: play/pause, the current time and du
 
 **The timeline** shows what footage exists and what happened in it:
 
-- The track is coloured by what is loaded and what is still on the server. **Gaps** — stretches the recorder never delivered — are hatched amber and labelled ("18s missing"); playback jumps over them with a two-second notice rather than playing mutations across a hole. **Idle** stretches (five seconds or more with no mouse, scroll, input or click) are hatched gray and labelled; **Skip idle** jumps past them, and a chip over the stage offers the same skip whenever the playhead is in one. A **background tab** stretch (the user switched tabs) is drawn dotted. A **Recording paused** stretch, where the recorder stopped because nobody touched the page (see [Idle time](#idle-time)), is drawn with upright bars and a dashed edge. Playback always jumps over it, with a notice such as _Skipped 23m: recording paused while the page was idle_, because nothing was recorded there, and the events rail marks where recording paused and where it resumed.
+- The track is coloured by what is loaded and what is still on the server. **Gaps** — stretches the recorder never delivered — are hatched amber and labelled ("18s missing"); playback jumps over them with a two-second notice rather than playing mutations across a hole. **Idle** stretches (five seconds or more with no mouse, scroll, input or click) are hatched gray and labelled; **Skip idle** jumps past them, and a chip over the stage offers the same skip whenever the playhead is in one. A background-tab stretch (the user switched tabs) is drawn dotted. A **Recording paused** stretch, where the recorder stopped because nobody touched the page (see [Idle time](#idle-time)), is drawn with upright bars and a dashed edge. Playback always jumps over it, with a notice such as _Skipped 23m: recording paused while the page was idle_, because nothing was recorded there, and the events rail marks where recording paused and where it resumed.
 - The activity lane shows how much was happening per chunk. Three marker lanes show Errors (client errors, server exceptions and error logs), Network / Traces (4xx, 5xx and failed requests, slow requests, error spans) and Navigation / Frustration (route changes, rage, dead and error clicks, refresh rage). Overlapping markers cluster into a count pill. Markers drawn hollow are approximate — the chunk they belong to has not been decoded yet — and turn solid as it loads. **Hide signal lanes** in the controls menu drops the three lanes and the legend and gives that height back to the recording; the track keeps its colouring and the markers that warn a stretch cannot be played, and the choice is remembered.
 - Hover for a preview of the time, the nearest route and the signals within two seconds; click a marker to seek one second before it and select it in the rail; drag to scrub; wheel to nudge by a second.
 
-**Tabs.** A session holds one recording per tab, and the recorder starts a new tab id on every page load — so a visitor who walked through four pages arrives as four "tabs" of one session, and a visitor with two windows open adds more. The switcher in the header lists the tabs that are **still open** first, each with a green dot meaning it is still recording, and the closed ones after; every pill names the page it was on and how long it lasted ("Tab 3 · /checkout · 30s"), and a line above them counts them ("3 tabs · 1 open · 2 closed"). Switching keeps the playhead where it is on the session clock. Pills wrap onto further rows rather than scrolling sideways, and a tab with no stored footage is disabled and says so.
+**Tabs.** A session holds one recording per tab, and the recorder starts a new tab id on every page load — so a visitor who walked through four pages arrives as four "tabs" of one session, and a visitor with two windows open adds more. The switcher in the header lists the tabs that are still open first, each with a green dot meaning it is still recording, and the closed ones after; every pill names the page it was on and how long it lasted ("Tab 3 · /checkout · 30s"), and a line above them counts them ("3 tabs · 1 open · 2 closed"). Switching keeps the playhead where it is on the session clock. Pills wrap onto further rows rather than scrolling sideways, and a tab with no stored footage is disabled and says so.
 
-Past six tabs the strip stops growing: it shows the open tabs and the one you are watching, and **All 11 tabs** opens a picker listing every one of them. The picker groups them under **Open**, **Closed** and **No footage** with a count on each heading, filters as you type a page or a tab number, and gives each row the page, when the tab opened, how long it lasted, its errors and frustration signals, a bar placing the tab against the session clock so "the one that was open when it broke" is findable by position, and **Watching** on the tab on screen. Once a session has finished nothing is open any more, so the headings collapse to a single list.
+Past six tabs the strip stops growing: it shows the open tabs and the one you are watching, and _All 11 tabs_ opens a picker listing every one of them. The picker groups them under **Open**, **Closed** and **No footage** with a count on each heading, filters as you type a page or a tab number, and gives each row the page, when the tab opened, how long it lasted, its errors and frustration signals, a bar placing the tab against the session clock so "the one that was open when it broke" is findable by position, and **Watching** on the tab on screen. Once a session has finished nothing is open any more, so the headings collapse to a single list.
 
 **Playing a whole visit.** Because every page load is another tab, playback would otherwise stop at each page of a visit. It does not: when the tab you are watching plays out and another has later footage, the player moves to that tab and keeps playing, saying which one it went to. So a four-page visit plays end to end from one press of Play. The walk follows the session clock, enters each tab at most once, and stops when nothing follows — where the ended card offers **Watch again** and, when the same person has one, **Next session by this user**.
 
-It never overrides you. A tab you **paused** at the end of stays paused, and choosing a tab from the switcher yourself hands the walk back to you for that stretch. To watch one page load at a time, turn it off with **Stop at the end of each tab** in the transport's overflow menu; the choice is remembered, and the **Continue in Tab 2** chip in the header and on the ended card is then how you move on — one press both switches and resumes. The chip is also what you get wherever the walk declines to move you — the paused stop above, and a tab it has already been into once. A page the user came back to through the browser's back/forward cache appears as a tab of its own.
+It never overrides you. A tab you paused at the end of stays paused, and choosing a tab from the switcher yourself hands the walk back to you for that stretch. To watch one page load at a time, turn it off with **Stop at the end of each tab** in the transport's overflow menu; the choice is remembered, and the _Continue in Tab 2_ chip in the header and on the ended card is then how you move on — one press both switches and resumes. The chip is also what you get wherever the walk declines to move you — the paused stop above, and a tab it has already been into once. A page the user came back to through the browser's back/forward cache appears as a tab of its own.
 
 **Live sessions.** While a session is still recording the header shows a red **Live** pill and the player fetches new footage every 30 seconds without writing extra entries to the access log. The pill goes out about a minute after every tab of the session has ended; the player keeps checking every 30 seconds until the session is finalized, so its counts appear without a reload.
 
-**Theater and links.** `F` or **Theater** goes fullscreen with the rail kept at the side; `Esc` leaves. **Link** (or `C`) copies a URL to the current moment, including the selected row and rail tab, so a teammate opens exactly what you are looking at. The URL parameters are `t` (seconds from the start), `at` (an absolute time in Unix milliseconds — what links from logs and exceptions use; it wins over `t`), `tab`, `rail`, `signal` and `q` (a rail search).
+**Theater and links.** `F` or **Theater** goes fullscreen with the rail kept at the side; `Esc` leaves. **Copy link** (or `C`) copies a URL to the current moment, including the selected row and rail tab, so a teammate opens exactly what you are looking at. The URL parameters are `t` (seconds from the start), `at` (an absolute time in Unix milliseconds — what links from logs and exceptions use; it wins over `t`), `tab`, `rail`, `signal` and `q` (a rail search).
 
-**Details** (`I`) opens a side panel with three tabs: **Session** (the facts, trace ids and exception groups observed, the session's tags and traits), **Privacy** (the masking mode, consent state and recorder version the session was captured under) and **Fidelity** (every notice about what the recording could not capture — a cross-origin stylesheet, a canvas, an iframe, a snapshot too large to store, recorder errors — with what each means for playback, and under **Missing assets** the images and stylesheets that did not load in your browser while you watched).
+**Session details** (`I`) opens a side panel with three tabs: **Session** (the facts, trace ids and exception groups observed, the session's tags and traits), **Privacy** (the masking mode, consent state and recorder version the session was captured under) and **Fidelity** (every notice about what the recording could not capture — a cross-origin stylesheet, a canvas, an iframe, a snapshot too large to store, recorder errors — with what each means for playback, and under **Missing assets** the images and stylesheets that did not load in your browser while you watched).
 
 ### The events rail
 
@@ -670,7 +742,7 @@ Beside the stage, the rail lists everything that happened, on the recording's cl
 
 Logs, Traces and the server half of Errors are read through the same permissions as the Logs, Traces and Exceptions pages; a role without them sees a locked tab that names the permission. Server-stamped rows are placed on the recording's clock by anchoring them to the traces the recording itself observed; the rail says whether that anchoring succeeded ("server times anchored via 6 traces") or the row's time is approximate.
 
-The rail's search box (`/`) takes free text and tokens: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. A scope toggle narrows any tab to ±30 seconds around the playhead. The rail **follows** the playhead until you scroll it; a **Resume following** chip (or `M`) turns following back on.
+The rail's search box (`/`) takes free text and tokens: `status:500`, `status:>=400`, `status:5xx`, `status:failed`, `level:error`, `kind:network`, `trace:<id>`, `method:post`, `url:/api/orders`, `service:payment`. A scope toggle narrows any tab to ±30 seconds around the playhead. The rail follows the playhead until you scroll it; a **Resume following** chip (or `M`) turns following back on.
 
 ### Keyboard shortcuts
 
@@ -707,15 +779,15 @@ Press `?` in the player for this list. Shortcuts never fire while you are typing
 
 ## Recording health
 
-The **Health** page — _Real User Monitoring → your application → Session Replay → Health_ — answers "is anything being recorded, and if not, why?" from the server's side, and the _Replay Policy_ page repeats its one-line diagnosis above the policy. The diagnosis names one cause, quantifies it and offers one action; it never says "disconnected" without a reason. The states, in the order they are checked:
+The application's **Health** page, in the **Session Replay** section of its side menu, answers "is anything being recorded, and if not, why?" from the server's side, and the **Replay Policy** page repeats its one-line diagnosis above the policy. The diagnosis names one cause, quantifies it and offers one action; it never says "disconnected" without a reason. The states, in the order they are checked:
 
 | State | What it means | What to do |
 | --- | --- | --- |
-| `disabled-project` | The project-wide master switch is off. | Turn it on under _RUM → Settings → Session Replay_. |
-| `disabled-app` | Session replay is off for this application. | Turn it on under _Replay Policy_. |
+| `disabled-project` | The project-wide master switch is off. | Turn it on under **Real User Monitoring → Settings → Session Replay**. |
+| `disabled-app` | Session replay is off for this application. | Turn it on under **Replay Policy**. |
 | `budget-paused` | The application's monthly budget or the deployment's daily byte limit is spent; live recorders have been told to stop. | Raise the budget, or wait for the next day / month. Set up [storage budget alerts](#storage-budget-alerts) to hear about it before it happens. |
 | `refusing` | Uploads are arriving and being refused — the diagnosis says the top reason and the count in the past 24 hours, for example `origin-not-allowed` (212 uploads from an origin that is not in your allowed origins) or `not-sampled`. | Follow the reason: edit the allowed origins, raise the sample percentage, and so on. |
-| `never-loaded` | No browser has ever fetched this application's policy. The script tag is not on the page, or the identifier does not match. | The setup guide on the sessions page walks through it. |
+| `never-loaded` | No browser has ever fetched this application's policy. The script tag is not on the page, or the identifier does not match. | The setup guide on the application's **Documentation** page, in its **Session Replay** section, walks through it. |
 | `loaded-never-uploaded` | The recorder fetched its policy recently but no chunk has ever arrived. The detail explains it from the policy: sampling is 0%, consent mode is _Require explicit_ and the page has not granted it, the trigger is _On error or frustration_ and nothing has fired — or, with a healthy policy, a CSP or ad blocker is refusing the ingest URL. | The action matches the cause. |
 | `stale` | Recorders keep fetching the policy but no chunk has arrived for more than six hours. | Same causes as above, on a page that used to work: check what changed. |
 | `healthy-quiet` | No chunk for more than six hours **and** no page has fetched the policy in the past 24 hours either, with nothing switched off, over budget or being refused. No recorder is running on this application right now — a low-traffic or staging app, or a snippet that is no longer on the page. The page quantifies both silences. | If your pages are being served, check that the script tag is still on them; otherwise nothing. |
@@ -737,7 +809,7 @@ The two storage budgets — the project's daily upload limit and an application'
 | **Session Replay Monthly Budget Nearly Spent** | Warning | The application has used 80% of its monthly budget. |
 | **Session Replay Monthly Budget Spent** | Critical | The application's monthly budget is spent: its recorders have been told to stop until the 1st of next month (UTC) or until the budget is raised. |
 
-While Session Replay is on for the application, the daily pair is offered once it has recorded a replay, and the monthly pair once it also has a **Monthly budget (GB)** on its _Replay Policy_ page; if one is missing on an application you use Session Replay on, the tab says why. Once the daily pair is offered, **Set up alerts** in the **Storage budget** panel of the **Health** page opens the tab filtered to the budget alerts, the ones you have already created included. Each one you create is an ordinary Metrics monitor on the application, and the incident and alert it opens say what to do. To make a budget last, lower the **Sample percentage**, upload only _On error or frustration_ or narrow the **Allowed origins** on _Replay Policy_ — each stops an upload before it is counted — or raise the **Monthly budget (GB)**. The daily limit cannot be raised from the dashboard; on a self-hosted installation it is `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (see [Self-hosted notes](#self-hosted-notes)).
+While Session Replay is on for the application, the daily pair is offered once it has recorded a replay, and the monthly pair once it also has a **Monthly budget (GB)** on its **Replay Policy** page; if one is missing on an application you use Session Replay on, the tab says why. Once the daily pair is offered, **Set up alerts** in the **Storage budget** panel of the **Health** page opens the tab filtered to the budget alerts, the ones you have already created included. Each one you create is an ordinary Metrics monitor on the application, and the incident and alert it opens say what to do. To make a budget last, lower the **Sample percentage**, upload only _On error or frustration_ or narrow the **Allowed origins** on **Replay Policy** — each stops an upload before it is counted — or raise the **Monthly budget (GB)**. The daily limit cannot be raised from the dashboard; on a self-hosted installation it is `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (see [Self-hosted notes](#self-hosted-notes)).
 
 **One daily monitor covers the project.** The daily limit belongs to the project, not to an application: all of its applications spend it together, and every application that records carries the project's figure, so the daily pair is offered on each of them, and a daily monitor on any one of them covers them all. Create the daily pair on one application, one that keeps Session Replay on (its monitor sees only the points written for that application), and dismiss the daily cards on the others; otherwise one spent day alerts once per application. The monthly pair is each application's own: create it wherever you set a budget.
 
@@ -766,7 +838,7 @@ The daily pair carries only `projectId`: its figure is the project's, and nothin
 
 - No upload has been counted yet today, or for the monthly pair this month — for example between 00:00 UTC and the day's first upload.
 - The usage counters cannot be read from Valkey. An unknown figure is never written as 0, just as the Health page reads **unknown** rather than 0. Open alerts resolve once their window holds no point, and open again, notifying again, when the counters can be read and the budget is still over the threshold.
-- Session Replay is off for the application (_Replay Policy_) or for the whole project (_RUM → Settings → Session Replay_).
+- Session Replay is off for the application (**Replay Policy**) or for the whole project (**Real User Monitoring → Settings → Session Replay**).
 - The application has never recorded a replay.
 - The application has no monthly budget: nothing is counted against a budget that is not set, so there is no monthly pair at all. Removing the budget silences its monthly monitors, and the monthly figure counts only uploads made while a budget is set: one first set mid-month counts from that moment, not from the 1st, while one removed and set again in the same month picks up that month's earlier count.
 
@@ -785,25 +857,41 @@ The daily pair carries only `projectId`: its figure is the project's, and nothin
 
 ## Performance capture triggers
 
-Under the default _Always_ trigger every sampled session is uploaded, so these budgets change nothing about what is recorded — they only mark the events that exceeded them on the timeline and in the **Perf** tab. When the trigger is _On error or frustration_, they extend the trigger set to sessions that were merely *slow*. Set them on the _Replay Policy_ page (Performance & Tracing step):
+Under the default _Always_ trigger every sampled session is uploaded, so these budgets change nothing about what is recorded — they only mark the events that exceeded them on the timeline and in the **Perf** tab. When the trigger is _On error or frustration_, they extend the trigger set to sessions that were merely *slow*. Set them on the **Replay Policy** page, on the **Performance & Tracing** step of **Edit Policy**:
 
 | Budget | Fires when | Suggested starting point |
 | --- | --- | --- |
-| Largest Contentful Paint (ms) | The page's LCP exceeds the budget | 4000 — the boundary of a "poor" LCP |
-| Long task (ms) | A single main-thread task blocks for at least the budget | 200+ — browsers only report tasks over 50 ms |
-| Slow request (ms) | A `fetch`/XHR **succeeds** but takes at least the budget | Your API's timeout expectations |
+| **Largest Contentful Paint budget (ms)** | The page's LCP exceeds the budget | 4000 — the boundary of a "poor" LCP |
+| **Long task budget (ms)** | A single main-thread task blocks for at least the budget | 200+ — browsers only report tasks over 50 ms |
+| **Slow request budget (ms)** | A `fetch`/XHR succeeds but takes at least the budget | Your API's timeout expectations |
 
-Each budget is off at `0` (the default). Sessions captured this way appear with the trigger reason **performance** (_Slow_ in the list). Failed and cancelled requests are not counted here — a 5xx or a network failure already triggers via the error path.
+Each budget is off at `0` (the default). Sessions captured this way appear with the trigger reason `performance` (_Slow_ in the list). Failed and cancelled requests are not counted here — a 5xx or a network failure already triggers via the error path.
 
 Independently of the budgets, the recorder reports the Core Web Vitals of every page — LCP, CLS, INP, FCP and TTFB with their good / needs-improvement / poor rating — as **Perf** rows. Vitals never trigger an upload on their own.
 
-INP is reported **per view**, not per page load. In a single-page app every route change (`pushState`, `replaceState`, back/forward, or a `#/` hash route) closes the current view and starts a new one, so a visit through five routes gets up to five INP rows, each labelled with its route. An interaction belongs to the view it started in: the click that navigated from `/products` to `/cart` counts towards `/products`, which is the page that was slow to respond. Each INP row also says what the slow interaction was — pointer or keyboard, the element (a structural selector such as `div#checkout > button.pay`, built like a click's and never containing text or attribute values), and how its time split into input delay, processing and presentation. A view is reported about a second after the user leaves it, or when the tab is hidden.
+INP is reported per view, not per page load. In a single-page app every route change (`pushState`, `replaceState`, back/forward, or a `#/` hash route) closes the current view and starts a new one, so a visit through five routes gets up to five INP rows, each labelled with its route. An interaction belongs to the view it started in: the click that navigated from `/products` to `/cart` counts towards `/products`, which is the page that was slow to respond. Each INP row also says what the slow interaction was — pointer or keyboard, the element (a structural selector such as `div#checkout > button.pay`, built like a click's and never containing text or attribute values), and how its time split into input delay, processing and presentation. A view is reported about a second after the user leaves it, or when the tab is hidden.
+
+Errors can be too noisy a trigger: a third-party script that throws on every page would upload every session. List their messages in **Ignored error patterns**, on the **Recording** step of **Edit Policy**: a JSON array of up to 20 regular expressions, of up to 200 characters each, matched against an uncaught error's message and source URL, such as `["ResizeObserver loop"]`. A matching error is still recorded in the session; it just no longer starts an upload. Stackless cross-origin `Script error.` noise is ignored automatically.
 
 ## Recording a specific user's next session
 
-When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: on the application's _Replay Policy_ page → **Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.
+When a named customer reports a problem you cannot reproduce, arm a one-shot target instead of waiting for an error.
 
-Honest limits, so "armed" is not misread as "guaranteed":
+:::steps
+### Open the policy
+
+Open the application's **Replay Policy** page and find **Record a specific user's next session**.
+
+### Arm the target
+
+Enter the same end-user reference your page supplies, and click **Record next session**.
+
+### Wait for the visit
+
+That user's next visit records from its first event, with the trigger reason `manual`.
+:::
+
+Its limits, so that "armed" is not read as "guaranteed":
 
 - Your page must supply the reference **at load time** — the `data-oneuptime-user-ref` attribute or `userRef` on the init global — because the target is matched when the policy is fetched, before the recorder artifact exists. A reference set later via `identify()` is too late for that page load, though it still makes the session searchable by `user:`.
 - Consent still applies. A targeted session in _Require explicit_ mode uploads nothing until your page grants consent.
@@ -813,11 +901,19 @@ Honest limits, so "armed" is not misread as "guaranteed":
 
 A tab nobody is using stops costing anything after five minutes.
 
+```mermaid title="What happens to a tab nobody touches"
+flowchart TB
+    last["Last key, click,<br/>wheel or touch"] -->|"5 minutes"| paused["Recording pauses"]
+    paused -->|"Input within<br/>30 minutes"| resumed["The same session<br/>resumes"]
+    paused -->|"No input for<br/>30 minutes"| ended["The session ends<br/>where footage ended"]
+    ended -->|"Next input"| next["A new session<br/>starts"]
+```
+
 - **What counts as someone being there.** A key press, a mouse button, the mouse moving, the wheel or a touch on the page. What the page does by itself does not count, however much it changes the page: a dashboard re-rendering from a poll, a ticking clock, a carousel scrolling itself, a framework writing into an input, an animation, a video playing.
 - **The first five minutes are recorded as usual.** Nobody can know a user has gone until they have been gone a while, so until then the page is recorded like any other moment. A page that does not change uploads nothing in that time, because the recorder only sends what changed; one that changes on its own uploads those changes.
 - **After five minutes without input, recording pauses.** The recorder puts a _Recording paused_ marker at the end of the footage, sends what it was holding, and stops observing the page: no DOM changes, no snapshots, no console, network or error capture, no uploads, nothing stored, and no work on your page. Requests your page makes to its own origin carry no session id while paused. A background error or 5xx neither counts against the session nor, under _On error or frustration_, starts an upload, and a `track()` call is dropped. Before pausing, the recorder reports the page's web vitals as it would when the tab is hidden, so a tab closed by someone who walked away first still has them.
 - **The next input resumes the same session.** Within 30 minutes of the last input, the user's next key, click, scroll or touch resumes recording in the same session and the same tab, on a fresh snapshot of the page as it is then, followed by a _Recording resumed_ marker. After 30 minutes the session has ended, at the end of its footage, and that input starts a new session under the same visitor id. In either case the first snapshot after the pause shows the page as the user found it when they came back. Whatever changed while nobody was there is not recorded.
-- **Duration counts footage, not absence.** A session that ends while paused ends at its _Recording paused_ marker, whether the tab is closed, `stop()` is called or the 30 minutes run out, so a tab left open over lunch is not listed as an hour long. A session that resumes is listed from its first footage to its last, with the paused stretch inside it, and the list's **idle** share counts that stretch as idle.
+- **Duration counts footage, not absence.** A session that ends while paused ends at its _Recording paused_ marker, whether the tab is closed, `stop()` is called or the 30 minutes run out, so a tab left open over lunch is not listed as an hour long. A session that resumes is listed from its first footage to its last, with the paused stretch inside it, and the list's idle share counts that stretch as idle.
 - **Playback skips the paused stretch.** The player draws it on the timeline as _Recording paused_ and jumps over it on its own, with a notice, whatever **Skip idle** is set to, because there is nothing recorded to watch. Ordinary idle stretches, which are footage in which nothing happened, follow **Skip idle** as before.
 - **Storage and cost.** Nothing is uploaded while paused, so idle time past the first five minutes adds nothing to the bytes stored, to your daily and monthly budgets, or to the data your users' browsers send. Retention runs from the session's start and does not depend on idle time.
 - **Not a setting.** The five minutes and the 30 minutes are fixed. Five minutes is well past the longest anyone reads one screen without scrolling or moving the mouse, and what a page does after that, with nobody watching it, is not what a replay is for. To record a moment while nobody is at the page, call `OneUptimeReplay.captureSession()`. It resumes recording at once, and recording pauses again at the next check if still nobody is there.
@@ -910,9 +1006,9 @@ The player tells you. When images or stylesheets fail to load in your browser, t
 
 ## Retention and deletion
 
-Recordings are kept for **7 days** by default; 1, 14, 30 and 90 days are also available per application. The expiry is computed from the **session's start**, not from when each chunk arrived, so a session expires as a whole rather than losing its later minutes first. The session list shows the expiry on each row ("expires in 6d").
+Recordings are kept for 7 days by default; 1, 14, 30 and 90 days are also available per application. The expiry is computed from the session's start, not from when each chunk arrived, so a session expires as a whole rather than losing its later minutes first. The session list shows the expiry on each row ("expires in 6d").
 
-Be aware that **the session row expires with its footage**: error counts, frustration signals, device facts and the rest of the metadata share the recording's retention and are gone when it is. The spans and exceptions stamped with the session's id follow the telemetry retention of the application instead and remain searchable by session id in their own explorers; backend logs linked by trace id stay searchable by that trace id. Removal runs in the background, so for a short while after the expiry a session can still be listed while the player explains that its footage has expired; once the row is gone, a saved link answers "expired on ⟨date⟩ under the application's N-day retention".
+Be aware that the session row expires with its footage: error counts, frustration signals, device facts and the rest of the metadata share the recording's retention and are gone when it is. The spans and exceptions stamped with the session's id follow the telemetry retention of the application instead and remain searchable by session id in their own explorers; backend logs linked by trace id stay searchable by that trace id. Removal runs in the background, so for a short while after the expiry a session can still be listed while the player explains that its footage has expired; once the row is gone, a saved link answers "expired on ⟨date⟩ under the application's N-day retention".
 
 ### Erasing sessions
 
@@ -925,9 +1021,9 @@ To satisfy a deletion request, file an erasure request through the OneUptime API
 | `startDate` / `endDate` | The window for `ByDateRange`. |
 | `rumApplicationId` | The application the request applies to. |
 
-Two honest limits on `ByIdentifiedUserKey`. The key is not shown anywhere in the dashboard: it comes back as `identifiedUserKey` on each row of the session list API (`POST /telemetry/rum/session-replay/list`), so today an erasure by user starts with a `user:` search there and a copy of that field. And a session recorded while **Capture user identity** was off has no key at all — nothing about the person was stored — so it can only be reached by session id, date range or application.
+Two honest limits on `ByIdentifiedUserKey`. The key is not shown anywhere in the dashboard: it comes back as `identifiedUserKey` on each row of the session list API (`POST /telemetry/rum/session-replay/list`), so today an erasure by user starts with a `user:` search there and a copy of that field. And a session recorded while **Capture end-user identity** was off has no key at all — nothing about the person was stored — so it can only be reached by session id, date range or application.
 
-Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted` and `chunksDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording **and** the telemetry linked to those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found". The linked telemetry is:
+Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted` and `chunksDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording and the telemetry linked to those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found". The linked telemetry is:
 
 - every span and exception stamped with the session's id, including the backend spans stamped [automatically](#correlating-with-your-other-telemetry) in every service that forwarded the trace context, and any log that carries the id itself;
 - the logs, exceptions and spans of every trace that belongs to the erased sessions alone: every stamped span in the trace carries one of their ids, and nothing in the trace started more than ten minutes before the first or after the last of those spans. That covers the backend logs of the requests your pages made to their own origin, which share a trace id with those stamped spans.
@@ -948,43 +1044,47 @@ Watching a recording is a separate permission from listing sessions, and neither
 
 | Permission | Unlocks |
 | --- | --- |
-| `ReadRumSessionReplay` | The session list, the Users page and each session's metadata: counts, signals, device, the visitor id — but not the recording, and not who the user was. A support engineer can triage which sessions errored without playing anyone's screen back. |
-| `ReadRumSessionReplayPayload` | Playing a recording back, and reading the identified user's reference and traits in the list, the player and the `user:` filter. |
-| `ReadRumSessionReplayAudit` | The **Replay Access Log** — who watched what. |
-| `DeleteRumSessionReplay` | Deleting recordings. |
+| `ReadRumSessionReplay` (_List Session Replays_) | The session list, the Users page and each session's metadata: counts, signals, device, the visitor id — but not the recording, and not who the user was. A support engineer can triage which sessions errored without playing anyone's screen back. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Playing a recording back, and reading the identified user's reference and traits in the list, the player and the `user:` filter. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | The **Replay Access Log** — who watched what. |
+| `DeleteRumSessionReplay` (_Delete Session Replays_) | Deleting recordings. |
 | `CreateRumSessionErasureRequest` / `ReadRumSessionErasureRequest` | Filing and reviewing erasure requests. |
 
 Label-based access applies: a member restricted to a set of labels can only reach applications carrying one of them, and the identity gate honours the same scope. A member whose grant is scoped to **Owned** reaches the applications they or one of their teams own, and a block with labels on one of these permissions takes the applications carrying those labels away, whatever else the member holds. See [Telemetry](/docs/permissions/index) in Users, Teams & Permissions.
 
-Every playback is recorded in an audit trail under _Real User Monitoring → your application → **Replay Access Log**_: who watched which session, when, from what IP address and user agent, for how long (reported in 15-second buckets while the player is actually playing, so "< 15s" means it was opened and closed), and the reason — the incident or exception the viewer arrived from, when there was one. Refreshing a live session does not add entries; each open of the player adds one.
+Every playback is recorded in an audit trail on the application's **Replay Access Log** page: who watched which session, when, from what IP address and user agent, for how long (reported in 15-second buckets while the player is actually playing, so "< 15s" means it was opened and closed), and the reason — the incident or exception the viewer arrived from, when there was one. Refreshing a live session does not add entries; each open of the player adds one.
 
 ## Troubleshooting
 
-Under the default _Always_ trigger a working page posts a chunk about every 15 seconds **while the user is doing something**; an idle page posts nothing, so interact with it before deciding the install is broken. If you have set the capture trigger to _On error or frustration_, the recorder records into memory and uploads only when something goes wrong, so **a healthy page makes exactly one request to OneUptime per page load** — the config fetch — and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens. From a Network tab that is indistinguishable from an installation that does not work.
+Under the default _Always_ trigger a working page posts a chunk about every 15 seconds while the user is doing something; an idle page posts nothing, so interact with it before you decide the install is broken. Under _On error or frustration_, a healthy page makes exactly one request to OneUptime per page load, the config fetch, and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens. From a Network tab, that looks just like an install that does not work.
 
-Two things tell you which one you are looking at. From the server's side, the application's **Health** page (see [Recording health](#recording-health)). From the browser's side, the recorder's own diagnostics:
+Two things tell you which one you are looking at:
 
-```js
-localStorage.setItem("oneuptime.sessionReplay.debug", "true");
-// then reload the page
-```
+- **From the server's side**, the application's **Health** page (see [Recording health](#recording-health)) and the **Test your installation** panel on **Replay Policy**.
+- **From the browser's side**, the recorder's own diagnostics. Turn them on and reload:
 
-Every decision the recorder makes is then printed with a stable code, and
+  ```js
+  localStorage.setItem("oneuptime.sessionReplay.debug", "true");
+  // then reload the page
+  ```
 
-```js
-OneUptimeReplay.getDiagnostics();
-```
+  Every decision the recorder makes is then printed with a stable code, and `OneUptimeReplay.getDiagnostics()` returns the last 250 of them with the recorder's `state`, `decisions` and `capabilities`, whether or not diagnostics were on when they happened. It carries no page content, so it is safe to paste into a support ticket, and the **Health** page has a box that explains it for you.
 
-returns the last 250 of them together with the recorder's `state`, `decisions` and `capabilities` — **whether or not diagnostics were switched on when they happened**, so you do not have to reproduce the problem first. It carries no page content by construction, so it is safe to paste into a support ticket, and the **Health** page has a box that explains it for you.
-
-[Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) explains every code and what to do about it, and the **Test your installation** panel on the _Replay Policy_ page answers the same question from the server's side.
-
-If recordings arrive and play but images, icons or styles are missing from them, see [Images, icons or styles are missing in the replay](/docs/rum/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay).
+[Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) explains every code and what to do about it. If recordings arrive and play but images, icons or styles are missing from them, see [Images, icons or styles are missing in the replay](/docs/rum/session-replay-troubleshooting#images-icons-or-styles-are-missing-in-the-replay).
 
 ## Self-hosted notes
 
-- Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
+- Session Replay is on at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
 - Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today". The app enforces the limit, and the background worker computes the percentages behind the [storage budget alerts](#storage-budget-alerts) from its own copy of the variable, so both need the same value. On Docker Compose, set it in `config.env`: one `app` container runs both. On Helm, set it in the chart-wide `extraEnv`, and also in `app.extraEnv` or `worker.extraEnv` if you set either, because a component that sets its own `extraEnv` replaces the chart-wide list instead of adding to it. The usage counters are kept in Valkey, which runs without persistence by default, so a Valkey restart resets them: the day's usage, and each application's month, start again from 0.
 - Recordings are stored in ClickHouse. No object storage is required.
 - A `Content-Security-Policy` header that a reverse proxy adds to the OneUptime dashboard also applies inside the replay, so its `img-src`, `style-src` and `font-src` must allow the sites your recorded pages load images, stylesheets and fonts from. See [Images, styles and fonts during playback](#images-styles-and-fonts-during-playback).
-- `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on **every** page every recorder runs on, so turn it on, collect one reload, and turn it off.
+- `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on every page every recorder runs on, so turn it on, collect one reload, and turn it off.
+
+## Next steps
+
+:::cards
+- [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting): Every recorder code, and what to do about it.
+- [Browser Setup](/docs/rum/browser-setup): Add OpenTelemetry traces, logs and Core Web Vitals to the same pages.
+- [Managing Applications](/docs/rum/applications): Retention, labels and who may watch recordings.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on the storage budget metrics, or anything else your app sends.
+:::

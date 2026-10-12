@@ -28,6 +28,34 @@ export const RUM_SETUP_PAGES: ReadonlyArray<RumDocsPageEntry> = [
 ];
 
 /*
+ * Docs overhaul task 25b: the RUM nav group's other four links, in nav
+ * order. RumReplayDocsFacts holds the English pages to the product, and
+ * RumDocsTranslations holds every translation of all eight to its English
+ * page.
+ */
+export const RUM_APPLICATIONS: string = "rum/applications";
+export const SESSION_REPLAY: string = "telemetry/session-replay";
+export const SESSION_REPLAY_TROUBLESHOOTING: string =
+  "rum/session-replay-troubleshooting";
+export const RUM_TROUBLESHOOTING: string = "rum/troubleshooting";
+
+export const RUM_REPLAY_PAGES: ReadonlyArray<RumDocsPageEntry> = [
+  { page: RUM_APPLICATIONS, navTitle: "Managing Applications" },
+  { page: SESSION_REPLAY, navTitle: "Session Replay" },
+  {
+    page: SESSION_REPLAY_TROUBLESHOOTING,
+    navTitle: "Session Replay Troubleshooting",
+  },
+  { page: RUM_TROUBLESHOOTING, navTitle: "RUM Troubleshooting" },
+];
+
+// Every page of the RUM nav group, in nav order.
+export const RUM_PAGES: ReadonlyArray<RumDocsPageEntry> = [
+  ...RUM_SETUP_PAGES,
+  ...RUM_REPLAY_PAGES,
+];
+
+/*
  * The rating chips of the Core Web Vitals card (ratingLabel in
  * WebVitalsCard.tsx). The card writes them without a translation lookup, so
  * every language's Dashboard draws them in English, and every page names

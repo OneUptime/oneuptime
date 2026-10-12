@@ -78,7 +78,10 @@ const PAGES_NAMING_THE_PATH: ReadonlyArray<[string, string]> = [
   ["en/status-pages/index.md", "**Status Pages → Advanced → Archived**"],
   ["en/dashboards/index.md", "**Advanced → Archived**"],
   ["en/dashboards/configuration.md", "**Dashboards → Advanced → Archived**"],
-  ["en/rum/applications.md", "**RUM → Advanced → Archived**"],
+  [
+    "en/rum/applications.md",
+    "**Real User Monitoring → Advanced → Archived**",
+  ],
   ["en/inventory/overview.md", "**Inventory → Advanced → Archived**"],
   ["fa/rum/applications.md", "**RUM → Advanced → Archived**"],
   ["fa/inventory/overview.md", "**Inventory → Advanced → Archived**"],

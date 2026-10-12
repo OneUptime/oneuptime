@@ -55,6 +55,8 @@ const PAGE_URL: string = "/docs/telemetry/session-replay";
 const NAV_GROUP_TITLE: string = "Real User Monitoring";
 
 const FENCE_LINE: RegExp = /^\s*```/;
+// The title line right after a form field's column: `title: "Consent",`.
+const POLICY_FIELD_TITLE: RegExp = /^\s*title: "([^"]+)",/;
 const CADENCE_CLAIM: RegExp = /every 15 seconds/;
 /* The words that turn "a POST every 15 seconds" into a true statement. */
 const CADENCE_QUALIFIER: RegExp =
@@ -141,6 +143,25 @@ function ownGroup(): NavGroup | undefined {
   return DocsNav.find((group: NavGroup): boolean => {
     return group.title === NAV_GROUP_TITLE;
   });
+}
+
+/* The title Edit Policy on the Replay Policy page gives a RumApplication column. */
+function policyFieldTitle(column: string): string {
+  const policyPage: string = readRepo(
+    "App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings.tsx",
+  );
+  const field: string = `field: { ${column}: true },`;
+  const start: number = policyPage.indexOf(field);
+
+  expect([column, start >= 0]).toEqual([column, true]);
+
+  const title: string | undefined = policyPage
+    .slice(start + field.length)
+    .match(POLICY_FIELD_TITLE)?.[1];
+
+  expect([column, title !== undefined]).toEqual([column, true]);
+
+  return title as string;
 }
 
 describe("Session Replay docs page", (): void => {
@@ -417,9 +438,23 @@ describe("Session Replay docs page", (): void => {
 
     const page: string = readPage();
 
-    expect(page).toContain("| Capture trigger | **Always** |");
-    expect(page).toContain("| Consent mode | **Not required** |");
-    expect(page).toContain("| Sample percentage | **100%** |");
+    /*
+     * The privacy table names each setting as Edit Policy titles it, so a
+     * reader finds the row's switch in the form (docs task 25b: the table
+     * used to say "Capture trigger" and "Consent mode", which the form
+     * does not).
+     */
+    const privacy: string = section(page, "## Privacy");
+
+    expect(privacy).toContain(
+      `| **${policyFieldTitle("sessionReplayCaptureTrigger")}** | _Always_ |`,
+    );
+    expect(privacy).toContain(
+      `| **${policyFieldTitle("sessionReplayConsentMode")}** | _Not required_ |`,
+    );
+    expect(privacy).toContain(
+      `| **${policyFieldTitle("sessionReplaySamplePercentage")}** | 100% |`,
+    );
 
     /*
      * docs-tests-e2e-1: the sentence that survived the default flip and
@@ -694,7 +729,8 @@ describe("Session Replay docs page", (): void => {
     expect(origins).not.toContain("no expiry and no origin binding");
     expect(origins).toContain("**Allowed Origins**");
     expect(origins).toContain("**Expires At**");
-    expect(origins).toContain("_Replay Policy → Allowed origins_");
+    // A page and a field, drawn as the Dashboard names them.
+    expect(origins).toContain("**Replay Policy → Allowed origins**");
   });
 
   it("describes erasure with the request types the model accepts", (): void => {
