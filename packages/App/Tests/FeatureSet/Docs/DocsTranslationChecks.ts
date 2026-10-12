@@ -893,14 +893,20 @@ const SPACE_RUN: RegExp = /\s+/g;
 const DIAGRAM_TITLE_TEXT: RegExp = /\btitle=(?:"([^"]*)"|'([^']*)')/;
 const QUOTED_TEXT: RegExp = /"([^"]*)"/g;
 const QUOTED_PLACEHOLDER: string = '""';
+// A comment, in any kind of diagram.
+const COMMENT_LINE: RegExp = /^\s*%%/;
 // What a flowchart line declares but never draws.
 const FLOWCHART_DIRECTIVE: RegExp =
-  /^\s*(?:flowchart|graph|classDef|class|style|linkStyle|click|direction|end|%%)\b/;
+  /^\s*(?:flowchart|graph|classDef|class|style|linkStyle|click|direction|end)\b/;
 // A link's label written between bars: -->|label|.
 const BARRED_LINK_TEXT: RegExp = /\|([^|]*)\|/g;
-// A link's label written inside the link: -- label -->, == label ==>, -. label .->.
+/*
+ * A link's label written inside the link: -- label -->, == label ==>,
+ * -. label .->. The link it opens is not the end of a longer one, so the
+ * node between two open links (A --- B --- C) is never read as a label.
+ */
 const INLINE_LINK_TEXT: RegExp =
-  /(?:--|==|-\.)\s+([^\s"-][^"]*?)\s+(?:-->|---|==>|===|\.->|\.-)/g;
+  /(?<![-=.])(?:--|==|-\.)\s+([^\s"-][^"]*?)\s+(?:-->|---|==>|===|\.->|\.-)/g;
 /*
  * A node's label written without quotes, in any of the shapes a flowchart
  * draws, after its id: an id starts and ends with a letter or digit, so the
@@ -929,6 +935,16 @@ const STATE_TRANSITION: RegExp =
 const STATE_DECLARATION: RegExp = /^\s*state\s+""\s+as\s+([\w-]+)/;
 const STATE_NOTE: RegExp = /^\s*note\s+(?:left|right)\s+of\s+[^:]+:(.*)$/i;
 
+// A diagram's lines after the one naming its kind, its comments left out.
+function statementsOf(code: string): Array<string> {
+  return code
+    .split("\n")
+    .slice(1)
+    .filter((line: string): boolean => {
+      return !COMMENT_LINE.test(line);
+    });
+}
+
 // The lines of a label as it draws them: broken at each <br/>, with its spaces collapsed.
 function labelLines(label: string): Array<string> {
   return label
@@ -944,7 +960,7 @@ function labelLines(label: string): Array<string> {
 function flowchartLabels(code: string): Array<string> {
   const labels: Array<string> = [];
 
-  for (const line of code.split("\n").slice(1)) {
+  for (const line of statementsOf(code)) {
     if (FLOWCHART_DIRECTIVE.test(line)) {
       continue;
     }
@@ -981,7 +997,7 @@ function sequenceLabels(code: string): Array<string> {
   const labels: Array<string> = [];
   const declared: Set<string> = new Set();
 
-  for (const line of code.split("\n").slice(1)) {
+  for (const line of statementsOf(code)) {
     const participant: RegExpMatchArray | null =
       line.match(SEQUENCE_PARTICIPANT);
 
@@ -1028,29 +1044,30 @@ function stateLabels(code: string): Array<string> {
   const described: Set<string> = new Set(["[*]"]);
   const named: Array<string> = [];
 
-  for (const line of code.split("\n").slice(1)) {
-    for (const match of Array.from(line.matchAll(QUOTED_TEXT))) {
-      labels.push(match[1] as string);
-    }
-
+  for (const line of statementsOf(code)) {
     const unquoted: string = line.replace(QUOTED_TEXT, QUOTED_PLACEHOLDER);
     const declaration: RegExpMatchArray | null =
       unquoted.match(STATE_DECLARATION);
 
+    // state "Reporting" as Reporting: the state is drawn under its description.
     if (declaration) {
       described.add(declaration[1] as string);
+
+      for (const match of Array.from(line.matchAll(QUOTED_TEXT))) {
+        labels.push(match[1] as string);
+      }
+
       continue;
     }
 
-    const note: RegExpMatchArray | null = unquoted.match(STATE_NOTE);
+    const note: RegExpMatchArray | null = line.match(STATE_NOTE);
 
     if (note) {
       labels.push(note[1] as string);
       continue;
     }
 
-    const transition: RegExpMatchArray | null =
-      unquoted.match(STATE_TRANSITION);
+    const transition: RegExpMatchArray | null = line.match(STATE_TRANSITION);
 
     if (transition) {
       named.push(transition[1] as string, transition[2] as string);
@@ -1062,8 +1079,7 @@ function stateLabels(code: string): Array<string> {
       continue;
     }
 
-    const description: RegExpMatchArray | null =
-      unquoted.match(STATE_DESCRIPTION);
+    const description: RegExpMatchArray | null = line.match(STATE_DESCRIPTION);
 
     if (description) {
       described.add(description[1] as string);

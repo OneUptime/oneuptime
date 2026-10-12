@@ -371,6 +371,38 @@ describe("drawnDiagramLines reads every line a diagram draws", () => {
     ]);
   });
 
+  it("leaves comments out, and never reads the node between two open links as a link's label", () => {
+    const flowchart: string = [
+      "flowchart LR",
+      '    %% A comment: a["Not drawn"]',
+      "    A --- B --- C",
+      "    C -- A label --- D",
+    ].join("\n");
+    const sequence: string = [
+      "sequenceDiagram",
+      "    %% Alice->>Bob: Not drawn",
+      "    Alice->>Bob: Drawn",
+    ].join("\n");
+    const state: string = [
+      "stateDiagram-v2",
+      "    %% Ready : Not drawn",
+      '    Ready --> Done: say "hi"',
+    ].join("\n");
+
+    expect(textsOf(drawnDiagramLines(fence(flowchart)))).toEqual(["A label"]);
+    expect(textsOf(drawnDiagramLines(fence(sequence)))).toEqual([
+      "Alice",
+      "Bob",
+      "Drawn",
+    ]);
+    // A transition's label is read whole, quotes and all.
+    expect(textsOf(drawnDiagramLines(fence(state)))).toEqual([
+      'say "hi"',
+      "Ready",
+      "Done",
+    ]);
+  });
+
   it("collapses a label's spaces as the label draws them", () => {
     expect(
       textsOf(
