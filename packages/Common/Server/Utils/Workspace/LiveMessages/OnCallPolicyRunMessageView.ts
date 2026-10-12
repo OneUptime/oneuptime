@@ -156,7 +156,8 @@ ${FeedMarkdown.bulletList(
       );
     }
 
-    if (run.outcome === OnCallPolicyRunOutcome.Paging) {
+    // What comes next, once a rule is under way.
+    if (run.outcome === OnCallPolicyRunOutcome.Paging && run.currentRule) {
       parts.push(this.getNextStepLine(run));
     }
 

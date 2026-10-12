@@ -493,10 +493,14 @@ export default class OnCallPolicyRunMessage {
     run.outcome = outcome.outcome;
     run.outcomeDetail = outcome.detail;
 
+    /*
+     * Read from the run itself: a rule is under way (OneUptime records the
+     * rule on the run before it writes the rule's first step), or the run
+     * is over.
+     */
     const hasStarted: boolean =
       run.outcome !== OnCallPolicyRunOutcome.Paging ||
-      Boolean(executionLog.lastExecutedEscalationRuleId) ||
-      timeline.length > 0;
+      Boolean(executionLog.lastExecutedEscalationRuleId);
 
     return {
       projectId: projectId,

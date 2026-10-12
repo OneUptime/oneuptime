@@ -124,6 +124,27 @@ describe("OnCallPolicyRunMessageView.getMarkdown - a run that is paging", () => 
     expect(markdown).toContain("**Starting with escalation rule 1 of 3**");
     expect(markdown).not.toContain("**Paged**");
     expect(markdown).not.toContain("**Not paged**");
+    // Nothing is next until a rule is under way: no "starts again" either.
+    expect(markdown).not.toContain("If nobody acknowledges");
+    expect(markdown).not.toContain("This is the last step");
+  });
+
+  test("a policy with no rules at all says it is starting, and nothing else is promised", () => {
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(
+      run({
+        ruleCount: 0,
+        currentRule: undefined,
+        nextRule: undefined,
+        paged: [],
+        notPaged: [],
+        repeatsAllowed: 2,
+      }),
+    );
+
+    expect(markdown).toContain(
+      "**Starting** · repeats up to twice if nobody acknowledges",
+    );
+    expect(markdown).not.toContain("If nobody acknowledges within");
   });
 
   test("a rule without a name is named by its place alone", () => {

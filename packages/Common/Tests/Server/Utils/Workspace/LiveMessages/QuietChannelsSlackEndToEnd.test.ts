@@ -1,0 +1,567 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import HTTPResponse from "../../../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../../../Types/JSON";
+import ObjectID from "../../../../../Types/ObjectID";
+import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import API from "../../../../../Utils/API";
+import QuietChannelsWorld, {
+  JANE,
+  NB_USER_2,
+  NB_USER_3,
+  NITIN,
+  STATE_ACKNOWLEDGED,
+  STATE_IDENTIFIED,
+  STATE_RESOLVED,
+  WORKSPACE_RULE_ID,
+  FeedEntry,
+} from "./QuietChannelsWorld";
+
+jest.mock("../../../../../Server/Utils/Logger");
+
+/*
+ * WHAT AN INCIDENT CHANNEL IN SLACK SHOWS, END TO END.
+ *
+ * The maintainer's two screenshots of #inc-inc-8: under "Incident INC-8
+ * Created" came "Changed Incident INC-8 State to Identified" (said twice),
+ * then "On Call Policy Started Executing", "Status Updated ... Started", an
+ * "On-Call Alert Notification Sent to Nitin" paragraph, "NB User 3 cannot be
+ * invited ...", "Status Updated ... Executing" - and over the next twenty
+ * minutes a "Notification Sent to <person>" paragraph for every person, on
+ * every rule, on every repeat, each one twice, "cannot be invited" again,
+ * and two "Skipped" paragraphs.
+ *
+ * Here the same incident runs through OneUptime's real services, workspace
+ * layer and SlackUtil, against a fake Slack API that records every request
+ * (QuietChannelsWorld has the database in memory). The channel now gets
+ * one message per event: the incident, the one note about who could not
+ * be added, the on-call run's one message (edited as the run goes), one
+ * alarm when a step reached nobody, and each later state change. Every
+ * request is checked: how many, in which order, what it says.
+ */
+
+const SLACK_INCIDENT_CHANNEL: string = "C0INC8";
+
+interface SlackRequest {
+  method: string;
+  channel: string;
+  ts: string;
+  text: string;
+  blocks: Array<JSONObject>;
+}
+
+// The Slack API, as far as OneUptime's posting goes, recording every call.
+class FakeSlack {
+  public requests: Array<SlackRequest> = [];
+  private nextTs: number = 1;
+
+  public install(): void {
+    jest.spyOn(API, "post").mockImplementation((async (data: {
+      url: { toString: () => string };
+      data: JSONObject;
+    }): Promise<HTTPResponse<JSONObject>> => {
+      const method: string = data.url.toString().split("/api/")[1] || "";
+      const body: JSONObject = data.data || {};
+      const blocks: Array<JSONObject> =
+        (body["blocks"] as Array<JSONObject> | undefined) || [];
+
+      let ts: string = String(body["ts"] || "");
+      let answer: JSONObject = { ok: true };
+
+      switch (method) {
+        case "conversations.info":
+          answer = {
+            ok: true,
+            channel: { id: body["channel"], name: "inc-inc-8" },
+          };
+          break;
+        case "conversations.members":
+          answer = {
+            ok: true,
+            members: ["B0BOT"],
+            response_metadata: { next_cursor: "" },
+          };
+          break;
+        case "chat.postMessage":
+          ts = `1760000000.${String(this.nextTs++).padStart(6, "0")}`;
+          answer = { ok: true, ts: ts, channel: body["channel"] };
+          break;
+        case "chat.update":
+          answer = { ok: true, ts: ts, channel: body["channel"] };
+          break;
+        default:
+          break;
+      }
+
+      this.requests.push({
+        method: method,
+        channel: String(body["channel"] || ""),
+        ts: ts,
+        text: FakeSlack.textOf(blocks),
+        blocks: blocks,
+      });
+
+      return { jsonData: answer, data: answer } as unknown as HTTPResponse<JSONObject>;
+    }) as never);
+  }
+
+  // A message's blocks as text: sections, headers, and buttons as [titles].
+  public static textOf(blocks: Array<JSONObject>): string {
+    return blocks
+      .map((block: JSONObject): string => {
+        if (block["type"] === "actions") {
+          return `[${((block["elements"] as Array<JSONObject>) || [])
+            .map((element: JSONObject): string => {
+              return String((element["text"] as JSONObject)?.["text"] || "");
+            })
+            .join("] [")}]`;
+        }
+
+        if (block["type"] === "divider") {
+          return "---";
+        }
+
+        return String((block["text"] as JSONObject | undefined)?.["text"] || "");
+      })
+      .join("\n");
+  }
+
+  public posts(): Array<SlackRequest> {
+    return this.requests.filter((request: SlackRequest): boolean => {
+      return request.method === "chat.postMessage";
+    });
+  }
+
+  public updates(): Array<SlackRequest> {
+    return this.requests.filter((request: SlackRequest): boolean => {
+      return request.method === "chat.update";
+    });
+  }
+}
+
+let slack: FakeSlack;
+let world: QuietChannelsWorld;
+
+beforeEach(() => {
+  slack = new FakeSlack();
+  slack.install();
+
+  world = new QuietChannelsWorld({
+    workspaces: [WorkspaceType.Slack],
+    channels: {
+      slack: {
+        id: SLACK_INCIDENT_CHANNEL,
+        name: "inc-inc-8",
+        workspaceType: WorkspaceType.Slack,
+        notificationRuleId: WORKSPACE_RULE_ID.toString(),
+      },
+    },
+  });
+  world.install();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+// A post's first line: what a person scanning the channel reads.
+function headline(request: SlackRequest): string {
+  return request.text.split("\n")[0]!;
+}
+
+function feedOf(eventType: string): Array<FeedEntry> {
+  return world.feed.filter((entry: FeedEntry): boolean => {
+    return entry.eventType === eventType;
+  });
+}
+
+async function declareIncidentAndPage(): Promise<void> {
+  // The incident's channel is created and its people invited.
+  await world.channelCreated([NITIN, NB_USER_3]);
+  await world.incidentCreated();
+  await world.incidentState({
+    to: STATE_IDENTIFIED,
+    name: "Identified",
+    isFirst: true,
+  });
+
+  // PolicyX: rule "fhirst" pages Nitin, who is invited to the channel.
+  await world.startRun();
+  await world.invitedToRecordChannels([NITIN]);
+}
+
+async function escalateThroughTheScreenshots(): Promise<void> {
+  // Rule "second": NB User 3 and Nitin. NB User 3 is invited again.
+  await world.escalate();
+  await world.invitedToRecordChannels([NB_USER_3, NITIN]);
+
+  // Rule "third": NB User 2 left the project - nobody is paged.
+  await world.escalate();
+
+  // Nobody acknowledged: the policy repeats, rule "fhirst" pages Nitin again.
+  await world.escalate();
+}
+
+describe("an incident from declared to resolved, in its Slack channel", () => {
+  test("one message per event, in order - not the dozens in the screenshots", async () => {
+    await declareIncidentAndPage();
+    await escalateThroughTheScreenshots();
+    await world.acknowledge(NITIN);
+    await world.incidentState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+      by: NITIN,
+    });
+    await world.incidentState({
+      to: STATE_RESOLVED,
+      name: "Resolved",
+      isFirst: false,
+      by: NITIN,
+    });
+    await world.settle();
+
+    const posts: Array<SlackRequest> = slack.posts();
+
+    expect(posts.map(headline)).toEqual([
+      expect.stringContaining("Not everyone could be added to this channel"),
+      expect.stringContaining("Incident INC-8 Created"),
+      expect.stringContaining("PolicyX"),
+      expect.stringContaining("Nobody was paged for"),
+      expect.stringContaining("State"),
+      expect.stringContaining("State"),
+    ]);
+
+    // Every message went to the incident's channel.
+    for (const post of posts) {
+      expect(post.channel).toBe(SLACK_INCIDENT_CHANNEL);
+    }
+
+    // 1. Who could not be added - once, naming NB User 3 and how to fix it.
+    expect(posts[0]!.text).toContain("NB User 3");
+    expect(posts[0]!.text).toContain("User Settings → Slack");
+
+    // 2. The incident, its state and severity, and its buttons.
+    expect(posts[1]!.text).toContain("Incident State");
+    expect(posts[1]!.text).toContain("Identified");
+    expect(posts[1]!.text).toContain("Acknowledge Incident");
+
+    // 3. The on-call run: posted as it began paging Nitin.
+    expect(posts[2]!.text).toContain("is paging for");
+    expect(posts[2]!.text).toContain("Incident INC-8");
+
+    // 4. The alarm: rule "third" paged nobody.
+    expect(posts[3]!.text).toContain("escalation rule 3 of 3 (third)");
+    expect(posts[3]!.text).toContain("NB User 2: not a member of this project");
+
+    // 5 and 6. The later state changes, with who made them.
+    expect(posts[4]!.text).toContain("Nitin");
+    expect(posts[4]!.text).toContain("Acknowledged");
+    expect(posts[5]!.text).toContain("Resolved");
+  });
+
+  test("the on-call run is ONE message, edited in place as it escalates, repeats and is acknowledged", async () => {
+    await declareIncidentAndPage();
+
+    const runPost: SlackRequest = slack.posts()[2]!;
+    expect(headline(runPost)).toContain("PolicyX");
+
+    await escalateThroughTheScreenshots();
+    await world.acknowledge(NITIN);
+
+    const updates: Array<SlackRequest> = slack.updates();
+
+    expect(updates.length).toBeGreaterThan(0);
+
+    // Every edit is of the run's message, in its channel.
+    for (const update of updates) {
+      expect(update.ts).toBe(runPost.ts);
+      expect(update.channel).toBe(SLACK_INCIDENT_CHANNEL);
+    }
+
+    // What it says at the end: who acknowledged, who was paged, who was not.
+    const last: string = updates[updates.length - 1]!.text;
+    expect(last).toContain("Nitin");
+    expect(last).toContain("acknowledged");
+    expect(last).toContain("stopped paging");
+    expect(last).toContain("paged 3 times");
+    expect(last).toContain("SMS, email");
+    expect(last).toContain("NB User 3");
+    expect(last).toContain("paged once");
+    expect(last).toContain("NB User 2");
+    expect(last).toContain("not a member of this project");
+
+    // And it is kept: one message for the run, in one channel.
+    const kept: Array<unknown> = world.liveMessages.rows.filter(
+      (row: { messageKey?: string }): boolean => {
+        return Boolean(
+          row.messageKey?.startsWith(
+            WorkspaceLiveMessageKey.forOnCallPolicyRun(ObjectID.generate())
+              .split(":")[0]!,
+          ),
+        );
+      },
+    );
+    expect(kept).toHaveLength(1);
+  });
+
+  test("while the run escalates, the message says where it is and what is next", async () => {
+    await declareIncidentAndPage();
+    await world.escalate();
+
+    const last: string = slack.updates()[slack.updates().length - 1]!.text;
+
+    expect(last).toContain("is paging for");
+    expect(last).toContain("Escalation rule 2 of 3 (second)");
+    expect(last).toContain("repeats up to once if nobody acknowledges");
+    expect(last).toContain("escalation rule 3 of 3 (third) is next");
+    expect(last).toContain("within 7 minutes");
+  });
+
+  test("a run that ends with nobody acknowledging raises one more alarm, and its message says so", async () => {
+    await declareIncidentAndPage();
+    await escalateThroughTheScreenshots();
+    // The repeat's last rules, then the end of the run.
+    await world.escalate();
+    await world.escalate();
+    await world.escalate();
+
+    const alarms: Array<SlackRequest> = slack
+      .posts()
+      .filter((post: SlackRequest): boolean => {
+        return post.text.includes("Nobody");
+      });
+
+    expect(alarms.map(headline)).toEqual([
+      expect.stringContaining("Nobody was paged for"),
+      expect.stringContaining("Nobody has acknowledged"),
+    ]);
+    expect(alarms[1]!.text).toContain("Someone needs to take it");
+
+    const last: string = slack.updates()[slack.updates().length - 1]!.text;
+    expect(last).toContain("nobody acknowledged");
+  });
+});
+
+describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
+  test("'Changed Incident INC-8 State to Identified' under the message that already says 'Incident State: Identified'", async () => {
+    await world.incidentCreated();
+    await world.incidentState({
+      to: STATE_IDENTIFIED,
+      name: "Identified",
+      isFirst: true,
+    });
+
+    expect(slack.posts()).toHaveLength(1);
+    expect(slack.posts()[0]!.text).toContain("Incident INC-8 Created");
+
+    // The feed still has it.
+    expect(feedOf("IncidentStateChanged")).toHaveLength(1);
+    expect(feedOf("IncidentStateChanged")[0]!.postsToWorkspace).toBe(false);
+  });
+
+  test("'On Call Policy Started Executing' and 'Status Updated ... Started / Executing' are gone from the channel, kept in the feed", async () => {
+    await world.startRun();
+
+    for (const post of slack.posts()) {
+      expect(post.text).not.toContain("On Call Policy");
+      expect(post.text).not.toContain("Status Updated");
+    }
+
+    const onCallFeed: Array<FeedEntry> = feedOf("OnCallPolicy");
+    expect(
+      onCallFeed.some((entry: FeedEntry): boolean => {
+        return entry.markdown.includes("On Call Policy Started Executing");
+      }),
+    ).toBe(true);
+    expect(
+      onCallFeed.filter((entry: FeedEntry): boolean => {
+        return entry.markdown.includes("Status Updated");
+      }),
+    ).toHaveLength(2);
+
+    for (const entry of onCallFeed) {
+      expect(entry.postsToWorkspace).toBe(false);
+    }
+  });
+
+  test("'On-Call Alert Notification Sent to <person>', once per person per rule per repeat - and each of those twice", async () => {
+    await world.startRun();
+    await world.escalate();
+    await world.escalate();
+    await world.escalate();
+
+    for (const post of slack.posts()) {
+      expect(post.text).not.toContain("Notification Sent");
+      expect(post.text).not.toContain("On-Call Alert");
+    }
+
+    // The feed records each page ONCE (the second write was a duplicate there too).
+    const sent: Array<FeedEntry> = feedOf("OnCallPolicy").filter(
+      (entry: FeedEntry): boolean => {
+        return entry.markdown.includes("Notification Sent to");
+      },
+    );
+    expect(
+      sent.map((entry: FeedEntry): string => {
+        return entry.markdown.includes("Nitin") ? "Nitin" : "NB User 3";
+      }),
+    ).toEqual(["Nitin", "NB User 3", "Nitin", "Nitin"]);
+  });
+
+  test("'NB User 3 cannot be invited to the channel ...' once at creation and again every time NB User 3 is paged", async () => {
+    await world.channelCreated([NITIN, NB_USER_3]);
+    await world.invitedToRecordChannels([NB_USER_3]);
+    await world.invitedToRecordChannels([NB_USER_3, NITIN]);
+
+    const notes: Array<SlackRequest> = slack
+      .posts()
+      .filter((post: SlackRequest): boolean => {
+        return post.text.includes("Not everyone could be added");
+      });
+
+    expect(notes).toHaveLength(1);
+    expect(slack.updates()).toHaveLength(0);
+
+    for (const post of slack.posts()) {
+      expect(post.text).not.toContain("cannot be invited");
+    }
+
+    // Nitin, who is connected, was invited; NB User 3 was not.
+    expect(world.invites[0]).toEqual({
+      channelNames: ["inc-inc-8"],
+      userIds: ["U0NITIN"],
+    });
+  });
+
+  test("somebody else who cannot be added later is added to the same note, edited in place", async () => {
+    world.members.add(NB_USER_2.toString());
+
+    await world.channelCreated([NB_USER_3]);
+    await world.invitedToRecordChannels([NB_USER_2]);
+
+    expect(slack.posts()).toHaveLength(1);
+    expect(slack.updates()).toHaveLength(1);
+    expect(slack.updates()[0]!.ts).toBe(slack.posts()[0]!.ts);
+    expect(slack.updates()[0]!.text).toContain("NB User 3");
+    expect(slack.updates()[0]!.text).toContain("NB User 2");
+  });
+
+  test("two 'On-Call Alert Skipped' paragraphs for one rule that paged nobody: one alarm, once per run", async () => {
+    await world.startRun();
+    await world.escalate();
+    await world.escalate();
+
+    // The repeat reaches rule "third" again: no second alarm.
+    await world.escalate();
+    await world.escalate();
+    await world.escalate();
+
+    const nobodyPaged: Array<SlackRequest> = slack
+      .posts()
+      .filter((post: SlackRequest): boolean => {
+        return post.text.includes("Nobody was paged");
+      });
+
+    expect(nobodyPaged).toHaveLength(1);
+
+    for (const post of slack.posts()) {
+      expect(post.text).not.toContain("On-Call Alert Skipped");
+    }
+  });
+});
+
+describe("what still reaches the channel as it always did", () => {
+  test("a note is posted, with who wrote it", async () => {
+    await world.incidentNote("Restarted the primary database.", JANE);
+
+    expect(slack.posts()).toHaveLength(1);
+    expect(slack.posts()[0]!.text).toContain("Jane Doe");
+    expect(slack.posts()[0]!.text).toContain("Restarted the primary database.");
+  });
+});
+
+describe("an alert, in its Slack channel", () => {
+  beforeEach(() => {
+    world.runFor = "alert";
+    world.recordStateName = "Created";
+  });
+
+  test("created, first state, on-call, owners notified, acknowledged: four messages, the run's edited in place", async () => {
+    await world.alertCreated();
+    await world.alertState({
+      to: STATE_IDENTIFIED,
+      name: "Created",
+      isFirst: true,
+    });
+    await world.startRun();
+    await world.escalate();
+    await world.alertOwnersNotified();
+    await world.acknowledge(NITIN);
+    await world.alertState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+    });
+    await world.settle();
+
+    expect(slack.posts().map(headline)).toEqual([
+      expect.stringContaining("Alert AL-12 Created"),
+      expect.stringContaining("PolicyX"),
+      expect.stringContaining("State"),
+    ]);
+
+    // The run's message names the alert.
+    expect(slack.posts()[1]!.text).toContain("Alert AL-12");
+
+    // That the owners were told stays in the alert's feed.
+    expect(
+      world.feed.filter((entry: FeedEntry): boolean => {
+        return entry.eventType === "OwnerNotificationSent";
+      }),
+    ).toEqual([
+      expect.objectContaining({ record: "alert", postsToWorkspace: false }),
+    ]);
+
+    const last: string = slack.updates()[slack.updates().length - 1]!.text;
+    expect(last).toContain("acknowledged");
+    expect(last).toContain("Alert AL-12");
+  });
+});
+
+describe("a scheduled maintenance event, in its Slack channel", () => {
+  test("created, first state, ongoing, subscribers notified, a note: three messages", async () => {
+    await world.maintenanceCreated();
+    await world.maintenanceState("Scheduled", true);
+    await world.maintenanceState("Ongoing", false);
+    await world.maintenanceSubscribersNotified();
+    await world.maintenanceNote("The upgrade has started.");
+
+    expect(slack.posts().map(headline)).toEqual([
+      expect.stringContaining("Scheduled Maintenance SM-3 Created"),
+      expect.stringContaining("Ongoing"),
+      expect.stringContaining("public note"),
+    ]);
+
+    // The event's first state and its subscribers' notice stay in its feed.
+    expect(
+      world.feed
+        .filter((entry: FeedEntry): boolean => {
+          return !entry.postsToWorkspace;
+        })
+        .map((entry: FeedEntry): string => {
+          return entry.eventType;
+        }),
+    ).toEqual(["ScheduledMaintenanceStateChanged", "SubscriberNotificationSent"]);
+
+    // Nothing is edited for a maintenance event: it has no on-call run.
+    expect(slack.updates()).toHaveLength(0);
+  });
+});
