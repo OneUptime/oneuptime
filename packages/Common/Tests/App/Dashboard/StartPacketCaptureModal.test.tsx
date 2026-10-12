@@ -306,9 +306,8 @@ describe("starting a capture", () => {
 
     await submit();
 
-    const alert: HTMLElement = await within(modal()).findByTestId(
-      "modal-error",
-    );
+    const alert: HTMLElement =
+      await within(modal()).findByTestId("modal-error");
     const notice: HTMLElement = within(modal()).getByTestId(
       "packet-capture-sensitive-data",
     );
