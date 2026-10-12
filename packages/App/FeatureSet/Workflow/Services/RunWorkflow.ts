@@ -36,12 +36,16 @@ import {
   truncateTraceValues,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import { isOutPortFromSettings } from "Common/Types/Workflow/ComponentOutPorts";
 import {
   WORKFLOW_ARCHIVED_BEFORE_RUN_MESSAGE,
   WORKFLOW_ARCHIVED_WHILE_WAITING_MESSAGE,
   getChildWorkflowArchivedMessage,
 } from "Common/Types/Workflow/WorkflowArchive";
-import { getChildWorkflowTurnedOffMessage } from "Common/Types/Workflow/WorkflowEnabled";
+import {
+  getChildWorkflowTurnedOffMessage,
+  getWorkflowTestRunLogLine,
+} from "Common/Types/Workflow/WorkflowEnabled";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
@@ -271,6 +275,13 @@ const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
           : undefined,
       };
 
+      if (entry.executedPortReason) {
+        redactedEntry.executedPortReason = redactSecretsFromString(
+          String(entry.executedPortReason),
+          secrets,
+        );
+      }
+
       if (entry.argumentTemplates) {
         redactedEntry.argumentTemplates = redactSecretValues(
           entry.argumentTemplates,
@@ -486,6 +497,19 @@ export default class RunWorkflow {
       this.callChain = runProps.callChain || [];
       this.runStartedAt = new Date();
 
+      /*
+       * A test run - a person ran the workflow from its Builder while it was
+       * turned off - opens its log by saying so, and who started it. The row
+       * QueueWorkflow wrote says it too, but this run's log replaces that
+       * when it is saved, so it is said again, first, before anything that
+       * could fail. A resumed run keeps the log it had.
+       */
+      if (runProps.isTestRun && !runProps.isResume) {
+        this.log(
+          getWorkflowTestRunLogLine({ startedBy: runProps.testRunStartedBy }),
+        );
+      }
+
       let didWorkflowErrorOut: boolean = false;
       this.workflowDeadlineAtInMs = Date.now() + Math.max(runProps.timeout, 0);
 
@@ -540,6 +564,7 @@ export default class RunWorkflow {
               resumeData: true,
               logs: true,
               stepTrace: true,
+              isTestRun: true,
             },
             props: {
               isRoot: true,
@@ -605,7 +630,14 @@ export default class RunWorkflow {
           return;
         }
 
-        if (!workflow.isEnabled) {
+        /*
+         * Turning a workflow off is how a live one is paused, so a run its
+         * trigger started, asleep when that happened, is cancelled. A test
+         * run was started while the workflow was off: the switch is no reason
+         * to stop it now, and it carries on as it would have without the
+         * Sleep, or a workflow with a Sleep step could never be tested.
+         */
+        if (!workflow.isEnabled && !existingLog.isTestRun) {
           this.log(
             "Workflow was disabled while it was waiting. Cancelling the run.",
           );
@@ -925,6 +957,7 @@ export default class RunWorkflow {
           args: receivedArgs,
           returnValues: result.returnValues,
           port: result.executePort || null,
+          portReason: result.executePortReason,
           startedAt: stepStartedAt,
           variables: variables,
           errorMessage: didWorkflowErrorOut
@@ -1206,6 +1239,8 @@ export default class RunWorkflow {
     args: JSONObject;
     returnValues: JSONObject;
     port: Port | null;
+    // Why the step took that port, when it says (a Switch / Case).
+    portReason?: string | undefined;
     startedAt: Date;
     variables: Array<WorkflowVariable>;
     errorMessage?: string | undefined;
@@ -1278,6 +1313,25 @@ export default class RunWorkflow {
 
       if (params.port.description) {
         entry.executedPortDescription = params.port.description;
+      }
+
+      /*
+       * A Switch / Case names each case's output after the case: the
+       * person's own words, which the Steps view shows as written.
+       */
+      if (
+        isOutPortFromSettings({
+          metadata: params.node.metadata,
+          portId: params.port.id,
+        })
+      ) {
+        entry.executedPortTitleIsFromSettings = true;
+      }
+
+      if (params.portReason) {
+        entry.executedPortReason = truncateTraceValue(
+          redactSecretsFromString(String(params.portReason), secrets),
+        ) as string;
       }
 
       entry.nextSteps = this.getStepsWiredToPort(
@@ -1427,15 +1481,23 @@ export default class RunWorkflow {
     before: JSONValue;
     after: JSONValue;
   }): void {
-    if (typeof params.before !== "string" || typeof params.after !== "string") {
+    /*
+     * A setting kept as a list or an object - a Switch / Case's cases, a
+     * request's headers - is compared as its JSON, where a {{...}} stands as
+     * it was written: it holds no character JSON would escape.
+     */
+    const before: string | null = this.getTextForReferenceCheck(params.before);
+    const after: string | null = this.getTextForReferenceCheck(params.after);
+
+    if (before === null || after === null) {
       return;
     }
 
-    const unresolved: Array<string> = parseTemplateExpressions(params.before)
+    const unresolved: Array<string> = parseTemplateExpressions(before)
       .filter((expression: TemplateExpression) => {
         return (
           expression.kind === TemplateExpressionKind.Reference &&
-          (params.after as string).includes(expression.raw)
+          after.includes(expression.raw)
         );
       })
       .map((expression: TemplateExpression) => {
@@ -1458,6 +1520,23 @@ export default class RunWorkflow {
       },
       "Warning: ",
     );
+  }
+
+  // A setting's value as text to look for {{...}} in, or null for neither.
+  private getTextForReferenceCheck(value: JSONValue): string | null {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (value && typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
   }
 
   /*
@@ -1734,6 +1813,8 @@ export default class RunWorkflow {
         log: (data: string | JSONObject | JSONArray | Error | JSONValue) => {
           this.log(data);
         },
+        // What the canvas shows: a Switch / Case names its outputs from it.
+        configuredArguments: node.arguments || {},
         workflowId: this.workflowId!,
         workflowName: this.workflowName || undefined,
         workflowLogId: this.workflowLogId!,

@@ -26,12 +26,27 @@ export interface ExecuteWorkflowType {
    * step" button.
    *
    * Deliberately routed through the queue like any other run, so it inherits
-   * every gate a run has: the workflow must be enabled, the subscription must
-   * be paid, the plan's run limit applies, a WorkflowLog is written for the
-   * audit trail, and the component executes on a worker rather than inside the
-   * API process.
+   * every gate a run has: the workflow must not be archived, the subscription
+   * must be paid, the plan's run limit applies, a WorkflowLog is written for
+   * the audit trail, and the component executes on a worker rather than inside
+   * the API process.
    */
   runOnlyComponentId?: string | undefined;
+  /**
+   * The person who started this run by hand from the Builder - Run Workflow
+   * or Run just this step - set by those two routes only, from the signed-in
+   * caller they have already checked (App/FeatureSet/Workflow/API/Manual.ts
+   * and RunStep.ts). Recorded on the run as WorkflowLog.startedByUserId.
+   *
+   * It is also what lets a run start while the workflow is turned off: a
+   * person testing a workflow from its Builder may run it whether it is on or
+   * off, and a run started while it is off is a test run
+   * (Types/Workflow/WorkflowEnabled). Nothing else sets it - a trigger, a
+   * schedule or another workflow's Execute Workflow step is exactly what
+   * turning a workflow off pauses - and a guard test holds every caller to
+   * that (WorkflowTestRunStartersGuard).
+   */
+  startedByUserId?: ObjectID | undefined;
 }
 
 export interface InitProps {

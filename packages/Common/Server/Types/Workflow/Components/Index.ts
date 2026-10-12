@@ -18,6 +18,7 @@ import OnUpdateBaseModel from "./BaseModel/OnUpdateBaseModel";
 import UpdateManyBaseModel from "./BaseModel/UpdateManyBaseModel";
 import UpdateOneBaseModel from "./BaseModel/UpdateOneBaseModel";
 import IfElse from "./Conditions/IfElse";
+import Switch from "./Conditions/Switch";
 import DiscordSendMessageToChannel from "./Discord/SendMessageToChannel";
 import Email from "./Email";
 import IncomingEmailWorkflowTrigger from "./IncomingEmail";
@@ -68,6 +69,7 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.ApiPut]: new ApiPut(),
   [ComponentID.SendEmail]: new Email(),
   [ComponentID.IfElse]: new IfElse(),
+  [ComponentID.Switch]: new Switch(),
   [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
   [ComponentID.Sleep]: new Sleep(),
 };

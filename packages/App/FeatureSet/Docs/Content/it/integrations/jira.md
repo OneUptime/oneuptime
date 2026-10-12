@@ -104,7 +104,7 @@ Se la tua organizzazione usa la gestione utenti centralizzata di Atlassian, c'è
 
 La descrizione sembra pesante perché l'API v3 di Jira Cloud accetta il testo formattato come **Atlassian Document Format** — un albero di documento, non una stringa. La forma qui sopra è il documento valido minimo: un paragrafo che contiene un nodo di testo. Lo stesso vale per `environment` e per qualsiasi campo personalizzato di testo multiriga; i campi personalizzati di testo su una riga accettano ancora una stringa semplice.
 
-Ora accendi il workflow da **Panoramica → Modifica flusso di lavoro → Abilitato**, dichiara un incidente di test e apri **Registri → Esecuzioni**. Il blocco `create-issue` dovrebbe mostrare un `201` e un corpo contenente `id`, `key` e `self` del nuovo ticket. Le modifiche sulla tela si salvano da sole — non c'è nessun pulsante Salva, e un workflow disabilitato non può essere eseguito in alcun modo, nemmeno a mano.
+Ora accendi il workflow da **Panoramica → Modifica flusso di lavoro → Abilitato**, dichiara un incidente di test e apri **Registri → Esecuzioni**. Il blocco `create-issue` dovrebbe mostrare un `201` e un corpo contenente `id`, `key` e `self` del nuovo ticket. Le modifiche sulla tela si salvano da sole — non c'è nessun pulsante Salva, e mentre il workflow è disattivato, un nuovo incidente non lo avvia.
 
 La chiave del nuovo ticket è disponibile per qualsiasi blocco successivo a questo:
 

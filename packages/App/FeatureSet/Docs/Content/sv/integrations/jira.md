@@ -104,7 +104,7 @@ Om din organisation använder Atlassians centraliserade användarhantering finns
 
 Beskrivningen ser tung ut eftersom Jira Clouds v3-API tar emot rik text som **Atlassian Document Format** — ett dokumentträd, inte en sträng. Formen ovan är det minsta giltiga dokumentet: ett stycke som innehåller en textnod. Detsamma gäller `environment` och alla flerradiga anpassade textfält; enradiga anpassade textfält tar fortfarande en vanlig sträng.
 
-Slå nu på arbetsflödet från **Översikt → Redigera arbetsflöde → Aktiverad**, deklarera en testincident och öppna **Loggar → Körningar**. Blocket `create-issue` bör visa en `201` och en body som innehåller det nya ärendets `id`, `key` och `self`. Ändringar på arbetsytan sparar sig själva — det finns ingen Spara-knapp, och ett inaktiverat arbetsflöde kan inte köras alls, inte ens för hand.
+Slå nu på arbetsflödet från **Översikt → Redigera arbetsflöde → Aktiverad**, deklarera en testincident och öppna **Loggar → Körningar**. Blocket `create-issue` bör visa en `201` och en body som innehåller det nya ärendets `id`, `key` och `self`. Ändringar på arbetsytan sparar sig själva — det finns ingen Spara-knapp, och medan arbetsflödet är avstängt startar en ny incident det inte.
 
 Den nya ärendenyckeln är tillgänglig för alla block efter det här:
 

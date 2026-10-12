@@ -3,7 +3,7 @@
 O que saber antes de colocar um workflow diante de tráfego real: como ligá-lo com segurança, quem pode fazer o quê, como segredos e URLs ficam privados, o que os passos de um workflow podem alterar e os limites dentro dos quais cada execução trabalha.
 
 :::cards
-- [Entrar em produção](#ligar-e-desligar-um-workflow): Teste com Executar fluxo de trabalho e depois deixe o workflow ligado.
+- [Entrar em produção](#ligar-e-desligar-um-workflow): Teste com Executar fluxo de trabalho enquanto está desligado e depois ligue-o.
 - [Permissões](#permissões): Os papéis de workflow e as permissões individuais por trás deles.
 - [O que os passos podem fazer](#o-que-os-passos-de-um-workflow-podem-fazer): Os passos agem como Project Admin do projeto do workflow.
 - [Limites](#limites-do-plano): Execuções por plano, duração de uma execução e chamadas entre workflows.
@@ -11,18 +11,18 @@ O que saber antes de colocar um workflow diante de tráfego real: como ligá-lo 
 
 ## Ligar e desligar um workflow
 
-Todo workflow tem uma chave **Habilitado** no topo do **Construtor** dele e na página **Visão geral**. Quando está desligado, o workflow não roda — chamadas de webhook, e-mails recebidos, horários agendados e eventos do OneUptime são todos ignorados, assim como **Executar fluxo de trabalho** e **Run just this step**. Os novos workflows começam desabilitados.
+Todo workflow tem uma chave **Habilitado** no topo do **Construtor** dele e na página **Visão geral**. Quando está desligado, o gatilho dele fica pausado — chamadas de webhook, e-mails recebidos, horários agendados, eventos do OneUptime e os passos **Execute Workflow** de outros workflows não o iniciam. **Executar fluxo de trabalho** e **Run just this step** iniciam: uma execução que você mesmo inicia enquanto o workflow está desligado é uma **Execução de teste**. Os novos workflows começam desabilitados.
 
 Use essa chave como o seu sinal de «pronto para rodar»:
 
 :::steps
 1. Monte o workflow.
-2. Clique em **Executar fluxo de trabalho** no **Construtor** com valores realistas. Um workflow desabilitado não roda nem manualmente, então o Construtor pede para ligá-lo primeiro: clique em **Ativar e executar**.
+2. Clique em **Executar fluxo de trabalho** no **Construtor** com valores realistas, enquanto o workflow ainda está desligado. A execução é uma **Execução de teste**: cada bloco roda de verdade, então aponte-o primeiro para um canal de teste ou um registro de teste.
 3. Abra a execução e confira se cada bloco foi para onde você esperava. Veja [Execuções](/docs/workflows/runs-and-logs).
-4. Deixe **Habilitado** ligado se estiver pronto. Se não estiver, desligue-o até estar: enquanto ele está ligado, o gatilho dispara com eventos reais.
+4. Ligue **Habilitado** quando estiver pronto: a partir daí, o gatilho dispara com eventos reais.
 :::
 
-Desligar um workflow impede que novas execuções comecem. Uma execução que já está em andamento termina, mas uma execução esperando em um bloco **Sleep** é cancelada ao acordar.
+Desligar um workflow impede que o gatilho dele inicie novas execuções. Uma execução que já está em andamento termina, mas uma execução que o gatilho iniciou e que está esperando em um bloco **Sleep** é cancelada ao acordar. As execuções de teste continuam.
 
 ## Arquivar um workflow
 
@@ -85,7 +85,7 @@ O arquivo contém o nome do workflow, a descrição, o estado de ativação e o 
 - **As variáveis globais.** Um bloco que lê `{{global.variables.MY_SECRET}}` mantém essa referência, mas o valor não está no arquivo. Crie as variáveis no projeto de destino antes de rodar o workflow importado.
 - **Os proprietários e os rótulos.** As regras de rótulos e de proprietários do seu projeto são aplicadas ao workflow importado, como se você o tivesse criado manualmente.
 
-Um workflow importado é sempre criado **desabilitado**, mesmo que estivesse habilitado de onde foi exportado — o grafo dele pode apontar para monitores, políticas de plantão ou outros workflows que não existem no projeto de destino. Revise-o, ligue-o, teste-o com **Executar fluxo de trabalho** e depois deixe-o ligado. Duplicar um workflow funciona do mesmo jeito, então uma cópia nunca começa a disparar junto com o original antes de você editá-la.
+Um workflow importado é sempre criado **desabilitado**, mesmo que estivesse habilitado de onde foi exportado — o grafo dele pode apontar para monitores, políticas de plantão ou outros workflows que não existem no projeto de destino. Revise-o, teste-o com **Executar fluxo de trabalho** e depois ligue-o. Duplicar um workflow funciona do mesmo jeito, então uma cópia nunca começa a disparar junto com o original antes de você editá-la.
 
 Como o grafo viaja como está, qualquer coisa digitada direto em um bloco viaja junto. Esse é o motivo prático para guardar credenciais em variáveis secretas: exportar um workflow com um token fixo no código entrega esse token a quem receber o arquivo.
 

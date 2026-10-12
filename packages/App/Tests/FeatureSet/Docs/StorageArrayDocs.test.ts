@@ -24,6 +24,7 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { tabPanel } from "./DocsPageShape";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -53,17 +54,22 @@ const MONITOR_PAGE: string = "monitor/storage-array-monitor";
 const OWNED_PAGES: ReadonlyArray<string> = [TELEMETRY_PAGE, MONITOR_PAGE];
 
 /*
- * The languages the agent page is translated into. `fa` is the only
- * translated corpus for the infrastructure agents (every other language
- * falls back to English per page at request time), as for Ceph and VMware.
+ * Every language besides English: both pages ship in each of them (the
+ * agent page since docs task 22).
  */
-const TRANSLATED_LANGUAGES: ReadonlyArray<string> = ["fa"];
-
-/* Every language besides English: the monitor page ships in each of them. */
 const MONITOR_PAGE_LANGUAGES: ReadonlyArray<string> =
   SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
     return language !== "en";
   });
+
+const TRANSLATED_LANGUAGES: ReadonlyArray<string> = MONITOR_PAGE_LANGUAGES;
+
+/*
+ * The languages whose custom-code monitor and Terraform monitor-steps pages
+ * name the storage array attribute and escape hatch: the ones those pages
+ * are translated into.
+ */
+const ESCAPE_HATCH_LANGUAGES: ReadonlyArray<string> = ["fa"];
 
 interface LanguagePage {
   language: string;
@@ -402,7 +408,7 @@ describe("Storage Array docs", (): void => {
 
     it("open with the titles the nav uses", (): void => {
       expect(readPage(TELEMETRY_PAGE).split("\n")[0]).toBe(
-        "# OneUptime Storage Array Agent",
+        "# Storage Array Agent",
       );
       expect(readPage(MONITOR_PAGE).split("\n")[0]).toBe(
         "# Storage Array Monitor",
@@ -799,7 +805,7 @@ describe("Storage Array docs", (): void => {
     it("documents every variable the agent's .env carries, and nothing else", (): void => {
       const table: string = section(
         readPage(TELEMETRY_PAGE),
-        "## Environment Variables",
+        "## Environment variables",
       );
       const documented: Array<string> = tableRows(table)
         .map((line: string): string | null => {
@@ -818,7 +824,7 @@ describe("Storage Array docs", (): void => {
     it("documents every variable the collector configs read", (): void => {
       const table: string = section(
         readPage(TELEMETRY_PAGE),
-        "## Environment Variables",
+        "## Environment variables",
       );
 
       for (const config of SHIPPED_CONFIGS) {
@@ -841,9 +847,10 @@ describe("Storage Array docs", (): void => {
     });
 
     it("uses a complete .env in the Docker Compose quick start", (): void => {
-      const quickStart: string = section(
+      // The Docker Compose tab of "Install and start the agent".
+      const quickStart: string = tabPanel(
         readPage(TELEMETRY_PAGE),
-        "## Alternative — Docker Compose",
+        "Docker Compose",
       );
 
       for (const name of dotenvVariables()) {
@@ -917,7 +924,7 @@ describe("Storage Array docs", (): void => {
     it("states the scrape intervals the configs ship", (): void => {
       const scrapes: string = section(
         readPage(TELEMETRY_PAGE),
-        "## How the Agent Scrapes",
+        "## How the agent scrapes",
       );
 
       for (const config of SHIPPED_CONFIGS) {
@@ -941,7 +948,7 @@ describe("Storage Array docs", (): void => {
     it("names every catalog metric's family on the what-gets-collected table", (): void => {
       const collected: string = section(
         readPage(TELEMETRY_PAGE),
-        "## What Gets Collected",
+        "## What the agent collects",
       );
       const families: Array<string> = Array.from(
         collected.matchAll(/`(pure(?:fa|fb)_[a-z_]+)(\*?)`/g),
@@ -964,7 +971,7 @@ describe("Storage Array docs", (): void => {
     it("explains the syslog option the configs ship", (): void => {
       const syslog: string = section(
         readPage(TELEMETRY_PAGE),
-        "## Optional — Ship the Array's Syslog",
+        "## Optional — Ship the array's syslog",
       );
       const compose: string = readAgentFile("docker-compose.yml");
 
@@ -991,7 +998,7 @@ describe("Storage Array docs", (): void => {
   });
 
   describe("translations", (): void => {
-    it("ship the agent page in fa, and the monitor page in every language", (): void => {
+    it("ship both pages in every language", (): void => {
       for (const { language, page } of TRANSLATED_PAGES) {
         expect({
           language,
@@ -1079,7 +1086,7 @@ describe("Storage Array docs", (): void => {
     });
 
     it("mention the reserved array attribute and the Terraform escape hatch where English does", (): void => {
-      for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+      for (const language of ["en", ...ESCAPE_HATCH_LANGUAGES]) {
         expect(readPage("monitor/custom-code-monitor", language)).toContain(
           "`storage.array.name`",
         );

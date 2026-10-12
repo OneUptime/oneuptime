@@ -11,7 +11,7 @@ Välj hur du vill börja:
 
 Klicka på en mall för att se vad den gör: dess utlösare, blocken den består av och inställningarna den kommer att fråga efter. Klicka sedan på **Använd den här mallen**, eller dubbelklicka på mallen. I sökfältet väljer piltangenterna en mall och **Enter** använder den. `/` tar dig tillbaka till sökfältet.
 
-Arbetsflöden skapas avstängda, så inget körs förrän du slår på dem. Ett nytt arbetsflöde öppnas i **Byggare**, arbetsytan där du utformar det.
+Arbetsflöden skapas avstängda, så deras utlösare startar dem inte förrän du slår på dem. Ett nytt arbetsflöde öppnas i **Byggare**, arbetsytan där du utformar det.
 
 ## Arbetsytan
 
@@ -130,9 +130,8 @@ Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två 
 1. Klicka på det streckade platshållarblocket och klicka sedan på **Manual** i panelen **Add Trigger**.
 2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Popular**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
 3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Value**. Klicka på **{ }** och klicka sedan på **JSON** under **Manual**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
-4. Slå på **Aktiverad** högst upp i Byggare. Ett inaktiverat arbetsflöde kan inte köras alls, inte ens manuellt; hoppar du över det här ber **Kör arbetsflöde** dig att slå på det först.
-5. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Run Workflow Manually** och bekräftar med **Run**.
-6. En panel **Arbetsflödeskörning** öppnas av sig själv och följer körningen. Loggen visar `Value:` följt av `Hello from { "name": "Ada" }`.
+4. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Run Workflow Manually** och bekräftar med **Run**. Arbetsflödet är fortfarande avstängt, och det behöver inte vara påslaget: en körning som du startar själv är en **Testkörning**.
+5. En panel **Arbetsflödeskörning** öppnas av sig själv och följer körningen. Högst upp står **Testkörning**, och loggen visar `Value:` följt av `Hello from { "name": "Ada" }`.
 :::
 
 Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är hur du bygger varje arbetsflöde.
@@ -142,22 +141,22 @@ Den cykeln — lägg till, koppla, konfigurera, kör, läs loggen — är hur du
 
 ## Slå på det
 
-Nya arbetsflöden börjar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar. Medan ett arbetsflöde är avstängt säger Byggare det ovanför arbetsytan, med en knapp **Slå på arbetsflödet**.
+Nya arbetsflöden börjar inaktiverade, och det gör även varje arbetsflöde du duplicerar eller importerar. Avstängt är arbetsflödets utlösare pausad, så inget startar det av sig själv, men du kan ändå testa det. Medan ett arbetsflöde är avstängt säger Byggare det ovanför arbetsytan, med en knapp **Slå på arbetsflödet**.
 
 Brytaren **Aktiverad** sitter högst upp i **Byggare**, bredvid **Lägg till komponent** och **Kör arbetsflöde**. Den finns också på arbetsflödets sida **Översikt**, vars kort **Arbetsflödesdetaljer** visar det aktuella läget som en grön etikett **Aktiverad** eller en röd etikett **Inaktiverad**: klicka på **Redigera arbetsflöde** och öppna **Fler fält**. Bara personer som får redigera arbetsflödet kan slå på eller av det; alla andra ser brytaren nedtonad.
 
-Ett inaktiverat arbetsflöde kan inte köras alls, oavsett hur det startas:
+Medan ett arbetsflöde är avstängt avgör det som startar det om det körs:
 
 | Startat av                                                 | Medan arbetsflödet är avstängt                                                                                                                                                            |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dess utlösare: ett schema, en OneUptime-händelse eller ett e-postmeddelande | Ignoreras.                                                                                                                                                              |
-| **Kör arbetsflöde** eller **Run just this step**           | Byggare frågar i stället **Slå på det här arbetsflödet?**. **Slå på och kör** (eller **Slå på och kör steget**) slår på arbetsflödet och kör sedan det du bad om, med de värden du angav. |
-| Ett anrop till dess webhook-URL                            | Avvisas med HTTP 400 och "This workflow is turned off, so it can't run. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
-| Ett annat arbetsflödes **Execute Workflow**-block          | Det blocket tar sin väg **Error**, och felet nämner arbetsflödet det anropade.                                                                                                            |
+| **Kör arbetsflöde** eller **Run just this step**           | Körs, som **Testkörning**. Dess block körs på riktigt: ett meddelande skickas verkligen och en post ändras verkligen. Körningen är markerad som **Testkörning** i listorna över körningar och högst upp i körningen, med vem som startade den. |
+| Ett anrop till dess webhook-URL                            | Avvisas med HTTP 400 och "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
+| Ett annat arbetsflödes **Execute Workflow**-block          | Det blocket tar sin väg **Error**, och felet nämner arbetsflödet det anropade. Det gäller även i en testkörning: ett arbetsflöde som det anropar måste vara påslaget. |
 
-Ordningen är alltså: bygg det, testa det med **Kör arbetsflöde**, läs körningens logg och slå av **Aktiverad** igen om du inte är redo för att dess utlösare aktiveras. För att testa ett enda block utan att köra allt använder du **Run just this step** i det blockets inställningar.
+Ordningen är alltså: bygg det, testa det med **Kör arbetsflöde** medan det fortfarande är avstängt, läs körningens logg och slå på **Aktiverad** när du är redo för att dess utlösare aktiveras. För att testa ett enda block utan att köra allt använder du **Run just this step** i det blockets inställningar.
 
-För att pausa ett arbetsflöde utan att ta bort det slår du av **Aktiverad**. Inga nya körningar startar. En körning som pågår gör klart, men en som väntar vid ett **Sleep**-block avbryts när den vaknar och registreras som ett fel.
+För att pausa ett arbetsflöde utan att ta bort det slår du av **Aktiverad**. Dess utlösare slutar starta körningar. En körning som pågår gör klart, men en som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar och registreras som ett fel. En testkörning fortsätter.
 
 ## Städa upp
 

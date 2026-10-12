@@ -801,7 +801,7 @@ Ingenting på maskinen rapporterar en firmwareversion som finns tillgänglig som
 
 #### Kontrollera att det fungerade
 
-Öppna värdens post under **Produkter → Inventory** och titta på kortet **Tillgångsdetaljer**. Värdena visas inom några minuter efter nästa batch; en detalj som collectorn inte har rapporterat visas som okänd, med en länk tillbaka till det här avsnittet. Eftersom de stämplas och inte identifieras uppdaterar de sig inte själva: stämpla dem igen efter ett moderkortsbyte, en firmwareuppdatering eller en ominstallation.
+Öppna värdens post under **Produkter → Inventarie** och titta på kortet **Tillgångsdetaljer**. Värdena visas inom några minuter efter nästa batch; en detalj som collectorn inte har rapporterat visas som okänd, med en länk tillbaka till det här avsnittet. Eftersom de stämplas och inte identifieras uppdaterar de sig inte själva: stämpla dem igen efter ett moderkortsbyte, en firmwareuppdatering eller en ominstallation.
 
 ## Andra sätt att köra collectorn
 

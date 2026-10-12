@@ -21,6 +21,7 @@ enum ComponentID {
   ApiPatch = "api-patch",
   SendEmail = "send-email",
   IfElse = "if-else",
+  Switch = "switch",
   WorkflowRun = "workflow-run",
   Sleep = "sleep",
   AIGenerateText = "ai-generate-text",

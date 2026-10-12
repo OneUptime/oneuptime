@@ -26,8 +26,11 @@ import Response from "Common/Server/Utils/Response";
  * ordinary workflow run that happens to be narrowed to one step, so it inherits
  * everything a run already has and adds no new execution path:
  *
- *   - the workflow must be enabled, the subscription paid, and the project's
- *     plan run-limit respected (QueueWorkflow.addWorkflowToQueue)
+ *   - the workflow must not be archived, the subscription must be paid, and
+ *     the project's plan run-limit is respected
+ *     (QueueWorkflow.addWorkflowToQueue). A workflow that is turned off is
+ *     run all the same, as a test run: off pauses its trigger, not a person
+ *     testing it, and the run says it was a test and who started it
  *   - a WorkflowLog row is written, so a step that sends a message or deletes
  *     rows leaves an audit trail like any other run
  *   - the component executes on a worker, not inside the API process, which
@@ -108,10 +111,12 @@ export default class RunStepAPI {
         workflowId: workflowId,
       });
 
+      // Recorded as this person's, which is what lets it run while off.
       await QueueWorkflow.addWorkflowToQueue({
         workflowId: workflowId,
         returnValues: {},
         runOnlyComponentId: componentId,
+        startedByUserId: databaseProps.userId,
       });
 
       return Response.sendJsonObjectResponse(req, res, {

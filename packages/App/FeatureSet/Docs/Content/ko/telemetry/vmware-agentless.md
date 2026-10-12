@@ -35,7 +35,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **TCP 443으로 vCenter에 접근할 수 있는 프로브.** 보통 vCenter 네트워크에 있는 [사용자 지정 프로브](/docs/probe/custom-probe)입니다. OneUptime Cloud에서는 공유 프로브가 vCenter 비밀번호를 받지 않으므로 자체 프로브를 추가하세요. 자체 호스팅 인스턴스에서는 인스턴스 자체의 프로브도 수집할 수 있습니다.
-- **Read-Only 역할이 있는 vSphere 사용자.** 최상위 vCenter 개체에서 역할을 부여하고 **Propagate to children**을 선택합니다. [읽기 전용 vSphere 사용자 만들기](/docs/telemetry/vmware#create-the-read-only-vsphere-user)를 따르세요. 에이전트가 사용하는 것과 같은 계정입니다.
+- **Read-Only 역할이 있는 vSphere 사용자.** 최상위 vCenter 개체에서 역할을 부여하고 **Propagate to children**을 선택합니다. [읽기 전용 vSphere 사용자 만들기](/docs/telemetry/vmware#읽기-전용-vsphere-사용자-만들기)를 따르세요. 에이전트가 사용하는 것과 같은 계정입니다.
 
 > [!IMPORTANT]
 > **Propagate to children**이 없으면 사용자는 로그인은 되지만 아무것도 볼 수 없고, 프로브는 계정이 vCenter의 인벤토리를 읽을 수 없다고 보고합니다.

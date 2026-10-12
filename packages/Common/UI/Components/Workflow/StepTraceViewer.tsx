@@ -94,6 +94,8 @@ const TIMELINE_LINE_CLASS: string =
 
 interface PortChipProps {
   title: string;
+  // The person's own words (a Switch / Case case): shown as written.
+  isTitleFromSettings?: boolean | undefined;
   description: string | null;
   tone: StepPortTone;
 }
@@ -116,7 +118,9 @@ const PortChip: FunctionComponent<PortChipProps> = (
       }`}
       data-testid="workflow-run-step-port"
     >
-      {translator.translateText(props.title)}
+      {props.isTitleFromSettings
+        ? props.title
+        : translator.translateText(props.title)}
     </span>
   );
 
@@ -125,7 +129,13 @@ const PortChip: FunctionComponent<PortChipProps> = (
   }
 
   return (
-    <Tooltip text={translator.translateText(props.description) || ""}>
+    <Tooltip
+      text={
+        props.isTitleFromSettings
+          ? props.description
+          : translator.translateText(props.description) || ""
+      }
+    >
       {chip}
     </Tooltip>
   );
@@ -212,7 +222,7 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
     );
   }
 
-  return (
+  const line: ReactElement = (
     <div
       className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm"
       data-testid="workflow-run-step-outcome"
@@ -223,6 +233,7 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
           port: (
             <PortChip
               title={outcome.portTitle}
+              isTitleFromSettings={outcome.isPortTitleFromSettings}
               description={outcome.portDescription}
               tone={outcome.portTone}
             />
@@ -281,6 +292,27 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
           </span>
         </>
       )}
+    </div>
+  );
+
+  /*
+   * Why it went that way, when the step said: which case a Switch / Case
+   * matched and that the ones above it did not. Written by the runner, so
+   * shown as written.
+   */
+  if (!outcome.portReason) {
+    return line;
+  }
+
+  return (
+    <div className="space-y-0.5">
+      {line}
+      <p
+        className="break-words text-xs text-gray-500"
+        data-testid="workflow-run-step-reason"
+      >
+        {outcome.portReason}
+      </p>
     </div>
   );
 };

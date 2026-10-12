@@ -37,7 +37,7 @@ Azure SQL Database 和 Azure SQL Managed Instance 以 **Microsoft SQL Server** �
 
 使用相同线路协议的 PostgreSQL 兼容和 MySQL 兼容引擎通常也能工作，但它们提供的统计视图可能更少；这时受影响的指标会被报告为不可用，而不会被收集。只有上面三种引擎经过官方测试。
 
-你的应用、集群和主机使用的每个数据库（这三种引擎以及许多其他引擎）都有自己的页面，展示其引擎指标、日志以及调用它的服务：参见[数据库](/docs/telemetry/databases)。如果 Database Health 监视器连接的主机和端口是某个数据库的端点之一，该监视器的警报和事件也会出现在那个数据库的页面上（参见[数据库上的警报](/docs/telemetry/databases#alerts-on-a-database)）。
+你的应用、集群和主机使用的每个数据库（这三种引擎以及许多其他引擎）都有自己的页面，展示其引擎指标、日志以及调用它的服务：参见[数据库](/docs/telemetry/databases)。如果 Database Health 监视器连接的主机和端口是某个数据库的端点之一，该监视器的警报和事件也会出现在那个数据库的页面上（参见[数据库上的警报](/docs/telemetry/databases#数据库的警报)）。
 
 ## 工作原理
 

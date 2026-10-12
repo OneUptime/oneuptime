@@ -76,6 +76,7 @@ Fehlgeschlagene Schritte, Schritte mit einer Warnung und der einzige Schritt ein
 
 Einige Ausführungen lesen sich anders:
 
+- **Ein Testlauf.** Eine Ausführung, die jemand mit **Arbeitsablauf ausführen** oder **Nur diesen Schritt ausführen** gestartet hat, während der Workflow aus war, zeigt oben **Testlauf**, mit dem, der sie gestartet hat, und beide Listen der Ausführungen markieren sie neben ihrem Status als **Testlauf**. Ihre Bausteine liefen wirklich; nur der Trigger des Workflows war pausiert. Filtern Sie nach **Testlauf**, um nur die Testläufe aufzulisten, oder nur die anderen.
 - **Ein Test eines einzelnen Schritts.** Eine mit **Nur diesen Schritt ausführen** gestartete Ausführung zeigt oben **Nur dieser Schritt wurde ausgeführt**. Die Schritte davor liefen nicht, daher fehlen Werte, die er aus ihnen liest (rechnen Sie dafür mit einer Warnung **Nicht behoben**), und die Schritte danach zeigen **(not run in this test)**. Verwenden Sie **Arbeitsablauf ausführen**, um den ganzen Pfad auszuprobieren.
 - **Eine Ausführung, die zwischen Schritten stoppte.** Hat die Ausführung aus einem Grund gestoppt, den kein Schritt erklärt – sie lief zwischen zwei Schritten in einen Timeout oder schlug vor ihrem ersten Schritt fehl –, endet der Pfad mit **Die Ausführung wurde hier beendet** und dem Grund.
 - **Eine schlafende Ausführung.** Eine Ausführung, die an einem **Sleep**-Baustein wartet, endet mit **Ruhend** und der Zeit, zu der sie von selbst weitermacht; die Schritte nach dem Sleep zeigen **(not run yet)**.
@@ -106,7 +107,7 @@ Ein Download enthält nichts, was Sie nicht schon in der Ausführung lesen könn
 ## Fehlerbehebung
 
 :::details Mein Workflow lief nicht
-1. Stellen Sie sicher, dass der Workflow **Aktiviert** ist: Der Schalter steht oben in seinem **Editor**, der über der Arbeitsfläche sagt, wenn der Workflow aus ist. Neue Workflows beginnen deaktiviert, und ein deaktivierter Workflow weist jede Ausführung ab – auch manuelle. Ein Webhook-Aufruf an ihn bekommt HTTP 400 mit einer Meldung, wie er sich einschalten lässt.
+1. Stellen Sie sicher, dass der Workflow **Aktiviert** ist: Der Schalter steht oben in seinem **Editor**, der über der Arbeitsfläche sagt, wenn der Workflow aus ist. Neue Workflows beginnen deaktiviert, und solange ein Workflow aus ist, startet ihn sein Trigger nicht: Nur **Arbeitsablauf ausführen** und **Nur diesen Schritt ausführen** tun es, als Testläufe. Ein Webhook-Aufruf an ihn bekommt HTTP 400 mit einer Meldung, wie er sich einschalten lässt.
 2. Bei einem OneUptime-Ereignis-Trigger bestätigen Sie, dass das Ereignis wirklich stattgefunden hat: Öffnen Sie den Datensatz und prüfen Sie seinen Verlauf. Ein Trigger **On Update** mit **Listen on** löst nur aus, wenn sich eines dieser Felder geändert hat.
 3. Bei einem Webhook-Trigger bestätigen Sie, dass das andere System an die richtige URL sendet. Die meisten Tools protokollieren, wann sie einen Webhook senden – schauen Sie dort nach.
 4. Bei einem Zeitplan-Trigger bestätigen Sie, dass der Cron-Ausdruck zur erwarteten Zeit passt. Zeitpläne laufen in UTC.

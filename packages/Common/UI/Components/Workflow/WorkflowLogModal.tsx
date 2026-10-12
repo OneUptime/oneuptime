@@ -15,6 +15,12 @@
  * Whatever it shows can be taken away: Copy log and Download sit in the
  * header whenever the run has logged anything or recorded a step, built from
  * the same data the tabs draw (see WorkflowRunExportActions).
+ *
+ * A test run - one a person started from the Builder while the workflow was
+ * turned off - says so on a line under the run's status, with who started
+ * it, so it is never read as a run its trigger started (WorkflowTestRun). The
+ * status stays the first thing read: whether the run worked is what the
+ * window is opened for.
  */
 
 import { ButtonStyleType } from "../Button/Button";
@@ -29,6 +35,7 @@ import {
   getTraceSteps,
 } from "./StepTracePresentation";
 import WorkflowRunExportActions from "./WorkflowRunExportActions";
+import { WorkflowTestRunNote } from "./WorkflowTestRun";
 import { WorkflowRunDetails, hasWorkflowRunContent } from "./WorkflowRunExport";
 import {
   WorkflowStepTrace,
@@ -194,6 +201,14 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
               </div>
             )}
           </div>
+        )}
+
+        {props.run?.isTestRun ? (
+          <div className={props.statusMessage || props.toolbar ? "mt-2" : ""}>
+            <WorkflowTestRunNote startedBy={props.run.startedBy} />
+          </div>
+        ) : (
+          <></>
         )}
 
         <Tabs

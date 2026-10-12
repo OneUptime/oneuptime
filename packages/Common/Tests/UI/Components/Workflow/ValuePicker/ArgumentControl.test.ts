@@ -39,6 +39,8 @@ const EXPECTED: Record<ComponentInputType, ArgumentControl> = {
   [ComponentInputType.WorkflowSelect]: ArgumentControl.Plain,
   [ComponentInputType.IncidentTemplateSelect]: ArgumentControl.Plain,
   [ComponentInputType.CronTab]: ArgumentControl.Plain,
+  // Edited in the step's own settings (Workflow/Switch), never as a field.
+  [ComponentInputType.SwitchCases]: ArgumentControl.Plain,
 };
 
 describe("argumentControlFor", () => {

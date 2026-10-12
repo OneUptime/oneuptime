@@ -49,7 +49,7 @@ sequenceDiagram
 
 使用相同线路协议和 SQL 方言的 MySQL 兼容和 PostgreSQL 兼容引擎通常也可以使用，但官方只测试上面这三种引擎。
 
-如果监视器连接的主机和端口是 [数据库](/docs/telemetry/databases) 页面上某个数据库的端点之一，它的告警和事件也会出现在该数据库的页面上（参见 [数据库上的告警](/docs/telemetry/databases#alerts-on-a-database)）。以监控密钥引用形式给出的主机不会被匹配。
+如果监视器连接的主机和端口是 [数据库](/docs/telemetry/databases) 页面上某个数据库的端点之一，它的告警和事件也会出现在该数据库的页面上（参见 [数据库上的告警](/docs/telemetry/databases#数据库的警报)）。以监控密钥引用形式给出的主机不会被匹配。
 
 ## 安全模型
 

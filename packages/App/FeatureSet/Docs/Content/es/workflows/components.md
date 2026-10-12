@@ -20,6 +20,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | Llamar a cualquier otra API o a tu propio servicio            | [API](#api)                                                       |
 | Resumir, clasificar o redactar texto                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | Tomar un camino u otro según un valor                         | [Conditions](#conditions)                                         |
+| Tomar uno de varios caminos según un valor                    | [Switch / Case](#switch-case)                                     |
 | Transformar datos entre dos bloques                           | [JSON](#json) o [Custom Code](#custom-code)                       |
 | Esperar antes del bloque siguiente                            | [Sleep](#sleep)                                                   |
 | Iniciar otro flujo de trabajo                                 | [Execute Workflow](#execute-workflow)                             |
@@ -39,7 +40,7 @@ flowchart TB
 ```
 
 - Los **Ajustes** son lo que rellenas. Los ajustes marcados **(Opcional)** pueden dejarse vacíos. Los ajustes menos usados están plegados en **Más campos**.
-- Las **Salidas** son los puntos del borde inferior. La mayoría de los bloques tienen **Success** y **Error**; [Conditions](#conditions) tiene **Yes** y **No**.
+- Las **Salidas** son los puntos del borde inferior. La mayoría de los bloques tienen **Success** y **Error**; [Conditions](#conditions) tiene **Yes** y **No**, y [Switch / Case](#switch-case) tiene una por cada uno de sus casos, además de **Default**.
 - Los **Retornos** son los valores que un bloque pasa a los bloques posteriores, como el **Response Body** de una API. Un bloque posterior lee uno con `{{local.components.<block ID>.returnValues.<value ID>}}`; el botón **{ }** de un ajuste lo inserta por ti. Consulta [Variables](/docs/workflows/variables#salidas-de-componentes-datos-de-bloques-anteriores).
 
 Un bloque que toma **Error** no hace fallar la ejecución: la ejecución sigue el camino **Error**, o termina ahí si no hay nada conectado a él. En cambio, un ajuste obligatorio vacío, o un ajuste que nunca puede funcionar, detiene la ejecución con un error.
@@ -240,7 +241,7 @@ Convierte entre texto y JSON, o combina dos objetos JSON.
 
 ## Conditions
 
-Ramifica según una comparación. En el panel **Añadir componente**, este bloque se llama **If / Else**, en **Populares**.
+Ramifica según una comparación. En el panel **Añadir componente**, este bloque se llama **If / Else**, en **Populares**. Para elegir entre más de dos caminos, usa [Switch / Case](#switch-case).
 
 Sus ajustes se leen como una frase: **Si** *valor que comprobar* *comparación* *valor con el que comparar*, continúa por **Yes**, si no, por **No**. Debajo de los ajustes, la condición se lee en palabras, para que veas que dice lo que quieres. En el lienzo, el bloque también muestra su condición, por ejemplo *Si environment is equal to “production”*.
 
@@ -268,13 +269,32 @@ Las comparaciones de números comparan números y las de texto comparan texto, a
 
 **Yes** se ejecuta cuando se cumple la condición y **No** cuando no. Los bloques configurados antes de que los ajustes tuvieran estos nombres se ejecutan exactamente igual que antes. Ya no se ofrece una opción antigua: comparar un valor como **Null** o **Undefined**, que ignoraba lo que contenía el valor. Un bloque que todavía la usa lo indica al abrirlo; elige **está vacío** para comprobar si falta un valor.
 
+## Switch / Case
+
+Toma uno de varios caminos según un valor. En el panel **Añadir componente**, este bloque se llama **Switch / Case**, en **Populares**.
+
+Compara un valor con cada uno de sus casos por turno, desde arriba, y continúa por el primer caso que coincide, o por **Default** si ninguno coincide. Solo se ejecuta un camino: un valor que coincide con dos casos toma el primero.
+
+| Ajuste             | Qué hace |
+| ------------------ | -------- |
+| **Value to check** | El valor con el que se compara cada caso, normalmente de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`. |
+| **Cases**          | Una comparación y un valor para cada camino, comprobados desde arriba. Pulsa **Añadir caso** para añadir otro, y arrastra un caso por su asa para moverlo. Un bloque admite como máximo 25 casos. |
+
+Cada caso es una salida en el lienzo, con el nombre de su valor: un caso que pregunta **is equal to** `production` es la salida *production*, y uno que pregunta **es mayor que** `500` es *is greater than 500*. **Default** es siempre la última salida. Conecta cada salida a lo que deba ejecutarse a continuación.
+
+Un caso coincide exactamente cuando un [If / Else](#conditions) con la misma comparación y el mismo valor tomaría **Yes**: las comparaciones son las mismas, y los valores se comparan de la misma forma. **Comparar como** está plegado bajo los casos, con una opción para cada caso.
+
+Cuando quitas un caso que tiene una conexión, los ajustes indican a qué bloques llevaba, y **Restaurar** devuelve el caso. Al guardar se elimina la conexión junto con el caso. Las comprobaciones del Constructor señalan un caso sin nada conectado y un caso que nunca se toma porque uno de arriba pregunta lo mismo.
+
+Una ejecución que toma una salida sin nada conectado, **Default** incluida, termina ahí sin error. La pestaña **Pasos** de la ejecución indica qué caso coincidió y por qué, por ejemplo *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
+
 ## Sleep
 
 Pausa la ejecución antes del bloque siguiente, para dar a otro sistema un momento para ponerse al día o para hacer un seguimiento más tarde.
 
 **Days**, **Hours**, **Minutes** y **Seconds** se suman. La espera más larga es de 30 días: una más larga se recorta a 30 días, y el registro de la ejecución lo indica.
 
-Mientras espera, la ejecución se aparta con el estado **Esperando** y se retoma cuando se cumple el tiempo, así que una espera larga no bloquea nada. Una ejecución cuyo flujo de trabajo se desactivó o se archivó mientras tanto se cancela al despertar.
+Mientras espera, la ejecución se aparta con el estado **Esperando** y se retoma cuando se cumple el tiempo, así que una espera larga no bloquea nada. Una ejecución cuyo flujo de trabajo se desactivó o se archivó mientras tanto se cancela al despertar. Una ejecución de prueba, iniciada mientras el flujo de trabajo estaba desactivado, no se cancela por estarlo.
 
 ## Log
 

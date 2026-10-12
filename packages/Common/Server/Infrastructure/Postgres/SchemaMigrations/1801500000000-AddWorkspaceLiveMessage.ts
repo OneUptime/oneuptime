@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * on an empty table and need no online DDL. Existing installations start
  * with none: the first change after upgrading posts each message once.
  */
-export class AddWorkspaceLiveMessage1801400000000
+export class AddWorkspaceLiveMessage1801500000000
   implements MigrationInterface
 {
-  public name: string = "AddWorkspaceLiveMessage1801400000000";
+  public name: string = "AddWorkspaceLiveMessage1801500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -234,34 +234,11 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
-  "telemetry/ceph": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/databases": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/docker-swarm": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/queues": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/serverless-functions": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "telemetry/session-replay": {
     pageLinks: ["fa"],
     codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
-  },
-  "telemetry/storage-arrays": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/vmware": {
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "terraform/complete-guide": {
     codeLanguage: EN,

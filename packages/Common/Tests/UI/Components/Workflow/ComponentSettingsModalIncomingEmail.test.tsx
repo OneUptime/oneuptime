@@ -576,6 +576,35 @@ describe("Incoming Email trigger: a server that receives no email", () => {
   });
 });
 
+describe("Incoming Email trigger: while the workflow is off", () => {
+  test("the address's panel says email to it is ignored, above the address", () => {
+    render(<ComponentSettingsModal {...modalProps({ isWorkflowOff: true })} />);
+
+    const note: HTMLElement = within(section("email-address")).getByTestId(
+      "incoming-email-trigger-workflow-off",
+    );
+
+    expect(note).toHaveTextContent(
+      "While this workflow is off, email to this address is ignored. You can still test it with Run Workflow.",
+    );
+    expect(
+      note.compareDocumentPosition(
+        screen.getByTestId("incoming-email-trigger-address"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("on, it says nothing of the kind", () => {
+    render(
+      <ComponentSettingsModal {...modalProps({ isWorkflowOff: false })} />,
+    );
+
+    expect(
+      screen.queryByTestId("incoming-email-trigger-workflow-off"),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("the other triggers are untouched", () => {
   test("the Webhook trigger still opens on its URL, not on an email address", () => {
     const webhook: ComponentMetadata = Components.find(

@@ -37,7 +37,7 @@ Azure SQL Database 和 Azure SQL Managed Instance 會以 **Microsoft SQL Server*
 
 使用相同線路協定的 PostgreSQL 相容與 MySQL 相容引擎通常也能運作，但提供的統計檢視可能較少；此時受影響的指標會回報為無法使用，而不會被收集。只有上面三種引擎經過官方測試。
 
-你的應用程式、叢集和主機所使用的每個資料庫（這三種引擎以及其他許多引擎）也都有自己的頁面，顯示其引擎指標、日誌以及呼叫它的服務：請參閱[資料庫](/docs/telemetry/databases)。如果 Database Health 監測器連線的主機和連接埠是某個資料庫的端點之一，該監測器的警示和事件也會出現在那個資料庫的頁面上（請參閱[資料庫上的警示](/docs/telemetry/databases#alerts-on-a-database)）。
+你的應用程式、叢集和主機所使用的每個資料庫（這三種引擎以及其他許多引擎）也都有自己的頁面，顯示其引擎指標、日誌以及呼叫它的服務：請參閱[資料庫](/docs/telemetry/databases)。如果 Database Health 監測器連線的主機和連接埠是某個資料庫的端點之一，該監測器的警示和事件也會出現在那個資料庫的頁面上（請參閱[資料庫上的警示](/docs/telemetry/databases#資料庫的警示)）。
 
 ## 運作方式
 

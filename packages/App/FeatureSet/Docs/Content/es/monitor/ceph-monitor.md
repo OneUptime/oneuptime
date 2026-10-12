@@ -241,7 +241,7 @@ Un monitor que no creas a partir de una plantilla empieza con dos criterios:
 Estos valores predeterminados sirven para pocas métricas de Ceph: `ceph_health_status` es 0 cuando el clúster está sano. Elige una plantilla o define tus propios criterios.
 
 > [!IMPORTANT]
-> El silencio no cumple ninguno de los dos criterios: un clúster que deja de enviar datos deja el monitor como estaba. Para enterarte cuando dejan de llegar datos, pon **Si no hay datos** en **Disparador** en un criterio.
+> El silencio no cumple ninguno de los dos criterios: un clúster que deja de enviar datos deja el monitor como estaba. Para enterarte cuando dejan de llegar datos, pon **Si no hay datos** en **Disparador** en un criterio. El tiempo en que el propio OneUptime no estaba recibiendo nunca cuenta como falta de datos: una comprobación cuya ventana lo contiene espera en su lugar, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solución de problemas
 
