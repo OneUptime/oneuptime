@@ -21,6 +21,7 @@ import logger from "Common/Server/Utils/Logger";
 import stubLLMEgressGuard from "Common/Tests/Server/Utils/AI/StubLLMEgressGuard";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   afterEach,
   beforeEach,
@@ -243,7 +244,7 @@ function quotePattern(quote: string): RegExp {
   const escaped: string = quote
     .split("...")
     .map((part: string): string => {
-      return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return escapeRegExp(part);
     })
     .join("[\\s\\S]*");
 
@@ -514,7 +515,7 @@ describe("the page names the forms as the Dashboard draws them", () => {
 
     expect(options).toMatch(
       new RegExp(
-        `label: "${FOUNDRY_LABEL.replace("/", "\\/")}",\\s*value: LlmType\\.AzureOpenAI,`,
+        `label: "${escapeRegExp(FOUNDRY_LABEL)}",\\s*value: LlmType\\.AzureOpenAI,`,
       ),
     );
   });

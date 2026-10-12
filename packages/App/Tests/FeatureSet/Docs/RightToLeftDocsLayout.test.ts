@@ -163,6 +163,65 @@ const declared: (selector: string, property: string) => string | undefined = (
   return value;
 };
 
+// A selector of one class and nothing else, as Tailwind writes a utility's.
+const ONE_CLASS_SELECTOR: RegExp = /^\.((?:\\.|[\w-])+)$/;
+
+/*
+ * A CSS escape: a backslash and one to six hex digits, with the one space
+ * that may end them, or a backslash and any other character.
+ */
+const CSS_ESCAPE: RegExp =
+  /\\(?:([0-9a-fA-F]{1,6})[ \t\n\r\f]?|([^0-9a-fA-F\n\r\f]))/g;
+
+// The class a one-class selector names, its escapes read: ".-ms-0\.5" names -ms-0.5.
+const classNamed: (selector: string) => string | undefined = (
+  selector: string,
+): string | undefined => {
+  const escaped: string | undefined = selector.match(ONE_CLASS_SELECTOR)?.[1];
+
+  return escaped?.replace(
+    CSS_ESCAPE,
+    (
+      _escape: string,
+      hexDigits: string | undefined,
+      character: string | undefined,
+    ): string => {
+      return hexDigits !== undefined
+        ? String.fromCodePoint(parseInt(hexDigits, 16))
+        : (character as string);
+    },
+  );
+};
+
+/*
+ * What the last rule for a class sets a property to. The class is found by
+ * the name each one-class selector reads as, so a utility with a "." or a
+ * ":" in it is found without escaping it into a selector.
+ */
+const declaredForClass: (
+  className: string,
+  property: string,
+) => string | undefined = (
+  className: string,
+  property: string,
+): string | undefined => {
+  let value: string | undefined = undefined;
+
+  for (const rule of RULES) {
+    if (!rule.selectors.map(classNamed).includes(className)) {
+      continue;
+    }
+
+    for (const [name, declaredValue] of rule.declarations) {
+      if (name === property) {
+        value = declaredValue;
+      }
+    }
+  }
+
+  return value;
+};
+
 const PHYSICAL_PROPERTY: RegExp =
   /^(?:(?:margin|padding|border|scroll-margin|scroll-padding)-(?:left|right)(?:-.+)?|left|right|border-(?:top|bottom)-(?:left|right)-radius)$/;
 
@@ -586,10 +645,8 @@ describe("the views on a right-to-left page", () => {
         continue;
       }
 
-      const selector: string = `.${token.replace(/([.:/[\]])/g, "\\$1")}`;
-
-      if (declared(selector, property) !== value) {
-        missing.push(`${selector} { ${property}: ${value} }`);
+      if (declaredForClass(token, property) !== value) {
+        missing.push(`.${token} { ${property}: ${value} }`);
       }
     }
 

@@ -20,7 +20,9 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  diagramLabelLines,
   inlineCode,
+  labelLineWidth,
   listItemCount,
   navTitle,
   prose,
@@ -528,8 +530,9 @@ interface ColumnWideDiagram {
  * Diagrams that fill the 590px docs column, and fit it in every language
  * only with their labels broken into short lines. Each is held to the widest
  * label line measured to fit, in a browser, in every language, counting a
- * Chinese, Japanese or Korean character twice: a label put back on one line
- * runs its diagram off the column.
+ * Chinese, Japanese or Korean character twice (the shared diagramLabelLines
+ * and labelLineWidth): a label put back on one line runs its diagram off
+ * the column.
  */
 const COLUMN_WIDE_DIAGRAMS: ReadonlyArray<ColumnWideDiagram> = [
   {
@@ -546,29 +549,10 @@ const COLUMN_WIDE_DIAGRAMS: ReadonlyArray<ColumnWideDiagram> = [
   },
 ];
 
-const DIAGRAM_LABEL: RegExp = /"([^"]*)"/g;
-const LABEL_BREAK: string = "<br/>";
-const WIDE_CHARACTER: RegExp = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/;
-
 function diagramsOf(markdown: string): Array<DocsFence> {
   return scanMarkdown(markdown).fences.filter((fence: DocsFence): boolean => {
     return fence.lang === "mermaid";
   });
-}
-
-// Every line of every node and link label, as the diagram breaks them.
-function labelLines(diagram: string): Array<string> {
-  return Array.from(diagram.matchAll(DIAGRAM_LABEL)).flatMap(
-    (match: RegExpMatchArray): Array<string> => {
-      return (match[1] as string).split(LABEL_BREAK);
-    },
-  );
-}
-
-function lineWidth(line: string): number {
-  return Array.from(line).reduce((width: number, character: string): number => {
-    return width + (WIDE_CHARACTER.test(character) ? 2 : 1);
-  }, 0);
 }
 
 describe("the lists this test keeps", () => {
@@ -1016,9 +1000,9 @@ describe("the diagrams that fill the docs column", () => {
           const diagram: DocsFence = diagramsOf(readPage(language, entry.page))[
             entry.diagram
           ] as DocsFence;
-          const tooWide: Array<string> = labelLines(diagram.code).filter(
+          const tooWide: Array<string> = diagramLabelLines(diagram.code).filter(
             (line: string): boolean => {
-              return lineWidth(line) > entry.widestLine;
+              return labelLineWidth(line) > entry.widestLine;
             },
           );
 
@@ -1131,15 +1115,15 @@ describe("the helpers, on these pages' shapes", () => {
       '    ai["Kubernetes AI 代理"]',
     ].join("\n");
 
-    expect(labelLines(diagram)).toEqual([
+    expect(diagramLabelLines(diagram)).toEqual([
       "Every Linux node:",
       "node collector, eBPF",
       "logs, metrics,",
       "traces",
       "Kubernetes AI 代理",
     ]);
-    expect(lineWidth("Every Linux node:")).toBe(17);
-    expect(lineWidth("Kubernetes AI 代理")).toBe(18);
-    expect(lineWidth("ノード")).toBe(6);
+    expect(labelLineWidth("Every Linux node:")).toBe(17);
+    expect(labelLineWidth("Kubernetes AI 代理")).toBe(18);
+    expect(labelLineWidth("ノード")).toBe(6);
   });
 });

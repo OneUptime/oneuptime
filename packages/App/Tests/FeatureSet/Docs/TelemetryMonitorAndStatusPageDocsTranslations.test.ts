@@ -20,6 +20,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -546,16 +547,10 @@ const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 // The full stop that ends a sentence, in each script the locales write.
 const FULL_STOP: RegExp = /[.。．।]$/;
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
 function englishPage(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 // The bold spans of a page that are one label, not a path.
@@ -1311,10 +1306,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
             `\\*\\*${segments
               .map((segment: string): string => {
                 return isActionLabel(segment)
-                  ? escapeRegex(drawnActionLabel(language, segment))
+                  ? escapeRegExp(drawnActionLabel(language, segment))
                   : PLACEHOLDER_SEGMENT;
               })
-              .join(escapeRegex(PATH_SEPARATOR))}\\*\\*`,
+              .join(escapeRegExp(PATH_SEPARATOR))}\\*\\*`,
           );
         })
         .filter((pattern: RegExp): boolean => {

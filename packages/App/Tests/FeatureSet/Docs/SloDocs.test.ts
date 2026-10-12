@@ -2,7 +2,11 @@ import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I1
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { scanMarkdown } from "./DocsContentSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
-import { comparableFence, navTitle } from "./DocsTranslationChecks";
+import {
+  comparableFence,
+  escapeRegExp,
+  navTitle,
+} from "./DocsTranslationChecks";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import {
@@ -212,9 +216,7 @@ const tableRowStartingWith: TableRowStartingWithFunction = (
   firstCell: string,
 ): string | undefined => {
   return markdown.split("\n").find((line: string): boolean => {
-    return new RegExp(
-      `^\\|\\s*${firstCell.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\|`,
-    ).test(line);
+    return new RegExp(`^\\|\\s*${escapeRegExp(firstCell)}\\s*\\|`).test(line);
   });
 };
 

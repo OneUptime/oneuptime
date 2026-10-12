@@ -24,13 +24,15 @@ import path from "path";
  * marker left on the page as the reader sees it (strayMarkers). Two more
  * read how wide a diagram's labels draw (diagramLabelLines,
  * labelLineWidth), so a suite can hold a diagram that fills the 590px docs
- * column to the label lines measured to fit it.
+ * column to the label lines measured to fit it, and one escapes text for a
+ * pattern built from it (escapeRegExp).
  *
  * Each is a plain function of the Markdown, so the suites can also show that
  * it catches the break it is there for. Suites import these rather than
  * copy them: DocsTagStripGuard fails on a suite that writes its own
  * strayMarkers, or takes tags out of HTML any way but stripHtmlTags
- * (DocsHtmlText).
+ * (DocsHtmlText), and DocsCodeScanningGuard on one that escapes text for a
+ * pattern itself or writes its own class of wide characters.
  */
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
@@ -51,6 +53,22 @@ export function toLatinDigits(text: string): string {
   return text.replace(/[۰-۹]/g, (digit: string): string => {
     return String(PERSIAN_DIGITS.indexOf(digit));
   });
+}
+
+// Every character a pattern reads as syntax outside a character class.
+const PATTERN_SYNTAX: RegExp = /[.*+?^${}()|[\]\\]/g;
+
+/*
+ * Text as a pattern that matches that text and nothing else, for a regular
+ * expression built from text, as in new RegExp(`^${escapeRegExp(label)}:`).
+ * Each of \ ^ $ . * + ? ( ) [ ] { } | gets a backslash. Escaping only some
+ * of them - the dots of "props.showIncidentsOnStatusPage" - leaves a
+ * backslash or a bracket in the text free to change the pattern, which code
+ * scanning reports as incomplete sanitization (js/incomplete-sanitization,
+ * #2215). The text goes outside a character class: a "-" is left as it is.
+ */
+export function escapeRegExp(text: string): string {
+  return text.replace(PATTERN_SYNTAX, "\\$&");
 }
 
 // A card's line: its link, then an ASCII ": " and the description.
@@ -138,8 +156,28 @@ const SEQUENCE_PARTICIPANT_NAME: RegExp =
 // A sequence diagram's message ("P->>O: text") or note ("Note over P: text").
 const SEQUENCE_TEXT: RegExp =
   /^\s*(?:Note\s[^:]*|[^\s:]*-[-x)>]*[^\s:]*):(.*)$/;
-// A character drawn about twice as wide as a Latin letter: Chinese, Japanese or Korean.
-const WIDE_CHARACTER: RegExp = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/;
+
+/*
+ * A character drawn about twice as wide as a Latin letter: a letter of the
+ * Chinese, Japanese or Korean scripts (Han, Hiragana, Katakana, Hangul,
+ * Bopomofo), or any character of the blocks their punctuation and symbols
+ * are filed under, most of them in the Common script: Ideographic
+ * Description Characters, CJK Symbols and Punctuation, the Hiragana and
+ * Katakana blocks (their sound marks, middle dot and long vowel mark),
+ * Kanbun, CJK Strokes, Enclosed CJK Letters and Months, CJK Compatibility,
+ * and Halfwidth and Fullwidth Forms. Anything else counts once, an emoji
+ * too.
+ *
+ * Scripts by name, and blocks by their exact bounds written as escapes.
+ * Ranges typed as the characters themselves spanned blocks of other
+ * scripts - Yijing hexagrams, Yi, Vai, the private use area (code scanning
+ * #2216, #2217) - and the first CJK compatibility ideograph, typed to start
+ * one, had become its canonical twin in CJK Unified Ideographs (U+8C48 for
+ * U+F900). Every character the docs' diagrams draw, in every language,
+ * counts as the 590px measurements counted it (DocsLabelWidth).
+ */
+const WIDE_CHARACTER: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}\u{2FF0}-\u{2FFF}\u{3000}-\u{303F}\u{3040}-\u{309F}\u{30A0}-\u{30FF}\u{3190}-\u{319F}\u{31C0}-\u{31EF}\u{3200}-\u{32FF}\u{3300}-\u{33FF}\u{FF00}-\u{FFEF}]/u;
 
 /*
  * Every line of every label a diagram draws, as the diagram breaks them
@@ -172,7 +210,7 @@ export function diagramLabelLines(code: string): Array<string> {
 
 /*
  * How wide a line of a diagram's label draws, in Latin letters: a Chinese,
- * Japanese or Korean character counts twice.
+ * Japanese or Korean character counts twice (WIDE_CHARACTER).
  */
 export function labelLineWidth(line: string): number {
   return Array.from(line).reduce((width: number, character: string): number => {
