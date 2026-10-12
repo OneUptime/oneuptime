@@ -113,9 +113,9 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: DocsPageEntry): string => {
  * column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [GEMINI_COPILOT]: 26,
-  [AI_GATEWAYS]: 26,
-  [CIRCUIT_BREAKER]: 26,
+  [GEMINI_COPILOT]: 32,
+  [AI_GATEWAYS]: 32,
+  [CIRCUIT_BREAKER]: 32,
   [SECURITY_EVENTS]: 32,
   [THREAT_INTELLIGENCE]: 32,
 };
