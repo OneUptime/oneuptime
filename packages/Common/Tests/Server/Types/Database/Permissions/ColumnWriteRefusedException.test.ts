@@ -88,17 +88,42 @@ describe("ColumnWriteRefusedException", () => {
     );
   });
 
-  test.each([DatabaseRequestType.Create, DatabaseRequestType.Update])(
-    "is what the column check throws on %s for a column the caller may not write",
-    (type: DatabaseRequestType) => {
+  test.each([
+    [
+      DatabaseRequestType.Create,
+      "No permission allows it: the column is set by the server, not by a request.",
+    ],
+    [
+      DatabaseRequestType.Update,
+      "No permission allows it: the column is changed by the server, not by a request.",
+    ],
+  ])(
+    "is what the column check throws on %s for a column the caller may not write, saying nobody may",
+    (type: DatabaseRequestType, nobody: string) => {
       const error: unknown = refusalOf(type);
 
       expect(error).toBeInstanceOf(ColumnWriteRefusedException);
       expect((error as Error).message).toBe(
-        `User is not allowed to ${type} on isTeamEditable column of Team`,
+        `User is not allowed to ${type} on isTeamEditable column of Team. ${nobody}`,
       );
     },
   );
+
+  test("given the column's list, it says who may write it", () => {
+    const error: ColumnWriteRefusedException = new ColumnWriteRefusedException(
+      {
+        requestType: "update",
+        columnName: "enableAutoRechargeAiBalance",
+        modelName: "Project",
+        permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+      },
+    );
+
+    expect(error.message).toBe(
+      "User is not allowed to update on enableAutoRechargeAiBalance column of Project. You need one of these permissions: Project Owner, Manage Billing.",
+    );
+    expect(error.columnName).toBe("enableAutoRechargeAiBalance");
+  });
 
   test("both column checks throw it, never the words in a plain BadDataException", () => {
     const serverDir: string = path.resolve(__dirname, "../../../../../Server");

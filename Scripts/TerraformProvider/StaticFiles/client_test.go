@@ -56,9 +56,25 @@ const (
 	envelopeMessage = "message"
 )
 
+/*
+ * A permission refusal says who may read the column on the same line
+ * (Common/Server/Types/Database/Permissions/ColumnRefusalMessage.ts), or that
+ * no permission does. A server from before that sent the permissions on a
+ * line of their own, and a provider talks to both.
+ */
 func permissionDeniedMessage(column string) string {
+	return fmt.Sprintf("You do not have permissions to select on - %s. "+
+		"You need one of these permissions: Project Owner, Project Admin.", column)
+}
+
+func olderServerPermissionDeniedMessage(column string) string {
 	return fmt.Sprintf("You do not have permissions to select on - %s.\n"+
 		"                    You need any one of these permissions: Project Owner, Project Admin", column)
+}
+
+func nobodyReadsMessage(column string) string {
+	return fmt.Sprintf("You do not have permissions to select on - %s. "+
+		"No permission allows it: the column is not readable through the API.", column)
 }
 
 func unknownColumnMessage(column string) string {
@@ -665,6 +681,16 @@ func TestDroppableSelectColumn(t *testing.T) {
 			name: "permission, error envelope",
 			body: jsonBody(t, envelopeError, permissionDeniedMessage("serviceLanguage")),
 			want: "serviceLanguage",
+		},
+		{
+			name: "permission from an older server, on two lines",
+			body: jsonBody(t, envelopeError, olderServerPermissionDeniedMessage("serviceLanguage")),
+			want: "serviceLanguage",
+		},
+		{
+			name: "a column nobody may read",
+			body: jsonBody(t, envelopeMessage, nobodyReadsMessage("fileId")),
+			want: "fileId",
 		},
 		{
 			name: "unknown column, error envelope",

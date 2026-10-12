@@ -1,4 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import Project from "Common/Models/DatabaseModels/Project";
+import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
 import {
   otherChangesItemAtEnglishPlace,
   otherChangesItems,
@@ -293,10 +295,27 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
     for (const sentence of [
       "A project's reseller, reseller plan and reseller license (`resellerId`, `resellerPlanId`, `resellerLicenseId`, and the relations `reseller` and `resellerPlan`) are set by OneUptime alone",
       "A create or a change of a project that sends one of them is refused with a `400` that names the field, whoever sends it:",
-      "User is not allowed to create on resellerId column of Project",
     ]) {
       expect([sentence, bought.includes(sentence)]).toEqual([sentence, true]);
     }
+
+    /*
+     * The refusal quoted whole, as the server words it for that column
+     * (ColumnRefusalMessage): what was refused, and that no permission
+     * allows it - the column's create list is empty.
+     */
+    const refusal: string = ColumnRefusalMessage.getWriteRefusal({
+      requestType: "create",
+      column: "resellerId",
+      modelName: new Project().singularName,
+      permissions:
+        new Project().getColumnAccessControlFor("resellerId")?.create || [],
+    });
+
+    expect(refusal).toBe(
+      "User is not allowed to create on resellerId column of Project. No permission allows it: the column is set by the server, not by a request.",
+    );
+    expect(bought.includes("```text\n" + refusal + "\n```")).toBe(true);
   });
 
   test("the English upgrade notes say what changes, after the one record a write names", () => {
