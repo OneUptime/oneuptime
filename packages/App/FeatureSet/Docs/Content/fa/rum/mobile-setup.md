@@ -1,83 +1,113 @@
 # راه‌اندازی موبایل
 
-برنامه‌ای Android، ‏iOS یا React Native را ابزارگذاری کنید تا به OneUptime به‌عنوان برنامه RUM موبایلی گزارش دهد.
+یک برنامه Android، iOS یا React Native را با OpenTelemetry ابزارگذاری کنید تا به‌عنوان برنامه RUM موبایل به OneUptime گزارش دهد. هر پلتفرم دیگری که SDK OpenTelemetry دارد هم به همین شکل کار می‌کند.
 
-## ‏OneUptime چه لازم دارد
+:::cards
+- [آنچه OneUptime لازم دارد](#آنچه-oneuptime-لازم-دارد): دو ویژگی منبع که با کلید سرور فرستاده می‌شوند.
+- [پلتفرمتان را راه‌اندازی کنید](#پلتفرمتان-را-راهاندازی-کنید): Android، iOS، React Native و بقیه.
+- [بررسی کنید که داده می‌رسد](#بررسی-کنید-که-داده-میرسد): کلید را بیازمایید، سپس برنامه را پیدا کنید.
+- [بازپخش نشست در موبایل](#بازپخش-نشست-در-موبایل): ضبط‌ها برای برنامه‌های React Native.
+:::
 
-دو چیز، و فقط دو چیز:
+## چگونه کار می‌کند
 
-1. **`service.name`** — هویت برنامه، برای نمونه `storefront-android`.
-2. **دست‌کم یکی از `device.id`، `device.model.identifier` یا `device.manufacturer`** — همین است که تله‌متری را *موبایلی* علامت می‌زند نه سرویسی بک‌اند.
+برنامه شما OTLP را با کلید دریافت داده **سرور** مستقیم به OneUptime صادر می‌کند. ویژگی‌های `device.*` روی منبع آن است که آن را به‌جای سرویس بک‌اند، RUM موبایل ثبت می‌کند.
 
-هر دو ویژگی **منبع**اند، و هر دو باید روی هر دسته‌ای که صادر می‌کنید باشند. اگر ویژگی‌های دستگاه نباشند، تله‌متری همچنان می‌رسد و همچنان قابل پرس‌وجوست — فقط به‌جای برنامه RUM به‌عنوان Service بک‌اند بایگانی می‌شود.
+```mermaid title="برنامه موبایل چه می‌فرستد و با کدام کلید"
+flowchart TB
+    app["برنامه موبایل شما"] --> sdk["OpenTelemetry SDK<br/>با ویژگی‌های device.*"]
+    sdk -->|"OTLP با<br/>کلید سرور"| oneuptime["OneUptime"]
+    oneuptime --> rum["برنامه RUM موبایل"]
+    replay["React Native<br/>SDK بازپخش"] -->|"ضبط‌ها با<br/>کلید Browser"| oneuptime
+```
 
-مقدار `device.id` باید شناسه‌ای محدود به نصب باشد، نه شناسه تبلیغاتی یا هر چیزی که شخصی را شناسایی می‌کند. برای گروه‌بندی به کار می‌رود، هرگز به‌عنوان هویت نمایش داده نمی‌شود.
+## آنچه OneUptime لازم دارد
 
-## پیکربندی مشترک
+دو ویژگی منبع، روی هر دسته‌ای که برنامه‌تان صادر می‌کند:
 
-هر SDK ‏OpenTelemetry موبایلی کلیدهای استاندارد محیطی/پیکربندی را می‌خواند، پس سمت OneUptime همه‌جا یکی است:
+| ویژگی | چیست |
+| --- | --- |
+| `service.name` | هویت برنامه، مانند `storefront-android`. |
+| `device.id` یا `device.model.identifier` | تله‌متری را RUM موبایل علامت می‌زند. `device.model.identifier` صفحه **کلاینت‌ها** را هم پر می‌کند. |
+
+بدون ویژگی دستگاه، تله‌متری باز هم می‌رسد و می‌توانید از آن پرس‌وجو کنید، اما به‌جای برنامه RUM به‌عنوان سرویس بک‌اند ثبت می‌شود.
+
+`device.manufacturer` هم دسته را موبایل علامت می‌زند، اما فقط روی منبعی که هویت میزبان ندارد، چون موجودی یک میزبان سازنده ماشین را با آن گزارش می‌دهد. `device.id` یا `device.model.identifier` را هم تنظیم کنید، همان‌طور که هر دستور زیر می‌کند، و این هرگز اهمیتی پیدا نمی‌کند.
+
+`device.id` را شناسه‌ای در حد نصب برنامه بگذارید، هرگز شناسه تبلیغاتی یا هر چیز دیگری که یک شخص را شناسایی کند. OneUptime آن را فقط برای تشخیص تله‌متری موبایل می‌خواند.
+
+## پیش از شروع
+
+- برنامه‌ای با یک SDK OpenTelemetry: OpenTelemetry Java SDK یا OpenTelemetry Android، opentelemetry-swift، یا OpenTelemetry JavaScript SDK برای React Native.
+- یک کلید دریافت داده **سرور** که در **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده** با **ساخت کلید دریافت داده** ساخته شده باشد. کلید **Browser** از برنامه موبایل رد می‌شود: با سرآیند `Origin` بررسی می‌شود که SDKهای موبایل نمی‌فرستند.
+- این تنظیم‌های OTLP. اگر OneUptime را خودتان میزبانی می‌کنید، `https://oneuptime.com` را با میزبان خودتان جایگزین کنید.
 
 | تنظیم | مقدار |
 | --- | --- |
 | نقطه پایانی OTLP | `https://oneuptime.com/otlp` |
-| هدر | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
+| سرآیند | `x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN` |
 | ردیابی‌ها | `POST https://oneuptime.com/otlp/v1/traces` |
-| سنجه‌ها | `POST https://oneuptime.com/otlp/v1/metrics` |
-| گزارش‌ها | `POST https://oneuptime.com/otlp/v1/logs` |
+| متریک‌ها | `POST https://oneuptime.com/otlp/v1/metrics` |
+| لاگ‌ها | `POST https://oneuptime.com/otlp/v1/logs` |
 
-توکن را در _Project Settings → Telemetry & APM → Ingestion Keys_ بسازید. خودمیزبان: به‌جای میزبان، میزبان خودتان را بگذارید.
+> [!WARNING]
+> کلید درون برنامه‌تان منتشر می‌شود و برنامه را می‌توان باز کرد، پس فرض کنید کسی آن را کپی می‌کند. در صفحه کلید، **Pinned Service Name** را تنظیم کنید تا نسخه کپی‌شده نتواند به نام سرویس‌های بک‌اندتان بنویسد، **Requests Per Minute Limit** و تاریخی در **تاریخ انقضا** بیفزایید، و کلید را با هر انتشار عوض کنید.
 
-چون توکن باینری موبایلی منتشرشده را نمی‌توان سریع چرخاند، با آن همان‌گونه رفتار کنید که با توکن مرورگر — اعتبارنامه‌ای فقط برای دریافت است و عملاً عمومی است.
+## پلتفرمتان را راه‌اندازی کنید
 
-> قطعه‌های زیر شکل پیکربندی را نشان می‌دهند. SDKهای موبایلی OpenTelemetry پیش از نسخه ۱٫۰ هستند و APIهای سازنده‌شان میان انتشارها تغییر می‌کند، پس نام دقیق متدها را در برابر نسخه‌ای که سنجاق می‌کنید بررسی کنید. آنچه OneUptime لازم دارد — نقطه پایانی، هدر، `service.name` و یک ویژگی `device.*` — تغییر نمی‌کند.
+قطعه کدها شکل کلی راه‌اندازی را نشان می‌دهند. SDKهای موبایل OpenTelemetry میان انتشارها APIهایشان را تغییر می‌دهند، پس نام متدها را با نسخه‌ای که ثابت کرده‌اید مقایسه کنید. آنچه OneUptime لازم دارد هرگز تغییر نمی‌کند: نقطه پایانی، سرآیند، `service.name` و یک ویژگی `device.*`.
 
-## Android
+:::tabs
+@tab Android
+از OpenTelemetry Java SDK و صادرکننده OTLP آن استفاده کنید که روی Android اجرا می‌شوند:
 
-عامل [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) را بیفزایید:
-
-```kotlin
-// app/build.gradle.kts
+```kotlin title="app/build.gradle.kts"
 dependencies {
-    implementation("io.opentelemetry.android:android-agent:<latest>")
+    implementation(platform("io.opentelemetry:opentelemetry-bom:<latest>"))
+    implementation("io.opentelemetry:opentelemetry-sdk")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 }
 ```
 
-```kotlin
-// Application.onCreate()
-val config = OtelRumConfig()
+```kotlin title="StorefrontApplication.kt"
+import android.app.Application
+import android.os.Build
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
+import io.opentelemetry.sdk.OpenTelemetrySdk
+import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.SdkTracerProvider
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 
-val rum = OpenTelemetryRum.builder(this, config)
-    .addSpanExporterCustomizer {
-        OtlpHttpSpanExporter.builder()
+class StorefrontApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        val resource = Resource.getDefault().toBuilder()
+            .put("service.name", "storefront-android")
+            .put("device.manufacturer", Build.MANUFACTURER)
+            .put("device.model.identifier", Build.MODEL)
+            .build()
+
+        val exporter = OtlpHttpSpanExporter.builder()
             .setEndpoint("https://oneuptime.com/otlp/v1/traces")
             .addHeader("x-oneuptime-token", BuildConfig.ONEUPTIME_TOKEN)
             .build()
+
+        OpenTelemetrySdk.builder()
+            .setTracerProvider(
+                SdkTracerProvider.builder()
+                    .setResource(resource)
+                    .addSpanProcessor(BatchSpanProcessor.builder(exporter).build())
+                    .build()
+            )
+            .buildAndRegisterGlobal()
     }
-    .addResourceCustomizer { resource, _ ->
-        resource.toBuilder()
-            .put("service.name", "storefront-android")
-            .build()
-    }
-    .build()
-```
-
-منبع خود عامل Android مقادیر `device.model.identifier`، `device.manufacturer` و `device.id` محدود به نصب را فراهم می‌کند، پس دسته‌بندی بدون پیکربندی اضافه کار می‌کند. **روی نسخه خودتان تأییدش کنید** — اگر زبانه Clients خالی بماند در حالی که Traces پر می‌شود، همان ویژگی‌های دستگاه است که کم است، و می‌توانید در همان بلوک `addResourceCustomizer` بیفزاییدشان.
-
-اگر به‌جای استفاده از عامل، SDK را دستی می‌سازید، خودتان تنظیمشان کنید:
-
-```kotlin
-.addResourceCustomizer { resource, _ ->
-    resource.toBuilder()
-        .put("service.name", "storefront-android")
-        .put("device.manufacturer", Build.MANUFACTURER)
-        .put("device.model.identifier", Build.MODEL)
-        .build()
 }
 ```
 
-## iOS / Swift
-
-از [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) استفاده کنید:
+عامل [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) ابزارگذاری خودکار را بر آن می‌افزاید و ویژگی‌های دستگاه را روی منبع خودش تنظیم می‌کند. اگر از آن استفاده می‌کنید، صادرکننده‌اش را به همان نقطه پایانی و سرآیند نشانه بروید و بررسی کنید که در نسخه شما `device.model.identifier` به منبع می‌رسد.
+@tab iOS
+از [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) استفاده کنید و ویژگی‌های دستگاه را خودتان تنظیم کنید: منبعی که هر نسخه خودش می‌افزاید میان انتشارها تغییر کرده است.
 
 ```swift
 let resource = Resource(attributes: [
@@ -102,11 +132,9 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-تنظیم صریح ویژگی‌های دستگاه، مانند بالا، مسیر قابل اتکا روی iOS است — منبعی که نسخه‌ای مشخص از SDK می‌دهد میان انتشارها تغییر کرده است.
-
-## React Native / Expo
-
-‏React Native ‏SDK ‏JavaScript را اجرا می‌کند، پس راه‌اندازی همان [راه‌اندازی مرورگر](/docs/rum/browser-setup) است با دو تفاوت: `browserDetector` وجود ندارد (`navigator.userAgentData` نیست)، و باید خودتان ویژگی‌های دستگاه را بدهید تا تله‌متری به‌جای سرویس بک‌اند موبایلی دسته‌بندی شود.
+`UIDevice.current.model` نامی کوتاه مانند `iPhone` می‌دهد که صفحه **کلاینت‌ها** را برای هر نوع دستگاه به یک سطر محدود نگه می‌دارد.
+@tab React Native
+React Native همان OpenTelemetry JavaScript SDK را اجرا می‌کند، پس ارائه‌دهنده، صادرکننده OTLP و پردازشگر دسته‌ای را مانند [راه‌اندازی مرورگر](/docs/rum/browser-setup) بسازید، با سه تغییر: با کلید **سرور** بفرستید، `browserDetector` و `DocumentLoadInstrumentation` را کنار بگذارید، و ویژگی‌های دستگاه را خودتان تنظیم کنید.
 
 ```ts
 import { Platform } from "react-native";
@@ -120,17 +148,16 @@ const resource = defaultResource().merge(
   resourceFromAttributes({
     "service.name": "storefront-mobile",
     "device.manufacturer": Device.manufacturer ?? Platform.OS,
-    "device.model.identifier": Device.modelId ?? "unknown",
+    "device.model.identifier":
+      Device.modelId ?? Device.modelName ?? "unknown",
     "telemetry.sdk.language": "webjs",
   }),
 );
 ```
 
-باقی همه‌چیز — صادرکننده OTLP، پردازشگر دسته‌ای، ثبت ارائه‌دهنده — با راهنمای مرورگر یکسان است.
-
-## هر پلتفرم دیگری
-
-هیچ‌چیز ویژه Android یا iOS در مسیر دریافت نیست. Flutter، ‏Unity، ‏.NET MAUI، کلاینتی نهفته، یا نویسنده‌ای دست‌ساز از OTLP همه کار می‌کنند تا وقتی منبع `service.name` به‌علاوه یک ویژگی `device.*` را حمل کند. شکل متغیر محیطی برای هر SDKای که آن را می‌خواند کار می‌کند:
+`Device.modelId` فقط در iOS تنظیم می‌شود، پس Android به `Device.modelName` برمی‌گردد.
+@tab پلتفرم‌های دیگر
+Flutter، Unity، .NET MAUI، یک کلاینت تعبیه‌شده یا نویسنده OTLP خودتان همگی کار می‌کنند، به شرط اینکه منبع `service.name` و یک ویژگی `device.*` داشته باشد. SDKای که متغیرهای محیطی استاندارد OpenTelemetry را می‌خواند، این‌ها را همان‌طور که هستند می‌پذیرد:
 
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -138,19 +165,69 @@ OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN"
 OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acme,device.model.identifier=AC-100"
 ```
 
-## تأیید
+خود SDK مسیرهای `/v1/traces`، `/v1/metrics` و `/v1/logs` را به نقطه پایانی می‌افزاید.
+:::
 
-پیش از گشتن در پیکربندی SDK، توکن را بررسی کنید:
+## بررسی کنید که داده می‌رسد
+
+:::steps
+### کلید را بیازمایید
+
+پیش از اینکه تنظیم‌های SDK را بگردید، از OneUptime بپرسید که آیا کلید را می‌پذیرد:
 
 ```bash
 curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-پاسخ `200` با `"valid": true` یعنی توکن به پروژه‌ای تفکیک می‌شود. پاسخ `401` یعنی توکن اشتباه است، و هیچ اندازه پیکربندی SDK کمکی نمی‌کند.
+`200` همراه `"valid": true` یعنی کلید پذیرفته شده است. کلید Browser هم `200` پاسخ می‌دهد، اما پیامش می‌گوید فقط از مرورگر کار می‌کند: برنامه موبایل به کلید سرور نیاز دارد. `401` یعنی کلید ناشناخته، باطل‌شده، خاموش یا منقضی است و هیچ تنظیم SDKای آن را درست نمی‌کند.
 
-سپس برنامه را بارگذاری کنید. با نخستین دسته تله‌متری‌اش زیر **Resources → Real User Monitoring** پدیدار می‌شود. اگر به‌جایش زیر Services پدیدار شد، ویژگی‌های `device.*` به منبع نمی‌رسند — [رفع اشکال](/docs/rum/troubleshooting) را ببینید.
+### برنامه را اجرا کنید
 
-## چه چیزی روی موبایل در دسترس نیست
+برنامه را اجرا کنید و کمی با آن کار کنید. با نخستین دسته تله‌متری، به نام `service.name` خودش، زیر **محصولات** > **منابع** > **پایش کاربر واقعی** پدیدار می‌شود.
 
-بازپخش نشست فقط مرورگری است. ضبط‌کننده‌ای از DOM است که با برچسب اسکریپت بارگذاری می‌شود، پس در برنامه‌ای بومی چیزی برای ضبط ندارد. برنامه‌های موبایلی ردیابی، گزارش، سنجه، استثنا و موجودی Clients را می‌گیرند؛ زبانه Session Replay خالی می‌ماند.
+### صفحه کلاینت‌ها را باز کنید
+
+صفحه **کلاینت‌ها** برنامه را باز کنید: هر مدل دستگاه از `device.model.identifier` یک سطر دارد. اگر این صفحه خالی بماند در حالی که **ترِیس‌ها** پر می‌شود، ویژگی‌های دستگاه به منبع نمی‌رسند.
+:::
+
+## بازپخش نشست در موبایل
+
+برنامه‌های React Native می‌توانند با `@oneuptime/react-native-replay` نشست‌ها را ضبط کنند. این بسته درخت نماهای بومی را به شکل قاب‌بندی ساده ضبط می‌کند، هرگز تصویر صفحه یا متن روی صفحه را، و ضبط‌هایش در همان پخش‌کننده ضبط‌های وب باز می‌شوند. با کلید **Browser** می‌فرستد که **Allowed Origins** آن برنامه شما را به‌صورت `app://` و پس از آن شناسه برنامه Android یا شناسه بسته iOS فهرست می‌کند: این کلیدی جدا از کلید سروری است که SDK OpenTelemetry شما به کار می‌برد. [نصب در React Native](/docs/telemetry/session-replay) گام به گام آن را شرح می‌دهد.
+
+برنامه‌های بومی Android و iOS و پلتفرم‌های دیگر ضبط‌کننده نشست ندارند: صفحه **Session Replay** آن‌ها خالی می‌ماند، در حالی که ردیابی‌ها، لاگ‌ها، متریک‌ها، استثناها و صفحه **کلاینت‌ها** مثل همیشه کار می‌کنند.
+
+## رفع اشکال
+
+:::details بررسی کلید 401 برمی‌گرداند، یا کلید رد می‌شود
+`401` یعنی کلید ناشناخته، باطل‌شده، خاموش یا منقضی است: یک کلید سرور بسازید و برنامه را با آن دوباره بسازید.
+
+کلید Browser از بررسی می‌گذرد، اما هر صدوری از برنامه موبایل با `422` رد می‌شود که می‌گوید `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` از کلید **سرور** استفاده کنید.
+:::
+
+:::details برنامه به‌جای پایش کاربر واقعی زیر سرویس‌ها پدیدار می‌شود
+منبع نه `device.id` دارد نه `device.model.identifier`، پس تله‌متری به‌عنوان سرویس بک‌اند ثبت شد. آن‌ها را مانند [پلتفرمتان را راه‌اندازی کنید](#پلتفرمتان-را-راهاندازی-کنید) تنظیم کنید.
+
+سرویسی که پیش‌تر ساخته شده به برنامه RUM تبدیل نمی‌شود، پس وقتی تله‌متری RUM رسید، آن را زیر **محصولات** > **سرویس‌ها** حذف کنید.
+:::
+
+:::details صفحه کلاینت‌ها خالی است
+سطرهای کلاینت فقط از `device.model.identifier` می‌آیند. SDKای که فقط `device.id` یا `device.manufacturer` را تنظیم می‌کند، برنامه را RUM موبایل ثبت می‌کند اما هیچ کلاینتی فهرست نمی‌کند: `device.model.identifier` را هم تنظیم کنید.
+:::
+
+:::details وضعیت قطع‌شده است در حالی که مردم از برنامه استفاده می‌کنند
+وضعیت پس از ۱۵ دقیقه بی‌تله‌متری **قطع‌شده** می‌شود. اگر مردم از برنامه استفاده می‌کنند:
+
+- شاید یک نمونه‌بردار همه چیز را دور می‌ریزد: دنبال نمونه‌برداری always-off یا نسبتی بسیار پایین بگردید.
+- شاید برنامه فقط برای کارهایی تله‌متری می‌فرستد که در آن مدت کسی انجامشان نداده است.
+- شاید کلید از زمان انتشار باطل یا منقضی شده است: آن را مانند [بررسی کنید که داده می‌رسد](#بررسی-کنید-که-داده-میرسد) بیازمایید.
+:::
+
+## گام‌های بعدی
+
+:::cards
+- [بازپخش نشست](/docs/telemetry/session-replay): نشست‌های React Native را کنار ردیابی‌هایشان ضبط کنید.
+- [مدیریت برنامه‌ها](/docs/rum/applications): نام‌ها، برچسب‌ها، مالکان و نگهداشت.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): نقطه‌های پایانی OTLP، محدودیت‌ها و خطاها به‌طور کامل.
+- [رفع اشکال RUM](/docs/rum/troubleshooting): همه بررسی‌ها، به همان ترتیبی که مشکل‌ها معمولاً پیش می‌آیند.
+:::
