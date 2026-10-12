@@ -28084,5 +28084,9 @@
   "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.",
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} and {{second}} look alike to people with red-green color blindness.",
   "{{percent}}% or more": "{{percent}}% or more",
-  "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll."
+  "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
+  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
+  "Your free trial carries over": "Your free trial carries over",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends."
 }
