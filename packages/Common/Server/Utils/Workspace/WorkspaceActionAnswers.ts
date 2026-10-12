@@ -79,6 +79,19 @@ export interface WorkspaceAnswer {
   text: string;
 }
 
+/*
+ * What the Connect button that goes with a connect prompt opens
+ * (getConnectPrompt).
+ */
+export enum WorkspaceConnectButton {
+  // The settings page, carrying the press: connecting finishes it.
+  OneClick = "OneClick",
+  // The settings page alone: the press could not be kept to finish later.
+  SettingsPage = "SettingsPage",
+  // No button: the server knows no address of its own to link to.
+  None = "None",
+}
+
 // What a press that comes too late was trying to do (getAlreadyAnswer).
 export enum WorkspaceLatePress {
   Acknowledge = "Acknowledge",
@@ -169,16 +182,43 @@ export default class WorkspaceActionAnswers {
    *
    * The Connect button goes with it (each chat draws its own). `purpose`
    * completes "to ...". When OneUptime cannot finish the press for them -
-   * a form opens only on a fresh press - it says what to press again.
+   * a form opens only on a fresh press - it says what to press again. So it
+   * does when the button opens the settings page without the press, and,
+   * with no button at all, it says where the settings are.
    */
   public static getConnectPrompt(data: {
     workspaceType: WorkspaceType;
     purpose: string;
     pendingAction?: { kind: WorkspacePendingActionKind } | undefined;
     again?: WorkspaceConnectRequestAgain | undefined;
+    // OneClick when left out.
+    button?: WorkspaceConnectButton | undefined;
   }): WorkspaceAnswer {
     const workspaceName: string = this.getWorkspaceName(data.workspaceType);
     const productName: string = ProductBrandingText.getProductName();
+    const button: WorkspaceConnectButton =
+      data.button || WorkspaceConnectButton.OneClick;
+
+    const ask: MarkdownText = mdText`🔗 **Connect your ${workspaceName} account to ${data.purpose}.**`;
+    const text: string = `Connect your ${workspaceName} account to ${data.purpose}`;
+
+    if (button !== WorkspaceConnectButton.OneClick) {
+      const then: MarkdownText = mdText`Once you're connected, ${this.getAgainPhrase(
+        data.again || { kind: WorkspaceConnectRequestAgainKind.Button },
+      )}.`;
+
+      if (button === WorkspaceConnectButton.None) {
+        return {
+          markdown: mdText`${ask} In ${productName}, go to **User Settings → Workspace → ${workspaceName}** and press **Connect my account with ${workspaceName}**. ${then}`.toString(),
+          text: text,
+        };
+      }
+
+      return {
+        markdown: mdText`${ask} ${then}`.toString(),
+        text: text,
+      };
+    }
 
     let next: MarkdownText;
 
@@ -195,9 +235,8 @@ export default class WorkspaceActionAnswers {
     }
 
     return {
-      markdown:
-        mdText`🔗 **Connect your ${workspaceName} account to ${data.purpose}.** ${next}`.toString(),
-      text: `Connect your ${workspaceName} account to ${data.purpose}`,
+      markdown: mdText`${ask} ${next}`.toString(),
+      text: text,
     };
   }
 

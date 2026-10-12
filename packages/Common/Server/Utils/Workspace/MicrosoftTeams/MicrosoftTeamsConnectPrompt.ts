@@ -6,7 +6,9 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import WorkspaceActionAnswers from "../WorkspaceActionAnswers";
+import WorkspaceActionAnswers, {
+  WorkspaceConnectButton,
+} from "../WorkspaceActionAnswers";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestTeamsPlace,
@@ -394,6 +396,7 @@ export default class MicrosoftTeamsConnectPrompt {
         | undefined) || "";
 
     let connectUrl: URL | undefined = undefined;
+    let button: WorkspaceConnectButton = WorkspaceConnectButton.None;
 
     try {
       if (!teamsUserId) {
@@ -415,6 +418,7 @@ export default class MicrosoftTeamsConnectPrompt {
         projectId: data.projectId,
         token: token,
       });
+      button = WorkspaceConnectButton.OneClick;
     } catch (err) {
       logger.error(
         "Could not record a Microsoft Teams press to finish once the account is connected.",
@@ -427,6 +431,7 @@ export default class MicrosoftTeamsConnectPrompt {
           workspaceType: WorkspaceType.MicrosoftTeams,
           projectId: data.projectId,
         });
+        button = WorkspaceConnectButton.SettingsPage;
       } catch (linkError) {
         logger.debug("Could not build the Microsoft Teams settings link either.");
         logger.debug(linkError);
@@ -440,6 +445,7 @@ export default class MicrosoftTeamsConnectPrompt {
         purpose: data.description.purpose,
         pendingAction: data.description.pendingAction,
         again: data.description.again,
+        button: button,
       }),
       connectUrl: connectUrl,
     });

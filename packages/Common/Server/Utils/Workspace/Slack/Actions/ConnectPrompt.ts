@@ -6,6 +6,7 @@ import ProductBrandingText from "../../../ProductBrandingText";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAnswers, {
   WorkspaceAnswer,
+  WorkspaceConnectButton,
 } from "../../WorkspaceActionAnswers";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
@@ -361,14 +362,8 @@ export default class SlackConnectPrompt {
     slackTeamId?: string | undefined;
     description: SlackPressDescription;
   }): Promise<SlackAnswerDelivery> {
-    const answer: WorkspaceAnswer = WorkspaceActionAnswers.getConnectPrompt({
-      workspaceType: WorkspaceType.Slack,
-      purpose: data.description.purpose,
-      pendingAction: data.description.pendingAction,
-      again: data.description.again,
-    });
-
     let connectUrl: URL | undefined = undefined;
+    let button: WorkspaceConnectButton = WorkspaceConnectButton.None;
 
     try {
       const { token } = await WorkspaceConnectRequest.create({
@@ -391,6 +386,7 @@ export default class SlackConnectPrompt {
         projectId: data.projectId,
         token: token,
       });
+      button = WorkspaceConnectButton.OneClick;
     } catch (err) {
       logger.error(
         "Could not record a Slack press to finish once the account is connected.",
@@ -403,11 +399,20 @@ export default class SlackConnectPrompt {
           workspaceType: WorkspaceType.Slack,
           projectId: data.projectId,
         });
+        button = WorkspaceConnectButton.SettingsPage;
       } catch (linkError) {
         logger.debug("Could not build the Slack settings link either.");
         logger.debug(linkError);
       }
     }
+
+    const answer: WorkspaceAnswer = WorkspaceActionAnswers.getConnectPrompt({
+      workspaceType: WorkspaceType.Slack,
+      purpose: data.description.purpose,
+      pendingAction: data.description.pendingAction,
+      again: data.description.again,
+      button: button,
+    });
 
     return await SlackActionAnswer.answer({
       place: data.place,
