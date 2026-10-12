@@ -1785,7 +1785,7 @@ describe("the Ops workflow runs the tool-backed checks", () => {
     return /cd Tests\/Ops && npm run test/.test(stepCommand(step));
   });
   const gomplate = indexOf((step) => {
-    return /gomplate --version/.test(stepCommand(step));
+    return step.uses === "./.github/actions/setup-gomplate";
   });
 
   test("runs the jest suite with RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1", () => {
@@ -1795,79 +1795,25 @@ describe("the Ops workflow runs the tool-backed checks", () => {
     );
   });
 
-  test("installs gomplate before the jest suite, from the release binary, and checks it runs", () => {
-    const install = stepCommand(steps[gomplate]).replace(/\\\n\s*/g, " ");
-
+  test("puts the pinned gomplate on PATH before the jest suite", () => {
+    /*
+     * With .github/actions/setup-gomplate, which every other gomplate user
+     * runs too: the binary configure.sh pins, from the Actions cache, checked
+     * against its pinned sha256 before it is put on PATH and run.
+     * GomplateSetupCoverage.test.js holds the action to those pins. The step
+     * this replaced downloaded the release on every run, with a 15-second
+     * retry, from a CDN that answers 500/504 in bursts.
+     */
     expect(gomplate).toBeGreaterThan(-1);
     expect(gomplate).toBeLessThan(jest);
-    expect(install).toContain("set -euo pipefail");
-    expect(install).toMatch(
-      /curl -fsSL [^\n]*"https:\/\/github\.com\/hairyhenderson\/gomplate\/releases\/download\/v\$\{GOMPLATE_VERSION\}\/gomplate_linux-amd64"/,
-    );
-    expect(install).toContain(
-      'gomplate --version | grep -F "$GOMPLATE_VERSION"',
-    );
   });
 
-  test("verifies the downloaded gomplate against a pinned sha256 before running it", () => {
-    const install = stepCommand(steps[gomplate]);
-    const pinnedVersion = (install.match(
-      /^\s*GOMPLATE_PINNED_VERSION="(\d+\.\d+\.\d+)"$/m,
-    ) || [])[1];
-    const configureVersion = (read("Scripts/Install/configure.sh").match(
-      /^GOMPLATE_VERSION="(\d+\.\d+\.\d+)"$/m,
-    ) || [])[1];
+  test("no step downloads gomplate itself", () => {
+    const downloads = steps.filter((step) => {
+      return /hairyhenderson\/gomplate\/releases/.test(stepCommand(step));
+    });
 
-    // The pinned digest belongs to the version configure.sh installs.
-    expect(pinnedVersion).toBe(configureVersion);
-    expect(install).toMatch(/GOMPLATE_LINUX_AMD64_SHA256="[0-9a-f]{64}"/);
-    expect(install).toContain(
-      '[ "$GOMPLATE_VERSION" != "$GOMPLATE_PINNED_VERSION" ]',
-    );
-
-    const verify = install.indexOf("sha256sum -c -");
-    const chmod = install.indexOf(
-      'chmod 755 "$RUNNER_TEMP/gomplate-bin/gomplate"',
-    );
-    const run = install.indexOf("gomplate --version");
-
-    expect(verify).toBeGreaterThan(-1);
-    // Checked before it is made executable, let alone run.
-    expect(verify).toBeLessThan(chmod);
-    expect(chmod).toBeLessThan(run);
-  });
-
-  test("the gomplate it installs is the version Scripts/Install/configure.sh pins", () => {
-    /*
-     * The step reads the pin out of configure.sh rather than repeating it;
-     * run that line for real and compare.
-     */
-    const pinned = (read("Scripts/Install/configure.sh").match(
-      /^GOMPLATE_VERSION="(\d+\.\d+\.\d+)"$/m,
-    ) || [])[1];
-    const readsVersion = stepCommand(steps[gomplate])
-      .split("\n")
-      .map((line) => {
-        return line.trim();
-      })
-      .find((line) => {
-        return line.startsWith("GOMPLATE_VERSION=");
-      });
-
-    expect(pinned).toBeDefined();
-    expect(readsVersion).toBeDefined();
-
-    const result = spawnSync(
-      "bash",
-      [
-        "-c",
-        `set -euo pipefail\n${readsVersion}\nprintf '%s' "$GOMPLATE_VERSION"`,
-      ],
-      { cwd: REPO_ROOT, encoding: "utf8" },
-    );
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe(pinned);
+    expect(downloads).toEqual([]);
   });
 });
 
