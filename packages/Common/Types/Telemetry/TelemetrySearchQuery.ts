@@ -809,19 +809,26 @@ const wrapsList: WrapsListFunction = (token: string): boolean => {
   );
 };
 
-type LeavesBracketOpenFunction = (token: string) => boolean;
+interface BracketReading {
+  // A "(" or "[" is still open at the token's end.
+  leavesOpen: boolean;
+  // A ")" or "]" comes with no bracket of the token's own open.
+  closesUnopened: boolean;
+}
+
+type ReadBracketsFunction = (token: string) => BracketReading;
 
 /*
- * Whether the tokenizer, reading a token's unquoted text, is still inside a
- * bracket at its end. It counts every unescaped "(" and "[" and every ")"
- * and "]" wherever they are, so that a list's spaces stay in its token; a
- * value that leaves one open ("f(x", ":)(") would take the space after it,
- * and the filters after that, into itself.
+ * How the tokenizer counts a token's brackets, reading its unquoted text. It
+ * counts every unescaped "(" and "[" and every ")" and "]" wherever they
+ * are, so that a list's spaces stay in its token. A value that leaves one
+ * open ("f(x", ":)(") would take the space after it, and the filters after
+ * that, into itself. A ")" or "]" with nothing open is passed over at the
+ * top level, but inside a "(a OR b)" list it closes the list.
  */
-const leavesBracketOpen: LeavesBracketOpenFunction = (
-  token: string,
-): boolean => {
+const readBrackets: ReadBracketsFunction = (token: string): BracketReading => {
   let depth: number = 0;
+  let closesUnopened: boolean = false;
 
   for (let index: number = 0; index < token.length; index++) {
     const character: string = token[index]!;
@@ -834,11 +841,15 @@ const leavesBracketOpen: LeavesBracketOpenFunction = (
     if (character === "(" || character === "[") {
       depth++;
     } else if (character === ")" || character === "]") {
-      depth = Math.max(0, depth - 1);
+      if (depth === 0) {
+        closesUnopened = true;
+      } else {
+        depth--;
+      }
     }
   }
 
-  return depth > 0;
+  return { leavesOpen: depth > 0, closesUnopened: closesUnopened };
 };
 
 /*
@@ -859,10 +870,74 @@ const asSearchTokenValue: AsSearchTokenValueFunction = (
   }
 
   return WHITESPACE_REGEX.test(token) ||
-    leavesBracketOpen(token) ||
+    readBrackets(token).leavesOpen ||
     token.endsWith(":")
     ? `"${token}"`
     : token;
+};
+
+type SearchTokenListEntryFunction = (token: string) => string;
+
+/**
+ * A token - from {@link buildSearchTokenValue} or
+ * {@link buildSearchTokenGlob} - placed as one entry of a `(a OR b)` list.
+ *
+ * Inside the list the tokenizer is already one bracket deep, so an entry
+ * that closes a bracket it never opened - `a)`, or `\(a)`, a value wrapped
+ * in brackets whose opening one is escaped - would close the list there, and
+ * the rest of the list would be read as other filters. Such an entry is
+ * quoted: brackets inside quotes do not count, and the list reads each entry
+ * without its quotes. Every other entry is placed as it is.
+ */
+export const searchTokenListEntry: SearchTokenListEntryFunction = (
+  token: string,
+): string => {
+  if (token.startsWith(QUOTE) || !readBrackets(token).closesUnopened) {
+    return token;
+  }
+
+  return `${QUOTE}${token}${QUOTE}`;
+};
+
+export type SearchTokenComparisonOperator = ">" | ">=" | "<" | "<=";
+
+type BuildSearchTokenComparisonFunction = (
+  operator: SearchTokenComparisonOperator,
+  literal: string,
+) => string | null;
+
+/**
+ * Render a comparison - `>`, `>=`, `<` or `<=` and a literal - so that the
+ * grammar reads back that operator and exactly that literal: `>-5`.
+ *
+ * A comparison's value is read as written, quotes taken off but no escape
+ * undone (a threshold is a number or a date), so the literal is not
+ * escaped. It is quoted where the tokenizer would not end the token where
+ * the value ends, or would read it differently: when it holds whitespace,
+ * leaves a bracket open or ends in a `:`, and after `>` or `<` when it
+ * starts with `=`, which would make the operator `>=` or `<=`. Null for a
+ * literal with a `"` or a `\`: neither can be written so that the
+ * comparison reads it back.
+ */
+export const buildSearchTokenComparison: BuildSearchTokenComparisonFunction = (
+  operator: SearchTokenComparisonOperator,
+  literal: string,
+): string | null => {
+  if (
+    literal.length === 0 ||
+    literal.includes(QUOTE) ||
+    literal.includes(BACKSLASH)
+  ) {
+    return null;
+  }
+
+  const quoted: boolean =
+    WHITESPACE_REGEX.test(literal) ||
+    readBrackets(literal).leavesOpen ||
+    literal.endsWith(":") ||
+    ((operator === ">" || operator === "<") && literal.startsWith("="));
+
+  return `${operator}${quoted ? `${QUOTE}${literal}${QUOTE}` : literal}`;
 };
 
 type CompileAttributeChipValuesFunction = (

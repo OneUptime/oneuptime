@@ -954,7 +954,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
         'export { markdownTableCell } from "./Utils/Markdown/MarkdownTableCell";',
         'export { mdText } from "./Utils/Markdown/FeedMarkdown";',
         'export { escapeRegExp } from "./Utils/RegExpEscape";',
-        'export { buildSearchTokenValue, buildSearchTokenGlob } from "./Types/Telemetry/TelemetrySearchQuery";',
+        'export { buildSearchTokenValue, buildSearchTokenGlob, buildSearchTokenComparison, searchTokenListEntry } from "./Types/Telemetry/TelemetrySearchQuery";',
         'export { readLinkHeader } from "./Utils/LinkHeader";',
       ],
       String.raw`
@@ -977,6 +977,8 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             pattern: lib.escapeRegExp(text),
             token: lib.buildSearchTokenValue(text),
             glob: lib.buildSearchTokenGlob(text),
+            entry: lib.searchTokenListEntry(lib.buildSearchTokenValue(text)),
+            comparison: lib.buildSearchTokenComparison(">", text),
           };
         };
 
@@ -997,6 +999,8 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
               "a pattern keeps it whole": escaped.pattern.startsWith("HEAD") && escaped.pattern.endsWith("TAIL"),
               "a token keeps it whole": escaped.token.includes("HEAD") && escaped.token.includes("TAIL"),
               "a glob keeps it whole": escaped.glob.includes("HEAD") && escaped.glob.includes("TAIL"),
+              "a list entry keeps it whole": escaped.entry.includes("HEAD") && escaped.entry.includes("TAIL"),
+              "a comparison keeps it whole, or has no spelling": escaped.comparison === null || (escaped.comparison.includes("HEAD") && escaped.comparison.includes("TAIL")),
             };
           });
 

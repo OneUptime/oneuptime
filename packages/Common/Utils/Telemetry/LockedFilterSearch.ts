@@ -1,6 +1,8 @@
 import {
+  buildSearchTokenComparison,
   buildSearchTokenGlob,
   buildSearchTokenValue,
+  searchTokenListEntry,
 } from "../../Types/Telemetry/TelemetrySearchQuery";
 import { escapeWildcards } from "../../Types/BaseDatabase/WildcardPattern";
 import {
@@ -164,7 +166,9 @@ type RenderListFunction = (
 /*
  * `(a OR b)` — one entry is written bare (the parser reads a one-entry list
  * as plain equality anyway), and an entry the list grammar would split in
- * two makes the whole list unspellable.
+ * two makes the whole list unspellable. Each entry of a longer list is
+ * placed with the grammar's searchTokenListEntry, which quotes an entry that
+ * would otherwise close the list early.
  */
 const renderList: RenderListFunction = (
   entries: Array<string>,
@@ -190,7 +194,11 @@ const renderList: RenderListFunction = (
     return render(meaningful[0]!);
   }
 
-  return `(${meaningful.map(render).join(" OR ")})`;
+  return `(${meaningful
+    .map((entry: string): string => {
+      return searchTokenListEntry(render(entry));
+    })
+    .join(" OR ")})`;
 };
 
 const GLOB_SEPARATOR: string = " OR ";
@@ -237,9 +245,11 @@ type BuildSearchTokenForOperatorValueFunction = (
  *
  * Literal parts go through the grammar's own escaping, so a literal that
  * starts with `~` or carries a `*` still means itself; a glob keeps its
- * wildcards. Null for a shape the grammar cannot spell: an array of several
- * operators on one key, a list entry the list grammar would split, an unsafe
- * key, an empty value.
+ * wildcards; a comparison's value is written as the comparison reads it
+ * (`>-5`). Null for a shape the grammar cannot spell: an array of several
+ * operators on one key, a list entry the list grammar would split, a
+ * comparison value with a quote or a backslash, an unsafe key, an empty
+ * value.
  */
 export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueFunction =
   (attributeKey: string, value: unknown): string | null => {
@@ -321,22 +331,38 @@ export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueF
         );
         return rendered ? negative(rendered) : null;
       }
-      case DictionaryFilterOperator.GreaterThan:
-        return literal.length > 0
-          ? positive(`>${buildSearchTokenValue(literal)}`)
-          : null;
-      case DictionaryFilterOperator.GreaterThanOrEqual:
-        return literal.length > 0
-          ? positive(`>=${buildSearchTokenValue(literal)}`)
-          : null;
-      case DictionaryFilterOperator.LessThan:
-        return literal.length > 0
-          ? positive(`<${buildSearchTokenValue(literal)}`)
-          : null;
-      case DictionaryFilterOperator.LessThanOrEqual:
-        return literal.length > 0
-          ? positive(`<=${buildSearchTokenValue(literal)}`)
-          : null;
+      case DictionaryFilterOperator.GreaterThan: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          ">",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
+      case DictionaryFilterOperator.GreaterThanOrEqual: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          ">=",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
+      case DictionaryFilterOperator.LessThan: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          "<",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
+      case DictionaryFilterOperator.LessThanOrEqual: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          "<=",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
       case DictionaryFilterOperator.IsEmpty:
         return negative("*");
       case DictionaryFilterOperator.IsNotEmpty:
