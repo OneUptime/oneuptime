@@ -133,18 +133,25 @@ const NAME_TABS: ReadonlyArray<string> = [
 
 /*
  * Names a translation writes as the English does, in prose too: products,
- * platforms and browsers. A line made of them alone is not a line left
- * untranslated.
+ * platforms, browsers, the web standard a heading is named after, and the
+ * vitals' own names, which Google's tools and most translations keep in
+ * English. A line made of them alone is not a line left untranslated.
  */
 const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime",
   "OpenTelemetry",
   "React Native",
   "Core Web Vitals",
+  "Content Security Policy",
   "Chromium",
   "Safari",
   "Firefox",
   "Android",
+  "Largest Contentful Paint",
+  "Interaction to Next Paint",
+  "Cumulative Layout Shift",
+  "First Contentful Paint",
+  "Time to First Byte",
 ];
 
 /*
