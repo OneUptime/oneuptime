@@ -247,8 +247,10 @@ export default class QuietChannelsWorld {
   public feed: Array<FeedEntry> = [];
 
   // Invites, as the workspace util was asked for them.
-  public invites: Array<{ channelNames: Array<string>; userIds: Array<string> }> =
-    [];
+  public invites: Array<{
+    channelNames: Array<string>;
+    userIds: Array<string>;
+  }> = [];
 
   // The on-call run, its steps and its deliveries.
   public run: OnCallDutyPolicyExecutionLog | null = null;
@@ -437,7 +439,9 @@ export default class QuietChannelsWorld {
   }
 
   // A rule that creates a channel for the record, and no other place.
-  public workspaceRule(workspaceType: WorkspaceType): WorkspaceNotificationRule {
+  public workspaceRule(
+    workspaceType: WorkspaceType,
+  ): WorkspaceNotificationRule {
     const rule: WorkspaceNotificationRule = new WorkspaceNotificationRule();
     rule.id = WORKSPACE_RULE_ID;
     rule.projectId = PROJECT_ID;
@@ -575,7 +579,10 @@ export default class QuietChannelsWorld {
       }) as never);
 
     jest
-      .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceLinkInDashboard")
+      .spyOn(
+        ScheduledMaintenanceService,
+        "getScheduledMaintenanceLinkInDashboard",
+      )
       .mockResolvedValue(
         URL.fromString(
           `${DASHBOARD}/${PROJECT_ID.toString()}/scheduled-maintenance-events/${MAINTENANCE_ID.toString()}`,
@@ -598,18 +605,16 @@ export default class QuietChannelsWorld {
 
   // The feeds' own rows: recorded, with whether each goes to chat.
   private installFeeds(): void {
-    jest
-      .spyOn(IncidentFeedService, "create")
-      .mockImplementation((async (data: {
-        data: { incidentFeedEventType: string; feedInfoInMarkdown: string };
-      }) => {
-        return data.data;
-      }) as never);
-    jest
-      .spyOn(AlertFeedService, "create")
-      .mockImplementation((async (data: { data: unknown }) => {
-        return data.data;
-      }) as never);
+    jest.spyOn(IncidentFeedService, "create").mockImplementation((async (data: {
+      data: { incidentFeedEventType: string; feedInfoInMarkdown: string };
+    }) => {
+      return data.data;
+    }) as never);
+    jest.spyOn(AlertFeedService, "create").mockImplementation((async (data: {
+      data: unknown;
+    }) => {
+      return data.data;
+    }) as never);
     jest
       .spyOn(ScheduledMaintenanceFeedService, "create")
       .mockImplementation((async (data: { data: unknown }) => {
@@ -670,7 +675,10 @@ export default class QuietChannelsWorld {
       .spyOn(AlertFeedService, "createAlertFeedItem")
       .mockImplementation(record("alert", realAlertFeed) as never);
     jest
-      .spyOn(ScheduledMaintenanceFeedService, "createScheduledMaintenanceFeedItem")
+      .spyOn(
+        ScheduledMaintenanceFeedService,
+        "createScheduledMaintenanceFeedItem",
+      )
       .mockImplementation(record("maintenance", realMaintenanceFeed) as never);
   }
 
@@ -696,7 +704,10 @@ export default class QuietChannelsWorld {
   }
 
   private installOnCall(): void {
-    const hook: (service: unknown, name: string) => (...args: Array<unknown>) => Promise<unknown> = (
+    const hook: (
+      service: unknown,
+      name: string,
+    ) => (...args: Array<unknown>) => Promise<unknown> = (
       service: unknown,
       name: string,
     ) => {
@@ -708,20 +719,22 @@ export default class QuietChannelsWorld {
     // The run.
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
-      .mockImplementation((async (): Promise<OnCallDutyPolicyExecutionLog | null> => {
-        if (!this.run) {
-          return null;
-        }
+      .mockImplementation(
+        (async (): Promise<OnCallDutyPolicyExecutionLog | null> => {
+          if (!this.run) {
+            return null;
+          }
 
-        const run: OnCallDutyPolicyExecutionLog = copyOf(this.run);
-        run.onCallDutyPolicy = this.policy();
+          const run: OnCallDutyPolicyExecutionLog = copyOf(this.run);
+          run.onCallDutyPolicy = this.policy();
 
-        if (run.acknowledgedByUserId) {
-          run.acknowledgedByUser = user(run.acknowledgedByUserId);
-        }
+          if (run.acknowledgedByUserId) {
+            run.acknowledgedByUser = user(run.acknowledgedByUserId);
+          }
 
-        return run;
-      }) as never);
+          return run;
+        }) as never,
+      );
 
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
@@ -800,7 +813,8 @@ export default class QuietChannelsWorld {
       }
 
       if (step.onCallDutyScheduleId) {
-        const schedule: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+        const schedule: OnCallDutyPolicySchedule =
+          new OnCallDutyPolicySchedule();
         schedule.id = step.onCallDutyScheduleId;
         schedule.name = SCHEDULE_NAMES[step.onCallDutyScheduleId.toString()]!;
         copy.onCallDutySchedule = schedule;
@@ -870,8 +884,14 @@ export default class QuietChannelsWorld {
         step.createdAt = new Date();
         this.steps.push(step);
 
-        await hook(OnCallDutyPolicyExecutionLogTimelineService, "onCreateSuccess")(
-          { createBy: { data: step, props: { isRoot: true } }, carryForward: null },
+        await hook(
+          OnCallDutyPolicyExecutionLogTimelineService,
+          "onCreateSuccess",
+        )(
+          {
+            createBy: { data: step, props: { isRoot: true } },
+            carryForward: null,
+          },
           step,
         );
 
@@ -907,10 +927,10 @@ export default class QuietChannelsWorld {
           );
         Object.assign(step!, data.data);
 
-        await hook(OnCallDutyPolicyExecutionLogTimelineService, "onUpdateSuccess")(
-          onUpdate,
-          [data.id],
-        );
+        await hook(
+          OnCallDutyPolicyExecutionLogTimelineService,
+          "onUpdateSuccess",
+        )(onUpdate, [data.id]);
 
         return 1;
       }) as never);
@@ -938,7 +958,8 @@ export default class QuietChannelsWorld {
 
   // A run of PolicyX, created as OneUptime creates one, and its first rule.
   public async startRun(): Promise<void> {
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = ObjectID.generate();
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = POLICY_ID;
@@ -1267,7 +1288,8 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
         const state: IncidentState = new IncidentState();
         state._id = data.to.toString();
         state.name = data.name;
-        state.isCreatedState = data.to.toString() === STATE_IDENTIFIED.toString();
+        state.isCreatedState =
+          data.to.toString() === STATE_IDENTIFIED.toString();
         return state;
       }) as never);
     jest
@@ -1421,7 +1443,9 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
   }
 
   // Somebody was paged, or made an owner: they are invited to the channels.
-  public async invitedToRecordChannels(userIds: Array<ObjectID>): Promise<void> {
+  public async invitedToRecordChannels(
+    userIds: Array<ObjectID>,
+  ): Promise<void> {
     await WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
       {
         projectId: PROJECT_ID,
@@ -1448,7 +1472,8 @@ ${FeedMarkdown.asMarkdown("No description provided.")}
       incidentId: INCIDENT_ID,
       projectId: PROJECT_ID,
       incidentFeedEventType: IncidentFeedEventType.PrivateNote,
-      feedInfoInMarkdown: mdText`📄 posted **private note** for this [Incident INC-8](${DASHBOARD}):
+      feedInfoInMarkdown:
+        mdText`📄 posted **private note** for this [Incident INC-8](${DASHBOARD}):
 
 ${FeedMarkdown.asMarkdown(text)}`.toString(),
       userId: by,
@@ -1612,13 +1637,16 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
       projectId: PROJECT_ID,
       scheduledMaintenanceFeedEventType:
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
-      feedInfoInMarkdown: mdText`⏳ Changed **Scheduled Maintenance SM-3 State** to **${name}**`.toString(),
+      feedInfoInMarkdown:
+        mdText`⏳ Changed **Scheduled Maintenance SM-3 State** to **${name}**`.toString(),
       userId: JANE,
       workspaceNotification: {
-        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace({
-          stateBeforeThis: isFirst ? null : { id: "before" },
-          stateAfterThis: null,
-        }),
+        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace(
+          {
+            stateBeforeThis: isFirst ? null : { id: "before" },
+            stateAfterThis: null,
+          },
+        ),
         notifyUserId: JANE,
       },
     });
@@ -1645,7 +1673,8 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
       projectId: PROJECT_ID,
       scheduledMaintenanceFeedEventType:
         ScheduledMaintenanceFeedEventType.PublicNote,
-      feedInfoInMarkdown: mdText`📄 posted **public note** for this Scheduled Maintenance SM-3:
+      feedInfoInMarkdown:
+        mdText`📄 posted **public note** for this Scheduled Maintenance SM-3:
 
 ${FeedMarkdown.asMarkdown(text)}`.toString(),
       userId: JANE,

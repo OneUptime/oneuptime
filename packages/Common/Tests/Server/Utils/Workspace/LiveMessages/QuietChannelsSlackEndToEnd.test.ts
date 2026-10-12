@@ -60,6 +60,8 @@ interface SlackRequest {
 // The Slack API, as far as OneUptime's posting goes, recording every call.
 class FakeSlack {
   public requests: Array<SlackRequest> = [];
+  // What Slack answers the next chat.update with, when it refuses it.
+  public refuseNextUpdateWith: string | null = null;
   private nextTs: number = 1;
 
   public install(): void {
@@ -94,7 +96,12 @@ class FakeSlack {
           answer = { ok: true, ts: ts, channel: body["channel"] };
           break;
         case "chat.update":
-          answer = { ok: true, ts: ts, channel: body["channel"] };
+          if (this.refuseNextUpdateWith) {
+            answer = { ok: false, error: this.refuseNextUpdateWith };
+            this.refuseNextUpdateWith = null;
+          } else {
+            answer = { ok: true, ts: ts, channel: body["channel"] };
+          }
           break;
         default:
           break;
@@ -108,7 +115,10 @@ class FakeSlack {
         blocks: blocks,
       });
 
-      return { jsonData: answer, data: answer } as unknown as HTTPResponse<JSONObject>;
+      return {
+        jsonData: answer,
+        data: answer,
+      } as unknown as HTTPResponse<JSONObject>;
     }) as never);
   }
 
@@ -128,7 +138,9 @@ class FakeSlack {
           return "---";
         }
 
-        return String((block["text"] as JSONObject | undefined)?.["text"] || "");
+        return String(
+          (block["text"] as JSONObject | undefined)?.["text"] || "",
+        );
       })
       .join("\n");
   }
@@ -303,8 +315,9 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
       (row: { messageKey?: string }): boolean => {
         return Boolean(
           row.messageKey?.startsWith(
-            WorkspaceLiveMessageKey.forOnCallPolicyRun(ObjectID.generate())
-              .split(":")[0]!,
+            WorkspaceLiveMessageKey.forOnCallPolicyRun(
+              ObjectID.generate(),
+            ).split(":")[0]!,
           ),
         );
       },
@@ -478,6 +491,54 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
   });
 });
 
+describe("an edit Slack refuses", () => {
+  test("message_not_found - somebody deleted the run's message: it is posted again, and edited there from then on", async () => {
+    await world.startRun();
+
+    const first: SlackRequest = slack.posts()[0]!;
+    slack.refuseNextUpdateWith = "message_not_found";
+
+    await world.escalate();
+
+    const runPosts: Array<SlackRequest> = slack
+      .posts()
+      .filter((post: SlackRequest): boolean => {
+        return headline(post).includes("PolicyX");
+      });
+
+    expect(runPosts).toHaveLength(2);
+    expect(runPosts[1]!.ts).not.toBe(first.ts);
+
+    await world.escalate();
+
+    const lastUpdate: SlackRequest =
+      slack.updates()[slack.updates().length - 1]!;
+    expect(lastUpdate.ts).toBe(runPosts[1]!.ts);
+  });
+
+  test("any other refusal - the channel was archived - posts nothing new; the next change tries the edit again", async () => {
+    await world.startRun();
+
+    slack.refuseNextUpdateWith = "is_archived";
+    const updatesBefore: number = slack.updates().length;
+
+    await world.escalate();
+
+    const runPosts: Array<SlackRequest> = slack
+      .posts()
+      .filter((post: SlackRequest): boolean => {
+        return headline(post).includes("PolicyX");
+      });
+
+    expect(runPosts).toHaveLength(1);
+    // The refused edit, then the edits after it, all of the one message.
+    expect(slack.updates().length).toBeGreaterThan(updatesBefore + 1);
+    for (const update of slack.updates()) {
+      expect(update.ts).toBe(runPosts[0]!.ts);
+    }
+  });
+});
+
 describe("what still reaches the channel as it always did", () => {
   test("a note is posted, with who wrote it", async () => {
     await world.incidentNote("Restarted the primary database.", JANE);
@@ -559,7 +620,10 @@ describe("a scheduled maintenance event, in its Slack channel", () => {
         .map((entry: FeedEntry): string => {
           return entry.eventType;
         }),
-    ).toEqual(["ScheduledMaintenanceStateChanged", "SubscriberNotificationSent"]);
+    ).toEqual([
+      "ScheduledMaintenanceStateChanged",
+      "SubscriberNotificationSent",
+    ]);
 
     // Nothing is edited for a maintenance event: it has no on-call run.
     expect(slack.updates()).toHaveLength(0);

@@ -66,7 +66,10 @@ describe("an episode's created message names its state and severity", () => {
     posted = [];
 
     jest
-      .spyOn(AlertEpisodeWorkspaceMessages, "getAlertEpisodeCreateMessageBlocks")
+      .spyOn(
+        AlertEpisodeWorkspaceMessages,
+        "getAlertEpisodeCreateMessageBlocks",
+      )
       .mockResolvedValue([]);
     jest
       .spyOn(
@@ -119,9 +122,10 @@ describe("an episode's created message names its state and severity", () => {
 
     jest.spyOn(AlertEpisodeService, "findOneById").mockResolvedValue(stored);
 
-    await hookOf(AlertEpisodeService, "createEpisodeCreatedFeed")(
-      alertEpisode(),
-    );
+    await hookOf(
+      AlertEpisodeService,
+      "createEpisodeCreatedFeed",
+    )(alertEpisode());
 
     expect(posted).toHaveLength(1);
     expect(posted[0]).toContain("🔴 **Episode State**: Active \\*now\\*");
@@ -139,9 +143,10 @@ describe("an episode's created message names its state and severity", () => {
 
     jest.spyOn(IncidentEpisodeService, "findOneById").mockResolvedValue(stored);
 
-    await hookOf(IncidentEpisodeService, "createEpisodeCreatedFeed")(
-      incidentEpisode(),
-    );
+    await hookOf(
+      IncidentEpisodeService,
+      "createEpisodeCreatedFeed",
+    )(incidentEpisode());
 
     expect(posted).toHaveLength(1);
     expect(posted[0]).toContain("🔴 **Episode State**: Identified");
@@ -156,12 +161,14 @@ describe("an episode's created message names its state and severity", () => {
       .spyOn(IncidentEpisodeService, "findOneById")
       .mockRejectedValue(new Error("database is down"));
 
-    await hookOf(AlertEpisodeService, "createEpisodeCreatedFeed")(
-      alertEpisode(),
-    );
-    await hookOf(IncidentEpisodeService, "createEpisodeCreatedFeed")(
-      incidentEpisode(),
-    );
+    await hookOf(
+      AlertEpisodeService,
+      "createEpisodeCreatedFeed",
+    )(alertEpisode());
+    await hookOf(
+      IncidentEpisodeService,
+      "createEpisodeCreatedFeed",
+    )(incidentEpisode());
 
     expect(posted).toHaveLength(2);
     expect(posted[0]).toContain("Episode AE-3 Created");
@@ -216,7 +223,9 @@ describe("an alert episode's workspace rules match", () => {
   async function matching(
     rules: Array<WorkspaceNotificationRule>,
   ): Promise<Array<WorkspaceNotificationRule>> {
-    jest.spyOn(WorkspaceNotificationRuleService, "findBy").mockResolvedValue(rules);
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "findBy")
+      .mockResolvedValue(rules);
 
     return await WorkspaceNotificationRuleService.getMatchingNotificationRules({
       projectId: PROJECT_ID,
