@@ -142,7 +142,7 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 
 Proxmox VE 9 og senere kan pushe metrikker gennem sin indbyggede OpenTelemetry-metrikserver uden at installere noget – se [vejledningen til Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gør pushet til de samme serier `pve_*`, så kataloget og skabelonerne for CPU, hukommelse og lager virker med det.
 
-**Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher kun sin egen status, så en node, der holder op med at rapportere, meldes nede (`pve_up` = 0) af de noder, der stadig lever – se [Når en node holder op med at rapportere](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** og **Replication Failing** kræver data, som kun agenten indsamler.
+**Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher kun sin egen status, så en node, der holder op med at rapportere, meldes nede (`pve_up` = 0) af de noder, der stadig lever – se [Når en node holder op med at rapportere](/docs/telemetry/proxmox#når-en-node-holder-op-med-at-rapportere). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** og **Replication Failing** kræver data, som kun agenten indsamler.
 
 ## Indsamlede metrikker
 

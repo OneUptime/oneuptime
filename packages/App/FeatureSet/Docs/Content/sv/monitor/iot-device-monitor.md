@@ -114,7 +114,7 @@ Ett kriterium utlöser bara när villkoret gäller för varje minut i fönstret 
 | Hur | Vad som händer |
 | --- | --- |
 | **Gatewayen rapporterar det** | Gatewayen eller collectorn skickar `iot_device_up = 0` för en enhet som den inte längre når. |
-| **MQTT Last Will** | En enhet som är ansluten till OneUptimes MQTT-endpoint registrerar en Last Will på sitt ämne `status`. När enheten dör skickar brokern `iot_device_up = 0` för den i samma ögonblick som sessionen bryts: ingen avfrågning, ingen väntan på en utebliven rapport. Se [IoT-enheter](/docs/telemetry/iot-devices). |
+| **MQTT Last Will** | En enhet som är ansluten till OneUptimes MQTT-endpoint registrerar en Last Will på sitt ämne `status`. När enheten dör skickar brokern `iot_device_up = 0` för den i samma ögonblick som sessionen bryts: ingen avfrågning, ingen väntan på en utebliven rapport. Se [Skicka mätvärden via MQTT](/docs/telemetry/iot-devices#skicka-mätvärden-via-mqtt). |
 | **Enheten är registrerad** | En enhet i flottans **Device Registry** förväntas. När den inte skickar något under hela fönstret behandlar monitorn den som om den rapporterade `0`, så den får en egen incident, som löser sig själv när enheten rapporterar igen. |
 
 En registrerad enhet behålls också som offline i flottans inventarium, medan en oregistrerad tas bort efter 15 minuters tystnad. Detektering av tystnad kräver regeln **Treat As Zero** för saknade data på kriteriet för `iot_device_up`, som Device Offline-monitorer skapade från mallen har. En Device Offline-monitor som skapades innan enhetsregistrering fanns måste få den satt manuellt eller skapas om från mallen.
@@ -216,7 +216,7 @@ De rapporterar mer sällan än fönstret på 30 minuter täcker, så vissa föns
 :::
 
 :::details En mall visar inga data
-Mallarna läser `iot_*`-mätvärdesnamnen exakt och grupperar efter etiketten `device.id`. Jämför det dina enheter skickar, på flottans sida **Mätvärden**, med [mätvärdeskonventionerna](/docs/telemetry/iot-devices#metric-conventions).
+Mallarna läser `iot_*`-mätvärdesnamnen exakt och grupperar efter etiketten `device.id`. Jämför det dina enheter skickar, på flottans sida **Mätvärden**, med [mätvärdeskonventionerna](/docs/telemetry/iot-devices#mätvärdeskonventioner).
 :::
 
 ## Nästa steg

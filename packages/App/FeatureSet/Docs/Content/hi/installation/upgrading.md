@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-अगर आपका रिलीज़ नाम और नेमस्पेस अलग हैं, तो अपने वाले उपयोग करें। Kubernetes एजेंट पृष्ठ का [एजेंट अपग्रेड करना](/docs/telemetry/kubernetes-agent) विवरण देता है, और [AI SRE — क्लस्टर एक्सेस](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) बताता है कि एजेंट क्या कर सकता है और उसे जो मिले उसे ठीक करने कैसे दें।
+अगर आपका रिलीज़ नाम और नेमस्पेस अलग हैं, तो अपने वाले उपयोग करें। Kubernetes एजेंट पृष्ठ का [एजेंट अपग्रेड करना](/docs/telemetry/kubernetes-agent#एजेंट-अपग्रेड-करना) विवरण देता है, और [AI SRE — क्लस्टर एक्सेस](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) बताता है कि एजेंट क्या कर सकता है और उसे जो मिले उसे ठीक करने कैसे दें।
 
 ### AI क्या कर सकता है, यह AI एजेंट पर सेट होता है
 

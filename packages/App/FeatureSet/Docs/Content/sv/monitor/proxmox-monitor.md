@@ -142,7 +142,7 @@ Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett
 
 Proxmox VE 9 och senare kan pusha mått via sin inbyggda OpenTelemetry-måttserver, utan att något installeras – se [guiden för Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gör om pushen till samma serier `pve_*`, så katalogen och mallarna för CPU, minne och lagring fungerar med den.
 
-**Node Offline** och **Cluster Quorum at Risk** fungerar också: varje nod pushar bara sin egen status, så en nod som slutar rapportera rapporteras som nere (`pve_up` = 0) av de noder som fortfarande lever – se [När en nod slutar rapportera](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** och **Replication Failing** behöver data som bara agenten samlar in.
+**Node Offline** och **Cluster Quorum at Risk** fungerar också: varje nod pushar bara sin egen status, så en nod som slutar rapportera rapporteras som nere (`pve_up` = 0) av de noder som fortfarande lever – se [När en nod slutar rapportera](/docs/telemetry/proxmox#när-en-nod-slutar-rapportera). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** och **Replication Failing** behöver data som bara agenten samlar in.
 
 ## Insamlade mätvärden
 

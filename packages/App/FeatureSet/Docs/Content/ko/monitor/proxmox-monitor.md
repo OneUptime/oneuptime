@@ -142,7 +142,7 @@ flowchart TB
 
 Proxmox VE 9 이상은 내장 OpenTelemetry 메트릭 서버로 아무것도 설치하지 않고 메트릭을 푸시할 수 있습니다. [Proxmox 에이전트 가이드](/docs/telemetry/proxmox)를 참고하세요. OneUptime은 푸시를 같은 `pve_*` 계열로 바꾸므로, 카탈로그와 CPU, 메모리, 스토리지 템플릿이 그대로 작동합니다.
 
-**Node Offline** 과 **Cluster Quorum at Risk** 도 작동합니다. 각 노드는 자신의 상태만 푸시하므로, 보고를 멈춘 노드는 아직 살아 있는 노드들이 중단(`pve_up` = 0)으로 보고합니다. [노드가 보고를 멈출 때](/docs/telemetry/proxmox#when-a-node-stops-reporting)를 참고하세요. **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Replication Failing** 에는 에이전트만 수집하는 데이터가 필요합니다.
+**Node Offline** 과 **Cluster Quorum at Risk** 도 작동합니다. 각 노드는 자신의 상태만 푸시하므로, 보고를 멈춘 노드는 아직 살아 있는 노드들이 중단(`pve_up` = 0)으로 보고합니다. [노드가 보고를 멈출 때](/docs/telemetry/proxmox#노드가-보고를-멈출-때)를 참고하세요. **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Replication Failing** 에는 에이전트만 수집하는 데이터가 필요합니다.
 
 ## 수집되는 메트릭
 

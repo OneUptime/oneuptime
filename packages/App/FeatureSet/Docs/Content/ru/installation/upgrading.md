@@ -312,7 +312,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAgent.enabled=true
 ```
 
-Если ваши имя выпуска и пространство имён отличаются, используйте свои. Подробности – в разделе [Обновление агента](/docs/telemetry/kubernetes-agent) на странице агента Kubernetes, а [AI SRE – доступ к кластеру](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) объясняет, что может делать агент и как разрешить ему исправлять найденное.
+Если ваши имя выпуска и пространство имён отличаются, используйте свои. Подробности – в разделе [Обновление агента](/docs/telemetry/kubernetes-agent#обновление-агента) на странице агента Kubernetes, а [AI SRE – доступ к кластеру](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl) объясняет, что может делать агент и как разрешить ему исправлять найденное.
 
 ### Что может делать ИИ, задаётся на ИИ-агенте
 

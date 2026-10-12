@@ -367,7 +367,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | `ebpf.enabled` | `true` | eBPF のトレースとリクエストメトリクス。[eBPF によるアプリケーショントレース](#ebpf-によるアプリケーショントレース) を参照してください。 |
 | `profiling.enabled` | `false` | CPU フレームグラフ。[継続的な CPU プロファイリング](#継続的な-cpu-プロファイリング) を参照してください。 |
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics からのクラスターの状態。 |
-| `aiAgent.enabled` | `true` | Kubernetes AI エージェント。何ができるかは [Kubernetes AI エージェント](/docs/telemetry/kubernetes-agent) を参照してください。 |
+| `aiAgent.enabled` | `true` | Kubernetes AI エージェント。何ができるかは [Kubernetes AI エージェント](/docs/telemetry/kubernetes-agent#kubernetes-ai-エージェント) を参照してください。 |
 
 チャートの [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) はすべてのオプションを一覧で説明しています。[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) では、フィルタリング、サンプリング、データ量を抑える方法を説明しています。
 

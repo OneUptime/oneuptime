@@ -367,7 +367,7 @@ Profilering kräver **Linux 5.10** eller senare och en privilegierad podd med no
 | `ebpf.enabled` | `true` | eBPF-spår och förfrågningsmätvärden. Se [Applikationsspår med eBPF](#applikationsspår-med-ebpf). |
 | `profiling.enabled` | `false` | CPU-flamgrafer. Se [Kontinuerlig CPU-profilering](#kontinuerlig-cpu-profilering). |
 | `kubeStateMetrics.enabled` | `false` | Klustrets tillstånd från kube-state-metrics. |
-| `aiAgent.enabled` | `true` | Kubernetes AI-agenten. Se [Kubernetes AI-agent](/docs/telemetry/kubernetes-agent) för vad den får göra. |
+| `aiAgent.enabled` | `true` | Kubernetes AI-agenten. Se [Kubernetes AI-agent](/docs/telemetry/kubernetes-agent#kubernetes-ai-agent) för vad den får göra. |
 
 Chartets [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) listar och förklarar varje inställning, och [Kubernetes-agent](/docs/telemetry/kubernetes-agent) täcker filtrering, sampling och hur du håller datamängden nere.
 

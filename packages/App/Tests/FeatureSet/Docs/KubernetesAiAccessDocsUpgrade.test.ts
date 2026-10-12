@@ -424,7 +424,7 @@ describe("the upgrade notes on the docs site", () => {
 describe("the Kubernetes agent page's Upgrading section", () => {
   const upgrading: string = getSection(
     read(KUBERNETES_AGENT_PAGE),
-    "## Upgrading the Agent",
+    "## Upgrading the agent",
   );
   const note: string = getSection(upgrading, KUBERNETES_AGENT_UPGRADE_HEADING);
   const flat: string = note.replace(/\s*\n\s*/g, " ");

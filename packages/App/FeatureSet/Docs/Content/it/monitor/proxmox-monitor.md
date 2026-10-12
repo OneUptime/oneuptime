@@ -142,7 +142,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 
 Proxmox VE 9 e successivi possono inviare le metriche tramite il loro server di metriche OpenTelemetry integrato, senza installare nulla: vedete la [guida all'agente Proxmox](/docs/telemetry/proxmox). OneUptime trasforma l'invio nelle stesse serie `pve_*`, quindi il catalogo e i modelli di CPU, memoria e storage funzionano con esso.
 
-Funzionano anche **Node Offline** e **Cluster Quorum at Risk**: ogni nodo invia solo il proprio stato, quindi un nodo che smette di comunicare viene segnalato come giù (`pve_up` = 0) dai nodi ancora vivi; vedete [Quando un nodo smette di comunicare](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** e **Replication Failing** hanno bisogno di dati che solo l'agente raccoglie.
+Funzionano anche **Node Offline** e **Cluster Quorum at Risk**: ogni nodo invia solo il proprio stato, quindi un nodo che smette di comunicare viene segnalato come giù (`pve_up` = 0) dai nodi ancora vivi; vedete [Quando un nodo smette di comunicare](/docs/telemetry/proxmox#quando-un-nodo-smette-di-inviare-dati). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** e **Replication Failing** hanno bisogno di dati che solo l'agente raccoglie.
 
 ## Metriche raccolte
 

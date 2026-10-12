@@ -315,7 +315,7 @@ describe("resetting aiAgent.remediation.namespaces under --reuse-values", () => 
    */
   it("names the old key's list as a cause of the stuck upgrade on the Kubernetes agent page", () => {
     expect(
-      getSection(read(KUBERNETES_AGENT_PAGE), "## Upgrading the Agent"),
+      getSection(read(KUBERNETES_AGENT_PAGE), "## Upgrading the agent"),
     ).toContain(
       "`aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist",
     );
