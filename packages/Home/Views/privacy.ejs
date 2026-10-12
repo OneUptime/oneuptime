@@ -83,6 +83,26 @@
 
     <p><strong>Business transfers.</strong> If OneUptime is involved in a merger, acquisition, reorganization, or sale of assets, your information may be transferred as part of that transaction. We will notify affected account holders by email before any such transfer takes effect, and the transferee will be required to honor this Privacy Statement (or provide equivalent protections) with respect to your personal information.</p>
 
+    <h3>Connected Services: Google, Microsoft and Zoom</h3>
+    <p>OneUptime can start a video call for an incident or alert. To use this, a project administrator connects Google Meet, Microsoft Teams or Zoom in Project Settings &gt; Video Calls by signing in to that provider and allowing OneUptime to create meetings as the account they sign in with. This section describes the data OneUptime receives from those providers and what we do with it.</p>
+
+    <p><strong>What we access.</strong></p>
+    <ul>
+        <li><strong>Google:</strong> the email address and Google account ID of the account that signs in, and its Google Workspace domain if it has one (the <code>openid</code> and <code>email</code> scopes); and permission to create Google Meet meetings as that account (the <code>https://www.googleapis.com/auth/meetings.space.created</code> scope). OneUptime uses this permission only to create a new meeting for an incident or alert. It does not read, join or change any other meeting, and it does not access your calendar, contacts, email or files.</li>
+        <li><strong>Microsoft:</strong> the sign-in name and account ID of the work or school account that signs in and the ID of its organization, and permission to create Microsoft Teams online meetings as that account (the delegated <code>OnlineMeetings.ReadWrite</code> permission).</li>
+        <li><strong>Zoom:</strong> the user ID, account ID and email address of the Zoom user that signs in (<code>user:read:user</code>), and permission to create meetings for that user (<code>meeting:write:meeting</code>).</li>
+    </ul>
+
+    <p><strong>How we use it.</strong> We use this data only to provide the video call feature: to create a dedicated meeting when an incident or alert needs one, to show its join link to the project's members (on the incident or alert, in its feed, and in the Slack or Microsoft Teams channels the project has connected), and to show which account a connection is signed in as. The provider's access and refresh tokens are used only to create these meetings and to keep the connection signed in.</p>
+
+    <p><strong>How we store and protect it.</strong> Access and refresh tokens are encrypted at rest and are never returned by OneUptime's API or shown in the dashboard. The connected account's details are stored with the connection, and each meeting's link is stored with the incident or alert it was created for. OneUptime staff do not read this data unless you ask us to (for example, to help with a support request), it is necessary for security, or the law requires it.</p>
+
+    <p><strong>Sharing.</strong> We do not sell this data, use it for advertising, or share it with anyone except the sub-processors that host OneUptime and the channels the project chooses to post meeting links to, or where the law requires. We do not use data received from Google, Microsoft or Zoom to develop, improve or train generalized artificial intelligence or machine learning models.</p>
+
+    <p><strong>Retention and removal.</strong> We keep this data while the connection exists. Deleting a connection in Project Settings &gt; Video Calls deletes its tokens, and once no other connection uses the same sign-in, OneUptime revokes its access at Google or Zoom. You can also remove OneUptime's access at any time: in your Google Account under third-party connections, under My Apps for a Microsoft account, or under Manage &gt; Added Apps in the Zoom App Marketplace. When you remove OneUptime from Zoom, OneUptime deletes the stored sign-in. Meeting links stay with the incidents and alerts they were created for, under the project's retention settings.</p>
+
+    <p><strong>Google API Services User Data Policy.</strong> OneUptime's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
     <h3>Data Storage and International Transfers</h3>
     <p>OneUptime operates globally, and using our Website and products involves the transmission and storage of data across borders. Your personal information may be stored on servers in — or processed by staff located in — countries outside your country of residence, including outside the European Economic Area (EEA) and the UK.</p>
 
