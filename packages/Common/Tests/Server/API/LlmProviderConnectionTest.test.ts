@@ -530,8 +530,8 @@ describe("POST /llm-provider/test - the provider is genuinely unreachable", () =
     const error: Exception = sentError();
 
     expect(error).toBeInstanceOf(BadDataException);
-    expect(error.message).toContain("LLM Provider test failed");
-    expect(error.message).toContain(PROVIDER_ERROR_MESSAGE);
+    // The provider's own words, as LLMService said them.
+    expect(error.message).toBe(PROVIDER_ERROR_MESSAGE);
 
     // Both attempts were made before giving up.
     expect(completionRequests().length).toBe(2);

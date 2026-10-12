@@ -13,6 +13,7 @@ import BaseAPI from "./BaseAPI";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PositiveNumber from "../../Types/PositiveNumber";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import LlmProviderTestFailure from "../Utils/LLM/LlmProviderTestFailure";
 import LLMService, {
   LLMCompletionResponse,
   LLMProviderConfig,
@@ -242,19 +243,18 @@ export default class LlmProviderAPI extends BaseAPI<
               logger.error(retryErr);
 
               /*
-               * Surface the provider's own error (bad key, unknown model,
-               * unreachable base URL, etc.) so the user can fix their config.
+               * What went wrong and what to check, then the provider's own
+               * words (bad key, unknown model, unreachable base URL, etc.),
+               * so the user can fix their config (LlmProviderTestFailure).
                */
-              const providerMessage: string =
-                retryErr instanceof Exception
-                  ? retryErr.message
-                  : "Failed to connect to the LLM provider. Please verify the API key, model name, and base URL.";
-
               return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException(
-                  `LLM Provider test failed: ${providerMessage.substring(0, 1000)}`,
+                  LlmProviderTestFailure.describe(
+                    retryErr,
+                    provider.llmType as LlmType,
+                  ),
                 ),
               );
             }

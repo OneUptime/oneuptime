@@ -334,8 +334,10 @@ describe("Test LLM Provider when a current model's reply is not an answer", () =
 
     const error: Exception = sentError();
 
-    expect(error.message).toContain("LLM Provider test failed");
-    expect(error.message).toContain("Anthropic declined this request");
+    // LLMService's own words for it, with nothing in front of them.
+    expect(error.message.startsWith("Anthropic declined this request")).toBe(
+      true,
+    );
     expect(error.message).toContain("(cyber)");
     expect(error.message).not.toContain("No text content");
   });
