@@ -703,7 +703,9 @@ describe("Docker Swarm agent: the install script again, or the files again", () 
    * mounts: Compose recreates a container for a new image or definition,
    * never for a new mounted file, and the collector reads its config, the
    * poller its loop, only when they start. So an upgrade recreates the
-   * containers, as every other agent's install script and commands do.
+   * containers, as the other Compose-based agents' install scripts and
+   * commands do (the Docker and Podman agents bake their config into the
+   * image instead).
    */
   test("the Compose tab pulls, then recreates the containers", () => {
     expect(DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND).toBe(
