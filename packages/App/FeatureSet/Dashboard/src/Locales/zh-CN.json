@@ -28052,5 +28052,8 @@
   "Twilio Configs": "Twilio 配置",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "没有值的变量会按原样保留，因此输错的名称会显示在文本中。",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "按设备 ID 过滤 — 原始的 `device.id` 数据点标签（可选）。设置的每个过滤条件都必须匹配。",
-  "The name of the metric the monitor's first query reads.": "监视器第一个查询读取的指标名称。"
+  "The name of the metric the monitor's first query reads.": "监视器第一个查询读取的指标名称。",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }

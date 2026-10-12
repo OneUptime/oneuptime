@@ -1,5 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
 
 /*
  * A "how it works" guide for one Security Events surface (detection
@@ -77,21 +78,23 @@ export function guideToMarkdown(guide: SecurityEventsGuide): string {
 }
 
 /*
- * GitHub-flavored markdown table. Pipes inside cells are escaped so a
- * value such as a Sigma `field|modifier` key cannot split its column.
+ * GitHub-flavored markdown table. Each cell is placed with
+ * markdownTableCell, so a value such as a Sigma `field|modifier` key cannot
+ * split its column, whatever backslashes it holds, and a line break cannot
+ * end its row.
  */
 export function markdownTable(
   headers: Array<string>,
   rows: Array<Array<string>>,
 ): string {
-  const escapeCell: (cell: string) => string = (cell: string): string => {
-    return cell.replace(/\|/g, "\\|");
-  };
-
   const toRow: (cells: Array<string>) => string = (
     cells: Array<string>,
   ): string => {
-    return `| ${cells.map(escapeCell).join(" | ")} |`;
+    return `| ${cells
+      .map((cell: string): string => {
+        return markdownTableCell(cell);
+      })
+      .join(" | ")} |`;
   };
 
   return [
