@@ -260,8 +260,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           throwOnInviteError: true,
         });
       } catch (err) {
+        /*
+         * What the workspace answered, readable whatever was thrown: Slack's
+         * invite throws its HTTP response itself on a transport error.
+         */
         throw new BadDataException(
-          "Cannot invite users to the channel. " + (err as Error)?.message,
+          "Cannot invite users to the channel. " +
+            WorkspaceBase.getSendErrorMessage(err),
         );
       }
     }

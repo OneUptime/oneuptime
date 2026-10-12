@@ -20,7 +20,7 @@ import WorkspaceMessagePayload, {
   WorkspaceTextBoxBlock,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import logger, { LogAttributes } from "../Logger";
+import logger from "../Logger";
 import URL from "../../../Types/API/URL";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -215,36 +215,20 @@ export default class WorkspaceBase {
   }
 
   @CaptureSpan()
-  /*
-   * Invites everybody to every channel, each invite on its own: one that the
-   * workspace refuses (a deactivated account, a channel that is gone) does
-   * not stop the invites after it. The first refusal is thrown once all of
-   * them were tried, so a caller still hears that something went wrong.
-   */
   public static async inviteUsersToChannels(data: {
     authToken: string;
     workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
     projectId: ObjectID;
   }): Promise<void> {
-    let firstRefusal: unknown = undefined;
-
     for (const channelName of data.workspaceChannelInvitationPayload
       .channelNames) {
-      try {
-        await this.inviteUsersToChannel({
-          authToken: data.authToken,
-          channelName: channelName,
-          workspaceUserIds:
-            data.workspaceChannelInvitationPayload.workspaceUserIds,
-          projectId: data.projectId,
-        });
-      } catch (err) {
-        firstRefusal = firstRefusal ?? err;
-      }
-    }
-
-    if (firstRefusal !== undefined) {
-      throw firstRefusal;
+      await this.inviteUsersToChannel({
+        authToken: data.authToken,
+        channelName: channelName,
+        workspaceUserIds:
+          data.workspaceChannelInvitationPayload.workspaceUserIds,
+        projectId: data.projectId,
+      });
     }
   }
 
@@ -255,27 +239,13 @@ export default class WorkspaceBase {
     workspaceUserIds: Array<string>;
     projectId: ObjectID;
   }): Promise<void> {
-    let firstRefusal: unknown = undefined;
-
     for (const userId of data.workspaceUserIds) {
-      try {
-        await this.inviteUserToChannelByChannelName({
-          authToken: data.authToken,
-          channelName: data.channelName,
-          workspaceUserId: userId,
-          projectId: data.projectId,
-        });
-      } catch (err) {
-        logger.error(
-          `Could not invite a person to channel ${data.channelName}: ${WorkspaceBase.getSendErrorMessage(err)}`,
-          { projectId: data.projectId?.toString() } as LogAttributes,
-        );
-        firstRefusal = firstRefusal ?? err;
-      }
-    }
-
-    if (firstRefusal !== undefined) {
-      throw firstRefusal;
+      await this.inviteUserToChannelByChannelName({
+        authToken: data.authToken,
+        channelName: data.channelName,
+        workspaceUserId: userId,
+        projectId: data.projectId,
+      });
     }
   }
 

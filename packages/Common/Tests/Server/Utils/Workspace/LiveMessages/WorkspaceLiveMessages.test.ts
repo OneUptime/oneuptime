@@ -859,6 +859,7 @@ describe("WorkspaceLiveMessages.updateKept", () => {
         keptMessage: kept,
         messageBlocks: [markdown("second")],
         messageData: { alarms: ["outcome"] },
+        rememberIfNotEdited: true,
       }),
     ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
 
@@ -866,6 +867,28 @@ describe("WorkspaceLiveMessages.updateKept", () => {
     expect(store.rows[0]!.contentHash).toBe(
       WorkspaceLiveMessages.getContentHash([markdown("first")]),
     );
+  });
+
+  /*
+   * Only data that records what was done beside a message is kept when its
+   * edit is refused. The "could not be added" note's data is the names it
+   * shows: kept on a refused edit, the note would never be edited to show
+   * the new name, as it would read as named already.
+   */
+  test("REGRESSION: by default a refused edit remembers nothing, so the next change tries all of it again", async () => {
+    slackUpdate.mockRejectedValue(
+      new BadRequestException("Error from Slack ratelimited"),
+    );
+
+    await expect(
+      WorkspaceLiveMessages.updateKept({
+        keptMessage: kept,
+        messageBlocks: [markdown("second")],
+        messageData: { userIds: ["u1", "u2"] },
+      }),
+    ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
+
+    expect(store.rows[0]!.messageData).toEqual({ alarms: [] });
   });
 
   test("a deleted message that cannot be posted again still remembers what it raised", async () => {
@@ -879,6 +902,7 @@ describe("WorkspaceLiveMessages.updateKept", () => {
         keptMessage: kept,
         messageBlocks: [markdown("second")],
         messageData: { alarms: ["outcome"] },
+        rememberIfNotEdited: true,
       }),
     ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
 
@@ -896,6 +920,7 @@ describe("WorkspaceLiveMessages.updateKept", () => {
         keptMessage: kept,
         messageBlocks: [markdown("second")],
         messageData: { alarms: ["outcome"] },
+        rememberIfNotEdited: true,
       }),
     ).resolves.toBe(WorkspaceLiveMessageEdit.Failed);
 

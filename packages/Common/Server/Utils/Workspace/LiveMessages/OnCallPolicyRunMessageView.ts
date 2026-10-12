@@ -279,27 +279,29 @@ export default class OnCallPolicyRunMessageView {
           text: `Nobody was paged for ${run.recordLabel}`,
         });
         break;
-      case OnCallPolicyRunOutcome.Failed:
+      case OnCallPolicyRunOutcome.Failed: {
         /*
          * It went wrong part way, after some rules had paged people - or
          * before anybody was paged at all.
          */
-        alarms.push(
+        const what: string =
           run.paged.length > 0
-            ? {
-                key: ON_CALL_RUN_ALARM_OUTCOME,
-                markdown:
-                  mdText`❌ ${policy} stopped paging for ${record} before anyone acknowledged${this.getFailureDetail(run)} Page someone yourself.`.toString(),
-                text: `${run.policyName} stopped paging for ${run.recordLabel} before anyone acknowledged`,
-              }
-            : {
-                key: ON_CALL_RUN_ALARM_OUTCOME,
-                markdown:
-                  mdText`❌ ${policy} could not page anyone for ${record}${this.getFailureDetail(run)} Page someone yourself.`.toString(),
-                text: `${run.policyName} could not page anyone for ${run.recordLabel}`,
-              },
-        );
+            ? `stopped paging for ${run.recordLabel} before anyone acknowledged`
+            : `could not page anyone for ${run.recordLabel}`;
+
+        const whatInMarkdown: MarkdownText =
+          run.paged.length > 0
+            ? mdText`stopped paging for ${record} before anyone acknowledged`
+            : mdText`could not page anyone for ${record}`;
+
+        alarms.push({
+          key: ON_CALL_RUN_ALARM_OUTCOME,
+          markdown:
+            mdText`❌ ${policy} ${whatInMarkdown}${this.getFailureDetail(run)} Page someone yourself.`.toString(),
+          text: `${run.policyName} ${what}`,
+        });
         break;
+      }
       case OnCallPolicyRunOutcome.PolicyArchived:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,

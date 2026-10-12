@@ -19,7 +19,9 @@ import {
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
-import WorkspaceLiveMessageKey from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
+import WorkspaceLiveMessageKey, {
+  WorkspaceLiveMessageRunEnding,
+} from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import { WorkspacePayloadMarkdown } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import DatabaseConfig from "../../../DatabaseConfig";
 import AlertEpisodeService from "../../../Services/AlertEpisodeService";
@@ -81,6 +83,17 @@ const METHOD_LABELS: Array<{
   { field: "userMicrosoftTeamsId", label: "Microsoft Teams" },
   { field: "userWebhookId", label: "webhook" },
 ];
+
+// What one escalation rule's steps came to (buildRun).
+type RuleStepKind = "reached" | "not reached" | "nobody in it" | "schedule gap";
+
+interface RuleSteps {
+  firstStep: number;
+  pages: number;
+  reached: number;
+  nobodyInIt: boolean;
+  scheduleGap: boolean;
+}
 
 // A run, read for its message.
 export interface OnCallPolicyRunReading {
@@ -218,6 +231,22 @@ export default class OnCallPolicyRunMessage {
         return;
       }
 
+      const kept: Array<WorkspaceLiveMessage> =
+        await WorkspaceLiveMessageService.findByMessageKey({
+          projectId: reading.projectId,
+          messageKey: messageKey,
+        });
+
+      /*
+       * A run that has ended is told as its message first told it. The
+       * message is brought up to date after the run ends too - a page's
+       * delivery finishing late - and the record may have moved on by
+       * then: "moved to Acknowledged, so the policy stopped paging" is not
+       * to become "moved to Resolved" because somebody resolved it later.
+       */
+      const endedAs: WorkspaceLiveMessageRunEnding | undefined =
+        this.keepEnding(reading.run, kept);
+
       const markdownBlock: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
         text: OnCallPolicyRunMessageView.getMarkdown(reading.run),
@@ -225,12 +254,6 @@ export default class OnCallPolicyRunMessage {
 
       const alarms: Array<OnCallPolicyRunAlarm> =
         OnCallPolicyRunMessageView.getAlarms(reading.run);
-
-      const kept: Array<WorkspaceLiveMessage> =
-        await WorkspaceLiveMessageService.findByMessageKey({
-          projectId: reading.projectId,
-          messageKey: messageKey,
-        });
 
       if (kept.length === 0) {
         /*
@@ -247,6 +270,7 @@ export default class OnCallPolicyRunMessage {
             alarms: alarms.map((alarm: OnCallPolicyRunAlarm): string => {
               return alarm.key;
             }),
+            ...(endedAs ? { endedAs: endedAs } : {}),
           },
         });
         return;
@@ -294,10 +318,56 @@ export default class OnCallPolicyRunMessage {
           messageData: {
             ...(keptMessage.messageData || {}),
             alarms: [...raised],
+            ...(endedAs ? { endedAs: endedAs } : {}),
           },
+          // The alarms were posted, edit or no edit: never post them again.
+          rememberIfNotEdited: true,
         });
       }
     });
+  }
+
+  /*
+   * The run's ending as its messages first told it, applied to `run`; or,
+   * for a run that has just ended, its ending now, to be kept. Undefined
+   * while the run is still paging.
+   */
+  private static keepEnding(
+    run: OnCallPolicyRun,
+    kept: Array<WorkspaceLiveMessage>,
+  ): WorkspaceLiveMessageRunEnding | undefined {
+    if (run.outcome === OnCallPolicyRunOutcome.Paging) {
+      return undefined;
+    }
+
+    for (const keptMessage of kept) {
+      const endedAs: unknown = keptMessage.messageData?.endedAs;
+
+      if (
+        endedAs &&
+        typeof endedAs === "object" &&
+        Object.values(OnCallPolicyRunOutcome).includes(
+          (endedAs as WorkspaceLiveMessageRunEnding)
+            .outcome as OnCallPolicyRunOutcome,
+        ) &&
+        (endedAs as WorkspaceLiveMessageRunEnding).outcome !==
+          OnCallPolicyRunOutcome.Paging
+      ) {
+        const told: WorkspaceLiveMessageRunEnding =
+          endedAs as WorkspaceLiveMessageRunEnding;
+
+        run.outcome = told.outcome as OnCallPolicyRunOutcome;
+        run.outcomeDetail =
+          typeof told.detail === "string" ? told.detail : undefined;
+
+        return told;
+      }
+    }
+
+    return {
+      outcome: run.outcome,
+      ...(run.outcomeDetail ? { detail: run.outcomeDetail } : {}),
+    };
   }
 
   // The alarm keys any message of the run already raised.
@@ -636,67 +706,54 @@ export default class OnCallPolicyRunMessage {
       reasonsByRuleId.set(ruleId.toString(), reasons);
     };
 
-    const rulesThatReachedNobody: Array<OnCallDutyPolicyEscalationRule> = [];
-
-    const addRuleThatReachedNobody: (
-      rule: OnCallDutyPolicyEscalationRule | undefined,
-    ) => void = (rule: OnCallDutyPolicyEscalationRule | undefined): void => {
-      if (
-        rule &&
-        !rulesThatReachedNobody.some(
-          (other: OnCallDutyPolicyEscalationRule): boolean => {
-            return other.id?.toString() === rule.id?.toString();
-          },
-        )
-      ) {
-        rulesThatReachedNobody.push(rule);
-      }
-    };
-
     /*
-     * Per escalation rule: where its first step is in the timeline, how many
-     * people it paged, and how many of those pages reached somebody. A rule
-     * that paged people and reached none of them - each opted out, left the
-     * project, or could not be paged - reached nobody as surely as a rule
-     * with nobody in it.
+     * Per escalation rule, as its steps tell it: where its first step is in
+     * the timeline; how many people it paged, and how many of those pages
+     * reached somebody; whether the engine found nobody in it at all (its
+     * "no users in this rule" step, written once every target was tried);
+     * and whether a schedule of it had nobody on call (the engine tries such
+     * a rule again before it moves on).
      */
-    const pagesByRuleId: Map<
-      string,
-      { firstStep: number; pages: number; reached: number }
-    > = new Map<
-      string,
-      { firstStep: number; pages: number; reached: number }
-    >();
+    const stepsByRuleId: Map<string, RuleSteps> = new Map<string, RuleSteps>();
 
     const countStep: (
       ruleId: ObjectID | undefined | null,
       stepIndex: number,
-      page: "reached" | "not reached" | "none",
+      kind: RuleStepKind,
     ) => void = (
       ruleId: ObjectID | undefined | null,
       stepIndex: number,
-      page: "reached" | "not reached" | "none",
+      kind: RuleStepKind,
     ): void => {
       if (!ruleId) {
         return;
       }
 
-      const pages: { firstStep: number; pages: number; reached: number } =
-        pagesByRuleId.get(ruleId.toString()) || {
-          firstStep: stepIndex,
-          pages: 0,
-          reached: 0,
-        };
+      const steps: RuleSteps = stepsByRuleId.get(ruleId.toString()) || {
+        firstStep: stepIndex,
+        pages: 0,
+        reached: 0,
+        nobodyInIt: false,
+        scheduleGap: false,
+      };
 
-      if (page !== "none") {
-        pages.pages++;
+      if (kind === "reached" || kind === "not reached") {
+        steps.pages++;
       }
 
-      if (page === "reached") {
-        pages.reached++;
+      if (kind === "reached") {
+        steps.reached++;
       }
 
-      pagesByRuleId.set(ruleId.toString(), pages);
+      if (kind === "nobody in it") {
+        steps.nobodyInIt = true;
+      }
+
+      if (kind === "schedule gap") {
+        steps.scheduleGap = true;
+      }
+
+      stepsByRuleId.set(ruleId.toString(), steps);
     };
 
     for (const [stepIndex, step] of data.timeline.entries()) {
@@ -708,13 +765,11 @@ export default class OnCallPolicyRunMessage {
         const name: string = this.getPersonName(step.alertSentToUser);
 
         if (status === OnCallDutyExecutionLogTimelineStatus.Skipped) {
-          // Paged by this rule already, through another of its targets.
+          /*
+           * Paged by this rule already, through another of its targets: the
+           * same person, counted where they were first paged.
+           */
           if (step.statusMessage === ALREADY_NOTIFIED_TIMELINE_MESSAGE) {
-            countStep(
-              step.onCallDutyPolicyEscalationRuleId,
-              stepIndex,
-              "reached",
-            );
             continue;
           }
 
@@ -812,9 +867,13 @@ export default class OnCallPolicyRunMessage {
         continue;
       }
 
-      countStep(step.onCallDutyPolicyEscalationRuleId, stepIndex, "none");
-
       if (step.onCallDutyScheduleId) {
+        countStep(
+          step.onCallDutyPolicyEscalationRuleId,
+          stepIndex,
+          "schedule gap",
+        );
+
         const scheduleName: string =
           step.onCallDutySchedule?.name?.trim() || "(unnamed)";
 
@@ -829,41 +888,74 @@ export default class OnCallPolicyRunMessage {
         continue;
       }
 
-      // A step with no person and no schedule: the rule reached nobody.
-      addRuleThatReachedNobody(ruleById(step.onCallDutyPolicyEscalationRuleId));
-    }
-
-    // A rule whose every page was skipped or failed reached nobody too.
-    for (const [ruleId, pages] of pagesByRuleId.entries()) {
-      if (pages.pages > 0 && pages.reached === 0) {
-        addRuleThatReachedNobody(ruleById(new ObjectID(ruleId)));
-      }
+      // A step with no person and no schedule: the rule found nobody to page.
+      countStep(
+        step.onCallDutyPolicyEscalationRuleId,
+        stepIndex,
+        "nobody in it",
+      );
     }
 
     /*
      * A rule the run is trying again, because nobody was on call in its
-     * schedules yet: OneUptime samples such a rule again every minute, a few
-     * times, before it moves on (OnCallDutyPolicyEscalationRuleService), as
-     * someone may be coming on call that minute. It has not reached nobody
-     * yet - no alarm - and the message says it is being tried again.
+     * schedules yet: the engine samples such a rule again every minute, a
+     * few times, before it moves on (OnCallDutyPolicyEscalationRuleService,
+     * which counts the tries and rewinds the run to the rule before between
+     * them), as someone may be coming on call that minute.
      */
     const isRetryingCurrentRule: boolean = Boolean(
       currentRuleModel &&
         typeof currentRuleModel.order === "number" &&
         (executionLog.scheduleGapRetryCount || 0) > 0 &&
-        executionLog.lastExecutedEscalationRuleOrder ===
-          currentRuleModel.order - 1,
+        (executionLog.lastExecutedEscalationRuleOrder ===
+          currentRuleModel.order - 1 ||
+          executionLog.lastExecutedEscalationRuleOrder ===
+            currentRuleModel.order),
     );
 
-    if (isRetryingCurrentRule) {
-      const retrying: number = rulesThatReachedNobody.findIndex(
-        (rule: OnCallDutyPolicyEscalationRule): boolean => {
-          return rule.id?.toString() === currentRuleModel?.id?.toString();
-        },
+    const isRunOver: boolean =
+      executionLog.status === OnCallDutyPolicyStatus.Completed ||
+      executionLog.status ===
+        OnCallDutyPolicyStatus.CompletedWithNoNotifications ||
+      executionLog.status === OnCallDutyPolicyStatus.Error;
+
+    /*
+     * A rule reached nobody when the engine found nobody in it, or when it
+     * paged people and every page was skipped or failed - each opted out,
+     * left the project, or could not be reached.
+     *
+     * It is said - an alarm, once per run - only once the rule is finished:
+     * the run has moved on from it, or has ended. Until then the rule may
+     * still reach somebody: its pages are written one target at a time, a
+     * page that is skipped is only found to be a while after it was made,
+     * and a rule whose schedules had nobody on call is tried again. Only a
+     * rule the engine found nobody in, with no schedule to try again, is
+     * finished as soon as that is written.
+     */
+    const rulesThatReachedNobody: Array<OnCallDutyPolicyEscalationRule> = [];
+
+    for (const [ruleId, steps] of stepsByRuleId.entries()) {
+      const rule: OnCallDutyPolicyEscalationRule | undefined = ruleById(
+        new ObjectID(ruleId),
       );
 
-      if (retrying !== -1) {
-        rulesThatReachedNobody.splice(retrying, 1);
+      if (!rule) {
+        continue;
+      }
+
+      const reachedNobody: boolean =
+        steps.nobodyInIt || (steps.pages > 0 && steps.reached === 0);
+
+      const isCurrentRule: boolean =
+        rule.id?.toString() === currentRuleModel?.id?.toString();
+
+      const isFinished: boolean =
+        isRunOver ||
+        !isCurrentRule ||
+        (steps.nobodyInIt && !steps.scheduleGap && !isRetryingCurrentRule);
+
+      if (reachedNobody && isFinished) {
+        rulesThatReachedNobody.push(rule);
       }
     }
 
@@ -874,8 +966,8 @@ export default class OnCallPolicyRunMessage {
         b: OnCallDutyPolicyEscalationRule,
       ): number => {
         return (
-          (pagesByRuleId.get(a.id!.toString())?.firstStep ?? 0) -
-          (pagesByRuleId.get(b.id!.toString())?.firstStep ?? 0)
+          (stepsByRuleId.get(a.id!.toString())?.firstStep ?? 0) -
+          (stepsByRuleId.get(b.id!.toString())?.firstStep ?? 0)
         );
       },
     );

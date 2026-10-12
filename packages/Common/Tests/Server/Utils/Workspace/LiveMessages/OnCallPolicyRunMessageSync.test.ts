@@ -358,6 +358,70 @@ describe("OnCallPolicyRunMessage.syncRun", () => {
     });
   });
 
+  /*
+   * The message is brought up to date after the run ends too - a page's
+   * delivery finishing late - and the record may have moved on by then.
+   * "Moved to Acknowledged, so PolicyX stopped paging" became "moved to
+   * Resolved" when somebody resolved the incident later.
+   */
+  test("REGRESSION: a run that has ended keeps the ending its message first told, however the record moves on", async () => {
+    readSpy.mockResolvedValue(reading());
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    readSpy.mockResolvedValue(
+      reading({
+        outcome: OnCallPolicyRunOutcome.RecordHandled,
+        outcomeDetail: "Acknowledged",
+      }),
+    );
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    expect(lastSent().method).toBe("update");
+    expect(lastSent().text).toContain("moved to **Acknowledged**");
+    expect(store.rows[0]!.messageData?.endedAs).toEqual({
+      outcome: OnCallPolicyRunOutcome.RecordHandled,
+      detail: "Acknowledged",
+    });
+
+    // Resolved later; a late delivery brings the message up to date.
+    readSpy.mockResolvedValue(
+      reading({
+        outcome: OnCallPolicyRunOutcome.RecordHandled,
+        outcomeDetail: "Resolved",
+      }),
+    );
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    // Nothing to change: it still says what it said.
+    expect(
+      sent.map((item: Sent) => {
+        return item.method;
+      }),
+    ).toEqual(["post", "update"]);
+    expect(store.rows[0]!.messageData?.endedAs).toEqual({
+      outcome: OnCallPolicyRunOutcome.RecordHandled,
+      detail: "Acknowledged",
+    });
+  });
+
+  test("a run that had ended before its first post is posted with its ending kept", async () => {
+    readSpy.mockResolvedValue(
+      reading({ outcome: OnCallPolicyRunOutcome.NobodyAcknowledged }),
+    );
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    expect(store.rows[0]!.messageData?.endedAs).toEqual({
+      outcome: OnCallPolicyRunOutcome.NobodyAcknowledged,
+    });
+  });
+
+  test("a run still paging keeps no ending", async () => {
+    readSpy.mockResolvedValue(reading());
+    await OnCallPolicyRunMessage.syncRun(RUN_ID);
+
+    expect(store.rows[0]!.messageData).toEqual({ alarms: [] });
+  });
+
   test("an alarm raised by the run's message in another channel is not raised again; every message remembers it", async () => {
     readSpy.mockResolvedValue(reading());
     await OnCallPolicyRunMessage.syncRun(RUN_ID);

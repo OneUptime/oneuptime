@@ -17,10 +17,21 @@ export enum WorkspaceLiveMessageKind {
   ChannelMembersNotAdded = "ChannelMembersNotAdded",
 }
 
+// How an on-call policy run's message told the run's ending, the first time.
+export interface WorkspaceLiveMessageRunEnding {
+  outcome: string;
+  detail?: string | undefined;
+}
+
 // What a live message remembers between edits (WorkspaceLiveMessage.messageData).
 export interface WorkspaceLiveMessageData {
   // The alarms the messages of an on-call policy run already raised.
   alarms?: Array<string> | undefined;
+  /*
+   * How an on-call policy run ended, as its message first told it: kept as
+   * it was, however the record moves on after.
+   */
+  endedAs?: WorkspaceLiveMessageRunEnding | undefined;
   // The people a "could not be added to this channel" note names.
   userIds?: Array<string> | undefined;
 }

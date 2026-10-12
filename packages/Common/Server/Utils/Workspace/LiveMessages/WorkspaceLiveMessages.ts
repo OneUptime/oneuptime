@@ -309,9 +309,11 @@ export default class WorkspaceLiveMessages {
    * again in the same place, as the workspace tells it (isMessageGoneError);
    * any other refusal is logged and left for the next change to try again.
    *
-   * `messageData` is saved whatever came of the edit: it remembers what was
-   * done beside the message - an alarm the run has raised - and forgetting
-   * it because the edit was refused would do that again on every change.
+   * `messageData` is saved with the edit. A refused edit saves nothing, so
+   * the next change tries it all again - unless `rememberIfNotEdited`: data
+   * that records what was done beside the message rather than what it says
+   * (an alarm the run has raised) is saved whatever came of the edit, or it
+   * would be done again on every change.
    */
   @CaptureSpan()
   public static async updateKept(data: {
@@ -319,6 +321,7 @@ export default class WorkspaceLiveMessages {
     messageBlocks: Array<WorkspaceMessageBlock>;
     text?: string | undefined;
     messageData?: WorkspaceLiveMessageData | undefined;
+    rememberIfNotEdited?: boolean | undefined;
   }): Promise<WorkspaceLiveMessageEdit> {
     const keptMessage: WorkspaceLiveMessage = data.keptMessage;
     const contentHash: string = this.getContentHash(data.messageBlocks);
@@ -357,7 +360,7 @@ export default class WorkspaceLiveMessages {
       );
       await this.rememberOnly(
         keptMessage,
-        data.messageData,
+        data.rememberIfNotEdited ? data.messageData : undefined,
         messageDataChanged,
       );
       return WorkspaceLiveMessageEdit.Failed;
@@ -390,7 +393,7 @@ export default class WorkspaceLiveMessages {
         );
         await this.rememberOnly(
           keptMessage,
-          data.messageData,
+          data.rememberIfNotEdited ? data.messageData : undefined,
           messageDataChanged,
         );
         return WorkspaceLiveMessageEdit.Failed;
@@ -423,7 +426,7 @@ export default class WorkspaceLiveMessages {
       if (!thread) {
         await this.rememberOnly(
           keptMessage,
-          data.messageData,
+          data.rememberIfNotEdited ? data.messageData : undefined,
           messageDataChanged,
         );
         return WorkspaceLiveMessageEdit.Failed;
