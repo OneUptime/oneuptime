@@ -382,6 +382,53 @@ test.describe("starting a capture", () => {
     );
     expect(await created(page)).toEqual([]);
   });
+
+  /*
+   * The columns Start puts on the wire, as ModelAPI.create serializes the
+   * form's capture: each one a starter may write. The server once refused
+   * every start on a column the form never sent (fileId, written by its own
+   * hook); PacketCaptureCrudAsMember sends exactly these to the real create
+   * route as each member the docs name.
+   */
+  test("Start sends only what a starter may write: the probe, the interface, the filter and the limits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+    await openStartForm(page);
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(modal(page)).toHaveCount(0);
+
+    expect(await fixtureList(page, "sent")).toEqual([
+      [
+        "bpfFilter",
+        "interfaceName",
+        "maxDurationInSeconds",
+        "maxFileSizeInMB",
+        "maxPackets",
+        "probeId",
+      ],
+    ]);
+
+    // From a device's Traffic card, the device as well.
+    await open(page, "?view=device");
+    await openStartForm(page);
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(modal(page)).toHaveCount(0);
+
+    expect(await fixtureList(page, "sent")).toEqual([
+      [
+        "bpfFilter",
+        "interfaceName",
+        "maxDurationInSeconds",
+        "maxFileSizeInMB",
+        "maxPackets",
+        "networkDeviceId",
+        "probeId",
+      ],
+    ]);
+  });
 });
 
 test.describe("Download and Stop", () => {
