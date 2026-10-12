@@ -13,10 +13,12 @@ import path from "path";
  *
  * Every table OneUptime writes in Markdown - feed and chat rows, the docs'
  * permission reference, the security events guides, the AI discovery pages,
- * the editor's paste and save, AI chat exports - places its cells with
- * markdownTableCell. These tests hold it to what it promises, read by the two
- * table readers OneUptime renders with: marked (the emails, the docs) and
- * micromark with its GitHub extensions (the dashboard).
+ * AI chat exports - places its cells with markdownTableCell. (The Markdown
+ * editor writes its cells for its own reader, which shows backslashes as
+ * they are: MarkdownConverters' tableCellMarkdown.) These tests hold it to
+ * what it promises, read by the two table readers OneUptime renders with:
+ * marked (the emails, the docs) and micromark with its GitHub extensions
+ * (the dashboard).
  *
  *   - every "|" stays in its cell, whatever backslashes come before it, and
  *     no line ending can end the row: a row keeps its columns;

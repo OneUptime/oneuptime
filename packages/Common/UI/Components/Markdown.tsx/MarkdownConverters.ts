@@ -12,8 +12,6 @@
  * passed through DOMPurify before being injected by callers.
  */
 
-import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
-
 const escapeAttr: (s: string) => string = (s: string): string => {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 };
@@ -250,13 +248,15 @@ const backslashesBefore: (text: string, index: number) => number = (
 };
 
 /*
- * The cells of a table row, read as GFM reads them. A "|" after an even
- * number of backslashes (none included) ends a cell, and the row's first and
- * last such "|" only frame it. Any other "|" is escaped: it belongs to its
- * cell, and the backslash that escapes it is taken out, so "\|" reads "|"
- * and "\\\|" reads "\\|". tableToMarkdown writes cells this way
- * (markdownTableCell), so a "|" in a cell comes back in its cell however many
- * times the document is opened and saved. One pass over the row.
+ * The cells of a table row, as GFM shows them. A "|" after an even number of
+ * backslashes (none included) ends a cell, and the row's first and last such
+ * "|" only frame it. Any other "|" is escaped and belongs to its cell: the
+ * backslash that escapes it is taken out, and the backslashes before that
+ * one are escaped backslashes, each pair of them one backslash of text. So
+ * "\|" reads "|" and "\\\|" reads "\|", as a GFM reader shows them.
+ * tableToMarkdown writes cells the other way round (tableCellMarkdown), so a
+ * cell's text comes back as it was however many times the document is
+ * opened and saved. One pass over the row.
  */
 const splitTableRow: (line: string) => Array<string> = (
   line: string,
@@ -279,6 +279,7 @@ const splitTableRow: (line: string) => Array<string> = (
 
   const cells: Array<string> = [];
   let cell: string = "";
+  // The run of backslashes just read, not yet added to the cell.
   let backslashes: number = 0;
 
   for (let index: number = start; index < end; index++) {
@@ -286,29 +287,67 @@ const splitTableRow: (line: string) => Array<string> = (
 
     if (character === "\\") {
       backslashes++;
-      cell += character;
       continue;
     }
 
     if (character === "|") {
       if (backslashes % 2 === 0) {
-        cells.push(cell.trim());
+        cells.push(`${cell}${"\\".repeat(backslashes)}`.trim());
         cell = "";
       } else {
-        cell = `${cell.slice(0, -1)}|`;
+        cell += `${"\\".repeat((backslashes - 1) / 2)}|`;
       }
 
       backslashes = 0;
       continue;
     }
 
+    cell += `${"\\".repeat(backslashes)}${character}`;
     backslashes = 0;
-    cell += character;
   }
 
-  cells.push(cell.trim());
+  cells.push(`${cell}${"\\".repeat(backslashes)}`.trim());
 
   return cells;
+};
+
+/*
+ * A cell's text as tableToMarkdown writes it, for splitTableRow to read
+ * back. A "|" gets a backslash, and so does each backslash right before it:
+ * "a|b" is written "a\|b" and "C:\|D:" is written "C:\\\|D:". splitTableRow
+ * takes those escapes out again, and a GFM reader - the dashboard's,
+ * GitHub's - shows the cell as typed: every "|" stays in its cell, and each
+ * escaped backslash reads as one. A line break becomes a space, as a row is
+ * one line. A backslash that ends the text is left as it is: the row writer
+ * puts a space after every cell, so it cannot escape the "|" that ends it.
+ * One pass over the text.
+ */
+const tableCellMarkdown: (text: string) => string = (text: string): string => {
+  let written: string = "";
+  // How many backslashes come right before the current character.
+  let backslashes: number = 0;
+
+  for (let index: number = 0; index < text.length; index++) {
+    const character: string = text[index]!;
+
+    if (character === "\\") {
+      backslashes++;
+      written += character;
+      continue;
+    }
+
+    if (character === "|") {
+      // The backslashes just written once more, and the escape of the "|".
+      written += `${"\\".repeat(backslashes + 1)}|`;
+      backslashes = 0;
+      continue;
+    }
+
+    backslashes = 0;
+    written += character === "\n" || character === "\r" ? " " : character;
+  }
+
+  return written;
 };
 
 const tryParseTable: (
@@ -766,8 +805,14 @@ const renderMarkdownBlocks: (md: string, depth: number) => string = (
   return out;
 };
 
+/*
+ * The same whitespace as /\s+$/ takes off, in linear time: the pattern tried
+ * every start in a long run of spaces that something else follows - the
+ * padding a long cell gives the cells of its column - so a table with a long
+ * cell took time in the square of its length to save.
+ */
 const trimEnd: (s: string) => string = (s: string): string => {
-  return s.replace(/\s+$/, "");
+  return s.trimEnd();
 };
 
 const collapseBlankLines: (s: string) => string = (s: string): string => {
@@ -957,12 +1002,12 @@ const tableToMarkdown: (table: HTMLTableElement) => string = (
   }
 
   /*
-   * A cell's text on one line, placed with markdownTableCell: every "|" stays
-   * in its cell, whatever backslashes come before it, and splitTableRow reads
-   * it back.
+   * A cell's text on one line, written with tableCellMarkdown: every "|"
+   * stays in its cell, whatever backslashes come before it, and
+   * splitTableRow reads the text back as it was.
    */
   const cellText: (cell: Element) => string = (cell: Element): string => {
-    return markdownTableCell(
+    return tableCellMarkdown(
       serializeChildren(cell).replace(RE_LINE_BREAK_RUN, " ").trim(),
     );
   };
