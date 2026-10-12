@@ -94,10 +94,10 @@ const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
  * (labelLineWidth counts a Chinese, Japanese or Korean character twice),
  * measured to keep every language's diagrams inside the 590px docs column
  * in a browser with the docs' own font. The docs scroll a wider diagram
- * rather than shrink it. Container Apps' is the Persian line naming
- * OTEL_RESOURCE_ATTRIBUTES whole: a right-to-left line would draw the "_"
- * that ended a line breaking it on its other side, and with it the diagram
- * is 574px wide.
+ * rather than shrink it. Container Apps' cap is 24, for the Persian line
+ * that names OTEL_RESOURCE_ATTRIBUTES whole: broken over two lines, the "_"
+ * ending the first would be drawn at its other end in a right-to-left line.
+ * With that line, the Persian diagram is 574px wide.
  */
 const WIDEST_LABEL_LINE: Record<string, number> = {
   "telemetry/cloud-environments": 27,
