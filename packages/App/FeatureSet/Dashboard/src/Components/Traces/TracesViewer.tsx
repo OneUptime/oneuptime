@@ -95,6 +95,7 @@ import {
   buildSpanQueryScope,
 } from "../../Utils/SpanQueryScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 import { buildUrlScopeOverrides } from "../../Utils/InitialSavedView";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -2735,12 +2736,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         maxDuration: TraceAggregationType.MaxDurationSeconds,
       };
 
-      const escapeRegex: (value: string) => string = (
-        value: string,
-      ): string => {
-        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      };
-
       // Span-name filters → one regex the rule engine can evaluate.
       let spanNameRegex: string | undefined = undefined;
       const exactNames: Array<string> =
@@ -2748,11 +2743,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       const nameSearches: Array<string> =
         (aggregationRequest["spanNameSearches"] as Array<string>) || [];
       if (exactNames.length > 0) {
-        spanNameRegex = `^(${exactNames.map(escapeRegex).join("|")})$`;
+        spanNameRegex = `^(${exactNames.map(escapeRegExp).join("|")})$`;
       } else if (nameSearches.length > 0) {
-        spanNameRegex = escapeRegex(nameSearches[0]!);
+        spanNameRegex = escapeRegExp(nameSearches[0]!);
       } else if (aggregationRequest["nameSearchText"]) {
-        spanNameRegex = escapeRegex(
+        spanNameRegex = escapeRegExp(
           aggregationRequest["nameSearchText"] as string,
         );
       }

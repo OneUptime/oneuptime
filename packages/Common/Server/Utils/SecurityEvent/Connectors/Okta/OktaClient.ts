@@ -11,6 +11,7 @@ import {
   redactLogValue,
 } from "../../../LogRedaction";
 import { ConnectorTransport } from "../Types";
+import { linkHeaderUrls } from "../../../../../Utils/LinkHeader";
 
 /*
  * Minimal Okta client for the System Log connector.
@@ -158,37 +159,14 @@ export default class OktaClient {
   }
 
   /*
-   * Parse an RFC 8288 Link header into rel -> URL. Node joins repeated
-   * `link` headers with ", ", so the value may hold several
-   * `<url>; rel="x"` members; commas inside the angle brackets belong to
-   * the URL and must not split it.
+   * Parse an RFC 8288 Link header into rel -> URL, with the shared reader
+   * (Utils/LinkHeader). Node joins repeated `link` headers with ", ", so the
+   * value may hold several `<url>; rel="x"` members; commas inside the angle
+   * brackets belong to the URL and must not split it, and a rel may carry
+   * several space-separated relation types, each pointing at the same URL.
    */
   public static parseLinkHeader(value: string): Dictionary<string> {
-    const links: Dictionary<string> = {};
-    const memberRegex: RegExp = /<([^>]*)>\s*((?:;[^,<]*)*)/g;
-    let match: RegExpExecArray | null = memberRegex.exec(value);
-
-    while (match) {
-      const url: string = (match[1] || "").trim();
-      const params: string = match[2] || "";
-      const relMatch: RegExpMatchArray | null = params.match(
-        /;\s*rel\s*=\s*"?([^";]+)"?/i,
-      );
-
-      if (url && relMatch && relMatch[1]) {
-        /*
-         * rel may carry several space-separated relation types; each of
-         * them points at the same URL.
-         */
-        for (const rel of relMatch[1].trim().split(/\s+/)) {
-          links[rel.toLowerCase()] = url;
-        }
-      }
-
-      match = memberRegex.exec(value);
-    }
-
-    return links;
+    return linkHeaderUrls(value);
   }
 
   /*

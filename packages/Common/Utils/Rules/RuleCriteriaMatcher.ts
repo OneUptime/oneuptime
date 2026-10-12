@@ -8,6 +8,7 @@ import RuleCriteria, {
   RuleCriteriaValue,
 } from "../../Types/Rules/RuleCriteria";
 import RulePatternMatchUtil from "./RulePatternMatchUtil";
+import escapeRegExp from "../RegExpEscape";
 
 export const RULE_CRITERIA_MAX_FILTERS: number = 50;
 export const RULE_CRITERIA_MAX_STRING_LENGTH: number = 500;
@@ -805,32 +806,32 @@ export class RuleCriteriaMatcher {
     switch (filter.operator) {
       case RuleCriteriaOperator.Equals:
         return {
-          pattern: `^${RuleCriteriaMatcher.escapeRegex(value)}$`,
+          pattern: `^${escapeRegExp(value)}$`,
           negate: false,
         };
       case RuleCriteriaOperator.NotEquals:
         return {
-          pattern: `^${RuleCriteriaMatcher.escapeRegex(value)}$`,
+          pattern: `^${escapeRegExp(value)}$`,
           negate: true,
         };
       case RuleCriteriaOperator.Contains:
         return {
-          pattern: RuleCriteriaMatcher.escapeRegex(value),
+          pattern: escapeRegExp(value),
           negate: false,
         };
       case RuleCriteriaOperator.DoesNotContain:
         return {
-          pattern: RuleCriteriaMatcher.escapeRegex(value),
+          pattern: escapeRegExp(value),
           negate: true,
         };
       case RuleCriteriaOperator.StartsWith:
         return {
-          pattern: `^${RuleCriteriaMatcher.escapeRegex(value)}`,
+          pattern: `^${escapeRegExp(value)}`,
           negate: false,
         };
       case RuleCriteriaOperator.EndsWith:
         return {
-          pattern: `${RuleCriteriaMatcher.escapeRegex(value)}$`,
+          pattern: `${escapeRegExp(value)}$`,
           negate: false,
         };
       case RuleCriteriaOperator.MatchesPattern:
@@ -849,10 +850,6 @@ export class RuleCriteriaMatcher {
           negate: false,
         };
     }
-  }
-
-  private static escapeRegex(value: string): string {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   private static toLegacyPattern(value: string): string {
@@ -893,7 +890,7 @@ export class RuleCriteriaMatcher {
     let literalIndex: number = 0;
 
     if (!hasLeadingWildcard) {
-      pattern += RuleCriteriaMatcher.escapeRegex(literals[0] || "");
+      pattern += escapeRegExp(literals[0] || "");
       literalIndex = 1;
     }
 
@@ -903,14 +900,14 @@ export class RuleCriteriaMatcher {
 
     for (; literalIndex < suffixIndex; literalIndex++) {
       const groupName: string = `ruleGlob${literalIndex}`;
-      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}?${RuleCriteriaMatcher.escapeRegex(
+      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}?${escapeRegExp(
         literals[literalIndex] || "",
       )}))\\k<${groupName}>`;
     }
 
     if (!hasTrailingWildcard) {
       const groupName: string = `ruleGlobSuffix${literalIndex}`;
-      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}${RuleCriteriaMatcher.escapeRegex(
+      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}${escapeRegExp(
         literals[literals.length - 1] || "",
       )}$))\\k<${groupName}>`;
     } else {

@@ -30,8 +30,7 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
 <meta name="twitter:description" content="<%= pageDescription %>">
 
 <!-- Organization Schema (always present) -->
-<script type="application/ld+json">
-{
+<%- include('./Partials/json-ld', { schema: {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": "https://oneuptime.com/#organization",
@@ -62,41 +61,35 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "applicableCountry": ["US", "GB", "CA", "AU", "DE", "FR", "NL", "IN", "SG", "JP"],
         "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
     }
-}
-</script>
+} }) -%>
 
 <!-- BreadcrumbList Schema -->
 <% if (breadcrumbs && breadcrumbs.length > 0) { %>
-<script type="application/ld+json">
-{
+<%- include('./Partials/json-ld', { schema: {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": [
-        <% breadcrumbs.forEach(function(crumb, index) { %>
-        {
+    "itemListElement": breadcrumbs.map(function (crumb, index) {
+        return {
             "@type": "ListItem",
-            "position": <%= index + 1 %>,
-            "name": "<%= crumb.name %>",
-            "item": "<%= baseUrl %><%= crumb.url %>"
-        }<%= index < breadcrumbs.length - 1 ? ',' : '' %>
-        <% }); %>
-    ]
-}
-</script>
+            "position": index + 1,
+            "name": crumb.name,
+            "item": baseUrl + crumb.url
+        };
+    })
+} }) -%>
 <% } %>
 
 <!-- SoftwareApplication Schema for Product Pages -->
 <% if (pageType === 'product' && softwareApp) { %>
-<script type="application/ld+json">
-{
+<%- include('./Partials/json-ld', { schema: {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "<%= softwareApp.name %>",
-    "applicationCategory": "<%= softwareApp.applicationCategory %>",
-    "operatingSystem": "<%= softwareApp.operatingSystem %>",
-    "description": "<%= softwareApp.description %>",
-    "url": "<%= pageUrl %>",
-    "image": "<%= pageImageUrl %>",
+    "name": softwareApp.name,
+    "applicationCategory": softwareApp.applicationCategory,
+    "operatingSystem": softwareApp.operatingSystem,
+    "description": softwareApp.description,
+    "url": pageUrl,
+    "image": pageImageUrl,
     "author": {
         "@type": "Organization",
         "@id": "https://oneuptime.com/#organization",
@@ -150,11 +143,7 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
             }
         }
     },
-    "featureList": [
-        <% softwareApp.features.forEach(function(feature, index) { %>
-        "<%= feature %>"<%= index < softwareApp.features.length - 1 ? ',' : '' %>
-        <% }); %>
-    ],
+    "featureList": softwareApp.features,
     "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
@@ -162,19 +151,17 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "bestRating": "5",
         "worstRating": "1"
     }
-}
-</script>
+} }) -%>
 <% } %>
 
 <!-- WebPage Schema for general pages -->
 <% if (pageType !== 'product') { %>
-<script type="application/ld+json">
-{
+<%- include('./Partials/json-ld', { schema: {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "<%= pageTitle %>",
-    "description": "<%= pageDescription %>",
-    "url": "<%= pageUrl %>",
+    "name": pageTitle,
+    "description": pageDescription,
+    "url": pageUrl,
     "isPartOf": {
         "@type": "WebSite",
         "name": "OneUptime",
@@ -189,6 +176,5 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
             "url": "https://oneuptime.com/img/ou-bb.svg"
         }
     }
-}
-</script>
+} }) -%>
 <% } %>

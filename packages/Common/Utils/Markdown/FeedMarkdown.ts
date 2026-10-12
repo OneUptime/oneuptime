@@ -11,6 +11,7 @@ import {
   neutralizeUntrustedValue,
 } from "./UntrustedMarkdown";
 import ChatInlineImages from "./ChatInlineImages";
+import { markdownTableCell } from "./MarkdownTableCell";
 import type URL from "../../Types/API/URL";
 import type ObjectID from "../../Types/ObjectID";
 
@@ -54,9 +55,12 @@ import type ObjectID from "../../Types/ObjectID";
  *     mentions and line breaks as above. "#", "-", "+" and ">" only start
  *     blocks, which a link's text never does, so "INC-7" is left as typed.
  *   - As a link's address: characters that would end the address are
- *     percent-encoded, and only a web, mailto or relative address is kept.
+ *     percent-encoded, and only a web, mailto or relative address is kept;
+ *     in a table row each "|" gets a backslash too (markdownTableCell),
+ *     which a table reader takes out again, so the address stays as given.
  *   - Inside a code span: the span is written again around the value with
- *     markdownCodeSpan, so a backtick in the value cannot close it.
+ *     markdownCodeSpan, so a backtick in the value cannot close it, and in a
+ *     table row it is placed in its cell (markdownTableCell).
  *   - Inside a fenced code block: the fence is made longer than any fence in
  *     the value, and chat mentions and Slack links are broken.
  *
@@ -196,7 +200,10 @@ interface PlacedValue {
   place: ValuePlace;
   // Sentence: the value starts a line, after any list or quote markers.
   startsLine: boolean;
-  // Sentence: the value sits in a table row, where "|" ends a cell.
+  /*
+   * Sentence and link address: the value sits in a table row, where "|"
+   * ends a cell.
+   */
   inTableRow: boolean;
 }
 
@@ -209,6 +216,8 @@ interface RewrittenRun {
   // [start, end) in the skeleton.
   start: number;
   end: number;
+  // CodeSpan: the span sits in a table row, where "|" ends a cell.
+  inTableRow?: boolean;
   // FencedCode: the fence lines and what is between them.
   fence?: {
     character: string;
@@ -701,6 +710,7 @@ const readTemplate: ReadTemplateFunction = (
           kind: "CodeSpan",
           start: span.start,
           end: span.end,
+          inTableRow: inTableRow,
         });
       }
     }
@@ -723,6 +733,7 @@ const readTemplate: ReadTemplateFunction = (
 
       if (ranges.linkAddresses.some(inRange)) {
         placed.place = ValuePlace.LinkAddress;
+        placed.inTableRow = inTableRow;
         continue;
       }
 
@@ -833,8 +844,6 @@ const escapeSentenceStyle: EscapeSentenceStyleFunction = (
   return escaped;
 };
 
-const TABLE_CELL_SEPARATOR_PATTERN: RegExp = /\|/g;
-
 /*
  * What starts a block when it starts a line, after the value's own
  * indentation ("   # Heading" is a heading too): a heading, a quote, a list,
@@ -865,8 +874,12 @@ const escapeSentenceValue: EscapeSentenceValueFunction = (
 ): string => {
   let escaped: string = escapeSentenceStyle(escapeMarkdownValue(text));
 
+  /*
+   * The value is Markdown by now, every backslash in it escaped, so each "|"
+   * gets the one backslash that keeps it in its cell (MarkdownTableCell).
+   */
   if (placed.inTableRow) {
-    escaped = escaped.replace(TABLE_CELL_SEPARATOR_PATTERN, "\\|");
+    escaped = markdownTableCell(escaped);
   }
 
   if (placed.startsLine) {
@@ -1030,7 +1043,15 @@ const renderValue: RenderValueFunction = (
   placed: PlacedValue,
 ): string => {
   if (placed.place === ValuePlace.LinkAddress) {
-    return encodeLinkAddress(toText(value));
+    const address: string = encodeLinkAddress(toText(value));
+
+    /*
+     * In a table row a "|" ends the cell even inside a link: each one gets
+     * the backslash a table reader takes out again (the address holds no
+     * backslash, encodeLinkAddress percent-encodes them), so the link stays
+     * in its cell and its address as given.
+     */
+    return placed.inTableRow ? markdownTableCell(address) : address;
   }
 
   if (placed.place === ValuePlace.FenceLine) {
@@ -1106,9 +1127,19 @@ const renderRun: RenderRunFunction = (data: {
       data.run.end,
     );
 
-    return markdownCodeSpan(
+    const span: string = markdownCodeSpan(
       contentOf(data.run.start + fence, data.run.end - fence),
     );
+
+    /*
+     * In a table row a "|" ends the cell even inside a code span, so the
+     * span is placed in its cell too: each "|" in it gets the backslash
+     * that keeps it there, and a table reader shows it without it. (A
+     * backslash right before a "|" is that "|"'s escape in a table, code or
+     * not, so code holding "\|" shows "|" there: no spelling shows "\|" in
+     * code in every table reader, and the row keeps its cells.)
+     */
+    return data.run.inTableRow ? markdownTableCell(span) : span;
   }
 
   const fence: NonNullable<RewrittenRun["fence"]> = data.run.fence!;

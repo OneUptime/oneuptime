@@ -1,4 +1,9 @@
-import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
+import {
+  buildSearchTokenComparison,
+  buildSearchTokenGlob,
+  buildSearchTokenValue,
+  searchTokenListEntry,
+} from "../../Types/Telemetry/TelemetrySearchQuery";
 import { escapeWildcards } from "../../Types/BaseDatabase/WildcardPattern";
 import {
   DictionaryFilterOperator,
@@ -23,7 +28,8 @@ import {
  * deliberately absent on metrics, whose `service:` token matches Service rows
  * by NAME and would turn an id into an empty result. Values are escaped by
  * the grammar's own {@link buildSearchTokenValue} so a literal `*`, `?`, a
- * quote or a leading operator character means itself.
+ * quote or a leading operator character means itself, and globs by its
+ * {@link buildSearchTokenGlob}, which keeps their wildcards and escapes.
  */
 
 export type TelemetrySignal = "logs" | "traces" | "metrics";
@@ -152,29 +158,6 @@ export const buildSearchTokenForFilter: BuildSearchTokenForFilterFunction = (
  */
 const LIST_UNSAFE_ENTRY: RegExp = /,|\s+OR\s+/i;
 
-const QUOTE_REGEX: RegExp = /(")/g;
-const LEADING_OPERATOR_REGEX: RegExp = /^([-~!<>])/;
-const WRAPPED_LIST_REGEX: RegExp = /^(\()(.*)(\))$|^(\[)(.*)(\])$/;
-const WHITESPACE_REGEX: RegExp = /\s/;
-
-type RenderGlobFunction = (glob: string) => string;
-
-/*
- * A glob rendered as a token value: quotes, a leading operator character and
- * a wrapping bracket pair are escaped exactly as {@link buildSearchTokenValue}
- * escapes them, but `*` and `?` are LEFT ALONE — they are the point of the
- * glob. Quotes protect spaces, not wildcards, so a glob with a space is
- * quoted and still matches as a pattern.
- */
-const renderGlob: RenderGlobFunction = (glob: string): string => {
-  const escaped: string = glob
-    .replace(QUOTE_REGEX, "\\$1")
-    .replace(LEADING_OPERATOR_REGEX, "\\$1")
-    .replace(WRAPPED_LIST_REGEX, "\\$&");
-
-  return WHITESPACE_REGEX.test(escaped) ? `"${escaped}"` : escaped;
-};
-
 type RenderListFunction = (
   entries: Array<string>,
   render: (entry: string) => string,
@@ -183,7 +166,9 @@ type RenderListFunction = (
 /*
  * `(a OR b)` — one entry is written bare (the parser reads a one-entry list
  * as plain equality anyway), and an entry the list grammar would split in
- * two makes the whole list unspellable.
+ * two makes the whole list unspellable. Each entry of a longer list is
+ * placed with the grammar's searchTokenListEntry, which quotes an entry that
+ * would otherwise close the list early.
  */
 const renderList: RenderListFunction = (
   entries: Array<string>,
@@ -209,7 +194,11 @@ const renderList: RenderListFunction = (
     return render(meaningful[0]!);
   }
 
-  return `(${meaningful.map(render).join(" OR ")})`;
+  return `(${meaningful
+    .map((entry: string): string => {
+      return searchTokenListEntry(render(entry));
+    })
+    .join(" OR ")})`;
 };
 
 const GLOB_SEPARATOR: string = " OR ";
@@ -256,9 +245,11 @@ type BuildSearchTokenForOperatorValueFunction = (
  *
  * Literal parts go through the grammar's own escaping, so a literal that
  * starts with `~` or carries a `*` still means itself; a glob keeps its
- * wildcards. Null for a shape the grammar cannot spell: an array of several
- * operators on one key, a list entry the list grammar would split, an unsafe
- * key, an empty value.
+ * wildcards; a comparison's value is written as the comparison reads it
+ * (`>-5`). Null for a shape the grammar cannot spell: an array of several
+ * operators on one key, a list entry the list grammar would split, a
+ * comparison value with a quote or a backslash, an unsafe key, an empty
+ * value.
  */
 export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueFunction =
   (attributeKey: string, value: unknown): string | null => {
@@ -305,24 +296,24 @@ export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueF
           : null;
       case DictionaryFilterOperator.StartsWith:
         return literal.length > 0
-          ? positive(renderGlob(`${escapeWildcards(literal)}*`))
+          ? positive(buildSearchTokenGlob(`${escapeWildcards(literal)}*`))
           : null;
       case DictionaryFilterOperator.EndsWith:
         return literal.length > 0
-          ? positive(renderGlob(`*${escapeWildcards(literal)}`))
+          ? positive(buildSearchTokenGlob(`*${escapeWildcards(literal)}`))
           : null;
       case DictionaryFilterOperator.Matches: {
         // The form joins several globs with " OR "; split them back apart.
         const rendered: string | null = renderList(
           splitGlobs(literal),
-          renderGlob,
+          buildSearchTokenGlob,
         );
         return rendered ? positive(rendered) : null;
       }
       case DictionaryFilterOperator.NotMatches: {
         const rendered: string | null = renderList(
           splitGlobs(literal),
-          renderGlob,
+          buildSearchTokenGlob,
         );
         return rendered ? negative(rendered) : null;
       }
@@ -340,22 +331,38 @@ export const buildSearchTokenForOperatorValue: BuildSearchTokenForOperatorValueF
         );
         return rendered ? negative(rendered) : null;
       }
-      case DictionaryFilterOperator.GreaterThan:
-        return literal.length > 0
-          ? positive(`>${buildSearchTokenValue(literal)}`)
-          : null;
-      case DictionaryFilterOperator.GreaterThanOrEqual:
-        return literal.length > 0
-          ? positive(`>=${buildSearchTokenValue(literal)}`)
-          : null;
-      case DictionaryFilterOperator.LessThan:
-        return literal.length > 0
-          ? positive(`<${buildSearchTokenValue(literal)}`)
-          : null;
-      case DictionaryFilterOperator.LessThanOrEqual:
-        return literal.length > 0
-          ? positive(`<=${buildSearchTokenValue(literal)}`)
-          : null;
+      case DictionaryFilterOperator.GreaterThan: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          ">",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
+      case DictionaryFilterOperator.GreaterThanOrEqual: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          ">=",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
+      case DictionaryFilterOperator.LessThan: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          "<",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
+      case DictionaryFilterOperator.LessThanOrEqual: {
+        // A comparison reads its value as written: `>-5`.
+        const rendered: string | null = buildSearchTokenComparison(
+          "<=",
+          literal,
+        );
+        return rendered ? positive(rendered) : null;
+      }
       case DictionaryFilterOperator.IsEmpty:
         return negative("*");
       case DictionaryFilterOperator.IsNotEmpty:

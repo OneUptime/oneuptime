@@ -1,4 +1,5 @@
 import { JSONObject } from "Common/Types/JSON";
+import escapeRegExp from "Common/Utils/RegExpEscape";
 
 /*
  * Filter evaluator for log / span rows used by pipelines, drop
@@ -410,8 +411,7 @@ function compileExpr(expr: FilterExpression): void {
           comp.likeSubstring = raw.toLowerCase();
           comp.likeRegex = null;
         } else {
-          const pattern: string = raw
-            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
           comp.likeRegex = new RegExp(`^${pattern}$`, "i");
@@ -481,8 +481,7 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
           if (!raw.includes("%")) {
             return fieldVal.toLowerCase().includes(raw.toLowerCase());
           }
-          const pattern: string = raw
-            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
           return new RegExp(`^${pattern}$`, "i").test(fieldVal);
