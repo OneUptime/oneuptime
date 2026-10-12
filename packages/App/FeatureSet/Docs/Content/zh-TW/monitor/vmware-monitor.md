@@ -333,7 +333,7 @@ monitor_steps = [{
 ## 疑難排解
 
 :::details vCenter 不在 vCenter 清單中
-代理程式從中收集資料的 vCenter 會根據代理程式的資料自行註冊。請檢查代理程式是否在執行並傳送資料(請參閱 [驗證安裝](/docs/telemetry/vmware#verify-the-installation))、是否設定了 `VMWARE_VCENTER_NAME`，以及是否已經過了一個收集間隔：在第一次完整走訪清單完成之前不會傳送任何內容。
+代理程式從中收集資料的 vCenter 會根據代理程式的資料自行註冊。請檢查代理程式是否在執行並傳送資料(請參閱 [驗證安裝](/docs/telemetry/vmware#驗證安裝))、是否設定了 `VMWARE_VCENTER_NAME`，以及是否已經過了一個收集間隔：在第一次完整走訪清單完成之前不會傳送任何內容。
 :::
 
 :::details 主機有指標，但 VM、資料存放區或叢集沒有

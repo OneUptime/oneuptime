@@ -35,7 +35,7 @@ flowchart TB
 ## 開始之前
 
 - **一個能透過 TCP 443 連線到 vCenter 的探測器。** 通常是位於 vCenter 網路中的 [自訂探測器](/docs/probe/custom-probe)。在 OneUptime Cloud 上，共用探測器絕不會收到 vCenter 密碼，因此請新增您自己的探測器。在自行託管的執行個體上，執行個體自己的探測器也可以收集。
-- **一個具有 Read-Only 角色的 vSphere 使用者**，在最上層 vCenter 物件上授予，並勾選 **Propagate to children**。請依照 [建立唯讀 vSphere 使用者](/docs/telemetry/vmware#create-the-read-only-vsphere-user) 操作：該帳戶與代理程式使用的帳戶相同。
+- **一個具有 Read-Only 角色的 vSphere 使用者**，在最上層 vCenter 物件上授予，並勾選 **Propagate to children**。請依照 [建立唯讀 vSphere 使用者](/docs/telemetry/vmware#建立唯讀-vsphere-使用者) 操作：該帳戶與代理程式使用的帳戶相同。
 
 > [!IMPORTANT]
 > 如果沒有勾選 **Propagate to children**，使用者可以登入但什麼也看不到，探測器會回報該帳戶無法讀取 vCenter 的清單。

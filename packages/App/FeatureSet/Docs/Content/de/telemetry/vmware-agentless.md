@@ -35,7 +35,7 @@ Beide senden dieselben Daten. Sie können ein vCenter jederzeit auf seiner Seite
 ## Bevor Sie beginnen
 
 - **Eine Sonde, die vCenter über TCP 443 erreicht.** Das ist meist eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) im Netzwerk von vCenter. In OneUptime Cloud erhalten die gemeinsam genutzten Sonden nie ein vCenter-Passwort, fügen Sie also eine eigene Sonde hinzu. Bei einer selbst gehosteten Instanz können auch die eigenen Sonden der Instanz erfassen.
-- **Ein vSphere-Benutzer mit der Rolle Read-Only** auf dem obersten vCenter-Objekt, mit aktiviertem **Propagate to children**. Folgen Sie [Den vSphere-Benutzer mit Lesezugriff anlegen](/docs/telemetry/vmware#create-the-read-only-vsphere-user): Es ist dasselbe Konto, das der Agent verwendet.
+- **Ein vSphere-Benutzer mit der Rolle Read-Only** auf dem obersten vCenter-Objekt, mit aktiviertem **Propagate to children**. Folgen Sie [Den vSphere-Benutzer mit Lesezugriff anlegen](/docs/telemetry/vmware#den-schreibgeschützten-vsphere-benutzer-anlegen): Es ist dasselbe Konto, das der Agent verwendet.
 
 > [!IMPORTANT]
 > Ohne **Propagate to children** meldet sich der Benutzer an, sieht aber nichts, und die Sonde meldet, dass das Konto das Inventar von vCenter nicht lesen kann.

@@ -333,7 +333,7 @@ monitor_steps = [{
 ## 문제 해결
 
 :::details vCenter가 vCenter 목록에 없음
-에이전트가 수집하는 vCenter는 에이전트의 데이터로 스스로 등록됩니다. 에이전트가 실행 중이고 데이터를 보내는지([설치 확인](/docs/telemetry/vmware#verify-the-installation) 참고), `VMWARE_VCENTER_NAME` 이 설정되어 있는지, 수집 간격이 한 번 지났는지 확인하세요. 인벤토리의 첫 전체 탐색이 끝날 때까지는 아무것도 보내지 않습니다.
+에이전트가 수집하는 vCenter는 에이전트의 데이터로 스스로 등록됩니다. 에이전트가 실행 중이고 데이터를 보내는지([설치 확인](/docs/telemetry/vmware#설치-확인) 참고), `VMWARE_VCENTER_NAME` 이 설정되어 있는지, 수집 간격이 한 번 지났는지 확인하세요. 인벤토리의 첫 전체 탐색이 끝날 때까지는 아무것도 보내지 않습니다.
 :::
 
 :::details 호스트에는 메트릭이 있지만 VM, 데이터스토어, 클러스터에는 없음

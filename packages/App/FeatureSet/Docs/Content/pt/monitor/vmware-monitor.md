@@ -333,7 +333,7 @@ monitor_steps = [{
 ## Solução de problemas
 
 :::details O vCenter não está na lista vCenter
-Um vCenter que o agente coleta se registra sozinho a partir dos dados do agente. Verifique se o agente está rodando e enviando dados (veja [Verificar a instalação](/docs/telemetry/vmware#verify-the-installation)), se `VMWARE_VCENTER_NAME` está definido e se já passou um intervalo de coleta: nada é enviado até que a primeira varredura completa do inventário termine.
+Um vCenter que o agente coleta se registra sozinho a partir dos dados do agente. Verifique se o agente está rodando e enviando dados (veja [Verificar a instalação](/docs/telemetry/vmware#verificar-a-instalação)), se `VMWARE_VCENTER_NAME` está definido e se já passou um intervalo de coleta: nada é enviado até que a primeira varredura completa do inventário termine.
 :::
 
 :::details Os hosts têm métricas, mas VMs, datastores ou clusters não

@@ -333,7 +333,7 @@ monitor_steps = [{
 ## Fehlerbehebung
 
 :::details Das vCenter steht nicht in der Liste vCenter
-Ein vCenter, das der Agent erfasst, registriert sich selbst aus den Daten des Agenten. Prüfen Sie, ob der Agent läuft und Daten sendet (siehe [Installation überprüfen](/docs/telemetry/vmware#verify-the-installation)), ob `VMWARE_VCENTER_NAME` gesetzt ist und ob ein Erfassungsintervall vergangen ist: Gesendet wird erst, wenn der erste vollständige Durchlauf durch das Inventar abgeschlossen ist.
+Ein vCenter, das der Agent erfasst, registriert sich selbst aus den Daten des Agenten. Prüfen Sie, ob der Agent läuft und Daten sendet (siehe [Installation überprüfen](/docs/telemetry/vmware#die-installation-prüfen)), ob `VMWARE_VCENTER_NAME` gesetzt ist und ob ein Erfassungsintervall vergangen ist: Gesendet wird erst, wenn der erste vollständige Durchlauf durch das Inventar abgeschlossen ist.
 :::
 
 :::details Hosts haben Metriken, VMs, Datenspeicher oder Cluster aber nicht

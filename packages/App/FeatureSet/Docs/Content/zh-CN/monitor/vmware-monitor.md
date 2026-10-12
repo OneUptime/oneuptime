@@ -333,7 +333,7 @@ monitor_steps = [{
 ## 故障排查
 
 :::details vCenter 不在 vCenter 列表中
-代理从中采集数据的 vCenter 会根据代理的数据自行注册。请检查代理是否在运行并发送数据(请参阅 [验证安装](/docs/telemetry/vmware#verify-the-installation))、是否设置了 `VMWARE_VCENTER_NAME`，以及是否已经过了一个采集间隔：在第一次完整遍历清单完成之前不会发送任何内容。
+代理从中采集数据的 vCenter 会根据代理的数据自行注册。请检查代理是否在运行并发送数据(请参阅 [验证安装](/docs/telemetry/vmware#验证安装))、是否设置了 `VMWARE_VCENTER_NAME`，以及是否已经过了一个采集间隔：在第一次完整遍历清单完成之前不会发送任何内容。
 :::
 
 :::details 主机有指标，但 VM、数据存储或集群没有
