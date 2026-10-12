@@ -1,57 +1,47 @@
 # Core Web Vitals
 
-The **Core Web Vitals** card on a RUM application's overview shows LCP, INP, CLS, FCP and TTFB, each averaged over the selected time range and rated good / needs improvement / poor. Below it, **INP by route** lists the routes with the slowest INP once your INP carries a route — the view that matters in a single-page app. See [Single-page apps](#single-page-apps).
+The **Core Web Vitals** card on a RUM application's overview shows LCP, INP, CLS, FCP and TTFB, each rated against Google's limits. OneUptime measures none of them itself: the card fills only from metrics your browser instrumentation reports, and this page shows how to send them.
 
-Nothing is inferred or synthesised. The card is populated entirely from metrics **your** browser instrumentation reports. If it says *No web vitals reported yet*, your app is not emitting them — this page is how to start.
+:::cards
+- [Send them](#send-them-from-your-app): Forward the web-vitals library's values as OpenTelemetry metrics.
+- [Names OneUptime reads](#metric-names-oneuptime-recognises): The metric names each vital can arrive under.
+- [Single-page apps](#single-page-apps): INP for each view, not one value per page load.
+- [Alert on a vital](#alert-on-a-vital): Ready-made monitors for poor vitals.
+:::
 
-## Why it needs configuration at all
+## How it works
 
-OpenTelemetry has no finalised semantic convention for web vitals. Different SDKs and community integrations picked different metric names, so OneUptime probes a list of known names for each vital and uses the first one that has data.
+The [`web-vitals`](https://github.com/GoogleChrome/web-vitals) library measures each vital in the page, the same library Chrome's own tools use. Your code records each value on an OpenTelemetry histogram, and the browser's metrics pipeline exports it to OneUptime.
 
-That means you do not have to match one exact name — but you do have to use one of the names below.
+```mermaid title="From the page to the Core Web Vitals card"
+flowchart TB
+    lib["web-vitals library<br/>in your page"] -->|"one value per vital"| hist["OpenTelemetry histograms<br/>named web_vital.*"]
+    hist -->|"OTLP metrics"| oneuptime["OneUptime"]
+    oneuptime --> card["Core Web Vitals card<br/>and INP by route"]
+    oneuptime --> monitors["Metrics page<br/>and monitors"]
+```
 
-## Metric names OneUptime recognises
+OpenTelemetry has no final naming convention for web vitals yet, so OneUptime looks for each vital under several names and uses the first one with data. Use the `web_vital.*` names for new instrumentation.
 
-Names are tried in order; the first with data in the selected range wins.
+## Before you begin
 
-| Vital | Metric names (any one) | Unit |
-| --- | --- | --- |
-| **LCP** — Largest Contentful Paint | `web_vital.lcp`, `browser.largest_contentful_paint`, `largest_contentful_paint`, `web.vitals.lcp` | ms |
-| **INP** — Interaction to Next Paint | `web_vital.inp`, `browser.interaction_to_next_paint`, `interaction_to_next_paint`, `web.vitals.inp` | ms |
-| **CLS** — Cumulative Layout Shift | `web_vital.cls`, `browser.cumulative_layout_shift`, `cumulative_layout_shift`, `web.vitals.cls` | score |
-| **FCP** — First Contentful Paint | `web_vital.fcp`, `browser.first_contentful_paint`, `first_contentful_paint`, `web.vitals.fcp` | ms |
-| **TTFB** — Time to First Byte | `web_vital.ttfb`, `browser.time_to_first_byte`, `time_to_first_byte`, `web.vitals.ttfb` | ms |
+- A web app set up as in [Browser Setup](/docs/rum/browser-setup), with its metrics pipeline: the `MeterProvider` from [Add logs and metrics](/docs/rum/browser-setup#add-logs-and-metrics) is what exports these values.
 
-Use the `web_vital.*` names for new instrumentation. The others exist so that an app already emitting a community convention shows up without being rewritten.
+## Send them from your app
 
-## Rating thresholds
-
-These are Google's published Core Web Vitals thresholds, applied to the range average:
-
-| Vital | Good | Needs improvement | Poor |
-| --- | --- | --- | --- |
-| LCP | < 2500 ms | 2500 – 4000 ms | ≥ 4000 ms |
-| INP | < 200 ms | 200 – 500 ms | ≥ 500 ms |
-| CLS | < 0.1 | 0.1 – 0.25 | ≥ 0.25 |
-| FCP | < 1800 ms | 1800 – 3000 ms | ≥ 3000 ms |
-| TTFB | < 800 ms | 800 – 1800 ms | ≥ 1800 ms |
-
-The card shows the mean over the whole selected range, which is **not** the same as the p75 that Google's field tooling reports. That is deliberate: OneUptime reads a histogram's percentiles from its bucket boundaries, so a percentile is only as accurate as your buckets, while the mean comes from the histogram's exact sum and count. With OpenTelemetry's default buckets (`0, 5, 10, 25, 50, …`) every CLS value lands in the `0 – 5` bucket, and a p75 would read 2.5 for a page that barely moves.
-
-Read the card as a trend indicator. For the p75, record with the bucket boundaries below and chart the metric on the Metrics tab with the **P75** aggregation — the same choice is available in a Metrics Monitor.
-
-## Emitting them
-
-The [`web-vitals`](https://github.com/GoogleChrome/web-vitals) library does the measurement — getting LCP, INP and CLS right from scratch is genuinely hard, and it is the same library Chrome's own tooling uses. You only have to forward what it reports.
+:::steps
+### Install the library
 
 ```bash
 npm install web-vitals
 ```
 
-This assumes you already have a metrics pipeline from [Browser Setup](/docs/rum/browser-setup) — the `MeterProvider` is what actually exports these.
+### Record each vital on a histogram
 
-```ts
-// src/web-vitals.ts — import after ./telemetry
+Create `src/web-vitals.ts`. Each vital is a histogram, so the **Metrics** page can work out percentiles later, with bucket edges on Google's good and poor limits.
+
+```ts title="src/web-vitals.ts"
+// Import after ./telemetry
 import { metrics } from "@opentelemetry/api";
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from "web-vitals";
 
@@ -86,16 +76,21 @@ onFCP(record(fcp));
 onTTFB(record(ttfb));
 ```
 
-Then import it once, after your telemetry setup:
+### Import it after your telemetry setup
 
 ```ts
 import "./telemetry";
 import "./web-vitals";
 ```
 
-### A note on timing
+### Check the Metrics page
 
-`onINP` and `onCLS` report on page hide, not during the visit. With the 30-second export interval from the browser guide, a user who closes the tab immediately after the final value may leave before the export happens. If you care about completeness, shorten `exportIntervalMillis`, or keep a reference to the `MeterProvider` you built in `telemetry.ts` and force a flush on `visibilitychange`:
+Load a few pages, then search for `web_vital.lcp` on the application's **Metrics** page. Once the metrics are there, the **Core Web Vitals** card fills in for the range you pick.
+:::
+
+## Send the last values before the page closes
+
+`onINP` and `onCLS` report when the page is hidden, not during the visit. With the 30-second export interval from [Browser Setup](/docs/rum/browser-setup), a visitor who closes the tab right after the last value may leave before it is exported. If completeness matters, shorten `exportIntervalMillis`, or keep the `MeterProvider` you built in `telemetry.ts` and flush it when the page is hidden:
 
 ```ts
 // In telemetry.ts, export the provider you created:
@@ -111,14 +106,52 @@ document.addEventListener("visibilitychange", () => {
 });
 ```
 
+## Metric names OneUptime recognises
+
+OneUptime tries the names in this order, and the first one with data in the selected range wins.
+
+| Vital | Metric names, any one | Unit |
+| --- | --- | --- |
+| LCP: Largest Contentful Paint | `web_vital.lcp`, `browser.largest_contentful_paint`, `largest_contentful_paint`, `web.vitals.lcp` | ms |
+| INP: Interaction to Next Paint | `web_vital.inp`, `browser.interaction_to_next_paint`, `interaction_to_next_paint`, `web.vitals.inp` | ms |
+| CLS: Cumulative Layout Shift | `web_vital.cls`, `browser.cumulative_layout_shift`, `cumulative_layout_shift`, `web.vitals.cls` | score |
+| FCP: First Contentful Paint | `web_vital.fcp`, `browser.first_contentful_paint`, `first_contentful_paint`, `web.vitals.fcp` | ms |
+| TTFB: Time to First Byte | `web_vital.ttfb`, `browser.time_to_first_byte`, `time_to_first_byte`, `web.vitals.ttfb` | ms |
+
+The other names exist so an app that already sends a community convention shows up without changes.
+
+## Rating thresholds
+
+The card rates each value with Google's published Core Web Vitals limits:
+
+| Vital | **Good** | **Needs work** | **Poor** |
+| --- | --- | --- | --- |
+| LCP | below 2500 ms | 2500 to 4000 ms | 4000 ms or more |
+| INP | below 200 ms | 200 to 500 ms | 500 ms or more |
+| CLS | below 0.1 | 0.1 to 0.25 | 0.25 or more |
+| FCP | below 1800 ms | 1800 to 3000 ms | 3000 ms or more |
+| TTFB | below 800 ms | 800 to 1800 ms | 1800 ms or more |
+
+The card shows the **mean** over the selected range, not the 75th percentile that Google's field tools report. That is on purpose: OneUptime reads a histogram's percentiles from its buckets, so a percentile is only as precise as the buckets are, while the mean comes from the histogram's exact sum and count. With OpenTelemetry's default buckets (`0, 5, 10, 25, 50, …`) every CLS value lands in the first bucket, and a 75th percentile would read 2.5 for a page that barely moves.
+
+> [!TIP]
+> Read the card as a trend. For the 75th percentile, record with the bucket edges above, then chart the metric on the **Metrics** page with the **P75** aggregation. A Metrics monitor offers the same choice.
+
 ## Single-page apps
 
-`onINP` measures INP the way the browser defines it: **one value per page load**. A single-page app loads once and then changes route with `history.pushState`, so a visit through `/products`, `/products/42` and `/checkout` produces one INP for the whole visit: every view's interactions compete for that single number, and a route attribute on it names whichever page the tab showed when it was reported, not the page that was slow.
+`onINP` measures INP the way the browser defines it: **one value per page load**. A single-page app loads once and then changes route with `history.pushState`, so a visit to `/products`, `/products/42` and `/checkout` produces one INP for the whole visit. Every view's interactions compete for that single number, and a route attribute on it names whichever page was showing when it was reported, not the page that was slow.
 
-To see INP per view, measure it per view: every route change ends the current view and starts a new one, and each view reports its own INP. The helper below does that with the browser's Event Timing API — the same data `onINP` uses — and handles the part that is easy to get wrong: the click that **caused** a navigation is delivered after the route has already changed, but it belongs to the page it was clicked on.
+```mermaid title="One INP per visit, or one per view"
+flowchart TB
+    visit["One visit: /products,<br/>/products/:id, /checkout"]
+    visit -->|"onINP"| one["One INP for<br/>the whole visit"]
+    visit -->|"per-view helper"| each["One INP per view,<br/>each with app.route"]
+```
 
-```ts
-// src/inp-per-route.ts — INP for each view of a single-page app.
+To see INP per view, measure it per view: every route change ends the current view and starts a new one, and each view reports its own INP. The helper below does that with the browser's Event Timing API, the same data `onINP` uses, and handles the part that is easy to get wrong: the click that **caused** a navigation is delivered after the route has already changed, but it belongs to the page it was clicked on.
+
+```ts title="src/inp-per-route.ts"
+// INP for each view of a single-page app.
 type Report = (inpMs: number, route: string) => void;
 
 interface View {
@@ -196,7 +229,7 @@ export function startView(route: string): void {
 }
 ```
 
-Both functions take the route **pattern**, never the URL: `/products/42` and `/products/7` must be one route, or every product becomes its own series. Use your router's pattern where it has one; otherwise collapse the ids yourself:
+Both functions take the route **pattern**, never the URL: `/products/42` and `/products/7` must be one route, or every product becomes a series of its own. Use your router's pattern where it has one; otherwise collapse the ids yourself:
 
 ```ts
 // "/products/42" -> "/products/:id", also for UUIDs.
@@ -204,7 +237,7 @@ export const toRoutePattern = (path: string): string =>
   path.replace(/\/(\d+|[0-9a-f]{8}-[0-9a-f-]{27})(?=\/|$)/gi, "/:id");
 ```
 
-Record what the helper reports on the same `web_vital.inp` histogram, with the route as `app.route`, and **drop `onINP`** from the snippet above — keeping both would count every interaction twice:
+Record what the helper reports on the same `web_vital.inp` histogram, with the route as `app.route`, and **drop `onINP`** from the snippet above: keeping both would count every interaction twice.
 
 ```ts
 // src/web-vitals.ts, in place of onINP(record(inp))
@@ -218,32 +251,35 @@ observeInpPerRoute(toRoutePattern(location.pathname), (inpMs, route) => {
 });
 ```
 
-Then call `startView` wherever your router announces a finished navigation. It ignores a call when the URL path has not changed, so a router that also reports the initial load, or a query-string update, does not split the view:
+Then call `startView` wherever your router announces a finished navigation. It ignores a call when the URL path has not changed, so a router that also reports the first load, or a query-string update, does not split the view:
 
+:::tabs
+@tab Vue Router
 ```ts
-// Vue Router
 router.afterEach((to) => startView(to.matched[to.matched.length - 1]?.path ?? toRoutePattern(to.path)));
 ```
-
+@tab React Router
 ```tsx
-// React Router: in a component that stays mounted inside the router
+// In a component that stays mounted inside the router
 const { pathname } = useLocation();
 useEffect(() => startView(toRoutePattern(pathname)), [pathname]);
 ```
+:::
 
 What you get:
 
-- **INP by route** on the overview, slowest first, from `app.route` (OneUptime also reads OpenTelemetry's `url.template`).
-- A route filter for alerting: in a Metrics Monitor on `web_vital.inp`, filter on `app.route` to watch one flow, such as `/checkout`, on its own.
-- The app-wide INP on the Core Web Vitals card keeps working — it is the same metric, now with one sample per view instead of one per page load.
+- **INP by route** on the overview, slowest first, from `app.route`; OneUptime also reads OpenTelemetry's `url.template`.
+- A route filter for alerting: filter a Metrics monitor on `web_vital.inp` by `app.route` to watch one flow, such as `/checkout`, on its own.
+- The app-wide INP on the **Core Web Vitals** card keeps working: it is the same metric, now with one value per view instead of one per page load.
 
-Chromium-based browsers report the interaction ids this needs; Safari reports none, which is also why `onINP` reports nothing there. Chrome's experimental Soft Navigations API aims to do this natively, but it is not generally available — this helper works today.
+Chromium browsers report the interaction ids this needs. Safari reports none, which is also why `onINP` reports nothing there. Chrome's experimental Soft Navigations API aims to do this natively, but it is not generally available; this helper works today.
 
-> **Using Session Replay?** The replay recorder already measures INP per view, with no code: each recording shows an INP row for every route the user interacted on, with the slow element and how its time split into input delay, processing and presentation. See [Session Replay](/docs/telemetry/session-replay).
+> [!NOTE]
+> The [Session Replay](/docs/telemetry/session-replay) recorder already measures INP per view, with no code: each recording shows an INP row for every route the user interacted on, with the slow element and how its time split into input delay, processing and presentation.
 
 ## Keeping cardinality under control
 
-Metric attributes multiply. `web_vital.rating` has three possible values, which is fine. A route or page-type attribute is usually worth it:
+Metric attributes multiply. `web_vital.rating` has three possible values, which is fine, and a route or page-type attribute is usually worth it:
 
 ```ts
 histogram.record(metric.value, {
@@ -252,10 +288,48 @@ histogram.record(metric.value, {
 });
 ```
 
-Recording the concrete URL instead of the route pattern creates one time series per product page, which will make the Metrics tab slow and the storage bill large. The same applies to user ids, session ids and screen sizes.
+Recording the concrete URL instead of the route pattern creates one time series per product page, which makes the **Metrics** page slow and the storage bill large. The same goes for user ids, session ids and screen sizes.
 
-## Checking your work
+## Alert on a vital
 
-Web vitals are ordinary metrics, so they are queryable on the application's **Metrics** tab before the overview card picks them up. Search for `web_vital.lcp` there: if the metric is present but the card is blank, the range you selected has no data in it; if the metric is absent, the export never arrived — start at [Troubleshooting](/docs/rum/troubleshooting).
+The application's **Recommendations** page offers a ready-made monitor for each vital. Each one reads the five-minute average of its metric and fires when it reaches Google's poor limit:
 
-You can also alert on them like any other metric, with a **Metrics Monitor** — for example, "LCP over the last hour is above 4000 ms". The RUM application's monitor recommendations include a ready-made **Poor Interaction to Next Paint** monitor on `web_vital.inp`; add an `app.route` filter to it to alert on a single route. See [Metrics Monitor](/docs/monitor/metrics-monitor).
+| Recommendation | Metric | Fires at | Severity |
+| --- | --- | --- | --- |
+| **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 ms | **Critical** |
+| **Poor Interaction to Next Paint** | `web_vital.inp` | 500 ms | **Critical** |
+| **Poor Cumulative Layout Shift** | `web_vital.cls` | 0.25 | **Critical** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Warning** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Warning** |
+
+These monitors read the `web_vital.*` names only. If your app sends a vital under another name, edit the created monitor's metric. To alert on one route, add an `app.route` filter to the monitor. You can also build your own monitor on any of these metrics: see [Metrics Monitor](/docs/monitor/metrics-monitor).
+
+## Troubleshooting
+
+:::details The card says No web vitals reported yet
+The card fills only from metrics your app sends. Check, in order:
+
+1. You have a metrics pipeline at all: traces alone never fill this card.
+2. The metric names are ones OneUptime reads: see [Metric names OneUptime recognises](#metric-names-oneuptime-recognises).
+3. The metrics are on the application's **Metrics** page. If they are, the export works, and the problem is the name or the time range.
+4. INP and CLS are reported when the page is hidden, so a short visit can end before the next export: see [Send the last values before the page closes](#send-the-last-values-before-the-page-closes).
+
+If none of these helps, [RUM Troubleshooting](/docs/rum/troubleshooting) checks the whole pipeline.
+:::
+
+:::details INP is reported, but not per route
+The **INP by route** card needs the `app.route` attribute, or `url.template`, on `web_vital.inp`. Record the route pattern with each value as in [Single-page apps](#single-page-apps).
+:::
+
+:::details The values differ from Google's report
+The card shows the mean over the range you picked, and Google reports the 75th percentile of its own visitors. Chart the **P75** on the **Metrics** page to compare like with like.
+:::
+
+## Next steps
+
+:::cards
+- [Browser Setup](/docs/rum/browser-setup): The traces, logs and metrics pipeline these vitals ride on.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on any vital, for the whole app or one route.
+- [Session Replay](/docs/telemetry/session-replay): See INP per view in recordings, with no code.
+- [RUM Troubleshooting](/docs/rum/troubleshooting): Every check, in the order problems usually happen.
+:::

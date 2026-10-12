@@ -1,20 +1,50 @@
 # Browser Setup
 
-Instrument a web application with the OpenTelemetry browser SDK so it reports to OneUptime as a RUM application.
+Instrument a web app with the OpenTelemetry browser SDK so it reports to OneUptime as a RUM application. Page loads and requests arrive as traces, and the same setup carries your errors, logs, metrics and Core Web Vitals.
 
-## Prerequisites
+:::cards
+- [Set it up](#set-it-up): Six steps from a Browser key to your first page load.
+- [Link to your backend](#linking-to-your-backend-traces): Join browser spans to the backend traces they start.
+- [Report errors](#report-uncaught-errors): Send uncaught errors to the Exceptions view.
+- [Troubleshooting](#troubleshooting): What to check when nothing arrives.
+:::
 
-A **Telemetry Ingestion Token**. In the dashboard, go to _Project Settings → Telemetry & APM → Ingestion Keys_ and click **Create Ingestion Key**. Pick **Browser**, then list the origins your pages are served from on the **Browser Settings** step, and create the key.
+## How it works
 
-![Telemetry Ingestion Keys](/docs/static/images/TelemetryIngestionKeys.png)
+The SDK runs in your visitors' browsers. It records a span for each page load and request, and exports them straight to OneUptime with a **Browser** ingestion key, with no collector or proxy of your own in between.
 
-The new key opens on its own page, where you can copy the token.
+```mermaid title="Where the browser's telemetry goes"
+flowchart TB
+    page["Your web page"] --> sdk["OpenTelemetry<br/>browser SDK"]
+    sdk -->|"Browser key"| oneuptime["OneUptime"]
+    sdk -->|"traceparent"| api["Your API"]
+    api -->|"backend spans"| oneuptime
+    oneuptime --> app["RUM application"]
+```
 
-![View Telemetry Ingestion Key](/docs/static/images/TelemetryIngestionKeyView.png)
+## Before you begin
 
-The token is embedded in your page's JavaScript, so treat it as public. It grants ingestion only — it cannot read anything out of your project. If you also enable [Session Replay](/docs/telemetry/session-replay), set an origin allowlist there so a copied token cannot be used to write recordings into your project.
+- A web app whose code you can change and redeploy, with its dependencies installed through npm.
+- The origins your pages are served from, such as `https://app.example.com`. A Browser key accepts requests only from the origins you list on it.
+- A role that can create ingestion keys: project owners and admins can, and so can anyone with the **Create Telemetry Ingestion Key** permission.
 
-## Install
+## Set it up
+
+:::steps
+### Create a Browser ingestion key
+
+1. Go to **Products → Project Settings**.
+2. In the side menu, open **Telemetry & APM** and select **Ingestion Keys**.
+3. Click **Create Ingestion Key**, and pick **Browser** as the **Key Type**.
+4. On the **Browser Settings** step, list your origins in **Allowed Origins** as a JSON array, such as `["https://app.example.com"]`, then create the key. On OneUptime Cloud's Free plan, a last **Billing** step shows the telemetry price first.
+
+![The Telemetry Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+
+The new key opens on its own page. Copy its **Secret Key**: it is the token the SDK sends as `x-oneuptime-token`.
+
+![A telemetry ingestion key's page, showing its Secret Key](/docs/static/images/TelemetryIngestionKeyView.png)
+
+### Install the packages
 
 ```bash
 npm install @opentelemetry/api \
@@ -30,12 +60,11 @@ npm install @opentelemetry/api \
   @opentelemetry/instrumentation-xml-http-request
 ```
 
-## Configure
+### Create the telemetry file
 
-Create `src/telemetry.ts` and import it **before anything else** in your entry point — instrumentations patch `fetch` and `XMLHttpRequest`, and anything that runs before the patch is not traced.
+Create `src/telemetry.ts`. `browserDetector` adds the `browser.*` attributes that file the telemetry as RUM, and `service.name` names the application.
 
-```ts
-// src/telemetry.ts
+```ts title="src/telemetry.ts"
 import {
   WebTracerProvider,
   BatchSpanProcessor,
@@ -55,6 +84,7 @@ import { browserDetector } from "@opentelemetry/opentelemetry-browser-detector";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 const ONEUPTIME_URL = "https://oneuptime.com";
+// Public: it ships in your page. It must be a Browser ingestion key.
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
@@ -91,7 +121,7 @@ registerInstrumentations({
   instrumentations: [
     new DocumentLoadInstrumentation(),
     new FetchInstrumentation({
-      // See "Linking to your backend traces" below before widening this.
+      // See "Linking to your backend traces" before widening this.
       propagateTraceHeaderCorsUrls: [/^https:\/\/api\.example\.com/],
     }),
     new XMLHttpRequestInstrumentation({
@@ -101,7 +131,9 @@ registerInstrumentations({
 });
 ```
 
-Then, as the **first** import of your app:
+### Import it first
+
+Make it the first import of your app. The instrumentations patch `fetch` and `XMLHttpRequest`, and a request made before the patch is not traced.
 
 ```ts
 // src/index.tsx (React), src/main.ts (Vue / Angular), etc.
@@ -110,15 +142,46 @@ import React from "react";
 // ... the rest of your app
 ```
 
-Load a page. Within a minute the application appears under **Resources → Real User Monitoring**, named after its `service.name`.
+### Check the key
+
+Ask OneUptime whether it accepts the key before you look anywhere else:
+
+```bash
+curl -i https://oneuptime.com/otlp/v1/validate \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
+```
+
+`200` with `"valid": true` means the key is accepted; for a Browser key the message adds that it works only from a browser, from one of its allowed origins. `401` means the key is unknown, revoked, switched off or expired.
+
+### Load a page
+
+Open your site. Within a minute the application appears under **Products → Resources → Real User Monitoring**, named after its `service.name`.
+:::
+
+## What a Browser key allows
+
+Everything in the snippet ships to your visitors, so anyone can copy the token from your page. A Browser key limits what a copy can do:
+
+| Setting | What it does |
+| --- | --- |
+| **Allowed Origins** | Requests are accepted only from these origins, each with its scheme and any port. A host may start with one `*.` wildcard: `https://*.example.com` covers every subdomain of `example.com`, but not `example.com` itself. |
+| **Requests Per Minute Limit** | One ceiling for every visitor using the key: 6000 requests per minute unless you set your own. |
+| **Pinned Service Name** | Forces `service.name` on everything the key writes, so a copy cannot pass its telemetry off as one of your backend services. |
+| **Expires At** | The key stops being accepted after this date. |
+| **Enabled** | Switch it off to stop a leaked key at once. |
+
+A Browser key writes OTLP traces, logs and metrics, and session replays; every other ingest route refuses it. You change these settings on the key's own page. The key type cannot be changed after the key is created.
+
+> [!WARNING]
+> Never put a **Server** key in a page. A Server key writes every kind of telemetry from anywhere, with no origin check, so anyone who reads your page could write into your project.
 
 ## Setting `browser.*` without the detector
 
-`browserDetector` reads the [UA Client Hints API](https://wicg.github.io/ua-client-hints/). That API is Chromium-only, so on Safari and Firefox the detector sets `browser.language` and `user_agent.original` but **not** `browser.platform`, `browser.brands` or `browser.mobile`.
+`browserDetector` reads the [UA Client Hints API](https://wicg.github.io/ua-client-hints/), which only Chromium browsers have. On Safari and Firefox it sets `browser.language` and `user_agent.original`, but not `browser.platform`, `browser.brands` or `browser.mobile`.
 
-That is still enough for classification — `browser.language` alone marks the batch as browser RUM — but the **Clients** tab is populated from `browser.platform`, so Safari and Firefox traffic will not produce a client row unless you supply it yourself.
+That is still enough to file the telemetry as RUM, because `browser.language` alone marks a batch as browser RUM. The **Clients** page lists platforms from `browser.platform`, though, so Safari and Firefox visits add no row there.
 
-If you would rather not add the detector dependency at all, or you want a platform value on every browser, set the attributes directly:
+To skip the detector, or to give every browser a platform, set the attributes yourself:
 
 ```ts
 const resource = defaultResource().merge(
@@ -134,11 +197,11 @@ const resource = defaultResource().merge(
 );
 ```
 
-Keep `browser.platform` coarse. It is a **resource** attribute, so every distinct value becomes a row on the Clients tab — putting a full user-agent string or a per-user value there produces an unbounded list and is a privacy problem besides.
+Keep `browser.platform` coarse. Every distinct value becomes a row on the **Clients** page, so a full user-agent string or a per-user value there makes an endless list, and is a privacy problem too.
 
-## Single-page apps
+## Trace route changes
 
-`DocumentLoadInstrumentation` traces the initial load only. In a SPA the subsequent route changes are invisible unless you emit them yourself, which is usually a few lines in your router:
+`DocumentLoadInstrumentation` traces the first load only. In a single-page app, route changes stay invisible until you record them, which takes a few lines in your router:
 
 ```ts
 import { trace } from "@opentelemetry/api";
@@ -156,13 +219,16 @@ function onRouteChange(to: string): void {
 }
 ```
 
-`@opentelemetry/instrumentation-user-interaction` is worth adding if you want clicks and other DOM events traced too.
+Add `@opentelemetry/instrumentation-user-interaction` to trace clicks and other DOM events too. For INP on each route, see [Single-page apps](/docs/rum/web-vitals#single-page-apps).
 
 ## Linking to your backend traces
 
-`propagateTraceHeaderCorsUrls` decides which cross-origin requests get a W3C `traceparent` header, joining the browser span to the backend trace it triggered.
+`propagateTraceHeaderCorsUrls` decides which cross-origin requests carry a W3C `traceparent` header, which joins the browser span to the backend trace it started. Requests to your page's own origin carry it with no configuration.
 
-**Do not set it to `/.*/`.** Adding a header turns a simple cross-origin request into a preflighted one, and any third-party API that does not list `traceparent` in its `Access-Control-Allow-Headers` will start failing — because you installed instrumentation. List only origins you control and have configured:
+> [!WARNING]
+> Do not set it to `/.*/`. The header turns a simple cross-origin request into a preflighted one, so any third-party API that does not list `traceparent` in its `Access-Control-Allow-Headers` starts failing.
+
+List only origins you control and have configured:
 
 ```ts
 new FetchInstrumentation({
@@ -173,7 +239,7 @@ new FetchInstrumentation({
 });
 ```
 
-Same-origin requests are propagated without any configuration. With [Session Replay](/docs/telemetry/session-replay) installed they also carry the replay's session id, which links your backend telemetry to the recording; see [Joining traces to session replay](#joining-traces-to-session-replay).
+With [Session Replay](/docs/telemetry/session-replay) installed, requests to your own origin also carry the replay's session id, which files your backend telemetry under the recording: see [Joining traces to session replay](#joining-traces-to-session-replay).
 
 ## Joining traces to session replay
 
@@ -181,10 +247,9 @@ If you also run [Session Replay](/docs/telemetry/session-replay), your **backend
 
 The recorder also reads back the `traceparent` your instrumentations set, whether the call passes a URL (with or without an init object) or a `Request` object, so each request row in the replay links to its backend trace. For an API on another origin, list it in `propagateTraceHeaderCorsUrls` above; its requests carry no session id and join the recording by trace id. **Trace propagation origins** in the application's replay policy does the same for pages *without* this SDK.
 
-What the headers do not reach is this SDK's own browser spans: document loads, route changes and the errors you report. To file those under the recording as well, stamp `session.id` on each span as it starts. The recorder tells you the id through `onSessionChange`, which fires immediately if a session already exists and again whenever the id rotates (after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first):
+What the headers do not reach is this SDK's own browser spans: document loads, route changes and the errors you report. To file those under the recording as well, stamp `session.id` on each span as it starts. The recorder tells you the id through `onSessionChange`, which fires at once if a session already exists, and again whenever the id changes: when the visitor comes back after 30 minutes idle, at the 4-hour cap, when `identify()` names a different user, or when another tab of the same visitor changed it first.
 
-```ts
-// src/replaySession.ts
+```ts title="src/replaySession.ts"
 import type { Context } from "@opentelemetry/api";
 import type {
   ReadableSpan,
@@ -251,17 +316,17 @@ Spans started after that carry the id, the replay player's **Traces** tab lists 
 
 ## Content Security Policy
 
-If your site sends a CSP, the exporter's requests are blocked until you allow OneUptime. There is no error you can see from your own machine — the page simply reports nothing.
+If your site sends a Content Security Policy, the browser blocks the exporter's requests until you allow OneUptime in `connect-src`. Nothing fails where you can see it: the page simply reports nothing.
 
-```
+```text
 connect-src 'self' https://oneuptime.com;
 ```
 
-Self-hosted: use your own host instead.
+Merge it into your existing `connect-src` directive. If you host OneUptime yourself, use your own host.
 
-## Errors and exceptions
+## Report uncaught errors
 
-Uncaught errors are not captured automatically by the OpenTelemetry browser SDK. Report them explicitly so they roll into the **Exceptions** view alongside your backend errors:
+The OpenTelemetry browser SDK does not capture uncaught errors. Report them yourself, and they appear under **Exceptions** next to your backend errors:
 
 ```ts
 import { trace, SpanStatusCode } from "@opentelemetry/api";
@@ -285,11 +350,11 @@ window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => 
 });
 ```
 
-If you use [Session Replay](/docs/telemetry/session-replay), its recorder captures uncaught errors on its own and marks them on the replay's timeline, and the exception page then offers a **Watch what the user saw** card that opens the replay ten seconds before the error. Under the default policy the session is recorded whether or not anything throws; the error only decides where the card points.
+With [Session Replay](/docs/telemetry/session-replay), the recorder also captures uncaught errors and marks them on the replay's timeline. The exception's page then shows a **Watch what the user saw** card, which opens the replay ten seconds before the error. With the default policy every session is recorded, whether or not anything throws; the error only decides where the card opens.
 
-## Logs and metrics (optional)
+## Add logs and metrics
 
-Traces are enough to populate the overview. Add the log and metric pipelines if you want browser logs searchable in OneUptime, or if you want [Core Web Vitals](/docs/rum/web-vitals).
+Traces are enough to fill the overview. Add the log and metric pipelines when you want browser logs in OneUptime, or to send [Core Web Vitals](/docs/rum/web-vitals):
 
 ```bash
 npm install @opentelemetry/api-logs @opentelemetry/sdk-logs \
@@ -337,11 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-Reuse the same `resource` object. A logs or metrics pipeline built with a resource that lacks `browser.*` will be filed as a separate backend Service.
-
-## Self-hosted OneUptime
-
-Replace `https://oneuptime.com` with your own host everywhere above — the OTLP URLs and the CSP entry. Nothing else changes.
+Build them with the same `resource` object. A log or metric pipeline whose resource lacks `browser.*` is filed as a separate backend service.
 
 ## Endpoint reference
 
@@ -351,4 +412,45 @@ Replace `https://oneuptime.com` with your own host everywhere above — the OTLP
 | Metrics | `POST {host}/otlp/v1/metrics` | `x-oneuptime-token: <token>` |
 | Logs | `POST {host}/otlp/v1/logs` | `x-oneuptime-token: <token>` |
 
-Both OTLP/JSON and OTLP/protobuf are accepted. The endpoints answer cross-origin requests from any origin and allow the `x-oneuptime-token` header, so a browser can export to them directly — no collector or proxy of your own is required.
+`{host}` is `https://oneuptime.com`, or your own host if you run OneUptime yourself; change it in the OTLP URLs and in the Content Security Policy entry. OneUptime accepts OTLP/JSON and OTLP/protobuf. The endpoints answer cross-origin requests from any origin and allow the `x-oneuptime-token` header, so a browser exports to them directly.
+
+## Troubleshooting
+
+:::details No request to OneUptime in the Network tab
+Open your browser's developer tools, go to the Network tab and filter for `otlp`: you are looking for `POST /otlp/v1/traces`. No request at all means the SDK never started:
+
+- `telemetry.ts` is not the first import, or your bundler dropped it.
+- The batch processor has not exported yet. It waits a few seconds to fill a batch, so wait, or move to another page, before you decide nothing is sent.
+- A build-time environment variable came out as `undefined`, so the exporter's URL is broken. Log the URL once at startup.
+:::
+
+:::details The browser blocks the request
+- A Content Security Policy error in the console means `connect-src` does not allow OneUptime yet: see [Content Security Policy](#content-security-policy).
+- A CORS error almost always means the request never reached OneUptime, whose endpoints allow any origin: look for a corporate proxy, an ad blocker or a typo in the host.
+:::
+
+:::details OneUptime refuses the request
+- `422` with `Origin https://app.example.com is not allowed for this browser ingestion key.` means the page's exact origin (scheme, host and port) is missing from the key's **Allowed Origins**.
+- `422` with `This telemetry ingestion key has been disabled.` means someone switched the key off. Turn it back on, or use another key.
+- `401` means the key is unknown, revoked or expired. Run the key check in [Set it up](#set-it-up), then create a live Browser key.
+- `404` means the URL is wrong. The trace exporter needs the full path, `/otlp/v1/traces`.
+:::
+
+:::details The app shows up under Services instead of Real User Monitoring
+The resource has no `browser.*` attribute, so the telemetry was filed as a backend service. Add `browserDetector`, or set the attributes as in [Setting `browser.*` without the detector](#setting-browser-without-the-detector).
+
+Check what you send in the Network tab, in the request's payload: `resourceSpans[0].resource.attributes` is the list that decides it. The service that was already created does not turn into a RUM application, so delete it under **Products → Services** once RUM telemetry arrives.
+:::
+
+:::details The Clients page is empty on Safari or Firefox
+Client rows come from `browser.platform`, which `browserDetector` sets only on Chromium browsers. Set it yourself to list Safari and Firefox visits: see [Setting `browser.*` without the detector](#setting-browser-without-the-detector).
+:::
+
+## Next steps
+
+:::cards
+- [Core Web Vitals](/docs/rum/web-vitals): Send LCP, INP, CLS, FCP and TTFB from the same page.
+- [Session Replay](/docs/telemetry/session-replay): Record what the user saw, next to these traces.
+- [Managing Applications](/docs/rum/applications): Names, labels, owners and retention.
+- [RUM Troubleshooting](/docs/rum/troubleshooting): Every check, in the order problems usually happen.
+:::

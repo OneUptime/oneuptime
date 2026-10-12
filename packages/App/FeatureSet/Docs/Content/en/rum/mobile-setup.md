@@ -1,23 +1,46 @@
 # Mobile Setup
 
-Instrument an Android, iOS or React Native app so it reports to OneUptime as a mobile RUM application.
+Instrument an Android, iOS or React Native app with OpenTelemetry so it reports to OneUptime as a mobile RUM application. Any other platform with an OpenTelemetry SDK works the same way.
+
+:::cards
+- [What OneUptime needs](#what-oneuptime-needs): Two resource attributes, sent with a Server key.
+- [Set up your platform](#set-up-your-platform): Android, iOS, React Native and the rest.
+- [Check that it arrives](#check-that-it-arrives): Test the key, then find the app.
+- [Session Replay on mobile](#session-replay-on-mobile): Recordings for React Native apps.
+:::
+
+## How it works
+
+Your app exports OTLP straight to OneUptime with a **Server** ingestion key. The `device.*` attributes on its resource are what file it as mobile RUM rather than as a backend service.
+
+```mermaid title="What a mobile app sends, and with which key"
+flowchart TB
+    app["Your mobile app"] --> sdk["OpenTelemetry SDK<br/>with device.* attributes"]
+    sdk -->|"OTLP with<br/>a Server key"| oneuptime["OneUptime"]
+    oneuptime --> rum["Mobile RUM application"]
+    replay["React Native<br/>replay SDK"] -->|"recordings with<br/>a Browser key"| oneuptime
+```
 
 ## What OneUptime needs
 
-Two things, and only two:
+Two resource attributes, on every batch your app exports:
 
-1. **`service.name`** — the application's identity, e.g. `storefront-android`.
-2. **`device.id` or `device.model.identifier`** — this is what marks the telemetry as *mobile* rather than as a backend service.
+| Attribute | What it is |
+| --- | --- |
+| `service.name` | The application's identity, such as `storefront-android`. |
+| `device.id` or `device.model.identifier` | Marks the telemetry as mobile RUM. `device.model.identifier` also fills the **Clients** page. |
 
-Both are **resource** attributes, and both must be on every batch you export. If the device attributes are missing, the telemetry still arrives and is still queryable — it is just filed as a backend Service instead of a RUM application.
+Without a device attribute, the telemetry still arrives and you can query it, but it is filed as a backend service instead of a RUM application.
 
-`device.manufacturer` also marks a batch as mobile, but only on a resource that carries no `host.name` or `host.id` — it doubles as the make of a physical machine on a host's inventory item. Set `device.id` or `device.model.identifier` as well, as every recipe below does, and the distinction never comes up.
+`device.manufacturer` marks a batch as mobile too, but only on a resource with no host identity, because a host's inventory reports the make of a machine with it. Set `device.id` or `device.model.identifier` as well, as every recipe below does, and this never matters.
 
-`device.id` should be an install-scoped identifier, not an advertising ID or anything that identifies a person. It is used for grouping, never displayed as an identity.
+Make `device.id` an install-scoped identifier, never an advertising ID or anything else that identifies a person. OneUptime reads it only to recognise mobile telemetry.
 
-## Common configuration
+## Before you begin
 
-Every OpenTelemetry mobile SDK reads the standard environment / configuration keys, so the OneUptime side is the same everywhere:
+- An app with an OpenTelemetry SDK: the OpenTelemetry Java SDK or OpenTelemetry Android, opentelemetry-swift, or the OpenTelemetry JavaScript SDK for React Native.
+- A **Server** ingestion key, created under **Project Settings → Telemetry & APM → Ingestion Keys** with **Create Ingestion Key**. A **Browser** key is refused from a mobile app: it is checked against the `Origin` header, which mobile SDKs do not send.
+- These OTLP settings. If you host OneUptime yourself, replace `https://oneuptime.com` with your own host.
 
 | Setting | Value |
 | --- | --- |
@@ -27,59 +50,64 @@ Every OpenTelemetry mobile SDK reads the standard environment / configuration ke
 | Metrics | `POST https://oneuptime.com/otlp/v1/metrics` |
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
-Create the token in _Project Settings → Telemetry & APM → Ingestion Keys_. Self-hosted: replace the host with your own.
+> [!WARNING]
+> The key ships inside your app, and an app can be unpacked, so assume someone will copy it. On the key's page, set a **Pinned Service Name** so a copy cannot write under your backend services' names, add a **Requests Per Minute Limit** and an **Expires At** date, and rotate the key with your releases.
 
-Because a shipped mobile binary cannot have its token rotated quickly, treat it the same way you treat the browser token — it is an ingestion-only credential and it is effectively public.
+## Set up your platform
 
-> The snippets below show the shape of the configuration. The mobile OpenTelemetry SDKs are pre-1.0 and their builder APIs change between releases, so check the exact method names against the version you are pinning. What OneUptime requires — the endpoint, the header, `service.name` and one `device.*` attribute — does not change.
+The snippets show the shape of the setup. The mobile OpenTelemetry SDKs change their APIs between releases, so check the method names against the version you pin. What OneUptime needs never changes: the endpoint, the header, `service.name` and one `device.*` attribute.
 
-## Android
+:::tabs
+@tab Android
+Use the OpenTelemetry Java SDK and its OTLP exporter, which run on Android:
 
-Add the [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent:
-
-```kotlin
-// app/build.gradle.kts
+```kotlin title="app/build.gradle.kts"
 dependencies {
-    implementation("io.opentelemetry.android:android-agent:<latest>")
+    implementation(platform("io.opentelemetry:opentelemetry-bom:<latest>"))
+    implementation("io.opentelemetry:opentelemetry-sdk")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 }
 ```
 
-```kotlin
-// Application.onCreate()
-val config = OtelRumConfig()
+```kotlin title="StorefrontApplication.kt"
+import android.app.Application
+import android.os.Build
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
+import io.opentelemetry.sdk.OpenTelemetrySdk
+import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.SdkTracerProvider
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 
-val rum = OpenTelemetryRum.builder(this, config)
-    .addSpanExporterCustomizer {
-        OtlpHttpSpanExporter.builder()
+class StorefrontApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        val resource = Resource.getDefault().toBuilder()
+            .put("service.name", "storefront-android")
+            .put("device.manufacturer", Build.MANUFACTURER)
+            .put("device.model.identifier", Build.MODEL)
+            .build()
+
+        val exporter = OtlpHttpSpanExporter.builder()
             .setEndpoint("https://oneuptime.com/otlp/v1/traces")
             .addHeader("x-oneuptime-token", BuildConfig.ONEUPTIME_TOKEN)
             .build()
+
+        OpenTelemetrySdk.builder()
+            .setTracerProvider(
+                SdkTracerProvider.builder()
+                    .setResource(resource)
+                    .addSpanProcessor(BatchSpanProcessor.builder(exporter).build())
+                    .build()
+            )
+            .buildAndRegisterGlobal()
     }
-    .addResourceCustomizer { resource, _ ->
-        resource.toBuilder()
-            .put("service.name", "storefront-android")
-            .build()
-    }
-    .build()
-```
-
-The Android agent's own resource provides `device.model.identifier`, `device.manufacturer` and an install-scoped `device.id`, so classification works without extra configuration. **Verify it on your version** — if the Clients tab stays empty while Traces fill up, the device attributes are what is missing, and you can add them in the same `addResourceCustomizer` block.
-
-If you build the SDK manually rather than using the agent, set them yourself:
-
-```kotlin
-.addResourceCustomizer { resource, _ ->
-    resource.toBuilder()
-        .put("service.name", "storefront-android")
-        .put("device.manufacturer", Build.MANUFACTURER)
-        .put("device.model.identifier", Build.MODEL)
-        .build()
 }
 ```
 
-## iOS / Swift
-
-Use [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift):
+The [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) agent adds automatic instrumentation on top, and sets device attributes on its own resource. If you use it, point its exporter at the same endpoint and header, and check that `device.model.identifier` reaches the resource on your version.
+@tab iOS
+Use [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), and set the device attributes yourself: the resource each version adds on its own has changed between releases.
 
 ```swift
 let resource = Resource(attributes: [
@@ -104,11 +132,9 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-Setting the device attributes explicitly, as above, is the reliable path on iOS — the exact resource a given SDK version contributes has changed between releases.
-
-## React Native / Expo
-
-React Native runs the JavaScript SDK, so the setup is the [browser one](/docs/rum/browser-setup) with two differences: there is no `browserDetector` (no `navigator.userAgentData`), and you must supply the device attributes yourself so the telemetry classifies as mobile rather than as a backend service.
+`UIDevice.current.model` gives a short name such as `iPhone`, which keeps the **Clients** page to one row per kind of device.
+@tab React Native
+React Native runs the OpenTelemetry JavaScript SDK, so build the provider, the OTLP exporter and the batch processor as in [Browser Setup](/docs/rum/browser-setup), with three changes: send with a **Server** key, leave out `browserDetector` and `DocumentLoadInstrumentation`, and set the device attributes yourself.
 
 ```ts
 import { Platform } from "react-native";
@@ -122,17 +148,16 @@ const resource = defaultResource().merge(
   resourceFromAttributes({
     "service.name": "storefront-mobile",
     "device.manufacturer": Device.manufacturer ?? Platform.OS,
-    "device.model.identifier": Device.modelId ?? "unknown",
+    "device.model.identifier":
+      Device.modelId ?? Device.modelName ?? "unknown",
     "telemetry.sdk.language": "webjs",
   }),
 );
 ```
 
-Everything else — the OTLP exporter, the batch processor, the provider registration — is identical to the browser guide.
-
-## Any other platform
-
-There is nothing Android- or iOS-specific in the ingest path. Flutter, Unity, .NET MAUI, an embedded client, or a hand-rolled OTLP writer all work as long as the resource carries `service.name` plus one `device.*` attribute. The environment-variable form works for any SDK that reads it:
+`Device.modelId` is set on iOS only, so Android falls back to `Device.modelName`.
+@tab Other platforms
+Flutter, Unity, .NET MAUI, an embedded client or an OTLP writer of your own all work, as long as the resource carries `service.name` and one `device.*` attribute. An SDK that reads the standard OpenTelemetry environment variables takes these as they are:
 
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT="https://oneuptime.com/otlp"
@@ -140,19 +165,69 @@ OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN"
 OTEL_RESOURCE_ATTRIBUTES="service.name=storefront-mobile,device.manufacturer=Acme,device.model.identifier=AC-100"
 ```
 
-## Verifying
+The SDK adds `/v1/traces`, `/v1/metrics` and `/v1/logs` to the endpoint itself.
+:::
 
-Check the token before you go hunting through SDK configuration:
+## Check that it arrives
+
+:::steps
+### Test the key
+
+Before you look through the SDK's settings, ask OneUptime whether it accepts the key:
 
 ```bash
 curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` with `"valid": true` means the token resolves to a project. `401` means the token is wrong, and no amount of SDK configuration will help.
+`200` with `"valid": true` means the key is accepted. A Browser key answers `200` too, but its message says it works only from a browser: a mobile app needs a Server key. `401` means the key is unknown, revoked, switched off or expired, and no SDK setting will fix that.
 
-Then load the app. It appears under **Resources → Real User Monitoring** on its first batch of telemetry. If it appears under Services instead, the `device.*` attributes are not reaching the resource — see [Troubleshooting](/docs/rum/troubleshooting).
+### Launch the app
 
-## What is not available on mobile
+Run the app and use it for a moment. It appears under **Products → Resources → Real User Monitoring** on its first batch of telemetry, named after its `service.name`.
 
-Session Replay is browser-only. It is a DOM recorder loaded via a script tag, so it has nothing to record in a native app. Mobile applications get traces, logs, metrics, exceptions and the Clients inventory; the Session Replay tab stays empty.
+### Open the Clients page
+
+Open the application's **Clients** page: each device model from `device.model.identifier` has a row. If the page stays empty while **Traces** fills up, the device attributes are not reaching the resource.
+:::
+
+## Session Replay on mobile
+
+React Native apps can record sessions with `@oneuptime/react-native-replay`. It records the native view tree as a wireframe, never screenshots or the text on screen, and its recordings open in the same player as web ones. It sends with a **Browser** key whose **Allowed Origins** list your app as `app://` followed by its Android application ID or iOS bundle ID: a separate key from the Server key your OpenTelemetry SDK uses. [Install in React Native](/docs/telemetry/session-replay#install-in-react-native) walks through it.
+
+Native Android and iOS apps, and the other platforms, have no session recorder: their **Session Replay** page stays empty, while traces, logs, metrics, exceptions and the **Clients** page work as usual.
+
+## Troubleshooting
+
+:::details The key check returns 401, or the key is refused
+A `401` means the key is unknown, revoked, switched off or expired: create a Server key and rebuild the app with it.
+
+A Browser key passes the check, but every export from a mobile app is refused with a `422` that reads `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a server ingestion key for requests that are not sent by a browser.` Use a **Server** key.
+:::
+
+:::details The app shows up under Services instead of Real User Monitoring
+The resource has no `device.id` or `device.model.identifier`, so the telemetry was filed as a backend service. Set them as in [Set up your platform](#set-up-your-platform).
+
+The service that was already created does not turn into a RUM application, so delete it under **Products → Services** once RUM telemetry arrives.
+:::
+
+:::details The Clients page is empty
+Client rows come from `device.model.identifier` only. An SDK that sets only `device.id` or `device.manufacturer` files the app as mobile RUM, but lists no clients: set `device.model.identifier` as well.
+:::
+
+:::details The status says Disconnected while people use the app
+The status turns **Disconnected** after 15 minutes without telemetry. If people are using the app:
+
+- A sampler may drop everything: look for an always-off sampler, or a very low ratio.
+- The app may send telemetry only for actions nobody took in that time.
+- The key may have been revoked, or may have expired, since the release: test it as in [Check that it arrives](#check-that-it-arrives).
+:::
+
+## Next steps
+
+:::cards
+- [Session Replay](/docs/telemetry/session-replay): Record React Native sessions, next to their traces.
+- [Managing Applications](/docs/rum/applications): Names, labels, owners and retention.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): The OTLP endpoints, limits and errors in full.
+- [RUM Troubleshooting](/docs/rum/troubleshooting): Every check, in the order problems usually happen.
+:::

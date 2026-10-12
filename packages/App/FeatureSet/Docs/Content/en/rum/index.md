@@ -1,63 +1,120 @@
-# Real User Monitoring
+# RUM Overview
 
-## What it is
+Real User Monitoring (RUM) shows what real users experience in your web and mobile apps: page loads, requests, errors and Core Web Vitals, reported by the app itself rather than by a probe. OneUptime files that telemetry under a **RUM application** you can chart, search and alert on.
 
-Real User Monitoring (RUM) is what your **users** actually experienced, as opposed to what a probe or a synthetic check experienced. A browser or mobile app you own reports its own telemetry — page loads, route changes, fetches, errors, Core Web Vitals — and OneUptime groups it into a **RUM application** you can open, chart, search and alert on.
+:::cards
+- [How it works](#how-it-works): One OpenTelemetry pipeline, filed as RUM when it arrives.
+- [How OneUptime recognises RUM](#how-oneuptime-recognises-rum): The resource attributes that decide it.
+- [What you get](#what-you-get): The overview, the vitals, the explorers and the replays.
+- [Get started](#get-started): From an ingestion key to your first page load.
+:::
 
-It is the same OpenTelemetry pipeline as the rest of OneUptime. There is no separate RUM agent and no proprietary wire format: you point an OpenTelemetry browser or mobile SDK at OneUptime, and the telemetry is classified as RUM on arrival.
+## How it works
 
-Session Replay — watching a recording of what the user saw — is a separate, optional layer on top. It has its own script tag and its own privacy controls, documented in [Session Replay](/docs/telemetry/session-replay).
+RUM uses the same OpenTelemetry pipeline as the rest of OneUptime. There is no RUM agent and no wire format of its own: you point an OpenTelemetry browser or mobile SDK at OneUptime, and the telemetry is filed as RUM when it arrives.
 
-## Where it lives
+```mermaid title="From your app to a RUM application"
+flowchart TB
+    subgraph apps["Your apps"]
+        direction LR
+        web["Web app"]
+        mobile["Mobile app"]
+    end
+    apps -->|"OpenTelemetry (OTLP)"| ingest["OneUptime"]
+    ingest -->|"browser.* or device.*"| rum["RUM application"]
+    ingest -->|"neither"| service["Backend service"]
+```
 
-In the dashboard, **Resources → Real User Monitoring**. Each application has its own Overview, Metrics, Logs, Traces, Clients, Session Replay, Replay Users, Health, Replay Policy and Replay Access Log tabs. Project-wide settings (owner rules, label rules, the session replay master switch) live under the RUM side menu's **Settings** section, which starts collapsed like the **Settings** section of every product: click **Settings** to show them.
+- **One application per app.** Its identity is the `service.name` your SDK reports, and OneUptime creates the application on its first batch of telemetry.
+- **Never counted twice.** Client telemetry belongs to its RUM application only; it is not also listed as a backend service.
+- **Session Replay is a separate, optional layer.** It has its own snippet and privacy controls: see [Session Replay](/docs/telemetry/session-replay).
 
-## How OneUptime decides something is RUM
+## Where to find it
 
-This is the part worth understanding, because it is where almost every "my app is not showing up" question ends.
+Open **Products → Resources → Real User Monitoring**. **All Applications** lists your applications with their **Client Type**, **Status** and **Last Seen**. Two more sections of the side menu start folded:
 
-Classification happens per telemetry batch, from **resource attributes**, at ingest:
+- **Settings**: **Owner Rules**, **Label Rules** and the project-wide **Session Replay** switch.
+- **Advanced**: **Archived**, the applications you archived.
 
-1. If the resource carries any of `browser.platform`, `browser.language` or a non-empty `browser.brands`, the batch is **browser** RUM.
-2. Otherwise, if it carries `device.id` or `device.model.identifier`, it is **mobile** RUM.
-3. Otherwise, if it carries `device.manufacturer` and **no** `host.name` or `host.id`, it is **mobile** RUM.
-4. Otherwise it is not RUM at all — it is treated as a backend Service.
+An application's own side menu groups its pages like this; **Settings**, **Developer** and **Advanced** start folded:
 
-Backend services never set `browser.*`, `device.id` or `device.model.identifier`, which is what makes those a clean signal rather than a heuristic. `device.manufacturer` is the one exception: it doubles as the make of a physical machine on a host's inventory item, so it only marks a batch as mobile when the resource carries no host identity. A phone never reports `host.name` or `host.id`; a server always does. See [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-mac-serial-number-make-model-firmware).
+| Section | Pages |
+| --- | --- |
+| **Basic** | **Overview**, **Recommendations**, **Documentation** |
+| **Observability** | **Metrics**, **Logs**, **Traces**, **Clients** |
+| **Session Replay** | **Session Replay**, **User Flows**, **Replay Users**, **Health**, **Replay Policy**, **Replay Access Log**, **Documentation** |
+| **Settings** | **Settings** |
+| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Advanced** | **Delete Application** |
 
-Once a batch is classified as RUM, the application's identity is its **`service.name`**. OneUptime looks for a RUM application in the project with that identifier (case-insensitively) and creates one if there is none. Client telemetry is owned entirely by its RUM application — it is never also listed as a backend Service, so nothing is double-counted.
+## How OneUptime recognises RUM
+
+Most "my app does not show up" questions end here. OneUptime decides, for each batch of telemetry when it arrives, from the batch's **resource attributes**:
+
+1. A batch whose resource has `browser.platform`, `browser.language` or a non-empty `browser.brands` is **browser** RUM.
+2. Otherwise, a batch with `device.id` or `device.model.identifier` is **mobile** RUM.
+3. Otherwise, a batch with `device.manufacturer` and no host identity (`host.name`, `host.id` or `k8s.node.name`) is **mobile** RUM too.
+4. Anything else is a backend service.
+
+Backend SDKs never set `browser.*`, `device.id` or `device.model.identifier`, so those are clean signals. `device.manufacturer` is the exception: a host's inventory reports the make of a machine with it too, so it counts only on a resource with no host identity. See [Inventory attributes](/docs/telemetry/host-otel-collector#inventory-attributes-ip-mac-serial-number-make-model-firmware).
 
 | Attribute | Required | What it does |
 | --- | --- | --- |
-| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. No `service.name`, no RUM application. |
-| `browser.platform` / `browser.language` / `browser.brands` | for web | Marks the batch as browser RUM. |
-| `device.id` / `device.model.identifier` | for mobile | Marks the batch as mobile RUM. |
-| `device.manufacturer` | for mobile | Marks the batch as mobile RUM, unless the resource also carries `host.name` or `host.id`. Set one of the two above as well and this never matters. |
-| `telemetry.sdk.language` | no | Shown on the overview, e.g. `webjs`, `swift`. |
-| `telemetry.sdk.version` | no | Shown as the SDK version. `oneuptime.agent.version` is used if this is absent. |
-| `oneuptime.label.<name>` | no | Promoted to a project label `<name>:<value>` on the application. See [Managing Applications](/docs/rum/applications). |
+| `service.name` | **Yes** | The application's identity, such as `storefront-web`. Without it, no RUM application is created. |
+| `browser.platform`, `browser.language`, `browser.brands` | One of them, on the web | Marks the batch as browser RUM. `browser.platform` also fills the **Clients** page. |
+| `device.id`, `device.model.identifier` | One of them, on mobile | Marks the batch as mobile RUM. `device.model.identifier` also fills the **Clients** page. |
+| `device.manufacturer` | No | Marks the batch as mobile RUM only when the resource carries no host identity. |
+| `telemetry.sdk.language` | No | Shown on the overview, such as `webjs` or `swift`. |
+| `telemetry.sdk.version` | No | Shown as the SDK version; `oneuptime.agent.version` is read when it is missing. |
+| `oneuptime.label.<name>` | No | Adds the project label `<name>:<value>` to the application. |
 
-> **The single most common mistake.** The OpenTelemetry browser SDKs do **not** add `browser.*` attributes unless you enable the browser resource detector or set the attributes yourself. Setting only `service.name` produces a perfectly valid backend Service, not a RUM application. [Browser Setup](/docs/rum/browser-setup) shows both ways to do it.
+OneUptime finds the application by `service.name`, ignoring case, and creates it when the project has none. A new `service.name` starts a new application, so keep it stable, and tell environments apart with a label rather than a new name. [Managing Applications](/docs/rum/applications) covers names, labels, owners and retention.
+
+> [!IMPORTANT]
+> The OpenTelemetry browser SDK adds no `browser.*` attributes unless you add the browser resource detector or set them yourself. With only `service.name`, the telemetry becomes a backend service, not a RUM application. [Browser Setup](/docs/rum/browser-setup) shows both ways.
 
 ## What you get
 
-**Overview** — page views, error rate and p95 duration over a selectable time range, with trend charts, plus tiles for client platforms and recorded sessions. The counts are derived from the spans your instrumentation emits, so what "page views" means is exactly what your instrumentation reports (document loads, route changes, interactions).
+| Where | What it shows |
+| --- | --- |
+| **Overview** | Tiles for **Page loads**, **Page load time (p95)**, **Events**, **Error rate**, **Event duration (p95)**, **Exceptions**, **Clients** and **Sessions recorded**, and trend charts over the time range you pick. |
+| **Core Web Vitals** | A card on the overview with LCP, INP, CLS, FCP and TTFB, each rated against Google's limits, and INP for each route of a single-page app. See [Core Web Vitals](/docs/rum/web-vitals) and [Single-page apps](/docs/rum/web-vitals#single-page-apps). |
+| **Metrics**, **Logs**, **Traces** | The telemetry explorers, showing only this application. |
+| **Clients** | The browser platforms and device models the application has been used on: a short list by platform, never one row per user. |
+| **Session Replay** | Recordings of real sessions, next to their errors, traces and logs: see [Session Replay](/docs/telemetry/session-replay). |
+| **Recommendations** | Ready-made monitors for the application: poor Core Web Vitals, failed requests, browser exceptions and, once it records, Session Replay budgets. |
 
-**Core Web Vitals** — LCP, INP, CLS, FCP and TTFB with good / needs-improvement / poor ratings, when your SDK reports them as metrics, and INP broken down by route — the view-by-view answer a single-page app needs. See [Core Web Vitals](/docs/rum/web-vitals) for the metric names OneUptime looks for and [Single-page apps](/docs/rum/web-vitals#single-page-apps) for measuring INP per route.
+The counts come from the spans your instrumentation sends. **Page loads** counts the `documentLoad` span that the page-load instrumentation records for each full load, so a route change inside a single-page app is not a page load.
 
-**Logs, Traces and Metrics** — the full telemetry explorers, scoped to this application.
+An application shows **Connected** while telemetry arrives and **Disconnected** after 15 minutes without any. Time when OneUptime itself was down or catching up on its ingest queue does not count towards those 15 minutes.
 
-**Clients** — the browser platforms and device models the application has been seen on. Coarse by platform, never per end user.
+## Get started
 
-**Session Replay** — a recording of the session, played back next to the errors, traces and logs from that same session, with a searchable list of sessions and a Health page that says whether recordings are arriving, and where they stop when they are not. See [Session Replay](/docs/telemetry/session-replay), and in particular [Watching a session](/docs/telemetry/session-replay#watching-a-session).
+:::steps
+### Create an ingestion key
 
-**Connection status** — an application shows *Connected* while telemetry keeps arriving and flips to *Disconnected* after 15 minutes of silence.
+Open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. A web app needs a **Browser** key, which works only from the origins you list. A mobile app needs a **Server** key, because a mobile SDK sends no `Origin` header.
 
-## Getting started
+### Instrument your app
 
-1. Create a **Telemetry Ingestion Token** in _Project Settings → Telemetry & APM → Ingestion Keys_.
-2. Instrument your app: [Browser Setup](/docs/rum/browser-setup) or [Mobile Setup](/docs/rum/mobile-setup).
-3. Load a page. The application appears under **Resources → Real User Monitoring** on its first batch of telemetry — you do not need to create it by hand.
-4. Optional: emit [Core Web Vitals](/docs/rum/web-vitals), and add [Session Replay](/docs/telemetry/session-replay).
+Follow [Browser Setup](/docs/rum/browser-setup) for a web app, or [Mobile Setup](/docs/rum/mobile-setup) for Android, iOS, React Native and other platforms.
 
-If nothing shows up, [Troubleshooting](/docs/rum/troubleshooting) walks the failure modes in the order they actually occur.
+### Open a page
+
+Load a page of your site, or launch your app. The application appears under **Products → Resources → Real User Monitoring** on its first batch of telemetry, named after its `service.name`. You do not need to create it first.
+
+### Add vitals and replays
+
+When the basics arrive, send [Core Web Vitals](/docs/rum/web-vitals) and add [Session Replay](/docs/telemetry/session-replay). Both are optional.
+:::
+
+If nothing shows up, [RUM Troubleshooting](/docs/rum/troubleshooting) walks through the causes in the order they usually happen.
+
+## Next steps
+
+:::cards
+- [Browser Setup](/docs/rum/browser-setup): Instrument a web app with the OpenTelemetry browser SDK.
+- [Mobile Setup](/docs/rum/mobile-setup): Android, iOS, React Native and any other OpenTelemetry SDK.
+- [Core Web Vitals](/docs/rum/web-vitals): Send LCP, INP, CLS, FCP and TTFB, and read INP route by route.
+- [Session Replay](/docs/telemetry/session-replay): Watch what the user saw, next to their errors and traces.
+:::
