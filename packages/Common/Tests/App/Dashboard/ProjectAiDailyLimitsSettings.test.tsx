@@ -28,6 +28,7 @@ import {
 import { PROJECT_AI_DAILY_USAGE_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/useProjectAiDailyLimits";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -337,7 +338,7 @@ async function openEditDialog(card: HTMLElement): Promise<HTMLElement> {
 
 function inputFor(dialog: HTMLElement, title: string): HTMLInputElement {
   return within(dialog).getByLabelText(
-    new RegExp(title.replace(/[()]/g, "\\$&")),
+    new RegExp(escapeRegExp(title)),
   ) as HTMLInputElement;
 }
 

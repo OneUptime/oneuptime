@@ -345,13 +345,17 @@ describe("BearerChallengeBuilder", () => {
 
     it("keeps every printable ASCII character except the two it must not", () => {
       let all: string = "";
+      let expected: string = "";
 
       for (let codePoint: number = 0x20; codePoint <= 0x7e; codePoint++) {
-        all += String.fromCodePoint(codePoint);
+        const character: string = String.fromCodePoint(codePoint);
+
+        all += character;
+        // A quote would end the quoted value, and a backslash escape what follows.
+        expected += character === '"' || character === "\\" ? "'" : character;
       }
 
-      const expected: string = all.replace('"', "'").replace("\\", "'");
-
+      expect(all).toHaveLength(95);
       expect(descriptionInHeader(all)).toBe(expected);
     });
 

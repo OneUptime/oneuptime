@@ -37,6 +37,8 @@ import ts from "typescript";
 const DOCS_TESTS_DIR: string = __dirname;
 const SHARED_CHECKS_MODULE: string = "./DocsTranslationChecks";
 const SHARED_ESCAPE: string = "escapeRegExp";
+// Where the escape lives: the one escape of the whole repository.
+const SHARED_ESCAPE_MODULE: string = "Common/Utils/RegExpEscape";
 // What a copy of the shared escape is called: escapeRegex, escapeForRegExp.
 const ESCAPE_HELPER_NAME: RegExp = /^escape\w*Reg(?:Exp|ex)$/i;
 
@@ -118,6 +120,29 @@ function calls(source: ts.SourceFile, name: string): boolean {
   });
 
   return found;
+}
+
+// The names a file exports from another module, as "name from module".
+function reExportsOf(source: ts.SourceFile): Array<string> {
+  const names: Array<string> = [];
+
+  for (const statement of source.statements) {
+    if (
+      ts.isExportDeclaration(statement) &&
+      statement.moduleSpecifier !== undefined &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.exportClause !== undefined &&
+      ts.isNamedExports(statement.exportClause)
+    ) {
+      for (const element of statement.exportClause.elements) {
+        names.push(
+          `${element.name.text} from ${statement.moduleSpecifier.text}`,
+        );
+      }
+    }
+  }
+
+  return names;
 }
 
 // Whether a file imports this name from the shared checks.
@@ -261,7 +286,7 @@ describe("the docs tests write nothing code scanning reports", () => {
     expect(findings).toEqual([]);
   });
 
-  it("escapes text for a pattern with the one escapeRegExp, which DocsTranslationChecks exports and every suite that escapes imports", () => {
+  it("escapes text for a pattern with the one escapeRegExp, which DocsTranslationChecks exports from Common and every suite that escapes imports", () => {
     const copies: Array<string> = [];
     const callers: Array<string> = [];
     const notImporting: Array<string> = [];
@@ -294,7 +319,15 @@ describe("the docs tests write nothing code scanning reports", () => {
       fs.readFileSync(path.join(DOCS_TESTS_DIR, SHARED_HELPERS_FILE), "utf8"),
     );
 
-    expect(escapeHelpersDeclared(shared)).toEqual([SHARED_ESCAPE]);
+    /*
+     * It hands on the repository's one escape and writes none of its own:
+     * the guard over every test file fails on a copy (CodeScanning's "own
+     * regular expression escape").
+     */
+    expect(escapeHelpersDeclared(shared)).toEqual([]);
+    expect(reExportsOf(shared)).toEqual([
+      `${SHARED_ESCAPE} from ${SHARED_ESCAPE_MODULE}`,
+    ]);
     expect(copies).toEqual([]);
     expect(notImporting).toEqual([]);
     // The suites that escaped text themselves, with a partial escape among them.

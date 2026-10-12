@@ -4804,10 +4804,10 @@ describe("Recorder", (): void => {
     };
 
     beforeEach((): void => {
-      document.body.innerHTML = `<div id='app'><p>${PAGE_TEXT.replace(
-        "&",
-        "&amp;",
-      )}</p><a href='https://docs.example.com/get%20started%0Anow?a=1&b=2'>docs</a></div>`;
+      document.body.innerHTML =
+        "<div id='app'><p></p><a href='https://docs.example.com/get%20started%0Anow?a=1&b=2'>docs</a></div>";
+      // The page text as the paragraph's text: nothing in it is read as markup.
+      (document.querySelector("#app p") as HTMLElement).textContent = PAGE_TEXT;
     });
 
     it("uploads page text with no raw %, & or http/, and it parses back verbatim", async (): Promise<void> => {

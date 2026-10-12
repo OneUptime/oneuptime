@@ -12,6 +12,7 @@ import SSRFProtection from "Common/Server/Utils/SSRFProtection";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Regression suite for OneUptime issue #3879, from the deployment side.
@@ -121,10 +122,6 @@ const readRepoFile: (relativePath: string) => string = (
   relativePath: string,
 ): string => {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
-};
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /*

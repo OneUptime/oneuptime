@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import {
   NETWORK_DEVICE_METRIC_DESCRIPTIONS,
   NetworkDeviceMetric,
@@ -890,9 +891,7 @@ describe("every description in the two records is wired to exactly the surfaces 
 
       expect(
         SOURCES.filter((source: string): boolean => {
-          return new RegExp(`${reference.replace(/\./g, "\\.")}\\b`).test(
-            source,
-          );
+          return new RegExp(`${escapeRegExp(reference)}\\b`).test(source);
         }).length,
       ).toBeGreaterThan(0);
     },
@@ -905,9 +904,7 @@ describe("every description in the two records is wired to exactly the surfaces 
 
       expect(
         SOURCES.filter((source: string): boolean => {
-          return new RegExp(`${reference.replace(/\./g, "\\.")}\\b`).test(
-            source,
-          );
+          return new RegExp(`${escapeRegExp(reference)}\\b`).test(source);
         }).length,
       ).toBeGreaterThan(0);
     },

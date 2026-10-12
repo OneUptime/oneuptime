@@ -7,7 +7,11 @@ import {
   ClassRange,
   characterClassesOf,
 } from "./RegExpCharacterClasses";
-import { REPOSITORY_DIRECTORY, isTestCode } from "./TagStripScan";
+import {
+  REPOSITORY_DIRECTORY,
+  SKIPPED_FOLDER_NAMES,
+  isTestCode,
+} from "./TagStripScan";
 
 /*
  * CODE READ THE WAY CODE SCANNING READS IT, FOR TWO OF ITS QUERIES.
@@ -64,6 +68,23 @@ import { REPOSITORY_DIRECTORY, isTestCode } from "./TagStripScan";
  * TypeScript, JavaScript and the code of EJS and HTML templates are read:
  * the template's own code (<% %>, <%= %>, <%- %>) as one program, and each
  * inline <script> on its own.
+ *
+ * Four guards read the repository with it, with the same options
+ * (CODE_SCANNING_GUARD_OPTIONS), because code scanning reads test code as
+ * it reads product code:
+ *
+ *   - Tests/Helpers/ProductCodeScanningGuard.test.ts: every file of product
+ *     code (isProductCode, listProductFiles);
+ *   - Tests/Helpers/TestCodeScanningGuard.test.ts: every test file of the
+ *     checkout (isTestCodeFile, listTestCodeFiles);
+ *   - ee/Tests/Server/ProductCodeScanningGuard.test.ts and
+ *     ee/Tests/Server/TestCodeScanningGuard.test.ts: the same for ee/, from
+ *     the Enterprise Edition Test job, since the Common Test job removes ee/
+ *     before it runs.
+ *
+ * Every file of code code scanning reads in the code folders is one of
+ * product code and test code, never both, so the guards between them read
+ * all of it.
  */
 
 export type CodeScanningRule =
@@ -96,7 +117,7 @@ export interface CodeScanningOptions {
   reachesSharedHelpers?: ((file: string) => boolean) | undefined;
 }
 
-// The one regular expression escape of the product code.
+// The one regular expression escape of the repository's code and tests.
 export const SHARED_REGEXP_ESCAPE_FILE: string =
   "packages/Common/Utils/RegExpEscape.ts";
 
@@ -1623,18 +1644,20 @@ function scanProgram(
 
 /*
  * ---------------------------------------------------------------------------
- * Product code: what the product guard reads.
+ * The files the guards read: product code and test code.
  * ---------------------------------------------------------------------------
  */
 
 /*
  * The packages that build with Common, so can import its helpers: the
- * agents, the mobile app and the scripts build on their own.
+ * agents, the mobile app and the scripts build on their own. packages/E2E
+ * holds tests only; it depends on Common as the others do.
  */
 export const PACKAGES_WITH_COMMON: ReadonlyArray<string> = [
   "packages/App/",
   "packages/CLI/",
   "packages/Common/",
+  "packages/E2E/",
   "packages/Home/",
   "packages/Nginx/",
   "packages/Probe/",
@@ -1645,11 +1668,22 @@ export const PACKAGES_WITH_COMMON: ReadonlyArray<string> = [
 
 export type ReachesCommonFunction = (file: string) => boolean;
 
-// Whether a product file, by its path from the root, can import Common.
+// Whether a file, by its path from the root, can import Common.
 export const reachesCommon: ReachesCommonFunction = (file: string): boolean => {
   return PACKAGES_WITH_COMMON.some((prefix: string): boolean => {
     return file.startsWith(prefix);
   });
+};
+
+/*
+ * What every guard reads with: a copy of the regular expression escape is
+ * reported wherever Common, and so the shared one, can be imported.
+ */
+export const CODE_SCANNING_GUARD_OPTIONS: Readonly<
+  Required<CodeScanningOptions>
+> = {
+  regExpEscapeFile: SHARED_REGEXP_ESCAPE_FILE,
+  reachesSharedHelpers: reachesCommon,
 };
 
 // The top folders of the repository that hold code.
@@ -1662,16 +1696,11 @@ export const CODE_ROOTS: ReadonlyArray<string> = [
   "HelmChart",
 ];
 
-const PRODUCT_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs|ejs|html?)$/i;
+// Code, or a template whose code is read.
+const CODE_OR_TEMPLATE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs|ejs|html?)$/i;
 const DECLARATION_FILE: RegExp = /\.d\.ts$/;
 // Code scanning skips these itself, as it does node_modules.
 const MINIFIED_FILE: RegExp = /\.min\.js$/;
-// Folders of dependencies and builds, which the repository never holds.
-const SKIPPED_FOLDERS: ReadonlySet<string> = new Set<string>([
-  "node_modules",
-  "build",
-  "dist",
-]);
 
 /*
  * The configuration of code scanning's advanced setup, by its path from the
@@ -1733,60 +1762,111 @@ export const isIgnoredByCodeScanning: IsIgnoredByCodeScanningFunction = (
   });
 };
 
-export type IsProductCodeFunction = (relativePath: string) => boolean;
+export type IsCodeScanningFileFunction = (relativePath: string) => boolean;
 
 /*
- * Whether a file, by its path from the repository's root, is product code:
- * code or a template, not a test (TagStripScan's isTestCode says which
- * files are; a template is read by the same folders), not a build, not a
+ * Whether a file, by its path from the repository's root, is of the kind
+ * code scanning reads: code or a template, not a declaration, not a
  * minified file, and not in a directory code scanning leaves out - the
  * third-party builds vendored for offline installs (Common/Server/Static/
  * Vendor: Tailwind, highlight.js), which CODE_SCANNING_IGNORED_PATHS reads
  * from code scanning's configuration. Their code is upstream's; it is not
  * edited here.
  */
-export const isProductCode: IsProductCodeFunction = (
+export const isCodeScanningFile: IsCodeScanningFileFunction = (
   relativePath: string,
 ): boolean => {
-  const parts: Array<string> = relativePath.split("/");
-  const fileName: string = parts[parts.length - 1]!;
+  const fileName: string = relativePath.slice(
+    relativePath.lastIndexOf("/") + 1,
+  );
 
-  if (
-    !PRODUCT_FILE.test(fileName) ||
-    DECLARATION_FILE.test(fileName) ||
-    MINIFIED_FILE.test(fileName) ||
-    isIgnoredByCodeScanning(relativePath) ||
-    parts.slice(0, -1).some((folder: string): boolean => {
-      return folder.startsWith(".") || SKIPPED_FOLDERS.has(folder);
-    })
-  ) {
-    return false;
-  }
-
-  // A template is test code where a script would be.
-  return !isTestCode(
-    TEMPLATE_FILE.test(fileName) ? `${relativePath}.ts` : relativePath,
+  return (
+    CODE_OR_TEMPLATE_FILE.test(fileName) &&
+    !DECLARATION_FILE.test(fileName) &&
+    !MINIFIED_FILE.test(fileName) &&
+    !isIgnoredByCodeScanning(relativePath)
   );
 };
 
-export type ListProductFilesFunction = (
-  root?: string,
-  codeRoots?: ReadonlyArray<string>,
-) => Array<string>;
+/*
+ * Whether the guards read a file code scanning reads: one outside hidden
+ * folders and the folders TagStripScan's SKIPPED_FOLDER_NAMES says hold no
+ * code of the repository's (dependencies, builds, test reports).
+ */
+function isReadByCodeScanning(relativePath: string): boolean {
+  return (
+    isCodeScanningFile(relativePath) &&
+    !relativePath
+      .split("/")
+      .slice(0, -1)
+      .some((folder: string): boolean => {
+        return folder.startsWith(".") || SKIPPED_FOLDER_NAMES.has(folder);
+      })
+  );
+}
 
 /*
- * Every product code file under `root` (the repository's) in its code
- * folders (CODE_ROOTS, or the ones given), by its path from `root`.
+ * Whether a file is test code, by TagStripScan's isTestCode: a template is
+ * test code where a script of its name would be - page.html in a Tests
+ * folder as page.js, Widget.spec.html anywhere as Widget.spec.js. (A .js
+ * name, so that a template named x.d.html is read as x.d.js, no
+ * declaration.)
  */
-export const listProductFiles: ListProductFilesFunction = (
-  root: string = REPOSITORY_DIRECTORY,
-  codeRoots: ReadonlyArray<string> = CODE_ROOTS,
-): Array<string> => {
+function isTestCodeOrTemplate(relativePath: string): boolean {
+  return isTestCode(
+    TEMPLATE_FILE.test(relativePath)
+      ? `${relativePath.slice(0, relativePath.lastIndexOf("."))}.js`
+      : relativePath,
+  );
+}
+
+export type IsProductCodeFunction = (relativePath: string) => boolean;
+
+/*
+ * Whether a file, by its path from the repository's root, is product code:
+ * a file code scanning reads that is no test.
+ */
+export const isProductCode: IsProductCodeFunction = (
+  relativePath: string,
+): boolean => {
+  return (
+    isReadByCodeScanning(relativePath) && !isTestCodeOrTemplate(relativePath)
+  );
+};
+
+export type IsTestCodeFileFunction = (relativePath: string) => boolean;
+
+/*
+ * Whether a file, by its path from the repository's root, is test code
+ * code scanning reads: a file it reads that is a test - every file of code
+ * under a Tests, tests or __tests__ folder, every *.test.* and *.spec.*
+ * file, and all of packages/E2E (TagStripScan's isTestCode), and a
+ * template in those folders. The other half of isProductCode.
+ */
+export const isTestCodeFile: IsTestCodeFileFunction = (
+  relativePath: string,
+): boolean => {
+  return (
+    isReadByCodeScanning(relativePath) && isTestCodeOrTemplate(relativePath)
+  );
+};
+
+/*
+ * Every file under the given folders of `root` that `isWanted` takes, by its
+ * path from `root` ("/" between folders), sorted. Builds, dependencies,
+ * hidden folders and the directories code scanning leaves out are not
+ * walked; a folder that is not there holds nothing.
+ */
+function walkFiles(
+  root: string,
+  folders: ReadonlyArray<string>,
+  isWanted: (relativePath: string) => boolean,
+): Array<string> {
   const files: Array<string> = [];
 
   const walk: (directory: string) => void = (directory: string): void => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name.startsWith(".") || SKIPPED_FOLDERS.has(entry.name)) {
+      if (entry.name.startsWith(".") || SKIPPED_FOLDER_NAMES.has(entry.name)) {
         continue;
       }
 
@@ -1805,14 +1885,14 @@ export const listProductFiles: ListProductFilesFunction = (
         continue;
       }
 
-      if (entry.isFile() && isProductCode(relativePath)) {
+      if (entry.isFile() && isWanted(relativePath)) {
         files.push(relativePath);
       }
     }
   };
 
-  for (const codeRoot of codeRoots) {
-    const directory: string = path.join(root, codeRoot);
+  for (const folder of folders) {
+    const directory: string = path.join(root, folder);
 
     if (fs.existsSync(directory)) {
       walk(directory);
@@ -1820,6 +1900,40 @@ export const listProductFiles: ListProductFilesFunction = (
   }
 
   return files.sort();
+}
+
+export type ListProductFilesFunction = (
+  root?: string,
+  codeRoots?: ReadonlyArray<string>,
+) => Array<string>;
+
+/*
+ * Every product code file under `root` (the repository's) in its code
+ * folders (CODE_ROOTS, or the ones given), by its path from `root`.
+ */
+export const listProductFiles: ListProductFilesFunction = (
+  root: string = REPOSITORY_DIRECTORY,
+  codeRoots: ReadonlyArray<string> = CODE_ROOTS,
+): Array<string> => {
+  return walkFiles(root, codeRoots, isProductCode);
+};
+
+export type ListTestCodeFilesFunction = (
+  root?: string,
+  folders?: ReadonlyArray<string>,
+) => Array<string>;
+
+/*
+ * Every test code file under `root` (the repository's) - in the whole
+ * checkout, its Tests/ folder at the root included, or in the folders given
+ * (["ee"]) - by its path from `root`, so a walk of ee/ names its files as
+ * the walk of the whole checkout does.
+ */
+export const listTestCodeFiles: ListTestCodeFilesFunction = (
+  root: string = REPOSITORY_DIRECTORY,
+  folders: ReadonlyArray<string> = [""],
+): Array<string> => {
+  return walkFiles(root, folders, isTestCodeFile);
 };
 
 export type FindCodeScanningProblemsFunction = (

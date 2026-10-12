@@ -13,6 +13,7 @@ import Markdown, {
   MarkdownContentType,
 } from "../../../../Server/Types/Markdown";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
@@ -1053,7 +1054,7 @@ describe("Breaching Samples - in Slack", () => {
 
     for (let i: number = 1; i <= 20; i++) {
       expect(slack).toMatch(
-        new RegExp(`(^|\\n)${i}\\.\\s+\`${iso(i - 1).replace(/\./g, "\\.")}\``),
+        new RegExp(`(^|\\n)${i}\\.\\s+\`${escapeRegExp(iso(i - 1))}\``),
       );
     }
 

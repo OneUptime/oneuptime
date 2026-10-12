@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The admin dashboard's one-switch settings save the moment they are
@@ -86,7 +87,7 @@ function nested(locale: Locale, key: string): unknown {
 // Every t("pages.<block>.<key>") a source asks for, in source order.
 function keysAskedFor(code: string, block: string): Array<string> {
   const pattern: RegExp = new RegExp(
-    `\\bt\\(\\s*"(pages\\.${block.replace(/\./g, "\\.")}\\.[A-Za-z0-9_]+)"`,
+    `\\bt\\(\\s*"(pages\\.${escapeRegExp(block)}\\.[A-Za-z0-9_]+)"`,
     "g",
   );
 

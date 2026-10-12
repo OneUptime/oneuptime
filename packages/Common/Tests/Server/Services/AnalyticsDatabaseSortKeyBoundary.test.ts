@@ -5,6 +5,7 @@ import {
 } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../Server/Utils/Logger";
 import "../TestingUtils/Init";
+import { orderByColumns } from "../TestingUtils/AnalyticsOrderBy";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
@@ -167,23 +168,6 @@ function hasBoundary(statement: Statement): boolean {
 function boundaryClause(statement: Statement): string {
   const query: string = statement.query;
   return query.slice(query.indexOf(" AND "), query.lastIndexOf("ORDER BY "));
-}
-
-function outerOrderBy(statement: Statement): string {
-  return statement.query
-    .slice(statement.query.lastIndexOf("ORDER BY "))
-    .replace("ORDER BY ", "")
-    .split(" LIMIT")[0]!;
-}
-
-/* Resolves rendered `{pN:Identifier}` terms back to the bound column names. */
-function orderByColumns(statement: Statement): Array<string> {
-  return outerOrderBy(statement)
-    .split(", ")
-    .map((term: string): string => {
-      const param: string = term.split(":")[0]!.replace("{", "");
-      return statement.query_params[param] as string;
-    });
 }
 
 function paramValues(statement: Statement): Array<unknown> {
