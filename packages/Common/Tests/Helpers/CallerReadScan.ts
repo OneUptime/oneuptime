@@ -6,14 +6,23 @@ import { ScanFinding, modelFileOf, unwrap } from "./ReferenceNameScan";
 /*
  * The columns server code reads WITH A CALLER'S PROPS: the select and the
  * query of a read made through a service - `XService.findOneById({ select,
- * query, props })`, findOneBy, findBy, findAllBy, countBy, and `this.` the
- * same inside a service - whose props are not OneUptime's own. A read made
- * with the caller's props is held to the caller's column permissions
- * (SelectPermission, QueryPermission), so a column no permission reads
- * (read: []) refuses it for everyone: "You do not have permissions to select
- * on - isGlobalLlm. No permission allows it: the column is not readable
- * through the API." - an LLM provider's Test button, for its own project's
- * owner.
+ * query, props })`, findOneBy, findBy, findAllBy, countBy, `this.` the same
+ * inside a service, and `this.service.` inside a model's API - whose props
+ * are not OneUptime's own. A read made with the caller's props is held to
+ * the caller's column permissions (SelectPermission, QueryPermission), so a
+ * column no permission reads (read: []) refuses it for everyone: "You do not
+ * have permissions to select on - isGlobalLlm. No permission allows it: the
+ * column is not readable through the API." - an LLM provider's Test button,
+ * for its own project's owner. A column read by fewer people than its table
+ * refuses the rest of the table's readers in the same way.
+ *
+ * A key of a relation's select (`project: { name: true }`) is a read of the
+ * related record's column (`relatedColumn`), which the relation query reads
+ * only when the related model lets it (canReadOnRelationQuery).
+ *
+ * The select and the query are read where they are written: an object
+ * literal in the call, or a variable the same function (or an outer one)
+ * declares as one. Anything built some other way is not read.
  *
  * Props count as OneUptime's own when they are an object literal saying
  * isRoot or isMasterAdmin, or a variable the same function sets to one.
@@ -28,6 +37,12 @@ export interface CallerRead extends ScanFinding {
   // The DatabaseModels file the read is made on ("LlmProvider").
   modelFile: string;
   column: string;
+  /*
+   * For a key of a relation's select: the column of the related record it
+   * reads (`project: { name: true }` reads "name" through "project").
+   * Undefined for the read's own columns.
+   */
+  relatedColumn?: string | undefined;
   // The read's method: findOneById, findBy, ...
   method: string;
 }
@@ -38,6 +53,18 @@ export const READ_METHODS: Array<string> = [
   "findBy",
   "findAllBy",
   "countBy",
+];
+
+/*
+ * Writes by query: the rows they change are found by `query`, which is held
+ * to the caller's read permissions like a read's (QueryPermission runs for
+ * every operation). What they write is the write checks' business.
+ */
+export const WRITE_BY_QUERY_METHODS: Array<string> = [
+  "updateOneBy",
+  "updateBy",
+  "deleteOneBy",
+  "deleteBy",
 ];
 
 const WHITESPACE: RegExp = /\s+/g;
@@ -85,6 +112,21 @@ function saysOneUptime(literal: ts.ObjectLiteralExpression): boolean {
   });
 }
 
+function isFunctionLike(
+  node: ts.Node,
+): node is
+  | ts.FunctionDeclaration
+  | ts.MethodDeclaration
+  | ts.ArrowFunction
+  | ts.FunctionExpression {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isFunctionExpression(node)
+  );
+}
+
 // The function a node sits in, or the file.
 function enclosingFunction(node: ts.Node): ts.Node {
   for (
@@ -92,17 +134,118 @@ function enclosingFunction(node: ts.Node): ts.Node {
     current;
     current = current.parent
   ) {
-    if (
-      ts.isFunctionDeclaration(current) ||
-      ts.isMethodDeclaration(current) ||
-      ts.isArrowFunction(current) ||
-      ts.isFunctionExpression(current)
-    ) {
+    if (isFunctionLike(current)) {
       return current;
     }
   }
 
   return node.getSourceFile();
+}
+
+/*
+ * What a variable is declared as, by the function the name is used in or
+ * an outer one, nearest first: its initializer, unwrapped - or undefined
+ * when no function on the way declares it with one, or when the nearest
+ * one takes it as a parameter. A function inside one of them has a scope
+ * of its own, so what it declares is not looked at.
+ */
+function declaredValue(name: ts.Identifier): ts.Expression | undefined {
+  for (
+    let scope: ts.Node = enclosingFunction(name);
+    ;
+    scope = enclosingFunction(scope)
+  ) {
+    if (
+      isFunctionLike(scope) &&
+      scope.parameters.some((parameter: ts.ParameterDeclaration): boolean => {
+        return (
+          ts.isIdentifier(parameter.name) && parameter.name.text === name.text
+        );
+      })
+    ) {
+      return undefined;
+    }
+
+    let found: ts.Expression | undefined = undefined;
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (found !== undefined || (node !== scope && isFunctionLike(node))) {
+        return;
+      }
+
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === name.text &&
+        node.initializer
+      ) {
+        found = unwrap(node.initializer);
+        return;
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(scope);
+
+    if (found !== undefined) {
+      return found;
+    }
+
+    if (ts.isSourceFile(scope)) {
+      return undefined;
+    }
+  }
+}
+
+/*
+ * The object literal an expression is: itself, or a variable declared as
+ * one. Undefined for anything else - a call, a spread of something built.
+ */
+function objectLiteralOf(
+  expression: ts.Expression | undefined,
+): ts.ObjectLiteralExpression | undefined {
+  if (!expression) {
+    return undefined;
+  }
+
+  const value: ts.Expression = unwrap(expression);
+
+  if (ts.isObjectLiteralExpression(value)) {
+    return value;
+  }
+
+  if (ts.isIdentifier(value)) {
+    const declared: ts.Expression | undefined = declaredValue(value);
+
+    return declared && ts.isObjectLiteralExpression(declared)
+      ? declared
+      : undefined;
+  }
+
+  return undefined;
+}
+
+/*
+ * The value a property of a call's argument is given: `select: x` gives x,
+ * and the shorthand `{ select }` the variable named select.
+ */
+function valueOf(
+  property: ts.ObjectLiteralElementLike | undefined,
+): ts.Expression | undefined {
+  if (!property) {
+    return undefined;
+  }
+
+  if (ts.isPropertyAssignment(property)) {
+    return property.initializer;
+  }
+
+  if (ts.isShorthandPropertyAssignment(property)) {
+    return property.name;
+  }
+
+  return undefined;
 }
 
 /*
@@ -120,55 +263,26 @@ function isOneUptimesProps(props: ts.Expression): boolean {
     return false;
   }
 
-  for (
-    let scope: ts.Node = enclosingFunction(expression);
-    ;
-    scope = enclosingFunction(scope)
-  ) {
-    let found: boolean | null = null;
+  const declared: ts.Expression | undefined = declaredValue(expression);
 
-    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-      if (
-        found === null &&
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.name.text === expression.text &&
-        node.initializer
-      ) {
-        const initializer: ts.Expression = unwrap(node.initializer);
-        found =
-          ts.isObjectLiteralExpression(initializer) &&
-          saysOneUptime(initializer);
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    visit(scope);
-
-    if (found !== null) {
-      return found;
-    }
-
-    if (ts.isSourceFile(scope)) {
-      return false;
-    }
-  }
+  return Boolean(
+    declared &&
+      ts.isObjectLiteralExpression(declared) &&
+      saysOneUptime(declared),
+  );
 }
 
-function topLevelKeys(literal: ts.Expression | undefined): Array<ts.Node> {
+function namedKeys(
+  literal: ts.ObjectLiteralExpression | undefined,
+): Array<ts.PropertyAssignment | ts.ShorthandPropertyAssignment> {
   if (!literal) {
     return [];
   }
 
-  const expression: ts.Expression = unwrap(literal);
-
-  if (!ts.isObjectLiteralExpression(expression)) {
-    return [];
-  }
-
-  return expression.properties.filter(
-    (property: ts.ObjectLiteralElementLike): boolean => {
+  return literal.properties.filter(
+    (
+      property: ts.ObjectLiteralElementLike,
+    ): property is ts.PropertyAssignment | ts.ShorthandPropertyAssignment => {
       return (
         (ts.isPropertyAssignment(property) ||
           ts.isShorthandPropertyAssignment(property)) &&
@@ -179,12 +293,10 @@ function topLevelKeys(literal: ts.Expression | undefined): Array<ts.Node> {
   );
 }
 
-function keyName(property: ts.Node): string {
-  return (
-    (property as ts.PropertyAssignment).name as
-      | ts.Identifier
-      | ts.StringLiteralLike
-  ).text;
+function keyName(
+  property: ts.PropertyAssignment | ts.ShorthandPropertyAssignment,
+): string {
+  return (property.name as ts.Identifier | ts.StringLiteralLike).text;
 }
 
 /*
@@ -247,9 +359,19 @@ function resolveModule(fromFile: string, specifier: string): string | null {
   return null;
 }
 
+// `this.service`: the service of the model a BaseAPI is for.
+function isOwnService(target: ts.Expression): boolean {
+  return (
+    ts.isPropertyAccessExpression(target) &&
+    unwrap(target.expression).kind === ts.SyntaxKind.ThisKeyword &&
+    target.name.text === "service"
+  );
+}
+
 /*
  * Every column one file reads with a caller's props, through a service it
- * imports or - inside a service - through `this`.
+ * imports or - inside a service - through `this`, or - inside a model's
+ * API - through `this.service`.
  */
 export function findCallerReads(
   filePath: string,
@@ -261,21 +383,30 @@ export function findCallerReads(
   const found: Array<CallerRead> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    const methodName: string | undefined =
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(unwrap(node.expression))
+        ? (unwrap(node.expression) as ts.PropertyAccessExpression).name.text
+        : undefined;
+
     if (
       ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(unwrap(node.expression)) &&
-      READ_METHODS.includes(
-        (unwrap(node.expression) as ts.PropertyAccessExpression).name.text,
-      ) &&
+      methodName &&
+      (READ_METHODS.includes(methodName) ||
+        WRITE_BY_QUERY_METHODS.includes(methodName)) &&
       node.arguments[0] &&
       ts.isObjectLiteralExpression(unwrap(node.arguments[0]))
     ) {
       const callee: ts.PropertyAccessExpression = unwrap(
         node.expression,
       ) as ts.PropertyAccessExpression;
+      // A write by query reads only through its query.
+      const kinds: Array<ReadKind> = READ_METHODS.includes(methodName)
+        ? ["select", "query"]
+        : ["query"];
       const target: ts.Expression = unwrap(callee.expression);
       const modelFile: string | null =
-        target.kind === ts.SyntaxKind.ThisKeyword
+        target.kind === ts.SyntaxKind.ThisKeyword || isOwnService(target)
           ? ownModel
           : ts.isIdentifier(target)
             ? services.get(target.text) || null
@@ -287,36 +418,64 @@ export function findCallerReads(
         argument,
         "props",
       );
+      const propsValue: ts.Expression | undefined = valueOf(props);
 
-      if (
-        modelFile &&
-        props &&
-        ts.isPropertyAssignment(props) &&
-        !isOneUptimesProps(props.initializer)
-      ) {
-        for (const kind of ["select", "query"] as Array<ReadKind>) {
-          const clause: ts.ObjectLiteralElementLike | undefined = propertyNamed(
-            argument,
-            kind,
-          );
+      if (modelFile && propsValue && !isOneUptimesProps(propsValue)) {
+        const readAt: (
+          key: ts.Node,
+          read: {
+            kind: ReadKind;
+            column: string;
+            relatedColumn?: string | undefined;
+          },
+        ) => void = (
+          key: ts.Node,
+          read: {
+            kind: ReadKind;
+            column: string;
+            relatedColumn?: string | undefined;
+          },
+        ): void => {
+          found.push({
+            file: filePath,
+            line:
+              key.getSourceFile().getLineAndCharacterOfPosition(key.getStart())
+                .line + 1,
+            text: node.getText(source).replace(WHITESPACE, " ").slice(0, 160),
+            kind: read.kind,
+            modelFile: modelFile,
+            column: read.column,
+            ...(read.relatedColumn !== undefined
+              ? { relatedColumn: read.relatedColumn }
+              : {}),
+            method: callee.name.text,
+          });
+        };
 
-          const keys: Array<ts.Node> =
-            clause && ts.isPropertyAssignment(clause)
-              ? topLevelKeys(clause.initializer)
-              : [];
+        for (const kind of kinds) {
+          const clause: ts.ObjectLiteralExpression | undefined =
+            objectLiteralOf(valueOf(propertyNamed(argument, kind)));
 
-          for (const key of keys) {
-            found.push({
-              file: filePath,
-              line:
-                source.getLineAndCharacterOfPosition(key.getStart(source))
-                  .line + 1,
-              text: node.getText(source).replace(WHITESPACE, " ").slice(0, 160),
-              kind: kind,
-              modelFile: modelFile,
-              column: keyName(key),
-              method: callee.name.text,
-            });
+          for (const key of namedKeys(clause)) {
+            const column: string = keyName(key);
+
+            readAt(key, { kind: kind, column: column });
+
+            if (kind !== "select") {
+              continue;
+            }
+
+            // A relation's select: the related record's columns it reads.
+            const relation: ts.ObjectLiteralExpression | undefined =
+              objectLiteralOf(valueOf(key));
+
+            for (const relatedKey of namedKeys(relation)) {
+              readAt(relatedKey, {
+                kind: kind,
+                column: column,
+                relatedColumn: keyName(relatedKey),
+              });
+            }
           }
         }
       }
