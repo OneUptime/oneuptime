@@ -69,11 +69,13 @@ import { JSONObject } from "../../../../../Types/JSON";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
 import QuietChannelsWorld, {
+  FeedEntry,
   JANE,
   NB_USER_3,
   NITIN,
   STATE_ACKNOWLEDGED,
   STATE_IDENTIFIED,
+  STATE_RESOLVED,
   WORKSPACE_RULE_ID,
 } from "./QuietChannelsWorld";
 
@@ -313,6 +315,12 @@ describe("an incident in its Microsoft Teams channel", () => {
       isFirst: false,
       by: NITIN,
     });
+    await world.incidentState({
+      to: STATE_RESOLVED,
+      name: "Resolved",
+      isFirst: false,
+      by: NITIN,
+    });
     await world.settle();
 
     const posts: Array<ConnectorRequest> = connector.posts();
@@ -323,7 +331,9 @@ describe("an incident in its Microsoft Teams channel", () => {
       expect.stringContaining("PolicyX"),
       expect.stringContaining("Nobody was paged for"),
       expect.stringContaining("State"),
+      expect.stringContaining("State"),
     ]);
+    expect(posts[4]!.text).toContain("Resolved");
 
     for (const post of posts) {
       // A new post in the channel itself, never into another post's thread.
@@ -436,5 +446,82 @@ describe("a card edit Teams refuses because the post is gone", () => {
     const lastUpdate: ConnectorRequest =
       connector.updates()[connector.updates().length - 1]!;
     expect(lastUpdate.activityIdInPath).toBe(newCardId);
+  });
+});
+
+describe("an alert, in its Microsoft Teams channel", () => {
+  beforeEach(() => {
+    world.runFor = "alert";
+    world.recordStateName = "Created";
+  });
+
+  test("created, first state, on-call, owners notified, acknowledged: the same cards as in Slack, the run's edited in place", async () => {
+    await world.alertCreated();
+    await world.alertState({
+      to: STATE_IDENTIFIED,
+      name: "Created",
+      isFirst: true,
+    });
+    await world.startRun();
+    await world.escalate();
+    await world.alertOwnersNotified();
+    await world.acknowledge(NITIN);
+    await world.alertState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+    });
+    await world.settle();
+
+    const posts: Array<ConnectorRequest> = connector.posts();
+
+    expect(posts.map(headline)).toEqual([
+      expect.stringContaining("Alert AL-12 Created"),
+      expect.stringContaining("PolicyX"),
+      expect.stringContaining("State"),
+    ]);
+    expect(posts[1]!.text).toContain("Alert AL-12");
+
+    // Every edit is of the run's card, and the last one says who acknowledged.
+    const runCardId: string = posts[1]!.answeredId!;
+    const updates: Array<ConnectorRequest> = connector.updates();
+    expect(updates.length).toBeGreaterThan(0);
+
+    for (const update of updates) {
+      expect(update.activityIdInPath).toBe(runCardId);
+    }
+
+    expect(updates[updates.length - 1]!.text).toContain("acknowledged");
+
+    // That the owners were told stays in the alert's feed.
+    expect(
+      world.feed.filter((entry: FeedEntry): boolean => {
+        return entry.eventType === "OwnerNotificationSent";
+      }),
+    ).toEqual([
+      expect.objectContaining({ record: "alert", postsToWorkspace: false }),
+    ]);
+  });
+});
+
+describe("a scheduled maintenance event, in its Microsoft Teams channel", () => {
+  test("created, first state, ongoing, subscribers notified, a note: three cards, nothing edited", async () => {
+    await world.maintenanceCreated();
+    await world.maintenanceState("Scheduled", true);
+    await world.maintenanceState("Ongoing", false);
+    await world.maintenanceSubscribersNotified();
+    await world.maintenanceNote("The upgrade has started.");
+
+    expect(connector.posts().map(headline)).toEqual([
+      expect.stringContaining("Scheduled Maintenance SM-3 Created"),
+      expect.stringContaining("Ongoing"),
+      expect.stringContaining("public note"),
+    ]);
+
+    for (const post of connector.posts()) {
+      expect(post.conversationId).toBe(TEAMS_CHANNEL);
+    }
+
+    expect(connector.updates()).toEqual([]);
   });
 });
