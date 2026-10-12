@@ -30,6 +30,7 @@ import {
 } from "../../Components/Billing/PlanCutoff";
 import PlanCutoffNote from "../../Components/Billing/PlanCutoffNote";
 import usePlanCutoffCounts from "../../Components/Billing/UsePlanCutoffCounts";
+import ChangePlanBillingNote from "../../Components/Billing/ChangePlanBillingNote";
 import { Green } from "Common/Types/BrandColors";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -129,6 +130,13 @@ const Settings: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
+  /*
+   * When the project's trial ends (or ended). The plan picker speaks only of
+   * a trial the project is still on: a plan change keeps that one and never
+   * starts another (Components/Billing/ChangePlanBilling).
+   */
+  const [trialEndsAt, setTrialEndsAt] = useState<Date | null>(null);
 
   // The plan the project is on, or null while it loads or is not one of ours.
   const currentPlanType: PlanType | null = currentPlanId
@@ -394,6 +402,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         id: ProjectUtil.getCurrentProjectId()!,
         select: {
           paymentProviderPlanId: true,
+          trialEndsAt: true,
           reseller: {
             name: true,
             description: true,
@@ -415,6 +424,8 @@ const Settings: FunctionComponent<ComponentProps> = (
       if (project?.paymentProviderPlanId) {
         setCurrentPlanId(project.paymentProviderPlanId);
       }
+
+      setTrialEndsAt(project?.trialEndsAt || null);
 
       if (project?.reseller) {
         setReseller(project.reseller);
@@ -620,14 +631,17 @@ const Settings: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <Toggle
-        title="Yearly Plan"
-        value={isSubscriptionPlanYearly}
-        description="(Save 20%)"
-        onChange={(value: boolean) => {
-          setIsSubscriptionPlanYearly(value);
-        }}
-      />
+      <>
+        <Toggle
+          title="Yearly Plan"
+          value={isSubscriptionPlanYearly}
+          description="(Save 20%)"
+          onChange={(value: boolean) => {
+            setIsSubscriptionPlanYearly(value);
+          }}
+        />
+        <ChangePlanBillingNote trialEndsAt={trialEndsAt} />
+      </>
     );
   };
 
@@ -676,28 +690,20 @@ const Settings: FunctionComponent<ComponentProps> = (
                   radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
                     getAllEnvVars(),
                   ).map((plan: SubscriptionPlan): RadioButton => {
+                    /*
+                     * No trial is offered here. A plan's trial period is
+                     * what a new project on it gets (ProjectPicker); a plan
+                     * change only keeps a trial the project is already on,
+                     * and the note under the plans says which applies
+                     * (ChangePlanBillingNote).
+                     */
                     let description: string = plan.isCustomPricing()
                       ? translator.translateTemplate(
                           "Our sales team will contact you soon.",
                         )
-                      : [
-                          isSubscriptionPlanYearly
-                            ? translator.translateTemplate("Billed yearly.")
-                            : translator.translateTemplate("Billed monthly."),
-                          plan.getTrialPeriod() > 0
-                            ? translator.translatePlural(
-                                {
-                                  one: "Free {{count}} day trial.",
-                                  other: "Free {{count}} days trial.",
-                                },
-                                plan.getTrialPeriod(),
-                              )
-                            : "",
-                        ]
-                          .filter((sentence: string) => {
-                            return Boolean(sentence);
-                          })
-                          .join(" ");
+                      : isSubscriptionPlanYearly
+                        ? translator.translateTemplate("Billed yearly.")
+                        : translator.translateTemplate("Billed monthly.");
 
                     if (
                       isSubscriptionPlanYearly &&
