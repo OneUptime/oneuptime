@@ -6,7 +6,7 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `Provider produced inconsistent result after apply` | Old provider version that mishandled server-computed fields | Upgrade the provider (`terraform init -upgrade` within `{{TERRAFORM_PROVIDER_VERSION}}`); report if it persists |
+| `Provider produced inconsistent result after apply` | Old provider version that mishandled server-computed fields or decimal numbers | Upgrade the provider (`terraform init -upgrade` within `{{TERRAFORM_PROVIDER_VERSION}}`); report if it persists |
 | `ProjectId required` on every operation | Master or user API key instead of a project API key | Create a key under **Project Settings > API Keys** and use that |
 | Status/state `priority` or `order` drifts after apply | A number another state or status already holds is taken over, and the ones in the way step down one place — the same thing a drag in the dashboard does | Give each one a distinct, gapped value (e.g. `101`, `102`, `103`): a number nobody else holds is kept as written. Reorder Terraform-managed ones in Terraform, not by dragging them in the dashboard |
 | `402` / payment-required errors | Plan limit reached (monitors, status pages, ...), or a setting your OneUptime plan does not include switched on | Upgrade the plan, reduce resource count, or leave the setting at its default |
@@ -27,12 +27,12 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 
 ## "Provider produced inconsistent result after apply"
 
-This error means Terraform detected the provider returning different values than it planned. Historic provider versions produced it on server-computed fields — default `monitor_steps` injected by the server, normalized timestamps, wrapped values like `probe_version` — and on attributes the server keeps up to date on its own, such as when an incoming request monitor last checked its heartbeat, which can change between the plan and the end of the apply. Current providers handle all of these: server defaults are accepted without drift, timestamps are compared semantically, label arrays are unordered sets, and an attribute you did not configure keeps its planned value until the next refresh reads the server's.
+This error means Terraform detected the provider returning different values than it planned. Historic provider versions produced it on server-computed fields — default `monitor_steps` injected by the server, normalized timestamps, wrapped values like `probe_version` — and on attributes the server keeps up to date on its own, such as when an incoming request monitor last checked its heartbeat, which can change between the plan and the end of the apply. They also read a decimal number as null when the API sent it as text, so every apply of a status page bar color rule failed on `uptime_percent_greater_than_or_equal_to`. Current providers handle all of these: server defaults are accepted without drift, timestamps are compared semantically, label arrays are unordered sets, numbers read back exactly as you wrote them, and an attribute you did not configure keeps its planned value until the next refresh reads the server's.
 
 **Fix:**
 
 1. Make sure you are on a current provider: `version = "{{TERRAFORM_PROVIDER_VERSION}}"` then `terraform init -upgrade`.
-2. Re-run the apply.
+2. Re-run the apply. A resource the failed apply left tainted is replaced once, and plans are empty after that. To keep the resource as it is instead, run `terraform untaint` on its address first.
 
 If a current provider still produces the error, that is a provider bug worth reporting. Open an issue at [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues) and include: the provider version, the resource type, the minimal `resource` block that reproduces it, and the full error output (it names the exact attribute that flip-flopped). That attribute name is the single most useful thing you can provide.
 
