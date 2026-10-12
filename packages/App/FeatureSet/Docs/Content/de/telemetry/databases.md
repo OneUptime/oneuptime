@@ -22,7 +22,7 @@ Die meisten Datenbanken erscheinen von selbst. OneUptime setzt jede aus bis zu v
 
 ```mermaid title="Vier Quellen, eine Datenbankseite"
 flowchart LR
-    traces["Anwendungs-<br/>Traces"] -->|"Abfragen, Aufrufer,<br/>Latenz"| db["Die Seite<br/>der Datenbank"]
+    traces["Anwendungs-<br/>Traces"] -->|"Abfragen,<br/>Aufrufer, Latenz"| db["Die Seite<br/>der Datenbank"]
     k8s["Kubernetes-<br/>Agent"] -->|"Pods, CPU,<br/>Speicher, Logs"| db
     docker["Docker- oder<br/>Podman-Agent"] -->|"Container, CPU,<br/>Speicher, Logs"| db
     agent["Database Agent<br/>oder ein Collector"] -->|"Engine-Metriken,<br/>Abfrageereignisse"| db

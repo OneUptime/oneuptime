@@ -25,7 +25,7 @@ flowchart LR
     traces["Tracce delle<br/>applicazioni"] -->|"query, chiamanti,<br/>latenza"| db["La pagina<br/>del database"]
     k8s["Agent<br/>Kubernetes"] -->|"pod, CPU,<br/>memoria, log"| db
     docker["Agent Docker<br/>o Podman"] -->|"container, CPU,<br/>memoria, log"| db
-    agent["Database Agent<br/>o un collector"] -->|"metriche del motore,<br/>eventi di query"| db
+    agent["Database Agent<br/>o un collector"] -->|"metriche del<br/>motore, eventi<br/>di query"| db
 ```
 
 Le metriche del motore arrivano solo da un collector che parla con il database stesso (o, per un database cloud gestito, con l'API di monitoraggio del suo provider). Le tracce e gli inventari dei container dicono a OneUptime che un database esiste e come viene usato, ma non come sta all'interno: lo stato **Engine metrics** di ogni database indica se quella parte è collegata.

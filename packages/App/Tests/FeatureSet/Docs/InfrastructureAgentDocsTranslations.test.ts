@@ -905,6 +905,12 @@ const COLUMN_WIDE_DIAGRAMS: ReadonlyArray<ColumnWideDiagram> = [
     title: "From your devices to a fleet in OneUptime",
     widestLine: 26,
   },
+  {
+    page: DATABASES,
+    diagram: 0,
+    title: "Four sources, one database page",
+    widestLine: 18,
+  },
 ];
 
 const DIAGRAM_LABEL: RegExp = /"([^"]*)"/g;

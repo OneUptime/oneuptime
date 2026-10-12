@@ -22,10 +22,10 @@ De fleste databaser dukker op af sig selv. OneUptime samler hver database fra op
 
 ```mermaid title="Fire kilder, én databaseside"
 flowchart LR
-    traces["Applikations-<br/>traces"] -->|"forespørgsler, kaldere,<br/>latenstid"| db["Databasens<br/>side"]
+    traces["Applikations-<br/>traces"] -->|"forespørgsler,<br/>kaldere, latenstid"| db["Databasens<br/>side"]
     k8s["Kubernetes-<br/>agent"] -->|"pods, CPU,<br/>hukommelse, logs"| db
     docker["Docker- eller<br/>Podman-agent"] -->|"containere, CPU,<br/>hukommelse, logs"| db
-    agent["Database Agent<br/>eller en collector"] -->|"motormetrikker,<br/>forespørgselshændelser"| db
+    agent["Database Agent<br/>eller en collector"] -->|"motormetrikker,<br/>hændelser for<br/>forespørgsler"| db
 ```
 
 Motormetrikker kommer altid kun fra en collector, der taler med selve databasen (eller, for en administreret clouddatabase, med udbyderens overvågnings-API). Traces og containerinventarer fortæller OneUptime, at en database findes, og hvordan den bruges, men ikke hvordan den har det indvendig; statussen **Engine metrics** på hver database viser, om den del er forbundet.

@@ -22,7 +22,7 @@ De meeste databases verschijnen vanzelf. OneUptime stelt elke database samen uit
 
 ```mermaid title="Vier bronnen, één databasepagina"
 flowchart LR
-    traces["Applicatie-<br/>traces"] -->|"query's, aanroepers,<br/>latentie"| db["De pagina van<br/>de database"]
+    traces["Applicatie-<br/>traces"] -->|"query's,<br/>aanroepers,<br/>latentie"| db["De pagina van<br/>de database"]
     k8s["Kubernetes-<br/>agent"] -->|"pods, CPU,<br/>geheugen, logs"| db
     docker["Docker- of<br/>Podman-agent"] -->|"containers, CPU,<br/>geheugen, logs"| db
     agent["Database Agent<br/>of een collector"] -->|"engine-metrics,<br/>query-events"| db

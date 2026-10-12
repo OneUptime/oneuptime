@@ -22,10 +22,10 @@ A maioria dos bancos de dados aparece sozinha. O OneUptime monta cada um a parti
 
 ```mermaid title="Quatro fontes, uma página de banco de dados"
 flowchart LR
-    traces["Traces de<br/>aplicações"] -->|"consultas, chamadores,<br/>latência"| db["A página do<br/>banco de dados"]
+    traces["Traces de<br/>aplicações"] -->|"consultas,<br/>chamadores,<br/>latência"| db["A página do<br/>banco de dados"]
     k8s["Agente<br/>Kubernetes"] -->|"pods, CPU,<br/>memória, logs"| db
     docker["Agente Docker<br/>ou Podman"] -->|"contêineres, CPU,<br/>memória, logs"| db
-    agent["Database Agent<br/>ou um coletor"] -->|"métricas do mecanismo,<br/>eventos de consulta"| db
+    agent["Database Agent<br/>ou um coletor"] -->|"métricas do<br/>mecanismo, eventos<br/>de consulta"| db
 ```
 
 As métricas do mecanismo só vêm de um coletor que conversa com o próprio banco de dados (ou, no caso de um banco de dados gerenciado na nuvem, com a API de monitoramento do provedor). Traces e inventários de contêineres dizem ao OneUptime que um banco de dados existe e como é usado, mas não como ele está por dentro: o status **Engine metrics** de cada banco de dados indica se essa parte está conectada.

@@ -22,7 +22,7 @@ De fleste databaser dukker opp av seg selv. OneUptime setter sammen hver databas
 
 ```mermaid title="Fire kilder, én databaseside"
 flowchart LR
-    traces["Applikasjons-<br/>spor"] -->|"spørringer, kallere,<br/>latens"| db["Databasens<br/>side"]
+    traces["Applikasjons-<br/>spor"] -->|"spørringer,<br/>kallere, latens"| db["Databasens<br/>side"]
     k8s["Kubernetes-<br/>agent"] -->|"poder, CPU,<br/>minne, logger"| db
     docker["Docker- eller<br/>Podman-agent"] -->|"containere, CPU,<br/>minne, logger"| db
     agent["Database Agent<br/>eller en collector"] -->|"motormetrikker,<br/>spørringshendelser"| db

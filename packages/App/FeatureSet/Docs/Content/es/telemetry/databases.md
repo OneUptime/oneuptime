@@ -22,10 +22,10 @@ La mayoría de las bases de datos aparecen solas. OneUptime compone cada una a p
 
 ```mermaid title="Cuatro fuentes, una página de base de datos"
 flowchart LR
-    traces["Trazas de<br/>aplicaciones"] -->|"consultas, llamadores,<br/>latencia"| db["La página de la<br/>base de datos"]
+    traces["Trazas de<br/>aplicaciones"] -->|"consultas,<br/>llamadores,<br/>latencia"| db["La página de la<br/>base de datos"]
     k8s["Agente de<br/>Kubernetes"] -->|"pods, CPU,<br/>memoria, registros"| db
     docker["Agente de Docker<br/>o Podman"] -->|"contenedores, CPU,<br/>memoria, registros"| db
-    agent["Database Agent<br/>o un colector"] -->|"métricas del motor,<br/>eventos de consulta"| db
+    agent["Database Agent<br/>o un colector"] -->|"métricas del<br/>motor, eventos<br/>de consulta"| db
 ```
 
 Las métricas del motor solo vienen de un colector que habla con la propia base de datos (o, en una base de datos administrada en la nube, con la API de monitorización de su proveedor). Las trazas y los inventarios de contenedores le dicen a OneUptime que una base de datos existe y cómo se usa, pero no cómo está por dentro: el estado **Métricas del motor** de cada base de datos indica si esa parte está conectada.
