@@ -404,6 +404,13 @@ Ubuntu 24.04 (systemd 255) and on Rocky Linux 8 (systemd 239, as RHEL 8 ships
 it), the oldest systemd the docs support. That second run is what showed that
 systemd 239 drops a backslash inside single quotes — `'DOMAIN\user'` logged in
 as `DOMAINuser` — which is why the docs double-quote the user and password.
+The pinned vcsim archive is kept in `VCSIM_CACHE_DIR` (default
+`~/.cache/oneuptime/vcsim`) and fetched with
+`Scripts/GHA/fetch_pinned_artifact.sh`, so a copy that still matches the pin
+is used without the network and a download rides out GitHub's release CDN
+bursts; the workflow keeps that directory in the Actions cache, keyed on the
+pin (`--print-vcsim-pin`), and fills it in a step of its own
+(`--fetch-vcsim`).
 
 ```sh
 cd Tests/Ops && npm run vmware-agent-native-install
