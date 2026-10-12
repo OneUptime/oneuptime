@@ -68,6 +68,7 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceMeasurement>,
   ): Promise<OnUpdate<ScheduledMaintenanceMeasurement>>;
+  onUpdatePermitted(updateBy: UpdateBy<ScheduledMaintenanceMeasurement>): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<ScheduledMaintenanceMeasurement>,
   ): Promise<OnDelete<ScheduledMaintenanceMeasurement>>;
@@ -75,6 +76,19 @@ interface MeasurementHooks {
 
 const hooks: MeasurementHooks =
   ScheduledMaintenanceMeasurementService as unknown as MeasurementHooks;
+
+/*
+ * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+ * decides whether the change rewrites the history, and onUpdatePermitted -
+ * once the caller has passed every permission check - asks for the backfill.
+ * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+ * held to the caller's column permissions and refused every member's change
+ * (MeasurementEditsAsMember runs the whole update).
+ */
+async function runUpdateHooks(updateBy: UpdateBy<ScheduledMaintenanceMeasurement>): Promise<void> {
+  await hooks.onBeforeUpdate(updateBy);
+  await hooks.onUpdatePermitted(updateBy);
+}
 
 function buildCreateBy(input: {
   key?: string;
@@ -524,7 +538,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         { endStateOccurrence: "Last" },
       );
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -573,7 +587,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         const updateBy: UpdateBy<ScheduledMaintenanceMeasurement> =
           buildUpdateBy({ [key]: value });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect({
           key,
@@ -598,7 +612,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         { isEnabled: false },
       );
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -619,7 +633,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         { name: "Start Delay (v2)" },
       );
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = dataOf(updateBy);
 
@@ -640,7 +654,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
         const updateBy: UpdateBy<ScheduledMaintenanceMeasurement> =
           buildUpdateBy({ [key]: undefined });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(dataOf(updateBy)["backfillRequestedAt"]).toBeUndefined();
       }
