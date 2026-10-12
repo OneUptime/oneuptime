@@ -49,7 +49,7 @@ sequenceDiagram
 
 使用相同傳輸協定和 SQL 方言的 MySQL 相容與 PostgreSQL 相容引擎通常也能運作，但官方只測試上面這三種引擎。
 
-如果監測器連線的主機和連接埠是 [資料庫](/docs/telemetry/databases) 頁面上某個資料庫的端點之一，它的警示和事件也會出現在該資料庫的頁面上（請參閱 [資料庫上的警示](/docs/telemetry/databases#alerts-on-a-database)）。以監控密鑰參照形式提供的主機不會被比對。
+如果監測器連線的主機和連接埠是 [資料庫](/docs/telemetry/databases) 頁面上某個資料庫的端點之一，它的警示和事件也會出現在該資料庫的頁面上（請參閱 [資料庫上的警示](/docs/telemetry/databases#資料庫的警示)）。以監控密鑰參照形式提供的主機不會被比對。
 
 ## 安全模型
 
