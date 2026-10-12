@@ -1107,8 +1107,12 @@ export default class QuietChannelsWorld {
       step.onCallDutyPolicyExecutionLogId = this.run!.id!;
       step.onCallDutyPolicyId = POLICY_ID;
       step.onCallDutyPolicyEscalationRuleId = script.id;
-      step.triggeredByIncidentId = this.run!.triggeredByIncidentId;
-      step.triggeredByAlertId = this.run!.triggeredByAlertId;
+      if (this.run!.triggeredByIncidentId) {
+        step.triggeredByIncidentId = this.run!.triggeredByIncidentId;
+      }
+      if (this.run!.triggeredByAlertId) {
+        step.triggeredByAlertId = this.run!.triggeredByAlertId;
+      }
 
       if (target.kind === "gap") {
         step.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
@@ -1221,8 +1225,12 @@ export default class QuietChannelsWorld {
       nobody.onCallDutyPolicyExecutionLogId = this.run!.id!;
       nobody.onCallDutyPolicyId = POLICY_ID;
       nobody.onCallDutyPolicyEscalationRuleId = script.id;
-      nobody.triggeredByIncidentId = this.run!.triggeredByIncidentId;
-      nobody.triggeredByAlertId = this.run!.triggeredByAlertId;
+      if (this.run!.triggeredByIncidentId) {
+        nobody.triggeredByIncidentId = this.run!.triggeredByIncidentId;
+      }
+      if (this.run!.triggeredByAlertId) {
+        nobody.triggeredByAlertId = this.run!.triggeredByAlertId;
+      }
       nobody.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
       nobody.statusMessage = "Skipped because no users in this rule.";
 

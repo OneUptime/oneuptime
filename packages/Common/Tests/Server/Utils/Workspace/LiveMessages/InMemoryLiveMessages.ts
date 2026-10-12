@@ -73,21 +73,17 @@ export default class InMemoryLiveMessages {
     });
   }
 
+  // A row as a read hands one out: its own object, its data its own copy.
   private copy(row: WorkspaceLiveMessage): WorkspaceLiveMessage {
-    const copy: WorkspaceLiveMessage = new WorkspaceLiveMessage();
-    copy.id = row.id;
-    copy.projectId = row.projectId;
-    copy.workspaceType = row.workspaceType;
-    copy.messageKey = row.messageKey;
-    copy.destinationType = row.destinationType;
-    copy.channelId = row.channelId;
-    copy.channelName = row.channelName;
-    copy.teamId = row.teamId;
-    copy.messageId = row.messageId;
-    copy.contentHash = row.contentHash;
-    copy.messageData = row.messageData
-      ? JSON.parse(JSON.stringify(row.messageData))
-      : row.messageData;
+    const copy: WorkspaceLiveMessage = Object.assign(
+      new WorkspaceLiveMessage(),
+      row,
+    );
+
+    if (row.messageData) {
+      copy.messageData = JSON.parse(JSON.stringify(row.messageData));
+    }
+
     return copy;
   }
 }
