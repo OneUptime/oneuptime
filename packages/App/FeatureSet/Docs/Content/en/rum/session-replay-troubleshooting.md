@@ -244,15 +244,15 @@ Every line carries a stable `code`. Look yours up here.
 | `chunk-throttled` | Rate limited. Uploads pause and resume on their own. |
 | `transport-disabled` | The circuit breaker tripped after repeated failures. The `reason` says which. |
 | `server-directive` | The server changed what the recorder should do mid-session. The `reason` is a closed vocabulary — see [chunk POST statuses](#chunk-post-statuses) below. |
-| `recorder-stopped-by-server`| The server told the recorder to stop. Usually the daily byte budget. |
+| `recorder-stopped-by-server` | The server told the recorder to stop. Usually the daily byte budget. |
 | `recorder-throttled-by-server` | The server asked the recorder to slow down. Uploads resume on their own; nothing to do. |
-| `recorder-stopped-transport`| Uploading failed permanently, so recording stopped and the buffer was released. The `reason` is the same one `transport-disabled` reported. |
+| `recorder-stopped-transport` | Uploading failed permanently, so recording stopped and the buffer was released. The `reason` is the same one `transport-disabled` reported. |
 | `recorder-stopped` | Recording ended, with the session's totals: `droppedEvents`, `droppedChunks`, `flushFailures`. All three should be 0 on a healthy session. |
 | `session-ended-idle` | Nothing happened on the page for 30 minutes, so the session ended — dated at the last activity, not at the moment the recorder noticed (`idleForMs` says how long ago that was). Nothing more is uploaded, and requests to your own origin carry no session id, until the user comes back; a tab left open with nobody at it does not start a new session every half hour. |
 | `recording-paused-idle` | Nobody pressed a key, clicked, moved the mouse, scrolled with the wheel or touched the page for 5 minutes, so recording paused (`idleForMs` says how long it had been). Nothing is captured or uploaded, and requests to your own origin carry no session id, until the next input resumes the same session — see [Idle time](/docs/telemetry/session-replay#idle-time). Normal on any tab left alone. |
 | `recording-resumed` | The user came back while recording was paused, so it resumed in the same session on a fresh snapshot (`pausedForMs` says for how long it had been paused). The player skips the stretch in between. |
 | `session-rotated` | A new session started (the user came back after 30 minutes idle, the session reached 4 hours, `identify()` named a different user than the one the session belonged to — `rotationReason: "identity-change"` — or another tab of the same visitor started one first — `rotationReason: "adopted"`). The recording continues under a new id, `onSessionChange` listeners are told, and requests to your own origin carry the new id from then on. |
-| `command-queue-not-an-array`| `window.OneUptimeReplayQueue` is not an array, so every command queued on it was ignored. It must be an array of `[command, ...arguments]` entries. |
+| `command-queue-not-an-array` | `window.OneUptimeReplayQueue` is not an array, so every command queued on it was ignored. It must be an array of `[command, ...arguments]` entries. |
 | `command-queue-unknown-command` | A queued command name was not recognised — check the spelling against the [JavaScript API](/docs/telemetry/session-replay#javascript-api). |
 | `command-queue-command-failed` | A queued command threw while being applied — the `command` and the error's `name` are in the detail. The rest of the queue still ran. Usually an argument of the wrong shape (a string where a traits object is expected). |
 
@@ -325,7 +325,7 @@ Nothing to configure. `application/octet-stream` is on the rule set's default co
 
 Azure Front Door's DRS 2.1 and 2.2 are baselined on CRS 3.3.2 and 3.3.4, so this covers them.
 
-If a page is still running a recorder from before this change — a long-lived tab, or a mobile app build that has not been updated — its chunks carry the old content type and are refused until it reloads or updates. To bridge that window on Azure Front Door, add a custom rule that matches `RequestUri` containing `/session-replay/v1/chunk` **and** the `Content-Type` request header equal to `application/vnd.oneuptime.session-replay.v1`, with action _Allow_. Remove it once those clients are gone.
+If a page is still running a recorder from before this change — a long-lived tab, or a mobile app build that has not been updated — its chunks carry the old content type and are refused until it reloads or updates. To bridge that window on Azure Front Door, add a custom rule that matches `RequestUri` containing `/session-replay/v1/chunk` and the `Content-Type` request header equal to `application/vnd.oneuptime.session-replay.v1`, with action _Allow_. Remove it once those clients are gone.
 
 ### OWASP Core Rule Set 4
 
@@ -353,7 +353,7 @@ So the number is always telling the truth. What it means depends on where the ho
 - **A hole in the middle** is a chunk the server refused or never received. `chunk-refused`, `chunk-abandoned`, `chunk-post-failed`, `chunk-not-recorded` and `final-chunk-too-large` with `sealed: false` in the console each name a different cause, and the `server-directive` line beside them carries the server's reason.
 - **The same gap in the same place on every session, on a page with a large DOM**, was a defect in older recorders, fixed in the recorder this version of OneUptime publishes. Those builds cut an rrweb full-page snapshot bigger than the 256 KB flush threshold into fragments tagged `snapshotPart`, which nothing on the receiving side ever reassembled, so the snapshot — and every chunk index it occupied — was dropped on every page load, and nothing on the customer's page could work around it. The current recorder never splits a snapshot. The server counts what it refuses, so an old recorder shows up on the **Health** page as drops with the reason `snapshot-fragment-unsupported`. Reload the affected page to fetch `latest` without a browser cache; recordings already taken stay as they are.
 
-Gaps are not the same as **idle** stretches: an idle stretch is footage in which nothing happened, drawn gray on the timeline and skippable; a gap is footage that never arrived, drawn amber.
+Gaps are not the same as idle stretches: an idle stretch is footage in which nothing happened, drawn gray on the timeline and skippable; a gap is footage that never arrived, drawn amber.
 
 ## The player says Buffering, or a chunk failed to load
 
@@ -458,7 +458,7 @@ The diagnostics carry no page content, and this is enforced rather than promised
 - String values are truncated.
 - URLs that appear in records are either OneUptime's own endpoints or already scrubbed of query strings and fragments by the same scrubber the recording itself uses.
 
-So the output of `getDiagnostics()` is safe to paste into a support ticket. It is not safe to leave diagnostics switched **on** for every visitor of a production site — not for privacy reasons, but because it is noise in your end users' consoles.
+So the output of `getDiagnostics()` is safe to paste into a support ticket. It is not safe to leave diagnostics switched on for every visitor of a production site — not for privacy reasons, but because it is noise in your end users' consoles.
 
 ## Still stuck
 

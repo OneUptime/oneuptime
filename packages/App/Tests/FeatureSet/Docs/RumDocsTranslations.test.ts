@@ -52,21 +52,32 @@ import {
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import {
+  ADMIN_DASHBOARD_LABELS,
   BROWSER_SETUP,
   CREATE_BUTTONS,
   KEPT_AS_WRITTEN,
   MOBILE_SETUP,
+  OTHER_PRODUCTS,
   PROSE,
+  RUM_APPLICATIONS,
   RUM_INDEX,
+  RUM_PAGES,
   RUM_SETUP_PAGES,
+  RUM_TROUBLESHOOTING,
   RumDocsPageEntry,
+  SESSION_REPLAY,
+  SESSION_REPLAY_TROUBLESHOOTING,
   WEB_VITALS,
 } from "./RumDocsPages";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
- * Docs overhaul task 25a: the RUM Overview, Browser Setup, Mobile Setup and
- * Core Web Vitals pages, in every docs language. RumDocsFacts holds the
+ * Docs overhaul tasks 25a and 25b: the eight pages of the Real User
+ * Monitoring group - RUM Overview, Browser Setup, Mobile Setup, Core Web
+ * Vitals, Managing Applications, Session Replay, Session Replay
+ * Troubleshooting and RUM Troubleshooting - in every docs language. RumDocsFacts holds the
  * English pages to the product; this suite holds each translation to its
  * English page:
  *
@@ -98,10 +109,16 @@ const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   },
 );
 
-const PAGE_NAMES: Array<string> = RUM_SETUP_PAGES.map(
+const PAGE_NAMES: Array<string> = RUM_PAGES.map(
   (entry: RumDocsPageEntry): string => {
     return entry.page;
   },
+);
+
+// The Admin Dashboard's own locale files: a self-hosted administrator's screens.
+const ADMIN_DASHBOARD_LOCALES: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/AdminDashboard/src/Locales",
 );
 
 /*
@@ -118,6 +135,10 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [BROWSER_SETUP]: 20,
   [MOBILE_SETUP]: 29,
   [WEB_VITALS]: 28,
+  [RUM_APPLICATIONS]: 30,
+  [SESSION_REPLAY]: 34,
+  [SESSION_REPLAY_TROUBLESHOOTING]: 30,
+  [RUM_TROUBLESHOOTING]: 30,
 };
 
 /*
@@ -131,6 +152,11 @@ const NAME_TABS: ReadonlyArray<string> = [
   "React Native",
   "Vue Router",
   "React Router",
+  // Session Replay's sampler, for each SDK.
+  "Node.js",
+  "Java",
+  "Python",
+  "Go",
 ];
 
 /*
@@ -154,6 +180,16 @@ const PRODUCT_NAMES: ReadonlyArray<string> = [
   "Cumulative Layout Shift",
   "First Contentful Paint",
   "Time to First Byte",
+  // Session Replay's pages: the agents, firewalls and tools they name.
+  "Datadog RUM",
+  "New Relic",
+  "Elastic APM",
+  "Azure Front Door",
+  "Power Pages",
+  "Google Tag Manager",
+  "Next.js",
+  "Expo Go",
+  "OWASP Core Rule Set",
 ];
 
 /*
@@ -255,8 +291,30 @@ function accountedFor(page: string, span: string): boolean {
   return (
     listed(KEPT_AS_WRITTEN, page).includes(span) ||
     listed(CREATE_BUTTONS, page).includes(span) ||
-    listed(PROSE, page).includes(span)
+    listed(PROSE, page).includes(span) ||
+    listed(OTHER_PRODUCTS, page).includes(span) ||
+    listed(ADMIN_DASHBOARD_LABELS, page).includes(span)
   );
+}
+
+/*
+ * What the Admin Dashboard draws for a label written in English, in this
+ * language: its own locale's value, or the English when it has none.
+ */
+function drawnAdminDashboardLabel(language: string, english: string): string {
+  if (language === "en") {
+    return english;
+  }
+
+  const locale: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.join(ADMIN_DASHBOARD_LOCALES, `${language}.json`),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+  const value: unknown = locale[english];
+
+  return typeof value === "string" && value.trim() ? value : english;
 }
 
 /*
@@ -288,6 +346,14 @@ function englishBoldDrawings(
     ...boldPaths(englishPage(page)).map(
       (segments: Array<string>): [string, string] => {
         return [drawnPath("en", segments), drawnPath(language, segments)];
+      },
+    ),
+    ...listed(ADMIN_DASHBOARD_LABELS, page).map(
+      (label: string): [string, string] => {
+        return [
+          `**${label}**`,
+          `**${drawnAdminDashboardLabel(language, label)}**`,
+        ];
       },
     ),
   ];
@@ -426,7 +492,10 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 
-    for (const kept of listed(KEPT_AS_WRITTEN, page)) {
+    for (const kept of [
+      ...listed(KEPT_AS_WRITTEN, page),
+      ...listed(OTHER_PRODUCTS, page),
+    ]) {
       text = text.split(`**${kept}**`).join(" ");
     }
 
@@ -460,6 +529,8 @@ describe("the lists this test keeps", () => {
       CREATE_BUTTONS,
       KEPT_AS_WRITTEN,
       PROSE,
+      OTHER_PRODUCTS,
+      ADMIN_DASHBOARD_LABELS,
       WIDEST_DIAGRAM_LINE,
       DETAILS_WORDS,
     ]) {
@@ -488,6 +559,8 @@ describe("the lists this test keeps", () => {
         ...listed(KEPT_AS_WRITTEN, page),
         ...listed(CREATE_BUTTONS, page),
         ...listed(PROSE, page),
+        ...listed(OTHER_PRODUCTS, page),
+        ...listed(ADMIN_DASHBOARD_LABELS, page),
       ].filter((span: string): boolean => {
         return !english.includes(span);
       });
@@ -506,6 +579,22 @@ describe("the lists this test keeps", () => {
           page,
           name,
           label: permission,
+        });
+      }
+    }
+  });
+
+  it("name the Admin Dashboard by labels its own English locale has", () => {
+    const english: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(ADMIN_DASHBOARD_LOCALES, "en.json"), "utf8"),
+    ) as Record<string, unknown>;
+
+    for (const page of PAGE_NAMES) {
+      for (const label of listed(ADMIN_DASHBOARD_LABELS, page)) {
+        expect({ page, label, key: english[label] }).toEqual({
+          page,
+          label,
+          key: label,
         });
       }
     }
@@ -554,7 +643,7 @@ describe("the lists this test keeps", () => {
 });
 
 describe("the English pages", () => {
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page draws at least one diagram, with a caption",
     (entry: RumDocsPageEntry) => {
       const diagrams: Array<{ info: string }> = scanMarkdown(
@@ -571,7 +660,7 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page opens with cards to its own sections and ends on a Next steps section of cards",
     (entry: RumDocsPageEntry) => {
       const markdown: string = englishPage(entry.page);
@@ -630,7 +719,7 @@ describe("the English pages", () => {
     expect(getStarted).toContain("(/docs/rum/troubleshooting)");
   });
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page breaks its diagrams' labels to fit the 590px docs column",
     (entry: RumDocsPageEntry) => {
       expect(widestDiagramLine("en", entry.page)).toBeLessThanOrEqual(
@@ -639,7 +728,7 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page has no two headings with the same anchor",
     (entry: RumDocsPageEntry) => {
       const slugs: Array<string> = scanMarkdown(
@@ -652,14 +741,14 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page closes every bold and code span it opens",
     (entry: RumDocsPageEntry) => {
       expect(unbalancedLines(englishPage(entry.page))).toEqual([]);
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page says no 'left navigation': products open from the Products menu",
     (entry: RumDocsPageEntry) => {
       expect(englishPage(entry.page)).not.toMatch(/left nav/i);
@@ -668,7 +757,7 @@ describe("the English pages", () => {
 });
 
 describe.each(LANGUAGES)("%s", (language: string) => {
-  describe.each(RUM_SETUP_PAGES)("$page", (entry: RumDocsPageEntry) => {
+  describe.each(RUM_PAGES)("$page", (entry: RumDocsPageEntry) => {
     const english: string = englishPage(entry.page);
 
     it("is translated, under the nav link's title", () => {
@@ -909,6 +998,24 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         .filter((drawn: string): boolean => {
           return !translated.includes(drawn);
         });
+
+      expect(missing).toEqual([]);
+    });
+
+    it("keeps another product's screens as that product writes them, and draws the Admin Dashboard's from its own locale", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = [
+        ...listed(OTHER_PRODUCTS, entry.page).map((name: string): string => {
+          return `**${name}**`;
+        }),
+        ...listed(ADMIN_DASHBOARD_LABELS, entry.page).map(
+          (label: string): string => {
+            return `**${drawnAdminDashboardLabel(language, label)}**`;
+          },
+        ),
+      ].filter((bold: string): boolean => {
+        return !translated.includes(bold);
+      });
 
       expect(missing).toEqual([]);
     });

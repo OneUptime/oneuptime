@@ -328,7 +328,7 @@ If your pages render personal data, either move up a mode or add mask or block s
 
 ### Set your allowed origins in production
 
-Session replay works out of the box with an empty origin allowlist, which accepts recordings from **any** origin. That is convenient for getting started and wrong for production.
+Session replay works out of the box with an empty origin allowlist, which accepts recordings from any origin. That is convenient for getting started and wrong for production.
 
 Your ingestion token is shipped to the client — in page JavaScript or the mobile binary — so there are two fences, and they compose:
 
@@ -712,7 +712,7 @@ The controls under the stage sit on one row: play/pause, the current time and du
 
 **Tabs.** A session holds one recording per tab, and the recorder starts a new tab id on every page load — so a visitor who walked through four pages arrives as four "tabs" of one session, and a visitor with two windows open adds more. The switcher in the header lists the tabs that are still open first, each with a green dot meaning it is still recording, and the closed ones after; every pill names the page it was on and how long it lasted ("Tab 3 · /checkout · 30s"), and a line above them counts them ("3 tabs · 1 open · 2 closed"). Switching keeps the playhead where it is on the session clock. Pills wrap onto further rows rather than scrolling sideways, and a tab with no stored footage is disabled and says so.
 
-Past six tabs the strip stops growing: it shows the open tabs and the one you are watching, and _All 11 tabs_ opens a picker listing every one of them. The picker groups them under **Open**, **Closed** and **No footage** with a count on each heading, filters as you type a page or a tab number, and gives each row the page, when the tab opened, how long it lasted, its errors and frustration signals, a bar placing the tab against the session clock so "the one that was open when it broke" is findable by position, and **Watching** on the tab on screen. Once a session has finished nothing is open any more, so the headings collapse to a single list.
+Past six tabs the strip stops growing: it shows the open tabs and the one you are watching, and _All 11 tabs_ opens a picker listing every one of them. The picker groups them as open, closed or with no footage, with a count on each heading, filters as you type a page or a tab number, and gives each row the page, when the tab opened, how long it lasted, its errors and frustration signals, a bar placing the tab against the session clock so "the one that was open when it broke" is findable by position, and **Watching** on the tab on screen. Once a session has finished nothing is open any more, so the headings collapse to a single list.
 
 **Playing a whole visit.** Because every page load is another tab, playback would otherwise stop at each page of a visit. It does not: when the tab you are watching plays out and another has later footage, the player moves to that tab and keeps playing, saying which one it went to. So a four-page visit plays end to end from one press of Play. The walk follows the session clock, enters each tab at most once, and stops when nothing follows — where the ended card offers **Watch again** and, when the same person has one, **Next session by this user**.
 
