@@ -7,6 +7,7 @@ import SSRFProtection from "../../../../../Server/Utils/SSRFProtection";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
+import APIException from "../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -296,6 +297,38 @@ describe("SMSEagle SendSms - SMSEagle errors go to the error port", () => {
 
     expect(result.executePort?.id).toBe("error");
     expect(result.returnValues["error"]).toBe("Modem not ready");
+  });
+
+  test("a device that cannot be reached goes to the error port with the reason", async () => {
+    apiPostMock.mockRejectedValue(
+      new APIException(
+        "Request failed to https://192.168.0.100/api/v2/messages/sms. connect ECONNREFUSED",
+      ),
+    );
+
+    const result: RunReturnType = await new SendSms().run(
+      makeArgs(),
+      makeOptions(),
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe(
+      "Request failed to https://192.168.0.100/api/v2/messages/sms. connect ECONNREFUSED",
+    );
+  });
+
+  test("any other thrown error goes to the error port with a generic message", async () => {
+    apiPostMock.mockRejectedValue(new Error("unexpected"));
+
+    const result: RunReturnType = await new SendSms().run(
+      makeArgs(),
+      makeOptions(),
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe(
+      "The request could not be sent to SMSEagle.",
+    );
   });
 
   test("a thrown HTTP error response returns its message", async () => {

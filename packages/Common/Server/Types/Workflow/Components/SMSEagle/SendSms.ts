@@ -2,7 +2,6 @@ import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
-import APIException from "../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONArray, JSONObject, JSONValue } from "../../../../../Types/JSON";
@@ -182,7 +181,16 @@ export default class SendSms extends ComponentCode {
         });
       }
 
-      throw options.onError(new APIException("Something wrong happened."));
+      const smsEagleError: string =
+        err instanceof Exception
+          ? err.message
+          : "The request could not be sent to SMSEagle.";
+      return Promise.resolve({
+        returnValues: {
+          error: smsEagleError,
+        },
+        executePort: errorPort,
+      });
     }
   }
 }
