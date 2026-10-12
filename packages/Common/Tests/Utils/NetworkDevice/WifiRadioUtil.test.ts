@@ -417,9 +417,7 @@ describe("a Cambium Wi-Fi 7 access point through the shipped template", () => {
 
     expect(summary.totalClients).toBe(9);
     expect(summary.collectedAt).toBe("2026-10-12T09:15:00.000Z");
-    expect(WifiRadioUtil.getTablesState(summary)).toBe(
-      WifiTablesState.HasRows,
-    );
+    expect(WifiRadioUtil.getTablesState(summary)).toBe(WifiTablesState.HasRows);
   });
 
   it("shows an SSID on two bands as the device wrote it, not as the first band named", () => {
@@ -564,9 +562,9 @@ describe("WifiRadioUtil.getTablesState", () => {
       ],
     };
 
-    expect(
-      WifiRadioUtil.getTablesState(WifiRadioUtil.getSummary(tables)),
-    ).toBe(WifiTablesState.NoRows);
+    expect(WifiRadioUtil.getTablesState(WifiRadioUtil.getSummary(tables))).toBe(
+      WifiTablesState.NoRows,
+    );
   });
 
   it("carries a reason only with the failure it explains", () => {

@@ -97,9 +97,9 @@ describe("ProbeCapabilityUtil.has", () => {
   });
 
   test("a probe that declared nothing has nothing", () => {
-    expect(
-      ProbeCapabilityUtil.has(undefined, ProbeCapability.SnmpTables),
-    ).toBe(false);
+    expect(ProbeCapabilityUtil.has(undefined, ProbeCapability.SnmpTables)).toBe(
+      false,
+    );
     expect(ProbeCapabilityUtil.has([], ProbeCapability.SnmpTables)).toBe(false);
   });
 

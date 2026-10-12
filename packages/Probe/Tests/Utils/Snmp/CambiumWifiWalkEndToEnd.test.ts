@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import dgram from "dgram";
 import snmp from "net-snmp";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -197,20 +198,12 @@ async function startAgent(withWifiTables: boolean): Promise<{
       tableIndex: [{ columnName: "cambiumWlanIndex" }],
     });
 
-    agent.getMib().addTableRow("cambiumWlanEntry", [
-      0,
-      "Workshop",
-      "5GHz,6GHz",
-      30,
-      6,
-    ]);
-    agent.getMib().addTableRow("cambiumWlanEntry", [
-      1,
-      "Visitors",
-      "5GHz,6GHz",
-      40,
-      3,
-    ]);
+    agent
+      .getMib()
+      .addTableRow("cambiumWlanEntry", [0, "Workshop", "5GHz,6GHz", 30, 6]);
+    agent
+      .getMib()
+      .addTableRow("cambiumWlanEntry", [1, "Visitors", "5GHz,6GHz", 40, 3]);
   }
 
   return { agent: agent, port: port };
@@ -229,7 +222,7 @@ function pollConfig(
     hostname: "127.0.0.1",
     port: port,
     communityString: COMMUNITY,
-    oids: template.oids.map((oid: { oid: string; name?: string }) => {
+    oids: template.oids.map((oid: SnmpOid): SnmpOid => {
       return { oid: oid.oid, name: oid.name };
     }),
     timeout: 4000,
@@ -240,7 +233,9 @@ function pollConfig(
   };
 }
 
-async function poll(config: MonitorStepSnmpMonitor): Promise<SnmpMonitorResponse> {
+async function poll(
+  config: MonitorStepSnmpMonitor,
+): Promise<SnmpMonitorResponse> {
   const response: SnmpMonitorResponse | null = await SnmpMonitor.query(config, {
     timeout: 4000,
   });
@@ -334,9 +329,7 @@ describe("a Cambium Wi-Fi 7 access point polled over UDP with the vendor templat
 
     const summary: WifiSummary = WifiRadioUtil.getSummary(snapshots);
 
-    expect(WifiRadioUtil.getTablesState(summary)).toBe(
-      WifiTablesState.HasRows,
-    );
+    expect(WifiRadioUtil.getTablesState(summary)).toBe(WifiTablesState.HasRows);
 
     expect(
       summary.radios.map((radio: WifiSummary["radios"][number]) => {
@@ -388,9 +381,7 @@ describe("what a probe that walks tables always reports", () => {
       }),
     );
 
-    expect(WifiRadioUtil.getTablesState(summary)).toBe(
-      WifiTablesState.NoRows,
-    );
+    expect(WifiRadioUtil.getTablesState(summary)).toBe(WifiTablesState.NoRows);
   });
 
   test("a config that lists no tables reports no tableResults at all", async () => {

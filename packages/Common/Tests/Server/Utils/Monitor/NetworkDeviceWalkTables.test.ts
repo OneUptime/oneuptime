@@ -16,6 +16,7 @@ import {
   SnmpTableKind,
   SnmpTableResult,
   SnmpTableSnapshot,
+  SnmpTableSnapshotColumn,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpVendorTemplateUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../../Types/ObjectID";
@@ -411,9 +412,11 @@ describe("NetworkDeviceWalkUtil.applyTableDefinitions with a probe that does not
 
       // Named and described from the definition, so the views can list it.
       expect(snapshot![0]!.name).toBe("IPsec Tunnels");
-      expect(snapshot![0]!.columns.map((column) => column.oid)).toEqual([
-        IPSEC_STATUS,
-      ]);
+      expect(
+        snapshot![0]!.columns.map((column: SnmpTableSnapshotColumn) => {
+          return column.oid;
+        }),
+      ).toEqual([IPSEC_STATUS]);
 
       // Criteria judge what this walk read: still nothing.
       expect(snmpResponse.tables).toBeUndefined();
