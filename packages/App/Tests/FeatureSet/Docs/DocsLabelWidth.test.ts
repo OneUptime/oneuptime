@@ -18,7 +18,8 @@ import ts from "typescript";
  * suites hold the diagrams that fill the 590px docs column to label lines
  * measured to fit it, in a browser, in every language
  * (NetworkDocsTranslations, StatusPageDocsTranslations,
- * ProbeDocsTranslations, CloudDocsTranslations).
+ * ProbeDocsTranslations, CloudDocsTranslations,
+ * InfrastructureAgentDocsTranslations, AiObservabilityDocsTranslations).
  *
  * The class of wide characters used to be ranges typed as characters, and
  * code scanning reported two of them overlapping (#2216, #2217): the first

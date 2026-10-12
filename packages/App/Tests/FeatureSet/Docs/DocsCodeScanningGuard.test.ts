@@ -238,6 +238,8 @@ describe("the docs tests write nothing code scanning reports", () => {
         "LogShipperAndPublicApiDocsFacts.test.ts",
         "ValkeyRenameLocalization.test.ts",
         "NetworkDocsTranslations.test.ts",
+        // A third copy of the wide characters came with it, the day this was written.
+        "InfrastructureAgentDocsTranslations.test.ts",
       ]),
     );
   });
