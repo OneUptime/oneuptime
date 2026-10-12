@@ -13,14 +13,10 @@ Claude Code exports OpenTelemetry metrics and events itself, straight to OneUpti
 
 ```mermaid title="From Claude Code to OneUptime"
 flowchart TB
-    subgraph machine["Each developer machine"]
-        direction LR
-        settings["Environment or<br/>managed settings"] --> cc["Claude Code"]
-    end
-    cc -->|"Metrics, every 60 s"| ingest["OneUptime"]
-    cc -->|"Events, every 5 s"| ingest
-    ingest --> usage["Usage: cost by employee,<br/>team and model"]
-    ingest --> explorers["Metrics and<br/>Logs explorers"]
+    settings["Environment or<br/>managed settings"] --> cc["Claude Code on<br/>each machine"]
+    cc -->|"Metrics every 60 s,<br/>events every 5 s"| ingest["OneUptime"]
+    ingest --> usage["Usage tab:<br/>cost per person"]
+    ingest --> explorers["Metrics and Logs<br/>explorers"]
 ```
 
 Claude Code sends:

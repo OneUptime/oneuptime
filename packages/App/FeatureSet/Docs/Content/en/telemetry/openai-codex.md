@@ -15,9 +15,10 @@ Each exporter sends one signal to its own URL. Traces and logs are off until you
 
 ```mermaid title="Codex's three exporters"
 flowchart TB
-    codex["Codex"] -->|"exporter"| logs["Logs<br/>/otlp/v1/logs"]
-    codex -->|"trace_exporter"| traces["Traces<br/>/otlp/v1/traces"]
-    codex -->|"metrics_exporter"| metrics["Metrics<br/>/otlp/v1/metrics"]
+    config["~/.codex/config.toml"] --> codex["Codex"]
+    codex --> logs["Logs"]
+    codex --> traces["Traces"]
+    codex --> metrics["Metrics"]
     logs --> oneuptime["OneUptime"]
     traces --> oneuptime
     metrics --> oneuptime

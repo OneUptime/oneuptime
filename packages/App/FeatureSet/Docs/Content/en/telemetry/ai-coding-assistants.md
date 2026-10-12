@@ -17,9 +17,14 @@ Each tool sends its telemetry to OneUptime's OTLP endpoint with your ingestion k
 
 ```mermaid title="How coding assistants reach OneUptime"
 flowchart TB
-    machines["Claude Code, Codex,<br/>Gemini CLI, Copilot"] -->|"OTLP from<br/>each machine"| ingest["OneUptime"]
-    cursor["Cursor's servers"] -->|"OTLP"| ingest
-    gateway["AI gateway"] -->|"OTLP"| ingest
+    subgraph sources["Sent over OTLP by"]
+        direction TB
+        machines["Claude Code, Codex, Gemini CLI<br/>and Copilot on each machine"]
+        cursor["Cursor's servers"]
+        gateway["An AI gateway"]
+        machines ~~~ cursor ~~~ gateway
+    end
+    sources --> ingest["OneUptime"]
     ingest --> usage["Usage tab: employee,<br/>team and model"]
 ```
 

@@ -15,15 +15,11 @@ Your app's GenAI instrumentation exports each call to the model as an OpenTeleme
 
 ```mermaid title="From your app's AI calls to OneUptime"
 flowchart TB
-    subgraph app["Your app"]
-        direction LR
-        code["Your code"] --> sdk["GenAI<br/>instrumentation"]
-    end
-    sdk -->|"OTLP + ingestion key"| ingest["OneUptime ingest"]
-    ingest --> checks["Checks the answer,<br/>prices the call"]
-    checks --> conversations["Conversations<br/>and Calls"]
-    checks --> usage["Usage<br/>and Budgets"]
-    checks --> alerts["Alerts"]
+    app["Your app's GenAI<br/>instrumentation"] -->|"Spans over OTLP"| ingest["OneUptime ingest"]
+    ingest --> check["Checks the answer,<br/>prices the call"]
+    ingest --> group["Finds the call's<br/>conversation"]
+    check --> tabs["Conversations, Calls,<br/>Usage, Alerts, Budgets"]
+    group --> tabs
 ```
 
 Open **Products → AI / LLM**, under **Observability**. The product has seven tabs:
@@ -186,7 +182,7 @@ The **Alerts** tab lists the alerts most AI apps want. Picking one opens **Creat
 | Answers are slow | More than 10% of answers in 15 minutes take longer than 30 seconds | Warning |
 | The AI stops answering | The AI gives no answers for 30 minutes | Critical |
 
-The alerts on a share of answers also wait for at least 3 bad answers, so one bad answer out of two pages nobody.
+The alerts on a share of answers also wait for at least 3 bad answers, so one bad answer out of two pages nobody. A Critical alert takes your project's most severe alert severity and a Warning alert the next one: High and Low in a new project.
 
 Each alert is an **AI / LLM** monitor. Its settings say what counts as a bad answer (**Count an answer as bad when it**, **Or takes longer than (seconds)**), how far back each check looks (**Time window**, 15 minutes by default), which **Apps** it watches and, under **More fields**, which **Model**. A **Preview** shows what the monitor would count right now. Its criteria compare three numbers: **Bad AI Answers (in %)**, **Bad AI Answers** and **AI Answers**.
 
@@ -204,11 +200,11 @@ GenAI spans carry the model, tokens and cost of one call, so where they exist th
 
 ```mermaid title="Where a figure on the Usage tab comes from"
 flowchart TB
-    spans{"Do GenAI spans in the<br/>range report it?"}
-    spans -->|"Yes"| fromSpans["Shown from spans"]
-    spans -->|"No"| metrics{"Do GenAI metrics<br/>report it?"}
-    metrics -->|"Yes"| fromMetrics["Shown from metrics,<br/>marked from GenAI metrics"]
-    metrics -->|"No"| nothing["Nothing to show"]
+    spans{"GenAI spans<br/>report it?"}
+    spans -->|"Yes"| fromSpans["Shown<br/>from spans"]
+    spans -->|"No"| metrics{"GenAI metrics<br/>report it?"}
+    metrics -->|"Yes"| fromMetrics["Shown from metrics,<br/>marked from<br/>GenAI metrics"]
+    metrics -->|"No"| nothing["Nothing<br/>to show"]
 ```
 
 | Where | What falls back to metrics | When |
