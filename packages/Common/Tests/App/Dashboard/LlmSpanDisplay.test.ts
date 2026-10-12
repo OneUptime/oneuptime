@@ -8,8 +8,14 @@ import { AttributeType } from "../../../Server/Utils/Telemetry/Telemetry";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  ClaudeCodeUsageAttributeKeys,
+  LlmCacheReadTokenAttributeKeys,
+  LlmCacheWriteTokenAttributeKeys,
   LlmEndUserAttributeKeys,
+  LlmInputTokenAttributeKeys,
+  LlmOutputTokenAttributeKeys,
   LlmTeamAttributeKeys,
+  LlmTotalTokenAttributeKeys,
   LlmUserEmailAttributeKeys,
   LlmUserIdAttributeKeys,
 } from "../../../Types/Telemetry/LlmConventions";
@@ -387,5 +393,118 @@ describe("LlmSpanDisplay and the ingest extractor cannot drift", () => {
     expect(display.userId).toBe(fields.llmUserId);
     expect(display.userEmail).toBe(fields.llmUserEmail);
     expect(display.team).toBe(fields.llmTeam);
+  });
+});
+
+describe("the span panel shows the tokens the columns store", () => {
+  /*
+   * The panel reads a call's tokens through the same LlmTokenUsage the
+   * ingest extractor stores them with, so the panel and the Calls table
+   * never disagree about a call's tokens: cached tokens counted in the
+   * input, and Claude Code's traces beta read from its own keys.
+   */
+  type ExtractFunction = (attributes: Attributes) => LlmSpanFields;
+
+  const extract: ExtractFunction = (attributes: Attributes): LlmSpanFields => {
+    return LlmSpanUtil.extract(attributes as ServerAttributes);
+  };
+
+  type ExpectSameTokensFunction = (attributes: Attributes) => LlmSpanDisplay;
+
+  const expectSameTokens: ExpectSameTokensFunction = (
+    attributes: Attributes,
+  ): LlmSpanDisplay => {
+    const display: LlmSpanDisplay = parse(attributes);
+    const fields: LlmSpanFields = extract(attributes);
+
+    expect({
+      input: display.inputTokens,
+      output: display.outputTokens,
+      total: display.totalTokens,
+    }).toEqual({
+      input: fields.llmInputTokens,
+      output: fields.llmOutputTokens,
+      total: fields.llmTotalTokens,
+    });
+
+    return display;
+  };
+
+  const MODEL_MARKER: Attributes = {
+    "gen_ai.system": "anthropic",
+    "gen_ai.request.model": "claude-opus-4-8",
+  };
+
+  test("a Claude Code traces beta span", () => {
+    const display: LlmSpanDisplay = expectSameTokens({
+      ...MODEL_MARKER,
+      model: "claude-opus-4-8",
+      input_tokens: 12,
+      output_tokens: 640,
+      cache_read_tokens: 48000,
+      cache_creation_tokens: 2100,
+    });
+
+    expect(display.isLlmSpan).toBe(true);
+    expect(display.inputTokens).toBe(50112);
+    expect(display.outputTokens).toBe(640);
+    expect(display.totalTokens).toBe(50752);
+  });
+
+  test("Claude Code's bare keys on a span that names no model show nothing on either side", () => {
+    const display: LlmSpanDisplay = expectSameTokens({
+      "http.route": "/tokenize",
+      input_tokens: 1000,
+      output_tokens: 10,
+    });
+
+    expect(display.inputTokens).toBe(0);
+  });
+
+  test("a conventions span with its cache inside the input count", () => {
+    const display: LlmSpanDisplay = expectSameTokens({
+      ...MODEL_MARKER,
+      "gen_ai.usage.input_tokens": 10000,
+      "gen_ai.usage.output_tokens": 20,
+      "gen_ai.usage.cache_read.input_tokens": 9000,
+    });
+
+    expect(display.inputTokens).toBe(10000);
+  });
+
+  test("an input count that left its cache out", () => {
+    const display: LlmSpanDisplay = expectSameTokens({
+      ...MODEL_MARKER,
+      "gen_ai.usage.input_tokens": "105",
+      "gen_ai.usage.output_tokens": "300",
+      "gen_ai.usage.total_tokens": "405",
+      "gen_ai.usage.cache_read_input_tokens": "45000",
+      "gen_ai.usage.cache_creation_input_tokens": "5000",
+    });
+
+    expect(display.inputTokens).toBe(50105);
+    expect(display.totalTokens).toBe(50405);
+  });
+
+  test("fractional and negative counts are read the same way on both sides", () => {
+    expectSameTokens({
+      ...MODEL_MARKER,
+      "gen_ai.usage.input_tokens": 12.7,
+      "gen_ai.usage.output_tokens": -4,
+    });
+  });
+
+  test.each([
+    ...LlmInputTokenAttributeKeys,
+    ...LlmOutputTokenAttributeKeys,
+    ...LlmTotalTokenAttributeKeys,
+    ...LlmCacheReadTokenAttributeKeys,
+    ...LlmCacheWriteTokenAttributeKeys,
+    ClaudeCodeUsageAttributeKeys.inputTokens,
+    ClaudeCodeUsageAttributeKeys.outputTokens,
+    ClaudeCodeUsageAttributeKeys.cacheReadTokens,
+    ClaudeCodeUsageAttributeKeys.cacheWriteTokens,
+  ])("client and server read the same tokens from %s", (key: string) => {
+    expectSameTokens({ ...MODEL_MARKER, [key]: 321 });
   });
 });

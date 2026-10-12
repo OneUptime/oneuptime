@@ -1,3 +1,8 @@
+import ClaudeModelId, {
+  ClaudeModelFamily,
+  ClaudeModelVersion,
+} from "../../../Utils/LLM/ClaudeModelId";
+
 /*
  * What a Claude model's id says about the requests it accepts.
  *
@@ -23,59 +28,20 @@
  * current models by name only saves their first request a wasted round trip.
  */
 
-export enum ClaudeModelFamily {
-  Opus = "opus",
-  Sonnet = "sonnet",
-  Haiku = "haiku",
-  Fable = "fable",
-  Mythos = "mythos",
-}
-
-export interface ClaudeModelVersion {
-  family: ClaudeModelFamily;
-  // Undefined for an id without a version, such as claude-mythos-preview.
-  major: number | undefined;
-  minor: number;
-}
-
 /*
- * The current naming scheme, family first: claude-sonnet-5-5,
- * claude-opus-4-7, claude-haiku-4-5-20251001. It is matched anywhere in the
- * id, so the prefixes and suffixes gateways and clouds add still parse:
- * anthropic.claude-sonnet-5-5 (Amazon Bedrock), us.anthropic.claude-opus-4-7
- * (cross-region), anthropic/claude-sonnet-5.5 (OpenRouter, which also writes
- * the version with a dot), claude-haiku-4-5@20251001 (Google Cloud).
- *
- * The minor version is one or two digits that are not followed by another
- * digit, so the date of a dated id is not read as one: claude-opus-4-20250514
- * is Opus 4, not Opus 4.20250514.
- *
- * The older scheme puts the version first (claude-3-5-sonnet-20241022). Those
- * models all take sampling parameters and never think on their own, and they
- * deliberately do not match.
+ * Reading the id itself (which family, which version, under whatever prefix
+ * or suffix a cloud or gateway adds) is ClaudeModelId's job: the LLM cost
+ * catalog prices a call by the same reading, so the two never disagree about
+ * which model an id names.
  */
-const CLAUDE_MODEL_ID: RegExp =
-  /(?:^|[^a-z0-9])claude-(opus|sonnet|haiku|fable|mythos)(?:-(\d+)(?:[-.](\d{1,2})(?!\d))?)?(?![a-z])/i;
+export { ClaudeModelFamily };
+export type { ClaudeModelVersion };
 
 export default class ClaudeModels {
   public static parse(
     modelName: string | undefined,
   ): ClaudeModelVersion | null {
-    if (!modelName) {
-      return null;
-    }
-
-    const match: RegExpMatchArray | null = modelName.match(CLAUDE_MODEL_ID);
-
-    if (!match) {
-      return null;
-    }
-
-    return {
-      family: match[1]!.toLowerCase() as ClaudeModelFamily,
-      major: match[2] !== undefined ? parseInt(match[2], 10) : undefined,
-      minor: match[3] !== undefined ? parseInt(match[3], 10) : 0,
-    };
+    return ClaudeModelId.parse(modelName);
   }
 
   /**
