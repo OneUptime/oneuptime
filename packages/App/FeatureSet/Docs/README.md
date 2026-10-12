@@ -285,8 +285,16 @@ page with no translation is served in English.
   translated again. Without `--apply` it only reports.
 - Links to other pages stay `/docs/<category>/<page>`; the reader is kept in
   their language automatically.
-- Persian (`fa`) is written right to left; code and diagrams stay left to
-  right on their own.
+- Persian (`fa`) is written right to left; code stays left to right on its
+  own, and so does the layout of a diagram. The words in a diagram read the
+  page's way: on a Persian page every line of a label, a sequence diagram's
+  messages and notes, and the caption read right to left, whatever word
+  they start with, so a Persian line may open with a Latin word
+  ("OneUptime حساب"). A line with no Persian in it, such as a path or a
+  status (`200 OK`), must start with a letter and end with a letter or a
+  digit (`HTTP 200 OK`, `config.toml (~/.codex)`): a line laid out right to
+  left draws a number or punctuation that starts or ends it on its other
+  side. `DiagramReadingDirection` checks every line of every page.
 
 ## Checking your work
 
@@ -348,3 +356,26 @@ rendered page's text with `stripHtmlTags` from
 `Tests/FeatureSet/Docs/DocsHtmlText.ts`, never with a tag-stripping regular
 expression of its own: one pass of `/<[^>]*>/g` is what code scanning
 reports as incomplete sanitization. `DocsTagStripGuard` fails on a copy.
+
+Code scanning reads the tests as closely as the product, so the rest of a
+suite's patterns go through the shared checks too:
+
+- A regular expression built from text escapes the text with
+  `escapeRegExp`, which escapes every character a pattern reads as syntax.
+  Escaping only some of them (`label.replace(/\./g, "\\.")`) leaves a
+  backslash in the text free to change the pattern. Text written into the
+  Markdown escaped, like `\<!here\>`, is written out in the test as it is on
+  the page.
+- A diagram that fills the 590px docs column is held to its label lines'
+  widths with `diagramLabelLines` and `labelLineWidth`, which counts a
+  Chinese, Japanese or Korean character twice by naming the scripts
+  (`\p{Script=Han}` with the `u` flag) rather than by ranges of characters.
+- A range past ASCII names a script, or is written with escapes
+  (`\u{3000}-\u{303F}`): the ranges typed as characters crossed blocks of
+  other scripts, and editors normalize some characters into others. No two
+  ranges of a class may share a character.
+- A link is checked by its parsed address (`new URL(link).origin`), never by
+  looking for the URL in the text.
+
+`DocsCodeScanningGuard` fails on a suite that breaks one of these, and says
+what to write instead.

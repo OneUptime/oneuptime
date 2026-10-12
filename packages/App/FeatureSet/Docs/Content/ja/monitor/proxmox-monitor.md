@@ -142,7 +142,7 @@ flowchart TB
 
 Proxmox VE 9 以降は、組み込みの OpenTelemetry メトリクスサーバーを通じて、何もインストールせずにメトリクスをプッシュできます。[Proxmox エージェントのガイド](/docs/telemetry/proxmox) を参照してください。OneUptime はプッシュを同じ `pve_*` 系列に変換するため、カタログと、CPU、メモリ、ストレージのテンプレートはそのまま使えます。
 
-**Node Offline** と **Cluster Quorum at Risk** も動作します。各ノードは自身のステータスだけをプッシュするため、報告が止まったノードは、まだ動いているノードによって停止（`pve_up` = 0）と報告されます。[ノードの報告が止まったとき](/docs/telemetry/proxmox#when-a-node-stops-reporting) を参照してください。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Replication Failing** には、エージェントだけが収集するデータが必要です。
+**Node Offline** と **Cluster Quorum at Risk** も動作します。各ノードは自身のステータスだけをプッシュするため、報告が止まったノードは、まだ動いているノードによって停止（`pve_up` = 0）と報告されます。[ノードの報告が止まったとき](/docs/telemetry/proxmox#ノードの報告が止まったとき) を参照してください。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Replication Failing** には、エージェントだけが収集するデータが必要です。
 
 ## 収集されるメトリクス
 

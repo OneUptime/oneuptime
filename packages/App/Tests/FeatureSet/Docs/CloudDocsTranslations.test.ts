@@ -29,7 +29,6 @@ import {
   drawnCreateButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
-import { linesLaidOutBackwards } from "./DocsDiagramDirection";
 import {
   PATH_SEPARATOR,
   boldLabels,
@@ -49,6 +48,7 @@ import {
   diagramLabelLines,
   inlineCode,
   labelLineWidth,
+  linesLaidOutBackwards,
   listItemCount,
   navTitle,
   prose,
@@ -94,13 +94,16 @@ const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
  * (labelLineWidth counts a Chinese, Japanese or Korean character twice),
  * measured to keep every language's diagrams inside the 590px docs column
  * in a browser with the docs' own font. The docs scroll a wider diagram
- * rather than shrink it.
+ * rather than shrink it. Container Apps' cap is 24, for the Persian line
+ * that names OTEL_RESOURCE_ATTRIBUTES whole: broken over two lines, the "_"
+ * ending the first would be drawn at its other end in a right-to-left line.
+ * With that line, the Persian diagram is 574px wide.
  */
 const WIDEST_LABEL_LINE: Record<string, number> = {
   "telemetry/cloud-environments": 27,
   "telemetry/cloud-aws-ecs": 26,
   "telemetry/cloud-gcp-cloud-run": 25,
-  "telemetry/cloud-azure-container-apps": 23,
+  "telemetry/cloud-azure-container-apps": 24,
   "telemetry/cloud-other-platforms": 23,
   "telemetry/cloud-troubleshooting": 31,
   "telemetry/cloud-resources": 23,
@@ -489,8 +492,13 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       });
     });
 
-    it("opens every diagram line that holds right-to-left words with one, so the line reads in their direction", () => {
-      expect(linesLaidOutBackwards(readPage(language, entry.page))).toEqual([]);
+    it("lays out every diagram line in the order it reads: right to left on a right-to-left page", () => {
+      expect(
+        linesLaidOutBackwards(
+          readPage(language, entry.page),
+          getDocsLanguageDirection(language),
+        ),
+      ).toEqual([]);
     });
 
     it("keeps every piece of inline code: the attributes, variables and commands", () => {
@@ -694,7 +702,7 @@ describe("the helpers, on these pages' shapes", () => {
     );
   });
 
-  it("find a right-to-left diagram line that opens with a Latin word, in a label, a title or a state's transition", () => {
+  it("lay a right-to-left page's diagram lines right to left, so a line that opens with a Latin word reads from it", () => {
     const flowchart: string = [
       '```mermaid title="یک وظیفهٔ ECS با کالکتور sidecar"',
       "flowchart TB",
@@ -718,21 +726,35 @@ describe("the helpers, on these pages' shapes", () => {
       }),
     ).toContain("fa");
 
-    expect(linesLaidOutBackwards(flowchart)).toEqual(["OTLP به"]);
+    // Right to left, as a Persian page lays them out, every line reads from its first word.
+    expect(linesLaidOutBackwards(flowchart, "rtl")).toEqual([]);
     expect(
-      linesLaidOutBackwards(flowchart.replace('"OTLP به', '"ارسال OTLP به')),
+      linesLaidOutBackwards(
+        flowchart.replace('title="یک', 'title="ECS: یک'),
+        "rtl",
+      ),
     ).toEqual([]);
+    expect(linesLaidOutBackwards(stateDiagram, "rtl")).toEqual([]);
+    // By its first letter, as a left-to-right page lays them out, one that opens with a Latin word reads back to front.
+    expect(linesLaidOutBackwards(flowchart, "ltr")).toEqual(["OTLP به"]);
     expect(
-      linesLaidOutBackwards(flowchart.replace('title="یک', 'title="ECS: یک')),
+      linesLaidOutBackwards(
+        flowchart.replace('title="یک', 'title="ECS: یک'),
+        "ltr",
+      ),
     ).toEqual(["ECS: یک وظیفهٔ ECS با کالکتور sidecar", "OTLP به"]);
-    expect(linesLaidOutBackwards(stateDiagram)).toEqual(["OTLP نیست"]);
+    expect(linesLaidOutBackwards(stateDiagram, "ltr")).toEqual(["OTLP نیست"]);
+    // A line of Latin words only reads the same either way, unless punctuation ends it.
     expect(
-      linesLaidOutBackwards(stateDiagram.replace("OTLP نیست", "بدون OTLP")),
-    ).toEqual([]);
-    // A line of Latin words only ("localhost:4318", "OneUptime") reads left to right, as do the English pages.
+      linesLaidOutBackwards(
+        flowchart.replace('ou["OneUptime"]', 'ou["OneUptime:"]'),
+        "rtl",
+      ),
+    ).toEqual(["OneUptime:"]);
+    // The English pages read left to right.
     expect(
       CLOUD_DOCS_PAGES.flatMap((entry: CloudDocsPage): Array<string> => {
-        return linesLaidOutBackwards(englishPage(entry.page));
+        return linesLaidOutBackwards(englishPage(entry.page), "ltr");
       }),
     ).toEqual([]);
   });

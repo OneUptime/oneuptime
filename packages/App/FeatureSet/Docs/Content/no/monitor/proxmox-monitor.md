@@ -142,7 +142,7 @@ Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteri
 
 Proxmox VE 9 og nyere kan pushe metrikker gjennom den innebygde OpenTelemetry-metrikkserveren, uten å installere noe – se [veiledningen for Proxmox-agenten](/docs/telemetry/proxmox). OneUptime gjør pushet om til de samme seriene `pve_*`, så katalogen og malene for CPU, minne og lagring virker med det.
 
-**Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher bare sin egen status, så en node som slutter å rapportere, meldes nede (`pve_up` = 0) av nodene som fortsatt lever – se [Når en node slutter å rapportere](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** og **Replication Failing** trenger data som bare agenten samler inn.
+**Node Offline** og **Cluster Quorum at Risk** virker også: hver node pusher bare sin egen status, så en node som slutter å rapportere, meldes nede (`pve_up` = 0) av nodene som fortsatt lever – se [Når en node slutter å rapportere](/docs/telemetry/proxmox#når-en-node-slutter-å-rapportere). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** og **Replication Failing** trenger data som bare agenten samler inn.
 
 ## Innsamlede metrikker
 

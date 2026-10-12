@@ -1,4 +1,7 @@
-import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  SUPPORTED_DOCS_LANGUAGE_CODES,
+  getDocsLanguageDirection,
+} from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   AI_GATEWAYS,
   AI_TOOLING_PAGES,
@@ -22,7 +25,6 @@ import {
   drawnCreateButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
-import { linesLaidOutBackwards } from "./DocsDiagramDirection";
 import {
   boldLabels,
   boldPaths,
@@ -47,6 +49,7 @@ import {
   diagramLabelLines,
   inlineCode,
   labelLineWidth,
+  linesLaidOutBackwards,
   listItemCount,
   navTitle,
   prose,
@@ -80,7 +83,8 @@ import { describe, expect, it } from "@jest/globals";
  * Products menu by the menu's own key (MENU_ITEMS, DocsProductsMenu), and a
  * menu path segment by segment (drawnPath: one bold span joined by " → ";
  * in Persian a bold span per segment joined by " > ", with no "→" left in
- * the prose and no diagram line that would read back to front).
+ * the prose). Every diagram line reads in the order it is written, laid out
+ * the way its page lays it out (linesLaidOutBackwards, DocsTranslationChecks).
  *
  * What every Dashboard draws in English stays English (KEPT_AS_WRITTEN): a
  * workflow step's own names (its title, settings and dots, as the workflow
@@ -845,13 +849,16 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           prose(readPage(language, entry.page)).split(RIGHT_ARROW).length - 1,
         ).toBe(0);
       });
-
-      it("starts no diagram line it writes in Persian with a Latin word, so none reads back to front", () => {
-        expect(linesLaidOutBackwards(readPage(language, entry.page))).toEqual(
-          [],
-        );
-      });
     }
+
+    it("lays out every diagram line in the order it reads: right to left on a right-to-left page", () => {
+      expect(
+        linesLaidOutBackwards(
+          readPage(language, entry.page),
+          getDocsLanguageDirection(language),
+        ),
+      ).toEqual([]);
+    });
   });
 });
 

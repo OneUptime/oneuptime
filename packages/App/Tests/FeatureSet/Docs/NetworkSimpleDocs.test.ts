@@ -12,7 +12,12 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Pages/NetworkDevice/AddDeviceForm";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { dashboardLocale } from "./DocsDashboardLabels";
-import { boldSpans, prose, toLatinDigits } from "./DocsTranslationChecks";
+import {
+  boldSpans,
+  escapeRegExp,
+  prose,
+  toLatinDigits,
+} from "./DocsTranslationChecks";
 import {
   PATH_SEPARATOR,
   drawnNetworkLabel,
@@ -127,13 +132,12 @@ function networkPathsIn(markdown: string): Array<Array<string>> {
     });
 }
 
-const ESCAPE_PATTERN: RegExp = /[.*+?^${}()|[\]\\]/g;
 const PLURAL_SUFFIX: RegExp = /_(?:zero|one|two|few|many|other)$/;
 
 // "{{count}} devices are down" as a pattern any count satisfies.
 function headlinePattern(form: string): RegExp {
   return new RegExp(
-    `^${form.replace(ESCAPE_PATTERN, "\\$&").replace("\\{\\{count\\}\\}", "\\d+")}$`,
+    `^${escapeRegExp(form).replace("\\{\\{count\\}\\}", "\\d+")}$`,
   );
 }
 

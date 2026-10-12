@@ -22,6 +22,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -523,7 +524,6 @@ const PRODUCTS_MENU_KEYS: Record<string, string> = {
 const PATH_SEPARATOR: string = " > ";
 // A menu path: bold segments joined by " > ".
 const MENU_PATH: RegExp = /\*\*[^*\n]+\*\*(?: > \*\*[^*\n]+\*\*)+/g;
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
 // A thousands separator: a comma, a period, Persian's, a (narrow) no-break space, a space or an apostrophe.
 const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
@@ -547,10 +547,6 @@ function keysOf<T>(
   page: string,
 ): Array<string> {
   return Object.keys(lists[page] || {});
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 function isPermissionOrRole(name: string): boolean {
@@ -735,14 +731,14 @@ function composedPattern(
         const numbered: RegExpMatchArray | null = part.match(/^(.*) (\d+)$/);
 
         if (numbered) {
-          return `${escapeRegex(
+          return `${escapeRegExp(
             drawnActionLabel(language, numbered[1] as string),
           )} ${numbered[2] as string}`;
         }
 
-        return escapeRegex(drawnActionLabel(language, part));
+        return escapeRegExp(drawnActionLabel(language, part));
       })
-      .join(escapeRegex(COMPOSED_SEPARATOR))}\\*\\*`,
+      .join(escapeRegExp(COMPOSED_SEPARATOR))}\\*\\*`,
   );
 }
 

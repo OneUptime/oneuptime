@@ -2,6 +2,7 @@ import PromptText, {
   formatCount,
   MAX_DRAFT_PROMPT_FIELD_LENGTH,
 } from "Common/Utils/AI/PromptText";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -300,7 +301,7 @@ const OWN_FOLD: RegExp = /defaultCollapsed(?:\s*[:=]\s*\{?\s*(true|false))?/;
  * is built elsewhere (the Workspace and Developer sections).
  */
 function sectionHead(menuSource: string, sectionTitle: string): string {
-  const escaped: string = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped: string = escapeRegExp(sectionTitle);
   const title: RegExp = new RegExp(`\\btitle\\s*[:=]\\s*"${escaped}"`, "g");
 
   for (const match of Array.from(menuSource.matchAll(title))) {

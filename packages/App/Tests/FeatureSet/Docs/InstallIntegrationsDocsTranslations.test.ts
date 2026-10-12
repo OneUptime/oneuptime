@@ -22,6 +22,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -614,7 +615,6 @@ const CREATE_BUTTON_TABLES: Record<string, { file: string; rows: string }> = {
   },
 };
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
 const NUMBER: RegExp = /\d+/g;
 const THOUSANDS: RegExp = /(\d)[,.\u066c\u00a0\u202f '](?=\d{3}\b)/g;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
@@ -717,10 +717,6 @@ function listed(
   return lists[page] || [];
 }
 
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
-}
-
 // A connect answer quoted on a page: it starts with a double quote.
 function isQuote(span: string): boolean {
   return span.startsWith('"');
@@ -773,7 +769,7 @@ function pathPattern(segments: Array<string>): RegExp {
   return new RegExp(
     `\\*\\*${segments
       .map((segment: string): string => {
-        return escapeRegex(segment);
+        return escapeRegExp(segment);
       })
       .join("(?:\\*\\* | )(?:→|>)(?: \\*\\*| )")}\\*\\*`,
   );

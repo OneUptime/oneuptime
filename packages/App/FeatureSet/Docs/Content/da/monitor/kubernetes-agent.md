@@ -367,7 +367,7 @@ Profilering kræver **Linux 5.10** eller nyere og en privilegeret pod med nodens
 | `ebpf.enabled` | `true` | eBPF-spor og anmodningsmetrikker. Se [Applikationsspor med eBPF](#applikationsspor-med-ebpf). |
 | `profiling.enabled` | `false` | CPU-flamegrafer. Se [Løbende CPU-profilering](#løbende-cpu-profilering). |
 | `kubeStateMetrics.enabled` | `false` | Clustertilstand fra kube-state-metrics. |
-| `aiAgent.enabled` | `true` | Kubernetes AI-agenten. Se [Kubernetes AI-agent](/docs/telemetry/kubernetes-agent) for, hvad den må gøre. |
+| `aiAgent.enabled` | `true` | Kubernetes AI-agenten. Se [Kubernetes AI-agent](/docs/telemetry/kubernetes-agent#kubernetes-ai-agent) for, hvad den må gøre. |
 
 Chartets [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) viser og forklarer hver indstilling, og [Kubernetes-agent](/docs/telemetry/kubernetes-agent) dækker filtrering, sampling og at holde datamængden nede.
 

@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import SSOUtil from "../../../FeatureSet/Identity/Utils/SSO";
 import RequireSsoForLoginSwitchCopy from "../../../FeatureSet/Dashboard/src/Components/Project/RequireSsoForLoginSwitchCopy";
 import { REQUIRE_SSO_COPY } from "../../../FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
@@ -110,8 +111,6 @@ const EE_SOURCES: Record<string, string> = {
     "ee/Dashboard/Identity/Components/SCIMLogs/StatusPageSCIMLogsTable.tsx",
 };
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 // A role's level: the last word of its title.
 const ROLE_LEVEL: RegExp = / (Admin|Member|Viewer)$/;
 
@@ -143,10 +142,6 @@ function readEe(key: string): string {
 
 function english(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 function titleOf(permission: Permission): string {
@@ -189,7 +184,7 @@ function tableRow(markdown: string, firstCell: string): Array<string> {
 function translationKeyText(source: string, constant: string): string {
   const match: RegExpMatchArray | null = source.match(
     new RegExp(
-      `export const ${escapeRegex(constant)}: string = translationKey\\(\\s*"([^"]+)"`,
+      `export const ${escapeRegExp(constant)}: string = translationKey\\(\\s*"([^"]+)"`,
     ),
   );
 

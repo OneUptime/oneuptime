@@ -1,4 +1,5 @@
 import { readPage } from "./DocsContentSupport";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -106,8 +107,6 @@ const expoClientValues: {
 );
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 // A row of a Markdown table, and the row under a table's header.
 const TABLE_ROW: RegExp = /^\|.*\|$/;
 const TABLE_SEPARATOR: RegExp = /^\|(?:\s*:?-+:?\s*\|)+$/;
@@ -156,10 +155,6 @@ function readSource(key: string): string {
 
 function english(page: string): string {
   return readPage("en", page);
-}
-
-function escapeRegex(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
 }
 
 function inlineCodes(text: string): Array<string> {
@@ -310,13 +305,13 @@ function chartRendersFrom(
   dottedPath: string,
 ): boolean {
   const parts: Array<string> = dottedPath.split(".");
-  const direct: string = `\\$\\.Values\\.${escapeRegex(dottedPath)}\\b`;
-  const guarded: string = `\\(\\$\\.Values\\.${escapeRegex(
+  const direct: string = `\\$\\.Values\\.${escapeRegExp(dottedPath)}\\b`;
+  const guarded: string = `\\(\\$\\.Values\\.${escapeRegExp(
     parts[0] as string,
-  )}\\)\\.${escapeRegex(parts.slice(1).join("."))}\\b`;
+  )}\\)\\.${escapeRegExp(parts.slice(1).join("."))}\\b`;
 
   return new RegExp(
-    `- name: ${escapeRegex(variable)}\\n\\s*value: [^\\n]*(?:${direct}|${guarded})`,
+    `- name: ${escapeRegExp(variable)}\\n\\s*value: [^\\n]*(?:${direct}|${guarded})`,
   ).test(template);
 }
 

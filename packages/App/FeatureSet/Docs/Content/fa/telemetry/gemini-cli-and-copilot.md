@@ -13,7 +13,7 @@ Gemini CLI و GitHub Copilot هر دو خودشان OpenTelemetry صادر می�
 
 ```mermaid title="از Gemini CLI و Copilot تا OneUptime"
 flowchart TB
-    gemini["Gemini CLI:<br/>ارسال user.email"] -->|"ارسال OTLP روی HTTP"| ingest["OneUptime"]
+    gemini["Gemini CLI<br/>ارسال user.email"] -->|"ارسال OTLP روی HTTP"| ingest["OneUptime"]
     copilot["افزونهٔ Copilot در VS Code<br/>یا Copilot CLI"] -->|"ارسال OTLP روی HTTP"| ingest
     identity["هویتی که روی<br/>هر دستگاه تنظیم می‌کنید"] -.-> copilot
     ingest --> calls["فراخوانی‌ها و<br/>گفتگوها"]

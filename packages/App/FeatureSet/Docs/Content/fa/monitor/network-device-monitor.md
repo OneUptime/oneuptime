@@ -504,7 +504,7 @@ flowchart TB
     Check{"SNMP روی میزبان‌های<br/>پاسخ‌دهنده بررسی شود؟"}
     Read["خواندن نام و سازندهٔ<br/>هر میزبان از راه SNMP"]
     Found["میزبان‌های پیداشده"]
-    Review["Review Results:<br/>انتخاب و ورود"]
+    Review["در Review Results:<br/>انتخاب و ورود"]
     Rules["قواعد ورود خودکار:<br/>خودشان وارد می‌کنند"]
     Devices["دستگاه‌ها، سرکشی‌شده<br/>با پراب اسکن"]
     Scan --> Ping

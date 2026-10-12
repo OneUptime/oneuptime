@@ -190,7 +190,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 तब लॉग टेलर नोड कलेक्टर के साथ चलता है, केवल Windows नोड पर मौजूद पॉड के लिए। Linux पॉड सस्ती फ़ाइल टेलिंग रखते हैं, और दोनों नोड OS के आधार पर पॉड बाँट लेते हैं, इसलिए कोई लॉग पंक्ति दो बार नहीं भेजी जाती।
 
 - **टेलर इमेज का संस्करण।** केवल-Windows वाला बँटवारा `kubernetes-log-tailer` इमेज में बना है। पुरानी इमेज इसे अनदेखा करती है और *हर* पॉड को टेल करती है, जिससे हर Linux पॉड के लॉग दो बार भेजे जाते हैं। `logs.api.image.tag` को चार्ट रिलीज़ से पुराने संस्करण पर पिन न करें, और अगर किसी नोड ने पुरानी `release` इमेज कैश की हो सकती है, तो अपग्रेड में `--set logs.api.image.pullPolicy=Always` जोड़ें।
-- **गंभीरता के आधार पर फ़िल्टरिंग।** `filters.logs.minSeverity` सेट होने पर, बिना पहचानने योग्य गंभीरता वाली पंक्ति नोड कलेक्टर के रास्ते पर हटा दी जाती है पर लॉग टेलर के रास्ते पर रखी जाती है - देखें [Log गंभीरता द्वारा फ़िल्टरिंग](/docs/telemetry/kubernetes-agent#log-गंभीरता-द्वारा-फ़िल्टरिंग)। तब Windows पॉड Linux पॉड से ज़्यादा बिना स्तर वाली पंक्तियाँ भेज सकते हैं।
+- **गंभीरता के आधार पर फ़िल्टरिंग।** `filters.logs.minSeverity` सेट होने पर, बिना पहचानने योग्य गंभीरता वाली पंक्ति नोड कलेक्टर के रास्ते पर हटा दी जाती है पर लॉग टेलर के रास्ते पर रखी जाती है - देखें [लॉग गंभीरता द्वारा फ़िल्टरिंग](/docs/telemetry/kubernetes-agent#लॉग-गंभीरता-द्वारा-फ़िल्टरिंग)। तब Windows पॉड Linux पॉड से ज़्यादा बिना स्तर वाली पंक्तियाँ भेज सकते हैं।
 
 ## eBPF के साथ एप्लिकेशन ट्रेस
 
@@ -367,7 +367,7 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 | `ebpf.enabled` | `true` | eBPF ट्रेस और अनुरोध मेट्रिक्स। देखें [eBPF के साथ एप्लिकेशन ट्रेस](#ebpf-के-साथ-एप्लिकेशन-ट्रेस)। |
 | `profiling.enabled` | `false` | CPU फ़्लेम ग्राफ़। देखें [निरंतर CPU प्रोफ़ाइलिंग](#निरंतर-cpu-प्रोफ़ाइलिंग)। |
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics से क्लस्टर की स्थिति। |
-| `aiAgent.enabled` | `true` | Kubernetes AI एजेंट। यह क्या कर सकता है, इसके लिए देखें [Kubernetes AI एजेंट](/docs/telemetry/kubernetes-agent)। |
+| `aiAgent.enabled` | `true` | Kubernetes AI एजेंट। यह क्या कर सकता है, इसके लिए देखें [Kubernetes AI एजेंट](/docs/telemetry/kubernetes-agent#kubernetes-ai-एजेंट)। |
 
 चार्ट का [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/kubernetes-agent/values.yaml) हर विकल्प को सूचीबद्ध करता है और समझाता है, और [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) फ़िल्टरिंग, सैंपलिंग और डेटा की मात्रा कम रखने को कवर करता है।
 

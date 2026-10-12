@@ -1,4 +1,5 @@
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -56,9 +57,6 @@ function languages(): Array<string> {
     .sort();
 }
 
-// A character a regular expression reads as more than itself.
-const REGEX_SPECIAL: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 interface TeamPageNames {
   members: string;
   permissions: string;
@@ -76,10 +74,6 @@ function teamPageNames(language: string): TeamPageNames {
   };
 }
 
-function escaped(text: string): string {
-  return text.replace(REGEX_SPECIAL, "\\$&");
-}
-
 /*
  * "**Members**, **Permissions** and **Block Permissions**", in a language's
  * words and any of the languages' list separators (and "، " / "、" / "و" /
@@ -90,11 +84,11 @@ function threeTeamPages(language: string): RegExp {
 
   return new RegExp(
     [
-      `\\*\\*${escaped(names.members)}\\*\\*`,
+      `\\*\\*${escapeRegExp(names.members)}\\*\\*`,
       "[,、،]\\s*",
-      `\\*\\*${escaped(names.permissions)}\\*\\*`,
+      `\\*\\*${escapeRegExp(names.permissions)}\\*\\*`,
       "[,、،]?\\s*[^*\\n]{0,12}",
-      `\\*\\*${escaped(names.blockPermissions)}\\*\\*`,
+      `\\*\\*${escapeRegExp(names.blockPermissions)}\\*\\*`,
     ].join(""),
   );
 }

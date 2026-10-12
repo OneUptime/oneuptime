@@ -91,7 +91,7 @@ sequenceDiagram
     OneUptime-->>Twilio: خوش‌آمدگویی، سپس زنگ به فرد نخستین قاعده
     Twilio->>Engineer: به اندازه مدت زنگ قاعده زنگ می‌زند
     Note over Twilio,Engineer: کسی به‌موقع پاسخ نمی‌دهد
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
+    Twilio->>OneUptime: POST /notification/incoming-call/dial-status
     OneUptime-->>Twilio: زنگ به فرد قاعده بعدی
     Twilio->>Engineer: به نفر بعدی زنگ می‌زند
     Engineer-->>Twilio: پاسخ می‌دهد

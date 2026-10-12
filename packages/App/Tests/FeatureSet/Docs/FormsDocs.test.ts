@@ -94,6 +94,7 @@ import {
   FORM_LOGO_TYPE_MESSAGE,
 } from "Common/Types/Form/FormBranding";
 import { validateFormIpAllowlist } from "Common/Types/Form/FormIpAllowlist";
+import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import {
   BuiltPublicForm,
   buildPublicForm,
@@ -1462,9 +1463,17 @@ describe("Forms docs", () => {
         "Text a submitter writes",
       );
 
-      // Mentions get an invisible character after the bracket.
-      for (const mention of ["<!channel>", "<!here>", "<@U0123ABC>"]) {
-        expect(section).toContain(mention.replace(/[<>]/g, "\\$&"));
+      /*
+       * Mentions get an invisible character after the bracket. The page
+       * writes each with its angle brackets escaped, so it shows as typed.
+       */
+      for (const [mention, written] of [
+        ["<!channel>", "\\<!channel\\>"],
+        ["<!here>", "\\<!here\\>"],
+        ["<@U0123ABC>", "\\<@U0123ABC\\>"],
+      ] as Array<[string, string]>) {
+        expect(section).toContain(written);
+        expect(visibleText(await DocsRender.render(written))).toBe(mention);
         expect(neutralizeChatControlSequences(mention)).toBe(
           `<⁠${mention.slice(1)}`,
         );
