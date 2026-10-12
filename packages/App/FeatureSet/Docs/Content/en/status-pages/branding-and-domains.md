@@ -62,12 +62,24 @@ Header links are for navigation; footer links are for the fine print, such as le
 
 ### More settings
 
-The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, any bar color rule, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it: it is one card, the four sections one under the other, each with its own title and button, separated by dividers.
+The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, bar color rules other than the recommended ones, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it: it is one card, its sections one under the other, each with its own title, separated by dividers.
 
-**History chart colors.** These are the only built-in color controls on a status page.
+**History chart colors.** These are the only built-in color controls on a status page. Each bar of the uptime history is one day.
 
-- **Default Bar Color of the History Chart** — **Edit Default Bar Color** opens the **Default Bar Color** picker. Every new status page starts with green. With bar color rules, it is also the color of a day no rule matches. A day the page has no data for is always drawn grey.
-- **Rules for Bar Colors of History Chart** — an ordered table of rules you sort by dragging. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table's columns read `When Uptime Percent >=` and `Then, Bar Color is`. A new rule's color is already picked, one the other rules do not use yet; pick the one you want instead. Order matters, so arrange the rules the way you want them evaluated. With no rules, each day's bar takes the color of the lowest monitor status of that day.
+- **Default Bar Color** — **Edit Default Bar Color** opens the **Default Bar Color** picker. It is the color of a day no bar color rule matches. Every new status page starts with green.
+- **Bar Color Rules** — an ordered table of rules you sort by dragging. Each rule has **When uptime % is greater than or equal to** and **Then, use this bar color**; the table's columns read `When Uptime Percent >=` and `Then, Bar Color is`. Rules are checked from the top, and the first one a day's uptime reaches sets its color, so keep higher percentages above lower ones: a rule below one with the same or a lower percentage never colors a day. A new rule's color is already picked, one the other rules do not use yet; pick the one you want instead.
+- **Bar Color Preview** — every color a day can take, as most people see it (**Full color vision**) and as people with red-green color blindness see it (**Deuteranopia (red-green)**, **Protanopia (red-green)**). It warns when two colors look alike to them, and when a rule never colors a day.
+
+A day the page has no data for is always drawn gray with diagonal stripes, whatever the rules say. Without rules, a day takes the color of the most severe monitor status it had, however briefly: two minutes Offline turn the whole day the Offline color. So a status page created in the dashboard starts with the recommended rules, which color a day by how long it was down:
+
+| When uptime % is at least | Bar color | On a full day |
+| ------------------------- | --------- | ------------- |
+| 100 | `#22c55e` green | No downtime |
+| 99 | `#fde047` pale yellow | Up to 14 minutes 24 seconds down |
+| 95 | `#c2410c` dark orange | Up to 72 minutes down |
+| 0 | `#7f1d1d` very dark red | More than 72 minutes down |
+
+A day's uptime is measured over the part of the day that has data, counting the statuses chosen in **Counts as downtime**. The recommended colors differ in lightness as well as in hue, so people with red-green color blindness, about one man in twelve, can tell them apart; the Operational green and Offline red that monitor statuses start with look almost the same to them. A page created before these rules, or through the API or Terraform, has no rules until you add some: an empty **Bar Color Rules** table and **Bar Color Preview** both offer **Use Recommended Rules**. Through the API, send `"miscDataProps": {"addRecommendedBarColorRules": true}` with the request that creates the status page.
 
 How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is **Counts as downtime**, in the same row of that card.
 

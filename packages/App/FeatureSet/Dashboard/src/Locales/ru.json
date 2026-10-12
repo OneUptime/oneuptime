@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "Имя метрики, которую читает первый запрос монитора.",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "День с безотказной работой ниже {{percent}}% не подходит ни под одно правило, поэтому получает цвет полосы по умолчанию.",
+  "Bar Color Preview": "Предпросмотр цветов полос",
+  "Deuteranopia (red-green)": "Дейтеранопия (красно-зелёная)",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "Каждая полоса истории безотказной работы — это один день. Правила окрашивают день по его безотказной работе: они проверяются сверху вниз, и цвет дня задаёт первое правило, порог которого достигнут.",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "Каждый день получает цвет самого серьёзного статуса монитора, который у него был, даже если всего на минуту. Рекомендуемые правила окрашивают день по тому, сколько длился простой, цветами, которые различают люди с красно-зелёной цветовой слепотой.",
+  "Full color vision": "Нормальное цветовое зрение",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "Как выглядит каждый вид дня на вашей странице статуса: так, как его видит большинство людей, и так, как его видят люди с красно-зелёной цветовой слепотой.",
+  "No bar color rules": "Нет правил цвета полос",
+  "Protanopia (red-green)": "Протанопия (красно-зелёная)",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "Цвет дня, под который не подходит ни одно правило цвета полос. День без данных мониторинга всегда отображается серым и заштрихованным.",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "Правило для {{percent}}% никогда не окрашивает день: правило выше уже подходит для каждого дня, который подошёл бы ему. Перетащите его выше.",
+  "Under {{percent}}%": "Ниже {{percent}}%",
+  "Use Recommended Rules": "Использовать рекомендуемые правила",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "Без правил день получает цвет самого серьёзного статуса монитора, который у него был, даже если всего на минуту.",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} и {{second}} выглядят одинаково для людей с красно-зелёной цветовой слепотой.",
+  "{{percent}}% or more": "{{percent}}% и выше"
 }

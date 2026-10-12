@@ -28055,5 +28055,21 @@
   "The name of the metric the monitor's first query reads.": "Il nome della metrica letta dalla prima query del monitor.",
   "Action taken": "Action taken",
   "No action taken": "No action taken",
-  "Waiting for investigation": "Waiting for investigation"
+  "Waiting for investigation": "Waiting for investigation",
+  "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.": "Un giorno con meno del {{percent}}% di uptime non corrisponde a nessuna regola, quindi prende il colore predefinito della barra.",
+  "Bar Color Preview": "Anteprima dei colori delle barre",
+  "Deuteranopia (red-green)": "Deuteranopia (rosso-verde)",
+  "Each bar of the uptime history is a day. Rules color a day by its uptime: they are checked from the top, and the first one the day's uptime reaches sets its color.": "Ogni barra della cronologia uptime è un giorno. Le regole colorano un giorno in base al suo uptime: vengono controllate dall'alto e la prima raggiunta dall'uptime del giorno ne stabilisce il colore.",
+  "Each day takes the color of the most severe monitor status it had, even if only for a minute. The recommended rules color a day by how long it was down, in colors that people with red-green color blindness can tell apart.": "Ogni giorno prende il colore dello stato del monitor più grave che ha avuto, anche solo per un minuto. Le regole consigliate colorano un giorno in base a quanto è durata l'interruzione, con colori che le persone con daltonismo rosso-verde riescono a distinguere.",
+  "Full color vision": "Visione dei colori completa",
+  "How each kind of day looks on your status page: as most people see it, and as people with red-green color blindness see it.": "Come appare ogni tipo di giorno sulla tua pagina di stato: come lo vede la maggior parte delle persone e come lo vedono le persone con daltonismo rosso-verde.",
+  "No bar color rules": "Nessuna regola per il colore delle barre",
+  "Protanopia (red-green)": "Protanopia (rosso-verde)",
+  "The color of a day that no bar color rule matches. A day with no monitoring data is always drawn gray and striped.": "Il colore di un giorno a cui non corrisponde alcuna regola per il colore delle barre. Un giorno senza dati di monitoraggio viene sempre disegnato grigio e a righe.",
+  "The {{percent}}% rule never colors a day: a rule above it already matches every day it would. Drag it higher.": "La regola del {{percent}}% non colora mai un giorno: una regola sopra di essa corrisponde già a ogni giorno che coprirebbe. Trascinala più in alto.",
+  "Under {{percent}}%": "Meno del {{percent}}%",
+  "Use Recommended Rules": "Usa le regole consigliate",
+  "Without rules, a day takes the color of the most severe monitor status it had, even if only for a minute.": "Senza regole, un giorno prende il colore dello stato del monitor più grave che ha avuto, anche solo per un minuto.",
+  "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} e {{second}} sembrano uguali alle persone con daltonismo rosso-verde.",
+  "{{percent}}% or more": "{{percent}}% o più"
 }

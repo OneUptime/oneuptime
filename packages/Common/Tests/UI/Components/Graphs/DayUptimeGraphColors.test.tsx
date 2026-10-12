@@ -1,0 +1,258 @@
+import "@testing-library/jest-dom";
+import { cleanup, render, screen } from "@testing-library/react";
+import React from "react";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import DayUptimeGraph, {
+  BarChartRule,
+  DayReading,
+  NO_DATA_BAR_CLASS_NAME,
+  NO_DATA_BAR_COLOR,
+} from "../../../../UI/Components/Graphs/DayUptimeGraph";
+import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
+import { Green, Red } from "../../../../Types/BrandColors";
+import Color from "../../../../Types/Color";
+import OneUptimeDate from "../../../../Types/Date";
+import {
+  HistoryChartBarColorRuleValues,
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
+} from "../../../../Utils/StatusPage/HistoryChartBarColors";
+import fs from "fs";
+import path from "path";
+
+/*
+ * The colours of the uptime strip on a status page (issue #486).
+ *
+ *   - A day with no data is grey AND hatched. The grey alone is as light as
+ *     the green a good day is drawn in, and to a reader with red-green
+ *     colour blindness that green is grey as well - a day nobody measured
+ *     read as a good one to them.
+ *   - With the recommended rules a day is graded by how long it was down:
+ *     two minutes offline no longer turn a whole day the red of a day spent
+ *     offline.
+ */
+
+const END_DATE: Date = OneUptimeDate.getCurrentDate();
+const START_DATE: Date = OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, 9);
+
+const OPERATIONAL_COLOR: Color = Green;
+const OFFLINE_COLOR: Color = Red;
+
+const RECOMMENDED_RULES: Array<BarChartRule> =
+  RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES.map(
+    (rule: HistoryChartBarColorRuleValues): BarChartRule => {
+      return {
+        uptimePercentGreaterThanOrEqualTo:
+          rule.uptimePercentGreaterThanOrEqualTo,
+        barColor: rule.barColor,
+      };
+    },
+  );
+
+function operational(seconds: number): StatusDuration {
+  return {
+    label: "Operational",
+    seconds: seconds,
+    color: OPERATIONAL_COLOR,
+    isDowntime: false,
+    priority: 1,
+  };
+}
+
+function offline(seconds: number): StatusDuration {
+  return {
+    label: "Offline",
+    seconds: seconds,
+    color: OFFLINE_COLOR,
+    isDowntime: true,
+    priority: 3,
+  };
+}
+
+// A full day, `daysAgo` before today, with `minutesDown` of it Offline.
+function dayWithDowntime(daysAgo: number, minutesDown: number): DayReading {
+  const down: number = minutesDown * 60;
+
+  return {
+    dayStart: OneUptimeDate.getStartOfDay(
+      OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, daysAgo),
+    ),
+    daySeconds: 86400,
+    coveredSeconds: 86400,
+    statusDurations: [operational(86400 - down), offline(down)].filter(
+      (duration: StatusDuration): boolean => {
+        return duration.seconds > 0;
+      },
+    ),
+  };
+}
+
+function renderStrip(
+  props: Partial<React.ComponentProps<typeof DayUptimeGraph>> = {},
+): void {
+  render(
+    <DayUptimeGraph
+      startDate={START_DATE}
+      endDate={END_DATE}
+      events={[]}
+      defaultBarColor={Green}
+      height={10}
+      {...props}
+    />,
+  );
+}
+
+// The window is ten days ending today, so the day `daysAgo` is this bar.
+function barFor(daysAgo: number): HTMLElement {
+  return screen.getAllByTestId("uptime-bar")[9 - daysAgo] as HTMLElement;
+}
+
+afterEach(() => {
+  cleanup();
+});
+
+describe("a day with no data is hatched, not only grey", () => {
+  test("its bar carries the hatch over the no-data grey", () => {
+    renderStrip({ dayReadings: [dayWithDowntime(1, 0)] });
+
+    const bar: HTMLElement = barFor(5);
+
+    expect(bar).toHaveAttribute("data-has-data", "false");
+    expect(bar).toHaveClass(NO_DATA_BAR_CLASS_NAME);
+    expect(bar).toHaveStyle({
+      backgroundColor: NO_DATA_BAR_COLOR.toString(),
+    });
+  });
+
+  test("so is a day with no events and no reading at all", () => {
+    renderStrip();
+
+    for (const bar of screen.getAllByTestId("uptime-bar")) {
+      expect(bar).toHaveClass(NO_DATA_BAR_CLASS_NAME);
+    }
+  });
+
+  test("a measured day has no hatch, whatever its colour", () => {
+    renderStrip({
+      dayReadings: [dayWithDowntime(1, 0), dayWithDowntime(2, 600)],
+    });
+
+    for (const daysAgo of [1, 2]) {
+      expect(barFor(daysAgo)).toHaveAttribute("data-has-data", "true");
+      expect(barFor(daysAgo)).not.toHaveClass(NO_DATA_BAR_CLASS_NAME);
+    }
+  });
+
+  test("rules never reach a day with no data: it stays hatched grey", () => {
+    renderStrip({
+      barColorRules: RECOMMENDED_RULES,
+      dayReadings: [dayWithDowntime(1, 0)],
+    });
+
+    expect(barFor(5)).toHaveClass(NO_DATA_BAR_CLASS_NAME);
+    expect(barFor(5)).toHaveStyle({
+      backgroundColor: NO_DATA_BAR_COLOR.toString(),
+    });
+  });
+
+  /*
+   * jsdom draws no gradients, so the stripes themselves are read from the
+   * stylesheet the strip imports: pale and see-through, over the grey the
+   * bar keeps as its background colour.
+   */
+  test("the hatch is pale stripes in the strip's own stylesheet, so the grey still shows", () => {
+    const graphSource: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../UI/Components/Graphs/DayUptimeGraph.tsx",
+      ),
+      "utf8",
+    );
+    const css: string = fs
+      .readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../UI/Components/Graphs/DayUptimeGraph.css",
+        ),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\s+/g, " ");
+
+    expect(graphSource).toContain('import "./DayUptimeGraph.css";');
+    expect(css).toContain(
+      `.${NO_DATA_BAR_CLASS_NAME} { background-image: repeating-linear-gradient( 135deg, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0.55) 2px, transparent 2px, transparent 5px ); }`,
+    );
+    // Only the image: the colour stays the bar's own.
+    expect(css).not.toContain("background-color");
+  });
+});
+
+describe("the recommended rules grade a day by how long it was down", () => {
+  test.each([
+    ["no downtime", 0, "#22c55e"],
+    // The day the issue opened with.
+    ["two minutes offline", 2, "#fde047"],
+    ["an hour offline", 60, "#c2410c"],
+    ["six hours offline", 360, "#7f1d1d"],
+    ["the whole day offline", 1440, "#7f1d1d"],
+  ] as Array<[string, number, string]>)(
+    "%s",
+    (_day: string, minutesDown: number, color: string) => {
+      renderStrip({
+        barColorRules: RECOMMENDED_RULES,
+        dayReadings: [dayWithDowntime(3, minutesDown)],
+      });
+
+      expect(barFor(3)).toHaveStyle({ backgroundColor: color });
+    },
+  );
+
+  test("without rules, two minutes offline still paint the whole day the Offline red", () => {
+    renderStrip({ dayReadings: [dayWithDowntime(3, 2)] });
+
+    expect(barFor(3)).toHaveStyle({
+      backgroundColor: OFFLINE_COLOR.toString(),
+    });
+  });
+
+  /*
+   * The decimal column comes back from the database as text ("99.00"). The
+   * strip compared it with `>=`, which reads text as the number it spells,
+   * and the shared matcher it uses now does the same.
+   */
+  test("a rule whose percentage arrives as text matches as the number", () => {
+    const rules: Array<BarChartRule> = [
+      {
+        uptimePercentGreaterThanOrEqualTo: "100.00" as unknown as number,
+        barColor: new Color("#22c55e"),
+      },
+      {
+        uptimePercentGreaterThanOrEqualTo: "0.00" as unknown as number,
+        barColor: new Color("#7f1d1d"),
+      },
+    ];
+
+    renderStrip({
+      barColorRules: rules,
+      dayReadings: [dayWithDowntime(1, 0), dayWithDowntime(2, 30)],
+    });
+
+    expect(barFor(1)).toHaveStyle({ backgroundColor: "#22c55e" });
+    expect(barFor(2)).toHaveStyle({ backgroundColor: "#7f1d1d" });
+  });
+
+  test("a day no rule matches keeps the default bar colour, as it always has", () => {
+    renderStrip({
+      defaultBarColor: new Color("#123456"),
+      barColorRules: [
+        {
+          uptimePercentGreaterThanOrEqualTo: 99,
+          barColor: new Color("#22c55e"),
+        },
+      ],
+      dayReadings: [dayWithDowntime(2, 360)],
+    });
+
+    expect(barFor(2)).toHaveStyle({ backgroundColor: "#123456" });
+  });
+});
