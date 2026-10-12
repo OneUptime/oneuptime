@@ -64,6 +64,17 @@ export const getChildWorkflowTurnedOffMessage: GetChildWorkflowTurnedOffMessageF
   };
 
 /*
+ * What a trigger's step help says under "Testing it", after how to start a
+ * run with Run Workflow: that the workflow needs no turning on first. The
+ * trigger itself - a call to the URL, an email to the address, the schedule,
+ * a OneUptime event - starts it only once it is on, and the help says so
+ * wherever it offers that as a way to test (Documentation/
+ * TriggerDocumentation.ts and DatabaseDocumentation.ts).
+ */
+export const WORKFLOW_TEST_WHILE_OFF_HELP: string =
+  "This works while the workflow is still off, as a test run.";
+
+/*
  * A person's name as a run's log quotes it: on one line, and not so long
  * that it buries the log. The name is the person's own to set, so it never
  * gets to start a line of its own that could read as one the runner wrote.
