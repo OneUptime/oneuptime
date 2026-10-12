@@ -12,6 +12,7 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -278,6 +279,11 @@ export default class StatusPageHistoryChartBarColorRule extends BaseModel {
   @Column({
     nullable: false,
     type: ColumnType.Decimal,
+    /*
+     * Postgres hands a decimal back as text; without this the API answered
+     * "100" for a number, and Terraform read it as null (#4719).
+     */
+    transformer: getDecimalDatabaseTransformer(),
   })
   public uptimePercentGreaterThanOrEqualTo?: number = undefined;
 
