@@ -68,7 +68,7 @@ Beschriftungen gruppieren Anwendungen in Listen und Filtern. Sie entscheiden auc
 | Aus der Telemetrie | Ein Ressourcenattribut namens `oneuptime.label.<name>` fügt die Beschriftung `<name>:<value>` hinzu, wie unten gezeigt. |
 | Über eine Beschriftungsregel | Eine Regel versieht jede neue Anwendung, auf die sie passt, mit Beschriftungen. Siehe [Beschriftungs- und Eigentümerregeln](#beschriftungs-und-eigentümerregeln). |
 
-Setzen Sie die Attribute auf derselben Ressource wie `service.name`, zum Beispiel in der Datei `src/telemetry.ts` aus der [Browser-Einrichtung](/docs/rum/browser-setup):
+Setzen Sie die Attribute auf derselben Ressource wie `service.name`, zum Beispiel in der Datei `src/telemetry.ts` aus der [Einrichtung für Browser](/docs/rum/browser-setup):
 
 ```ts
 const resource = defaultResource().merge(
@@ -119,7 +119,7 @@ In einem kleineren Cloud-Tarif gilt eine Überschreibung, die eine Testphase hin
 
 Aufzeichnungen haben eine eigene Aufbewahrung, festgelegt auf der Seite **Wiedergaberichtlinie** der Anwendung mit **Richtlinie bearbeiten → Limits**: standardmäßig 7 Tage, oder 1, 14, 30 oder 90 Tage. Sie ist absichtlich kurz, denn eine Aufzeichnung ist weit sensibler und weit größer als ein Span. Die Karte **Aufbewahrung der Sitzungswiedergabe** auf der Seite **Einstellungen** zeigt sie an (_Sitzungswiedergaben werden 7 Tage aufbewahrt._), und ihre Schaltfläche **In der Wiedergaberichtlinie bearbeiten** öffnet die Richtlinie.
 
-Eine längere Telemetrie-Aufbewahrung hält Aufzeichnungen nicht länger. Zähler, Signale und Gerät einer Sitzung verfallen mit ihrem Material; nur die Logs, Spans und Ausnahmen der Sitzung folgen der Telemetrie-Aufbewahrung. Siehe [Aufbewahrung und Löschung](/docs/telemetry/session-replay#retention-and-deletion).
+Eine längere Telemetrie-Aufbewahrung hält Aufzeichnungen nicht länger. Zähler, Signale und Gerät einer Sitzung verfallen mit ihrem Material; nur die Logs, Spans und Ausnahmen der Sitzung folgen der Telemetrie-Aufbewahrung. Siehe [Aufbewahrung und Löschung](/docs/telemetry/session-replay#aufbewahrung-und-löschung).
 
 > [!TIP]
 > RUM ist oft die umfangreichste Telemetrie eines Projekts, weil sie mit Ihren Benutzern wächst statt mit Ihren Servern. Eine kürzere Aufbewahrung hier und eine längere für Ihre Backend-Dienste ist eine verbreitete Einrichtung.
@@ -133,7 +133,7 @@ Eine längere Telemetrie-Aufbewahrung hält Aufzeichnungen nicht länger. Zähle
 
 **Anwendung löschen** im Abschnitt **Erweitert** des Seitenmenüs der Anwendung entfernt die Anwendung endgültig. Sendet die App noch Telemetrie, legt ihr nächster Batch die Anwendung neu an, ohne ihre Einstellungen; beenden Sie also zuerst die Instrumentierung.
 
-Um die Daten einer einzelnen Person statt einer ganzen Anwendung zu löschen, stellen Sie eine Löschanfrage: siehe [Sitzungen löschen](/docs/telemetry/session-replay#erasing-sessions).
+Um die Daten einer einzelnen Person statt einer ganzen Anwendung zu löschen, stellen Sie eine Löschanfrage: siehe [Sitzungen löschen](/docs/telemetry/session-replay#sitzungen-löschen).
 
 ## Berechtigungen
 
@@ -151,7 +151,7 @@ Jeder mit der Viewer-Rolle des Projekts sieht RUM-Anwendungen und ihre Telemetri
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (und ihre Create-, Edit- und Delete-Varianten) | Beschriftungs- und Eigentümerregeln verwalten. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (und ihre Create-, Edit- und Delete-Varianten) | Eigentümer über die API hinzufügen und entfernen. |
 
-Eine sinnvolle Aufteilung: Geben Sie einem Support-Mitarbeiter `ReadRumApplication` und `ReadRumSessionReplay`. Er sieht, welche Sitzungen auf Fehler gestoßen sind, ohne den Bildschirm von jemandem anzusehen oder zu erfahren, wer der Benutzer war. Geben Sie `ReadRumSessionReplayPayload` nur denen, die es brauchen; Mitglieder mit `ReadRumSessionReplayAudit` sehen dann jede Wiedergabe auf der Seite **Zugriffsprotokoll der Wiedergaben** der Anwendung. [Wer eine Aufzeichnung ansehen darf](/docs/telemetry/session-replay#who-can-watch-a-recording) zeigt, was jede Berechtigung in der Sitzungsliste und im Player freischaltet.
+Eine sinnvolle Aufteilung: Geben Sie einem Support-Mitarbeiter `ReadRumApplication` und `ReadRumSessionReplay`. Er sieht, welche Sitzungen auf Fehler gestoßen sind, ohne den Bildschirm von jemandem anzusehen oder zu erfahren, wer der Benutzer war. Geben Sie `ReadRumSessionReplayPayload` nur denen, die es brauchen; Mitglieder mit `ReadRumSessionReplayAudit` sehen dann jede Wiedergabe auf der Seite **Zugriffsprotokoll der Wiedergaben** der Anwendung. [Wer eine Aufzeichnung ansehen darf](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) zeigt, was jede Berechtigung in der Sitzungsliste und im Player freischaltet.
 
 ## Alarme für RUM-Daten
 
@@ -161,7 +161,7 @@ RUM-Telemetrie besteht aus gewöhnlichen Logs, Metriken und Traces, daher gibt e
 | --- | --- |
 | Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint und Slow Time to First Byte. Siehe [Core Web Vitals](/docs/rum/web-vitals). |
 | Fehler | Failed User Operations und Unhandled Browser Exceptions. |
-| Sitzungswiedergabe | Die vier [Alarme zum Speicherbudget](/docs/telemetry/session-replay#storage-budget-alerts), die warnen, bevor das Tageslimit des Projekts oder das Monatsbudget der Anwendung aufgebraucht ist. Sie werden angeboten, sobald die Anwendung eine Wiedergabe aufgezeichnet hat, das Monatspaar erst, wenn sie auch ein Monatsbudget hat. |
+| Sitzungswiedergabe | Die vier [Alarme zum Speicherbudget](/docs/telemetry/session-replay#alarme-zum-speicherbudget), die warnen, bevor das Tageslimit des Projekts oder das Monatsbudget der Anwendung aufgebraucht ist. Sie werden angeboten, sobald die Anwendung eine Wiedergabe aufgezeichnet hat, das Monatspaar erst, wenn sie auch ein Monatsbudget hat. |
 
 Um einen eigenen Monitor zu bauen, wählen Sie den, der das Signal liest:
 

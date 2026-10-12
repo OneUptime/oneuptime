@@ -221,20 +221,20 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "rum/applications": {
     pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
     sameShape: ["fa"],
   },
   "rum/session-replay-troubleshooting": {
     pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
     sameShape: ["fa"],
   },
   "rum/troubleshooting": {
-    translated: EVERY_TRANSLATION_BUT_FA,
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
   },
   "telemetry/session-replay": {
     pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
+    translated: except(EVERY_TRANSLATION_BUT_FA, "de"),
     sameShape: ["fa"],
   },
   "terraform/complete-guide": {

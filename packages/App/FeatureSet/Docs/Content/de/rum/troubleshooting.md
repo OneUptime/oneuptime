@@ -38,7 +38,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | `200` mit `"valid": true` | OneUptime akzeptiert den Schlüssel. Die Antwort nennt außerdem seinen `keyType` und seine `projectId`. Gehen Sie zur nächsten Prüfung über. |
 | `401` mit `"valid": false` | Der Schlüssel fehlt, ist unbekannt, widerrufen, ausgeschaltet oder abgelaufen, und die `message` sagt, was davon. Legen Sie unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** einen gültigen Schlüssel an. |
 
-Eine Web-App braucht einen **Browser**-Schlüssel, eine Mobile-App einen **Server**-Schlüssel: siehe [Browser-Einrichtung](/docs/rum/browser-setup) und [Mobile-Einrichtung](/docs/rum/mobile-setup). Auch die Export-Endpunkte lehnen einen ungültigen Schlüssel mit `401` ab, wie es die OTLP-Spezifikation verlangt, daher protokolliert ein ordentliches SDK die Ablehnung, statt es erneut zu versuchen. Diese Zeile übersieht man in der Browser-Konsole leicht, und diese Prüfung antwortet direkt.
+Eine Web-App braucht einen **Browser**-Schlüssel, eine Mobile-App einen **Server**-Schlüssel: siehe [Einrichtung für Browser](/docs/rum/browser-setup) und [Einrichtung für Mobilgeräte](/docs/rum/mobile-setup). Auch die Export-Endpunkte lehnen einen ungültigen Schlüssel mit `401` ab, wie es die OTLP-Spezifikation verlangt, daher protokolliert ein ordentliches SDK die Ablehnung, statt es erneut zu versuchen. Diese Zeile übersieht man in der Browser-Konsole leicht, und diese Prüfung antwortet direkt.
 
 ## Prüfen, was den Browser verlässt
 
@@ -91,7 +91,7 @@ Die Anfrage gelingt, aber die App erscheint unter **Produkte → Dienste** statt
 | Browser | `browser.platform`, `browser.language` oder ein nicht leeres `browser.brands` |
 | Mobil | `device.id` oder `device.model.identifier`, oder `device.manufacturer` auf einer Ressource ohne Host-Identität (`host.name`, `host.id` oder `k8s.node.name`) |
 
-Ein `service.name` allein ergibt einen Backend-Dienst. Das OpenTelemetry-Browser-SDK fügt keine `browser.*`-Attribute hinzu, solange Sie nicht den Browser-Ressourcendetektor einbinden oder sie selbst setzen: siehe [Browser-Einrichtung](/docs/rum/browser-setup).
+Ein `service.name` allein ergibt einen Backend-Dienst. Das OpenTelemetry-Browser-SDK fügt keine `browser.*`-Attribute hinzu, solange Sie nicht den Browser-Ressourcendetektor einbinden oder sie selbst setzen: siehe [Einrichtung für Browser](/docs/rum/browser-setup).
 
 Um zu sehen, was Sie tatsächlich senden, öffnen Sie die OTLP-Anfrage im Tab „Netzwerk“ und sehen sich ihre Nutzlast an: `resourceSpans[0].resource.attributes` ist die Liste, die darüber entscheidet. Steht dort kein `browser.*`-Attribut, fügt das SDK es nicht hinzu, was auch immer seine Dokumentation sagt.
 
@@ -158,8 +158,8 @@ Wenden Sie sich dann an support@oneuptime.com oder eröffnen Sie ein Issue auf [
 ## Nächste Schritte
 
 :::cards
-- [Browser-Einrichtung](/docs/rum/browser-setup): Die Einrichtung, von der diese Prüfungen ausgehen, Schritt für Schritt.
-- [Mobile-Einrichtung](/docs/rum/mobile-setup): Der Schlüssel und die Attribute, die eine Mobile-App braucht.
+- [Einrichtung für Browser](/docs/rum/browser-setup): Die Einrichtung, von der diese Prüfungen ausgehen, Schritt für Schritt.
+- [Einrichtung für Mobilgeräte](/docs/rum/mobile-setup): Der Schlüssel und die Attribute, die eine Mobile-App braucht.
 - [Anwendungen verwalten](/docs/rum/applications): Namen, Beschriftungen, Aufbewahrung und Status.
 - [Fehlerbehebung bei der Sitzungswiedergabe](/docs/rum/session-replay-troubleshooting): Jeder Recorder-Code, und was zu tun ist.
 :::
