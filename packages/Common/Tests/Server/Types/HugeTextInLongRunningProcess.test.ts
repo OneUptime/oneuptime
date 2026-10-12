@@ -937,4 +937,115 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     expect(Object.keys(report.results)).toHaveLength(1);
     expectEveryCheckPassed(report);
   }, 600000);
+
+  /*
+   * A table cell (markdownTableCell, also in a feed table row), a search
+   * token (buildSearchTokenValue, buildSearchTokenGlob) and a pattern
+   * (escapeRegExp) are escaped in one pass over their text, and a Link
+   * header is read in one (readLinkHeader): sixteen megabytes of each shape
+   * come out whole, and 64 KB of each in good time - a pass per character
+   * or a pattern that backtracks would not keep the budget.
+   */
+  test("table cells, search tokens, patterns and Link headers escape and read sixteen megabytes", () => {
+    // A feed table row placing the text, written for the child process.
+    const FEED_TABLE_ROW: string = "lib.mdText`| $" + "{text} |`";
+    const report: ProcessReport = runUnoptimized(
+      [
+        'export { markdownTableCell } from "./Utils/Markdown/MarkdownTableCell";',
+        'export { mdText } from "./Utils/Markdown/FeedMarkdown";',
+        'export { escapeRegExp } from "./Utils/RegExpEscape";',
+        'export { buildSearchTokenValue, buildSearchTokenGlob } from "./Types/Telemetry/TelemetrySearchQuery";',
+        'export { readLinkHeader } from "./Utils/LinkHeader";',
+      ],
+      String.raw`
+        const shapes = {
+          "pipes": "|",
+          "backslashes": "\\",
+          "a backslash before each pipe": "\\|",
+          "quotes": '"',
+          "brackets": "(",
+          "line endings": "\r\n",
+          "words": "lorem ipsum ",
+        };
+
+        const escapeAll = (text) => {
+          return {
+            cell: lib.markdownTableCell(text),
+            row: ` +
+        FEED_TABLE_ROW +
+        String.raw`.toString(),
+            pattern: lib.escapeRegExp(text),
+            token: lib.buildSearchTokenValue(text),
+            glob: lib.buildSearchTokenGlob(text),
+          };
+        };
+
+        // Loaded and compiled once, as in a server.
+        escapeAll("warm | up \\ ");
+
+        // The shapes these escapes write the most for, at full size.
+        const fullSize = ["pipes", "backslashes", "a backslash before each pipe", "quotes"];
+
+        for (const [name, unit] of Object.entries(shapes)) {
+          if (fullSize.includes(name)) results["sixteen megabytes of " + name] = await attempt(() => {
+            const text = "HEAD " + repeatTo(unit, SIZE) + " TAIL";
+            const escaped = escapeAll(text);
+
+            return {
+              "a cell keeps it whole": escaped.cell.startsWith("HEAD") && escaped.cell.endsWith("TAIL"),
+              "a feed row keeps it whole": escaped.row.includes("HEAD") && escaped.row.includes("TAIL"),
+              "a pattern keeps it whole": escaped.pattern.startsWith("HEAD") && escaped.pattern.endsWith("TAIL"),
+              "a token keeps it whole": escaped.token.includes("HEAD") && escaped.token.includes("TAIL"),
+              "a glob keeps it whole": escaped.glob.includes("HEAD") && escaped.glob.includes("TAIL"),
+            };
+          });
+
+          const small = repeatTo(unit, QUADRATIC_SIZE);
+          const started = process.hrtime.bigint();
+
+          results["64 KB of " + name] = await attempt(() => {
+            const escaped = escapeAll(small);
+            const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e6);
+
+            return {
+              "its pattern has an escape for each character it escapes": escaped.pattern.length >= small.length,
+              "a kilobyte's pattern matches it": new RegExp("^" + lib.escapeRegExp(small.slice(0, 1024)) + "$").test(small.slice(0, 1024)),
+              ["in under " + ` +
+        String(QUADRATIC_BUDGET_IN_MS) +
+        String.raw` + " ms (took " + ms + " ms)"]: ms < ` +
+        String(QUADRATIC_BUDGET_IN_MS) +
+        String.raw`,
+            };
+          });
+        }
+
+        // A value the token grammar could read as a list, read by its ends.
+        results["a value of sixteen megabytes that opens a bracket"] = await attempt(() => {
+          const open = "(" + repeatTo("a", SIZE);
+          const wrapped = open + ")";
+
+          return {
+            "an open bracket is quoted": lib.buildSearchTokenValue(open).startsWith('"(a'),
+            "a wrapping pair is escaped": lib.buildSearchTokenValue(wrapped).startsWith("\\(a"),
+          };
+        });
+
+        results["a Link header of sixteen megabytes"] = await attempt(() => {
+          const link = '<https://api.example.com/items?page=2&x=a,b;c>; rel="next"; title="a, b; \\" c", ';
+          // Whole links, so no quoted value is cut short.
+          const header = link.repeat(Math.ceil(SIZE / link.length)) + '<https://api.example.com/items?page=99>; rel="last"';
+          const links = lib.readLinkHeader(header);
+
+          return {
+            "reads its last link": links[links.length - 1].url === "https://api.example.com/items?page=99",
+            "reads every link": links.length > 100000,
+          };
+        });
+      `,
+    );
+
+    expectUnoptimizedProcess(report);
+    expect(Object.keys(report.results)).toHaveLength(13);
+    expectEveryCheckPassed(report);
+  }, 600000);
 });

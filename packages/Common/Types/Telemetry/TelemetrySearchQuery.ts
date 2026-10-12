@@ -149,7 +149,16 @@ const QUOTE: string = '"';
  */
 const LEADING_OPERATOR_REGEX: RegExp = /^([-~!<>])/;
 
-const WRAPPED_LIST_REGEX: RegExp = /^(\()(.*)(\))$|^(\[)(.*)(\])$/;
+/*
+ * The characters a "." of a regular expression does not match. A value with
+ * one of them was never read as wrapped in a bracket pair, and still is not.
+ */
+const LINE_TERMINATORS: ReadonlyArray<string> = [
+  "\n",
+  "\r",
+  String.fromCharCode(0x2028),
+  String.fromCharCode(0x2029),
+];
 
 /*
  * What a bare (unprefixed) key has to look like before `key:value` is read as
@@ -777,6 +786,29 @@ export const buildSearchTokenGlob: BuildSearchTokenGlobFunction = (
 
 type AsSearchTokenValueFunction = (escaped: string) => string;
 
+type WrapsListFunction = (token: string) => boolean;
+
+/*
+ * Whether a bracket pair wraps the whole token - "(a OR b)", "[a, b]" - so
+ * the value grammar would read it as a list. Read by its two ends, with no
+ * pattern over what is between them: a value can be megabytes long.
+ */
+const wrapsList: WrapsListFunction = (token: string): boolean => {
+  if (token.length < 2) {
+    return false;
+  }
+
+  const first: string = token[0]!;
+  const last: string = token[token.length - 1]!;
+
+  return (
+    ((first === "(" && last === ")") || (first === "[" && last === "]")) &&
+    LINE_TERMINATORS.every((terminator: string): boolean => {
+      return token.indexOf(terminator) === -1;
+    })
+  );
+};
+
 type LeavesBracketOpenFunction = (token: string) => boolean;
 
 /*
@@ -820,9 +852,11 @@ const leavesBracketOpen: LeavesBracketOpenFunction = (
 const asSearchTokenValue: AsSearchTokenValueFunction = (
   escaped: string,
 ): string => {
-  const token: string = escaped
-    .replace(LEADING_OPERATOR_REGEX, "\\$1")
-    .replace(WRAPPED_LIST_REGEX, "\\$&");
+  let token: string = escaped.replace(LEADING_OPERATOR_REGEX, "\\$1");
+
+  if (wrapsList(token)) {
+    token = `${BACKSLASH}${token}`;
+  }
 
   return WHITESPACE_REGEX.test(token) ||
     leavesBracketOpen(token) ||
