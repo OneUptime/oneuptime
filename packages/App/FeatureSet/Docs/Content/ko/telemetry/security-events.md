@@ -65,25 +65,25 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest?format=ocsf" \
   -H "Content-Type: application/json" \
   -H "x-oneuptime-token: YOUR_INGESTION_TOKEN" \
   -H "x-oneuptime-service-name: my-security-source" \
-  -d '{ "events": [ { "class_uid": 3002, "severity_id": 4, "time": 1755770400000, "status": "Failure", "message": "Failed logon for alice", "actor": { "user": { "name": "alice" } }, "src_endpoint": { "ip": "203.0.113.7" } } ] }'
+  -d '{ "events": [ { "class_uid": 3002, "severity_id": 4, "status": "Failure", "message": "Failed logon for alice", "actor": { "user": { "name": "alice" } }, "src_endpoint": { "ip": "203.0.113.7", "hostname": "laptop-alice" } } ] }'
 ```
 @tab Google UDM
 ```bash
 curl -X POST "https://oneuptime.com/security-events/v1/ingest?format=udm" \
   -H "Content-Type: application/json" \
   -H "x-oneuptime-token: YOUR_INGESTION_TOKEN" \
-  -d '{ "events": [ { "metadata": { "event_type": "USER_LOGIN", "event_timestamp": "2026-08-21T10:00:00Z" }, "principal": { "user": { "userid": "alice" }, "ip": ["203.0.113.7"] }, "security_result": [{ "severity": "HIGH", "action": ["BLOCK"] }] } ] }'
+  -d '{ "events": [ { "metadata": { "event_type": "USER_LOGIN" }, "principal": { "hostname": "laptop-alice", "user": { "userid": "alice" }, "ip": ["203.0.113.7"] }, "security_result": [{ "severity": "HIGH", "action": ["BLOCK"] }] } ] }'
 ```
 @tab Generic JSON
 ```bash
 curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
   -H "Content-Type: application/json" \
   -H "x-oneuptime-token: YOUR_INGESTION_TOKEN" \
-  -d '{ "events": [ { "timestamp": "2026-08-21T10:00:00Z", "severity": "high", "event_type": "ssh_brute_force", "message": "12 failed SSH logins in 60s", "username": "root", "hostname": "web-01", "src_ip": "203.0.113.7" } ] }'
+  -d '{ "events": [ { "severity": "high", "event_type": "ssh_brute_force", "message": "12 failed SSH logins in 60s", "username": "root", "hostname": "web-01", "src_ip": "203.0.113.7" } ] }'
 ```
 :::
 
-이벤트가 대기열에 들어가면 엔드포인트가 `200` 을 반환합니다.
+이벤트가 대기열에 들어가면 엔드포인트가 `200` 을 반환합니다. 이 예시처럼 시간 없이 보낸 이벤트는 도착한 순간에 놓입니다.
 
 ### 이벤트 탭에서 찾기
 
