@@ -742,6 +742,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   : undefined
               }
               isTurningOn={workflowEnabled.isSaving}
+              // Run Workflow still tests it - for whoever may run it.
+              canTest={!runLockedReason}
             />
           </div>
         ) : (

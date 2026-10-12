@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} et {{second}} se ressemblent pour les personnes atteintes de daltonisme rouge-vert.",
   "{{percent}}% or more": "{{percent}} % ou plus",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "Son déclencheur est en pause jusqu'à ce que vous l'activiez. Vous pouvez quand même le tester avec « Exécuter le flux de travail ».",
   "Started by User": "Lancé par l'utilisateur",
   "Started by User ID": "ID de l'utilisateur qui l'a lancé",
   "Started by hand while this workflow was off.": "Lancé manuellement pendant que ce flux de travail était désactivé.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Exécution de test",
   "Test run": "Exécution de test",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Ce flux de travail est désactivé : il s'agit donc d'une exécution de test. Chaque étape s'exécute pour de vrai : tout ce qu'elle envoie, écrit ou supprime se produit réellement.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Les flux de travail sont créés désactivés : leur déclencheur ne les lance pas tant que vous ne les activez pas."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Les flux de travail sont créés désactivés : leur déclencheur ne les lance pas tant que vous ne les activez pas.",
+  "Its trigger is paused until you turn it on.": "Son déclencheur est en pause jusqu'à ce que vous l'activiez.",
+  "You can still test it with Run Workflow.": "Vous pouvez quand même le tester avec « Exécuter le flux de travail »."
 }

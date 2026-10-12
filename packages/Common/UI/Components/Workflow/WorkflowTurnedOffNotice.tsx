@@ -12,6 +12,12 @@ export interface ComponentProps {
    */
   onTurnOn?: (() => void) | undefined;
   isTurningOn?: boolean | undefined;
+  /*
+   * The user may run the workflow (WorkflowRunGate), so the notice says Run
+   * Workflow still tests it while it is off. False for someone who may not:
+   * Run Workflow is locked for them, and the notice does not offer it.
+   */
+  canTest?: boolean | undefined;
 }
 
 /*
@@ -56,6 +62,14 @@ const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
           </p>
           <p className="text-amber-800">
             {translate(WorkflowEnabledCopy.noticeBody)}
+            {props.canTest === false ? (
+              <></>
+            ) : (
+              <span data-testid="workflow-turned-off-notice-can-test">
+                {" "}
+                {translate(WorkflowEnabledCopy.noticeCanTest)}
+              </span>
+            )}
           </p>
           {props.onTurnOn ? (
             <></>

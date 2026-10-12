@@ -1,18 +1,28 @@
 import {
   WORKFLOW_ENABLED_SWITCH_LABEL,
+  WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH,
   WORKFLOW_TURNED_OFF_MESSAGE,
   getChildWorkflowTurnedOffMessage,
+  getWorkflowTestRunLogLine,
+  getWorkflowTestRunStarter,
 } from "../../../Types/Workflow/WorkflowEnabled";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
 /*
- * What the server says when something tries to run a workflow that is
- * turned off. It used to be "This workflow is not enabled", which the
- * maintainer read in an Error dialog with no idea how to turn the workflow
- * on. The same words reach a webhook sender's delivery log, where they are
- * the only explanation anyone gets, so they say what to do and where.
+ * What the server says about a workflow that is turned off.
+ *
+ * Off pauses what starts a workflow without a person - its trigger and other
+ * workflows' Execute Workflow steps - and not a person testing it from the
+ * Builder: "Run - Why do I have to enable a workflow in order to test run
+ * it? Can you please fix it?" So:
+ *
+ *   - the refusal a webhook caller reads says the trigger can't start the
+ *     workflow, and how to turn it on - not that the workflow "can't run",
+ *     which it now can, by hand;
+ *   - a test run's log opens with a line that says it is one, and who
+ *     started it, quoting a name the person typed on one line.
  */
 
 const DASHBOARD_PAGES: string = path.join(
@@ -29,11 +39,15 @@ const DASHBOARD_PAGES: string = path.join(
   "Workflow",
 );
 
-describe("the refusal to run a workflow that is off", () => {
-  test("says the workflow is off, so it cannot run", () => {
+describe("the refusal to start a workflow that is off", () => {
+  test("says the workflow is off, so its trigger can't start it", () => {
     expect(WORKFLOW_TURNED_OFF_MESSAGE).toMatch(
-      /^This workflow is turned off, so it can't run\./,
+      /^This workflow is turned off, so its trigger can't start it\./,
     );
+  });
+
+  test("no longer says the workflow can't run: a person can still test it", () => {
+    expect(WORKFLOW_TURNED_OFF_MESSAGE).not.toContain("so it can't run");
   });
 
   test("says how to turn it on, and where the switch is", () => {
@@ -46,6 +60,12 @@ describe("the refusal to run a workflow that is off", () => {
 
   test("is no longer the bare 'not enabled'", () => {
     expect(WORKFLOW_TURNED_OFF_MESSAGE).not.toMatch(/not enabled/i);
+  });
+
+  test("is pinned word for word: a webhook sender's delivery log quotes it", () => {
+    expect(WORKFLOW_TURNED_OFF_MESSAGE).toBe(
+      "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again.",
+    );
   });
 
   test("names the switch by the name the Overview page gives the same field", () => {
@@ -103,5 +123,86 @@ describe("the refusal as an Execute Workflow step reports it", () => {
         workflowName: "  Nightly sync  ",
       }),
     ).toContain('The workflow "Nightly sync" is turned off');
+  });
+});
+
+describe("the line a test run's log opens with", () => {
+  test("says it is a test run, who started it, and that the workflow is off", () => {
+    expect(getWorkflowTestRunLogLine({ startedBy: "Ada Lovelace" })).toBe(
+      "Test run, started by Ada Lovelace while this workflow is turned off.",
+    );
+  });
+
+  test.each([undefined, null, "", "   ", "\n\t"])(
+    "says started by hand when nobody is named (%p)",
+    (startedBy: string | null | undefined) => {
+      expect(getWorkflowTestRunLogLine({ startedBy: startedBy })).toBe(
+        "Test run, started by hand while this workflow is turned off.",
+      );
+    },
+  );
+
+  test("keeps a name the person typed over several lines on one line", () => {
+    const line: string = getWorkflowTestRunLogLine({
+      startedBy: "Ada\n10:00:00: Workflow finished.\r\nLovelace",
+    });
+
+    expect(line).not.toMatch(/[\r\n]/);
+    expect(line).toBe(
+      "Test run, started by Ada 10:00:00: Workflow finished. Lovelace while this workflow is turned off.",
+    );
+  });
+});
+
+describe("a person's name as a run's log quotes it", () => {
+  test("is trimmed, with every run of white space made one space", () => {
+    expect(getWorkflowTestRunStarter("  Ada \t  Lovelace  ")).toBe(
+      "Ada Lovelace",
+    );
+  });
+
+  test("breaks no line, whichever line break the name holds", () => {
+    for (const lineBreak of ["\n", "\r", "\r\n", "\u2028", "\u2029", "\v", "\f"]) {
+      expect(getWorkflowTestRunStarter(`Ada${lineBreak}Lovelace`)).toBe(
+        "Ada Lovelace",
+      );
+    }
+  });
+
+  test.each([undefined, null, ""])("is empty for no name (%p)", (name: unknown) => {
+    expect(getWorkflowTestRunStarter(name as string | null | undefined)).toBe(
+      "",
+    );
+  });
+
+  test("a name of the longest length is kept whole", () => {
+    const name: string = "a".repeat(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH);
+
+    expect(getWorkflowTestRunStarter(name)).toBe(name);
+  });
+
+  test("a longer name is cut, and says so", () => {
+    const cut: string = getWorkflowTestRunStarter(
+      "a".repeat(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH + 50),
+    );
+
+    expect(Array.from(cut)).toHaveLength(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH);
+    expect(cut.endsWith("…")).toBe(true);
+  });
+
+  test("is cut by letters, never in the middle of one", () => {
+    const cut: string = getWorkflowTestRunStarter(
+      "😀".repeat(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH + 1),
+    );
+
+    expect(Array.from(cut)).toHaveLength(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH);
+    // No lone half of a surrogate pair is left behind.
+    expect(cut).toBe(
+      `${"😀".repeat(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH - 1)}…`,
+    );
+  });
+
+  test("allows a sensible name of real length", () => {
+    expect(WORKFLOW_TEST_RUN_STARTER_MAX_LENGTH).toBeGreaterThanOrEqual(60);
   });
 });

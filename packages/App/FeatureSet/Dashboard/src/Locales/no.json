@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} og {{second}} ser like ut for personer med rød-grønn fargeblindhet.",
   "{{percent}}% or more": "{{percent}} % eller mer",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "Utløseren er satt på pause til du slår den på. Du kan fortsatt teste den med «Kjør arbeidsflyt».",
   "Started by User": "Startet av bruker",
   "Started by User ID": "ID-en til brukeren som startet den",
   "Started by hand while this workflow was off.": "Startet manuelt mens denne arbeidsflyten var slått av.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Testkjøring",
   "Test run": "Testkjøring",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Denne arbeidsflyten er slått av, så dette er en testkjøring. Hvert steg kjøres på ekte: alt det sender, skriver eller sletter, skjer faktisk.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbeidsflyter opprettes avslått, så utløseren deres starter dem ikke før du slår dem på."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbeidsflyter opprettes avslått, så utløseren deres starter dem ikke før du slår dem på.",
+  "Its trigger is paused until you turn it on.": "Utløseren er satt på pause til du slår den på.",
+  "You can still test it with Run Workflow.": "Du kan fortsatt teste den med «Kjør arbeidsflyt»."
 }

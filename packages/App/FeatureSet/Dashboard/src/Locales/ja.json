@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}}と{{second}}は、赤緑色覚異常の人には同じように見えます。",
   "{{percent}}% or more": "{{percent}}%以上",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "オンにするまで、トリガーは一時停止しています。「ワークフローを実行」でテストすることはできます。",
   "Started by User": "開始したユーザー",
   "Started by User ID": "開始したユーザーの ID",
   "Started by hand while this workflow was off.": "このワークフローがオフのときに手動で開始されました。",
@@ -28083,5 +28082,7 @@
   "Test Run": "テスト実行",
   "Test run": "テスト実行",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "このワークフローはオフのため、これはテスト実行です。各ステップは実際に実行されます。送信、書き込み、削除は実際に行われます。",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "ワークフローはオフの状態で作成されるため、オンにするまでトリガーで開始されることはありません。"
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "ワークフローはオフの状態で作成されるため、オンにするまでトリガーで開始されることはありません。",
+  "Its trigger is paused until you turn it on.": "オンにするまで、トリガーは一時停止しています。",
+  "You can still test it with Run Workflow.": "「ワークフローを実行」で引き続きテストできます。"
 }

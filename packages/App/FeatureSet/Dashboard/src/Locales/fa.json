@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} و {{second}} برای افراد دارای کوررنگی قرمز-سبز یکسان به نظر می‌رسند.",
   "{{percent}}% or more": "٪{{percent}} یا بیشتر",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "تا وقتی آن را روشن نکنید، تریگر آن متوقف است. همچنان می‌توانید آن را با «اجرای گردش کاری» آزمایش کنید.",
   "Started by User": "کاربر آغازکننده",
   "Started by User ID": "شناسه کاربر آغازکننده",
   "Started by hand while this workflow was off.": "در زمانی که این گردش کاری خاموش بود، به‌صورت دستی آغاز شد.",
@@ -28083,5 +28082,7 @@
   "Test Run": "اجرای آزمایشی",
   "Test run": "اجرای آزمایشی",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "این گردش کاری خاموش است، پس این یک اجرای آزمایشی است. هر مرحله واقعاً اجرا می‌شود: هر چیزی که بفرستد، بنویسد یا حذف کند، واقعاً انجام می‌شود.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "گردش‌های کاری خاموش ساخته می‌شوند، پس تا وقتی آن‌ها را روشن نکنید، تریگرشان آن‌ها را آغاز نمی‌کند."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "گردش‌های کاری خاموش ساخته می‌شوند، پس تا وقتی آن‌ها را روشن نکنید، تریگرشان آن‌ها را آغاز نمی‌کند.",
+  "Its trigger is paused until you turn it on.": "تا وقتی آن را روشن نکنید، تریگر آن متوقف است.",
+  "You can still test it with Run Workflow.": "همچنان می‌توانید آن را با «اجرای گردش کاری» آزمایش کنید."
 }

@@ -31,6 +31,11 @@ import {
  * Each run can be downloaded - its log as text or the whole run as JSON -
  * from its row's ⋯ menu and from the run's own modal. The browser's download
  * is replaced by a recorder of what would be saved.
+ *
+ * A test run - one a person started from the Builder while the workflow was
+ * off ("Why do I have to enable a workflow in order to test run it?") - is
+ * marked beside its status, can be filtered on, and says so when it is
+ * opened and in its downloads.
  */
 
 interface RecordedListCall {
@@ -171,9 +176,11 @@ import OneWorkflowRunsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import User from "../../../Models/DatabaseModels/User";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import WorkflowLog from "../../../Models/DatabaseModels/WorkflowLog";
 import Route from "../../../Types/API/Route";
+import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import WorkflowStatus from "../../../Types/Workflow/WorkflowStatus";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -204,6 +211,25 @@ function run(id: string, status: WorkflowStatus): WorkflowLog {
 const TWO_RUNS: Array<WorkflowLog> = [
   run("0193c0de-1111-4aaa-8bbb-000000000001", WorkflowStatus.Success),
   run("0193c0de-2222-4aaa-8bbb-000000000002", WorkflowStatus.Error),
+];
+
+// A run Ada started from the Builder while the workflow was off.
+function testRun(id: string): WorkflowLog {
+  const person: User = new User();
+  person.name = new Name("Ada Lovelace");
+
+  const log: WorkflowLog = run(id, WorkflowStatus.Success);
+  log.isTestRun = true;
+  log.startedByUser = person;
+  log.logs =
+    "10:00:00: Test run, started by Ada Lovelace while this workflow is turned off.";
+  return log;
+}
+
+// A test run first, then a run its trigger started.
+const A_TEST_RUN_AND_A_REAL_ONE: Array<WorkflowLog> = [
+  testRun("0193c0de-3333-4aaa-8bbb-000000000003"),
+  run("0193c0de-4444-4aaa-8bbb-000000000004", WorkflowStatus.Success),
 ];
 
 interface RunPage {
@@ -431,6 +457,8 @@ describe.each(RUN_PAGES)("$name", (page: RunPage) => {
       run: {
         id: TWO_RUNS[0]!._id,
         status: "Success",
+        isTestRun: false,
+        startedBy: null,
         scheduledAt: "2026-09-30T10:00:00.000Z",
         startedAt: "2026-09-30T10:00:01.000Z",
         completedAt: "2026-09-30T10:00:03.000Z",
@@ -488,6 +516,86 @@ describe.each(RUN_PAGES)("$name", (page: RunPage) => {
     const select: Record<string, unknown> = runListCalls()[0]!.select;
 
     expect(select["resumeData"]).toBeUndefined();
+  });
+
+  test("the list asks whether each run is a test run, and who started it", async () => {
+    await renderRunPage(page);
+
+    const select: Record<string, unknown> = runListCalls()[0]!.select;
+
+    expect(select["isTestRun"]).toBe(true);
+    expect(select["startedByUser"]).toEqual({ name: true, email: true });
+  });
+
+  test("a test run is marked beside its status; a run its trigger started is not", async () => {
+    runsForTest = A_TEST_RUN_AND_A_REAL_ONE;
+    await renderRunPage(page);
+
+    const pills: Array<HTMLElement> = await screen.findAllByTestId(
+      "workflow-test-run-pill",
+    );
+
+    expect(pills).toHaveLength(1);
+    expect(pills[0]).toHaveTextContent("Test run");
+
+    // It is in the first row, beside that run's Executed.
+    const firstStatus: HTMLElement = pills[0]!.parentElement as HTMLElement;
+
+    expect(firstStatus).toHaveTextContent("Executed");
+    expect(firstStatus).toHaveTextContent("Test run");
+  });
+
+  test("a test run can be filtered on", async () => {
+    await renderRunPage(page);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "More options" }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Filter" }));
+
+    expect(await screen.findByText("Test Run")).toBeInTheDocument();
+  });
+
+  test("a test run, opened, says it is one and who started it", async () => {
+    runsForTest = A_TEST_RUN_AND_A_REAL_ONE;
+    await renderRunPage(page);
+
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: "View Logs" }))[0]!,
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    expect(
+      within(modal).getByTestId("workflow-run-test-run-note"),
+    ).toHaveTextContent("Started by Ada Lovelace while this workflow was off.");
+  });
+
+  test("a run its trigger started, opened, says nothing of the kind", async () => {
+    runsForTest = A_TEST_RUN_AND_A_REAL_ONE;
+    await renderRunPage(page);
+
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: "View Logs" }))[1]!,
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    expect(
+      within(modal).queryByTestId("workflow-run-test-run-note"),
+    ).toBeNull();
+  });
+
+  test("a test run's downloaded log says it is one, and who started it", async () => {
+    runsForTest = A_TEST_RUN_AND_A_REAL_ONE;
+    await renderRunPage(page);
+    await openRowMenu(0);
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download log" }));
+
+    expect(mockDownloads[0]!.content).toContain(
+      "Status: Executed\nTest run: Yes\nStarted by: Ada Lovelace\n",
+    );
   });
 });
 

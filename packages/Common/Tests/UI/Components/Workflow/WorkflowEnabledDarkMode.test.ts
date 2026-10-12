@@ -3,8 +3,9 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Builder's turned-off notice, its Enabled switch and the dialog that
- * turns a workflow on, in the dark theme.
+ * The Builder's turned-off notice, its Enabled switch, and how a test run is
+ * marked - the Run Workflow panel's note, the note at the top of a run and
+ * the run lists' pill (WorkflowTestRun) - in the dark theme.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class and per
@@ -18,7 +19,7 @@ const UI_DIR: string = path.join(__dirname, "..", "..", "..", "..", "UI");
 const FILES: Array<string> = [
   "Components/Workflow/WorkflowTurnedOffNotice.tsx",
   "Components/Workflow/WorkflowEnabledSwitch.tsx",
-  "Components/Workflow/WorkflowTurnOnModal.tsx",
+  "Components/Workflow/WorkflowTestRun.tsx",
 ];
 
 // Block comments only: prose in Theme.css must not count as a rule.
@@ -141,10 +142,17 @@ const COLOR_TOKENS: Array<string> = Array.from(
   ),
 );
 
-describe("the turned-off workflow's notice, switch and dialog in the dark theme", () => {
-  test("the scan found the notice's colours, so the check below is not vacuous", () => {
+describe("the turned-off workflow's notice, switch and test-run marks in the dark theme", () => {
+  test("the scan found the notice's and the notes' colours, so the check below is not vacuous", () => {
     expect(COLOR_TOKENS).toEqual(
-      expect.arrayContaining(["bg-amber-50", "border-amber-200"]),
+      expect.arrayContaining([
+        "bg-amber-50",
+        "border-amber-200",
+        "bg-blue-50",
+        "border-blue-100",
+        "text-blue-700",
+        "text-blue-800",
+      ]),
     );
   });
 

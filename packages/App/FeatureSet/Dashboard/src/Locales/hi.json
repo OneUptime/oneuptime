@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "लाल-हरा रंग-अंधता वाले लोगों को {{first}} और {{second}} एक जैसे दिखते हैं।",
   "{{percent}}% or more": "{{percent}}% या अधिक",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है। फिर भी आप \"वर्कफ़्लो चलाएं\" से इसे टेस्ट कर सकते हैं।",
   "Started by User": "शुरू करने वाला उपयोगकर्ता",
   "Started by User ID": "शुरू करने वाले उपयोगकर्ता की ID",
   "Started by hand while this workflow was off.": "यह वर्कफ़्लो बंद रहते हुए हाथ से शुरू किया गया।",
@@ -28083,5 +28082,7 @@
   "Test Run": "टेस्ट रन",
   "Test run": "टेस्ट रन",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "यह वर्कफ़्लो बंद है, इसलिए यह एक टेस्ट रन है। हर चरण सच में चलता है: वह जो कुछ भेजता, लिखता या हटाता है, वह सच में होता है।",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "वर्कफ़्लो बंद अवस्था में बनाए जाते हैं, इसलिए जब तक आप उन्हें चालू नहीं करते, उनका ट्रिगर उन्हें शुरू नहीं करता।"
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "वर्कफ़्लो बंद अवस्था में बनाए जाते हैं, इसलिए जब तक आप उन्हें चालू नहीं करते, उनका ट्रिगर उन्हें शुरू नहीं करता।",
+  "Its trigger is paused until you turn it on.": "जब तक आप इसे चालू नहीं करते, इसका ट्रिगर रुका रहता है।",
+  "You can still test it with Run Workflow.": "फिर भी आप \"वर्कफ़्लो चलाएं\" से इसे टेस्ट कर सकते हैं।"
 }

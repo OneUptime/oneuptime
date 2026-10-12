@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} og {{second}} ser ens ud for personer med rød-grøn farveblindhed.",
   "{{percent}}% or more": "{{percent}} % eller mere",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "Dens udløser er sat på pause, indtil du slår den til. Du kan stadig teste den med \"Kør arbejdsgang\".",
   "Started by User": "Startet af bruger",
   "Started by User ID": "ID på brugeren, der startede den",
   "Started by hand while this workflow was off.": "Startet manuelt, mens denne arbejdsgang var slået fra.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Testkørsel",
   "Test run": "Testkørsel",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Denne arbejdsgang er slået fra, så dette er en testkørsel. Hvert trin kører for alvor: alt, hvad det sender, skriver eller sletter, sker faktisk.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbejdsgange oprettes slået fra, så deres udløser starter dem ikke, før du slår dem til."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbejdsgange oprettes slået fra, så deres udløser starter dem ikke, før du slår dem til.",
+  "Its trigger is paused until you turn it on.": "Dens udløser er sat på pause, indtil du slår den til.",
+  "You can still test it with Run Workflow.": "Du kan stadig teste den med \"Kør arbejdsgang\"."
 }

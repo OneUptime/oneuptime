@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} y {{second}} se ven iguales para las personas con daltonismo rojo-verde.",
   "{{percent}}% or more": "{{percent}} % o más",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "Su disparador está en pausa hasta que lo actives. Aun así puedes probarlo con «Ejecutar flujo de trabajo».",
   "Started by User": "Iniciado por el usuario",
   "Started by User ID": "ID del usuario que lo inició",
   "Started by hand while this workflow was off.": "Iniciado manualmente mientras este flujo de trabajo estaba desactivado.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Ejecución de prueba",
   "Test run": "Ejecución de prueba",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Este flujo de trabajo está desactivado, así que esta es una ejecución de prueba. Cada paso se ejecuta de verdad: todo lo que envíe, escriba o elimine ocurre realmente.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Los flujos de trabajo se crean desactivados, así que su disparador no los inicia hasta que los actives."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Los flujos de trabajo se crean desactivados, así que su disparador no los inicia hasta que los actives.",
+  "Its trigger is paused until you turn it on.": "Su disparador está en pausa hasta que lo actives.",
+  "You can still test it with Run Workflow.": "Aun así puedes probarlo con «Ejecutar flujo de trabajo»."
 }

@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} и {{second}} выглядят одинаково для людей с красно-зелёной цветовой слепотой.",
   "{{percent}}% or more": "{{percent}}% и выше",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "Его триггер приостановлен, пока вы его не включите. Протестировать процесс можно и сейчас — кнопкой «Запустить рабочий процесс».",
   "Started by User": "Запустивший пользователь",
   "Started by User ID": "ID запустившего пользователя",
   "Started by hand while this workflow was off.": "Запущен вручную, когда этот рабочий процесс был выключен.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Тестовый запуск",
   "Test run": "Тестовый запуск",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Этот рабочий процесс выключен, поэтому это тестовый запуск. Каждый шаг выполняется по-настоящему: всё, что он отправляет, записывает или удаляет, происходит на самом деле.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Рабочие процессы создаются выключенными, поэтому их триггер не запускает их, пока вы их не включите."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Рабочие процессы создаются выключенными, поэтому их триггер не запускает их, пока вы их не включите.",
+  "Its trigger is paused until you turn it on.": "Его триггер приостановлен, пока вы его не включите.",
+  "You can still test it with Run Workflow.": "Протестировать его можно и сейчас — кнопкой «Запустить рабочий процесс»."
 }

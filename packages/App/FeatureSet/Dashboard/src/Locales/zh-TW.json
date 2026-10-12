@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "對紅綠色盲人士來說，{{first}} 和 {{second}} 看起來一樣。",
   "{{percent}}% or more": "{{percent}}% 或以上",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "在開啟之前，它的觸發器處於暫停狀態。你仍然可以使用「執行工作流程」來測試它。",
   "Started by User": "啟動者",
   "Started by User ID": "啟動者 ID",
   "Started by hand while this workflow was off.": "在此工作流程關閉時手動啟動。",
@@ -28083,5 +28082,7 @@
   "Test Run": "測試執行",
   "Test run": "測試執行",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "此工作流程已關閉，因此這是一次測試執行。每個步驟都會真實執行：它傳送、寫入或刪除的內容都會真實發生。",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "工作流程建立後預設為關閉狀態，在你開啟之前，它的觸發器不會啟動它。"
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "工作流程建立後預設為關閉狀態，在你開啟之前，它的觸發器不會啟動它。",
+  "Its trigger is paused until you turn it on.": "在開啟之前，它的觸發器處於暫停狀態。",
+  "You can still test it with Run Workflow.": "你仍然可以使用「執行工作流程」來測試它。"
 }

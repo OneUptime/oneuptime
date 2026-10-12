@@ -1,9 +1,11 @@
 /*
  * The notice above the Builder's canvas while the workflow is turned off.
  *
- * People used to find out that a workflow was off from an Error dialog after
- * trying to run it, and that dialog did not say how to turn it on. The notice
- * says so up front, with the one thing to do about it.
+ * It says what off means - the trigger is paused - and, since "Why do I have
+ * to enable a workflow in order to test run it?", what it does not: the
+ * workflow can still be tested with Run Workflow. It used to say the
+ * workflow "can't be run or tested until you turn it on". Then the one thing
+ * to do about it, for whoever may.
  */
 
 import WorkflowTurnedOffNotice from "../../../../UI/Components/Workflow/WorkflowTurnedOffNotice";
@@ -28,8 +30,53 @@ describe("the notice for a workflow that is off", () => {
     expect(notice).toHaveAttribute("role", "status");
     expect(notice).toHaveTextContent("This workflow is off");
     expect(notice).toHaveTextContent(
-      "Its trigger is ignored and it can't be run or tested until you turn it on.",
+      "Its trigger is paused until you turn it on. You can still test it with Run Workflow.",
     );
+  });
+
+  test("no longer says the workflow can't be run or tested", () => {
+    render(<WorkflowTurnedOffNotice onTurnOn={getJestMockFunction()} />);
+
+    const notice: HTMLElement = screen.getByTestId(
+      "workflow-turned-off-notice",
+    );
+
+    expect(notice).not.toHaveTextContent("can't be run or tested");
+    expect(notice).not.toHaveTextContent("ignored");
+  });
+
+  test("says the same to someone who may not turn it on: they may still test it", () => {
+    render(<WorkflowTurnedOffNotice />);
+
+    expect(screen.getByTestId("workflow-turned-off-notice")).toHaveTextContent(
+      "You can still test it with Run Workflow.",
+    );
+  });
+
+  test("does not offer Run Workflow to someone who may not run the workflow", () => {
+    render(<WorkflowTurnedOffNotice canTest={false} />);
+
+    const notice: HTMLElement = screen.getByTestId(
+      "workflow-turned-off-notice",
+    );
+
+    expect(notice).toHaveTextContent(
+      "Its trigger is paused until you turn it on.",
+    );
+    expect(notice).not.toHaveTextContent("You can still test it");
+    expect(
+      screen.queryByTestId("workflow-turned-off-notice-can-test"),
+    ).toBeNull();
+  });
+
+  test("offers it to someone who may", () => {
+    render(
+      <WorkflowTurnedOffNotice canTest={true} onTurnOn={getJestMockFunction()} />,
+    );
+
+    expect(
+      screen.getByTestId("workflow-turned-off-notice-can-test"),
+    ).toHaveTextContent("You can still test it with Run Workflow.");
   });
 
   test("offers to turn it on, as its one primary button", () => {

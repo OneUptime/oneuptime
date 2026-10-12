@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} und {{second}} sehen für Menschen mit Rot-Grün-Sehschwäche gleich aus.",
   "{{percent}}% or more": "{{percent}} % oder mehr",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "Sein Auslöser ist pausiert, bis Sie ihn einschalten. Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen.",
   "Started by User": "Gestartet von Benutzer",
   "Started by User ID": "Gestartet von Benutzer-ID",
   "Started by hand while this workflow was off.": "Manuell gestartet, während dieser Arbeitsablauf ausgeschaltet war.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Testlauf",
   "Test run": "Testlauf",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Dieser Arbeitsablauf ist ausgeschaltet, daher ist dies ein Testlauf. Jeder Schritt wird wirklich ausgeführt: Alles, was er sendet, schreibt oder löscht, geschieht tatsächlich.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbeitsabläufe werden ausgeschaltet angelegt, sodass ihr Auslöser sie erst startet, wenn Sie sie einschalten."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Arbeitsabläufe werden ausgeschaltet angelegt, sodass ihr Auslöser sie erst startet, wenn Sie sie einschalten.",
+  "Its trigger is paused until you turn it on.": "Sein Auslöser ist pausiert, bis Sie ihn einschalten.",
+  "You can still test it with Run Workflow.": "Sie können ihn trotzdem mit „Arbeitsablauf ausführen“ testen."
 }

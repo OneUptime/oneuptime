@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}}과(와) {{second}}은(는) 적록 색맹인 사람에게 똑같아 보입니다.",
   "{{percent}}% or more": "{{percent}}% 이상",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "켜기 전까지 트리거는 일시 중지됩니다. \"워크플로 실행\"으로 테스트는 할 수 있습니다.",
   "Started by User": "시작한 사용자",
   "Started by User ID": "시작한 사용자 ID",
   "Started by hand while this workflow was off.": "이 워크플로가 꺼져 있을 때 수동으로 시작되었습니다.",
@@ -28083,5 +28082,7 @@
   "Test Run": "테스트 실행",
   "Test run": "테스트 실행",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "이 워크플로가 꺼져 있으므로 이것은 테스트 실행입니다. 모든 단계가 실제로 실행되며, 보내거나 쓰거나 삭제하는 작업은 실제로 이루어집니다.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "워크플로는 꺼진 상태로 생성되므로, 켜기 전까지는 트리거가 워크플로를 시작하지 않습니다."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "워크플로는 꺼진 상태로 생성되므로, 켜기 전까지는 트리거가 워크플로를 시작하지 않습니다.",
+  "Its trigger is paused until you turn it on.": "켜기 전까지 트리거는 일시 중지됩니다.",
+  "You can still test it with Run Workflow.": "\"워크플로 실행\"으로 계속 테스트할 수 있습니다."
 }

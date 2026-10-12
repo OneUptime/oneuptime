@@ -194,6 +194,47 @@ describe("query_workflows — detail mode", () => {
     expect(callArgs["props"]).toBe(ctx.props);
   });
 
+  /*
+   * A person may run a workflow from its Builder while it is off: a test run
+   * ("Why do I have to enable a workflow in order to test run it?"). The
+   * answer must not read a disabled workflow's test runs as the workflow
+   * running on its own, so each says it was a test.
+   */
+  test("marks a test run as one, and says nothing of the kind for any other", async () => {
+    jest
+      .spyOn(WorkflowService, "findOneById")
+      .mockResolvedValue(buildWorkflow({ enabled: false }) as never);
+
+    const testRun: WorkflowLog = buildRun({ status: WorkflowStatus.Success });
+    testRun.isTestRun = true;
+
+    const logsSpy: jest.SpyInstance = jest
+      .spyOn(WorkflowLogService, "findBy")
+      .mockResolvedValue([
+        testRun,
+        buildRun({ status: WorkflowStatus.Success }),
+      ] as never);
+
+    const result: ToolExecutionResult = await QueryWorkflowsTool.execute(
+      { workflowId: WORKFLOW_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm.split("testRun=true")).toHaveLength(2);
+    expect(result.dataForLlm).not.toContain("testRun=false");
+
+    const select: JSONObject = (logsSpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+    expect(select["isTestRun"]).toBe(true);
+  });
+
+  test("tells the model what a test run is", () => {
+    expect(QueryWorkflowsTool.description).toContain(
+      "A run marked testRun was started by a person from the Builder while the workflow was turned off, not by its trigger.",
+    );
+  });
+
   test("clamps runsLimit to 20", async () => {
     jest
       .spyOn(WorkflowService, "findOneById")

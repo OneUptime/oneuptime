@@ -21,19 +21,27 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { ComponentProps as CanvasProps } from "../../../UI/Components/Workflow/Workflow";
 
 /*
- * "When workflow is not enabled, it doesnt tell me how to enable this
- * workflow. Can you please add that?" - the maintainer, looking at an Error
- * dialog that said "This workflow is not enabled" over an If / Else step's
- * settings, after Run just this step. Its only button was Close.
+ * Testing a workflow from the Builder while it is turned off, and turning it
+ * on.
+ *
+ * "Run - Why do I have to enable a workflow in order to test run it? Can you
+ * please fix it?" - the maintainer. The Builder used to hold a run started
+ * while the workflow was off behind a "Turn on this workflow?" dialog, whose
+ * only way forward turned the workflow on - letting its trigger loose just to
+ * try it once. Off now pauses the trigger, not a person testing it:
+ *
+ *   - Run Workflow and Run just this step are sent as they are asked for,
+ *     with no dialog, and the workflow stays off;
+ *   - the run they start is a test run, which the run panel says before it
+ *     runs and the run says once it is open, with who started it;
+ *   - the notice above the canvas says the trigger is paused and that Run
+ *     Workflow still tests it, with Turn on workflow for when it is ready;
+ *   - a refused run is shown as the server words it.
  *
  * The real Builder page is rendered; the canvas is a stand-in that hands the
  * test its callbacks (Run just this step and Run Workflow end there), and the
- * API answers from here. The page now:
- *   - shows the Enabled switch at the top, and a notice while it is off;
- *   - holds a run started while the workflow is off and asks to turn it on,
- *     then sends that same run;
- *   - reads the switch again when a run is refused, instead of showing the
- *     refusal, so a workflow turned off elsewhere is handled the same way.
+ * API answers from here, as the server now does: a run a person starts goes
+ * ahead whether the workflow is on or off.
  */
 
 const WORKFLOW_NAME: string = "Notify on-call";
@@ -146,10 +154,13 @@ jest.mock("../../../UI/Components/Workflow/Workflow", () => {
 
 import Builder from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/View/Builder";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import User from "../../../Models/DatabaseModels/User";
+import WorkflowLog from "../../../Models/DatabaseModels/WorkflowLog";
 import WorkflowModel from "../../../Models/DatabaseModels/Workflow";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
+import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import {
@@ -157,7 +168,7 @@ import {
   NodeDataProp,
   NodeType,
 } from "../../../Types/Workflow/Component";
-import { WORKFLOW_TURNED_OFF_MESSAGE } from "../../../Types/Workflow/WorkflowEnabled";
+import WorkflowStatus from "../../../Types/Workflow/WorkflowStatus";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
@@ -215,22 +226,6 @@ const WEBHOOK_GRAPH: JSONObject = {
   edges: [],
 };
 
-const MANUAL_GRAPH: JSONObject = {
-  nodes: [
-    graphNode({
-      id: "manual-1",
-      metadataId: "manual",
-      componentType: ComponentType.Trigger,
-    }),
-    graphNode({
-      id: "log-1",
-      metadataId: "log",
-      componentType: ComponentType.Component,
-    }),
-  ],
-  edges: [],
-};
-
 // The If / Else step, as its settings dialog hands it to Run just this step.
 const IF_ELSE_STEP: NodeDataProp = {
   id: "if-else-1",
@@ -255,6 +250,29 @@ interface StoredWorkflow {
 }
 
 let stored: StoredWorkflow = { isEnabled: false, graph: WEBHOOK_GRAPH };
+
+// No run until one is sent; then the run the server queued for it.
+let runsInTheDatabase: Array<WorkflowLog> = [];
+
+type TheRunFunction = (isTestRun: boolean) => WorkflowLog;
+
+const theRun: TheRunFunction = (isTestRun: boolean): WorkflowLog => {
+  const person: User = new User();
+  person.name = new Name("Ada Lovelace");
+
+  const run: WorkflowLog = new WorkflowLog();
+  run._id = "0198c8ec-2a1d-7f0c-9e75-384194161099";
+  run.workflowStatus = WorkflowStatus.Success;
+  run.logs = isTestRun
+    ? "Oct 12 2026, 10:00:00 GMT: Test run, started by Ada Lovelace while this workflow is turned off."
+    : "Oct 12 2026, 10:00:00 GMT: Workflow Scheduled.";
+  run.stepTrace = { steps: [] } as unknown as JSONObject;
+  run.createdAt = new Date("2026-10-12T10:00:00.000Z");
+  run.isTestRun = isTestRun;
+  run.startedByUser = person;
+
+  return run;
+};
 
 type CanvasFunction = () => CanvasProps;
 
@@ -298,14 +316,6 @@ const enabledSwitch: ElementFunction = (): HTMLElement => {
   return screen.getByRole("switch", { name: "Enabled" });
 };
 
-const prompt: () => Promise<HTMLElement> = async (): Promise<HTMLElement> => {
-  const body: HTMLElement = await screen.findByTestId(
-    "workflow-turn-on-prompt",
-  );
-
-  return body.closest('[role="dialog"]') as HTMLElement;
-};
-
 type PostsToFunction = (route: string) => Array<Array<unknown>>;
 
 const postsTo: PostsToFunction = (route: string): Array<Array<unknown>> => {
@@ -324,7 +334,7 @@ const savedSwitchValues: UpdatesFunction = (): Array<JSONObject> => {
 
 type ErrorDialogFunction = () => HTMLElement | null;
 
-// The old way of saying anything: a dialog titled "Error".
+// A dialog titled "Error": how a refused run is shown.
 const errorDialog: ErrorDialogFunction = (): HTMLElement | null => {
   return (
     screen.queryAllByRole("dialog").find((dialog: HTMLElement) => {
@@ -335,10 +345,32 @@ const errorDialog: ErrorDialogFunction = (): HTMLElement | null => {
   );
 };
 
+type RunModalFunction = () => Promise<HTMLElement>;
+
+// The run the user just started, opened by the Builder.
+const runModal: RunModalFunction = async (): Promise<HTMLElement> => {
+  const description: HTMLElement = await screen.findByText(
+    "This is the run you just started.",
+  );
+
+  return description.closest('[role="dialog"]') as HTMLElement;
+};
+
+type NoTurnOnDialogFunction = () => void;
+
+// Nothing of the dialog that used to ask to turn the workflow on first.
+const expectNoTurnOnDialog: NoTurnOnDialogFunction = (): void => {
+  expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
+  expect(screen.queryByText("Turn on this workflow?")).toBeNull();
+  expect(screen.queryByText("Turn on and run")).toBeNull();
+  expect(screen.queryByText("Turn on and run step")).toBeNull();
+};
+
 beforeEach(() => {
   mockCanvasProps = null;
   mockPermissions = [Permission.ProjectAdmin];
   stored = { isEnabled: false, graph: WEBHOOK_GRAPH };
+  runsInTheDatabase = [];
   mockGetItem.mockReset();
   mockGetList.mockReset();
   mockUpdateById.mockReset();
@@ -370,18 +402,20 @@ beforeEach(() => {
   );
 
   mockGetList.mockImplementation(async () => {
-    return { data: [], count: 0, skip: 0, limit: 1 };
+    return {
+      data: runsInTheDatabase,
+      count: runsInTheDatabase.length,
+      skip: 0,
+      limit: 1,
+    };
   });
 
-  // The server: a workflow that is off does not run.
+  /*
+   * The server: a run a person starts goes ahead whether the workflow is on
+   * or off, and one started while it is off is a test run.
+   */
   mockPost.mockImplementation(async () => {
-    if (!stored.isEnabled) {
-      return new HTTPErrorResponse(
-        400,
-        { error: WORKFLOW_TURNED_OFF_MESSAGE },
-        {},
-      );
-    }
+    runsInTheDatabase = [theRun(!stored.isEnabled)];
 
     return { data: { status: "Scheduled" } };
   });
@@ -403,7 +437,7 @@ describe("the Builder shows whether the workflow is on", () => {
     ).toBe(true);
   });
 
-  test("off: the Enabled switch is off, and a notice says what that means", async () => {
+  test("off: the Enabled switch is off, and a notice says the trigger is paused but Run Workflow still tests it", async () => {
     await renderBuilder();
 
     expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
@@ -414,8 +448,9 @@ describe("the Builder shows whether the workflow is on", () => {
 
     expect(notice).toHaveTextContent("This workflow is off");
     expect(notice).toHaveTextContent(
-      "Its trigger is ignored and it can't be run or tested until you turn it on.",
+      "Its trigger is paused until you turn it on. You can still test it with Run Workflow.",
     );
+    expect(notice).not.toHaveTextContent("can't be run or tested");
     expect(
       within(notice).getByTestId("workflow-turn-on-button"),
     ).toHaveTextContent("Turn on workflow");
@@ -468,53 +503,31 @@ describe("the Builder shows whether the workflow is on", () => {
   });
 });
 
-describe("Run just this step on a workflow that is off", () => {
-  test("nothing is sent, no Error dialog: the Builder asks to turn the workflow on", async () => {
+describe("Run just this step on a workflow that is off: a test run", () => {
+  test("is sent at once, with no dialog, and the workflow stays off", async () => {
     await renderBuilder();
     await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(postsTo("/run-step/")).toHaveLength(0);
-    expect(mockUpdateById).not.toHaveBeenCalled();
-    expect(errorDialog()).toBeNull();
-    expect(screen.queryByText("This workflow is not enabled")).toBeNull();
-
-    expect(dialog).toHaveTextContent("Turn on this workflow?");
-    expect(dialog).toHaveTextContent(
-      'This workflow is off, so "If / Else" can\'t run. Turn the workflow on to run this step now.',
-    );
-    // What else turning it on does, and where the switch is.
-    expect(dialog).toHaveTextContent(
-      "Once it's on, its Webhook trigger starts it too.",
-    );
-    expect(dialog).toHaveTextContent(
-      "You can turn it off again with the Enabled switch above the canvas.",
-    );
-  });
-
-  test("Turn on and run step turns the workflow on, then runs that step", async () => {
-    await renderBuilder();
-    await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(
-      within(dialog).getByTestId("modal-footer-submit-button"),
-    ).toHaveTextContent("Turn on and run step");
-
-    await act(async () => {
-      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-    });
 
     await waitFor(() => {
       expect(postsTo("/run-step/")).toHaveLength(1);
     });
 
-    expect(savedSwitchValues()).toEqual([{ isEnabled: true }]);
+    expectNoTurnOnDialog();
+    expect(errorDialog()).toBeNull();
+    expect(mockUpdateById).not.toHaveBeenCalled();
+    expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
     expect(
-      (mockUpdateById.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
-    ).toBe(WORKFLOW_ID.toString());
+      screen.getByTestId("workflow-turned-off-notice"),
+    ).toBeInTheDocument();
+  });
+
+  test("sends that step, of this workflow", async () => {
+    await renderBuilder();
+    await runTheStep();
+
+    await waitFor(() => {
+      expect(postsTo("/run-step/")).toHaveLength(1);
+    });
 
     const runStep: { url: unknown; data: JSONObject } = postsTo(
       "/run-step/",
@@ -524,158 +537,106 @@ describe("Run just this step on a workflow that is off", () => {
       `/run-step/${WORKFLOW_ID.toString()}`,
     );
     expect(runStep.data).toEqual({ componentId: "if-else-1" });
-
-    // The run the user asked for opens, and the page now says it is on.
-    expect(
-      await screen.findByText("This is the run you just started."),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
-    expect(screen.queryByTestId("workflow-turned-off-notice")).toBeNull();
-    expect(enabledSwitch()).toHaveAttribute("aria-checked", "true");
-    expect(errorDialog()).toBeNull();
   });
 
-  test("Cancel turns nothing on and runs nothing", async () => {
+  test("opens the run, which says it is a test run and who started it", async () => {
     await renderBuilder();
     await runTheStep();
 
-    const dialog: HTMLElement = await prompt();
-
-    await act(async () => {
-      fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
-    });
-
-    expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
-    expect(mockUpdateById).not.toHaveBeenCalled();
-    expect(mockPost).not.toHaveBeenCalled();
-    expect(
-      screen.getByTestId("workflow-turned-off-notice"),
-    ).toBeInTheDocument();
-  });
-
-  test("a refused turn-on says why inside the dialog, and runs nothing", async () => {
-    mockUpdateById.mockRejectedValue(
-      new Error("You do not have permission to update this Workflow."),
-    );
-
-    await renderBuilder();
-    await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    await act(async () => {
-      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-    });
+    const modal: HTMLElement = await runModal();
 
     await waitFor(() => {
-      expect(dialog).toHaveTextContent(
-        "You do not have permission to update this Workflow.",
+      expect(
+        within(modal).getByTestId("workflow-run-test-run-note"),
+      ).toHaveTextContent(
+        "Started by Ada Lovelace while this workflow was off.",
       );
     });
-
-    expect(mockPost).not.toHaveBeenCalled();
-    expect(errorDialog()).toBeNull();
-    expect(
-      screen.getByTestId("workflow-turned-off-notice"),
-    ).toBeInTheDocument();
-    expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
-  });
-
-  test("the dialog is drawn after the canvas, so it opens over the step's settings", async () => {
-    await renderBuilder();
-    await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(
-      screen.getByTestId("workflow-canvas").compareDocumentPosition(dialog) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  test("a Manual trigger is not named: only Run Workflow starts it", async () => {
-    stored.graph = MANUAL_GRAPH;
-
-    await renderBuilder();
-    await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(dialog).not.toHaveTextContent("trigger starts it too");
-    expect(dialog).toHaveTextContent(
-      "You can turn it off again with the Enabled switch above the canvas.",
-    );
   });
 });
 
-describe("Run Workflow on a workflow that is off", () => {
-  test("Turn on and run turns it on, then runs it with the values from the run panel", async () => {
+describe("Run Workflow on a workflow that is off: a test run", () => {
+  test("the canvas is told, so the run panel says it will be a test run", async () => {
+    await renderBuilder();
+
+    expect(canvas().runsAreTestRuns).toBe(true);
+  });
+
+  test("is sent at once with the values from the run panel, with no dialog, and nothing is turned on", async () => {
     await renderBuilder();
     await runTheWorkflow();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(postsTo("/manual/run/")).toHaveLength(0);
-    expect(dialog).toHaveTextContent(
-      "This workflow is off, so it can't run. Turn it on to run it now.",
-    );
-    expect(
-      within(dialog).getByTestId("modal-footer-submit-button"),
-    ).toHaveTextContent("Turn on and run");
-
-    await act(async () => {
-      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-    });
 
     await waitFor(() => {
       expect(postsTo("/manual/run/")).toHaveLength(1);
     });
 
-    expect(savedSwitchValues()).toEqual([{ isEnabled: true }]);
     expect(
       (postsTo("/manual/run/")[0]![0] as { data: JSONObject }).data,
     ).toEqual({ data: { "request-body": '{"service": "checkout"}' } });
+    expectNoTurnOnDialog();
+    expect(savedSwitchValues()).toEqual([]);
+    expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("opens the run, which says it is a test run and who started it", async () => {
+    await renderBuilder();
+    await runTheWorkflow();
+
+    const modal: HTMLElement = await runModal();
+
+    await waitFor(() => {
+      expect(
+        within(modal).getByTestId("workflow-run-test-run-note"),
+      ).toHaveTextContent("Test run");
+    });
     expect(
-      await screen.findByText("This is the run you just started."),
-    ).toBeInTheDocument();
+      within(modal).getByTestId("workflow-run-test-run-started-by"),
+    ).toHaveTextContent("Started by Ada Lovelace while this workflow was off.");
+  });
+
+  test("follows the run with whether it is a test run, and who started it", async () => {
+    await renderBuilder();
+    await runTheWorkflow();
+    await runModal();
+
+    const calls: Array<Array<unknown>> = mockGetList.mock.calls;
+    const select: Record<string, unknown> = (
+      calls[calls.length - 1]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select).toMatchObject({
+      isTestRun: true,
+      startedByUser: { name: true, email: true },
+    });
+  });
+});
+
+describe("a workflow that is on", () => {
+  beforeEach(() => {
+    stored.isEnabled = true;
+  });
+
+  test("the run panel is not told its runs are test runs", async () => {
+    await renderBuilder();
+
+    expect(canvas().runsAreTestRuns).toBe(false);
+  });
+
+  test("a run goes straight through, and is no test run", async () => {
+    await renderBuilder();
+    await runTheWorkflow();
+
+    const modal: HTMLElement = await runModal();
+
+    expect(postsTo("/manual/run/")).toHaveLength(1);
+    expect(
+      within(modal).queryByTestId("workflow-run-test-run-note"),
+    ).toBeNull();
   });
 });
 
 describe("a run the server refuses", () => {
-  test("because the workflow was turned off elsewhere: the same dialog, not an Error", async () => {
-    stored.isEnabled = true;
-
-    await renderBuilder();
-
-    // Someone turns it off in another tab after this page loaded.
-    stored.isEnabled = false;
-
-    await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(postsTo("/run-step/")).toHaveLength(1);
-    expect(errorDialog()).toBeNull();
-    expect(dialog).toHaveTextContent('so "If / Else" can\'t run');
-    // The page catches up with the switch.
-    expect(
-      screen.getByTestId("workflow-turned-off-notice"),
-    ).toBeInTheDocument();
-    expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
-
-    await act(async () => {
-      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-    });
-
-    await waitFor(() => {
-      expect(postsTo("/run-step/")).toHaveLength(2);
-    });
-
-    expect(savedSwitchValues()).toEqual([{ isEnabled: true }]);
-  });
-
-  test("for any other reason: the reason is shown as before", async () => {
-    stored.isEnabled = true;
+  test("is shown as the server words it, and the switch is not read again", async () => {
     mockPost.mockImplementation(async () => {
       return new HTTPErrorResponse(
         422,
@@ -694,7 +655,30 @@ describe("a run the server refuses", () => {
     expect(errorDialog()).toHaveTextContent(
       "You do not have permission to run this workflow.",
     );
-    expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
+    expectNoTurnOnDialog();
+    // The workflow was read once, to draw the page; a refusal reads nothing more.
+    expect(mockGetItem).toHaveBeenCalledTimes(1);
+    expect(mockUpdateById).not.toHaveBeenCalled();
+  });
+
+  test("a Run Workflow the server refuses is shown the same way", async () => {
+    mockPost.mockImplementation(async () => {
+      return new HTTPErrorResponse(
+        400,
+        { error: "Workflow cannot run because subscription is unpaid." },
+        {},
+      );
+    });
+
+    await renderBuilder();
+    await runTheWorkflow();
+
+    await waitFor(() => {
+      expect(errorDialog()).toHaveTextContent(
+        "Workflow cannot run because subscription is unpaid.",
+      );
+    });
+    expect(screen.queryByText("This is the run you just started.")).toBeNull();
   });
 });
 
@@ -712,8 +696,9 @@ describe("the switch and the notice", () => {
 
     expect(savedSwitchValues()).toEqual([{ isEnabled: true }]);
     expect(enabledSwitch()).toHaveAttribute("aria-checked", "true");
-    // Turning it on runs nothing by itself.
+    // Turning it on runs nothing by itself, and its runs are no tests now.
     expect(mockPost).not.toHaveBeenCalled();
+    expect(canvas().runsAreTestRuns).toBe(false);
   });
 
   test("turning the switch off saves it, and the notice appears", async () => {
@@ -733,6 +718,7 @@ describe("the switch and the notice", () => {
 
     expect(savedSwitchValues()).toEqual([{ isEnabled: false }]);
     expect(enabledSwitch()).toHaveAttribute("aria-checked", "false");
+    expect(canvas().runsAreTestRuns).toBe(true);
   });
 
   test("a switch the server refuses moves back, and says why", async () => {
@@ -755,7 +741,7 @@ describe("the switch and the notice", () => {
     ).toBeInTheDocument();
   });
 
-  test("a run after turning it on from the switch goes straight through", async () => {
+  test("after turning it on from the switch, a run goes straight through as a real one", async () => {
     await renderBuilder();
 
     await act(async () => {
@@ -768,11 +754,47 @@ describe("the switch and the notice", () => {
       expect(postsTo("/run-step/")).toHaveLength(1);
     });
 
-    expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
+    const modal: HTMLElement = await runModal();
+
+    expect(
+      within(modal).queryByTestId("workflow-run-test-run-note"),
+    ).toBeNull();
   });
 });
 
-describe("someone who may not edit the workflow", () => {
+describe("a Workflow Member, who runs workflows but may not change them", () => {
+  beforeEach(() => {
+    mockPermissions = [Permission.WorkflowMember, Permission.ReadWorkflow];
+  });
+
+  test("is told they can still test it, and who can turn it on", async () => {
+    await renderBuilder();
+
+    const notice: HTMLElement = screen.getByTestId(
+      "workflow-turned-off-notice",
+    );
+
+    expect(notice).toHaveTextContent("You can still test it with Run Workflow.");
+    expect(notice).toHaveTextContent(
+      "Only people who can edit this workflow can turn it on.",
+    );
+    expect(within(notice).queryByTestId("workflow-turn-on-button")).toBeNull();
+  });
+
+  test("runs it as a test run, and changes nothing", async () => {
+    await renderBuilder();
+    await runTheWorkflow();
+
+    await waitFor(() => {
+      expect(postsTo("/manual/run/")).toHaveLength(1);
+    });
+
+    expectNoTurnOnDialog();
+    expect(mockUpdateById).not.toHaveBeenCalled();
+  });
+});
+
+describe("someone who may neither change nor run the workflow", () => {
   beforeEach(() => {
     mockPermissions = [Permission.ProjectMember, Permission.ReadWorkflow];
   });
@@ -793,7 +815,7 @@ describe("someone who may not edit the workflow", () => {
     expect(mockUpdateById).not.toHaveBeenCalled();
   });
 
-  test("is told who can turn it on, with no button to press", async () => {
+  test("is told who can turn it on, with no button to press, and is not offered Run Workflow", async () => {
     await renderBuilder();
 
     const notice: HTMLElement = screen.getByTestId(
@@ -803,26 +825,11 @@ describe("someone who may not edit the workflow", () => {
     expect(notice).toHaveTextContent(
       "Only people who can edit this workflow can turn it on.",
     );
-    expect(within(notice).queryByTestId("workflow-turn-on-button")).toBeNull();
-  });
-
-  test("running a step gets a notice that closes, and nothing is saved or sent", async () => {
-    await renderBuilder();
-    await runTheStep();
-
-    const dialog: HTMLElement = await prompt();
-
-    expect(dialog).toHaveTextContent(
-      "This workflow is off, so it can't run. Only people who can edit this workflow can turn it on.",
+    expect(notice).toHaveTextContent(
+      "Its trigger is paused until you turn it on.",
     );
-    expect(within(dialog).queryByText("Turn on and run step")).toBeNull();
-
-    await act(async () => {
-      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
-    });
-
-    expect(screen.queryByTestId("workflow-turn-on-prompt")).toBeNull();
-    expect(mockUpdateById).not.toHaveBeenCalled();
-    expect(mockPost).not.toHaveBeenCalled();
+    expect(notice).not.toHaveTextContent("You can still test it");
+    expect(within(notice).queryByTestId("workflow-turn-on-button")).toBeNull();
+    expect(screen.getByTestId("run-workflow-button")).toBeDisabled();
   });
 });

@@ -11,8 +11,13 @@
  *   - the .json is the same run as data, steps included, in the shape the API
  *     returns them in;
  *   - nothing goes into either file but the run's own log, steps, id, status
- *     and times and its workflow's id and name - the runner redacts secrets
- *     before a run is stored, so that is what keeps a download redacted.
+ *     and times, whether it was a test run and who started it by hand, and
+ *     its workflow's id and name - the runner redacts secrets before a run
+ *     is stored, so that is what keeps a download redacted;
+ *   - a test run - started by a person from the Builder while the workflow
+ *     was off ("Why do I have to enable a workflow in order to test run
+ *     it?") - says so in both files, so a log passed along is never taken
+ *     for a run its trigger started.
  */
 
 import {
@@ -34,12 +39,16 @@ import {
   getWorkflowRunFileName,
   getWorkflowRunHeadingLines,
   getWorkflowRunJson,
+  getWorkflowRunStartedBy,
   hasWorkflowRunContent,
   toRunDate,
 } from "../../../../UI/Components/Workflow/WorkflowRunExport";
+import User from "../../../../Models/DatabaseModels/User";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import WorkflowLog from "../../../../Models/DatabaseModels/WorkflowLog";
+import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
+import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   WorkflowStepStatus,
@@ -399,6 +408,75 @@ describe("the log, as a .txt", () => {
     expect(text.endsWith(`\n\n${WORKFLOW_RUN_EMPTY_LOG_LINE}\n`)).toBe(true);
   });
 
+  test("a test run says so, and who started it, right under its status", () => {
+    expect(
+      getWorkflowRunHeadingLines(
+        aRun({ isTestRun: true, startedBy: "Ada Lovelace" }),
+      ),
+    ).toEqual([
+      "Workflow: Nightly sync",
+      `Workflow ID: ${WORKFLOW_ID}`,
+      `Run ID: ${RUN_ID}`,
+      "Status: Executed",
+      "Test run: Yes",
+      "Started by: Ada Lovelace",
+      "Scheduled at: 2026-09-30T10:00:00.000Z",
+      "Started at: 2026-09-30T10:00:01.000Z",
+      "Completed at: 2026-09-30T10:00:03.000Z",
+    ]);
+  });
+
+  test("a test run whose starter is not known still says it is one", () => {
+    const lines: Array<string> = getWorkflowRunHeadingLines(
+      aRun({ isTestRun: true, startedBy: null }),
+    );
+
+    expect(lines).toContain("Test run: Yes");
+    expect(
+      lines.some((line: string): boolean => {
+        return line.startsWith("Started by:");
+      }),
+    ).toBe(false);
+  });
+
+  test("a run a person started while the workflow was on names them, and is no test", () => {
+    const lines: Array<string> = getWorkflowRunHeadingLines(
+      aRun({ isTestRun: false, startedBy: "Ada Lovelace" }),
+    );
+
+    expect(lines).toContain("Started by: Ada Lovelace");
+    expect(
+      lines.some((line: string): boolean => {
+        return line.startsWith("Test run:");
+      }),
+    ).toBe(false);
+  });
+
+  test("a run its trigger started says neither", () => {
+    const lines: Array<string> = getWorkflowRunHeadingLines(aRun());
+
+    expect(
+      lines.filter((line: string): boolean => {
+        return line.startsWith("Test run:") || line.startsWith("Started by:");
+      }),
+    ).toEqual([]);
+  });
+
+  test("the .txt of a test run carries the heading's mark and the log's own line", () => {
+    const testRunLine: string =
+      "Oct 12 2026, 10:00:00 GMT: Test run, started by Ada Lovelace while this workflow is turned off.";
+    const text: string = buildWorkflowRunLogText(
+      aRun({
+        isTestRun: true,
+        startedBy: "Ada Lovelace",
+        logs: `${testRunLine}\n${LOG}`,
+      }),
+    );
+
+    expect(text).toContain("\nTest run: Yes\n");
+    expect(text).toContain(`\n\n${testRunLine}\n`);
+  });
+
   /*
    * The Full Log tab draws a line at a time; a download is the way to get a
    * log too long to read there, so it must never be cut.
@@ -432,6 +510,8 @@ describe("the run, as a .json", () => {
     run: {
       id: string | null;
       status: string | null;
+      isTestRun: boolean;
+      startedBy: string | null;
       scheduledAt: string | null;
       startedAt: string | null;
       completedAt: string | null;
@@ -459,10 +539,27 @@ describe("the run, as a .json", () => {
     expect(parsed.run).toEqual({
       id: RUN_ID,
       status: "Success",
+      isTestRun: false,
+      startedBy: null,
       scheduledAt: "2026-09-30T10:00:00.000Z",
       startedAt: "2026-09-30T10:00:01.000Z",
       completedAt: "2026-09-30T10:00:03.000Z",
     });
+  });
+
+  test("says whether the run was a test run, and who started it", () => {
+    const parsed: ParsedRun = parse(
+      aRun({ isTestRun: true, startedBy: "  Ada Lovelace  " }),
+    );
+
+    expect(parsed.run.isTestRun).toBe(true);
+    expect(parsed.run.startedBy).toBe("Ada Lovelace");
+  });
+
+  test("anything but true is no test run", () => {
+    for (const isTestRun of [false, null, undefined]) {
+      expect(parse(aRun({ isTestRun })).run.isTestRun).toBe(false);
+    }
   });
 
   test("keeps the status as the API stores it, for scripts", () => {
@@ -649,9 +746,39 @@ describe("a row of the run lists, as a run to download", () => {
       scheduledAt: new Date("2026-09-30T10:00:00.000Z"),
       startedAt: new Date("2026-09-30T10:00:01.000Z"),
       completedAt: new Date("2026-09-30T10:00:03.000Z"),
+      isTestRun: false,
+      startedBy: null,
       logs: LOG,
       stepTrace: aTrace(),
     });
+  });
+
+  test("reads a test run as one, with who started it", () => {
+    const row: WorkflowLog = aRow();
+    const person: User = new User();
+    person.name = new Name("Ada Lovelace");
+    person.email = new Email("ada@example.com");
+
+    row.isTestRun = true;
+    row.startedByUser = person;
+
+    const run: WorkflowRunExport = getWorkflowRunExportFromWorkflowLog(row);
+
+    expect(run.isTestRun).toBe(true);
+    expect(run.startedBy).toBe("Ada Lovelace");
+  });
+
+  test("names the person by their email when they have no name", () => {
+    const row: WorkflowLog = aRow();
+    const person: User = new User();
+    person.email = new Email("ada@example.com");
+
+    row.isTestRun = true;
+    row.startedByUser = person;
+
+    expect(getWorkflowRunExportFromWorkflowLog(row).startedBy).toBe(
+      "ada@example.com",
+    );
   });
 
   test("finds the workflow's id on the workflow when the row did not select it", () => {
@@ -747,4 +874,28 @@ describe("reading a run's time", () => {
       expect(toRunDate(value)).toBeNull();
     },
   );
+});
+
+describe("who started a run, as its views name them", () => {
+  test("by name", () => {
+    const person: User = new User();
+    person.name = new Name("Ada Lovelace");
+    person.email = new Email("ada@example.com");
+
+    expect(getWorkflowRunStartedBy(person)).toBe("Ada Lovelace");
+  });
+
+  test("by email, when they have no name or a blank one", () => {
+    const person: User = new User();
+    person.name = new Name("   ");
+    person.email = new Email("ada@example.com");
+
+    expect(getWorkflowRunStartedBy(person)).toBe("ada@example.com");
+  });
+
+  test("nobody, for a run its trigger started or a person who is gone", () => {
+    expect(getWorkflowRunStartedBy(null)).toBeNull();
+    expect(getWorkflowRunStartedBy(undefined)).toBeNull();
+    expect(getWorkflowRunStartedBy(new User())).toBeNull();
+  });
 });

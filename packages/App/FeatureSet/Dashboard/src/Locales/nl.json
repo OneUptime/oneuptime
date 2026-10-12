@@ -28075,7 +28075,6 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} en {{second}} zien er voor mensen met rood-groenkleurenblindheid hetzelfde uit.",
   "{{percent}}% or more": "{{percent}}% of meer",
   "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.": "{{probe}}, the probe that polls this device, answered its last poll without walking the device's Wi-Fi tables. Probes released before version {{version}} do not walk SNMP tables. Update the probe to the latest version, and the radios and SSIDs appear here after its next poll.",
-  "Its trigger is paused until you turn it on. You can still test it with Run Workflow.": "De trigger is gepauzeerd tot je de workflow inschakelt. Je kunt hem nog steeds testen met \"Workflow uitvoeren\".",
   "Started by User": "Gestart door gebruiker",
   "Started by User ID": "ID van de gebruiker die hem startte",
   "Started by hand while this workflow was off.": "Handmatig gestart terwijl deze workflow uit stond.",
@@ -28083,5 +28082,7 @@
   "Test Run": "Testrun",
   "Test run": "Testrun",
   "This workflow is off, so this is a test run. Every step runs for real: anything it sends, writes or deletes actually happens.": "Deze workflow staat uit, dus dit is een testrun. Elke stap wordt echt uitgevoerd: alles wat hij verstuurt, schrijft of verwijdert, gebeurt ook echt.",
-  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Workflows worden uitgeschakeld aangemaakt, dus hun trigger start ze pas als je ze inschakelt."
+  "Workflows are created switched off, so their trigger doesn't start them until you turn them on.": "Workflows worden uitgeschakeld aangemaakt, dus hun trigger start ze pas als je ze inschakelt.",
+  "Its trigger is paused until you turn it on.": "De trigger is gepauzeerd tot je de workflow inschakelt.",
+  "You can still test it with Run Workflow.": "Je kunt hem nog steeds testen met \"Workflow uitvoeren\"."
 }

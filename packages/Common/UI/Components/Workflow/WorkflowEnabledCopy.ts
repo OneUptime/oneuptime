@@ -24,6 +24,7 @@ export const WorkflowEnabledCopy: {
   readonly switchLabel: string;
   readonly noticeTitle: string;
   readonly noticeBody: string;
+  readonly noticeCanTest: string;
   readonly turnOnWorkflow: string;
   readonly onlyEditorsCanTurnOn: string;
   readonly runPanelTestRunNote: string;
@@ -34,9 +35,9 @@ export const WorkflowEnabledCopy: {
   // The switch's own name, as the Overview's Workflow Details call it too.
   switchLabel: WORKFLOW_ENABLED_SWITCH_LABEL,
   noticeTitle: translationKey("This workflow is off"),
-  noticeBody: translationKey(
-    "Its trigger is paused until you turn it on. You can still test it with Run Workflow.",
-  ),
+  noticeBody: translationKey("Its trigger is paused until you turn it on."),
+  // For whoever may run the workflow: Run Workflow works while it is off.
+  noticeCanTest: translationKey("You can still test it with Run Workflow."),
   turnOnWorkflow: translationKey("Turn on workflow"),
   onlyEditorsCanTurnOn: translationKey(
     "Only people who can edit this workflow can turn it on.",
