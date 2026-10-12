@@ -224,19 +224,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "rum/browser-setup": {
-    pageLinks: ["fa"],
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "rum/index": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "rum/mobile-setup": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "rum/session-replay-troubleshooting": {
     pageLinks: ["fa"],
     codeLanguage: EN,
@@ -245,16 +232,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "rum/troubleshooting": {
     codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "rum/web-vitals": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/ai-agent-circuit-breaker": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/ai-gateways": {
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/ceph": {
@@ -268,15 +245,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "telemetry/gemini-cli-and-copilot": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
   "telemetry/queues": {
     translated: EVERY_TRANSLATION,
-  },
-  "telemetry/security-events": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "telemetry/serverless-functions": {
     sameShape: EVERY_TRANSLATION,
@@ -288,10 +258,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     sameShape: ["fa"],
   },
   "telemetry/storage-arrays": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/threat-intelligence": {
-    codeLanguage: EN,
     translated: EVERY_TRANSLATION_BUT_FA,
   },
   "telemetry/vmware": {

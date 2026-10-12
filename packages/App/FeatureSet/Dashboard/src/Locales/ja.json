@@ -28052,5 +28052,8 @@
   "Twilio Configs": "Twilio 設定",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "値のない変数は書かれたまま残るため、打ち間違えた名前はテキストにそのまま表示されます。",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "デバイス ID で絞り込み — 生の `device.id` データポイントラベル（任意）。設定したフィルターはすべて一致する必要があります。",
-  "The name of the metric the monitor's first query reads.": "モニターの最初のクエリが読み取るメトリクスの名前。"
+  "The name of the metric the monitor's first query reads.": "モニターの最初のクエリが読み取るメトリクスの名前。",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }

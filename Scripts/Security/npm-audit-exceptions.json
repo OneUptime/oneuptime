@@ -97,11 +97,6 @@
       "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest (the advisory was widened to it on 2026-10-01). It comes in only through acme-client 5.4.0, the latest acme-client, which loads it for its legacy forge API. OneUptime calls acme.crypto (createCsr, readCertificateInfo in Common/Server/Utils/Greenlock/Greenlock.ts), which is built on Node's crypto and @peculiar/x509, and acme-client's forge module only generates keys and signs CSRs: nothing here verifies an RSA PKCS#1 v1.5 signature with node-forge, which is where the advisory's forged signatures are accepted."
     },
     {
-      "advisory": "GHSA-hp3w-g68c-fv3c",
-      "expires": "2026-11-05",
-      "reason": "sprintf-js has no fixed release: <= 1.1.3 is affected and 1.1.3 is the latest. Its one remaining path here is tedious 20.3.4, the TDS driver under mssql (every tedious release, the latest included, requires sprintf-js ^1.1.3); typeorm is flagged only through its optional mssql peer, which it loads only for an mssql DataSource (OneUptime's own database is Postgres), and typeorm-extension only through typeorm. mssql runs in SqlServerConnector (Common/Server/Utils/DataSource/Connectors/SqlServerConnector.ts), against a SQL Server a user configures as a data source, so tedious does parse untrusted server responses. sprintf-js reads a precision only from the format string itself (there is no '*' argument) and hands it to toFixed, toExponential and toPrecision only for %e, %f and %g, so the advisory needs a caller that lets its input become the format string. tedious never does: every sprintf call in it passes a literal format string from tedious's own code (%d, %s, %02X, %04X, %08X; no precision and no %e/%f/%g), and what the server sends (type numbers, data lengths) and the connection settings only ever arrive as arguments. The jest-tooling path (babel-plugin-istanbul -> @istanbuljs/load-nyc-config -> js-yaml 3 -> argparse 1) is gone: this project's override moves load-nyc-config to js-yaml 4, which uses argparse 2."
-    },
-    {
       "advisory": "GHSA-vfj7-8cjw-p6xm",
       "expires": "2026-11-03",
       "reason": "braces has no fixed release: <= 3.0.3 is affected and 3.0.3 is the latest (the fix, micromatch/braces#72, is unreleased). typeorm-extension 4.2.0, the latest, still reaches it through locter and fast-glob, the only production chain. OneUptime calls just typeorm-extension's createDatabase and dropDatabase (Common/Server/Infrastructure/PostgresDatabase.ts), always with our own DataSourceOptions, and with options given typeorm-extension never calls locter's locate or locateMany, the only code that runs fast-glob (it uses them to find a data-source file when no options are passed, and to load seeders), so no glob pattern reaches braces at runtime. The rest is jest 28/29 test tooling, which calls only micromatch(), .some and .any (picomatch); braces runs only under micromatch.braces, braceExpand and parse."
@@ -127,11 +122,6 @@
     }
   ],
   "packages/Probe": [
-    {
-      "advisory": "GHSA-hp3w-g68c-fv3c",
-      "expires": "2026-11-05",
-      "reason": "sprintf-js has no fixed release: <= 1.1.3 is affected and 1.1.3 is the latest. Its one remaining path here is tedious 20.3.4, the TDS driver under mssql (every tedious release, the latest included, requires sprintf-js ^1.1.3). mssql runs in the SQL Server checks of Probe/Utils/Monitors/MonitorTypes/SqlMonitor.ts and DatabaseMonitor.ts, against a server a user configures as a monitor, so tedious does parse untrusted server responses. sprintf-js reads a precision only from the format string itself (there is no '*' argument) and hands it to toFixed, toExponential and toPrecision only for %e, %f and %g, so the advisory needs a caller that lets its input become the format string. tedious never does: every sprintf call in it passes a literal format string from tedious's own code (%d, %s, %02X, %04X, %08X; no precision and no %e/%f/%g), and what the server sends (type numbers, data lengths) and the connection settings only ever arrive as arguments. The jest-tooling path (babel-plugin-istanbul -> @istanbuljs/load-nyc-config -> js-yaml 3 -> argparse 1) is gone: this project's override moves load-nyc-config to js-yaml 4, which uses argparse 2."
-    },
     {
       "advisory": "GHSA-vfj7-8cjw-p6xm",
       "expires": "2026-11-03",

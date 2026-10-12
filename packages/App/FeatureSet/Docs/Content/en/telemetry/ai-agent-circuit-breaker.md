@@ -1,97 +1,91 @@
-# Circuit-Breaking Runaway AI Agents
+# AI Agent Circuit Breakers
 
-AI agents rarely fail by crashing. They fail by _continuing_ — retrying a broken tool in a loop, re-planning the same step forever, or fanning out sub-agents — while every iteration bills more tokens. This guide shows how to build an **async circuit breaker** with pieces OneUptime already gives you:
+An AI agent rarely fails by crashing. It fails by carrying on: retrying a broken tool, planning the same step again, or starting more sub-agents, while every turn bills more tokens. This page builds a circuit breaker for that from parts OneUptime already has: an alert that notices the runaway agent, and a workflow that calls an endpoint you own to stop it.
 
-1. A **trip-wire signal** — a [Metrics monitor](/docs/monitor/metrics-monitor) on the [LLM cost budget](/docs/telemetry/ai-llm-observability) metrics, or a [Traces monitor](/docs/monitor/traces-monitor) that recognizes loop behavior in your `gen_ai.*` spans.
-2. A **Workflow** triggered by that alert.
-3. An **outbound webhook** from the workflow to a kill endpoint _you_ own, which stops the runaway runner.
+:::cards
+- [Pick a trip wire](#pick-a-trip-wire): Alert on spend, or on one tool called again and again.
+- [Build the stop endpoint](#build-the-stop-endpoint): The small service that pauses your agent.
+- [Build the workflow](#build-the-workflow): From a new alert to a call to your endpoint.
+- [Test the breaker](#test-the-breaker): Trip it by hand, then for real.
+:::
 
-```mermaid
-flowchart LR
-    A[Agent emits<br/>gen_ai.* spans] --> B[OneUptime<br/>OTLP ingest]
-    B --> C{Trip-wire:<br/>budget metrics monitor<br/>or Traces monitor}
-    C -->|Alert created| D[Workflow:<br/>Alert On Create]
-    D --> E[API Post to your<br/>kill endpoint]
-    E --> F[Your runner aborts<br/>or pauses the agent]
+## How it works
+
+```mermaid title="From a runaway agent to a stopped one"
+flowchart TB
+    agent["Your agent sends<br/>gen_ai.* spans"] --> ingest["OneUptime"]
+    ingest --> wire{"Trip wire: a budget<br/>or a loop alert"}
+    wire -->|"Alert created"| workflow["Workflow:<br/>On Create Alert"]
+    workflow -->|"API Post (JSON)"| endpoint["Your stop endpoint"]
+    endpoint --> runner["The runner pauses<br/>or stops the agent"]
 ```
 
-## Why async instead of an inline gateway?
+The breaker watches the OpenTelemetry your agent already sends, directly or [through a gateway](/docs/telemetry/ai-gateways), and acts beside the request path, not in it. Nothing is added to each model call, and changing providers, SDKs or gateways doesn't break it.
 
-Inline guardrails put a proxy in the request path: every LLM call detours through a gateway that can veto request N+1. That works, but it couples you to one gateway, adds latency to every call, and becomes a single point of failure for all AI traffic.
+The price is speed: it stops a runaway agent in minutes, not milliseconds. Keep step limits and timeouts in the agent itself, and let the breaker catch what gets past them.
 
-The circuit breaker here is **gateway-agnostic**. It watches the OpenTelemetry traces your app already sends (directly, or [through a gateway](/docs/telemetry/ai-gateways) — both work), and reacts out-of-band. Nothing sits in your hot path, and switching providers, SDKs or gateways doesn't break it. The trade-off is honesty about latency: this is a **backstop that stops a runaway in minutes, not milliseconds**. Keep per-run step limits and timeouts in your agent code as the first line of defense; use this to catch what slips through.
+| Trip wire | Catches | Time to alert |
+| --- | --- | --- |
+| A budget alert, from a Metrics monitor | Spend that keeps climbing, whatever the cause | Up to 15 minutes, plus a minute for the monitor |
+| A loop alert, from a Traces monitor | The same tool called over and over | 1 to 5 minutes |
 
-## Prerequisites
+## Before you begin
 
-- Your agent emits GenAI spans to OneUptime — see [AI / LLM Observability](/docs/telemetry/ai-llm-observability) or [Observing AI Gateways](/docs/telemetry/ai-gateways).
-- An HTTP endpoint in your infrastructure that can stop or pause your agent runner (built in Step 2).
+- Your agent sends GenAI spans to OneUptime. See [AI / LLM Observability](/docs/telemetry/ai-llm-observability).
+- An HTTPS endpoint that can pause or stop your agent runner, reachable from OneUptime. You build it in [Build the stop endpoint](#build-the-stop-endpoint).
+- Permission to create monitors and workflows in the project.
 
-## Step 1 — Pick a trip-wire signal
+## Pick a trip wire
 
-Both options end the same way: an **alert** is created in OneUptime, which is what triggers the workflow. You can wire up both at once — the workflow doesn't care which one fired.
+Both trip wires end the same way: a monitor creates an alert, and the new alert starts the workflow. You can set up both: the workflow doesn't care which one fired.
 
-### Option A: Metrics monitor on the budget metrics
+### A budget alert
 
-A runaway agent's most reliable symptom is spend. The **AI / LLM → Budgets** tab lets you set a daily USD limit; every 15 minutes a worker sums the day's LLM span cost — SDK-reported or [computed at ingest](/docs/telemetry/ai-llm-observability), so it works even if your instrumentation doesn't report cost — and publishes it as two gauge metrics:
+Spend is the surest sign of a runaway agent. A budget adds up the day's AI spend every 15 minutes and publishes it as two metrics, `oneuptime.llm.budget.spend.usd` and `oneuptime.llm.budget.percent.used`, each with the budget's ID in `oneuptime.llm.budget.id`.
 
-- `oneuptime.llm.budget.spend.usd` — the day's spend in USD
-- `oneuptime.llm.budget.percent.used` — spend as a percent of the daily limit
+:::steps
+1. Open **Products → AI / LLM → Budgets** and click **Create LLM Cost Budget**. Set a **Daily Budget (USD)**, and pick the agent's service in **Service (optional)** so the budget watches that agent alone.
+2. In the new budget's row menu, pick **Show ID** and copy the ID.
+3. Create a [Metrics monitor](/docs/monitor/metrics-monitor) on `oneuptime.llm.budget.percent.used`, filtered by the attribute `oneuptime.llm.budget.id` with the ID you copied, and set its **Time Range** to **Past 30 Minutes**.
+4. Add a criteria **Greater Than Or Equal To** `100` that creates an alert, and give it an **Alert Title** that names the agent, such as `LLM budget exceeded: support-bot`. The workflow and your endpoint both read that title.
+:::
 
-Create a [Metrics monitor](/docs/monitor/metrics-monitor) on `oneuptime.llm.budget.percent.used`:
+Filter by the ID, not the name: renaming a budget renames its series, and a monitor filtered by the old name would quietly stop matching. Keep the time range at 30 minutes: a budget publishes one point every 15 minutes, so a shorter range finds nothing between two points and the alert opens and resolves over and over.
 
-- **Attribute filter**: `oneuptime.llm.budget.id` = your budget's id (shown on the budget's row via **View ID**). Use the id, not the name — renaming the budget re-labels the series and would silently detach a name-filtered monitor.
-- **Rolling time**: **30 minutes**. Each budget publishes one point every 15 minutes; the 1-minute default window would find an empty series between sweeps and flap the alert — which for a breaker means tripping it once per sweep instead of once per episode.
-- **Criteria 1**: value **Greater Than or Equal To** `80` → create a warning-severity alert.
-- **Criteria 2**: value **Greater Than or Equal To** `100` → create a critical alert — this is the one that trips the breaker.
+A second criteria at `80` with a lower severity gives a person a warning first, through the alert's on-call policy, before the breaker trips at `100`.
 
-For circuit breaking, scope things so the alert identifies _what to kill_:
+### A loop alert
 
-- Create one budget **per agent's telemetry service** (for example `agent-support-bot`), not just a project-wide one, and one monitor per budget (or one monitor grouped by the `oneuptime.llm.budget.id` attribute).
-- Put the runner's name in the criteria's **alert title** (for example `LLM budget exceeded: agent-support-bot`) — your kill endpoint routes on it.
+A stuck agent leaves a trace you can recognize: the same tool span, again and again. A healthy run doesn't call one tool dozens of times in a few minutes, so a count catches the loop long before the budget does.
 
-A good pattern is 80% → page a human (via the alert's on-call policy), 100% → trip the breaker.
+:::steps
+1. Open **Monitors**, click **Create Monitor**, and pick **Traces** under **More monitor types**.
+2. Under **More fields**, set **Filter by Telemetry Service** to the agent's service, and **Filter by Attributes** to `gen_ai.tool.name` equal to the tool you expect it to loop on, such as `search_web`. If your instrumentation names each tool's span, put that name in **Span Name** instead.
+3. Set **Monitor Traces for (time)** to **Last 5 minutes**.
+4. Add a criteria **Span Count** **Greater Than** a number no healthy run reaches in five minutes, such as `50`, that creates an alert titled like `Agent loop: support-bot`.
+:::
 
-### Option B: Traces monitor on loop behavior
+A second Traces monitor with **Filter by Span Status** set to **Error** and a lower count catches retry storms: a tool that keeps failing and an agent that keeps trying it again.
 
-Cost catches slow burns; a [Traces monitor](/docs/monitor/traces-monitor) catches loops faster. A stuck agent produces a very recognizable trace shape: the **same tool-call span, over and over**. Healthy runs don't call one tool dozens of times in a couple of minutes.
+## Build the stop endpoint
 
-Create a monitor with **Monitors → Create Monitor → Traces**:
+The workflow sends a `POST` with a JSON body to an endpoint you run. What "stop" means is up to you. From the smallest effect to the largest:
 
-- **Telemetry service**: your agent's service.
-- **Attributes**: `gen_ai.tool.name` = the tool you expect loops on (for example `search_web`) — or use **Span Name** if your instrumentation names tool spans directly.
-- **Time Window**: 120 seconds.
-- **Criteria**: Span Count **Greater Than** a threshold no healthy run reaches (say `30`), and have the criteria **create an alert** with an appropriate severity.
-- **Monitoring interval**: every minute, so detection lag stays around one to three minutes.
+| Action | Effect |
+| --- | --- |
+| Stop new work | The runner starts no new runs for that agent |
+| Cancel its runs | Runs of that agent that are in flight are cancelled |
+| Pause the pool | Every worker drains until someone resets the breaker |
 
-Two variations worth knowing:
+A minimal endpoint in Express that trips a breaker per agent:
 
-- A second criteria filtering **Span Statuses = ERROR** with a lower threshold catches retry storms (tool keeps failing, agent keeps retrying).
-- A [Metrics monitor](/docs/monitor/metrics-monitor) on `gen_ai.client.token.usage` gives you a token-rate version of the same idea.
-
-### Detection latency, honestly stated
-
-| Signal                                         | Typical time to alert                               |
-| ---------------------------------------------- | --------------------------------------------------- |
-| Traces monitor, 1-minute interval, 120s window | ~1–3 minutes                                        |
-| Budget metrics monitor                         | up to ~15 minutes (worker cadence) + monitor interval |
-
-## Step 2 — Build the kill endpoint (your side)
-
-The workflow will `POST` a JSON payload to an endpoint you host. What "kill" means is your call — common blast-radius choices, smallest first:
-
-1. **Stop new work**: flip a flag so the runner picks up no new agent runs.
-2. **Abort matching runs**: cancel in-flight runs for the affected agent/service.
-3. **Pause the whole pool**: drain every worker until a human resets the breaker.
-
-A minimal Express example that trips a per-runner breaker:
-
-```ts
+```typescript title="circuit-breaker.ts"
 import express from "express";
 
 const app = express();
 app.use(express.json());
 
-const tripped = new Set<string>(); // runner names with an open breaker
+const tripped = new Set<string>(); // agents whose breaker is open
 
 app.post("/circuit-breaker", (req, res) => {
   if (req.headers["authorization"] !== `Bearer ${process.env.KILL_TOKEN}`) {
@@ -100,60 +94,68 @@ app.post("/circuit-breaker", (req, res) => {
 
   const alertTitle: string = req.body.alertTitle ?? "";
 
-  // Your monitor criteria's alert titles map to runners, e.g.
-  // "LLM budget exceeded: agent-support-bot" -> "agent-support-bot"
-  const runner: string = alertTitle.split(": ").pop() ?? "unknown";
+  // "LLM budget exceeded: support-bot" -> "support-bot"
+  const agent: string = alertTitle.split(": ").pop() ?? "unknown";
 
-  tripped.add(runner); // your run loop checks this set
-  abortActiveRuns(runner); // cancel in-flight jobs for that runner
+  tripped.add(agent); // your run loop checks this set
+  abortActiveRuns(agent); // cancel that agent's runs in flight
 
-  // Acknowledge fast — do the heavy cleanup async.
-  return res.status(200).json({ tripped: runner });
+  // Answer fast; do the slow cleanup in the background.
+  return res.status(200).json({ tripped: agent });
 });
 ```
 
-Design notes:
+Build it to these rules:
 
-- **Make it idempotent.** The breaker may be tripped more than once (warning then breach, or budget plus traces monitor firing together). Tripping an already-tripped breaker must be harmless.
-- **Acknowledge quickly** and do slow cleanup in the background; the workflow's API component treats any 2xx as success.
-- **Require a secret.** Anyone who can call this endpoint can stop your agents. Check a bearer token (stored as a secret OneUptime [global variable](/docs/workflows/variables) on the sending side).
-- **Human reset.** A tripped breaker should stay tripped until someone looks at the run — auto-resetting defeats the purpose. Investigate with **AI / LLM → Conversations**: open the agent's conversation to read or replay exactly what it did, or filter **Calls** by the conversation/session id.
+- Make tripping idempotent. A warning and a breach, or a budget alert and a loop alert together, can trip it more than once, and a second trip must change nothing.
+- Answer within a second or two, and clean up in the background. The workflow counts any 2xx answer as success.
+- Require a secret. Anyone who can call the endpoint can stop your agents, so check a bearer token, which the workflow sends from a secret global variable.
+- Reset it by hand. A tripped breaker stays tripped until someone has looked at the run: open the agent's conversation under **Products → AI / LLM → Conversations** to read or replay what it did.
 
-## Step 3 — The workflow
+The request goes out from OneUptime. On OneUptime Cloud, your endpoint must be reachable from the internet. A self-hosted installation refuses private network addresses unless an administrator allows them: see [Outbound network access](/docs/workflows/configuration#outbound-network-access).
 
-Open **Workflows** in the left navigation, click **Create Workflow**, and build these blocks on the canvas. See [Authoring a Workflow](/docs/workflows/authoring) for canvas basics.
+## Build the workflow
 
-### 1. Trigger: Alert → On Create
+First save the endpoint's token where the workflow can use it without showing it: open **Workflows → Global Variables**, click **Create Workflow Variable**, name it `AGENT_KILL_TOKEN`, put the token in **Content**, and turn **Secret** on. A secret value is scrubbed out of run logs and step traces.
 
-Add the **On Create Alert** trigger ([OneUptime event triggers](/docs/workflows/triggers)). Every new alert in the project starts the workflow and passes the full alert record as `model`. Give the trigger a stable ID — the examples below assume `alert-on-create-1`.
+:::steps
+### Create the workflow
 
-### 2. Filter: If / Else on the alert title
+Open **Products → Workflows** and click **Create Workflow**. Click **Start from scratch**, name it `AI agent circuit breaker`, and click **Create Workflow**. It opens in the **Builder**, switched off.
 
-You only want the breaker tripped by your trip-wire alerts, not every alert in the project. Add an **If / Else** block (Conditions category):
+### Add the trigger
 
-- **Value to check**: the trigger's `model.title` — inserted with the picker, it reads `{{local.components.alert-on-create-1.returnValues.model.title}}`
-- **Comparison**: **contains**
-- **Compare with**: the alert title you set in the budget monitor's criteria, for example `LLM budget exceeded` (Option A) — or your Traces monitor's alert title (Option B)
+Click the dashed **Choose what starts this workflow** block and pick **On Create Alert** in the **Add Trigger** panel. Click the trigger, tick the title and the description in **Select Fields**, and click **Save**. The ID on the block, `alert-on-create-1`, is how later blocks refer to it.
 
-To react to several trip-wires, chain If / Else blocks from the **No** branch, or standardize your alert titles so one `contains` match covers them all.
+### Check the title
 
-### 3. Act: API Post to your kill endpoint
+Click **Add Component**, pick **If / Else**, and connect the trigger's **Success** dot to it. Set **Value to check** to the alert's title (click **{ }** and pick it), **Comparison** to **contains**, and **Compare with** to the start your trip-wire titles share, such as `LLM budget exceeded`.
 
-From the **Yes** branch, add an **API Post (JSON)** component ([Components](/docs/workflows/components)):
+### Call your endpoint
 
-- **URL**: `https://your-infra.example.com/circuit-breaker`
-- **Request Headers**:
+Add **API Post (JSON)** and connect the **Yes** dot of the **If / Else** to it. Set its **URL** to your endpoint, such as `https://agents.example.com/circuit-breaker`, and fill in the headers and the body below.
 
-```json
+### Report a failure
+
+Add **Send Message to Slack**, or **Send Email**, and connect the API block's **Error** dot to it. A breaker that fails to trip is the one alert a person must see.
+
+### Turn it on
+
+Switch **Enabled** on at the top of the **Builder**.
+:::
+
+The **Request Headers** of the API block:
+
+```json title="Request Headers"
 {
   "Authorization": "Bearer {{global.variables.AGENT_KILL_TOKEN}}",
   "Content-Type": "application/json"
 }
 ```
 
-- **Request Body**:
+Its **Request Body**:
 
-```json
+```json title="Request Body"
 {
   "source": "oneuptime-circuit-breaker",
   "alertId": "{{local.components.alert-on-create-1.returnValues.model._id}}",
@@ -162,27 +164,51 @@ From the **Yes** branch, add an **API Post (JSON)** component ([Components](/doc
 }
 ```
 
-Store the token as a **secret global variable** (`AGENT_KILL_TOKEN`) under **Workflows → Global Variables** so it stays out of run logs. The simpler outbound **Webhook** component also works for fire-and-forget posts, but the API component lets you set the auth header and branch on the response — use it here.
+To react to several trip wires, start all their titles the same way, or chain more **If / Else** blocks from the **No** dot. See [Authoring a workflow](/docs/workflows/authoring) for the canvas, and [Variables](/docs/workflows/variables) for the `{{…}}` references.
 
-### 4. Don't fail silently
+## Test the breaker
 
-Connect the API block's **Error** port to a **Slack** (or Email) block: a circuit breaker that fails to trip is exactly the alert you want a human to see. Optionally connect **Success** to a Slack message too — "breaker tripped for `<runner>`" is a message your on-call will appreciate.
+:::steps
+1. Trip it by hand. Open **Alerts**, click **Create Alert**, and create one titled `LLM budget exceeded: test`. The run appears under **Workflows → Logs → Runs**, and your endpoint gets the post.
+2. Trip it for real. Create a budget with a tiny limit, such as `0.01` USD, on a test agent's service, point a budget monitor at it, and let the agent run: the percentage passes 100, the alert opens, the workflow runs and the breaker trips. For the loop alert, give a test agent a tool that always fails.
+3. Trip it twice. Create the same alert again: your endpoint must take the second trip without changing anything.
+:::
 
-## Step 4 — Test it
+## How the breaker behaves over time
 
-1. **Dry-run the workflow**: alerts can be created by hand (**Alerts → Create Alert**). Create one titled `LLM budget exceeded: test`, then check the workflow fired under **Workflows → Logs → Runs**, and that your endpoint received the post.
-2. **Test the real signal**: create a scoped budget with a tiny limit (for example $0.01) against a dev service, point your monitor at its `oneuptime.llm.budget.percent.used` series, and let your agent run — you should see the metric cross 100, the alert, the workflow run, and the breaker trip end-to-end. For Option B, point a test agent at a stubbed failing tool and watch the loop trip the traces monitor.
-3. **Verify idempotency** by firing the alert twice.
+- The workflow runs when an alert is created, so a trip wire trips the breaker once per alert, not once per evaluation.
+- A budget counts the UTC day, so its percentage starts again from 0 at midnight UTC. A budget alert can then resolve, and the next bad day opens a new alert that trips the breaker again.
+- A monitor keeps its alert open while its criteria are met. With **Auto Resolve Alert** on, the alert resolves when they stop, and the next breach opens a new alert.
+- Resetting is a person's decision on both sides: resolve the alert in OneUptime, and reset the breaker in your runner.
+- Every new alert in the project starts the workflow. The **If / Else** is what keeps other alerts away from the breaker: don't leave it out.
 
-## Alert lifecycle caveats
+## Troubleshooting
 
-- The budget metrics reset at **UTC midnight** (a new day starts at 0% used), so a budget monitor's alert naturally resolves overnight and can fire again the next bad day. The workflow triggers on alert **creation**, so you get one trip per episode, not one per evaluation. Resetting is a human decision on both sides: resolve the alert in OneUptime _and_ reset your breaker.
-- A Traces monitor keeps its alert open while the criteria stay met; same creation-triggered semantics apply.
-- The workflow trigger fires for **every** new alert in the project — the If / Else filter is what keeps unrelated alerts from tripping the breaker. Don't skip it.
+:::details The workflow doesn't run
+Check that **Enabled** is on at the top of the **Builder**: workflows are created switched off. Then check that the alert was created after you turned the workflow on: the trigger starts a run only for a new alert.
+:::
 
-## Where to read next
+:::details The workflow runs, but always takes the No branch
+The title is empty or doesn't match. A field the trigger's **Select Fields** doesn't tick arrives empty, so tick the title. Then compare the alert's title with **Compare with**: **contains** must find that exact text in it.
+:::
 
-- [AI / LLM Observability](/docs/telemetry/ai-llm-observability) — GenAI spans, cost computation, and daily budgets.
-- [Observing AI Gateways](/docs/telemetry/ai-gateways) — get gateway-level traces in with one config change.
-- [Traces Monitor](/docs/monitor/traces-monitor) — span filters and criteria in detail.
-- [Workflows](/docs/workflows/index) — triggers, components, variables, runs.
+:::details Your endpoint answers 401
+The `Authorization` header doesn't match the token your endpoint expects. Check the name in `{{global.variables.AGENT_KILL_TOKEN}}`, and the value saved in the global variable. A secret variable's value can't be read back, so type it again with **Update Content** if in doubt.
+:::
+
+:::details The budget alert opens and resolves over and over
+The monitor's **Time Range** is shorter than the budget's 15 minutes between points. Set it to **Past 30 Minutes**.
+:::
+
+:::details The request never reaches your endpoint
+Open the run under **Workflows → Logs → Runs** and the **API Post (JSON)** step: it says why the request failed. On OneUptime Cloud, the endpoint must be reachable from the internet; a self-hosted installation refuses private network addresses unless an administrator allows them.
+:::
+
+## Next steps
+
+:::cards
+- [AI / LLM Observability](/docs/telemetry/ai-llm-observability): Budgets, cost and the spans the breaker watches.
+- [Traces Monitor](/docs/monitor/traces-monitor): Span filters and criteria in detail.
+- [Workflows](/docs/workflows/index): Triggers, components, variables and runs.
+- [AI Gateways](/docs/telemetry/ai-gateways): Every agent's model calls through one export.
+:::

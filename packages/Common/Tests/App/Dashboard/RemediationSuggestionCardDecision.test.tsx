@@ -106,6 +106,24 @@ function suggestion(): AutoRemediationSuggestion {
   });
 }
 
+/*
+ * The status pill, where Card puts what a card offers: in the header, at
+ * its right edge.
+ */
+function statusPill(): HTMLElement {
+  return within(screen.getByTestId("card-header-actions")).getByTestId(
+    "remediation-decision-status",
+  );
+}
+
+function evaluatedDecision(entries: Array<JSONObject>): JSONObject {
+  return {
+    stage: "Evaluated",
+    createdAt: new Date("2026-10-05T10:00:00Z"),
+    entries,
+  };
+}
+
 const LINKED_TO_NOTHING: JSONObject = {
   stage: "Evaluated",
   createdAt: new Date("2026-10-05T10:00:00Z"),
@@ -150,9 +168,20 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     expect(
       screen.getByText(REMEDIATION_DECISION_CARD_DESCRIPTION),
     ).toBeInTheDocument();
+    /*
+     * The card's description already says what the lines are: no heading
+     * under it saying it again.
+     */
     expect(
-      within(decision).getByText("What auto-remediation did"),
-    ).toBeVisible();
+      within(decision).queryByText("What auto-remediation did"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(decision).queryByTestId("remediation-decision-heading"),
+    ).not.toBeInTheDocument();
+
+    // The header says where things stand before a sentence is read.
+    expect(statusPill()).toHaveTextContent("Needs attention");
+    expect(statusPill()).toHaveAttribute("data-tone", "attention");
 
     const lines: Array<HTMLElement> = within(decision).getAllByTestId(
       "remediation-decision-line",
@@ -262,6 +291,190 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     expect(
       within(decision).getByTestId("remediation-decision-line"),
     ).toHaveAttribute("data-tone", "acted");
+
+    /*
+     * Above fixes, the lines have a heading of their own: the card's
+     * description now speaks of the fixes.
+     */
+    expect(
+      within(decision).getByRole("heading", {
+        level: 3,
+        name: "What auto-remediation did",
+      }),
+    ).toBeVisible();
+    expect(decision.firstElementChild?.getAttribute("data-testid")).toBe(
+      "remediation-decision-heading",
+    );
+  });
+
+  test("leaves the status to each fix's own pill once there are fixes", async () => {
+    serve({
+      suggestions: [suggestion()],
+      decisions: [
+        evaluatedDecision([
+          { lane: "Project", reason: "EnableAiOff" },
+          { lane: "Rule", reason: "RuleAlreadyProposed", ruleName: "Restart" },
+        ]),
+      ],
+    });
+
+    render(
+      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+    );
+
+    await screen.findByTestId("remediation-decision");
+    expect(screen.getByText("Waiting for approval")).toBeInTheDocument();
+    /*
+     * The decision was written when the signal was evaluated; the fix's pill
+     * follows the fix. A pill from the decision would sit above it saying
+     * something older.
+     */
+    expect(
+      screen.queryByTestId("remediation-decision-status"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      "incident",
+      '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.',
+      "Incident AI settings",
+      "incidents",
+    ],
+    [
+      "alert",
+      '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
+      "Alert AI settings",
+      "alerts",
+    ],
+  ])(
+    "with fixing new %ss off, says no action was taken and links to the switch",
+    async (signal: string, text: string, linkName: string, path: string) => {
+      serve({
+        suggestions: [],
+        decisions: [
+          evaluatedDecision([{ lane: "Project", reason: "RemediationOff" }]),
+        ],
+      });
+
+      render(
+        signal === "incident" ? (
+          <RemediationSuggestionCard
+            incidentId={INCIDENT_ID}
+            hideIfEmpty={true}
+          />
+        ) : (
+          <RemediationSuggestionCard alertId={ALERT_ID} hideIfEmpty={true} />
+        ),
+      );
+
+      const line: HTMLElement = await screen.findByTestId(
+        "remediation-decision-line",
+      );
+      expect(statusPill()).toHaveTextContent("No action taken");
+      expect(statusPill()).toHaveAttribute("data-tone", "info");
+      expect(line).toHaveAttribute("data-tone", "info");
+      expect(
+        within(line).getByTestId("remediation-decision-text"),
+      ).toHaveTextContent(text);
+
+      // The arrow is drawn, not read: the link is named by its words alone.
+      const link: HTMLElement = within(line).getByRole("link", {
+        name: linkName,
+      });
+      expect(link).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID}/${path}/ai/settings`,
+      );
+      expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    },
+  );
+
+  test("says action was taken while the fix it started is not listed yet", async () => {
+    serve({
+      suggestions: [],
+      decisions: [
+        evaluatedDecision([
+          {
+            lane: "KubernetesCluster",
+            reason: "ClusterRoundStarted",
+            kubernetesClusterId: "0193c0de-5555-4aaa-8bbb-000000000005",
+            kubernetesClusterName: "prod-east",
+            remediationMode: "Automatic",
+          },
+          { lane: "Resource", reason: "ResourceSkippedForClusterRound" },
+          { lane: "Rule", reason: "NoRulesConfigured" },
+        ]),
+      ],
+    });
+
+    render(
+      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+    );
+
+    await screen.findByTestId("remediation-decision");
+    expect(statusPill()).toHaveTextContent("Action taken");
+    expect(statusPill()).toHaveAttribute("data-tone", "acted");
+    expect(
+      screen
+        .getAllByTestId("remediation-decision-line")
+        .map((line: HTMLElement) => {
+          return line.getAttribute("data-tone");
+        }),
+    ).toEqual(["acted", "info"]);
+  });
+
+  test("shows the gap that blocks a cluster as why and what to do", async () => {
+    serve({
+      suggestions: [],
+      decisions: [
+        evaluatedDecision([
+          {
+            lane: "KubernetesCluster",
+            reason: "ClusterNotReady",
+            kubernetesClusterId: "0193c0de-5555-4aaa-8bbb-000000000005",
+            kubernetesClusterName: "prod-east",
+            gaps: [
+              {
+                code: "remediation_write_access_missing",
+                title: "The AI agent is read-only",
+                description: "The chart was installed without write access",
+                nextStep:
+                  "Upgrade the chart with aiAgent.remediation.enabled=true.",
+              },
+            ],
+          },
+        ]),
+      ],
+    });
+
+    render(
+      <RemediationSuggestionCard incidentId={INCIDENT_ID} hideIfEmpty={true} />,
+    );
+
+    const line: HTMLElement = await screen.findByTestId(
+      "remediation-decision-line",
+    );
+    expect(statusPill()).toHaveTextContent("Needs attention");
+    expect(
+      within(line).getByTestId("remediation-decision-why"),
+    ).toHaveTextContent(
+      "Why: The AI agent is read-only. The chart was installed without write access",
+    );
+    expect(
+      within(line).getByTestId("remediation-decision-what-to-do"),
+    ).toHaveTextContent(
+      "What to do: Upgrade the chart with aiAgent.remediation.enabled=true.",
+    );
+    expect(
+      within(line).getByRole("link", {
+        name: "Open the cluster's AI agent page",
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/kubernetes/0193c0de-5555-4aaa-8bbb-000000000005/ai/agent`,
+    );
   });
 
   test("keeps the suggestions when the decision cannot be read", async () => {
@@ -307,6 +520,12 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
         "waiting",
       );
     });
+    expect(statusPill()).toHaveTextContent("Waiting for investigation");
+    expect(statusPill()).toHaveAttribute("data-tone", "waiting");
+    // Its mark pulses, like an investigation that is still running.
+    expect(statusPill().querySelector(".motion-safe\\:animate-ping")).not.toBe(
+      null,
+    );
     const readsBefore: number = getListSpy.mock.calls.length;
 
     serve({
@@ -336,5 +555,11 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
         "Enable AI is off for this project",
       );
     });
+    // The pill follows: the wait is over, and what it found needs attention.
+    expect(statusPill()).toHaveTextContent("Needs attention");
+    expect(statusPill()).toHaveAttribute("data-tone", "attention");
+    expect(statusPill().querySelector(".motion-safe\\:animate-ping")).toBe(
+      null,
+    );
   });
 });

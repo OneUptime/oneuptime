@@ -28052,5 +28052,8 @@
   "Twilio Configs": "Конфигурации Twilio",
   "A variable with no value is left as written, so a mistyped name shows in the text.": "Переменная без значения остаётся в том виде, в каком она написана, поэтому имя с опечаткой будет видно в тексте.",
   "Filter by the device id — the raw `device.id` datapoint label (optional). Every filter you set must match.": "Фильтровать по ID устройства — необработанная метка точки данных `device.id` (необязательно). Каждый заданный фильтр должен совпадать.",
-  "The name of the metric the monitor's first query reads.": "Имя метрики, которую читает первый запрос монитора."
+  "The name of the metric the monitor's first query reads.": "Имя метрики, которую читает первый запрос монитора.",
+  "Action taken": "Action taken",
+  "No action taken": "No action taken",
+  "Waiting for investigation": "Waiting for investigation"
 }

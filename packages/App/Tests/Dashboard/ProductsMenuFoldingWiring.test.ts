@@ -149,7 +149,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
       "moreMenuCategoriesOpenByDefault:Array<string>;",
     );
     expect(NAVIGATION_ITEMS).toMatch(
-      /return\{navItems,moreMenuItems,moreMenuCategoriesOpenByDefault,moreMenuCategoryIcons,rightElement,?\};/,
+      /return\{navItems,moreMenuItems,moreMenuCategoriesOpenByDefault,rightElement,?\};/,
     );
   });
 
@@ -163,7 +163,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
 
   test("the Dashboard navbar hands it to the shared NavBar", () => {
     expect(DASHBOARD_NAVBAR).toContain(
-      "moreMenuCategoriesOpenByDefault,moreMenuCategoryIcons,rightElement,}:DashboardNavigationItems=useDashboardNavigationItems();",
+      "moreMenuCategoriesOpenByDefault,rightElement,}:DashboardNavigationItems=useDashboardNavigationItems();",
     );
     expect(DASHBOARD_NAVBAR).toContain(
       "moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}",
@@ -194,7 +194,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
 
   test("the offline browser fixture opens the menu the way the Dashboard does", () => {
     expect(E2E_FIXTURE).toContain(
-      "const{moreMenuItems,moreMenuCategoriesOpenByDefault,moreMenuCategoryIcons,}=useDashboardNavigationItems();",
+      "const{moreMenuItems,moreMenuCategoriesOpenByDefault}=useDashboardNavigationItems();",
     );
     expect(E2E_FIXTURE).toContain(
       "categoriesOpenByDefault={moreMenuCategoriesOpenByDefault}",
@@ -254,77 +254,46 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
   });
 });
 
-describe("every folded section is drawn with an icon of its own", () => {
-  // The sections of the catalog, by the variable their translated name is in.
-  const SECTION_VARIABLES: Array<string> = Array.from(
-    new Set(
-      Array.from(
-        NAVIGATION_ITEMS.matchAll(/category:(\w+Category),/g),
-        (match: RegExpMatchArray): string => {
-          return match[1]!;
-        },
-      ),
-    ),
-  );
+describe("no section's row is drawn with an icon", () => {
+  /*
+   * A section's row heads its products and is not one of them, so only the
+   * products carry an icon. Nothing chooses one for a section any more, and
+   * nothing hands one to a row.
+   */
+  const CATEGORY_ICONS: RegExp = /categoryicons/i;
 
-  // The body of the catalog's map of icons.
-  const ICONS: string = ((): string => {
-    const match: RegExpMatchArray | null = NAVIGATION_ITEMS.match(
-      /constmoreMenuCategoryIcons:Dictionary<IconProp>=\{([^}]*)\};/,
-    );
-    expect(match).not.toBeNull();
-    return match![1]!;
-  })();
-
-  test("the scan finds the catalog's sections, so the checks below are not vacuous", () => {
-    expect(SECTION_VARIABLES).toEqual([
-      "essentialsCategory",
-      "observabilityCategory",
-      "aiCategory",
-      "codeCategory",
-      "resourcesCategory",
-      "infrastructureCategory",
-      "analyticsAutomationCategory",
-      "settingsCategory",
-    ]);
+  test("the catalog chooses no icon for any section", () => {
+    expect(NAVIGATION_ITEMS).not.toMatch(CATEGORY_ICONS);
+    expect(NAVIGATION_ITEMS).not.toContain("Dictionary<IconProp>");
   });
 
-  test("the catalog gives one to every section, keyed by the name its items carry", () => {
-    for (const section of SECTION_VARIABLES) {
-      const hasIcon: boolean = ICONS.includes(`[${section}]:IconProp.`);
-      // Essentials too: they are a row of the list like the others.
-      expect([section, hasIcon]).toEqual([section, true]);
+  test("no piece between the catalog and the rows passes one along", () => {
+    const sources: Array<[string, string]> = [
+      ["Dashboard NavBar.tsx", DASHBOARD_NAVBAR],
+      ["Common NavBar.tsx", COMMON_NAVBAR],
+      ["NavBarMenuModal.tsx", NAVBAR_MODAL],
+      ["NavBarMobileMenu.tsx", NAVBAR_MOBILE_MENU],
+      ["Fixture.js", E2E_FIXTURE],
+    ];
+
+    for (const [file, source] of sources) {
+      expect([file, CATEGORY_ICONS.test(source)]).toEqual([file, false]);
     }
-    expect(ICONS).toContain("[essentialsCategory]:IconProp.Star,");
   });
 
-  test("it hands them over with the rest of the catalog", () => {
-    expect(NAVIGATION_ITEMS).toContain(
-      "moreMenuCategoryIcons:Dictionary<IconProp>;",
-    );
-  });
+  test("neither menu gives a section's row an icon", () => {
+    for (const [file, source] of [
+      ["NavBarMenuModal.tsx", NAVBAR_MODAL],
+      ["NavBarMobileMenu.tsx", NAVBAR_MOBILE_MENU],
+    ] as Array<[string, string]>) {
+      const toggle: string = source.slice(
+        source.indexOf("<NavBarCategoryToggle"),
+      );
+      const props: string = toggle.slice(0, toggle.indexOf("/>"));
 
-  test("the Dashboard navbar hands them to the shared NavBar", () => {
-    expect(DASHBOARD_NAVBAR).toContain(
-      "moreMenuCategoryIcons={moreMenuCategoryIcons}",
-    );
-  });
-
-  test("the shared NavBar passes them to the desktop dialog and the phone menu", () => {
-    expect(
-      COMMON_NAVBAR.split("categoryIcons={props.moreMenuCategoryIcons}"),
-    ).toHaveLength(3);
-  });
-
-  test("both menus look the icon up by the section's name and give it to the section's row", () => {
-    expect(NAVBAR_MODAL).toContain("icon={props.categoryIcons?.[group.title]}");
-    expect(NAVBAR_MOBILE_MENU).toContain(
-      "icon={props.categoryIcons?.[category.title]}",
-    );
-  });
-
-  test("the offline browser fixture draws them the way the Dashboard does", () => {
-    expect(E2E_FIXTURE).toContain("categoryIcons={moreMenuCategoryIcons}");
+      expect([file, props.length > 0]).toEqual([file, true]);
+      expect([file, props.includes("icon=")]).toEqual([file, false]);
+    }
   });
 });
 
@@ -332,15 +301,12 @@ describe("menus that keep every section open", () => {
   test("the Admin Dashboard names no sections to open on", () => {
     expect(ADMIN_NAVBAR).toContain("<NavBar");
     expect(ADMIN_NAVBAR).not.toContain("CategoriesOpenByDefault");
-    // Nothing folds there, so no row needs an icon.
-    expect(ADMIN_NAVBAR).not.toContain("CategoryIcons");
     expect(OLD_NAME.test(ADMIN_NAVBAR)).toBe(false);
   });
 
   test("the command palette searches the catalog without folding it", () => {
     expect(COMMAND_PALETTE).toContain("useDashboardNavigationItems()");
     expect(COMMAND_PALETTE).not.toContain("moreMenuCategoriesOpenByDefault");
-    expect(COMMAND_PALETTE).not.toContain("moreMenuCategoryIcons");
     expect(OLD_NAME.test(COMMAND_PALETTE)).toBe(false);
   });
 });
