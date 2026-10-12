@@ -187,8 +187,13 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "Expires In",
   ],
   [SERVERLESS]: ["Key Vault Secrets User"],
-  // A CloudWatch Metric Stream's output format, and Azure's and Google Cloud's roles.
-  [QUEUES]: ["OpenTelemetry 1.0", "Monitoring Reader", "Monitoring Viewer"],
+  // A CloudWatch Metric Stream's output formats, and Azure's and Google Cloud's roles.
+  [QUEUES]: [
+    "OpenTelemetry 1.0",
+    "JSON",
+    "Monitoring Reader",
+    "Monitoring Viewer",
+  ],
 };
 
 // What an agent writes to its log, quoted as it is written.
@@ -274,6 +279,8 @@ const PROSE: Record<string, Array<string>> = {
   [DATABASES]: ["read-only"],
   // The third of the three containers, "**AI agent**: oneuptime-docker-swarm-ai-agent".
   [DOCKER_SWARM]: ["AI agent", "read-only"],
+  // "the identity also holds the **namespace**": the stress.
+  [QUEUES]: ["namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
 };

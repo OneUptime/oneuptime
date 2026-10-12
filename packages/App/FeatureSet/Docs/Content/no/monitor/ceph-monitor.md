@@ -241,7 +241,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 Disse standardene passer for få Ceph-metrikker: `ceph_health_status` er 0 når klyngen er frisk. Velg en mal, eller sett dine egne kriterier.
 
 > [!IMPORTANT]
-> Stillhet treffer ingen av kriteriene: En klynge som slutter å sende data, lar monitoren stå som den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Trigger** på et kriterium.
+> Stillhet treffer ingen av kriteriene: En klynge som slutter å sende data, lar monitoren stå som den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Trigger** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 

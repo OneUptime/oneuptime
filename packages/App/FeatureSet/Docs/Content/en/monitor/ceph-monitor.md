@@ -241,7 +241,7 @@ A monitor you do not build from a template starts with two criteria:
 These defaults suit few Ceph metrics: `ceph_health_status` is 0 when the cluster is healthy. Pick a template, or set your own criteria.
 
 > [!IMPORTANT]
-> Silence matches neither criteria: a cluster that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria.
+> Silence matches neither criteria: a cluster that stops sending data leaves the monitor as it was. To be told when data stops, set **If No Data** to **Trigger** on a criteria. Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
 ## Troubleshooting
 

@@ -241,7 +241,7 @@ Ein Monitor, den Sie nicht aus einer Vorlage bauen, beginnt mit zwei Kriterien:
 Diese Standards passen zu wenigen Ceph-Metriken: `ceph_health_status` ist 0, wenn der Cluster gesund ist. Wählen Sie eine Vorlage oder setzen Sie eigene Kriterien.
 
 > [!IMPORTANT]
-> Stille erfüllt keines der beiden Kriterien: Ein Cluster, der keine Daten mehr sendet, lässt den Monitor so, wie er war. Um zu erfahren, wenn keine Daten mehr kommen, setzen Sie **Bei keinen Daten** in einem Kriterium auf **Auslöser**.
+> Stille erfüllt keines der beiden Kriterien: Ein Cluster, der keine Daten mehr sendet, lässt den Monitor so, wie er war. Um zu erfahren, wenn keine Daten mehr kommen, setzen Sie **Bei keinen Daten** in einem Kriterium auf **Auslöser**. Zeit, in der OneUptime selbst keine Daten empfing, gilt nie als fehlende Daten: Eine Prüfung, deren Zeitfenster solche Zeit enthält, wartet stattdessen, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
 ## Fehlerbehebung
 

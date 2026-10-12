@@ -241,7 +241,7 @@ Un moniteur que vous ne construisez pas à partir d'un modèle démarre avec deu
 Ces valeurs par défaut conviennent à peu de métriques Ceph : `ceph_health_status` vaut 0 quand le cluster est sain. Choisissez un modèle ou définissez vos propres critères.
 
 > [!IMPORTANT]
-> Le silence ne correspond à aucun des deux critères : un cluster qui n'envoie plus de données laisse le moniteur dans son état. Pour être prévenu quand les données s'arrêtent, réglez **En l'absence de données** sur **Déclencheur** dans un critère.
+> Le silence ne correspond à aucun des deux critères : un cluster qui n'envoie plus de données laisse le moniteur dans son état. Pour être prévenu quand les données s'arrêtent, réglez **En l'absence de données** sur **Déclencheur** dans un critère. Le temps pendant lequel OneUptime lui-même ne recevait pas de données n'est jamais une absence de données : une vérification dont la fenêtre en contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Dépannage
 

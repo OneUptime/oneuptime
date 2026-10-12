@@ -23,11 +23,9 @@ Pure Storage renamed itself **Everpure** in February 2026. FlashArray, FlashBlad
 
 ```mermaid title="From the array to OneUptime"
 flowchart TB
-    array["The array's management<br/>interface, port 443"]
-    exporter["Pure's exporter: older<br/>FlashArray, FlashBlade"]
-    collector["Collector"] -->|"native OpenMetrics,<br/>Purity//FA 6.7+"| array
-    collector -->|"scrapes over the<br/>Compose network"| exporter
-    exporter -->|"reads with the<br/>API token"| array
+    collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["The array,<br/>port 443"]
+    collector -->|"older FlashArray,<br/>FlashBlade"| exporter["Pure's exporter"]
+    exporter -->|"API token"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
 ```
 

@@ -21,11 +21,11 @@ Most databases appear on their own. OneUptime assembles each one from up to four
 | **Database Agent** (an OpenTelemetry Collector) | The [Database Agent](#the-database-agent) or your own collector | **Engine metrics** — connections, throughput, cache hit ratio, locks, replication lag, memory, as far as the engine has them (see [What Gets Collected](#what-gets-collected)) — plus optional query samples, top queries and the engine's log file |
 
 ```mermaid title="Four sources, one database page"
-flowchart TB
-    traces["Application traces"] -->|"queries, callers,<br/>latency"| db["The database's page"]
-    k8s["Kubernetes agent"] -->|"pods, CPU,<br/>memory, logs"| db
+flowchart LR
+    traces["Application<br/>traces"] -->|"queries, callers,<br/>latency"| db["The database's<br/>page"]
+    k8s["Kubernetes<br/>agent"] -->|"pods, CPU,<br/>memory, logs"| db
     docker["Docker or<br/>Podman agent"] -->|"containers, CPU,<br/>memory, logs"| db
-    agent["Database Agent or<br/>your own collector"] -->|"engine metrics,<br/>query events"| db
+    agent["Database Agent<br/>or a collector"] -->|"engine metrics,<br/>query events"| db
 ```
 
 Engine metrics only ever come from a collector talking to the database itself (or, for a managed cloud database, to its provider's monitoring API). Traces and container inventories tell OneUptime that a database exists and how it is used, but not how it is doing inside — the **Engine metrics** status on each database says whether that part is connected.

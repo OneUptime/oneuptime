@@ -241,7 +241,7 @@ En monitor som du inte bygger från en mall börjar med två kriterier:
 De här standardvärdena passar få Ceph-mätvärden: `ceph_health_status` är 0 när klustret är friskt. Välj en mall eller sätt egna kriterier.
 
 > [!IMPORTANT]
-> Tystnad matchar inget av kriterierna: Ett kluster som slutar skicka data lämnar monitorn som den var. För att få veta när data upphör sätter du **Om ingen data** till **Utlösare** i ett kriterium.
+> Tystnad matchar inget av kriterierna: Ett kluster som slutar skicka data lämnar monitorn som den var. För att få veta när data upphör sätter du **Om ingen data** till **Utlösare** i ett kriterium. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
 ## Felsökning
 
