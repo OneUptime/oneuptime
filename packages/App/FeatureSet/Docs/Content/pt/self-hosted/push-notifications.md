@@ -105,22 +105,26 @@ O alcance é deliberadamente restrito. Só os alertas produzidos por uma regra d
 ```mermaid title="Quando um alerta de plantão toca no modo silencioso"
 flowchart TB
     Page["Um alerta de plantão"]
+    Rule{"Sua regra de plantão está<br/>em “Critical alert”?"}
     Device{"Critical On-Call Alerts<br/>ligado neste dispositivo?"}
     OS{"O sistema do celular<br/>permite alertas críticos?"}
     Loud["Toca um som apesar do<br/>modo silencioso e do Não Perturbe"]
     Quiet["Entregue em silêncio,<br/>como qualquer outro push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"sim"| Device
+    Rule -->|"não"| Quiet
     Device -->|"sim"| OS
     Device -->|"não"| Quiet
     OS -->|"sim"| Loud
     OS -->|"não"| Quiet
 ```
 
-Três coisas precisam ser verdadeiras para um alerta ignorar o modo silencioso. Se faltar qualquer uma delas, o alerta ainda é entregue – só que em silêncio.
+Quatro coisas precisam ser verdadeiras para um alerta ignorar o modo silencioso. Se faltar qualquer uma delas, o alerta ainda é entregue – só que em silêncio.
 
 1. **A pessoa ligou a configuração nesse dispositivo.** Guardada por dispositivo, desligada por padrão, em `UserPush.isCriticalAlertEnabled`. O celular e o tablet de uma mesma pessoa são decisões separadas.
-2. **O servidor marca o alerta como crítico.** Ele envia o payload de som crítico do APNs mais `interruptionLevel: critical` para iOS, e usa o canal de notificação `oncall_critical` para Android.
-3. **O sistema operacional permite**, e é aí que as duas plataformas diferem.
+2. **A regra de plantão que enviou o alerta pede isso.** Em **Configurações do usuário > Regras de Plantão**, cada regra que notifica um celular está em “Critical alert”, o padrão, ou em “Standard”, que segue as configurações de som do celular – assim uma pessoa pode ser acordada por um incidente crítico e avisada em silêncio por um menor. Guardada por regra em `UserNotificationRule.pushNotificationLevel`.
+3. **O servidor marca o alerta como crítico.** Ele envia o payload de som crítico do APNs mais `interruptionLevel: critical` para iOS, e usa o canal de notificação `oncall_critical` para Android.
+4. **O sistema operacional permite**, e é aí que as duas plataformas diferem.
 
 :::tabs
 @tab iOS
@@ -171,6 +175,7 @@ Para verificar se funciona, envie uma notificação de teste ao dispositivo em *
 ### Os alertas críticos não ignoram o modo silencioso
 
 - Verifique se o interruptor está ligado **nesse** dispositivo – a configuração é por dispositivo, e uma reinstalação ou um celular novo configurado do zero cria um novo registro de dispositivo (um celular configurado a partir de um backup do antigo assume o registro do celular antigo assim que este deixa de receber notificações, com a configuração que o app tinha)
+- Verifique a regra de plantão dessa gravidade em **Configurações do usuário > Regras de Plantão**: uma regra de push em “Standard” segue as configurações de som do celular, seja qual for o interruptor do dispositivo
 - **iOS**: confirme que o build tem o entitlement de alertas críticos da Apple (veja acima) e que Critical Alerts está permitido em iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirme que o app tem acesso ao Não Perturbe em Settings > Notifications > Do Not Disturb access
 - A tela de configurações diz qual deles está faltando; ela lê o estado atual do sistema operacional em vez de confiar no que o app pediu por último
