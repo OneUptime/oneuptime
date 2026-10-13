@@ -512,13 +512,25 @@ export default class Response {
     oneUptimeResponse.end(html);
   }
 
+  /*
+   * Markdown, as Markdown. It used to go out as text/html with no charset: a
+   * browser parsed the page source as HTML - a `<project-id>` became a tag,
+   * an `<a href>` in a code sample a link a crawler followed - and read a
+   * translated page's text in the wrong encoding.
+   */
   @CaptureSpan()
   public static sendMarkdownResponse(
     _req: ExpressRequest,
     res: ExpressResponse,
-    html: string,
+    markdown: string,
   ): void {
-    return Response.sendHtmlResponse(_req, res, html);
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.logBody = { markdown: markdown };
+    oneUptimeResponse.writeHead(200, {
+      "Content-Type": "text/markdown; charset=utf-8",
+    });
+    oneUptimeResponse.end(markdown);
   }
 
   @CaptureSpan()

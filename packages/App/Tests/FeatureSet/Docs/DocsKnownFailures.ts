@@ -31,6 +31,7 @@ import { DocsKnownFailures } from "./DocsContentRules";
  *   images                       images and /docs/static/ files exist
  *   noRelativeLinks              no relative links ("./page.md", "page")
  *   rendered                     no raw ":::", "@tab" or "[!NOTE]" is shown
+ *   placeholderLinks             an address to fill in is code, never a link
  *   uniqueHeadings               no two headings of a page share an anchor
  *   codeLanguage                 every English code sample names a language
  *   headingLevels                English headings never skip a level

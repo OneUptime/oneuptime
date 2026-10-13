@@ -20,6 +20,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
+import { stripHtmlTags } from "./DocsHtmlText";
+import {
+  decodeHtmlEntities,
+  markupAsSpaces,
+} from "Common/Tests/Helpers/HtmlText";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -77,12 +82,23 @@ export const DOCS_CORPUS: DocsCorpus = {
   },
 };
 
-// A corpus read once: every page is scanned at most once, whatever reads it.
+/*
+ * A corpus read once: every page is scanned at most once, whatever reads it,
+ * and rendered at most once per language its rules run in.
+ */
 export class DocsReader {
   public readonly corpus: DocsCorpus;
   private navPagesCache: Array<DocsPage> | null = null;
   private readonly pageSets: Map<string, Set<DocsPage>> = new Map();
   private readonly scans: Map<string, ScannedPage> = new Map();
+  /*
+   * The pages of one language as they are served: the rules that read a
+   * page's HTML share a render. One language at a time, since the suites run
+   * a language's rules together, and every page of every language would hold
+   * hundreds of megabytes of HTML.
+   */
+  private renderedLang: string | null = null;
+  private readonly renders: Map<DocsPage, Promise<string>> = new Map();
 
   public constructor(corpus: DocsCorpus) {
     this.corpus = corpus;
@@ -129,6 +145,24 @@ export class DocsReader {
   public anchors(lang: string, page: DocsPage): Set<string> {
     return anchorsOfScanned(this.scan(lang, page));
   }
+
+  // A page's body - everything after its title line - as the docs serve it.
+  public render(lang: string, page: DocsPage): Promise<string> {
+    if (this.renderedLang !== lang) {
+      this.renders.clear();
+      this.renderedLang = lang;
+    }
+
+    let html: Promise<string> | undefined = this.renders.get(page);
+    if (!html) {
+      html = this.corpus.renderBody(
+        this.scan(lang, page).lines.slice(1).join("\n"),
+        lang,
+      );
+      this.renders.set(page, html);
+    }
+    return html;
+  }
 }
 
 export interface DocsRuleFailure {
@@ -162,6 +196,7 @@ export type DocsRuleId =
   | "images"
   | "noRelativeLinks"
   | "rendered"
+  | "placeholderLinks"
   | "uniqueHeadings"
   | "codeLanguage"
   | "headingLevels"
@@ -259,6 +294,97 @@ const RAW_SYNTAX: Array<[RegExp, string]> = [
   ],
   [/\{\{[A-Z][A-Z0-9_]*\}\}/, "an unfilled {{PLACEHOLDER}}"],
 ];
+
+/*
+ * Placeholder addresses. A page writes an address the reader fills in -
+ * https://oneuptime.com/heartbeat/YOUR_SECRET_KEY, /dashboards/<id>/view -
+ * as code. Made a link, or left as text a crawler reads as one, it sends
+ * search engines to an address that does not exist: each one is a 404 in
+ * the site's search report. A part of an address - its host, or one of its
+ * path's segments - is a placeholder when it holds <...> or {...} (escaped
+ * or not), is a :parameter, names a value in capitals (PROJECT-ID,
+ * YOUR_SECRET_KEY) or names one of yours in words (your-project-id,
+ * your_api_key - not a page such as /docs/introduction/your-account).
+ */
+const PLACEHOLDER_PARTS: Array<RegExp> = [
+  /[<>{}]/,
+  /%(?:3c|3e|7b|7d)/i,
+  /^:[a-z]/i,
+  /^[A-Z]{2,}(?:[-_][A-Z]{2,}[A-Z0-9]*)+$/,
+  /^your[-_][a-z0-9_-]*(?:id|key|token|secret)$/i,
+];
+const URL_SCHEME_AND_SLASHES: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+// A link's address as the renderer writes it.
+const RENDERED_HREF: RegExp = /<a\b[^>]*?\bhref="([^"]*)"/g;
+// An address in text: a URL, or a path that starts a word.
+const ADDRESS_IN_TEXT: RegExp = /(?:^|[\s("'])((?:https?:\/\/|\/)[^\s"'()]+)/g;
+// The punctuation a sentence puts after an address, which is not part of it.
+const TRAILING_PUNCTUATION: RegExp = /[.,;:!?]+$/;
+
+// Whether an address stands for one the reader fills in, rather than one there is.
+export const isPlaceholderAddress: (address: string) => boolean = (
+  address: string,
+): boolean => {
+  const withoutQuery: string = address.split(QUERY_OR_HASH)[0] || "";
+  const parts: Array<string> = withoutQuery
+    .replace(URL_SCHEME_AND_SLASHES, "")
+    .split("/");
+
+  return parts.some((part: string): boolean => {
+    return PLACEHOLDER_PARTS.some((pattern: RegExp): boolean => {
+      return pattern.test(part);
+    });
+  });
+};
+
+/*
+ * The placeholder addresses a rendered page links to, and the ones it shows
+ * outside code. The page's text is read twice: with its markup taken out,
+ * as an address reads across a link that ends inside it - the renderer
+ * links https://oneuptime.com/dashboard/ and stops at "<project-id>" - and
+ * with each tag a space, as an address reads at the start of a paragraph.
+ * An address a link both goes to and shows is reported once, as a link.
+ */
+export const placeholderAddressesOf: (html: string) => {
+  links: Array<string>;
+  text: Array<string>;
+} = (html: string): { links: Array<string>; text: Array<string> } => {
+  const outsideCode: string = html.replace(RENDERED_CODE, " ");
+  const links: Array<string> = [];
+  const text: Array<string> = [];
+
+  for (const match of outsideCode.matchAll(RENDERED_HREF)) {
+    const href: string = decodeHtmlEntities(match[1] || "");
+    if (
+      !href.startsWith("#") &&
+      isPlaceholderAddress(href) &&
+      !links.includes(href)
+    ) {
+      links.push(href);
+    }
+  }
+
+  for (const reading of [
+    decodeHtmlEntities(stripHtmlTags(outsideCode)),
+    decodeHtmlEntities(markupAsSpaces(outsideCode)),
+  ]) {
+    for (const match of reading.matchAll(ADDRESS_IN_TEXT)) {
+      const address: string = (match[1] || "").replace(
+        TRAILING_PUNCTUATION,
+        "",
+      );
+      if (
+        isPlaceholderAddress(address) &&
+        !links.includes(address) &&
+        !text.includes(address)
+      ) {
+        text.push(address);
+      }
+    }
+  }
+
+  return { links: links, text: text };
+};
 
 const GETTING_STARTED: DocsPage = "introduction/getting-started";
 
@@ -785,8 +911,7 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
       const failures: Array<DocsRuleFailure> = [];
 
       for (const page of docs.pages(lang)) {
-        const body: string = docs.scan(lang, page).lines.slice(1).join("\n");
-        const html: string = await docs.corpus.renderBody(body, lang);
+        const html: string = await docs.render(lang, page);
         const outsideCode: string = html.replace(RENDERED_CODE, "");
 
         for (const [pattern, what] of RAW_SYNTAX) {
@@ -797,6 +922,41 @@ export const DOCS_CONTENT_RULES: Array<DocsContentRule> = [
               detail: `shows ${what} to the reader`,
             });
           }
+        }
+      }
+
+      return failures;
+    },
+  },
+  {
+    id: "placeholderLinks",
+    title: "write an address the reader fills in as code, never as a link",
+    scope: "every-language",
+    suite: "content",
+    check: async (
+      docs: DocsReader,
+      lang: string,
+    ): Promise<Array<DocsRuleFailure>> => {
+      const failures: Array<DocsRuleFailure> = [];
+
+      for (const page of docs.pages(lang)) {
+        const found: { links: Array<string>; text: Array<string> } =
+          placeholderAddressesOf(await docs.render(lang, page));
+
+        for (const address of found.links) {
+          failures.push({
+            page: page,
+            lang: lang,
+            detail: `links to the placeholder ${address} (write the address as code, between backticks)`,
+          });
+        }
+
+        for (const address of found.text) {
+          failures.push({
+            page: page,
+            lang: lang,
+            detail: `shows the placeholder ${address} as text (write the address as code, between backticks)`,
+          });
         }
       }
 
