@@ -1,4 +1,5 @@
 import BlogPostUtil, { BlogPost } from "../Utils/BlogPost";
+import BlogTag from "../Utils/BlogTag";
 import { BlogRootPath } from "../Utils/Config";
 import ejs from "ejs";
 import { JSDOM } from "jsdom";
@@ -192,6 +193,7 @@ describe("a post's title and description, on its page", () => {
         blackLogo: false,
         requestDemoCta: false,
         blogPost: post,
+        blogTagPath: BlogTag.getPagePathOfTag,
         enableGoogleTagManager: false,
         seo: { fullCanonicalUrl: (post as BlogPost).blogUrl },
       },

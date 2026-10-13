@@ -3,8 +3,8 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import Text from "Common/Types/Text";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import BlogTag from "./BlogTag";
 import { BlogRootPath } from "./Config";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -52,6 +52,15 @@ export interface BlogPostHeader extends BlogPostBaseProps {
   authorGitHubUsername: string;
 }
 
+/*
+ * A tag that has a page: the posts whose tags share one slug. The name is how
+ * most of those posts write it - "CI/CD" rather than "Ci-cd" or "CI CD".
+ */
+export interface BlogTagSummary {
+  slug: string;
+  name: string;
+}
+
 export interface BlogPost extends BlogPostBaseProps {
   htmlBody: string;
   markdownBody: string;
@@ -82,6 +91,20 @@ export default class BlogPostUtil {
     null;
   // Cache tags from Tags.md
   private static tagsCache: string[] | null = null;
+  /*
+   * The tags that have a page, by slug, and the post list they were read
+   * from: built once per post list (61,000 posts carry about 250,000 tags).
+   */
+  private static tagIndexCache: {
+    posts: Array<BlogPostHeader>;
+    tagsBySlug: Map<string, BlogTagSummary>;
+  } | null = null;
+  /*
+   * The slug of every tag the posts carry, as written. Only the blog's own
+   * tags go in, so it holds at most one entry per tag (about 21,000), and a
+   * tag page filters every post's tags with a lookup each.
+   */
+  private static tagSlugCache: Map<string, string> = new Map();
   // Cache fully rendered blog posts by fileName
   private static blogPostCache: Map<string, BlogPost> = new Map();
   /*
@@ -120,6 +143,8 @@ export default class BlogPostUtil {
     this.blogPostListCache = null;
     this.blogPostListWithContributorsCache = null;
     this.tagsCache = null;
+    this.tagIndexCache = null;
+    this.tagSlugCache.clear();
     this.blogPostCache.clear();
     this.contributorsByPostCache = null;
     this.contributorsWarmInFlight = null;
@@ -160,8 +185,12 @@ export default class BlogPostUtil {
     }
   }
 
+  /*
+   * Every post, newest first - or, given a tag's slug (BlogTag.getSlug), the
+   * posts carrying a tag with that slug.
+   */
   public static async getBlogPostList(
-    tagName?: string | undefined,
+    tagSlug?: string | undefined,
     options?: { includeContributors?: boolean } | undefined,
   ): Promise<BlogPostHeader[]> {
     /*
@@ -237,17 +266,98 @@ export default class BlogPostUtil {
       }
     }
 
-    if (tagName) {
+    if (tagSlug) {
       return list.filter((blog: BlogPostHeader) => {
-        return blog.tags
-          .map((item: string) => {
-            return Text.replaceAll(item.toLowerCase(), " ", "-");
-          })
-          .includes(tagName);
+        return blog.tags.some((tag: string) => {
+          return this.getTagSlug(tag) === tagSlug;
+        });
       });
     }
 
     return list;
+  }
+
+  /*
+   * The tag whose page has this slug, or null when no post carries a tag with
+   * it. A tag page and a tag feed exist only for these.
+   */
+  public static async getTagBySlug(
+    slug: string,
+  ): Promise<BlogTagSummary | null> {
+    const posts: Array<BlogPostHeader> = await this.getBlogPostList();
+
+    if (!this.tagIndexCache || this.tagIndexCache.posts !== posts) {
+      this.tagIndexCache = {
+        posts: posts,
+        tagsBySlug: this.buildTagIndex(posts),
+      };
+    }
+
+    const tag: BlogTagSummary | undefined =
+      this.tagIndexCache.tagsBySlug.get(slug);
+
+    return tag ? { ...tag } : null;
+  }
+
+  /*
+   * One entry per slug, named the way most of its posts write it; on a tie,
+   * the way the newest of them does (the list is newest first).
+   */
+  private static buildTagIndex(
+    posts: Array<BlogPostHeader>,
+  ): Map<string, BlogTagSummary> {
+    const spellingCountsBySlug: Map<string, Map<string, number>> = new Map();
+
+    for (const post of posts) {
+      for (const tag of post.tags) {
+        const slug: string = this.getTagSlug(tag);
+
+        if (!slug) {
+          continue;
+        }
+
+        let spellingCounts: Map<string, number> | undefined =
+          spellingCountsBySlug.get(slug);
+
+        if (!spellingCounts) {
+          spellingCounts = new Map();
+          spellingCountsBySlug.set(slug, spellingCounts);
+        }
+
+        spellingCounts.set(tag, (spellingCounts.get(tag) || 0) + 1);
+      }
+    }
+
+    const tagsBySlug: Map<string, BlogTagSummary> = new Map();
+
+    for (const [slug, spellingCounts] of spellingCountsBySlug) {
+      let name: string = "";
+      let nameCount: number = 0;
+
+      // A Map iterates in insertion order: the first spelling met is the newest.
+      for (const [spelling, count] of spellingCounts) {
+        if (count > nameCount) {
+          name = spelling;
+          nameCount = count;
+        }
+      }
+
+      tagsBySlug.set(slug, { slug: slug, name: name });
+    }
+
+    return tagsBySlug;
+  }
+
+  // BlogTag.getSlug of one of the posts' own tags, worked out once per tag.
+  private static getTagSlug(tag: string): string {
+    let slug: string | undefined = this.tagSlugCache.get(tag);
+
+    if (slug === undefined) {
+      slug = BlogTag.getSlug(tag);
+      this.tagSlugCache.set(tag, slug);
+    }
+
+    return slug;
   }
 
   // A title or description from Blogs.json, without the space around it.
