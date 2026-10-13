@@ -435,13 +435,29 @@ export default class ProbeSyslogIngestService {
   }
 
   /*
-   * The time a log is stored under: the device's own when it can be
-   * believed, else the time the probe received it, else now.
+   * The time a log is stored under.
    *
-   * A time that names its zone (RFC 5424) is believed unless it is in the
-   * future or older than a buffered message can be. A time that names none
-   * (RFC 3164, or a probe too old to say which it read) is believed only
-   * when it agrees with the server's clock.
+   * A message that arrives as it is written - the device's time and the
+   * probe's agree to within five minutes - is stored at the time the probe
+   * received it. The probe's clock is one clock for every device it
+   * hears; it has milliseconds where most devices' timestamps have whole
+   * seconds; and it runs in the order things arrived. So a link that goes
+   * down and comes back within a second is stored in that order, and a
+   * device whose clock is four minutes behind does not file its events
+   * where a monitor's last five minutes are about to move on from.
+   *
+   * A message older than that was held back before it was sent: a sender
+   * that buffered while its link was down. Its own time is the only record
+   * of when it happened, and is believed when it names its zone (RFC 5424)
+   * and is no older than a buffer can be.
+   *
+   * Anything else is a clock that cannot be believed - hours off with no
+   * zone (a device in another time zone), in the future, or older than a
+   * week. The log is stored at the time it was received, and the device's
+   * time is kept beside it.
+   *
+   * The time it was received is the probe's, unless the probe's own clock
+   * disagrees with the server's: then it is the server's.
    */
   public static resolveLogTime(data: {
     timestamp: Date;
@@ -451,38 +467,32 @@ export default class ProbeSyslogIngestService {
   }): ResolvedLogTime {
     const now: number = data.now.getTime();
     const deviceTime: number = data.timestamp.getTime();
-    const receivedAt: number = data.receivedAt.getTime();
+
+    const received: Date =
+      Math.abs(data.receivedAt.getTime() - now) <= MAX_DEVICE_CLOCK_SKEW_IN_MS
+        ? data.receivedAt
+        : data.now;
 
     // The probe had no time to read: the timestamp IS the time it received.
-    if (deviceTime === receivedAt) {
-      return {
-        time:
-          Math.abs(receivedAt - now) <= MAX_DEVICE_CLOCK_SKEW_IN_MS
-            ? data.receivedAt
-            : data.now,
-        deviceTime: null,
-      };
+    if (deviceTime === data.receivedAt.getTime()) {
+      return { time: received, deviceTime: null };
     }
 
-    const isAhead: boolean = deviceTime - now > MAX_DEVICE_CLOCK_SKEW_IN_MS;
-    const isBehind: boolean = now - deviceTime > MAX_DEVICE_CLOCK_SKEW_IN_MS;
+    const behind: number = received.getTime() - deviceTime;
 
-    const isBelieved: boolean =
-      data.headerFormat === SyslogHeaderFormat.Rfc5424
-        ? !isAhead && now - deviceTime <= MAX_BUFFERED_MESSAGE_AGE_IN_MS
-        : !isAhead && !isBehind;
+    if (Math.abs(behind) <= MAX_DEVICE_CLOCK_SKEW_IN_MS) {
+      return { time: received, deviceTime: null };
+    }
 
-    if (isBelieved) {
+    if (
+      data.headerFormat === SyslogHeaderFormat.Rfc5424 &&
+      behind > 0 &&
+      behind <= MAX_BUFFERED_MESSAGE_AGE_IN_MS
+    ) {
       return { time: data.timestamp, deviceTime: null };
     }
 
-    return {
-      time:
-        Math.abs(receivedAt - now) <= MAX_DEVICE_CLOCK_SKEW_IN_MS
-          ? data.receivedAt
-          : data.now,
-      deviceTime: data.timestamp,
-    };
+    return { time: received, deviceTime: data.timestamp };
   }
 
   /*

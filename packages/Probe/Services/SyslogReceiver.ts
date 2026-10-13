@@ -77,6 +77,13 @@ const MAX_TCP_CONNECTIONS: number = 512;
  */
 const TCP_KEEP_ALIVE_INITIAL_DELAY_MS: number = 60000;
 
+/*
+ * How far ahead of the clock a receive time may be pushed to keep it
+ * unique (see toUniqueReceiveTime). Past it, two messages share a time
+ * rather than the probe's clock running away from the real one.
+ */
+const MAX_RECEIVE_TIME_LEAD_MS: number = 1000;
+
 // Characters that mark binary data rather than a line of text.
 const TAB: number = 0x09;
 const FIRST_PRINTABLE: number = 0x20;
@@ -103,6 +110,9 @@ export default class SyslogReceiver {
   private static buffer: Array<SyslogMessage> = [];
   private static bufferedCharacters: number = 0;
   private static isFlushing: boolean = false;
+
+  // The receive time given to the last message forwarded.
+  private static lastReceivedAtMs: number = 0;
 
   public static start(): void {
     if (!PROBE_SYSLOG_RECEIVER_ENABLED) {
@@ -373,10 +383,12 @@ export default class SyslogReceiver {
 
   // One message, however it arrived.
   private static handleLine(line: string, sourceIpAddress: string): void {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     const read: ReadSyslogLine | null = SyslogReceiver.readLine(
       line,
       sourceIpAddress,
-      OneUptimeDate.getCurrentDate(),
+      now,
     );
 
     if (!read) {
@@ -389,6 +401,19 @@ export default class SyslogReceiver {
     if (!SyslogReceiver.consumeRateLimitSlot(read.parsed)) {
       return;
     }
+
+    /*
+     * Stamped once it is certain to be forwarded, so the messages the
+     * rate limit drops do not push the clock ahead.
+     */
+    const receivedAt: Date = SyslogReceiver.toUniqueReceiveTime(now);
+
+    if (read.message.timestamp === read.message.receivedAt) {
+      // It had no time of its own: its time is the time it was received.
+      read.message.timestamp = receivedAt;
+    }
+
+    read.message.receivedAt = receivedAt;
 
     SyslogReceiver.buffer.push(read.message);
     SyslogReceiver.bufferedCharacters += SyslogReceiver.sizeOf(read.message);
@@ -425,6 +450,35 @@ export default class SyslogReceiver {
         logger.error(`Syslog batch forward failed: ${err}`);
       });
     }
+  }
+
+  /*
+   * The time a message was received, never the same millisecond twice.
+   *
+   * The instance stores a message at the time the probe received it, and
+   * that is the order two messages are read in: the "down" before the
+   * "up". A device that sends both in one burst would have them arrive in
+   * the same millisecond, and then nothing says which came first. So a
+   * time already given out is moved on by a millisecond - by at most
+   * MAX_RECEIVE_TIME_LEAD_MS in all, which a burst of a thousand
+   * messages would need.
+   */
+  private static toUniqueReceiveTime(now: Date): Date {
+    let receivedAtMs: number = now.getTime();
+
+    if (
+      receivedAtMs <= SyslogReceiver.lastReceivedAtMs &&
+      SyslogReceiver.lastReceivedAtMs + 1 - receivedAtMs <=
+        MAX_RECEIVE_TIME_LEAD_MS
+    ) {
+      receivedAtMs = SyslogReceiver.lastReceivedAtMs + 1;
+    }
+
+    if (receivedAtMs > SyslogReceiver.lastReceivedAtMs) {
+      SyslogReceiver.lastReceivedAtMs = receivedAtMs;
+    }
+
+    return new Date(receivedAtMs);
   }
 
   // The characters a buffered message holds on to.

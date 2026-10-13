@@ -359,7 +359,8 @@ describe("a vendor's line from a device the probe polls", () => {
     );
     expect(row["severityText"]).toBe(LogSeverity.Error);
     expect(row["severityNumber"]).toBe(19);
-    expect(row["time"]).toBe(OneUptimeDate.toClickhouseDateTime64(DEVICE_TIME));
+    // The device stamped it a second earlier; it is stored when it was heard.
+    expect(row["time"]).toBe(OneUptimeDate.toClickhouseDateTime64(RECEIVED_AT));
 
     expect(attributesOf(row)).toEqual({
       "oneuptime.service.id": serviceId.toString(),
@@ -1275,18 +1276,24 @@ describe("the time a log is stored under", () => {
   }
 
   const HOUR: number = 60 * 60 * 1000;
+  const RECEIVED: number = NOW.getTime() - 2000;
 
-  test("is the device's own when its clock agrees with the server's", () => {
-    for (const headerFormat of [
-      SyslogHeaderFormat.Rfc3164,
-      SyslogHeaderFormat.Rfc5424,
-      SyslogHeaderFormat.None,
-      null,
-    ]) {
+  const EVERY_FORMAT: Array<SyslogHeaderFormat | null> = [
+    SyslogHeaderFormat.Rfc3164,
+    SyslogHeaderFormat.Rfc5424,
+    SyslogHeaderFormat.None,
+    // A probe too old to say which header it read.
+    null,
+  ];
+
+  test("is the time the probe received it, when the device's clock agrees with the probe's to within five minutes", () => {
+    for (const headerFormat of EVERY_FORMAT) {
       for (const offset of [
         -3000,
-        0 - MAX_DEVICE_CLOCK_SKEW_IN_MS,
-        MAX_DEVICE_CLOCK_SKEW_IN_MS,
+        -2000 - MAX_DEVICE_CLOCK_SKEW_IN_MS,
+        -2000 + MAX_DEVICE_CLOCK_SKEW_IN_MS,
+        -4 * 60 * 1000,
+        4 * 60 * 1000,
       ]) {
         const resolved: ResolvedLogTime = resolve({
           deviceOffsetMs: offset,
@@ -1301,18 +1308,48 @@ describe("the time a log is stored under", () => {
         }).toEqual({
           headerFormat,
           offset,
-          time: NOW.getTime() + offset,
+          time: RECEIVED,
           deviceTime: null,
         });
       }
     }
   });
 
+  test("a link that goes down and comes back within one second of the device's clock is stored in the order it arrived", () => {
+    // Both lines carry "10:11:09"; the probe heard them 300 ms apart.
+    const deviceSecond: Date = new Date(NOW.getTime() - 3000);
+
+    const down: ResolvedLogTime = ProbeSyslogIngestService.resolveLogTime({
+      timestamp: deviceSecond,
+      receivedAt: new Date(NOW.getTime() - 2600),
+      headerFormat: SyslogHeaderFormat.Rfc3164,
+      now: NOW,
+    });
+    const up: ResolvedLogTime = ProbeSyslogIngestService.resolveLogTime({
+      timestamp: deviceSecond,
+      receivedAt: new Date(NOW.getTime() - 2300),
+      headerFormat: SyslogHeaderFormat.Rfc3164,
+      now: NOW,
+    });
+
+    expect(up.time.getTime()).toBeGreaterThan(down.time.getTime());
+    expect(up.time.getTime() - down.time.getTime()).toBe(300);
+  });
+
+  test("a device four minutes behind is stored where a monitor's last five minutes will still find it", () => {
+    const resolved: ResolvedLogTime = resolve({
+      deviceOffsetMs: -4 * 60 * 1000 - 50 * 1000,
+      headerFormat: SyslogHeaderFormat.Rfc3164,
+    });
+
+    // At its own time it would leave a five-minute window ten seconds later.
+    expect(NOW.getTime() - resolved.time.getTime()).toBe(2000);
+  });
+
   test("a time with no zone that is hours off is a device in another time zone: the probe's receive time is used, and the device's kept beside it", () => {
     for (const headerFormat of [
       SyslogHeaderFormat.Rfc3164,
       SyslogHeaderFormat.None,
-      // A probe too old to say which header it read.
       null,
     ]) {
       for (const offset of [2 * HOUR, -2 * HOUR, -400 * 24 * HOUR]) {
@@ -1329,34 +1366,38 @@ describe("the time a log is stored under", () => {
         }).toEqual({
           headerFormat,
           offset,
-          time: NOW.getTime() - 2000,
+          time: RECEIVED,
           deviceTime: NOW.getTime() + offset,
         });
       }
     }
   });
 
-  test("a time that names its zone is believed when it is old: a sender that buffered while its link was down", () => {
+  test("an old time that names its zone is believed: a sender that buffered while its link was down", () => {
     for (const offset of [
+      -2000 - MAX_DEVICE_CLOCK_SKEW_IN_MS - 1,
       -HOUR,
       -3 * 24 * HOUR,
-      -MAX_BUFFERED_MESSAGE_AGE_IN_MS,
+      -2000 - MAX_BUFFERED_MESSAGE_AGE_IN_MS,
     ]) {
       const resolved: ResolvedLogTime = resolve({
         deviceOffsetMs: offset,
         headerFormat: SyslogHeaderFormat.Rfc5424,
       });
 
-      expect(resolved.time.getTime()).toBe(NOW.getTime() + offset);
+      expect({ offset, time: resolved.time.getTime() }).toEqual({
+        offset,
+        time: NOW.getTime() + offset,
+      });
       expect(resolved.deviceTime).toBeNull();
     }
   });
 
   test("...but not when it is older than a buffer can be, or in the future", () => {
     for (const offset of [
-      -MAX_BUFFERED_MESSAGE_AGE_IN_MS - 1000,
+      -2000 - MAX_BUFFERED_MESSAGE_AGE_IN_MS - 1,
       -20000 * 24 * HOUR,
-      MAX_DEVICE_CLOCK_SKEW_IN_MS + 1000,
+      -2000 + MAX_DEVICE_CLOCK_SKEW_IN_MS + 1,
       3 * HOUR,
     ]) {
       const resolved: ResolvedLogTime = resolve({
@@ -1364,20 +1405,38 @@ describe("the time a log is stored under", () => {
         headerFormat: SyslogHeaderFormat.Rfc5424,
       });
 
-      expect(resolved.time.getTime()).toBe(NOW.getTime() - 2000);
-      expect(resolved.deviceTime?.getTime()).toBe(NOW.getTime() + offset);
+      expect({
+        offset,
+        time: resolved.time.getTime(),
+        deviceTime: resolved.deviceTime?.getTime(),
+      }).toEqual({
+        offset,
+        time: RECEIVED,
+        deviceTime: NOW.getTime() + offset,
+      });
     }
   });
 
-  test("when the probe's clock is off too, the server's is used", () => {
-    const resolved: ResolvedLogTime = resolve({
+  test("when the probe's clock is off, the server's is what a device is held against", () => {
+    // The probe says three hours ago; the device agrees with the server.
+    const agrees: ResolvedLogTime = resolve({
+      deviceOffsetMs: -1000,
+      receivedOffsetMs: -3 * HOUR,
+      headerFormat: SyslogHeaderFormat.Rfc3164,
+    });
+
+    expect(agrees.time.getTime()).toBe(NOW.getTime());
+    expect(agrees.deviceTime).toBeNull();
+
+    // The device agrees with neither.
+    const disagrees: ResolvedLogTime = resolve({
       deviceOffsetMs: 2 * HOUR,
       receivedOffsetMs: -3 * HOUR,
       headerFormat: SyslogHeaderFormat.Rfc3164,
     });
 
-    expect(resolved.time.getTime()).toBe(NOW.getTime());
-    expect(resolved.deviceTime?.getTime()).toBe(NOW.getTime() + 2 * HOUR);
+    expect(disagrees.time.getTime()).toBe(NOW.getTime());
+    expect(disagrees.deviceTime?.getTime()).toBe(NOW.getTime() + 2 * HOUR);
   });
 
   test("a message with no time of its own is stored at the time it was received", () => {
@@ -1405,6 +1464,36 @@ describe("the time a log is stored under", () => {
     ).toEqual({ time: NOW, deviceTime: null });
   });
 
+  test("no time is ever in the future of the server, or older than a buffer can be", () => {
+    for (const headerFormat of EVERY_FORMAT) {
+      for (const deviceOffsetMs of [
+        -400 * 24 * HOUR,
+        -8 * 24 * HOUR,
+        -HOUR,
+        -1,
+        0,
+        1,
+        HOUR,
+        400 * 24 * HOUR,
+      ]) {
+        for (const receivedOffsetMs of [-9 * HOUR, -2000, 0, 2000, 9 * HOUR]) {
+          const time: number = resolve({
+            deviceOffsetMs,
+            receivedOffsetMs,
+            headerFormat,
+          }).time.getTime();
+
+          expect(time - NOW.getTime()).toBeLessThanOrEqual(
+            MAX_DEVICE_CLOCK_SKEW_IN_MS,
+          );
+          expect(NOW.getTime() - time).toBeLessThanOrEqual(
+            MAX_BUFFERED_MESSAGE_AGE_IN_MS + MAX_DEVICE_CLOCK_SKEW_IN_MS,
+          );
+        }
+      }
+    }
+  });
+
   test("a device two hours behind is stored where a monitor's last five minutes can see it", async () => {
     const twoHoursAgo: Date = new Date(NOW.getTime() - 2 * HOUR);
 
@@ -1428,6 +1517,43 @@ describe("the time a log is stored under", () => {
     expect(Object.keys(attributesOf(onlyRow()))).not.toContain(
       "syslog.deviceTime",
     );
+  });
+
+  test("a flap heard in one batch is stored down first, then up, though the device stamped both the same second", async () => {
+    const deviceSecond: string = new Date(NOW.getTime() - 3000).toISOString();
+
+    await ingest([
+      fromProbe(CISCO_LINK_DOWN, SWITCH_ADDRESS, {
+        timestamp: deviceSecond,
+        receivedAt: new Date(NOW.getTime() - 2600).toISOString(),
+      }),
+      fromProbe(
+        "<189>Oct 13 10:11:09 core-sw1 46: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to up",
+        SWITCH_ADDRESS,
+        {
+          timestamp: deviceSecond,
+          receivedAt: new Date(NOW.getTime() - 2300).toISOString(),
+        },
+      ),
+    ]);
+
+    expect(
+      insertedRows.map((row: JSONObject) => {
+        return [attributesOf(row)["event.name"], row["time"]];
+      }),
+    ).toEqual([
+      [
+        "interface.down",
+        OneUptimeDate.toClickhouseDateTime64(new Date(NOW.getTime() - 2600)),
+      ],
+      [
+        "interface.up",
+        OneUptimeDate.toClickhouseDateTime64(new Date(NOW.getTime() - 2300)),
+      ],
+    ]);
+    expect(
+      String(insertedRows[1]?.["time"]) > String(insertedRows[0]?.["time"]),
+    ).toBe(true);
   });
 });
 

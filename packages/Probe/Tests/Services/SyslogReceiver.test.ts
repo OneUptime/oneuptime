@@ -14,6 +14,7 @@ import {
 import SyslogMessage, {
   MAX_SYSLOG_RAW_LENGTH,
 } from "Common/Types/Syslog/SyslogMessage";
+import OneUptimeDate from "Common/Types/Date";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import { parseSyslogMessage } from "Common/Utils/Syslog/SyslogMessageParser";
@@ -56,6 +57,7 @@ type ReceiverInternals = {
   droppedThisMinute: number;
   eventsKeptPastLimitThisMinute: number;
   minuteWindowStartedAt: number;
+  lastReceivedAtMs: number;
 };
 
 const receiver: ReceiverInternals =
@@ -69,6 +71,7 @@ function resetReceiver(): void {
   receiver.droppedThisMinute = 0;
   receiver.eventsKeptPastLimitThisMinute = 0;
   receiver.minuteWindowStartedAt = Date.now();
+  receiver.lastReceivedAtMs = 0;
 }
 
 function bufferedRawLines(): Array<string | undefined> {
@@ -444,6 +447,115 @@ describe("SyslogReceiver.parseMessage", () => {
         });
       }
     });
+  });
+});
+
+describe("the time a message was received", () => {
+  const FROZEN: Date = new Date("2026-10-13T10:11:12.345Z");
+
+  // The clock the receiver reads, held still and moved by hand.
+  let clock: Date = FROZEN;
+
+  beforeEach(() => {
+    clock = FROZEN;
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return clock;
+    });
+    jest.spyOn(receiver, "flush").mockResolvedValue(undefined);
+  });
+
+  function receivedTimes(): Array<number> {
+    return receiver.buffer.map((message: SyslogMessage) => {
+      return message.receivedAt.getTime();
+    });
+  }
+
+  it("is never the same millisecond twice: a down and an up sent in one burst keep their order", () => {
+    // The clock does not move between the two.
+    receiver.handleLine(LINK_DOWN, SOURCE_IP);
+    receiver.handleLine(
+      "<189>Oct 13 10:11:09 core-sw1 46: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to up",
+      SOURCE_IP,
+    );
+
+    expect(receivedTimes()).toEqual([FROZEN.getTime(), FROZEN.getTime() + 1]);
+  });
+
+  it("goes on in order through a burst, and falls back to the clock as soon as it has moved on", () => {
+    for (let index: number = 0; index < 5; index++) {
+      receiver.forwardedThisMinute = 0;
+      receiver.handleLine(`<13>message ${index}`, SOURCE_IP);
+    }
+
+    expect(receivedTimes()).toEqual(
+      [0, 1, 2, 3, 4].map((offset: number) => {
+        return FROZEN.getTime() + offset;
+      }),
+    );
+
+    clock = new Date(FROZEN.getTime() + 500);
+    receiver.handleLine("<13>later", SOURCE_IP);
+
+    expect(receivedTimes()[5]).toBe(FROZEN.getTime() + 500);
+  });
+
+  it("is never pushed more than a second ahead of the clock, however long the burst", () => {
+    receiver.isFlushing = true; // Nothing leaves the buffer meanwhile.
+
+    for (let index: number = 0; index < 3000; index++) {
+      receiver.forwardedThisMinute = 0;
+      receiver.handleLine(`<13>message ${index}`, SOURCE_IP);
+    }
+
+    const times: Array<number> = receivedTimes();
+
+    expect(Math.max(...times) - FROZEN.getTime()).toBe(1000);
+    // Up to the limit every time is its own; past it they share the clock's.
+    expect(new Set(times.slice(0, 1001)).size).toBe(1001);
+    expect(new Set(times.slice(1001)).size).toBe(1);
+    expect(times[2999]).toBe(FROZEN.getTime());
+  });
+
+  it("is not moved on by messages the rate limit drops", () => {
+    for (let index: number = 0; index < 500; index++) {
+      receiver.handleLine(`<134>routine line ${index}`, SOURCE_IP);
+    }
+
+    // Twenty were forwarded; the other 480 took no time of their own.
+    expect(receiver.buffer).toHaveLength(PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE);
+    expect(receiver.lastReceivedAtMs).toBe(
+      FROZEN.getTime() + PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE - 1,
+    );
+  });
+
+  it("is the time of a message that has none of its own", () => {
+    receiver.handleLine("<13>first, with no time", SOURCE_IP);
+    receiver.handleLine("<13>second, with no time", SOURCE_IP);
+
+    for (const message of receiver.buffer) {
+      expect(message.timestamp).toBe(message.receivedAt);
+    }
+
+    expect(receiver.buffer[1]!.timestamp.getTime()).toBe(FROZEN.getTime() + 1);
+  });
+
+  it("leaves a device's own time as the device wrote it", () => {
+    receiver.handleLine(
+      "<165>1 2026-10-13T10:11:09.003Z host app - - - first",
+      SOURCE_IP,
+    );
+    receiver.handleLine(
+      "<165>1 2026-10-13T10:11:09.003Z host app - - - second",
+      SOURCE_IP,
+    );
+
+    expect(
+      receiver.buffer.map((message: SyslogMessage) => {
+        return message.timestamp.toISOString();
+      }),
+    ).toEqual(["2026-10-13T10:11:09.003Z", "2026-10-13T10:11:09.003Z"]);
+    expect(receivedTimes()).toEqual([FROZEN.getTime(), FROZEN.getTime() + 1]);
   });
 });
 
