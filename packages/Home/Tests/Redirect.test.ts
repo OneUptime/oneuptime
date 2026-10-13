@@ -4,6 +4,7 @@ import {
   RedirectStatusCode,
 } from "../Utils/Redirect";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -59,7 +60,7 @@ type PermanentRedirectCallFunction = (target: string) => RegExp;
 const permanentRedirectCall: PermanentRedirectCallFunction = (
   target: string,
 ): RegExp => {
-  const escapedTarget: string = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedTarget: string = escapeRegExp(target);
 
   return new RegExp(
     `redirectPreservingQuery\\(\\s*req,\\s*res,\\s*"${escapedTarget}",\\s*301,?\\s*\\)`,
