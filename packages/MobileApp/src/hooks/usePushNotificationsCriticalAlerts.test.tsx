@@ -4,7 +4,11 @@ import { renderHook, waitFor } from "@testing-library/react-native";
 import { usePushNotifications } from "./usePushNotifications";
 import * as pushDeviceApi from "../api/pushDevice";
 import * as setupModule from "../notifications/setup";
-import { setCriticalAlertsEnabled } from "../storage/preferences";
+import {
+  setCriticalAlertSound,
+  setCriticalAlertsEnabled,
+  setCriticalAlertVolume,
+} from "../storage/preferences";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 jest.mock("../api/pushDevice", () => {
@@ -163,5 +167,88 @@ describe("Push registration restates the critical alert preference", () => {
 
     expect(removeReceived).toHaveBeenCalledTimes(1);
     expect(removeResponse).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Push registration restates the alarm the phone chose", () => {
+  /*
+   * The alarm and the iPhone volume are the device's, like the critical
+   * alerts switch, and a new device row - a project joined later, a fresh
+   * push token - starts with the system sound at full volume unless the
+   * registration says otherwise.
+   */
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    registerSpy().mockClear();
+    registerSpy().mockResolvedValue(undefined as never);
+
+    jest
+      .spyOn(setupModule, "requestPermissionsAndGetToken")
+      .mockResolvedValue("ExponentPushToken[handset]" as never);
+    jest
+      .spyOn(setupModule, "setupNotificationChannels")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(setupModule, "setupNotificationCategories")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function registrations(): Promise<
+    Array<{ criticalAlertSound?: string; criticalAlertVolume?: number }>
+  > {
+    await renderHook(() => {
+      return usePushNotifications(null);
+    });
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(2);
+    });
+
+    return registerSpy().mock.calls.map((call: Array<unknown>) => {
+      return call[0] as {
+        criticalAlertSound?: string;
+        criticalAlertVolume?: number;
+      };
+    });
+  }
+
+  test("sends the stored sound and volume to every project", async () => {
+    await setCriticalAlertSound("smoke_alarm");
+    await setCriticalAlertVolume(75);
+
+    for (const registration of await registrations()) {
+      expect(registration.criticalAlertSound).toBe("smoke_alarm");
+      expect(registration.criticalAlertVolume).toBe(75);
+    }
+  });
+
+  test("a phone that never chose says so: the system sound at full volume", async () => {
+    for (const registration of await registrations()) {
+      expect(registration.criticalAlertSound).toBe("default");
+      expect(registration.criticalAlertVolume).toBe(100);
+    }
+  });
+
+  test("restates the alarm whether or not critical alerts are on, so turning them on later plays it", async () => {
+    await setCriticalAlertsEnabled(false);
+    await setCriticalAlertSound("klaxon");
+
+    for (const registration of await registrations()) {
+      expect(registration.criticalAlertSound).toBe("klaxon");
+    }
+  });
+
+  test("a stored sound this build does not offer is restated as the system sound", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alert_sound", "foghorn");
+    await AsyncStorage.setItem("oneuptime_critical_alert_volume", "60");
+
+    for (const registration of await registrations()) {
+      expect(registration.criticalAlertSound).toBe("default");
+      expect(registration.criticalAlertVolume).toBe(100);
+    }
   });
 });
