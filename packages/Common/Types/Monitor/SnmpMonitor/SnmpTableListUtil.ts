@@ -15,6 +15,7 @@ import {
   SnmpTableValueType,
   SnmpTableWalkRequest,
 } from "./SnmpTable";
+import WifiInternalNetworkUtil from "./WifiInternalNetwork";
 
 /*
  * The one place that decides which SNMP tables a device walks and how a
@@ -722,7 +723,8 @@ export default class SnmpTableListUtil {
       /*
        * In a table whose name columns name more than it has (see
        * SnmpTableDefinition.skipNameOnlyRows), the rows that hold nothing
-       * but a name are left out - after they have named their children.
+       * but a name are left out - after they have named their children. So
+       * are an SSID table's rows that are no network people join.
        */
       const rows: Array<SnmpTableSnapshotRow> = resultRows
         .filter((row: SnmpTableResultRow) => {
@@ -730,6 +732,9 @@ export default class SnmpTableListUtil {
             !table.skipNameOnlyRows ||
             SnmpTableListUtil.holdsOwnValue(row, columnsByOid)
           );
+        })
+        .filter((row: SnmpTableResultRow) => {
+          return SnmpTableListUtil.isListedRow(table, row);
         })
         .map((row: SnmpTableResultRow) => {
           return SnmpTableListUtil.buildRow(
@@ -832,6 +837,43 @@ export default class SnmpTableListUtil {
       label: labelParts.join(ROW_LABEL_SEPARATOR) || indexText || row.index,
       cells: cells,
     };
+  }
+
+  /*
+   * Whether a walked row is one of its table's rows. Every row is, except in
+   * an SSID table, which lists the networks people join: a row that names
+   * no network (an interface that broadcasts none) or holds a network the
+   * access point runs for itself (WifiInternalNetworkUtil) is not stored,
+   * so the SSID list, its row count, its metrics and its criteria all leave
+   * it out alike.
+   */
+  public static isListedRow(
+    table: SnmpTableDefinition,
+    row: SnmpTableResultRow,
+  ): boolean {
+    if (SnmpTableListUtil.parseKind(table.kind) !== SnmpTableKind.WifiSsid) {
+      return true;
+    }
+
+    const values: Record<string, string | number | null> = row.values || {};
+
+    const ssidColumn: SnmpTableColumn | undefined = table.columns.find(
+      (column: SnmpTableColumn) => {
+        return column.role === SnmpTableColumnRole.Ssid;
+      },
+    );
+
+    return WifiInternalNetworkUtil.isJoinableNetwork({
+      ssid: ssidColumn
+        ? SnmpTableListUtil.buildCell(
+            ssidColumn,
+            values[SnmpOidListUtil.normalizeOid(ssidColumn.oid)],
+          ).display
+        : undefined,
+      read: (columnOid: string): string | number | null | undefined => {
+        return values[columnOid];
+      },
+    });
   }
 
   // Whether a walked row holds a value of one of the table's own columns.

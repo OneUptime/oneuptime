@@ -7,6 +7,7 @@ import {
   SnmpTableSnapshotColumn,
   SnmpTableSnapshotRow,
 } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import WifiInternalNetworkUtil from "../../Types/Monitor/SnmpMonitor/WifiInternalNetwork";
 
 /*
  * The Wi-Fi view of a device, read out of its walked SNMP tables by column
@@ -32,6 +33,11 @@ import {
  *   - An SSID row with no name is an interface, not a network: HiveOS lists
  *     every interface in its SSID table, "N/A" for the ones that broadcast
  *     nothing.
+ *   - A network the access point runs for itself is not an SSID: UniFi's
+ *     mesh link (vwire-...) and device adoption network (element-...), an
+ *     Extreme controller's WDS and mesh services (WifiInternalNetwork). A
+ *     walk no longer stores them; rows stored before it stopped are left
+ *     out here, until the next walk replaces them.
  *   - A band that names several bands ("2.4GHz,5GHz", "5 GHz & 6 GHz") is no
  *     one band: an SSID that every radio broadcasts shows the text as the
  *     device wrote it, rather than the first band named in it.
@@ -44,13 +50,6 @@ const BAND_6_GHZ: RegExp = /\b6\s*g(hz)?\b/;
 const BAND_6E: RegExp = /\b6e\b/;
 const BAND_5_GHZ: RegExp = /\b5(\.\d+)?\s*g(hz)?\b/;
 const PHY_NAME: RegExp = /^(?:802\.)?11([a-z]+)$/;
-
-/*
- * What vendors put in an SSID column for an interface that broadcasts none:
- * HiveOS writes "N/A". Kept this narrow so a network really called "NA" or
- * "none" is still listed.
- */
-const NO_SSID_NAME: RegExp = /^(?:n\/a|-+)$/i;
 
 // Below this a channel column holds a channel number, from it a frequency in MHz.
 const LOWEST_WIFI_FREQUENCY_MHZ: number = 2400;
@@ -185,9 +184,13 @@ export default class WifiRadioUtil {
 
     const ssids: Array<WifiSsidView> = ssidTables
       .flatMap((snapshot: SnmpTableSnapshot) => {
-        return snapshot.rows.map((row: SnmpTableSnapshotRow) => {
-          return WifiRadioUtil.toSsid(snapshot, row);
-        });
+        return snapshot.rows
+          .filter((row: SnmpTableSnapshotRow) => {
+            return !WifiRadioUtil.isInternalNetworkRow(row);
+          })
+          .map((row: SnmpTableSnapshotRow) => {
+            return WifiRadioUtil.toSsid(snapshot, row);
+          });
       })
       .filter((ssid: WifiSsidView) => {
         return WifiRadioUtil.isNetworkName(ssid.ssid);
@@ -438,8 +441,22 @@ export default class WifiRadioUtil {
 
   // Whether an SSID cell names a network clients can join.
   public static isNetworkName(name: string | undefined): boolean {
-    const text: string = (name || "").trim();
-    return text.length > 0 && !NO_SSID_NAME.test(text);
+    return WifiInternalNetworkUtil.isNetworkName(name);
+  }
+
+  /*
+   * Whether a stored SSID row holds a network the access point runs for
+   * itself (WifiInternalNetwork). A walk does not store these; a snapshot
+   * stored before it stopped can still hold them, until the next walk.
+   */
+  public static isInternalNetworkRow(row: SnmpTableSnapshotRow): boolean {
+    return (
+      WifiInternalNetworkUtil.getKind(
+        (columnOid: string): string | number | null | undefined => {
+          return row.cells?.[columnOid]?.raw;
+        },
+      ) !== undefined
+    );
   }
 
   /*

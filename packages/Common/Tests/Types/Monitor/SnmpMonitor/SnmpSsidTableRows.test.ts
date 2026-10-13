@@ -1,0 +1,402 @@
+import {
+  SnmpTableColumn,
+  SnmpTableColumnRole,
+  SnmpTableDefinition,
+  SnmpTableKind,
+  SnmpTableResult,
+  SnmpTableResultRow,
+  SnmpTableSnapshot,
+  SnmpTableSnapshotRow,
+  SnmpTableValueType,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  MAX_COLUMNS_PER_TABLE,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import SnmpVendorTemplateUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import {
+  EXTREME_WLAN_SERVICE_TYPE_OID,
+  UNIFI_VAP_ENTRY_OID,
+  UNIFI_VAP_ESSID_OID,
+  UNIFI_VAP_NAME_OID,
+  UNIFI_VAP_USAGE_OID,
+} from "../../../../Types/Monitor/SnmpMonitor/WifiInternalNetwork";
+import { describe, expect, it } from "@jest/globals";
+
+/*
+ * An SSID table holds the networks people join (#4730). The walk that
+ * stores a table leaves the rest out - a row that names no network, a
+ * network the access point runs for itself - so the SNMP Tables tab, the
+ * Wi-Fi tab, a row count, a metric and a criteria all see the same rows.
+ * Every other kind of table keeps every row it walks.
+ */
+
+const UNIFI_VAP_RADIO: string = `${UNIFI_VAP_ENTRY_OID}.9`;
+const UNIFI_VAP_STATIONS: string = `${UNIFI_VAP_ENTRY_OID}.8`;
+
+function unifiVapTable(
+  overrides: Partial<SnmpTableDefinition> = {},
+): SnmpTableDefinition {
+  return {
+    key: "wifi_ssids",
+    name: "SSIDs",
+    kind: SnmpTableKind.WifiSsid,
+    rowLabelColumnOids: [UNIFI_VAP_ESSID_OID, UNIFI_VAP_RADIO],
+    columns: [
+      {
+        oid: UNIFI_VAP_ESSID_OID,
+        name: "SSID",
+        role: SnmpTableColumnRole.Ssid,
+        valueType: SnmpTableValueType.Text,
+      },
+      {
+        oid: UNIFI_VAP_RADIO,
+        name: "Band",
+        role: SnmpTableColumnRole.Band,
+        valueType: SnmpTableValueType.Text,
+      },
+      {
+        oid: UNIFI_VAP_STATIONS,
+        name: "Clients",
+        role: SnmpTableColumnRole.Clients,
+      },
+      {
+        oid: UNIFI_VAP_USAGE_OID,
+        name: "Usage",
+        valueType: SnmpTableValueType.Text,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+function vap(
+  index: string,
+  essid: string,
+  usage: string = "user",
+  stations: number = 0,
+): SnmpTableResultRow {
+  return {
+    index: index,
+    values: {
+      [UNIFI_VAP_ESSID_OID]: essid,
+      [UNIFI_VAP_RADIO]: "na",
+      [UNIFI_VAP_STATIONS]: stations,
+      [UNIFI_VAP_USAGE_OID]: usage,
+    },
+  };
+}
+
+// Five VAPs as UniFi reports them: two networks, two of UniFi's own, a slot with no name.
+function unifiWalk(): SnmpTableResult {
+  return {
+    key: "wifi_ssids",
+    rows: [
+      vap("1", "element-9d2c4f0a7be13685"),
+      vap("2", "Shop", "user", 3),
+      vap("3", "vwire-17b0e3d95ca4f286", "downlink", 1),
+      vap("4", "Shop-Guest", "guest", 2),
+      vap("5", ""),
+    ],
+  };
+}
+
+function materializeOne(
+  table: SnmpTableDefinition,
+  result: SnmpTableResult,
+): SnmpTableSnapshot {
+  const snapshots: Array<SnmpTableSnapshot> = SnmpTableListUtil.materialize({
+    tables: [table],
+    results: [result],
+  });
+
+  expect(snapshots).toHaveLength(1);
+  return snapshots[0]!;
+}
+
+function labelsOf(snapshot: SnmpTableSnapshot): Array<string> {
+  return snapshot.rows.map((row: SnmpTableSnapshotRow): string => {
+    return row.label;
+  });
+}
+
+describe("an SSID table, as a walk stores it", () => {
+  it("keeps the networks people join, and nothing else", () => {
+    expect(labelsOf(materializeOne(unifiVapTable(), unifiWalk()))).toEqual([
+      "Shop / na",
+      "Shop-Guest / na",
+    ]);
+  });
+
+  it("keeps a hidden SSID: it has a name, and is the customer's", () => {
+    expect(
+      labelsOf(
+        materializeOne(unifiVapTable(), {
+          key: "wifi_ssids",
+          rows: [vap("7", "Back-Office-Hidden")],
+        }),
+      ),
+    ).toEqual(["Back-Office-Hidden / na"]);
+  });
+
+  it("reads the kind as stored, a string from JSON included", () => {
+    const stored: SnmpTableDefinition = JSON.parse(
+      JSON.stringify(unifiVapTable()),
+    ) as SnmpTableDefinition;
+
+    expect(stored.kind).toBe("WifiSsid");
+    expect(labelsOf(materializeOne(stored, unifiWalk()))).toEqual([
+      "Shop / na",
+      "Shop-Guest / na",
+    ]);
+  });
+
+  it("applies the row limit to the networks it keeps", () => {
+    const snapshot: SnmpTableSnapshot = materializeOne(
+      unifiVapTable({ maxRows: 1 }),
+      unifiWalk(),
+    );
+
+    expect(labelsOf(snapshot)).toEqual(["Shop / na"]);
+  });
+
+  it("keeps the walk's truncation as the probe reported it", () => {
+    const snapshot: SnmpTableSnapshot = materializeOne(unifiVapTable(), {
+      ...unifiWalk(),
+      isTruncated: true,
+    });
+
+    expect(snapshot.isTruncated).toBe(true);
+    expect(snapshot.rows).toHaveLength(2);
+  });
+
+  it("stores a table of UniFi's own networks alone as an empty one, not as no table", () => {
+    const snapshot: SnmpTableSnapshot = materializeOne(unifiVapTable(), {
+      key: "wifi_ssids",
+      rows: [
+        vap("1", "element-9d2c4f0a7be13685"),
+        vap("3", "vwire-17b0e3d95ca4f286", "downlink"),
+      ],
+    });
+
+    expect(snapshot.rows).toEqual([]);
+    expect(snapshot.failureCause).toBeUndefined();
+  });
+
+  it("leaves a failed walk's table as it was: no rows, and why", () => {
+    const snapshot: SnmpTableSnapshot = materializeOne(unifiVapTable(), {
+      key: "wifi_ssids",
+      rows: [],
+      failureCause: "Request timed out",
+    });
+
+    expect(snapshot.rows).toEqual([]);
+    expect(snapshot.failureCause).toBe("Request timed out");
+  });
+
+  it("judges a table with no SSID column by what its rows report", () => {
+    // Named by its rows, as ArubaOS names its ESSIDs: no name to judge.
+    const table: SnmpTableDefinition = unifiVapTable({
+      rowLabelColumnOids: undefined,
+      columns: unifiVapTable().columns.filter(
+        (column: SnmpTableColumn): boolean => {
+          return column.role !== SnmpTableColumnRole.Ssid;
+        },
+      ),
+    });
+
+    const snapshot: SnmpTableSnapshot = materializeOne(table, {
+      key: "wifi_ssids",
+      rows: [vap("2", "Shop"), vap("3", "Anything", "downlink"), vap("5", "")],
+    });
+
+    expect(
+      snapshot.rows.map((row: SnmpTableSnapshotRow): string => {
+        return row.index;
+      }),
+    ).toEqual(["2", "5"]);
+  });
+
+  it("reads the SSID as shown, a value label included", () => {
+    const table: SnmpTableDefinition = unifiVapTable();
+    table.columns[0] = {
+      ...table.columns[0]!,
+      valueLabels: { "lab-1": "N/A" },
+    };
+
+    expect(
+      labelsOf(
+        materializeOne(table, {
+          key: "wifi_ssids",
+          rows: [vap("1", "lab-1"), vap("2", "Shop")],
+        }),
+      ),
+    ).toEqual(["Shop / na"]);
+  });
+});
+
+describe("every other kind of table", () => {
+  it.each([
+    SnmpTableKind.Generic,
+    SnmpTableKind.WifiRadio,
+    SnmpTableKind.WifiAccessPoint,
+    SnmpTableKind.VpnTunnel,
+    SnmpTableKind.RoutingAdjacency,
+    SnmpTableKind.Hardware,
+    undefined,
+  ])("keeps every row it walks: %p", (kind: SnmpTableKind | undefined) => {
+    const snapshot: SnmpTableSnapshot = materializeOne(
+      unifiVapTable({ kind: kind }),
+      unifiWalk(),
+    );
+
+    expect(snapshot.rows).toHaveLength(5);
+  });
+
+  it("lets a table of your own walk every VAP UniFi runs, its own networks included", () => {
+    // The way to watch the mesh link: a Generic table on unifiVapTable.
+    const own: SnmpTableDefinition = unifiVapTable({
+      key: "unifi_vaps",
+      name: "UniFi VAPs",
+      kind: SnmpTableKind.Generic,
+    });
+
+    expect(
+      labelsOf(materializeOne(own, { ...unifiWalk(), key: "unifi_vaps" })),
+    ).toEqual([
+      "element-9d2c4f0a7be13685 / na",
+      "Shop / na",
+      "vwire-17b0e3d95ca4f286 / na",
+      "Shop-Guest / na",
+      "na",
+    ]);
+  });
+});
+
+describe("SnmpTableListUtil.isListedRow", () => {
+  it("is true for a row of a table that is no SSID table, whatever it holds", () => {
+    expect(
+      SnmpTableListUtil.isListedRow(
+        unifiVapTable({ kind: SnmpTableKind.Generic }),
+        vap("3", "vwire-17b0e3d95ca4f286", "downlink"),
+      ),
+    ).toBe(true);
+  });
+
+  it("is false for UniFi's mesh link and adoption network, true for a network", () => {
+    const table: SnmpTableDefinition = unifiVapTable();
+
+    expect(
+      SnmpTableListUtil.isListedRow(
+        table,
+        vap("3", "vwire-17b0e3d95ca4f286", "downlink"),
+      ),
+    ).toBe(false);
+    expect(
+      SnmpTableListUtil.isListedRow(
+        table,
+        vap("1", "element-9d2c4f0a7be13685"),
+      ),
+    ).toBe(false);
+    expect(SnmpTableListUtil.isListedRow(table, vap("2", "Shop"))).toBe(true);
+  });
+
+  it("is false for a row whose SSID names no network", () => {
+    const table: SnmpTableDefinition = unifiVapTable();
+
+    for (const essid of ["", "  ", "N/A", "-"]) {
+      expect(SnmpTableListUtil.isListedRow(table, vap("9", essid))).toBe(false);
+    }
+  });
+
+  it("is false for a row the walk reported no SSID for", () => {
+    expect(
+      SnmpTableListUtil.isListedRow(unifiVapTable(), {
+        index: "9",
+        values: { [UNIFI_VAP_STATIONS]: 4 },
+      }),
+    ).toBe(false);
+  });
+
+  it("is true for a row with no values in a table with no SSID column", () => {
+    expect(
+      SnmpTableListUtil.isListedRow(
+        unifiVapTable({
+          columns: [{ oid: UNIFI_VAP_STATIONS, name: "Clients" }],
+        }),
+        { index: "9", values: {} },
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("the templates walk what the rules read", () => {
+  function ssidTable(templateId: string): SnmpTableDefinition {
+    const table: SnmpTableDefinition | undefined =
+      SnmpVendorTemplateUtil.getById(templateId)?.tables?.find(
+        (candidate: SnmpTableDefinition): boolean => {
+          return candidate.kind === SnmpTableKind.WifiSsid;
+        },
+      );
+
+    expect(table).toBeDefined();
+    return table!;
+  }
+
+  function column(table: SnmpTableDefinition, oid: string): SnmpTableColumn {
+    const found: SnmpTableColumn | undefined = table.columns.find(
+      (candidate: SnmpTableColumn): boolean => {
+        return candidate.oid === oid;
+      },
+    );
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  it("UniFi's SSIDs table names each SSID's interface, as text", () => {
+    const table: SnmpTableDefinition = ssidTable("ubiquiti-unifi-ap");
+
+    expect(column(table, UNIFI_VAP_NAME_OID)).toMatchObject({
+      name: "Interface",
+      valueType: SnmpTableValueType.Text,
+    });
+    expect(column(table, UNIFI_VAP_USAGE_OID).valueType).toBe(
+      SnmpTableValueType.Text,
+    );
+    expect(column(table, UNIFI_VAP_ESSID_OID).role).toBe(
+      SnmpTableColumnRole.Ssid,
+    );
+  });
+
+  it("the Extreme controller's WLANs table names each service type", () => {
+    expect(
+      column(
+        ssidTable("extreme-wireless-controller"),
+        EXTREME_WLAN_SERVICE_TYPE_OID,
+      ),
+    ).toMatchObject({
+      name: "Service Type",
+      valueLabels: {
+        "0": "standard",
+        "3": "WDS",
+        "4": "third-party",
+        "5": "remote",
+        "6": "mesh",
+      },
+    });
+  });
+
+  it.each(["ubiquiti-unifi-ap", "extreme-wireless-controller"])(
+    "%s: its SSID table still saves, within the column limit",
+    (templateId: string) => {
+      const table: SnmpTableDefinition = ssidTable(templateId);
+
+      expect(
+        SnmpTableListUtil.getWalkedColumnOids(table).length,
+      ).toBeLessThanOrEqual(MAX_COLUMNS_PER_TABLE);
+      expect(() => {
+        return SnmpTableListUtil.validateTable(table, "Vendor template");
+      }).not.toThrow();
+    },
+  );
+});

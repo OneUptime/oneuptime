@@ -36,6 +36,14 @@ import { FIRST_PROBE_VERSION_WITH_SNMP_TABLES } from "../../Probe/ProbeCapabilit
 export enum SnmpTableKind {
   Generic = "Generic",
   WifiRadio = "WifiRadio",
+  /*
+   * The networks people join, one row per SSID (on each band, where the
+   * vendor reports SSIDs per radio). A walked row that names no network,
+   * or holds one the access point runs for itself - UniFi's mesh link and
+   * device adoption network, an Extreme controller's WDS and mesh services
+   * (WifiInternalNetwork) - is not kept: an SSID table only ever holds
+   * SSIDs, whatever reads it.
+   */
   WifiSsid = "WifiSsid",
   /*
    * The access points a wireless controller manages - an Aruba Instant
