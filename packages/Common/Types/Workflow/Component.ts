@@ -40,7 +40,46 @@ export enum ComponentInputType {
    * (ComponentOutPorts).
    */
   SwitchCases = "Switch Cases",
+  /*
+   * One of the setting's own choices (Argument.choices), stored as the
+   * choice's value: what a Page step's page is about. An empty setting
+   * stands for its first choice.
+   */
+  Choice = "Choice",
+  /*
+   * Who a Page step pages: the project's people, teams, on-call schedules
+   * or on-call policies, picked from a list. Stored as a list of ids, any of
+   * which may instead be a value from an earlier step - an id, several, or
+   * for people an email address (Types/Workflow/Components/OnCallPageSettings).
+   */
+  UserList = "User List",
+  TeamList = "Team List",
+  OnCallScheduleList = "On-Call Schedule List",
+  OnCallPolicyList = "On-Call Policy List",
+  // One of the project's alert severities, picked from a list.
+  AlertSeveritySelect = "Alert Severity Select",
 }
+
+/*
+ * The settings that hold a list of the project's records, picked in the
+ * step's settings (the Page steps' who-to-page settings).
+ */
+const RECORD_LIST_INPUT_TYPES: Array<ComponentInputType> = [
+  ComponentInputType.UserList,
+  ComponentInputType.TeamList,
+  ComponentInputType.OnCallScheduleList,
+  ComponentInputType.OnCallPolicyList,
+];
+
+export type IsRecordListInputTypeFunction = (
+  type: ComponentInputType,
+) => boolean;
+
+export const isRecordListInputType: IsRecordListInputTypeFunction = (
+  type: ComponentInputType,
+): boolean => {
+  return RECORD_LIST_INPUT_TYPES.includes(type);
+};
 
 /*
  * Argument types whose value is a JSON document but is read with
@@ -116,6 +155,33 @@ export interface ArgumentNotRequiredWhen {
   values?: Array<string> | undefined;
 }
 
+/*
+ * A setting that is part of the step only while another setting says so: a
+ * Page step's Title while it pages about a new alert, its Incident ID while
+ * it pages about an incident. While it is not shown, the settings do not
+ * draw it, it is not required, and the step does not read it.
+ *
+ * `values` are the other setting's stored values this one is shown for.
+ * `includesEmpty` says it is shown while the other setting is empty as
+ * well: an empty choice stands for its first one, so the settings that go
+ * with the first choice say so.
+ */
+export interface ArgumentShownWhen {
+  argumentId: string;
+  values: Array<string>;
+  includesEmpty?: boolean | undefined;
+}
+
+// One of a Choice setting's choices.
+export interface ArgumentChoice {
+  // What is stored.
+  value: string;
+  // What the settings show.
+  label: string;
+  // One line under the label, saying what choosing it means.
+  description?: string | undefined;
+}
+
 export interface Argument {
   name: string;
   description: string;
@@ -125,6 +191,13 @@ export interface Argument {
    * that ignores it errs on the safe side and calls the setting required.
    */
   notRequiredWhen?: ArgumentNotRequiredWhen | undefined;
+  /*
+   * Read through isArgumentShown. A setting that is not shown is not
+   * required either (isArgumentRequired).
+   */
+  shownWhen?: ArgumentShownWhen | undefined;
+  // The choices of a Choice setting, the first being what an empty one means.
+  choices?: Array<ArgumentChoice> | undefined;
   type: ComponentInputType;
   id: string;
   isAdvanced?: boolean | undefined;
@@ -137,6 +210,79 @@ export interface Argument {
   isSensitive?: boolean | undefined;
   placeholder?: string | undefined;
 }
+
+export type IsArgumentShownFunction = (
+  argument: Argument,
+  values: JSONObject | undefined | null,
+) => boolean;
+
+/**
+ * Whether a setting is part of the step as its other settings stand now
+ * (Argument.shownWhen). One with no such rule always is.
+ */
+export const isArgumentShown: IsArgumentShownFunction = (
+  argument: Argument,
+  values: JSONObject | undefined | null,
+): boolean => {
+  const rule: ArgumentShownWhen | undefined = argument.shownWhen;
+
+  if (!rule) {
+    return true;
+  }
+
+  const other: unknown = values ? values[rule.argumentId] : undefined;
+
+  if (other === undefined || other === null || other === "") {
+    return Boolean(rule.includesEmpty);
+  }
+
+  if (typeof other !== "string") {
+    return false;
+  }
+
+  const normalized: string = other.trim();
+
+  if (normalized === "") {
+    return Boolean(rule.includesEmpty);
+  }
+
+  return rule.values.includes(normalized);
+};
+
+export type GetArgumentChoiceFunction = (
+  argument: Argument,
+  value: unknown,
+) => ArgumentChoice | null;
+
+/**
+ * The choice a Choice setting holds: the one whose value is stored, or its
+ * first while nothing is. Null for a stored value that is none of its
+ * choices, and for a setting with no choices.
+ */
+export const getArgumentChoice: GetArgumentChoiceFunction = (
+  argument: Argument,
+  value: unknown,
+): ArgumentChoice | null => {
+  const choices: Array<ArgumentChoice> = argument.choices || [];
+
+  if (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "")
+  ) {
+    return choices[0] || null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return (
+    choices.find((choice: ArgumentChoice): boolean => {
+      return choice.value === value.trim();
+    }) || null
+  );
+};
 
 export type IsArgumentRequiredFunction = (
   argument: Argument,
@@ -152,6 +298,11 @@ export const isArgumentRequired: IsArgumentRequiredFunction = (
   values: JSONObject | undefined | null,
 ): boolean => {
   if (!argument.required) {
+    return false;
+  }
+
+  // A setting that is not part of the step now has nothing to fill in.
+  if (!isArgumentShown(argument, values)) {
     return false;
   }
 

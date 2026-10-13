@@ -189,15 +189,14 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "OnCallDutyPolicy ID",
     description:
-      "ID of your OneUptime on-call duty policy in which this object belongs",
+      "ID of your OneUptime on-call duty policy in which this object belongs. Empty for a step of a direct page, which has no on-call policy.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
@@ -583,15 +582,14 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "On-Call Policy Escalation Rule ID",
     description:
-      "ID of your On-Call Policy Escalation Rule where this timeline event belongs.",
+      "ID of your On-Call Policy Escalation Rule where this timeline event belongs. Empty for a step of a direct page, which has no escalation rules.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;

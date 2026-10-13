@@ -47,6 +47,18 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  * - so it can be read and tested on its own. Every name in it (the
  * policy's, a person's, a rule's, a schedule's) is text, placed with
  * mdText, so none of them can become a link, a mention or formatting.
+ *
+ * A DIRECT PAGE - people, a team or a schedule paged with no policy behind
+ * the page (Types/OnCallDutyPolicy/OnCallDirectPage) - is a run too, and
+ * reads the same way with whoever started it where the policy is. It pages
+ * everybody at once, so it has no escalation rule to say it is on:
+ *
+ *   📟 Workflow Page the on-call engineer is paging for Incident INC-8
+ *
+ *   • Nitin: paged once · by SMS and email
+ *   • Nobody was on call in schedule Secondary
+ *
+ *   See every step in OneUptime
  */
 
 // How a run stands, as the message tells it.
@@ -92,6 +104,8 @@ export interface OnCallPolicyRunNotPaged {
   personName?: string | undefined;
   // The schedule that had nobody on call, when it is about a schedule.
   scheduleName?: string | undefined;
+  // The team a direct page named that has no members, when it is about one.
+  teamName?: string | undefined;
   // The escalation rule that had nobody to page at all.
   rule?: OnCallPolicyRunRule | undefined;
   // Why, as a phrase: "not a member of this project".
@@ -109,9 +123,27 @@ export interface OnCallPolicyRunNotPaged {
   awayUntil?: Date | undefined;
 }
 
+/*
+ * Who started a direct page, named in its message where an on-call policy's
+ * run names the policy: the workflow whose step started it, or the person.
+ * With neither, the product itself is named.
+ */
+export interface OnCallDirectPageRun {
+  startedByWorkflowName?: string | undefined;
+  // The workflow in the Dashboard, when the run recorded which one it was.
+  startedByWorkflowUrl?: string | undefined;
+  startedByPersonName?: string | undefined;
+}
+
 export interface OnCallPolicyRun {
+  // Empty for a direct page, which has no policy (directPage).
   policyName: string;
   policyUrl: string;
+  /*
+   * Set for a direct page: who started it. Such a run has no escalation
+   * rules - ruleCount is 0, and it is never on one.
+   */
+  directPage?: OnCallDirectPageRun | undefined;
   // The run's own page in OneUptime: every step, in order.
   runUrl: string;
   // "Incident INC-8", "Alert #12", "Incident Episode EP-3", ...
@@ -195,7 +227,8 @@ export default class OnCallPolicyRunMessageView {
   public static getMarkdown(run: OnCallPolicyRun): string {
     const parts: Array<MarkdownText> = [this.getHeadline(run)];
 
-    if (run.outcome === OnCallPolicyRunOutcome.Paging) {
+    // A direct page pages everybody at once: there is no rule it is on.
+    if (run.outcome === OnCallPolicyRunOutcome.Paging && !run.directPage) {
       parts.push(this.getProgress(run));
     }
 
@@ -224,26 +257,32 @@ export default class OnCallPolicyRunMessageView {
    * preview or a screen reader shows of it.
    */
   public static getPlainText(run: OnCallPolicyRun): string {
+    // The policy, or who started a direct page: what the line is about.
+    const pagerName: string = this.getPagerName(run);
+    const pagerNameInSentence: string = this.getPagerName(run, {
+      isInSentence: true,
+    });
+
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Paging:
-        return `${run.policyName} is paging for ${run.recordLabel}`;
+        return `${pagerName} is paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Acknowledged:
         return `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.RecordHandled:
         return run.outcomeDetail
-          ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${run.policyName} stopped paging`
-          : `${run.policyName} stopped paging for ${run.recordLabel}`;
+          ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${pagerNameInSentence} stopped paging`
+          : `${pagerName} stopped paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.PolicyArchived:
-        return `${run.policyName} stopped paging for ${run.recordLabel}: the policy was archived`;
+        return `${pagerName} stopped paging for ${run.recordLabel}: the policy was archived`;
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
         return `Nobody acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.NobodyReached:
-        return `${run.policyName} could not reach anyone for ${run.recordLabel}`;
+        return `${pagerName} could not reach anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Failed:
       default:
         return run.paged.length > 0
-          ? `${run.policyName} stopped paging for ${run.recordLabel}`
-          : `${run.policyName} could not page anyone for ${run.recordLabel}`;
+          ? `${pagerName} stopped paging for ${run.recordLabel}`
+          : `${pagerName} could not page anyone for ${run.recordLabel}`;
     }
   }
 
@@ -259,7 +298,9 @@ export default class OnCallPolicyRunMessageView {
     const alarms: Array<OnCallPolicyRunAlarm> = [];
 
     const record: MarkdownText = mdText`**[${run.recordLabel}](${run.recordUrl})**`;
-    const policy: MarkdownText = mdText`**[${run.policyName}](${run.policyUrl})**`;
+    // The policy, or who started a direct page.
+    const policy: MarkdownText = this.getPager(run);
+    const pagerName: string = this.getPagerName(run);
 
     /*
      * A rule that reached nobody is said only while nobody is on the record:
@@ -295,16 +336,19 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown:
-            mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, went through every escalation rule${this.getRepeatsDoneClause(run)} and has stopped paging. Someone needs to take it.`.toString(),
+          markdown: run.directPage
+            ? // Everybody was paged at once, and each page has sent all it had to.
+              mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, and has stopped paging. Someone needs to take it.`.toString()
+            : mdText`⚠️ Nobody has acknowledged ${record}. ${policy} paged ${this.getPagedNames(run)}, went through every escalation rule${this.getRepeatsDoneClause(run)} and has stopped paging. Someone needs to take it.`.toString(),
           text: `Nobody has acknowledged ${run.recordLabel}: someone needs to take it`,
         });
         break;
       case OnCallPolicyRunOutcome.NobodyReached:
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
-          markdown:
-            mdText`⚠️ Nobody was paged for ${record}: no escalation rule of ${policy} reached anyone. Check who is on call, or page someone yourself.`.toString(),
+          markdown: run.directPage
+            ? mdText`⚠️ Nobody was paged for ${record}: ${this.getPager(run, { isInSentence: true })} could not reach anyone${this.getNotPagedClause(run)}. Check who is on call, or page someone yourself.`.toString()
+            : mdText`⚠️ Nobody was paged for ${record}: no escalation rule of ${policy} reached anyone. Check who is on call, or page someone yourself.`.toString(),
           text: `Nobody was paged for ${run.recordLabel}`,
         });
         break;
@@ -327,7 +371,7 @@ export default class OnCallPolicyRunMessageView {
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
             mdText`❌ ${policy} ${whatInMarkdown}${this.getFailureDetail(run)} Page someone yourself.`.toString(),
-          text: `${run.policyName} ${what}`,
+          text: `${pagerName} ${what}`,
         });
         break;
       }
@@ -336,7 +380,7 @@ export default class OnCallPolicyRunMessageView {
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
             mdText`⏹️ ${policy} stopped paging for ${record} because the policy was archived. Nobody else will be paged: someone needs to take it.`.toString(),
-          text: `${run.policyName} stopped paging for ${run.recordLabel}: the policy was archived`,
+          text: `${pagerName} stopped paging for ${run.recordLabel}: the policy was archived`,
         });
         break;
       default:
@@ -348,25 +392,32 @@ export default class OnCallPolicyRunMessageView {
 
   private static getHeadline(run: OnCallPolicyRun): MarkdownText {
     const record: MarkdownText = mdText`**[${run.recordLabel}](${run.recordUrl})**`;
-    const policy: MarkdownText = mdText`**[${run.policyName}](${run.policyUrl})**`;
+    // The policy, or who started a direct page: first in a sentence, and inside one.
+    const policy: MarkdownText = this.getPager(run);
+    const policyInSentence: MarkdownText = this.getPager(run, {
+      isInSentence: true,
+    });
 
     switch (run.outcome) {
       case OnCallPolicyRunOutcome.Paging:
         return mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
-        return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, so ${policy} stopped paging`;
+        return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, so ${policyInSentence} stopped paging`;
       case OnCallPolicyRunOutcome.RecordHandled:
         /*
          * In the past tense: the message is not edited once the run is
          * over, and the record may move on to other states after it.
          */
         return run.outcomeDetail
-          ? mdText`✅ ${record} moved to **${run.outcomeDetail}**, so ${policy} stopped paging`
-          : mdText`✅ ${record} is being handled, so ${policy} stopped paging`;
+          ? mdText`✅ ${record} moved to **${run.outcomeDetail}**, so ${policyInSentence} stopped paging`
+          : mdText`✅ ${record} is being handled, so ${policyInSentence} stopped paging`;
       case OnCallPolicyRunOutcome.PolicyArchived:
         return mdText`⏹️ ${policy} stopped paging for ${record}: the policy was archived`;
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
-        return mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
+        // A direct page has no escalation rules to have gone through.
+        return run.directPage
+          ? mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`
+          : mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return mdText`⚠️ ${policy} could not reach anyone for ${record}`;
       case OnCallPolicyRunOutcome.Failed:
@@ -504,11 +555,117 @@ export default class OnCallPolicyRunMessageView {
       return mdText`Nobody was on call in schedule **${entry.scheduleName}**`;
     }
 
+    if (entry.teamName) {
+      return mdText`Team **${entry.teamName}** has no members`;
+    }
+
     if (entry.rule) {
       return mdText`${this.capitalize(this.getRuleLabel(entry.rule))}: ${entry.reason}`;
     }
 
     return mdText`${this.capitalize(entry.reason)}`;
+  }
+
+  /*
+   * What a run's message is about: an on-call policy, as a link to it - or,
+   * for a direct page, who started the page: "Workflow **Page SRE**" (a
+   * link to the workflow when the run recorded which one), the person, or
+   * the product. Inside a sentence the word "workflow" is not capitalised;
+   * a policy's and a person's names read the same in both places.
+   */
+  private static getPager(
+    run: OnCallPolicyRun,
+    options?: { isInSentence?: boolean | undefined } | undefined,
+  ): MarkdownText {
+    if (!run.directPage) {
+      return mdText`**[${run.policyName}](${run.policyUrl})**`;
+    }
+
+    const workflowName: string = (
+      run.directPage.startedByWorkflowName || ""
+    ).trim();
+
+    if (workflowName) {
+      const workflow: MarkdownText = run.directPage.startedByWorkflowUrl
+        ? mdText`**[${workflowName}](${run.directPage.startedByWorkflowUrl})**`
+        : mdText`**${workflowName}**`;
+
+      return options?.isInSentence
+        ? mdText`workflow ${workflow}`
+        : mdText`Workflow ${workflow}`;
+    }
+
+    const personName: string = (
+      run.directPage.startedByPersonName || ""
+    ).trim();
+
+    if (personName) {
+      return mdText`**${personName}**`;
+    }
+
+    return mdText`${ProductBrandingText.getProductName()}`;
+  }
+
+  // The same, as plain text: what a notification shows of it.
+  private static getPagerName(
+    run: OnCallPolicyRun,
+    options?: { isInSentence?: boolean | undefined } | undefined,
+  ): string {
+    if (!run.directPage) {
+      return run.policyName;
+    }
+
+    const workflowName: string = (
+      run.directPage.startedByWorkflowName || ""
+    ).trim();
+
+    if (workflowName) {
+      return options?.isInSentence
+        ? `workflow ${workflowName}`
+        : `Workflow ${workflowName}`;
+    }
+
+    return (
+      (run.directPage.startedByPersonName || "").trim() ||
+      ProductBrandingText.getProductName()
+    );
+  }
+
+  /*
+   * Why a direct page reached nobody, in brackets, for its alarm: " (Alex
+   * Kim: away until <time>; nobody was on call in schedule Primary)". Empty
+   * when the run has nothing to say of it.
+   */
+  private static getNotPagedClause(run: OnCallPolicyRun): MarkdownText {
+    const reasons: Array<MarkdownText> = run.notPaged
+      .map((entry: OnCallPolicyRunNotPaged): MarkdownText | null => {
+        if (entry.personName && entry.awayUntil) {
+          return this.getAwayReason(entry.personName, entry.awayUntil);
+        }
+
+        if (entry.personName) {
+          return mdText`${entry.personName}: ${entry.reason.trim() || ON_CALL_RUN_NOT_PAGED}`;
+        }
+
+        if (entry.scheduleName) {
+          return mdText`nobody was on call in schedule ${entry.scheduleName}`;
+        }
+
+        if (entry.teamName) {
+          return mdText`team ${entry.teamName} has no members`;
+        }
+
+        return null;
+      })
+      .filter((reason: MarkdownText | null): reason is MarkdownText => {
+        return reason !== null;
+      });
+
+    if (reasons.length === 0) {
+      return FeedMarkdown.empty();
+    }
+
+    return mdText` (${FeedMarkdown.join(reasons, "; ")})`;
   }
 
   // ": No Escalation Rules in Policy." - or just "." - closing the sentence.

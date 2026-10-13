@@ -16,12 +16,14 @@ import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
+import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
+import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -107,6 +109,11 @@ export class Service extends DatabaseService<Model> {
             name: true,
             _id: true,
           },
+          // Who started the page, for a direct page's entry to name.
+          onCallDutyPolicyExecutionLog: {
+            triggeredByWorkflowName: true,
+            triggeredByUserId: true,
+          },
         },
         props: {
           isRoot: true,
@@ -133,9 +140,18 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    /*
+     * A direct page's step names no policy and no escalation rule: its
+     * entry names who started the page instead (OnCallFeedText).
+     */
+    const isDirectPage: boolean = isOnCallDirectPage(
+      onCallDutyPolicyExecutionLogTimeline,
+    );
+
     if (
-      onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy &&
-      onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id
+      isDirectPage ||
+      (onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy &&
+        onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id)
     ) {
       const status: OnCallDutyExecutionLogTimelineStatus =
         onCallDutyPolicyExecutionLogTimeline.status!;
@@ -161,15 +177,19 @@ export class Service extends DatabaseService<Model> {
          * message uses (OnCallFeedText). The record it is for is not
          * named: the entry goes to that record's own feed only.
          */
-        const policyLink: MarkdownText = FeedMarkdown.link(
-          onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name || "",
-          (
-            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-              onCallDutyPolicyExecutionLogTimeline.projectId!,
-              onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!,
-            )
-          ).toString(),
-        );
+        const policyLink: MarkdownText | null =
+          !isDirectPage && onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy
+            ? FeedMarkdown.link(
+                onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name ||
+                  "",
+                (
+                  await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+                    onCallDutyPolicyExecutionLogTimeline.projectId!,
+                    onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!,
+                  )
+                ).toString(),
+              )
+            : null;
 
         /*
          * Some timeline rows have NO recipient by construction: a schedule
@@ -195,20 +215,41 @@ export class Service extends DatabaseService<Model> {
               })
             : undefined;
 
-        const feedInfoInMarkdown: string = OnCallFeedText.getStepMarkdown({
-          status: status,
-          policyLink: policyLink,
-          ruleName:
-            onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule
-              ?.name,
-          scheduleName:
-            onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
-          teamName:
-            onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
-          recipient: recipient,
-          overriddenUser: overriddenUser,
-          statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
-        });
+        const feedInfoInMarkdown: string = policyLink
+          ? OnCallFeedText.getStepMarkdown({
+              status: status,
+              policyLink: policyLink,
+              ruleName:
+                onCallDutyPolicyExecutionLogTimeline
+                  .onCallDutyPolicyEscalationRule?.name,
+              scheduleName:
+                onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+              teamName:
+                onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
+              recipient: recipient,
+              overriddenUser: overriddenUser,
+              statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+            })
+          : OnCallFeedText.getDirectPageStepMarkdown({
+              status: status,
+              pager:
+                await OnCallDutyPolicyExecutionLogService.getDirectPagePager({
+                  projectId: onCallDutyPolicyExecutionLogTimeline.projectId,
+                  triggeredByWorkflowName:
+                    onCallDutyPolicyExecutionLogTimeline
+                      .onCallDutyPolicyExecutionLog?.triggeredByWorkflowName,
+                  triggeredByUserId:
+                    onCallDutyPolicyExecutionLogTimeline
+                      .onCallDutyPolicyExecutionLog?.triggeredByUserId,
+                }),
+              scheduleName:
+                onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+              teamName:
+                onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
+              recipient: recipient,
+              overriddenUser: overriddenUser,
+              statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+            });
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, {
           projectId:
