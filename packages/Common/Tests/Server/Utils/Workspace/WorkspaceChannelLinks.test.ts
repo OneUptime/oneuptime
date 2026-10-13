@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import WorkspaceChannelLinks from "../../../../Server/Utils/Workspace/WorkspaceChannelLinks";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
@@ -26,10 +27,7 @@ type FindOneById = (data: {
   props: DatabaseCommonInteractionProps;
 }) => Promise<unknown>;
 
-const mockFinders: Record<
-  WorkspaceChannelRecordType,
-  jest.Mock<FindOneById>
-> = {
+const mockFinders: Record<WorkspaceChannelRecordType, Mock<FindOneById>> = {
   [WorkspaceChannelRecordType.Incident]: jest.fn<FindOneById>(),
   [WorkspaceChannelRecordType.Alert]: jest.fn<FindOneById>(),
   [WorkspaceChannelRecordType.IncidentEpisode]: jest.fn<FindOneById>(),
@@ -42,14 +40,18 @@ type GetProjectAuth = (data: {
   workspaceType: WorkspaceType;
 }) => Promise<unknown>;
 
-const mockGetProjectAuth: jest.Mock<GetProjectAuth> = jest.fn<GetProjectAuth>();
+const mockGetProjectAuth: Mock<GetProjectAuth> = jest.fn<GetProjectAuth>();
 
 jest.mock("../../../../Server/Services/IncidentService", () => {
   return {
     __esModule: true,
     default: {
       findOneById: (...args: Array<unknown>) => {
-        return (mockFinders.incident as jest.Mock)(...args);
+        return (
+          mockFinders.incident as unknown as (
+            ...args: Array<unknown>
+          ) => unknown
+        )(...args);
       },
     },
   };
@@ -60,7 +62,9 @@ jest.mock("../../../../Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: (...args: Array<unknown>) => {
-        return (mockFinders.alert as jest.Mock)(...args);
+        return (
+          mockFinders.alert as unknown as (...args: Array<unknown>) => unknown
+        )(...args);
       },
     },
   };
@@ -71,7 +75,11 @@ jest.mock("../../../../Server/Services/IncidentEpisodeService", () => {
     __esModule: true,
     default: {
       findOneById: (...args: Array<unknown>) => {
-        return (mockFinders["incident-episode"] as jest.Mock)(...args);
+        return (
+          mockFinders["incident-episode"] as unknown as (
+            ...args: Array<unknown>
+          ) => unknown
+        )(...args);
       },
     },
   };
@@ -82,7 +90,11 @@ jest.mock("../../../../Server/Services/AlertEpisodeService", () => {
     __esModule: true,
     default: {
       findOneById: (...args: Array<unknown>) => {
-        return (mockFinders["alert-episode"] as jest.Mock)(...args);
+        return (
+          mockFinders["alert-episode"] as unknown as (
+            ...args: Array<unknown>
+          ) => unknown
+        )(...args);
       },
     },
   };
@@ -93,7 +105,11 @@ jest.mock("../../../../Server/Services/ScheduledMaintenanceService", () => {
     __esModule: true,
     default: {
       findOneById: (...args: Array<unknown>) => {
-        return (mockFinders["scheduled-maintenance"] as jest.Mock)(...args);
+        return (
+          mockFinders["scheduled-maintenance"] as unknown as (
+            ...args: Array<unknown>
+          ) => unknown
+        )(...args);
       },
     },
   };
@@ -106,7 +122,11 @@ jest.mock(
       __esModule: true,
       default: {
         getProjectAuth: (...args: Array<unknown>) => {
-          return (mockGetProjectAuth as jest.Mock)(...args);
+          return (
+            mockGetProjectAuth as unknown as (
+              ...args: Array<unknown>
+            ) => unknown
+          )(...args);
         },
       },
     };
@@ -266,7 +286,7 @@ describe("who may ask", () => {
         },
       ]);
 
-      const finder: jest.Mock<FindOneById> = mockFinders[recordType];
+      const finder: Mock<FindOneById> = mockFinders[recordType];
       expect(finder).toHaveBeenCalledTimes(2);
 
       const [callerRead, rootRead] = finder.mock.calls.map(
@@ -577,7 +597,7 @@ describe("the project's connection", () => {
   });
 
   test("a connection that cannot be read leaves its buttons out and does not fail the page", async () => {
-    const loggedError: jest.SpiedFunction<typeof logger.error> = jest
+    const loggedError: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
         return undefined;

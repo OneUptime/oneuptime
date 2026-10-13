@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
@@ -48,13 +49,20 @@ if (
  * WorkspaceChannelLinks (it has suites of its own).
  */
 
-const mockGetLinks: jest.Mock = jest.fn();
+// WorkspaceChannelLinks.getLinks, which has suites of its own.
+type GetLinks = (data: {
+  recordType: WorkspaceChannelRecordType;
+  recordId: ObjectID;
+  props: JSONObject;
+}) => Promise<Array<unknown>>;
+
+const mockGetLinks: Mock<GetLinks> = jest.fn<GetLinks>();
 
 jest.mock("../../../Server/Utils/Workspace/WorkspaceChannelLinks", () => {
   return {
     __esModule: true,
     default: {
-      getLinks: (...args: Array<unknown>) => {
+      getLinks: (...args: Parameters<GetLinks>) => {
         return mockGetLinks(...args);
       },
     },
