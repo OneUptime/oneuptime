@@ -68,11 +68,14 @@ interface CapturedFeed {
 
 let captured: Array<CapturedFeed> = [];
 
-// The status sentence ending at the status, for a step without a message.
+// The one sentence of a step without a message, ending where it should.
 const STEP_STATUS_SENTENCE_END_PATTERN: RegExp =
-  /The status of this step is \*\*Skipped\*\*\.$/;
+  /nobody was on call in schedule \*\*Weekend Rotation\*\*\.$/;
 const ALERT_STATUS_SENTENCE_END_PATTERN: RegExp =
-  /The status of this alert is \*\*Error\*\*\. /;
+  /at escalation rule \*\*Level 1\*\* \(schedule \*\*Weekend Rotation\*\*\)\.$/;
+
+// A person paged by name: "paged **[Alice](...)**".
+const PAGED_SOMEONE_PATTERN: RegExp = /paged \*\*\[/;
 
 // Saved originals, restored in afterEach so suites stay independent.
 const originals: Record<string, any> = {};
@@ -238,16 +241,17 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
        * reappearance means the non-null assertion is back.
        */
       expect(captured[0]!.markdown).not.toContain("was alerted");
+      expect(captured[0]!.markdown).not.toMatch(PAGED_SOMEONE_PATTERN);
     });
 
     test("names the uncovered schedule as the reason nobody was paged", async () => {
       await runBuilder(buildRow({}));
 
-      expect(captured[0]!.markdown).toContain("nobody was notified");
-      expect(captured[0]!.markdown).toContain("no one was on call in schedule");
-      expect(captured[0]!.markdown).toContain("Weekend Rotation");
       expect(captured[0]!.markdown).toContain(
-        "no one was notified at this step",
+        "paged nobody at escalation rule **Level 1**",
+      );
+      expect(captured[0]!.markdown).toContain(
+        "nobody was on call in schedule **Weekend Rotation**",
       );
     });
 
@@ -260,7 +264,7 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
       await runBuilder(buildRow({ onCallDutySchedule: undefined }));
 
       expect(captured[0]!.markdown).toContain(
-        "this escalation rule had no responders",
+        "this escalation rule has no responders",
       );
       expect(captured[0]!.markdown).not.toContain("on call in schedule");
     });
@@ -290,7 +294,7 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
   });
 
   describe("a step that did notify someone", () => {
-    test("keeps the original alerted wording", async () => {
+    test("says who was paged, by which policy and rule", async () => {
       await runBuilder(
         buildRow({
           status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
@@ -300,9 +304,11 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
       );
 
       expect(captured).toHaveLength(1);
-      expect(captured[0]!.markdown).toContain("was alerted");
+      expect(captured[0]!.markdown).toMatch(PAGED_SOMEONE_PATTERN);
       expect(captured[0]!.markdown).toContain("Alice");
-      expect(captured[0]!.markdown).not.toContain("nobody was notified");
+      expect(captured[0]!.markdown).toContain("Production Paging");
+      expect(captured[0]!.markdown).toContain("escalation rule **Level 1**");
+      expect(captured[0]!.markdown).not.toContain("paged nobody");
     });
   });
 
@@ -326,7 +332,9 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
 
       expect(captured).toHaveLength(1);
       expect(captured[0]!.target).toBe("incidentEpisode");
-      expect(captured[0]!.markdown).toContain("Incident Episode");
+      // The episode's own feed: the entry does not name the episode it is in.
+      expect(captured[0]!.markdown).toContain("paged nobody");
+      expect(captured[0]!.markdown).not.toContain("Incident Episode");
     });
 
     test("carry the same no-recipient wording as other trigger types", async () => {
@@ -337,8 +345,8 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
         }),
       );
 
-      expect(captured[0]!.markdown).toContain("nobody was notified");
-      expect(captured[0]!.markdown).not.toContain("was alerted");
+      expect(captured[0]!.markdown).toContain("paged nobody");
+      expect(captured[0]!.markdown).not.toMatch(PAGED_SOMEONE_PATTERN);
     });
   });
 
@@ -356,9 +364,8 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
 
   /*
    * The names in the entry and the step's status message are text: the feed
-   * renders without its safe mode and the entry is posted to Slack and
-   * Teams. The message is escaped rather than put in a code span, which a
-   * "`" in it would end early.
+   * renders without its safe mode. The message is escaped rather than put in
+   * a code span, which a "`" in it would end early.
    */
   describe("names and the status message are text", () => {
     function tokensOf(markdown: string): Array<Token> {
@@ -414,7 +421,7 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
               return token.raw;
             }),
         ).toEqual([]);
-        expect(readText(markdown)).toContain(`with the message: ${MESSAGE}`);
+        expect(readText(markdown)).toContain(MESSAGE);
         expect(markdown).not.toMatch(/(?<!\\)<!channel>/);
       },
     );
@@ -427,7 +434,7 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
       );
 
       expect(captured[0]!.markdown).toContain(
-        "The escalation rule **Unnamed Rule**",
+        "escalation rule **Unnamed Rule**",
       );
       expect(captured[0]!.markdown).not.toContain("****");
       expect(captured[0]!.markdown).not.toContain("undefined");
@@ -465,9 +472,9 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
   });
 
   /*
-   * The sentence that names the step's status ends once: with the message
-   * and a full stop, without a second one when the message brings its own,
-   * and at the status when the step has no message.
+   * The step's message is a sentence of its own after the headline, ending
+   * once: with a full stop, without a second one when it brings its own. A
+   * step with no message is the headline alone.
    */
   describe("the status sentence", () => {
     const NO_RECIPIENT: Record<string, unknown> = {};
@@ -477,21 +484,17 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
     };
 
     test.each([
-      ["no recipient", NO_RECIPIENT, "The status of this step is **Skipped**"],
-      ["a recipient", RECIPIENT, "The status of this alert is **Error**"],
+      ["no recipient", NO_RECIPIENT],
+      ["a recipient", RECIPIENT],
     ])(
       "with %s, a message without its own full stop is given one",
-      async (
-        _name: string,
-        overrides: Record<string, unknown>,
-        status: string,
-      ) => {
+      async (_name: string, overrides: Record<string, unknown>) => {
         await runBuilder(
           buildRow({ ...overrides, statusMessage: "SMS provider timed out" }),
         );
 
-        expect(captured[0]!.markdown).toContain(
-          `${status} with the message: SMS provider timed out.`,
+        expect(captured[0]!.markdown).toMatch(
+          /\.\n\nSMS provider timed out\.$/,
         );
       },
     );
@@ -512,8 +515,8 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
         await runBuilder(buildRow({ ...overrides, statusMessage: message }));
 
         const markdown: string = captured[0]!.markdown;
-        expect(markdown).toContain(`with the message: ${message}`);
-        expect(markdown).not.toContain(`with the message: ${message}.`);
+        expect(markdown.endsWith(`\n\n${message}`)).toBe(true);
+        expect(markdown).not.toContain(`${message}.`);
       },
     );
 
@@ -533,7 +536,7 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
         await runBuilder(buildRow({ ...overrides, statusMessage: message }));
 
         const markdown: string = captured[0]!.markdown;
-        expect(markdown).not.toContain("with the message");
+        expect(markdown).not.toContain("\n\n");
         expect(markdown).not.toContain("undefined");
         expect(markdown).toMatch(
           overrides === NO_RECIPIENT

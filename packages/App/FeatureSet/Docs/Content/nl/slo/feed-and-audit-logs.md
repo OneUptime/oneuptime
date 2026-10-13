@@ -23,7 +23,7 @@ flowchart LR
 
 ## De feed van de SLO
 
-De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Recent activity** op het **Overzicht** van de SLO. Items linken naar de SLO, de monitoren, de waarschuwingen en de incidenten die ze noemen, en de meeste hebben een sectie **More Information** met de cijfers of de oude en nieuwe waarden.
+De feed staat op de pagina **Feed** van de SLO, en de nieuwste items onder **Recent activity** op het **Overzicht** van de SLO. Items linken naar de SLO, de monitoren, de waarschuwingen en de incidenten die ze noemen, en de meeste hebben details met de cijfers of de oude en nieuwe waarden, die **Details tonen** onder het item openklapt.
 
 | Gebeurtenis | Gepubliceerd als |
 | --- | --- |

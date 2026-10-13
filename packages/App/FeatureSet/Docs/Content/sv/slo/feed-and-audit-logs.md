@@ -23,7 +23,7 @@ flowchart LR
 
 ## SLO:ets flöde
 
-Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Recent activity** i SLO:ets **Översikt**. Posterna länkar till det SLO, de monitorer, larm och incidenter som de nämner, och de flesta har ett avsnitt **More Information** med siffrorna eller de gamla och nya värdena.
+Flödet finns på SLO:ets sida **Feed**, och dess senaste poster under **Recent activity** i SLO:ets **Översikt**. Posterna länkar till det SLO, de monitorer, larm och incidenter som de nämner, och de flesta har detaljer med siffrorna eller de gamla och nya värdena, som **Visa detaljer** fäller ut under posten.
 
 | Händelse | Publiceras när |
 | --- | --- |

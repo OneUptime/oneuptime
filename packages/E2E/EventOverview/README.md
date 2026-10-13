@@ -93,21 +93,23 @@ and the page name as its `<h1>`.
 
 Query parameters, parsed once per page load:
 
-| Parameter     | Values                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?state=`     | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it)                                                                                                                                                                                                                                                                              |
-| `?ai=`        | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block)                                                                                                                                                                                     |
-| `?tldr=`      | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps)                                                                                                                                                                                                                                                                                            |
-| `?title=`     | `default` or `long` (alert #311 is titled "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster", 67 characters, wider than the room its header leaves beside the actions)                                                                                                                                                                                                                           |
-| `?verdict=`   | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311)                                                                                                                                                                                                                                                                                        |
-| `?sm=`        | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end)                                                                                                                                                                                                                                            |
-| `?fail=`      | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `conversation` (the thread cannot be loaded), `conversation-send` (a question is refused: "AI is turned off for this project…"), `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused)                                                                                                           |
-| `?resources=` | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
-| `?theme=`     | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
-| `?role=`      | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
-| `?clusters=`  | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
-| `?measurements=` | `default`, `none` (no measurements: the card is not drawn and only the definitions are read) or `states` (adds Time to impact, whose end is before its start, and Time to close, created a moment ago, which no event has a value for yet) |
-| `?thread=`    | what the card's conversation holds: nobody has asked (default), `answered` (Sam's question and its cited answer, then the viewer's with a table, an executed action and a source), `working` (an answer being written, with live steps), `approval` (an action waiting for approval), `error` (a failed and a stopped answer) or `crowded` (twelve messages from six people, so the thread opens folded)            |
+| Parameter        | Values                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?state=`        | `resolved` (default), `ongoing` (incident #1042, alert #311 and both episodes stop at Acknowledged) or `created` (they stop before it)                                                                                                                                                                                                                                                                              |
+| `?ai=`           | `report` (default), `none`, `queued`, `running`, `failed`, `pending`, `legacy` (a completed report from an API replica without `evidence` / `references`, so the panel falls back to the report's own "Evidence checked" block)                                                                                                                                                                                     |
+| `?tldr=`         | `default` or `long` (incident #1042's TL;DR is 320 characters, the server's cap, so the header summary wraps and clamps)                                                                                                                                                                                                                                                                                            |
+| `?title=`        | `default` or `long` (alert #311 is titled "Payment webhook 5xx rate above 5% on the eu-west-1 checkout cluster", 67 characters, wider than the room its header leaves beside the actions)                                                                                                                                                                                                                           |
+| `?verdict=`      | none (default), `confirmed` or `rejected` (a responder's verdict already saved on the runs of incident #1042 and alert #311)                                                                                                                                                                                                                                                                                        |
+| `?sm=`           | `scheduled` (default, starts in 2 hours), `ongoing`, `ended`, `overdue` (still Scheduled 20 minutes after its start), `overrun` (still Ongoing 30 minutes after its end)                                                                                                                                                                                                                                            |
+| `?fail=`         | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `conversation` (the thread cannot be loaded), `conversation-send` (a question is refused: "AI is turned off for this project…"), `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused), `channel-links` (the record's Slack / Teams channels cannot be read)                                     |
+| `?channels=`     | the record's own chat channels, as `GET /workspace-channel-link/<type>/<id>` answers them for the header's Open in Slack / Open in Microsoft Teams: comma separated `slack` (one Slack channel), `slack2` (a second Slack channel, so Open in Slack becomes a menu) and `teams` (one Teams channel). None by default: no button. The links are built by the real `WorkspaceChannelLink` rules                       |
+| `?resources=`    | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
+| `?feed=`         | `oncall-run`: incident #1042's on-call run in full, as the run writes its feed entries now (who it paged, a rule that reached nobody, who acknowledged): four on-call entries within a minute, which the feed folds into the newest of them                                                                                                                                                                         |
+| `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
+| `?role=`         | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
+| `?clusters=`     | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
+| `?measurements=` | `default`, `none` (no measurements: the card is not drawn and only the definitions are read) or `states` (adds Time to impact, whose end is before its start, and Time to close, created a moment ago, which no event has a value for yet)                                                                                                                                                                          |
+| `?thread=`       | what the card's conversation holds: nobody has asked (default), `answered` (Sam's question and its cited answer, then the viewer's with a table, an executed action and a source), `working` (an answer being written, with live steps), `approval` (an action waiting for approval), `error` (a failed and a stopped answer) or `crowded` (twelve messages from six people, so the thread opens folded)            |
 
 ## What the spec covers
 
@@ -128,7 +130,7 @@ Query parameters, parsed once per page load:
   rating, rolled back with a failed save, already there with `?verdict=`, beside the heading
   at 1440px, wrapped under it at 390px and at 768px with View full report moved to the bottom
   row, on the alert page too) and the muted summary of a rejected report; the feed's compact
-  AI item and its More Information modal.
+  AI item and its full report unfolding in place under it.
 - **Investigation details**: evidence, activity and usage share one section below the report
   that starts collapsed. Its header names what the run did (queries, steps) and the read-only
   guarantee; tokens and the model sit inside. The Evidence checked and Activity tabs switch by
@@ -220,6 +222,24 @@ Query parameters, parsed once per page load:
   every maintenance phase; `?measurements=none` drawing nothing; the dark theme and a phone.
 - **Responsive**: no horizontal scroll at 390px on all five pages (and with evidence rows
   expanded); right-column card titles wider than 120px at 1280px.
+- **The feed, as a timeline**: the day as a level-3 heading with its date ("Monday, September
+  14, 2026"), Today beside it and the zone the times are in (UTC); every entry's time, newest
+  first, with "N min. ago" for the last hour, a time said once per minute, and a `<time>` with
+  the instant; an entry led by who did it, its leading emoji gone and the rail's icon in its
+  place; the time above the entry on a phone; the AI entry's full report unfolding in place
+  under Show the full report, and folding again under Hide details; what someone wrote (a note,
+  the AI's root cause) in a card under the sentence that introduces it, light and dark, while
+  what happened stays a sentence; a maintenance event's created entry read as "Jordan Patel
+  created Scheduled Maintenance #58"; and with `?feed=oncall-run` the run folded into its
+  newest entry, unfolding in place by keyboard with Show fewer under its last entry, focus
+  moving to the first entry it unfolded and back to Show 3 more when it folds again.
+- **Open in Slack / Microsoft Teams**: no button without a channel (the page still asks, for
+  its record); with `?channels=slack` a link in the hero opening in a new tab without an opener,
+  the channel named when pointed at; with `teams` a link on teams.microsoft.com with its team;
+  with `slack,slack2` one Open in Slack menu listing both channels, each opening in a new tab;
+  with `slack,teams` one Open channel menu naming each product, so a created incident's title
+  keeps its room at 1280px; the alert, scheduled maintenance and both episode pages too;
+  `?fail=channel-links` hiding the buttons with nothing broken; a phone with all three.
 
 Two tests are marked `test.fail` because they pin known layout bugs and pass (as expected
 failures) until the bugs are fixed, when Playwright reports them so the mark can go: on a
@@ -246,7 +266,9 @@ npm run test-event-overview-ui
 ```
 
 Playwright reuses a server already listening on port 4222 outside CI. If one from another
-checkout might be running, stop it first or run with `CI=1`.
+checkout might be running, give this run a port of its own (the config, `server.js` and the
+spec's network fence all read it):
+`EVENT_OVERVIEW_FIXTURE_PORT=4719 CI=1 npm run test-event-overview-ui`.
 
 Screenshots land in `output/playwright/event-overview-ui/`, named `*-synthetic.png` because
 every record in them is fabricated. The AI card's states are
@@ -257,8 +279,9 @@ conversation in it
 title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
 and the Affected Resources tests add
 `{incident,alert,scheduled-maintenance}-overview-affected-resources` and
-`incident-affected-resources-{many,mobile,empty,light,dark}`, and the Measurements card
-`incident-measurements{,-dark,-mobile}`.
+`incident-affected-resources-{many,mobile,empty,light,dark}`, the Measurements card
+`incident-measurements{,-dark,-mobile}`, the feed `incident-feed{,-mobile}`, and the hero's
+chat buttons `incident-hero-open-in-chat{,-mobile}` and `incident-hero-open-channel{,-menu}`.
 
 ## Poke at it by hand
 

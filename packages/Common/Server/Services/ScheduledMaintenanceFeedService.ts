@@ -94,9 +94,9 @@ export class Service extends ProjectReferencesService<Model> {
           data.moreInformationInMarkdown;
       }
 
-      if (!data.postedAt) {
-        scheduledMaintenanceFeed.postedAt = OneUptimeDate.getCurrentDate();
-      }
+      // When it happened: the time the caller gives, or now.
+      scheduledMaintenanceFeed.postedAt =
+        data.postedAt || OneUptimeDate.getCurrentDate();
 
       await this.create({
         data: scheduledMaintenanceFeed,

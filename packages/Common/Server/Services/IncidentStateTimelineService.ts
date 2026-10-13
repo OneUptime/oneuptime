@@ -592,8 +592,14 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       displayColor: incidentState?.color,
       feedInfoInMarkdown:
         mdText`${stateEmoji} Changed **[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}) State** to **${stateName}**`.toString(),
-      moreInformationInMarkdown: mdText`**Cause:**
-${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString(),
+      /*
+       * The cause, when one was given. Without one the entry has no details:
+       * a "Cause:" with nothing after it opened an empty box in the feed.
+       */
+      moreInformationInMarkdown: createdItem.rootCause
+        ? mdText`**Cause:**
+${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
+        : undefined,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         /*

@@ -647,6 +647,11 @@ describe("Scheduled maintenance overview page", () => {
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
         /*
+         * When it was created: a new event's Slack or Teams channel arrives
+         * a moment later, so Open in Slack / Teams looks again meanwhile.
+         */
+        createdAt: true,
+        /*
          * Its state and whether it is completed, for the Measurements card;
          * with its place and the other flags, whether it has started, for
          * the Affected Resources card's Change Monitor Status to.

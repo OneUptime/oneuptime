@@ -27,6 +27,9 @@ import QuietChannelsWorld, {
   FeedEntry,
 } from "./QuietChannelsWorld";
 
+// A feed entry that says a person was paged: "... paged **Nitin** at ...".
+const PAGED_SOMEONE_PATTERN: RegExp = / paged \*\*/;
+
 jest.mock("../../../../../Server/Utils/Logger");
 
 /*
@@ -589,17 +592,22 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
       expect(post.text).not.toContain("Status Updated");
     }
 
+    /*
+     * In the feed, the run's start once, in one sentence (OnCallFeedText).
+     * Its own Started and Executing statuses add nothing: they said
+     * "started paging" a second time and "is paging" a third.
+     */
     const onCallFeed: Array<FeedEntry> = feedOf("OnCallPolicy");
     expect(
-      onCallFeed.some((entry: FeedEntry): boolean => {
-        return entry.markdown.includes("On Call Policy Started Executing");
+      onCallFeed.filter((entry: FeedEntry): boolean => {
+        return entry.markdown.endsWith(" started paging.");
       }),
-    ).toBe(true);
+    ).toHaveLength(1);
     expect(
       onCallFeed.filter((entry: FeedEntry): boolean => {
-        return entry.markdown.includes("Status Updated");
+        return entry.markdown.includes(" is paging.");
       }),
-    ).toHaveLength(2);
+    ).toHaveLength(0);
 
     for (const entry of onCallFeed) {
       expect(entry.postsToWorkspace).toBe(false);
@@ -620,7 +628,7 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
     // The feed records each page ONCE (the second write was a duplicate there too).
     const sent: Array<FeedEntry> = feedOf("OnCallPolicy").filter(
       (entry: FeedEntry): boolean => {
-        return entry.markdown.includes("Notification Sent to");
+        return PAGED_SOMEONE_PATTERN.test(entry.markdown);
       },
     );
     expect(
