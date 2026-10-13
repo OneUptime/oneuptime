@@ -152,7 +152,7 @@ La note est enregistrée en votre nom, avec vos autorisations, donc votre propre
 | `show active incidents`, `show active alerts` | Liste ce qui est ouvert maintenant. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Liste les événements de maintenance à venir, ou en cours. |
 
-Les cinq premiers sont les mots qui suivent `/oneuptime` dans Slack ; `create incident` et `create maintenance` fonctionnent toujours. Interroger OneUptime AI demande l'IA activée pour le projet. Voir [Demander à l'IA](/docs/ai/ask-ai).
+Hormis les listes `show`, ce sont les mots qui suivent `/oneuptime` dans Slack ; `create incident` et `create maintenance` fonctionnent toujours. Interroger OneUptime AI demande l'IA activée pour le projet. Voir [Demander à l'IA](/docs/ai/ask-ai).
 
 ## Créer des incidents et des maintenances depuis Microsoft Teams
 
