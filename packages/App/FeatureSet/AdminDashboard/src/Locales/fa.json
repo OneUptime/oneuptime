@@ -877,5 +877,13 @@
   "{{count}} more": "{{count}} مورد دیگر",
   "{{count}} more_one": "{{count}} مورد دیگر",
   "On": "روشن",
-  "Off": "خاموش"
+  "Off": "خاموش",
+  "Test": "آزمایش",
+  "Test LLM Provider": "آزمایش ارائه‌دهنده LLM",
+  "Sending a test prompt to your LLM provider…": "در حال فرستادن درخواست آزمایشی به ارائه‌دهنده LLM شما…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "این کار کلید API، مدل و نشانی پایه آن را بررسی می‌کند و اینکه آیا مدل آن می‌تواند ابزارها را فراخوانی کند.",
+  "Test again": "آزمایش دوباره",
+  "Test passed": "آزمایش موفق بود",
+  "Test passed, with a warning": "آزمایش موفق بود، با یک هشدار",
+  "Test failed": "آزمایش ناموفق بود"
 }

@@ -877,5 +877,13 @@
   "{{count}} more": "외 {{count}}개",
   "{{count}} more_one": "외 {{count}}개",
   "On": "켜짐",
-  "Off": "꺼짐"
+  "Off": "꺼짐",
+  "Test": "테스트",
+  "Test LLM Provider": "LLM 제공자 테스트",
+  "Sending a test prompt to your LLM provider…": "LLM 제공자에 테스트 프롬프트를 보내는 중…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "API 키, 모델, 기본 URL과 모델이 도구를 호출할 수 있는지 확인합니다.",
+  "Test again": "다시 테스트",
+  "Test passed": "테스트 통과",
+  "Test passed, with a warning": "테스트 통과(경고 있음)",
+  "Test failed": "테스트 실패"
 }

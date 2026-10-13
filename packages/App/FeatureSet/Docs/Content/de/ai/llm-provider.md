@@ -88,6 +88,8 @@ Füllen Sie die folgenden Felder aus:
 - **Basis-URL** (optional): Benutzerdefinierte API-Endpunkt-URL (erforderlich für Azure OpenAI, Ollama und OpenAI Compatible; optional für andere)
 - **Weitere Felder**, unter den Feldern oben eingeklappt: **Als Standard festlegen**, bei einem neuen Anbieter eingeschaltet, weil KI-Funktionen nur den Standardanbieter des Projekts verwenden, und **Zusätzliche Parameter**, ein optionales JSON-Objekt mit weiteren Parametern, das bei jeder Anfrage an den Anbieter gesendet wird (zum Beispiel `{"temperature": 0.2}`)
 
+**Einen Anbieter testen.** **Testen**, auf der Seite des Anbieters oder im Menü seiner Zeile, sendet dem Anbieter einen kurzen Prompt mit den Werten aus **API-Schlüssel**, **Modellname**, **Basis-URL** und **Zusätzliche Parameter** und meldet, ob er geantwortet und ein Tool aufgerufen hat, was die KI-Funktionen von OneUptime brauchen. Ein fehlgeschlagener Test sagt zuerst, was zu prüfen ist, und dann, was der Anbieter geantwortet hat. Wer einen Anbieter ändern darf, kann ihn testen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** und **Edit LLM**. Alle anderen, die den Anbieter sehen, finden **Testen** gesperrt. Einen globalen LLM-Anbieter testet ein Serveradministrator im Admin-Dashboard unter **Einstellungen** > **Globale LLM-Anbieter**.
+
 ## Anbieterspezifische Konfiguration
 
 ### OpenAI

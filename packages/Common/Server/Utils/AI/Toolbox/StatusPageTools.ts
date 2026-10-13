@@ -1,12 +1,15 @@
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageResource from "../../../../Models/DatabaseModels/StatusPageResource";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import MonitorService from "../../../Services/MonitorService";
 import StatusPageService from "../../../Services/StatusPageService";
 import StatusPageAnnouncementService from "../../../Services/StatusPageAnnouncementService";
 import StatusPageResourceService from "../../../Services/StatusPageResourceService";
@@ -86,6 +89,72 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
       return value.length > 0;
     })
     .join(", ");
+}
+
+/*
+ * The resources a page shows: an archived monitor's are left off the public
+ * page (ArchivedMonitorResources). Whether a resource's monitor is archived
+ * is read here as OneUptime, for the monitors of the resources the caller
+ * read and only those, in their project. A relation read never reads it
+ * (Monitor.isArchived is not readable on a relation query): asking for it
+ * along with the resources refused every member's read of a page by id -
+ * "Column isArchived on Monitor does not support read on relation query."
+ */
+async function withoutArchivedMonitors(
+  ctx: ToolContext,
+  resources: Array<StatusPageResource>,
+): Promise<Array<StatusPageResource>> {
+  const monitorIds: Array<string> = Array.from(
+    new Set(
+      resources
+        .map((resource: StatusPageResource): string => {
+          return resource.monitorId?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    ),
+  );
+
+  if (monitorIds.length === 0) {
+    return resources;
+  }
+
+  const archivedMonitors: Array<Monitor> = await MonitorService.findBy({
+    query: {
+      _id: QueryHelper.any(monitorIds),
+      projectId: ctx.projectId,
+      isArchived: true,
+    },
+    select: {
+      _id: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const archivedIds: Set<string> = new Set(
+    archivedMonitors.map((monitor: Monitor): string => {
+      return monitor.id?.toString() || "";
+    }),
+  );
+
+  for (const resource of resources) {
+    const monitorId: string | undefined = resource.monitorId?.toString();
+
+    if (!monitorId) {
+      continue;
+    }
+
+    const monitor: Monitor = resource.monitor || new Monitor();
+    monitor.isArchived = archivedIds.has(monitorId);
+    resource.monitor = monitor;
+  }
+
+  return ArchivedMonitorResources.withoutArchivedMonitors(resources);
 }
 
 /*
@@ -216,9 +285,9 @@ export const QueryStatusPagesTool: ObservabilityTool = {
           select: {
             _id: true,
             displayName: true,
+            monitorId: true,
             monitor: {
               name: true,
-              isArchived: true,
             },
             monitorGroup: {
               name: true,
@@ -248,7 +317,7 @@ export const QueryStatusPagesTool: ObservabilityTool = {
        * among the resources the page shows.
        */
       const shownResources: Array<StatusPageResource> =
-        ArchivedMonitorResources.withoutArchivedMonitors(resources);
+        await withoutArchivedMonitors(ctx, resources);
 
       const resourceSummaries: string = shownResources
         .map((resource: StatusPageResource) => {

@@ -3,8 +3,11 @@ import Dictionary from "../../Types/Dictionary";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import { APP_API_URL } from "../Config";
 import API from "./API/API";
+import { LLM_PROVIDER_TEST_REFUSED_SENTENCE } from "./LlmProviderTestCopy";
+import PermissionGate, { PermissionGateResult } from "./PermissionGate";
 
 export interface LLMProviderTestResult {
   success: boolean;
@@ -20,6 +23,22 @@ export interface LLMProviderTestResult {
 }
 
 export default class TestLLMProvider {
+  /*
+   * Whether the signed-in user may test a project's LLM provider: whoever
+   * may change it - the provider's update list, a team's block counted - as
+   * the server asks it (LlmProviderTestAccess). Refused, the reason is the
+   * server's refusal, translated: the sentence, then who may. Nothing to say
+   * until the permission snapshot has landed (hide the button then).
+   */
+  public static getTestGate(): PermissionGateResult {
+    return PermissionGate.checkPermissions(
+      new LlmProvider().getUpdatePermissions(),
+      {
+        sentence: LLM_PROVIDER_TEST_REFUSED_SENTENCE,
+      },
+    );
+  }
+
   /*
    * Sends a small test prompt to an LLM provider (by id) via the
    * /llm-provider/test endpoint and returns a friendly success/failure result.

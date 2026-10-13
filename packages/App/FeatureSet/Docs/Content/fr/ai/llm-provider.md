@@ -88,6 +88,8 @@ Remplissez les champs suivants :
 - **URL de base** (facultatif) : URL personnalisée du point de terminaison API (requise pour Azure OpenAI, Ollama et OpenAI Compatible ; facultative pour les autres)
 - **Plus de champs**, replié sous les champs ci-dessus : **Définir par défaut**, activé pour un nouveau fournisseur car les fonctionnalités IA n'utilisent que le fournisseur par défaut du projet, et **Paramètres supplémentaires**, un objet JSON facultatif dont les paramètres sont envoyés au fournisseur avec chaque requête (par exemple `{"temperature": 0.2}`)
 
+**Tester un fournisseur.** **Tester**, sur la page du fournisseur ou dans le menu de sa ligne, envoie au fournisseur une courte invite avec les valeurs de **Clé API**, **Nom du modèle**, **URL de base** et **Paramètres supplémentaires**, et indique s'il a répondu et appelé un outil, ce dont les fonctionnalités IA de OneUptime ont besoin. Un test qui échoue dit d'abord quoi vérifier, puis ce que le fournisseur a répondu. Quiconque peut modifier un fournisseur peut le tester : **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** et **Edit LLM**. Tous les autres qui voient le fournisseur trouvent **Tester** verrouillé. Un fournisseur LLM global est testé par un administrateur du serveur, dans le tableau de bord d'administration, sous **Paramètres** > **Fournisseurs LLM globaux**.
+
 ## Configuration spécifique au fournisseur
 
 ### OpenAI
