@@ -3,6 +3,7 @@ import ejs from "ejs";
 import path from "path";
 import { DOMWindow, JSDOM, VirtualConsole } from "jsdom";
 import type { BlogPost } from "../Utils/BlogPost";
+import BlogTag from "../Utils/BlogTag";
 
 /*
  * The blog post page (Views/Blog/Post.ejs), rendered from the real template
@@ -173,6 +174,7 @@ const renderPost: (htmlBody: string) => Promise<string> = async (
       blackLogo: false,
       requestDemoCta: false,
       blogPost: blogPostWith(htmlBody),
+      blogTagPath: BlogTag.getPagePathOfTag,
       enableGoogleTagManager: false,
       seo: { fullCanonicalUrl: POST_URL },
       homeUrl: "https://oneuptime.com",

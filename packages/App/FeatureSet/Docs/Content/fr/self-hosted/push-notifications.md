@@ -154,7 +154,7 @@ Deux mécanismes interviennent, et ils couvrent des cas différents :
 Android fige les réglages d'un canal à sa première création : ils ne peuvent donc pas être modifiés par une mise à jour de l'application – seulement en livrant un nouvel identifiant de canal.
 :::
 
-Pour vérifier que cela fonctionne, envoyez une notification de test à l'appareil depuis **Paramètres utilisateur > Méthodes de notification > Push Notifications**. Si l'appareil a les alertes critiques activées, le test est lui aussi envoyé comme alerte critique – mettez donc d'abord le téléphone en silencieux, et vous entendrez si une vraie alerte vous atteindrait.
+Pour vérifier que cela fonctionne, envoyez une notification de test à l'appareil depuis **Paramètres utilisateur > Méthodes de notification > Push Notifications**. Si l'appareil a les alertes critiques activées, le test est lui aussi envoyé comme alerte critique – mettez donc d'abord le téléphone en silencieux, et vous entendrez si une vraie alerte vous atteindrait. La même liste indique pour chaque appareil si les alertes critiques sont activées et, pour un téléphone où elles ne le sont pas, comment les activer.
 
 ### Choisir le son d'alarme
 

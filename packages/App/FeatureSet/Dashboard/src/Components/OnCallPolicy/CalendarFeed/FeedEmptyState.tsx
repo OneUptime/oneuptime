@@ -41,6 +41,14 @@ export interface ComponentProps {
   idPrefix: string;
 }
 
+/*
+ * The badge beside the text from sm up, and above it on a phone. Beside it
+ * on a 390px screen it took a fifth of the panel's width, so the bullets ran
+ * to three lines each and "Generate calendar link" broke over two.
+ */
+export const FEED_EMPTY_STATE_LAYOUT_CLASS_NAME: string =
+  "flex flex-col gap-3 sm:flex-row sm:gap-5";
+
 const FeedEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -53,7 +61,10 @@ const FeedEmptyState: FunctionComponent<ComponentProps> = (
       className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-5 sm:px-6 sm:py-6"
       data-testid={`${props.idPrefix}-empty-state`}
     >
-      <div className="flex gap-4 sm:gap-5">
+      <div
+        className={FEED_EMPTY_STATE_LAYOUT_CLASS_NAME}
+        data-testid={`${props.idPrefix}-empty-layout`}
+      >
         <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-100">
           <Icon
             icon={props.icon || IconProp.Calendar}

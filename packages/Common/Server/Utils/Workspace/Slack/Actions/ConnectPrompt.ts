@@ -14,6 +14,9 @@ import WorkspaceConnectRequest, {
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import WorkspaceCommands, {
+  WorkspaceCommandName,
+} from "../../WorkspaceCommands";
 import SlackActionType from "./ActionTypes";
 import SlackActionAnswer, {
   SlackAnswerDelivery,
@@ -237,30 +240,39 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
   },
 };
 
-// Creating a record: the command, and the shortcut that opens the same form.
-interface CreatePress {
+/*
+ * A command, and the shortcut that opens the same form (if one does): run
+ * again as it was typed - `/oneuptime incident`, or an older app's
+ * /incident - or as `/oneuptime <word>` when that is not known (a form's
+ * submission).
+ */
+interface CommandPress {
   purpose: string;
-  command: string;
-  shortcut: string;
+  command: WorkspaceCommandName;
+  shortcut?: string | undefined;
 }
 
-const CREATE_INCIDENT: CreatePress = {
+const CREATE_INCIDENT: CommandPress = {
   purpose: "declare an incident",
-  command: SlackActionType.NewIncident,
+  command: WorkspaceCommandName.Incident,
   shortcut: "Create New Incident",
 };
 
-const CREATE_SCHEDULED_MAINTENANCE: CreatePress = {
+const CREATE_SCHEDULED_MAINTENANCE: CommandPress = {
   purpose: "create a scheduled maintenance event",
-  command: SlackActionType.NewScheduledMaintenance,
+  command: WorkspaceCommandName.Maintenance,
   shortcut: "Create Scheduled Event",
 };
 
-const CREATE_PRESSES: Partial<Record<SlackActionType, CreatePress>> = {
+const COMMAND_PRESSES: Partial<Record<SlackActionType, CommandPress>> = {
   [SlackActionType.NewIncident]: CREATE_INCIDENT,
   [SlackActionType.SubmitNewIncident]: CREATE_INCIDENT,
   [SlackActionType.NewScheduledMaintenance]: CREATE_SCHEDULED_MAINTENANCE,
   [SlackActionType.SubmitNewScheduledMaintenance]: CREATE_SCHEDULED_MAINTENANCE,
+  [SlackActionType.ShowOnCall]: {
+    purpose: "see who is on call",
+    command: WorkspaceCommandName.OnCall,
+  },
 };
 
 export default class SlackConnectPrompt {
@@ -273,6 +285,8 @@ export default class SlackConnectPrompt {
     actionType: string | undefined;
     actionValue?: string | undefined;
     payloadType?: string | undefined;
+    // How a slash command was typed: "/oneuptime incident" (SlackAction).
+    command?: string | undefined;
   }): SlackPressDescription {
     const actionType: SlackActionType = data.actionType as SlackActionType;
 
@@ -311,20 +325,25 @@ export default class SlackConnectPrompt {
       };
     }
 
-    const create: CreatePress | undefined = CREATE_PRESSES[actionType];
+    const commandPress: CommandPress | undefined = COMMAND_PRESSES[actionType];
 
-    if (create) {
+    if (commandPress) {
       return {
-        purpose: create.purpose,
+        purpose: commandPress.purpose,
         again:
-          data.payloadType === "shortcut"
+          data.payloadType === "shortcut" && commandPress.shortcut
             ? {
                 kind: WorkspaceConnectRequestAgainKind.Button,
-                label: create.shortcut,
+                label: commandPress.shortcut,
               }
             : {
                 kind: WorkspaceConnectRequestAgainKind.Command,
-                label: create.command,
+                label:
+                  data.command ||
+                  WorkspaceCommands.getUsage({
+                    workspaceType: WorkspaceType.Slack,
+                    command: commandPress.command,
+                  }),
               },
       };
     }

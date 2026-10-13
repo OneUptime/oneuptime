@@ -1,4 +1,5 @@
 import URL from "../../../../../Types/API/URL";
+import { JSONObject } from "../../../../../Types/JSON";
 import {
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
@@ -200,6 +201,22 @@ export default class SlackActionAnswer {
     }
 
     return SlackAnswerDelivery.None;
+  }
+
+  /*
+   * An answer as the HTTP response to a slash command itself: Slack shows
+   * it at once, only to the person who ran the command ("Only visible to
+   * you"), with no request of its own - for an answer that reads nothing
+   * first, such as the commands' help (SlackCommandActions).
+   */
+  public static getCommandResponse(answer: WorkspaceAnswer): JSONObject {
+    return {
+      response_type: "ephemeral",
+      text: SlackUtil.getNotificationText(answer.text),
+      blocks: SlackUtil.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: SlackActionAnswer.getMessageBlocks({ answer: answer }),
+      }),
+    };
   }
 
   /*

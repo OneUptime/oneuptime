@@ -154,7 +154,7 @@ Er spelen twee mechanismen, en ze dekken verschillende gevallen:
 Android bevriest de instellingen van een kanaal wanneer het kanaal voor het eerst wordt aangemaakt, dus ze kunnen niet worden gewijzigd door een app-update – alleen door een nieuwe kanaal-id uit te brengen.
 :::
 
-Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldingsmethoden > Push Notifications** een testmelding naar het apparaat. Wanneer het apparaat kritieke meldingen heeft ingeschakeld, wordt ook de test als kritieke melding verstuurd – zet de telefoon dus eerst op stil, dan hoort u of een echte melding u zou bereiken.
+Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldingsmethoden > Push Notifications** een testmelding naar het apparaat. Wanneer het apparaat kritieke meldingen heeft ingeschakeld, wordt ook de test als kritieke melding verstuurd – zet de telefoon dus eerst op stil, dan hoort u of een echte melding u zou bereiken. Dezelfde lijst toont of elk apparaat kritieke meldingen aan heeft en, voor een telefoon waarbij dat niet zo is, hoe u ze aanzet.
 
 ### Het alarmgeluid kiezen
 

@@ -154,7 +154,7 @@ To mekanismer er i spil, og de dækker forskellige tilfælde:
 Android fastfryser en kanals indstillinger, når kanalen oprettes første gang, så de kan ikke ændres med en appopdatering – kun ved at udgive et nyt kanal-id.
 :::
 
-For at tjekke, at det virker, sender du en testnotifikation til enheden fra **Brugerindstillinger > Notifikationsmetoder > Push Notifications**. Når enheden har kritiske alarmer slået til, sendes testen også som en kritisk alarm – så sæt telefonen på lydløs først, og du hører, om en rigtig alarm ville nå dig.
+For at tjekke, at det virker, sender du en testnotifikation til enheden fra **Brugerindstillinger > Notifikationsmetoder > Push Notifications**. Når enheden har kritiske alarmer slået til, sendes testen også som en kritisk alarm – så sæt telefonen på lydløs først, og du hører, om en rigtig alarm ville nå dig. Den samme liste viser, om hver enhed har kritiske alarmer slået til, og for en telefon, der ikke har, hvordan du slår dem til.
 
 ### Valg af alarmlyd
 

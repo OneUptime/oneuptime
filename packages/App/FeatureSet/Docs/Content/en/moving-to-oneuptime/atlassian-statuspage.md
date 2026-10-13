@@ -69,7 +69,7 @@ Components come over operational. The preview names each one that is not operati
 
 ## Limits
 
-One import creates at most 2,000 records: at most 1,000 monitors and 50 status pages. Subscribers do not count toward that: one import brings over at most 5,000 subscribers. Anything over a limit is shown as not brought over. Run the import again to bring over the rest.
+One import creates at most 2,000 records: at most 1,000 monitors and 50 status pages. Subscribers do not count toward that: one import brings over at most 5,000 subscribers, and it reads past the ones earlier imports brought over without listing them again. Anything over a limit is shown as not brought over. Run the import again to bring over the rest.
 
 On OneUptime Cloud, status pages and subscribers your plan has no room for are shown as not brought over, with what they need.
 
