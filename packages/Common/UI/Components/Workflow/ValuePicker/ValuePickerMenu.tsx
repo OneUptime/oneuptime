@@ -1104,10 +1104,15 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {drill && (
-          <div className="flex items-center gap-1 border-b border-gray-100 px-2 py-1.5">
+          <div className="flex items-center gap-1 border-b border-gray-100 px-2 py-1">
+            {/*
+             * The way out of a record's fields: 24px tall, a target a finger
+             * can hit. The row around it gives up what the button gains, so
+             * the list under it is where it was.
+             */}
             <button
               type="button"
-              className="flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              className="flex items-center gap-0.5 rounded px-1 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               data-testid="value-picker-back"
               onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.preventDefault();

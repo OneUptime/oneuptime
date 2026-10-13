@@ -574,6 +574,37 @@ test.describe("Workflow builder: a record's fields its step does not pass on", (
     ]);
   });
 
+  test("Back, out of a record's fields, is a target a finger can hit, and takes the list back to the steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const { menu } = await openIncident(page);
+    const back: Locator = menu.getByTestId("value-picker-back");
+    const target: Box = await boxOf(back);
+
+    // It was 20px tall: under what a finger, or WCAG's 24px, asks.
+    expect(target.height).toBeGreaterThanOrEqual(24);
+    expect(target.width).toBeGreaterThanOrEqual(24);
+
+    // And the row it is in is no taller for it: the fields start where they did.
+    const search: Box = await boxOf(menu.getByTestId("value-picker-search"));
+
+    expect(search.y - (target.y + target.height)).toBeLessThan(20);
+
+    await back.click();
+
+    await expect(back).toHaveCount(0);
+    await expect(menu.getByTestId("value-picker-empty-here-note")).toHaveCount(
+      0,
+    );
+    expect(await listedValues(menu)).toEqual([
+      { reference: WHOLE_INCIDENT, isEmptyHere: false },
+    ]);
+    // The focus is still in the search box, for the keys.
+    await expect(menu.getByTestId("value-picker-search")).toBeFocused();
+  });
+
   test("a related record's field the trigger passes on is with the fields that can be used, and a search keeps the two apart", async ({
     page,
   }: {
