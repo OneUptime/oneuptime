@@ -75,6 +75,7 @@ import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDevi
 import Route from "../../../Types/API/Route";
 import {
   SnmpTableDefinition,
+  SnmpTableKind,
   SnmpTableSnapshot,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
@@ -232,6 +233,85 @@ describe("SNMP Tables tab", () => {
       snmpTables: true,
       oidTemplate: { tables: true },
     });
+  });
+
+  test("lists only the SSIDs of a UniFi snapshot stored before #4730, until the next walk replaces it", async () => {
+    const UNIFI_VAP: string = "1.3.6.1.4.1.41112.1.6.1.2.1";
+    const unifiTables: Array<SnmpTableDefinition> =
+      SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!;
+
+    const vap: (
+      index: string,
+      essid: string,
+      radio: string,
+      usage: string,
+    ) => { index: string; values: Record<string, string | number> } = (
+      index: string,
+      essid: string,
+      radio: string,
+      usage: string,
+    ): { index: string; values: Record<string, string | number> } => {
+      return {
+        index: index,
+        values: {
+          [`${UNIFI_VAP}.6`]: essid,
+          [`${UNIFI_VAP}.9`]: radio,
+          [`${UNIFI_VAP}.8`]: 0,
+          [`${UNIFI_VAP}.23`]: usage,
+        },
+      };
+    };
+
+    // What walks stored before the fix: every VAP, under the SSID kind.
+    const ssidsTable: SnmpTableDefinition = unifiTables.find(
+      (table: SnmpTableDefinition): boolean => {
+        return table.key === "wifi_ssids";
+      },
+    )!;
+    const stored: SnmpTableSnapshot = {
+      ...SnmpTableListUtil.materialize({
+        tables: [{ ...ssidsTable, kind: SnmpTableKind.Generic }],
+        collectedAt: new Date(),
+        results: [
+          {
+            key: "wifi_ssids",
+            rows: [
+              vap("1", "element-60d2f9a4b1c8e375", "ng", "user"),
+              vap("2", "DEMO", "ng", "user"),
+              vap("3", "element-60d2f9a4b1c8e375", "na", "user"),
+              vap("4", "vwire-8a3e5c0f2d7b4196", "na", "downlink"),
+              vap("5", "DEMO", "na", "user"),
+            ],
+          },
+        ],
+      })[0]!,
+      kind: SnmpTableKind.WifiSsid,
+    };
+
+    expect(stored.rows).toHaveLength(5);
+
+    const device: NetworkDevice = new NetworkDevice();
+    device.snmpTables = unifiTables;
+    device.snmpTableSnapshot = [stored];
+    deviceRow = device;
+
+    renderInRouter(
+      <NetworkDeviceTables
+        pageRoute={pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("DEMO / 2.4 GHz")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("DEMO / 5 GHz")).toBeInTheDocument();
+
+    const card: HTMLElement = screen.getByTestId("snmp-table-wifi_ssids");
+    expect(card).not.toHaveTextContent("element-");
+    expect(card).not.toHaveTextContent("vwire-");
   });
 
   test("explains how to get tables when the device has none", async () => {

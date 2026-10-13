@@ -7,6 +7,7 @@ import {
   SnmpTableSnapshotColumn,
   SnmpTableSnapshotRow,
 } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import WifiInternalNetworkUtil from "../../Types/Monitor/SnmpMonitor/WifiInternalNetwork";
 
 /*
@@ -184,13 +185,12 @@ export default class WifiRadioUtil {
 
     const ssids: Array<WifiSsidView> = ssidTables
       .flatMap((snapshot: SnmpTableSnapshot) => {
-        return snapshot.rows
-          .filter((row: SnmpTableSnapshotRow) => {
-            return !WifiRadioUtil.isInternalNetworkRow(row);
-          })
-          .map((row: SnmpTableSnapshotRow) => {
+        // A snapshot stored before a walk left these rows out still holds them.
+        return SnmpTableListUtil.listedRows(snapshot).map(
+          (row: SnmpTableSnapshotRow) => {
             return WifiRadioUtil.toSsid(snapshot, row);
-          });
+          },
+        );
       })
       .filter((ssid: WifiSsidView) => {
         return WifiRadioUtil.isNetworkName(ssid.ssid);

@@ -876,6 +876,57 @@ export default class SnmpTableListUtil {
     });
   }
 
+  /*
+   * Stored snapshots as a walk stores them now. What a walk leaves out of a
+   * table (isListedRow) is left out of rows a walk stored before it did -
+   * which the device keeps until its next successful walk replaces them, or
+   * for as long as its walks fail. The views that read stored rows (the
+   * Wi-Fi tab, the SNMP Tables tab, a criteria's row picker) read them
+   * through this. A snapshot nothing is left out of is returned as it is.
+   */
+  public static withListedRows(
+    snapshots: Array<SnmpTableSnapshot> | undefined,
+  ): Array<SnmpTableSnapshot> {
+    return (snapshots || []).map(
+      (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+        const rows: Array<SnmpTableSnapshotRow> =
+          SnmpTableListUtil.listedRows(snapshot);
+
+        return rows.length === (snapshot.rows || []).length
+          ? snapshot
+          : { ...snapshot, rows: rows };
+      },
+    );
+  }
+
+  // A stored snapshot's rows that a walk would store now (see withListedRows).
+  public static listedRows(
+    snapshot: SnmpTableSnapshot,
+  ): Array<SnmpTableSnapshotRow> {
+    const rows: Array<SnmpTableSnapshotRow> = snapshot.rows || [];
+
+    if (SnmpTableListUtil.parseKind(snapshot.kind) !== SnmpTableKind.WifiSsid) {
+      return rows;
+    }
+
+    const ssidColumn: SnmpTableSnapshotColumn | undefined = (
+      snapshot.columns || []
+    ).find((column: SnmpTableSnapshotColumn) => {
+      return column.role === SnmpTableColumnRole.Ssid;
+    });
+
+    return rows.filter((row: SnmpTableSnapshotRow) => {
+      const cells: Record<string, SnmpTableSnapshotCell> = row.cells || {};
+
+      return WifiInternalNetworkUtil.isJoinableNetwork({
+        ssid: ssidColumn ? cells[ssidColumn.oid]?.display || "" : undefined,
+        read: (columnOid: string): string | number | null | undefined => {
+          return cells[columnOid]?.raw;
+        },
+      });
+    });
+  }
+
   // Whether a walked row holds a value of one of the table's own columns.
   private static holdsOwnValue(
     row: SnmpTableResultRow,

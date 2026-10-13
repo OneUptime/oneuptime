@@ -329,6 +329,126 @@ describe("SnmpTableListUtil.isListedRow", () => {
   });
 });
 
+/*
+ * What walks stored before #4730: every VAP under the SSID kind - the rows
+ * a table of no SSID kind keeps, as every walk kept them then.
+ */
+function storedBeforeTheFix(
+  table: SnmpTableDefinition = unifiVapTable(),
+): SnmpTableSnapshot {
+  return {
+    ...materializeOne({ ...table, kind: SnmpTableKind.Generic }, unifiWalk()),
+    kind: SnmpTableKind.WifiSsid,
+  };
+}
+
+describe("SnmpTableListUtil.withListedRows - stored snapshots, read as a walk stores them now", () => {
+  it("leaves the networks a walk no longer keeps out of a snapshot stored before it", () => {
+    const stored: SnmpTableSnapshot = storedBeforeTheFix();
+    expect(stored.rows).toHaveLength(5);
+
+    const read: Array<SnmpTableSnapshot> = SnmpTableListUtil.withListedRows([
+      stored,
+    ]);
+
+    expect(labelsOf(read[0]!)).toEqual(["Shop / na", "Shop-Guest / na"]);
+    // The rows a walk would store now are what a walk stores now.
+    expect(read[0]!.rows).toEqual(
+      materializeOne(unifiVapTable(), unifiWalk()).rows,
+    );
+  });
+
+  it("keeps everything else about the stored table: its failure, its time, its columns", () => {
+    const stored: SnmpTableSnapshot = {
+      ...storedBeforeTheFix(),
+      failureCause: "Request timed out",
+      collectedAt: "2026-10-12T08:00:00.000Z",
+      isTruncated: true,
+    };
+
+    const read: SnmpTableSnapshot = SnmpTableListUtil.withListedRows([
+      stored,
+    ])[0]!;
+
+    expect({ ...read, rows: [] }).toEqual({ ...stored, rows: [] });
+  });
+
+  it("returns a snapshot nothing is left out of as it is, and never changes the one it is given", () => {
+    const listed: SnmpTableSnapshot = materializeOne(
+      unifiVapTable(),
+      unifiWalk(),
+    );
+    const stored: SnmpTableSnapshot = storedBeforeTheFix();
+    const copy: string = JSON.stringify(stored);
+
+    const read: Array<SnmpTableSnapshot> = SnmpTableListUtil.withListedRows([
+      listed,
+      stored,
+    ]);
+
+    expect(read[0]).toBe(listed);
+    expect(read[1]).not.toBe(stored);
+    expect(JSON.stringify(stored)).toBe(copy);
+  });
+
+  it.each([
+    SnmpTableKind.Generic,
+    SnmpTableKind.WifiRadio,
+    SnmpTableKind.WifiAccessPoint,
+    SnmpTableKind.Hardware,
+  ])("keeps every stored row of a %s table", (kind: SnmpTableKind) => {
+    const stored: SnmpTableSnapshot = {
+      ...storedBeforeTheFix(),
+      kind: kind,
+    };
+
+    expect(SnmpTableListUtil.withListedRows([stored])[0]).toBe(stored);
+  });
+
+  it("reads a table with no SSID column by its rows' values alone", () => {
+    const table: SnmpTableDefinition = unifiVapTable({
+      rowLabelColumnOids: undefined,
+      columns: unifiVapTable().columns.filter(
+        (column: SnmpTableColumn): boolean => {
+          return column.role !== SnmpTableColumnRole.Ssid;
+        },
+      ),
+    });
+
+    expect(
+      SnmpTableListUtil.listedRows(storedBeforeTheFix(table)).map(
+        (row: SnmpTableSnapshotRow): string => {
+          return row.index;
+        },
+      ),
+    ).toEqual(["1", "2", "4", "5"]);
+  });
+
+  it("reads a stored row with no cells as naming no network", () => {
+    const stored: SnmpTableSnapshot = storedBeforeTheFix();
+    stored.rows = [
+      {
+        index: "9",
+        label: "9",
+        cells: undefined as unknown as SnmpTableSnapshotRow["cells"],
+      },
+    ];
+
+    expect(SnmpTableListUtil.listedRows(stored)).toEqual([]);
+  });
+
+  it("reads nothing from nothing", () => {
+    expect(SnmpTableListUtil.withListedRows(undefined)).toEqual([]);
+    expect(SnmpTableListUtil.withListedRows([])).toEqual([]);
+    expect(
+      SnmpTableListUtil.listedRows({
+        ...storedBeforeTheFix(),
+        rows: undefined as unknown as Array<SnmpTableSnapshotRow>,
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("the templates walk what the rules read", () => {
   function ssidTable(templateId: string): SnmpTableDefinition {
     const table: SnmpTableDefinition | undefined =
