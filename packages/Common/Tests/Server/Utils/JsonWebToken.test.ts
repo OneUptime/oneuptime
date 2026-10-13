@@ -1,5 +1,5 @@
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
@@ -63,7 +63,7 @@ describe("JSONWebToken", () => {
     test("should refuse a token whose payload is a bare string, not claims", () => {
       const token: string = jwt.sign(
         "just-a-string",
-        EncryptionSecret.toString(),
+        TokenSigningKey.get(),
       );
 
       expect(() => {
@@ -74,7 +74,7 @@ describe("JSONWebToken", () => {
     test("should refuse a bare-string payload through decode() too", () => {
       const token: string = jwt.sign(
         "just-a-string",
-        EncryptionSecret.toString(),
+        TokenSigningKey.get(),
       );
 
       expect(() => {
@@ -155,7 +155,7 @@ describe("JSONWebToken", () => {
     test("should throw BadDataException for an expired token", () => {
       const expiredToken: string = jwt.sign(
         { userId: userId.toString(), email: email.toString() },
-        EncryptionSecret.toString(),
+        TokenSigningKey.get(),
         { expiresIn: -10 },
       );
 
@@ -223,7 +223,7 @@ describe("JSONWebToken", () => {
     test("should leave it undefined for a token that does not say", () => {
       const token: string = jwt.sign(
         { userId: userId.toString(), email: email.toString() },
-        EncryptionSecret.toString(),
+        TokenSigningKey.get(),
         { noTimestamp: true },
       );
 

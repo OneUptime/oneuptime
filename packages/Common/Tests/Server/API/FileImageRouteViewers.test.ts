@@ -22,7 +22,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import FileAPI from "../../../Server/API/FileAPI";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import FileService from "../../../Server/Services/FileService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
@@ -722,7 +722,7 @@ describe("the image routes serve a file only to the people who may see it", () =
       });
       const forged: string = jwt.sign(
         { userId: MEMBER_ID.toString(), isMasterAdmin: true },
-        `not-${EncryptionSecret.toString()}`,
+        `not-${TokenSigningKey.get()}`,
         { expiresIn: 900 },
       );
 

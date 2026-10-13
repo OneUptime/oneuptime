@@ -2,7 +2,7 @@ import VerificationEmailResendToken, {
   VERIFICATION_EMAIL_RESEND_TOKEN_EXPIRY_IN_SECONDS,
   VerificationEmailResendTokenClaims,
 } from "../../../FeatureSet/Identity/Utils/VerificationEmailResendToken";
-import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
@@ -23,10 +23,10 @@ import { describe, expect, it } from "@jest/globals";
  *
  *   - NOT FORGEABLE. Any change to the payload, the signature, the version or
  *     the shape is refused -- and a signature made under a different
- *     EncryptionSecret is refused too;
+ *     ENCRYPTION_SECRET is refused too;
  *
  *   - NOT A SESSION. JSONWebToken.decode accepts any JWT signed with
- *     EncryptionSecret that carries an `email` as a full user session. A
+ *     TokenSigningKey that carries an `email` as a full user session. A
  *     resend token minted as such a JWT would be a session for an UNVERIFIED
  *     account -- exactly what signup refuses to hand out. So it is not a JWT,
  *     it is signed with a key derived for this purpose alone, and the real
@@ -106,14 +106,14 @@ type SignFunction = (payloadB64: string, secret?: string) => string;
 
 /*
  * The signature exactly as the spec defines it: an HMAC key derived from
- * EncryptionSecret under a purpose label, then an HMAC over "v1.<payload>".
+ * TokenSigningKey under a purpose label, then an HMAC over "v1.<payload>".
  * Reimplemented here rather than borrowed from the module, so that a change
  * to the derivation shows up as a test failure and so that the tests below
  * can sign payloads the module itself would never write.
  */
 const sign: SignFunction = (
   payloadB64: string,
-  secret: string = EncryptionSecret.toString(),
+  secret: string = TokenSigningKey.get(),
 ): string => {
   const key: Buffer = crypto
     .createHmac("sha256", secret)
@@ -507,14 +507,14 @@ describe("tampering", () => {
     ).toBeNull();
   });
 
-  it("refuses a payload signed with the raw EncryptionSecret instead of the derived key", () => {
+  it("refuses a payload signed with the raw TokenSigningKey instead of the derived key", () => {
     /*
-     * Purpose separation: an HMAC made directly with EncryptionSecret -- as
+     * Purpose separation: an HMAC made directly with TokenSigningKey -- as
      * any other feature signing with it might -- must not verify here.
      */
     const payloadB64: string = encode(JSON.stringify(validPayload()));
     const rawSignature: string = crypto
-      .createHmac("sha256", EncryptionSecret.toString())
+      .createHmac("sha256", TokenSigningKey.get())
       .update("v1." + payloadB64)
       .digest("base64url");
 
@@ -761,14 +761,14 @@ describe("it is not a session", () => {
   });
 });
 
-describe("a token signed under a different EncryptionSecret", () => {
+describe("a token signed under a different ENCRYPTION_SECRET", () => {
   type TokenModule =
     typeof import("../../../FeatureSet/Identity/Utils/VerificationEmailResendToken");
 
   type LoadWithSecretFunction = (secret: string) => TokenModule;
 
   /*
-   * EncryptionSecret is read at module load, so the only honest way to see a
+   * ENCRYPTION_SECRET is read at module load, so the only honest way to see a
    * second installation is a second copy of the module with its own
    * environment. A token minted by one installation must be worthless to
    * every other: they share this code and the derivation label, and nothing
@@ -793,6 +793,8 @@ describe("a token signed under a different EncryptionSecret", () => {
               return secret;
             },
           },
+          // An installation that set its own: it signs with exactly that.
+          IsEncryptionSecretInsecure: false,
         };
       });
 
