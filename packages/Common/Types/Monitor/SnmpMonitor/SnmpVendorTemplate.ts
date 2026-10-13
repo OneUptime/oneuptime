@@ -926,7 +926,7 @@ const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
   id: "ubiquiti-unifi-ap",
   label: "Ubiquiti UniFi Access Points",
   description:
-    "Every radio's band and airtime, and every SSID's band, channel, clients and transmit power, from the UBNT-UniFi-MIB, plus CPU per core, memory and load. A radio's channel, power and clients are read from the SSIDs it broadcasts, which is where UniFi reports them. Turn on SNMP in the UniFi Network application.",
+    "Every radio's band and airtime, and every SSID's band, channel, clients and transmit power, from the UBNT-UniFi-MIB, plus CPU per core, memory and load. A radio's channel, power and clients are read from the SSIDs it broadcasts, which is where UniFi reports them. UniFi's own hidden networks - its wireless mesh link and its device adoption network - are not SSIDs and are left out. Turn on SNMP in the UniFi Network application.",
   oids: [
     {
       oid: "1.3.6.1.4.1.41112.1.6.3.2.0",
@@ -1006,7 +1006,7 @@ const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
       key: "wifi_ssids",
       name: "SSIDs",
       description:
-        "unifiVapTable - one row per SSID on each radio, with that radio's channel and transmit power.",
+        "unifiVapTable - one row per SSID on each radio, with that radio's channel and transmit power. UniFi's own hidden networks are VAPs too, and are left out: its wireless mesh link (vwire-..., usage downlink, interface vwire...) and its device adoption network (element-...).",
       kind: SnmpTableKind.WifiSsid,
       rowLabelColumnOids: [
         "1.3.6.1.4.1.41112.1.6.1.2.1.6",
@@ -1027,6 +1027,13 @@ const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
           role: SnmpTableColumnRole.Band,
           valueType: SnmpTableValueType.Text,
           valueLabels: UNIFI_BAND_LABELS,
+        },
+        {
+          oid: "1.3.6.1.4.1.41112.1.6.1.2.1.7",
+          name: "Interface",
+          description:
+            "unifiVapName - the SSID's interface (ath0, ath1 ...), as the device's Interfaces page names it.",
+          valueType: SnmpTableValueType.Text,
         },
         {
           oid: "1.3.6.1.4.1.41112.1.6.1.2.1.4",
@@ -1064,7 +1071,8 @@ const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
         {
           oid: "1.3.6.1.4.1.41112.1.6.1.2.1.23",
           name: "Usage",
-          description: "unifiVapUsage - guest or regular user.",
+          description:
+            "unifiVapUsage - user or guest. The mesh link's downlink (or uplink) is left out.",
           valueType: SnmpTableValueType.Text,
         },
       ],
@@ -1555,7 +1563,7 @@ const EXTREME_IQ_ENGINE_AP: SnmpVendorTemplate = {
       key: "wifi_ssids",
       name: "SSIDs",
       description:
-        "ahXIfTable - every interface with the SSID it broadcasts; interfaces that broadcast none (N/A) are left out of the Wi-Fi tab.",
+        "ahXIfTable - every interface with the SSID it broadcasts. Interfaces that broadcast none - every interface not in access mode, the mesh backhaul included, reports N/A - are left out.",
       kind: SnmpTableKind.WifiSsid,
       rowLabelColumnOids: [
         "1.3.6.1.4.1.26928.1.1.1.2.1.1.1.2",
@@ -1725,7 +1733,7 @@ const EXTREME_WIRELESS_CONTROLLER: SnmpVendorTemplate = {
       key: "wifi_ssids",
       name: "WLANs",
       description:
-        "wlanTable and wlanStatsTable - one row per WLAN service, with its SSID and clients.",
+        "wlanTable and wlanStatsTable - one row per WLAN service, with its SSID and clients. WDS and mesh services carry traffic between access points rather than clients' networks, and are left out.",
       kind: SnmpTableKind.WifiSsid,
       rowLabelColumnOids: ["1.3.6.1.4.1.4329.15.3.3.4.4.1.4"],
       columns: [
@@ -1747,6 +1755,20 @@ const EXTREME_WIRELESS_CONTROLLER: SnmpVendorTemplate = {
           name: "Enabled",
           description: "wlanEnabled - TruthValue: 1 = yes, 2 = no.",
           valueLabels: { "1": "yes", "2": "no" },
+        },
+        {
+          oid: "1.3.6.1.4.1.4329.15.3.3.4.4.1.3",
+          name: "Service Type",
+          description:
+            "wlanServiceType - standard, third-party or remote. WDS (3) and mesh (6) services are left out. Text: a kind of service, not a number to chart.",
+          valueType: SnmpTableValueType.Text,
+          valueLabels: {
+            "0": "standard",
+            "3": "WDS",
+            "4": "third-party",
+            "5": "remote",
+            "6": "mesh",
+          },
         },
       ],
       maxRows: 64,

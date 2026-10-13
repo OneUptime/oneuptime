@@ -413,6 +413,7 @@ Hersteller verteilen diese Angaben unterschiedlich, und die Seite setzt sie wied
 - UniFi meldet Kanal, Sendeleistung und Clients pro SSID: Ein Funkmodul übernimmt sie von den SSIDs auf seinem Band.
 - Aruba zählt Clients pro Funkmodul: Die Clients eines Access Points sind die seiner Funkmodule.
 - Eine Schnittstelle, die kein Netzwerk aussendet (IQ Engine listet jede Schnittstelle, für diese mit N/A), wird nicht als SSID aufgeführt.
+- Ein Netzwerk, das ein Access Point für sich selbst betreibt, ist keine SSID und wird daher weder aufgeführt noch gezählt: die drahtlose Mesh-Verbindung von UniFi (`vwire-…`) und das Netzwerk, über das UniFi neue UniFi-Geräte adoptiert (`element-…`), sowie die WDS- und Mesh-Dienste eines Extreme-Controllers. Eine versteckte SSID, die Sie selbst angelegt haben, wird wie jede andere aufgeführt.
 
 Ein Gerät, das noch kein WLAN meldet, lässt die Seite die Vorlage seines Herstellers nennen, abgeglichen aus der letzten Abfrage wie beim automatischen Anwenden, und mit **Vorlage anwenden** anwenden; die Funkmodule erscheinen nach der nächsten Abfrage.
 

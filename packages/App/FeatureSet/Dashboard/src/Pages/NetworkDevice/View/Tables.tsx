@@ -65,7 +65,13 @@ const NetworkDeviceTables: FunctionComponent<
           },
         });
 
-      setSnapshots(device?.snmpTableSnapshot || []);
+      /*
+       * As a walk stores them now: rows stored before a walk left them out
+       * (an SSID table's UniFi mesh link, say) wait out the next walk here.
+       */
+      setSnapshots(
+        SnmpTableListUtil.withListedRows(device?.snmpTableSnapshot || []),
+      );
       setDefinedTables(
         SnmpTableListUtil.resolveEffectiveTables({
           templateTables: device?.oidTemplate?.tables,

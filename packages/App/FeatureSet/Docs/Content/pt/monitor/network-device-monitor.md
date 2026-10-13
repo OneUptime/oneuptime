@@ -413,6 +413,7 @@ Os fabricantes dividem essas informações de formas diferentes, e a página as 
 - O UniFi informa canal, potência de transmissão e clientes por SSID: um rádio os obtém dos SSIDs da sua banda.
 - A Aruba conta os clientes por rádio: os clientes de um access point são os dos seus rádios.
 - Uma interface que não transmite nenhuma rede (o IQ Engine lista todas as interfaces, com N/A nessas) não é listada como SSID.
+- Uma rede que um access point mantém para si mesmo não é um SSID, então não é listada nem contada: o link mesh sem fio do UniFi (`vwire-…`) e a rede dele para adotar novos dispositivos UniFi (`element-…`), e os serviços WDS e mesh de um controlador Extreme. Um SSID oculto que você mesmo criou é listado como qualquer outro.
 
 Em um dispositivo que ainda não informa Wi-Fi, a página indica o modelo do fabricante dele, encontrado a partir da última sondagem da mesma forma que a aplicação automática, e o aplica com **Aplicar modelo**; os rádios aparecem depois da próxima sondagem.
 

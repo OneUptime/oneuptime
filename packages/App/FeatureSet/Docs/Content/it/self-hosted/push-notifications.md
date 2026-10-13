@@ -105,22 +105,26 @@ L'ambito è volutamente ristretto. Possono farlo solo gli avvisi prodotti da una
 ```mermaid title="Quando un avviso di reperibilità suona in modalità silenziosa"
 flowchart TB
     Page["Un avviso di reperibilità"]
+    Rule{"La sua regola di reperibilità<br/>è su «Critical alert»?"}
     Device{"Critical On-Call Alerts<br/>attivo su questo dispositivo?"}
     OS{"Il sistema del telefono<br/>consente gli avvisi critici?"}
     Loud["Emette un suono nonostante la<br/>modalità silenziosa e Non disturbare"]
     Quiet["Consegnato in silenzio,<br/>come ogni altro push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"sì"| Device
+    Rule -->|"no"| Quiet
     Device -->|"sì"| OS
     Device -->|"no"| Quiet
     OS -->|"sì"| Loud
     OS -->|"no"| Quiet
 ```
 
-Perché un avviso superi la modalità silenziosa devono essere vere tre condizioni. Se ne manca anche una, l'avviso viene comunque consegnato – solo in silenzio.
+Perché un avviso superi la modalità silenziosa devono essere vere quattro condizioni. Se ne manca anche una, l'avviso viene comunque consegnato – solo in silenzio.
 
 1. **La persona l'ha attivato per quel dispositivo.** Memorizzato per dispositivo, disattivato per impostazione predefinita, in `UserPush.isCriticalAlertEnabled`. Il telefono e il tablet di una stessa persona sono decisioni separate.
-2. **Il server contrassegna l'avviso come critico.** Invia il payload del suono critico di APNs più `interruptionLevel: critical` per iOS, e punta al canale di notifica `oncall_critical` per Android.
-3. **Il sistema operativo lo consente**, ed è qui che le due piattaforme differiscono.
+2. **La regola di reperibilità che ha inviato l'avviso lo chiede.** In **Impostazioni utente > Regole di reperibilità**, ogni regola che notifica un telefono è impostata su «Critical alert», il valore predefinito, o su «Standard», che segue le impostazioni audio del telefono – così una persona può essere svegliata per un incidente critico e avvisata in silenzio per uno minore. Memorizzato per regola in `UserNotificationRule.pushNotificationLevel`.
+3. **Il server contrassegna l'avviso come critico.** Invia il payload del suono critico di APNs più `interruptionLevel: critical` per iOS, e punta al canale di notifica `oncall_critical` per Android.
+4. **Il sistema operativo lo consente**, ed è qui che le due piattaforme differiscono.
 
 :::tabs
 @tab iOS
@@ -171,6 +175,7 @@ Per verificare che funzioni, invia una notifica di test al dispositivo da **Impo
 ### Gli avvisi critici non superano la modalità silenziosa
 
 - Controlla che l'interruttore sia attivo per **quel** dispositivo – l'impostazione è per dispositivo, e una reinstallazione o un nuovo telefono configurato da zero crea una nuova registrazione del dispositivo (un telefono configurato da un backup del vecchio subentra nella registrazione del vecchio telefono non appena questo non riceve più notifiche, con l'impostazione che aveva l'app)
+- Controlla la regola di reperibilità di quella gravità in **Impostazioni utente > Regole di reperibilità**: una regola push impostata su «Standard» segue le impostazioni audio del telefono, qualunque cosa dica l'interruttore del dispositivo
 - **iOS**: conferma che la build abbia l'entitlement degli avvisi critici di Apple (vedi sopra), e che Critical Alerts sia consentito in iOS Settings > Notifications > OneUptime On-Call
 - **Android**: conferma che l'app abbia l'accesso a Non disturbare in Settings > Notifications > Do Not Disturb access
 - La schermata delle impostazioni indica quale di questi manca; legge lo stato attuale dal sistema operativo invece di fidarsi di quanto l'app ha richiesto l'ultima volta

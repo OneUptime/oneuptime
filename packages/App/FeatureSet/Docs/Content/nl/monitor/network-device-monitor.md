@@ -413,6 +413,7 @@ Leveranciers verdelen deze feiten verschillend, en de pagina zet ze weer bij elk
 - UniFi meldt kanaal, zendvermogen en clients per SSID: een radio haalt ze uit de SSID's op zijn band.
 - Aruba telt clients per radio: de clients van een access point zijn die van zijn radio's.
 - Een interface die geen netwerk uitzendt (IQ Engine somt elke interface op, met N/A voor die) wordt niet als SSID getoond.
+- Een netwerk dat een access point voor zichzelf draait, is geen SSID en wordt dus niet getoond of geteld: de draadloze meshverbinding van UniFi (`vwire-…`) en zijn netwerk om nieuwe UniFi-apparaten te adopteren (`element-…`), en de WDS- en meshservices van een Extreme-controller. Een verborgen SSID die je zelf hebt gemaakt, wordt getoond zoals elke andere.
 
 Op een apparaat dat nog geen wifi meldt, noemt de pagina het sjabloon van zijn leverancier, herkend uit de laatste poll zoals automatisch toepassen het herkent, en past het toe met **Sjabloon toepassen**; de radio's verschijnen na de volgende poll.
 
