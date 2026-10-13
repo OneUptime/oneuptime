@@ -2,8 +2,8 @@ import {
   USER_OVERRIDE_AWAY_KEY,
   USER_OVERRIDE_AWAY_REQUIRED_MESSAGE,
   USER_OVERRIDE_COVER_KEY,
-  USER_OVERRIDE_COVER_REQUIRED_MESSAGE,
   USER_OVERRIDE_ENDS_BEFORE_START_MESSAGE,
+  USER_OVERRIDE_ROTATION_COVERS_TEXT,
   USER_OVERRIDE_ENDS_KEY,
   USER_OVERRIDE_SAME_PERSON_MESSAGE,
   USER_OVERRIDE_STARTS_KEY,
@@ -14,10 +14,12 @@ import {
   getUserOverrideCoverPickerConfig,
   getUserOverrideEndsError,
   getUserOverrideFormFields,
+  isUserOverrideSkip,
   prepareUserOverrideForCreate,
   readUserOverridePeople,
   toUserOverrideTime,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideForm";
+import IconProp from "../../../Types/Icon/IconProp";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -42,6 +44,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *
  * This pins the form's description (UserOverrideForm.ts): what each question
  * writes, what it starts as, and what it refuses.
+ *
+ * "Who covers?" is left to the rotation unless somebody is picked: saved
+ * that way, the override is a skip - each of the person's turns goes to the
+ * next person in the rotation (task oncall-skip-user-until).
  */
 
 const ALEX: string = "0d300000-0000-4000-8000-0000000000a1";
@@ -101,13 +107,29 @@ describe("the questions the form asks", () => {
     ]);
   });
 
-  test("all four are required, with no steps and nothing folded away", () => {
+  test("every one but 'Who covers?' is required, with no steps and nothing folded away", () => {
     for (const field of fields(ALEX)) {
-      expect(field.required).toBe(true);
+      expect({ title: field.title, required: field.required }).toEqual({
+        title: field.title,
+        required: field.title !== "Who covers?",
+      });
       expect(field.stepId).toBeUndefined();
       expect(field.collapsibleSection).toBeUndefined();
       expect(field.showIf).toBeUndefined();
     }
+  });
+
+  test("'Who covers?' shows its answer when nothing is picked, so it needs no '(Optional)'", () => {
+    const cover: OverrideField = byTitle(fields(ALEX), "Who covers?");
+
+    expect(cover.hideOptionalLabel).toBe(true);
+    expect(cover.peoplePicker?.whenNobodyPicked).toEqual({
+      text: "Next person in the rotation",
+      icon: IconProp.Refresh,
+    });
+    expect(USER_OVERRIDE_ROTATION_COVERS_TEXT).toBe(
+      "Next person in the rotation",
+    );
   });
 
   /*
@@ -162,10 +184,10 @@ describe("the questions the form asks", () => {
     const list: Array<OverrideField> = fields(ALEX);
 
     expect(byTitle(list, "Who is away?").description).toBe(
-      "Alerts that would page them go to the person who covers.",
+      "They are not paged while they are away.",
     );
     expect(byTitle(list, "Who covers?").description).toBe(
-      "They get those alerts until the override ends.",
+      "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
     );
     expect(byTitle(list, "Starts").description).toBe(
       "It starts now unless you pick another time.",
@@ -205,6 +227,23 @@ describe("what the form starts with", () => {
     expect(byTitle(fields(ALEX), "Who is away?").defaultValue).toBe(ALEX);
   });
 
+  test("'Who is away?' starts as the person it was opened for: Skip until... on their row", () => {
+    expect(
+      getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
+        currentUserId: ALEX,
+        awayUserId: SAM,
+      })[0]!.defaultValue,
+    ).toBe(SAM);
+
+    // Somebody to open it for that is not an id falls back to you.
+    expect(
+      getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
+        currentUserId: ALEX,
+        awayUserId: "   ",
+      })[0]!.defaultValue,
+    ).toBe(ALEX);
+  });
+
   test("'Who is away?' starts empty when nobody is known to be signed in", () => {
     for (const nobody of [undefined, null, "", "   "]) {
       expect(
@@ -213,7 +252,7 @@ describe("what the form starts with", () => {
     }
   });
 
-  test("'Who covers?' starts empty: nobody is picked for you", () => {
+  test("'Who covers?' starts empty: the rotation covers until somebody is picked", () => {
     const cover: OverrideField = byTitle(fields(ALEX), "Who covers?");
 
     expect(cover.defaultValue).toBeUndefined();
@@ -276,8 +315,9 @@ describe("the two people pickers", () => {
     expect(getUserOverrideAwayPickerConfig().addButtonText).toBe(
       "Choose who is away",
     );
+    // Beside "Next person in the rotation": somebody instead of the rotation.
     expect(getUserOverrideCoverPickerConfig().addButtonText).toBe(
-      "Choose who covers",
+      "Choose someone",
     );
     expect(getUserOverrideCoverPickerConfig().emptyText).toBe(
       "There is no one else in this project.",
@@ -307,16 +347,20 @@ describe("what the form refuses", () => {
     expect(getUserOverrideAwayError({ overrideUserId: ALEX })).toBeNull();
   });
 
-  test("nobody covering", () => {
-    expect(getUserOverrideCoverError({ overrideUserId: ALEX })).toBe(
-      USER_OVERRIDE_COVER_REQUIRED_MESSAGE,
-    );
+  test("lets nobody covering through: the rotation covers, as a skip", () => {
+    for (const values of [
+      { overrideUserId: ALEX },
+      { overrideUserId: ALEX, routeAlertsToUserId: "" },
+      { overrideUserId: ALEX, routeAlertsToUserId: null },
+      { overrideUserId: ALEX, routeAlertsToUserId: [] },
+    ]) {
+      expect(getUserOverrideCoverError(values)).toBeNull();
+      expect(isUserOverrideSkip(values)).toBe(true);
+    }
+
     expect(
-      getUserOverrideCoverError({
-        overrideUserId: ALEX,
-        routeAlertsToUserId: "",
-      }),
-    ).toBe("Choose who covers.");
+      isUserOverrideSkip({ overrideUserId: ALEX, routeAlertsToUserId: SAM }),
+    ).toBe(false);
   });
 
   test("the person away covering for themselves, however the id is written", () => {
@@ -489,10 +533,33 @@ describe("an override as the page sends it", () => {
     expect(override.onCallDutyPolicyId?.toString()).toBe(POLICY);
   });
 
-  test("refuses an override that names nobody, or one person twice", () => {
+  test("with nobody picked to cover, it is a skip: the cover column is left out, not sent empty", () => {
+    for (const cover of [undefined, null, ""]) {
+      const override: OnCallDutyPolicyUserOverride =
+        prepareUserOverrideForCreate(
+          newOverride({ overrideUserId: ALEX, routeAlertsToUserId: cover }),
+          { projectId: new ObjectID(PROJECT) },
+        );
+
+      expect(override.overrideUserId?.toString()).toBe(ALEX);
+      expect(
+        Object.prototype.hasOwnProperty.call(override, "routeAlertsToUserId"),
+      ).toBe(false);
+      expect(
+        JSON.stringify(
+          OnCallDutyPolicyUserOverride.toJSON(
+            override,
+            OnCallDutyPolicyUserOverride,
+          ),
+        ),
+      ).not.toContain("routeAlertsToUserId");
+    }
+  });
+
+  test("refuses an override with nobody away, or one person twice", () => {
     for (const values of [
       { routeAlertsToUserId: SAM },
-      { overrideUserId: ALEX },
+      {},
       { overrideUserId: ALEX, routeAlertsToUserId: ALEX.toUpperCase() },
     ]) {
       expect(() => {

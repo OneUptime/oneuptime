@@ -140,9 +140,11 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
         <div className="mt-2 rounded-md bg-indigo-50 px-2 py-1.5 text-xs text-indigo-800">
           <TranslatedSentence
             template={
-              shift.override.isPolicyScoped
-                ? "Covering for {{name}} through a policy-scoped override."
-                : "Covering for {{name}} through an override."
+              shift.override.isSkip
+                ? "Next in the rotation while {{name}} is away."
+                : shift.override.isPolicyScoped
+                  ? "Covering for {{name}} through a policy-scoped override."
+                  : "Covering for {{name}} through an override."
             }
             slots={{
               name: (
@@ -328,9 +330,13 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
   const tooltip: ReactElement = (
     <div className="max-w-[300px] p-1 text-left text-xs text-gray-600">
       <div className="text-sm font-semibold text-gray-900">
-        {translator.translateTemplate("{{name}}'s shift, overridden", {
-          name: shift.override.originalUserName,
-        })}
+        {shift.override.isSkip
+          ? translator.translateTemplate("{{name}} is away", {
+              name: shift.override.originalUserName,
+            })
+          : translator.translateTemplate("{{name}}'s shift, overridden", {
+              name: shift.override.originalUserName,
+            })}
       </div>
       <div className="mt-1">
         <TranslatedSentence
@@ -353,14 +359,19 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
         />
       </div>
       <div className="mt-1 text-gray-500">
-        {translator.translateTemplate("Override window: {{interval}}", {
-          interval: ScheduleTimelineLayout.formatInterval({
-            start: shift.override.start,
-            end: shift.override.end,
-            timezone: props.timezone,
-            use12HourFormat: props.use12HourFormat,
-          }),
-        })}
+        {translator.translateTemplate(
+          shift.override.isSkip
+            ? "Away: {{interval}}"
+            : "Override window: {{interval}}",
+          {
+            interval: ScheduleTimelineLayout.formatInterval({
+              start: shift.override.start,
+              end: shift.override.end,
+              timezone: props.timezone,
+              use12HourFormat: props.use12HourFormat,
+            }),
+          },
+        )}
       </div>
     </div>
   );
@@ -398,7 +409,9 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
               {shift.override.originalUserName}
             </span>{" "}
             <span className="text-gray-400">
-              {translator.translateText("(overridden)")}
+              {translator.translateText(
+                shift.override.isSkip ? "(away)" : "(overridden)",
+              )}
             </span>
           </span>
         )}

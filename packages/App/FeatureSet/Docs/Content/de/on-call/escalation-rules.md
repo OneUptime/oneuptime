@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Ihre Benachrichtigungsmethoden"]
 ```
 
-Ist für eine Person eine Benutzervertretung wirksam, gehen ihre Alarmierungen stattdessen an die Person, die sie vertritt.
+Ist für eine Person eine Benutzervertretung wirksam, gehen ihre Alarmierungen stattdessen an die Person, die sie vertritt. Nennt sie niemanden als Vertretung, wird die Person übersprungen: Sie wird nicht alarmiert, der Lauf der Richtlinie vermerkt, dass sie abwesend ist und bis wann, und in einem Bereitschaftsplan geht jede ihrer Schichten an die nächste Person in der Rotation.
 
 Jede Nachricht ist eine, die ihr Anbieter annimmt, damit eine Alarmierung immer hinausgeht. So viel trägt jeder Kanal:
 

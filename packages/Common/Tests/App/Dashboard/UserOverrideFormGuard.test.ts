@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
 import path from "path";
 import { listScanRoots, listSourceFiles } from "../../ForeignHiddenRuleGuard";
 import {
@@ -29,7 +30,9 @@ import {
  *     each with a people picker - never under the columns' own titles or
  *     a dropdown of their own;
  *   - the form is the User Overrides table's, one page of four rows: Who is
- *     away?, Who covers?, Starts, Ends.
+ *     away?, Who covers?, Starts, Ends - and the same form is the one "Skip
+ *     until..." on a person in a schedule layer opens (SkipLayerUserModal),
+ *     which only ever adds one.
  *
  * The detector is pinned on inline snippets first, then run over the real
  * tree with checks that it really read it.
@@ -47,6 +50,13 @@ const REPOSITORY_ROOT: string = path.resolve(
 
 const TABLE_FILE: string =
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideTable.tsx";
+
+/*
+ * "Skip until..." on a person in a schedule layer: the same form, opened with
+ * them away and the rotation covering (task oncall-skip-user-until).
+ */
+const SKIP_MODAL_FILE: string =
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx";
 
 const FORM_FILE_SUFFIX: string =
   "Components/OnCallPolicy/UserOverrides/UserOverrideForm.ts";
@@ -262,25 +272,52 @@ describe("the project's forms", () => {
     ).toEqual([]);
   });
 
-  test("save a user override only on the User Overrides table", () => {
+  test("save a user override only on the User Overrides table, and from Skip until... on a person in a layer", () => {
     expect(
-      overrideForms.map((form: FormFacts): string => {
-        return `${form.file} ${form.label}`;
-      }),
-    ).toEqual([`${TABLE_FILE} ModelTable: On-Call Policy > User Overrides`]);
+      overrideForms
+        .map((form: FormFacts): string => {
+          return `${form.file} ${form.label}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `${TABLE_FILE} ModelTable: On-Call Policy > User Overrides`,
+        `${SKIP_MODAL_FILE} ModelFormModal: Skip in the rotation`,
+      ].sort(),
+    );
   });
 
-  describe("the Add User Override form", () => {
+  describe.each([
+    ["the Add User Override form", TABLE_FILE],
+    ["Skip until... on a person in a layer", SKIP_MODAL_FILE],
+  ])("%s", (_name: string, file: string) => {
     const form: FormFacts | undefined = overrideForms.find(
       (candidate: FormFacts): boolean => {
-        return candidate.file === TABLE_FILE;
+        return candidate.file === file;
       },
     );
 
     test("adds overrides, and nothing edits them", () => {
       expect(form).toBeDefined();
       expect(form!.hasCreateForm).toBe(true);
-      expect(form!.hasEditForm).toBe(false);
+
+      if (file === TABLE_FILE) {
+        expect(form!.hasEditForm).toBe(false);
+        return;
+      }
+
+      /*
+       * The scanner counts any dialog as one that may edit; this one only
+       * ever creates.
+       */
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
+
+      expect(source).toContain("formType: FormType.Create");
+      expect(source).not.toContain("modelIdToEdit");
+      expect(source).not.toContain("FormType.Update");
     });
 
     test("is one page of four rows", () => {

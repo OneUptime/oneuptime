@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Diens meldingsmethoden"]
 ```
 
-Een override die voor een persoon geldt, stuurt diens oproepen naar de persoon die hem of haar vervangt.
+Een override die voor een persoon geldt, stuurt diens oproepen naar de persoon die hem of haar vervangt. Een override die niemand als vervanger noemt, slaat de persoon over: die krijgt geen oproepen, de uitvoering van het beleid vermeldt dat die afwezig is en tot wanneer, en in een bereikbaarheidsschema gaat elke beurt van die persoon naar de volgende persoon in de rotatie.
 
 Elk bericht is er een dat de provider aanneemt, dus een oproep gaat altijd de deur uit. Zoveel draagt elk kanaal:
 

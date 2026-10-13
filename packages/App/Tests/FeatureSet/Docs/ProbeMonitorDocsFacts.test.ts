@@ -490,12 +490,119 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
           .filter((option: DropdownOption): boolean => {
             return CommonCriteriaFilterUtil.isEvaluateOverTimeFilter(
               option.value as CheckOn,
+              probePage.monitorType,
             );
           })
           .map((option: DropdownOption): string => {
             return option.label;
           }),
       ),
+    );
+  });
+
+  /*
+   * Issue #4686: since every filter on these monitors can wait, the page
+   * offers the box for all of them - a filter missing from the list would be
+   * one a reader concludes must fire on the check that saw it.
+   */
+  it("offers it for every filter the form offers on this monitor", () => {
+    const evaluating: string = section(
+      page,
+      "### Evaluating over a period of time",
+    );
+    const sentence: string = evaluating.slice(
+      evaluating.indexOf("offered for "),
+      evaluating.indexOf(". Turn it on"),
+    );
+
+    expect(sorted(boldItems(sentence))).toEqual(
+      sorted(
+        offeredFilters(probePage.monitorType).map(
+          (option: DropdownOption): string => {
+            return option.label;
+          },
+        ),
+      ),
+    );
+  });
+
+  it("says which filters are judged from whether they matched on each check, and with what", () => {
+    const evaluating: string = section(
+      page,
+      "### Evaluating over a period of time",
+    );
+    const paragraph: string | undefined = evaluating
+      .split("\n\n")
+      .find((block: string): boolean => {
+        return block.includes(
+          "records whether the filter matched on each check",
+        );
+      });
+
+    expect(paragraph).toBeDefined();
+
+    // The filters of this monitor that keep a match history, as the form names them.
+    const keepingHistory: Array<string> = offeredFilters(probePage.monitorType)
+      .filter((option: DropdownOption): boolean => {
+        return CommonCriteriaFilterUtil.hasMatchHistory({
+          checkOn: option.value as CheckOn,
+          monitorType: probePage.monitorType,
+        });
+      })
+      .map((option: DropdownOption): string => {
+        return option.label;
+      });
+
+    expect(keepingHistory.length).toBeGreaterThan(0);
+
+    const named: Array<string> = boldItems(paragraph!);
+
+    // The yes/no checks are named, in bold or as a kind of check.
+    for (const label of keepingHistory) {
+      const kind: string = label
+        .replace("Response ", "")
+        .replace("JavaScript ", "")
+        .toLowerCase();
+
+      expect({
+        label,
+        named: named.includes(label) || paragraph!.includes(kind),
+      }).toEqual({ label, named: true });
+    }
+
+    // ...and offered exactly the two evaluation types the form offers them.
+    const offeredTypes: Array<EvaluateOverTimeType> =
+      CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
+        checkOn: CheckOn.IsRequestTimeout,
+        filterType: FilterType.True,
+        value: undefined,
+      });
+
+    expect(offeredTypes).toEqual([
+      EvaluateOverTimeType.AllValues,
+      EvaluateOverTimeType.AnyValue,
+    ]);
+    expect(
+      Array.from(
+        new Set(
+          named.filter((name: string): boolean => {
+            return (
+              Object.values(EvaluateOverTimeType) as Array<string>
+            ).includes(name);
+          }),
+        ),
+      ),
+    ).toEqual(offeredTypes);
+  });
+
+  it("warns that a window no longer than the interval holds one check, as the form does", () => {
+    const form: string = readRepoFile(CRITERIA_FILTER_FORM_FILE);
+
+    expect(form).toContain(
+      "A monitor checked every 5 minutes has one check in any 5-minute window.",
+    );
+    expect(section(page, "### Evaluating over a period of time")).toContain(
+      "Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.",
     );
   });
 

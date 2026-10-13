@@ -151,3 +151,53 @@ describe("a moment through Slack's Markdown conversion", () => {
     ).toBe(SlackUtil.slackify(markdown));
   });
 });
+
+describe("WorkspaceMessageTime.dateAndTime - a moment days away, with its day", () => {
+  // 12:00 UTC on Friday 6 March 2026: when somebody who is away is back.
+  const BACK: Date = new Date("2026-03-06T12:00:00.000Z");
+  const BACK_UNIX: number = BACK.getTime() / 1000;
+
+  test("is Markdown Teams shows as the reader's own day and time", () => {
+    expect(WorkspaceMessageTime.dateAndTime(BACK).toString()).toBe(
+      "{{DATE(2026-03-06T12:00:00Z, SHORT)}} at {{TIME(2026-03-06T12:00:00Z)}}",
+    );
+  });
+
+  test("Slack gets its own dates: the day (today, tomorrow or the date) and the time", () => {
+    expect(
+      WorkspaceMessageTime.toSlack(
+        `away until ${WorkspaceMessageTime.dateAndTime(BACK).toString()}`,
+      ),
+    ).toBe(
+      `away until <!date^${BACK_UNIX}^{date_short_pretty}|2026-03-06> at <!date^${BACK_UNIX}^{time}|12:00 UTC>`,
+    );
+  });
+
+  test("a notification log reads the day and the time in UTC", () => {
+    expect(
+      WorkspaceMessageTime.toPlainText(
+        `away until ${WorkspaceMessageTime.dateAndTime(BACK).toString()}`,
+      ),
+    ).toBe("away until 2026-03-06 at 12:00 UTC");
+  });
+
+  test("a day alone, in text that has no time, is still converted", () => {
+    expect(
+      WorkspaceMessageTime.toSlack("{{DATE(2026-03-06T12:00:00Z, SHORT)}}"),
+    ).toBe(`<!date^${BACK_UNIX}^{date_short_pretty}|2026-03-06>`);
+    expect(
+      WorkspaceMessageTime.toPlainText("{{DATE(2026-03-06T12:00:00Z, SHORT)}}"),
+    ).toBe("2026-03-06");
+  });
+
+  test("a day that is no date, or not in the short form, is left as written", () => {
+    for (const text of [
+      "{{DATE(2026-13-45T99:99:99Z, SHORT)}}",
+      "{{DATE(2026-03-06T12:00:00Z, LONG)}}",
+      "{{DATE(2026-03-06T12:00:00Z)}}",
+    ]) {
+      expect(WorkspaceMessageTime.toSlack(text)).toBe(text);
+      expect(WorkspaceMessageTime.toPlainText(text)).toBe(text);
+    }
+  });
+});

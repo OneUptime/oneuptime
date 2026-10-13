@@ -21,7 +21,8 @@ import OneUptimeDate from "Common/Types/Date";
 import TimezoneAlias from "Common/Types/TimezoneAlias";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
-import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
 import ScheduleShiftUtil, {
   CoverageGap,
   OnCallShift,
@@ -94,6 +95,11 @@ export interface ComponentProps {
    * overrides only. See POLICY_CONTEXT below.
    */
   onCallDutyPolicyScheduleId?: ObjectID | undefined;
+  /*
+   * Changed by the page when it knows the overrides changed (somebody was
+   * just skipped on the layers above), so they are read again at once.
+   */
+  overridesRefreshKey?: number | undefined;
 }
 
 interface UserInfo {
@@ -297,6 +303,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       scheduleUserIds,
       windowStart: overrideWindow.start,
       windowEnd: overrideWindow.end,
+      refreshKey: props.overridesRefreshKey,
     });
 
   const overrideRecords: Array<UserOverrideRecord> = overrideResolution.records;
@@ -335,7 +342,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     }
 
     for (const o of overrideRecords) {
-      const routeId: string = o.routeAlertsToUserId;
+      // A skip names nobody: whoever has the turn is on the roster already.
+      const routeId: string = o.routeAlertsToUserId || "";
       if (!routeId || seen.has(routeId)) {
         continue;
       }
@@ -388,8 +396,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
    * The combined-schedule shifts for the summary. Computed over a fixed forward
    * window from "now" (independent of where the user has navigated the calendar)
    * so "on call now / up next / upcoming hand-offs" stays stable and meaningful.
-   * Uses the same LayerUtil + override application as the calendar, so the
-   * summary never contradicts the grid below it.
+   * Uses the same resolution as the calendar and the server (ScheduleResolution:
+   * people who are away skipped in their layers, then named covers), so the
+   * summary never contradicts the grid below it - or the page a phone rings for.
    */
   const summaryData: {
     shifts: Array<OnCallShift>;
@@ -403,19 +412,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
      */
     const windowEnd: Date = getCoverageWindowEnd(now);
 
-    let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+    const events: Array<CalendarEvent> = ScheduleResolution.resolve({
       calendarStartDate: now,
       calendarEndDate: windowEnd,
       layers: buildLayerProps(),
-    });
-
-    if (overrideRecords.length > 0) {
-      events = UserOverrideUtil.applyOverridesToEvents({
-        events,
-        overrides: overrideRecords,
-        currentOnCallDutyPolicyId: policyContextIdString || undefined,
-      });
-    }
+      overrides: overrideRecords,
+      currentOnCallDutyPolicyId: policyContextIdString || undefined,
+    }).events;
 
     /*
      * Grouped so an override window is its own shift. The default grouping is
@@ -456,25 +459,25 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         windowEnd,
       }),
     };
-  }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords, now]);
+  }, [
+    props.layers,
+    props.allLayerUsers,
+    props.timezone,
+    overrideRecords,
+    policyContextIdString,
+    now,
+  ]);
 
   useEffect(() => {
-    const layerUtil: LayerUtil = new LayerUtil();
     const layerProps: Array<LayerProps> = buildLayerProps();
 
-    let events: Array<CalendarEvent> = layerUtil.getMultiLayerEvents({
+    const events: Array<CalendarEvent> = ScheduleResolution.resolve({
       calendarEndDate: computeEndTime,
       calendarStartDate: computeStartTime,
       layers: layerProps,
-    });
-
-    if (overrideRecords.length > 0) {
-      events = UserOverrideUtil.applyOverridesToEvents({
-        events,
-        overrides: overrideRecords,
-        currentOnCallDutyPolicyId: policyContextIdString || undefined,
-      });
-    }
+      overrides: overrideRecords,
+      currentOnCallDutyPolicyId: policyContextIdString || undefined,
+    }).events;
 
     /*
      * Gaps for the VISIBLE range, computed before the events below are
@@ -593,6 +596,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             : {}),
         }),
         timezone: viewAsTimezone,
+        isSkip: UserOverrideUtil.isSkipMeta(meta),
       });
       event.accentColor = getColorForUserId(meta.originalUserId);
       event.className = OVERRIDE_EVENT_CLASS_NAME;
@@ -608,6 +612,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     computeStartTime,
     computeEndTime,
     overrideRecords,
+    policyContextIdString,
     allUsersById,
     policyNameById,
     viewAsTimezone,

@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Personens aviseringsmetoder"]
 ```
 
-En användaråsidosättning som gäller för en person skickar personens larm till den som täcker upp för personen i stället.
+En användaråsidosättning som gäller för en person skickar personens larm till den som täcker upp för personen i stället. En åsidosättning som inte anger någon som täcker upp hoppar över personen: personen larmas inte, policyns körning visar att personen är borta och till när, och i ett jourschema går vart och ett av personens pass till nästa person i rotationen.
 
 Varje meddelande är ett som leverantören tar emot, så ett larm går alltid ut. Så här mycket bär varje kanal:
 

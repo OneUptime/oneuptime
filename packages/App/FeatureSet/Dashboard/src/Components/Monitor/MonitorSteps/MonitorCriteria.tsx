@@ -1,6 +1,7 @@
 import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -54,6 +55,7 @@ export interface ComponentProps {
   teamOptions: Array<Team>;
   userOptions: Array<User>;
   incidentRoleOptions: Array<IncidentRole>;
+  monitorType?: MonitorType | undefined;
 }
 
 const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
@@ -116,6 +118,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       userOptions={props.userOptions}
                       incidentRoleOptions={props.incidentRoleOptions}
                       monitorCriteriaInstance={i}
+                      monitorType={props.monitorType}
                       isLastCriteria={
                         index ===
                         (props.monitorCriteria.data

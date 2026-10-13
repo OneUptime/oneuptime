@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Personens notifikationsmetoder"]
 ```
 
-En brugeroverride, der gælder for en person, sender personens tilkald til den, der dækker for vedkommende, i stedet.
+En brugeroverride, der gælder for en person, sender personens tilkald til den, der dækker for vedkommende, i stedet. En override, der ikke nævner nogen til at dække, springer personen over: vedkommende får ingen tilkald, politikkens kørsel viser, at vedkommende er fraværende og til hvornår, og i en vagtplan går hver af vedkommendes vagter til den næste person i rotationen.
 
 Hver besked er en, som udbyderen tager imod, så et tilkald går altid ud. Så meget bærer hver kanal:
 

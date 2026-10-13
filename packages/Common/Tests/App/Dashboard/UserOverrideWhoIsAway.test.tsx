@@ -34,6 +34,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  *   - it is one page: Who is away?, Who covers?, Starts, Ends;
  *   - Who is away? starts as you, Starts as now, and Ends is left to you;
+ *   - Who covers? reads "Next person in the rotation" until somebody is
+ *     picked, and saved that way the override is a skip: no cover is sent
+ *     (task oncall-skip-user-until), and the list says the rotation covers;
  *   - Who covers? does not offer the person who is away, and the same
  *     person twice, or an end before the start, is refused before anything
  *     is sent;
@@ -233,14 +236,19 @@ function user(id: string): User {
 
 function override(data: {
   away: string;
-  cover: string;
+  // Left out for a skip: the next person in the rotation covers.
+  cover?: string | undefined;
 }): OnCallDutyPolicyUserOverride {
   const row: OnCallDutyPolicyUserOverride = new OnCallDutyPolicyUserOverride();
   row._id = "0d400000-0000-4000-8000-0000000000f1";
   row.overrideUserId = new ObjectID(data.away);
   row.overrideUser = user(data.away);
-  row.routeAlertsToUserId = new ObjectID(data.cover);
-  row.routeAlertsToUser = user(data.cover);
+
+  if (data.cover) {
+    row.routeAlertsToUserId = new ObjectID(data.cover);
+    row.routeAlertsToUser = user(data.cover);
+  }
+
   row.startsAt = NOW;
   row.endsAt = NEXT_WEEK;
   return row;
@@ -575,6 +583,49 @@ describe.each(["global", "policy"] as Array<Page>)(
       expect(coverCell).toBe(awayCell + 1);
     });
 
+    test("lists a skip with the rotation covering", async () => {
+      overrides = [override({ away: ALEX })];
+
+      await renderPage(page);
+
+      await screen.findAllByText("Alex Chen");
+
+      const covers: HTMLElement = await screen.findByTestId(
+        "user-override-rotation-covers",
+      );
+
+      expect(covers).toHaveTextContent("Next person in the rotation");
+      expect(screen.queryByText("No user.")).not.toBeInTheDocument();
+
+      /*
+       * Drawn the way the person beside it is: a round mark the size of an
+       * avatar - the rotation's icon - with the words beside it, not a small
+       * icon in a line of its own.
+       */
+      const mark: HTMLElement = covers.firstElementChild as HTMLElement;
+      expect(mark.className).toContain("h-8");
+      expect(mark.className).toContain("w-8");
+      expect(mark.className).toContain("rounded-full");
+      expect(mark.querySelector("svg")).not.toBeNull();
+      expect(mark).toHaveTextContent("");
+      expect(covers.lastElementChild).toHaveTextContent(
+        "Next person in the rotation",
+      );
+    });
+
+    test("the card says what an override does, a skip included, in plain sentences", async () => {
+      await renderPage(page);
+
+      const description: string =
+        page === "policy"
+          ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
+          : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.";
+
+      expect(await screen.findByText(description)).toBeInTheDocument();
+      // The old one-sentence version ran a dash and a colon together.
+      expect(document.body).not.toHaveTextContent("skips them, so the next");
+    });
+
     test("lists the overrides it is about: the policy's, or the global ones", async () => {
       await renderPage(page);
 
@@ -622,11 +673,20 @@ describe.each(["global", "policy"] as Array<Page>)(
       }
 
       expect(modal).toHaveTextContent(
-        "Alerts that would page them go to the person who covers.",
+        "They are not paged while they are away.",
       );
       expect(modal).toHaveTextContent(
-        "They get those alerts until the override ends.",
+        "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
       );
+
+      // "Who covers?" shows its answer, so it says no "(Optional)".
+      const coverLabel: HTMLLabelElement | undefined = Array.from(
+        modal.querySelectorAll("label"),
+      ).find((label: HTMLLabelElement): boolean => {
+        return (label.textContent || "").includes("Who covers?");
+      });
+
+      expect(coverLabel?.textContent).not.toContain("(Optional)");
     });
 
     test("starts with you away, from now, with who covers and the end left to you", async () => {
@@ -642,11 +702,17 @@ describe.each(["global", "policy"] as Array<Page>)(
         expect(picker(modal, "Who is away?")).toHaveTextContent("Alex Chen");
       });
       expect(chipIds(picker(modal, "Who covers?"))).toEqual([]);
+      // Nobody picked: the rotation covers, and the picker says so.
+      expect(
+        within(picker(modal, "Who covers?")).getByTestId(
+          "people-picker-nobody-picked",
+        ),
+      ).toHaveTextContent("Next person in the rotation");
       expect(
         within(picker(modal, "Who covers?")).getByTestId(
           "people-picker-add-button",
         ),
-      ).toHaveTextContent("Choose who covers");
+      ).toHaveTextContent("Choose someone");
 
       // Now, to the minute the input shows.
       expect(timeInput(modal, "Starts").value).toMatch(/^2026-03-03T12:34/);
@@ -660,7 +726,7 @@ describe.each(["global", "policy"] as Array<Page>)(
       const popup: HTMLElement = await openPicker(
         modal,
         "Who covers?",
-        "Choose who covers",
+        "Choose someone",
       );
 
       expect(listedIds(popup)).toEqual([PAT, SAM]);
@@ -671,7 +737,7 @@ describe.each(["global", "policy"] as Array<Page>)(
       await renderPage(page);
       const modal: HTMLElement = await openAddDialog();
 
-      await pick(modal, "Who covers?", "Choose who covers", SAM);
+      await pick(modal, "Who covers?", "Choose someone", SAM);
       setEnds(modal, NEXT_WEEK);
       await submit(modal);
 
@@ -716,7 +782,7 @@ describe.each(["global", "policy"] as Array<Page>)(
       const popup: HTMLElement = await openPicker(
         modal,
         "Who covers?",
-        "Choose who covers",
+        "Choose someone",
       );
 
       // Now Pat is the one left out.
@@ -743,24 +809,72 @@ describe.each(["global", "policy"] as Array<Page>)(
       expect(idOf(sentOverride().routeAlertsToUserId)).toBe(ALEX);
     });
 
-    test("asks who covers before saving", async () => {
+    test("with nobody picked to cover, saves a skip: the rotation covers", async () => {
       await renderPage(page);
       const modal: HTMLElement = await openAddDialog();
 
       setEnds(modal, NEXT_WEEK);
       await submit(modal);
 
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const sent: OnCallDutyPolicyUserOverride = sentOverride();
+
+      expect(idOf(sent.overrideUserId)).toBe(ALEX);
+      // No cover is sent at all: the server reads that as a skip.
+      expect(sent.routeAlertsToUserId).toBeFalsy();
       expect(
-        await within(modal).findByText("Choose who covers."),
-      ).toBeVisible();
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
+        JSON.stringify(
+          OnCallDutyPolicyUserOverride.toJSON(
+            sent,
+            OnCallDutyPolicyUserOverride,
+          ),
+        ),
+      ).not.toContain("routeAlertsToUserId");
+      expect(screen.queryByText("Choose who covers.")).not.toBeInTheDocument();
+    });
+
+    test("a cover picked and then removed leaves it to the rotation again", async () => {
+      await renderPage(page);
+      const modal: HTMLElement = await openAddDialog();
+
+      await pick(modal, "Who covers?", "Choose someone", SAM);
+
+      expect(
+        within(picker(modal, "Who covers?")).queryByTestId(
+          "people-picker-nobody-picked",
+        ),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(
+        within(picker(modal, "Who covers?")).getByRole("button", {
+          name: /Remove/,
+        }),
+      );
+
+      expect(
+        await within(picker(modal, "Who covers?")).findByTestId(
+          "people-picker-nobody-picked",
+        ),
+      ).toHaveTextContent("Next person in the rotation");
+
+      setEnds(modal, NEXT_WEEK);
+      await submit(modal);
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(sentOverride().routeAlertsToUserId).toBeFalsy();
     });
 
     test("asks when the override ends before saving", async () => {
       await renderPage(page);
       const modal: HTMLElement = await openAddDialog();
 
-      await pick(modal, "Who covers?", "Choose who covers", SAM);
+      await pick(modal, "Who covers?", "Choose someone", SAM);
       await submit(modal);
 
       expect(await within(modal).findByText("Ends is required.")).toBeVisible();
@@ -771,7 +885,7 @@ describe.each(["global", "policy"] as Array<Page>)(
       await renderPage(page);
       const modal: HTMLElement = await openAddDialog();
 
-      await pick(modal, "Who covers?", "Choose who covers", SAM);
+      await pick(modal, "Who covers?", "Choose someone", SAM);
       setEnds(modal, OneUptimeDate.fromString("2026-03-03T09:00:00.000Z"));
       await submit(modal);
 
@@ -787,7 +901,7 @@ describe.each(["global", "policy"] as Array<Page>)(
       await renderPage(page);
       const modal: HTMLElement = await openAddDialog();
 
-      await pick(modal, "Who covers?", "Choose who covers", SAM);
+      await pick(modal, "Who covers?", "Choose someone", SAM);
       // Then Sam is said to be the one away, too.
       await pick(modal, "Who is away?", "Choose who is away", SAM);
       setEnds(modal, NEXT_WEEK);
@@ -872,7 +986,7 @@ describe.each(["global", "policy"] as Array<Page>)(
 
       const modal: HTMLElement = await findOpenDialog();
 
-      await pick(modal, "Who covers?", "Choose who covers", SAM);
+      await pick(modal, "Who covers?", "Choose someone", SAM);
       await submit(modal);
 
       await waitFor(() => {
@@ -905,6 +1019,37 @@ describe.each(["global", "policy"] as Array<Page>)(
 
       expect(timeInput(next, "Starts").value).toMatch(/^2026-03-03T12:34/);
       expect(timeInput(next, "Ends").value).toBe("");
+    });
+
+    test("or leaves the shift to the rotation: saved as it opens, it skips you", async () => {
+      await renderPage(
+        page,
+        coverSearch({ startsAt: SHIFT_STARTS, endsAt: SHIFT_ENDS }),
+      );
+
+      const modal: HTMLElement = await findOpenDialog();
+
+      // The form fills in who is away in an effect of its own.
+      await waitFor(() => {
+        expect(chipIds(picker(modal, "Who is away?"))).toEqual([ALEX]);
+      });
+
+      await submit(modal);
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const sent: OnCallDutyPolicyUserOverride = sentOverride();
+
+      expect(idOf(sent.overrideUserId)).toBe(ALEX);
+      expect(sent.routeAlertsToUserId).toBeFalsy();
+      expect(OneUptimeDate.fromString(sent.startsAt!).toISOString()).toBe(
+        SHIFT_STARTS.toISOString(),
+      );
+      expect(OneUptimeDate.fromString(sent.endsAt!).toISOString()).toBe(
+        SHIFT_ENDS.toISOString(),
+      );
     });
 
     test("cancelled, it is not offered again: the next Add User Override starts from now", async () => {
@@ -989,7 +1134,7 @@ describe("with nobody known to be signed in", () => {
 
     expect(chipIds(picker(modal, "Who is away?"))).toEqual([]);
 
-    await pick(modal, "Who covers?", "Choose who covers", SAM);
+    await pick(modal, "Who covers?", "Choose someone", SAM);
     setEnds(modal, NEXT_WEEK);
     await submit(modal);
 

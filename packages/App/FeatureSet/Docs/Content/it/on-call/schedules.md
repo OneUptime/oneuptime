@@ -8,6 +8,7 @@ Una pianificazione di reperibilità decide chi è reperibile in ogni momento. Le
 :::cards
 - [Chi si alterna](#chi-si-alterna): Crea una pianificazione con la sua prima rotazione.
 - [Livelli](#livelli): Sovrapponi rotazioni, limita gli orari di reperibilità e aggiungi una copertura di riserva.
+- [Quando qualcuno è assente](#quando-qualcuno-è-assente): Saltare qualcuno nella rotazione finché non torna.
 - [API e Terraform](#creare-pianificazioni-con-lapi-o-terraform): Crea pianificazioni e rotazioni come codice.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 Per cambiare quale livello viene prima, usa **Move layer up (higher priority)** o **Move layer down (lower priority)** nel menu di un livello.
 
 Ogni persona mantiene un unico colore ovunque, così puoi seguirla a colpo d'occhio: su ogni livello, nella pianificazione finale e nelle sue sostituzioni, e nella **Cronologia delle reperibilità**.
+
+## Quando qualcuno è assente
+
+Quando qualcuno va in vacanza, saltalo finché non torna. Nella pagina **Livelli** della pianificazione, espandi un livello e fai clic su **Salta fino a…** accanto al suo nome. Si apre il modulo per le assenze con quella persona in **Chi è assente?**, **Persona successiva nella rotazione** in **Chi sostituisce?** e **Inizia** da adesso: imposta **Termina** su quando torna e salva.
+
+Mentre è assente:
+
+- Ognuno dei suoi turni passa alla persona successiva del livello che non è assente, in ogni pianificazione di cui fa parte. I turni degli altri non si spostano, e i suoi tornano suoi appena rientra.
+- Se tutti in un livello sono assenti, il livello non ha nessuno di reperibilità e subentrano i livelli sottostanti. Il livello mostra **Tutti in questo livello sono assenti in questo momento**.
+- Le regole di escalation che la avvisano direttamente, o tramite un team, la saltano. L'esecuzione della policy indica che è assente e fino a quando.
+- La sua riga nel livello indica fino a quando è assente, e la pianificazione finale e la **Cronologia delle reperibilità** mostrano chi ha ciascuno dei suoi turni.
+
+Se invece scegli qualcuno in **Chi sostituisce?**, quella persona riceve tutti i suoi avvisi, da ogni pianificazione e da ogni policy, invece che la rotazione prenda i suoi turni.
+
+Un'assenza aggiunta così vale per tutte le policy di reperibilità. È elencata in **Reperibilità** > **Sostituzioni utente**, dove puoi eliminarla per farla rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è.
+
+Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 
 ## Creare pianificazioni con l'API o Terraform
 

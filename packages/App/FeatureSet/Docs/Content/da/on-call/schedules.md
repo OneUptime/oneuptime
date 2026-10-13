@@ -8,6 +8,7 @@ En vagtplan bestemmer, hvem der har vagt på ethvert tidspunkt. Folk skiftes i d
 :::cards
 - [Hvem der skiftes](#hvem-der-skiftes): Opret en vagtplan med dens første rotation.
 - [Lag](#lag): Stabl rotationer, begræns vagttimerne, og tilføj reservedækning.
+- [Når nogen er fraværende](#når-nogen-er-fraværende): Spring nogen over i rotationen, til de er tilbage.
 - [API og Terraform](#opret-vagtplaner-med-apiet-eller-terraform): Opret vagtplaner og deres rotationer som kode.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 For at ændre, hvilket lag der kommer først, skal du bruge **Move layer up (higher priority)** eller **Move layer down (lower priority)** i et lags menu.
 
 Hver person beholder én farve overalt, så du kan følge personen med et blik: i hvert lag, i den endelige vagtplan og dens overrides og på **Tidslinje for vagtplaner**.
+
+## Når nogen er fraværende
+
+Når nogen tager på ferie, så spring dem over, til de er tilbage. Fold et lag ud på vagtplanens side **Lag**, og klik på **Spring over indtil…** ved siden af deres navn. Det åbner formularen for fravær med dem under **Hvem er fraværende?**, **Næste person i rotationen** under **Hvem dækker?** og **Starter** fra nu: sæt **Slutter** til, hvornår de er tilbage, og gem.
+
+Mens de er fraværende:
+
+- Hver af deres vagter går til den næste person i laget, som ikke er fraværende, i alle vagtplaner, de er med i. Ingen andres vagter flytter sig, og deres vagter er deres igen, så snart de er tilbage.
+- Hvis alle i et lag er fraværende, har laget ingen på vagt, og lagene under det overtager. Laget viser **Alle i dette lag er fraværende lige nu**.
+- Eskaleringsregler, der tilkalder dem direkte eller via et team, springer dem over. Politikkens kørsel viser, at de er fraværende, og til hvornår.
+- Deres række i laget viser, hvornår de er tilbage, og den endelige vagtplan og **Tidslinje for vagtplaner** viser, hvem der har hver af deres vagter.
+
+Vælg i stedet nogen under **Hvem dækker?**, så får den person alle deres tilkald fra alle vagtplaner og alle politikker, i stedet for at rotationen tager deres vagter.
+
+Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker. Det står under **Vagtordning** > **Brugertilsidesættelser**, hvor du kan slette det for at få dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er.
+
+Via API'et springer en brugeroverride (`/api/on-call-duty-policy-user-override`), der oprettes uden `routeAlertsToUserId`, personen i `overrideUserId` over fra `startsAt` til `endsAt`.
 
 ## Opret vagtplaner med API'et eller Terraform
 
