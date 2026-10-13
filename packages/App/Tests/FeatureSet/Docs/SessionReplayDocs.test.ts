@@ -643,18 +643,33 @@ describe("Session Replay docs page", (): void => {
       expect(listSection).toContain(`\`${token}:`);
     }
 
-    /* Every quick filter and every sort option, from the option tables. */
+    /*
+     * Every option of the Signal chip and of the sort menu, from the option
+     * tables. "All" is the Signal chip cleared: SessionReplayFacets offers
+     * every other signal as an option, not that one.
+     */
     const filters: string = fs.readFileSync(
       path.join(DASHBOARD_REPLAY_DIR, "SessionReplayListFilters.ts"),
       "utf8",
     );
+    const labels: Array<string> = Array.from(
+      filters.matchAll(/label: "([^"]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
 
-    for (const label of Array.from(filters.matchAll(/label: "([^"]+)"/g)).map(
-      (match: RegExpMatchArray): string => {
-        return match[1] as string;
-      },
-    )) {
-      expect(listSection).toContain(label);
+    expect(labels).toContain("All");
+    expect(
+      fs.readFileSync(
+        path.join(DASHBOARD_REPLAY_DIR, "SessionReplayFacets.tsx"),
+        "utf8",
+      ),
+    ).toContain('return option.value !== "all";');
+
+    for (const label of labels) {
+      if (label !== "All") {
+        expect(listSection).toContain(label);
+      }
     }
   });
 

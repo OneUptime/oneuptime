@@ -617,7 +617,7 @@ flowchart TB
 
 当你所在的列表页显示着尚未定稿的会话时，列表会每 30 秒自动刷新一次，并保留你的过滤器和页码 — 仅在其浏览器选项卡可见时，并且最多持续到你上次加载列表或回到该选项卡之后 10 分钟；之后，点击 **刷新** 会重新读取列表并重新开始这 10 分钟。当你的指针悬停在列表上或某一行获得焦点时，刷新会等待，这样你正要打开的那一行就不会在你手下移动。
 
-列表上方的 **Quick filters** ：All、Errors、Frustration、Identified（页面调用过 `identify()` ）、Playable、Slow（性能触发器）、Live（尚未定稿：仍在录制，或已结束但仍在统计）和 Traced（至少携带一个后端追踪 ID）。可按 Newest、Longest、Most errors 或 Most frustration **排序** 。每页显示 20、50 或 100 条。
+列表上方有一排筛选标签，每个标签对应一个字段。 **Signal** 只保留一类会话：Errors、Frustration、Identified（页面调用过 `identify()` ）、Playable、Slow（性能触发器）、Live（尚未定稿：仍在录制，或已结束但仍在统计）或 Traced（至少携带一个后端追踪 ID）。 **Browser** 、 **Operating system** 、 **设备** 、 **国家** 、 **Capture reason** 和 **持续时间** 各保留一个值。搜索框旁的排序菜单可按 Newest、最长、Most errors 或 Most frustration 排列列表。每页显示 20、50 或 100 条。
 
 **搜索。** 搜索框接受自由文本和令牌，二者可以组合使用：
 
@@ -632,7 +632,7 @@ flowchart TB
 | `min:2m` | 最短时长： `90` 、 `90s` 、 `2m` 、 `1h30m` 或 `1:30` 。 |
 | `id:<sessionId>` | 把列表缩小到具有该前缀的 ID；按 `Enter` 会直接打开该会话。 |
 
-不带令牌的文本按其形式解读：以 `/` 或 `http` 开头的是 URL 前缀，包含 `@` 的是用户引用，其他任何内容都是对会话 ID 前缀、入口和出口 URL、访问过的路由、确切的追踪 ID，以及 — 在你的角色可以读取时 — 用户标签的自由文本搜索。自由文本限制在 200 个字符和 30 天的窗口内；更大的时间范围会返回“narrow the range”，而不是一个空列表。请为包含空格的值加上引号。 **过滤器** 按钮会以表单形式打开同样的字段，外加一个搜索框不支持的确切路由过滤器。
+不带令牌的文本按其形式解读：以 `/` 或 `http` 开头的是 URL 前缀，包含 `@` 的是用户引用，其他任何内容都是对会话 ID 前缀、入口和出口 URL、访问过的路由、确切的追踪 ID，以及 — 在你的角色可以读取时 — 用户标签的自由文本搜索。自由文本限制在 200 个字符和 30 天的窗口内；更大的时间范围会返回“narrow the range”，而不是一个空列表。请为包含空格的值加上引号。 **Advanced filters** 按钮会以表单形式打开同样的字段，外加一个搜索框不支持的确切路由过滤器。
 
 列表的 URL 携带完整的状态 — `signal` 、 `browser` 、 `os` 、 `device` 、 `country` 、 `route` 、 `urlPrefix` 、 `tag` （可重复）、 `minDuration` 、 `trigger` 、 `sort` 、 `q` 、 `visitor` 、 `userKey` 、 `range` 或一对绝对的 `startTime` / `endTime` ，以及 `page` — 因此可以从事件中链接到某个过滤后的视图。用户引用是唯一永远不会写入 URL 的过滤器。会被写入的两个人员过滤器本身不指向任何人： `visitor` 是录制器的随机 ID，而 `userKey` 是服务器用来存储已识别用户的假名键 — 当你点击你的角色看到为 _Hidden_ 的名称时，列表使用的就是这个过滤器。原始键永远不会显示；该过滤器的标签显示为“pseudonymous key”。
 

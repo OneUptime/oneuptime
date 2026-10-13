@@ -40,6 +40,7 @@ import {
   cardTargets,
   comparableFence,
   diagramLabelLines,
+  escapeRegExp,
   inlineCode,
   labelLineWidth,
   linesLaidOutBackwards,
@@ -66,6 +67,8 @@ import {
   RumDocsPageEntry,
   SESSION_REPLAY,
   SESSION_REPLAY_TROUBLESHOOTING,
+  SESSION_SIGNAL_OPTIONS,
+  SESSION_SORT_OPTIONS,
   WEB_VITALS,
 } from "./RumDocsPages";
 import { describe, expect, it } from "@jest/globals";
@@ -1111,6 +1114,52 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
   });
 });
+
+/*
+ * Session Replay's session list: the Signal chip draws its options as the
+ * option table writes them, so in English in every language, while the sort
+ * menu looks its options up in the locale (RumReplayDocsFacts holds both to
+ * the components). Neither is bold, so the label checks above do not see
+ * them: this reads the line that names them.
+ */
+describe.each(LANGUAGES)(
+  "%s Session Replay's session list",
+  (language: string) => {
+    const index: number = englishPage(SESSION_REPLAY)
+      .split("\n")
+      .findIndex((line: string): boolean => {
+        return line.includes("**Signal**");
+      });
+    const line: string =
+      readPage(language, SESSION_REPLAY).split("\n")[index] || "";
+
+    it("names the Signal chip's options in English, as every Dashboard draws them", () => {
+      expect(index).toBeGreaterThan(0);
+
+      const missing: Array<string> = SESSION_SIGNAL_OPTIONS.filter(
+        (option: string): boolean => {
+          return !new RegExp(
+            `(?<![A-Za-z])${escapeRegExp(option)}(?![A-Za-z])`,
+          ).test(line);
+        },
+      );
+
+      expect(missing).toEqual([]);
+    });
+
+    it("names the sort menu's options as this language's Dashboard draws them", () => {
+      const missing: Array<string> = SESSION_SORT_OPTIONS.map(
+        (option: string): string => {
+          return drawnDashboardLabel(language, option);
+        },
+      ).filter((drawn: string): boolean => {
+        return !line.includes(drawn);
+      });
+
+      expect(missing).toEqual([]);
+    });
+  },
+);
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw a path through the Products menu's Resources group from the menu's keys", () => {

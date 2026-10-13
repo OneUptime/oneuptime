@@ -31,6 +31,8 @@ import {
   RumDocsPageEntry,
   SESSION_REPLAY,
   SESSION_REPLAY_TROUBLESHOOTING,
+  SESSION_SIGNAL_OPTIONS,
+  SESSION_SORT_OPTIONS,
 } from "./RumDocsPages";
 import {
   RumAlertTemplate,
@@ -71,6 +73,11 @@ const SOURCES: Record<string, string> = {
   replayRetentionCard: `${DASHBOARD}/Components/SessionReplay/SessionReplayRetentionSettingsCard.tsx`,
   privacySummaryCard: `${DASHBOARD}/Components/SessionReplay/PrivacySummaryCard.tsx`,
   installSnippet: `${DASHBOARD}/Components/SessionReplay/SessionReplayInstallSnippet.tsx`,
+  listFilters: `${DASHBOARD}/Components/SessionReplay/SessionReplayListFilters.ts`,
+  listFacets: `${DASHBOARD}/Components/SessionReplay/SessionReplayFacets.tsx`,
+  listSearchBar: `${DASHBOARD}/Components/SessionReplay/SessionReplaySearchBar.tsx`,
+  filterChip: `${DASHBOARD}/Components/ResourceOwners/FilterChipDropdown.tsx`,
+  dropdown: "packages/Common/UI/Components/Dropdown/Dropdown.tsx",
   ruleForm: `${DASHBOARD}/Utils/Form/ResourceRuleForm.ts`,
   ruleTable: "packages/Common/UI/Components/RuleRun/RuleTable.tsx",
   foldedSectionTitles:
@@ -1011,6 +1018,98 @@ describe("Session Replay: the policy, as Edit Policy names it", () => {
 
     expect(page).toContain("**What a recording contains**");
     expect(page).not.toContain("Privacy summary");
+  });
+});
+
+describe("Session Replay: the session list's filters", () => {
+  const list: string = section(SESSION_REPLAY, "### The session list");
+
+  // The labels of one option table of SessionReplayListFilters.ts.
+  const optionLabels: (declaration: string) => Array<string> = (
+    declaration: string,
+  ): Array<string> => {
+    const table: string =
+      source("listFilters").split(declaration)[1]?.split("];")[0] || "";
+
+    return allMatches(table, /label: "([^"]+)"/g, 1);
+  };
+
+  it("offers the Signal chip's options, and the sort menu's, as RumDocsPages lists them", () => {
+    const signals: Array<string> = optionLabels(
+      "SESSION_REPLAY_SIGNAL_OPTIONS: Array<SessionReplaySignalOption> = [",
+    );
+
+    // "All" is the chip cleared; the facets row offers every other signal.
+    expect(signals[0]).toBe("All");
+    expect(source("listFacets")).toContain('return option.value !== "all";');
+    expect(signals.slice(1)).toEqual([...SESSION_SIGNAL_OPTIONS]);
+    expect(
+      optionLabels(
+        "SESSION_REPLAY_SORT_OPTIONS: Array<SessionReplaySortOption> = [",
+      ),
+    ).toEqual([...SESSION_SORT_OPTIONS]);
+  });
+
+  it("draws a chip's options as the table writes them, and looks the sort menu's up in the locale", () => {
+    const chip: string = source("filterChip");
+
+    // The option list and the chosen value both show the option's own label.
+    expect(chip).toContain("{option.label}");
+    expect(chip).toContain("return selectedOptions[0]!.label;");
+    expect(chip).not.toMatch(/translate\w*\(\s*option\.label/);
+    expect(source("listSearchBar")).toContain(
+      "options={SORT_DROPDOWN_OPTIONS}",
+    );
+    expect(source("dropdown")).toContain("{tx(option.label) ?? option.label}");
+  });
+
+  it("names the chips above the list as the facets row draws them, and the button that opens the filter form", () => {
+    const facets: string = source("listFacets");
+    const chips: Array<string> = [
+      ...(facets.includes('label="Signal"') ? ["Signal"] : []),
+      ...allMatches(
+        facets.split("export const SESSION_REPLAY_FACETS")[1]?.split("];")[0] ||
+          "",
+        /field: "\w+",\s*label: "([^"]+)"/g,
+        1,
+      ),
+    ];
+
+    expect(chips).toEqual([
+      "Signal",
+      "Browser",
+      "Operating system",
+      "Device",
+      "Country",
+      "Capture reason",
+      "Duration",
+    ]);
+
+    for (const chip of chips) {
+      expect(list).toContain(`**${chip}**`);
+    }
+
+    // The list has no Quick filters: that is the player's rail.
+    expect(list).not.toContain("Quick filters");
+    expect(source("listSearchBar")).toContain('title="Advanced filters"');
+    expect(list).toContain(
+      "The **Advanced filters** button opens the same fields as a form",
+    );
+  });
+
+  it("orders the list by the sort menu's options, and names its page sizes", () => {
+    const sentence: string =
+      list.split("\n").find((line: string): boolean => {
+        return line.includes("**Signal**");
+      }) || "";
+
+    expect(sentence).toContain(
+      `orders the list by ${SESSION_SORT_OPTIONS.slice(0, -1).join(", ")} or ${SESSION_SORT_OPTIONS[SESSION_SORT_OPTIONS.length - 1]}.`,
+    );
+    expect(source("listFilters")).toMatch(
+      /SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS: Array<number> = \[\s*20, 50, 100,\s*\]/,
+    );
+    expect(sentence).toContain("Page size is 20, 50 or 100.");
   });
 });
 

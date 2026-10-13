@@ -82,6 +82,34 @@ export const WEB_VITAL_RECOMMENDATION_NAMES: ReadonlyArray<string> = [
 ];
 
 /*
+ * The options of the session list's Signal chip (SessionReplayListFilters.ts,
+ * less "All", the chip cleared). The chip draws an option's label as the
+ * table writes it, with no translation lookup, so every language's Dashboard
+ * draws them in English, and Session Replay names them so.
+ */
+export const SESSION_SIGNAL_OPTIONS: ReadonlyArray<string> = [
+  "Errors",
+  "Frustration",
+  "Identified",
+  "Playable",
+  "Slow",
+  "Live",
+  "Traced",
+];
+
+/*
+ * The session list's sort menu (SessionReplayListFilters.ts). The menu is a
+ * Dropdown, which looks every option up in the Dashboard's locale, so a page
+ * names them as its language's Dashboard draws them.
+ */
+export const SESSION_SORT_OPTIONS: ReadonlyArray<string> = [
+  "Newest",
+  "Longest",
+  "Most errors",
+  "Most frustration",
+];
+
+/*
  * The application's side menu, section by section, as the index page lists
  * it (Pages/Rum/View/SideMenu.tsx and the Developer section it adds).
  */
