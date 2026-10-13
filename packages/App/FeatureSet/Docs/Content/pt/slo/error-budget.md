@@ -105,8 +105,8 @@ O orçamento restante decide o status do SLO:
 | Status | Quando |
 | --- | --- |
 | **Íntegro** | Resta mais orçamento do que o limite de risco. |
-| **At Risk** | O orçamento restante está no limite de risco ou abaixo dele: 20% por padrão. |
-| **Budget Exhausted** | O orçamento restante está em zero ou abaixo. |
+| **Em risco** | O orçamento restante está no limite de risco ou abaixo dele: 20% por padrão. |
+| **Orçamento esgotado** | O orçamento restante está em zero ou abaixo. |
 
 Defina o limite de risco em **Configurações** → **Objective**.
 
@@ -128,13 +128,13 @@ Com o limite padrão de 20%, um SLO em risco volta a íntegro com 25% de orçame
 
 ## Notificações aos proprietários
 
-Quando um SLO passa para **At Risk** ou **Budget Exhausted**, o OneUptime avisa os proprietários dele:
+Quando um SLO passa para **Em risco** ou **Orçamento esgotado**, o OneUptime avisa os proprietários dele:
 
 - Os proprietários são os usuários e os membros das equipes na página **Proprietários** do SLO que ainda são membros do projeto. Um SLO sem proprietários avisa os proprietários do projeto no lugar deles.
 - Cada proprietário recebe um e-mail por padrão, e a notificação em qualquer outro canal que ele ativar para **SLO status changed** em **Configurações do usuário** → **Configurações de notificação** → **Monitoramento**.
 - O assunto do e-mail traz o status e o SLO, por exemplo `[SLO At Risk] API Availability`.
 
-Para que um SLO perto de um limite não fique avisando sem parar, os proprietários recebem no máximo uma notificação por hora. Uma passagem para **Budget Exhausted** é sempre enviada, mesmo dentro dessa hora.
+Para que um SLO perto de um limite não fique avisando sem parar, os proprietários recebem no máximo uma notificação por hora. Uma passagem para **Orçamento esgotado** é sempre enviada, mesmo dentro dessa hora.
 
 > [!TIP]
 > As notificações aos proprietários avisam os responsáveis por um SLO que o orçamento dele está em apuros. Para acionar sua equipe de plantão pelas políticas de escalonamento, use [Alertas e incidentes de taxa de consumo](/docs/slo/burn-rate-alerts). Uma regra de taxa de consumo também pode adicionar os proprietários do SLO a cada alerta e incidente que cria.
