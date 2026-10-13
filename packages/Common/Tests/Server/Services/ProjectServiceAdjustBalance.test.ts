@@ -24,6 +24,13 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
     ...jest.requireActual("../../../Server/EnvironmentConfig"),
     IsBillingEnabled: true,
+
+    /*
+     * config.env may carry a real incoming webhook, and every adjustment is
+     * posted to it. Blanked so the suite cannot post to Slack; what the
+     * channel is told is ProjectServiceBalanceAdjustedSlackNotice.test.ts.
+     */
+    NotificationSlackWebhookOnSubscriptionUpdate: "",
   };
 });
 

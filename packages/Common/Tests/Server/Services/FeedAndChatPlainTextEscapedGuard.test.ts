@@ -93,6 +93,7 @@ const BUILDER_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/UserService.ts",
   "packages/Common/Server/Services/StatusPageSubscriberService.ts",
   "packages/Common/Server/Utils/AffectedResources/LinkedAffectedResources.ts",
+  "packages/Common/Server/Utils/OperatorSlackNotice.ts",
   "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
   "packages/Common/Server/Utils/Monitor/RootCauseList.ts",
   "packages/Common/Server/Utils/Monitor/AffectedResourceList.ts",
