@@ -2,6 +2,7 @@ import { mockRouter } from "./Helpers";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import LlmProviderAPI from "../../../Server/API/LlmProviderAPI";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
+import Encryption from "../../../Server/Utils/Encryption";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -15,14 +16,22 @@ import LLMService, {
 } from "../../../Server/Utils/LLM/LLMService";
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
-import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import { JSONObject } from "../../../Types/JSON";
 import LlmType from "../../../Types/LLM/LlmType";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
+import { customDomainCaller } from "./CustomDomainCallers";
+import {
+  InMemoryTable,
+  StoredRow,
+  useInMemoryTable,
+} from "../TestingUtils/InMemoryRepository";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeAll,
@@ -65,8 +74,10 @@ import {
  * The handler is driven directly off the mock router's recorded route (the
  * pattern used by AIChatRouteAuthorization / AIGenerationProjectAIToggle):
  * Express and Response are module-mocked, so the response body is read off the
- * Response call rather than off a socket. LlmProviderService.findOneById is
- * stubbed so no database is touched.
+ * Response call rather than off a socket. The provider is a row of an
+ * in-memory table behind LlmProviderService, and the caller a project owner
+ * with real permissions, so the route's own access check runs as it does in
+ * production (LlmProviderTestAsMember.test.ts covers who may test).
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -122,29 +133,50 @@ const PROVIDER_ERROR_MESSAGE: string =
   "Incorrect API key provided: sk-****. You can find your API key at https://example.invalid/keys.";
 
 let getCompletionSpy: jest.SpyInstance;
-let providerLookupSpy: jest.SpyInstance;
+let providers: InMemoryTable;
+
+// The API key as the table stores it: encrypted, as DatabaseService writes it.
+let storedApiKey: string;
 
 /*
- * A perfectly ordinary project-scoped provider: readable by the caller, not
+ * A perfectly ordinary project-scoped provider: the caller's project's, not
  * global (so the master-admin gate is not what decides anything here), and
  * complete enough to be worth testing.
  */
-function providerRow(): LlmProvider {
-  const provider: LlmProvider = new LlmProvider(PROVIDER_ID);
-  provider.projectId = PROJECT_ID;
-  provider.isGlobalLlm = false;
-  provider.llmType = LlmType.OpenAI;
-  provider.apiKey = "sk-connection-test";
-  provider.baseUrl = "https://example.invalid/v1";
-  provider.modelName = "gpt-connection-test";
-  return provider;
+function providerRow(overrides: StoredRow = {}): StoredRow {
+  return {
+    _id: PROVIDER_ID.toString(),
+    projectId: PROJECT_ID.toString(),
+    name: "Production OpenAI",
+    isGlobalLlm: false,
+    llmType: LlmType.OpenAI,
+    apiKey: storedApiKey,
+    baseUrl: "https://example.invalid/v1",
+    modelName: "gpt-connection-test",
+    isDefault: true,
+    version: 1,
+    ...overrides,
+  };
 }
 
+// The project's owner, with the props a signed-in request carries.
 function callerProps(): DatabaseCommonInteractionProps {
   return {
-    userId: USER_ID,
-    tenantId: PROJECT_ID,
+    ...customDomainCaller({
+      permissions: [Permission.ProjectOwner],
+      projectId: PROJECT_ID,
+    }),
+    ...ON_HIGHEST_PLAN,
   };
+}
+
+// Every select the provider's table was read with, in order.
+function selectsRead(): Array<JSONObject> {
+  return (
+    providers.repository.find.mock.calls as Array<Array<{ select: JSONObject }>>
+  ).map((call: Array<{ select: JSONObject }>): JSONObject => {
+    return call[0]!.select || {};
+  });
 }
 
 // A completion the provider could plausibly have returned, with or without a tool call.
@@ -215,9 +247,10 @@ function completionRequests(): Array<LLMCompletionRequest> {
   );
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   mockRouter.routes.length = 0;
   new LlmProviderAPI();
+  storedApiKey = await Encryption.encrypt("sk-connection-test");
 });
 
 beforeEach(() => {
@@ -228,14 +261,11 @@ beforeEach(() => {
     .mockResolvedValue(callerProps());
 
   /*
-   * The handler reads the provider twice — once with the caller's props as an
-   * access check, once as root for the decrypted key. Both are stubbed with
-   * the same row so nothing reaches Postgres.
+   * The handler decides whose provider it is and whether the caller may
+   * test it, then reads the decrypted key as OneUptime: all of it against
+   * this table, so nothing reaches Postgres.
    */
-  providerLookupSpy = getJestSpyOn(LlmProviderService, "findOneById");
-  providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
-    return providerRow();
-  });
+  providers = useInMemoryTable(LlmProviderService, [providerRow()]);
 
   getCompletionSpy = getJestSpyOn(LLMService, "getCompletion");
   getCompletionSpy.mockResolvedValue(
@@ -499,8 +529,8 @@ describe("POST /llm-provider/test - the provider is genuinely unreachable", () =
     const error: Exception = sentError();
 
     expect(error).toBeInstanceOf(BadDataException);
-    expect(error.message).toContain("LLM Provider test failed");
-    expect(error.message).toContain(PROVIDER_ERROR_MESSAGE);
+    // The provider's own words, as LLMService said them.
+    expect(error.message).toBe(PROVIDER_ERROR_MESSAGE);
 
     // Both attempts were made before giving up.
     expect(completionRequests().length).toBe(2);
@@ -512,7 +542,7 @@ describe("POST /llm-provider/test - the provider is genuinely unreachable", () =
      * ahead of the probe, so the added tool call must not become a way to make
      * the platform talk to a provider the caller cannot read.
      */
-    providerLookupSpy.mockResolvedValue(null);
+    providers.rows.length = 0;
 
     await callTestRoute();
 
@@ -530,21 +560,25 @@ describe("POST /llm-provider/test - the provider is genuinely unreachable", () =
  * fail one that works.
  */
 describe("POST /llm-provider/test - the egress policy is the one AI features use", () => {
-  function globalProviderRow(): LlmProvider {
-    const provider: LlmProvider = new LlmProvider(PROVIDER_ID);
-    provider.isGlobalLlm = true;
-    provider.llmType = LlmType.OpenAICompatible;
-    provider.baseUrl =
-      "http://oneuptime-vllm.oneuptime.svc.cluster.local:8000/v1";
-    provider.modelName = "Qwen/Qwen2.5-1.5B-Instruct";
-    return provider;
+  function globalProviderRow(): StoredRow {
+    return {
+      _id: PROVIDER_ID.toString(),
+      name: "In-cluster vLLM",
+      isGlobalLlm: true,
+      llmType: LlmType.OpenAICompatible,
+      baseUrl: "http://oneuptime-vllm.oneuptime.svc.cluster.local:8000/v1",
+      modelName: "Qwen/Qwen2.5-1.5B-Instruct",
+      version: 1,
+    };
   }
 
+  // A server administrator in the Admin Dashboard: no project named.
   function testedAsMasterAdmin(): void {
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
       .mockResolvedValue({
         userId: USER_ID,
+        userType: UserType.MasterAdmin,
         isMasterAdmin: true,
       });
   }
@@ -559,9 +593,7 @@ describe("POST /llm-provider/test - the egress policy is the one AI features use
 
   test("a master admin's test of a global provider runs it as global", async () => {
     testedAsMasterAdmin();
-    providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
-      return globalProviderRow();
-    });
+    providers = useInMemoryTable(LlmProviderService, [globalProviderRow()]);
 
     await callTestRoute();
 
@@ -576,42 +608,29 @@ describe("POST /llm-provider/test - the egress policy is the one AI features use
 
   test("a global row that a project owns is not run as global", async () => {
     testedAsMasterAdmin();
-    providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
-      const provider: LlmProvider = providerRow();
-      provider.isGlobalLlm = true;
-      return provider;
-    });
+    providers = useInMemoryTable(LlmProviderService, [
+      providerRow({ isGlobalLlm: true }),
+    ]);
 
     await callTestRoute();
 
     expect(sentAsGlobal()).toEqual([undefined]);
   });
 
-  test("the root read that builds the request selects what decides it", async () => {
+  test("the read that builds the request selects what decides it", async () => {
     testedAsMasterAdmin();
-    providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
-      return globalProviderRow();
-    });
+    providers = useInMemoryTable(LlmProviderService, [globalProviderRow()]);
 
     await callTestRoute();
 
-    type ProviderRead = {
-      select: JSONObject;
-      props: DatabaseCommonInteractionProps;
-    };
+    const configurationRead: JSONObject | undefined = selectsRead().find(
+      (select: JSONObject): boolean => {
+        return select["apiKey"] === true;
+      },
+    );
 
-    const rootRead: ProviderRead | undefined = (
-      providerLookupSpy.mock.calls as Array<Array<ProviderRead>>
-    )
-      .map((call: Array<ProviderRead>): ProviderRead => {
-        return call[0]!;
-      })
-      .find((read: ProviderRead): boolean => {
-        return read.props.isRoot === true;
-      });
-
-    expect(rootRead?.select["isGlobalLlm"]).toBe(true);
-    expect(rootRead?.select["projectId"]).toBe(true);
+    expect(configurationRead?.["isGlobalLlm"]).toBe(true);
+    expect(configurationRead?.["projectId"]).toBe(true);
   });
 });
 
@@ -648,34 +667,38 @@ describe("POST /llm-provider/test - the stored provider goes to its stored addre
     }
   });
 
-  test("the address and the key come from the stored row the caller may read, read again as OneUptime", async () => {
+  test("the address and the key come from the stored row, read only once the caller may test it", async () => {
     await callTestRoute();
 
-    type ProviderRead = {
-      id: ObjectID;
-      select: JSONObject;
-      props: DatabaseCommonInteractionProps;
-    };
+    const selects: Array<JSONObject> = selectsRead();
 
-    const reads: Array<ProviderRead> = (
-      providerLookupSpy.mock.calls as Array<Array<ProviderRead>>
-    ).map((call: Array<ProviderRead>): ProviderRead => {
-      return call[0]!;
-    });
+    // First whose provider it is: its project, never its key.
+    expect(selects[0]!["projectId"]).toBe(true);
+    expect(selects[0]!["apiKey"]).toBeUndefined();
 
-    // First as the caller: a provider they may not read is never sent.
-    expect(reads[0]!.props.isRoot).toBeFalsy();
-    expect(reads[0]!.id.toString()).toBe(PROVIDER_ID.toString());
-
-    // Then the same row as OneUptime, for its address and its key.
-    const rootRead: ProviderRead | undefined = reads.find(
-      (read: ProviderRead): boolean => {
-        return read.props.isRoot === true;
+    // Then the same row, for its address and its key.
+    const configurationRead: JSONObject | undefined = selects.find(
+      (select: JSONObject): boolean => {
+        return select["apiKey"] === true;
       },
     );
 
-    expect(rootRead?.id.toString()).toBe(PROVIDER_ID.toString());
-    expect(rootRead?.select["baseUrl"]).toBe(true);
-    expect(rootRead?.select["apiKey"]).toBe(true);
+    expect(configurationRead?.["baseUrl"]).toBe(true);
+    expect(completionRequests()[0]!.llmProviderConfig.apiKey).toBe(
+      "sk-connection-test",
+    );
+  });
+
+  test("a member of another project is refused before any completion, as for a provider that does not exist", async () => {
+    providers.rows[0]!["projectId"] = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    ).toString();
+
+    await callTestRoute();
+
+    expect(getCompletionSpy).not.toHaveBeenCalled();
+    expect(sentError().message).toBe(
+      "LLM Provider not found, or you do not have access to it.",
+    );
   });
 });

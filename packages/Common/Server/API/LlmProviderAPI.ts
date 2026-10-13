@@ -13,18 +13,19 @@ import BaseAPI from "./BaseAPI";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PositiveNumber from "../../Types/PositiveNumber";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import LlmProviderTestFailure from "../Utils/LLM/LlmProviderTestFailure";
 import LLMService, {
   LLMCompletionResponse,
   LLMProviderConfig,
   LLMToolCall,
   LLMToolDefinition,
 } from "../Utils/LLM/LLMService";
+import LlmProviderTestAccess from "./LlmProviderTestAccess";
 import LlmType from "../../Types/LLM/LlmType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../Types/JSON";
-import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 
 /*
@@ -94,6 +95,9 @@ export default class LlmProviderAPI extends BaseAPI<
      * Test an LLM Provider configuration by sending a small prompt to the
      * provider and confirming it responds. Lets users verify their API key,
      * model name, and base URL are correct right after adding a provider.
+     *
+     * Who may: whoever may change the provider, in its project; a global
+     * provider, a server administrator (LlmProviderTestAccess).
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test`,
@@ -101,93 +105,32 @@ export default class LlmProviderAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const body: JSONObject = req.body;
-
-          if (!body["llmProviderId"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("llmProviderId is required"),
-            );
-          }
-
-          const llmProviderId: ObjectID = new ObjectID(
-            body["llmProviderId"] as string,
-          );
+          const body: JSONObject =
+            req.body && typeof req.body === "object" ? req.body : {};
 
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
           /*
-           * Access check: read the provider with the requesting user's
-           * permissions so the query is scoped to their project. If they
-           * cannot read it (wrong project / no access), it comes back null.
+           * The provider's configuration, the decrypted key included, read
+           * as OneUptime - once the caller may test it.
            */
-          const accessibleProvider: LlmProvider | null =
-            await LlmProviderService.findOneById({
-              id: llmProviderId,
-              select: {
-                _id: true,
-                projectId: true,
-                isGlobalLlm: true,
-              },
+          let provider: LlmProvider;
+
+          try {
+            provider = await LlmProviderTestAccess.getProviderToTest({
               props: props,
+              llmProviderId: body["llmProviderId"],
             });
+          } catch (error) {
+            if (error instanceof Exception) {
+              return Response.sendErrorResponse(req, res, error);
+            }
 
-          if (!accessibleProvider) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "LLM Provider not found, or you do not have access to it.",
-              ),
-            );
+            throw error;
           }
 
-          /*
-           * Global LLM providers are shared across all projects and their keys
-           * are managed by platform admins, so only master admins may test them
-           * (e.g. from the Admin Dashboard). Project providers are already
-           * gated by the access-scoped read above.
-           */
-          const isGlobalProvider: boolean =
-            accessibleProvider.isGlobalLlm === true ||
-            !accessibleProvider.projectId;
-
-          if (isGlobalProvider && !props.isMasterAdmin) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Only administrators can test global LLM providers.",
-              ),
-            );
-          }
-
-          /*
-           * Load the full config (including the decrypted API key) as root to
-           * actually run the test. The access check above already confirmed
-           * the caller is allowed to use this provider.
-           */
-          const provider: LlmProvider | null =
-            await LlmProviderService.findOneById({
-              id: llmProviderId,
-              select: {
-                _id: true,
-                llmType: true,
-                apiKey: true,
-                baseUrl: true,
-                modelName: true,
-                additionalParams: true,
-                isGlobalLlm: true,
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!provider || !provider.llmType) {
+          if (!provider.llmType) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -300,19 +243,18 @@ export default class LlmProviderAPI extends BaseAPI<
               logger.error(retryErr);
 
               /*
-               * Surface the provider's own error (bad key, unknown model,
-               * unreachable base URL, etc.) so the user can fix their config.
+               * What went wrong and what to check, then the provider's own
+               * words (bad key, unknown model, unreachable base URL, etc.),
+               * so the user can fix their config (LlmProviderTestFailure).
                */
-              const providerMessage: string =
-                retryErr instanceof Exception
-                  ? retryErr.message
-                  : "Failed to connect to the LLM provider. Please verify the API key, model name, and base URL.";
-
               return Response.sendErrorResponse(
                 req,
                 res,
                 new BadDataException(
-                  `LLM Provider test failed: ${providerMessage.substring(0, 1000)}`,
+                  LlmProviderTestFailure.describe(
+                    retryErr,
+                    provider.llmType as LlmType,
+                  ),
                 ),
               );
             }

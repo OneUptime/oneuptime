@@ -877,5 +877,13 @@
   "{{count}} more": "他 {{count}} 件",
   "{{count}} more_one": "他 {{count}} 件",
   "On": "オン",
-  "Off": "オフ"
+  "Off": "オフ",
+  "Test": "テスト",
+  "Test LLM Provider": "LLM プロバイダーをテスト",
+  "Sending a test prompt to your LLM provider…": "LLM プロバイダーにテストプロンプトを送信しています…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "API キー、モデル、ベース URL と、モデルがツールを呼び出せるかどうかを確認します。",
+  "Test again": "再テスト",
+  "Test passed": "テストに合格しました",
+  "Test passed, with a warning": "テストに合格しました（警告あり）",
+  "Test failed": "テストに失敗しました"
 }

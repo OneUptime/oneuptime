@@ -312,6 +312,13 @@ describe("query_status_pages and archived status pages", () => {
     return row;
   }
 
+  // The monitors of the resources below that are archived, by id.
+  let archivedMonitors: Array<Monitor> = [];
+
+  /*
+   * A resource as the caller's read returns it: the monitor's id and name,
+   * never whether it is archived - a relation read does not read that.
+   */
   function resource(
     displayName: string,
     monitorIsArchived: boolean,
@@ -319,26 +326,40 @@ describe("query_status_pages and archived status pages", () => {
     const row: StatusPageResource = new StatusPageResource();
     row._id = ObjectID.generate().toString();
     row.displayName = displayName;
+    row.monitorId = ObjectID.generate();
     const monitor: Monitor = new Monitor();
     monitor.name = `${displayName} monitor`;
-    monitor.isArchived = monitorIsArchived;
     row.monitor = monitor;
+
+    if (monitorIsArchived) {
+      archivedMonitors.push(new Monitor(row.monitorId));
+    }
+
     return row;
   }
 
   function mockDetail(
     page: StatusPage,
     resources: Array<StatusPageResource>,
-  ): { findOneById: AnySpy; resourcesFindBy: AnySpy } {
+  ): {
+    findOneById: AnySpy;
+    resourcesFindBy: AnySpy;
+    monitorsFindBy: AnySpy;
+  } {
     const findOneById: AnySpy = spy(StatusPageService, "findOneById", page);
     const resourcesFindBy: AnySpy = spy(
       StatusPageResourceService,
       "findBy",
       resources,
     );
+    const monitorsFindBy: AnySpy = spy(
+      MonitorService,
+      "findBy",
+      archivedMonitors,
+    );
     spy(StatusPageSubscriberService, "countBy", new PositiveNumber(12));
     spy(StatusPageService, "getStatusPageURL", "https://status.acme.dev");
-    return { findOneById, resourcesFindBy };
+    return { findOneById, resourcesFindBy, monitorsFindBy };
   }
 
   test("the list leaves archived status pages out, in the rows and in the count", async () => {
@@ -388,9 +409,12 @@ describe("query_status_pages and archived status pages", () => {
   });
 
   test("an archived monitor is not among the resources a page shows, as the public page leaves it off", async () => {
-    const { resourcesFindBy } = mockDetail(statusPage(false), [
-      resource("Checkout", false),
-      resource("Legacy API", true),
+    archivedMonitors = [];
+    const checkout: StatusPageResource = resource("Checkout", false);
+    const legacy: StatusPageResource = resource("Legacy API", true);
+    const { resourcesFindBy, monitorsFindBy } = mockDetail(statusPage(false), [
+      checkout,
+      legacy,
     ]);
 
     const result: ToolExecutionResult = await QueryStatusPagesTool.execute(
@@ -398,10 +422,25 @@ describe("query_status_pages and archived status pages", () => {
       ctx,
     );
 
+    /*
+     * The caller's read asks for each resource's monitor and its name, and
+     * never for whether it is archived: a relation read does not read that
+     * column, and asking for it refused every member's read.
+     */
     const select: JSONObject = firstCallArg(resourcesFindBy)[
       "select"
     ] as JSONObject;
-    expect((select["monitor"] as JSONObject)["isArchived"]).toBe(true);
+    expect(select["monitorId"]).toBe(true);
+    expect((select["monitor"] as JSONObject)["isArchived"]).toBeUndefined();
+
+    // Which of those monitors are archived is read as OneUptime, and only those.
+    const monitorRead: JSONObject = firstCallArg(monitorsFindBy);
+    expect(monitorRead["props"]).toEqual({ isRoot: true });
+    expect((monitorRead["query"] as JSONObject)["isArchived"]).toBe(true);
+    expect((monitorRead["query"] as JSONObject)["projectId"]).toBe(
+      ctx.projectId,
+    );
+    expect(monitorRead["select"]).toEqual({ _id: true });
 
     expect(result.dataForLlm).toContain("Checkout");
     expect(result.dataForLlm).not.toContain("Legacy API");

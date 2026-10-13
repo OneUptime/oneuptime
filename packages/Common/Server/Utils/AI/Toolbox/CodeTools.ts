@@ -9,6 +9,7 @@ import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import GitHubUtil, {
   GitHubFileContent,
 } from "../../CodeRepository/GitHub/GitHub";
@@ -100,6 +101,67 @@ const MAX_SEARCH_RESULTS: number = 40;
 const MAX_CODE_PAYLOAD_BYTES: number = 12 * 1024;
 
 /*
+ * The GitHub App installation of each repository the caller's read found,
+ * read as OneUptime and kept on the server: the tools mint the repository's
+ * token from it and never show it, so what the caller may read is decided
+ * by their own read alone. Only those repositories, in the caller's project.
+ */
+async function addInstallationIds(
+  ctx: ToolContext,
+  repositories: Array<CodeRepository>,
+): Promise<void> {
+  const ids: Array<string> = repositories
+    .map((repository: CodeRepository): string => {
+      return repository.id?.toString() || "";
+    })
+    .filter((id: string): boolean => {
+      return Boolean(id);
+    });
+
+  if (ids.length === 0) {
+    return;
+  }
+
+  const installations: Array<CodeRepository> =
+    await CodeRepositoryService.findBy({
+      query: {
+        _id: QueryHelper.any(ids),
+        projectId: ctx.projectId,
+      } as never,
+      select: {
+        _id: true,
+        gitHubAppInstallationId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  const installationOf: Map<string, string | undefined> = new Map();
+
+  for (const installation of installations) {
+    installationOf.set(
+      installation.id?.toString() || "",
+      installation.gitHubAppInstallationId || undefined,
+    );
+  }
+
+  for (const repository of repositories) {
+    const installationId: string | undefined = installationOf.get(
+      repository.id?.toString() || "",
+    );
+
+    if (installationId) {
+      repository.gitHubAppInstallationId = installationId;
+    } else {
+      delete repository.gitHubAppInstallationId;
+    }
+  }
+}
+
+/*
  * The repositories this user can see, already filtered to the ones that are
  * actually readable. A repository row can exist without a usable GitHub App
  * installation (e.g. imported then uninstalled, or a GitLab row — GitLab has
@@ -117,6 +179,15 @@ export async function findReadableRepositories(
     query["_id"] = codeRepositoryId.toString();
   }
 
+  /*
+   * The repositories the caller may read, by their own permissions: only
+   * columns every reader of a repository may read. The installation a
+   * repository's token is minted from is read by fewer people than the
+   * repository (its owners, admins and Read Code Repository), so selecting
+   * it here refused every Project Member, Viewer and settings role who asked
+   * Ask AI about code - "You do not have permissions to select on -
+   * gitHubAppInstallationId" - though the tools are offered to them.
+   */
   const repositories: Array<CodeRepository> =
     await CodeRepositoryService.findBy({
       query: query as never,
@@ -127,7 +198,6 @@ export async function findReadableRepositories(
         organizationName: true,
         repositoryName: true,
         mainBranchName: true,
-        gitHubAppInstallationId: true,
         repositoryHostedAt: true,
         description: true,
       },
@@ -135,6 +205,8 @@ export async function findReadableRepositories(
       skip: 0,
       props: ctx.props,
     });
+
+  await addInstallationIds(ctx, repositories);
 
   const gitHubRepositories: Array<CodeRepository> = repositories.filter(
     (repository: CodeRepository) => {
