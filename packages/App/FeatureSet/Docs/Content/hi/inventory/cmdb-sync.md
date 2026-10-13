@@ -195,7 +195,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | निर्माता | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, नहीं तो वह निर्माता जो `sysDescr` बताता है, नहीं तो `sysObjectID` का वेंडर |
 | मॉडल | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, नहीं तो वह मॉडल जो `sysDescr` बताता है |
 | क्रम संख्या | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| फ़र्मवेयर संस्करण | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, नहीं तो वह रिलीज़ जो किसी Ubiquiti का `sysDescr` बताता है |
+| फ़र्मवेयर संस्करण | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, नहीं तो वह फ़र्मवेयर जो Ubiquiti, HPE और Aruba डिवाइस पर `sysDescr` बताता है |
 | ऑपरेटिंग सिस्टम | `os.name` | वह ऑपरेटिंग सिस्टम जो `sysDescr` बताता है |
 | सॉफ़्टवेयर या OS संस्करण | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, नहीं तो वह रिलीज़ जो `sysDescr` बताता है |
 | सिस्टम विवरण | `os.description` | `sysDescr` |

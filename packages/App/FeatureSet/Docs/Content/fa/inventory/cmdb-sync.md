@@ -195,7 +195,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | سازنده | `device.manufacturer` | `entPhysicalMfgName` در ENTITY-MIB، وگرنه سازنده‌ای که `sysDescr` نام می‌برد، وگرنه فروشنده `sysObjectID` |
 | مدل | `device.model.name` | `entPhysicalModelName` در ENTITY-MIB، وگرنه مدلی که `sysDescr` نام می‌برد |
 | شماره سریال | `host.serial_number` | `entPhysicalSerialNum` در ENTITY-MIB |
-| نسخه فریم‌ور | `device.firmware.version` | `entPhysicalFirmwareRev` در ENTITY-MIB، وگرنه نسخه‌ای که `sysDescr` یک Ubiquiti نام می‌برد |
+| نسخه فریم‌ور | `device.firmware.version` | `entPhysicalFirmwareRev` در ENTITY-MIB، وگرنه فریم‌وری که `sysDescr` روی دستگاه‌های Ubiquiti، HPE و Aruba نام می‌برد |
 | سیستم‌عامل | `os.name` | سیستم‌عاملی که `sysDescr` نام می‌برد |
 | نسخه نرم‌افزار یا سیستم‌عامل | `os.version` | `entPhysicalSoftwareRev` در ENTITY-MIB، وگرنه نسخه‌ای که `sysDescr` نام می‌برد |
 | توضیح سامانه | `os.description` | `sysDescr` |

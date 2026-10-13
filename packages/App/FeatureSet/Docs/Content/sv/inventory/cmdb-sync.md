@@ -195,7 +195,7 @@ En nätverksenhet (`entityType: network.device`) speglas från sin Network Devic
 | Märke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, annars tillverkaren som `sysDescr` nämner, annars leverantören av `sysObjectID` |
 | Modell | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, annars modellen som `sysDescr` nämner |
 | Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmwareversion | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, annars den version som en Ubiquiti-`sysDescr` nämner |
+| Firmwareversion | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, annars den firmware som `sysDescr` nämner på Ubiquiti-, HPE- och Aruba-enheter |
 | Operativsystem | `os.name` | Operativsystemet som `sysDescr` nämner |
 | Programvaru- eller OS-version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, annars den version som `sysDescr` nämner |
 | Systembeskrivning | `os.description` | `sysDescr` |

@@ -195,7 +195,7 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 | 제조사 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, 없으면 `sysDescr`가 가리키는 제조사, 없으면 `sysObjectID`의 벤더 |
 | 모델 | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, 없으면 `sysDescr`가 가리키는 모델 |
 | 일련 번호 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| 펌웨어 버전 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, 없으면 Ubiquiti `sysDescr`가 가리키는 릴리스 |
+| 펌웨어 버전 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, 없으면 Ubiquiti, HPE, Aruba 장치에서 `sysDescr`가 가리키는 펌웨어 |
 | 운영 체제 | `os.name` | `sysDescr`가 가리키는 운영 체제 |
 | 소프트웨어 또는 OS 버전 | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, 없으면 `sysDescr`가 가리키는 릴리스 |
 | 시스템 설명 | `os.description` | `sysDescr` |

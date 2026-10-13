@@ -195,7 +195,7 @@ A network device (`entityType: network.device`) is mirrored from its Network Dev
 | Make | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, else the maker `sysDescr` names, else the vendor of the `sysObjectID` |
 | Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, else the model `sysDescr` names |
 | Serial number | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, else the release a Ubiquiti `sysDescr` names |
+| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices |
 | Operating system | `os.name` | The operating system `sysDescr` names |
 | Software or OS version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, else the release `sysDescr` names |
 | System description | `os.description` | `sysDescr` |

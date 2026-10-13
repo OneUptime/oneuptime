@@ -195,7 +195,7 @@ En netværksenhed (`entityType: network.device`) spejles fra sin Network Device-
 | Mærke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, ellers den producent, `sysDescr` nævner, ellers leverandøren af `sysObjectID` |
 | Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, ellers den model, `sysDescr` nævner |
 | Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmwareversion | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, ellers den udgivelse, en Ubiquiti-`sysDescr` nævner |
+| Firmwareversion | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, ellers den firmware, `sysDescr` nævner på Ubiquiti-, HPE- og Aruba-enheder |
 | Operativsystem | `os.name` | Det operativsystem, `sysDescr` nævner |
 | Software- eller OS-version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, ellers den udgivelse, `sysDescr` nævner |
 | Systembeskrivelse | `os.description` | `sysDescr` |

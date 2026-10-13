@@ -195,7 +195,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | Производитель | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, иначе производитель, которого называет `sysDescr`, иначе поставщик `sysObjectID` |
 | Модель | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, иначе модель, которую называет `sysDescr` |
 | Серийный номер | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Версия прошивки | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, иначе выпуск, который называет `sysDescr` устройства Ubiquiti |
+| Версия прошивки | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, иначе прошивка, которую называет `sysDescr` на устройствах Ubiquiti, HPE и Aruba |
 | Операционная система | `os.name` | Операционная система, которую называет `sysDescr` |
 | Версия ПО или ОС | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, иначе выпуск, который называет `sysDescr` |
 | Системное описание | `os.description` | `sysDescr` |

@@ -195,7 +195,7 @@ En nettverksenhet (`entityType: network.device`) speiles fra Network Device-post
 | Merke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, ellers produsenten `sysDescr` nevner, ellers leverandøren til `sysObjectID` |
 | Modell | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, ellers modellen `sysDescr` nevner |
 | Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Fastvareversjon | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, ellers utgivelsen en Ubiquiti-`sysDescr` nevner |
+| Fastvareversjon | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, ellers fastvaren `sysDescr` nevner på Ubiquiti-, HPE- og Aruba-enheter |
 | Operativsystem | `os.name` | Operativsystemet `sysDescr` nevner |
 | Programvare- eller OS-versjon | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, ellers utgivelsen `sysDescr` nevner |
 | Systembeskrivelse | `os.description` | `sysDescr` |

@@ -195,7 +195,7 @@ Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Net
 | Merk | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, anders de fabrikant die `sysDescr` noemt, anders de leverancier van de `sysObjectID` |
 | Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, anders het model dat `sysDescr` noemt |
 | Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmwareversie | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, anders de release die een Ubiquiti-`sysDescr` noemt |
+| Firmwareversie | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, anders de firmware die `sysDescr` noemt op apparaten van Ubiquiti, HPE en Aruba |
 | Besturingssysteem | `os.name` | Het besturingssysteem dat `sysDescr` noemt |
 | Software- of OS-versie | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, anders de release die `sysDescr` noemt |
 | Systeembeschrijving | `os.description` | `sysDescr` |

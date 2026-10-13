@@ -195,7 +195,7 @@ Ein Netzwerkgerät (`entityType: network.device`) wird aus seinem Network-Device
 | Marke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, sonst der Hersteller, den `sysDescr` nennt, sonst der Anbieter der `sysObjectID` |
 | Modell | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, sonst das Modell, das `sysDescr` nennt |
 | Seriennummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmware-Version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, sonst das Release, das eine Ubiquiti-`sysDescr` nennt |
+| Firmware-Version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, sonst die Firmware, die `sysDescr` auf Ubiquiti-, HPE- und Aruba-Geräten nennt |
 | Betriebssystem | `os.name` | Das Betriebssystem, das `sysDescr` nennt |
 | Software- oder Betriebssystemversion | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, sonst das Release, das `sysDescr` nennt |
 | Systembeschreibung | `os.description` | `sysDescr` |

@@ -195,7 +195,7 @@ Um dispositivo de rede (`entityType: network.device`) é espelhado a partir do s
 | Marca | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, senão o fabricante que `sysDescr` cita, senão o fornecedor do `sysObjectID` |
 | Modelo | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, senão o modelo que `sysDescr` cita |
 | Número de série | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Versão do firmware | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, senão a versão que um `sysDescr` da Ubiquiti cita |
+| Versão do firmware | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, senão o firmware que `sysDescr` cita nos dispositivos Ubiquiti, HPE e Aruba |
 | Sistema operacional | `os.name` | O sistema operacional que `sysDescr` cita |
 | Versão do software ou do SO | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, senão a versão que `sysDescr` cita |
 | Descrição do sistema | `os.description` | `sysDescr` |

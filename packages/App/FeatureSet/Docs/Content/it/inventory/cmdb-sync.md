@@ -195,7 +195,7 @@ Un dispositivo di rete (`entityType: network.device`) viene replicato dal suo re
 | Marca | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, altrimenti il produttore che nomina `sysDescr`, altrimenti il fornitore del `sysObjectID` |
 | Modello | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, altrimenti il modello che nomina `sysDescr` |
 | Numero di serie | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Versione firmware | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, altrimenti la release che nomina un `sysDescr` Ubiquiti |
+| Versione firmware | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, altrimenti il firmware che `sysDescr` nomina sui dispositivi Ubiquiti, HPE e Aruba |
 | Sistema operativo | `os.name` | Il sistema operativo che nomina `sysDescr` |
 | Versione del software o dell'OS | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, altrimenti la release che nomina `sysDescr` |
 | Descrizione del sistema | `os.description` | `sysDescr` |

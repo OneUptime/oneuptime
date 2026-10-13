@@ -195,7 +195,7 @@ CMDB がすでにハードウェア識別子をキーにしているなら、`ho
 | メーカー | `device.manufacturer` | ENTITY-MIB の `entPhysicalMfgName`、なければ `sysDescr` が示すメーカー、なければ `sysObjectID` のベンダー |
 | モデル | `device.model.name` | ENTITY-MIB の `entPhysicalModelName`、なければ `sysDescr` が示すモデル |
 | シリアル番号 | `host.serial_number` | ENTITY-MIB の `entPhysicalSerialNum` |
-| ファームウェアバージョン | `device.firmware.version` | ENTITY-MIB の `entPhysicalFirmwareRev`、なければ Ubiquiti の `sysDescr` が示すリリース |
+| ファームウェアバージョン | `device.firmware.version` | ENTITY-MIB の `entPhysicalFirmwareRev`、なければ Ubiquiti、HPE、Aruba のデバイスで `sysDescr` が示すファームウェア |
 | オペレーティングシステム | `os.name` | `sysDescr` が示すオペレーティングシステム |
 | ソフトウェアまたは OS のバージョン | `os.version` | ENTITY-MIB の `entPhysicalSoftwareRev`、なければ `sysDescr` が示すリリース |
 | システムの説明 | `os.description` | `sysDescr` |

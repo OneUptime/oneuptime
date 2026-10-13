@@ -195,7 +195,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 制造商 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`，否则为 `sysDescr` 指明的厂商，否则为 `sysObjectID` 的供应商 |
 | 型号 | `device.model.name` | ENTITY-MIB `entPhysicalModelName`，否则为 `sysDescr` 指明的型号 |
 | 序列号 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| 固件版本 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`，否则为 Ubiquiti `sysDescr` 指明的版本 |
+| 固件版本 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`，否则为 Ubiquiti、HPE 和 Aruba 设备上 `sysDescr` 指明的固件 |
 | 操作系统 | `os.name` | `sysDescr` 指明的操作系统 |
 | 软件或操作系统版本 | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`，否则为 `sysDescr` 指明的版本 |
 | 系统描述 | `os.description` | `sysDescr` |
