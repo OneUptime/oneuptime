@@ -489,7 +489,7 @@ const incidentSeverities = {
 
 const alertStates = {
   created: state(AlertState, ID.alertState(1), {
-    name: "Triggered",
+    name: "Identified",
     color: "#ef4444",
     order: 1,
     isCreatedState: true,

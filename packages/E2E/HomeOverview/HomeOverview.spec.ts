@@ -169,6 +169,59 @@ function statStatus(page: Page, key: string): Locator {
   return page.getByTestId(`home-stat-${key}-status`);
 }
 
+interface StripCell {
+  key: string;
+  cellTop: number;
+  numberTop: number;
+  statusTop: number;
+  clipped: boolean;
+}
+
+/*
+ * Where each cell of the strip draws its number and status, and whether any
+ * of its text is cut off ("...") or reaches past the cell.
+ */
+async function stripCells(page: Page): Promise<Array<StripCell>> {
+  return page
+    .locator('[data-testid^="home-stat-"][data-tone]')
+    .evaluateAll((tiles: Array<Element>): Array<StripCell> => {
+      const top: (element: Element | null) => number = (
+        element: Element | null,
+      ): number => {
+        return Math.round(element?.getBoundingClientRect().top ?? -1);
+      };
+      const isClipped: (element: Element | null) => boolean = (
+        element: Element | null,
+      ): boolean => {
+        return Boolean(element && element.scrollWidth > element.clientWidth);
+      };
+
+      return tiles.map((tile: Element): StripCell => {
+        const key: string = (tile.getAttribute("data-testid") || "")
+          .replace("home-stat-", "")
+          .replace("-tile", "");
+        const cell: Element | null = tile.closest("a");
+        const status: Element | null = tile.querySelector(
+          `[data-testid="home-stat-${key}-status"]`,
+        );
+
+        return {
+          key,
+          cellTop: top(cell),
+          numberTop: top(
+            tile.querySelector(`[data-testid="home-stat-${key}"]`),
+          ),
+          statusTop: top(status),
+          clipped:
+            isClipped(cell) ||
+            isClipped(tile) ||
+            isClipped(tile.firstElementChild) ||
+            isClipped(status?.querySelector("span") || null),
+        };
+      });
+    });
+}
+
 async function attentionGroups(page: Page): Promise<Array<string>> {
   return page
     .locator('[data-testid^="home-attention-group-"]')
@@ -819,6 +872,82 @@ test.describe("screens and themes", () => {
     }
 
     await screenshot(page, "home-busy-de");
+  });
+
+  test("German: long labels wrap whole, and the numbers still line up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * "Erfordert Aufmerksamkeit" and "Nicht betriebsbereite Monitore" take two
+     * lines where the English takes one. They wrap rather than end in "...",
+     * and the cells beside them keep their numbers and statuses on the same
+     * line, at every width.
+     */
+    for (const width of [1440, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await openReady(page, "lang=de");
+      await hasNoSidewaysScroll(page);
+
+      const cells: Array<StripCell> = await stripCells(page);
+      expect(cells).toHaveLength(5);
+
+      const firstInRow: Map<number, StripCell> = new Map();
+      const outOfLine: Array<string> = [];
+
+      for (const cell of cells) {
+        const first: StripCell = firstInRow.get(cell.cellTop) || cell;
+        firstInRow.set(cell.cellTop, first);
+
+        if (
+          cell.numberTop !== first.numberTop ||
+          cell.statusTop !== first.statusTop
+        ) {
+          outOfLine.push(cell.key);
+        }
+      }
+
+      expect({ width, outOfLine }).toEqual({ width, outOfLine: [] });
+      expect({
+        width,
+        clipped: cells
+          .filter((cell: StripCell): boolean => {
+            return cell.clipped;
+          })
+          .map((cell: StripCell): string => {
+            return cell.key;
+          }),
+      }).toEqual({ width, clipped: [] });
+    }
+  });
+
+  test("a word longer than its cell breaks inside the cell", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page);
+
+    // A compound longer than the cell is wide, as a translation can have.
+    await page
+      .getByTestId("home-stat-not-operational-monitors-tile")
+      .evaluate((tile: Element): void => {
+        tile.firstElementChild!.textContent =
+          "Bereitschaftsrichtlinienverwaltungsübersicht";
+      });
+
+    const clipped: Array<string> = (await stripCells(page))
+      .filter((cell: StripCell): boolean => {
+        return cell.clipped;
+      })
+      .map((cell: StripCell): string => {
+        return cell.key;
+      });
+
+    expect(clipped).toEqual([]);
+    await hasNoSidewaysScroll(page);
   });
 
   test("dark: every card on a dark surface", async ({

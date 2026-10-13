@@ -224,7 +224,16 @@ const COUNT_CLASS_NAME: Record<StatTileTone, string> = {
 /*
  * The cells sit on a 1px grey grid: the container is grey and every cell is
  * white, so the hairlines between them line up at every breakpoint.
+ *
+ * Each cell spans three of the grid's rows as a subgrid (CELL_ROWS): title,
+ * number, status. A title or status that takes two lines in one cell, as
+ * German ones do, makes that row taller for the whole row of cells, so the
+ * numbers and statuses still line up across it. Nothing is cut off. The one
+ * column is grid-cols-1, minmax(0, 1fr): an auto column would grow to fit a
+ * word longer than the cell and push it past the cell's edge.
  */
+const CELL_ROWS: string = "row-span-3 grid grid-cols-1 grid-rows-subgrid";
+
 const OverviewStats: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -257,7 +266,7 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
               <div
                 key={definition.key}
                 data-testid={`home-stat-${definition.key}-loading`}
-                className={`bg-white px-5 py-4 ${spanClassName}`}
+                className={`${CELL_ROWS} bg-white px-5 py-4 ${spanClassName}`}
               >
                 <div className="break-words text-xs font-medium uppercase leading-4 tracking-wide text-gray-500">
                   {translator.translateText(definition.label)}
@@ -274,12 +283,12 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
               to={RouteUtil.populateRouteParams(
                 RouteMap[tile.pageMap] as Route,
               )}
-              className={`group block bg-white px-5 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${spanClassName}`}
+              className={`group ${CELL_ROWS} bg-white px-5 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${spanClassName}`}
             >
               <div
                 data-testid={`home-stat-${tile.key}-tile`}
                 data-tone={tile.tone}
-                className="min-w-0"
+                className={`${CELL_ROWS} min-w-0`}
               >
                 <div className="break-words text-xs font-medium uppercase leading-4 tracking-wide text-gray-500">
                   {translator.translateText(tile.label)}
@@ -292,10 +301,13 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
                 </div>
                 <div
                   data-testid={`home-stat-${tile.key}-status`}
-                  className={`mt-1 flex items-center gap-1.5 text-sm font-medium ${STATUS_CLASS_NAME[tile.tone]}`}
+                  className={`mt-1 flex items-start gap-1.5 text-sm font-medium ${STATUS_CLASS_NAME[tile.tone]}`}
                 >
-                  <Icon icon={tile.statusIcon} className="h-4 w-4 flex-none" />
-                  <span className="truncate">
+                  <Icon
+                    icon={tile.statusIcon}
+                    className="mt-0.5 h-4 w-4 flex-none"
+                  />
+                  <span className="min-w-0 break-words">
                     {translator.translateText(tile.statusLabel)}
                   </span>
                 </div>

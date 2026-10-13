@@ -19,7 +19,7 @@ so ("Preview workspace · Synthetic data"). The clock is pinned: all dates are r
 ## What is modelled
 
 - **States and severities**: incident states Investigating, Identified and Resolved (SEV-1 to
-  SEV-3); alert states Triggered, Acknowledged and Resolved (Critical, High, Low); monitor
+  SEV-3); alert states Identified, Acknowledged and Resolved (Critical, High, Low); monitor
   statuses Operational, Degraded and Offline; maintenance states Scheduled, Ongoing, Ended and
   Completed.
 - **Monitors**: eleven, plus an archived one frozen Offline that is never counted or listed.
