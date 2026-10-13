@@ -26,6 +26,25 @@ type Route = {
   handlerFunction: RouterFunction;
 };
 
+type ParamFunction = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+  value: unknown,
+  name: string,
+) => void | Promise<void>;
+
+/*
+ * A router.param registration: Express runs `handler` ahead of every route
+ * whose path has a parameter of this name. The routes recorded above are
+ * called directly, so a test that wants a route as Express runs it calls the
+ * route's params' handlers first, or replays the routes onto a real app.
+ */
+type Param = {
+  name: string;
+  handler: ParamFunction;
+};
+
 type MockRouterForMethodFunction = (
   method: string,
 ) => (uri: string, ...routerFunctions: Array<RouterFunction>) => void;
@@ -66,7 +85,9 @@ type MockRouter = {
    * `app.all`.
    */
   all: jest.Mock;
+  param: jest.Mock;
   routes: Route[];
+  params: Param[];
   match: (method: string, uri: string) => Route;
 };
 
@@ -76,7 +97,13 @@ export const mockRouter: MockRouter = {
   put: jest.fn().mockImplementation(mockRouterForMethod("put")),
   delete: jest.fn().mockImplementation(mockRouterForMethod("delete")),
   all: jest.fn().mockImplementation(mockRouterForMethod("all")),
+  param: jest
+    .fn()
+    .mockImplementation((name: string, handler: ParamFunction): void => {
+      mockRouter.params.push({ name, handler });
+    }),
   routes: [] as any as Route[],
+  params: [] as Param[],
   match: (method: string, uri: string) => {
     const route: Route | undefined = mockRouter.routes.find((route: Route) => {
       return method.toUpperCase() === route.method && uri === route.uri;

@@ -9,6 +9,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="theme-color" content="#000000">
     <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'View dashboard metrics and insights.' %>">
+    <%
+      /*
+       * Kept out of search results only when the server says so: a link no
+       * dashboard answers on is served as a 404 with noindex
+       * (PublicPageNotFound). An absent variable leaves the page as it always
+       * was, with no robots tag at all.
+       */
+    %>
+    <% if(typeof isSearchEngineIndexingEnabled !== 'undefined' && isSearchEngineIndexingEnabled === false){ %>
+    <meta name="robots" content="noindex, nofollow">
+    <% } %>
     <script src="/public-dashboard/env.js"></script>
     <link rel="preload" href="/public-dashboard/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
     <style>

@@ -9,6 +9,10 @@ import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
 import XML from "Common/Types/XML";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
@@ -30,11 +34,18 @@ export interface StatusPageData {
   isSearchEngineIndexingEnabled: boolean;
 }
 
+/*
+ * The page a request names: its data; PUBLIC_PAGE_NOT_FOUND when the status
+ * page API says there is no such page - none was made, it is archived, or a
+ * master admin blocked its project, which it answers alike - and the caller
+ * answers 404 (PublicPageNotFound); or null when the URL names no page or the
+ * page could not be looked up.
+ */
 export const getStatusPageData: (
   req: ExpressRequest,
-) => Promise<StatusPageData | null> = async (
+) => Promise<StatusPageData | PublicPageNotFound | null> = async (
   req: ExpressRequest,
-): Promise<StatusPageData | null> => {
+): Promise<StatusPageData | PublicPageNotFound | null> => {
   try {
     logger.debug("Getting status page data", { service: "frontend" });
 
@@ -93,6 +104,17 @@ export const getStatusPageData: (
       });
 
     let seoData: JSONObject | null = null;
+
+    /*
+     * Not found is an answer, not a failed lookup: the page is served as not
+     * found, on a preview URL too, where the id alone could render it.
+     */
+    if (response instanceof HTTPErrorResponse && response.statusCode === 404) {
+      logger.debug("The status page API knows no such page", {
+        service: "frontend",
+      });
+      return PUBLIC_PAGE_NOT_FOUND;
+    }
 
     if (response instanceof HTTPErrorResponse) {
       logger.debug(`Received error response from API: ${response}`, {
@@ -159,7 +181,14 @@ export const handleRSS: (
   res: ExpressResponse,
 ): Promise<void> => {
   try {
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");
@@ -318,9 +347,10 @@ export const handleRSS: (
  * overview JSON API).
  *
  * Access control mirrors the RSS feed (/rss): the status page is resolved
- * with getStatusPageData, which returns null (-> 404) when the page cannot
- * be resolved. Everything this document exposes (page title, feed and API
- * URLs) is already exposed by /rss.
+ * with getStatusPageData, and a page that does not exist - or is archived,
+ * or of a blocked project - or cannot be resolved gets a 404. Everything
+ * this document exposes (page title, feed and API URLs) is already exposed
+ * by /rss.
  */
 export const handleLlmsTxt: (
   req: ExpressRequest,
@@ -334,7 +364,14 @@ export const handleLlmsTxt: (
      * Resolve the status page from the host or the
      * /status-page/:statusPageId path, same as the RSS feed.
      */
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");
