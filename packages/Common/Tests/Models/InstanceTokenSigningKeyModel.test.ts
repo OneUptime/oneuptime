@@ -94,8 +94,13 @@ describe("InstanceTokenSigningKey", () => {
   test("is not offered as MCP tools, documented as an API, or used by workflows", () => {
     expect(model.enableMCP).toBeFalsy();
     expect(model.enableDocumentation).toBeFalsy();
+    expect(model.isMasterAdminApiDocs).toBeFalsy();
     expect(model.enableWorkflowOn).toBeFalsy();
     expect(model.requiresEnterprise).toBeFalsy();
+  });
+
+  test("streams no change to a realtime listener", () => {
+    expect(model.enableRealtimeEventsOn).toBeFalsy();
   });
 
   test("belongs to no project or user", () => {

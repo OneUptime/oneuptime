@@ -155,6 +155,61 @@ describe("an installation whose operator set ENCRYPTION_SECRET", () => {
   });
 });
 
+/*
+ * Secrets an operator may have chosen that a careless comparison or a
+ * trimming read could mangle. Each one is the operator's own, so the
+ * installation signs with it byte for byte - surrounding spaces and all -
+ * exactly as the release before this change did, and nobody is signed out.
+ */
+const OPERATOR_SECRET_SHAPES: Array<{ label: string; value: string }> = [
+  { label: "padded with spaces", value: "  my-own-secret-value  " },
+  { label: "ending in a line break", value: "my-own-secret-value\n" },
+  { label: "that starts with the fallback", value: "secret-of-my-own" },
+  { label: "with characters beyond ASCII", value: "pässwört-§-ключ-鍵" },
+  { label: "a thousand characters long", value: "x".repeat(1000) },
+];
+
+describe.each(OPERATOR_SECRET_SHAPES)(
+  "an installation whose operator chose a secret $label",
+  ({ value }: { label: string; value: string }) => {
+    test("signs with that secret exactly as it reads it", async () => {
+      const server: Installation = await installation(value);
+
+      expect(server.TokenSigningKey.isEncryptionSecretUsed()).toBe(true);
+      expect(server.TokenSigningKey.get()).toBe(value);
+      expect(server.TokenSigningKey.get()).toBe(server.encryptionSecret);
+    });
+
+    test("still accepts what an earlier release signed with it, and derives the same per-purpose keys", async () => {
+      const server: Installation = await installation(value);
+
+      expect(server.JSONWebToken.decode(signSession(value)).isMasterAdmin).toBe(
+        true,
+      );
+
+      for (const label of [
+        "oneuptime:mcp:oauth:authorization-request:v1",
+        "oneuptime:mcp:oauth:api-delegation-token:v1",
+        "oneuptime:identity:verification-email-resend-token:v1",
+      ]) {
+        expect(server.TokenSigningKey.deriveKey(label).toString("hex")).toBe(
+          derived(value, label),
+        );
+      }
+    });
+
+    test("never trades it for an installation key", async () => {
+      const server: Installation = await installation(value);
+
+      server.TokenSigningKey.useInstallationKey(
+        server.TokenSigningKey.generateInstallationKey(),
+      );
+
+      expect(server.TokenSigningKey.get()).toBe(value);
+    });
+  },
+);
+
 describe.each(SHIPPED_ENCRYPTION_SECRETS)(
   "an installation whose ENCRYPTION_SECRET is $label",
   ({ value }: ShippedEncryptionSecret) => {
