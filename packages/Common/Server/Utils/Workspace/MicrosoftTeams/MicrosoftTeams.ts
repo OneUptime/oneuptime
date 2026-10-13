@@ -3630,7 +3630,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const commandName: string | undefined =
       listCommand ||
       input.command ||
-      (input.misspelt ? WorkspaceCommandName.Help : undefined);
+      (input.misspelt ? `misspelt ${input.misspelt.command}` : undefined);
 
     let projectId: ObjectID | undefined = undefined;
     let responseText: string = "";

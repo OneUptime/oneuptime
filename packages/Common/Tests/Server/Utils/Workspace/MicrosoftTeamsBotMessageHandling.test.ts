@@ -851,6 +851,26 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
     expect(errorLogText(errorLog)).not.toContain("Database Is Down");
   });
 
+  test("a misspelt command that fails is logged as the command it looks like - never as help, never by what was typed", async () => {
+    const outage: Error = new Error("simulated database outage");
+    stubs.resolveTenant.mockRejectedValue(outage);
+    const errorLog: SpyInstance<typeof logger.error> = silenceErrorLog();
+    const activity: JSONObject = personalMessage("incidnet Database Is Down");
+    const turn: FakeTurn = buildTurn({ activity: activity });
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: activity,
+      turnContext: turn.turnContext,
+    });
+
+    expectFailureLogged(errorLog, {
+      line: `Microsoft Teams message ${idOf(activity)} ("misspelt incident") failed: Error: simulated database outage`,
+      error: outage,
+      attributes: { projectId: undefined },
+    });
+    expect(errorLogText(errorLog)).not.toContain("Database Is Down");
+  });
+
   test("the error reply cannot be sent either: still resolves, after exactly one attempt", async () => {
     const outage: Error = new Error("simulated database outage");
     stubs.resolveTenant.mockRejectedValue(outage);
