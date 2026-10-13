@@ -1,13 +1,16 @@
 import WifiRadioUtil, {
   WifiBand,
   WifiRadioView,
+  WifiSsidView,
   WifiSummary,
   WifiTablesState,
 } from "../../../Utils/NetworkDevice/WifiRadioUtil";
 import {
+  SnmpTableDefinition,
   SnmpTableFailureReason,
   SnmpTableKind,
   SnmpTableSnapshot,
+  SnmpTableSnapshotRow,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
@@ -576,5 +579,167 @@ describe("WifiRadioUtil.getTablesState", () => {
 
     expect(summary.failureReason).toBeUndefined();
     expect(WifiRadioUtil.getTablesState(summary)).toBe(WifiTablesState.NoRows);
+  });
+});
+
+/*
+ * A UniFi access point's snapshot as walks stored it before #4730: every
+ * VAP of its unifiVapTable, UniFi's own networks included - the device
+ * adoption network on both bands and the wireless mesh link, one meshed
+ * access point on it. The Wi-Fi view leaves them out until the next walk
+ * stores the SSIDs alone.
+ */
+const UNIFI_RADIO_ENTRY: string = "1.3.6.1.4.1.41112.1.6.1.1.1";
+const UNIFI_VAP_ENTRY: string = "1.3.6.1.4.1.41112.1.6.1.2.1";
+
+interface StoredVap {
+  index: string;
+  essid: string;
+  radio: string;
+  stations: number;
+  usage: string;
+}
+
+function unifiStoredBeforeTheFix(
+  vaps: Array<StoredVap>,
+): Array<SnmpTableSnapshot> {
+  return SnmpTableListUtil.materialize({
+    tables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!.map(
+      (table: SnmpTableDefinition): SnmpTableDefinition => {
+        // A table of no SSID kind keeps every row, as every walk did then.
+        return { ...table, kind: SnmpTableKind.Generic };
+      },
+    ),
+    results: [
+      {
+        key: "wifi_radios",
+        rows: [
+          { index: "1", values: { [`${UNIFI_RADIO_ENTRY}.3`]: "ng" } },
+          { index: "2", values: { [`${UNIFI_RADIO_ENTRY}.3`]: "na" } },
+        ],
+      },
+      {
+        key: "wifi_ssids",
+        rows: vaps.map((vap: StoredVap) => {
+          return {
+            index: vap.index,
+            values: {
+              [`${UNIFI_VAP_ENTRY}.6`]: vap.essid,
+              [`${UNIFI_VAP_ENTRY}.9`]: vap.radio,
+              [`${UNIFI_VAP_ENTRY}.4`]: vap.radio === "ng" ? 11 : 44,
+              [`${UNIFI_VAP_ENTRY}.8`]: vap.stations,
+              [`${UNIFI_VAP_ENTRY}.21`]: vap.radio === "ng" ? 17 : 23,
+              [`${UNIFI_VAP_ENTRY}.23`]: vap.usage,
+            },
+          };
+        }),
+      },
+    ],
+    collectedAt: new Date("2026-10-12T08:00:00.000Z"),
+  }).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+    return {
+      ...snapshot,
+      kind:
+        snapshot.key === "wifi_ssids"
+          ? SnmpTableKind.WifiSsid
+          : SnmpTableKind.WifiRadio,
+    };
+  });
+}
+
+const STORED_VAPS: Array<StoredVap> = [
+  {
+    index: "1",
+    essid: "element-0f8a6c2d4e1b3957",
+    radio: "ng",
+    stations: 0,
+    usage: "user",
+  },
+  { index: "2", essid: "Warehouse", radio: "ng", stations: 5, usage: "user" },
+  {
+    index: "3",
+    essid: "element-0f8a6c2d4e1b3957",
+    radio: "na",
+    stations: 0,
+    usage: "user",
+  },
+  {
+    index: "4",
+    essid: "vwire-c4e2a9170b5d38f6",
+    radio: "na",
+    stations: 1,
+    usage: "downlink",
+  },
+  { index: "5", essid: "Warehouse", radio: "na", stations: 8, usage: "user" },
+];
+
+describe("WifiRadioUtil and the networks an access point runs for itself", () => {
+  it("lists a stored snapshot's SSIDs without UniFi's own networks", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      unifiStoredBeforeTheFix(STORED_VAPS),
+    );
+
+    expect(
+      summary.ssids.map((ssid: WifiSsidView): string => {
+        return `${ssid.ssid}|${ssid.band}|${ssid.clients}`;
+      }),
+    ).toEqual(["Warehouse|2.4 GHz|5", "Warehouse|5 GHz|8"]);
+  });
+
+  it("counts no meshed access point as a client, on its radio or in the total", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      unifiStoredBeforeTheFix(STORED_VAPS),
+    );
+
+    expect(
+      summary.radios.map((radio: WifiRadioView): Array<unknown> => {
+        return [radio.band, radio.channel, radio.txPowerDbm, radio.clients];
+      }),
+    ).toEqual([
+      [WifiBand.Band2_4GHz, 11, 17, 5],
+      [WifiBand.Band5GHz, 44, 23, 8],
+    ]);
+    expect(summary.totalClients).toBe(13);
+  });
+
+  it("has nothing to list for a device whose only VAPs are UniFi's own", () => {
+    const tables: Array<SnmpTableSnapshot> = unifiStoredBeforeTheFix(
+      STORED_VAPS.filter((vap: StoredVap): boolean => {
+        return vap.essid !== "Warehouse";
+      }),
+    ).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+      return snapshot.key === "wifi_radios"
+        ? { ...snapshot, rows: [] }
+        : snapshot;
+    });
+
+    const summary: WifiSummary = WifiRadioUtil.getSummary(tables);
+
+    expect(summary.ssids).toEqual([]);
+    expect(WifiRadioUtil.getTablesState(summary)).toBe(WifiTablesState.NoRows);
+  });
+
+  it("tells a stored row of UniFi's own by its cells", () => {
+    const ssids: SnmpTableSnapshot = unifiStoredBeforeTheFix(STORED_VAPS).find(
+      (snapshot: SnmpTableSnapshot): boolean => {
+        return snapshot.key === "wifi_ssids";
+      },
+    )!;
+
+    expect(
+      ssids.rows.map((row: SnmpTableSnapshotRow): boolean => {
+        return WifiRadioUtil.isInternalNetworkRow(row);
+      }),
+    ).toEqual([true, false, true, true, false]);
+  });
+
+  it("tells nothing from a row that has no cells", () => {
+    expect(
+      WifiRadioUtil.isInternalNetworkRow({
+        index: "1",
+        label: "Lab",
+        cells: undefined as unknown as SnmpTableSnapshotRow["cells"],
+      }),
+    ).toBe(false);
   });
 });

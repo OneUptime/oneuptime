@@ -95,6 +95,7 @@ import ObjectID from "../../../Types/ObjectID";
 import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import {
   SnmpTableDefinition,
+  SnmpTableKind,
   SnmpTableResult,
   SnmpTableSnapshot,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
@@ -375,6 +376,218 @@ describe("the Wi-Fi tab of a UniFi access point", () => {
     expect(ssids).toHaveTextContent("Office");
     expect(ssids).toHaveTextContent("2.4 GHz");
     expect(ssids).toHaveTextContent("5");
+  });
+});
+
+/*
+ * The access point in issue #4730: a UAP-AC-Lite broadcasting DEMO on 2.4
+ * and 5 GHz, whose VAP table also holds UniFi's device adoption network on
+ * both bands and its wireless mesh link on 5 GHz. The ids are invented in
+ * the shape UniFi gives them.
+ */
+const ISSUE_4730_ADOPTION: string = "element-71c0a4e9b3d25f86";
+const ISSUE_4730_MESH_LINK: string = "vwire-2d9b6f04e1a8c357";
+
+function issue4730Results(): Array<SnmpTableResult> {
+  const vap: (
+    index: string,
+    essid: string,
+    radio: string,
+    name: string,
+    usage: string,
+  ) => SnmpTableResult["rows"][number] = (
+    index: string,
+    essid: string,
+    radio: string,
+    name: string,
+    usage: string,
+  ): SnmpTableResult["rows"][number] => {
+    return {
+      index: index,
+      values: {
+        [`${UNIFI_VAP}.6`]: essid,
+        [`${UNIFI_VAP}.9`]: radio,
+        [`${UNIFI_VAP}.7`]: name,
+        [`${UNIFI_VAP}.4`]: radio === "ng" ? 6 : 149,
+        [`${UNIFI_VAP}.8`]: 0,
+        [`${UNIFI_VAP}.21`]: 20,
+        [`${UNIFI_VAP}.22`]: 1,
+        [`${UNIFI_VAP}.23`]: usage,
+      },
+    };
+  };
+
+  return [
+    {
+      key: "wifi_radios",
+      rows: [
+        {
+          index: "1",
+          values: {
+            [`${UNIFI_RADIO}.3`]: "ng",
+            [`${UNIFI_RADIO}.2`]: "wifi0",
+            [`${UNIFI_RADIO}.6`]: 22,
+          },
+        },
+        {
+          index: "2",
+          values: {
+            [`${UNIFI_RADIO}.3`]: "na",
+            [`${UNIFI_RADIO}.2`]: "wifi1",
+            [`${UNIFI_RADIO}.6`]: 7,
+          },
+        },
+      ],
+    },
+    {
+      key: "wifi_ssids",
+      rows: [
+        vap("1", ISSUE_4730_ADOPTION, "ng", "ath0", "user"),
+        vap("2", "DEMO", "ng", "ath1", "user"),
+        vap("3", ISSUE_4730_ADOPTION, "na", "ath2", "user"),
+        vap("4", ISSUE_4730_MESH_LINK, "na", "vwire3", "downlink"),
+        vap("5", "DEMO", "na", "ath4", "user"),
+      ],
+    },
+  ];
+}
+
+// What the device's next walk stores.
+function issue4730(): Array<SnmpTableSnapshot> {
+  return walk("ubiquiti-unifi-ap", issue4730Results());
+}
+
+/*
+ * What the walks before the fix stored: every VAP under the SSID kind - a
+ * table of no SSID kind keeps every row, as every walk did then.
+ */
+function issue4730StoredBeforeTheFix(): Array<SnmpTableSnapshot> {
+  return SnmpTableListUtil.materialize({
+    tables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!.map(
+      (table: SnmpTableDefinition): SnmpTableDefinition => {
+        return { ...table, kind: SnmpTableKind.Generic };
+      },
+    ),
+    results: issue4730Results(),
+    collectedAt: new Date(),
+  }).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+    return {
+      ...snapshot,
+      kind:
+        snapshot.key === "wifi_ssids"
+          ? SnmpTableKind.WifiSsid
+          : snapshot.key === "wifi_radios"
+            ? SnmpTableKind.WifiRadio
+            : snapshot.kind,
+    };
+  });
+}
+
+// A tile's value, by its title.
+function tileValue(title: string): string | null | undefined {
+  const tiles: HTMLElement = screen.getByTestId("wifi-tiles");
+  return within(tiles).getByText(title).parentElement?.lastElementChild
+    ?.textContent;
+}
+
+describe("the Wi-Fi tab of the UniFi access point in issue #4730", () => {
+  test.each([
+    ["stored before the fix", issue4730StoredBeforeTheFix],
+    ["stored by the next walk", issue4730],
+  ])(
+    "lists DEMO on each band and none of UniFi's own networks, from a snapshot %s",
+    async (_when: string, snapshots: () => Array<SnmpTableSnapshot>) => {
+      deviceRow = deviceWith({ snmpTableSnapshot: snapshots() });
+
+      renderWiFi();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("wifi-ssids")).toBeInTheDocument();
+      });
+
+      const ssids: HTMLElement = screen.getByTestId("wifi-ssids");
+      const rows: Array<HTMLElement> = within(ssids).getAllByRole("row");
+
+      // A header row and DEMO on each band.
+      expect(rows).toHaveLength(3);
+      expect(rows[1]).toHaveTextContent("DEMO");
+      expect(rows[1]).toHaveTextContent("2.4 GHz");
+      expect(rows[2]).toHaveTextContent("DEMO");
+      expect(rows[2]).toHaveTextContent("5 GHz");
+
+      const page: HTMLElement = document.body;
+      expect(page).not.toHaveTextContent("element-");
+      expect(page).not.toHaveTextContent("vwire-");
+    },
+  );
+
+  test.each([
+    ["stored before the fix", issue4730StoredBeforeTheFix],
+    ["stored by the next walk", issue4730],
+  ])(
+    "counts 2 SSIDs, 2 radios and no clients, from a snapshot %s",
+    async (_when: string, snapshots: () => Array<SnmpTableSnapshot>) => {
+      deviceRow = deviceWith({ snmpTableSnapshot: snapshots() });
+
+      renderWiFi();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("wifi-tiles")).toBeInTheDocument();
+      });
+
+      expect(tileValue("SSIDs")).toBe("2");
+      expect(tileValue("Radios")).toBe("2");
+      expect(tileValue("Clients")).toBe("0");
+    },
+  );
+
+  test("fills each radio in from DEMO, as before", async () => {
+    deviceRow = deviceWith({ snmpTableSnapshot: issue4730() });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
+    });
+
+    const radios: Array<HTMLElement> = within(
+      screen.getByTestId("wifi-radios"),
+    ).getAllByRole("row");
+
+    expect(radios[1]).toHaveTextContent("2.4 GHz / wifi0");
+    expect(radios[1]).toHaveTextContent("2437 MHz");
+    expect(radios[1]).toHaveTextContent("20 dBm");
+    expect(radios[1]).toHaveTextContent("22 %");
+    expect(radios[2]).toHaveTextContent("5 GHz / wifi1");
+    expect(radios[2]).toHaveTextContent("5745 MHz");
+    expect(radios[2]).toHaveTextContent("7 %");
+  });
+
+  test("the SNMP Tables tab's SSIDs card lists DEMO's two rows, with each one's interface", () => {
+    const ssids: SnmpTableSnapshot = issue4730().find(
+      (snapshot: SnmpTableSnapshot): boolean => {
+        return snapshot.key === "wifi_ssids";
+      },
+    )!;
+
+    render(
+      <MemoryRouter>
+        <SnmpTableSnapshotCard snapshot={ssids} />
+      </MemoryRouter>,
+    );
+
+    const card: HTMLElement = screen.getByTestId("snmp-table-wifi_ssids");
+    const rows: Array<HTMLElement> = within(card).getAllByRole("row");
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("Interface");
+    expect(rows[1]).toHaveTextContent("DEMO / 2.4 GHz");
+    expect(rows[1]).toHaveTextContent("ath1");
+    expect(rows[2]).toHaveTextContent("DEMO / 5 GHz");
+    expect(rows[2]).toHaveTextContent("ath4");
+    expect(card).not.toHaveTextContent("element-");
+    expect(card).not.toHaveTextContent("vwire");
+    expect(screen.getByText(/One row per SSID\./)).toBeInTheDocument();
   });
 });
 
