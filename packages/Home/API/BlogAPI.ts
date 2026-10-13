@@ -10,8 +10,8 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import Route from "Common/Types/API/Route";
 import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
+import { redirectPreservingQuery } from "../Utils/Redirect";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -21,18 +21,23 @@ const app: ExpressApplication = Express.getExpressApp();
  * never get one from there. Each page the blog renders passes its own.
  */
 
-// create redirect for old blog post urls. This is to handle old blog post urls that are indexed by search engines.
-
+/*
+ * Old blog post URLs, still indexed by search engines, point at the post's
+ * page. The post lives at /view for good, so the move is permanent: a 302
+ * kept the old address in search results in place of the post's own. The
+ * file name is encoded again because Express hands it over decoded.
+ */
 app.get(
   "/blog/post/:file",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
       const fileName: string = req.params["file"] as string;
 
-      return Response.redirect(
+      return redirectPreservingQuery(
         req,
         res,
-        new Route(`/blog/post/${fileName}/view`),
+        `/blog/post/${encodeURIComponent(fileName)}/view`,
+        301,
       );
     } catch (e) {
       logger.error(e);

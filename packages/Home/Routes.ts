@@ -550,11 +550,11 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
+      redirectPreservingQuery(req, res, "/product/status-page", 301);
     });
 
     app.get("/logs-management", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/logs-management");
+      redirectPreservingQuery(req, res, "/product/logs-management", 301);
     });
 
     let gitHubContributors: Array<JSONObject> = [];
@@ -622,19 +622,19 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
+      redirectPreservingQuery(req, res, "/product/status-page", 301);
     });
 
     app.get("/workflows", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/workflows");
+      redirectPreservingQuery(req, res, "/product/workflows", 301);
     });
 
     app.get("/runbooks", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/runbooks");
+      redirectPreservingQuery(req, res, "/product/runbooks", 301);
     });
 
     app.get("/on-call", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/on-call");
+      redirectPreservingQuery(req, res, "/product/on-call", 301);
     });
 
     app.get(
@@ -985,7 +985,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/scheduled-maintenance",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/scheduled-maintenance");
+        redirectPreservingQuery(
+          req,
+          res,
+          "/product/scheduled-maintenance",
+          301,
+        );
       },
     );
 
@@ -1067,12 +1072,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/incident-management",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/incident-management");
+        redirectPreservingQuery(req, res, "/product/incident-management", 301);
       },
     );
 
     app.get("/ai-agent", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/ai-agent");
+      redirectPreservingQuery(req, res, "/product/ai-agent", 301);
     });
 
     app.get(
