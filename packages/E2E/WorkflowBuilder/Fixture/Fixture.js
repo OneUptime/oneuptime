@@ -13,6 +13,23 @@
  *                         on the canvas, connected to nothing yet
  * ?scenario=switch-full   a Switch / Case holding every case a step can
  *                         (25, named like severities), Default to log-1
+ * ?scenario=record        an On Update Incident trigger passing on the
+ *                         incident's title, then a Log. Its two field lists
+ *                         read the real Incident schema (IncidentSchema.json,
+ *                         as /model-schema/Incident answers), and the Run
+ *                         Workflow button opens the real Run Workflow panel,
+ *                         whose record search is answered here from a few
+ *                         incidents, by the rules the server uses.
+ *                         ?select= and ?watch= set what the two lists hold
+ *                         (JSON; &stored=text keeps it as the text older
+ *                         workflows saved). ?schema=fail and ?schema=slow,
+ *                         ?records=none, =fail and =slow stand in for a
+ *                         server that errs, is slow or has nothing; the slow
+ *                         ones answer once window.releaseSchema() or
+ *                         window.releaseRecords() is called. ?off=1 is a
+ *                         workflow that is turned off.
+ * ?scenario=record-new    the "choose a trigger" placeholder, with the same
+ *                         stand-ins: a record trigger added from the picker.
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -29,12 +46,22 @@ import Workflow, {
 } from "Common/UI/Components/Workflow/Workflow";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import ObjectID from "Common/Types/ObjectID";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { NodeType } from "Common/Types/Workflow/Component";
+import {
+  RunRecordReferenceKind,
+  getRunRecordSearchWords,
+  isRunRecordNumberMatch,
+  parseRunRecordReference,
+} from "Common/Types/Workflow/RunRecord";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CreateWorkflowModal from "../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
+import IncidentSchema from "./IncidentSchema.json";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -88,8 +115,44 @@ function edge(source, sourceHandle, target) {
   };
 }
 
-if (scenario === "empty") {
+/*
+ * What one of the record trigger's field lists holds: ?select= or ?watch=,
+ * as JSON - or, with &stored=text, as the text older workflows saved.
+ */
+function storedFields(name, fallback) {
+  const given = params.get(name);
+
+  if (given === null) {
+    return fallback;
+  }
+
+  if (params.get("stored") === "text") {
+    return given;
+  }
+
+  try {
+    return JSON.parse(given);
+  } catch {
+    return given;
+  }
+}
+
+if (scenario === "empty" || scenario === "record-new") {
   initialNodes = [getPlaceholderTriggerNode()];
+} else if (scenario === "record") {
+  initialNodes = [
+    step("incident-on-update", 1, 160, 64, {
+      "listen-on": storedFields("watch", {}),
+      select: storedFields("select", { title: true }),
+    }),
+    step("log", 1, 160, 320, {
+      value:
+        "{{local.components.incident-on-update-1.returnValues.model.title}}",
+    }),
+  ];
+  initialEdges = [
+    edge("canvas-incident-on-update-1", "success", "canvas-log-1"),
+  ];
 } else if (scenario === "trigger-only") {
   initialNodes = [step("manual", 1, 160, 64)];
 } else if (scenario === "switch") {
@@ -163,12 +226,236 @@ if (scenario === "empty") {
 // What the builder hands its page to save, for the spec to read.
 window.__savedGraph = { nodes: initialNodes, edges: initialEdges };
 
+/*
+ * The record scenarios' server. Three requests reach it: the Incident
+ * model's fields (/model-schema/Incident), the records Run Workflow can run
+ * with (/run-records), and what the steps held when they last ran
+ * (/step-samples: nothing yet). Each is noted for the spec to read.
+ */
+const INCIDENTS = [
+  {
+    id: "a0000000-0000-4000-8000-000000000012",
+    numberValue: 12,
+    number: "INC-12",
+    name: "Checkout returns 502 for customers in the EU",
+    createdAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000011",
+    numberValue: 11,
+    number: "INC-11",
+    name: "Database is down",
+    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000010",
+    numberValue: 10,
+    number: "INC-10",
+    name: "Login page is slow",
+    createdAt: "2024-03-09T14:05:00.000Z",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000009",
+    numberValue: 9,
+    number: "INC-9",
+    name: "Database replica is lagging behind the primary by several minutes and reports are stale",
+    createdAt: "2024-02-21T08:30:00.000Z",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000008",
+    numberValue: 8,
+    number: "INC-8",
+    name: "Status page shows the wrong region",
+    createdAt: "2024-02-02T19:45:00.000Z",
+  },
+  {
+    // Numbered before the project's prefix changed, and keeps its old one.
+    id: "a0000000-0000-4000-8000-000000000007",
+    numberValue: 7,
+    number: "OPS-7",
+    name: "Email worker has a backlog",
+    createdAt: "2023-11-18T06:10:00.000Z",
+  },
+];
+
+function listed(incident, matchedBy) {
+  return {
+    id: incident.id,
+    number: incident.number,
+    name: incident.name,
+    createdAt: incident.createdAt,
+    matchedBy: matchedBy,
+  };
+}
+
+/*
+ * The records a search finds, by the rules the server uses (the same pure
+ * functions, Types/Workflow/RunRecord): an ID, then a number - with its
+ * prefix or without one - then the titles that hold every word typed, in
+ * any order; the newest ones when nothing is typed.
+ */
+function searchIncidents(search) {
+  const reference = parseRunRecordReference(search);
+
+  if (reference.kind === RunRecordReferenceKind.Empty) {
+    return INCIDENTS.map((incident) => {
+      return listed(incident, "Recent");
+    });
+  }
+
+  if (reference.kind === RunRecordReferenceKind.Id) {
+    return INCIDENTS.filter((incident) => {
+      return incident.id === reference.id;
+    }).map((incident) => {
+      return listed(incident, "Id");
+    });
+  }
+
+  const found = [];
+
+  if (reference.kind === RunRecordReferenceKind.Number) {
+    for (const incident of INCIDENTS) {
+      if (
+        incident.numberValue === reference.number &&
+        isRunRecordNumberMatch({
+          reference: reference,
+          numberWithPrefix: incident.number,
+        })
+      ) {
+        found.push(listed(incident, "Number"));
+      }
+    }
+  }
+
+  const words = getRunRecordSearchWords(reference.text).map((word) => {
+    return word.toLowerCase();
+  });
+
+  for (const incident of INCIDENTS) {
+    const isListed = found.some((record) => {
+      return record.id === incident.id;
+    });
+    const name = incident.name.toLowerCase();
+
+    if (
+      !isListed &&
+      words.every((word) => {
+        return name.includes(word);
+      })
+    ) {
+      found.push(listed(incident, "Name"));
+    }
+  }
+
+  return found;
+}
+
+window.__schemaRequests = [];
+window.__recordSearches = [];
+
+// A slow answer waits here until the spec lets it go.
+function gate(name) {
+  let release = () => {};
+
+  const opened = new Promise((resolve) => {
+    release = resolve;
+  });
+
+  window[name] = () => {
+    release();
+  };
+
+  return opened;
+}
+
+function installRecordServer() {
+  const schemaMode = params.get("schema") || "";
+  const recordsMode = params.get("records") || "";
+  const schemaGate = schemaMode === "slow" ? gate("releaseSchema") : null;
+  const recordsGate = recordsMode === "slow" ? gate("releaseRecords") : null;
+
+  ModelAPI.getCommonHeaders = () => {
+    return {};
+  };
+
+  // The workflow has no variables of its own.
+  ModelAPI.getList = async () => {
+    return { data: [], count: 0, skip: 0, limit: 100 };
+  };
+
+  API.get = async (options) => {
+    const url = options.url.toString();
+
+    window.__schemaRequests.push(url);
+
+    if (schemaGate) {
+      await schemaGate;
+    }
+
+    if (schemaMode === "fail") {
+      return new HTTPErrorResponse(
+        500,
+        { message: "The fields are not available right now." },
+        {},
+      );
+    }
+
+    return new HTTPResponse(
+      200,
+      url.endsWith("/model-schema/Incident") ? IncidentSchema : { columns: [] },
+      {},
+    );
+  };
+
+  API.post = async (options) => {
+    const url = options.url.toString();
+
+    if (url.includes("/run-records/")) {
+      const search = (options.data && options.data.search) || "";
+
+      window.__recordSearches.push(search);
+
+      if (recordsGate) {
+        await recordsGate;
+      }
+
+      if (recordsMode === "fail") {
+        return new HTTPErrorResponse(
+          500,
+          { message: "The incidents could not be listed." },
+          {},
+        );
+      }
+
+      return new HTTPResponse(
+        200,
+        { records: recordsMode === "none" ? [] : searchIncidents(search) },
+        {},
+      );
+    }
+
+    if (url.includes("/step-samples/")) {
+      return new HTTPResponse(200, { samples: [] }, {});
+    }
+
+    return new HTTPResponse(200, {}, {});
+  };
+}
+
+if (scenario === "record" || scenario === "record-new") {
+  installRecordServer();
+}
+
+// What Run Workflow started, for the spec to read.
+window.__runs = [];
+
 function App() {
   const [showPicker, setShowPicker] = useState(false);
+  const [showRun, setShowRun] = useState(false);
 
   return (
     <div style={{ padding: "16px" }}>
-      <div style={{ marginBottom: "12px" }}>
+      <div style={{ marginBottom: "12px", display: "flex", gap: "8px" }}>
         <button
           type="button"
           data-testid="add-component"
@@ -179,6 +466,16 @@ function App() {
         >
           Add Component
         </button>
+        <button
+          type="button"
+          data-testid="run-workflow"
+          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700"
+          onClick={() => {
+            setShowRun(true);
+          }}
+        >
+          Run Workflow
+        </button>
       </div>
       <Workflow
         workflowId={new ObjectID("11111111-1111-4111-8111-111111111111")}
@@ -188,9 +485,17 @@ function App() {
         onComponentPickerModalUpdate={(isShown) => {
           setShowPicker(isShown);
         }}
-        showRunModal={false}
-        onRunModalUpdate={() => {}}
-        onRun={() => {}}
+        showRunModal={showRun}
+        onRunModalUpdate={(isShown) => {
+          setShowRun(isShown);
+        }}
+        onRun={(trigger) => {
+          window.__runs.push({
+            metadataId: trigger.metadataId,
+            arguments: trigger.arguments,
+          });
+        }}
+        runsAreTestRuns={params.get("off") === "1"}
         onWorkflowUpdated={(nodes, edges) => {
           window.__savedGraph = { nodes: nodes, edges: edges };
         }}
