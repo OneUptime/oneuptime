@@ -207,9 +207,10 @@ describe("the match history list stays honest", () => {
       for (const checkOn of entry.checkOns) {
         expect({
           checkOn,
-          series: MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
-            filter(checkOn),
-          ),
+          series:
+            MonitorMetricTypeUtil.getMonitorMetricTypeByCriteriaFilterOrNull(
+              filter(checkOn),
+            ),
         }).toEqual({ checkOn, series: null });
       }
     }
@@ -280,7 +281,10 @@ describe("the evaluation types a check judged check by check is offered", () => 
         CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
           filter(checkOn),
         ),
-      ).toEqual([EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue]);
+      ).toEqual([
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+      ]);
     },
   );
 

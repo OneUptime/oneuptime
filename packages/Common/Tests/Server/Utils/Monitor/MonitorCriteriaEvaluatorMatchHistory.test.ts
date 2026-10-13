@@ -61,7 +61,8 @@ const START: Date = new Date("2026-10-13T09:00:00.000Z");
 const MINUTE_IN_MS: number = 60 * 1000;
 const EVERY_MINUTE: string = "* * * * *";
 
-const HEALTHY_PAGE: string = "<html><head><title>App Title</title></head></html>";
+const HEALTHY_PAGE: string =
+  "<html><head><title>App Title</title></head></html>";
 const PLACEHOLDER_PAGE: string = "Application starting...";
 
 interface StoredRow {
@@ -677,7 +678,8 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
         probeId: ObjectID.generate(),
         // Stored as MonitorResource stores it: a string, hydrated back.
         response: {
-          monitoredAt: OneUptimeDate.getCurrentDate().toISOString() as unknown as Date,
+          monitoredAt:
+            OneUptimeDate.getCurrentDate().toISOString() as unknown as Date,
         },
       });
 

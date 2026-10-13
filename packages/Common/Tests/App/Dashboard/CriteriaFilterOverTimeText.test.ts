@@ -101,16 +101,16 @@ describe("the criteria list, for a filter judged from its match history", () => 
       'Check if "Response Header" contains x-maintenance on every check in the past 5 minutes or,',
     );
     expect(
-      CriteriaFilterUtil.translateFilterToText(overTime(HEADER_VALUE, undefined, 10)),
+      CriteriaFilterUtil.translateFilterToText(
+        overTime(HEADER_VALUE, undefined, 10),
+      ),
     ).toBe(
       'Check if "Response Header Value" contains starting on every check in the past 10 minutes ',
     );
   });
 
   test("a JavaScript expression says its window before the full stop", () => {
-    expect(
-      CriteriaFilterUtil.translateFilterToText(overTime(EXPRESSION)),
-    ).toBe(
+    expect(CriteriaFilterUtil.translateFilterToText(overTime(EXPRESSION))).toBe(
       "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5 minutes.",
     );
   });
@@ -349,11 +349,12 @@ describe("every filter of a Website, API, Ping, IP or Port monitor can wait", ()
     MonitorType.IP,
     MonitorType.Port,
   ])("every filter the %s criteria form offers", (monitorType: MonitorType) => {
-    const offered: Array<CheckOn> = CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
-      monitorType,
-    ).map((option: DropdownOption): CheckOn => {
-      return option.value as CheckOn;
-    });
+    const offered: Array<CheckOn> =
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType).map(
+        (option: DropdownOption): CheckOn => {
+          return option.value as CheckOn;
+        },
+      );
 
     expect(offered.length).toBeGreaterThan(0);
 
@@ -386,9 +387,11 @@ describe("every filter of a Website, API, Ping, IP or Port monitor can wait", ()
       for (const checkOn of CommonCriteriaFilterUtil.getMatchHistoryCheckOns(
         monitorType,
       )) {
-        expect({ monitorType, checkOn, offered: offered.includes(checkOn) }).toEqual(
-          { monitorType, checkOn, offered: true },
-        );
+        expect({
+          monitorType,
+          checkOn,
+          offered: offered.includes(checkOn),
+        }).toEqual({ monitorType, checkOn, offered: true });
       }
     }
   });

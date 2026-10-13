@@ -534,7 +534,9 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
     const paragraph: string | undefined = evaluating
       .split("\n\n")
       .find((block: string): boolean => {
-        return block.includes("records whether the filter matched on each check");
+        return block.includes(
+          "records whether the filter matched on each check",
+        );
       });
 
     expect(paragraph).toBeDefined();

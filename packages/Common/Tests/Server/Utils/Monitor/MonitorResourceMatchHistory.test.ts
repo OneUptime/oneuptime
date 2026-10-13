@@ -29,8 +29,9 @@ import Metric from "../../../../Models/AnalyticsModels/Metric";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
-import { ProbeConnectionStatus } from "../../../../Models/DatabaseModels/Probe";
-import Probe from "../../../../Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../../Models/DatabaseModels/Probe";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
@@ -126,7 +127,11 @@ function websiteMonitor(): { monitor: Monitor; step: MonitorStep } {
         createIncidents: true,
         filterCondition: FilterCondition.Any,
         filters: [
-          { checkOn: CheckOn.IsOnline, filterType: FilterType.False, value: undefined },
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
           {
             checkOn: CheckOn.ResponseBody,
             filterType: FilterType.NotContains,
@@ -145,7 +150,11 @@ function websiteMonitor(): { monitor: Monitor; step: MonitorStep } {
         createIncidents: false,
         filterCondition: FilterCondition.All,
         filters: [
-          { checkOn: CheckOn.IsOnline, filterType: FilterType.True, value: undefined },
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
         ],
       }),
     ],
@@ -230,14 +239,14 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     jest
       .spyOn(MonitorStatusService, "findOneBy")
       .mockResolvedValue(null as never);
-    jest.spyOn(MonitorStatusTimelineService, "findOneBy").mockImplementation(
-      () => {
+    jest
+      .spyOn(MonitorStatusTimelineService, "findOneBy")
+      .mockImplementation(() => {
         // Already at the default status: the no-match path writes nothing.
         const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
         timeline.monitorStatusId = ONLINE_STATUS_ID;
         return Promise.resolve(timeline) as never;
-      },
-    );
+      });
     jest
       .spyOn(MonitorMetricUtil, "saveMonitorMetrics")
       .mockResolvedValue(undefined);
@@ -264,7 +273,10 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
       .spyOn(MonitorAlert, "checkOpenAlertsAndCloseIfResolved")
       .mockResolvedValue([] as never);
     createIncidents = jest
-      .spyOn(MonitorIncident, "criteriaMetCreateIncidentsAndUpdateMonitorStatus")
+      .spyOn(
+        MonitorIncident,
+        "criteriaMetCreateIncidentsAndUpdateMonitorStatus",
+      )
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(MonitorAlert, "criteriaMetCreateAlertsAndUpdateMonitorStatus")

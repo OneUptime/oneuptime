@@ -155,7 +155,9 @@ export default class CriteriaFilterUtil {
   public static getEvaluateOverTimeTypeDescription(
     criteriaFilter: CriteriaFilter | undefined,
   ): string {
-    if (CommonCriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter?.checkOn)) {
+    if (
+      CommonCriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter?.checkOn)
+    ) {
       return translationKey(
         "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
       );

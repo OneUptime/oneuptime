@@ -667,7 +667,9 @@ describe("CriteriaFilterMatchHistory", () => {
 
       const time: InBetween<Date> = query["time"] as unknown as InBetween<Date>;
 
-      expect(time.startValue).toEqual(new Date(NOW.getTime() - 5 * MINUTE_IN_MS));
+      expect(time.startValue).toEqual(
+        new Date(NOW.getTime() - 5 * MINUTE_IN_MS),
+      );
       expect(time.endValue).toEqual(NOW);
       expect(findByCalls[0]!.select).toEqual({ value: true, time: true });
       expect(findByCalls[0]!.props).toEqual({ isRoot: true });
@@ -934,8 +936,12 @@ describe("CriteriaFilterMatchHistory", () => {
       storedChecks = [];
 
       expect(
-        (await judge({ criteriaFilter: bodyFilter(anyValue()), matched: false }))
-          .message,
+        (
+          await judge({
+            criteriaFilter: bodyFilter(anyValue()),
+            matched: false,
+          })
+        ).message,
       ).toBe(
         'Response Body Not Contains "App Title" did not match on the only check over the last 5 minutes.',
       );
@@ -945,8 +951,12 @@ describe("CriteriaFilterMatchHistory", () => {
       readError = new Error("ClickHouse is away");
 
       expect(
-        (await judge({ criteriaFilter: bodyFilter(anyValue()), matched: false }))
-          .rootCause,
+        (
+          await judge({
+            criteriaFilter: bodyFilter(anyValue()),
+            matched: false,
+          })
+        ).rootCause,
       ).toBeNull();
     });
   });

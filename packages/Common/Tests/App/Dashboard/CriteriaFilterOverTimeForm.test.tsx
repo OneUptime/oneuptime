@@ -275,9 +275,8 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
       );
 
       expect(
-        within(screen.getByTestId(OVER_TIME_OPTIONS)).getAllByText(
-          "30 Minutes",
-        ).length,
+        within(screen.getByTestId(OVER_TIME_OPTIONS)).getAllByText("30 Minutes")
+          .length,
       ).toBe(1);
     });
 
@@ -393,7 +392,9 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
     test("the window's settings sit inside the box's own group", () => {
       renderFilter(bodyOverTime(), MonitorType.Website);
 
-      const group: HTMLElement = screen.getByTestId("criteria-filter-over-time");
+      const group: HTMLElement = screen.getByTestId(
+        "criteria-filter-over-time",
+      );
       const options: HTMLElement = screen.getByTestId(OVER_TIME_OPTIONS);
 
       expect(group.contains(options)).toBe(true);
