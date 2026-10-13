@@ -1,78 +1,164 @@
-# Интеграция с ServiceNow
+# ServiceNow
 
-Автоматически открывайте инцидент [ServiceNow](https://www.servicenow.com) при каждом создании инцидента OneUptime — чтобы ITSM и мониторинг оставались синхронизированными.
+Открывайте инцидент [ServiceNow](https://www.servicenow.com) для каждого инцидента OneUptime и устраняйте его, когда устранён инцидент OneUptime, чтобы ваша служба поддержки видела то же, что и ваш мониторинг. Два рабочих процесса вызывают [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI) ServiceNow.
 
-Эта интеграция является **исходящей**: OneUptime вызывает [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) ServiceNow. Используется OneUptime **[Workflow](/docs/workflows/index)** с триггером **Incident → On Create** и компонентом **API**.
+:::cards
+- [Сохранение учётных данных](#сохранение-учётных-данных): Держите пароль ServiceNow вне рабочих процессов.
+- [Открытие инцидентов ServiceNow](#открытие-инцидента-servicenow-для-каждого-инцидента): Один рабочий процесс, два блока.
+- [Их устранение](#устранение-инцидента-servicenow): Найти запись, затем закрыть её.
+- [Устранение неполадок](#устранение-неполадок): Когда ServiceNow отклоняет запрос.
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## Как это работает
+
+```mermaid title="Два рабочих процесса, один инцидент ServiceNow"
+flowchart TB
+    declared["Инцидент объявлен"] --> create["Рабочий процесс 1:<br/>On Create Incident"]
+    create -->|"POST incident"| sn["Инцидент ServiceNow"]
+    resolved["Инцидент устранён"] --> update["Рабочий процесс 2:<br/>On Update Incident"]
+    update --> find["Найти запись<br/>по correlation_id"]
+    find -->|"PATCH state 6"| sn
 ```
 
-## Предварительные требования
+Первый рабочий процесс записывает ID инцидента OneUptime в `correlation_id` записи. Второй находит запись по этому ID, затем устраняет её.
 
-- Экземпляр ServiceNow (`https://your-instance.service-now.com`).
-- Пользователь ServiceNow с ролями `rest_api_explorer` / `itil` (или достаточными правами для создания записей `incident`). Basic auth с учётными данными этого пользователя — простейший старт; для продакшена рекомендуется OAuth.
-- Проект OneUptime, в котором вы можете создавать рабочие процессы.
+## Перед началом работы
 
-## Шаг 1 — Сохраните учётные данные как секрет
+- Экземпляр ServiceNow, например `https://your-instance.service-now.com`.
+- Пользователь ServiceNow для интеграции, который может создавать и обновлять записи в таблице `incident`, обычно с ролью `itil`. Его имя и пароль подписывают запросы.
+- В OneUptime — право создавать рабочие процессы и глобальные переменные. В OneUptime Cloud для рабочих процессов нужен тариф **Growth** или выше.
 
-Table API ServiceNow принимает **Basic auth**.
+## Сохранение учётных данных
 
-1. Закодируйте `username:password` в base64 один раз:
+Table API принимает аутентификацию Basic: имя и пароль пользователя, закодированные вместе.
+
+:::steps
+1. Закодируйте их один раз, в macOS или Linux:
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. В OneUptime перейдите в **Рабочие процессы → Глобальные переменные → Создать**, назовите переменную `SERVICENOW_AUTH`, вставьте строку base64 и включите **Is Secret**.
+   Используйте `printf`, а не `echo`: `echo` добавляет перевод строки, который кодируется вместе с остальным и ломает учётные данные.
 
-## Шаг 2 — Создайте рабочий процесс
+2. В OneUptime перейдите в **Рабочие процессы → Глобальные переменные** и нажмите **Создать: Рабочий процесс Переменная**. Назовите её `SERVICENOW_AUTH` и нажмите **Далее**.
+3. Вставьте закодированное значение в **Содержимое**, включите **Секрет** и нажмите **Создать: Рабочий процесс Переменная**.
+:::
 
-1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Incidents → ServiceNow` и откройте **Конструктор**.
-2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
-3. Добавьте блок **API**, соединённый с триггером:
+## Открытие инцидента ServiceNow для каждого инцидента
 
-   - **Method**: `POST`
-   - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
-   - **Headers**:
+:::steps
+### Создайте рабочий процесс
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+Перейдите в **Рабочие процессы**, нажмите **Создать рабочий процесс**, затем **Начать с нуля**. Назовите его `Incidents to ServiceNow` и нажмите **Создать рабочий процесс**.
 
-   - **Body**:
+### Добавьте триггер
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+Нажмите на пунктирный блок **Choose what starts this workflow** и выберите **On Create Incident**. Нажмите на триггер и в **Select Fields** выберите `title` и `description`.
 
-   `correlation_id` сохраняет связь с инцидентом OneUptime — пригодится, если позже добавите шаг разрешения. `urgency`/`impact` в ServiceNow: `1` (высокий), `2` (средний), `3` (низкий).
+### Создайте запись
 
-4. **Сохраните**, включите и создайте тестовый инцидент. Ответ `201 Created` в журналах рабочего процесса вернёт `sys_id` и `number` новой записи (например, `INC0012345`).
+Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **URL** значение `https://your-instance.service-now.com/api/now/table/incident`. В разделе **Дополнительные поля** задайте его **Request Headers** так:
 
-## Шаг 3 — Разрешение при разрешении в OneUptime (опционально)
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. Создайте **второй** рабочий процесс с триггером **Incident → On Update** и блоком **Условия**, проверяющим, что инцидент разрешён.
-2. Чтобы обновить нужную запись ServiceNow, вам потребуется её `sys_id`. Либо сохраните его в инциденте OneUptime на Шаге 2 (прочитайте `{{CreateRecord.response-body.result.sys_id}}` и запишите в метку через **Update Incident**), либо найдите запись через `GET` на `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
-3. Добавьте блок **API**: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, тело `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolved в стандартном ITIL-процессе).
+А его **Request Body** — так:
+
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
+
+### Проверьте, затем включите
+
+Нажмите **Запустить рабочий процесс**, введите **ID инцидента** тестового инцидента и запустите. Шаг **API Post (JSON)** покажет ответ `201` с новой записью, её `sys_id` и `number`, например `INC0012345`. Затем включите **Включено** вверху окна **Конструктор**.
+:::
+
+`urgency` и `impact` принимают `1` для высокого, `2` для среднего и `3` для низкого уровня, а приоритет ServiceNow вычисляет по ним. Любой другой столбец таблицы `incident` можно передать в теле под его именем.
+
+## Устранение инцидента ServiceNow
+
+У рабочего процесса только один триггер, поэтому для устранения нужен второй рабочий процесс, который запускается при смене состояния инцидента.
+
+:::steps
+### Добавьте триггер On Update Incident
+
+Создайте рабочий процесс с именем `Resolve ServiceNow incidents` и выберите триггер **On Update Incident**. В **Listen on** выберите `currentIncidentStateId`, чтобы он запускался только при смене состояния. В **Select Fields** запросите, является ли новое состояние состоянием устранения:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### Проверьте, что инцидент устранён
+
+Добавьте после триггера блок **If / Else**. Задайте **Value to check** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Comparison** — **is true**.
+
+### Найдите запись
+
+Добавьте после стороны **Yes** блок **API Get (JSON)** с теми же **Request Headers** и таким **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### Устраните запись
+
+Добавьте после **Success** блока поиска блок **API Patch (JSON)** с теми же **Request Headers** и таким **URL**:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+Задайте его **Request Body** так:
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### Включите его
+
+Включите **Включено**, затем устраните тестовый инцидент в OneUptime. Его инцидент ServiceNow перейдёт в Resolved.
+:::
+
+`state` `6` означает Resolved в стандартных состояниях инцидентов ServiceNow. `close_code` должен быть одним из кодов закрытия вашего экземпляра. Многие экземпляры не устраняют инцидент без кода закрытия и заметок, поэтому отправляйте и то и другое.
 
 ## Устранение неполадок
 
-- **`401`** — заново закодируйте `username:password` с помощью `printf` (не `echo`, который добавляет символ новой строки) и обновите `SERVICENOW_AUTH`.
-- **`403`** — у пользователя нет прав записи в таблицу `incident`; добавьте роль `itil`.
-- **`400`** — имя или значение поля неверно для кастомизаций вашего экземпляра. Проверьте имена полей в **System Definition → Tables → incident**.
-- **Экземпляр отклоняет вызов** — некоторые экземпляры ограничивают Table API; убедитесь, что REST включён и ваш IP не заблокирован ACL.
+:::details ServiceNow отвечает 401
+Учётные данные неверны. Закодируйте `username:password` заново с помощью `printf`, а не `echo`, и замените содержимое `SERVICENOW_AUTH`.
+:::
 
-## Что читать дальше
+:::details ServiceNow отвечает 403
+Пользователь не может записывать в таблицу `incident`. Выдайте ему роль `itil` или роль с такими же правами и убедитесь, что никакое правило контроля доступа не блокирует ему Table API.
+:::
 
-- [Обзор интеграций](/docs/integrations/index) — паттерны и шпаргалка по аутентификации.
-- [Jira](/docs/integrations/jira) — тот же исходящий паттерн для Jira.
-- [Компонент API](/docs/workflows/components#api) — чтение тела ответа.
+:::details ServiceNow отвечает 400, или устранение ничего не меняет
+Имя столбца или значение не подходит вашему экземпляру: изменённый список `state` или `close_code`, которого в вашем экземпляре нет. Сверьтесь с таблицей `incident` в **System Definition → Tables** в ServiceNow и с формой самой записи.
+:::
+
+:::details Устранение отвечает 404
+Шаг поиска не нашёл записи, поэтому URL сохранил ссылку в записанном виде. Убедитесь, что первый рабочий процесс записал `correlation_id` и что оба рабочих процесса составляют его одинаково: `oneuptime-` и `_id` инцидента.
+:::
+
+## Дальнейшие шаги
+
+:::cards
+- [Jira](/docs/integrations/jira): Двусторонняя интеграция, которую поддерживают в актуальном состоянии готовые шаблоны.
+- [Компоненты рабочего процесса](/docs/workflows/components#api): Все настройки блоков API.
+- [Запуски рабочего процесса](/docs/workflows/runs-and-logs): Смотрите, что каждый запрос отправил и получил в ответ.
+- [Обзор интеграций](/docs/integrations/index): Схемы, на которых строится каждая интеграция.
+:::

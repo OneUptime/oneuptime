@@ -1,78 +1,164 @@
-# ServiceNow 連携
+# ServiceNow
 
-OneUptime のインシデントが作成されるたびに [ServiceNow](https://www.servicenow.com) のインシデントを自動で開きます — ITSM と監視を連動させます。
+OneUptime のインシデントごとに [ServiceNow](https://www.servicenow.com) のインシデントを作成し、OneUptime のインシデントが解決されたらそれを解決して、サービスデスクが監視の状況を追えるようにします。2 つのワークフローが ServiceNow の [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI) を呼び出します。
 
-この連携は**アウトバウンド**です: OneUptime が ServiceNow の [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) を呼び出します。**インシデント → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。
+:::cards
+- [認証情報を保存する](#認証情報を保存する): ServiceNow のパスワードをワークフローに含めないようにします。
+- [ServiceNow のインシデントを作成する](#インシデントごとに-servicenow-のインシデントを作成する): 1 つのワークフローと 2 つのブロック。
+- [それらを解決する](#servicenow-のインシデントを解決する): レコードを見つけてからクローズします。
+- [トラブルシューティング](#トラブルシューティング): ServiceNow がリクエストを拒否する場合。
+:::
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
+## 仕組み
+
+```mermaid title="2 つのワークフロー、1 つの ServiceNow インシデント"
+flowchart TB
+    declared["インシデント宣言"] --> create["ワークフロー 1:<br/>On Create Incident"]
+    create -->|"POST incident"| sn["ServiceNow の<br/>インシデント"]
+    resolved["インシデント解決"] --> update["ワークフロー 2:<br/>On Update Incident"]
+    update --> find["correlation_id で<br/>レコードを検索"]
+    find -->|"PATCH state 6"| sn
 ```
+
+1 つ目のワークフローは、OneUptime のインシデントの ID をレコードの `correlation_id` に書き込みます。2 つ目はその ID でレコードを見つけ、解決します。
 
 ## 前提条件
 
-- ServiceNow インスタンス (`https://your-instance.service-now.com`)。
-- `rest_api_explorer` / `itil` ロール (または `incident` レコードを作成するのに十分な権限) を持つ ServiceNow ユーザー。このユーザーの認証情報を使った Basic 認証が最もシンプルな出発点です。本番環境では OAuth を推奨します。
-- ワークフローを作成できる OneUptime プロジェクト。
+- `https://your-instance.service-now.com` のような ServiceNow インスタンス。
+- `incident` テーブルのレコードを作成・更新できる、インテグレーション用の ServiceNow ユーザー (通常は `itil` ロールを持つ)。その名前とパスワードでリクエストに署名します。
+- OneUptime では、ワークフローとグローバル変数を作成する権限。OneUptime Cloud では、ワークフローに **Growth** プラン以上が必要です。
 
-## ステップ 1 — 認証情報をシークレットとして保存する
+## 認証情報を保存する
 
-ServiceNow の Table API は **Basic 認証**を受け付けます。
+Table API は Basic 認証を受け付けます。ユーザーの名前とパスワードを一緒にエンコードしたものです。
 
-1. `username:password` を一度 base64 エンコードします:
+:::steps
+1. macOS または Linux で、一度だけエンコードします:
 
    ```bash
-   printf '%s' 'integration_user:password' | base64
+   printf '%s' 'integration.user:password' | base64 | tr -d '\n'
    ```
 
-2. OneUptime で **ワークフロー → グローバル変数 → 作成** に移動し、`SERVICENOW_AUTH` という名前にして base64 文字列を貼り付け、**Is Secret** をオンにします。
+   `echo` ではなく `printf` を使ってください。`echo` は改行を追加し、それが残りと一緒にエンコードされて認証情報が壊れます。
 
-## ステップ 2 — ワークフローを作成する
+2. OneUptime で **ワークフロー → グローバル変数** に移動し、**ワークフロー変数を作成** をクリックします。名前を `SERVICENOW_AUTH` にして **次へ** をクリックします。
+3. エンコードした値を **コンテンツ** に貼り付け、**シークレット** をオンにして、**ワークフロー変数を作成** をクリックします。
+:::
 
-1. **ワークフロー → ワークフローを作成** を開き、`Incidents → ServiceNow` という名前にして **ビルダー** を開きます。
-2. **インシデント** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
-3. トリガーに接続した **API** ブロックを追加します:
+## インシデントごとに ServiceNow のインシデントを作成する
 
-   - **Method**: `POST`
-   - **URL**: `https://your-instance.service-now.com/api/now/table/incident`
-   - **Headers**:
+:::steps
+### ワークフローを作成する
 
-     ```text
-     Authorization: Basic {{variable.SERVICENOW_AUTH}}
-     Content-Type: application/json
-     Accept: application/json
-     ```
+**ワークフロー** に移動し、**ワークフローを作成** をクリックしてから **ゼロから作成** をクリックします。名前を `Incidents to ServiceNow` にして **ワークフローを作成** をクリックします。
 
-   - **Body**:
+### トリガーを追加する
 
-     ```json
-     {
-       "short_description": "OneUptime: {{Incident.title}}",
-       "description": "{{Incident.description}}",
-       "urgency": "1",
-       "impact": "1",
-       "correlation_id": "oneuptime-{{Incident._id}}"
-     }
-     ```
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックし、**Select Fields** で `title` と `description` を選びます。
 
-   `correlation_id` は OneUptime のインシデントへのリンクを保持します — 後で解決ステップを追加する場合に便利です。ServiceNow の `urgency`/`impact` は `1` (高)、`2` (中)、`3` (低) を使います。
+### レコードを作成する
 
-4. **保存** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` レスポンスが表示され、新しいレコードの `sys_id` と `number` (例: `INC0012345`) が返されます。
+**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**URL** を `https://your-instance.service-now.com/api/now/table/incident` に設定します。**その他の項目** で、**Request Headers** を次のように設定します:
 
-## ステップ 3 — OneUptime の解決時に解決する (オプション)
+```json
+{
+  "Authorization": "Basic {{global.variables.SERVICENOW_AUTH}}",
+  "Accept": "application/json"
+}
+```
 
-1. **インシデント → On Update** トリガーと、インシデントが解決済みかどうかをチェックする **条件** ブロックを持つ**2 つ目のワークフロー**を作成します。
-2. 正しい ServiceNow レコードを更新するには `sys_id` が必要です。ステップ 2 で `{{CreateRecord.response-body.result.sys_id}}` を読み取って **Update Incident** でラベルに書き込んで OneUptime インシデントに保存するか、`GET` で `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}` を呼び出してレコードを検索します。
-3. **API** ブロックを追加します: **Method** `PATCH`、**URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`、ボディ `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` はデフォルトの ITIL ワークフローで「解決済み」を意味します)。
+**Request Body** は次のとおりです:
+
+```json
+{
+  "short_description": "OneUptime: {{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "urgency": "1",
+  "impact": "1",
+  "correlation_id": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}"
+}
+```
+
+### テストしてからオンにする
+
+**ワークフローを実行** をクリックし、テスト用インシデントの **インシデント ID** を入力して実行します。**API Post (JSON)** ステップに、新しいレコード、その `sys_id`、`INC0012345` のような `number` を含む `201` の応答が表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
+:::
+
+`urgency` と `impact` は、高に `1`、中に `2`、低に `3` を取り、ServiceNow はこの 2 つから優先度を算出します。`incident` テーブルのその他の列も、列名を使って本文に含められます。
+
+## ServiceNow のインシデントを解決する
+
+ワークフローのトリガーは 1 つだけなので、解決には、インシデントの状態が変わったときに開始される 2 つ目のワークフローが必要です。
+
+:::steps
+### On Update Incident トリガーを追加する
+
+`Resolve ServiceNow incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Listen on** で `currentIncidentStateId` を選び、状態が変わったときだけ実行されるようにします。**Select Fields** で、新しい状態が解決済みの状態かどうかを要求します:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### インシデントが解決されたことを確認する
+
+トリガーの後に **If / Else** ブロックを追加します。**Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**Comparison** を **is true** に設定します。
+
+### レコードを見つける
+
+**Yes** 側の後に、同じ **Request Headers** と次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
+```
+
+### レコードを解決する
+
+検索ブロックの **Success** の後に、同じ **Request Headers** と次の **URL** を持つ **API Patch (JSON)** ブロックを追加します:
+
+```text
+https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
+```
+
+**Request Body** を次のように設定します:
+
+```json
+{
+  "state": "6",
+  "close_code": "Solution provided",
+  "close_notes": "Resolved in OneUptime"
+}
+```
+
+### オンにする
+
+**有効** をオンにし、OneUptime でテスト用インシデントを解決します。対応する ServiceNow のインシデントが Resolved に移ります。
+:::
+
+ServiceNow の既定のインシデントの状態では、`state` `6` が Resolved です。`close_code` は、インスタンスの解決コードのいずれかでなければなりません。多くのインスタンスは解決コードとメモがないとインシデントを解決しないので、両方を送信してください。
 
 ## トラブルシューティング
 
-- **`401`** — `printf` (`echo` は改行が追加されるため不可) を使って `username:password` を再エンコードし、`SERVICENOW_AUTH` を更新します。
-- **`403`** — ユーザーに `incident` テーブルへの書き込み権限がありません。`itil` ロールを追加してください。
-- **`400`** — フィールド名または値がインスタンスのカスタマイズに合っていません。**System Definition → Tables → incident** でフィールド名を確認してください。
-- **インスタンスが呼び出しを拒否する** — インスタンスによっては Table API が制限されています。REST が有効になっており、IP が ACL でブロックされていないか確認してください。
+:::details ServiceNow が 401 を返す
+認証情報が間違っています。`echo` ではなく `printf` で `username:password` をエンコードし直し、`SERVICENOW_AUTH` の内容を置き換えます。
+:::
 
-## 次に読むべきページ
+:::details ServiceNow が 403 を返す
+ユーザーが `incident` テーブルに書き込めません。`itil` ロールまたは同じ権限を持つロールを割り当て、アクセス制御ルールがそのユーザーの Table API をブロックしていないことを確認してください。
+:::
 
-- [連携 概要](/docs/integrations/index) — パターンと認証クイックリファレンス。
-- [Jira](/docs/integrations/jira) — Jira に対する同じアウトバウンドパターン。
-- [API コンポーネント](/docs/workflows/components#api) — レスポンスボディの読み取り。
+:::details ServiceNow が 400 を返す、または解決しても何も変わらない
+列名または値がインスタンスに合っていません。カスタマイズされた `state` の一覧や、インスタンスにない `close_code` などです。ServiceNow の **System Definition → Tables** の `incident` テーブルや、レコード自体のフォームと照らし合わせてください。
+:::
+
+:::details 解決が 404 を返す
+検索ステップでレコードが見つからなかったため、URL に参照が書かれたまま残りました。1 つ目のワークフローが `correlation_id` を書き込んだこと、両方のワークフローが同じ方法 (`oneuptime-` の後にインシデントの `_id`) で作っていることを確認してください。
+:::
+
+## 次のステップ
+
+:::cards
+- [Jira](/docs/integrations/jira): 既製のテンプレートで同期を保つ、双方向のインテグレーション。
+- [ワークフロー コンポーネント](/docs/workflows/components#api): API ブロックのすべての設定。
+- [ワークフロー 実行履歴](/docs/workflows/runs-and-logs): 各リクエストが送信した内容と受け取った内容を確認します。
+- [インテグレーションの概要](/docs/integrations/index): 各インテグレーションの背後にあるパターン。
+:::
