@@ -841,7 +841,13 @@ describe("what a Teams user without a linked account is told (the real lookup; o
   }
 
   interface CreateCommandCase {
+    // The command as typed: as Teams took it before the words were Slack's.
     name: string;
+    /*
+     * The command to type again: the word Slack's /oneuptime takes too
+     * (WorkspaceCommands).
+     */
+    again: string;
     // What the command is asked to connect the account for.
     purpose: string;
     what: string;
@@ -866,6 +872,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
   const CREATE_COMMANDS: ReadonlyArray<CreateCommandCase> = [
     {
       name: "create incident",
+      again: "incident",
       purpose: "declare an incident",
       what: "an incident",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
@@ -912,6 +919,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     },
     {
       name: "create maintenance",
+      again: "maintenance",
       purpose: "create a scheduled maintenance event",
       what: "a scheduled maintenance event",
       run: (turn: FakeTurn, activity: JSONObject): Promise<void> => {
@@ -980,13 +988,13 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         const request: WorkspaceConnectRequestRecord =
           await expectConnectPrompt(turn.replies, {
             purpose: command.purpose,
-            next: `It takes one click. Then type **${command.name}** again.`,
+            next: `It takes one click. Then type **${command.again}** again.`,
           });
         // A form opens only on a fresh command: nothing is finished for them.
         expect(request.pendingAction).toBeUndefined();
         expect(request.again).toEqual({
           kind: WorkspaceConnectRequestAgainKind.Command,
-          label: command.name,
+          label: command.again,
         });
         // Told before filling the form in: its lists were never read.
         expect(formLists.mock.calls).toHaveLength(0);
@@ -1076,7 +1084,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         // One reply: asked to connect the account; no form posted for the channel.
         await expectConnectPrompt(turn.replies, {
           purpose: command.purpose,
-          next: `It takes one click. Then type **${command.name}** again.`,
+          next: `It takes one click. Then type **${command.again}** again.`,
         });
         expect(turn.replies[0]).not.toContain(command.formTitle);
 
@@ -1116,7 +1124,7 @@ describe("what a Teams user without a linked account is told (the real lookup; o
 
         await expectConnectPrompt(turn.replies, {
           purpose: command.purpose,
-          next: `It takes one click. Then type **${command.name}** again.`,
+          next: `It takes one click. Then type **${command.again}** again.`,
         });
         expect(create.mock.calls).toHaveLength(0);
         expect(memberPropsSpy).not.toHaveBeenCalled();

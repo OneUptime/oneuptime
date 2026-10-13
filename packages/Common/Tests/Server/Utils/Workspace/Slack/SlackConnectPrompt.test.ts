@@ -234,20 +234,25 @@ describe("SlackConnectPrompt.describe", () => {
   );
 
   test.each([
-    [SlackActionType.NewIncident, "declare an incident", "/incident"],
-    [SlackActionType.SubmitNewIncident, "declare an incident", "/incident"],
+    [SlackActionType.NewIncident, "declare an incident", "/oneuptime incident"],
+    [
+      SlackActionType.SubmitNewIncident,
+      "declare an incident",
+      "/oneuptime incident",
+    ],
     [
       SlackActionType.NewScheduledMaintenance,
       "create a scheduled maintenance event",
-      "/maintenance",
+      "/oneuptime maintenance",
     ],
     [
       SlackActionType.SubmitNewScheduledMaintenance,
       "create a scheduled maintenance event",
-      "/maintenance",
+      "/oneuptime maintenance",
     ],
+    [SlackActionType.ShowOnCall, "see who is on call", "/oneuptime oncall"],
   ])(
-    "%s: asks to %s, then to run %s again",
+    "%s, with no command typed (a form's submission): asks to %s, then to run %s again",
     (actionType: SlackActionType, purpose: string, command: string) => {
       expect(
         SlackConnectPrompt.describe({
@@ -265,6 +270,46 @@ describe("SlackConnectPrompt.describe", () => {
       });
     },
   );
+
+  test.each([
+    // An app updated to the one /oneuptime command.
+    [SlackActionType.NewIncident, "/oneuptime incident"],
+    [SlackActionType.NewScheduledMaintenance, "/oneuptime maintenance"],
+    [SlackActionType.ShowOnCall, "/oneuptime oncall"],
+    // An app created from an older manifest: run what it has.
+    [SlackActionType.NewIncident, "/incident"],
+    [SlackActionType.NewScheduledMaintenance, "/maintenance"],
+    // A workspace that runs OneUptime with a command of its own.
+    [SlackActionType.NewIncident, "/irm incident"],
+  ])(
+    "%s typed as %s: run again exactly as it was typed",
+    (actionType: SlackActionType, command: string) => {
+      expect(
+        SlackConnectPrompt.describe({
+          actionType: actionType,
+          command: command,
+        }).again,
+      ).toEqual({
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: command,
+      });
+    },
+  );
+
+  test("the shortcut that opens the maintenance form: press the shortcut again", () => {
+    expect(
+      SlackConnectPrompt.describe({
+        actionType: SlackActionType.NewScheduledMaintenance,
+        payloadType: "shortcut",
+      }),
+    ).toEqual({
+      purpose: "create a scheduled maintenance event",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Button,
+        label: "Create Scheduled Event",
+      },
+    });
+  });
 
   test("the shortcut that opens the same form: press the shortcut again", () => {
     expect(
@@ -472,7 +517,7 @@ describe("SlackConnectPrompt.prompt", () => {
     expect(theAnswer()).toEqual({
       answer: {
         markdown:
-          "🔗 **Connect your Slack account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Slack** and press **Connect my account with Slack**. Once you're connected, run **/incident** again.",
+          "🔗 **Connect your Slack account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Slack** and press **Connect my account with Slack**. Once you're connected, run **/oneuptime incident** again.",
         text: "Connect your Slack account to declare an incident",
       },
       connectUrl: null,

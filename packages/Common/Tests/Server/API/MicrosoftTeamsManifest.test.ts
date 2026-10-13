@@ -5,6 +5,11 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import MicrosoftTeamsAPI from "../../../Server/API/MicrosoftTeamsAPI";
 import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import MicrosoftTeamsCommands from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import WorkspaceCommands, {
+  WorkspaceCommandName,
+} from "../../../Server/Utils/Workspace/WorkspaceCommands";
+import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 
 const MOCK_TEAMS_CLIENT_ID: string = "11111111-2222-3333-4444-555555555555";
 
@@ -318,6 +323,150 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       );
       expect(commandTitles).toContain("help");
     });
+
+    // Every command of every list, as Teams reads them.
+    function commandsOf(manifest: JSONObject): Array<JSONObject> {
+      return (getBot(manifest)["commandLists"] as Array<JSONObject>).flatMap(
+        (commandList: JSONObject): Array<JSONObject> => {
+          return commandList["commands"] as Array<JSONObject>;
+        },
+      );
+    }
+
+    /*
+     * Customer feedback #5: one namespace of commands. What Teams suggests
+     * after "@OneUptime" are the words Slack's /oneuptime takes, then Teams'
+     * own lists, then help - as the help lists them.
+     */
+    test("the commands are the words Slack's /oneuptime takes, then Teams' own lists, then help", () => {
+      expect(
+        commandsOf(getManifest()).map((command: JSONObject): unknown => {
+          return command["title"];
+        }),
+      ).toEqual([
+        "incident",
+        "maintenance",
+        "oncall",
+        "ask",
+        "show active incidents",
+        "show active alerts",
+        "show scheduled maintenance",
+        "show ongoing maintenance",
+        "help",
+      ]);
+    });
+
+    test("each says what it does, in a sentence of its own", () => {
+      expect(commandsOf(getManifest())).toEqual([
+        {
+          title: "incident",
+          description:
+            "Declare an incident. Opens the form, with the title filled in.",
+        },
+        {
+          title: "maintenance",
+          description:
+            "Schedule a maintenance event. Opens the form, with the title filled in.",
+        },
+        {
+          title: "oncall",
+          description:
+            "See who is on call right now, in each on-call schedule.",
+        },
+        {
+          title: "ask",
+          description:
+            "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors.",
+        },
+        {
+          title: "show active incidents",
+          description: "List the incidents that are open right now.",
+        },
+        {
+          title: "show active alerts",
+          description: "List the alerts that are open right now.",
+        },
+        {
+          title: "show scheduled maintenance",
+          description: "List the scheduled maintenance events still to come.",
+        },
+        {
+          title: "show ongoing maintenance",
+          description: "List the maintenance events in progress.",
+        },
+        {
+          title: "help",
+          description: "Show these commands, with examples.",
+        },
+      ]);
+    });
+
+    /*
+     * Teams' manifest schema: at most 10 commands in a list, a title of 32
+     * characters and a description of 128 at most.
+     */
+    test("within what Teams takes: ten commands a list, 32-character titles, 128-character descriptions", () => {
+      for (const commandList of getBot(getManifest())[
+        "commandLists"
+      ] as Array<JSONObject>) {
+        expect(
+          (commandList["commands"] as Array<JSONObject>).length,
+        ).toBeLessThanOrEqual(10);
+      }
+
+      for (const command of commandsOf(getManifest())) {
+        expect((command["title"] as string).length).toBeLessThanOrEqual(32);
+        expect(
+          (command["description"] as string).length,
+        ).toBeLessThanOrEqual(128);
+      }
+    });
+
+    test("every command Teams suggests is one the bot answers - not a question for AI", () => {
+      for (const command of commandsOf(getManifest())) {
+        const title: string = command["title"] as string;
+
+        expect({
+          title,
+          answered:
+            MicrosoftTeamsCommands.getListCommand(title) !== null ||
+            WorkspaceCommands.parse(title).command !== null,
+        }).toEqual({ title, answered: true });
+      }
+    });
+
+    test("'create incident' and 'create maintenance' are no longer suggested, and still work when typed", () => {
+      const titles: Array<unknown> = commandsOf(getManifest()).map(
+        (command: JSONObject): unknown => {
+          return command["title"];
+        },
+      );
+
+      expect(titles).not.toContain("create incident");
+      expect(titles).not.toContain("create maintenance");
+      expect(WorkspaceCommands.parse("create incident").command).toBe(
+        WorkspaceCommandName.Incident,
+      );
+      expect(WorkspaceCommands.parse("create maintenance").command).toBe(
+        WorkspaceCommandName.Maintenance,
+      );
+    });
+
+    test("the product's name in a description is the one the installation goes by", () => {
+      jest
+        .spyOn(ProductBrandingText, "getProductName")
+        .mockReturnValue("Acme Ops");
+
+      expect(
+        commandsOf(getManifest()).find((command: JSONObject): boolean => {
+          return command["title"] === "ask";
+        }),
+      ).toEqual({
+        title: "ask",
+        description:
+          "Ask Acme Ops AI about your logs, traces, metrics, incidents and monitors.",
+      });
+    });
   });
 
   describe("manifest schema basics", () => {
@@ -341,8 +490,9 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
    * Teams only takes an uploaded package as an update of the installed app
    * when its version is higher. Release images set APP_VERSION; a build
    * without it falls back to a fixed version, raised to 1.6.0 when
-   * ChatSettings.Read.Chat was added. Left at 1.5.0, an admin re-uploading the
-   * manifest to pick up that permission would have the upload refused.
+   * ChatSettings.Read.Chat was added, and to 1.7.0 when the commands became
+   * the words Slack's /oneuptime takes. Left behind, an admin re-uploading
+   * the manifest to pick up a change would have the upload refused.
    */
   describe("manifest version", () => {
     test("a build without APP_VERSION has AppVersion 'unknown' — which is what gets the fallback", () => {
@@ -369,16 +519,16 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(unsetAppVersion).toBe("unknown");
 
       mockEnvironmentState.appVersion = unsetAppVersion as string;
-      expect(getManifest()["version"]).toBe("1.6.0");
+      expect(getManifest()["version"]).toBe("1.7.0");
     });
 
     // The check lowercases AppVersion first, so its case does not matter.
     test.each(["unknown", "Unknown", "UNKNOWN"])(
-      "AppVersion %p gets the fallback version 1.6.0",
+      "AppVersion %p gets the fallback version 1.7.0",
       (appVersion: string) => {
         mockEnvironmentState.appVersion = appVersion;
 
-        expect(getManifest()["version"]).toBe("1.6.0");
+        expect(getManifest()["version"]).toBe("1.7.0");
       },
     );
 
