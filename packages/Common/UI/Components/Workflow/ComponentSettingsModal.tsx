@@ -101,6 +101,13 @@ export interface ComponentProps {
    * email. Their panels say so. See ComponentPrimaryPanel.
    */
   isWorkflowOff?: boolean | undefined;
+  /*
+   * Opens the Run Workflow panel for a test run. Offered by the value
+   * picker while the workflow is off and a Webhook or Incoming Email trigger
+   * has no request to list the fields of; this step's settings are saved
+   * first. Absent for someone who may not run the workflow.
+   */
+  onRequestTestRun?: (() => void) | undefined;
 }
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
@@ -116,6 +123,12 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const [showRunStepConfirmation, setShowRunStepConfirmation] =
     useState<boolean>(false);
   const bodyRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+
+  const hasErrors: boolean = Object.values(hasFormValidationErrors).some(
+    (v: boolean) => {
+      return v;
+    },
+  );
 
   /*
    * The dialog focuses the first control it finds as it opens. A step's
@@ -234,6 +247,16 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         workflowId={props.workflowId}
         webhookUrl={webhookUrl}
         outputConnections={props.outputConnections}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={
+          props.onRequestTestRun && !hasErrors
+            ? () => {
+                // Saved first, so nothing typed here is lost to the run.
+                props.onSave(component);
+                props.onRequestTestRun?.();
+              }
+            : undefined
+        }
         component={component}
         onFormChange={(c: NodeDataProp) => {
           setComponent({ ...c });
@@ -422,12 +445,6 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   ].filter((section: ReactElement | null): section is ReactElement => {
     return section !== null;
   });
-
-  const hasErrors: boolean = Object.values(hasFormValidationErrors).some(
-    (v: boolean) => {
-      return v;
-    },
-  );
 
   return (
     <Modal

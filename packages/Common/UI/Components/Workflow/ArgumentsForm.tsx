@@ -102,6 +102,13 @@ export interface ComponentProps {
    * id. A Switch / Case says where each case's output leads.
    */
   outputConnections?: OutputConnections | undefined;
+  /*
+   * The workflow is turned off: its trigger refuses real requests, so the
+   * value picker says a test run fills a Webhook's fields in, and offers one
+   * (onTestRun) where it can.
+   */
+  isWorkflowOff?: boolean | undefined;
+  onTestRun?: (() => void) | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -738,6 +745,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         valueSources={props.valueSources}
         sources={props.valueSuggestionSources}
         webhookUrl={props.webhookUrl}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={props.onTestRun}
       >
         <SwitchEditor
           arguments={component.arguments}
@@ -764,6 +773,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         valueSources={props.valueSources}
         sources={props.valueSuggestionSources}
         webhookUrl={props.webhookUrl}
+        isWorkflowOff={props.isWorkflowOff}
+        onTestRun={props.onTestRun}
       >
         <ConditionEditor
           arguments={component.arguments}
@@ -782,6 +793,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       valueSources={props.valueSources}
       sources={props.valueSuggestionSources}
       webhookUrl={props.webhookUrl}
+      isWorkflowOff={props.isWorkflowOff}
+      onTestRun={props.onTestRun}
     >
       <div>
         {component.metadata.arguments &&

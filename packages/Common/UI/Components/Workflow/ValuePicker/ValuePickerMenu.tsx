@@ -23,14 +23,17 @@ import {
   useValuePicker,
 } from "./ValuePickerContext";
 import {
+  ValueAvailability,
+  ValueAvailabilityState,
   ValueSuggestion,
   ValueSuggestionGroup,
   ValueSuggestionNote,
+  ValueSuggestionSentence,
   appendPathToReference,
   filterSuggestionGroups,
   suggestionMatches,
 } from "./ValueSuggestion";
-import { NOT_SELECTED_BADGE } from "./StepValueSource";
+import { StepSampleCopy } from "./StepSampleSource";
 import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
@@ -54,6 +57,20 @@ export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
 
 // How long "Copied!" stays on a note's Copy button.
 const COPIED_FEEDBACK_MS: number = 2000;
+
+export const ValuePickerMenuCopy: {
+  readonly notAvailableOne: string;
+  readonly notAvailableMany: string;
+  readonly notAvailableHint: string;
+  readonly notAvailableTitle: string;
+} = {
+  notAvailableOne: translationKey("{{count}} step isn't available here"),
+  notAvailableMany: translationKey("{{count}} steps aren't available here"),
+  notAvailableHint: translationKey(
+    "Their values aren't there when this step runs.",
+  ),
+  notAvailableTitle: translationKey("Not available here"),
+};
 
 export const HIDDEN_SAMPLE_TEXT: string = translationKey("hidden");
 export const HIDDEN_SAMPLE_TITLE: string = translationKey(
@@ -110,6 +127,11 @@ interface MenuOption {
   reference: string;
   /** Picking this opens it rather than inserting it. */
   opens?: boolean | undefined;
+  /*
+   * A record's field its step does not pass on: it can be picked, but is
+   * empty here, so it is drawn quieter, under why.
+   */
+  isEmptyHere?: boolean | undefined;
   /** Shows a separate "look inside" button. */
   canLookInside?: boolean | undefined;
   item?: ValueSuggestion | undefined;
@@ -122,6 +144,10 @@ interface OptionSection {
   subtitle?: string | undefined;
   iconProp?: IconProp | undefined;
   note?: ValueSuggestionNote | undefined;
+  // A step before this one on some runs only says so under its name.
+  availability?: ValueAvailability | undefined;
+  // Above a record's fields that are empty here: whose they are.
+  emptyHereNote?: ValueSuggestionSentence | undefined;
   options: Array<MenuOption>;
 }
 
@@ -146,12 +172,21 @@ const findItem: FindItemFunction = (
   return undefined;
 };
 
-const BADGE_CLASS: Record<string, string> = {
-  [NOT_SELECTED_BADGE]: "border-gray-200 bg-gray-50 text-gray-500",
-};
-
 const DEFAULT_BADGE_CLASS: string =
   "border-amber-200 bg-amber-50 text-amber-700";
+
+type TranslateSentenceFunction = (
+  translator: Translator,
+  sentence: ValueSuggestionSentence,
+) => string;
+
+// A picker sentence in the reader's language.
+const translateSentence: TranslateSentenceFunction = (
+  translator: Translator,
+  sentence: ValueSuggestionSentence,
+): string => {
+  return translator.translateTemplate(sentence.template, sentence.values || {});
+};
 
 const ValuePickerMenu: React.ForwardRefExoticComponent<
   ValuePickerMenuProps & React.RefAttributes<ValuePickerMenuHandle>
@@ -176,11 +211,29 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
     const query: string = props.hasSearchBox ? search : props.query || "";
 
-    const groups: Array<ValueSuggestionGroup> = useMemo(() => {
+    const allGroups: Array<ValueSuggestionGroup> = useMemo(() => {
       return props.groupFilter
         ? picker.groups.filter(props.groupFilter)
         : picker.groups;
     }, [picker.groups, props.groupFilter]);
+
+    /*
+     * What can be used here, and what cannot: the steps whose values are not
+     * there when this one runs are listed apart, after everything else.
+     */
+    const groups: Array<ValueSuggestionGroup> = useMemo(() => {
+      return allGroups.filter((group: ValueSuggestionGroup): boolean => {
+        return group.availability?.state !== ValueAvailabilityState.Unavailable;
+      });
+    }, [allGroups]);
+
+    const unavailableGroups: Array<ValueSuggestionGroup> = useMemo(() => {
+      return allGroups.filter((group: ValueSuggestionGroup): boolean => {
+        return group.availability?.state === ValueAvailabilityState.Unavailable;
+      });
+    }, [allGroups]);
+
+    const [isUnavailableOpen, setIsUnavailableOpen] = useState<boolean>(false);
 
     /*
      * The opened value as the list has it now. A request can arrive while it
@@ -323,15 +376,41 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               sample: child.sample,
               isSampleHidden: child.isSampleHidden,
               reference: child.reference,
+              isEmptyHere: child.isEmptyHere,
             };
           });
 
-        return [
+        /*
+         * The fields that are there first; the ones its step does not pass
+         * on after them, apart, under whose they are and how to pass them on.
+         */
+        const usable: Array<MenuOption> = children.filter(
+          (child: MenuOption): boolean => {
+            return !child.isEmptyHere;
+          },
+        );
+        const emptyHere: Array<MenuOption> = children.filter(
+          (child: MenuOption): boolean => {
+            return Boolean(child.isEmptyHere);
+          },
+        );
+
+        const drillSections: Array<OptionSection> = [
           {
             key: "drill",
-            options: childQuery.trim() === "" ? [whole, ...children] : children,
+            options: childQuery.trim() === "" ? [whole, ...usable] : usable,
           },
         ];
+
+        if (emptyHere.length > 0) {
+          drillSections.push({
+            key: "drill-empty-here",
+            emptyHereNote: drillItem.drillIn?.emptyHereNote,
+            options: emptyHere,
+          });
+        }
+
+        return drillSections;
       }
 
       return filterSuggestionGroups(groups, query).map(
@@ -342,6 +421,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             subtitle: group.subtitle,
             iconProp: group.iconProp,
             note: group.note,
+            availability: group.availability,
             options: group.items.map((item: ValueSuggestion): MenuOption => {
               return {
                 key: item.reference,
@@ -576,6 +656,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           title={option.reference}
           data-testid="value-picker-option"
           data-reference={option.reference}
+          data-empty-here={option.isEmptyHere ? "true" : undefined}
           className={`mx-1 flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 ${
             isActive ? "bg-indigo-50" : ""
           }`}
@@ -594,23 +675,26 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         >
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-sm text-gray-900">
+              <span
+                className={`truncate text-sm ${
+                  option.isEmptyHere ? "text-gray-500" : "text-gray-900"
+                }`}
+              >
                 {option.label}
               </span>
               {(option.badges || []).map((badge: string) => {
                 return (
                   <span
                     key={badge}
-                    className={`shrink-0 rounded border px-1 text-[10px] font-medium leading-4 ${
-                      BADGE_CLASS[badge] || DEFAULT_BADGE_CLASS
-                    }`}
+                    className={`shrink-0 rounded border px-1 text-[10px] font-medium leading-4 ${DEFAULT_BADGE_CLASS}`}
                   >
                     {badge}
                   </span>
                 );
               })}
             </div>
-            {option.description && (
+            {/* An empty-here field's section says why; each says no more. */}
+            {option.description && !option.isEmptyHere && (
               <div className="truncate text-xs text-gray-500">
                 {translator.translateText(option.description)}
               </div>
@@ -718,8 +802,29 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             />
             <span>{translator.translateText(note.text)}</span>
           </div>
-          {copyText || note.waitingText ? (
+          {copyText ||
+          note.waitingText ||
+          (note.offersTestRun && picker.onTestRun) ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5">
+              {note.offersTestRun && picker.onTestRun ? (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                  data-testid="value-picker-note-test-run"
+                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    // The focus stays in the search box, or the field.
+                    event.preventDefault();
+                  }}
+                  onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                    event.stopPropagation();
+                    picker.onTestRun?.();
+                  }}
+                >
+                  <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+                  {translator.translateText(StepSampleCopy.testWithRunWorkflow)}
+                </button>
+              ) : null}
               {copyText ? (
                 <button
                   type="button"
@@ -766,6 +871,141 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
         </div>
       );
     };
+
+    type RenderUnavailableFunction = () => ReactElement | null;
+
+    /*
+     * The steps whose values are not there when this step runs, after
+     * everything that is, greyed and never picked: each says why, so a step
+     * missing from the list above is explained rather than looked for.
+     * Folded while browsing; a search shows the matching values of each.
+     */
+    const renderUnavailable: RenderUnavailableFunction =
+      (): ReactElement | null => {
+        if (unavailableGroups.length === 0) {
+          return null;
+        }
+
+        const isSearching: boolean = query.trim() !== "";
+        const matching: Array<ValueSuggestionGroup> = isSearching
+          ? filterSuggestionGroups(unavailableGroups, query)
+          : unavailableGroups;
+
+        if (matching.length === 0) {
+          return null;
+        }
+
+        const isOpen: boolean = isSearching || isUnavailableOpen;
+
+        return (
+          <div
+            className="mx-1 mt-1 border-t border-gray-100 pt-1"
+            data-testid="value-picker-unavailable"
+          >
+            {isSearching ? (
+              <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                {translator.translateText(ValuePickerMenuCopy.notAvailableTitle)}
+              </div>
+            ) : (
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-expanded={isOpen}
+                data-testid="value-picker-unavailable-toggle"
+                className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                  // The focus stays where it is: the search box, or the field.
+                  event.preventDefault();
+                }}
+                onClick={() => {
+                  setIsUnavailableOpen(!isUnavailableOpen);
+                }}
+              >
+                <Icon
+                  icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
+                  className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                />
+                <span className="font-medium">
+                  {translator.translatePlural(
+                    {
+                      one: ValuePickerMenuCopy.notAvailableOne,
+                      other: ValuePickerMenuCopy.notAvailableMany,
+                    },
+                    matching.length,
+                  )}
+                </span>
+              </button>
+            )}
+
+            {isOpen && !isSearching ? (
+              <p className="px-2 pb-1 text-xs text-gray-400">
+                {translator.translateText(ValuePickerMenuCopy.notAvailableHint)}
+              </p>
+            ) : null}
+
+            {isOpen
+              ? matching.map((group: ValueSuggestionGroup) => {
+                  return (
+                    <div
+                      key={group.id}
+                      className="px-2 py-1"
+                      data-testid="value-picker-unavailable-step"
+                      data-step={group.subtitle}
+                    >
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        {group.iconProp ? (
+                          <Icon
+                            icon={group.iconProp}
+                            className="h-3.5 w-3.5 shrink-0 text-gray-300"
+                          />
+                        ) : null}
+                        <span className="truncate text-xs font-semibold text-gray-500">
+                          {translator.translateText(group.title)}
+                        </span>
+                        {group.subtitle ? (
+                          <span className="truncate text-[11px] text-gray-400">
+                            {group.subtitle}
+                          </span>
+                        ) : null}
+                      </div>
+                      {group.availability ? (
+                        <p className="pl-5 text-xs text-gray-400">
+                          {translateSentence(
+                            translator,
+                            group.availability.reason,
+                          )}
+                        </p>
+                      ) : null}
+                      {isSearching
+                        ? group.items.map((item: ValueSuggestion) => {
+                            return (
+                              <div
+                                key={item.reference}
+                                aria-disabled="true"
+                                title={item.reference}
+                                data-testid="value-picker-unavailable-value"
+                                data-reference={item.reference}
+                                className="mt-0.5 flex min-w-0 cursor-not-allowed items-center gap-2 rounded-md py-1 pl-5 pr-1"
+                              >
+                                <span className="truncate text-sm text-gray-400">
+                                  {item.label}
+                                </span>
+                                {item.typeLabel ? (
+                                  <span className="ml-auto shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-400">
+                                    {translator.translateText(item.typeLabel)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            );
+                          })
+                        : null}
+                    </div>
+                  );
+                })
+              : null}
+          </div>
+        );
+      };
 
     const drillNote: string | undefined = drillItem?.drillIn?.note;
 
@@ -930,6 +1170,32 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                     )}
                   </div>
                 )}
+                {section.availability?.state ===
+                ValueAvailabilityState.Sometimes ? (
+                  <div
+                    className="mx-1 mb-1 flex items-start gap-1.5 px-2 text-xs text-amber-700"
+                    data-testid="value-picker-sometimes"
+                  >
+                    <Icon
+                      icon={IconProp.ExclaimationCircle}
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                    />
+                    <span>
+                      {translateSentence(
+                        translator,
+                        section.availability.reason,
+                      )}
+                    </span>
+                  </div>
+                ) : null}
+                {section.emptyHereNote ? (
+                  <div
+                    className="mx-1 mb-1 mt-1 border-t border-gray-100 px-2 pt-2 text-xs text-gray-500"
+                    data-testid="value-picker-empty-here-note"
+                  >
+                    {translateSentence(translator, section.emptyHereNote)}
+                  </div>
+                ) : null}
                 {renderNote(section)}
                 {section.options.map((option: MenuOption) => {
                   return renderOption(option, optionIndex++);
@@ -937,6 +1203,8 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
               </div>
             );
           })}
+
+          {!drill ? renderUnavailable() : null}
 
           {drill && drillChildren?.status === ChildrenStatus.Loading && (
             <div className="px-3 py-2 text-xs text-gray-500">
@@ -958,7 +1226,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           )}
 
-          {!drill && options.length === 0 && query.trim() !== "" && (
+          {!drill &&
+            options.length === 0 &&
+            query.trim() !== "" &&
+            filterSuggestionGroups(unavailableGroups, query).length === 0 && (
             <div
               className="px-3 py-2 text-xs text-gray-500"
               data-testid="value-picker-no-match"

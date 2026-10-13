@@ -221,14 +221,19 @@ describe("an email too big to keep", () => {
   });
 });
 
-describe("the Manual trigger is unchanged", () => {
-  test("it still promises no fields before a run", () => {
+describe("the Manual trigger", () => {
+  /*
+   * Its JSON is sent as JSON since RunValues, so a run brings fields, and
+   * before one the picker says so - as it does for the other triggers.
+   */
+  test("promises its JSON's fields once it has run", () => {
     const groups: Array<ValueSuggestionGroup> = buildStepSampleGroups(
       context([manual]),
       [],
       OPTIONS,
     );
 
-    expect(groups).toEqual([]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.note).toBeUndefined();
   });
 });
