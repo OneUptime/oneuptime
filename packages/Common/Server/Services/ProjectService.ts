@@ -310,6 +310,14 @@ export const widensAuditLogging: (
 export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 
 /*
+ * How long one server trusts its answer to "has a master admin blocked this
+ * project?" (isProjectBlocked) - the longest a block or an unblock takes to
+ * reach a server other than the one that wrote it, which drops its own answer
+ * at once (onUpdateSuccess).
+ */
+export const BLOCKED_PROJECT_CACHE_TTL_MS: number = 60_000;
+
+/*
  * Where a project created from a reseller's promo code was bought: the
  * reseller, the plan it sold and the license, as the promo code holds them.
  * OneUptime writes them (onCreatePermitted); no caller may.
@@ -372,6 +380,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * another minute, after forgetCurrentPlan had dropped it.
    */
   private currentPlanChanges: number = 0;
+
+  /*
+   * isProjectBlocked's answers, per server. Read with an explicit `undefined`
+   * check: a cached "not blocked" is `false` and must not look like a miss.
+   */
+  private blockedProjectCache: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache(10_000);
+
+  /*
+   * One lookup per project in flight. A status page view fires a burst of
+   * requests at once - the page, its overview, its incidents, its images -
+   * and without this a cold cache turns the burst into as many identical
+   * queries.
+   */
+  private blockedProjectLookups: Map<string, Promise<boolean>> = new Map();
 
   /*
    * How long a project's plan is cached on a server: the longest a plan
@@ -934,6 +957,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
       .data as unknown as Record<string, unknown>;
 
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
+
+    /*
+     * Blocked or unblocked: this server reads the flag again on the next
+     * request, so the project's status pages and public dashboards go down -
+     * or come back - here at once, and on every other server within
+     * BLOCKED_PROJECT_CACHE_TTL_MS. Hook-only: a write made with
+     * `ignoreHooks: true` waits out the TTL everywhere.
+     */
+    if (updateData["isBlocked"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        this.forgetBlockedStatus(projectId);
+      }
+    }
 
     await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
 
@@ -3204,6 +3240,75 @@ export class ProjectService extends ProjectReferencesService<Model> {
         `Failed to update Project.lastActive for ${key}: ${err.message}`,
       );
     });
+  }
+
+  /**
+   * Whether a master admin has blocked this project (Admin Dashboard >
+   * Projects). For the checks that run on every public request - the status
+   * pages and public dashboards of a blocked project answer as if they did
+   * not exist (BlockedProjectStatusPages, DashboardService) - so the answer
+   * is cached per server for BLOCKED_PROJECT_CACHE_TTL_MS.
+   *
+   * A project that does not exist is reported as not blocked: this answers
+   * the blocked question only.
+   */
+  @CaptureSpan()
+  public async isProjectBlocked(projectId: ObjectID): Promise<boolean> {
+    const key: string = projectId.toString().toLowerCase();
+
+    const cached: boolean | undefined = this.blockedProjectCache.get(key);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const inFlight: Promise<boolean> | undefined =
+      this.blockedProjectLookups.get(key);
+
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<boolean> = this.findOneById({
+      id: projectId,
+      select: { isBlocked: true },
+      props: { isRoot: true, ignoreHooks: true },
+    })
+      .then((project: Model | null): boolean => {
+        const isBlocked: boolean = Boolean(project?.isBlocked);
+
+        /*
+         * Only cached if this lookup is still the current one. A block written
+         * while it was on the wire clears the slot (forgetBlockedStatus), and
+         * the answer this lookup read may predate that write.
+         */
+        if (this.blockedProjectLookups.get(key) === lookup) {
+          this.blockedProjectCache.set(
+            key,
+            isBlocked,
+            BLOCKED_PROJECT_CACHE_TTL_MS,
+          );
+        }
+
+        return isBlocked;
+      })
+      .finally((): void => {
+        if (this.blockedProjectLookups.get(key) === lookup) {
+          this.blockedProjectLookups.delete(key);
+        }
+      });
+
+    this.blockedProjectLookups.set(key, lookup);
+
+    return lookup;
+  }
+
+  // Drops this server's answer, so the next request reads the row.
+  public forgetBlockedStatus(projectId: ObjectID): void {
+    const key: string = projectId.toString().toLowerCase();
+
+    this.blockedProjectCache.delete(key);
+    this.blockedProjectLookups.delete(key);
   }
 
   /**
