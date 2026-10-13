@@ -143,9 +143,8 @@ The manifest sets up these features. Each one reaches your server on the route s
 
 | Feature | What it does | Route |
 | --- | --- | --- |
-| `/incident` and the **Create New Incident** shortcut | Declare an incident from Slack | `POST /api/slack/interactive` |
-| `/maintenance` and the **Create Scheduled Event** shortcut | Schedule maintenance from Slack | `POST /api/slack/interactive` |
-| `/oneuptime` | Ask OneUptime AI about your logs, traces, metrics, incidents and monitors | `POST /api/slack/command` |
+| `/oneuptime` | Declare an incident, schedule maintenance, see who is on call and ask OneUptime AI; `/oneuptime help` lists every command | `POST /api/slack/command` |
+| The **Create New Incident** and **Create Scheduled Event** shortcuts | Declare an incident or schedule maintenance from Slack's shortcuts | `POST /api/slack/interactive` |
 | Buttons and forms on OneUptime messages | Acknowledge, resolve, add a note, change the state, run an on-call policy | `POST /api/slack/interactive` and `POST /api/slack/options-load` |
 | Events | Mentions, messages, reactions and pins, for example saving a message as a note | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ The manifest sets up these features. Each one reaches your server on the route s
 Incident and alert descriptions can carry screenshots - a synthetic monitor's, for one (see [Showing a screenshot](/docs/monitor/incident-alert-templating#showing-a-screenshot)). OneUptime shows them in Slack messages by uploading each one to your workspace as a private file, which needs the `files:write` bot scope. The generated manifest includes it.
 
 If you created your Slack app from an older manifest, add `files:write` under **OAuth & Permissions > Bot Token Scopes** (or update the app from the current manifest). Then select **Connect with Slack** again in **Project Settings > Workspace > Slack**, so the new scope is granted. Until then, each screenshot is shown as its alt text.
+
+### Apps created from an older manifest
+
+A Slack app created from an earlier OneUptime manifest registers `/incident` and `/maintenance` as commands of their own, which can clash with other apps' commands of the same name. They keep working, and open the same forms as `/oneuptime incident` and `/oneuptime maintenance`. To replace them with `/oneuptime`, update the app from the manifest your server generates: on [api.slack.com/apps](https://api.slack.com/apps), open the app's **App Manifest**, paste the manifest and save. The scopes stay the same, so the app needs no reinstall.
 
 ## Network access for self-hosted deployments
 
@@ -172,7 +175,7 @@ Forward these callbacks to OneUptime through its ingress:
 | Method and path | Purpose |
 | --- | --- |
 | `POST /api/slack/events` | Events API verification, reactions, pins, mentions and messages |
-| `POST /api/slack/interactive` | Buttons, shortcuts, modal submissions, `/incident` and `/maintenance` |
+| `POST /api/slack/interactive` | Buttons, shortcuts, modal submissions, and an older app's `/incident` and `/maintenance` |
 | `POST /api/slack/options-load` | Interactive menu option requests |
 | `POST /api/slack/command` | `/oneuptime` command |
 

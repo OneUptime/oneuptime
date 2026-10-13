@@ -17,9 +17,8 @@ import WorkspaceConnectRequest, {
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../WorkspaceMemberActions";
+import { WorkspaceCommandName } from "../WorkspaceCommands";
 import {
-  CREATE_INCIDENT_COMMAND,
-  CREATE_MAINTENANCE_COMMAND,
   MicrosoftTeamsAlertActionType,
   MicrosoftTeamsAlertEpisodeActionType,
   MicrosoftTeamsIncidentActionType,
@@ -274,24 +273,30 @@ const CREATE_PRESSES: ReadonlyMap<
 > = new Map<string, { purpose: string; command: string }>([
   [
     MicrosoftTeamsIncidentActionType.NewIncident,
-    { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
+    {
+      purpose: "declare an incident",
+      command: WorkspaceCommandName.Incident,
+    },
   ],
   [
     MicrosoftTeamsIncidentActionType.SubmitNewIncident,
-    { purpose: "declare an incident", command: CREATE_INCIDENT_COMMAND },
+    {
+      purpose: "declare an incident",
+      command: WorkspaceCommandName.Incident,
+    },
   ],
   [
     MicrosoftTeamsScheduledMaintenanceActionType.NewScheduledMaintenance,
     {
       purpose: "create a scheduled maintenance event",
-      command: CREATE_MAINTENANCE_COMMAND,
+      command: WorkspaceCommandName.Maintenance,
     },
   ],
   [
     MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
     {
       purpose: "create a scheduled maintenance event",
-      command: CREATE_MAINTENANCE_COMMAND,
+      command: WorkspaceCommandName.Maintenance,
     },
   ],
 ]);
@@ -356,8 +361,8 @@ export default class MicrosoftTeamsConnectPrompt {
   }
 
   /*
-   * A command typed to the bot - "create incident" - from an account not
-   * connected yet: typed again once it is.
+   * A command typed to the bot - "incident" - from an account not connected
+   * yet: typed again once it is.
    */
   public static describeCommand(data: {
     purpose: string;

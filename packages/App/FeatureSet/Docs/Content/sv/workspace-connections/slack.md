@@ -5,7 +5,7 @@ Anslut OneUptime till Slack för att publicera incidenter, larm, episoder, schem
 :::cards
 - [Anslut Slack](#anslut-slack): Installera OneUptime i din arbetsyta och länka sedan ditt eget konto.
 - [Aviseringsregler](#aviseringsregler): Bestäm vilka händelser som publiceras var, och vilka som får en egen kanal.
-- [Skapa incidenter och underhåll från Slack](#skapa-incidenter-och-underhåll-från-slack): `/incident` och `/maintenance`, som dig själv.
+- [Kommandot /oneuptime](#kommandot-oneuptime): Deklarera incidenter, schemalägg underhåll, se vem som har jour och fråga AI.
 - [Agera på incidenter, larm och händelser från Slack](#agera-på-incidenter-larm-och-händelser-från-slack): Knapparna i OneUptimes meddelanden.
 :::
 
@@ -125,13 +125,30 @@ Reagera på ett meddelande i kanalen för en incident, ett larm, en episod eller
 
 Anteckningen sparas som dig, med dina behörigheter, så ditt eget Slack-konto måste vara anslutet. Ett meddelande sparas bara en gång, oavsett hur många som reagerar.
 
+## Kommandot /oneuptime
+
+OneUptime har ett enda kommando i Slack, `/oneuptime`. Ordet du skriver efter det säger vad som ska göras; allt annat efter det är en fråga till OneUptime AI.
+
+| Kommando | Vad det gör |
+| --- | --- |
+| `/oneuptime help` | Visar kommandona, med exempel. |
+| `/oneuptime incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
+| `/oneuptime maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
+| `/oneuptime oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
+| `/oneuptime ask [question]`, eller vilken fråga som helst | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer. |
+
+Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot. Ett första ord som ser ut som ett felstavat kommando, som `incidnet`, får kommandot det liknar, inte ett svar från OneUptime AI. Formulären för incidenter och underhåll agerar som dig: se [Skapa incidenter och underhåll från Slack](#skapa-incidenter-och-underhåll-från-slack).
+
+> [!NOTE]
+> `/oneuptime incident` och `/oneuptime maintenance` ersätter `/incident` och `/maintenance`, som kunde krocka med kommandon med samma namn i andra Slack-appar. En Slack-app som skapats från ett tidigare manifest behåller dem, och de öppnar samma formulär, tills appen uppdateras: se [Appar skapade från ett äldre manifest](/docs/self-hosted/slack-integration#appar-skapade-från-ett-äldre-manifest).
+
 ## Fråga OneUptime AI från Slack
 
 Fråga om dina loggar, traces, mätvärden, incidenter och monitorer på vanligt språk. Nämn OneUptime med @ i en kanal, eller skicka ett direktmeddelande, så svarar den i tråden; svara där för att fråga mer. `/oneuptime ask which monitors are down?` publicerar svaret i kanalen. Båda kräver att ditt eget Slack-konto är anslutet och att AI är påslaget för projektet. Svar i Slack läser bara: använd knapparna för att ändra något. Se [Fråga AI](/docs/ai/ask-ai).
 
 ## Skapa incidenter och underhåll från Slack
 
-`/incident` och `/maintenance` öppnar ett formulär som du fyller i och skickar som dig själv: som det OneUptime-konto som ditt Slack-konto är anslutet till (se [Anslut Slack](#anslut-slack)), med det kontots behörigheter i projektet. Om ditt Slack-konto inte är anslutet, eller om ditt OneUptime-konto inte längre är medlem i projektet, berättar OneUptime vad du ska göra där du körde kommandot, i ett meddelande som bara du ser, och inget formulär öppnas. Genvägarna **Create New Incident** och **Create Scheduled Event** öppnar samma formulär.
+`/oneuptime incident` och `/oneuptime maintenance` öppnar ett formulär som du fyller i och skickar som dig själv: som det OneUptime-konto som ditt Slack-konto är anslutet till (se [Anslut Slack](#anslut-slack)), med det kontots behörigheter i projektet. Om ditt Slack-konto inte är anslutet, eller om ditt OneUptime-konto inte längre är medlem i projektet, berättar OneUptime vad du ska göra där du körde kommandot, i ett meddelande som bara du ser, och inget formulär öppnas. Genvägarna **Create New Incident** och **Create Scheduled Event** öppnar samma formulär.
 
 - **Vem som får använda dem.** De som får deklarera en incident eller skapa en schemalagd underhållshändelse i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** och **Incident Member** för en incident (**Create Incident** i en anpassad roll), och **Scheduled Maintenance Admin** och **Scheduled Maintenance Member** för en händelse (**Create Scheduled Maintenance**). Alla andra får veta det där de körde det, och inget formulär öppnas.
 - **Vad ett formulär erbjuder.** Varje lista — allvarlighetsgrader, monitorer, monitorstatusar, jourpolicyer och etiketter — innehåller det du får läsa, precis som samma lista i OneUptime: med en roll som är begränsad till vissa etiketter, de monitorer och jourpolicyer som har de etiketterna. En lista som du inte får läsa alls utelämnas från formuläret. Arkiverade jourpolicyer erbjuds aldrig.

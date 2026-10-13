@@ -14,7 +14,13 @@ enum SlackActionType {
   ViewExecuteIncidentOnCallPolicy = "ViewExecuteIncidentOnCallPolicy",
   SubmitExecuteIncidentOnCallPolicy = "SubmitExecuteIncidentOnCallPolicy",
   ViewIncident = "ViewIncident",
-  NewIncident = "/incident", // new incident slash command
+  /*
+   * Opens the New Incident form: `/oneuptime incident [title]`, the Create
+   * New Incident shortcut (whose callback id this is), and the /incident
+   * command apps created from an older manifest still have
+   * (SlackCommandParser).
+   */
+  NewIncident = "/incident",
   SubmitNewIncident = "SubmitNewIncident",
 
   // Emoji Reaction Actions
@@ -61,7 +67,12 @@ enum SlackActionType {
   ViewChangeScheduledMaintenanceState = "ViewChangeScheduledMaintenanceState",
   SubmitChangeScheduledMaintenanceState = "SubmitChangeScheduledMaintenanceState",
   ViewScheduledMaintenance = "ViewScheduledMaintenance",
-  NewScheduledMaintenance = "/maintenance", // new scheduled maintenance slash command
+  /*
+   * Opens the New Scheduled Maintenance form: `/oneuptime maintenance
+   * [title]`, the Create Scheduled Event shortcut (whose callback id this
+   * is), and an older app's /maintenance.
+   */
+  NewScheduledMaintenance = "/maintenance",
   SubmitNewScheduledMaintenance = "SubmitNewScheduledMaintenance",
 
   // Monitor Actions
@@ -69,6 +80,9 @@ enum SlackActionType {
 
   // View on call policy.
   ViewOnCallPolicy = "ViewOnCallPolicy",
+
+  // `/oneuptime oncall`: who is on call right now (SlackCommandActions).
+  ShowOnCall = "ShowOnCall",
 
   /*
    * The Join call button of an incident or alert video call. It is a link

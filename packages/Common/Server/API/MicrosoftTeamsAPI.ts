@@ -68,6 +68,7 @@ import WorkspaceConnectCompletion, {
   WorkspaceConnectCompletionResult,
 } from "../Utils/Workspace/WorkspaceConnectCompletion";
 import MicrosoftTeamsActionAnswer from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
+import MicrosoftTeamsCommands from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -203,10 +204,11 @@ export default class MicrosoftTeamsAPI {
        * Teams only takes an uploaded package as an update when its version is
        * higher than the installed one. Release images carry APP_VERSION; a
        * build without it uses this fallback, so bump it whenever the manifest
-       * changes (1.6.0: ChatSettings.Read.Chat added).
+       * changes (1.6.0: ChatSettings.Read.Chat added; 1.7.0: the commands
+       * are the words Slack's /oneuptime takes).
        */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.6.0"
+        ? "1.7.0"
         : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {
@@ -248,52 +250,16 @@ export default class MicrosoftTeamsAPI {
           supportsFiles: false,
           supportsCalling: false,
           supportsVideo: false,
-          // Provide basic command lists to improve client compatibility (esp. mobile)
+          /*
+           * What Teams suggests once somebody types "@OneUptime": the
+           * words Slack's /oneuptime takes too, and Teams' own lists
+           * (MicrosoftTeamsCommands). "create incident" and "create
+           * maintenance" still work when typed.
+           */
           commandLists: [
             {
               scopes: ["team", "groupChat", "personal"],
-              commands: [
-                {
-                  title: "help",
-                  description:
-                    "Show instructions for interacting with the OneUptime bot.",
-                },
-                {
-                  title: "ask",
-                  description:
-                    "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
-                },
-                {
-                  title: "create incident",
-                  description:
-                    "Launch the adaptive card to declare a new incident in OneUptime.",
-                },
-                {
-                  title: "create maintenance",
-                  description:
-                    "Open the workflow to schedule maintenance directly from Teams.",
-                },
-                {
-                  title: "show active incidents",
-                  description:
-                    "List all ongoing incidents with severity and state context.",
-                },
-                {
-                  title: "show scheduled maintenance",
-                  description:
-                    "Display upcoming scheduled maintenance events for the workspace.",
-                },
-                {
-                  title: "show ongoing maintenance",
-                  description:
-                    "Surface maintenance windows that are currently in progress.",
-                },
-                {
-                  title: "show active alerts",
-                  description:
-                    "Provide a summary of alerts that still require attention.",
-                },
-              ],
+              commands: MicrosoftTeamsCommands.getManifestCommands(),
             },
           ],
         },

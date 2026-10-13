@@ -2,6 +2,8 @@ import { readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
+import WorkspaceCommands from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDatabase/RetentionTtl";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
@@ -1734,7 +1736,7 @@ describe("Slack Integration, against the manifest and the server", () => {
     );
   });
 
-  it("the commands and shortcuts are the manifest's, on the routes the page gives them", () => {
+  it("the command and the shortcuts are the manifest's, on the routes the page gives them, and an older app's commands still reach the server", () => {
     const commands: Array<{ command: string; url: string }> = valueAt(
       manifest,
       "features.slash_commands",
@@ -1744,12 +1746,15 @@ describe("Slack Integration, against the manifest and the server", () => {
       "features.shortcuts",
     ) as Array<{ name: string; callback_id: string }>;
     const features: string = sectionOf(page, "## What the app can do");
+    const interactive: string = `\`POST ${pathOf(
+      valueAt(manifest, "settings.interactivity.request_url") as string,
+    )}\``;
 
     expect(
       commands.map((command: { command: string }): string => {
         return command.command;
       }),
-    ).toEqual(["/incident", "/maintenance", "/oneuptime"]);
+    ).toEqual([WorkspaceCommands.SLACK_COMMAND]);
 
     for (const command of commands) {
       const row: Array<string> | undefined = tableRows(features).find(
@@ -1764,16 +1769,47 @@ describe("Slack Integration, against the manifest and the server", () => {
       });
     }
 
+    // A shortcut posts to the interactivity URL.
     for (const shortcut of shortcuts) {
-      expect({
+      const row: Array<string> | undefined = tableRows(features).find(
+        (cells: Array<string>): boolean => {
+          return (cells[0] as string).includes(`**${shortcut.name}**`);
+        },
+      );
+
+      expect({ shortcut: shortcut.name, route: row?.[2] }).toEqual({
         shortcut: shortcut.name,
-        row: tableRows(features).some((cells: Array<string>): boolean => {
-          return (cells[0] as string).includes(
-            `\`${shortcut.callback_id}\` and the **${shortcut.name}** shortcut`,
-          );
-        }),
-      }).toEqual({ shortcut: shortcut.name, row: true });
+        route: interactive,
+      });
     }
+
+    /*
+     * An app made from an older manifest still has /incident and
+     * /maintenance, which post to the interactivity URL: the page says how
+     * to replace them, and forwards that route for them meanwhile.
+     */
+    const olderApps: string = sectionOf(
+      page,
+      "### Apps created from an older manifest",
+    );
+    const forwarded: Array<string> | undefined = tableRows(
+      sectionOf(page, "### Traffic direction and endpoints"),
+    ).find((cells: Array<string>): boolean => {
+      return cells[0] === interactive;
+    });
+
+    for (const legacy of Object.keys(LEGACY_SLACK_COMMANDS)) {
+      expect({ legacy, named: olderApps.includes(`\`${legacy}\``) }).toEqual({
+        legacy,
+        named: true,
+      });
+      expect({
+        legacy,
+        forwarded: Boolean(forwarded?.[1]?.includes(`\`${legacy}\``)),
+      }).toEqual({ legacy, forwarded: true });
+    }
+
+    expect(olderApps).toContain("open the app's **App Manifest**");
   });
 
   it("images need files:write, which the manifest has, and Socket Mode is off", () => {

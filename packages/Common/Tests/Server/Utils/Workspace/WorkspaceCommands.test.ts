@@ -1,0 +1,710 @@
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import WorkspaceCommands, {
+  WORKSPACE_COMMANDS,
+  WorkspaceCommandDefinition,
+  WorkspaceCommandInput,
+  WorkspaceCommandName,
+} from "../../../../Server/Utils/Workspace/WorkspaceCommands";
+import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
+import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
+import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+
+/*
+ * CUSTOMER FEEDBACK #5: "I noticed it registers as /incident, /maintenance.
+ * This can easily conflict with the other apps we have. Can we have a prefix
+ * namespace e.g. /irm incident, /irm maintenance?"
+ *
+ * Every command is now a word after /oneuptime in Slack - and the same word
+ * typed to the Microsoft Teams bot. WorkspaceCommands reads those words for
+ * both chats and lists them for both. These pin how text is read (every
+ * command, its aliases, letter case, spaces, punctuation, empty text, a
+ * question, a misspelt command) and what the help says, word for word.
+ */
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+function parse(text: string | null | undefined): WorkspaceCommandInput {
+  return WorkspaceCommands.parse(text);
+}
+
+describe("WorkspaceCommands.parse: each command", () => {
+  test.each([
+    [
+      "incident Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    ["incident", WorkspaceCommandName.Incident, ""],
+    [
+      "maintenance Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
+    ["maintenance", WorkspaceCommandName.Maintenance, ""],
+    ["oncall", WorkspaceCommandName.OnCall, ""],
+    [
+      "ask which monitors are down?",
+      WorkspaceCommandName.Ask,
+      "which monitors are down?",
+    ],
+    ["help", WorkspaceCommandName.Help, ""],
+  ])(
+    "%j is the %s command, followed by %j",
+    (text: string, command: WorkspaceCommandName, rest: string) => {
+      expect(parse(text)).toEqual({ command: command, text: rest });
+    },
+  );
+
+  test.each([
+    [
+      "create incident Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "create maintenance Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
+    ["on-call", WorkspaceCommandName.OnCall, ""],
+    ["on call", WorkspaceCommandName.OnCall, ""],
+    ["?", WorkspaceCommandName.Help, ""],
+  ])(
+    "the alias %j is the %s command",
+    (text: string, command: WorkspaceCommandName, rest: string) => {
+      expect(parse(text)).toEqual({ command: command, text: rest });
+    },
+  );
+
+  test("every name and alias of every command reads as that command", () => {
+    for (const definition of WORKSPACE_COMMANDS) {
+      for (const spelling of [definition.name, ...definition.aliases]) {
+        const input: WorkspaceCommandInput = parse(
+          definition.argument ? `${spelling} something` : spelling,
+        );
+
+        expect({ spelling, command: input.command }).toEqual({
+          spelling,
+          command: definition.name,
+        });
+      }
+    }
+  });
+
+  test("the commands are incident, maintenance, oncall, ask and help, in that order", () => {
+    expect(
+      WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
+        return definition.name;
+      }),
+    ).toEqual(["incident", "maintenance", "oncall", "ask", "help"]);
+  });
+});
+
+describe("WorkspaceCommands.parse: letter case, spaces and punctuation", () => {
+  test.each([
+    [
+      "INCIDENT Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "Incident API p99 > 2s on EU-West",
+      WorkspaceCommandName.Incident,
+      "API p99 > 2s on EU-West",
+    ],
+    ["Create Incident Disk full", WorkspaceCommandName.Incident, "Disk full"],
+    [
+      "MAINTENANCE Q3 Kernel Upgrade (Frankfurt)",
+      WorkspaceCommandName.Maintenance,
+      "Q3 Kernel Upgrade (Frankfurt)",
+    ],
+    ["OnCall", WorkspaceCommandName.OnCall, ""],
+    ["ON-CALL", WorkspaceCommandName.OnCall, ""],
+    ["HELP", WorkspaceCommandName.Help, ""],
+    [
+      "Ask Why did checkout latency spike?",
+      WorkspaceCommandName.Ask,
+      "Why did checkout latency spike?",
+    ],
+  ])(
+    "%j: the command in any case, what follows as typed",
+    (text: string, command: WorkspaceCommandName, rest: string) => {
+      expect(parse(text)).toEqual({ command: command, text: rest });
+    },
+  );
+
+  test.each([
+    ["   incident    Checkout   is down   ", "Checkout   is down"],
+    ["\tincident\tCheckout is down\n", "Checkout is down"],
+    ["incident\u{00a0}Checkout is down", "Checkout is down"],
+    ["create    incident   Disk full", "Disk full"],
+  ])(
+    "%j: spaces around the command are dropped, those inside the title kept",
+    (text: string, rest: string) => {
+      expect(parse(text)).toEqual({
+        command: WorkspaceCommandName.Incident,
+        text: rest,
+      });
+    },
+  );
+
+  test("a form takes the title on one line, each run of space one space", () => {
+    expect(WorkspaceCommands.toTitle("  Checkout   is\n down\t now ")).toBe(
+      "Checkout is down now",
+    );
+    expect(WorkspaceCommands.toTitle("")).toBe("");
+  });
+
+  test.each([
+    ["help?", WorkspaceCommandName.Help, ""],
+    ["help!", WorkspaceCommandName.Help, ""],
+    ["oncall?", WorkspaceCommandName.OnCall, ""],
+    ["on call?", WorkspaceCommandName.OnCall, ""],
+    [
+      "incident: Checkout is down",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    [
+      "maintenance, Database upgrade",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
+  ])(
+    "%j: a command may be typed with punctuation after it",
+    (text: string, command: WorkspaceCommandName, rest: string) => {
+      expect(parse(text)).toEqual({ command: command, text: rest });
+    },
+  );
+
+  test.each(["", "   ", "\n\t ", null, undefined])(
+    "%j - nothing at all - asks for the commands",
+    (text: string | null | undefined) => {
+      expect(parse(text)).toEqual({
+        command: WorkspaceCommandName.Help,
+        text: "",
+      });
+    },
+  );
+
+  test.each(["ask", "ASK", "  ask  ", "ask?"])(
+    "%j - ask with no question - asks for the commands",
+    (text: string) => {
+      expect(parse(text)).toEqual({
+        command: WorkspaceCommandName.Help,
+        text: "",
+      });
+    },
+  );
+
+  test("ask keeps everything after it, a command's words included", () => {
+    expect(parse("ask   incident Checkout is down")).toEqual({
+      command: WorkspaceCommandName.Ask,
+      text: "incident Checkout is down",
+    });
+  });
+});
+
+describe("WorkspaceCommands.parse: questions for OneUptime AI", () => {
+  test.each([
+    "which monitors are down?",
+    "why did checkout latency spike last night?",
+    "status",
+    "incidents today?",
+    "incidents",
+    "maintenances this week",
+    "oncalls",
+    "creative incident",
+    "create incidents",
+    "create incident-report for yesterday",
+    "create maintenance-window for db",
+    "please create incident Database Is Down",
+    "show active incidents",
+    "what is incident 42 about?",
+  ])("%j is a question, as typed", (text: string) => {
+    expect(parse(text)).toEqual({ command: null, text: text });
+  });
+
+  test.each([
+    "help me find slow queries",
+    "oncall for the database team?",
+    "on call this weekend?",
+    "help?? me",
+  ])(
+    "%j - a command that takes nothing, with more after it - is a question",
+    (text: string) => {
+      expect(parse(text)).toEqual({ command: null, text: text });
+    },
+  );
+
+  test.each([
+    // Short words sit too close to a question's: never read as a misspelling.
+    "helm upgrade failed",
+    "ack INC-42",
+    "hlep",
+    "inc 42",
+    // A word with an apostrophe is a sentence's.
+    "incident's root cause?",
+    "incident\u{2019}s root cause?",
+  ])("%j is a question, not a misspelt command", (text: string) => {
+    const input: WorkspaceCommandInput = parse(text);
+
+    expect(input.command).toBeNull();
+    expect(input.misspelt).toBeUndefined();
+    expect(input.text).toBe(text);
+  });
+});
+
+describe("WorkspaceCommands.parse: a command misspelt", () => {
+  test.each([
+    [
+      "incidnet Checkout is down",
+      "incidnet",
+      WorkspaceCommandName.Incident,
+      "Checkout is down",
+    ],
+    ["indicent", "indicent", WorkspaceCommandName.Incident, ""],
+    [
+      "Incidnet: Checkout",
+      "Incidnet",
+      WorkspaceCommandName.Incident,
+      "Checkout",
+    ],
+    [
+      "maintenence Database upgrade",
+      "maintenence",
+      WorkspaceCommandName.Maintenance,
+      "Database upgrade",
+    ],
+    ["maintainance", "maintainance", WorkspaceCommandName.Maintenance, ""],
+    [
+      "maintanance window",
+      "maintanance",
+      WorkspaceCommandName.Maintenance,
+      "window",
+    ],
+    ["oncal", "oncal", WorkspaceCommandName.OnCall, ""],
+    ["onclal", "onclal", WorkspaceCommandName.OnCall, ""],
+  ])(
+    "%j looks like a command misspelt: answered with the command it looks like, never sent to AI",
+    (
+      text: string,
+      word: string,
+      command: WorkspaceCommandName,
+      rest: string,
+    ) => {
+      expect(parse(text)).toEqual({
+        command: null,
+        text: text,
+        misspelt: { word: word, command: command, text: rest },
+      });
+    },
+  );
+
+  test("how many letters it takes to turn one word into another, a swap of two counting once", () => {
+    expect(WorkspaceCommands.getEditDistance("incident", "incident")).toBe(0);
+    expect(WorkspaceCommands.getEditDistance("incidnet", "incident")).toBe(1);
+    expect(WorkspaceCommands.getEditDistance("incidet", "incident")).toBe(1);
+    expect(WorkspaceCommands.getEditDistance("inncident", "incident")).toBe(1);
+    expect(WorkspaceCommands.getEditDistance("indicent", "incident")).toBe(2);
+    expect(
+      WorkspaceCommands.getEditDistance("maintenence", "maintenance"),
+    ).toBe(1);
+    expect(
+      WorkspaceCommands.getEditDistance("maintainance", "maintenance"),
+    ).toBe(2);
+    expect(WorkspaceCommands.getEditDistance("", "abc")).toBe(3);
+    expect(WorkspaceCommands.getEditDistance("abc", "")).toBe(3);
+    expect(WorkspaceCommands.getEditDistance("status", "oncall")).toBe(6);
+  });
+});
+
+describe("WorkspaceCommands.getUsage", () => {
+  test("Slack types each command after /oneuptime - or after the command the workspace runs OneUptime with", () => {
+    expect(
+      WorkspaceCommands.getUsage({
+        workspaceType: WorkspaceType.Slack,
+        command: WorkspaceCommandName.Incident,
+      }),
+    ).toBe("/oneuptime incident");
+    expect(
+      WorkspaceCommands.getUsage({
+        workspaceType: WorkspaceType.Slack,
+        command: WorkspaceCommandName.OnCall,
+        slackCommand: "/irm",
+      }),
+    ).toBe("/irm oncall");
+    // Not a command: the default.
+    expect(
+      WorkspaceCommands.getUsage({
+        workspaceType: WorkspaceType.Slack,
+        command: WorkspaceCommandName.Help,
+        slackCommand: "irm",
+      }),
+    ).toBe("/oneuptime help");
+  });
+
+  test("Microsoft Teams types the word alone", () => {
+    expect(
+      WorkspaceCommands.getUsage({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        command: WorkspaceCommandName.Maintenance,
+        slackCommand: "/irm",
+      }),
+    ).toBe("maintenance");
+  });
+});
+
+/*
+ * The help, word for word. One short line a command - a list a person scans
+ * in a chat, on a phone too - then one example of a command and one of a
+ * question.
+ */
+const SLACK_HELP_LINES: Array<string> = [
+  "👋 **Here's what `/oneuptime` can do**",
+  "- `/oneuptime incident [title]`: declare an incident",
+  "- `/oneuptime maintenance [title]`: schedule maintenance",
+  "- `/oneuptime oncall`: see who is on call right now",
+  "- `/oneuptime ask [question]`: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+  "- `/oneuptime help`: list every command",
+  "",
+  "For example: `/oneuptime incident Checkout is down`. Anything else after `/oneuptime` is a question for OneUptime AI too, such as `/oneuptime which monitors are down?`",
+];
+
+const TEAMS_HELP_LINES: Array<string> = [
+  "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
+  "- **incident [title]**: declare an incident",
+  "- **maintenance [title]**: schedule maintenance",
+  "- **oncall**: see who is on call right now",
+  "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+  "- **help**: list every command",
+  "",
+  'For example: "incident Checkout is down". Anything else you type is a question for OneUptime AI too, such as "which monitors are down right now?"',
+];
+
+// Words that read only beside the help's list: "show these commands".
+const POINTS_AT_THE_LIST: RegExp = /\b(?:these|this list|above|below)\b/;
+
+describe("WorkspaceCommands.getSummary", () => {
+  test("each command's summary is a few words: the help is a list a person scans", () => {
+    expect(
+      WORKSPACE_COMMANDS.map((definition: WorkspaceCommandDefinition) => {
+        return [definition.name, WorkspaceCommands.getSummary(definition.name)];
+      }),
+    ).toEqual([
+      ["incident", "declare an incident"],
+      ["maintenance", "schedule maintenance"],
+      ["oncall", "see who is on call right now"],
+      [
+        "ask",
+        "ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+      ],
+      ["help", "list every command"],
+    ]);
+  });
+
+  test("no summary points at the list around it: Teams' command menu and welcome card show each alone", () => {
+    for (const definition of WORKSPACE_COMMANDS) {
+      const summary: string = WorkspaceCommands.getSummary(definition.name);
+
+      expect(summary).not.toMatch(POINTS_AT_THE_LIST);
+      // A fragment: the help writes no full stop after it.
+      expect(summary.endsWith(".")).toBe(false);
+    }
+  });
+});
+
+describe("WorkspaceCommands.getHelpAnswer", () => {
+  test("Slack: every command as code, one short line each, then an example of a command and of a question", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.Slack,
+    });
+
+    expect(answer).toEqual({
+      markdown: SLACK_HELP_LINES.join("\n"),
+      text: "Here's what /oneuptime can do: incident, maintenance, oncall, ask, help",
+    });
+  });
+
+  test("Slack: the title keeps its code span away from the bold's closing marker, so Slack draws both", () => {
+    const title: string = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.Slack,
+    }).markdown.split("\n")[0]!;
+
+    expect(title.endsWith("`**")).toBe(false);
+    expect(title).toContain("`/oneuptime` can do**");
+  });
+
+  test("Slack, in a workspace that runs OneUptime with another command: every usage names it", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.Slack,
+      slackCommand: "/irm",
+    });
+
+    expect(answer.markdown).toBe(
+      SLACK_HELP_LINES.join("\n").split("/oneuptime").join("/irm"),
+    );
+    expect(answer.text).toBe(
+      "Here's what /irm can do: incident, maintenance, oncall, ask, help",
+    );
+  });
+
+  test("Microsoft Teams: every command in bold, as typed to the bot, and how to reach the bot in a channel", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
+
+    expect(answer).toEqual({
+      markdown: TEAMS_HELP_LINES.join("\n"),
+      text: "Here's what I can do: incident, maintenance, oncall, ask, help",
+    });
+    // A card shows no code: nothing is written as code in Teams.
+    expect(answer.markdown).not.toContain("`");
+  });
+
+  test("Microsoft Teams: a chat's own commands are listed before help", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      extraCommands: [
+        {
+          usages: ["show active incidents", "show active alerts"],
+          summary: "list what is open right now",
+        },
+      ],
+    });
+
+    const lines: Array<string> = answer.markdown.split("\n");
+
+    expect(lines[5]).toBe(
+      "- **show active incidents**, **show active alerts**: list what is open right now",
+    );
+    expect(lines[6]).toBe("- **help**: list every command");
+  });
+
+  test("Microsoft Teams: the bot is @mentioned by the name Teams shows for it, whatever the product is called", () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
+
+    const named: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      botName: "OneUptime",
+    });
+
+    expect(named.markdown.split("\n")[0]).toBe(
+      "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
+    );
+    // The AI is the product's, by the installation's name.
+    expect(named.markdown).toContain("a question for Acme Ops AI too");
+
+    // A message that names no bot: the product's name.
+    expect(
+      WorkspaceCommands.getHelpAnswer({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        botName: "   ",
+      }).markdown.split("\n")[0],
+    ).toBe(
+      "👋 **Here's what I can do.** In a channel or a group chat, mention @Acme Ops first.",
+    );
+  });
+
+  test("the product's name is the one the installation goes by", () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
+
+    const slack: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.Slack,
+    });
+    const teams: WorkspaceAnswer = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
+
+    expect(slack.markdown).toContain("ask Acme Ops AI about your logs");
+    expect(slack.markdown).toContain("is a question for Acme Ops AI too");
+    expect(slack.markdown).not.toContain("OneUptime AI");
+    expect(teams.markdown).toContain("mention @Acme Ops first.");
+    expect(teams.markdown).not.toContain("OneUptime");
+  });
+
+  test("every command the parser reads is listed in both chats' help", () => {
+    const slack: string = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.Slack,
+    }).markdown;
+    const teams: string = WorkspaceCommands.getHelpAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    }).markdown;
+
+    for (const definition of WORKSPACE_COMMANDS) {
+      expect(slack).toContain(`\`/oneuptime ${definition.name}`);
+      expect(teams).toContain(`**${definition.name}`);
+    }
+  });
+
+  test("the help's examples are commands the parser reads as the help says", () => {
+    expect(WorkspaceCommands.parse("incident Checkout is down")).toEqual({
+      command: WorkspaceCommandName.Incident,
+      text: "Checkout is down",
+    });
+    // The question examples are no command: they go to AI.
+    for (const question of [
+      "which monitors are down?",
+      "which monitors are down right now?",
+    ]) {
+      expect(WorkspaceCommands.parse(question)).toEqual({
+        command: null,
+        text: question,
+      });
+    }
+  });
+});
+
+describe("WorkspaceCommands.getCommandListLines: the help's list, alone", () => {
+  test("the lines between the help's title and its examples - Teams' welcome card lists the same", () => {
+    const lines: Array<string> = WorkspaceCommands.getCommandListLines({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    }).map((line: { toString: () => string }): string => {
+      return line.toString();
+    });
+
+    expect(lines).toEqual(TEAMS_HELP_LINES.slice(1, 6));
+    expect(
+      WorkspaceCommands.getCommandListLines({
+        workspaceType: WorkspaceType.Slack,
+      }).map((line: { toString: () => string }): string => {
+        return line.toString();
+      }),
+    ).toEqual(SLACK_HELP_LINES.slice(1, 6));
+  });
+});
+
+describe("WorkspaceCommands.getMisspellingAnswer: a command misspelt", () => {
+  test("Slack: the command it looks like, with what followed it, ready to run - and how to ask AI instead; one paragraph, not the whole help", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.Slack,
+      misspelt: {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: "Checkout   is down",
+      },
+    });
+
+    expect(answer).toEqual({
+      markdown:
+        "🤔 `/oneuptime incidnet` is not a command. Did you mean `/oneuptime incident Checkout is down`? To ask OneUptime AI instead, start with `/oneuptime ask`.",
+      text: "/oneuptime incidnet is not a command. Did you mean /oneuptime incident Checkout is down?",
+    });
+    expect(answer.markdown).not.toContain("\n");
+  });
+
+  test("Microsoft Teams: the same, in bold, as typed to the bot", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      misspelt: {
+        word: "oncal",
+        command: WorkspaceCommandName.OnCall,
+        text: "",
+      },
+    });
+
+    expect(answer).toEqual({
+      markdown:
+        "🤔 **oncal** is not a command. Did you mean **oncall**? To ask OneUptime AI instead, start with **ask**.",
+      text: "oncal is not a command. Did you mean oncall?",
+    });
+  });
+
+  test("in a workspace that runs OneUptime with another command: that command, in the suggestion and in the way to ask", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.Slack,
+      slackCommand: "/irm",
+      misspelt: {
+        word: "maintenence",
+        command: WorkspaceCommandName.Maintenance,
+        text: "",
+      },
+    });
+
+    expect(answer.markdown).toBe(
+      "🤔 `/irm maintenence` is not a command. Did you mean `/irm maintenance`? To ask OneUptime AI instead, start with `/irm ask`.",
+    );
+  });
+
+  test("a misspelt command that takes nothing: the suggestion is the command alone", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.Slack,
+      misspelt: {
+        word: "oncal",
+        command: WorkspaceCommandName.OnCall,
+        text: "please",
+      },
+    });
+
+    expect(answer.text).toBe(
+      "/oneuptime oncal is not a command. Did you mean /oneuptime oncall?",
+    );
+  });
+
+  test("a long title after a misspelt command is cut in the suggestion", () => {
+    const title: string = "a".repeat(150);
+
+    const answer: WorkspaceAnswer = WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.Slack,
+      misspelt: {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: title,
+      },
+    });
+
+    expect(answer.markdown).toBe(
+      `🤔 \`/oneuptime incidnet\` is not a command. Did you mean \`/oneuptime incident ${"a".repeat(100)}…\`? To ask OneUptime AI instead, start with \`/oneuptime ask\`.`,
+    );
+  });
+
+  test("text typed after a misspelt command is text: it cannot become a link, a mention or code", () => {
+    const answer: WorkspaceAnswer = WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      misspelt: {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: "**[x](https://evil.example)** <at>All</at> `code`",
+      },
+    });
+
+    /*
+     * Every character that would make Markdown of it - the bold, the
+     * link's brackets, the <at> tag of a Teams mention, the code span's
+     * backticks - has its backslash: the text reads as typed.
+     */
+    expect(answer.markdown).toBe(
+      String.raw`🤔 **incidnet** is not a command. Did you mean **incident \*\*\[x\](https://evil.example)\*\* \<at>All\</at> \`code\`**? To ask OneUptime AI instead, start with **ask**.`,
+    );
+  });
+
+  test("the way to ask AI instead is a command the parser reads as a question", () => {
+    expect(WorkspaceCommands.parse("ask incidnet Checkout is down")).toEqual({
+      command: WorkspaceCommandName.Ask,
+      text: "incidnet Checkout is down",
+    });
+  });
+
+  test("the product's name is the one the installation goes by", () => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
+
+    expect(
+      WorkspaceCommands.getMisspellingAnswer({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        misspelt: {
+          word: "oncal",
+          command: WorkspaceCommandName.OnCall,
+          text: "",
+        },
+      }).markdown,
+    ).toContain("To ask Acme Ops AI instead");
+  });
+});

@@ -11,8 +11,16 @@ import {
 import FormTargetType, {
   FORM_TARGET_TYPE_TEXT,
 } from "Common/Types/Form/FormTargetType";
+import MicrosoftTeamsCommands from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
+import WorkspaceCommands, {
+  WORKSPACE_COMMANDS,
+  WorkspaceCommandDefinition,
+} from "Common/Server/Utils/Workspace/WorkspaceCommands";
+import { JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "Common/Types/Workspace/WorkspaceNoteReaction";
@@ -93,7 +101,6 @@ const SOURCES: Record<string, string> = {
   accountsLocale: "App/FeatureSet/Accounts/src/Locales/en.json",
   oauthState: `${WORKSPACE_UTILS}/WorkspaceOAuthState.ts`,
   slackManifest: `${WORKSPACE_UTILS}/Slack/app-manifest.json`,
-  teamsBot: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeams.ts`,
   teamsReplies: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeamsReplies.ts`,
   teamsIncidentActions: `${WORKSPACE_UTILS}/MicrosoftTeams/Actions/Incident.ts`,
   teamsOnCallActions: `${WORKSPACE_UTILS}/MicrosoftTeams/Actions/OnCallDutyPolicy.ts`,
@@ -822,7 +829,7 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     );
   });
 
-  it("lists the Slack app's commands and shortcuts, and the events questions need, as its manifest does", () => {
+  it("lists the Slack app's one command, the words that follow it, its shortcuts and the events questions need, as the app has them", () => {
     const manifest: {
       features: {
         slash_commands: Array<{ command: string }>;
@@ -833,20 +840,48 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     const markdown: string = englishPage(SLACK);
     const code: Array<string> = inlineCode(markdown);
 
+    // One command, so none clashes with another app's of the same name.
     expect(
+      manifest.features.slash_commands.map(
+        (command: { command: string }): string => {
+          return command.command;
+        },
+      ),
+    ).toEqual([WorkspaceCommands.SLACK_COMMAND]);
+
+    // The command's table: each word that may follow it, as the help writes it.
+    const rows: Array<Array<string>> = tableHeaded(
+      section(markdown, 2, `The ${WorkspaceCommands.SLACK_COMMAND} command`),
+      "Command",
+    );
+    const listed: Array<string> = rows.map((row: Array<string>): string => {
+      return (row[0] as string).match(/^`([^`]+)`/)?.[1] || (row[0] as string);
+    });
+
+    expect(sorted(listed)).toEqual(
       sorted(
-        manifest.features.slash_commands.map(
-          (command: { command: string }): string => {
-            return command.command;
+        WORKSPACE_COMMANDS.map(
+          (definition: WorkspaceCommandDefinition): string => {
+            const usage: string = WorkspaceCommands.getUsage({
+              workspaceType: WorkspaceType.Slack,
+              command: definition.name,
+            });
+
+            return definition.argument
+              ? `${usage} [${definition.argument}]`
+              : usage;
           },
         ),
       ),
-    ).toEqual(["/incident", "/maintenance", "/oneuptime"]);
-    expect(code).toContain("/incident");
-    expect(code).toContain("/maintenance");
+    );
+
+    // What an app made from an older manifest still has, and what replaced it.
+    for (const legacy of Object.keys(LEGACY_SLACK_COMMANDS)) {
+      expect(code).toContain(legacy);
+    }
     expect(
       code.some((span: string): boolean => {
-        return span.startsWith("/oneuptime ask ");
+        return span.startsWith(`${WorkspaceCommands.SLACK_COMMAND} ask `);
       }),
     ).toBe(true);
 
@@ -863,19 +898,55 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     );
   });
 
-  it("lists the bot's commands as its help message does", () => {
-    const bot: string = readSource("teamsBot");
-    const help: string = bot.slice(
-      bot.indexOf("private static getHelpMessage(): string {"),
-      bot.indexOf("private static async getActiveIncidentsMessage("),
-    );
-    const commands: Array<string> = Array.from(
-      help.matchAll(/^- \*\*(.+?)\*\* - /gm),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    });
+  it("lists the bot's commands as its help does, in Slack's words", () => {
+    const help: string = MicrosoftTeamsCommands.getHelpAnswer().markdown;
+    /*
+     * A help line leads with what to type, in bold: "- **incident [title]**:
+     * ...", "- **show active incidents**, **show active alerts**: ...".
+     */
+    const commands: Array<string> = help
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      })
+      .flatMap((line: string): Array<string> => {
+        return Array.from(
+          line.slice(0, line.indexOf(": ")).matchAll(/\*\*([^*]+)\*\*/g),
+        ).map((match: RegExpMatchArray): string => {
+          return match[1] as string;
+        });
+      });
 
-    expect(commands).toHaveLength(8);
+    expect(commands).toHaveLength(9);
+
+    // What Teams suggests after @OneUptime: the same commands, each alone.
+    expect(
+      sorted(
+        MicrosoftTeamsCommands.getManifestCommands().map(
+          (command: JSONObject): string => {
+            return command["title"] as string;
+          },
+        ),
+      ),
+    ).toEqual(
+      sorted(
+        commands.map((command: string): string => {
+          return command.replace(/ \[[^\]]+\]$/, "");
+        }),
+      ),
+    );
+
+    // The words that follow /oneuptime in Slack are the bot's too.
+    for (const definition of WORKSPACE_COMMANDS) {
+      expect(commands).toContain(
+        definition.argument
+          ? `${definition.name} [${definition.argument}]`
+          : definition.name,
+      );
+    }
+    expect(englishPage(TEAMS)).toContain(
+      `the words that follow \`${WorkspaceCommands.SLACK_COMMAND}\` in Slack`,
+    );
 
     const rows: Array<Array<string>> = tableHeaded(
       section(englishPage(TEAMS), 2, "Talking to the OneUptime bot"),

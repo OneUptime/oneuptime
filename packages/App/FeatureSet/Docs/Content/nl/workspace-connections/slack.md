@@ -5,7 +5,7 @@ Koppel OneUptime aan Slack om incidenten, waarschuwingen, episodes, gepland onde
 :::cards
 - [Slack koppelen](#slack-koppelen): Installeer OneUptime in je workspace en koppel daarna je eigen account.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
-- [Incidenten en onderhoud aanmaken vanuit Slack](#incidenten-en-onderhoud-aanmaken-vanuit-slack): `/incident` en `/maintenance`, als jezelf.
+- [Het commando /oneuptime](#het-commando-oneuptime): Meld incidenten, plan onderhoud, zie wie er dienst heeft en stel vragen aan AI.
 - [Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Slack](#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-slack): De knoppen in de berichten van OneUptime.
 :::
 
@@ -125,13 +125,30 @@ Reageer op een bericht in het kanaal van een incident, waarschuwing, episode of 
 
 De notitie wordt als jou opgeslagen, met jouw rechten, dus je eigen Slack-account moet gekoppeld zijn. Een bericht wordt maar één keer opgeslagen, hoeveel mensen er ook op reageren.
 
+## Het commando /oneuptime
+
+OneUptime heeft één commando in Slack, `/oneuptime`. Het woord dat je erachter typt, zegt wat er moet gebeuren; al het andere erachter is een vraag aan OneUptime AI.
+
+| Commando | Wat het doet |
+| --- | --- |
+| `/oneuptime help` | Toont de commando's, met voorbeelden. |
+| `/oneuptime incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
+| `/oneuptime maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
+| `/oneuptime oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
+| `/oneuptime ask [question]`, of elke vraag | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren. |
+
+De antwoorden op `help` en `oncall` zijn berichten die alleen jij ziet, onder het commando. Een eerste woord dat lijkt op een verkeerd getypt commando, zoals `incidnet`, krijgt het commando waarop het lijkt, geen antwoord van OneUptime AI. De formulieren voor incidenten en onderhoud werken namens jou: zie [Incidenten en onderhoud aanmaken vanuit Slack](#incidenten-en-onderhoud-aanmaken-vanuit-slack).
+
+> [!NOTE]
+> `/oneuptime incident` en `/oneuptime maintenance` vervangen `/incident` en `/maintenance`, die konden botsen met gelijknamige commando's van andere Slack-apps. Een Slack-app die vanuit een eerder manifest is aangemaakt, houdt ze, en ze openen dezelfde formulieren, tot de app wordt bijgewerkt: zie [Apps aangemaakt vanuit een ouder manifest](/docs/self-hosted/slack-integration#apps-aangemaakt-vanuit-een-ouder-manifest).
+
 ## OneUptime AI vragen vanuit Slack
 
 Stel in gewone taal vragen over je logs, traces, metrieken, incidenten en monitoren. Noem OneUptime met @ in een kanaal, of stuur het een direct bericht, en het antwoordt in de thread; antwoord daar om meer te vragen. `/oneuptime ask which monitors are down?` plaatst het antwoord in het kanaal. Beide vereisen dat je eigen Slack-account gekoppeld is en dat AI voor het project aanstaat. Antwoorden in Slack lezen alleen: gebruik de knoppen om iets te wijzigen. Zie [AI vragen](/docs/ai/ask-ai).
 
 ## Incidenten en onderhoud aanmaken vanuit Slack
 
-`/incident` en `/maintenance` openen een formulier dat je als jezelf invult en verstuurt: als het OneUptime-account waaraan je Slack-account is gekoppeld (zie [Slack koppelen](#slack-koppelen)), met de rechten van dat account in het project. Als je Slack-account niet gekoppeld is, of je OneUptime-account geen lid meer is van het project, vertelt OneUptime je waar je de opdracht gaf, in een bericht dat alleen jij ziet, wat je moet doen, en gaat er geen formulier open. De snelkoppelingen **Create New Incident** en **Create Scheduled Event** openen dezelfde formulieren.
+`/oneuptime incident` en `/oneuptime maintenance` openen een formulier dat je als jezelf invult en verstuurt: als het OneUptime-account waaraan je Slack-account is gekoppeld (zie [Slack koppelen](#slack-koppelen)), met de rechten van dat account in het project. Als je Slack-account niet gekoppeld is, of je OneUptime-account geen lid meer is van het project, vertelt OneUptime je waar je de opdracht gaf, in een bericht dat alleen jij ziet, wat je moet doen, en gaat er geen formulier open. De snelkoppelingen **Create New Incident** en **Create Scheduled Event** openen dezelfde formulieren.
 
 - **Wie ze mag gebruiken.** De mensen die in OneUptime een incident mogen melden of een geplande onderhoudsgebeurtenis mogen aanmaken: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** en **Incident Member** voor een incident (**Create Incident** in een aangepaste rol), en **Scheduled Maintenance Admin** en **Scheduled Maintenance Member** voor een gebeurtenis (**Create Scheduled Maintenance**). Ieder ander krijgt dat te horen waar die de opdracht gaf, en er gaat geen formulier open.
 - **Wat een formulier aanbiedt.** Elke lijst — ernstniveaus, monitoren, monitorstatussen, bereikbaarheidsbeleid en labels — bevat wat jij mag lezen, net als dezelfde lijst in OneUptime: met een rol die tot enkele labels beperkt is, de monitoren en het bereikbaarheidsbeleid met die labels. Een lijst die je helemaal niet mag lezen, blijft weg uit het formulier. Gearchiveerd bereikbaarheidsbeleid wordt nooit aangeboden.

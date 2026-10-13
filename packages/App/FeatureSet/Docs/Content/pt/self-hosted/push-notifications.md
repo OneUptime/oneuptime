@@ -154,7 +154,7 @@ Dois mecanismos atuam, e cobrem casos diferentes:
 O Android congela as configurações de um canal quando ele é criado pela primeira vez, então elas não podem ser alteradas por uma atualização do app – só lançando um novo id de canal.
 :::
 
-Para verificar se funciona, envie uma notificação de teste ao dispositivo em **Configurações do usuário > Métodos de notificação > Push Notifications**. Quando o dispositivo tem os alertas críticos ativados, o teste também é enviado como alerta crítico – então silencie o celular antes, e você vai ouvir se um alerta real chegaria até você.
+Para verificar se funciona, envie uma notificação de teste ao dispositivo em **Configurações do usuário > Métodos de notificação > Push Notifications**. Quando o dispositivo tem os alertas críticos ativados, o teste também é enviado como alerta crítico – então silencie o celular antes, e você vai ouvir se um alerta real chegaria até você. A mesma lista mostra se cada dispositivo tem os alertas críticos ativados e, para um celular que não tem, como ativá-los.
 
 ### Escolhendo o som do alarme
 
