@@ -82,6 +82,26 @@ interface HealthTone {
 }
 
 /*
+ * The app's name never breaks across lines: "by Google / Calendar" read
+ * as two things, and the status column is narrow enough to do it at
+ * 1280px. Its words are joined with no-break spaces, so a line that has to
+ * break does so before the name.
+ */
+export const NO_BREAK_SPACE: string = "\u{00a0}";
+
+export const keepWordsTogether: (text: string) => string = (
+  text: string,
+): string => {
+  return text.split(" ").join(NO_BREAK_SPACE);
+};
+
+/*
+ * The panel's sentences are set the way a person would set them: a line
+ * that breaks never leaves one short word alone on the last line.
+ */
+export const FEED_STATUS_SENTENCE_CLASS_NAME: string = "text-pretty";
+
+/*
  * The pill's colours per state, all classes Theme.css remaps for the dark
  * theme (the dots are mid-tone hues, which read the same in both).
  */
@@ -178,7 +198,7 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
                 "Last fetched {{when}} by {{client}}",
                 {
                   when: when,
-                  client: client,
+                  client: keepWordsTogether(client),
                 },
               )
             : translator.translateTemplate("Last fetched {{when}}", {
@@ -316,11 +336,11 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
          * that already names it.
          */}
         <p
-          className={
+          className={`${FEED_STATUS_SENTENCE_CLASS_NAME} ${
             health === FeedHealth.Active
               ? "text-sm font-medium leading-6 text-gray-900"
               : "text-sm leading-6 text-gray-700"
-          }
+          }`}
           data-testid={headlineTestId}
           title={health === FeedHealth.Active ? fullFetchTime : undefined}
         >
@@ -328,7 +348,7 @@ const FeedStatusPanel: FunctionComponent<ComponentProps> = (
         </p>
         {lastFetchedDetail && (
           <p
-            className="text-sm leading-6 text-gray-500"
+            className={`${FEED_STATUS_SENTENCE_CLASS_NAME} text-sm leading-6 text-gray-500`}
             data-testid={`${props.idPrefix}-last-fetched`}
             title={fullFetchTime}
           >

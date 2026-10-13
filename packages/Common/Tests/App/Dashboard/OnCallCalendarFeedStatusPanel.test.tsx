@@ -67,7 +67,10 @@ jest.mock("react-i18next", () => {
 
 import FeedStatusPanel, {
   FEED_HEALTH_TONES,
+  FEED_STATUS_SENTENCE_CLASS_NAME,
   FeedHealthPill,
+  NO_BREAK_SPACE,
+  keepWordsTogether,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedStatusPanel";
 import { FeedStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import {
@@ -259,6 +262,67 @@ describe("FeedStatusPanel", () => {
       expect(screen.getByTestId("feed-status-headline")).toHaveTextContent(
         "Last fetched 7 minutes ago by Google Calendar",
       );
+    });
+
+    /*
+     * The status column is narrow enough at 1280px to break "by Google /
+     * Calendar" across two lines, which reads as two things. The app's
+     * name is one unit: its words are joined by no-break spaces, so the
+     * line breaks before it.
+     */
+    test("the app's name never breaks across lines", () => {
+      expect(NO_BREAK_SPACE).toBe("\u{00a0}");
+      expect(keepWordsTogether("Microsoft Outlook")).toBe(
+        `Microsoft${NO_BREAK_SPACE}Outlook`,
+      );
+      expect(keepWordsTogether("Thunderbird")).toBe("Thunderbird");
+
+      for (const client of [
+        "Google Calendar",
+        "Apple Calendar",
+        "Microsoft Outlook",
+      ]) {
+        const { unmount } = renderPanel(status({ lastFetchedClient: client }));
+
+        const sentence: string =
+          screen.getByTestId("feed-status-headline").textContent || "";
+
+        expect(sentence).toContain(` by ${keepWordsTogether(client)}`);
+        expect(sentence).not.toContain(client);
+
+        unmount();
+      }
+    });
+
+    test("an explained state keeps the app's name whole on its last-fetch line too", () => {
+      renderPanel(status({ isEnabled: false }));
+
+      expect(
+        screen.getByTestId("feed-last-fetched").textContent || "",
+      ).toContain(keepWordsTogether("Google Calendar"));
+    });
+
+    /*
+     * Set the way a person would: a sentence that breaks never leaves one
+     * short word alone on its last line.
+     */
+    test("the sentences wrap without a lone last word", () => {
+      expect(FEED_STATUS_SENTENCE_CLASS_NAME).toBe("text-pretty");
+
+      const { unmount } = renderPanel(status());
+
+      expect(
+        screen.getByTestId("feed-status-headline").className.split(" "),
+      ).toContain(FEED_STATUS_SENTENCE_CLASS_NAME);
+
+      unmount();
+      renderPanel(status({ isEnabled: false }));
+
+      for (const id of ["feed-disabled", "feed-last-fetched"]) {
+        expect(screen.getByTestId(id).className.split(" ")).toContain(
+          FEED_STATUS_SENTENCE_CLASS_NAME,
+        );
+      }
     });
 
     test("the exact time is there on hover", () => {
