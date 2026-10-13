@@ -77,7 +77,8 @@ interface Outline {
 /*
  * The page's skeleton: the level of each heading, in order, and the info
  * string of each fenced block. A "#" inside a fence is a shell comment, not
- * a heading.
+ * a heading. A diagram's caption is written in the page's language
+ * (AiDocsTranslations holds it), so a diagram counts by its kind alone.
  */
 function outlineOf(markdown: string): Outline {
   const outline: Outline = { headingLevels: [], fences: [] };
@@ -88,7 +89,9 @@ function outlineOf(markdown: string): Outline {
 
     if (fence) {
       if (!inFence) {
-        outline.fences.push(fence[1]!.trim());
+        const info: string = fence[1]!.trim();
+
+        outline.fences.push(info.startsWith("mermaid") ? "mermaid" : info);
       }
 
       inFence = !inFence;
