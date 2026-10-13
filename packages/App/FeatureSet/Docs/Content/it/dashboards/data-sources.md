@@ -77,7 +77,7 @@ Modifica una dashboard, fai clic su **Aggiungi widget** e scegli un widget del g
 
 - Scegli la **Data Source** e scrivi la **Query**. L'editor indica il linguaggio di query e mostra un esempio per il tipo.
 - In un grafico, **Aggiungi query** sovrappone altre query sugli stessi assi, e **Legend (optional)** dà un nome a ogni serie a partire dalle sue etichette: `{{instance}} — errors` scrive davanti l'etichetta `instance` della serie.
-- In un valore o in un indicatore, **Reduce** trasforma i punti in un solo numero: l'ultimo valore (il predefinito), il primo, la media, la somma, il minimo o il massimo. **Unit** aggiunge un suffisso, e scala le unità note: `Bytes` si legge come 1,5 MB, `ms` come 2,4 sec.
+- In un valore o in un indicatore, **Reduce** trasforma i punti in un solo numero: l'ultimo valore (il predefinito), il primo, la media, la somma, il minimo o il massimo. **Unit** aggiunge un suffisso, e scala le unità note: `Bytes` si legge come 1.5 MB, `ms` come 2.4 s.
 - In una tabella funziona qualsiasi query di sola lettura, e le sue righe appaiono così come arrivano.
 
 ## Scrivere una query

@@ -77,7 +77,7 @@ Rediger et dashbord, klikk på **Legg til widget**, og velg en widget fra gruppe
 
 - Velg **Data Source**, og skriv **Query**. Redigeringsprogrammet navngir spørrespråket og viser et eksempel for typen.
 - På et diagram legger **Legg til spørring** flere spørringer på de samme aksene, og **Legend (optional)** navngir hver serie ut fra etikettene: `{{instance}} — errors` skriver seriens etikett `instance` foran.
-- På en verdi eller en måler gjør **Reduce** punktene om til ett tall: den siste verdien (standard), den første, gjennomsnittet, summen, minimum eller maksimum. **Unit** legger til et suffiks og skalerer de kjente enhetene: `Bytes` leses som 1,5 MB, `ms` som 2,4 sec.
+- På en verdi eller en måler gjør **Reduce** punktene om til ett tall: den siste verdien (standard), den første, gjennomsnittet, summen, minimum eller maksimum. **Unit** legger til et suffiks og skalerer de kjente enhetene: `Bytes` leses som 1.5 MB, `ms` som 2.4 s.
 - På en tabell fungerer enhver skrivebeskyttet spørring, og radene vises slik de kommer tilbake.
 
 ## Skriv en spørring

@@ -77,7 +77,7 @@ Edite um painel, clique em **Adicionar widget** e escolha um widget do grupo Fon
 
 - Escolha a **Data Source** e escreva a **Query**. O editor indica a linguagem de consulta e mostra um exemplo para o tipo.
 - Num gráfico, **Adicionar consulta** sobrepõe mais consultas nos mesmos eixos, e **Legend (optional)** dá nome a cada série a partir dos rótulos dela: `{{instance}} — errors` escreve na frente o rótulo `instance` da série.
-- Num valor ou num medidor, **Reduce** transforma os pontos em um único número: o último valor (o padrão), o primeiro, a média, a soma, o mínimo ou o máximo. **Unit** adiciona um sufixo, e ajusta a escala das unidades conhecidas: `Bytes` aparece como 1,5 MB, e `ms` como 2,4 sec.
+- Num valor ou num medidor, **Reduce** transforma os pontos em um único número: o último valor (o padrão), o primeiro, a média, a soma, o mínimo ou o máximo. **Unit** adiciona um sufixo, e ajusta a escala das unidades conhecidas: `Bytes` aparece como 1.5 MB, e `ms` como 2.4 s.
 - Numa tabela, qualquer consulta somente leitura funciona, e as linhas aparecem como chegam.
 
 ## Escrever uma consulta

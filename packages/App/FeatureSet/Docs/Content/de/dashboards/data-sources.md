@@ -77,7 +77,7 @@ Bearbeiten Sie ein Dashboard, klicken Sie auf **Widget hinzufügen** und wählen
 
 - Wählen Sie die **Datenquelle** und schreiben Sie die **Abfrage**. Der Editor nennt die Abfragesprache und zeigt ein Beispiel für den Typ.
 - In einem Diagramm legt **Abfrage hinzufügen** weitere Abfragen auf dieselben Achsen, und **Legende (optional)** benennt jede Reihe nach ihren Labels: `{{instance}} — errors` schreibt das Label `instance` der Reihe nach vorn.
-- Bei einem Wert oder Messwert macht **Reduce** aus den Punkten eine Zahl: den letzten Wert (Standard), den ersten, den Durchschnitt, die Summe, das Minimum oder das Maximum. **Einheit** fügt ein Suffix hinzu und skaliert die bekannten: `Bytes` wird zu 1,5 MB, `ms` zu 2,4 sec.
+- Bei einem Wert oder Messwert macht **Reduce** aus den Punkten eine Zahl: den letzten Wert (Standard), den ersten, den Durchschnitt, die Summe, das Minimum oder das Maximum. **Einheit** fügt ein Suffix hinzu und skaliert die bekannten: `Bytes` wird zu 1.5 MB, `ms` zu 2.4 s.
 - In einer Tabelle funktioniert jede reine Leseabfrage, und ihre Zeilen erscheinen so, wie sie zurückkommen.
 
 ## Eine Abfrage schreiben

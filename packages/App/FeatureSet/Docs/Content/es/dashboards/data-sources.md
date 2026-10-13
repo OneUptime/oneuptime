@@ -77,7 +77,7 @@ Edita un panel, haz clic en **Añadir widget** y elige un widget del grupo Fuent
 
 - Elige la **Fuente de datos** y escribe la **Consulta**. El editor indica el lenguaje de consulta y muestra un ejemplo para el tipo.
 - En un gráfico, **Añadir consulta** superpone más consultas en los mismos ejes, y **Leyenda (opcional)** nombra cada serie a partir de sus etiquetas: `{{instance}} — errors` escribe delante la etiqueta `instance` de la serie.
-- En un valor o un indicador, **Reduce** convierte los puntos en un solo número: el último valor (el predeterminado), el primero, la media, la suma, el mínimo o el máximo. **Unidad** añade un sufijo, y escala las unidades conocidas: `Bytes` se lee como 1,5 MB, y `ms` como 2,4 sec.
+- En un valor o un indicador, **Reduce** convierte los puntos en un solo número: el último valor (el predeterminado), el primero, la media, la suma, el mínimo o el máximo. **Unidad** añade un sufijo, y escala las unidades conocidas: `Bytes` se lee como 1.5 MB, y `ms` como 2.4 s.
 - En una tabla, cualquier consulta de solo lectura funciona, y sus filas se muestran tal como llegan.
 
 ## Escribir una consulta

@@ -77,7 +77,7 @@ Redigera en instrumentpanel, klicka på **Lägg till widget** och välj en widge
 
 - Välj **Data Source** och skriv **Query**. Redigeraren namnger frågespråket och visar ett exempel för typen.
 - På ett diagram lägger **Lägg till fråga** fler frågor på samma axlar, och **Legend (optional)** namnger varje serie utifrån dess etiketter: `{{instance}} — errors` skriver seriens etikett `instance` först.
-- På ett värde eller en mätare gör **Reduce** om punkterna till ett enda tal: det senaste värdet (standard), det första, medelvärdet, summan, minimum eller maximum. **Unit** lägger till ett suffix och skalar de kända enheterna: `Bytes` läses som 1,5 MB, `ms` som 2,4 sec.
+- På ett värde eller en mätare gör **Reduce** om punkterna till ett enda tal: det senaste värdet (standard), det första, medelvärdet, summan, minimum eller maximum. **Unit** lägger till ett suffix och skalar de kända enheterna: `Bytes` läses som 1.5 MB, `ms` som 2.4 s.
 - På en tabell fungerar vilken skrivskyddad fråga som helst, och dess rader visas som de kommer tillbaka.
 
 ## Skriv en fråga

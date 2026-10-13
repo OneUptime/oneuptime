@@ -77,7 +77,7 @@ Edit a dashboard, click **Add Widget** and pick a widget of the External Data So
 
 - Pick the **Data Source** and write the **Query**. The editor names the query language and shows an example for the type.
 - On a chart, **Add Query** overlays more queries on the same axes, and **Legend (optional)** names each series from its labels: `{{instance}} — errors` writes the series' `instance` label in front.
-- On a value or a gauge, **Reduce** turns the points into one number: the last value (the default), the first, the average, the sum, the minimum or the maximum. **Unit** adds a suffix, and scales the known ones: `Bytes` reads as 1.5 MB, `ms` as 2.4 sec.
+- On a value or a gauge, **Reduce** turns the points into one number: the last value (the default), the first, the average, the sum, the minimum or the maximum. **Unit** adds a suffix, and scales the known ones: `Bytes` reads as 1.5 MB, `ms` as 2.4 s.
 - On a table, any read-only query works, and its rows show as they come back.
 
 ## Write a query

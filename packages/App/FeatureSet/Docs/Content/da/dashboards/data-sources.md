@@ -77,7 +77,7 @@ Rediger et dashboard, klik på **Tilføj widget**, og vælg en widget fra gruppe
 
 - Vælg **Data Source**, og skriv **Query**. Editoren navngiver forespørgselssproget og viser et eksempel for typen.
 - På et diagram lægger **Tilføj forespørgsel** flere forespørgsler på de samme akser, og **Legend (optional)** navngiver hver serie ud fra dens etiketter: `{{instance}} — errors` skriver seriens etiket `instance` forrest.
-- På en værdi eller en måler gør **Reduce** punkterne til ét tal: den seneste værdi (standard), den første, gennemsnittet, summen, minimum eller maksimum. **Unit** tilføjer et suffiks og skalerer de kendte enheder: `Bytes` læses som 1,5 MB, `ms` som 2,4 sec.
+- På en værdi eller en måler gør **Reduce** punkterne til ét tal: den seneste værdi (standard), den første, gennemsnittet, summen, minimum eller maksimum. **Unit** tilføjer et suffiks og skalerer de kendte enheder: `Bytes` læses som 1.5 MB, `ms` som 2.4 s.
 - På en tabel virker enhver skrivebeskyttet forespørgsel, og dens rækker vises, som de kommer tilbage.
 
 ## Skriv en forespørgsel
