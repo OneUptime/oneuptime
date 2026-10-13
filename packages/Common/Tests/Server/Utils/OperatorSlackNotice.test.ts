@@ -266,7 +266,7 @@ describe("OperatorSlackNotice.getBalanceRefilledText", () => {
 
   test("a project whose name was not read is N/A", () => {
     const project: Project = makeProject();
-    project.name = undefined;
+    delete project.name;
 
     expect(
       readable(OperatorSlackNotice.getBalanceRefilledText(refill({ project }))),
@@ -528,7 +528,7 @@ describe("OperatorSlackNotice.getProjectDeletedText", () => {
 
   test("leaves out the creator when the project has none", () => {
     const project: Project = deletion().project;
-    project.createdByUser = undefined;
+    delete project.createdByUser;
 
     const text: string = OperatorSlackNotice.getProjectDeletedText(
       deletion({ project }),

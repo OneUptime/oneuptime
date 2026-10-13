@@ -8,6 +8,7 @@ import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import DeletedProject from "../../../Models/DatabaseModels/DeletedProject";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
@@ -132,7 +133,7 @@ function makeProject(id: ObjectID = PROJECT_ID, name?: string): Project {
   project._id = id.toString();
   project.name = name || "Kerberos Compliance Platform";
   project.createdAt = new Date("2026-01-15T10:30:00.000Z");
-  project.planName = "Growth";
+  project.planName = PlanType.Growth;
   project.paymentProviderSubscriptionId = `sub_${id.toString().slice(0, 4)}`;
   project.paymentProviderMeteredSubscriptionId = `sub_metered_${id
     .toString()
@@ -258,9 +259,9 @@ describe("ProjectService.onDeleteSuccess tells the operator's Slack channel", ()
     );
     await flushBackgroundWork();
 
-    expect(linesOf(slack.messages[0]).at(-1)).toBe(
-      "*Deletion Feedback:* _None given_",
-    );
+    const lines: Array<string> = linesOf(slack.messages[0]);
+
+    expect(lines[lines.length - 1]).toBe("*Deletion Feedback:* _None given_");
   });
 
   test("feedback can neither notify the channel nor link anywhere", async () => {
@@ -372,8 +373,8 @@ describe("ProjectService.onDeleteSuccess tells the operator's Slack channel", ()
 
   test("a project with no subscription is not asked about at the payment provider", async () => {
     const project: Project = makeProject();
-    project.paymentProviderSubscriptionId = undefined;
-    project.paymentProviderSubscriptionStatus = undefined;
+    delete project.paymentProviderSubscriptionId;
+    delete project.paymentProviderSubscriptionStatus;
 
     await callOnDeleteSuccess(
       { deleteBy: makeDeleteBy("x"), carryForward: [project] },
