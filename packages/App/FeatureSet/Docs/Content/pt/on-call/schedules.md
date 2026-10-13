@@ -8,6 +8,7 @@ Um agendamento de plantão decide quem está de plantão a cada momento. As pess
 :::cards
 - [Quem se reveza](#quem-se-reveza): Crie um agendamento com a primeira rotação.
 - [Camadas](#camadas): Empilhe rotações, limite os horários de plantão e adicione uma cobertura de reserva.
+- [Quando alguém está ausente](#quando-alguém-está-ausente): Pular alguém na rotação até a pessoa voltar.
 - [API e Terraform](#criar-agendamentos-com-a-api-ou-o-terraform): Crie agendamentos e rotações como código.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 Para mudar qual camada vem primeiro, use **Move layer up (higher priority)** ou **Move layer down (lower priority)** no menu de uma camada.
 
 Cada pessoa mantém uma única cor em todo lugar, para você acompanhá-la num relance: em cada camada, no agendamento final e nas substituições dele, e na **Linha do tempo de plantões**.
+
+## Quando alguém está ausente
+
+Quando alguém sai de férias, pule a pessoa até ela voltar. Na página **Camadas** do agendamento, expanda uma camada e clique em **Pular até…** ao lado do nome dela. Isso abre o formulário de ausência com a pessoa em **Quem está ausente?**, **Próxima pessoa da rotação** em **Quem cobre?** e **Começa** a partir de agora: defina **Termina** para quando ela volta e salve.
+
+Enquanto ela está ausente:
+
+- Cada um dos turnos dela vai para a próxima pessoa da camada que não está ausente, em todo agendamento de que ela faz parte. Os turnos dos outros não se movem, e os dela voltam a ser dela assim que ela volta.
+- Se todos em uma camada estão ausentes, a camada não tem ninguém de plantão e as camadas abaixo assumem. A camada mostra **Todos nesta camada estão ausentes agora**.
+- As regras de escalonamento que a acionam diretamente, ou por meio de uma equipe, a pulam. A execução da política informa que ela está ausente e até quando.
+- A linha dela na camada informa até quando ela está ausente, e o agendamento final e a **Linha do tempo de plantões** mostram quem tem cada um dos turnos dela.
+
+Se, em vez disso, você escolher alguém em **Quem cobre?**, essa pessoa recebe todos os acionamentos dela, de todo agendamento e de toda política, em vez de a rotação ficar com os turnos dela.
+
+Uma ausência adicionada assim vale para todas as políticas de plantão. Ela aparece em **Plantão** > **Substituições de usuário**, onde você pode excluí-la para trazer a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está.
+
+Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
 ## Criar agendamentos com a API ou o Terraform
 

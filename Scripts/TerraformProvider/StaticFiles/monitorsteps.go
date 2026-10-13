@@ -607,7 +607,7 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"evaluate_over_time": schema.BoolAttribute{
-				MarkdownDescription: "Evaluate this filter over a time window instead of the latest probe result.",
+				MarkdownDescription: "Evaluate this filter over a time window instead of the latest probe result. A filter with no series of its own - `Response Body`, `Response Header`, `Response Header Value`, `JavaScript Expression` and `Is Request Timeout` on Website and API monitors, `Is Request Timeout` on Ping, IP and Port monitors - is judged from a record of whether it matched on each check.",
 				Optional:            true,
 			},
 			"evaluate_over_time_minutes": schema.Int64Attribute{
@@ -616,7 +616,7 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"evaluate_over_time_type": schema.StringAttribute{
-				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval.",
+				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval. True/false checks and the checks judged from whether they matched on each check (see `evaluate_over_time`) take `All Values` or `Any Value`; any other aggregation on them is evaluated as `All Values`.",
 				Optional:            true,
 				Validators:          []validator.String{monitorStepsEvaluateOverTimeTypeValidator},
 			},

@@ -126,19 +126,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "dashboards/authoring": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "dashboards/configuration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "dashboards/sharing": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "dashboards/variables": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },

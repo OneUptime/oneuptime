@@ -129,7 +129,7 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 
 ### Evaluating over a period of time
 
-**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)** and **Port TCP Connect Time (in ms)**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**.
+**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** and **Is Request Timeout**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**.
 
 | Aggregate | Matches when |
 | --- | --- |
@@ -138,6 +138,10 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 | **Any Value** | At least one check in the window meets the condition. |
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
+
+**Is Request Timeout** is not a number OneUptime records, so it records whether the filter matched on each check, and judges the window from that record with **All Values** or **Any Value**.
+
+Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.
 
 **If No Data** decides what happens while the window cannot back the criteria:
 

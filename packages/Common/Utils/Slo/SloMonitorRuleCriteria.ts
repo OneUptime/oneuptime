@@ -10,6 +10,7 @@ import {
   getMonitorTypeCriteriaValidationError,
   isMonitorTypeCriteriaValue,
 } from "../Rules/MonitorTypeRuleCriteria";
+import stableStringify from "../StableStringify";
 
 /*
  * Plain-English descriptions of what an SLO monitor rule matches, for the
@@ -336,40 +337,6 @@ export const describeSloMonitorRuleCriteria: DescribeSloMonitorRuleCriteriaFunct
 type GetSloMonitorRuleCriteriaKeyFunction = (
   rule: SloMonitorRuleCriteriaCarrier,
 ) => string;
-
-type StableStringifyFunction = (value: unknown) => string;
-
-/*
- * JSON with object keys sorted at every depth. jsonb hands keys back in its
- * own order, not the order they were written, so two reads of the same
- * criteria must not look different just because one came from a request
- * body and the other from Postgres.
- */
-const stableStringify: StableStringifyFunction = (value: unknown): string => {
-  if (Array.isArray(value)) {
-    return `[${value
-      .map((item: unknown): string => {
-        return stableStringify(item);
-      })
-      .join(",")}]`;
-  }
-
-  if (value !== null && typeof value === "object") {
-    const record: Record<string, unknown> = value as Record<string, unknown>;
-
-    return `{${Object.keys(record)
-      .filter((key: string): boolean => {
-        return record[key] !== undefined;
-      })
-      .sort()
-      .map((key: string): string => {
-        return `${JSON.stringify(key)}:${stableStringify(record[key])}`;
-      })
-      .join(",")}}`;
-  }
-
-  return JSON.stringify(value === undefined ? null : value);
-};
 
 /*
  * An identity for "what this rule matches", equal for two rows exactly when

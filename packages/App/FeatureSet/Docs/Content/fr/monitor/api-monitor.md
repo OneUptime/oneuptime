@@ -188,7 +188,7 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse** et **Temps de réponse (en ms)**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **Response Header**, **Response Header Value**, **JavaScript Expression** et **Is Request Timeout**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
@@ -197,6 +197,10 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 | **Any Value** | Au moins une vérification de la fenêtre remplit la condition. |
 
 **All Values** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Any Value** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+
+Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Is Request Timeout**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **All Values** ou **Any Value**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **All Values**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
+
+Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 
 **En l'absence de données** décide de ce qui se passe tant que la fenêtre ne peut pas étayer le critère :
 
@@ -214,6 +218,8 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 | Hors ligne quand la vérification de santé signale un problème | **Corps de la réponse** | **Not Contains** | `"status":"ok"` |
 | La même chose, lue dans le JSON analysé | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
 | N'accepter que `201` d'un `POST` | **Code de statut de la réponse** | **Equal To** | `201` |
+
+Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **All Values** sur 15 minutes.
 
 ## Dépannage
 

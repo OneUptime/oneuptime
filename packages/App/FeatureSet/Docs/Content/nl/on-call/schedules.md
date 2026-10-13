@@ -8,6 +8,7 @@ Een bereikbaarheidsschema bepaalt wie er op elk moment dienst heeft. Mensen wiss
 :::cards
 - [Wie elkaar afwisselen](#wie-elkaar-afwisselen): Maak een schema met zijn eerste rotatie.
 - [Lagen](#lagen): Stapel rotaties, beperk de diensturen en voeg een vangnet toe.
+- [Als iemand afwezig is](#als-iemand-afwezig-is): Iemand in de rotatie overslaan tot die terug is.
 - [API en Terraform](#schemas-maken-met-de-api-of-terraform): Maak schema's en hun rotaties als code.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 Om te wijzigen welke laag eerst komt, gebruikt u **Move layer up (higher priority)** of **Move layer down (lower priority)** in het menu van een laag.
 
 Elke persoon houdt overal één kleur, zodat u hem of haar in één oogopslag kunt volgen: in elke laag, in het uiteindelijke schema en de overrides ervan, en op de **Tijdlijn van bereikbaarheidsschema's**.
+
+## Als iemand afwezig is
+
+Gaat iemand op vakantie, sla die persoon dan over tot die terug is. Klap op de pagina **Lagen** van het schema een laag open en klik naast de naam op **Overslaan tot…**. Dat opent het formulier voor afwezigheid met die persoon onder **Wie is afwezig?**, **Volgende persoon in de rotatie** onder **Wie vervangt?** en **Begint** op nu: zet **Eindigt** op het moment dat die terug is en sla het op.
+
+Zolang die persoon afwezig is:
+
+- Elke beurt van die persoon gaat naar de volgende persoon in de laag die niet afwezig is, in elk schema waarin die zit. De beurten van anderen verschuiven niet, en die van de persoon zijn weer van hem of haar zodra die terug is.
+- Als iedereen in een laag afwezig is, heeft de laag niemand met dienst en nemen de lagen eronder het over. De laag toont **Iedereen in deze laag is nu afwezig**.
+- Escalatieregels die de persoon rechtstreeks of via een team oproepen, slaan die over. De uitvoering van het beleid vermeldt dat die afwezig is en tot wanneer.
+- De rij van de persoon in de laag toont tot wanneer die afwezig is, en het uiteindelijke schema en de **Tijdlijn van bereikbaarheidsschema's** tonen wie elk van de beurten heeft.
+
+Kies je in plaats daarvan iemand onder **Wie vervangt?**, dan krijgt die alle oproepen van de persoon, uit elk schema en elk beleid, in plaats van dat de rotatie de beurten overneemt.
+
+Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid. Ze staat onder **Bereikbaarheidsdienst** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is.
+
+Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
 ## Schema's maken met de API of Terraform
 

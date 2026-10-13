@@ -6,6 +6,7 @@ import {
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import EventInterval from "Common/Types/Events/EventInterval";
 import {
   SCHEDULE_FIRST_LAYER_ROTATION_KEY,
@@ -73,6 +74,39 @@ const PERSON_COLORS_FILE: string =
 const TIMELINE_MODEL_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineModel.ts";
 const TIMELINE_PAGE_TITLE: string = "Schedule Timeline";
+
+/*
+ * "When someone is away": Skip until... on a person in a layer, the user
+ * override form it opens, and what the layer card says when everyone in a
+ * layer is away (task oncall-skip-user-until).
+ */
+const LAYER_USER_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerUser.tsx";
+const LAYER_CARD_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerCard.tsx";
+const SKIP_MODAL_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal.tsx";
+const OVERRIDE_FORM_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideForm.ts";
+
+const SKIP_BUTTON: string = "Skip until…";
+const ROTATION_COVERS: string = "Next person in the rotation";
+const EVERYONE_AWAY: string = "Everyone in this layer is away right now";
+
+// What every language's away section names, by the dashboard's words.
+const AWAY_LABELS: Array<string> = [
+  "Layers",
+  SKIP_BUTTON,
+  "Who is away?",
+  ROTATION_COVERS,
+  "Who covers?",
+  "Starts",
+  "Ends",
+  EVERYONE_AWAY,
+  "Schedule Timeline",
+  "On-Call Duty",
+  "User Overrides",
+];
 
 const QUESTION: string = "Who takes turns?";
 const TURN_LENGTH: string = "Each turn lasts";
@@ -155,6 +189,18 @@ const LAYERS_ROUTE: string = apiRoute(
 const LAYER_USERS_ROUTE: string = apiRoute(
   new OnCallDutyPolicyScheduleLayerUser().crudApiPath?.toString(),
 );
+const USER_OVERRIDES_ROUTE: string = apiRoute(
+  new OnCallDutyPolicyUserOverride().crudApiPath?.toString(),
+);
+
+// The API facts of the away section: a user override with nobody to cover.
+const AWAY_API_FACTS: Array<string> = [
+  USER_OVERRIDES_ROUTE,
+  "`routeAlertsToUserId`",
+  "`overrideUserId`",
+  "`startsAt`",
+  "`endsAt`",
+];
 
 const ENGLISH: string = readPage("en");
 
@@ -224,7 +270,7 @@ describe("the On-Call Schedules docs page", () => {
     const pageSections: Array<{ heading: string; body: string }> =
       sections(ENGLISH);
 
-    it("has its three sections and its next steps, in order", () => {
+    it("has its four sections and its next steps, in order", () => {
       expect(
         pageSections.map((section: { heading: string }): string => {
           return section.heading;
@@ -232,6 +278,7 @@ describe("the On-Call Schedules docs page", () => {
       ).toEqual([
         "Who takes turns",
         "Layers",
+        "When someone is away",
         "Creating schedules with the API or Terraform",
         "Next steps",
       ]);
@@ -328,8 +375,67 @@ describe("the On-Call Schedules docs page", () => {
       );
     });
 
+    it("says how to skip someone who is away, with the button and the form the layer draws", () => {
+      const away: string = pageSections[2]!.body;
+
+      // The button on a person's row in a layer, and the dialog it opens.
+      expect(readRepoFile(LAYER_USER_FILE)).toContain(
+        `translateText("${SKIP_BUTTON}")`,
+      );
+      expect(readRepoFile(SKIP_MODAL_FILE)).toContain(
+        "getUserOverrideFormFields",
+      );
+      expect(away).toContain(`click **${SKIP_BUTTON}** beside their name`);
+
+      // The form's questions, with the rotation covering until someone is picked.
+      const form: string = readRepoFile(OVERRIDE_FORM_FILE);
+      for (const title of ["Who is away?", "Who covers?", "Starts", "Ends"]) {
+        expect(form).toContain(`"${title}"`);
+        expect(away).toContain(`**${title}**`);
+      }
+      // What the cover picker says while nobody is picked.
+      expect(form).toContain(`"${ROTATION_COVERS}"`);
+      expect(form).toContain("whenNobodyPicked");
+      expect(away).toContain(
+        `**${ROTATION_COVERS}** under **Who covers?** and **Starts** at now`,
+      );
+
+      // What the layer card says when nobody in a layer is left.
+      expect(readRepoFile(LAYER_CARD_FILE)).toContain(`"${EVERYONE_AWAY}"`);
+      expect(away).toContain(`**${EVERYONE_AWAY}**`);
+
+      // The rotation does not move, and lower layers take over.
+      expect(away).toContain("Nobody else's turns move");
+      expect(away).toContain("the layers below it take over");
+
+      // Where it is listed, and that it reaches every policy.
+      expect(readRepoFile(ON_CALL_SIDE_MENU_FILE)).toContain(
+        'title: "User Overrides"',
+      );
+      expect(away).toContain("**On-Call Duty** > **User Overrides**");
+      expect(away).toContain("applies to every on-call policy");
+    });
+
+    it("gives the API of a skip: a user override created without anyone to cover", () => {
+      const away: string = pageSections[2]!.body;
+
+      for (const fact of AWAY_API_FACTS) {
+        expect({ fact, found: away.includes(fact) }).toEqual({
+          fact,
+          found: true,
+        });
+      }
+
+      // Nobody to cover is allowed: the column is optional.
+      const column: { required?: boolean | undefined } =
+        new OnCallDutyPolicyUserOverride().getTableColumnMetadata(
+          "routeAlertsToUserId",
+        );
+      expect(column.required).toBe(false);
+    });
+
     it("gives the API: the routes, the misc data keys the server reads and the rotation's shape", () => {
-      const api: string = pageSections[2]!.body;
+      const api: string = pageSections[3]!.body;
 
       for (const fact of [
         SCHEDULES_ROUTE,
@@ -360,8 +466,9 @@ describe("the On-Call Schedules docs page", () => {
   });
 
   /*
-   * Each translation has the same three sections, names the form with the
-   * words that language's dashboard shows, and gives the same API facts.
+   * Each translation has the same four sections, names the form and the
+   * away section's controls with the words that language's dashboard shows,
+   * and gives the same API facts.
    */
   describe("in every docs language", () => {
     it("is mirrored in every docs language", () => {
@@ -383,15 +490,37 @@ describe("the On-Call Schedules docs page", () => {
         const pageSections: Array<{ heading: string; body: string }> =
           sections(page);
 
-        expect(pageSections).toHaveLength(4);
+        expect(pageSections).toHaveLength(5);
 
-        // One title, three sections and the next steps, nothing deeper.
+        // One title, four sections and the next steps, nothing deeper.
         expect(page.match(/^# /gm)).toHaveLength(1);
         expect(page.match(/^### /gm)).toBeNull();
 
         const first: string = pageSections[0]!.body;
         const layers: string = pageSections[1]!.body;
-        const api: string = pageSections[2]!.body;
+        const away: string = pageSections[2]!.body;
+        const api: string = pageSections[3]!.body;
+
+        // When someone is away: Skip until..., the form, the layer card.
+        for (const label of AWAY_LABELS) {
+          expect({
+            lang,
+            label,
+            found: away.includes(`**${dashboard[label]}**`),
+          }).toEqual({
+            lang,
+            label,
+            found: true,
+          });
+        }
+
+        for (const fact of AWAY_API_FACTS) {
+          expect({ lang, fact, found: away.includes(fact) }).toEqual({
+            lang,
+            fact,
+            found: true,
+          });
+        }
 
         for (const label of FORM_LABELS) {
           expect({

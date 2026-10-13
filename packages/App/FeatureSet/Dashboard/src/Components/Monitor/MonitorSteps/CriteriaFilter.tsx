@@ -1,11 +1,14 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import CriteriaFilterUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   criteriaFilter: CriteriaFilter | undefined;
   filterCondition?: FilterCondition | undefined;
+  // Whether a window is judged check by check depends on it.
+  monitorType?: MonitorType | undefined;
 }
 
 const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
@@ -17,6 +20,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     text = CriteriaFilterUtil.translateFilterToText(
       props.criteriaFilter,
       props.filterCondition,
+      props.monitorType,
     );
   }
 

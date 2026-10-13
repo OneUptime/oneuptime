@@ -105,7 +105,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Tempo di risposta (in ms)**, **Packet Loss (in %)** e **Jitter (in ms)**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Tempo di risposta (in ms)**, **Packet Loss (in %)**, **Jitter (in ms)** e **Is Request Timeout**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
@@ -114,6 +114,10 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 | **Any Value** | Almeno un controllo nella finestra soddisfa la condizione. |
 
 **All Values** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Any Value** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+
+**Is Request Timeout** non è un numero che OneUptime registra, quindi registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **All Values** o **Any Value**.
+
+Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli: un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti.
 
 **Se nessun dato** decide cosa succede finché la finestra non può sostenere il criterio:
 

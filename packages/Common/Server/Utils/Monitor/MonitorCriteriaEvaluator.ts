@@ -12,6 +12,12 @@ import PerEntityCriteriaFanOut, {
 } from "./PerEntityCriteriaFanOut";
 import LogGroupCriteriaFanOut from "./LogGroupCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
+import CriteriaFilterMatchHistory, {
+  CriteriaFilterCheck,
+  CriteriaFilterMatchHistoryReads,
+  FilterKeepingMatchHistory,
+  MatchHistoryJudgement,
+} from "./Criteria/CriteriaFilterMatchHistory";
 import CompareCriteria from "./Criteria/CompareCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
@@ -195,6 +201,20 @@ interface AffectedResourceBreachPredicate {
 }
 
 /*
+ * What one evaluation knows about the filters that keep a match history
+ * (CriteriaFilterMatchHistory): when the check was made, whether it is a
+ * stored check read back for probe agreement, the reads it shares, and -
+ * for a check that just arrived - its result for every such filter, by
+ * filter key.
+ */
+interface MatchHistoryContext {
+  checks: Map<string, CriteriaFilterCheck>;
+  checkAt: Date;
+  isStoredCheck: boolean;
+  reads: CriteriaFilterMatchHistoryReads;
+}
+
+/*
  * The platforms whose monitors carry a per-resource breakdown.
  */
 type PlatformName =
@@ -272,6 +292,21 @@ export default class MonitorCriteriaEvaluator {
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
     evaluationSummary: MonitorEvaluationSummary;
+    /*
+     * True for a check that has just arrived (MonitorResource): its results
+     * for the filters that keep a match history are written once the
+     * criteria are evaluated. Left unset when a stored check is read back -
+     * the probe agreement pass re-evaluates other probes' last results,
+     * whose matches were written when those checks arrived.
+     */
+    recordMatchHistory?: boolean | undefined;
+    /*
+     * The match history reads of the probe result being handled, shared by
+     * its own evaluation and the probe agreement pass so each filter's
+     * history is read once (CriteriaFilterMatchHistoryReads). Made here when
+     * not passed.
+     */
+    matchHistoryReads?: CriteriaFilterMatchHistoryReads | undefined;
   }): Promise<ProbeApiIngestResponse> {
     const criteria: MonitorCriteria | undefined =
       input.monitorStep.data?.monitorCriteria;
@@ -279,6 +314,39 @@ export default class MonitorCriteriaEvaluator {
     if (!criteria || !criteria.data) {
       return input.probeApiIngestResponse;
     }
+
+    const matchHistoryReads: CriteriaFilterMatchHistoryReads =
+      input.matchHistoryReads || new CriteriaFilterMatchHistoryReads();
+
+    /*
+     * A check that just arrived is judged, up front, for every filter that
+     * keeps a match history, in every enabled criteria - not only the ones
+     * evaluated below - since all of them are written. Criteria are
+     * evaluated until the first one matches, so a filter further down would
+     * otherwise have no record of the checks the app was healthy on, and a
+     * window with a healthy minute in it could still read as "every check
+     * failed" (CriteriaFilterMatchHistory).
+     *
+     * A stored check read back for probe agreement writes nothing, so it is
+     * judged only for the filters the criteria below actually reach.
+     */
+    const matchHistory: MatchHistoryContext = input.recordMatchHistory
+      ? await MonitorCriteriaEvaluator.judgeMatchHistoryFilters({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          checkAt: OneUptimeDate.getCurrentDate(),
+          reads: matchHistoryReads,
+        })
+      : {
+          checks: new Map<string, CriteriaFilterCheck>(),
+          checkAt: MonitorCriteriaEvaluator.getStoredCheckTime(
+            input.dataToProcess,
+          ),
+          isStoredCheck: true,
+          reads: matchHistoryReads,
+        };
 
     /*
      * Is this monitor configured to raise one alert/incident per series
@@ -381,6 +449,7 @@ export default class MonitorCriteriaEvaluator {
           probeApiIngestResponse: input.probeApiIngestResponse,
           criteriaInstance: criteriaInstance,
           criteriaResult: criteriaResult,
+          matchHistory: matchHistory,
         });
 
       if (!criteriaResult.message) {
@@ -548,7 +617,164 @@ ${contextBlock}
       input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
     }
 
+    /*
+     * Written only now, after every criteria was judged, so the history the
+     * filters read above held earlier checks alone and this one was counted
+     * once, from memory.
+     */
+    if (input.recordMatchHistory && matchHistory.checks.size > 0) {
+      await CriteriaFilterMatchHistory.record({
+        projectId:
+          input.monitor.projectId ||
+          (input.dataToProcess as ProbeMonitorResponse).projectId,
+        monitorId: input.monitor.id || input.dataToProcess.monitorId,
+        probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+        checks: Array.from(matchHistory.checks.values()),
+      });
+    }
+
     return input.probeApiIngestResponse;
+  }
+
+  /*
+   * When a stored check arrived: MonitorResource stamps monitoredAt on the
+   * server's clock as it stores a check, and hydrates it back into a Date.
+   * Anything unreadable is placed now.
+   */
+  private static getStoredCheckTime(dataToProcess: DataToProcess): Date {
+    const monitoredAt: Date | string | undefined = (
+      dataToProcess as ProbeMonitorResponse
+    ).monitoredAt as Date | string | undefined;
+
+    if (!monitoredAt) {
+      return OneUptimeDate.getCurrentDate();
+    }
+
+    const at: Date =
+      monitoredAt instanceof Date ? monitoredAt : new Date(monitoredAt);
+
+    return isNaN(at.getTime()) ? OneUptimeDate.getCurrentDate() : at;
+  }
+
+  /*
+   * This check's result for every filter of the step that keeps a match
+   * history (CriteriaFilterMatchHistory.getFiltersKeepingHistory): the
+   * filter judged on this check alone, as it would be without its window.
+   * Costs nothing on a monitor without such filters.
+   */
+  private static async judgeMatchHistoryFilters(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    checkAt: Date;
+    reads: CriteriaFilterMatchHistoryReads;
+  }): Promise<MatchHistoryContext> {
+    const context: MatchHistoryContext = {
+      checks: new Map<string, CriteriaFilterCheck>(),
+      checkAt: input.checkAt,
+      isStoredCheck: false,
+      reads: input.reads,
+    };
+
+    const filters: Array<FilterKeepingMatchHistory> =
+      CriteriaFilterMatchHistory.getFiltersKeepingHistory({
+        monitorType: input.monitor.monitorType,
+        monitorStep: input.monitorStep,
+      });
+
+    for (const filter of filters) {
+      context.checks.set(filter.filterKey, {
+        filterKey: filter.filterKey,
+        matched: await MonitorCriteriaEvaluator.isFilterMetOnThisCheck({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: filter.criteriaFilter,
+        }),
+        at: input.checkAt,
+      });
+    }
+
+    return context;
+  }
+
+  /*
+   * A filter judged on this check alone: the same filter with its window
+   * taken off, through the same evaluators as any other filter.
+   */
+  private static async isFilterMetOnThisCheck(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaFilter: CriteriaFilter;
+  }): Promise<boolean> {
+    const onThisCheckAlone: CriteriaFilter = {
+      ...input.criteriaFilter,
+      evaluateOverTime: false,
+    };
+
+    delete onThisCheckAlone.evaluateOverTimeOptions;
+
+    const rootCause: string | null =
+      await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        monitor: input.monitor,
+        probeApiIngestResponse: input.probeApiIngestResponse,
+        criteriaFilter: onThisCheckAlone,
+      });
+
+    return Boolean(rootCause);
+  }
+
+  /*
+   * A filter that keeps a match history, judged over its window: this
+   * check's result - from the context when processMonitorStep judged it up
+   * front, judged here otherwise - and the history of the probe that made
+   * it.
+   */
+  private static async judgeFilterFromMatchHistory(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaFilter: CriteriaFilter;
+    matchHistory?: MatchHistoryContext | undefined;
+  }): Promise<MatchHistoryJudgement> {
+    const filterKey: string = CriteriaFilterMatchHistory.getFilterKey({
+      monitorStepId: input.monitorStep.id,
+      criteriaFilter: input.criteriaFilter,
+    });
+
+    const check: CriteriaFilterCheck = input.matchHistory?.checks.get(
+      filterKey,
+    ) || {
+      filterKey: filterKey,
+      matched: await MonitorCriteriaEvaluator.isFilterMetOnThisCheck({
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        monitor: input.monitor,
+        probeApiIngestResponse: input.probeApiIngestResponse,
+        criteriaFilter: input.criteriaFilter,
+      }),
+      at: input.matchHistory?.checkAt || OneUptimeDate.getCurrentDate(),
+    };
+
+    return CriteriaFilterMatchHistory.judgeWindow({
+      projectId:
+        input.monitor.projectId ||
+        (input.dataToProcess as ProbeMonitorResponse).projectId,
+      monitorId: input.monitor.id || input.dataToProcess.monitorId,
+      probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+      criteriaFilter: input.criteriaFilter,
+      check: check,
+      isStoredCheck: input.matchHistory?.isStoredCheck,
+      monitoringInterval: input.monitor.monitoringInterval,
+      reads: input.matchHistory?.reads,
+    });
   }
 
   /**
@@ -939,6 +1165,7 @@ ${contextBlock}
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
     criteriaResult: MonitorEvaluationCriteriaResult;
+    matchHistory?: MatchHistoryContext | undefined;
   }): Promise<string | null> {
     return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
       dataToProcess: input.dataToProcess,
@@ -947,6 +1174,7 @@ ${contextBlock}
       probeApiIngestResponse: input.probeApiIngestResponse,
       criteriaInstance: input.criteriaInstance,
       criteriaResult: input.criteriaResult,
+      matchHistory: input.matchHistory,
     });
   }
 
@@ -957,6 +1185,12 @@ ${contextBlock}
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance: MonitorCriteriaInstance;
     criteriaResult: MonitorEvaluationCriteriaResult;
+    /*
+     * This check's results for the filters that keep a match history, from
+     * processMonitorStep. Absent on the per-series and per-entity passes,
+     * whose monitor types keep none.
+     */
+    matchHistory?: MatchHistoryContext | undefined;
   }): Promise<string | null> {
     const filterCondition: FilterCondition =
       input.criteriaInstance.data?.filterCondition || FilterCondition.All;
@@ -966,19 +1200,49 @@ ${contextBlock}
     let allFiltersMet: boolean = true;
 
     for (const criteriaFilter of input.criteriaInstance.data?.filters || []) {
-      const rootCause: string | null =
-        await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
-          dataToProcess: input.dataToProcess,
-          monitorStep: input.monitorStep,
-          monitor: input.monitor,
-          probeApiIngestResponse: input.probeApiIngestResponse,
-          criteriaInstance: input.criteriaInstance,
+      /*
+       * A filter that keeps a match history is judged over its window here,
+       * from that history: what the window held is its message whether or
+       * not it is met, because "not met yet - matched on every check for 2
+       * of its 5 minutes" is the answer to "why did nothing happen?".
+       */
+      let rootCause: string | null = null;
+      let matchHistoryMessage: string | null = null;
+
+      if (
+        CriteriaFilterMatchHistory.isJudgedFromHistory({
           criteriaFilter: criteriaFilter,
-        });
+          monitorType: input.monitor.monitorType,
+        })
+      ) {
+        const judgement: MatchHistoryJudgement =
+          await MonitorCriteriaEvaluator.judgeFilterFromMatchHistory({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaFilter: criteriaFilter,
+            matchHistory: input.matchHistory,
+          });
+
+        rootCause = judgement.rootCause;
+        matchHistoryMessage = judgement.message;
+      } else {
+        rootCause =
+          await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaInstance: input.criteriaInstance,
+            criteriaFilter: criteriaFilter,
+          });
+      }
 
       const didMeetCriteria: boolean = Boolean(rootCause);
 
       const filterMessage: string =
+        matchHistoryMessage ||
         MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
           monitor: input.monitor,
           criteriaFilter: criteriaFilter,
@@ -1071,7 +1335,7 @@ ${contextBlock}
     monitorStep: MonitorStep;
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
-    criteriaInstance: MonitorCriteriaInstance;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
     criteriaFilter: CriteriaFilter;
   }): Promise<string | null> {
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {

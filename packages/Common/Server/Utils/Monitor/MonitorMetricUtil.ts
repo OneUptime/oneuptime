@@ -37,6 +37,12 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CRITERIA_FILTER_KEY_ATTRIBUTE,
+  CRITERIA_FILTER_MATCH_METRIC_NAME,
+  CRITERIA_FILTER_MATCHED_VALUE,
+  CRITERIA_FILTER_NOT_MATCHED_VALUE,
+} from "../../../Types/Monitor/CriteriaFilterMatchHistory";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -291,6 +297,60 @@ export default class MonitorMetricUtil {
       metricRow["attributes"] = attributes;
       metricRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(attributes);
     }
+  }
+
+  /**
+   * Write one check's results for the filters that keep a match history
+   * (CriteriaFilterMatchHistory): 1 when a filter matched this check, 0 when
+   * it did not, one row per filter.
+   *
+   * Written like every other monitor metric - same row shape, same
+   * retention - so the rows expire with the monitor's other metrics instead
+   * of costing their partition a rewrite of its own (RetentionTtl). Unlike
+   * them they are not indexed as a metric type: they are the evaluator's
+   * record, not a chart anyone picks.
+   */
+  @CaptureSpan()
+  public static async saveCriteriaFilterMatches(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    probeId?: ObjectID | undefined;
+    matches: Array<{ filterKey: string; matched: boolean }>;
+  }): Promise<void> {
+    if (data.matches.length === 0) {
+      return;
+    }
+
+    const metricRows: Array<JSONObject> = [];
+
+    for (const match of data.matches) {
+      const extraAttributes: JSONObject = {
+        [CRITERIA_FILTER_KEY_ATTRIBUTE]: match.filterKey,
+      };
+
+      if (data.probeId) {
+        extraAttributes["probeId"] = data.probeId.toString();
+      }
+
+      metricRows.push(
+        await this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: CRITERIA_FILTER_MATCH_METRIC_NAME,
+          value: match.matched
+            ? CRITERIA_FILTER_MATCHED_VALUE
+            : CRITERIA_FILTER_NOT_MATCHED_VALUE,
+          attributes: this.buildMonitorMetricAttributes({
+            monitorId: data.monitorId,
+            projectId: data.projectId,
+            extraAttributes: extraAttributes,
+          }),
+          metricPointType: MetricPointType.Gauge,
+        }),
+      );
+    }
+
+    await MetricService.insertJsonRows(metricRows);
   }
 
   @CaptureSpan()

@@ -129,7 +129,7 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Gesamte Verbindungszeit (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)** und **Port TCP Connect Time (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Gesamte Verbindungszeit (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** und **Is Request Timeout**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
@@ -138,6 +138,10 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 | **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
 **All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+
+**Is Request Timeout** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **All Values** oder **Any Value**.
+
+Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
 **Bei keinen Daten** entscheidet, was passiert, solange das Fenster das Kriterium nicht stützen kann:
 

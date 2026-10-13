@@ -89,12 +89,16 @@ const ENGLISH_HEADING: string = "## When a widget can't be shown";
 describe("the Widgets page: when a widget can't be shown (issue #4571)", () => {
   const section: string = sectionOf(readPage("en"), ENGLISH_HEADING);
 
-  test("has the section, before Where to read next", () => {
+  test("has the section, right before Next steps", () => {
     const page: string = readPage("en");
 
     expect(section).not.toBe("");
     expect(page.indexOf(ENGLISH_HEADING)).toBeLessThan(
-      page.indexOf("## Where to read next"),
+      page.indexOf("## Next steps"),
+    );
+    expect(section).not.toContain("\n## ");
+    expect(page.indexOf("\n## ", page.indexOf(ENGLISH_HEADING) + 1)).toBe(
+      page.indexOf("\n## Next steps"),
     );
   });
 

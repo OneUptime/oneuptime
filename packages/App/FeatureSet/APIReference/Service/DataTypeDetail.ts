@@ -2029,7 +2029,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "object",
         required: false,
         description:
-          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online', 'NTP Is Online', 'NTP Is Synchronized') only support 'All Values' and 'Any Value'; any other aggregation on them is evaluated as 'All Values'.",
+          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check; give it a window longer than the monitoring interval, since a window no longer than the interval holds a single check. The true/false checks ('Is Online', 'DNS Is Online', 'SNMP Device Is Online', 'External Status Page Is Online', 'Database Is Online', 'NTP Is Online', 'NTP Is Synchronized') only support 'All Values' and 'Any Value'; any other aggregation on them is evaluated as 'All Values'. So do the checks nothing records as a series, which are judged from a record of whether the filter matched on each check: 'Response Body', 'Response Header', 'Response Header Value', 'JavaScript Expression' and 'Is Request Timeout' on Website and API monitors, and 'Is Request Timeout' on Ping, IP and Port monitors. With 'All Values' such a filter matches only once it has matched on every check of the window, which keeps a restarting application's placeholder page from firing it; with 'Any Value', once it matched on any check of the window.",
       },
       {
         name: "serverMonitorOptions",
@@ -2160,6 +2160,18 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
             timeValueInMinutes: 5,
             evaluateOverTimeType: "All Values",
             onNoDataPolicy: "Ignore",
+          },
+        },
+        "// Example 14: Wait before a missing text fires":
+          "Used for Website, API monitors. Only matches once the page has been missing the text on every check for 15 minutes, so an application that answers with a placeholder while it restarts does not fire it",
+        filter14: {
+          checkOn: "Response Body",
+          filterType: "Not Contains",
+          value: "App Title",
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 15,
+            evaluateOverTimeType: "All Values",
           },
         },
       },
