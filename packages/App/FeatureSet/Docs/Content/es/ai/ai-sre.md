@@ -1,0 +1,449 @@
+# AI SRE
+
+OneUptime AI es tu ingeniero de fiabilidad de sitios (SRE) con IA. En cuanto se declara un incidente o una alerta nuevos, se pone en marcha, lo investiga con tu propia telemetría —registros, métricas, trazas, excepciones, monitores y cambios recientes— y publica un análisis de causa raíz con citas en la cronología del incidente o de la alerta, normalmente antes de que la persona de guardia termine de leer el aviso.
+
+Cada afirmación del análisis lleva una cita que enlaza directamente con los datos exactos que la respaldan, y la investigación en sí es **estrictamente de solo lectura**: OneUptime AI nunca puede cambiar nada de tu proyecto mientras investiga.
+
+:::cards
+- [Cómo funciona](#cómo-funciona): De un incidente nuevo a un análisis con citas, y a una corrección cuando la permites.
+- [Habilitar las investigaciones de IA](#habilitar-las-investigaciones-de-ia): Los interruptores y lo que necesitan.
+- [Acceso al clúster: deja que OneUptime AI ejecute kubectl](#acceso-al-clúster-deja-que-oneuptime-ai-ejecute-kubectl): Investigar, y corregir, dentro de Kubernetes.
+- [Control de costes](#control-de-costes): Límites para los incidentes, para las alertas y para todo el proyecto.
+:::
+
+## Cómo funciona
+
+OneUptime AI hace tres cosas ante un incidente o una alerta nuevos, y cada una tiene su propio interruptor:
+
+- **Investiga** (activado por defecto). Lee tu telemetría, y los clústeres y hosts donde se ejecuta un agente de IA, y publica un análisis de causa raíz con citas. Una investigación no cambia nada.
+- **Corrige** (desactivado por defecto). Cuando la corrección está activada, un análisis con suficiente confianza se convierte en una corrección: un pull request con un cambio en tu código, o un plan de comandos para un clúster o un host, ejecutado como lo permita el agente de IA de ese clúster o host.
+- **Aprende.** Las páginas de Hallazgos de IA cuentan lo que sigue fallando, a partir de todo lo que se ha registrado.
+
+```mermaid title="De un incidente nuevo a una corrección"
+flowchart TB
+    N["Un incidente nuevo<br/>o una alerta"] --> I["OneUptime AI<br/>lo investiga,<br/>solo lectura"]
+    I --> R["Un análisis de causa<br/>raíz con citas en<br/>su cronología"]
+    R --> F{"¿Está activa la<br/>corrección y apunta<br/>el análisis a una<br/>corrección?"}
+    F -->|"un cambio de código"| PR["Un pull request de<br/>corrección, para<br/>revisar"]
+    F -->|"infraestructura"| P["Un plan de corrección<br/>para el clúster<br/>o el host"]
+    P --> V["Los monitores muestran<br/>si funcionó"]
+```
+
+Un análisis que no encuentra ninguna causa se publica en silencio, sin avisar a nadie (consulta [Modo silencioso](#modo-silencioso)), y no se corrige nada sin una causa.
+
+## Qué publica la investigación
+
+Cuando una investigación termina, OneUptime AI publica un análisis de causa raíz con estas secciones:
+
+- **Summary**: una o dos frases que alguien a quien se ha avisado puede leer en cinco segundos.
+- **Most likely root cause**: la hipótesis, con solo la confianza que respaldan las pruebas y cada afirmación factual citada. Si la telemetría no basta, la IA lo dice claramente y enumera lo que comprobó en lugar de adivinar.
+- **Evidence**: los hallazgos clave que respaldan o descartan la hipótesis, cada uno citado.
+- **Suggested next steps**: acciones concretas para la persona de guardia.
+
+En los incidentes, el análisis se publica en el feed del incidente **y** como nota interna del incidente (donde colaboran quienes lo atienden). En las alertas, se publica en el feed de la alerta.
+
+Mientras se ejecuta la investigación, la página del incidente o de la alerta muestra en directo un panel **Investigación de IA** que narra cada paso —qué herramientas se ejecutaron, qué encontraron y cuánto tardaron—, para que puedas verla pensar. Si una investigación falla, el panel muestra el motivo del fallo en lugar de un hueco silencioso.
+
+Una investigación se ejecuta hasta terminar: **no tiene límite de tiempo** ni un presupuesto de consultas pequeño, así que puede ejecutar todas las consultas y todos los comandos kubectl o de infraestructura que necesite. Una salida de comando larga (un `kubectl describe node` de un nodo con mucha carga, los registros de un pod) nunca se corta: OneUptime AI la lee página a página. Si quieres un corte firme, define un **límite de tiempo de investigación** por tipo de señal (consulta **Control de costes** más abajo).
+
+## Habla con OneUptime AI sobre el incidente
+
+La tarjeta **Investigación de IA** termina con una conversación, **Ask OneUptime AI**, compartida por todas las personas que pueden ver el incidente o la alerta. Es una sola tarjeta pase lo que pase encima: bajo un informe haces preguntas de seguimiento, y cuando no se ejecutó ninguna investigación automática (o se detuvo antes de informar) la primera sugerencia es **¿Cuál es la causa raíz?**, que hace que OneUptime AI investigue a petición.
+
+- **Haz preguntas de seguimiento**: «¿qué pods usan más memoria?», «¿qué cambió justo antes de que empezara esto?», «¿hay algo más afectado?». OneUptime AI parte de su informe, consulta datos nuevos (y ejecuta comandos kubectl o de infraestructura de solo lectura donde tiene acceso) y cita cada afirmación.
+- **Pídele que actúe**: «reconoce este incidente», «publica una actualización de estado diciendo que estamos investigando», «avisa a la guardia de base de datos», «sube la gravedad». Usa las mismas acciones que Preguntar a la IA y siempre actúa **con tus propios permisos**, así que nunca puede hacer más de lo que podrías hacer tú.
+- **Elige cómo actúa** con el interruptor del cuadro de mensaje, que indica a su lado qué significa el modo elegido: _Auto-run_ (el predeterminado: actúa en el acto ante una petición clara), _Ask to act_ (primero muestra una tarjeta de aprobación, que cualquiera en el incidente puede aprobar o rechazar) o _Solo lectura_.
+- **Un único hilo compartido.** Cada pregunta muestra quién la hizo, todo el mundo ve la misma conversación en directo y cualquiera puede detener una respuesta en curso. Los gráficos y las tablas de una respuesta se muestran a quien preguntó; los demás ven la respuesta con citas. Cada respuesta enumera sus **Orígenes**, y un origen con página propia (registros, métricas, un monitor) la abre. Un hilo largo se abre en sus mensajes más recientes, con un botón encima (por ejemplo **Show 6 earlier messages**) que trae el resto.
+
+## Habilitar las investigaciones de IA
+
+Las investigaciones autónomas están **activadas por defecto en los proyectos nuevos**. También lo están los borradores de post mortem y los Hallazgos de IA. La corrección empieza desactivada, igual que los pull requests que forman parte de ella (consulta [Correcciones de código automáticas](#correcciones-de-código-automáticas)). Un proyecto creado antes de este valor predeterminado conserva su ajuste; activa las investigaciones como en el paso 3, o con **Activar** en la página **Agente de IA** de cualquier clúster de Kubernetes (Project Owner o Project Admin). Para comprobarlas o cambiarlas:
+
+:::steps
+1. **Configura un proveedor de LLM.** Las instalaciones autoalojadas traen su propia clave (o funcionan totalmente aisladas con Ollama en local): consulta [Proveedores de LLM](/docs/ai/llm-provider). Los usuarios de OneUptime Cloud pueden usar el proveedor global preconfigurado, facturado como tokens de IA medidos, así que el proyecto necesita créditos de IA: una persona propietaria del proyecto o alguien con **Manage Billing** los añade en **Ajustes del proyecto → IA → Créditos de IA**, donde la **Recarga automática** evita que se agoten.
+2. **Asegúrate de que la IA está habilitada en el proyecto** (lo está por defecto): **Habilitar IA**, en **Ajustes del proyecto → IA → Funciones de IA**.
+3. **Elige por tipo de señal** (ambos activados en los proyectos nuevos):
+   - Incidentes: **Incidentes → IA → Ajustes**: activa _Investigar los incidentes nuevos_.
+   - Alertas: **Alertas → IA → Ajustes**: activa _Investigar las alertas nuevas_.
+:::
+
+Cada comportamiento de la IA en esas páginas es un interruptor que se guarda en cuanto lo cambias; no hay botón de Guardar. La página de incidentes tiene tres, bajo **Qué hace la IA de OneUptime**: _Investigar los incidentes nuevos_, _Corregir automáticamente los incidentes nuevos_ y _Redactar un post mortem cuando se resuelve un incidente_. La página de alertas tiene los mismos, sin el post mortem. _Corregir automáticamente los incidentes nuevos_ (y _Corregir automáticamente las alertas nuevas_) empieza **desactivado**, también en los proyectos nuevos: permite que OneUptime AI cambie tu infraestructura, así que es el proyecto quien lo activa; consulta [Qué incidentes se investigan y se corrigen](#qué-incidentes-se-investigan-y-se-corrigen). Forman parte de él dos interruptores más, que aparecen debajo mientras está activado: _Abrir un pull request de corrección cuando una investigación encuentra un cambio de código_ y _Abrir un pull request que añade la telemetría que falta_. Activar la corrección activa ambos, y desactivarla desactiva ambos; mientras está activada, desactiva el que no quieras. Los Project Owners y los Project Admins pueden cambiarlos; para el resto, cada interruptor está bloqueado e indica qué permiso necesita.
+
+Las páginas solo dicen dos cosas cuando son ciertas. Si **Habilitar IA** está desactivado, no se ejecuta nada de ellas, y la página lo dice arriba, con el propio interruptor Habilitar IA para quienes pueden cambiarlo (los Project Owners y cualquiera con Manage Billing); al resto se le dice quién puede. Si el proyecto no tiene ningún proveedor de LLM que OneUptime AI pueda usar —ninguno en absoluto, o proveedores pero ninguno marcado como predeterminado—, la página también lo dice, con un enlace a **Ajustes del proyecto → IA → Proveedores de LLM**. En OneUptime Cloud cuenta el proveedor global, así que allí no se dice nada.
+
+Los incidentes y las alertas se configuran por separado, de modo que puedes dar a cada tipo de señal su propio tope de simultaneidad, su presupuesto diario de tokens, su presupuesto de tareas de corrección y su política de pull requests de seguimiento. Ninguno de esos límites se aplica hasta que lo defines: están plegados bajo **Más ajustes**, al final de cada página; consulta **Control de costes** más abajo. Cambiar un ajuste de IA de las alertas no cambia el ajuste correspondiente de los incidentes, ni al revés.
+
+La corrección se apoya en las investigaciones: mientras **Corregir automáticamente los incidentes nuevos** (o las alertas) está activado, **Abrir un pull request de corrección cuando una investigación encuentra un cambio de código** permite que una investigación que identifica con confianza un cambio de código en un repositorio abra automáticamente un pull request de corrección; consulta **Correcciones de código automáticas** más abajo.
+
+## Acceso al clúster: deja que OneUptime AI ejecute kubectl
+
+De entrada, una investigación solo puede usar la telemetría que envían tus agentes. Para una señal de Kubernetes eso a menudo no basta: «pods atascados en Pending» es un problema de planificación que se diagnostica describiendo el pod y leyendo sus eventos, no mirando una métrica. El **Agente de IA de Kubernetes** permite que OneUptime AI haga exactamente eso y, si lo permites, que corrija lo que encuentra.
+
+La página de cada clúster tiene una sección **IA** en su menú lateral:
+
+- **Agente**: la página **Agente de IA** del clúster: si el agente está conectado, qué puede hacer la IA en el clúster y todo lo que requiere atención, cada cosa con el paso que la resuelve. La misma explicación aparece en el panel de investigación del incidente cuando la IA tuvo que investigar solo con datos de OneUptime.
+- **Análisis**: la página **Hallazgos de IA** del clúster: lo que OneUptime AI averiguó sobre el clúster, qué sigue fallando y por qué, y qué hacer al respecto (consulta [Lo que la IA aprendió en un clúster](#lo-que-la-ia-aprendió-en-un-clúster)).
+- **Registros**: la página **Registros de IA** del clúster: todo lo que OneUptime AI hizo en el clúster, de lo más reciente a lo más antiguo (consulta [Todo lo que la IA hizo en un clúster](#todo-lo-que-la-ia-hizo-en-un-clúster)).
+
+La **Vista general** del clúster termina con una tarjeta **Agente de IA** que resume la página del agente de IA: si el agente está conectado, si **Investigar con kubectl** está activado, cómo se ejecutan las correcciones (**Desactivado**, **Pedir aprobación**, **Automático** u **Omitir aprobación**) y qué requiere atención, con un enlace a la página del agente de IA, donde se cambian.
+
+### El agente de IA de Kubernetes: activado por defecto y de solo lectura
+
+El chart del [agente de Kubernetes de OneUptime](/docs/telemetry/kubernetes-agent) ejecuta por defecto el agente de IA de Kubernetes: un pod pequeño (`component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) con un ServiceAccount de **solo lectura**. Se conecta con la clave de API que ya usa el chart, así que no hay nada que configurar en el panel: en un minuto, la página del agente de IA del clúster lo muestra como **Conectado** y **Investigar con kubectl** está activado, salvo que alguien ya haya elegido ahí ajustes de IA para el clúster, que se conservan tal cual.
+
+En un agente instalado antes de que existiera el agente de IA de Kubernetes, actualiza primero el índice de tus charts y luego haz la actualización:
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set aiAgent.enabled=true
+```
+
+`kubernetes-agent` en `oneuptime-agent` son el nombre de la release y el espacio de nombres que usan las instrucciones de instalación del panel; si instalaste el agente con otros nombres, usa los tuyos (`helm list -A | grep kubernetes-agent` los muestra). Sin `helm repo update`, Helm puede resolver el chart desde el que instalaste, que no conoce `aiAgent` y falla con `Additional property aiAgent is not allowed`. En un OneUptime autoalojado, actualiza OneUptime antes que el chart: consulta [Actualizar el agente](/docs/telemetry/kubernetes-agent#actualizar-el-agente). Para ejecutar el chart sin el agente de IA, pasa `--set aiAgent.enabled=false`.
+
+**Probar conexión**, en el menú **⋯** junto al estado del agente en la página del agente de IA, ejecuta `kubectl version` y `kubectl auth can-i --list` a través del agente y muestra los resultados: a qué puede llegar y qué puede hacer. Si la página dice que el agente no está conectado, lee su registro con `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. Una clave con un **Nombre de servicio fijado** no puede registrar el agente: dale al chart una clave sin él. Cuando el servidor rechaza un registro, el registro del agente dice si el rechazo se resolverá solo (un pod anterior del agente que todavía se reporta, o el antiguo Runner del clúster que aún se está apagando durante una actualización) o qué hay que cambiar. **Restablecer agente**, en el mismo menú, hace que el servidor olvide la clave del agente en cuanto lo confirmas; el pod se vuelve a conectar solo en unos minutos.
+
+El agente de IA de Kubernetes no es un Runner y nunca aparece en Runbooks → Agentes de runbook. Solo usa su propio ServiceAccount, así que OneUptime nunca le entrega una credencial, nunca se usa como host Bash/SSH para los runbooks y nunca se acepta como Runner de comandos de una regla de remediación automática.
+
+### Lo que puede hacer la IA: lo decide el agente
+
+Lo que OneUptime AI puede hacer en un clúster se define donde se ejecuta el agente, en el chart, con dos valores:
+
+- `aiAgent.investigation`: `true`: la IA puede ejecutar kubectl de solo lectura en el clúster mientras investiga. `false`: sigue investigando, con los datos que OneUptime ya tiene.
+- `aiAgent.fixes`: cómo aplica la IA una corrección: `off`, `ask-for-approval`, `automatic` o `bypass-approval` (consulta [Cómo funcionan las correcciones](#cómo-funcionan-las-correcciones)). Todos los niveles salvo `off` dan al agente de IA acceso de escritura; con `off` no tiene ninguno y rechaza él mismo cualquier escritura.
+
+El agente de IA comunica ambos a OneUptime en cada heartbeat, y OneUptime los aplica al clúster. **Lo que puede hacer la IA**, en la página del agente de IA del clúster, los muestra (**Activado** y el nivel de correcciones, en verde cuando están activados) sin forma de cambiarlos ahí; **Cambiar** muestra cada opción con el `helm upgrade` exacto que la define. Un cambio hecho en cualquier otro sitio (la página del agente de IA, la API o Terraform) se rechaza mientras el agente los define.
+
+Una release que no define ninguno de los dos valores deja que el agente use sus valores predeterminados (investigación activada; correcciones desactivadas, o ask-for-approval con el antiguo `aiAgent.remediation.enabled=true`). OneUptime solo aplica esos valores predeterminados a un clúster cuyos ajustes de IA nadie eligió en su página del agente de IA: los ajustes elegidos ahí se conservan tal cual, y la página muestra el comando que los traslada al chart. Lo mismo ocurre con un clúster cuyo agente de IA es demasiado antiguo para comunicarlos: actualizar el chart con los dos valores los traslada.
+
+### Deja que la IA corrija lo que encuentra
+
+Las correcciones están desactivadas hasta que las activas con `aiAgent.fixes`, que además da al agente de IA acceso de escritura; lo ideal es que sea solo en los espacios de nombres que la IA puede corregir y con las operaciones de nodo desactivadas:
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set aiAgent.enabled=true \
+  --set aiAgent.investigation=true \
+  --set aiAgent.fixes=ask-for-approval \
+  --set "aiAgent.remediation.namespaces={web,api}" \
+  --set aiAgent.remediation.nodeOperations=false
+```
+
+O en todo el clúster:
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set aiAgent.enabled=true \
+  --set aiAgent.investigation=true \
+  --set aiAgent.fixes=ask-for-approval \
+  --set-json 'aiAgent.remediation.namespaces=[]'
+```
+
+Sustituye `{web,api}` por los espacios de nombres que la IA puede corregir. Cada espacio de nombres de la lista debe existir ya: el chart crea un RoleBinding en cada uno y nunca crea un espacio de nombres, así que uno que falte hace fallar toda la instalación o la actualización (el recopilador incluido) con `namespaces "api" not found`. Créalo antes o quítalo de la lista; quita un espacio de nombres de la lista antes de borrarlo. Omitir la opción en una actualización conserva la lista guardada en la release, así que para volver a todo el clúster pasa `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), como hace el segundo comando, y no `={}`, que Helm lee como un nombre vacío y el chart rechaza. `--set aiAgent.remediation.namespaces=null` no restablece una lista guardada con `--reuse-values`: Helm conserva la lista guardada. `aiAgent.remediation.nodeOperations=false` mantiene las correcciones lejos de los nodos; ponlo a `true` para que la IA pueda acordonar, desacordonar, drenar y aplicar taints a los nodos (un drain, un taint o un patch de un nodo sigue esperando a una persona).
+
+Usa `automatic` o `bypass-approval` en lugar de `ask-for-approval` para más autonomía, y `--set aiAgent.fixes=off` para volver a desactivar las correcciones, lo que también retira el acceso de escritura. Las correcciones también necesitan dos interruptores del proyecto. **Corregir automáticamente los incidentes nuevos** (en **Incidentes → IA → Ajustes**) y **Corregir automáticamente las alertas nuevas** (en **Alertas → IA → Ajustes**) empiezan desactivados: hasta que uno esté activado, no se corrige nada nuevo de ese tipo. **Habilitar IA** (**Ajustes del proyecto → IA → Funciones de IA**) está activado salvo que alguien lo haya desactivado; desactiva toda la IA del proyecto, diga lo que diga la configuración de un agente.
+
+### Sobre qué incidentes actúan las correcciones de un clúster
+
+Mientras **Corregir automáticamente los incidentes nuevos** está activado y no hay ninguna regla de remediación automática configurada, OneUptime AI corrige cada incidente nuevo al que está vinculado el clúster, en el modo que define la página de su agente de IA, y lo mismo con las alertas con **Corregir automáticamente las alertas nuevas**. Con reglas, solo corrige los incidentes que coinciden con una regla que corrige con OneUptime AI (consulta [Qué incidentes se investigan y se corrigen](#qué-incidentes-se-investigan-y-se-corrigen)). Lo que no está vinculado, no lo toca, por muy clara que esté la causa en el clúster. Un incidente o una alerta está vinculado a un clúster cuando:
+
+- la telemetría que lo generó nombra el clúster (un monitor de métricas, registros o trazas sobre los datos del clúster);
+- su monitor es un monitor de Kubernetes del clúster;
+- su monitor está vinculado al clúster en **Monitor → Vista general → Recursos vinculados**, que es la forma de vincular un monitor de sitio web, de API o sintético con el clúster que sirve lo que comprueba;
+- alguien eligió el clúster en **Otros recursos afectados** al declararlo (elegir un monitor vinculado lo añade ahí por ti).
+
+Cada incidente y cada alerta indica en su tarjeta **Remediación** si estaba vinculado a un clúster y qué hicieron las correcciones del clúster; consulta [Lo que hizo la remediación automática](#lo-que-hizo-la-remediación-automática). Lo mismo vale para un recurso de infraestructura y su agente de IA.
+
+### Quién puede cambiarlo
+
+Mientras el agente de IA de Kubernetes define la investigación y las correcciones, las cambia quien puede cambiar los valores del chart en el clúster; OneUptime rechaza un cambio hecho en cualquier otro sitio. Las reglas siguientes valen para lo que queda en OneUptime (la lista de permitidos de kubectl y la vinculación del Runner y la credencial) y para la investigación y las correcciones de un clúster cuyos ajustes aún se definen en OneUptime (consulta [Lo que puede hacer la IA: lo decide el agente](#lo-que-puede-hacer-la-ia-lo-decide-el-agente)).
+
+Activar las correcciones (cualquier paso de **Desactivado** a otro modo) y relajarlas (pasar a **Automático** u **Omitir aprobación**, escribir la lista de permitidos de kubectl, vincular un Runner o una credencial, o quitar esa vinculación de un clúster que tiene un agente de IA de Kubernetes) requiere un Project Owner, un Project Admin o el permiso **Edit Auto Remediation Rule**, las mismas personas que pueden crear una regla de remediación totalmente automática. Vincular una credencial requiere además el permiso **Read Runbook Credential**, salvo que seas Project Owner o Project Admin. **Restablecer agente** requiere las mismas personas que activar las correcciones. Endurecerlas (**Desactivado**, volver a **Pedir aprobación**, vaciar la lista de permitidos) está al alcance de cualquiera que pueda editar el clúster.
+
+### Qué puede ejecutar una investigación
+
+Con acceso, una investigación ejecuta kubectl de **solo lectura** a través del agente de IA (`get`, `describe`, `logs`, `events`, `top`, `rollout status/history`, `auth can-i`), tantos comandos como necesite, y cita cada comando como cualquier otra prueba. La salida nunca se corta: el agente conserva hasta un megabyte, y OneUptime AI lee una salida larga página a página. Tres comprobaciones independientes la mantienen en solo lectura: la política que clasifica cada comando, el servidor que se niega a encolar cualquier otra cosa para una investigación y el agente de IA, que vuelve a comprobar la misma política antes de lanzar kubectl. «Solo lectura: no se cambió nada en tus sistemas» sigue siendo literalmente cierto.
+
+```mermaid title="Cada comando se comprueba tres veces"
+flowchart TB
+    A["OneUptime AI pide<br/>un comando"] --> T["1. La herramienta de IA:<br/>la política de<br/>comandos"]
+    T --> Q["2. El servidor, antes<br/>de encolar el comando"]
+    Q --> G["3. El agente de IA,<br/>antes de ejecutar<br/>kubectl"]
+    G --> K["La API de Kubernetes,<br/>con el ServiceAccount<br/>propio del agente"]
+```
+
+### Cómo funcionan las correcciones
+
+Las **Correcciones** de la página del agente de IA tienen cuatro ajustes (el `aiAgent.fixes` del chart: `off`, `ask-for-approval`, `automatic`, `bypass-approval`):
+
+- **Desactivado**: la IA solo investiga.
+- **Pedir aprobación**: tras el análisis de causa raíz, OneUptime AI diagnostica con kubectl y compone el plan de kubectl más pequeño que aborda la causa, por ejemplo `kubectl rollout restart deployment/web -n web`. El plan aparece en el incidente con su justificación, el efecto esperado y la reversión; una persona lo aprueba con un clic y OneUptime ejecuta exactamente esos comandos. Si los monitores no se recuperan, se ejecuta la reversión y OneUptime AI compone un plan más, de nuevo para su aprobación, con el intento fallido delante, para seguir otro enfoque o decir qué debería revisar una persona.
+- **Automático**: los cambios seguros se ejecutan solos; un cambio más arriesgado, nunca. Cuando la ronda solo pudo encontrar correcciones más arriesgadas, termina proponiendo exactamente esas para aprobarlas con un clic. Cuando también ejecutó una corrección segura, la más arriesgada queda en el análisis y solo se propone si la verificación muestra que la corrección segura no recuperó los monitores, en la ronda de seguimiento, que pide aprobación. Añade la forma de un comando más arriesgado a la lista de permitidos en la página del agente de IA y también se ejecutará solo. El modo automático además resuelve la señal en cuanto la verificación confirma que los monitores se recuperaron, y tiene un cortacircuitos de tres correcciones sin supervisión por clúster y por hora: por encima de eso, o mientras otra ronda sin supervisión de OneUptime AI siga cambiando o verificando el mismo clúster, una ronda propone su plan para su aprobación en lugar de ejecutarlo.
+- **Omitir aprobación**: la IA no pregunta. Cada cambio que permite la política, incluidos los más arriesgados, se ejecuta solo, igual que la ronda de seguimiento tras una verificación fallida; la señal se resuelve sola en cuanto la verificación confirma la recuperación. Lo que necesita a una persona en todos los modos (más abajo) sigue esperándola. Una ronda también propone su plan para su aprobación en lugar de ejecutarlo, y explica por qué en el incidente, cuando:
+  - el cortacircuitos por hora (tres correcciones sin supervisión por clúster y por hora) ha saltado o no se puede comprobar;
+  - otra ronda sin supervisión de OneUptime AI sigue cambiando el mismo clúster, o verificando en él una corrección (una alerta y un incidente de un mismo monitor son el caso habitual), o eso no se puede comprobar;
+  - es la ronda de seguimiento tras una corrección cuya reversión no terminó.
+
+Un cambio **seguro** afecta exactamente a un objeto con nombre: `rollout restart/undo/pause/resume`, `scale` (a cualquier valor salvo 0), borrar un pod con nombre, `cordon`/`uncordon`, y `label`/`annotate` sobre un Pod, Deployment, StatefulSet, DaemonSet, ReplicaSet, Job o CronJob con nombre y una clave normal (no una reservada como `*.kubernetes.io/…` o `*.k8s.io/…`). Todo lo demás que permite la política es **más arriesgado**: los mismos verbos sobre un tipo sin nombre (`rollout restart deployment`), sobre varios objetos, con un selector o con `--all`; `scale` a 0; borrar un job; `taint`; `drain`; `patch`; `set image/env/resources`; `create`; borrar con `--force`; y las etiquetas o anotaciones sobre cualquier otro tipo o con una clave reservada.
+
+Algunos límites se mantienen en **todos** los modos, Omitir aprobación incluido, y ninguna entrada de la lista de permitidos los cambia:
+
+- Una escritura en **kube-system**, **kube-public** o **kube-node-lease** siempre necesita a una persona. Un recurso personalizado se juzga por el espacio de nombres en el que se escribe, incluso uno cuyo nombre parezca un tipo integrado de ámbito de clúster (`nodes.example.com`, `namespaces.example.com`).
+- Un `drain`, un `taint` o un `patch` de un nodo siempre necesita a una persona. Drenar un nodo desaloja pods de todos los espacios de nombres (los tres de arriba y el propio del agente incluidos), y un taint `NoExecute` también los desaloja, tanto si lo pone `kubectl taint` como un `patch` del nodo.
+- El agente de IA nunca cambia nada en su propio espacio de nombres (una corrección ahí podría escalar a cero el agente de Kubernetes, o al propio agente de IA), ni nada fuera de los espacios de nombres en los que su chart le deja escribir (`aiAgent.remediation.namespaces`), ni un nodo cuando su chart desactivó las operaciones de nodo (`aiAgent.remediation.nodeOperations=false`). OneUptime lee ese alcance de lo que comunica el agente de IA y rechaza una corrección así cuando OneUptime AI la propone y otra vez cuando alguien la aprueba, así que nunca llega al agente de IA como una corrección fallida; el agente de IA también la rechaza, antes de lanzar `kubectl`.
+- Los comandos destructivos (más abajo) nunca se ejecutan, ni siquiera con la aprobación de una persona.
+
+La lista de permitidos del modo automático se compara palabra por palabra con el comando analizado, no como texto libre: `*` representa exactamente una palabra (una imagen, un nombre), nunca objetos, opciones o un segundo `-n` de más, y cada opción que usa el comando debe aparecer escrita en la entrada. `kubectl set image deployment/web * -n web` permite una imagen nueva para `web` en `web`, nada más. Una entrada debe escribir su verbo (y el subcomando de `rollout`, `set` o `create`) en lugar de usar `*` para ello, y debe tener más de una palabra después del `kubectl` inicial opcional; una entrada que incumple estas reglas, como `scale` o `kubectl *`, nunca podría aprobar de antemano un cambio y se rechaza al guardarla.
+
+:::details Comandos que nunca se ejecutan, y cómo se lee un comando
+Algunos comandos **nunca** se ejecutan, sea cual sea el modo e incluso con la aprobación de una persona. La política de comandos los rechaza, y se aplica tres veces: en la herramienta del servidor, en el punto de paso obligado por el que el servidor encola y en el agente de IA antes de lanzar `kubectl`: `exec`, `attach`, `cp`, `port-forward`, `proxy`, `debug`, `run`, `edit`, `apply`, `replace`, `diff`, los plugins de kubectl y cualquier otro verbo que no esté en su lista, cualquier entrada desde archivo (`-f`, `-k`) o formato de salida que lea un archivo (`-o jsonpath-file=`, `-o go-template-file=`, `-o custom-columns-file=`, `--template`, y un `-o jsonpath`/`go-template`/`custom-columns` sin su plantilla en línea), las opciones de credenciales, de suplantación (`--as`, `--as-group`, `--as-uid`, `--as-user-extra`), de selección de clúster, `--kuberc`, de API en bruto y de registro detallado, los objetos Secret con **cualquier** verbo (OneUptime AI nunca lee, cambia, borra ni crea un Secret, y `create secret`, `create token` y `set env --resolve` se rechazan con ellos), todo lo que concede RBAC (`create role`, `create clusterrole`, `create rolebinding`, `create clusterrolebinding`, `set subject`), `certificate approve`, `set serviceaccount`, `create deployment`, `create cronjob` o `create job` con `--image` (`create job --from=cronjob/…` sigue siendo un cambio más arriesgado), `expose --overrides` o `--override-type` (la sobrescritura puede hacer que kubectl cree un Job, un ClusterRoleBinding o cualquier otro tipo de objeto en lugar de un Service), un cuerpo de `patch` que no sea JSON (kubectl lo leería como YAML, cuyas etiquetas pueden escribir un campo que ninguna comprobación ve), los patches que cambian el ServiceAccount, los volúmenes o los ajustes de seguridad de una plantilla de pod (puertos del host, la exclusión del espacio de nombres de usuario `hostUsers` y la clase de runtime `runtimeClassName` incluidos), los patches que sustituyen una parte entera de una plantilla de pod en lugar de definir campos en ella (un strategic-merge `$patch: replace`, un merge patch que define una lista `containers` entera, o un JSON patch que sustituye o elimina la especificación del pod), que descartarían esos ajustes sin nombrarlos, una etiqueta o anotación sobre objetos Namespace elegidos con `--all` o un selector en lugar de por su nombre, cualquier escritura (`patch`, `label`, `annotate`, `set`) sobre objetos RBAC, CustomResourceDefinitions, APIServices, configuraciones de webhooks de admisión o políticas de admisión, las escrituras con `--all-namespaces`, `delete --all`, y borrar espacios de nombres, nodos, volúmenes, CRD o roles de clúster. Las opciones se analizan como las analiza kubectl, de modo que una opción o un tipo prohibido no puede esconderse detrás de otro: las opciones cortas combinadas se separan letra a letra (`-As` se detecta), las opciones con valor opcional (`--cascade`, `--dry-run`, `--validate`) nunca se tragan la palabra siguiente, y toda opción salvo `-n`/`--namespace`, `--request-timeout` y `--match-server-version` debe ir después del verbo (y después del subcomando de `rollout`, `set`, `create`, `auth`, `cluster-info` y `top`), porque kubectl elige el comando antes de analizar las opciones. El agente de IA incluye su propio kubectl con versión fija (v1.36.4) y desactiva kuberc, de modo que un archivo kuberc no puede añadir valores predeterminados ni alias a un comando después de que la política lo haya comprobado. Entrega a cada comando un kubeconfig privado para su propio ServiceAccount que apunta al archivo de token montado, nunca una copia del token.
+:::
+
+### Lo que el RBAC del agente de IA limita, y lo que no
+
+:::details Lo que concede el RBAC del chart
+El RBAC del chart es una capa distinta de la política, y limita **dónde** puede escribir el agente de IA, no lo que puede hacer una escritura. El acceso de solo lectura (get/list/watch, registros de los pods) se concede en todo el clúster. `aiAgent.remediation.enabled` añade patch/update sobre Deployments, StatefulSets, DaemonSets, ReplicaSets y su subrecurso scale, Jobs, CronJobs, Pods y HPA; create sobre Jobs y HPA; y delete solo sobre Pods y Jobs. `aiAgent.remediation.nodeOperations` (activado por defecto) añade cordon, uncordon, taint y drain sobre los nodos, en todo el clúster; ponlo a `false` y el chart no concede RBAC de nodos y se lo indica al agente de IA (`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false`), que entonces rechaza cordon, uncordon, drain, taint y label/annotate/patch sobre un nodo antes de lanzar kubectl; y, como el agente de IA comunica el interruptor, OneUptime ya rechaza una corrección así cuando se propone o se aprueba. Nunca concede Secrets, `exec`, `attach`, `port-forward`, tokens de ServiceAccount, suplantación, CRD ni escrituras de RBAC, así que borrar cualquier otro tipo, o etiquetar un Service, un ConfigMap, un Ingress, un Namespace o un PVC, falla en el servidor de API con `Forbidden` aunque una persona lo haya aprobado. Las dos capas no son copias la una de la otra: para el RBAC, `apply`, `edit`, `replace`, las escrituras con `--all-namespaces` y `delete --all` son llamadas patch, update y delete normales, y solo la política las detiene.
+:::
+
+:::warning Lo que supone el acceso de escritura
+Ten claro, eso sí, lo que supone ese acceso de escritura: **patch/update sobre workloads, pods y CronJobs, y create sobre Jobs, en un espacio de nombres equivale a ejecutar cualquier imagen como cualquier ServiceAccount de ese espacio de nombres y a leer sus Secrets.** Una plantilla de pod puede nombrar cualquier imagen, ServiceAccount y volumen de Secret, y el RBAC no tiene un verbo «patch, pero no la plantilla del pod»; que ninguna regla nombre `exec` ni los Secrets no lo cambia. Por eso la política rechaza cambiar con qué ServiceAccount, ajustes de seguridad, volúmenes, comando o conexión de Secrets se ejecuta un pod (patches de seguridad de la plantilla del pod, patches que sustituyen la especificación del pod o una lista `containers` entera, `set serviceaccount`, `create … --image`, `expose --overrides`, cuerpos de patch que no son JSON), por eso los espacios de nombres protegidos siempre necesitan a una persona, y por eso existe `aiAgent.remediation.namespaces`. La política **no** rechaza cambiar una imagen: `set image`, o un patch de un campo de imagen, es un cambio más arriesgado (la imagen nueva se ejecuta como el propio ServiceAccount del workload, con sus Secrets) que aprueba una persona, salvo que el clúster omita las aprobaciones o que su lista de permitidos nombre el comando. Sin `aiAgent.remediation.namespaces`, el rol de escritura se vincula en todo el clúster (kube-system, kube-public, kube-node-lease y el propio espacio de nombres del agente incluidos, ya que el RBAC no puede excluir espacios de nombres de una vinculación de todo el clúster), y ahí son la política y el agente de IA quienes mantienen la línea, no el RBAC. Con él, el chart vincula el rol exactamente en los espacios de nombres que enumeras, OneUptime rechaza una escritura en cualquier otro sitio cuando se propone o se aprueba, y el agente de IA la vuelve a rechazar antes de lanzar kubectl.
+:::
+
+### Lo que la IA aprendió en un clúster
+
+La página **Hallazgos de IA** del clúster (IA → Análisis) te cuenta lo que vale la pena saber sobre el clúster a partir de los últimos 30 días: no un registro de lo que hizo la IA, sino lo que averiguó:
+
+- **Lo que encontró OneUptime AI**: las pocas cosas que más importan, la más importante primero, cada una con los incidentes y las alertas que hay detrás y un siguiente paso:
+  - un problema que vuelve una y otra vez: con qué frecuencia (cuenta cada incidente y cada alerta que generó, investigados o no) y qué parte del total supone, si es nuevo esta semana o va a peor, la hora del día a la que suele empezar (en tu propia zona horaria), las partes del clúster a las que afecta, lo que encontró la última investigación y el primer paso que sugiere su informe;
+  - una corrección que no resolvió su problema, y las correcciones que esperan tu aprobación;
+  - un riesgo detectado antes de que se avisara a nadie: un [hallazgo](#hallazgos-detección-proactiva) abierto de gravedad High o Medium sobre la propia telemetría del clúster;
+  - el nodo, el pod, el espacio de nombres o el workload que hay detrás de varios problemas distintos, enlazado a su propia página en el clúster;
+  - lo que la IA corrigió por su cuenta y si la corrección se mantuvo, y, cuando tu equipo aprobó todas las correcciones que propuso la IA, que la IA podría aplicar por su cuenta correcciones como esas;
+  - un problema que volvía una y otra vez y que paró tras una corrección.
+
+  Cuando nada destaca, la página lo dice.
+- **Otros problemas**: todo lo demás que examinó la IA, agrupado según lo que lo generó (un monitor es un problema, por muchos pods o nodos para los que se haya disparado), lo más frecuente primero: con qué frecuencia, qué espacios de nombres, workloads, pods o nodos afecta, lo que encontró y sugiere la última investigación, qué pasó con las correcciones que propuso la IA y qué dijeron tu equipo y la evaluación de los hallazgos. Un problema que apareció más de una vez se marca como **Recurrente**, **Nuevo esta semana** o **Va a peor**.
+- **Dónde ocurren los problemas**: las partes del clúster que más aparecieron, y en cuántos problemas distintos.
+- **Detectado antes de que se avisara a nadie**: los demás hallazgos abiertos que los detectores registraron sobre la propia telemetría del clúster.
+- **Lo que hizo OneUptime AI aquí**: la nota al pie: cuántas investigaciones, correcciones y comandos hubo y cuántos fallaron, las investigaciones por día, en qué acabaron las correcciones que propuso la IA y si las aplicadas resolvieron el problema, y qué falló en el propio trabajo de la IA (investigaciones fallidas, comandos que el agente nunca recogió, hallazgos que tu equipo rechazó), cada cosa con dónde mirar.
+
+Con **Habilitar IA** desactivado en el proyecto, o sin ningún proveedor de LLM que OneUptime AI pueda usar, la página lo dice arriba: no se investiga nada nuevo, así que no aparece nada nuevo.
+
+Todo lo que hay en la página sale de lo que OneUptime ya registró (los incidentes y las alertas, sus investigaciones y sus conclusiones, los veredictos sobre ellas, las correcciones y los comandos) y no se llama a ningún modelo para construirla: las palabras que son de la propia IA (un hallazgo, un paso sugerido) las escribió la investigación que los encontró, y se muestran como suyas. Cualquiera que pueda ver el clúster puede ver la página, y esta solo nombra los incidentes y las alertas que esa persona puede leer.
+
+### Todo lo que la IA hizo en un clúster
+
+La página **Registros de IA** del clúster (IA → Registros) es el registro de todo lo que OneUptime AI hizo allí, de lo más reciente a lo más antiguo: cada investigación con su incidente o alerta y su resumen, cada corrección que propuso o ejecutó con su estado, y cada comando kubectl (de investigación o de corrección) con el comando, su estado y cuándo se ejecutó. El resumen de una investigación es su TL;DR o, cuando no se pudo escribir un TL;DR, el resumen con el que empieza su informe. Esta página se llamaba antes Hallazgos de IA; un marcador de su dirección antigua abre ahora la página Hallazgos de IA, que enlaza aquí.
+
+### A través de un Runner (avanzado)
+
+Un clúster que no ejecuta el chart (uno que envía su telemetría de Kubernetes de otra forma) puede dar a OneUptime AI acceso a kubectl a través de un Runner que gestionas tú (Runbooks → Agentes de runbook). Vincula el Runner y una credencial de Kubernetes (URL del servidor de API + token de ServiceAccount, en **Runbooks → Agentes de runbook → Credenciales**) al clúster con la API o Terraform (el **Runner de acceso de IA** y la **Credencial de acceso de IA** del clúster), y activa **Ejecuta comandos de remediación con IA** para ese Runner. Las correcciones a través de un Runner necesitan los mismos interruptores del proyecto que las correcciones a través del agente de IA: **Habilitar IA**, y **Corregir automáticamente los incidentes nuevos** (o las alertas). Para limitar dónde puede escribir un Runner así, inícialo con `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (y `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` para mantener las correcciones lejos de los nodos): el Runner comunica esos límites, así que OneUptime rechaza una corrección fuera de ellos cuando se propone o se aprueba, antes de que llegue al Runner, y el Runner la vuelve a rechazar. Un clúster vinculado a un Runner lo sigue usando aunque el agente de IA de Kubernetes esté instalado; la página del agente de IA muestra entonces por qué Runner y qué credencial pasa y, en cuanto el agente de IA está conectado, ofrece **Cambiar al agente de IA** en el menú **⋯** junto al estado del agente.
+
+Los clústeres configurados con un chart anterior (`aiAccess.enabled=true`) llegan a OneUptime AI a través del Runner anterior dentro del clúster hasta que se actualiza el chart. La actualización sustituye ese Runner por el agente de IA de Kubernetes y conserva sus ajustes: consulta [Actualizar el agente](/docs/telemetry/kubernetes-agent#actualizar-el-agente).
+
+## Acceso a la infraestructura: Docker, Podman, Swarm, Proxmox, VMware, Ceph, bases de datos y hosts
+
+El mismo tipo de acceso existe para el resto de tu infraestructura. Un agente de IA de recursos (imagen `oneuptime/resource-ai-agent`) se ejecuta junto al recopilador de un host de Docker o Podman, un clúster de Docker Swarm, un clúster de Proxmox, un VMware vCenter, un clúster de Ceph o un servidor de bases de datos (o por su cuenta en un host Linux) y permite que OneUptime AI ejecute allí comandos de solo lectura mientras investiga (`docker logs`, `pvesh get`, `govc vm.info`, `ceph health detail`, un catálogo fijo de diagnósticos de bases de datos, `systemctl status`, `journalctl`, …) y, solo cuando inicias el agente con `ONEUPTIME_AI_ALLOW_WRITES=true` y un nivel de correcciones (`ONEUPTIME_AI_FIXES`), aplique correcciones con los mismos cuatro modos y las mismas tres comprobaciones que un clúster de Kubernetes. Como en un clúster, lo que la IA puede hacer en un recurso así se define donde se ejecuta su agente (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`) y se muestra en solo lectura en la página de su agente de IA. Cada uno de esos recursos tiene las mismas páginas **Agente de IA**, **Análisis** y **Registros**. Consulta [Agentes de IA para la infraestructura](/docs/ai/infrastructure-ai-agents) para saber cómo instalarlos, qué puede ejecutar cada uno y su modelo de seguridad.
+
+## Modo silencioso
+
+Una investigación que no consigue determinar una causa publica su análisis en la cronología **sin** avisar a tu espacio de trabajo de Slack/Teams ni a la guardia. Una no-respuesta nunca debería avisar a nadie: el análisis está ahí cuando alguien mira, pero no se despierta a nadie por un «no concluyente». Los análisis con confianza notifican al espacio de trabajo con normalidad.
+
+Si un análisis cuenta como seguro lo decide una señal verificada por el servidor, no lo que diga el texto del análisis: una investigación que no reunió pruebas (ninguna consulta de telemetría correcta, ninguna cita) siempre se trata como no concluyente, y en los demás casos una comprobación aparte y acotada clasifica el análisis. Si esa comprobación falla, OneUptime AI se inclina por notificar: el modo silencioso falla haciendo más ruido, nunca en silencio.
+
+## Correcciones de código automáticas
+
+Un análisis seguro que recomienda un cambio de código en un repositorio puede ir un paso más allá de notificar: abre la corrección. El interruptor **Abrir un pull request de corrección cuando una investigación encuentra un cambio de código** forma parte de la corrección: está bajo **Corregir automáticamente los incidentes nuevos** en **Incidentes → IA → Ajustes**, y bajo **Corregir automáticamente las alertas nuevas** en **Alertas → IA → Ajustes**, y solo abre pull requests mientras ese interruptor está activado. Ambos empiezan **desactivados**, también en los proyectos nuevos; activar la corrección lo activa, y desactivar la corrección lo desactiva. No se abre nada hasta que el proyecto tiene un repositorio conectado mediante la GitHub App y un Runner con la capacidad de corrección de código. Un tipo de señal con este ajuste activado encola automáticamente la misma tarea de corrección que el botón **Abrir PR de corrección a partir de este análisis** del panel de investigación: una tarea de agente de IA que convierte el análisis publicado en un pull request, listo para revisar. El botón usa la misma recomendación y se oculta en los análisis cuyo remedio es operativo, solo de infraestructura, externo, un rechazo esperado, un error del usuario o no concluyente.
+
+Un segundo interruptor bajo la corrección, **Abrir un pull request que añade la telemetría que falta**, es para las investigaciones que terminan sin conclusión porque faltaban los registros, las trazas o las métricas que necesitaban: OneUptime AI abre un pull request que añade esa instrumentación en las rutas de código implicadas, para que tu equipo lo revise. Necesita un repositorio conectado mediante la GitHub App, y también se activa y se desactiva con la corrección.
+
+Un pull request no cambia nada hasta que tu equipo lo fusiona, pero la corrección hace más que abrirlos. Para obtener los pull requests sin que OneUptime AI cambie tus clústeres ni tus hosts, activa la corrección, deja las **Correcciones** desactivadas en la página **Agente de IA** de cada clúster de Kubernetes y de cada host (desactivado es su valor predeterminado) y no añadas ninguna regla de remediación automática: con la corrección activada y sin reglas, OneUptime AI solo corrige donde lo permite la página de un agente de IA. Las reglas de remediación automática acotan esas correcciones y los runbooks, no los pull requests: mientras la corrección está activada, cualquier investigación que cumpla los requisitos puede abrir uno.
+
+A través de la API o Terraform los tres son campos separados del proyecto, y el servidor guarda lo que escribes: `enableAutomaticIncidentRemediation` activa la corrección, y los pull requests solo se abren mientras esté activada y su propio campo también lo esté: `enableAutomaticIncidentCodeFixes` y `enableIncidentInstrumentationFixTasks` (`enableAutomaticAlertRemediation`, `enableAutomaticAlertCodeFixes` y `enableAlertInstrumentationFixTasks` para las alertas). El servidor no activa ni desactiva ninguno por su cuenta, así que para activar la corrección con sus pull requests, define los tres en una sola petición.
+
+La misma clasificación acotada y verificada por el servidor que decide la confianza decide también si conviene un cambio en el repositorio. Solo una clasificación positiva como corrección de código ofrece o abre automáticamente el pull request. Una investigación que no reunió pruebas verificadas por el servidor, que recomienda un remedio que no es de código o cuya clasificación falló nunca abre uno: la creación de PR siempre falla hacia no hacer nada. Todo lo demás coincide con el botón manual: el pull request se abre listo para revisar, necesita un repositorio conectado mediante la GitHub App y un Runner con la capacidad de corrección de código, cuenta para el límite diario de tareas de corrección de ese tipo de señal y para el tope de PR abiertos del repositorio cuando alguno está definido, y como mucho puede haber una tarea de corrección activa a la vez por incidente o alerta. La investigación en sí sigue siendo de solo lectura: la corrección se ejecuta como una tarea de agente aparte y totalmente registrada. Consulta [Tareas de corrección](/docs/ai/ai-agent) para ver cómo funcionan los pull requests de corrección, incluida la verificación de compilación y pruebas que se ejecuta antes de abrir cada pull request.
+
+## Qué incidentes se investigan y se corrigen
+
+Dos interruptores en la página de ajustes de IA de cada tipo de señal deciden qué hace OneUptime AI por su cuenta con un incidente nuevo: _Investigar los incidentes nuevos_ (activado por defecto) y _Corregir automáticamente los incidentes nuevos_ (desactivado por defecto); las alertas tienen su propio par. Las reglas, plegadas bajo **Más ajustes** en la misma página, acotan cada uno. La mayoría de los proyectos no necesitan ninguna.
+
+- **Reglas de investigación**: qué incidentes nuevos se investigan. Sin reglas, se investigan todos. Con reglas, solo los incidentes que coinciden con al menos una regla habilitada; los demás lo dicen en su tarjeta **Investigación de IA** (**This incident was outside the investigation rules at creation**), y aun así puedes preguntar a OneUptime AI por ellos. Una regla es un nombre y sus condiciones. Las reglas que no se pueden leer nunca detienen una investigación: el incidente se investiga como si no hubiera ninguna.
+- **Reglas de remediación automática**: qué incidentes nuevos se corrigen, y cómo, mientras _Corregir automáticamente los incidentes nuevos_ está activado. Sin reglas, OneUptime AI corrige cada incidente nuevo en los clústeres de Kubernetes y los hosts a los que está vinculado, en el modo que define la página del agente de IA de cada uno. Con reglas, solo se corrigen los incidentes que coinciden con al menos una regla habilitada, cada uno como digan sus reglas coincidentes.
+
+Una regla de remediación automática hace tres preguntas:
+
+1. **Condiciones**: con qué incidentes coincide: monitores, gravedades, etiquetas, etiquetas de monitor, título y descripción, las mismas condiciones que las demás reglas de incidentes y alertas del proyecto. Una regla sin condiciones coincide con todos los incidentes.
+2. **Corregir con**: **OneUptime AI** corrige el incidente a través del agente de IA del clúster o del host al que afecta; **Runbooks** ejecuta los runbooks que nombra la regla, siempre de la misma forma.
+3. **Aprobación**: **Preguntar antes de corregir**: no se ejecuta nada hasta que alguien aprueba la corrección con un clic. **Corregir sin preguntar**: los runbooks empiezan enseguida, y OneUptime AI corrige sin aprobación allí donde lo permitan los ajustes del agente de IA; un clúster o un host configurado para pedir aprobación la sigue pidiendo.
+
+Cuando coinciden varias reglas, se ejecutan todas: OneUptime AI corrige el incidente una vez, y cada regla de runbook ejecuta sus runbooks. Si alguna regla de OneUptime AI coincidente pregunta antes de corregir, todas las correcciones de OneUptime AI para el incidente preguntan primero, y su línea en la tarjeta **Remediación** nombra esa regla.
+
+Una regla guardada antes de que se simplificaran las reglas sigue haciendo lo que hacía. Una que hacía que la IA compusiera comandos en Runners, o que eligiera uno de los runbooks del proyecto, aparece como **OneUptime AI: comandos en los Runners** u **OneUptime AI: elige un runbook** y lo sigue haciendo; no activa las correcciones de clústeres y hosts ni hace que pregunten. Sus demás ajustes (la lista de permitidos de comandos, los Runners de comandos, la ventana de verificación) se conservan y se definen a través de la API o Terraform.
+
+**Los comandos en Runners y las credenciales con las que se ejecutan.** Un comando SSH que OneUptime AI compone para una regla así se ejecuta en un host al que llega con una de las credenciales asignadas al Runner: la que eligió OneUptime AI. Aprobar un plan con un comando SSH confirma esa elección, así que requiere permiso para leer las credenciales de runbook (**Read Runbook Credential**, o ser Project Owner o Project Admin), igual que nombrar una credencial en un paso de runbook; sin él, la aprobación se rechaza indicando quién puede aprobar el plan, y no se ejecuta nada. Dejar que una regla así ejecute sus comandos sin preguntar (**Corregir sin preguntar**, con una lista de permitidos de comandos) requiere el mismo permiso cuando un guardado lo activa (incluido activar una regla así) o añade patrones o Runners a la lista de permitidos, se escriba como se escriba; acotar la regla, o desactivar eso, no lo requiere. Activar **Ejecuta comandos de remediación con IA** para un Runner que tiene credenciales SSH requiere el mismo permiso, ya que una regla que no nombra Runners llega a cada Runner que ejecuta los comandos de OneUptime AI. Asignar una credencial SSH a un Runner que ejecuta los comandos de OneUptime AI (crear la credencial con ese Runner, o añadirle el Runner) también lo requiere, de modo que una credencial SSH solo llega a un Runner así a través de alguien que puede leerla, se guarde primero la credencial o el interruptor (consulta [Runners que ejecutan los comandos de OneUptime AI](/docs/runbooks/credentials#runners-que-ejecutan-los-comandos-de-oneuptime-ai)). A un paso de un workflow nunca se le presta este permiso por actuar como Project Admin: tiene que hacer estos cambios una persona que lo tenga. Un comando kubectl se ejecuta con la credencial vinculada a su clúster en la página **Agente de IA**, que solo puede vincular quien puede leer las credenciales de runbook (consulta [Quién puede cambiarlo](#quién-puede-cambiarlo)), así que aprobarlo no exige nada más.
+
+## La remediación automática espera al análisis
+
+Cuando el proyecto corrige automáticamente los incidentes o las alertas nuevos (**Corregir automáticamente los incidentes nuevos** y **Corregir automáticamente las alertas nuevas**, con las reglas de remediación automática bajo **Más ajustes** en **Incidentes → IA → Ajustes** y **Alertas → IA → Ajustes**), la corrección espera a la investigación, **primero el análisis de causa raíz**:
+
+- Cuando un incidente o una alerta nuevos **encolan una investigación de IA**, la remediación automática de ese incidente o alerta se aplaza hasta que la investigación **concluye**, con cualquier resultado final: se publica el análisis, la ejecución falla tras sus reintentos, caduca en la cola o queda obsoleta. Solo entonces se ejecutan las reglas de remediación, de modo que el planificador de remediación siempre tiene como entrada el análisis de causa raíz publicado en lugar de competir con él.
+- Cuando **no se encola ninguna investigación** (investigaciones desactivadas, o un umbral de gravedad, un periodo de espera o un presupuesto que definiste la descartó), la remediación se dispara en el momento en que se crea el incidente o la alerta, exactamente como antes. La remediación automática nunca depende de que esté habilitada la vía de investigaciones de IA.
+- Un incidente o una alerta **creado ya resuelto** no se investiga ni se corrige: había terminado antes de registrarse. Su tarjeta **Investigación de IA** lo dice, y aun así puedes preguntar a OneUptime AI por él. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
+
+Una investigación que falla, caduca o queda obsoleta también libera la remediación: el aplazamiento retrasa la remediación hasta conocer el resultado; nunca la cancela.
+
+Mientras la remediación espera, la tarjeta **Remediación** del incidente o de la alerta lo dice, y muestra qué ocurrió cuando la investigación concluye.
+
+La remediación automática depende de dos interruptores. **Corregir automáticamente los incidentes nuevos** (o las alertas), desactivado hasta que el proyecto lo activa: con él desactivado, no se corrige ningún incidente (ni alerta) nuevo. Y **Habilitar IA** (**Ajustes del proyecto → IA → Funciones de IA**), el interruptor principal de IA del proyecto: con él desactivado, no se ejecuta ninguna regla de remediación automática (ni siquiera una que inicia un runbook sin IA) y no se corrige ningún clúster ni recurso.
+
+## Lo que hizo la remediación automática
+
+Cada incidente y cada alerta tiene una tarjeta **Remediación** que dice qué hizo con él la remediación automática, también cuando no hizo nada. Cada vez que el motor evalúa el incidente o la alerta, registra una línea por cada forma en que se puede corregir:
+
+- **Cada clúster de Kubernetes al que está vinculado**: OneUptime AI inició una corrección (y si pide aprobación o se ejecuta sola); las correcciones están desactivadas en el clúster; las correcciones están activadas pero bloqueadas, con el motivo y el siguiente paso que indica la página del agente de IA del clúster; el clúster ya tiene una corrección para él; o la corrección no pudo empezar.
+- **Cada recurso de infraestructura al que está vinculado**: lo mismo, y que otro recurso vinculado se llevó la única corrección de IA que recibe un incidente.
+- **Las reglas de remediación automática**: con reglas configuradas, ninguna coincidió (y cuántas se comprobaron), así que no se corrigió nada; o lo que hizo cada regla coincidente: hizo que OneUptime AI corrigiera el incidente (preguntando antes o no), propuso o inició un runbook, hizo que la IA compusiera comandos o eligiera un runbook, o no pudo, y por qué.
+- **El proyecto**: **Corregir automáticamente los incidentes nuevos** (o las alertas) está desactivado; **Habilitar IA** está desactivado, así que no se ejecuta nada; el incidente ya tiene el máximo de correcciones que puede recibir; o la evaluación se detuvo por un error.
+
+Cuando el incidente no está vinculado a ningún clúster ni a ningún recurso de infraestructura, la tarjeta lo dice en una línea (el motivo más habitual de que no se corrigiera nada), con un enlace a cada uno de sus monitores, donde puedes vincularlos a lo que vigilan para que el próximo incidente que generen quede vinculado. Cada línea enlaza con el lugar donde se cambia: la página del agente de IA del clúster o del recurso, los ajustes de IA del incidente (o de la alerta), donde están su interruptor de corrección y sus reglas, **Habilitar IA** o los proveedores de LLM. Los incidentes y las alertas creados antes de que esto se registrara solo muestran la tarjeta cuando se propuso algo.
+
+## Lo que OneUptime AI aprendió, y todo lo que hizo
+
+La sección **IA** de los menús laterales de Incidentes y Alertas se abre en dos páginas que repasan lo que OneUptime AI hizo para ese tipo de señal. Ninguna cambia nada: ambas solo muestran lo que se registró, y solo para los incidentes (o las alertas) que puedes ver.
+
+- **Análisis** (**Incidentes → IA → Análisis**, **Alertas → IA → Análisis**): la misma página Hallazgos de IA que tiene un clúster (consulta [Lo que la IA aprendió en un clúster](#lo-que-la-ia-aprendió-en-un-clúster)), sobre los incidentes (o las alertas) de los últimos 30 días, elaborada en el servidor a partir de lo que se registró:
+  - **Lo que encontró OneUptime AI**: las pocas cosas que más importan, cada una con los incidentes que hay detrás y un siguiente paso: un incidente que vuelve una y otra vez (con qué frecuencia y qué parte del total supone, si es nuevo esta semana o va a peor, cuándo suele empezar, los monitores que lo generaron, lo que encontró la IA y el paso que sugiere), una corrección que no ayudó o que espera aprobación, los incidentes que la IA no examinó y por qué (con el camino al ajuste que lo decide, para quien pueda cambiarlo), el servicio o el monitor que hay detrás de varios problemas distintos, lo que la IA corrigió por su cuenta y, cuando tu equipo aprobó todas las correcciones que propuso la IA, la forma de dejar que la IA aplique por su cuenta correcciones como esas.
+  - **Otros problemas**: el resto de lo que examinó la IA, agrupado por el monitor que lo generó (por título cuando no lo hay), lo más frecuente primero: con qué frecuencia, los monitores que hay detrás, a qué hosts, pods u otras partes afecta, lo que encontró y sugiere la última investigación, qué pasó con las correcciones que propuso la IA y qué opinaron de los hallazgos tu equipo y la evaluación automática.
+  - **Monitores que fallan una y otra vez** y **Servicios que fallan una y otra vez**: los monitores que hay detrás del mayor número de incidentes de los 30 días, y los servicios afectados por más incidentes, investigados o no.
+  - **Lo que hizo OneUptime AI aquí**: la nota al pie: cuántas investigaciones hubo y cuántos de los incidentes creados en los 30 días investigó la IA, las correcciones y los comandos y cuántos fallaron, las investigaciones por día, en qué acabaron las correcciones y los pull requests de corrección, y por qué la IA no investigó los demás, con el camino a los ajustes de IA que lo deciden.
+
+  Ver las cifras de correcciones requiere permiso para leer las sugerencias de remediación automática; sin él se omiten, no se muestran como cero.
+- **Registros** (**Incidentes → IA → Registros**, **Alertas → IA → Registros**): cada investigación, corrección, pull request de corrección y comando, de lo más reciente a lo más antiguo, cada uno enlazado a su incidente o alerta. El resumen de una investigación es su TL;DR o, cuando no se pudo escribir un TL;DR, el resumen con el que empieza su informe. Fíltralo por un tipo, y usa **Cargar entradas anteriores** para retroceder. Los comandos requieren permiso para leer los trabajos de los Runners, y las correcciones permiso para leer las sugerencias de remediación automática; la página indica qué tipos omite para tu rol.
+
+Los ajustes de IA y las reglas de remediación automática estaban antes en `…/settings/ai` y `…/settings/auto-remediation-rules`, y después las reglas en `…/ai/auto-remediation-rules`; esas direcciones siguen funcionando y abren **IA → Ajustes**, donde están ahora las reglas, bajo **Más ajustes**.
+
+## Control de costes
+
+Todos los límites siguientes son opcionales, y ninguno se aplica hasta que lo defines: con la investigación automática activada, se investiga cada incidente y cada alerta nuevos, sea cual sea su gravedad, y nada limita cuántas investigaciones o tareas de corrección se ejecutan. El volumen de alertas puede ser mucho mayor que el de incidentes, así que estos son los controles a los que recurrir cuando quieres un techo.
+
+Están plegados bajo **Más ajustes**, al final de la página de ajustes de IA de cada tipo de señal, junto con las reglas de investigación y las reglas de remediación automática (consulta [Qué incidentes se investigan y se corrigen](#qué-incidentes-se-investigan-y-se-corrigen)), en **Incidentes → IA → Ajustes** y **Alertas → IA → Ajustes**, en tres secciones que se editan cada una en una página: **Qué incidentes se investigan** (o alertas: el umbral de gravedad y el periodo de espera), **Límites de investigación** (el tope de simultaneidad y el límite de tiempo) y **Límites diarios** (los límites de tokens y de tareas de corrección). Plegado, **Más ajustes** nombra las dos tablas de reglas y las tres secciones y dice qué hacen los valores predeterminados (se investiga cada incidente o alerta, sea cual sea su gravedad, se corrige cada uno mientras la corrección está activada, y nada limita cuánto hace OneUptime AI) y, en cuanto se define una regla o un límite, muestra la tabla o la sección que lo contiene. Abierto, es una sola tarjeta: cada tabla y cada conjunto de límites es una sección de ella, con su propio título y su botón **Editar** o **Crear**, separada de la siguiente por un divisor.
+
+| Control | Comportamiento |
+| --- | --- |
+| Umbral de gravedad | Solo se investigan los incidentes o las alertas de una gravedad mínima o superior. Sin definir (el valor predeterminado) significa **todas las gravedades**. |
+| Periodo de espera para reinvestigar | Un incidente o una alerta repetidos de un monitor que se investigó dentro del periodo de espera no se vuelve a investigar: se mantiene el primer análisis. Sin definir (el valor predeterminado) o 0 significa **sin periodo de espera**: se investiga cada incidente y cada alerta. Como máximo 1440 minutos (un día). |
+| Tope de simultaneidad | Cuántas investigaciones de este tipo de señal se ejecutan a la vez. Los incidentes y las alertas tienen reservas separadas. Sin definir (el valor predeterminado) significa **sin límite**: cada investigación empieza enseguida. Un tope que definas es como mínimo 1, sin máximo; solo entonces las investigaciones en cola esperan un hueco libre, y caducan a los 30 minutos. |
+| Límite de tiempo de investigación | Opcional. Detiene una investigación al cabo de esos minutos e informa de lo que encontró. Sin definir (el valor predeterminado) significa **sin límite de tiempo**: la investigación se ejecuta hasta terminar, solo con una protección contra descontroles de 100 llamadas al LLM y 300 llamadas a herramientas. Una investigación completada gasta además una diminuta llamada de clasificación de confianza (20 tokens de salida como máximo), medida y descontada del límite diario de tokens. |
+| Límite diario de tokens | Máximo opcional de tokens por día UTC para el trabajo autónomo de la IA vinculado a este tipo de señal, incluidas las investigaciones, la remediación y las tareas de corrección de seguimiento. El uso de incidentes y el de alertas se cuentan por separado. Cuando se alcanza un límite, solo se pausa el trabajo de IA de ese tipo de señal hasta el día siguiente: el chat de IA interactivo nunca se bloquea. Sin definir (el valor predeterminado) significa **sin límite**; define **0** para pausar esa vía. |
+| Límite diario de tareas de corrección | Máximo de tareas de corrección vinculadas a incidentes o alertas que se crean por día UTC. Cada tipo de señal tiene su propio límite. Sin definir (el valor predeterminado) significa **sin límite**; define 0 para pausar las tareas de corrección de esa vía. |
+
+El trabajo de la IA fuera de los incidentes y las alertas (el triaje de hallazgos y las tareas de corrección de excepciones, hallazgos y regresiones de rendimiento) no tiene ajuste propio ni ninguno de los límites de la tabla; solo se le aplican los límites diarios propios del proyecto (más abajo). Sus pull requests cuentan para el **Máximo de pull requests de corrección abiertas** de un repositorio (en la página **Ajustes** del repositorio) en cuanto defines uno; sin definir significa sin tope, y 0 bloquea los pull requests de corrección de IA para ese repositorio.
+
+### Los límites diarios propios del proyecto
+
+Por encima de todos los límites de la tabla, un proyecto puede limitar lo que OneUptime AI usa en un día, haga lo que haga: Preguntar a la IA, investigaciones, borradores de post mortem, pull requests de corrección, triaje de hallazgos, workflows, runbooks y preguntas en Slack o Microsoft Teams por igual. Los límites están en **Ajustes del proyecto → Funciones de IA**, plegados bajo **Más ajustes**, en su sección **Límites diarios**:
+
+- **Límite diario de tokens de IA**: el máximo de tokens que la IA del proyecto puede usar cada día, a través de cualquier proveedor de LLM.
+- **Límite diario de gasto de IA (USD)**, en OneUptime Cloud: el máximo de créditos de IA, en dólares estadounidenses enteros, que la IA del proyecto puede gastar cada día. Solo cuenta la IA facturada con los créditos de IA del proyecto, así que nunca detiene la IA que funciona con el proveedor de LLM propio del proyecto. Las instalaciones autoalojadas no facturan la IA, así que no lo ofrecen.
+
+Sin definir (el valor predeterminado) significa **sin límite**. Un límite es un número entero de al menos 1; para desactivar la IA, usa **Habilitar IA**. Un día es un día UTC, como en los límites de incidentes y alertas: el uso se cuenta desde la medianoche UTC, y la cuenta vuelve a empezar en la siguiente medianoche UTC. Plegada, la sección dice qué se aplica y cuánto ha usado hoy la IA, por ejemplo «Como máximo 200.000 tokens al día. Usados hoy: 45.210 tokens.» Solo una persona propietaria del proyecto o alguien con **Manage Billing** puede cambiar los límites: las mismas personas que pueden desactivar la IA.
+
+Cuando se alcanza un límite, el nuevo trabajo de la IA se detiene hasta la medianoche UTC. Una llamada que ya está en curso termina, y cada llamada posterior se rechaza con una frase que dice qué límite se alcanzó, cuánto se usó, y quién puede cambiarlo y dónde: «A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.» Preguntar a la IA, un botón **Generar con IA**, un workflow, un paso de runbook, y Slack y Microsoft Teams responden con esa frase, y cada llamada rechazada aparece en los Registros de IA (**Ajustes del proyecto → IA → Registros de IA**) con el estado **Budget Exceeded**. Las investigaciones automáticas, los borradores de post mortem y el triaje de hallazgos no llegan a iniciarse. Un incidente o una alerta creados mientras tanto lo dicen en su tarjeta de investigación de IA, con un enlace a los límites para las personas que pueden cambiarlos. Los límites diarios de tokens de incidentes y alertas siguen aplicándose por debajo del del proyecto: la IA se detiene en el que se alcance primero.
+
+#### Cuando se alcanza un límite
+
+**Se envía un correo a las personas propietarias del proyecto.** La primera vez que un límite detiene a OneUptime AI en un día UTC, cada persona propietaria del proyecto recibe un correo: qué límite, cuánto ha usado hoy el proyecto, cuándo se restablece, y un enlace a **Ajustes del proyecto → Funciones de IA**, donde se puede subir o quitar. Llega una vez al día por cada límite: el límite de tokens y el de gasto envían cada uno el suyo, y ese día no se envía nada más, por muchas llamadas que se rechacen. Es el mismo correo que reciben las personas propietarias sobre la facturación, y aparece como esos en los registros de correo del proyecto.
+
+**Los incidentes y las alertas omitidos se investigan tras el restablecimiento.** Un incidente o una alerta que no se investigó porque se alcanzó un límite se investiga en cuanto el límite deja de detener a la IA: después de la medianoche UTC, o en cuanto una persona propietaria sube o quita el límite. Solo mientras siga abierto y tenga menos de un día, y una sola vez. Se aplican los ajustes de ese momento, como en un incidente o una alerta nuevos: mientras Habilitar IA o la investigación automática estén desactivados, no haya proveedor de LLM ni crédito de IA, o se haya alcanzado el límite diario de tokens de incidentes o de alertas, sigue esperando; el umbral de gravedad y el periodo de espera aún pueden descartarlo, y entonces su tarjeta dice por qué. Un registro que se resolvió mientras tanto, o que alguien pidió entretanto a OneUptime AI que investigara, no se vuelve a investigar. Se recogen unos pocos cada cinco minutos, los más recientes primero, y solo mientras la cola de investigaciones del proyecto no tenga nada más esperando, así que los incidentes y las alertas nuevos van primero; si se vuelve a alcanzar el límite, los demás esperan al siguiente restablecimiento.
+
+### Cuando se agotan los créditos de IA
+
+En OneUptime Cloud, OneUptime AI con el proveedor global se paga con los créditos de IA del proyecto, en **Ajustes del proyecto → IA → Créditos de IA**. Lo que ocurre cuando se agotan depende de la **Recarga automática**, en la misma página:
+
+- **Recarga automática activada**: la llamada de IA que encuentra primero los créditos agotados añade el importe configurado en la recarga automática, con cargo a la tarjeta del proyecto, y luego se ejecuta. Las llamadas que llegan en el mismo instante cargan la tarjeta una sola vez. Activar la recarga automática mientras los créditos están por debajo de su umbral los añade enseguida, igual que hace la recarga automática del saldo de SMS y llamadas.
+- **Recarga automática desactivada**: OneUptime AI se detiene. Cada llamada de IA se rechaza indicando quién puede añadir créditos, y dónde: «A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.» Cada llamada rechazada aparece en los Registros de IA (**Ajustes del proyecto → IA → Registros de IA**) con el estado **Insufficient Balance**. Las investigaciones automáticas y los borradores de post mortem no se inician, y las páginas de los agentes de IA y la página de tareas de IA dicen que el proyecto se ha quedado sin créditos de IA.
+- **La recarga automática no pudo cobrar la tarjeta** (no hay método de pago, o se rechazó la tarjeta): OneUptime AI se detiene del mismo modo, y las personas propietarias reciben el correo que dice que la recarga falló. La recarga automática vuelve a intentar cobrar la tarjeta una hora después. Añadir créditos a mano, o volver a guardar la recarga automática, lo intenta en el acto. Hasta entonces, **Créditos de IA** lo dice arriba a todas las personas que la abren: se pide a una persona propietaria del proyecto o a alguien con **Manage Billing** que revise el método de pago o añada créditos, y al resto se le dice quién puede.
+
+**Se envía un correo a las personas propietarias del proyecto** la primera vez que OneUptime AI se detiene por falta de créditos: cuando termina la llamada que gasta los últimos, o cuando se rechaza una llamada de IA o se omite una investigación. El correo dice qué hacer y enlaza con **Créditos de IA**. Llega una vez cada vez que se agotan los créditos; después de añadir créditos, la siguiente vez que se agoten se envía otro.
+
+## Confianza y seguridad
+
+- **Solo lectura, siempre.** Las investigaciones autónomas se ejecutan con un conjunto seleccionado de herramientas de solo lectura (consultas de métricas, registros, trazas, excepciones y cambios, incluida `baseline_anomaly`, que juzga una métrica frente a su rango normal aprendido para cada hora de la semana). La IA no puede reconocer, resolver, avisar ni modificar nada desde una investigación.
+- **Las citas se generan en el servidor** a partir de llamadas a herramientas que se ejecutaron de verdad: el modelo no puede inventarse una cita a datos que nunca leyó.
+- **Registro de auditoría completo.** Cada investigación se registra como una ejecución de IA con un registro ordenado de eventos (cada llamada al LLM y cada llamada a herramientas), y cada llamada al LLM se mide en la página de Registros de IA (**Ajustes del proyecto → IA → Registros de IA**) con el número de tokens y el coste.
+- **Los secretos se ocultan** en los resultados de las herramientas antes de enviar nada al LLM (tokens, credenciales, patrones de claves).
+- **Las imágenes quedan fuera de lo que lee el modelo.** Una imagen incrustada en el texto de un incidente o de una alerta (la captura de pantalla de un monitor sintético en la descripción, una imagen pegada en una nota) son cientos de kilobytes de base64 que el modelo no puede leer y que se facturarían en cada llamada. En su lugar va una nota breve, como `[image omitted: JPEG, 340 KB]`, y la actividad de la investigación indica qué se omitió. Una descripción, una causa raíz o una nota de más de 4.000 caracteres se corta del mismo modo, y termina con una nota que dice cuánto falta (16.000 caracteres en un borrador de post mortem o de nota). Las personas siguen viendo todas las imágenes: solo cambia lo que lee el modelo.
+- **Autoalojado = ninguna salida de datos a terceros.** Con tu propio proveedor de LLM (incluido Ollama en local), la telemetría nunca sale de tu infraestructura.
+- **Lo que escribe no actúa sobre nada.** OneUptime AI escribe a partir de tu telemetría, y la telemetría puede contener texto pensado para dirigirla. Vaya donde vaya su Markdown (el informe del feed y la nota interna, un borrador de post mortem, las notas, actualizaciones de estado y descripciones de incidentes que escribe, y sus respuestas en Slack y Microsoft Teams), conserva sus encabezados, listas, tablas y código, pero una mención de Slack como `<!channel>` en él no notifica a nadie, una imagen se muestra como un enlace, un enlace muestra sus palabras y su dirección tal como están escritas (una dirección sola sigue siendo un enlace que muestra adónde lleva), y una etiqueta HTML se muestra como texto.
+
+## Post mortem automático
+
+Al margen de las investigaciones, OneUptime AI puede redactar automáticamente un post mortem cuando se resuelve un incidente. Tiene su propio interruptor (**Redactar un post mortem cuando se resuelve un incidente**, en la página de ajustes de IA de los incidentes, **Incidentes → IA → Ajustes**), de modo que puedes investigar sin redactar, o redactar sin investigar. Está **activado por defecto en los proyectos nuevos**; un proyecto creado antes de este valor predeterminado conserva su ajuste. El borrador nunca sobrescribe una nota de post mortem existente, y no se escribe en un post mortem que ya tiene activado **Publicar en la página de estado**: ahí iría a la página de estado sin revisar, y se avisaría a los suscriptores. Usa el mismo proveedor de LLM y aparece en la pestaña de post mortem del incidente para que una persona lo revise.
+
+## Hallazgos: detección proactiva
+
+Las investigaciones reaccionan a los incidentes y las alertas. Los **Hallazgos de IA** vigilan los problemas antes de que se avise a nadie: cada 15 minutos, detectores deterministas revisan tu telemetría en busca de problemas que (todavía) no han disparado ningún monitor. **No hay IA en el bucle de vigilancia**: los detectores son comprobaciones estadísticas con umbrales fijos, así que la parte siempre activa de la función no gasta tokens y no puede inventarse un hallazgo. Los umbrales son conservadores a propósito: un hallazgo significa que algo se movió de verdad, no que una cifra osciló.
+
+Lo que vigilan los detectores:
+
+| Detector | Se dispara cuando | Gravedad |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Excepciones nuevas | Una excepción vista por primera vez en las últimas 24 horas ya se ha producido 3+ veces | Medium; High a partir de 50+ apariciones |
+| Picos de excepciones | Una excepción conocida salta a 10+ apariciones en la última hora, a 5×+ su ritmo horario normal, incluida una excepción dormida durante mucho tiempo que despierta | Medium; High a partir de 10× |
+| Picos de registros de error | El volumen de registros Error/Fatal de todo el proyecto llega a 100+ en la última hora, a 3×+ la media horaria del día anterior; el hallazgo nombra los servicios que más contribuyen | Medium; High a partir de 10× |
+| Regresiones de latencia de trazas | La latencia p99 de un servicio en la última hora es de al menos 1 segundo y 2×+ su p99 de las 24 horas anteriores, con tráfico suficiente para ser significativa. El detector analiza una traza lenta representativa y registra lo que encontró (patrones de consultas N+1, spans lentos dominantes) como prueba en el hallazgo | Medium; High a partir de 4× |
+| Deriva de métricas | La media de una métrica esta semana se ha movido un 50%+ respecto a la misma métrica la semana pasada | Siempre Low: la dirección de la deriva no dice nada sobre si el cambio es malo, así que la deriva nunca se corrige automáticamente |
+
+Cada resultado de los detectores se convierte en un **hallazgo** en una bandeja de entrada tranquila: **Productos → IA → Hallazgos** en el panel. La bandeja empieza por lo que hay que mirar primero: el resultado abierto que más importa (el más grave, el visto más recientemente) con la conclusión de su triaje, el servicio que hay detrás de la mayoría de los hallazgos abiertos cuando uno destaca, y cuántos son nuevos esta semana. Los hallazgos **nunca avisan a nadie ni abren incidentes**; esperan a que alguien mire. Un resultado recurrente actualiza su hallazgo existente (última vez visto, número de apariciones) en lugar de acumular duplicados, un resultado que descartas se queda fuera de tu bandeja de entrada durante 7 días, y cada análisis periódico registra como máximo 10 hallazgos nuevos por proyecto.
+
+Cuando hay un proveedor de LLM configurado, cada hallazgo nuevo recibe además un **análisis de triaje**: una investigación de IA de solo lectura y con citas (el mismo motor, el mismo registro de auditoría y el mismo presupuesto por ejecución que las investigaciones autónomas) que evalúa la causa raíz probable, el alcance del impacto y la siguiente acción que vale la pena. El triaje de hallazgos no está vinculado a ningún incidente ni alerta, así que nunca consume el presupuesto de tokens de incidentes ni el de alertas. El resultado se guarda en la página del hallazgo. Sin proveedor sigues obteniendo los hallazgos; solo te saltas el triaje con IA.
+
+De forma opcional, OneUptime AI también puede abrir un **pull request de corrección** para los tipos de hallazgo con las pruebas más sólidas: excepciones nuevas y con picos (a través de la canalización existente de corrección de excepciones) y regresiones de latencia de trazas (basadas en las pruebas de spans registradas en el hallazgo). Los picos de registros de error y la deriva de métricas nunca se corrigen automáticamente. Cada PR de corrección automática se abre lista para revisar y requiere revisión humana: la fusión automática no existe. El trabajo de la IA fuera de los incidentes y las alertas no tiene límite diario de tareas de corrección, así que el único tope que encuentran estos pull requests es el tope de PR abiertos del repositorio, si defines uno.
+
+Los tres ajustes están **activados por defecto en los proyectos nuevos** (un proyecto creado antes de este valor predeterminado conserva su ajuste), en **Productos → IA → Hallazgos → Ajustes**. Cada uno es un interruptor que se guarda en cuanto lo cambias:
+
+1. **Vigilar la telemetría en busca de problemas**: activa el bucle de vigilancia, la bandeja de entrada y el triaje.
+2. **Abrir un pull request de corrección cuando un hallazgo apunta a tu código**: activa la creación de tareas de corrección para los hallazgos que cumplen los requisitos. Necesita la misma configuración que el flujo manual «Fix with AI»: un repositorio conectado mediante la GitHub App y un proveedor de LLM.
+3. **Archivar las excepciones esperadas**: los grupos de excepciones que el triaje clasifica como rechazos esperados (inicios de sesión rechazados, límites del plan, escáneres que activan una validación intencionada) se archivan, para que dejen de aparecer como no resueltos. Los errores de usuario y las condiciones de infraestructura nunca se archivan, y puedes recuperar un grupo archivado desde la pestaña **Archivado**.
+
+Con **Habilitar IA** desactivado, los hallazgos se siguen encontrando (los detectores no usan IA), pero ninguno se tría, se archiva ni se corrige; la página de ajustes lo dice arriba. Sin un proveedor de LLM que OneUptime AI pueda usar, dice que los hallazgos no se trían.
+
+Cada hallazgo tiene los botones **Confirmar** y **Descartar**: úsalos aunque no actúes sobre el hallazgo. Tus votos de confirmar y descartar son la forma de medir la precisión de cada detector, y esa precisión medida es la que decide qué tipos de hallazgo se ganan más automatización con el tiempo. Descartar también deja el mismo hallazgo fuera de tu bandeja de entrada durante los 7 días siguientes.
+
+## Requisitos y límites
+
+- Debe haber un proveedor de LLM configurado (propio del proyecto o el proveedor global de la nube).
+- Las investigaciones solo se disparan con incidentes y alertas **recién creados**: activar los interruptores no investiga señales históricas.
+- La comprobación `baseline_anomaly` necesita unas dos semanas de historial de métricas antes de que sus referencias por hora de la semana sean fiables; antes de eso informa de «insufficient baseline data» en lugar de adivinar.
+- En OneUptime Cloud con el proveedor global, las investigaciones consumen tokens de IA medidos (consulta **Ajustes del proyecto → IA → Créditos de IA**). Trae tu propia clave de proveedor para un uso sin medición, o limita lo que la IA puede gastar cada día con un límite diario de gasto de IA (Ajustes del proyecto → Funciones de IA → Más ajustes).
+
+## Solución de problemas
+
+:::details Un incidente no se investigó
+Su tarjeta **Investigación de IA** dice por qué: la IA está desactivada en el proyecto, no hay proveedor de LLM o no hay crédito de IA, se alcanzó un límite, el incidente quedó fuera de las reglas de investigación o por debajo del umbral de gravedad, su monitor se investigó dentro del periodo de espera, o se creó ya resuelto. Pide a OneUptime AI en la tarjeta que lo investigue ahora.
+:::
+
+:::details El análisis dice que no pudo encontrar una causa
+La investigación encontró muy pocas pruebas: dice qué comprobó. Asegúrate de que el servicio envía los registros, las trazas o las métricas en los que se vería la causa, y da al clúster o al host un agente de IA para que OneUptime AI pueda mirar dentro. Con **Abrir un pull request que añade la telemetría que falta** activado, OneUptime AI abre un pull request que añade lo que faltaba.
+:::
+
+:::details No se corrigió nada
+La tarjeta **Remediación** del incidente tiene una línea por cada forma en que se podría haber corregido, con el motivo por el que no se hizo y un enlace al lugar donde se cambia: corrección desactivada, ningún clúster ni host vinculado al incidente, correcciones desactivadas en la página del agente de IA, o ninguna regla de remediación automática coincidente.
+:::
+
+:::details OneUptime AI dejó de funcionar por hoy
+Se agotó un límite diario o los créditos de IA. El rechazo dice cuál y quién puede cambiarlo; consulta [Control de costes](#control-de-costes).
+:::
+
+## Próximos pasos
+
+:::cards
+- [Agentes de IA para la infraestructura](/docs/ai/infrastructure-ai-agents): Deja que OneUptime AI mire dentro de Docker, Proxmox, VMware, Ceph, las bases de datos y los hosts.
+- [Tareas de corrección](/docs/ai/ai-agent): Cómo se escribe y se comprueba un pull request de corrección.
+- [Preguntar a la IA](/docs/ai/ask-ai): Pregunta por cualquier cosa de tu proyecto, desde cualquier página.
+:::
