@@ -40,14 +40,24 @@ export interface SyslogVendorSample {
     attributes?: Record<string, string> | undefined;
     // Attributes that must not be stored.
     absent?: Array<string> | undefined;
+    /*
+     * Who the message itself names, in its own fields - exactly these and
+     * nothing else.
+     */
     identity?:
       | {
           hostname?: string | undefined;
           serialNumber?: string | undefined;
           macAddress?: string | undefined;
           ipAddress?: string | undefined;
+          managedDevice?: boolean | undefined;
         }
       | undefined;
+    /*
+     * The host name of the syslog header; null when the line must have
+     * none (it has no header, or what stands there names nobody).
+     */
+    headerHostname?: string | null | undefined;
     // The syslog severity the message itself states.
     severity?: number | undefined;
   };
@@ -137,7 +147,8 @@ export const SOPHOS_SAMPLES: Array<SyslogVendorSample> = [
         "sophos.connectionname": "Tunnel A",
         "sophos.device_id": "C01001K234RXPA1",
       },
-      identity: { serialNumber: "C01001K234RXPA1", hostname: "fw-branch" },
+      identity: { serialNumber: "C01001K234RXPA1" },
+      headerHostname: "fw-branch",
     },
   },
   {
@@ -974,7 +985,8 @@ export const CISCO_SAMPLES: Array<SyslogVendorSample> = [
       parserId: "cisco",
       eventName: "interface.up",
       attributes: { "network.interface.name": "GigabitEthernet0/1" },
-      identity: { hostname: "core-sw1" },
+      identity: {},
+      headerHostname: "core-sw1",
     },
   },
   {
@@ -1404,7 +1416,8 @@ export const EXTREME_SAMPLES: Array<SyslogVendorSample> = [
         "extreme.event": "vlan.msgs.portLinkStateDown",
         "extreme.component": "vlan",
       },
-      identity: { hostname: "sw-core-1" },
+      identity: {},
+      headerHostname: "sw-core-1",
     },
   },
   {
@@ -1630,7 +1643,8 @@ export const ARUBA_SAMPLES: Array<SyslogVendorSample> = [
       parserId: "aruba-aos-cx",
       eventName: "interface.down",
       attributes: { "network.interface.name": "1/1/49" },
-      identity: { hostname: "Leaf2A-RU21" },
+      identity: {},
+      headerHostname: "Leaf2A-RU21",
     },
   },
   {
@@ -1776,6 +1790,7 @@ export const MIKROTIK_SAMPLES: Array<SyslogVendorSample> = [
         "cef.outcome": "failure",
       },
       identity: { hostname: "MikroTik", ipAddress: "192.168.88.36" },
+      headerHostname: "MikroTik",
       severity: 3,
     },
   },
@@ -1916,6 +1931,7 @@ export const CAMBIUM_SAMPLES: Array<SyslogVendorSample> = [
       },
       // The mnemonic stands where a host name would: it names no device.
       identity: {},
+      headerHostname: null,
       severity: 6,
     },
   },
@@ -1929,6 +1945,7 @@ export const CAMBIUM_SAMPLES: Array<SyslogVendorSample> = [
       eventName: null,
       attributes: { "cambium.event": "CLIENT-WPA2-INVALID-PSK" },
       identity: {},
+      headerHostname: null,
     },
   },
   {
@@ -1948,7 +1965,8 @@ export const CAMBIUM_SAMPLES: Array<SyslogVendorSample> = [
         "cambium.severity": "6",
         "cambium.event": "CLIENT-CONNECTED",
       },
-      identity: { hostname: "E400-AABBCC" },
+      identity: {},
+      headerHostname: "E400-AABBCC",
       severity: 6,
     },
   },
@@ -2092,11 +2110,14 @@ export const UNIFI_SAMPLES: Array<SyslogVendorSample> = [
         "cef.UNIFIusageDown": "11.78 KB",
         "cef.UNIFInetworkSubnet": "192.168.10.0/24",
       },
+      // The access point the client was on, not the console that says so.
       identity: {
         hostname: "Lobby AP",
         macAddress: "d8:b3:70:fb:fc:dd",
         ipAddress: "192.168.100.5",
+        managedDevice: true,
       },
+      headerHostname: "udm-pro",
     },
   },
   {
@@ -2112,7 +2133,9 @@ export const UNIFI_SAMPLES: Array<SyslogVendorSample> = [
         hostname: "Warehouse Switch",
         macAddress: "f4:e2:c6:aa:bb:cc",
         ipAddress: "192.168.100.9",
+        managedDevice: true,
       },
+      headerHostname: "udm-pro",
       severity: 4,
     },
   },
@@ -2147,7 +2170,11 @@ export const UNIFI_SAMPLES: Array<SyslogVendorSample> = [
       parserId: "ubiquiti-unifi",
       eventName: "poe.fault",
       attributes: { "network.interface.name": "7" },
-      identity: { macAddress: "d8:b3:70:fb:fc:dd" },
+      identity: {
+        hostname: "Lobby AP",
+        macAddress: "d8:b3:70:fb:fc:dd",
+        managedDevice: true,
+      },
     },
   },
   {
@@ -2181,7 +2208,8 @@ export const LINUX_SAMPLES: Array<SyslogVendorSample> = [
         "network.protocol.name": "ssh",
       },
       absent: ["syslog.vendor"],
-      identity: { hostname: "ap-lobby" },
+      identity: {},
+      headerHostname: "ap-lobby",
     },
   },
   {
@@ -2308,7 +2336,8 @@ export const CEF_SAMPLES: Array<SyslogVendorSample> = [
         "cef.spt": "1232",
       },
       absent: ["event.name"],
-      identity: { hostname: "host" },
+      identity: {},
+      headerHostname: "host",
       severity: 2,
     },
   },
@@ -2342,7 +2371,8 @@ export const UNRECOGNIZED_SAMPLES: Array<SyslogVendorSample> = [
     expect: {
       parserId: null,
       eventName: null,
-      identity: { hostname: "mymachine" },
+      identity: {},
+      headerHostname: "mymachine",
     },
   },
   {
@@ -2353,7 +2383,8 @@ export const UNRECOGNIZED_SAMPLES: Array<SyslogVendorSample> = [
     expect: {
       parserId: null,
       eventName: null,
-      identity: { hostname: "mymachine.example.com" },
+      identity: {},
+      headerHostname: "mymachine.example.com",
     },
   },
   {

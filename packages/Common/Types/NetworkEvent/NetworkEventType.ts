@@ -390,6 +390,11 @@ export class NetworkEventTypeUtil {
 
   // The problem a recovery event ends, if it ends one.
   public static getClearedProblem(name: unknown): NetworkEventType | null {
+    // An event with nothing that ends it has no `clearedBy` to compare.
+    if (typeof name !== "string" || !name) {
+      return null;
+    }
+
     for (const definition of NETWORK_EVENT_DEFINITIONS) {
       if (definition.clearedBy === name) {
         return definition.type;

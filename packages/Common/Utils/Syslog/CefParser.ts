@@ -12,8 +12,10 @@
  *
  * The rules, each pinned by CefParser.test.ts:
  *
- *   - The message starts at "CEF:" and a number. Whatever comes before it
- *     (a syslog header, a host name) is not part of it.
+ *   - The message starts at "CEF:" and a number, at the start of the
+ *     line, after a space or right after a syslog priority ("<134>CEF:0|").
+ *     Whatever comes before it (a syslog header, a host name) is not part
+ *     of it.
  *   - In the header, a pipe inside a field is written "\|" and a backslash
  *     "\\". The seventh pipe and the extension may be missing.
  *   - In the extension a value runs up to the next " key=", so it may hold
@@ -92,8 +94,8 @@ function isKeyCharacter(character: string): boolean {
 
 /*
  * Where a CEF message starts in a line, or -1 when the line holds none:
- * "CEF:", a number and a pipe, at the start or after a space, within the
- * first MAX_CEF_PREFIX_LENGTH characters.
+ * "CEF:", a number and a pipe, at the start, after a space or after a
+ * syslog priority, within the first MAX_CEF_PREFIX_LENGTH characters.
  */
 export function findCefStart(text: unknown): number {
   if (typeof text !== "string" || text.length === 0) {
@@ -109,7 +111,9 @@ export function findCefStart(text: unknown): number {
       return -1;
     }
 
-    const isAtWordStart: boolean = at === 0 || isWhitespace(text.charAt(at - 1));
+    const before: string = at === 0 ? "" : text.charAt(at - 1);
+    const isAtWordStart: boolean =
+      at === 0 || isWhitespace(before) || before === ">";
     let index: number = at + CEF_MARKER.length;
     const firstDigit: number = index;
 

@@ -85,8 +85,18 @@ export interface NormalizedSyslogMessage {
   ruleIndex: number | null;
   // What to store with the log, beside what it already carries.
   attributes: Record<string, string>;
-  // Who the message says it is from.
+  /*
+   * Who the message itself says it is about, in fields of its own format:
+   * a serial number, a MAC address, an address, a name. Empty for most
+   * lines.
+   */
   identity: SyslogDeviceIdentity;
+  /*
+   * The host name of the syslog header - the sender's own word for itself.
+   * Left out when the header has none, and when what stands there is part
+   * of the vendor's format and names nobody.
+   */
+  headerHostname?: string | undefined;
   // The syslog severity the message itself states (0 to 7), if it does.
   severity?: number | undefined;
 }
@@ -258,7 +268,34 @@ function mergeIdentity(
     identity.ipAddress = ipAddress;
   }
 
+  if (preferred?.managedDevice || fallback.managedDevice) {
+    identity.managedDevice = true;
+  }
+
   return identity;
+}
+
+function emptyResult(
+  input: Pick<SyslogParseInput, "hostname"> | null | undefined,
+): NormalizedSyslogMessage {
+  const result: NormalizedSyslogMessage = {
+    parserId: null,
+    vendor: null,
+    eventName: null,
+    ruleIndex: null,
+    attributes: {},
+    identity: {},
+  };
+
+  const headerHostname: string | undefined = nonEmpty(
+    typeof input?.hostname === "string" ? input.hostname : undefined,
+  );
+
+  if (headerHostname) {
+    result.headerHostname = headerHostname;
+  }
+
+  return result;
 }
 
 // A syslog line, read whole: its header, and what it says.
@@ -316,28 +353,13 @@ export default class SyslogEventNormalizer {
     input: SyslogParseInput,
     options?: SyslogNormalizeOptions | undefined,
   ): NormalizedSyslogMessage {
-    const result: NormalizedSyslogMessage = {
-      parserId: null,
-      vendor: null,
-      eventName: null,
-      ruleIndex: null,
-      attributes: {},
-      // The header's host name, unless the message names someone itself.
-      identity: mergeIdentity(undefined, { hostname: input.hostname }),
-    };
+    const result: NormalizedSyslogMessage = emptyResult(input);
 
     try {
       SyslogEventNormalizer.read(input, options, result);
     } catch {
       // A line a parser trips on is stored as it came.
-      return {
-        parserId: null,
-        vendor: null,
-        eventName: null,
-        ruleIndex: null,
-        attributes: {},
-        identity: mergeIdentity(undefined, { hostname: input.hostname }),
-      };
+      return emptyResult(input);
     }
 
     return result;
@@ -396,8 +418,7 @@ export default class SyslogEventNormalizer {
       }
 
       if (extraction.headerHostnameIsNotAHost) {
-        identity = { ...identity };
-        delete identity.hostname;
+        delete result.headerHostname;
       }
 
       identity = mergeIdentity(extraction.identity, identity);

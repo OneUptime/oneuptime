@@ -68,12 +68,21 @@ export interface SyslogParseContext {
   getKeyValues: () => Record<string, string>;
 }
 
-// Who a message says it is from, for matching it to a network device.
+/*
+ * Who a message says it is about, in fields of its own format, for matching
+ * it to a network device. Most lines say nothing: the address they came
+ * from is all there is.
+ */
 export interface SyslogDeviceIdentity {
   hostname?: string | undefined;
   serialNumber?: string | undefined;
   macAddress?: string | undefined;
   ipAddress?: string | undefined;
+  /*
+   * True when a controller sent the message about a device it manages, so
+   * these fields name that device and not the sender.
+   */
+  managedDevice?: boolean | undefined;
 }
 
 export interface SyslogVendorExtraction {

@@ -96,12 +96,13 @@ function describeSamples(
         }
 
         if (sample.expect.identity) {
-          expect(normalized.identity).toMatchObject(sample.expect.identity);
+          expect(normalized.identity).toEqual(sample.expect.identity);
+        }
 
-          // An identity given as {} must be empty: nobody is named.
-          if (Object.keys(sample.expect.identity).length === 0) {
-            expect(normalized.identity).toEqual({});
-          }
+        if (sample.expect.headerHostname === null) {
+          expect(normalized.headerHostname).toBeUndefined();
+        } else if (sample.expect.headerHostname !== undefined) {
+          expect(normalized.headerHostname).toBe(sample.expect.headerHostname);
         }
 
         if (sample.expect.severity !== undefined) {

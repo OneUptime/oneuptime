@@ -47,7 +47,7 @@ function firstValue(
  * client is (or was last) connected to.
  */
 function readDevice(extensions: Record<string, string>): SyslogDeviceIdentity {
-  return {
+  const identity: SyslogDeviceIdentity = {
     macAddress: firstValue(extensions, [
       "UNIFIdeviceMac",
       "UNIFIconnectedToDeviceMac",
@@ -64,6 +64,13 @@ function readDevice(extensions: Record<string, string>): SyslogDeviceIdentity {
       "UNIFIlastConnectedToDeviceIp",
     ]),
   };
+
+  // The console is telling about one of its devices, not about itself.
+  if (identity.macAddress || identity.hostname || identity.ipAddress) {
+    identity.managedDevice = true;
+  }
+
+  return identity;
 }
 
 const ubiquitiUniFi: SyslogVendorParser = {
