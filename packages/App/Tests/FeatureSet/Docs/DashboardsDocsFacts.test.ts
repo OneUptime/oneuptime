@@ -107,6 +107,8 @@ import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/Dashb
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardHtmlComponentUtil from "Common/Utils/Dashboard/Components/DashboardHtmlComponent";
 import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
+import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import GridLayoutUtil from "Common/Utils/Dashboard/GridLayout";
 import HtmlWidgetDocument from "Common/Utils/Dashboard/HtmlWidgetDocument";
 import DashboardLabelVariable from "Common/Utils/Dashboard/LabelVariable";
 import {
@@ -171,6 +173,10 @@ const DATA_SOURCE_PLACEHOLDER: string = `${WIDGET_COMPONENTS_DIR}/DataSourceWidg
 const RESOURCE_OWNERS: string = `${DASHBOARD_APP}/Components/ResourceOwners/useResourceOwners.tsx`;
 const DASHBOARD_ROUTES: string = `${DASHBOARD_APP}/Utils/RouteMap.ts`;
 const ENTERPRISE_ELIGIBILITY: string = `${DASHBOARD_APP}/Enterprise/EnterpriseEligibility.ts`;
+const DATA_SOURCES_PAGE: string = `${DASHBOARDS_PAGES_DIR}/Settings/DataSources.tsx`;
+const DATA_SOURCE_VIEW: string = `${DASHBOARDS_PAGES_DIR}/Settings/DataSourceView.tsx`;
+const DATA_SOURCE_TYPE_PICKER: string = `${DASHBOARD_APP}/Components/DataSource/DataSourceTypeSelectModal.tsx`;
+const DATA_SOURCE_QUERY_EDITOR: string = `${DASHBOARD_COMPONENTS_DIR}/Canvas/DataSourceQueryEditor.tsx`;
 const ATTRIBUTE_SERVICE: string =
   "Common/Server/Services/TelemetryAttributeService.ts";
 const PUBLIC_RESOURCE_LISTS: string =
@@ -1014,6 +1020,48 @@ describe("Authoring a Dashboard, against the product", () => {
     expect(page).toContain("press Enter to add the first match");
   });
 
+  it("places a picked widget at the first free spot that fits it, with its settings open", () => {
+    const empty: DashboardViewConfig =
+      DashboardViewConfigUtil.createDefaultDashboardViewConfig();
+    const one: DashboardViewConfig =
+      DashboardViewConfigUtil.addComponentToDashboard({
+        component: DashboardChartComponentUtil.getDefaultComponent(),
+        dashboardViewConfig: empty,
+      });
+    const two: DashboardViewConfig =
+      DashboardViewConfigUtil.addComponentToDashboard({
+        component: DashboardChartComponentUtil.getDefaultComponent(),
+        dashboardViewConfig: one,
+      });
+    const three: DashboardViewConfig =
+      DashboardViewConfigUtil.addComponentToDashboard({
+        component: DashboardChartComponentUtil.getDefaultComponent(),
+        dashboardViewConfig: two,
+      });
+    const places: Array<Array<number>> = three.components.map(
+      (component: DashboardBaseComponent): Array<number> => {
+        return [component.topInDashboardUnits, component.leftInDashboardUnits];
+      },
+    );
+
+    // Two six-column charts side by side, the third under them.
+    expect(places).toEqual([
+      [0, 0],
+      [0, 6],
+      [3, 0],
+    ]);
+    expect(
+      sliceOf(
+        readSource(DASHBOARD_VIEW),
+        "DashboardViewConfigUtil.addComponentToDashboard({",
+        "}}",
+      ),
+    ).toContain("setSelectedComponentId(newComponent.componentId);");
+    expect(sectionOf(page, "## Add a widget")).toContain(
+      "The widget lands at the first free spot on the grid that fits it, and its settings open.",
+    );
+  });
+
   it("names the settings dialog's preview and buttons as it draws them", () => {
     const dialog: string = readSource(SETTINGS_DIALOG);
 
@@ -1039,6 +1087,10 @@ describe("Authoring a Dashboard, against the product", () => {
       DashboardValueComponentUtil.getDefaultComponent();
     const grid: string = sectionOf(page, "## Widgets on the grid");
 
+    // The canvas and the layout that places widgets agree on the width.
+    expect(GridLayoutUtil.DefaultColumns).toBe(
+      DefaultDashboardSize.widthInDashboardUnits,
+    );
     expect(grid).toContain(
       `a grid ${
         NUMBER_WORDS[DefaultDashboardSize.widthInDashboardUnits]
@@ -2259,6 +2311,85 @@ describe("External Data Sources, against the connectors and their limits", () =>
           }
         }
       },
+    );
+  });
+
+  it("walks the create form's steps, its folded fields and the data source's own buttons as they are drawn", () => {
+    const list: string = readSource(DATA_SOURCES_PAGE);
+    const view: string = readSource(DATA_SOURCE_VIEW);
+    const steps: Array<string> = Array.from(
+      sliceOf(list, "formSteps={[", "]}").matchAll(/title: "([^"]+)",/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+    const connect: string = sectionOf(page, "## Connect a data source");
+
+    expect(steps).toEqual(["Basic Info", "Connection", "Authentication"]);
+    for (const step of steps) {
+      expect(connect).toContain(`Under ${bold(step)}`);
+    }
+
+    // Custom headers and the options fold under More fields, on Authentication.
+    for (const folded of ["Custom HTTP Headers", "Additional Options"]) {
+      expect(sliceOf(list, `title: "${folded}",`, "fieldType:")).toContain(
+        'stepId: "auth",\n              collapsibleSection: advancedSection,',
+      );
+    }
+    expect(list).toContain(
+      "const advancedSection: FormFieldCollapsibleSection<DataSource> =\n  getAdvancedFormSection<DataSource>();",
+    );
+    expect(sliceOf(list, 'title: "Additional Options",', "},")).toContain(
+      "Recognized keys: sslEnabled (boolean), sslRejectUnauthorized (boolean), elasticsearchIndex (string).",
+    );
+    expect(connect).toContain(
+      `${bold("More fields")} holds ${bold(
+        "Custom HTTP Headers",
+      )}, such as \`{ "X-Scope-OrgID": "tenant-1" }\`, and ${bold(
+        "Additional Options",
+      )}`,
+    );
+
+    expect(readSource(DATA_SOURCE_TYPE_PICKER)).toContain(
+      'title="Choose a Data Source Type"',
+    );
+    expect(sliceOf(list, "actionButtons={[", "]}")).toContain('title: "Test",');
+    expect(connect).toContain(`then ${bold("Test")} on its row`);
+
+    expect(view).toContain('title: "Data Source Details",');
+    for (const button of ["Update Credentials", "Test"]) {
+      expect(sliceOf(view, "buttons: [", "],")).toContain(
+        `title: "${button}",`,
+      );
+    }
+    expect(page).toContain(
+      `${bold("Edit")} on ${bold(
+        "Data Source Details",
+      )} changes everything but its secrets; ${bold(
+        "Update Credentials",
+      )} replaces the password, the token or the headers`,
+    );
+  });
+
+  it("names the query editor's fields, and says it names the language and shows an example", () => {
+    const editor: string = readSource(DATA_SOURCE_QUERY_EDITOR);
+    const widget: string = sectionOf(page, "## Use it in a widget");
+
+    expect(editor).toContain('translator.translateText("Data Source")');
+    expect(editor).toContain("language: typeProps.queryLanguageTitle,");
+    expect(editor).toContain("placeholder={typeProps?.queryPlaceholder");
+    expect(widget).toContain(
+      `Pick the ${bold("Data Source")} and write the ${bold(
+        "Query",
+      )}. The editor names the query language and shows an example for the type.`,
+    );
+
+    // Add Query on a chart only: the other widgets read one query.
+    expect(editor).toContain(
+      '(isChart || queryConfigs.length === 0) && (\n            <Button\n              title="Add Query"',
+    );
+    expect(editor).toContain('translator.translateText("Legend (optional)")');
+    expect(widget).toContain(
+      `On a chart, ${bold("Add Query")} overlays more queries on the same axes`,
     );
   });
 
