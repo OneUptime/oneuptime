@@ -46,13 +46,10 @@ import {
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
 import ConnectRequestNotice, {
+  ConnectRequestConnecting,
   ConnectRequestState,
   useConnectRequest,
 } from "../Workspace/ConnectRequestNotice";
-import {
-  ConnectRequestNoticeText,
-  getConnectingNotice,
-} from "../../Utils/Workspace/ConnectRequestMessage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -281,9 +278,13 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
     setIsConnectingFromSlack(true);
 
+    /*
+     * A start that fails is said above the page, which shows as usual: its
+     * own Connect button is right there to try again.
+     */
     startSignInFromSlack(token).catch((error: Exception) => {
       setIsConnectingFromSlack(false);
-      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
     });
   }, [isLoading, isProjectAccountConnected]);
 
@@ -315,7 +316,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
     startSignInFromSlack(null).catch((error: Exception) => {
       setIsConnectingFromSlack(false);
-      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
     });
   }, [isLoading, isProjectAccountConnected, isUserAccountConnected]);
 
@@ -324,18 +325,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (isConnectingFromSlack) {
-    const connecting: ConnectRequestNoticeText = getConnectingNotice({
-      provider: ConnectProvider.Slack,
-      translator: translator,
-    });
-
-    return (
-      <div data-testid="connect-request-connecting">
-        <Card title={connecting.title} description={connecting.message}>
-          <PageLoader isVisible={true} />
-        </Card>
-      </div>
-    );
+    return <ConnectRequestConnecting provider={ConnectProvider.Slack} />;
   }
 
   if (error) {
@@ -517,10 +507,19 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     };
   };
 
-  // if user is not connected and the project is connected with slack.
+  /*
+   * The project is connected to Slack, the person is not: what to do, as
+   * the Setup Checklist says it, and the workspace to sign in to. A Connect
+   * button that expired, or a sign-in that could not start, points here.
+   */
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in ${slackTeamName} team)`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardTitle = "Connect your Slack account";
+    cardDescription = slackTeamName
+      ? translator.translateTemplate(
+          "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
+          { team: slackTeamName },
+        )
+      : "Acknowledge incidents and get messages from OneUptime as yourself, in Slack.";
     cardButtons = [
       // connect with slack button.
       getConnectWithSlackButton(`Connect my account with Slack`),

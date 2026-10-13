@@ -18,6 +18,7 @@ import WorkspaceActionAnswers, {
 } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import {
   WorkspaceConnectButton,
+  WorkspaceConnectRequestAgain,
   WorkspaceConnectRequestAgainKind,
   WorkspacePendingActionKind,
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
@@ -236,6 +237,61 @@ describe("the Connect prompt", () => {
     );
   });
 
+  test("in Microsoft Teams a command is typed to the bot, not run", () => {
+    const again: WorkspaceConnectRequestAgain = {
+      kind: WorkspaceConnectRequestAgainKind.Command,
+      label: "create incident",
+    };
+
+    expect(
+      WorkspaceActionAnswers.getConnectPrompt({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        purpose: "declare an incident",
+        again: again,
+      }).markdown,
+    ).toBe(
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **create incident** again.",
+    );
+
+    expect(
+      WorkspaceActionAnswers.getConnectedAnswer({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        again: again,
+      }),
+    ).toEqual({
+      markdown:
+        "✅ **Your Microsoft Teams account is connected to OneUptime.** Now type **create incident** again.",
+      text: "Your Microsoft Teams account is connected to OneUptime. Now type create incident again.",
+    });
+
+    // A Slack command is still run: it is a slash command.
+    expect(
+      WorkspaceActionAnswers.getConnectedAnswer({
+        workspaceType: WorkspaceType.Slack,
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: "/incident",
+        },
+      }).text,
+    ).toBe(
+      "Your Slack account is connected to OneUptime. Now run /incident again.",
+    );
+
+    // Without a label, as without a workspace: "the command".
+    expect(
+      WorkspaceActionAnswers.getAgainText(
+        { kind: WorkspaceConnectRequestAgainKind.Command },
+        WorkspaceType.MicrosoftTeams,
+      ),
+    ).toBe("type the command again");
+    expect(
+      WorkspaceActionAnswers.getAgainText({
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "/incident",
+      }),
+    ).toBe("run /incident again");
+  });
+
   test("for a question to OneUptime AI: ask it again", () => {
     expect(
       WorkspaceActionAnswers.getConnectPrompt({
@@ -300,7 +356,7 @@ describe("the Connect prompt", () => {
         button: WorkspaceConnectButton.SettingsPage,
       }).markdown,
     ).toBe(
-      "🔗 **Connect your Microsoft Teams account to declare an incident.** Once you're connected, run **create incident** again.",
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** Once you're connected, type **create incident** again.",
     );
   });
 

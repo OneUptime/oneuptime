@@ -9268,7 +9268,7 @@
   "Connect with Slack": "Connect with Slack",
   "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.": "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.",
   "Connect your Microsoft Teams account": "Connect your Microsoft Teams account",
-  "Connect your Slack account": "Connect your Slack account",
+  "Connect your Slack account": "अपना Slack खाता कनेक्ट करें",
   "Connect your Slack workspace to this project, then choose here which notifications are posted to which channels.": "अपने Slack वर्कस्पेस को इस प्रोजेक्ट से कनेक्ट करें, फिर यहां चुनें कि कौन-सी सूचनाएं किन चैनलों में पोस्ट हों।",
   "Connect your assistant to OneUptime": "Connect your assistant to OneUptime",
   "Connect your hierarchy levels and pick which one is the unit level.": "Connect your hierarchy levels and pick which one is the unit level.",
@@ -28141,5 +28141,7 @@
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "आपने Slack में उस व्यक्ति के बजाय किसी और के रूप में साइन इन किया, जिसने Slack में कनेक्ट बटन दबाया था, इसलिए कुछ भी कनेक्ट नहीं हुआ। कृपया अपने खाते से Slack में साइन इन करें और फिर से प्रयास करें।",
   "Your {{workspace}} account is connected": "आपका {{workspace}} खाता कनेक्ट हो गया है",
   "Go back to {{workspace}} and press the button again.": "{{workspace}} पर वापस जाएँ और बटन फिर से दबाएँ।",
-  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime {{workspace}} में आपको जवाब नहीं दे सका। उसकी स्थिति देखने के लिए OneUptime में रिकॉर्ड खोलें।"
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime {{workspace}} में आपको जवाब नहीं दे सका। उसकी स्थिति देखने के लिए OneUptime में रिकॉर्ड खोलें।",
+  "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime ने आपको {{workspace}} में वहीं जवाब दिया है, जहाँ आपने बटन दबाया था।",
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime, Slack वर्कस्पेस {{team}} में इंस्टॉल है। वहाँ अपना खाता कनेक्ट करें, ताकि आप Slack में खुद के नाम से इंसिडेंट स्वीकार कर सकें और मैसेज पा सकें।"
 }

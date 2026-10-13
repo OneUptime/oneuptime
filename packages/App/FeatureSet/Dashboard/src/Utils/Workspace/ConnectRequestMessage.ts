@@ -35,8 +35,18 @@ export const CONNECTED_TITLE: string = translationKey(
   "Your {{workspace}} account is connected",
 );
 
-export const PRESS_ANSWERED: string = translationKey(
+// OneUptime did what was pressed (ConnectRequestOutcome.Done).
+export const PRESS_DONE: string = translationKey(
   "OneUptime finished what you pressed in {{workspace}} and answered you there.",
+);
+
+/*
+ * OneUptime answered without doing it - somebody had done it already, it was
+ * not allowed, it failed - so the page says only where the answer is, never
+ * that it was done (ConnectRequestOutcome.Answered).
+ */
+export const PRESS_ANSWERED: string = translationKey(
+  "OneUptime answered you in {{workspace}}, where you pressed the button.",
 );
 
 export const PRESS_AGAIN: string = translationKey(
@@ -77,6 +87,7 @@ export const getWorkspaceName: (provider: ConnectProvider) => string = (
 };
 
 const OUTCOME_MESSAGES: Record<ConnectRequestOutcome, string> = {
+  [ConnectRequestOutcome.Done]: PRESS_DONE,
   [ConnectRequestOutcome.Answered]: PRESS_ANSWERED,
   [ConnectRequestOutcome.PressAgain]: PRESS_AGAIN,
   [ConnectRequestOutcome.Expired]: PRESS_EXPIRED,

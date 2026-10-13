@@ -184,8 +184,9 @@ describe("a press OneUptime finishes", () => {
       { isRoot: true },
     );
 
+    // Done: the settings page may say OneUptime finished what was pressed.
     expect(result).toEqual({
-      outcome: ConnectRequestOutcome.Answered,
+      outcome: ConnectRequestOutcome.Done,
       answer: {
         markdown: `✅ **Your Slack account is connected to OneUptime.** You acknowledged **[Incident INC-2](${INCIDENT_LINK})**.`,
         text: "Your Slack account is connected to OneUptime. You acknowledged Incident INC-2",
@@ -245,18 +246,20 @@ describe("a press OneUptime finishes", () => {
         )
         .mockResolvedValue(URL.fromString("https://oneuptime.test/sm"));
 
-      await WorkspaceConnectCompletion.complete({
-        request: request({
-          purpose: row.purpose,
-          pendingAction: {
-            kind: row.kind,
-            eventType: row.eventType,
-            eventId: recordId,
-          },
-        }),
-        userId: USER_ID,
-      });
+      const result: WorkspaceConnectCompletionResult =
+        await WorkspaceConnectCompletion.complete({
+          request: request({
+            purpose: row.purpose,
+            pendingAction: {
+              kind: row.kind,
+              eventType: row.eventType,
+              eventId: recordId,
+            },
+          }),
+          userId: USER_ID,
+        });
 
+      expect(result.outcome).toBe(ConnectRequestOutcome.Done);
       expect(authorize.mock.calls[0]![0]).toMatchObject({
         modelType: row.modelType,
         action: row.purpose,
@@ -293,6 +296,7 @@ describe("a press OneUptime finishes", () => {
       event: incident(),
       press: "Acknowledge",
     });
+    // Answered, not done: somebody else did it, and the chat says who.
     expect(result).toEqual({
       outcome: ConnectRequestOutcome.Answered,
       answer: {
@@ -365,6 +369,8 @@ describe("a press OneUptime finishes", () => {
     );
     // Never what failed.
     expect(result.answer.markdown).not.toContain("Connection terminated");
+    // Not done: the settings page must not say it was finished.
+    expect(result.outcome).toBe(ConnectRequestOutcome.Answered);
   });
 
   test("a refusal that names something with Markdown in it is said as text", async () => {

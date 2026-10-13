@@ -191,7 +191,7 @@ describe("UserMicrosoftTeamsService", () => {
       getUserAuth.mockResolvedValue(null as never);
 
       await expect(callOnBeforeCreate(createBy())).rejects.toThrow(
-        "Your Microsoft Teams account is not connected to OneUptime in this project yet. Connect it in User Settings > Workspace > Microsoft Teams with Connect my account with Microsoft Teams, then add it here.",
+        "Your Microsoft Teams account is not connected to OneUptime in this project yet. Connect it under User Settings > Workspace > Microsoft Teams, then add it here.",
       );
     });
 

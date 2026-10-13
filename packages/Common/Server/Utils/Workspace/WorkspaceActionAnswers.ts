@@ -193,6 +193,7 @@ export default class WorkspaceActionAnswers {
     if (button !== WorkspaceConnectButton.OneClick) {
       const then: MarkdownText = mdText`Once you're connected, ${this.getAgainPhrase(
         data.again || { kind: WorkspaceConnectRequestAgainKind.Button },
+        data.workspaceType,
       )}.`;
 
       if (button === WorkspaceConnectButton.None) {
@@ -218,6 +219,7 @@ export default class WorkspaceActionAnswers {
     } else if (data.again) {
       next = mdText`It takes one click. Then ${this.getAgainPhrase(
         data.again,
+        data.workspaceType,
       )}.`;
     } else {
       next = mdText`It takes one click.`;
@@ -262,8 +264,12 @@ export default class WorkspaceActionAnswers {
       return {
         markdown: mdText`${connected} Now ${this.getAgainPhrase(
           data.again,
+          data.workspaceType,
         )}.`.toString(),
-        text: `${connectedText}. Now ${this.getAgainText(data.again)}.`,
+        text: `${connectedText}. Now ${this.getAgainText(
+          data.again,
+          data.workspaceType,
+        )}.`,
       };
     }
 
@@ -404,15 +410,24 @@ export default class WorkspaceActionAnswers {
       : mdText`**${record.label}**`;
   }
 
-  // "press **Add Note** again", "run **/incident** again", "ask your question again".
+  /*
+   * "press Add Note again", "run /incident again", "ask your question
+   * again", with the button or command in bold. A command is run in Slack
+   * (a slash command) and typed to the bot in Microsoft Teams: "type create
+   * incident again".
+   */
   public static getAgainPhrase(
     again: WorkspaceConnectRequestAgain,
+    workspaceType?: WorkspaceType | undefined,
   ): MarkdownText {
     switch (again.kind) {
-      case WorkspaceConnectRequestAgainKind.Command:
+      case WorkspaceConnectRequestAgainKind.Command: {
+        const verb: string = this.getCommandVerb(workspaceType);
+
         return again.label
-          ? mdText`run **${again.label}** again`
-          : mdText`run the command again`;
+          ? mdText`${verb} **${again.label}** again`
+          : mdText`${verb} the command again`;
+      }
       case WorkspaceConnectRequestAgainKind.Question:
         return mdText`ask your question again`;
       case WorkspaceConnectRequestAgainKind.Button:
@@ -423,12 +438,18 @@ export default class WorkspaceActionAnswers {
   }
 
   // The same as plain text: "press Add Note again".
-  public static getAgainText(again: WorkspaceConnectRequestAgain): string {
+  public static getAgainText(
+    again: WorkspaceConnectRequestAgain,
+    workspaceType?: WorkspaceType | undefined,
+  ): string {
     switch (again.kind) {
-      case WorkspaceConnectRequestAgainKind.Command:
+      case WorkspaceConnectRequestAgainKind.Command: {
+        const verb: string = this.getCommandVerb(workspaceType);
+
         return again.label
-          ? `run ${again.label} again`
-          : "run the command again";
+          ? `${verb} ${again.label} again`
+          : `${verb} the command again`;
+      }
       case WorkspaceConnectRequestAgainKind.Question:
         return "ask your question again";
       case WorkspaceConnectRequestAgainKind.Button:
@@ -436,6 +457,13 @@ export default class WorkspaceActionAnswers {
           ? `press ${again.label} again`
           : "press the button again";
     }
+  }
+
+  // How a command is given: run in Slack, typed to the bot in Microsoft Teams.
+  private static getCommandVerb(
+    workspaceType: WorkspaceType | undefined,
+  ): string {
+    return workspaceType === WorkspaceType.MicrosoftTeams ? "type" : "run";
   }
 
   // "acknowledges it", as the prompt promises it.

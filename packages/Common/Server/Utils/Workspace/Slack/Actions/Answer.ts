@@ -184,10 +184,12 @@ export default class SlackActionAnswer {
     }
 
     try {
+      // The one answer that notifies: its notification says what it is.
       await SlackUtil.sendDirectMessageToUser({
         authToken: place.projectAuthToken,
         workspaceUserId: place.slackUserId,
         messageBlocks: messageBlocks,
+        text: data.answer.text,
       });
 
       return SlackAnswerDelivery.DirectMessage;

@@ -9268,7 +9268,7 @@
   "Connect with Slack": "Connect with Slack",
   "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.": "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.",
   "Connect your Microsoft Teams account": "Connect your Microsoft Teams account",
-  "Connect your Slack account": "Connect your Slack account",
+  "Connect your Slack account": "Collega il tuo account Slack",
   "Connect your Slack workspace to this project, then choose here which notifications are posted to which channels.": "Collega la tua area di lavoro Slack a questo progetto, poi scegli qui quali notifiche vengono pubblicate in quali canali.",
   "Connect your assistant to OneUptime": "Connect your assistant to OneUptime",
   "Connect your hierarchy levels and pick which one is the unit level.": "Connect your hierarchy levels and pick which one is the unit level.",
@@ -28141,5 +28141,7 @@
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "Hai effettuato l'accesso a Slack come una persona diversa da quella che ha premuto il pulsante di collegamento in Slack, quindi non è stato collegato nulla. Accedi a Slack con il tuo account e riprova.",
   "Your {{workspace}} account is connected": "Il tuo account {{workspace}} è collegato",
   "Go back to {{workspace}} and press the button again.": "Torna su {{workspace}} e premi di nuovo il pulsante.",
-  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime non è riuscito a risponderti in {{workspace}}. Apri il record in OneUptime per vedere a che punto è."
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime non è riuscito a risponderti in {{workspace}}. Apri il record in OneUptime per vedere a che punto è.",
+  "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime ti ha risposto in {{workspace}}, dove hai premuto il pulsante.",
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime è installato nell'area di lavoro Slack {{team}}. Collega lì il tuo account per riconoscere gli incidenti e ricevere i messaggi a tuo nome, in Slack."
 }

@@ -9268,7 +9268,7 @@
   "Connect with Slack": "Connect with Slack",
   "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.": "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.",
   "Connect your Microsoft Teams account": "Connect your Microsoft Teams account",
-  "Connect your Slack account": "Connect your Slack account",
+  "Connect your Slack account": "连接您的 Slack 账户",
   "Connect your Slack workspace to this project, then choose here which notifications are posted to which channels.": "将你的 Slack 工作区连接到此项目，然后在此选择将哪些通知发布到哪些频道。",
   "Connect your assistant to OneUptime": "Connect your assistant to OneUptime",
   "Connect your hierarchy levels and pick which one is the unit level.": "Connect your hierarchy levels and pick which one is the unit level.",
@@ -28141,5 +28141,7 @@
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "您登录 Slack 时使用的不是在 Slack 中按下连接按钮的那个人的账户，因此未连接任何内容。请使用您自己的账户登录 Slack 后重试。",
   "Your {{workspace}} account is connected": "您的 {{workspace}} 账户已连接",
   "Go back to {{workspace}} and press the button again.": "请返回 {{workspace}}，再按一次该按钮。",
-  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime 无法在 {{workspace}} 中回复您。请在 OneUptime 中打开该记录查看其当前状态。"
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime 无法在 {{workspace}} 中回复您。请在 OneUptime 中打开该记录查看其当前状态。",
+  "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime 已在 {{workspace}} 中您按下按钮的地方回复了您。",
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime 已安装在 Slack 工作区 {{team}} 中。在那里连接您的账户，即可在 Slack 中以您本人的身份确认事件并接收消息。"
 }

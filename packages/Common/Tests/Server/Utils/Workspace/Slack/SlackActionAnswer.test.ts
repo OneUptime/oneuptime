@@ -301,7 +301,47 @@ describe("SlackActionAnswer.answer", () => {
       messageBlocks: [
         { _type: "WorkspacePayloadMarkdown", text: ANSWER.markdown },
       ],
+      text: ANSWER.text,
     });
+  });
+
+  /*
+   * The direct message is the one answer that notifies - a push on a phone,
+   * a badge - so its notification says what it is, not nothing.
+   */
+  test("the direct message carries the answer's notification text, as Slack is sent it", async () => {
+    slackAnswers.set(RESPONSE_URL, () => {
+      return new HTTPErrorResponse(404, { error: "no_such_url" }, {});
+    });
+    slackAnswers.set("https://slack.com/api/chat.postEphemeral", () => {
+      return ok({ ok: false, error: "channel_not_found" });
+    });
+    slackAnswers.set("https://slack.com/api/chat.postMessage", () => {
+      return ok({ ok: true, ts: "1760000000.000200", channel: "D0DM" });
+    });
+
+    await expect(
+      SlackActionAnswer.answer({
+        place: place(),
+        answer: {
+          markdown: "✅ **Incident INC-2** was already resolved.",
+          text: "Incident INC-2 was already resolved by <!channel> & co",
+        },
+      }),
+    ).resolves.toBe(SlackAnswerDelivery.DirectMessage);
+
+    const directMessage: SlackCall | undefined = calls.find(
+      (call: SlackCall): boolean => {
+        return call.url === "https://slack.com/api/chat.postMessage";
+      },
+    );
+
+    expect(directMessage).toBeDefined();
+    expect(directMessage!.data["channel"]).toBe(SLACK_USER);
+    // Escaped as notification text is: a name cannot notify anybody.
+    expect(directMessage!.data["text"]).toBe(
+      "Incident INC-2 was already resolved by &lt;!channel&gt; &amp; co",
+    );
   });
 
   test("an answer nothing takes is logged, and the press is not failed for it", async () => {

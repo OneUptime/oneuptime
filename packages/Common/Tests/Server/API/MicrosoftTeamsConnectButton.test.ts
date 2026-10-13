@@ -334,7 +334,7 @@ describe("a Connect button in Microsoft Teams", () => {
     const complete: jest.SpyInstance = jest
       .spyOn(WorkspaceConnectCompletion, "complete")
       .mockResolvedValue({
-        outcome: ConnectRequestOutcome.Answered,
+        outcome: ConnectRequestOutcome.Done,
         answer: {
           markdown:
             "✅ **Your Microsoft Teams account is connected to OneUptime.** You acknowledged **Incident INC-2**.",
@@ -387,8 +387,25 @@ describe("a Connect button in Microsoft Teams", () => {
     });
 
     expect(response.status).toBe(302);
-    expect(response.location).toBe(`${settingsPage()}?pressed=answered`);
+    expect(response.location).toBe(`${settingsPage()}?pressed=done`);
     expect(await WorkspaceConnectRequest.peek(token)).toBeNull();
+  });
+
+  test("a press answered without being done: the page is told it was answered, not done", async () => {
+    const token: string = await press();
+    jest.spyOn(WorkspaceConnectCompletion, "complete").mockResolvedValue({
+      outcome: ConnectRequestOutcome.Answered,
+      answer: {
+        markdown:
+          "✅ **Your Microsoft Teams account is connected to OneUptime.** **Incident INC-2** was already acknowledged by **Simon Lee**.",
+        text: "Your Microsoft Teams account is connected to OneUptime. Incident INC-2 was already acknowledged by Simon Lee",
+      },
+    });
+
+    const response: ProbeResponse = await comeBack(await signIn(token));
+
+    expect(sendCard).toHaveBeenCalledTimes(1);
+    expect(response.location).toBe(`${settingsPage()}?pressed=answered`);
   });
 
   test("a form's button: connected, told in the conversation to press it again, and the page says so too", async () => {
@@ -435,20 +452,23 @@ describe("a Connect button in Microsoft Teams", () => {
     expect(await WorkspaceConnectRequest.peek(token)).not.toBeNull();
   });
 
-  test("when the conversation takes no answer, the page does not say it is in Microsoft Teams", async () => {
-    const token: string = await press();
-    jest.spyOn(WorkspaceConnectCompletion, "complete").mockResolvedValue({
-      outcome: ConnectRequestOutcome.Answered,
-      answer: { markdown: "Done.", text: "Done." },
-    });
-    // The bot was removed from the team since the press.
-    sendCard.mockRejectedValue(new Error("BotNotInConversationRoster"));
+  test.each([ConnectRequestOutcome.Done, ConnectRequestOutcome.Answered])(
+    "%s, but the conversation takes no answer: the page does not say it is in Microsoft Teams",
+    async (outcome: ConnectRequestOutcome) => {
+      const token: string = await press();
+      jest.spyOn(WorkspaceConnectCompletion, "complete").mockResolvedValue({
+        outcome: outcome,
+        answer: { markdown: "Done.", text: "Done." },
+      });
+      // The bot was removed from the team since the press.
+      sendCard.mockRejectedValue(new Error("BotNotInConversationRoster"));
 
-    const response: ProbeResponse = await comeBack(await signIn(token));
+      const response: ProbeResponse = await comeBack(await signIn(token));
 
-    expect(refreshUserAuth).toHaveBeenCalledTimes(1);
-    expect(response.location).toBe(`${settingsPage()}?pressed=unanswered`);
-  });
+      expect(refreshUserAuth).toHaveBeenCalledTimes(1);
+      expect(response.location).toBe(`${settingsPage()}?pressed=unanswered`);
+    },
+  );
 
   test("a press that expired while they signed in: connected, nothing answered, and the page says it expired", async () => {
     const token: string = await press();

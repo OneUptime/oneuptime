@@ -5164,14 +5164,18 @@ All monitoring checks are passing normally.`;
     }
   }
 
-  // What a button no handler knows is answered with.
+  /*
+   * What a button no handler knows is answered with: a button of a card an
+   * older OneUptime posted, which no longer does anything. Where to go
+   * instead, not what the server could not work out.
+   */
   public static getUnknownButtonAnswer(): WorkspaceAnswer {
     const productName: string = ProductBrandingText.getProductName();
 
     return {
       markdown:
-        mdText`${productName} could not tell what this button does. Please open the record in ${productName} instead.`.toString(),
-      text: `${productName} could not tell what this button does`,
+        mdText`This button no longer works. Open the record in ${productName} instead.`.toString(),
+      text: "This button no longer works",
     };
   }
 

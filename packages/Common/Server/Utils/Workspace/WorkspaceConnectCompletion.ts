@@ -52,9 +52,19 @@ import WorkspaceMemberActions, {
  */
 
 export interface WorkspaceConnectCompletionResult {
+  /*
+   * Done only when OneUptime did what was pressed; Answered when the chat
+   * says why it did not (done already, refused, failed, nothing to finish).
+   */
   outcome: ConnectRequestOutcome;
   // What the chat says, where the press was.
   answer: WorkspaceAnswer;
+}
+
+// A pending press, tried: what the chat says, and whether it was done.
+interface PendingActionResult {
+  answer: WorkspaceAnswer;
+  isDone: boolean;
 }
 
 // The row each kind of record's state change is, for the check.
@@ -110,7 +120,7 @@ export default class WorkspaceConnectCompletion {
       };
     }
 
-    const outcome: WorkspaceAnswer =
+    const finished: PendingActionResult =
       await WorkspaceConnectCompletion.finishPendingAction({
         request: request,
         pendingAction: request.pendingAction,
@@ -118,10 +128,17 @@ export default class WorkspaceConnectCompletion {
       });
 
     return {
-      outcome: ConnectRequestOutcome.Answered,
+      /*
+       * The settings page says "finished" only for a press that was: one
+       * somebody got to first, a refusal or a failure is answered in the
+       * chat, which says why.
+       */
+      outcome: finished.isDone
+        ? ConnectRequestOutcome.Done
+        : ConnectRequestOutcome.Answered,
       answer: WorkspaceActionAnswers.getConnectedAnswer({
         workspaceType: request.workspaceType,
-        outcome: outcome,
+        outcome: finished.answer,
       }),
     };
   }
@@ -136,7 +153,7 @@ export default class WorkspaceConnectCompletion {
     request: WorkspaceConnectRequestRecord;
     pendingAction: WorkspacePendingAction;
     userId: ObjectID;
-  }): Promise<WorkspaceAnswer> {
+  }): Promise<PendingActionResult> {
     const { request, pendingAction } = data;
 
     try {
@@ -163,10 +180,13 @@ export default class WorkspaceConnectCompletion {
       if (
         WorkspaceConnectCompletion.isDoneAlready(pendingAction.kind, standing)
       ) {
-        return await WorkspaceActionAnswers.getAlreadyAnswer({
-          event: event,
-          press: LATE_PRESSES[pendingAction.kind],
-        });
+        return {
+          answer: await WorkspaceActionAnswers.getAlreadyAnswer({
+            event: event,
+            press: LATE_PRESSES[pendingAction.kind],
+          }),
+          isDone: false,
+        };
       }
 
       switch (pendingAction.kind) {
@@ -197,10 +217,13 @@ export default class WorkspaceConnectCompletion {
         userId: data.userId,
       });
 
-      return await WorkspaceActionAnswers.getDoneAnswer({
-        event: event,
-        kind: pendingAction.kind,
-      });
+      return {
+        answer: await WorkspaceActionAnswers.getDoneAnswer({
+          event: event,
+          kind: pendingAction.kind,
+        }),
+        isDone: true,
+      };
     } catch (err) {
       // A refusal is written for the person: their reason, as the button says it.
       if (
@@ -209,8 +232,11 @@ export default class WorkspaceConnectCompletion {
         err instanceof PaymentRequiredException
       ) {
         return {
-          markdown: mdText`${err.message}`.toString(),
-          text: err.message,
+          answer: {
+            markdown: mdText`${err.message}`.toString(),
+            text: err.message,
+          },
+          isDone: false,
         };
       }
 
@@ -223,9 +249,12 @@ export default class WorkspaceConnectCompletion {
       const productName: string = ProductBrandingText.getProductName();
 
       return {
-        markdown:
-          mdText`${productName} could not ${request.purpose} just now. Please press the button again.`.toString(),
-        text: `${productName} could not ${request.purpose} just now`,
+        answer: {
+          markdown:
+            mdText`${productName} could not ${request.purpose} just now. Please press the button again.`.toString(),
+          text: `${productName} could not ${request.purpose} just now`,
+        },
+        isDone: false,
       };
     }
   }

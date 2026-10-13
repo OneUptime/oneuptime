@@ -28141,5 +28141,7 @@
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.",
   "Your {{workspace}} account is connected": "Your {{workspace}} account is connected",
   "Go back to {{workspace}} and press the button again.": "Go back to {{workspace}} and press the button again.",
-  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands."
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.",
+  "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime answered you in {{workspace}}, where you pressed the button.",
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack."
 }

@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -171,7 +171,7 @@ let userConnected: boolean = false;
  * What the sign-in start answers: its authorization address, a 400 for a
  * Connect button that can no longer be used, or a 400 for anything else.
  */
-let signInAnswer: "start" | "gone" | "refused" = "start";
+let signInAnswer: "start" | "gone" | "refused" | "failed" = "start";
 
 beforeEach(() => {
   for (const name of Object.keys(query)) {
@@ -245,6 +245,14 @@ beforeEach(() => {
         return new HTTPErrorResponse(
           400,
           { message: "Slack sign-in is not set up on this server." },
+          {},
+        );
+      }
+
+      if (signInAnswer === "failed") {
+        return new HTTPErrorResponse(
+          500,
+          { message: "OneUptime could not reach Slack. Please try again." },
           {},
         );
       }
@@ -342,6 +350,67 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
     );
   });
 
+  /*
+   * Most Connect buttons are pressed in Slack's phone app. A card's
+   * description is hidden below md, so the connecting card says what is
+   * happening in its own body - and as a status, which a screen reader reads
+   * out.
+   */
+  test("what it says while connecting is a status, and not a description a phone hides", async () => {
+    query["connect"] = TOKEN;
+    await renderSlack();
+
+    const status: HTMLElement = within(
+      screen.getByTestId("connect-request-connecting"),
+    ).getByRole("status");
+    expect(status).toHaveTextContent("Connecting your Slack account…");
+    expect(status).toHaveTextContent(
+      "Taking you to Slack to confirm it's you.",
+    );
+    expect(
+      screen
+        .getByTestId("connect-request-connecting")
+        .querySelector('[data-testid="card-description"]'),
+    ).toBeNull();
+  });
+
+  test("a sign-in that cannot start says why above the page, and the page's own Connect button is right there to try again", async () => {
+    query["connect"] = TOKEN;
+    signInAnswer = "failed";
+
+    await renderSlack();
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    const notice: HTMLElement = screen.getByTestId(
+      "connect-request-start-error",
+    );
+    expect(notice).toHaveTextContent("Slack was not connected");
+    expect(notice).toHaveTextContent(
+      "OneUptime could not reach Slack. Please try again.",
+    );
+    // Never that the button expired: it did not.
+    expect(screen.queryByTestId("connect-request-link-gone")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Connect my account with Slack" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the card below says what to do, and names the Slack workspace to connect in", async () => {
+    query["connect"] = TOKEN;
+    signInAnswer = "gone";
+
+    await renderSlack();
+
+    expect(screen.getByText("Connect your Slack account")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "OneUptime is installed in the Acme Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
+      ),
+    ).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("disconnected from Slack");
+  });
+
   test("a Connect button that can no longer be used says so, and the page's own Connect button is right there", async () => {
     query["connect"] = TOKEN;
     signInAnswer = "gone";
@@ -381,7 +450,7 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
   });
 
   test("back from the sign-in: what became of the press, and a link back to the channel it was in", async () => {
-    query["pressed"] = "answered";
+    query["pressed"] = "done";
     query["slackChannel"] = "C0INC2";
     query["slackTeam"] = "T0TEAM";
 
@@ -401,6 +470,25 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
       slackChannel: null,
       slackTeam: null,
     });
+  });
+
+  test("a press answered without being done: the page says where the answer is, never that it was finished", async () => {
+    query["pressed"] = "answered";
+    query["slackChannel"] = "C0INC2";
+    query["slackTeam"] = "T0TEAM";
+
+    await renderSlack();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-notice");
+    expect(notice).toHaveTextContent(
+      "OneUptime answered you in Slack, where you pressed the button.",
+    );
+    expect(notice).not.toHaveTextContent("finished");
+    // The way back is its own line, not a word at the end of the sentence.
+    const backToSlack: HTMLElement = screen.getByRole("link", {
+      name: "Back to Slack",
+    });
+    expect(backToSlack.closest("p")).toBeNull();
   });
 
   test("a press Slack took no answer for: the page says to look at the record", async () => {
@@ -492,8 +580,12 @@ describe("the Slack page, opened from the Connect Slack account link in a channe
     expect(navigateMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
     expect(screen.queryByTestId("connect-request-link-gone")).toBeNull();
+    expect(screen.getByTestId("connect-request-start-error")).toHaveTextContent(
+      "Slack sign-in is not set up on this server.",
+    );
+    // Above the page, which stays: its Connect button is right there.
     expect(
-      screen.getByText("Slack sign-in is not set up on this server."),
+      screen.getByRole("button", { name: "Connect my account with Slack" }),
     ).toBeInTheDocument();
   });
 });
@@ -511,6 +603,24 @@ describe("the Microsoft Teams page, opened from a Connect button in Teams", () =
     );
     expect(starts[0]!.searchParams.get("connect")).toBe(TOKEN);
     expect(navigatedTo()).toEqual([TEAMS_AUTHORIZE]);
+  });
+
+  test("a Microsoft sign-in that cannot start says why above the page, which stays as it is", async () => {
+    query["connect"] = TOKEN;
+    signInAnswer = "failed";
+
+    await renderTeams();
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("connect-request-connecting")).toBeNull();
+    expect(screen.getByTestId("connect-request-start-error")).toHaveTextContent(
+      "Microsoft Teams was not connected",
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Connect my account with Microsoft Teams",
+      }),
+    ).toBeInTheDocument();
   });
 
   test("back from the sign-in, told to press again: says so, with no Slack link", async () => {

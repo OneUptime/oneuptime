@@ -9268,7 +9268,7 @@
   "Connect with Slack": "Connect with Slack",
   "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.": "Connect with the key as the MQTT password, then publish JSON readings under the oneuptime/ topic prefix.",
   "Connect your Microsoft Teams account": "Connect your Microsoft Teams account",
-  "Connect your Slack account": "Connect your Slack account",
+  "Connect your Slack account": "Koble til Slack-kontoen din",
   "Connect your Slack workspace to this project, then choose here which notifications are posted to which channels.": "Koble Slack-arbeidsområdet ditt til dette prosjektet, og velg deretter her hvilke varsler som publiseres i hvilke kanaler.",
   "Connect your assistant to OneUptime": "Connect your assistant to OneUptime",
   "Connect your hierarchy levels and pick which one is the unit level.": "Connect your hierarchy levels and pick which one is the unit level.",
@@ -28141,5 +28141,7 @@
   "You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected. Please sign in to Slack with your own account and press Connect again.": "Du logget på Slack som en annen enn personen som trykket på tilkoblingsknappen i Slack, så ingenting ble koblet til. Logg på Slack med din egen konto og prøv igjen.",
   "Your {{workspace}} account is connected": "{{workspace}}-kontoen din er koblet til",
   "Go back to {{workspace}} and press the button again.": "Gå tilbake til {{workspace}} og trykk på knappen igjen.",
-  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime kunne ikke svare deg i {{workspace}}. Åpne oppføringen i OneUptime for å se hvordan den står."
+  "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime kunne ikke svare deg i {{workspace}}. Åpne oppføringen i OneUptime for å se hvordan den står.",
+  "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime har svart deg i {{workspace}}, der du trykket på knappen.",
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime er installert i Slack-arbeidsområdet {{team}}. Koble til kontoen din der for å bekrefte hendelser og få meldinger som deg selv i Slack."
 }

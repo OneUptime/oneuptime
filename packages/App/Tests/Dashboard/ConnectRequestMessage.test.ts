@@ -6,6 +6,7 @@ import {
   getConnectRequestNotice,
   getWorkspaceName,
 } from "../../FeatureSet/Dashboard/src/Utils/Workspace/ConnectRequestMessage";
+import { getNotConnectedTitle } from "../../FeatureSet/Dashboard/src/Utils/Workspace/ConnectCallbackMessage";
 import {
   getLocalePath,
   TRANSLATED_LOCALES,
@@ -40,8 +41,16 @@ const CHAT_PROVIDERS: Array<ConnectProvider> = [
 describe("what became of the press", () => {
   test.each([
     [
-      ConnectRequestOutcome.Answered,
+      ConnectRequestOutcome.Done,
       "OneUptime finished what you pressed in Slack and answered you there.",
+    ],
+    /*
+     * Answered without being done - somebody got there first, it was not
+     * allowed, it failed: where the answer is, never that it was done.
+     */
+    [
+      ConnectRequestOutcome.Answered,
+      "OneUptime answered you in Slack, where you pressed the button.",
     ],
     [
       ConnectRequestOutcome.PressAgain,
@@ -65,11 +74,26 @@ describe("what became of the press", () => {
     ).toEqual({ title: "Your Slack account is connected", message: message });
   });
 
+  test("only a press that was done is said to be finished", () => {
+    for (const pressed of Object.values(ConnectRequestOutcome)) {
+      const notice: ConnectRequestNoticeText | null = getConnectRequestNotice({
+        provider: ConnectProvider.Slack,
+        pressed: pressed,
+        translator: ENGLISH,
+      });
+
+      expect([pressed, notice!.message.includes("finished")]).toEqual([
+        pressed,
+        pressed === ConnectRequestOutcome.Done,
+      ]);
+    }
+  });
+
   test("the Microsoft Teams page names Microsoft Teams", () => {
     expect(
       getConnectRequestNotice({
         provider: ConnectProvider.MicrosoftTeams,
-        pressed: ConnectRequestOutcome.Answered,
+        pressed: ConnectRequestOutcome.Done,
         translator: ENGLISH,
       }),
     ).toEqual({
@@ -83,7 +107,8 @@ describe("what became of the press", () => {
     null,
     undefined,
     "",
-    "done",
+    "finished",
+    "DONE",
     "ANSWERED",
     "<script>alert(1)</script>",
     "answered&slackChannel=C0EVIL",
@@ -127,6 +152,21 @@ describe("the other notices", () => {
     });
   });
 
+  test("a sign-in that could not start: the page's own title, over the server's reason", () => {
+    expect(
+      getNotConnectedTitle({
+        provider: ConnectProvider.Slack,
+        translator: ENGLISH,
+      }),
+    ).toBe("Slack was not connected");
+    expect(
+      getNotConnectedTitle({
+        provider: ConnectProvider.MicrosoftTeams,
+        translator: ENGLISH,
+      }),
+    ).toBe("Microsoft Teams was not connected");
+  });
+
   test("each chat page names its own chat", () => {
     expect(getWorkspaceName(ConnectProvider.Slack)).toBe("Slack");
     expect(getWorkspaceName(ConnectProvider.MicrosoftTeams)).toBe(
@@ -162,6 +202,7 @@ describe("the sentences are in every locale", () => {
 
       getConnectingNotice({ provider: provider, translator: recording });
       getConnectLinkGoneNotice({ provider: provider, translator: recording });
+      getNotConnectedTitle({ provider: provider, translator: recording });
     }
 
     return Array.from(keys);
@@ -170,8 +211,11 @@ describe("the sentences are in every locale", () => {
   const keys: Array<string> = everyKey();
 
   test("every outcome has a sentence, and the notices their titles", () => {
-    // 4 outcomes, 3 titles, 2 messages, and "Back to Slack".
-    expect(keys).toHaveLength(Object.values(ConnectRequestOutcome).length + 6);
+    /*
+     * 5 outcomes, 3 titles, 2 messages, "Back to Slack", and the title of a
+     * sign-in that could not start, for each chat.
+     */
+    expect(keys).toHaveLength(Object.values(ConnectRequestOutcome).length + 8);
   });
 
   test("en.json has every one", () => {

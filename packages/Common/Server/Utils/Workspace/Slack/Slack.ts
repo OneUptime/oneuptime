@@ -593,6 +593,11 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * What the notification of the direct message says (Slack's top-level
+     * `text`): a direct message notifies, so it says something readable.
+     */
+    text?: string | undefined;
   }): Promise<void> {
     // Send direct message to user
 
@@ -610,6 +615,7 @@ export default class SlackUtil extends WorkspaceBase {
         workspaceType: WorkspaceType.Slack,
       },
       blocks: blocks,
+      text: data.text,
     });
   }
 

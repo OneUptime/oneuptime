@@ -220,6 +220,17 @@ export const getConnectCallbackMessageKey: (
   }
 };
 
+// "Slack was not connected", in the reader's language.
+export const getNotConnectedTitle: (data: {
+  provider: ConnectProvider;
+  translator: Translator;
+}) => string = (data: {
+  provider: ConnectProvider;
+  translator: Translator;
+}): string => {
+  return data.translator.translateTemplate(NOT_CONNECTED[data.provider]);
+};
+
 /*
  * The title and sentence `provider`'s page shows for the `?error=` it was
  * opened with, in the reader's language, or null when it has none.
@@ -255,7 +266,10 @@ export const getConnectCallbackNotice: (data: {
 
   return {
     code: code,
-    title: data.translator.translateTemplate(NOT_CONNECTED[data.provider]),
+    title: getNotConnectedTitle({
+      provider: data.provider,
+      translator: data.translator,
+    }),
     message: message,
   };
 };

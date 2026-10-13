@@ -3,8 +3,11 @@ import {
   ConnectRequestNoticeText,
   getConnectLinkGoneNotice,
   getConnectRequestNotice,
+  getConnectingNotice,
 } from "../../Utils/Workspace/ConnectRequestMessage";
+import { getNotConnectedTitle } from "../../Utils/Workspace/ConnectCallbackMessage";
 import URL from "Common/Types/API/URL";
+import IconProp from "Common/Types/Icon/IconProp";
 import ConnectCallbackUtil, {
   CONNECT_ACCOUNT_QUERY_PARAM,
   CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
@@ -14,6 +17,8 @@ import ConnectCallbackUtil, {
   ConnectProvider,
 } from "Common/Types/Workspace/ConnectCallback";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Card from "Common/UI/Components/Card/Card";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -32,17 +37,22 @@ import React, {
  * person's own settings page for that workspace with `?connect=` and a token
  * for the press. The page reads it once, takes it off the address, and
  * connects the account straight away (the Slack and Microsoft Teams
- * integration components start the sign-in with it). The sign-in comes back
- * to the page with `?pressed=` - what became of the press - which this
- * shows, with a link back to the Slack channel the press was in. Every value
- * is read once and taken off the address, so a reload or a shared link does
- * not say it again.
+ * integration components start the sign-in with it), saying meanwhile that it
+ * is connecting (ConnectRequestConnecting). The sign-in comes back to the
+ * page with `?pressed=` - what became of the press - which this shows, with a
+ * link back to the Slack channel the press was in. Every value is read once
+ * and taken off the address, so a reload or a shared link does not say it
+ * again.
  *
  * The Connect Slack account link in a Slack channel's note (the people
  * OneUptime could not add to it) opens the Slack page with
  * `?connectAccount=true` instead: there is no press to finish, so the page
  * only connects the account of whoever opened it, when it is not connected
  * yet.
+ *
+ * A sign-in that cannot start is said above the page, which loads as usual
+ * with its own Connect button right below to try again - never a page that is
+ * only the error.
  */
 
 export interface ConnectRequestState {
@@ -59,12 +69,16 @@ export interface ConnectRequestState {
   backLink: string | null;
   // The `?connect=` could not be used: its press is spent or expired.
   linkGone: ConnectRequestNoticeText | null;
+  // Why the sign-in the page started on its own could not start.
+  startError: ConnectRequestNoticeText | null;
   // The token was handed to the sign-in: it is not used again.
   takeToken: () => void;
   // The page acted on `?connectAccount=`: it does not act on it again.
   takeConnectAccount: () => void;
   // The sign-in refused the token: say so.
   markLinkGone: () => void;
+  // The sign-in could not start, for `message`: say so above the page.
+  markStartFailed: (message: string) => void;
   dismiss: () => void;
 }
 
@@ -107,6 +121,10 @@ export const useConnectRequest: (data: {
 
   const [isLinkGone, setIsLinkGone] = useState<boolean>(false);
 
+  const [startErrorMessage, setStartErrorMessage] = useState<string | null>(
+    null,
+  );
+
   useEffect(() => {
     const params: Array<string> = [
       CONNECT_REQUEST_QUERY_PARAM,
@@ -146,6 +164,15 @@ export const useConnectRequest: (data: {
           translator: translator,
         })
       : null,
+    startError: startErrorMessage
+      ? {
+          title: getNotConnectedTitle({
+            provider: data.provider,
+            translator: translator,
+          }),
+          message: startErrorMessage,
+        }
+      : null,
     takeToken: (): void => {
       setConnectToken(null);
     },
@@ -156,9 +183,13 @@ export const useConnectRequest: (data: {
       setConnectToken(null);
       setIsLinkGone(true);
     },
+    markStartFailed: (message: string): void => {
+      setStartErrorMessage(message);
+    },
     dismiss: (): void => {
       setPressed(null);
       setIsLinkGone(false);
+      setStartErrorMessage(null);
     },
   };
 };
@@ -171,7 +202,7 @@ const ConnectRequestNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const { notice, linkGone, backLink } = props.state;
+  const { notice, linkGone, startError, backLink } = props.state;
 
   if (notice) {
     return (
@@ -180,20 +211,24 @@ const ConnectRequestNotice: FunctionComponent<ComponentProps> = (
           type={AlertType.SUCCESS}
           strongTitle={notice.title}
           title={
-            <span>
-              {notice.message}
+            <div>
+              <p>{notice.message}</p>
+              {/*
+               * The way back, as its own line under what happened: the one
+               * thing left to do, not a word at the end of a sentence.
+               */}
               {backLink && (
-                <>
-                  {" "}
+                <div className="mt-2">
                   <Link
                     to={URL.fromString(backLink)}
-                    className="font-semibold underline"
+                    className="inline-flex items-center gap-1.5 font-semibold underline underline-offset-2"
                   >
+                    <Icon icon={IconProp.Slack} className="h-4 w-4" />
                     {translator.translateText(BACK_TO_SLACK)}
                   </Link>
-                </>
+                </div>
               )}
-            </span>
+            </div>
           }
           onClose={props.state.dismiss}
           dataTestId="connect-request-notice"
@@ -216,7 +251,69 @@ const ConnectRequestNotice: FunctionComponent<ComponentProps> = (
     );
   }
 
+  if (startError) {
+    return (
+      <div className="mb-5">
+        <Alert
+          type={AlertType.DANGER}
+          strongTitle={startError.title}
+          title={startError.message}
+          onClose={props.state.dismiss}
+          dataTestId="connect-request-start-error"
+        />
+      </div>
+    );
+  }
+
   return <></>;
+};
+
+export interface ConnectingComponentProps {
+  provider: ConnectProvider;
+}
+
+/*
+ * What the page shows while it takes the browser to Slack or Microsoft to
+ * sign in, which can take a few seconds on a phone: what is happening, in a
+ * card the size of what it says, on every width (a card's description is
+ * hidden on a phone, so this says it in its own body). It is a status, read
+ * out once by a screen reader.
+ */
+export const ConnectRequestConnecting: FunctionComponent<
+  ConnectingComponentProps
+> = (props: ConnectingComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const connecting: ConnectRequestNoticeText = getConnectingNotice({
+    provider: props.provider,
+    translator: translator,
+  });
+
+  return (
+    <div data-testid="connect-request-connecting">
+      <Card bodyClassName="mt-0">
+        <div role="status" className="flex items-start gap-4">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"
+            aria-hidden="true"
+          >
+            <Icon
+              icon={IconProp.Spinner}
+              className="h-5 w-5 motion-safe:animate-spin"
+            />
+          </div>
+          <div className="min-w-0 pt-0.5">
+            <h2 className="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">
+              {connecting.title}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              {connecting.message}
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
 };
 
 export default ConnectRequestNotice;

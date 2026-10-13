@@ -2251,7 +2251,7 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
       expect(view.bubbles).toHaveLength(1);
       // master: a line of text naming nobody, then "try again".
       expect(answerOf(view.bubbles[0]!)).toBe(
-        `🔗 **Connect your Microsoft Teams account to ${notLinked.purpose}.** It takes one click. Then run **${notLinked.command}** again.`,
+        `🔗 **Connect your Microsoft Teams account to ${notLinked.purpose}.** It takes one click. Then type **${notLinked.command}** again.`,
       );
       expectOneClickConnect(view.bubbles[0]);
       // The link looked for was this sender's, in this project.
@@ -2516,7 +2516,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
           sharedChat.command === "create incident"
             ? "declare an incident"
             : "create a scheduled maintenance event"
-        }.** It takes one click. Then run **${sharedChat.command}** again.`,
+        }.** It takes one click. Then type **${sharedChat.command}** again.`,
       );
       expectOneClickConnect(view.bubbles[0]);
       expect(
@@ -5172,8 +5172,9 @@ describe("a card's button, pressed in a channel (customer feedback #1)", () => {
     );
 
     expect(view.httpStatuses).toEqual([200]);
+    // Where to go instead - not what the server could not work out.
     expect(answerIn(view.bubbles[0])).toEqual({
-      text: "OneUptime could not tell what this button does. Please open the record in OneUptime instead.",
+      text: "This button no longer works. Open the record in OneUptime instead.",
       connectUrl: null,
     });
   });

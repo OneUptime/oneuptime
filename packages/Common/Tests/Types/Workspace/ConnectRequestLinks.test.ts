@@ -74,12 +74,43 @@ describe("ConnectCallbackUtil.readConnectRequestOutcome", () => {
     },
   );
 
-  test.each([null, undefined, "", "done", "ANSWERED", 1])(
+  test.each([null, undefined, "", "finished", "ANSWERED", "DONE", 1])(
     "reads %p as no outcome",
     (value: unknown) => {
       expect(ConnectCallbackUtil.readConnectRequestOutcome(value)).toBeNull();
     },
   );
+
+  /*
+   * The page says "finished" only for a press that was done: done already
+   * by somebody else, refused or failed is answered in the chat, which says
+   * why - the page only says where.
+   */
+  test("done and answered are told apart", () => {
+    expect(ConnectRequestOutcome.Done).toBe("done");
+    expect(ConnectRequestOutcome.Answered).toBe("answered");
+  });
+});
+
+describe("ConnectCallbackUtil.pointsToChatAnswer", () => {
+  test.each([
+    [ConnectRequestOutcome.Done, true],
+    [ConnectRequestOutcome.Answered, true],
+    [ConnectRequestOutcome.PressAgain, false],
+    [ConnectRequestOutcome.Expired, false],
+    [ConnectRequestOutcome.NotAnswered, false],
+  ])(
+    "%s sends the reader to the answer in the chat: %s",
+    (outcome: ConnectRequestOutcome, pointsToChat: boolean) => {
+      expect(ConnectCallbackUtil.pointsToChatAnswer(outcome)).toBe(
+        pointsToChat,
+      );
+    },
+  );
+
+  test("covers every outcome", () => {
+    expect(Object.values(ConnectRequestOutcome)).toHaveLength(5);
+  });
 });
 
 describe("ConnectCallbackUtil.getSlackChannelLink", () => {

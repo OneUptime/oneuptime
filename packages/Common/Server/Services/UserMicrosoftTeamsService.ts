@@ -18,6 +18,7 @@ import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProj
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import Model from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -149,7 +150,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!userAuth || !userAuth.workspaceUserId) {
       throw new BadDataException(
-        "Your Microsoft Teams account is not connected to OneUptime in this project yet. Connect it in User Settings > Workspace > Microsoft Teams with Connect my account with Microsoft Teams, then add it here.",
+        `Your Microsoft Teams account is not connected to ${ProductBrandingText.getProductName()} in this project yet. Connect it under User Settings > Workspace > Microsoft Teams, then add it here.`,
       );
     }
 

@@ -144,7 +144,7 @@ OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以
 - **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或排定維護活動需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。其他任何人都會收到告知，並且不會有任何變更。
 - **哪些紀錄。** 與在 OneUptime 中一樣，是您可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄或其他專案的紀錄上的按鈕，都會得到該紀錄 "was not found in this project, or you do not have access to it." 的回覆，並且不會有任何變更。在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
 - **Change State 提供什麼。** 依專案的順序，提供您可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中回退（請參閱 [順序是真正的限制，而不是顯示偏好](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好) ）。如果您一個都無法讀取，會收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，會收到 "There is no later state to move this incident to."。這兩種情況都不會開啟空白表單。
-- **在哪裡收到回覆。** 在帶有按鈕的訊息下方，以只有您看得到的訊息回覆，絕不會透過私人訊息。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **在哪裡收到回覆。** 在帶有按鈕的訊息下方，以只有您看得到的訊息回覆；只有當 Slack 拒絕時，才會改用私人訊息。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果您的 Slack 帳戶未連接。** 回覆會請您連接它，並附上一個 **Connect Slack account** 按鈕。該按鈕會開啟您在 OneUptime 中自己的 Slack 設定，並在您視需要登入 OneUptime 後一步連接您的帳戶。隨後 OneUptime 會以您的身分完成您按下的操作，並在同一則訊息下方回覆；對於開啟表單的按鈕或命令，它會請您再按一次或再執行一次。該按鈕只能使用一次，有效 30 分鐘，並且只對按下它的 Slack 帳戶有效：以其他人的身分登入 Slack 時，它不會連接任何帳戶。
 
 ## 中斷連接

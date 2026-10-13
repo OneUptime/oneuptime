@@ -390,7 +390,7 @@ describe("a Connect button in Slack", () => {
       const complete: jest.SpyInstance = jest
         .spyOn(WorkspaceConnectCompletion, "complete")
         .mockResolvedValue({
-          outcome: ConnectRequestOutcome.Answered,
+          outcome: ConnectRequestOutcome.Done,
           answer: {
             markdown:
               "✅ **Your Slack account is connected to OneUptime.** You acknowledged **Incident INC-2**.",
@@ -448,7 +448,7 @@ describe("a Connect button in Slack", () => {
       const location: globalThis.URL = new globalThis.URL(response.location!);
       expect(`${location.origin}${location.pathname}`).toBe(settingsPage());
       expect(Object.fromEntries(location.searchParams.entries())).toEqual({
-        pressed: "answered",
+        pressed: "done",
         slackChannel: "C0INC2",
         slackTeam: SLACK_TEAM_ID,
       });
@@ -527,28 +527,61 @@ describe("a Connect button in Slack", () => {
       expect(response.location).toBe(`${settingsPage()}?pressed=expired`);
     });
 
-    test("when Slack takes the answer nowhere, the page does not say it is in Slack: it says to look at the record", async () => {
+    /*
+     * Not done - somebody got there first, the member may not, it failed -
+     * is answered in Slack with why; the page says only where the answer
+     * is, never that the press was finished.
+     */
+    test("a press answered without being done: the page is told it was answered, not done", async () => {
       const token: string = await press();
       jest.spyOn(WorkspaceConnectCompletion, "complete").mockResolvedValue({
         outcome: ConnectRequestOutcome.Answered,
-        answer: { markdown: "Done.", text: "Done." },
+        answer: {
+          markdown:
+            "✅ **Your Slack account is connected to OneUptime.** You do not have permission to acknowledge this incident.",
+          text: "Your Slack account is connected to OneUptime. You do not have permission to acknowledge this incident.",
+        },
       });
-      jest
-        .spyOn(SlackActionAnswer, "answer")
-        .mockResolvedValue(SlackAnswerDelivery.None);
 
       const response: ProbeResponse = await comeBack(await signIn(token));
 
+      expect(answersPosted()).toHaveLength(1);
       expect(
         Object.fromEntries(
           new globalThis.URL(response.location!).searchParams.entries(),
         ),
       ).toEqual({
-        pressed: "unanswered",
+        pressed: "answered",
         slackChannel: "C0INC2",
         slackTeam: SLACK_TEAM_ID,
       });
     });
+
+    test.each([ConnectRequestOutcome.Done, ConnectRequestOutcome.Answered])(
+      "%s, but Slack takes the answer nowhere: the page does not say it is in Slack, it says to look at the record",
+      async (outcome: ConnectRequestOutcome) => {
+        const token: string = await press();
+        jest.spyOn(WorkspaceConnectCompletion, "complete").mockResolvedValue({
+          outcome: outcome,
+          answer: { markdown: "Done.", text: "Done." },
+        });
+        jest
+          .spyOn(SlackActionAnswer, "answer")
+          .mockResolvedValue(SlackAnswerDelivery.None);
+
+        const response: ProbeResponse = await comeBack(await signIn(token));
+
+        expect(
+          Object.fromEntries(
+            new globalThis.URL(response.location!).searchParams.entries(),
+          ),
+        ).toEqual({
+          pressed: "unanswered",
+          slackChannel: "C0INC2",
+          slackTeam: SLACK_TEAM_ID,
+        });
+      },
+    );
 
     test("a response_url that is not Slack's, however it got into the press, is never posted to", async () => {
       const token: string = await press({

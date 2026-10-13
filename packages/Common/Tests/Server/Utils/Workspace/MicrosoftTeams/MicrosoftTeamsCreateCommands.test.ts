@@ -230,9 +230,9 @@ const INCIDENT: CommandProfile = {
     senderUnknown:
       "Sorry, I couldn't tell who sent this message, so I can't open the form to create an incident. Please try again.",
     connectPrompt:
-      "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then run **create incident** again.",
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **create incident** again.",
     connectPromptWithoutLink:
-      "🔗 **Connect your Microsoft Teams account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, run **create incident** again.",
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create incident** again.",
     senderCheckFailed:
       "Sorry, I couldn't open the form to create an incident because OneUptime could not check your account just now. Please try again in a minute.",
     listsUnreadable: `Sorry, I couldn't open the form to create an incident because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_INCIDENT_LINK}`,
@@ -266,9 +266,9 @@ const MAINTENANCE: CommandProfile = {
     senderUnknown:
       "Sorry, I couldn't tell who sent this message, so I can't open the form to create a scheduled maintenance event. Please try again.",
     connectPrompt:
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then run **create maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **create maintenance** again.",
     connectPromptWithoutLink:
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, run **create maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create maintenance** again.",
     senderCheckFailed:
       "Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not check your account just now. Please try again in a minute.",
     listsUnreadable: `Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,

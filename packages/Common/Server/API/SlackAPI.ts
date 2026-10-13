@@ -233,7 +233,7 @@ export default class SlackAPI {
        * says to look at the record instead.
        */
       [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
-        result.outcome === ConnectRequestOutcome.Answered &&
+        ConnectCallbackUtil.pointsToChatAnswer(result.outcome) &&
         delivery === SlackAnswerDelivery.None
           ? ConnectRequestOutcome.NotAnswered
           : result.outcome,

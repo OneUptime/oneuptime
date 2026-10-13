@@ -134,8 +134,14 @@ export const CONNECT_REQUEST_OUTCOME_QUERY_PARAM: string = "pressed";
 
 export enum ConnectRequestOutcome {
   /*
-   * OneUptime did what was pressed, or said in the chat why it could not
-   * (done already, or not allowed): the answer is in the chat.
+   * OneUptime did what was pressed - acknowledged, resolved, marked the
+   * event ongoing or complete - as the person, and said so in the chat.
+   */
+  Done = "done",
+  /*
+   * OneUptime answered in the chat without doing it: somebody had done it
+   * already, the person may not, it failed, or there was nothing to finish.
+   * The page never says it was done: only the chat says why it was not.
    */
   Answered = "answered",
   // A button that opens a form, a command or a question: press it again.
@@ -143,8 +149,8 @@ export enum ConnectRequestOutcome {
   // The press waited too long: press it again.
   Expired = "expired",
   /*
-   * Finished, or refused, but the chat took no answer (the app was removed
-   * from the conversation since): the record says where it stands.
+   * Done or answered, but the chat took no answer (the app was removed from
+   * the conversation since): the record says where it stands.
    */
   NotAnswered = "unanswered",
 }
@@ -286,6 +292,18 @@ export default class ConnectCallbackUtil {
   // Whether a `?connectAccount=` asks the page to connect the account.
   public static readConnectAccount(value: unknown): boolean {
     return value === CONNECT_ACCOUNT_QUERY_VALUE;
+  }
+
+  /*
+   * Whether the page's sentence for the outcome sends the reader to
+   * OneUptime's answer in the chat ("...and answered you there") - so, when
+   * the chat took no answer, the page says NotAnswered instead.
+   */
+  public static pointsToChatAnswer(outcome: ConnectRequestOutcome): boolean {
+    return (
+      outcome === ConnectRequestOutcome.Done ||
+      outcome === ConnectRequestOutcome.Answered
+    );
   }
 
   // The outcome a `?pressed=` names, or null for anything else.

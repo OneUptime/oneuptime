@@ -57,13 +57,10 @@ import {
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
 import ConnectRequestNotice, {
+  ConnectRequestConnecting,
   ConnectRequestState,
   useConnectRequest,
 } from "../Workspace/ConnectRequestNotice";
-import {
-  ConnectRequestNoticeText,
-  getConnectingNotice,
-} from "../../Utils/Workspace/ConnectRequestMessage";
 
 // The full setup guide, folded at the bottom of a self-hosted install's page.
 export const MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID: string =
@@ -341,9 +338,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
     setIsConnectingFromTeams(true);
 
+    /*
+     * A start that fails is said above the page, which shows as usual: its
+     * own Connect button is right there to try again.
+     */
     startSignInFromTeams(token).catch((error: Exception) => {
       setIsConnectingFromTeams(false);
-      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
     });
   }, [isLoading, isProjectAccountConnected]);
 
@@ -352,17 +353,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (isConnectingFromTeams) {
-    const connecting: ConnectRequestNoticeText = getConnectingNotice({
-      provider: ConnectProvider.MicrosoftTeams,
-      translator: translator,
-    });
-
     return (
-      <div data-testid="connect-request-connecting">
-        <Card title={connecting.title} description={connecting.message}>
-          <PageLoader isVisible={true} />
-        </Card>
-      </div>
+      <ConnectRequestConnecting provider={ConnectProvider.MicrosoftTeams} />
     );
   }
 

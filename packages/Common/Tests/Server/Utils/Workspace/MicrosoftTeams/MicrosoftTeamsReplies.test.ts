@@ -1966,7 +1966,7 @@ describe("the Connect button's link (WorkspaceConnectRequest)", () => {
     }).markdown;
 
     expect(markdown).toBe(
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, run **create maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create maintenance** again.",
     );
     expect(markdown).not.toContain("](");
   });

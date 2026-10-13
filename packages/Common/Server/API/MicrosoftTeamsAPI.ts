@@ -184,7 +184,7 @@ export default class MicrosoftTeamsAPI {
        * took none: it says to look at the record instead.
        */
       [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
-        result.outcome === ConnectRequestOutcome.Answered && !isAnswered
+        ConnectCallbackUtil.pointsToChatAnswer(result.outcome) && !isAnswered
           ? ConnectRequestOutcome.NotAnswered
           : result.outcome,
     };
