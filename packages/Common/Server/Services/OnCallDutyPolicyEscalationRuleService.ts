@@ -40,6 +40,10 @@ import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideS
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
+import UserOverrideUtil, {
+  UserOverrideRecord,
+} from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
+import { getAwayTimelineMessage } from "../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -67,6 +71,22 @@ interface RecipientRuleTarget {
   recipientUserId: ObjectID;
   teamId: ObjectID | null;
   scheduleId: ObjectID | null;
+  /*
+   * Set when the person the rule names is away with nobody named to cover
+   * (a skip): they are not paged, and the timeline says until when. A
+   * schedule's on-call person is never skipped here - the schedule has
+   * already handed a skipped person's turn to the next one in its rotation.
+   */
+  awayUntil: Date | null;
+}
+
+/*
+ * A user override in force for a person (getAwayOverride): who covers - or
+ * nobody, for a skip - and until when.
+ */
+export interface AwayOverride {
+  coverUserId: ObjectID | null;
+  endsAt: Date;
 }
 
 interface ScheduleGapRuleTarget {
@@ -96,23 +116,53 @@ const ON_CALL_DUTY_POLICY_KEYS: Array<string> = [
 ];
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
+  /*
+   * Who gets the pages of a person named on a rule, while a user override
+   * names who covers them: the cover, or null when no override with a cover
+   * decides for them now - nobody is away, or they are skipped
+   * (getAwayOverride says which).
+   */
   @CaptureSpan()
   public async getRouteAlertToUserId(data: {
     userId: ObjectID;
     onCallDutyPolicyId: ObjectID;
     projectId: ObjectID;
   }): Promise<ObjectID | null> {
+    const away: AwayOverride | null = await this.getAwayOverride(data);
+
+    return away?.coverUserId || null;
+  }
+
+  /*
+   * The user override that decides, right now (or at `at`), what happens to
+   * the pages of a person a rule names - the policy's own overrides and the
+   * global ones, the winner chosen as the schedules choose it
+   * (UserOverrideUtil.getPrecedence): a policy's own override beats a global
+   * one, and within a scope one that names who covers beats a skip. Null
+   * when the person is not away.
+   *
+   * With a cover, the cover is paged in their place. Without one - a skip -
+   * nobody is: a person named directly, or as a member of a team, has no
+   * rotation to take the next person from.
+   */
+  @CaptureSpan()
+  public async getAwayOverride(data: {
+    userId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    projectId: ObjectID;
+    at?: Date | undefined;
+  }): Promise<AwayOverride | null> {
     logger.debug(
-      `Getting route alert to user id for userId: ${data.userId.toString()}`,
+      `Getting the user override in force for userId: ${data.userId.toString()}`,
       {
         projectId: data.projectId.toString(),
         userId: data.userId.toString(),
       } as LogAttributes,
     );
 
-    const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const currentDate: Date = data.at || OneUptimeDate.getCurrentDate();
 
-    const alertRoutedTo: Array<OnCallDutyPolicyUserOverride> =
+    const overrides: Array<OnCallDutyPolicyUserOverride> =
       await OnCallDutyPolicyUserOverrideService.findBy({
         query: {
           overrideUserId: data.userId,
@@ -131,51 +181,61 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         select: {
           routeAlertsToUserId: true,
           onCallDutyPolicyId: true,
+          startsAt: true,
+          endsAt: true,
         },
       });
 
-    logger.debug(`Found alert routed to: ${JSON.stringify(alertRoutedTo)}`, {
+    logger.debug(`Found overrides in force: ${JSON.stringify(overrides)}`, {
       projectId: data.projectId.toString(),
       userId: data.userId.toString(),
     } as LogAttributes);
 
-    // local override takes precedence over global override.
-    const localOverride: OnCallDutyPolicyUserOverride | undefined =
-      alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
-        return (
-          item.onCallDutyPolicyId?.toString() ===
-          data.onCallDutyPolicyId.toString()
-        );
-      });
+    const policyId: string = data.onCallDutyPolicyId.toString();
 
-    if (localOverride && localOverride.routeAlertsToUserId) {
-      logger.debug(
-        `Route alert to user id found: ${localOverride.routeAlertsToUserId.toString()}`,
-        {
-          projectId: data.projectId.toString(),
-          userId: data.userId.toString(),
-        } as LogAttributes,
-      );
-      return localOverride.routeAlertsToUserId;
+    const winner: OnCallDutyPolicyUserOverride | undefined = overrides
+      .filter((override: OnCallDutyPolicyUserOverride) => {
+        // Another policy's own override never applies here.
+        const overridePolicyId: string | undefined =
+          override.onCallDutyPolicyId?.toString();
+
+        return !overridePolicyId || overridePolicyId === policyId;
+      })
+      .map((override: OnCallDutyPolicyUserOverride) => {
+        const record: UserOverrideRecord = {
+          overrideUserId: data.userId.toString(),
+          routeAlertsToUserId: override.routeAlertsToUserId?.toString() || null,
+          startsAt: override.startsAt!,
+          endsAt: override.endsAt!,
+          onCallDutyPolicyId: override.onCallDutyPolicyId?.toString() || null,
+        };
+
+        return {
+          override,
+          precedence: UserOverrideUtil.getPrecedence(record),
+        };
+      })
+      .sort(
+        (
+          a: { override: OnCallDutyPolicyUserOverride; precedence: number },
+          b: { override: OnCallDutyPolicyUserOverride; precedence: number },
+        ) => {
+          return (
+            a.precedence - b.precedence ||
+            (a.override.startsAt?.getTime() || 0) -
+              (b.override.startsAt?.getTime() || 0)
+          );
+        },
+      )[0]?.override;
+
+    if (!winner || !winner.endsAt) {
+      return null;
     }
 
-    const globalOverride: OnCallDutyPolicyUserOverride | undefined =
-      alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
-        return !item.onCallDutyPolicyId;
-      });
-
-    if (globalOverride && globalOverride.routeAlertsToUserId) {
-      logger.debug(
-        `Route alert to user id found: ${globalOverride.routeAlertsToUserId.toString()}`,
-        {
-          projectId: data.projectId.toString(),
-          userId: data.userId.toString(),
-        } as LogAttributes,
-      );
-      return globalOverride.routeAlertsToUserId;
-    }
-
-    return null;
+    return {
+      coverUserId: winner.routeAlertsToUserId || null,
+      endsAt: OneUptimeDate.fromString(winner.endsAt),
+    };
   }
 
   @CaptureSpan()
@@ -383,36 +443,43 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     /*
      * Resolve the FINAL alert recipient for a team or direct-user target (the
-     * RAW roster user), applying a user override (getRouteAlertToUserId)
-     * exactly ONCE per paging decision.
+     * RAW roster user), applying a user override (getAwayOverride) exactly
+     * ONCE per paging decision: the person who covers them, or - when they
+     * are away with nobody named to cover - nobody (awayUntil).
      *
      * Schedule targets are already override-resolved:
-     * getCurrentOnCallInSchedule applies overrides via UserOverrideUtil.
-     * Applying getRouteAlertToUserId to them again re-substituted an
+     * getCurrentOnCallInSchedule applies overrides via ScheduleResolution.
+     * Applying an override to them again re-substituted an
      * already-substituted user (transitive), so the schedule paging path could
      * page a different person than the roster, dashboard, handoff
      * notification, and a rule that lists the same user directly — all of
      * which apply overrides only once (audit F5). So schedule targets never
      * come through here.
      */
-    const resolveAlertRecipientUserId: (
+    const resolveAlertRecipient: (
       userId: ObjectID,
-    ) => Promise<ObjectID> = async (userId: ObjectID): Promise<ObjectID> => {
-      if (options.onCallPolicyId) {
-        const routeAlertToUserId: ObjectID | null =
-          await this.getRouteAlertToUserId({
+    ) => Promise<{ recipientUserId: ObjectID; awayUntil: Date | null }> =
+      async (
+        userId: ObjectID,
+      ): Promise<{ recipientUserId: ObjectID; awayUntil: Date | null }> => {
+        if (options.onCallPolicyId) {
+          const away: AwayOverride | null = await this.getAwayOverride({
             userId,
             onCallDutyPolicyId: options.onCallPolicyId,
             projectId: options.projectId,
           });
 
-        if (routeAlertToUserId) {
-          return routeAlertToUserId;
-        }
-      }
+          if (away?.coverUserId) {
+            return { recipientUserId: away.coverUserId, awayUntil: null };
+          }
 
-      return userId;
-    };
+          if (away) {
+            return { recipientUserId: userId, awayUntil: away.endsAt };
+          }
+        }
+
+        return { recipientUserId: userId, awayUntil: null };
+      };
 
     const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction =
       async (
@@ -534,12 +601,16 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           continue;
         }
 
+        const recipient: { recipientUserId: ObjectID; awayUntil: Date | null } =
+          await resolveAlertRecipient(user.id);
+
         targets.push({
           kind: RuleTargetKind.Recipient,
           originalUserId: user.id,
-          recipientUserId: await resolveAlertRecipientUserId(user.id),
+          recipientUserId: recipient.recipientUserId,
           teamId: teamInRule.teamId!,
           scheduleId: null,
+          awayUntil: recipient.awayUntil,
         });
       }
     }
@@ -549,12 +620,16 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         continue;
       }
 
+      const recipient: { recipientUserId: ObjectID; awayUntil: Date | null } =
+        await resolveAlertRecipient(userRule.userId);
+
       targets.push({
         kind: RuleTargetKind.Recipient,
         originalUserId: userRule.userId,
-        recipientUserId: await resolveAlertRecipientUserId(userRule.userId),
+        recipientUserId: recipient.recipientUserId,
         teamId: null,
         scheduleId: null,
+        awayUntil: recipient.awayUntil,
       });
     }
 
@@ -588,6 +663,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         recipientUserId: onCall.userId,
         teamId: null,
         scheduleId: scheduleRule.onCallDutyPolicyScheduleId!,
+        awayUntil: null,
       });
     }
 
@@ -656,6 +732,31 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           "Skipped because no active users are found in this schedule.";
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.onCallDutyScheduleId = target.scheduleId;
+
+        await OnCallDutyPolicyExecutionLogTimelineService.create({
+          data: log,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        continue;
+      }
+
+      /*
+       * Away with nobody named to cover: not paged, and the timeline says
+       * until when - the run's Slack and Teams message reads it back
+       * ("away until ...").
+       */
+      if (target.awayUntil) {
+        const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
+        log.statusMessage = getAwayTimelineMessage(target.awayUntil);
+        log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+        log.alertSentToUserId = target.originalUserId;
+
+        if (target.teamId) {
+          log.userBelongsToTeamId = target.teamId;
+        }
 
         await OnCallDutyPolicyExecutionLogTimelineService.create({
           data: log,

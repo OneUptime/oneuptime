@@ -510,14 +510,23 @@ export default class OnCallCalendarFeedUtil {
           )}`
         : "global override";
 
+      const from: string = OnCallCalendarFeedUtil.formatInZone(
+        shift.override.overrideStartsAt,
+        scheduleZone,
+      );
+      const until: string = OnCallCalendarFeedUtil.formatInZone(
+        shift.override.overrideEndsAt,
+        scheduleZone,
+      );
+
+      /*
+       * A skip names nobody: the rotation picked who has the turn, and the
+       * reader should know that is why it is them.
+       */
       lines.push(
-        `Override: ${originalUserName} → ${userName} from ${OnCallCalendarFeedUtil.formatInZone(
-          shift.override.overrideStartsAt,
-          scheduleZone,
-        )} to ${OnCallCalendarFeedUtil.formatInZone(
-          shift.override.overrideEndsAt,
-          scheduleZone,
-        )} (${scope})`,
+        shift.override.isSkip
+          ? `Skipped: ${originalUserName} is away from ${from} to ${until}, so the next person in the rotation has this turn (${scope})`
+          : `Override: ${originalUserName} → ${userName} from ${from} to ${until} (${scope})`,
       );
     }
 

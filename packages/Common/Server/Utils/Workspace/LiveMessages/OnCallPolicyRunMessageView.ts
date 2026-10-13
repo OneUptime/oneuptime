@@ -101,6 +101,12 @@ export interface OnCallPolicyRunNotPaged {
    * rather than being skipped.
    */
   failed?: boolean | undefined;
+  /*
+   * The person is away with nobody named to cover (a user override that
+   * skips them) until then: "not paged · away until Oct 17, 2026 5:00 PM",
+   * in each reader's own time.
+   */
+  awayUntil?: Date | undefined;
 }
 
 export interface OnCallPolicyRun {
@@ -144,7 +150,8 @@ export interface OnCallPolicyRun {
   firstRuleThatReachedNobody?:
     | {
         rule: OnCallPolicyRunRule;
-        reasons: Array<string>;
+        // Text, or Markdown that holds a moment ("Ana: away until <time>").
+        reasons: Array<string | MarkdownText>;
       }
     | undefined;
 }
@@ -252,7 +259,8 @@ export default class OnCallPolicyRunMessageView {
       run.outcome === OnCallPolicyRunOutcome.RecordHandled;
 
     if (run.firstRuleThatReachedNobody && !isSomebodyOnIt) {
-      const reasons: Array<string> = run.firstRuleThatReachedNobody.reasons;
+      const reasons: Array<string | MarkdownText> =
+        run.firstRuleThatReachedNobody.reasons;
       const rule: string = this.getRuleLabel(
         run.firstRuleThatReachedNobody.rule,
         run.ruleCount,
@@ -464,6 +472,10 @@ export default class OnCallPolicyRunMessageView {
 
   // "**NB User 2**: not paged · not a member of this project".
   private static getNotPagedLine(entry: OnCallPolicyRunNotPaged): MarkdownText {
+    if (entry.personName && entry.awayUntil) {
+      return mdText`**${entry.personName}**: ${ON_CALL_RUN_NOT_PAGED} · away until ${WorkspaceMessageTime.dateAndTime(entry.awayUntil)}`;
+    }
+
     if (entry.personName) {
       const reason: string = entry.reason.trim();
 

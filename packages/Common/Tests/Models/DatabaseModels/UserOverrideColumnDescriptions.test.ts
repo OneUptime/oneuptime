@@ -56,6 +56,25 @@ describe("a user override's columns", () => {
     },
   );
 
+  test.each(["routeAlertsToUser", "routeAlertsToUserId"])(
+    "%s says what leaving it empty does: the person away is skipped in the rotation",
+    (column: string) => {
+      const description: string = describeColumn(override, column);
+
+      expect(description).toContain("Leave it empty to skip");
+      expect(description).toContain("next person in the rotation");
+    },
+  );
+
+  test.each(["overrideUser", "overrideUserId"])(
+    "%s says what happens to the person away with nobody named to cover",
+    (column: string) => {
+      expect(describeColumn(override, column)).toContain(
+        "they are skipped: each of their turns in an on-call schedule goes to the next person in the rotation",
+      );
+    },
+  );
+
   test.each(["onCallDutyPolicy", "onCallDutyPolicyId"])(
     "%s is the policy the override applies to, empty for every policy",
     (column: string) => {
@@ -81,13 +100,20 @@ describe("a user override's columns", () => {
 
     expect(description).toContain("While someone is away");
     expect(description).toContain("to the person who covers");
+    expect(description).toContain("With nobody named to cover, it skips them");
     expect(description).toContain("applies to every on-call policy");
   });
 
-  test("the columns, titles and requiredness are as they were", () => {
+  /*
+   * Who covers is optional since overrides can skip somebody instead
+   * (task oncall-skip-user-until): the column is nullable and the API and
+   * the Terraform provider no longer require it. Everything else is as it
+   * was.
+   */
+  test("the columns and titles are as they were; who covers is optional", () => {
     for (const [column, title, required] of [
       ["overrideUserId", "Override User ID", true],
-      ["routeAlertsToUserId", "Route Alerts To User ID", true],
+      ["routeAlertsToUserId", "Route Alerts To User ID", false],
       ["startsAt", "Start At", true],
       ["endsAt", "Ends At", true],
       ["onCallDutyPolicyId", "On-Call Policy ID", false],

@@ -77,7 +77,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
   pluralName: "User Overrides",
   icon: IconProp.Call,
   tableDescription:
-    "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.",
+    "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. With nobody named to cover, it skips them instead: each of their turns in an on-call schedule goes to the next person in the rotation. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.",
 })
 export default class OnCallDutyPolicyUserOverride extends BaseModel {
   @ColumnAccessControl({
@@ -323,10 +323,12 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
 
   /*
    * The person who is AWAY: alerts that would page them go to the
-   * routeAlertsToUser instead while the override is in force. Paging looks
-   * overrides up by this column (OnCallDutyPolicyEscalationRuleService.
-   * getRouteAlertToUserId), and schedules swap this person out
-   * (UserOverrideUtil). The dashboard asks for it as "Who is away?".
+   * routeAlertsToUser instead while the override is in force - or, with no
+   * routeAlertsToUser, they are skipped: each of their turns in a schedule
+   * goes to the next person in the rotation. Paging looks overrides up by
+   * this column (OnCallDutyPolicyEscalationRuleService.getAwayOverride), and
+   * schedules swap this person out (ScheduleResolution). The dashboard asks
+   * for it as "Who is away?".
    */
   @ColumnAccessControl({
     create: [
@@ -355,7 +357,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: User,
     title: "Override User",
     description:
-      "The user who is away. While the override is in force, alerts that would page this user go to the Route Alerts To User instead.",
+      "The user who is away. While the override is in force, alerts that would page this user go to the Route Alerts To User instead. With no Route Alerts To User, they are skipped: each of their turns in an on-call schedule goes to the next person in the rotation who is not away, and teams and escalation rules that name them do not page them until the override ends.",
   })
   @ManyToOne(
     () => {
@@ -397,7 +399,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     required: true,
     title: "Override User ID",
     description:
-      "ID of the user who is away. While the override is in force, alerts that would page this user go to the user in Route Alerts To User ID instead.",
+      "ID of the user who is away. While the override is in force, alerts that would page this user go to the user in Route Alerts To User ID instead. With no Route Alerts To User ID, they are skipped: each of their turns in an on-call schedule goes to the next person in the rotation who is not away.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -409,6 +411,9 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   /*
    * The person who COVERS: they get the overrideUser's alerts while the
    * override is in force. The dashboard asks for it as "Who covers?".
+   * Optional: an override without one skips the overrideUser instead
+   * (UserOverrideUtil.isSkip) - the next person in each of their rotations
+   * takes each of their turns.
    */
   @ColumnAccessControl({
     create: [
@@ -437,7 +442,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: User,
     title: "Route Alerts To User",
     description:
-      "The user who covers. While the override is in force, this user gets the alerts that would page the Override User.",
+      "The user who covers. While the override is in force, this user gets the alerts that would page the Override User. Leave it empty to skip the Override User instead: each of their turns in an on-call schedule goes to the next person in the rotation who is not away.",
   })
   @ManyToOne(
     () => {
@@ -476,14 +481,14 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     title: "Route Alerts To User ID",
     description:
-      "ID of the user who covers. While the override is in force, this user gets the alerts that would page the user in Override User ID.",
+      "ID of the user who covers. While the override is in force, this user gets the alerts that would page the user in Override User ID. Leave it empty to skip that user instead: each of their turns in an on-call schedule goes to the next person in the rotation who is not away, and teams and escalation rules that name them do not page them until the override ends.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public routeAlertsToUserId?: ObjectID = undefined;
@@ -493,7 +498,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     type: TableColumnType.Date,
     required: true,
     description:
-      "When the override starts sending the Override User's alerts to the Route Alerts To User.",
+      "When the override starts sending the Override User's alerts to the Route Alerts To User - or, with none, skipping their turns.",
   })
   @ColumnAccessControl({
     create: [
@@ -527,7 +532,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     type: TableColumnType.Date,
     required: true,
     description:
-      "When the override ends, which has to be after it starts. From then on, alerts page the Override User again.",
+      "When the override ends, which has to be after it starts. From then on, alerts page the Override User again, and their turns in each rotation are theirs again.",
   })
   @ColumnAccessControl({
     create: [

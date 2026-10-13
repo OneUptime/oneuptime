@@ -19,7 +19,7 @@ import Timezone from "../../Types/Timezone";
 import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * The (project, overridden user, substitute) triple an override names; the
@@ -204,15 +204,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       throw new BadDataException("Override user is required");
     }
 
+    /*
+     * Who covers is optional. Without one the override is a skip: each of
+     * the person's turns in a schedule goes to the next person in the
+     * rotation who is not away (UserOverrideUtil.isSkip), and teams and
+     * rules that name them do not page them until it ends.
+     */
     const routeAlertsToUserId: ObjectID | null = RelationIdUtil.readConsistent(
       createBy.data as unknown as Record<string, unknown>,
       ["routeAlertsToUserId", "routeAlertsToUser"],
       "Route Alerts To User",
     );
-
-    if (!routeAlertsToUserId) {
-      throw new BadDataException("Route alerts to user is required");
-    }
 
     /*
      * Ids are compared without case, as Postgres compares uuids: the same
@@ -220,8 +222,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
      * override from someone to themselves reroutes nothing.
      */
     if (
+      routeAlertsToUserId &&
       overrideUserId.toString().toLowerCase() ===
-      routeAlertsToUserId.toString().toLowerCase()
+        routeAlertsToUserId.toString().toLowerCase()
     ) {
       throw new BadDataException(
         "Override user and route alerts to user cannot be the same",
@@ -251,12 +254,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     const routeAlertsToUserId: ObjectID | undefined | null =
       createdItem.routeAlertsToUserId || createdItem.routeAlertsToUser?.id;
 
-    if (
-      onCallDutyPolicyId &&
-      projectId &&
-      overrideUserId &&
-      routeAlertsToUserId
-    ) {
+    if (onCallDutyPolicyId && projectId && overrideUserId) {
       const onCallPolicyName: string | null =
         await OnCallDutyPolicyService.getOnCallDutyPolicyName({
           onCallDutyPolicyId: onCallDutyPolicyId,
@@ -265,8 +263,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       const overrideUserTimezone: Timezone | null =
         await UserService.getTimezoneForUser(overrideUserId);
 
-      const routeAlertsToUserTimezone: Timezone | null =
-        await UserService.getTimezoneForUser(routeAlertsToUserId);
+      const routeAlertsToUserTimezone: Timezone | null = routeAlertsToUserId
+        ? await UserService.getTimezoneForUser(routeAlertsToUserId)
+        : null;
 
       const timezones: Timezone[] = [];
       if (overrideUserTimezone) {
@@ -277,6 +276,44 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         timezones.push(routeAlertsToUserTimezone);
       }
 
+      const from: string =
+        OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
+          date: createdItem.startsAt!,
+          timezones: timezones,
+        });
+
+      const until: string =
+        OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
+          date: createdItem.endsAt!,
+          timezones: timezones,
+        });
+
+      const overrideUserMarkdown: MarkdownText =
+        await UserService.getUserMarkdownString({
+          userId: overrideUserId,
+          projectId: projectId!,
+        });
+
+      const policyLink: string = (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          projectId!,
+          onCallDutyPolicyId!,
+        )
+      ).toString();
+
+      /*
+       * With a cover, who gets the alerts. Without one - a skip - what
+       * happens to the person's turns instead.
+       */
+      const what: MarkdownText = routeAlertsToUserId
+        ? mdText`All alerts will be routed to **${await UserService.getUserMarkdownString(
+            {
+              userId: routeAlertsToUserId,
+              projectId: projectId!,
+            },
+          )}** from **${from}**  to **${until}**. `
+        : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged directly.`;
+
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId!,
@@ -284,27 +321,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           OnCallDutyPolicyFeedEventType.UserOverrideAdded,
         displayColor: Gray500,
         feedInfoInMarkdown:
-          mdText`🔁 Added a User Override Rule for user **${await UserService.getUserMarkdownString(
-            {
-              userId: overrideUserId,
-              projectId: projectId!,
-            },
-          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
-            {
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
-            },
-          )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-            {
-              date: createdItem.startsAt!,
-              timezones: timezones,
-            },
-          )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-            {
-              date: createdItem.endsAt!,
-              timezones: timezones,
-            },
-          )}**. `.toString(),
+          mdText`🔁 Added a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). ${what}`.toString(),
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -538,12 +555,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         });
       }
 
-      if (
-        onCallDutyPolicyId &&
-        projectId &&
-        overrideUserId &&
-        routeAlertsToUserId
-      ) {
+      if (onCallDutyPolicyId && projectId && overrideUserId) {
         const onCallPolicyName: string | null =
           await OnCallDutyPolicyService.getOnCallDutyPolicyName({
             onCallDutyPolicyId: onCallDutyPolicyId,
@@ -552,8 +564,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         const overrideUserTimezone: Timezone | null =
           await UserService.getTimezoneForUser(overrideUserId);
 
-        const routeAlertsToUserTimezone: Timezone | null =
-          await UserService.getTimezoneForUser(routeAlertsToUserId);
+        const routeAlertsToUserTimezone: Timezone | null = routeAlertsToUserId
+          ? await UserService.getTimezoneForUser(routeAlertsToUserId)
+          : null;
 
         const timezones: Timezone[] = [];
         if (overrideUserTimezone) {

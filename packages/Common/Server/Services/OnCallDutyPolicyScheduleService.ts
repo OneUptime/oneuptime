@@ -7,10 +7,12 @@ import CalendarEvent from "../../Types/Calendar/CalendarEvent";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
-import LayerUtil, {
-  LayerEventsResult,
+import {
+  ExpandedLayer,
+  ExpandedLayers,
   LayerProps,
 } from "../../Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution from "../../Types/OnCallDutyPolicy/ScheduleResolution";
 import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
@@ -75,7 +77,7 @@ import {
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
- * Who is on call in a schedule right now (getCurrentOnCallInSchedule).
+ * Who is on call in a schedule at a moment (getCurrentOnCallInSchedule).
  */
 export interface CurrentOnCallInSchedule {
   // Who a page goes to, with any override applied.
@@ -85,6 +87,14 @@ export interface CurrentOnCallInSchedule {
    * rotation names. Null when nobody is covered.
    */
   coveredUserId: ObjectID | null;
+  /*
+   * True when the person covering has the turn because the layer user is
+   * skipped (away with nobody named to cover) and the rotation picked the
+   * next person who is not away. False for a named cover, or nobody covered.
+   */
+  isSkip?: boolean;
+  // While somebody is covered: when the time away of the person covered ends.
+  coveredUntil?: Date | null;
 }
 
 /*
@@ -186,8 +196,6 @@ interface ScheduleResolutionInputs {
 }
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> {
-  private layerUtil = new LayerUtil();
-
   public constructor() {
     super(OnCallDutyPolicySchedule);
   }
@@ -2398,12 +2406,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     });
   }
 
+  /*
+   * An override row as the resolution reads it: who is away, who covers -
+   * null for a skip (UserOverrideUtil.isSkip) - when, and for which policy.
+   */
   private toUserOverrideRecord(
     override: OnCallDutyPolicyUserOverride,
   ): UserOverrideRecord {
     return {
       overrideUserId: override.overrideUserId?.toString() || "",
-      routeAlertsToUserId: override.routeAlertsToUserId?.toString() || "",
+      routeAlertsToUserId: override.routeAlertsToUserId?.toString() || null,
       startsAt: override.startsAt!,
       endsAt: override.endsAt!,
       onCallDutyPolicyId: override.onCallDutyPolicyId?.toString() || null,
@@ -2446,26 +2458,33 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     const baseContextPolicyId: string | undefined =
       distinctPolicyIds.length === 1 ? distinctPolicyIds[0] : undefined;
 
-    // 1 + 2 + 3: one engine expansion over the widened window.
-    let baseEvents: Array<CalendarEvent> = [];
-    let truncated: boolean = false;
+    /*
+     * 1 + 2 + 3: one engine expansion over the widened window, resolved
+     * below once per policy context (ScheduleResolution): the skips of each
+     * context act on each layer before the merge, its covers after it.
+     */
+    let expansion: ExpandedLayers = { layers: [], truncated: false };
 
     if (data.layerProps.length > 0) {
-      const expansion: LayerEventsResult =
-        this.layerUtil.getMultiLayerEventsWithMeta(
-          {
-            layers: data.layerProps,
-            calendarStartDate: data.expansionStart,
-            calendarEndDate: data.expansionEnd,
-          },
-          data.maxSimulationIterations !== undefined
-            ? { maxSimulationIterations: data.maxSimulationIterations }
-            : undefined,
-        );
-
-      baseEvents = expansion.events;
-      truncated = expansion.truncated;
+      expansion = ScheduleResolution.expand(
+        {
+          layers: data.layerProps,
+          calendarStartDate: data.expansionStart,
+          calendarEndDate: data.expansionEnd,
+        },
+        data.maxSimulationIterations !== undefined
+          ? { maxSimulationIterations: data.maxSimulationIterations }
+          : undefined,
+      );
     }
+
+    const truncated: boolean = expansion.truncated;
+
+    const hasEvents: boolean = expansion.layers.some(
+      (layer: ExpandedLayer) => {
+        return layer.events.length > 0;
+      },
+    );
 
     const scheduleUserIdSet: Set<string> = new Set<string>(
       data.scheduleUserIds.map((id: ObjectID) => {
@@ -2497,18 +2516,11 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       ...baseOverrides,
     ];
 
-    let segments: Array<CalendarEvent> = baseEvents;
-
-    if (baseOverrides.length > 0 && baseEvents.length > 0) {
-      segments = UserOverrideUtil.applyOverridesToEvents({
-        events: baseEvents,
+    const segments: Array<CalendarEvent> = this.filterEventsOverlappingWindow(
+      ScheduleResolution.resolveExpanded(expansion, {
         overrides: baseOverrides,
         currentOnCallDutyPolicyId: baseContextPolicyId,
-      });
-    }
-
-    segments = this.filterEventsOverlappingWindow(
-      segments,
+      }),
       data.windowStart,
       data.windowEnd,
     );
@@ -2516,7 +2528,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     // 5: policy variants.
     const policyVariants: Array<ResolvedPolicyVariant> = [];
 
-    if (distinctPolicyIds.length >= 2 && baseEvents.length > 0) {
+    if (distinctPolicyIds.length >= 2 && hasEvents) {
       for (const policyId of distinctPolicyIds) {
         const scopedRows: Array<OnCallDutyPolicyUserOverride> =
           this.selectOverridesForSchedule({
@@ -2554,8 +2566,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
         const variantSegments: Array<CalendarEvent> =
           this.filterEventsOverlappingWindow(
-            UserOverrideUtil.applyOverridesToEvents({
-              events: baseEvents,
+            ScheduleResolution.resolveExpanded(expansion, {
               overrides: variantOverrides,
               currentOnCallDutyPolicyId: policyId,
             }),
@@ -2983,13 +2994,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         return scheduleUserIdSet.has(overrideUserId);
       })
       .map((o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
-        return {
-          overrideUserId: o.overrideUserId?.toString() || "",
-          routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
-          startsAt: o.startsAt!,
-          endsAt: o.endsAt!,
-          onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
-        };
+        return this.toUserOverrideRecord(o);
       });
   }
 
@@ -3199,30 +3204,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       );
       const windowEnd: Date = OneUptimeDate.addRemoveSeconds(data.now, 1);
 
-      let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents({
-        layers: layerProps,
-        calendarStartDate: windowStart,
-        calendarEndDate: windowEnd,
+      const events: Array<CalendarEvent> = await this.resolveSchedule({
+        layerProps,
+        projectId,
+        scheduleUserIds,
+        windowStart,
+        windowEnd,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
       });
-
-      if (projectId && events.length > 0) {
-        const overrides: Array<UserOverrideRecord> =
-          await this.fetchOverridesForSchedule({
-            projectId,
-            scheduleUserIds,
-            windowStart,
-            windowEnd,
-            currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
-          });
-
-        if (overrides.length > 0) {
-          events = UserOverrideUtil.applyOverridesToEvents({
-            events,
-            overrides,
-            currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
-          });
-        }
-      }
 
       const currentUserIdStr: string = data.currentUserId.toString();
 
@@ -3304,35 +3293,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
     } as LogAttributes);
 
-    let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
-      {
-        layers: layerProps,
-        calendarStartDate: currentStartTime,
-        calendarEndDate: currentEndTime,
-      },
-      {
-        getNumberOfEvents: numberOfEventsToGet,
-      },
-    );
-
-    if (projectId && events.length > 0) {
-      const overrides: Array<UserOverrideRecord> =
-        await this.fetchOverridesForSchedule({
-          projectId,
-          scheduleUserIds,
-          windowStart: currentStartTime,
-          windowEnd: currentEndTime,
-          currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
-        });
-
-      if (overrides.length > 0) {
-        events = UserOverrideUtil.applyOverridesToEvents({
-          events,
-          overrides,
-          currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
-        });
-      }
-    }
+    const events: Array<CalendarEvent> = await this.resolveSchedule({
+      layerProps,
+      projectId,
+      scheduleUserIds,
+      windowStart: currentStartTime,
+      windowEnd: currentEndTime,
+      onCallDutyPolicyId: data.onCallDutyPolicyId,
+      getNumberOfEvents: numberOfEventsToGet,
+    });
 
     logger.debug("Events fetched: " + JSON.stringify(events), {
       onCallDutyPolicyScheduleId: data.scheduleId.toString(),
@@ -3357,17 +3326,36 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
   }
 
   /*
-   * Who is on call in the schedule right now, and - while an override puts
-   * somebody else in a layer user's place - the layer user it covers. A page
-   * goes to `userId`; `coveredUserId` is who the rotation names, for the
-   * escalation and the incoming call routing to fall back to when the
-   * substitute is no longer a member of the project, as they do for an
-   * override of a user named on a rule.
+   * WHO IS ON CALL IN A SCHEDULE - THE CALL TO MAKE.
+   *
+   * Who is on call in the schedule right now (or at `at`), the way a page
+   * is routed: layers, people who are away skipped in their rotations,
+   * layer priority, then named covers (ScheduleResolution). Null when
+   * nobody is - no layers, off-hours with nothing below, or everybody who
+   * could be is away.
+   *
+   * While an override puts somebody else in a layer user's place, it also
+   * says whom they cover: a page goes to `userId`; `coveredUserId` is who
+   * the rotation names, for the escalation and the incoming call routing to
+   * fall back to when the substitute is no longer a member of the project,
+   * as they do for an override of a user named on a rule. `isSkip` says the
+   * rotation picked the substitute, and `coveredUntil` when the person
+   * covered is back.
+   *
+   * Pass `onCallDutyPolicyId` to apply that policy's own overrides as well
+   * as the global ones, as paging through that policy does; without it,
+   * only global overrides apply.
    */
   @CaptureSpan()
   public async getCurrentOnCallInSchedule(
     scheduleId: ObjectID,
-    options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
+    options?:
+      | {
+          onCallDutyPolicyId?: ObjectID | undefined;
+          // The moment to answer for; now when left out.
+          at?: Date | undefined;
+        }
+      | undefined,
   ): Promise<CurrentOnCallInSchedule | null> {
     const { layerProps, projectId, scheduleUserIds } =
       await this.getScheduleLayerProps({
@@ -3378,41 +3366,22 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       return null;
     }
 
-    const currentStartTime: Date = OneUptimeDate.getCurrentDate();
+    const currentStartTime: Date =
+      options?.at || OneUptimeDate.getCurrentDate();
     const currentEndTime: Date = OneUptimeDate.addRemoveSeconds(
       currentStartTime,
       1,
     );
 
-    let events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
-      {
-        layers: layerProps,
-        calendarStartDate: currentStartTime,
-        calendarEndDate: currentEndTime,
-      },
-      {
-        getNumberOfEvents: 1,
-      },
-    );
-
-    if (projectId && events.length > 0) {
-      const overrides: Array<UserOverrideRecord> =
-        await this.fetchOverridesForSchedule({
-          projectId,
-          scheduleUserIds,
-          windowStart: currentStartTime,
-          windowEnd: currentEndTime,
-          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId,
-        });
-
-      if (overrides.length > 0) {
-        events = UserOverrideUtil.applyOverridesToEvents({
-          events,
-          overrides,
-          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId?.toString(),
-        });
-      }
-    }
+    const events: Array<CalendarEvent> = await this.resolveSchedule({
+      layerProps,
+      projectId,
+      scheduleUserIds,
+      windowStart: currentStartTime,
+      windowEnd: currentEndTime,
+      onCallDutyPolicyId: options?.onCallDutyPolicyId,
+      getNumberOfEvents: 1,
+    });
 
     const currentEvent: CalendarEvent | null = events[0] || null;
 
@@ -3437,7 +3406,58 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     return {
       userId: new ObjectID(userId),
       coveredUserId: coveredUserId ? new ObjectID(coveredUserId) : null,
+      isSkip: Boolean(coveredUserId && UserOverrideUtil.isSkipMeta(override)),
+      coveredUntil:
+        coveredUserId && override?.overrideEndsAt
+          ? OneUptimeDate.fromString(override.overrideEndsAt)
+          : null,
     };
+  }
+
+  /*
+   * Who is on call in a schedule over [windowStart, windowEnd], from its
+   * layer props: the layers expanded, then - when anybody is on call at all
+   * - the overrides of its people read and applied in the policy's context
+   * (ScheduleResolution). The overrides are read only when there is
+   * somebody to override, as they always were.
+   */
+  private async resolveSchedule(data: {
+    layerProps: Array<LayerProps>;
+    projectId: ObjectID | null;
+    scheduleUserIds: Array<ObjectID>;
+    windowStart: Date;
+    windowEnd: Date;
+    onCallDutyPolicyId?: ObjectID | undefined;
+    getNumberOfEvents?: number | undefined;
+  }): Promise<Array<CalendarEvent>> {
+    const expansion: ExpandedLayers = ScheduleResolution.expand({
+      layers: data.layerProps,
+      calendarStartDate: data.windowStart,
+      calendarEndDate: data.windowEnd,
+    });
+
+    const hasEvents: boolean = expansion.layers.some(
+      (layer: ExpandedLayer) => {
+        return layer.events.length > 0;
+      },
+    );
+
+    const overrides: Array<UserOverrideRecord> =
+      data.projectId && hasEvents
+        ? await this.fetchOverridesForSchedule({
+            projectId: data.projectId,
+            scheduleUserIds: data.scheduleUserIds,
+            windowStart: data.windowStart,
+            windowEnd: data.windowEnd,
+            currentOnCallDutyPolicyId: data.onCallDutyPolicyId,
+          })
+        : [];
+
+    return ScheduleResolution.resolveExpanded(expansion, {
+      overrides,
+      currentOnCallDutyPolicyId: data.onCallDutyPolicyId?.toString(),
+      getNumberOfEvents: data.getNumberOfEvents,
+    });
   }
 }
 

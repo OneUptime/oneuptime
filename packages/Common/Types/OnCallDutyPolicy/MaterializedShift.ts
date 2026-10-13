@@ -23,6 +23,13 @@ export interface MaterializedShiftOverride {
   overrideEndsAt: Date;
   // Absent for a global override; set when the override is policy-scoped.
   onCallDutyPolicyId?: string;
+  /*
+   * True when nobody was named to cover: the original user is skipped, and
+   * the rotation gave the shift to the next person who is not away. Absent
+   * for a named cover, so those shifts (and their content hashes) are
+   * exactly what they always were.
+   */
+  isSkip?: boolean;
 }
 
 export interface MaterializedShiftPolicyVariant {
@@ -79,6 +86,7 @@ export interface MaterializedShiftOverrideJson {
   overrideStartsAt: string;
   overrideEndsAt: string;
   onCallDutyPolicyId?: string;
+  isSkip?: boolean;
 }
 
 export interface MaterializedShiftJson {
@@ -150,6 +158,10 @@ export default class MaterializedShiftUtil {
         override.onCallDutyPolicyId = shift.override.onCallDutyPolicyId;
       }
 
+      if (shift.override.isSkip) {
+        override.isSkip = true;
+      }
+
       json.override = override;
     }
 
@@ -208,6 +220,10 @@ export default class MaterializedShiftUtil {
 
       if (json.override.onCallDutyPolicyId !== undefined) {
         override.onCallDutyPolicyId = json.override.onCallDutyPolicyId;
+      }
+
+      if (json.override.isSkip === true) {
+        override.isSkip = true;
       }
 
       shift.override = override;
