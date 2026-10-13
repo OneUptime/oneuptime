@@ -15,7 +15,7 @@ import {
   getBlogSitemapPageCount,
   getTagsSitemapPageCount,
 } from "./Utils/Sitemap";
-import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
+import { generateBlogRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 // Removed unused imports after dynamic sitemap refactor
@@ -2045,26 +2045,10 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog RSS feed for a specific tag
-    app.get(
-      "/blog/tag/:tagName/rss.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const tagName: string = req.params["tagName"] as string;
-
-          if (!tagName) {
-            return res.status(404).send("Tag not found");
-          }
-
-          const xml: string = await generateTagRssFeed(tagName);
-          res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating RSS feed");
-        }
-      },
-    );
+    /*
+     * A tag's RSS feed, /blog/tag/:tagSlug/rss.xml, is served by API/BlogAPI.ts
+     * with the tag's page, ahead of its route for the tags' old addresses.
+     */
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
     app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {

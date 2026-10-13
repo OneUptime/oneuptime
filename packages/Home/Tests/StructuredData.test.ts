@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import type { BlogPost } from "../Utils/BlogPost";
+import BlogTag from "../Utils/BlogTag";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ProductCompare, {
   FAQ,
@@ -246,6 +247,7 @@ describe("the blog post's structured data", () => {
       blackLogo: false,
       requestDemoCta: false,
       blogPost: post,
+      blogTagPath: BlogTag.getPagePathOfTag,
       enableGoogleTagManager: false,
       homeUrl: HOME_URL,
     });

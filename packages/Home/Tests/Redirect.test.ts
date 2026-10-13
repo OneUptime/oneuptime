@@ -341,8 +341,15 @@ describe("blog route wiring", () => {
     );
   });
 
+  /*
+   * Every redirect the blog sends names its status. A res.redirect whose first
+   * argument is not a status code is Express's temporary 302 default. The
+   * pagination and tag-feed redirects call res.redirect(301, ...) directly
+   * rather than redirectPreservingQuery, because they drop the page and
+   * pageSize parameters the helper would carry over.
+   */
   test("the blog serves no redirect through Express's 302 default", () => {
     expect(blogApiSource).not.toContain("Response.redirect(");
-    expect(blogApiSource).not.toMatch(/res\.redirect\(/);
+    expect(blogApiSource).not.toMatch(/res\.redirect\((?!\s*30[1-8]\b)/);
   });
 });
