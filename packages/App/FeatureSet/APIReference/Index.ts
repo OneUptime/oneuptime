@@ -14,8 +14,14 @@ import { StaticPath } from "./Utils/Config";
 import { DEFAULT_DOCS_LANGUAGE, isSupportedDocsLanguage } from "./Utils/I18n";
 import ResourceUtil, { ModelDocumentation } from "./Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "./Utils/DataTypes";
+import { getNavigationForLanguage } from "./Utils/RenderContext";
+import { getReferenceSitemapXml } from "./Utils/Sitemap";
 import Dictionary from "Common/Types/Dictionary";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  SITEMAP_CONTENT_TYPE,
+  getPublicOrigin,
+} from "Common/Server/Utils/Sitemap";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
@@ -71,9 +77,35 @@ const APIReferenceFeatureSet: FeatureSet = {
      * Root /reference — redirect to the best language's introduction page.
      */
     app.get("/reference", (req: ExpressRequest, res: ExpressResponse) => {
+      // Where it goes depends on the reader's language: say so to caches.
+      res.vary("Accept-Language");
       const lang: string = pickLanguage(req);
       return res.redirect(`/reference/${lang}/introduction`);
     });
+
+    /*
+     * The reference's sitemap: every page its navigation lists
+     * (Utils/Sitemap.ts). The ingress serves it at the site's root too, as
+     * /sitemap-reference.xml, which the sitemap index lists. Ahead of
+     * /reference/:lang and the legacy /reference/:page redirect, which would
+     * take it for a language or a page.
+     */
+    app.get(
+      "/reference/sitemap.xml",
+      (_req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const xml: string = getReferenceSitemapXml(
+            getPublicOrigin(),
+            getNavigationForLanguage(DEFAULT_DOCS_LANGUAGE),
+          );
+          res.setHeader("Content-Type", SITEMAP_CONTENT_TYPE);
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return res.send(xml);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
 
     /*
      * /reference/:lang — if `:lang` is a known language, redirect to its

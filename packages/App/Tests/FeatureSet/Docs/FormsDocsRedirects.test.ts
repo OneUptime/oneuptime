@@ -231,8 +231,12 @@ describe("the old Incident Forms page", () => {
   it("redirects an address without a language too", async () => {
     const html: Response = await fetchManual("/docs/incidents/forms");
 
+    /*
+     * Straight to the English page, as every old address without a language
+     * goes: one hop, to the address search engines should keep.
+     */
     expect(html.status).toBe(301);
-    expect(html.headers.get("location")).toBe("/docs/forms/index");
+    expect(html.headers.get("location")).toBe("/docs/en/forms/index");
 
     const markdown: Response = await fetchManual(
       "/docs/as-markdown/incidents/forms",

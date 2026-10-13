@@ -385,8 +385,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * isProjectBlocked's answers, per server. Read with an explicit `undefined`
    * check: a cached "not blocked" is `false` and must not look like a miss.
    */
-  private blockedProjectCache: InMemoryTTLCache<boolean> =
-    new InMemoryTTLCache(10_000);
+  private blockedProjectCache: InMemoryTTLCache<boolean> = new InMemoryTTLCache(
+    10_000,
+  );
 
   /*
    * One lookup per project in flight. A status page view fires a burst of

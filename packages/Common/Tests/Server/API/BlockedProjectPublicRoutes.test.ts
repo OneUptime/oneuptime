@@ -431,21 +431,21 @@ beforeAll(async () => {
       return lookUp(PAGES, data.id);
     }) as never);
 
-  jest
-    .spyOn(StatusPageService, "findOneBy")
-    .mockImplementation((async (data: { query: Dictionary<unknown> }) => {
-      const page: StatusPage | undefined = Object.values(PAGES)
-        .map((build: () => StatusPage): StatusPage => {
-          return build();
-        })
-        .find((candidate: StatusPage): boolean => {
-          return matches(
-            candidate as unknown as Record<string, unknown>,
-            data.query,
-          );
-        });
-      return page || null;
-    }) as never);
+  jest.spyOn(StatusPageService, "findOneBy").mockImplementation((async (data: {
+    query: Dictionary<unknown>;
+  }) => {
+    const page: StatusPage | undefined = Object.values(PAGES)
+      .map((build: () => StatusPage): StatusPage => {
+        return build();
+      })
+      .find((candidate: StatusPage): boolean => {
+        return matches(
+          candidate as unknown as Record<string, unknown>,
+          data.query,
+        );
+      });
+    return page || null;
+  }) as never);
 
   statusPageDomainFindOneBy = jest
     .spyOn(StatusPageDomainService, "findOneBy")
@@ -474,11 +474,11 @@ beforeAll(async () => {
     .mockResolvedValue([]);
   jest.spyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([]);
 
-  jest
-    .spyOn(DashboardService, "findOneById")
-    .mockImplementation((async (data: { id: ObjectID }) => {
-      return lookUp(DASHBOARDS, data.id);
-    }) as never);
+  jest.spyOn(DashboardService, "findOneById").mockImplementation((async (data: {
+    id: ObjectID;
+  }) => {
+    return lookUp(DASHBOARDS, data.id);
+  }) as never);
 
   jest
     .spyOn(DashboardDomainService, "findOneBy")
