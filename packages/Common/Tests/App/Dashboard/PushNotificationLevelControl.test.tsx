@@ -356,6 +356,29 @@ describe("PushNotificationLevelControl - changing the level", () => {
     ).toHaveAttribute("aria-checked", "false");
   });
 
+  test("the menu opens under the pill, lined up on its left", async () => {
+    /*
+     * The pill starts its line in the method cell; a menu lined up on its
+     * right edge would hang out past the left of the table.
+     */
+    render(
+      <PushNotificationLevelControl
+        level={PushNotificationLevel.Critical}
+        isEditable={true}
+        onChange={jest.fn<ChangeHandler>()}
+      />,
+    );
+
+    await openMenu();
+
+    const menu: HTMLElement = screen.getByRole("menu");
+
+    expect(menu).toHaveClass("origin-top-left");
+    expect(menu.style.right).toBe("");
+    // Portalled out of the table's scroller, like every row's menu.
+    expect(menu.parentElement).toBe(document.body);
+  });
+
   test("picking the other level saves it, once", async () => {
     const onChange: jest.Mock<ChangeHandler> = jest
       .fn<ChangeHandler>()

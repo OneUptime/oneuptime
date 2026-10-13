@@ -210,6 +210,8 @@ const PushNotificationLevelControl: FunctionComponent<ComponentProps> = (
       {canChange ? (
         <MoreMenu
           isMenuPortaled={true}
+          // The pill starts its line, so its menu opens under it, not to its left.
+          isMenuLeftAligned={true}
           isDisabled={isSaving}
           dataTestId="push-notification-level-menu"
           elementToBeShownInsteadOfButton={

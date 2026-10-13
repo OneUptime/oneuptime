@@ -1204,11 +1204,12 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           },
           /*
            * Shown once a phone is picked above, starting on the column's
-           * default (Critical) like every create form field. Hidden, it is
-           * not validated and the rule is stored with that default, which is
-           * meaningless on a rule that pages anything but a phone. Changed
-           * later from the rule's row, not from the edit form - see PUSH
-           * NOTIFICATION LEVEL above.
+           * default (Critical) like every create form field. Required, so it
+           * is not labelled optional: one of the two always applies, and it
+           * starts answered. Hidden, it is not validated and the rule is
+           * stored with that default, which is meaningless on a rule that
+           * pages anything but a phone. Changed later from the rule's row,
+           * not from the edit form - see PUSH NOTIFICATION LEVEL above.
            */
           {
             field: {
@@ -1220,7 +1221,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.CardSelect,
             cardSelectOptions: getPushNotificationLevelCardSelectOptions(),
             cardSelectSingleColumn: true,
-            required: false,
+            required: true,
             doNotShowWhenEditing: true,
             showIf: (values: FormValues<UserNotificationRule>): boolean => {
               return isPushMethodWithLevel(
@@ -1266,6 +1267,13 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             field: methodProjection as SelectEntityField<UserNotificationRule>,
             title: "Notification Method",
             type: FieldType.Text,
+            /*
+             * The push level under a phone can carry a sentence - the note
+             * that the phone has not turned critical alerts on - and a body
+             * cell does not wrap unless it is told to: the note would run
+             * across the delay column beside it.
+             */
+            wrapContent: true,
             getElement: (item: UserNotificationRule): ReactElement => {
               const methodElement: ReactElement = getMethodElement(item);
 

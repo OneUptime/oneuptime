@@ -121,6 +121,7 @@ interface CapturedFormField {
 interface CapturedColumn {
   title: string;
   field: Record<string, unknown>;
+  wrapContent?: boolean | undefined;
   getElement?: ((item: UserNotificationRule) => ReactElement) | undefined;
 }
 
@@ -159,6 +160,7 @@ import PushNotificationLevel from "../../../Types/NotificationRule/PushNotificat
 import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import Validation from "../../../UI/Components/Forms/Validation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
@@ -454,10 +456,79 @@ describe("the form that adds a rule asks how a push should sound", () => {
     expect(levelField().description).toContain("OneUptime On-Call app");
   });
 
-  test("is not required - left alone it is the column's default, Critical", async () => {
+  test("is required while it is shown, so it never reads as optional - one level always applies", async () => {
     await renderOwnTable();
 
-    expect(levelField().required).toBe(false);
+    expect(levelField().required).toBe(true);
+  });
+
+  describe("validated as the form validates it", () => {
+    /*
+     * Through the form's own validator, with the fields named the way the form
+     * names them: a required field the form hides must not stop an email rule
+     * from being added, and a shown one must not be left empty.
+     */
+    function validate(values: Record<string, unknown>): Record<string, string> {
+      const fields: Array<Record<string, unknown>> = lastTable().formFields.map(
+        (field: CapturedFormField): Record<string, unknown> => {
+          return {
+            ...field,
+            name: field.overrideFieldKey || Object.keys(field.field || {})[0]!,
+          };
+        },
+      );
+
+      return Validation.validate({
+        formFields: fields as never,
+        values: values as never,
+        onValidate: undefined,
+      }) as Record<string, string>;
+    }
+
+    test("an email rule is not held up by the hidden level", async () => {
+      await renderOwnTable();
+
+      const errors: Record<string, string> = validate({
+        notificationMethod: OWN_EMAIL_ID,
+        notifyAfterMinutes: 0,
+      });
+
+      expect(errors["pushNotificationLevel"]).toBeUndefined();
+    });
+
+    test("a browser push rule is not held up by the hidden level either", async () => {
+      await renderOwnTable();
+
+      expect(
+        validate({ notificationMethod: OWN_BROWSER_ID, notifyAfterMinutes: 0 })[
+          "pushNotificationLevel"
+        ],
+      ).toBeUndefined();
+    });
+
+    test("a phone rule with its level chosen passes", async () => {
+      await renderOwnTable();
+
+      expect(
+        validate({
+          notificationMethod: OWN_IPHONE_ID,
+          pushNotificationLevel: PushNotificationLevel.Standard,
+          notifyAfterMinutes: 0,
+        })["pushNotificationLevel"],
+      ).toBeUndefined();
+    });
+
+    test("a phone rule with the level cleared is asked for one", async () => {
+      await renderOwnTable();
+
+      expect(
+        validate({
+          notificationMethod: OWN_IPHONE_ID,
+          pushNotificationLevel: "",
+          notifyAfterMinutes: 0,
+        })["pushNotificationLevel"],
+      ).toBeDefined();
+    });
   });
 
   test("is not on the edit form, which cannot tell a push rule from any other", async () => {
@@ -588,6 +659,23 @@ describe("what the table asks the server for", () => {
 });
 
 describe("each push rule's row on your own page", () => {
+  test("the method cell wraps, so the note under a phone stays in its column", async () => {
+    /*
+     * A body cell is nowrap unless its column says otherwise, and white-space
+     * is inherited: the device note would run on one line across the delay
+     * column to its right.
+     */
+    await renderOwnTable();
+
+    const column: CapturedColumn | undefined = lastTable().columns.find(
+      (candidate: CapturedColumn): boolean => {
+        return candidate.title === "Notification Method";
+      },
+    );
+
+    expect(column?.wrapContent).toBe(true);
+  });
+
   test("names the phone and how it will sound", async () => {
     await renderOwnTable();
 
