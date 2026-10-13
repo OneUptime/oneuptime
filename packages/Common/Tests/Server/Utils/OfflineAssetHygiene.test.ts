@@ -155,17 +155,28 @@ function featureSetViewDirectories(): Array<string> {
 
   const directories: Array<string> = [];
 
-  for (const featureSet of fs.readdirSync(featureSetRoot)) {
+  for (const featureSet of fs.readdirSync(featureSetRoot, {
+    withFileTypes: true,
+  })) {
+    if (!featureSet.isDirectory()) {
+      continue;
+    }
+
+    /*
+     * Matched against the names actually on disk. On a case-insensitive one
+     * (macOS by default) "views" also finds "Views", and every view in it
+     * would be scanned twice.
+     */
+    const entries: Array<string> = fs.readdirSync(
+      path.join(featureSetRoot, featureSet.name),
+    );
+
     /* Docs and Identity capitalise it, the API reference does not. */
     for (const viewsDirectory of ["Views", "views"]) {
-      const candidate: string = path.join(
-        featureSetRoot,
-        featureSet,
-        viewsDirectory,
-      );
-
-      if (fs.existsSync(candidate)) {
-        directories.push(candidate);
+      if (entries.includes(viewsDirectory)) {
+        directories.push(
+          path.join(featureSetRoot, featureSet.name, viewsDirectory),
+        );
       }
     }
   }

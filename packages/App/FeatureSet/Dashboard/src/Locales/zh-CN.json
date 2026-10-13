@@ -28173,6 +28173,7 @@
   "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.": "有人不在岗时，所有值班策略发给此人的呼叫都会转给代班的人。如果没有指定任何人，此人的每个班次由轮换中的下一个人接手。如果只想在一个策略中代班，请在该策略的“用户覆盖”页面添加覆盖。",
   "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "有人不在岗时，此策略发给此人的呼叫会转给代班的人。如果没有指定任何人，此人的每个班次由轮换中的下一个人接手。如果想在所有策略中同时代班，请在“值班 > 用户覆盖”中添加覆盖。",
   "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.": "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.",
+  "Control whether search engines like Google and Bing may list this status page on its custom domains. Its preview URL is never listed.": "控制是否允许 Google 和 Bing 等搜索引擎在搜索结果中列出此状态页（仅限其自定义域名）。其预览 URL 永远不会被列出。",
   "Could not change how this push sounds.": "Could not change how this push sounds.",
   "Critical alert": "Critical alert",
   "Follows the phone's sound, silent and Do Not Disturb settings.": "Follows the phone's sound, silent and Do Not Disturb settings.",

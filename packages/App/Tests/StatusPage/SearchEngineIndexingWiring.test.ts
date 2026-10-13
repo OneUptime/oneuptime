@@ -62,6 +62,29 @@ describe.each(INDEX_RENDERERS)(
       expect(code).toContain("applyStatusPageRobotsHeader(");
     });
 
+    test("keeps a preview URL out of search results when the page could not be looked up", () => {
+      /*
+       * getStatusPageData returns null when the lookup throws or the URL names
+       * no page, and the renderer then serves a placeholder. The path decides
+       * for that placeholder: a preview URL is never indexable, so a failed
+       * lookup must not hand one back to search engines.
+       */
+      expect(code).toContain(
+        "isSearchEngineIndexingAllowed({ path: req.path, indexingFlag: undefined",
+      );
+      expect(code).toContain(
+        "applyStatusPageRobotsHeader(res, isSearchEngineIndexingEnabled)",
+      );
+      expect(code).toContain(
+        "isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled",
+      );
+    });
+
+    test("tells a preview URL from a custom domain the way the indexing rule does", () => {
+      expect(code).toContain("isStatusPagePreviewPath(req.path)");
+      expect(code).not.toContain('req.path.includes("/status-page/")');
+    });
+
     test("keeps the response object it needs to set that header", () => {
       /*
        * Both renderers used to name the response parameter _res, unused. A
