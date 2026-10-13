@@ -89,6 +89,8 @@ Att skapa en regel går igenom fyra steg:
 
 En kanal som regeln skapar får sitt namn från **New Microsoft Teams Channel Name** följt av postens nummer, som `oneuptime-incident-42`, och bara en skapad kanal får de personer som regeln bjuder in. En privat incident, ett privat larm eller en privat episod får en privat kanal. Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler och chattar.
 
+Kanaler och chattar förblir läsbara: varje händelse publiceras en gång, och postens första tillstånd står i kortet som annonserar posten, inte i ett eget kort. En körning av en jourpolicy är ett enda kort som redigeras allteftersom körningen eskalerar: vem som larmades, hur ofta och hur, vem som inte larmades och varför, och vem som bekräftade. Ett nytt kort publiceras bara när någon måste agera: en eskaleringsregel nådde ingen, eller körningen tog slut utan att någon bekräftade. Att postens ägare eller statussidans prenumeranter meddelades står kvar i dess flöde i OneUptime.
+
 **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** visar de kanaler som OneUptime ser i dina team, och de chattar som den har lagts till i, med **Skicka test** bredvid var och en. En chatt visas så snart OneUptime-appen har lagts till i den i Microsoft Teams; **Refresh Chats** hämtar nya chattar och deras aktuella namn.
 
 ## Testa en regel
@@ -151,7 +153,7 @@ Att fråga OneUptime AI kräver att AI är påslaget för projektet. Se [Fråga 
 
 ## Skapa incidenter och underhåll från Microsoft Teams
 
-Att skriva `create incident` eller `create maintenance` till OneUptime-boten öppnar ett formulär för den person som skrev det, i en personlig chatt, en kanal eller en gruppchatt. Det fylls i som den personen: som det OneUptime-konto som personens Microsoft Teams-konto är anslutet till (se [Anslut Microsoft Teams](#anslut-microsoft-teams)), med det kontots behörigheter i projektet. Den som inte har sitt konto anslutet, eller vars OneUptime-konto inte längre är medlem i projektet, får veta vad som ska göras i stället för formuläret.
+Att skriva `create incident` eller `create maintenance` till OneUptime-boten öppnar ett formulär för den person som skrev det, i en personlig chatt, en kanal eller en gruppchatt. Det fylls i som den personen: som det OneUptime-konto som personens Microsoft Teams-konto är anslutet till (se [Anslut Microsoft Teams](#anslut-microsoft-teams)), med det kontots behörigheter i projektet. Den som inte har sitt konto anslutet, eller vars OneUptime-konto inte längre är medlem i projektet, får veta vad som ska göras i ett svar som nämner personen, i stället för formuläret.
 
 - **Vem som får använda dem.** De som får deklarera en incident eller skapa en schemalagd underhållshändelse i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** och **Incident Member** för en incident (**Create Incident** i en anpassad roll), och **Scheduled Maintenance Admin** och **Scheduled Maintenance Member** för en händelse (**Create Scheduled Maintenance**). Alla andra får veta det, och får inget formulär.
 - **Vad ett formulär erbjuder.** Varje lista — allvarlighetsgrader, monitorer, monitorstatusar, jourpolicyer och etiketter — innehåller det som personen som bad om det får läsa, precis som samma lista i OneUptime, och kortets "not shown"-noteringar räknar bara dessa: med en roll som är begränsad till vissa etiketter, de monitorer och jourpolicyer som har de etiketterna. En lista som personen inte får läsa alls utelämnas. Arkiverade jourpolicyer erbjuds aldrig.
@@ -167,6 +169,8 @@ Knapparna på OneUptimes kort agerar som den person som trycker på dem, i en pe
 - **Vilka poster.** De som personen får läsa, precis som i OneUptime: med en roll som är begränsad till vissa etiketter, de incidenter, larm, episoder och händelser som har dem. En knapp på någon annan post, eller på en från ett annat projekt, besvaras med att posten "was not found in this project, or you do not have access to it.", och inget ändras. På OneUptime Cloud avvisas en ändring som projektets plan inte omfattar, med den plan som krävs.
 - **Vad Change State erbjuder.** De tillstånd som personen får läsa och som posten får gå vidare till, i projektets ordning: inget före det tillstånd den är i, för en episod som för en incident, ett larm eller en schemalagd underhållshändelse, eftersom en tillståndsändring aldrig flyttar en post uppåt i sin lista igen (se [Ordningen är en verklig begränsning, inte en visningspreferens](/docs/incidents/states-and-severities#ordningen-är-en-verklig-begränsning-inte-en-visningspreferens)). När personen inte får läsa något säger boten "No incident states are available to you in this project. Ask a project admin for access to them."; när posten är i det sista tillstånd den kan nå säger den "There is no later state to move this incident to." Ingen av dem visar ett tomt kort.
 - **Escalate.** Ett korts **Escalate** kör dess jourpolicy för den incident, det larm eller den episod som kortet gäller, som den person som tryckte på den, med samma behörigheter som **Execute On-Call Policy**. Ett kort som inte gäller någon av dem besvaras med "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there.", och ingen larmas.
+- **Var personen får svar.** I ett svar i samma konversation, kortets tråd i en kanal, som nämner personen, så att Microsoft Teams aviserar dem. En knapp som trycks för sent säger vem som hann först, och när, till exempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **Om personens konto inte är anslutet.** Svaret ber personen ansluta det, med knappen **Connect Microsoft Teams account**. Knappen öppnar personens egna Microsoft Teams-inställningar i OneUptime och ansluter kontot i ett steg, efter inloggning i OneUptime om det behövs. Sedan slutför OneUptime det personen tryckte på, som personen, och svarar i samma konversation; för en knapp som öppnar ett formulär, eller ett kommando, ber det personen trycka på den eller skriva det igen. Knappen fungerar en gång, i 30 minuter, och bara för det Microsoft-konto som tryckte på den.
 
 ## Koppla från
 
@@ -187,7 +191,7 @@ När Microsoft skickar tillbaka dig utan en anslutning säger sidan du började 
 :::
 
 :::details Boten säger att mitt konto inte är anslutet
-Länka det under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, inloggad i den organisation som projektet är anslutet till. Ett gästkonto från en annan organisation är inte samma konto.
+Tryck på **Connect Microsoft Teams account** i botens svar för att ansluta det i ett steg, eller länka det under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, inloggad i den organisation som projektet är anslutet till. Ett gästkonto från en annan organisation är inte samma konto.
 :::
 
 :::details Alla aviseringar misslyckas på en egenvärdad server

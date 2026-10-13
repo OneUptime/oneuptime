@@ -1,82 +1,105 @@
 # Panoramica delle dashboard
 
-Le dashboard trasformano i dati che OneUptime sta gia raccogliendo — metriche, log, trace, incidenti, monitor, risorse Kubernetes, host — in una singola pagina su cui qualcuno puo dare un'occhiata e capire cosa sta succedendo.
+Una dashboard è una pagina di widget che disponi tu: grafici delle tue metriche, dei log e delle tracce, elenchi di incidenti, avvisi e monitor, i tuoi SLO e la tua infrastruttura, perfino dati di sistemi esterni a OneUptime. Creane una per lo schermo del turno di reperibilità, per il controllo mattutino di un team o come pagina per i tuoi clienti, e condividila con il tuo progetto o con chiunque abbia il link.
 
-Posiziona un grafico della latenza delle richieste accanto a un elenco di incidenti aperti, accanto a un indicatore della CPU, accanto a un paragrafo di contesto. Salva. Condividi il link.
+:::cards
+- [Come funziona una dashboard](#come-funziona-una-dashboard): Da dove arrivano i suoi dati, e chi la vede.
+- [Trovare le tue dashboard](#trovare-le-tue-dashboard): L'elenco Dashboard e le pagine di ciascuna dashboard.
+- [Creare la tua prima dashboard](#creare-la-tua-prima-dashboard): Da un modello a una pagina condivisa in cinque passaggi.
+- [Un esempio: una dashboard per la reperibilità](#un-esempio-una-dashboard-per-la-reperibilità): Una pagina che funziona per ogni servizio.
+:::
+
+## Come funziona una dashboard
+
+Ogni widget legge da una fonte, entro l'intervallo di tempo della dashboard e filtrato dalle sue variabili. Chiunque apra la dashboard vede gli stessi widget: il tuo team quando accede, e i visitatori tramite il suo link pubblico una volta che la condividi.
+
+```mermaid title="Dai tuoi dati alle persone che li leggono"
+flowchart TB
+    S["I tuoi dati: telemetria,<br/>monitor, incidenti,<br/>SLO, infrastruttura,<br/>altri sistemi"] --> W["Widget: grafici, numeri,<br/>elenchi, mappe e testo"]
+    W --> D["Una dashboard: il suo<br/>intervallo di tempo,<br/>le variabili e<br/>l'aggiornamento<br/>automatico"]
+    D --> M["Il tuo team,<br/>dopo l'accesso"]
+    D --> P["Chiunque abbia il link,<br/>una volta condivisa"]
+```
+
+| Termine | Che cosa significa |
+| --- | --- |
+| Dashboard | Una pagina: un nome, una griglia di widget, un intervallo di tempo, variabili e un'impostazione di aggiornamento automatico. |
+| Widget | Un riquadro della griglia: un grafico, un numero, un elenco, una mappa, un orologio o un blocco di testo. |
+| Variabile | Un selettore nella barra degli strumenti che restringe ogni widget che la supporta a un servizio, un host o un cliente. |
+| Intervallo di tempo | La finestra che leggono tutti i grafici e i numeri. Parte dall'ultima ora ogni volta che la dashboard si apre. |
+| Aggiornamento automatico | Ogni quanto i widget rileggono i loro dati: disattivato, oppure da ogni 5 secondi a ogni 15 minuti. |
+| Lettura e modifica | Una dashboard si apre in lettura. Modificarla è un passaggio a parte, che termina salvando o scartando le modifiche. |
 
 ## A cosa servono le dashboard
 
-- **Una pagina "va tutto bene?"** — per l'on-call, per uno standup di team o per un monitor a muro.
-- **Cogliere connessioni** — un picco di CPU contemporaneamente a un aumento della latenza e a un incidente aperto e molto piu facile da vedere su una sola pagina che su tre schede diverse.
-- **Indagare** — quando stai facendo debug, una dashboard che costruisci al volo batte il lancio di dieci query una alla volta.
-- **Condividere all'esterno** — una pagina di performance per i clienti, una status page per partner, una dashboard pubblica per un progetto open-source.
+- **Una pagina "va tutto bene?"** per chi è di reperibilità, per lo standup di un team o per uno schermo a parete.
+- **Vedere i collegamenti**: un picco di CPU accanto a un aumento della latenza e a un incidente aperto salta all'occhio in una pagina, e sfugge facilmente su tre.
+- **Indagare**: metti fianco a fianco i grafici che riapri di continuo, e trascina su un picco per leggere tutti i widget in quel momento.
+- **Condividere fuori dal team**: una pagina sulle prestazioni per un cliente o un partner, protetta da una password o da una lista di IP consentiti, se vuoi.
 
-## Cosa puoi mettere su una dashboard
+## Trovare le tue dashboard
 
-- **Grafici** per i trend nel tempo — latenza, errori, throughput.
-- **Tile a valore singolo e indicatori** — tasso di errore corrente, CPU, incidenti aperti.
-- **Tabelle** per i dettagli — top 10 degli host piu rumorosi, conteggio errori per servizio.
-- **Blocchi di testo** per intestazioni, contesto e link ai runbook.
-- **Elenchi live** di incidenti, allarmi, monitor, log, trace, risorse Kubernetes, risorse Docker e host.
+Apri **Prodotti → Dashboard**. L'elenco **Dashboard** mostra le dashboard del progetto con le loro descrizioni, etichette e proprietari. Cerca per nome o descrizione, restringi l'elenco con i filtri **Proprietario** ed **Etichette**, oppure seleziona più dashboard per cambiarne le etichette o i proprietari, archiviarle o esportarle in JSON.
 
-Vedi [Widget](/docs/dashboards/widgets) per l'elenco completo e cosa mostra ciascuno.
+Il menu laterale dell'elenco contiene le pagine che si occupano di tutte le tue dashboard:
 
-## Termini chiave
+| Pagina | Che cosa ci fai |
+| --- | --- |
+| **Dashboard** | Le dashboard del progetto. Creane una, oppure importa dashboard con **Import JSON**. |
+| **Impostazioni → Regole del proprietario** | Aggiungere automaticamente proprietari alle nuove dashboard. |
+| **Impostazioni → Regole etichette** | Aggiungere automaticamente etichette alle nuove dashboard. |
+| **Impostazioni → Data Sources** | Collegare Prometheus, database SQL, ClickHouse, Loki, Elasticsearch o un'API REST. |
+| **Avanzato → Archiviato** | Le dashboard che hai archiviato. Ripristinale da qui. |
 
-| Termine                  | Cosa significa                                                                                                   |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**            | L'intera pagina — un nome, una griglia di widget, controlli per l'intervallo temporale e un elenco di variabili. |
-| **Widget**               | Un tassello sulla pagina — un grafico, un numero, un elenco, un paragrafo.                                       |
-| **Variabile**            | Un menu a tendina in cima che filtra tutti i widget contemporaneamente (cluster, servizio, cliente, ambiente).   |
-| **Intervallo temporale** | La finestra temporale che ogni grafico e numero utilizza. Impostala una volta in cima alla pagina.               |
-| **Refresh**              | Con quale frequenza i widget rieseguono la query sui dati. Off, ogni pochi secondi, ogni pochi minuti.           |
-| **Modalita**             | **Modifica** (trascina i widget) o **Visualizza** (sola lettura, come la vedono i visitatori).                   |
+Apri una dashboard, e il suo menu laterale ha queste pagine. Ogni sezione tranne **Base** parte chiusa: fai clic sul suo titolo per aprirla.
 
-## Dove trovare le dashboard
+| Pagina | Che cosa ci fai |
+| --- | --- |
+| **Dashboard** | La dashboard stessa. Leggila, o modificala dal suo menu **⋯**. |
+| **Panoramica** | Il suo nome, la descrizione e le etichette. |
+| **Condivisione** | Chi può vederla, il suo link pubblico e una lista di IP consentiti in Altre impostazioni. |
+| **Proprietari** | Gli utenti e i team a cui appartiene. |
+| **Branding** | Titolo della pagina, descrizione, logo e favicon della dashboard pubblica. |
+| **Domini personalizzati** | Ospitare la dashboard pubblica sul tuo dominio. |
+| **Impostazioni** | Duplicare, esportare o archiviare la dashboard. |
+| **Registri di audit** | Ogni modifica fatta alla dashboard, e chi l'ha fatta. |
+| **Elimina** | Eliminare la dashboard per sempre. |
 
-Apri **Dashboard** nel menu di navigazione a sinistra.
+## Creare la tua prima dashboard
 
-| Pagina                       | Cosa ci fai                                                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------- |
-| **Dashboard**                | Il tuo elenco di dashboard. Crea una nuova dashboard, cerca o filtra per etichetta. |
-| **Dashboard → Visualizza**   | Il canvas. Cambia tra **Modifica** e **Visualizza** nell'intestazione.              |
-| **Dashboard → Panoramica**   | Descrizione, proprietari ed etichette.                                              |
-| **Dashboard → Impostazioni** | Condivisione pubblica, password, allowlist IP, dominio personalizzato, branding.    |
-| **Dashboard → Proprietari**  | Utenti e team con accesso esplicito.                                                |
-| **Dashboard → Elimina**      | Rimuovi la dashboard.                                                               |
+:::steps
+1. **Crea** — scegli un modello, oppure **Blank Dashboard**. Un modello compila il nome e si apre con i suoi widget; una dashboard vuota si apre senza nulla, con **Aggiungi widget** sul suo canvas.
+2. **Aggiungi i widget** — scegli un widget dal catalogo, imposta nelle sue impostazioni che cosa legge, poi trascinalo in posizione e ridimensionalo.
+3. **Aggiungi le variabili, se ti servono** — una variabile `service`, per esempio, permette a una sola dashboard di mostrare qualsiasi servizio.
+4. **Salva** — fai clic su **Salva modifiche**. Niente di ciò che cambi durante la modifica viene conservato finché non lo fai.
+5. **(Facoltativo) Condividi pubblicamente** — scegli **⋯ → Condividi** sulla dashboard e decidi chi può vederla: chiunque abbia il link, oppure chiunque abbia il link e una password.
+:::
 
-## Costruire una dashboard
+[Creare una dashboard](/docs/dashboards/authoring) spiega ogni passaggio.
 
-1. **Crea** — scegli un modello, oppure **Blank Dashboard**. Un modello compila il nome e si apre con i suoi widget; una dashboard vuota si apre vuota, con **Aggiungi widget** sul canvas.
-2. **Aggiungi widget** — scegli un tipo di widget, configurane i dati, trascinalo dove vuoi.
-3. **(Opzionale) Aggiungi variabili** — per esempio, un menu a tendina `service` cosi la stessa dashboard funziona per ogni servizio.
-4. **Imposta l'intervallo temporale** — i valori predefiniti vanno bene; affina in seguito.
-5. **(Opzionale) Condividi pubblicamente** — sposta l'interruttore in Settings, aggiungi una password o un'allowlist IP se necessario.
-6. **(Opzionale) Dominio personalizzato** — ospita la dashboard su `status.your-domain.com`.
+## Un esempio: una dashboard per la reperibilità
 
-## Un esempio rapido
+L'obiettivo: una pagina per il servizio di checkout, con la sua latenza, il tasso di errori, gli incidenti aperti e gli ultimi log, che funzioni anche per ogni altro servizio.
 
-Obiettivo: una pagina on-call per il servizio checkout con latenza, tasso di errore, incidenti aperti e una coda live dei log.
-
-1. Crea una **Blank Dashboard** chiamata "Checkout on-call."
-2. Aggiungi una variabile `service`. Impostala su `checkout` come predefinito.
-3. Aggiungi un widget **Grafico** con la latenza P95, filtrato dalla variabile `service`.
-4. Accanto, aggiungi un widget **Valore** per il tasso di errore, con warning all'1% e critical al 5%.
-5. Sotto, aggiungi un widget **Elenco incidenti** per gli incidenti taggati `checkout`.
-6. Sotto ancora, un widget **Flusso di log** che mostra i log dello stesso servizio.
-7. Salva. Cambia il menu a tendina su `payments` — la stessa dashboard ora mostra il servizio payments.
+1. Crea una **Blank Dashboard** chiamata "Reperibilità checkout".
+2. Fai clic su **Aggiungi widget** e aggiungi un **Grafico** della tua metrica di latenza delle richieste, aggregata come P95.
+3. Accanto, aggiungi un **Valore** del tuo tasso di errori, con una soglia di avviso di 1 e una soglia critica di 5.
+4. Sotto, aggiungi un **Elenco incidenti** filtrato sugli incidenti non risolti, e un **Flusso di log** con i log del servizio.
+5. Apri **Variabili**, aggiungi una variabile chiamata `service` con l'origine Telemetry Attribute e la chiave di attributo `service.name`, e dalle il valore predefinito `checkout`.
+6. Fai clic su **Salva modifiche**. Scegli `payments` nel selettore `service` della barra degli strumenti: il grafico, il valore e il flusso di log passano al servizio payments, e l'elenco degli incidenti continua a mostrare tutti gli incidenti non risolti.
 
 ## Come si integrano le dashboard con il resto di OneUptime
 
-- **Monitor e telemetria** sono le fonti dei dati. Ogni metrica, log e trace che raccogli e interrogabile su un widget.
-- **Incidenti e allarmi** appaiono nei widget **Elenco incidenti** e **Elenco avvisi**. Le dashboard sono in sola lettura per questi — creali e aggiornali altrove.
-- Le **status page** sono comunicazione rivolta ai clienti ("il sistema e su?"). Le dashboard servono a guardare come si sta comportando il sistema nel dettaglio. Le due cose lavorano insieme, non si sostituiscono a vicenda.
-- I **workflow** sono il modo in cui OneUptime agisce. Le dashboard sono il modo in cui leggi cio che sta accadendo.
+- **I monitor e la telemetria** sono da dove arrivano i dati. Ogni metrica, log e traccia che invii può finire in un widget.
+- **Gli incidenti e gli avvisi** compaiono nei widget **Elenco incidenti** ed **Elenco avvisi**. Una dashboard si limita a mostrarli: ci lavori sulle loro pagine.
+- **Le pagine di stato** dicono ai tuoi clienti se il tuo servizio funziona. Le dashboard mostrano nel dettaglio come si comporta. Le due cose lavorano fianco a fianco.
+- **I workflow** agiscono su ciò che succede. Le dashboard sono dove lo leggi.
 
-## Letture successive
+## Passaggi successivi
 
-- [Creazione di una dashboard](/docs/dashboards/authoring) — usare il canvas, modificare i widget.
-- [Widget](/docs/dashboards/widgets) — l'elenco completo dei widget.
-- [Variabili e filtri](/docs/dashboards/variables) — far funzionare una dashboard per molti servizi o clienti.
-- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — URL pubblici, password, allowlist IP, domini personalizzati.
-- [Configurazione e permessi](/docs/dashboards/configuration) — proprietari, etichette, controllo accessi.
+:::cards
+- [Creare una dashboard](/docs/dashboards/authoring): Crea una dashboard, modificala e salva le modifiche.
+- [Widget della dashboard](/docs/dashboards/widgets): Ogni widget, e quale scegliere.
+- [Variabili e filtri della dashboard](/docs/dashboards/variables): Una dashboard per ogni servizio, host o cliente.
+- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing): Link pubblici, password, liste di IP consentiti e domini personalizzati.
+:::

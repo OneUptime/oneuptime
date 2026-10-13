@@ -174,7 +174,7 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Antwort-Statuscode** und **Antwortzeit (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Is Online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Response Header**, **Response Header Value**, **JavaScript Expression** und **Is Request Timeout**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
@@ -183,6 +183,10 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 | **Any Value** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 
 **All Values** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Any Value** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
+
+Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Is Request Timeout** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **All Values** oder **Any Value**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **All Values** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
+
+Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
 **Bei keinen Daten** entscheidet, was passiert, solange das Fenster das Kriterium nicht stützen kann:
 
@@ -200,6 +204,8 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 | Eine Fehlerseite erkennen, die mit `200` ausgeliefert wird | **Antworttext** | **Not Contains** | `Welcome` |
 | Prüfen, ob ein CDN-Header vorhanden ist | **Response Header** | **Enthält** | `x-cache` |
 | Nur `200` als gesund akzeptieren | **Antwort-Statuscode** | **Equal To** | `200` |
+
+Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **All Values** über 15 Minuten.
 
 ## Fehlerbehebung
 

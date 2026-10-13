@@ -174,7 +174,7 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is Online**, **Reactiestatuscode** en **Reactietijd (in ms)**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is Online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Response Header**, **Response Header Value**, **JavaScript Expression** en **Is Request Timeout**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
@@ -183,6 +183,10 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 | **Any Value** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
 **All Values** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Any Value** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
+
+Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Is Request Timeout** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **All Values** of **Any Value**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **All Values** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
+
+Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
 **Als geen gegevens** bepaalt wat er gebeurt zolang het venster het criterium niet kan onderbouwen:
 
@@ -200,6 +204,8 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 | Een foutpagina opvangen die met `200` wordt geleverd | **Antwoordlichaam** | **Not Contains** | `Welcome` |
 | Controleren of een CDN-header aanwezig is | **Response Header** | **Bevat** | `x-cache` |
 | Alleen `200` als gezond accepteren | **Reactiestatuscode** | **Equal To** | `200` |
+
+Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **All Values** over 15 minuten.
 
 ## Problemen oplossen
 

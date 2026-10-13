@@ -1494,6 +1494,10 @@ jobs:
   # is published to the public provider repo / Terraform Registry.
   terraform-provider-e2e:
     uses: ./.github/workflows/terraform-provider-e2e.yml
+    # A concurrency group of this run's own, so no other release run cancels
+    # this release's suite (see the workflow's concurrency).
+    with:
+      release_run_id: ${{ github.run_id }}
     secrets: inherit
 
   publish-terraform-provider:
@@ -2597,6 +2601,7 @@ jobs:
 
 
   # Build Android release APK and attach to GitHub Release.
+  # finalize-github-release waits for this job, so the APK lands on the draft.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-android-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
@@ -2655,6 +2660,7 @@ jobs:
           target_commitish: ${{ github.sha }}
 
   # Build iOS release IPA and attach to GitHub Release.
+  # finalize-github-release waits for this job, so the IPA lands on the draft.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
   mobile-app-ios-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
@@ -2799,11 +2805,36 @@ jobs:
   # more (it runs after push-release-tags, beside the draft): a release is
   # not published without its charts, as it was not when the chart publish
   # came first.
+  #
+  # The two app jobs are named so their uploads land on the draft: nothing
+  # may write the release once this job has published it. 14.0.46 shipped
+  # without its Android APK (run 38267959528). The APK was built three
+  # minutes after this job published the release, and GitHub answered the
+  # upload's update of the published release with 403 "Resource not
+  # accessible by integration". Late uploads had gone through before
+  # (14.0.45's APK, eight minutes after its publish), but this one came two
+  # minutes after the 14.0.47 merge moved `release` to a commit whose
+  # workflows differ. A repository with immutable releases refuses every
+  # upload after publishing.
+  #
+  # The app jobs are waited for, not required: a failed app build still
+  # publishes the release, without that app, as it did before this job
+  # waited for them. Otherwise the release would stay a draft after its
+  # images and tags had gone out. !cancelled() lets this job run after a
+  # failed app job, so each job it does require is checked by name.
+  # Tests/Ops/ReleaseE2ePipeline.test.js holds both.
   finalize-github-release:
     name: Publish GitHub release
-    needs: [infrastructure-agent-deploy, generate-sboms, helm-chart-deploy, generate-build-number, read-version]
+    needs: [infrastructure-agent-deploy, generate-sboms, helm-chart-deploy, mobile-app-android-deploy, mobile-app-ios-deploy, generate-build-number, read-version]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/release'
+    if: >-
+      ${{ !cancelled()
+      && github.ref == 'refs/heads/release'
+      && needs.infrastructure-agent-deploy.result == 'success'
+      && needs.generate-sboms.result == 'success'
+      && needs.helm-chart-deploy.result == 'success'
+      && needs.generate-build-number.result == 'success'
+      && needs.read-version.result == 'success' }}
     permissions:
       contents: write
     steps:

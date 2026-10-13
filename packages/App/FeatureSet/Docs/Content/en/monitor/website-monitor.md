@@ -174,7 +174,7 @@ Monitors created before OneUptime changed these defaults keep the criteria they 
 
 ### Evaluating over a period of time
 
-**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **Is Online**, **Response Status Code** and **Response Time (in ms)**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**.
+**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **Is Online**, **Response Status Code**, **Response Time (in ms)**, **Response Body**, **Response Header**, **Response Header Value**, **JavaScript Expression** and **Is Request Timeout**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**.
 
 | Aggregate | Matches when |
 | --- | --- |
@@ -183,6 +183,10 @@ Monitors created before OneUptime changed these defaults keep the criteria they 
 | **Any Value** | At least one check in the window meets the condition. |
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
+
+A body, a header, a header value or an expression is not a number OneUptime records, so for those filters and for **Is Request Timeout** it records whether the filter matched on each check, and judges the window from that record with **All Values** or **Any Value**. That is how a monitor rides out a restart. An app that is starting may answer `200` with a placeholder such as `Application starting...`; with **All Values**, a **Response Body** filter that looks for the app's title takes the monitor offline only once the placeholder has lasted the whole window.
+
+Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.
 
 **If No Data** decides what happens while the window cannot back the criteria:
 
@@ -200,6 +204,8 @@ Monitors created before OneUptime changed these defaults keep the criteria they 
 | Catch an error page served with `200` | **Response Body** | **Not Contains** | `Welcome` |
 | Check that a CDN header is present | **Response Header** | **Contains** | `x-cache` |
 | Accept only `200` as healthy | **Response Status Code** | **Equal To** | `200` |
+
+To ride out a restart, turn on **Evaluate this criteria over a period of time** for the response body filter and pick **All Values** over 15 minutes.
 
 ## Troubleshooting
 

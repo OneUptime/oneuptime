@@ -126,19 +126,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   "cli/output-formats": {
     codeLanguage: EN,
   },
-  "dashboards/authoring": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "dashboards/configuration": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "dashboards/sharing": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "dashboards/variables": {
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
   "integrations/aws-security-hub": {
     translated: EVERY_TRANSLATION,
   },
@@ -218,50 +205,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
       "zh-TW",
       "fa",
     ),
-  },
-  "rum/applications": {
-    pageLinks: ["fa"],
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "rum/session-replay-troubleshooting": {
-    pageLinks: ["fa"],
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "rum/troubleshooting": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/ceph": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/databases": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/docker-swarm": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/queues": {
-    translated: EVERY_TRANSLATION,
-  },
-  "telemetry/serverless-functions": {
-    sameShape: EVERY_TRANSLATION,
-  },
-  "telemetry/session-replay": {
-    pageLinks: ["fa"],
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "telemetry/storage-arrays": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "telemetry/vmware": {
-    translated: EVERY_TRANSLATION_BUT_FA,
   },
   "terraform/complete-guide": {
     codeLanguage: EN,

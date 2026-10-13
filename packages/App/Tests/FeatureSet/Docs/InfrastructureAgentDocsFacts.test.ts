@@ -60,6 +60,28 @@ import {
   SIGNIFICANCE_RATIO,
   buildRightSizingRecommendation,
 } from "Common/Types/Kubernetes/KubernetesRightSizing";
+import { CEPH_AGENT_INSTALL_DIR } from "../../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  DOCKER_SWARM_AGENT_INSTALL_DIR,
+  DOCKER_SWARM_DEFAULT_API_VERSION,
+  DOCKER_SWARM_DEFAULT_CLUSTER_NAME,
+  DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS,
+  getDockerSwarmAgentDownloadCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import { STORAGE_ARRAY_AGENT_INSTALL_DIR } from "../../../FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import { VMWARE_AGENT_INSTALL_DIR } from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import {
+  CephMetricDefinition,
+  getAllCephMetrics,
+} from "Common/Types/Monitor/CephMetricCatalog";
+import { CEPH_SNAPSHOT_METRIC_NAMES } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import { DEFAULT_MESSAGE_QUEUE_MIN_SPANS } from "Common/Server/Utils/Telemetry/MessageQueueDiscovery";
+import { FAAS_CLOUD_PLATFORM_VALUES } from "Common/Types/Cloud/CloudPlatform";
+import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+} from "Common/Types/AI/AgentAiSettings";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1216,4 +1238,961 @@ describe("the host collector page, against the setup guide", () => {
       }
     });
   });
+});
+
+/*
+ * Docs overhaul task 22: the Ceph, Storage Array, Docker Swarm and VMware
+ * agent pages, Databases, Queues and Serverless Functions, held to what
+ * ships. The agents' compose files, configs and in-app guides, the
+ * metric catalogs and the products' own suites (DatabasesDocs, QueuesDocs,
+ * ServerlessFunctionsDocs, StorageArrayDocs, VMwareDocs, CephMonitorDocs-
+ * Facts) hold most of these pages already; this holds what the rewrite
+ * added: when a resource turns Disconnected, the systemd units the pages
+ * download, the Ceph series behind every Ceph page, the Docker Swarm
+ * defaults and re-run, and where each product sits in the Products menu.
+ */
+
+const CEPH_PAGE: string = "telemetry/ceph";
+const STORAGE_ARRAYS_PAGE: string = "telemetry/storage-arrays";
+const DOCKER_SWARM_PAGE: string = "telemetry/docker-swarm";
+const VMWARE_PAGE: string = "telemetry/vmware";
+const DATABASES_PAGE: string = "telemetry/databases";
+const QUEUES_PAGE: string = "telemetry/queues";
+const SERVERLESS_PAGE: string = "telemetry/serverless-functions";
+
+const TASK_22_PAGES: Array<string> = [
+  CEPH_PAGE,
+  STORAGE_ARRAYS_PAGE,
+  DOCKER_SWARM_PAGE,
+  VMWARE_PAGE,
+  DATABASES_PAGE,
+  QUEUES_PAGE,
+  SERVERLESS_PAGE,
+];
+
+// A bold menu path into the Products menu: "**Products → Infrastructure → Ceph → ...**".
+const PRODUCTS_PATH: RegExp = /\*\*Products → ([^*]+)\*\*/g;
+
+// A Products menu item of Utils/NavigationItems: its title key, then its category.
+const MENU_ITEM: RegExp =
+  /title: t\(\s*"navbar\.items\.(\w+)"[\s\S]*?category: (\w+)Category,/g;
+
+// A Ceph series name, as a page writes it in code.
+const CEPH_SERIES: RegExp = /^ceph_[a-z_]+$/;
+
+interface Disconnect {
+  page: string;
+  noun: string;
+  service: string;
+  method: string;
+  job: string;
+}
+
+const DISCONNECTS: Array<Disconnect> = [
+  {
+    page: CEPH_PAGE,
+    noun: "cluster",
+    service: "CephClusterService",
+    method: "markDisconnectedClusters",
+    job: "Ceph",
+  },
+  {
+    page: DOCKER_SWARM_PAGE,
+    noun: "cluster",
+    service: "DockerSwarmClusterService",
+    method: "markDisconnectedClusters",
+    job: "DockerSwarm",
+  },
+  {
+    page: VMWARE_PAGE,
+    noun: "vCenter",
+    service: "VMwareVCenterService",
+    method: "markDisconnectedVCenters",
+    job: "VMware",
+  },
+  {
+    page: STORAGE_ARRAYS_PAGE,
+    noun: "array",
+    service: "StorageArrayService",
+    method: "markDisconnectedArrays",
+    job: "StorageArray",
+  },
+  {
+    page: SERVERLESS_PAGE,
+    noun: "function",
+    service: "ServerlessFunctionService",
+    method: "markDisconnectedFunctions",
+    job: "Serverless",
+  },
+];
+
+describe("when a task 22 page says a resource turns Disconnected", () => {
+  it.each(DISCONNECTS)(
+    "$page: after the 15 minutes of receiving time $service waits, checked every 5 minutes",
+    (entry: Disconnect) => {
+      const service: string = repoFile(
+        `packages/Common/Server/Services/${entry.service}.ts`,
+      );
+      const start: number = service.indexOf(`public async ${entry.method}()`);
+      expect(start).toBeGreaterThan(-1);
+      const method: string = service.slice(start, start + 1500);
+      expect(method).toContain("ReceivingCoverage.getSilenceCutoff({");
+      expect(method).toContain("silenceInMinutes: 15,");
+
+      const job: string = repoFile(
+        `packages/App/FeatureSet/Workers/Jobs/${entry.job}/CleanupStaleResources.ts`,
+      );
+      expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
+      expect(job).toContain(`${entry.service}.${entry.method}()`);
+
+      const article: string = entry.noun.startsWith("a") ? "An" : "A";
+      lineWith(
+        entry.page,
+        `${article} ${entry.noun} turns Disconnected when OneUptime has received nothing from it for 15 minutes; OneUptime checks every 5 minutes, and time it was not receiving data itself does not count.`,
+      );
+    },
+  );
+});
+
+interface SystemdUnit {
+  page: string;
+  agent: string;
+  unit: string;
+  installDir: string;
+  // The sentence that names the folder the unit runs in.
+  folderLine: string;
+}
+
+const SYSTEMD_UNITS: Array<SystemdUnit> = [
+  {
+    page: CEPH_PAGE,
+    agent: "CephAgent",
+    unit: "oneuptime-ceph-agent",
+    installDir: CEPH_AGENT_INSTALL_DIR,
+    folderLine: "It assumes the agent lives in",
+  },
+  {
+    page: STORAGE_ARRAYS_PAGE,
+    agent: "StorageArrayAgent",
+    unit: "oneuptime-storage-array-agent",
+    installDir: STORAGE_ARRAY_AGENT_INSTALL_DIR,
+    folderLine: "It assumes the agent lives in",
+  },
+  {
+    page: DOCKER_SWARM_PAGE,
+    agent: "DockerSwarmAgent",
+    unit: "oneuptime-docker-swarm-agent",
+    installDir: DOCKER_SWARM_AGENT_INSTALL_DIR,
+    folderLine: "It assumes the agent lives in",
+  },
+  {
+    page: VMWARE_PAGE,
+    agent: "VMwareAgent",
+    unit: "oneuptime-vmware-agent",
+    installDir: VMWARE_AGENT_INSTALL_DIR,
+    folderLine: "Its unit wraps Docker Compose and assumes the agent lives in",
+  },
+  // Task 21's page, which had the same "sudo cp systemd/..." step.
+  {
+    page: PROXMOX_PAGE,
+    agent: "ProxmoxAgent",
+    unit: "oneuptime-proxmox-agent",
+    installDir: PROXMOX_AGENT_INSTALL_DIR,
+    folderLine: "It assumes the agent lives in",
+  },
+];
+
+// The agents' own READMEs, which GitHub shows beside the files.
+const AGENT_READMES: Array<string> = fs
+  .readdirSync(path.join(REPO_ROOT, "agents"))
+  .filter((agent: string): boolean => {
+    return fs.existsSync(path.join(REPO_ROOT, "agents", agent, "README.md"));
+  })
+  .sort();
+
+describe("the systemd units the agent pages install", () => {
+  /*
+   * The install scripts put only the compose file and configs in the
+   * agent's folder, never the agent's systemd/ directory, so a page that
+   * said "sudo cp systemd/..." worked only from a checkout of the repo.
+   * The pages download the shipped unit instead.
+   */
+  it.each(SYSTEMD_UNITS)(
+    "$page downloads $unit.service, which runs in the folder the install script uses",
+    (entry: SystemdUnit) => {
+      const unit: string = repoFile(
+        `agents/${entry.agent}/systemd/${entry.unit}.service`,
+      );
+      expect(unit).toContain(`WorkingDirectory=${entry.installDir}`);
+      expect(repoFile(`agents/${entry.agent}/install.sh`)).not.toContain(
+        "systemd/",
+      );
+
+      expect(codesOf(entry.page)).toContain(
+        [
+          `sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${entry.agent}/systemd/${entry.unit}.service -o /etc/systemd/system/${entry.unit}.service`,
+          "sudo systemctl daemon-reload",
+          `sudo systemctl enable --now ${entry.unit}`,
+        ].join("\n"),
+      );
+      expect(english(entry.page)).not.toContain("sudo cp systemd/");
+      lineWith(entry.page, `${entry.folderLine} \`${entry.installDir}\``);
+    },
+  );
+
+  it.each(SYSTEMD_UNITS)(
+    "$agent's README installs $unit.service, if it does, the way $page does",
+    (entry: SystemdUnit) => {
+      const readme: string = repoFile(`agents/${entry.agent}/README.md`);
+      const installsUnit: boolean = readme.includes(
+        `/etc/systemd/system/${entry.unit}.service`,
+      );
+
+      // Every README but Docker Swarm's has a systemd section.
+      expect({ agent: entry.agent, installsUnit }).toEqual({
+        agent: entry.agent,
+        installsUnit: entry.agent !== "DockerSwarmAgent",
+      });
+
+      if (installsUnit) {
+        expect(readme).toContain(
+          `sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${entry.agent}/systemd/${entry.unit}.service -o /etc/systemd/system/${entry.unit}.service`,
+        );
+      }
+    },
+  );
+
+  /*
+   * A README may copy a unit out of the agent's folder only when its
+   * install script downloads systemd/ there (the Database Agent's does).
+   */
+  it.each(AGENT_READMES)(
+    "agents/%s/README.md copies no unit its install script never downloads",
+    (agent: string) => {
+      const installScript: string = path.join(
+        REPO_ROOT,
+        "agents",
+        agent,
+        "install.sh",
+      );
+      const fetchesSystemd: boolean =
+        fs.existsSync(installScript) &&
+        fs.readFileSync(installScript, "utf8").includes("/systemd/");
+
+      if (!fetchesSystemd) {
+        expect(repoFile(`agents/${agent}/README.md`)).not.toContain(
+          "cp systemd/",
+        );
+      }
+    },
+  );
+
+  it("knows the agents whose READMEs it reads", () => {
+    for (const entry of SYSTEMD_UNITS) {
+      expect(AGENT_READMES).toContain(entry.agent);
+    }
+    expect(AGENT_READMES).toContain("DatabaseAgent");
+  });
+});
+
+describe("the Ceph agent page, against the catalog and the inventory scan", () => {
+  // The labels a Ceph series carries, which the page names beside the series.
+  const CEPH_LABELS: Array<string> = ["ceph_daemon", "ceph_version"];
+
+  function collectedSection(): string {
+    const page: string = english(CEPH_PAGE);
+    return page.slice(
+      page.indexOf("## What the agent collects"),
+      page.indexOf("### More scrape targets"),
+    );
+  }
+
+  it("names every series the metric catalog and the inventory scan read, and no other", () => {
+    const named: Set<string> = new Set(
+      codeSpansOf(collectedSection()).filter((span: string): boolean => {
+        return CEPH_SERIES.test(span) && !CEPH_LABELS.includes(span);
+      }),
+    );
+    const product: Set<string> = new Set([
+      ...getAllCephMetrics().map((metric: CephMetricDefinition): string => {
+        return metric.metricName;
+      }),
+      ...Array.from(CEPH_SNAPSHOT_METRIC_NAMES),
+    ]);
+
+    expect(Array.from(named).sort()).toEqual(Array.from(product).sort());
+  });
+
+  it("puts each catalog series in its catalog category's row", () => {
+    const rows: Record<string, string> = {
+      "Cluster Health": "Cluster health",
+      OSD: "OSD",
+      Pool: "Pool",
+      PG: "Placement groups",
+    };
+    for (const metric of getAllCephMetrics()) {
+      const row: Array<string> = rowOf(
+        CEPH_PAGE,
+        rows[metric.category] as string,
+      );
+      expect([
+        metric.metricName,
+        (row[1] as string).includes(`\`${metric.metricName}\``),
+      ]).toEqual([metric.metricName, true]);
+    }
+  });
+
+  it("names the Daemons page's series and the version label the inventory scan reads", () => {
+    const scan: string = repoFile(
+      "packages/Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan.ts",
+    );
+    const row: string = rowOf(CEPH_PAGE, "Daemons")[1] as string;
+    for (const metric of [
+      "ceph_mgr_metadata",
+      "ceph_mds_metadata",
+      "ceph_rgw_metadata",
+    ]) {
+      expect(CEPH_SNAPSHOT_METRIC_NAMES.has(metric)).toBe(true);
+      expect(row).toContain(`\`${metric}\``);
+    }
+    expect(scan).toContain('getStringAttribute(dpAttributes, "ceph_version")');
+    expect(row).toContain("`ceph_version`");
+    expect(row).toContain("**Daemons**");
+    expect(
+      repoFile(
+        "packages/App/FeatureSet/Dashboard/src/Pages/Ceph/View/SideMenu.tsx",
+      ),
+    ).toContain('title: "Daemons"');
+  });
+
+  it("names the Overview card that lists the active health checks", () => {
+    expect(
+      repoFile(
+        "packages/App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index.tsx",
+      ),
+    ).toContain('title="Active Health Checks"');
+    lineWith(CEPH_PAGE, "`ceph_health_detail`", "**Active Health Checks**");
+  });
+
+  it("scrapes every mgr every 30 seconds, keeping Ceph's labels, and defaults the name as the compose file does", () => {
+    const config: YamlNode = yamlOf(
+      repoFile("agents/CephAgent/otel-collector-config.yaml"),
+    );
+    const scrape: YamlNode = (
+      at(
+        config,
+        "receivers.prometheus.config.scrape_configs",
+      ) as Array<YamlNode>
+    )[0] as YamlNode;
+    expect(scrape["scrape_interval"]).toBe("30s");
+    expect(scrape["honor_labels"]).toBe(true);
+    lineWith(CEPH_PAGE, "**Every mgr, every 30 seconds.**");
+    lineWith(CEPH_PAGE, "**`honor_labels: true`.**");
+
+    const compose: string = repoFile("agents/CephAgent/docker-compose.yml");
+    expect(rowOf(CEPH_PAGE, "`CEPH_CLUSTER_NAME`")[2]).toContain(
+      `Defaults to \`${composeDefault(compose, "CEPH_CLUSTER_NAME")}\``,
+    );
+  });
+});
+
+describe("the Docker Swarm agent page, against the agent and its setup guide", () => {
+  const compose: string = repoFile(
+    "agents/DockerSwarmAgent/docker-compose.yml",
+  );
+
+  it("downloads the files the setup guide downloads, in its order", () => {
+    expect(codesOf(DOCKER_SWARM_PAGE)).toContain(
+      getDockerSwarmAgentDownloadCommand(),
+    );
+  });
+
+  it("states the defaults the compose file and the setup guide give", () => {
+    expect(composeDefault(compose, "DOCKER_SWARM_CLUSTER_NAME")).toBe(
+      DOCKER_SWARM_DEFAULT_CLUSTER_NAME,
+    );
+    expect(
+      rowOf(DOCKER_SWARM_PAGE, "`DOCKER_SWARM_CLUSTER_NAME`")[2],
+    ).toContain(`Defaults to \`${DOCKER_SWARM_DEFAULT_CLUSTER_NAME}\``);
+
+    expect(composeDefault(compose, "DOCKER_INVENTORY_INTERVAL_SECONDS")).toBe(
+      DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS,
+    );
+    expect(
+      rowOf(DOCKER_SWARM_PAGE, "`DOCKER_INVENTORY_INTERVAL_SECONDS`")[2],
+    ).toContain(
+      `Defaults to \`${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}\``,
+    );
+
+    // "${VAR-default}": an empty value stays empty and negotiates the version.
+    expect(compose).toContain(
+      `DOCKER_API_VERSION=\${DOCKER_API_VERSION-${DOCKER_SWARM_DEFAULT_API_VERSION}}`,
+    );
+    expect(rowOf(DOCKER_SWARM_PAGE, "`DOCKER_API_VERSION`")[2]).toContain(
+      `Defaults to \`${DOCKER_SWARM_DEFAULT_API_VERSION}\`; empty negotiates it with the daemon`,
+    );
+  });
+
+  it("names the three containers the compose file runs", () => {
+    const services: YamlNode = at(yamlOf(compose), "services") as YamlNode;
+    const names: Array<string> = Object.values(services).map(
+      (service: unknown): string => {
+        return (service as YamlNode)["container_name"] as string;
+      },
+    );
+    expect(names).toEqual([
+      "oneuptime-docker-swarm-agent",
+      "oneuptime-docker-swarm-inventory",
+      "oneuptime-docker-swarm-ai-agent",
+    ]);
+    lineWith(
+      DOCKER_SWARM_PAGE,
+      "the collector (`oneuptime-docker-swarm-agent`), the inventory poller (`oneuptime-docker-swarm-inventory`) and the AI agent (`oneuptime-docker-swarm-ai-agent`)",
+    );
+  });
+
+  it("walks the manager endpoints the inventory script reads, every 5 minutes", () => {
+    const script: string = repoFile(
+      "agents/DockerSwarmAgent/inventory-snapshot.sh",
+    );
+    const line: string = lineWith(
+      DOCKER_SWARM_PAGE,
+      "every 5 minutes walks the swarm manager's API",
+    );
+    for (const endpoint of [
+      "/nodes",
+      "/services",
+      "/tasks",
+      "/networks",
+      "/secrets",
+      "/configs",
+      "/volumes",
+    ]) {
+      expect(script).toContain(endpoint);
+      expect(line).toContain(`\`${endpoint}\``);
+    }
+    expect(script).toContain("com.docker.stack.namespace");
+    expect(DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS).toBe("300");
+  });
+
+  it("says a re-run of install.sh writes .env again, keeping only what AI may do and its target lists", () => {
+    const install: string = repoFile("agents/DockerSwarmAgent/install.sh");
+    for (const kept of [
+      "ONEUPTIME_AI_WRITE_TARGETS",
+      "ONEUPTIME_AI_PROTECTED_TARGETS",
+      "ONEUPTIME_AI_INVESTIGATION",
+      "ONEUPTIME_AI_FIXES",
+    ]) {
+      expect(install).toContain(`${kept}="$(env_file_value ${kept})"`);
+    }
+    // Asked again on every run: the URL, the key and the cluster name.
+    expect(install).toContain(
+      'printf "OneUptime URL [https://oneuptime.com]: "',
+    );
+    expect(install).not.toContain("env_file_value ONEUPTIME_AI_ALLOW_WRITES");
+    expect(install).toContain("--no-ai-agent) INSTALL_AI_AGENT=false ;;");
+
+    lineWith(
+      DOCKER_SWARM_PAGE,
+      "It keeps only the AI agent's target lists and what AI may do (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`)",
+    );
+    lineWith(
+      DOCKER_SWARM_PAGE,
+      "`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh`",
+    );
+  });
+});
+
+describe("the Storage Array agent page, against the agent", () => {
+  it("says the collector refuses to start without an array name, which the compose file gives no default", () => {
+    const compose: string = repoFile(
+      "agents/StorageArrayAgent/docker-compose.yml",
+    );
+    expect(compose).not.toContain("STORAGE_ARRAY_NAME:-");
+    for (const config of [
+      "otel-collector-config.yaml",
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+    ]) {
+      expect(repoFile(`agents/StorageArrayAgent/${config}`)).toContain(
+        'value: "${env:STORAGE_ARRAY_NAME}"',
+      );
+    }
+    expect(rowOf(STORAGE_ARRAYS_PAGE, "`STORAGE_ARRAY_NAME`")[2]).toContain(
+      "The collector refuses to start without it.",
+    );
+  });
+});
+
+/*
+ * The Required column of the agent pages' variable tables. A variable its
+ * compose file gives a default ("${NAME:-default}", or "${NAME-default}")
+ * runs without one, and install.sh offers the same default at its prompt,
+ * so the page never marks it required: CEPH_CLUSTER_NAME, the Docker Swarm
+ * cluster name and the vCenter name all said "Yes" beside "Defaults to".
+ */
+interface VariableTable {
+  page: string;
+  compose: string;
+}
+
+const VARIABLE_TABLES: ReadonlyArray<VariableTable> = [
+  { page: CEPH_PAGE, compose: "agents/CephAgent/docker-compose.yml" },
+  {
+    page: DOCKER_SWARM_PAGE,
+    compose: "agents/DockerSwarmAgent/docker-compose.yml",
+  },
+  { page: VMWARE_PAGE, compose: "agents/VMwareAgent/docker-compose.yml" },
+  {
+    page: STORAGE_ARRAYS_PAGE,
+    compose: "agents/StorageArrayAgent/docker-compose.yml",
+  },
+  { page: DATABASES_PAGE, compose: "agents/DatabaseAgent/docker-compose.yml" },
+];
+
+// A row of a variable table: the variable, then whether it is required.
+const REQUIRED_ROW: RegExp = /^\| `([A-Z][A-Z0-9_]*)` \| ([^|]+) \|/;
+
+// The English header of a variable table with a Required column.
+const REQUIRED_TABLE_HEADER: string = "| Variable | Required |";
+
+// How each docs language answers the Required column: yes, then no.
+const REQUIRED_ANSWERS: Record<string, [string, string]> = {
+  en: ["Yes", "No"],
+  de: ["Ja", "Nein"],
+  fr: ["Oui", "Non"],
+  es: ["Sí", "No"],
+  it: ["Sì", "No"],
+  pt: ["Sim", "Não"],
+  nl: ["Ja", "Nee"],
+  da: ["Ja", "Nej"],
+  no: ["Ja", "Nei"],
+  sv: ["Ja", "Nej"],
+  ru: ["Да", "Нет"],
+  ja: ["はい", "いいえ"],
+  ko: ["예", "아니요"],
+  "zh-CN": ["是", "否"],
+  "zh-TW": ["是", "否"],
+  hi: ["हाँ", "नहीं"],
+  fa: ["بله", "خیر"],
+};
+
+interface RequiredRow {
+  line: number;
+  name: string;
+  answer: string;
+}
+
+// The variable rows of a page, with the line each is on and its answer.
+function requiredRows(markdown: string): Array<RequiredRow> {
+  const rows: Array<RequiredRow> = [];
+  // Whether the line is inside a table headed "| Variable | Required |".
+  let inRequiredTable: boolean = false;
+
+  markdown.split("\n").forEach((line: string, index: number): void => {
+    if (!line.startsWith("|")) {
+      inRequiredTable = false;
+      return;
+    }
+
+    if (line.startsWith(REQUIRED_TABLE_HEADER)) {
+      inRequiredTable = true;
+      return;
+    }
+
+    const answer: RequiredRow | null = requiredAnswerOf(line, index);
+
+    if (inRequiredTable && answer) {
+      rows.push(answer);
+    }
+  });
+
+  return rows;
+}
+
+// A variable row's variable and the answer in its second column.
+function requiredAnswerOf(line: string, index: number): RequiredRow | null {
+  const match: RegExpMatchArray | null = line.match(REQUIRED_ROW);
+
+  return match
+    ? {
+        line: index,
+        name: match[1] as string,
+        answer: (match[2] as string).trim(),
+      }
+    : null;
+}
+
+/*
+ * A language's answer for the English one: its own yes or no, and a
+ * condition (the storage array page's "FlashArray", the Databases page's
+ * "PostgreSQL, MySQL, SQL Server, Oracle") as written.
+ */
+function requiredAnswer(english: string, answers: [string, string]): string {
+  if (english === "Yes") {
+    return answers[0];
+  }
+
+  return english === "No" ? answers[1] : english;
+}
+
+/*
+ * A condition's names, in order, joined as English joins them: Chinese and
+ * Japanese list them with an ideographic comma, Persian with its own comma.
+ */
+const CONDITION_SEPARATOR: RegExp = /\s*[,\u{060C}\u{3001}]\s*/u;
+
+function conditionNames(answer: string): string {
+  return answer.split(CONDITION_SEPARATOR).join(", ");
+}
+
+// Whether a compose file defaults the variable, in either of its two forms.
+function composeDefaults(compose: string, name: string): boolean {
+  return compose.includes(`\${${name}:-`) || compose.includes(`\${${name}-`);
+}
+
+describe("the agent pages' Required columns, against the compose files", () => {
+  it.each(VARIABLE_TABLES)(
+    "$page marks required only what $compose gives no default",
+    (table: VariableTable) => {
+      const compose: string = repoFile(table.compose);
+      const rows: Array<RequiredRow> = requiredRows(english(table.page));
+
+      expect(rows.length).toBeGreaterThan(0);
+
+      for (const row of rows) {
+        expect({
+          variable: row.name,
+          required: row.answer === "Yes",
+        }).toEqual({
+          variable: row.name,
+          required: row.answer === "Yes" && !composeDefaults(compose, row.name),
+        });
+      }
+    },
+  );
+
+  it("reads a default in either compose form, and no other variable's", () => {
+    const compose: string = [
+      "      - CEPH_CLUSTER_NAME=${CEPH_CLUSTER_NAME:-ceph}",
+      "      - DOCKER_API_VERSION=${DOCKER_API_VERSION-1.44}",
+      "      - CEPH_MGR_ENDPOINTS=${CEPH_MGR_ENDPOINTS}",
+    ].join("\n");
+
+    expect(composeDefaults(compose, "CEPH_CLUSTER_NAME")).toBe(true);
+    expect(composeDefaults(compose, "DOCKER_API_VERSION")).toBe(true);
+    expect(composeDefaults(compose, "CEPH_MGR_ENDPOINTS")).toBe(false);
+    expect(composeDefaults(compose, "CEPH_CLUSTER")).toBe(false);
+  });
+
+  it("answers a translation's Required cell in its words, and a condition as written", () => {
+    expect(requiredAnswer("Yes", ["Ja", "Nein"])).toBe("Ja");
+    expect(requiredAnswer("No", ["Ja", "Nein"])).toBe("Nein");
+    expect(requiredAnswer("FlashArray", ["Ja", "Nein"])).toBe("FlashArray");
+    expect(conditionNames("PostgreSQL\u{3001}MySQL\u{3001}SQL Server")).toBe(
+      "PostgreSQL, MySQL, SQL Server",
+    );
+    expect(conditionNames("PostgreSQL\u{060C} MySQL")).toBe(
+      "PostgreSQL, MySQL",
+    );
+    expect(conditionNames("Ja")).toBe("Ja");
+    expect(
+      requiredRows(
+        [
+          "| Variable | Required | Description |",
+          "| --- | --- | --- |",
+          "| `CEPH_CLUSTER_NAME` | No | The cluster's name. |",
+          "",
+          "| Variable | Default | What it does |",
+          "| --- | --- | --- |",
+          "| `ONEUPTIME_AI_FIXES` | empty | How AI may apply a fix. |",
+        ].join("\n"),
+      ),
+    ).toEqual([{ line: 2, name: "CEPH_CLUSTER_NAME", answer: "No" }]);
+    expect(requiredRows("| Variable | Required | Description |")).toEqual([]);
+  });
+
+  it("answers the column in every docs language", () => {
+    expect(Object.keys(REQUIRED_ANSWERS).sort()).toEqual(
+      [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
+    );
+  });
+
+  describe.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s",
+    (language: string) => {
+      it.each(VARIABLE_TABLES)(
+        "$page answers Yes and No where English does",
+        (table: VariableTable) => {
+          const answers: [string, string] = REQUIRED_ANSWERS[language] as [
+            string,
+            string,
+          ];
+          const translated: Array<string> = readPage(
+            language,
+            table.page,
+          ).split("\n");
+
+          for (const row of requiredRows(english(table.page))) {
+            expect({
+              variable: row.name,
+              line: translated[row.line]?.startsWith(`| \`${row.name}\` |`),
+              answer: conditionNames(
+                requiredAnswerOf(translated[row.line] || "", row.line)
+                  ?.answer || "",
+              ),
+            }).toEqual({
+              variable: row.name,
+              line: true,
+              answer: requiredAnswer(row.answer, answers),
+            });
+          }
+        },
+      );
+    },
+  );
+});
+
+describe("the Products menu paths of the task 22 pages", () => {
+  const navigation: string = repoFile(
+    "packages/App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx",
+  );
+  const locale: YamlNode = JSON.parse(
+    repoFile("packages/App/FeatureSet/Dashboard/src/Locales/en.json"),
+  ) as YamlNode;
+  const items: Record<string, string> = at(locale, "navbar.items") as Record<
+    string,
+    string
+  >;
+  const categories: Record<string, string> = at(
+    locale,
+    "navbar.categories",
+  ) as Record<string, string>;
+
+  // The Products menu's category of each product, by the product's English title.
+  const categoryOf: Record<string, string> = {};
+  for (const match of Array.from(navigation.matchAll(MENU_ITEM))) {
+    categoryOf[items[match[1] as string] as string] = categories[
+      match[2] as string
+    ] as string;
+  }
+
+  it.each(TASK_22_PAGES)(
+    "%s opens each product under the category the Products menu files it in",
+    (page: string) => {
+      const paths: Array<Array<string>> = Array.from(
+        english(page).matchAll(PRODUCTS_PATH),
+      ).map((match: RegExpMatchArray): Array<string> => {
+        return (match[1] as string).split(" → ");
+      });
+
+      expect(paths.length).toBeGreaterThan(0);
+
+      for (const [category, product] of paths) {
+        expect({ product, category }).toEqual({
+          product,
+          category: categoryOf[product as string],
+        });
+      }
+    },
+  );
+
+  it("knows the products these pages name, and their side menus' first pages", () => {
+    expect(categoryOf["Databases"]).toBe("Resources");
+    expect(categoryOf["Queues"]).toBe("Resources");
+    for (const product of [
+      "Ceph",
+      "Storage Arrays",
+      "Docker Swarm",
+      "VMware",
+      "Serverless",
+    ]) {
+      expect({ product, category: categoryOf[product] }).toEqual({
+        product,
+        category: "Infrastructure",
+      });
+    }
+    const sideMenus: Array<[string, string]> = [
+      ["Ceph", "All Clusters"],
+      ["StorageArray", "All Storage Arrays"],
+      ["DockerSwarm", "All Clusters"],
+      ["VMware", "All vCenters"],
+      ["Serverless", "All Functions"],
+    ];
+    for (const [folder, title] of sideMenus) {
+      expect(
+        repoFile(
+          `packages/App/FeatureSet/Dashboard/src/Pages/${folder}/SideMenu.tsx`,
+        ),
+      ).toContain(`title: "${title}"`);
+    }
+  });
+});
+
+describe("the Databases and Queues pages, against the lists and discovery they describe", () => {
+  it("names the Databases list's column of where a database came from", () => {
+    expect(
+      repoFile(
+        "packages/App/FeatureSet/Dashboard/src/Pages/Database/Databases.tsx",
+      ),
+    ).toContain('title: "Discovered from"');
+    lineWith(DATABASES_PAGE, "(the **Discovered from** column)");
+  });
+
+  it("gets a queue started in the numbers discovery runs on", () => {
+    const job: string = repoFile(
+      "packages/App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
+    );
+    expect(job).toContain('const EVERY_TEN_MINUTES: string = "*/10 * * * *";');
+    expect(job).toContain("export const WINDOW_MINUTES: number = 15;");
+    expect(DEFAULT_MESSAGE_QUEUE_MIN_SPANS).toBe(3);
+    lineWith(
+      QUEUES_PAGE,
+      "Discovery runs every 10 minutes: a queue appears once at least 3 of its spans arrived within 15 minutes, or a broker metric named it.",
+    );
+  });
+});
+
+describe("the Serverless Functions page, against ingest", () => {
+  it("lists the FaaS platforms ingest names a function by", () => {
+    // The identification table's row (the Azure table has one of its own).
+    const row: string = lineWith(
+      SERVERLESS_PAGE,
+      "| `cloud.platform` | with `service.name`, when there is no `faas.name` |",
+    ).split(" | ")[2] as string;
+    expect(codeSpansOf(row).sort()).toEqual(
+      Array.from(FAAS_CLOUD_PLATFORM_VALUES).sort(),
+    );
+  });
+
+  it("names the runtime attributes ingest records for the overview", () => {
+    const ingest: string = repoFile(
+      "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
+    );
+    expect(ingest).toContain('"process.runtime.name"');
+    expect(ingest).toContain('"process.runtime.version"');
+    rowOf(
+      SERVERLESS_PAGE,
+      "`process.runtime.name` / `process.runtime.version`",
+    );
+  });
+
+  it("checks the key at the validate route the in-app guide checks too", () => {
+    expect(codesOf(SERVERLESS_PAGE)).toContain(
+      'curl -i https://oneuptime.com/otlp/v1/validate \\\n  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"',
+    );
+    expect(
+      repoFile(
+        "packages/App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessSetupGuide.ts",
+      ),
+    ).toContain("/otlp/v1/validate");
+  });
+
+  it("sends readers to Run Now for functions that already exist, which can run a serverless rule", () => {
+    lineWith(
+      SERVERLESS_PAGE,
+      "**Run Now**",
+      "/docs/configuration/run-rules-now",
+    );
+    expect(english("configuration/run-rules-now")).toContain(
+      "serverless functions",
+    );
+  });
+});
+
+/*
+ * How fixes run is set where the agent runs (ONEUPTIME_AI_FIXES in its
+ * .env), and the AI agent page only shows it (Infrastructure AI Agents,
+ * "What AI may do, set by the agent"). The Ceph and VMware pages say so;
+ * the two agents' READMEs sent readers to the page to choose a mode.
+ */
+interface FixModeSource {
+  page: string;
+  readme: string;
+}
+
+const FIX_MODE_SOURCES: ReadonlyArray<FixModeSource> = [
+  { page: CEPH_PAGE, readme: "agents/CephAgent/README.md" },
+  { page: VMWARE_PAGE, readme: "agents/VMwareAgent/README.md" },
+];
+
+describe("where the Ceph and VMware agents' fix mode is set", () => {
+  it.each(FIX_MODE_SOURCES)(
+    "$readme sets it in .env, as $page does, and the AI agent page only shows it",
+    (source: FixModeSource) => {
+      const readme: string = repoFile(source.readme);
+      const start: number = readme.indexOf("### Allowing fixes");
+
+      expect(start).toBeGreaterThan(-1);
+
+      const fixes: string = readme.slice(start, readme.indexOf("\n## ", start));
+
+      expect(fixes).toContain(`\`${AI_FIXES_ENV}\``);
+      expect(fixes).toContain(
+        "**AI → AI agent** page shows the mode, read-only",
+      );
+      expect(readme).not.toContain("choose how fixes are applied");
+      lineWith(
+        source.page,
+        `\`${AI_FIXES_ENV}\` in the same \`.env\` says how fixes run`,
+        "the AI agent page shows it read-only",
+      );
+    },
+  );
+
+  it("names the fix modes the agent reads, as the Infrastructure AI Agents page does", () => {
+    const modes: Array<string> = Object.values(AGENT_AI_FIXES_SETTING_VALUES);
+    const table: string = lineWith(
+      "ai/infrastructure-ai-agents",
+      `| \`${AI_FIXES_ENV}\``,
+    );
+
+    expect(modes.sort()).toEqual(
+      ["off", "ask-for-approval", "automatic", "bypass-approval"].sort(),
+    );
+
+    for (const mode of modes) {
+      expect(table).toContain(`\`${mode}\``);
+    }
+
+    for (const source of FIX_MODE_SOURCES) {
+      const readme: string = repoFile(source.readme);
+
+      for (const mode of modes) {
+        expect({
+          readme: source.readme,
+          mode,
+          named: readme.includes(`\`${mode}\``),
+        }).toEqual({
+          readme: source.readme,
+          mode,
+          named: true,
+        });
+      }
+    }
+  });
+});
+
+describe("the Ceph monitor's silence note, in every language", () => {
+  const LINK: string = "](/docs/monitor/when-oneuptime-is-not-receiving)";
+
+  it.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s: says time OneUptime was not receiving is never no data, as the other monitors do",
+    (language: string) => {
+      const lines: Array<string> = readPage(
+        language,
+        "monitor/ceph-monitor",
+      ).split("\n");
+      const callout: number = lines.findIndex((line: string): boolean => {
+        return line.startsWith("> [!IMPORTANT]");
+      });
+      expect(callout).toBeGreaterThan(-1);
+      expect(lines[callout + 1]).toContain(LINK);
+      if (language === "en") {
+        expect(lines[callout + 1]).toContain(
+          "Time OneUptime itself was not receiving is never no data: a check whose window holds it waits instead",
+        );
+      }
+    },
+  );
 });

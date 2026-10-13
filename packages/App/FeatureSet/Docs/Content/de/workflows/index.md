@@ -93,8 +93,8 @@ Jeder Workflow entsteht auf dieselbe Weise:
 1. **Anlegen** – einen Ausgangspunkt wählen und dem Workflow einen Namen geben. Siehe [Einen Workflow erstellen](/docs/workflows/authoring).
 2. **Einen Trigger wählen** – von Hand, nach Zeitplan, per Webhook, per eingehender E-Mail oder durch ein Ereignis aus OneUptime. Siehe [Trigger](/docs/workflows/triggers).
 3. **Komponenten hinzufügen** – Aktionen auf die Arbeitsfläche setzen und verbinden. Siehe [Komponenten](/docs/workflows/components).
-4. **Einschalten** – den Schalter **Aktiviert** oben im **Editor** einschalten. Ein deaktivierter Workflow kann überhaupt nicht laufen, auch nicht von Hand.
-5. **Testen** – im **Editor** auf **Arbeitsablauf ausführen** klicken und der Ausführung beim Ablaufen zusehen.
+4. **Testen** – im **Editor** auf **Arbeitsablauf ausführen** klicken und der Ausführung beim Ablaufen zusehen. Das geht auch, solange der Workflow noch aus ist: Es ist ein **Testlauf**.
+5. **Einschalten** – den Schalter **Aktiviert** oben im **Editor** einschalten, wenn er bereit ist. Von da an startet ihn sein Trigger.
 :::
 
 Das folgende Beispiel geht diese Schritte für einen echten Workflow durch.
@@ -156,15 +156,15 @@ Klicken Sie auf **Komponente hinzufügen** und dann auf **Protokoll**. Verbinden
 
 Eine Anfrage, die fehlschlägt – eine nicht erreichbare URL oder eine Antwort, die nicht 2xx ist –, nimmt jetzt diesen Pfad, und das Protokoll der Ausführung sagt, warum.
 
+### Testen
+
+Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Vorfalls in diesem Projekt ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, daher ist das ein **Testlauf**, und die Anfrage wird wirklich gesendet.
+
+Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich und verfolgt die Ausführung. Öffnen Sie den Schritt **API Post (JSON)**, um den gesendeten Body und die erhaltene Antwort zu sehen.
+
 ### Einschalten
 
 Schalten Sie **Aktiviert** oben im **Editor** ein.
-
-### Testen
-
-Klicken Sie auf **Arbeitsablauf ausführen**, geben Sie die **Vorfall-ID** eines Vorfalls in diesem Projekt ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**.
-
-Ein Bereich **Arbeitsablauf-Ausführung** öffnet sich und verfolgt die Ausführung. Öffnen Sie den Schritt **API Post (JSON)**, um den gesendeten Body und die erhaltene Antwort zu sehen.
 :::
 
 Ab jetzt startet jeder neue Vorfall im Projekt eine Ausführung. Sie finden alle unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows.

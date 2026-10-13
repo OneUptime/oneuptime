@@ -1,4 +1,6 @@
-import { OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
+import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import DatabaseService from "./DatabaseService";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
@@ -66,11 +68,56 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * How a page reached somebody - a call, an SMS, an email - is named in the
+   * on-call run's Slack / Microsoft Teams message (OnCallPolicyRunMessage):
+   * each delivery that is written, or changes status, asks for it to be
+   * brought up to date. Never waits on Slack or Teams.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    OnCallPolicyRunMessage.refresh(createdItem.onCallDutyPolicyExecutionLogId);
+
+    return createdItem;
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    if (onUpdate.updateBy.data.status && updatedItemIds.length > 0) {
+      try {
+        const deliveries: Array<Model> = await this.findBy({
+          query: {
+            _id: QueryHelper.any(updatedItemIds),
+          },
+          select: {
+            _id: true,
+            onCallDutyPolicyExecutionLogId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const delivery of deliveries) {
+          OnCallPolicyRunMessage.refresh(
+            delivery.onCallDutyPolicyExecutionLogId,
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `Could not ask for the on-call run's chat message to be updated: ${err}`,
+        );
+      }
+    }
+
     if (
       onUpdate.updateBy.data.acknowledgedAt &&
       onUpdate.updateBy.data.isAcknowledged

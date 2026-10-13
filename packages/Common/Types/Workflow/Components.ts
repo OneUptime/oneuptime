@@ -17,6 +17,7 @@ import ScheduleComponents from "./Components/Schedule";
 import SlackComponents from "./Components/Slack";
 import SleepComponents from "./Components/Sleep";
 import SMSEagleComponents from "./Components/SMSEagle";
+import SwitchComponents from "./Components/Switch";
 import TelegramComponents from "./Components/Telegram";
 import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
@@ -33,6 +34,7 @@ const components: Array<ComponentMetadata> = [
   ...MattermostComponents,
   ...SMSEagleComponents,
   ...ConditionComponents,
+  ...SwitchComponents,
   ...JsonComponents,
   ...JavaScriptComponents,
   ...EmailComponents,

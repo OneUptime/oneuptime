@@ -506,6 +506,18 @@ const Icon: FunctionComponent<ComponentProps> = ({
         d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
       />,
     );
+  } else if (icon === IconProp.Switch) {
+    /*
+     * One line that splits into three arrows: a workflow's Switch / Case,
+     * which sends one value down whichever of several paths it matches.
+     */
+    return getSvgWrapper(
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 12h6m0 0l6-6h6m-12 6h12m-12 0l6 6h6m-2.25-14.25L21 6l-2.25 2.25m0 1.5L21 12l-2.25 2.25m0 1.5L21 18l-2.25 2.25"
+      />,
+    );
   } else if (icon === IconProp.CPUChip) {
     return getSvgWrapper(
       <path

@@ -2,6 +2,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
  * type annotations below must resolve to the same @types/jest global
@@ -166,7 +167,7 @@ const DEFAULT_JOB_TIMEOUT_IN_MS: number = JobDictionary.getTimeoutInMs(
 );
 
 function sideEffectImport(specifier: string): RegExp {
-  const escaped: string = specifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped: string = escapeRegExp(specifier);
 
   return new RegExp(`^\\s*import\\s+["']${escaped}["']\\s*;?\\s*$`, "m");
 }

@@ -124,7 +124,7 @@ In **Impostazioni del progetto > Area di lavoro > Slack**, seleziona **Connect w
 
 ### Connetti il tuo account Slack
 
-Pulsanti, moduli e comandi agiscono come l'utente OneUptime collegato all'account Slack che li usa. Ogni persona apre **Impostazioni utente > Area di lavoro > Slack** e seleziona **Connect my account with Slack**. Chi non ha connesso un account riceve dall'app un messaggio diretto che glielo chiede.
+Pulsanti, moduli e comandi agiscono come l'utente OneUptime collegato all'account Slack che li usa. Ogni persona apre **Impostazioni utente > Area di lavoro > Slack** e seleziona **Connect my account with Slack**. Chi non ha connesso un account riceve, dove ha premuto, una risposta con un pulsante **Connect Slack account**, che lo collega in un solo passaggio.
 :::
 
 ## Variabili d'ambiente
@@ -228,6 +228,7 @@ Quando Slack ti rimanda indietro e la connessione non è stata fatta, la pagina 
 | **"Non sei più membro di questo progetto."** | Per connettere il tuo account Slack devi essere membro del progetto quando Slack ti rimanda indietro. |
 | **"Questo progetto non è ancora connesso a nessuno spazio di lavoro Slack."** | Installa prima OneUptime in Slack da **Impostazioni del progetto > Area di lavoro > Slack**, poi connetti il tuo account. |
 | **"Hai effettuato l'accesso a uno spazio di lavoro Slack diverso da quello a cui è connesso questo progetto."** | Connetti il tuo account mentre hai effettuato l'accesso all'area di lavoro Slack in cui è installato il progetto. |
+| **"Hai effettuato l'accesso a Slack come una persona diversa da quella che ha premuto il pulsante di collegamento in Slack, quindi non è stato collegato nulla."** | Un pulsante **Connect Slack account** funziona solo per l'account Slack che lo ha premuto. Accedi a Slack con il tuo account, oppure chiedi alla persona che lo ha premuto di premerlo. |
 | **"La connessione è stata annullata, quindi non è stato modificato nulla."** | La richiesta non è stata consentita in Slack. Ricomincia e consentila. |
 | **"Slack non è configurato su questo server OneUptime."** | Imposta `SLACK_APP_CLIENT_ID` e `SLACK_APP_CLIENT_SECRET` (vedi [Variabili d'ambiente](#variabili-dambiente)) e riavvia OneUptime. |
 | **"OneUptime non è riuscito a completare la connessione. Riprova."** | Slack ha risposto con un errore, oppure una richiesta o una scrittura non è riuscita durante il completamento. Il log del server OneUptime dice quale. Riprova; se continua a succedere, controlla il log e le impostazioni dell'app Slack. |
@@ -243,7 +244,7 @@ Le notifiche sono in uscita, quindi funzionano senza accesso in entrata. Pulsant
 :::
 
 :::details L'app dice che il mio account Slack non è connesso a OneUptime
-Pulsanti, moduli e comandi richiedono che il tuo account Slack sia collegato al tuo utente OneUptime. Apri **Impostazioni utente > Area di lavoro > Slack** e seleziona **Connect my account with Slack**. Se sei stato rimosso dal progetto, l'app te lo dice invece, e le azioni da Slack vengono rifiutate.
+Pulsanti, moduli e comandi richiedono che il tuo account Slack sia collegato al tuo utente OneUptime. Premi **Connect Slack account** nella risposta dell'app, oppure apri **Impostazioni utente > Area di lavoro > Slack** e seleziona **Connect my account with Slack**. Se sei stato rimosso dal progetto, l'app te lo dice invece, e le azioni da Slack vengono rifiutate.
 :::
 
 :::details Gli screenshot appaiono come testo

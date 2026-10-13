@@ -120,6 +120,8 @@ describe("the start view leads with what people use", () => {
     expect(buttonNames(section("Popular"))).toEqual([
       "Log",
       "If / Else",
+      // Beside If / Else: one value, several ways to go.
+      "Switch / Case",
       "API Post (JSON)",
       "API Get (JSON)",
       "Send Message to Slack",

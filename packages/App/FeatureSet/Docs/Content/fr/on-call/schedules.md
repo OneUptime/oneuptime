@@ -8,6 +8,7 @@ Un planning d'astreinte détermine qui est d'astreinte à chaque instant. Les pe
 :::cards
 - [Qui assure l'astreinte à tour de rôle](#qui-assure-lastreinte-à-tour-de-rôle): Créer un planning avec sa première rotation.
 - [Couches](#couches): Empiler des rotations, limiter les heures d'astreinte et ajouter une couverture de secours.
+- [Quand quelqu'un est absent](#quand-quelquun-est-absent): Faire passer son tour à quelqu'un dans la rotation jusqu'à son retour.
 - [API et Terraform](#créer-des-plannings-avec-lapi-ou-terraform): Créer des plannings et leurs rotations sous forme de code.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 Pour changer la couche qui passe en premier, utilisez **Monter la couche (priorité plus haute)** ou **Descendre la couche (priorité plus basse)** dans le menu d'une couche.
 
 Chaque personne garde une seule couleur partout, pour que vous puissiez la suivre d'un coup d'œil : sur chaque couche, dans le planning final et ses remplacements, et sur la **Chronologie des astreintes**.
+
+## Quand quelqu'un est absent
+
+Quand quelqu'un part en vacances, faites-lui passer son tour jusqu'à son retour. Sur la page **Couches** du planning, dépliez une couche et cliquez sur **Passer son tour jusqu'au…** à côté de son nom. Cela ouvre le formulaire d'absence avec cette personne sous **Qui est absent ?**, **Personne suivante de la rotation** sous **Qui remplace ?** et **Commence** à maintenant : réglez **Se termine** sur la date de son retour, puis enregistrez.
+
+Pendant son absence :
+
+- Chacun de ses tours revient à la personne suivante de la couche qui n'est pas absente, dans chaque planning dont elle fait partie. Les tours des autres ne bougent pas, et les siens lui reviennent dès son retour.
+- Si tout le monde dans une couche est absent, la couche n'a personne d'astreinte et les couches en dessous prennent le relais. La couche indique **Tout le monde dans cette couche est absent en ce moment**.
+- Les règles d'escalade qui la visent directement, ou via une équipe, ne l'alertent pas. L'exécution de la politique indique qu'elle est absente, et jusqu'à quand.
+- Sa ligne dans la couche indique jusqu'à quand elle est absente, et le planning final ainsi que la **Chronologie des astreintes** montrent qui assure chacun de ses tours.
+
+Choisissez plutôt quelqu'un sous **Qui remplace ?**, et cette personne reçoit toutes ses alertes, de chaque planning et de chaque politique, au lieu que la rotation reprenne ses tours.
+
+Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte. Elle figure dans **Astreinte** > **Remplacements d'utilisateur**, où vous pouvez la supprimer pour faire revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel.
+
+Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
 ## Créer des plannings avec l'API ou Terraform
 

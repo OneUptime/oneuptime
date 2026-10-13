@@ -365,9 +365,10 @@ The VMware agent also installs without Docker: the `otelcol-contrib` release
 the agent pins, run by systemd with
 `agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service`. The suite
 lifts the install, settings, start, upgrade and uninstall commands out of the
-docs page (`telemetry/vmware.md`) and runs them for real, with the install's
-`/opt` and `/etc/systemd/system` moved under a scratch root and `sudo`,
-`sudoedit`, `systemctl`, `curl` and `uname` replaced by recording stubs. It
+docs page's systemd tabs (`telemetry/vmware.md`) and runs them for real, with
+the install's `/opt` and `/etc/systemd/system` moved under a scratch root and
+`sudo`, `sudoedit`, `systemctl`, `curl` and `uname` replaced by recording
+stubs. It
 pins that the release the agent pins is downloaded for the machine's
 architecture (`x86_64` → `amd64`, `aarch64` → `arm64`) and that a release it
 cannot download stops the install before anything is installed; that every
@@ -404,6 +405,13 @@ Ubuntu 24.04 (systemd 255) and on Rocky Linux 8 (systemd 239, as RHEL 8 ships
 it), the oldest systemd the docs support. That second run is what showed that
 systemd 239 drops a backslash inside single quotes — `'DOMAIN\user'` logged in
 as `DOMAINuser` — which is why the docs double-quote the user and password.
+The pinned vcsim archive is kept in `VCSIM_CACHE_DIR` (default
+`~/.cache/oneuptime/vcsim`) and fetched with
+`Scripts/GHA/fetch_pinned_artifact.sh`, so a copy that still matches the pin
+is used without the network and a download rides out GitHub's release CDN
+bursts; the workflow keeps that directory in the Actions cache, keyed on the
+pin (`--print-vcsim-pin`), and fills it in a step of its own
+(`--fetch-vcsim`).
 
 ```sh
 cd Tests/Ops && npm run vmware-agent-native-install
@@ -797,6 +805,28 @@ boots (each file's services merged over the last, those behind a profile left
 out) plus the e2e overlay: a job that started before one of its images was
 pushed would not fail, it would test the previous push's image.
 
+Nothing writes the GitHub release once release.yml has published it: every
+job with a step that creates, fills or edits the release
+(`softprops/action-gh-release`, `ncipollo/release-action`, `gh release
+create|upload|edit`) must be one `finalize-github-release` waits for. The app
+jobs were not, and 14.0.46 shipped without its Android APK: the APK finished
+after the publish, and GitHub refused the upload. The app jobs are waited for
+but not required, so the suite reads the publish job's `if` the way Actions
+does (an `if` with no status function is `success() && if`). The release
+publishes after an app build fails, and not when a job it requires did not
+succeed, when the run was cancelled, or off `release`.
+
+release.yml calls terraform-provider-e2e.yml as the release's gate, and a
+called workflow reads the caller's `github.workflow` and `github.ref`, so its
+concurrency group used to be one group for every release run: a newer release
+run, or a re-run of an older one, cancelled the suite of the release in flight.
+release.yml now passes its run id as the `release_run_id` input, which the
+group reads first. The suite checks that the call passes only inputs the
+workflow declares (GitHub refuses to start a run that passes any other), and
+works the group out, with `Utils/WorkflowExpression.js`, for two release runs
+(different groups), two pushes to master and two pushes to one pull request
+(one group each, so the newest still supersedes).
+
 ### `CompileWorkflow.test.js`
 
 `.github/workflows/compile.yml` compiles the core packages in four jobs rather
@@ -832,6 +862,18 @@ languages with the same build modes and default query suite under the same
 categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
+
+Those languages are actions, go, javascript-typescript and python, each
+uploaded under default setup's category for it (`/language:python` for
+python). When the repository gains a language, default setup starts scanning
+it by itself and this setup does not, so the suite reads git's index for the
+files CodeQL reads as code, by the extensions its documentation lists: default
+setup keeps a language only when its analysis succeeds, and an analysis needs
+such files. Each language with code must be in the matrix or in the suite's
+`LEFT_OUT_LANGUAGES` with the reason: C/C++, C#, Java/Kotlin and Swift, none of
+which default setup scanned on 12 October 2026. Each language in the matrix
+must have code outside `paths-ignore`, because an analysis that finds none
+fails, and a left-out language whose code is gone comes off the list.
 
 It also pins the configuration the setup reads,
 `.github/codeql/codeql-config.yml`: a `paths-ignore` and nothing else (queries,
@@ -938,6 +980,11 @@ continuations joined), the flags of its `build_docker_images.sh` and
 `merge_docker_manifests.sh` calls, which Dockerfiles it builds and warms, and a
 bash array out of a script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
+
+`Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
+one run, for the suites that work out a concurrency group: context paths and
+`||` only (a missing path reads as null, as on GitHub). It throws on anything
+else rather than misread it.
 
 `Utils/Xml.js` is a small strict XML parser. The repo root has no XML parser
 installed and these tests intentionally add no dependency; it exists so both

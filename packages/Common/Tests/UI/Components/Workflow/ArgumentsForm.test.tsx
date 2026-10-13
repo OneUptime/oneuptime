@@ -99,6 +99,7 @@ import {
 } from "@testing-library/react";
 import userEvent, { UserEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 
 const WEBHOOK_BODY: string =
   "{{local.components.webhook-1.returnValues.request-body}}";
@@ -499,9 +500,7 @@ describe("ArgumentsForm — every setting that can take a value offers one", () 
        * The form draws a field list it is handed a moment later, and the
        * Execute Workflow step waits for its list of workflows first.
        */
-      const label: RegExp = new RegExp(
-        `^${arg.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
-      );
+      const label: RegExp = new RegExp(`^${escapeRegExp(arg.name)}`);
 
       await waitFor(() => {
         expect(screen.getAllByText(label).length).toBeGreaterThan(0);

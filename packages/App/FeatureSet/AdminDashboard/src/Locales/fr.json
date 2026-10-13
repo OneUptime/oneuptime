@@ -877,5 +877,13 @@
   "{{count}} more": "{{count}} de plus",
   "{{count}} more_one": "{{count}} de plus",
   "On": "Activé",
-  "Off": "Désactivé"
+  "Off": "Désactivé",
+  "Test": "Tester",
+  "Test LLM Provider": "Tester le fournisseur LLM",
+  "Sending a test prompt to your LLM provider…": "Envoi d'une invite de test à votre fournisseur LLM…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "Cela vérifie sa clé API, son modèle et son URL de base, et si son modèle peut appeler des outils.",
+  "Test again": "Tester à nouveau",
+  "Test passed": "Test réussi",
+  "Test passed, with a warning": "Test réussi, avec un avertissement",
+  "Test failed": "Échec du test"
 }

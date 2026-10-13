@@ -76,6 +76,8 @@ flowchart TB
 
 规则创建的频道以 **New Slack Channel Name** 加上记录编号命名，例如 `oneuptime-incident-42`。只有创建的频道才会接收规则邀请的人员：记录的所有者、所选的团队和用户，以及对于事件和警报，在被呼叫时加入的值班人员。私密事件、警报或片段会获得私密频道。此后记录的每次更新（状态变化、备注、新所有者）都会发布到它的频道，以及其规则指定的现有频道。创建时即已解决的事件、警报或片段不会获得专属频道；其创建消息仍会发送到您的规则指定的频道。请参阅 [声明时即已确认或已解决](/docs/incidents/declaring-incidents#声明时即已确认或已解决)。
 
+频道保持易读：每次更新只发布一次，记录的第一个状态写在宣布该记录的消息里，而不是单独发一条消息。值班策略的一次运行就是一条消息，随着升级推进而被编辑：呼叫了谁、呼叫了几次以及通过什么方式、谁没有被呼叫以及原因、谁确认了。只有在需要有人采取行动时才会发布新消息：某条升级规则没有呼叫到任何人，或者运行结束时仍没有人确认。Slack 账户未连接到 OneUptime 的人无法被添加到频道；OneUptime 在每个频道中只说一次，用一条列出所有这些人的消息，名单变长时编辑这条消息。把该消息中的 **Connect Slack account** 链接发给他们，即可一步连接账户。记录的所有者或状态页订阅者已收到通知这件事，保留在 OneUptime 中该记录的信息流里。
+
 **项目设置** > **工作区** > **Slack** 列出 OneUptime 能看到的频道，每个频道旁边都有 **发送测试**。OneUptime 第一次在公开频道发布时会自行加入。私密频道只有在 Slack 中邀请 OneUptime 应用加入后，才会被列出并可以发布消息。
 
 ## 测试规则
@@ -127,11 +129,11 @@ flowchart TB
 
 ## 从 Slack 创建事件和维护
 
-`/incident` 和 `/maintenance` 会打开一个表单，由您以本人身份填写并提交：即以您的 Slack 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Slack](#连接-slack) ），按该账户在项目中的权限提交。如果您的 Slack 账户未连接，或您的 OneUptime 账户已不再是项目成员，OneUptime 会通过私信告诉您该怎么做，并且不会打开表单。 **Create New Incident** 和 **Create Scheduled Event** 快捷方式会打开相同的表单。
+`/incident` 和 `/maintenance` 会打开一个表单，由您以本人身份填写并提交：即以您的 Slack 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Slack](#连接-slack) ），按该账户在项目中的权限提交。如果您的 Slack 账户未连接，或您的 OneUptime 账户已不再是项目成员，OneUptime 会在您运行命令的地方，以只有您能看到的消息告诉您该怎么做，并且不会打开表单。 **Create New Incident** 和 **Create Scheduled Event** 快捷方式会打开相同的表单。
 
-- **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自定义角色中的 **Create Incident** ）；对于活动，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都会收到私信告知，并且不会打开表单。
+- **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自定义角色中的 **Create Incident** ）；对于活动，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都会在运行命令的地方收到告知，并且不会打开表单。
 - **表单提供什么。** 每个列表（严重程度、监视器、监视器状态、值班策略和标签）都包含您可以读取的内容，与 OneUptime 中的同一列表一致：如果角色仅限于某些标签，则为带有这些标签的监视器和值班策略。您完全无法读取的列表不会出现在表单中。已归档的值班策略永远不会提供。
-- **表单可以指定什么。** 事件或活动以您自己的权限创建，并记在您名下。您无法读取的监视器、值班策略、标签、严重程度或状态，或属于其他项目的，都会像项目中不存在一样被拒绝，即使表单是在您的权限变化之前打开的，也不会创建任何内容。OneUptime 会通过私信告诉您原因。
+- **表单可以指定什么。** 事件或活动以您自己的权限创建，并记在您名下。您无法读取的监视器、值班策略、标签、严重程度或状态，或属于其他项目的，都会像项目中不存在一样被拒绝，即使表单是在您的权限变化之前打开的，也不会创建任何内容。OneUptime 会在频道中，以只有您能看到的消息告诉您原因。
 
 事件、警报或片段上的 **Execute On-Call Policy** 也以同样方式工作：它需要执行值班策略的权限（ **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Create On-Call Duty Policy Execution Log** ）以及读取该事件、警报或片段的权限，并提供您可以读取的有效值班策略。
 
@@ -139,9 +141,11 @@ flowchart TB
 
 OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的 Slack 账户所连接的 OneUptime 账户的身份，按该账户在项目中的权限执行。事件、警报或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及计划维护活动上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自会做出与 OneUptime 中相同操作一样的更改，并在那里记在您名下：记录的状态时间线和动态会显示是您更改了其状态，备注也归您所有。通过表情回应从消息保存的备注也以同样方式发布。
 
-- **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。其他任何人都会收到私信告知，并且不会有任何更改。
+- **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。其他任何人都会收到告知，并且不会有任何更改。
 - **哪些记录。** 与在 OneUptime 中一样，是您可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录或其他项目的记录上的按钮，都会得到该记录 "was not found in this project, or you do not have access to it." 的回复，并且不会有任何更改。在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
 - **Change State 提供什么。** 按项目的顺序，提供您可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果您一个都无法读取，会收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，会收到 "There is no later state to move this incident to."。这两种情况都不会打开空表单。
+- **在哪里收到回复。** 在带有按钮的消息下方，以只有您能看到的消息回复；只有当 Slack 拒绝时，才会改用私信。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **如果您的 Slack 账户未连接。** 回复会请您连接它，并附带一个 **Connect Slack account** 按钮。该按钮会打开您在 OneUptime 中自己的 Slack 设置，并在您按需登录 OneUptime 后一步连接您的账户。随后 OneUptime 会以您的身份完成您按下的操作，并在同一条消息下方回复；对于打开表单的按钮或命令，它会请您再按一次或再运行一次。该按钮只能使用一次，有效 30 分钟，并且只对按下它的 Slack 账户有效：以其他人的身份登录 Slack 时，它不会连接任何账户。
 
 ## 断开连接
 
@@ -162,7 +166,7 @@ OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的
 :::
 
 :::details 按钮或命令提示我的 Slack 账户未连接
-在 **用户设置** > **工作区** > **Slack** 中通过 **Connect my account with Slack** 关联它。如果您已不再是项目成员，OneUptime 会改为告知这一点，并且不会替您执行任何操作。
+在该回复中按 **Connect Slack account** 即可一步连接，或在 **用户设置** > **工作区** > **Slack** 中通过 **Connect my account with Slack** 关联它。如果您已不再是项目成员，OneUptime 会改为告知这一点，并且不会替您执行任何操作。
 :::
 
 :::details 通知能到达，但按钮和命令没有反应

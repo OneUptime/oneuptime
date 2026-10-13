@@ -105,22 +105,26 @@ Het bereik is bewust smal. Alleen meldingen die een meldingsregel voor de dienst
 ```mermaid title="Wanneer een dienstmelding door de stille modus heen klinkt"
 flowchart TB
     Page["Een dienstmelding"]
+    Rule{"Staat de bereikbaarheidsregel<br/>op ‘Critical alert’?"}
     Device{"Critical On-Call Alerts<br/>aan voor dit apparaat?"}
     OS{"Staat het systeem van de telefoon<br/>kritieke meldingen toe?"}
     Loud["Speelt een geluid ondanks<br/>stille modus en Niet storen"]
     Quiet["Stil afgeleverd,<br/>zoals elke andere push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"ja"| Device
+    Rule -->|"nee"| Quiet
     Device -->|"ja"| OS
     Device -->|"nee"| Quiet
     OS -->|"ja"| Loud
     OS -->|"nee"| Quiet
 ```
 
-Om de stille modus te doorbreken, moeten drie dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
+Om de stille modus te doorbreken, moeten vier dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
 
 1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes.
-2. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich op het meldingskanaal `oncall_critical` voor Android.
-3. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
+2. **De bereikbaarheidsregel die de melding stuurde, vraagt erom.** Onder **Gebruikersinstellingen > Bereikbaarheidsregels** staat elke regel die een telefoon waarschuwt op ‘Critical alert’, de standaard, of op ‘Standard’, dat de geluidsinstellingen van de telefoon volgt – zo kan iemand gewekt worden voor een kritiek incident en stil gewaarschuwd voor een klein incident. Per regel opgeslagen in `UserNotificationRule.pushNotificationLevel`.
+3. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich op het meldingskanaal `oncall_critical` voor Android.
+4. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
 
 :::tabs
 @tab iOS
@@ -171,6 +175,7 @@ Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldi
 ### Kritieke meldingen doorbreken de stille modus niet
 
 - Controleer of de schakelaar aan staat voor **dat** apparaat – de instelling geldt per apparaat, en een herinstallatie of een nieuwe telefoon die vanaf nul is ingericht, maakt een nieuwe apparaatregistratie aan (een telefoon die uit een back-up van de oude is ingericht, neemt de registratie van de oude telefoon over zodra die geen meldingen meer ontvangt, met de instelling die de app had)
+- Controleer de bereikbaarheidsregel voor die ernst onder **Gebruikersinstellingen > Bereikbaarheidsregels**: een pushregel op ‘Standard’ volgt de geluidsinstellingen van de telefoon, wat de schakelaar van het apparaat ook zegt
 - **iOS**: controleer of de build de entitlement voor kritieke meldingen van Apple draagt (zie hierboven), en of Critical Alerts is toegestaan onder iOS Settings > Notifications > OneUptime On-Call
 - **Android**: controleer of de app toegang tot Niet storen heeft onder Settings > Notifications > Do Not Disturb access
 - Het instellingenscherm zegt welke hiervan ontbreekt; het leest de huidige status terug van het besturingssysteem in plaats van te vertrouwen op wat de app het laatst heeft gevraagd

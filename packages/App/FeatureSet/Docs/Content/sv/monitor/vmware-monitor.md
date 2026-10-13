@@ -333,7 +333,7 @@ monitor_steps = [{
 ## Felsökning
 
 :::details vCentret finns inte i listan vCenter
-Ett vCenter som agenten samlar in från registrerar sig självt utifrån agentens data. Kontrollera att agenten körs och skickar data (se [Verifiera installationen](/docs/telemetry/vmware#verify-the-installation)), att `VMWARE_VCENTER_NAME` är satt och att ett insamlingsintervall har gått: ingenting skickas förrän den första fullständiga genomgången av inventariet är klar.
+Ett vCenter som agenten samlar in från registrerar sig självt utifrån agentens data. Kontrollera att agenten körs och skickar data (se [Verifiera installationen](/docs/telemetry/vmware#verifiera-installationen)), att `VMWARE_VCENTER_NAME` är satt och att ett insamlingsintervall har gått: ingenting skickas förrän den första fullständiga genomgången av inventariet är klar.
 :::
 
 :::details Värdar har mätvärden, men virtuella maskiner, datastores eller kluster har det inte

@@ -859,6 +859,37 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - conversation reference"
     });
   });
 
+  /*
+   * A card's summary is what Teams shows of it in a notification and the
+   * activity feed: without one, only that a card was sent.
+   */
+  test("the card's activity carries the summary its notification shows; a card sent without one has none", async () => {
+    mockProjectAuth();
+    installFakeBotAdapter();
+
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChannel({
+      authToken: "auth-token",
+      teamId: TEAM_ID,
+      workspaceChannel: buildChannel(),
+      adaptiveCard: ADAPTIVE_CARD,
+      projectId: ObjectID.generate(),
+      summary: "PolicyX paged nobody at escalation rule 3 of 3 (third)",
+    });
+    await sendCardToChannel();
+
+    const activities: Array<JSONObject> = (
+      MessageFactory.attachment as jest.Mock
+    ).mock.results.map((result: jest.MockResult<unknown>): JSONObject => {
+      return result.value as JSONObject;
+    });
+
+    expect(activities).toHaveLength(2);
+    expect(activities[0]!["summary"]).toBe(
+      "PolicyX paged nobody at escalation rule 3 of 3 (third)",
+    );
+    expect(activities[1]!).not.toHaveProperty("summary");
+  });
+
   test("serviceUrl comes from the installed team record when it was captured", async () => {
     mockProjectAuth({
       installedTeams: {

@@ -241,7 +241,7 @@ Um monitor que você não monta a partir de um modelo começa com dois critério
 Esses padrões servem para poucas métricas do Ceph: `ceph_health_status` é 0 quando o cluster está saudável. Escolha um modelo ou defina seus próprios critérios.
 
 > [!IMPORTANT]
-> O silêncio não atende a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para saber quando os dados param, defina **Se não houver dados** como **Trigger** em um critério.
+> O silêncio não atende a nenhum dos dois critérios: um cluster que para de enviar dados deixa o monitor como estava. Para saber quando os dados param, defina **Se não houver dados** como **Trigger** em um critério. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Solução de problemas
 

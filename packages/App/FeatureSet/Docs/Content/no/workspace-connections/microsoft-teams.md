@@ -89,6 +89,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 
 En kanal som regelen oppretter, får navnet sitt fra **New Microsoft Teams Channel Name** etterfulgt av postens nummer, som `oneuptime-incident-42`, og bare en opprettet kanal får folkene regelen inviterer. En privat hendelse, et privat varsel eller en privat episode får en privat kanal. Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene og chattene dens.
 
+Kanaler og chatter holder seg lesbare: hver begivenhet publiseres én gang, og postens første tilstand står i kortet som kunngjør posten, ikke i et eget kort. En kjøring av en vaktretningslinje er ett kort som redigeres etter hvert som kjøringen eskalerer: hvem som ble tilkalt, hvor ofte og hvordan, hvem som ikke ble det og hvorfor, og hvem som bekreftet. Et nytt kort publiseres bare når noen må handle: en eskaleringsregel nådde ingen, eller kjøringen endte uten at noen bekreftet. At postens eiere eller statussidens abonnenter fikk beskjed, står i feeden dens i OneUptime.
+
 **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams** viser kanalene OneUptime ser i teamene dine, og chattene den er lagt til i, med **Send test** ved siden av hver. En chat vises så snart OneUptime-appen er lagt til i den i Microsoft Teams; **Refresh Chats** henter nye chatter og de nåværende navnene deres.
 
 ## Teste en regel
@@ -151,7 +153,7 @@ Send boten en melding i en personlig chat, eller nevn OneUptime med @ i en kanal
 
 ## Opprett hendelser og vedlikehold fra Microsoft Teams
 
-Å skrive `create incident` eller `create maintenance` til OneUptime-boten åpner et skjema for personen som skrev det, i en personlig chat, en kanal eller en gruppechat. Det fylles ut som den personen: som OneUptime-kontoen personens Microsoft Teams-konto er koblet til (se [Koble til Microsoft Teams](#koble-til-microsoft-teams)), med den kontoens tillatelser i prosjektet. Den som ikke har kontoen koblet til, eller som har en OneUptime-konto som ikke lenger er medlem av prosjektet, får beskjed om hva som må gjøres i stedet for skjemaet.
+Å skrive `create incident` eller `create maintenance` til OneUptime-boten åpner et skjema for personen som skrev det, i en personlig chat, en kanal eller en gruppechat. Det fylles ut som den personen: som OneUptime-kontoen personens Microsoft Teams-konto er koblet til (se [Koble til Microsoft Teams](#koble-til-microsoft-teams)), med den kontoens tillatelser i prosjektet. Den som ikke har kontoen koblet til, eller som har en OneUptime-konto som ikke lenger er medlem av prosjektet, får beskjed om hva som må gjøres i et svar som nevner personen, i stedet for skjemaet.
 
 - **Hvem som kan bruke dem.** De som kan opprette en hendelse eller en planlagt vedlikeholdsbegivenhet i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member** for en hendelse (**Create Incident** i en egendefinert rolle), og **Scheduled Maintenance Admin** og **Scheduled Maintenance Member** for en begivenhet (**Create Scheduled Maintenance**). Alle andre får beskjed om det, og får ikke noe skjema.
 - **Hva et skjema tilbyr.** Hver liste — alvorlighetsgrader, monitorer, monitorstatuser, vaktpolicyer og etiketter — inneholder det personen som ba om det, kan lese, slik som den samme listen i OneUptime, og kortets "not shown"-merknader teller bare disse: med en rolle som er begrenset til noen etiketter, monitorene og vaktpolicyene som har de etikettene. En liste personen ikke kan lese i det hele tatt, utelates. Arkiverte vaktpolicyer tilbys aldri.
@@ -167,6 +169,8 @@ Knappene på OneUptimes kort handler som personen som trykker på dem, i en pers
 - **Hvilke poster.** De personen kan lese, som i OneUptime: med en rolle som er begrenset til noen etiketter, hendelsene, varslene, episodene og begivenhetene som har dem. En knapp på en hvilken som helst annen post, eller på en fra et annet prosjekt, får til svar at posten "was not found in this project, or you do not have access to it.", og ingenting endres. På OneUptime Cloud avvises en endring som prosjektets plan ikke omfatter, med planen den krever.
 - **Hva Change State tilbyr.** Tilstandene personen kan lese som posten kan gå videre til, i prosjektets rekkefølge: ingen før tilstanden den er i, for en episode som for en hendelse, et varsel eller en planlagt vedlikeholdsbegivenhet, siden en tilstandsendring aldri flytter en post opp igjen i listen (se [Rekkefølgen er en reell begrensning, ikke en visningspreferanse](/docs/incidents/states-and-severities#rekkefølgen-er-en-reell-begrensning-ikke-en-visningspreferanse)). Når personen ikke kan lese noen, sier boten "No incident states are available to you in this project. Ask a project admin for access to them."; når posten er i den siste tilstanden den kan nå, sier den "There is no later state to move this incident to." Ingen av dem viser et tomt kort.
 - **Escalate.** Et korts **Escalate** kjører vaktpolicyen for hendelsen, varselet eller episoden kortet gjelder, som personen som trykket på den, med de samme tillatelsene som **Execute On-Call Policy**. Et kort som ikke gjelder noen av dem, får til svar "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there.", og ingen tilkalles.
+- **Hvor personen får svar.** I et svar i den samme samtalen, kortets tråd i en kanal, som nevner personen, så Microsoft Teams varsler dem. En knapp som trykkes for sent, sier hvem som kom først, og når, for eksempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **Hvis kontoen til personen ikke er koblet til.** Svaret ber personen koble den til, med en knapp **Connect Microsoft Teams account**. Knappen åpner personens egne Microsoft Teams-innstillinger i OneUptime og kobler til kontoen i ett trinn, etter innlogging i OneUptime om nødvendig. Deretter fullfører OneUptime det personen trykket på, som personen, og svarer i den samme samtalen; for en knapp som åpner et skjema, eller en kommando, ber det personen trykke på den eller skrive den igjen. Knappen virker én gang, i 30 minutter, og bare for Microsoft-kontoen som trykket på den.
 
 ## Koble fra
 
@@ -187,7 +191,7 @@ Når Microsoft sender deg tilbake uten en tilkobling, sier siden du startet fra 
 :::
 
 :::details Boten sier at kontoen min ikke er koblet til
-Koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, pålogget organisasjonen prosjektet er koblet til. En gjestekonto fra en annen organisasjon er ikke den samme kontoen.
+Trykk på **Connect Microsoft Teams account** i svaret fra boten for å koble den til i ett trinn, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, pålogget organisasjonen prosjektet er koblet til. En gjestekonto fra en annen organisasjon er ikke den samme kontoen.
 :::
 
 :::details Alle varsler mislykkes på en selvdriftet server

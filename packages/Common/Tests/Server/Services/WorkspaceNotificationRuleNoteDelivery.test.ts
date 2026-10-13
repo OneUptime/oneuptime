@@ -16,7 +16,9 @@ import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeServ
 import IncidentService from "../../../Server/Services/IncidentService";
 import UserService from "../../../Server/Services/UserService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
-import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, {
+  WorkspaceChannelsCreated,
+} from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -356,6 +358,85 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification —
     expect(errorLog?.statusMessage).toBe("Graph is down");
     expect(errorLog?.channelId).toBe(TEAMS_CHANNEL.id);
   });
+
+  /*
+   * An on-call alarm is posted for somebody to act on, so its notification
+   * - Slack's top-level text, a Teams card's summary - says what is wrong,
+   * in both workspaces. A feed entry is posted as it always was.
+   */
+  test("a message sent with a notification line carries it to every channel, in both workspaces", async () => {
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
+      .mockResolvedValue(null);
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown:
+        "⚠️ **PolicyX** paged nobody at escalation rule 3 of 3 (third) for **Incident #42**.",
+      notificationText:
+        "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident #42",
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+      },
+    });
+
+    expect(sentPayload(teamsSendSpy as never).text).toBe(
+      "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident #42",
+    );
+    expect(sentPayload(slackSendSpy as never).text).toBe(
+      "PolicyX paged nobody at escalation rule 3 of 3 (third) for Incident #42",
+    );
+  });
+
+  test("a message sent without one is posted as it always was: no notification line", async () => {
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
+      .mockResolvedValue(null);
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown: NOTE_MARKDOWN,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: userId,
+      },
+    });
+
+    expect(sentPayload(teamsSendSpy as never)).not.toHaveProperty("text");
+    expect(sentPayload(slackSendSpy as never)).not.toHaveProperty("text");
+  });
+
+  test("the notification log reads a moment a message names in each reader's own time as its time in UTC", async () => {
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "getUserAuth")
+      .mockResolvedValue(null);
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: { incidentId: incidentId },
+      feedInfoInMarkdown:
+        "If nobody acknowledges by {{TIME(2026-10-08T17:28:00Z)}}, escalation rule 3 is next.",
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+      },
+    });
+
+    const messages: Array<string | undefined> = logCreateSpy.mock.calls.map(
+      (call: Parameters<typeof WorkspaceNotificationLogService.create>) => {
+        return (call[0].data as WorkspaceNotificationLog).message;
+      },
+    );
+
+    expect(messages).toHaveLength(2);
+
+    for (const message of messages) {
+      expect(message).toBe(
+        "If nobody acknowledges by 17:28 UTC, escalation rule 3 is next.",
+      );
+    }
+  });
 });
 
 describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules", () => {
@@ -398,7 +479,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
         WorkspaceNotificationRuleService,
         "inviteUsersAndTeamsToChannelsBasedOnRules",
       )
-      .mockResolvedValue(undefined);
+      .mockResolvedValue([]);
     jest
       .spyOn(
         WorkspaceNotificationRuleService,
@@ -406,9 +487,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
       )
       .mockReturnValue([]);
 
-    const result: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const result: WorkspaceChannelsCreated | null =
       await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
         {
           projectId: projectId,
@@ -422,7 +501,112 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
     expect(createChannelsSpy.mock.calls[0]![0].workspaceType).toBe(
       WorkspaceType.MicrosoftTeams,
     );
-    expect(result).toEqual({ channelsCreated: [TEAMS_CHANNEL] });
+    expect(result).toEqual({
+      channelsCreated: [TEAMS_CHANNEL],
+      membersNotAdded: [],
+    });
+  });
+
+  test("who could not be added to the new channels is handed back, workspace by workspace - not posted before the record's first message", async () => {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuths")
+      .mockResolvedValue([
+        projectAuth(WorkspaceType.Slack),
+        projectAuth(WorkspaceType.MicrosoftTeams),
+      ]);
+
+    (
+      WorkspaceNotificationRuleService.getMatchingNotificationRules as unknown as SpyInstance<
+        typeof WorkspaceNotificationRuleService.getMatchingNotificationRules
+      >
+    ).mockImplementation(
+      async (data: {
+        workspaceType: WorkspaceType;
+      }): Promise<Array<WorkspaceNotificationRule>> => {
+        const rule: WorkspaceNotificationRule = new WorkspaceNotificationRule();
+        rule.id = ObjectID.generate();
+        rule.workspaceType = data.workspaceType;
+        rule.notificationRule = {} as never;
+        return [rule];
+      },
+    );
+
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "createChannelsBasedOnRules")
+      .mockImplementation(
+        async (data: {
+          workspaceType: WorkspaceType;
+        }): Promise<Array<NotificationRuleWorkspaceChannel>> => {
+          return data.workspaceType === WorkspaceType.Slack
+            ? [SLACK_CHANNEL]
+            : [TEAMS_CHANNEL];
+        },
+      );
+
+    const notConnected: ObjectID = ObjectID.generate();
+
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "inviteUsersAndTeamsToChannelsBasedOnRules",
+      )
+      .mockImplementation(
+        async (data: {
+          workspaceType: WorkspaceType;
+        }): Promise<
+          Awaited<
+            ReturnType<
+              typeof WorkspaceNotificationRuleService.inviteUsersAndTeamsToChannelsBasedOnRules
+            >
+          >
+        > => {
+          return data.workspaceType === WorkspaceType.Slack
+            ? [
+                {
+                  workspaceType: WorkspaceType.Slack,
+                  channels: [
+                    { id: SLACK_CHANNEL.id, name: SLACK_CHANNEL.name },
+                  ],
+                  userIds: [notConnected],
+                },
+              ]
+            : [];
+        },
+      );
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getExistingChannelNamesFromNotificationRules",
+      )
+      .mockReturnValue([]);
+
+    const slackSendSpy: SpyInstance<typeof SlackUtil.sendMessage> = jest
+      .spyOn(SlackUtil, "sendMessage")
+      .mockResolvedValue({} as never);
+
+    const result: WorkspaceChannelsCreated | null =
+      await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
+        {
+          projectId: projectId,
+          notificationRuleEventType: NotificationRuleEventType.Incident,
+          notificationFor: { incidentId: incidentId },
+          channelNameSiffix: "42",
+        },
+      );
+
+    expect(result).toEqual({
+      channelsCreated: [SLACK_CHANNEL, TEAMS_CHANNEL],
+      membersNotAdded: [
+        {
+          workspaceType: WorkspaceType.Slack,
+          channels: [{ id: SLACK_CHANNEL.id, name: SLACK_CHANNEL.name }],
+          userIds: [notConnected],
+        },
+      ],
+    });
+
+    // Setting the channels up says nothing in them.
+    expect(slackSendSpy).not.toHaveBeenCalled();
   });
 
   test("no rule in any workspace creates nothing", async () => {
@@ -439,9 +623,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
       "createChannelsBasedOnRules",
     );
 
-    const result: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
+    const result: WorkspaceChannelsCreated | null =
       await WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
         {
           projectId: projectId,
@@ -452,7 +634,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
       );
 
     expect(createChannelsSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ channelsCreated: [] });
+    expect(result).toEqual({ channelsCreated: [], membersNotAdded: [] });
   });
 
   test("no connected workspace returns null", async () => {

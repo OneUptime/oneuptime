@@ -433,6 +433,7 @@ import VideoCallConnectionService from "./VideoCallConnectionService";
 import IncidentVideoCallService from "./IncidentVideoCallService";
 import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
+import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
@@ -900,6 +901,7 @@ const services: Array<BaseService> = [
   IncidentVideoCallService,
   AlertVideoCallService,
   WorkspaceNotificationLogService,
+  WorkspaceLiveMessageService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserNotificationService,
 

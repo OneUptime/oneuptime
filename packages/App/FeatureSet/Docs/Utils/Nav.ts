@@ -785,6 +785,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/dashboards/variables",
       },
       {
+        title: "External Data Sources",
+        url: "/docs/dashboards/data-sources",
+      },
+      {
         title: "Sharing & Public Dashboards",
         url: "/docs/dashboards/sharing",
       },

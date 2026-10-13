@@ -1598,8 +1598,9 @@ describe("the Persian mirrors carry the playback sections", (): void => {
     expect(troubleshootingHeadings[entry - 1]).toBe(
       "## پخش‌کننده می‌گوید Buffering، یا قطعه‌ای بارگذاری نشد",
     );
+    // The status as the Persian Dashboard draws it.
     expect(troubleshootingHeadings[entry + 1]).toBe(
-      '## برنامه RUM می‌گوید "Disconnected"',
+      "## برنامه RUM «قطع‌شده» نشان می‌دهد",
     );
   });
 
@@ -1729,13 +1730,14 @@ describe("the Persian mirrors carry the playback sections", (): void => {
       "`content.powerapps.com`",
       "Glyphicons",
       "`HTTP/Access-Control-Allow-Origin`",
-      "**Security** → **Advanced settings** → **CORS**",
+      // A Persian page joins a path with " > ", which reads right to left.
+      "**Security** > **Advanced settings** > **CORS**",
       "_Resource failed to load_",
       "`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`",
       "`(blocked:mixed-content)`",
       "`(blocked:csp)`",
-      "**Session details** (`I`) → **Fidelity** → **Missing assets**",
-      "نه حالت آفلاین OneUptime",
+      "**Session details** (`I`) > **Fidelity** > **Missing assets**",
+      "نه [حالت آفلاین](/docs/telemetry/session-replay#",
     ]) {
       expect([token, entry.includes(token)]).toEqual([token, true]);
     }
@@ -1956,7 +1958,8 @@ describe("the Persian mirrors carry the playback sections", (): void => {
 
     for (const token of [
       "**Copy image**",
-      "**Download**",
+      // Download, as the Persian Dashboard draws it.
+      "**دانلود**",
       "`session-replay-<session>-<offset>.png`",
       "(`https`)",
       "جعبه‌های خاکستری",

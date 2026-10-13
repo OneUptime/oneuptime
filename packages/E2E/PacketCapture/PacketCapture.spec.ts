@@ -110,6 +110,35 @@ async function openStartForm(page: Page): Promise<void> {
   await expect(modal(page)).toBeVisible();
 }
 
+// A column refusal, in the words the server has for it now.
+const COLUMN_REFUSAL: string =
+  "User is not allowed to create on bpfFilter column of Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture.";
+
+async function refuseNextStart(page: Page, message: string): Promise<void> {
+  await page.evaluate((refusal: string) => {
+    (
+      window as unknown as {
+        __packetCaptureFixture: { state: { refuseNextCreate: string } };
+      }
+    ).__packetCaptureFixture.state.refuseNextCreate = refusal;
+  }, message);
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+async function box(locator: Locator): Promise<Box> {
+  const found: Box | null = await locator.boundingBox();
+
+  expect(found).not.toBeNull();
+
+  return found!;
+}
+
 test.describe("a probe's packet captures", () => {
   test("each capture says what happened to it", async ({
     page,
@@ -381,6 +410,150 @@ test.describe("starting a capture", () => {
       "This probe is already running 2 packet captures. Wait for one to finish, or stop one, and try again.",
     );
     expect(await created(page)).toEqual([]);
+  });
+
+  /*
+   * The customer's screenshot: the red refusal drawn flush on the yellow
+   * notice, two banners reading as one. The dialog's error keeps the gap
+   * the dialog's blocks keep (ModalBody).
+   */
+  test("a refusal is drawn apart from the notice under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+    await refuseNextStart(page, COLUMN_REFUSAL);
+    await openStartForm(page);
+    await page.getByTestId("modal-footer-submit-button").click();
+
+    const refusal: Locator = page.getByTestId("modal-error");
+
+    await expect(refusal).toHaveText(COLUMN_REFUSAL);
+
+    const refusalBox: Box = await box(refusal);
+    const noticeBox: Box = await box(
+      page.getByTestId("packet-capture-sensitive-data"),
+    );
+
+    // 16px, as between the notice and the form under it.
+    expect(noticeBox.y - (refusalBox.y + refusalBox.height)).toBeGreaterThan(
+      12,
+    );
+    expect(await created(page)).toEqual([]);
+  });
+
+  /*
+   * On a phone, with the limits unfolded, the form is scrolled to its end
+   * when Start Capture is pressed. The refusal is drawn at the top of the
+   * dialog's body, and was left out of sight there: the spinner stopped and
+   * nothing seemed to happen. A new error brings it into view (Modal).
+   */
+  test("a refusal of a form scrolled down is brought into view", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page);
+    await refuseNextStart(page, COLUMN_REFUSAL);
+    await openStartForm(page);
+
+    await page.getByTestId("folded-section-header").click();
+    await expect(
+      page.getByRole("spinbutton", { name: "Packet limit" }),
+    ).toBeVisible();
+
+    const body: Locator = page.getByTestId("modal-content");
+
+    await body.evaluate((element: Element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(
+      page.getByTestId("packet-capture-sensitive-data"),
+    ).not.toBeInViewport();
+
+    await page.getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("modal-error")).toHaveText(COLUMN_REFUSAL);
+    await expect(page.getByTestId("modal-error")).toBeInViewport();
+    await expect
+      .poll(async () => {
+        return await body.evaluate((element: Element) => {
+          return element.scrollTop;
+        });
+      })
+      .toBe(0);
+  });
+
+  /*
+   * Host, port and protocol side by side: one top, one height. Protocol sat
+   * 4px lower and stood 2px taller than the boxes beside it.
+   */
+  test("host, port and protocol line up", async ({ page }: { page: Page }) => {
+    await open(page);
+    await openStartForm(page);
+
+    const host: Box = await box(page.getByTestId("packet-capture-filter-host"));
+    const port: Box = await box(page.getByTestId("packet-capture-filter-port"));
+    const protocol: Box = await box(
+      page.getByTestId("packet-capture-filter").locator(".ou-select__control"),
+    );
+
+    for (const other of [port, protocol]) {
+      expect(Math.abs(other.y - host.y)).toBeLessThan(1);
+      expect(Math.abs(other.height - host.height)).toBeLessThan(1);
+    }
+
+    expect(port.x).toBeGreaterThan(host.x + host.width);
+    expect(protocol.x).toBeGreaterThan(port.x + port.width);
+  });
+
+  /*
+   * The columns Start puts on the wire, as ModelAPI.create serializes the
+   * form's capture: each one a starter may write. The server once refused
+   * every start on a column the form never sent (fileId, written by its own
+   * hook); PacketCaptureCrudAsMember sends exactly these to the real create
+   * route as each member the docs name.
+   */
+  test("Start sends only what a starter may write: the probe, the interface, the filter and the limits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+    await openStartForm(page);
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(modal(page)).toHaveCount(0);
+
+    expect(await fixtureList(page, "sent")).toEqual([
+      [
+        "bpfFilter",
+        "interfaceName",
+        "maxDurationInSeconds",
+        "maxFileSizeInMB",
+        "maxPackets",
+        "probeId",
+      ],
+    ]);
+
+    // From a device's Traffic card, the device as well.
+    await open(page, "?view=device");
+    await openStartForm(page);
+    await page.getByTestId("modal-footer-submit-button").click();
+    await expect(modal(page)).toHaveCount(0);
+
+    expect(await fixtureList(page, "sent")).toEqual([
+      [
+        "bpfFilter",
+        "interfaceName",
+        "maxDurationInSeconds",
+        "maxFileSizeInMB",
+        "maxPackets",
+        "networkDeviceId",
+        "probeId",
+      ],
+    ]);
   });
 });
 
@@ -672,6 +845,11 @@ test.describe("at phone width, in the dark and in Japanese", () => {
     ).toBeVisible();
     await expect(row(page, "host 10.20.0.1")).toContainText("実行中");
 
+    // The probe card's own description, which read English in every language.
+    await expect(page.getByTestId("fixture-page")).toContainText(
+      "このプローブが見ているトラフィックをキャプチャし、ファイルをダウンロードして Wireshark で開きます。",
+    );
+
     await page
       .getByRole("button", { name: "パケットキャプチャを開始" })
       .click();
@@ -679,6 +857,22 @@ test.describe("at phone width, in the dark and in Japanese", () => {
     await expect(modal(page)).toContainText(
       "1 分、100,000 パケット、10 MB のいずれかに先に達した時点で停止します。",
     );
+
+    /*
+     * "Any protocol" is longer in most languages than in English, and the
+     * Protocol box cut it short ("すべてのプロト…", "Beliebiges Pr…"). The
+     * box is wide enough for the longest of them.
+     */
+    const protocol: Locator = page
+      .getByTestId("packet-capture-filter")
+      .locator(".ou-select__single-value");
+
+    await expect(protocol).toHaveText("すべてのプロトコル");
+    expect(
+      await protocol.evaluate((element: Element) => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
     await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
       "キャプチャを開始",
     );

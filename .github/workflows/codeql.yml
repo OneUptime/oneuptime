@@ -11,6 +11,13 @@ name: CodeQL Advanced
 # reaching master was scanned on its pull request; master itself is scanned
 # nightly here, and on demand.
 #
+# When the repository gains a language, default setup starts scanning it by
+# itself: it added python on 4 October 2026, two days after this file was
+# written. This setup scans only the languages its matrix lists, so
+# Tests/Ops/CodeQlWorkflow.test.js fails when the repository holds code in a
+# language CodeQL analyses that the matrix leaves out. Add the language to
+# the matrix, or to that test's LEFT_OUT_LANGUAGES with the reason.
+#
 # It also leaves out what default setup cannot: the third-party browser
 # assets vendored for offline installs (packages/Common/Server/Static/Vendor),
 # through the paths-ignore of .github/codeql/codeql-config.yml, which says
@@ -65,6 +72,8 @@ jobs:
           - language: go
             build-mode: autobuild
           - language: javascript-typescript
+            build-mode: none
+          - language: python
             build-mode: none
     steps:
       - uses: actions/checkout@v4

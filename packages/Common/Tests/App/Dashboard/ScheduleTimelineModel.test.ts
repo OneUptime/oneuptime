@@ -192,7 +192,30 @@ describe("fromResponse", () => {
       start: new Date("2026-09-14T00:00:00.000Z"),
       end: new Date("2026-09-17T00:00:00.000Z"),
       isPolicyScoped: true,
+      isSkip: false,
     });
+  });
+
+  test("an override that names nobody to cover is a skip: the rotation picked who has the shift", () => {
+    const data: TimelineData = TimelineModel.fromResponse({
+      ...response,
+      schedules: [
+        {
+          ...response.schedules[0]!,
+          shifts: [
+            {
+              ...response.schedules[0]!.shifts[0]!,
+              override: {
+                ...response.schedules[0]!.shifts[0]!.override!,
+                isSkip: true,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(data.schedules[0]?.shifts[0]?.override?.isSkip).toBe(true);
   });
 
   test("a global override is not policy-scoped", () => {
@@ -619,6 +642,7 @@ describe("countPeople / hasOverrides", () => {
             start: new Date("2026-09-15T00:00:00Z"),
             end: new Date("2026-09-16T00:00:00Z"),
             isPolicyScoped: false,
+            isSkip: false,
           },
         }),
       ],

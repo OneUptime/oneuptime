@@ -2250,9 +2250,13 @@ describe("IncidentEpisodePublicNote subscriber notifications, with status page s
     "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1",
   );
 
-  const DEFAULT_SUBJECT_PREFIX: Record<string, string> = {
-    [CREATED_JOB]: "[Update Incident] ",
-    [UPDATED_JOB]: "[Incident Note Updated] ",
+  /*
+   * The default subject's prefix as the feed item's Markdown writes it: its
+   * brackets escaped, so the subject reads as written and links nothing.
+   */
+  const DEFAULT_SUBJECT_PREFIX_IN_MARKDOWN: Record<string, string> = {
+    [CREATED_JOB]: "\\[Update Incident\\] ",
+    [UPDATED_JOB]: "\\[Incident Note Updated\\] ",
   };
 
   let pages: Array<StatusPage> = [];
@@ -2415,10 +2419,7 @@ describe("IncidentEpisodePublicNote subscriber notifications, with status page s
 
       await runJob(trigger.job);
 
-      const subject: string =
-        `${DEFAULT_SUBJECT_PREFIX[trigger.job]}${EPISODE_TITLE}`
-          .replace("[", "\\[")
-          .replace("]", "\\]");
+      const subject: string = `${DEFAULT_SUBJECT_PREFIX_IN_MARKDOWN[trigger.job]}${EPISODE_TITLE}`;
 
       expect(feedItems()).toHaveLength(1);
       expect(feedItems()[0]!["displayColor"]).toEqual(Blue500);

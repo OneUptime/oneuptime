@@ -4,6 +4,7 @@ import path from "path";
 import Route from "../../Types/API/Route";
 import InventoryItem from "../../Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "../../Models/DatabaseModels/InventoryItemRelationship";
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 
 /*
  * The Inventory product's two tables were called TelemetryEntity and
@@ -224,10 +225,6 @@ describe("the old name is gone from the source tree", () => {
   };
 
   type OffendingLinesFunction = (file: string) => Array<string>;
-
-  const escapeRegExp: (value: string) => string = (value: string): string => {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  };
 
   const hasStaleTelemetryEntityReference: (
     file: string,

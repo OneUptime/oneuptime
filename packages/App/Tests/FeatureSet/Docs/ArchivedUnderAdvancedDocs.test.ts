@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnPath } from "./DocsProductsMenu";
 
 /*
  * Every product's side menu used to list Archived in its main section, beside
@@ -78,15 +79,19 @@ const PAGES_NAMING_THE_PATH: ReadonlyArray<[string, string]> = [
   ["en/status-pages/index.md", "**Status Pages → Advanced → Archived**"],
   ["en/dashboards/index.md", "**Advanced → Archived**"],
   ["en/dashboards/configuration.md", "**Dashboards → Advanced → Archived**"],
-  ["en/rum/applications.md", "**RUM → Advanced → Archived**"],
+  ["en/rum/applications.md", "**Real User Monitoring → Advanced → Archived**"],
   ["en/inventory/overview.md", "**Inventory → Advanced → Archived**"],
-  ["fa/rum/applications.md", "**RUM → Advanced → Archived**"],
+  // The Persian page draws the path as the Persian Dashboard does, segment by segment.
+  [
+    "fa/rum/applications.md",
+    drawnPath("fa", ["Real User Monitoring", "Advanced", "Archived"]),
+  ],
   ["fa/inventory/overview.md", "**Inventory → Advanced → Archived**"],
 ];
 
 describe("docs send readers to Archived through Advanced", () => {
   it("finds the menu paths to check", () => {
-    // Workflows (2), Status Pages (2), Dashboards, RUM (2), Inventory (3).
+    // Workflows (2), Status Pages (2), Dashboards, RUM, Inventory (3).
     expect(archivedMenuPaths().length).toBeGreaterThanOrEqual(10);
   });
 

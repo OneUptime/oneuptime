@@ -1,5 +1,6 @@
 import { EntityManager } from "typeorm";
 import { expect } from "@jest/globals";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * Shared plumbing for the *PastDueMonitoring* tests of the raw-SQL claim
@@ -88,10 +89,6 @@ export const SUBSCRIPTION_COLUMNS: Array<SubscriptionColumn> = [
   "paymentProviderSubscriptionStatus",
   "paymentProviderMeteredSubscriptionStatus",
 ];
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 /*
  * Finds `(p."<column>" IS NULL OR p."<column>" = ANY($n::text[]))` in the

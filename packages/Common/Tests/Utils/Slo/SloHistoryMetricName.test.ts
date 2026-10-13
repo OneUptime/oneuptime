@@ -4,6 +4,7 @@ import { getSloHistoryMetricName } from "../../../Utils/Slo/SloWidgetFormat";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * SloHistory.metricName values are persisted: 400 days of ClickHouse rows
@@ -19,12 +20,6 @@ const WORKER_SOURCE: string = fs.readFileSync(
   path.join(REPO_ROOT, "App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts"),
   "utf8",
 );
-
-type EscapeRegExpFunction = (value: string) => string;
-
-const escapeRegExp: EscapeRegExpFunction = (value: string): string => {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
 
 describe("SloHistoryMetricName", () => {
   test("the persisted values never change", () => {

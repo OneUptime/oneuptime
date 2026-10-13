@@ -124,7 +124,7 @@ Vælg **Connect with Slack** under **Projektindstillinger > Arbejdsområde > Sla
 
 ### Forbind din egen Slack-konto
 
-Knapper, formularer og kommandoer handler som den OneUptime-bruger, der er knyttet til den Slack-konto, der bruger dem. Hver person åbner **Brugerindstillinger > Arbejdsområde > Slack** og vælger **Connect my account with Slack**. Den, der ikke har forbundet en konto, får en direkte besked fra appen, der beder om det.
+Knapper, formularer og kommandoer handler som den OneUptime-bruger, der er knyttet til den Slack-konto, der bruger dem. Hver person åbner **Brugerindstillinger > Arbejdsområde > Slack** og vælger **Connect my account with Slack**. Den, der ikke har forbundet en konto, får der, hvor vedkommende trykkede, et svar med en knap **Connect Slack account**, der forbinder den i ét trin.
 :::
 
 ## Miljøvariabler
@@ -228,6 +228,7 @@ Når Slack sender dig tilbage, og forbindelsen ikke blev oprettet, viser den Sla
 | **"Du er ikke længere medlem af dette projekt."** | For at forbinde din egen Slack-konto skal du være medlem af projektet, når Slack sender dig tilbage. |
 | **"Dette projekt er endnu ikke forbundet til et Slack-arbejdsområde."** | Installér først OneUptime i Slack fra **Projektindstillinger > Arbejdsområde > Slack**, og forbind derefter din egen konto. |
 | **"Du loggede ind i et andet Slack-arbejdsområde end det, dette projekt er forbundet til."** | Forbind din konto, mens du er logget ind i det Slack-arbejdsområde, projektet er installeret i. |
+| **"Du loggede ind i Slack som en anden end den person, der trykkede på forbindelsesknappen i Slack, så intet blev forbundet."** | En knap **Connect Slack account** virker kun for den Slack-konto, der trykkede på den. Log ind i Slack som dig selv, eller bed den person, der trykkede på den, om at trykke på den. |
 | **"Forbindelsen blev annulleret, så intet blev ændret."** | Anmodningen blev ikke tilladt i Slack. Start forfra, og tillad den. |
 | **"Slack er ikke sat op på denne OneUptime-server."** | Angiv `SLACK_APP_CLIENT_ID` og `SLACK_APP_CLIENT_SECRET` (se [Miljøvariabler](#miljøvariabler)), og genstart OneUptime. |
 | **"OneUptime kunne ikke fuldføre forbindelsen. Prøv igen."** | Slack svarede med en fejl, eller en anmodning eller en skrivning mislykkedes under afslutningen. OneUptime-serverens log siger hvilken. Prøv igen; hvis det bliver ved, så tjek loggen og Slack-appens indstillinger. |
@@ -243,7 +244,7 @@ Notifikationer er udgående og virker derfor uden indgående adgang. Knapper, ge
 :::
 
 :::details Appen siger, at min Slack-konto ikke er forbundet med OneUptime
-Knapper, formularer og kommandoer kræver, at din Slack-konto er knyttet til din OneUptime-bruger. Åbn **Brugerindstillinger > Arbejdsområde > Slack**, og vælg **Connect my account with Slack**. Hvis du er fjernet fra projektet, siger appen det i stedet, og handlinger fra Slack afvises.
+Knapper, formularer og kommandoer kræver, at din Slack-konto er knyttet til din OneUptime-bruger. Tryk på **Connect Slack account** i appens svar, eller åbn **Brugerindstillinger > Arbejdsområde > Slack**, og vælg **Connect my account with Slack**. Hvis du er fjernet fra projektet, siger appen det i stedet, og handlinger fra Slack afvises.
 :::
 
 :::details Skærmbilleder vises som tekst

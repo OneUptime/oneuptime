@@ -88,6 +88,8 @@ Compila i seguenti campi:
 - **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
 - **Altri campi**, chiuso sotto i campi qui sopra: **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità AI usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
 
+**Testare un provider.** **Test**, nella pagina del provider o nel menu della sua riga, invia al provider un breve prompt con i valori di **Chiave API**, **Nome modello**, **URL di base** e **Parametri aggiuntivi**, e indica se ha risposto e ha chiamato uno strumento, cosa di cui hanno bisogno le funzionalità AI di OneUptime. Un test non riuscito dice prima cosa controllare, poi cosa ha risposto il provider. Chi può modificare un provider può testarlo: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** e **Edit LLM**. Tutti gli altri che vedono il provider trovano **Test** bloccato. Un provider LLM globale viene testato da un amministratore del server, nella dashboard di amministrazione, in **Impostazioni** > **Fornitori LLM globali**.
+
 ## Configurazione Specifica per Provider
 
 ### OpenAI

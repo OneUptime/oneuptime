@@ -88,6 +88,8 @@ Vul de volgende velden in:
 - **Basis-URL** (optioneel): Aangepaste API-eindpunt-URL (vereist voor Azure OpenAI, Ollama en OpenAI Compatible; optioneel voor anderen)
 - **Meer velden**, ingeklapt onder de velden hierboven: **Instellen als standaard**, dat voor een nieuwe provider aan staat omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
+**Een provider testen.** **Testen**, op de pagina van de provider of in het menu van zijn rij, stuurt de provider een korte prompt met de waarden van **API-sleutel**, **Modelnaam**, **Basis-URL** en **Extra parameters**, en meldt of hij antwoordde en een tool aanriep, wat de AI-functies van OneUptime nodig hebben. Een mislukte test zegt eerst wat u moet controleren en daarna wat de provider antwoordde. Wie een provider mag wijzigen, kan hem testen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** en **Edit LLM**. Alle anderen die de provider zien, vinden **Testen** vergrendeld. Een globale LLM-provider wordt getest door een serverbeheerder, in het beheerdashboard onder **Instellingen** > **Globale LLM-providers**.
+
 ## Providerspecifieke configuratie
 
 ### OpenAI

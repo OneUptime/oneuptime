@@ -9,7 +9,15 @@ import HTTPMethod from "../../../Types/API/HTTPMethod";
 import URL from "../../../Types/API/URL";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import DnsRecordType from "../../../Types/Monitor/DnsMonitor/DnsRecordType";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  CheckOn,
+  CriteriaFilter,
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import { KubernetesResourceScope } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import Port from "../../../Types/Port";
 import MonitorStep, {
@@ -428,5 +436,86 @@ describe("Monitor criteria page — types without step configuration", () => {
     });
 
     expect(screen.getByTestId("monitor-step-details")).toBeInTheDocument();
+  });
+});
+
+/*
+ * A window on a JavaScript expression is judged check by check where the
+ * expression keeps a match history - an API or Website monitor - and not on
+ * a SQL Query monitor, whose window the server does not judge that way. The
+ * criteria list reads each as the monitor it is on judges it.
+ */
+describe("Monitor criteria page — a filter's window reads as its monitor judges it", () => {
+  function criteriaWith(criteriaFilter: CriteriaFilter): MonitorCriteria {
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      id: "starting",
+      monitorStatusId: undefined,
+      filterCondition: FilterCondition.All,
+      filters: [criteriaFilter],
+      incidents: [],
+      alerts: [],
+      name: "Starting",
+      description: "",
+      isEnabled: true,
+    };
+
+    const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+    monitorCriteria.data = { monitorCriteriaInstanceArray: [instance] };
+    return monitorCriteria;
+  }
+
+  function expressionWithWindow(expression: string): CriteriaFilter {
+    return {
+      checkOn: CheckOn.JavaScriptExpression,
+      filterType: FilterType.EvaluatesToTrue,
+      value: expression,
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        timeValueInMinutes: 5,
+        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+      },
+    };
+  }
+
+  it("on an API monitor, says the expression must be true on every check of the window", async () => {
+    renderStep(
+      MonitorType.API,
+      buildStep({
+        monitorDestination: URL.fromString("https://example.com/health"),
+        requestType: HTTPMethod.GET,
+        monitorCriteria: criteriaWith(
+          expressionWithWindow("'{{responseBody.status}}' === 'starting'"),
+        ),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("on a SQL Query monitor, claims no check-by-check wait", async () => {
+    renderStep(
+      MonitorType.SQLQuery,
+      buildStep({
+        monitorCriteria: criteriaWith(expressionWithWindow("{{rowCount}} > 0")),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(CRITERIA_SECTION_DESCRIPTION),
+      ).toBeInTheDocument();
+    });
+
+    expect(document.body.textContent).toContain(
+      "{{rowCount}} > 0 - evaluates to true",
+    );
+    expect(document.body.textContent).not.toContain("on every check");
   });
 });

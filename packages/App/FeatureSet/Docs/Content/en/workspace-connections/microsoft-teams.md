@@ -89,6 +89,8 @@ Creating a rule walks four steps:
 
 A channel the rule creates is named from **New Microsoft Teams Channel Name** followed by the record's number, such as `oneuptime-incident-42`, and only a channel that was created gets the people the rule invites. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and chats.
 
+Channels and chats stay readable: each event is posted once, and a record's first state is in the card that announces the record, not in a card of its own. An on-call policy run is one card that is edited as the run escalates: who was paged, how often and how, who was not and why, and who acknowledged. A new card is posted only when someone has to act: an escalation rule reached nobody, or the run ended without anyone acknowledging. That a record's owners or status page subscribers were notified stays in its feed in OneUptime.
+
 **Project Settings** > **Workspace** > **Microsoft Teams** lists the channels OneUptime can see in your teams, and the chats it was added to, with **Send Test** beside each one. A chat appears once the OneUptime app is added to it in Microsoft Teams; **Refresh Chats** picks up new chats and their current names.
 
 ## Testing a rule
@@ -151,7 +153,7 @@ Asking OneUptime AI needs AI turned on for the project. See [Ask AI](/docs/ai/as
 
 ## Creating incidents and maintenance from Microsoft Teams
 
-Typing `create incident` or `create maintenance` to the OneUptime bot opens a form for the person who typed it, in a personal chat, a channel or a group chat alike. It is filled in as that person: as the OneUptime account their Microsoft Teams account is connected to (see [Connect Microsoft Teams](#connect-microsoft-teams)), with that account's permissions in the project. Someone whose account is not connected, or whose OneUptime account is no longer a member of the project, is told what to do instead of getting the form.
+Typing `create incident` or `create maintenance` to the OneUptime bot opens a form for the person who typed it, in a personal chat, a channel or a group chat alike. It is filled in as that person: as the OneUptime account their Microsoft Teams account is connected to (see [Connect Microsoft Teams](#connect-microsoft-teams)), with that account's permissions in the project. Someone whose account is not connected, or whose OneUptime account is no longer a member of the project, is told what to do in a reply that mentions them, instead of getting the form.
 
 - **Who may use them.** The people who may declare an incident or create a scheduled maintenance event in OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident (**Create Incident** in a custom role), and **Scheduled Maintenance Admin** and **Scheduled Maintenance Member** for an event (**Create Scheduled Maintenance**). Anyone else is told so, and gets no form.
 - **What a form offers.** Each list — severities, monitors, monitor statuses, on-call policies and labels — holds what the person who asked for it may read, as the same list in OneUptime does, and the card's "not shown" notes count only those: with a role limited to some labels, the monitors and on-call policies carrying those labels. A list they may not read at all is left off. Archived on-call policies are never offered.
@@ -167,6 +169,8 @@ The buttons on OneUptime's cards act as the person who presses them, in a person
 - **Which records.** Those the person may read, as in OneUptime: with a role limited to some labels, the incidents, alerts, episodes and events carrying them. A button on any other record, or on one of another project, is answered that the record "was not found in this project, or you do not have access to it.", and nothing changes. On OneUptime Cloud, a change the project's plan doesn't include is refused with the plan it needs.
 - **What Change State offers.** The states the person may read that the record may move into next, in the project's order: none before the state it is in, for an episode as for an incident, an alert or a scheduled maintenance event, since a state change never moves a record back up its list (see [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference)). When they may read none, the bot says "No incident states are available to you in this project. Ask a project admin for access to them."; when the record is in the last state it can reach, it says "There is no later state to move this incident to." Neither shows an empty card.
 - **Escalate.** A card's **Escalate** executes its on-call policy for the incident, alert or episode the card is about, as the person who pressed it, with the same permissions as **Execute On-Call Policy**. A card about none of them is answered "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there.", and nobody is paged.
+- **Where the person is answered.** In a reply in the same conversation, the card's thread in a channel, that mentions them, so Microsoft Teams notifies them. A button pressed too late says who got there first, and when, such as "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **If their account is not connected.** The reply asks them to connect it, with a **Connect Microsoft Teams account** button. The button opens their own Microsoft Teams settings in OneUptime and connects their account in one step, after they sign in to OneUptime if they need to. OneUptime then finishes what they pressed, as them, and replies in the same conversation; for a button that opens a form, or a command, it asks them to press or type it again. The button works once, for 30 minutes, and only for the Microsoft account that pressed it.
 
 ## Disconnecting
 
@@ -187,7 +191,7 @@ When Microsoft sends you back without a connection, the page you started from sa
 :::
 
 :::details The bot says my account is not connected
-Link it under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, signed in to the organization the project is connected to. A guest account from another organization is not the same account.
+Press **Connect Microsoft Teams account** in the bot's reply to connect it in one step, or link it under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, signed in to the organization the project is connected to. A guest account from another organization is not the same account.
 :::
 
 :::details Every notification fails on a self-hosted server

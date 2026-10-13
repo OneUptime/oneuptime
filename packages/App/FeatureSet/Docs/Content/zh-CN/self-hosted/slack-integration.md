@@ -124,7 +124,7 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 ### 连接你自己的 Slack 账号
 
-按钮、表单和命令会以与使用它们的 Slack 账号关联的 OneUptime 用户身份执行。每个人打开 **用户设置 > 工作区 > Slack** 并选择 **Connect my account with Slack**。尚未连接账号的人会收到应用发来的私信，请他们完成连接。
+按钮、表单和命令会以与使用它们的 Slack 账号关联的 OneUptime 用户身份执行。每个人打开 **用户设置 > 工作区 > Slack** 并选择 **Connect my account with Slack**。尚未连接账号的人会在按下按钮的地方收到带有 **Connect Slack account** 按钮的回复，一步即可完成连接。
 :::
 
 ## 环境变量
@@ -228,6 +228,7 @@ Slack 期望快速确认，包括 [对交互在三秒内作出响应](https://do
 | **"您已不再是此项目的成员。"** | 要连接你自己的 Slack 账号，在 Slack 把你送回时你必须是项目成员。 |
 | **"此项目尚未连接到 Slack 工作区。"** | 先在 **项目设置 > 工作区 > Slack** 中把 OneUptime 安装到 Slack，然后再连接你自己的账号。 |
 | **"您登录的 Slack 工作区与此项目所连接的工作区不同。"** | 在登录到安装了该项目的 Slack 工作区的状态下连接你的账号。 |
+| **"您登录 Slack 时使用的不是在 Slack 中按下连接按钮的那个人的账户，因此未连接任何内容。"** | **Connect Slack account** 按钮只对按下它的 Slack 账户有效。请以您本人的身份登录 Slack，或请按下它的人来按。 |
 | **"连接已取消，因此未做任何更改。"** | 请求没有在 Slack 中获得允许。重新开始并允许它。 |
 | **"此 OneUptime 服务器未设置 Slack。"** | 设置 `SLACK_APP_CLIENT_ID` 和 `SLACK_APP_CLIENT_SECRET`（请参阅 [环境变量](#环境变量)），然后重启 OneUptime。 |
 | **"OneUptime 无法完成连接。请重试。"** | Slack 返回了错误，或者在完成过程中某个请求或写入失败了。OneUptime 服务器日志会说明是哪一种。请重试；如果问题持续，请检查日志和 Slack 应用的设置。 |
@@ -243,7 +244,7 @@ Slack 期望快速确认，包括 [对交互在三秒内作出响应](https://do
 :::
 
 :::details 应用说我的 Slack 账号没有连接到 OneUptime
-按钮、表单和命令需要你的 Slack 账号与你的 OneUptime 用户关联。打开 **用户设置 > 工作区 > Slack** 并选择 **Connect my account with Slack**。如果你已被移出项目，应用会改为告诉你这一点，并拒绝来自 Slack 的操作。
+按钮、表单和命令需要你的 Slack 账号与你的 OneUptime 用户关联。在应用的回复中按 **Connect Slack account**，或打开 **用户设置 > 工作区 > Slack** 并选择 **Connect my account with Slack**。如果你已被移出项目，应用会改为告诉你这一点，并拒绝来自 Slack 的操作。
 :::
 
 :::details 截图显示为文字

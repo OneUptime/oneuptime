@@ -27,6 +27,13 @@ import {
   getStepValueSources,
 } from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
+import {
+  ConnectionGraphEdge,
+  ConnectionGraphNode,
+  dropConnectionsFromMissingOutputs,
+  getOutputConnections,
+} from "./OutputConnections";
+import { OutputConnections } from "./Switch/SwitchModel";
 import Dictionary from "../../../Types/Dictionary";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -37,7 +44,13 @@ import ComponentMetadata, {
   ComponentType,
   NodeDataProp,
   NodeType,
+  Port,
 } from "../../../Types/Workflow/Component";
+import {
+  getComponentOutPorts,
+  getNewStepArguments,
+  hasOutPortsFromSettings,
+} from "../../../Types/Workflow/ComponentOutPorts";
 import React, {
   FunctionComponent,
   useCallback,
@@ -190,6 +203,12 @@ export interface ComponentProps {
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
+  /*
+   * A run started from the Run Workflow panel will be a test run: the
+   * workflow is turned off (and not archived, which no run gets past). The
+   * panel says so before anything runs (RunModal).
+   */
+  runsAreTestRuns?: boolean | undefined;
   /** Run one component on its own. */
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
   /*
@@ -490,6 +509,34 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     });
   }, [nodes, edges, selectedNodeData]);
 
+  /*
+   * Where each output of the open step leads, as the canvas is now: a
+   * Switch / Case's settings say it for each case, and what taking a case
+   * out disconnects.
+   */
+  const selectedOutputConnections: OutputConnections | undefined =
+    useMemo(() => {
+      if (!selectedNodeData) {
+        return undefined;
+      }
+
+      const selectedNode: Node | undefined = nodes.find((node: Node) => {
+        return (
+          (node.data as NodeDataProp).internalId === selectedNodeData.internalId
+        );
+      });
+
+      if (!selectedNode) {
+        return undefined;
+      }
+
+      return getOutputConnections({
+        nodes: nodes as unknown as Array<ConnectionGraphNode>,
+        edges: edges as unknown as Array<ConnectionGraphEdge>,
+        nodeId: selectedNode.id,
+      });
+    }, [nodes, edges, selectedNodeData]);
+
   const nodesToRender: Array<Node> = useMemo(() => {
     return nodes.map((node: Node) => {
       const error: string = lintResult.errorsByNodeId[node.id] || "";
@@ -771,6 +818,19 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       } as NodeDataProp,
     };
 
+    /*
+     * A step that starts with settings of its own - a Switch / Case starts
+     * with two cases - has them from the moment it is on the canvas, so its
+     * outputs are there to connect before it is opened.
+     */
+    const newStepArguments: JSONObject | null = getNewStepArguments(
+      componentMetadata.id,
+    );
+
+    if (newStepArguments) {
+      (compToAdd.data as NodeDataProp).arguments = newStepArguments;
+    }
+
     if (componentMetadata.componentType === ComponentType.Trigger) {
       // remove the placeholder trigger element from graph.
       setNodes((nds: Array<Node>) => {
@@ -898,8 +958,17 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             stroke: #6366f1 !important;
             stroke-width: 2.5px !important;
           }
+          /*
+           * A dot grows where it is. React Flow centres a top or bottom dot
+           * with translate(-50%, 0); a bare scale() replaced that, and the
+           * dot jumped half its width to the right under the pointer.
+           */
           .react-flow__handle:hover {
             transform: scale(1.3) !important;
+          }
+          .react-flow__handle-top:hover,
+          .react-flow__handle-bottom:hover {
+            transform: translate(-50%, 0) scale(1.3) !important;
           }
           .react-flow__connection-line {
             stroke: #6366f1 !important;
@@ -1041,7 +1110,13 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           incomingEmailSecretKey={props.incomingEmailSecretKey}
           canSeeIncomingEmailSecretKey={props.canSeeIncomingEmailSecretKey}
           onResetIncomingEmailSecretKey={props.onResetIncomingEmailSecretKey}
+          /*
+           * Off, and not archived: the trigger is paused, so its dialog says
+           * its URL or address starts nothing until the workflow is on.
+           */
+          isWorkflowOff={Boolean(props.runsAreTestRuns)}
           component={selectedNodeData}
+          outputConnections={selectedOutputConnections}
           title={
             selectedNodeData && selectedNodeData.metadata.title
               ? selectedNodeData.metadata.title
@@ -1095,6 +1170,39 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               });
             });
 
+            /*
+             * A Switch / Case has an output per case. A case taken out in the
+             * settings takes its output with it, and a connection from an
+             * output that is gone would lead nowhere, so it goes too. The
+             * settings said so before Save, case by case, with a way to put
+             * the case back.
+             */
+            const savedNode: Node | undefined = nodes.find((n: Node) => {
+              return n.data.internalId === dataToStore.internalId;
+            });
+
+            if (
+              savedNode &&
+              hasOutPortsFromSettings(dataToStore.metadata?.id)
+            ) {
+              const outputIds: Array<string> = getComponentOutPorts({
+                metadata: dataToStore.metadata,
+                arguments: dataToStore.arguments,
+              }).map((port: Port): string => {
+                return port.id;
+              });
+
+              setEdges((eds: Array<Edge>) => {
+                const kept: Array<Edge> = dropConnectionsFromMissingOutputs({
+                  edges: eds,
+                  nodeId: savedNode.id,
+                  outputIds: outputIds,
+                });
+
+                return kept.length === eds.length ? eds : kept;
+              });
+            }
+
             setShowComponentSettingsModal(false);
           }}
         />
@@ -1109,6 +1217,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               }) || getPlaceholderTriggerNode()
             ).data
           }
+          isTestRun={Boolean(props.runsAreTestRuns)}
           onClose={() => {
             setShowRunModal(false);
           }}

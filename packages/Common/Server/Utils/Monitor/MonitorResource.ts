@@ -7,6 +7,7 @@ import MonitorStatusTimelineService, {
 import ServerException from "../../../Types/Exception/ServerException";
 import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
+import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchHistory";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
 import DataToProcess from "./DataToProcess";
@@ -764,12 +765,26 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
       );
 
+      /*
+       * The match histories this result is judged with, read once for its
+       * own evaluation and the probe agreement pass below alike.
+       */
+      const matchHistoryReads: CriteriaFilterMatchHistoryReads =
+        new CriteriaFilterMatchHistoryReads();
+
       response = await MonitorCriteriaEvaluator.processMonitorStep({
         dataToProcess: dataToProcess,
         monitorStep: monitorStep,
         monitor: monitor,
         probeApiIngestResponse: response,
         evaluationSummary: evaluationSummary,
+        /*
+         * This is the check that just arrived: record its results for the
+         * filters judged from their match history. The probe agreement pass
+         * below re-reads other probes' stored checks and records nothing.
+         */
+        recordMatchHistory: true,
+        matchHistoryReads: matchHistoryReads,
       });
 
       // Check probe agreement for probe-based monitors
@@ -790,6 +805,7 @@ export default class MonitorResourceUtil {
             currentRootCause: response.rootCause || null,
             currentProbeId: (dataToProcess as ProbeMonitorResponse).probeId,
             monitorProbes: monitorProbesForMonitor || undefined,
+            matchHistoryReads: matchHistoryReads,
           });
 
         // Add probe agreement event to evaluation summary
@@ -1679,6 +1695,12 @@ export default class MonitorResourceUtil {
      * querying.
      */
     monitorProbes?: Array<MonitorProbe> | undefined;
+    /*
+     * The match history reads of the result being handled: every other
+     * probe's check is judged by that probe's own history, read once for
+     * all of them (CriteriaFilterMatchHistoryReads).
+     */
+    matchHistoryReads?: CriteriaFilterMatchHistoryReads | undefined;
   }): Promise<ProbeAgreementResult> {
     const { monitor, monitorStep, currentCriteriaMetId, currentRootCause } =
       input;
@@ -1812,6 +1834,7 @@ export default class MonitorResourceUtil {
             monitor: monitor,
             probeApiIngestResponse: tempResponse,
             evaluationSummary: tempEvaluationSummary,
+            matchHistoryReads: input.matchHistoryReads,
           });
 
         evaluatedCriteriaMetId = evaluatedResponse.criteriaMetId;

@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Sus métodos de notificación"]
 ```
 
-Una sustitución de usuario vigente para una persona envía sus avisos a quien la cubre.
+Una sustitución de usuario vigente para una persona envía sus avisos a quien la cubre. Una que no nombra a nadie para cubrirla la omite: no recibe avisos, la ejecución de la política indica que está ausente y hasta cuándo, y en una programación de guardia cada uno de sus turnos pasa a la siguiente persona de la rotación.
 
 Cada mensaje es uno que su proveedor acepta, así que un aviso siempre sale. Esto es lo que lleva cada canal:
 

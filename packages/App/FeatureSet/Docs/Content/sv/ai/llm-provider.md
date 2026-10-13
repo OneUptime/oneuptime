@@ -88,6 +88,8 @@ Fyll i följande fält:
 - **Bas-URL** (valfritt): Anpassad API-slutpunkts-URL (krävs för Azure OpenAI, Ollama och OpenAI Compatible; valfritt för andra)
 - **Fler fält**, ihopfälld under fälten ovan: **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
 
+**Testa en leverantör.** **Testa**, på leverantörens sida eller i menyn på dess rad, skickar en kort prompt till leverantören med värdena från **API-nyckel**, **Modellnamn**, **Bas-URL** och **Ytterligare parametrar**, och säger om den svarade och anropade ett verktyg, vilket OneUptimes AI-funktioner behöver. Ett misslyckat test säger först vad du ska kontrollera och sedan vad leverantören svarade. Den som får ändra en leverantör kan testa den: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** och **Edit LLM**. Alla andra som ser leverantören hittar **Testa** låst. En global LLM-leverantör testas av en serveradministratör, i administrationspanelen under **Inställningar** > **Globala LLM-leverantörer**.
+
 ## Leverantörsspecifik konfiguration
 
 ### OpenAI

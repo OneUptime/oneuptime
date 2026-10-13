@@ -188,7 +188,7 @@ Los monitores creados antes de que OneUptime cambiara estos valores predetermina
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Código de estado de respuesta** y **Tiempo de respuesta (en ms)**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Código de estado de respuesta**, **Tiempo de respuesta (en ms)**, **Cuerpo de la respuesta**, **Response Header**, **Response Header Value**, **JavaScript Expression** y **Is Request Timeout**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
@@ -197,6 +197,10 @@ Los monitores creados antes de que OneUptime cambiara estos valores predetermina
 | **Any Value** | Al menos una comprobación de la ventana cumple la condición. |
 
 **All Values** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Any Value** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+
+Un cuerpo, un encabezado, un valor de encabezado o una expresión no es un número que OneUptime registre, así que para esos filtros y para **Is Request Timeout** registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **All Values** o **Any Value**. Así es como un monitor supera un reinicio. Una aplicación que está arrancando puede responder `200` con una página provisional como `Application starting...`; con **All Values**, un filtro **Cuerpo de la respuesta** que busca el título de la aplicación solo deja el monitor fuera de línea cuando la página provisional ha durado toda la ventana.
+
+Elija una ventana más larga que el intervalo de supervisión, para que contenga varias comprobaciones: un monitor que se comprueba cada 5 minutos tiene una sola comprobación en cualquier ventana de 5 minutos.
 
 **Si no hay datos** decide qué ocurre mientras la ventana no puede respaldar el criterio:
 
@@ -214,6 +218,8 @@ Los monitores creados antes de que OneUptime cambiara estos valores predetermina
 | Sin conexión cuando la comprobación de salud informa de un problema | **Cuerpo de la respuesta** | **Not Contains** | `"status":"ok"` |
 | Lo mismo, leído del JSON analizado | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
 | Aceptar solo `201` de un `POST` | **Código de estado de respuesta** | **Equal To** | `201` |
+
+Para superar un reinicio, active **Evaluar estos criterios durante un periodo de tiempo** en el filtro del cuerpo de la respuesta y elija **All Values** durante 15 minutos.
 
 ## Solución de problemas
 

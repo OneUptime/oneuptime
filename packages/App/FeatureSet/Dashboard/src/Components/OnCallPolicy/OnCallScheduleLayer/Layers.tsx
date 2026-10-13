@@ -2,6 +2,7 @@ import { getCoverageWindowEnd } from "./CoverageWindow";
 import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
+import SkipLayerUserModal from "./SkipLayerUserModal";
 import {
   ScheduleOverrideResolution,
   useScheduleUserOverrides,
@@ -17,7 +18,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
 import {
   buildNewScheduleLayer,
   getNewLayerName,
@@ -103,6 +105,18 @@ const Layers: FunctionComponent<ComponentProps> = (
 
   const [showCannotDeleteOnlyLayerError, setShowCannotDeleteOnlyLayerError] =
     React.useState<boolean>(false);
+
+  /*
+   * "Skip until..." on a person in a layer: who the dialog is for, while it
+   * is open. Each override saved from it bumps the refresh key, so the cards,
+   * the coverage banner and the final schedule read the overrides again.
+   */
+  const [personToSkip, setPersonToSkip] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+
+  const [overrideRefreshKey, setOverrideRefreshKey] = React.useState<number>(0);
 
   const hasInitialized: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
@@ -509,9 +523,92 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * Every user on any layer of this schedule. Overrides for anyone else cannot
+   * affect what this page shows.
+   */
+  const scheduleUserIds: Set<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
+    for (const layerId in layerUsers) {
+      for (const layerUser of layerUsers[layerId] || []) {
+        const userId: string = layerUser.user?.id?.toString() || "";
+        if (userId) {
+          ids.add(userId);
+        }
+      }
+    }
+    return ids;
+  }, [layerUsers]);
+
+  /*
+   * The names of the people on this schedule's layers, by user id: the
+   * "Skip until..." dialog names whoever its "Who is away?" is changed to.
+   */
+  const scheduleUserNameById: Record<string, string> = useMemo(() => {
+    const names: Record<string, string> = {};
+    for (const layerId in layerUsers) {
+      for (const layerUser of layerUsers[layerId] || []) {
+        const userId: string = layerUser.user?.id?.toString() || "";
+        const name: string =
+          layerUser.user?.name?.toString() ||
+          layerUser.user?.email?.toString() ||
+          "";
+        if (userId && name) {
+          names[userId] = name;
+        }
+      }
+    }
+    return names;
+  }, [layerUsers]);
+
+  /*
+   * The window the layer cards actually reason over: a little history so an
+   * in-progress turn keeps its true start, and the shared forward coverage
+   * window so an upcoming substitution reaches the shift table. Anchored once
+   * per layer/user change rather than to a ticking clock, so the override list
+   * is not refetched on every re-render.
+   *
+   * A rotation slower than the coverage window (an annual hand-off, say) can
+   * list turns beyond this window's end; a substitution that far out will not be
+   * reflected in those far-future rows. It is always reflected in the one row
+   * that can page somebody today — "on call now".
+   */
+  const overrideWindow: { start: Date; end: Date } = useMemo(() => {
+    const windowNow: Date = OneUptimeDate.getCurrentDate();
+    return {
+      start: OneUptimeDate.addRemoveDays(windowNow, -2),
+      end: getCoverageWindowEnd(windowNow),
+    };
+    /*
+     * The body reads neither dependency on purpose. They are here as a
+     * re-anchor signal: the window should move when the schedule's layers or
+     * users change (the cards are recomputed anyway), and NOT on every render,
+     * which is what keying it to the clock would do.
+     */
+  }, [layers, layerUsers]);
+
+  /*
+   * The overrides in force for this schedule, resolved the way the server does
+   * for routing (see ./ScheduleOverrides). Fed to every layer card so its "on
+   * call now" line and shift table name whoever is actually covering, instead of
+   * contradicting the final-schedule calendar at the bottom of this same page.
+   * https://github.com/OneUptime/oneuptime/issues/3411
+   */
+  const overrideResolution: ScheduleOverrideResolution =
+    useScheduleUserOverrides({
+      onCallDutyPolicyScheduleId: props.onCallDutyPolicyScheduleId,
+      scheduleUserIds,
+      windowStart: overrideWindow.start,
+      windowEnd: overrideWindow.end,
+      refreshKey: overrideRefreshKey,
+    });
+
+  /*
    * The schedule's coverage over the shared window, computed with exactly the
-   * same LayerUtil + ScheduleShiftUtil pipeline the preview at the bottom of the
-   * page uses, so the two can never disagree.
+   * same resolution (ScheduleResolution) and ScheduleShiftUtil pipeline the
+   * preview at the bottom of the page uses, so the two can never disagree -
+   * time away included: everybody in a layer away at once leaves that layer
+   * with nobody on call, and a gap the banner names when no layer below
+   * covers it.
    *
    * Expanding every layer's rotation across the window and merging the layers by
    * priority is the most expensive thing this component does — hundreds of
@@ -561,76 +658,27 @@ const Layers: FunctionComponent<ComponentProps> = (
         layerCount: layers.length,
         assignedUserCount,
         shifts: ScheduleShiftUtil.groupEventsIntoShifts(
-          new LayerUtil().getMultiLayerEvents({
+          ScheduleResolution.resolve({
             calendarStartDate: now,
             calendarEndDate: windowEnd,
             layers: layerProps,
-          }),
+            overrides: overrideResolution.records,
+            currentOnCallDutyPolicyId:
+              overrideResolution.policyContextId || undefined,
+          }).events,
         ),
         now,
         windowEnd,
       }),
       windowLabel: formatWindowSpan(now, windowEnd),
     };
-  }, [layers, layerUsers, scheduleTimezone]);
-
-  /*
-   * Every user on any layer of this schedule. Overrides for anyone else cannot
-   * affect what this page shows.
-   */
-  const scheduleUserIds: Set<string> = useMemo(() => {
-    const ids: Set<string> = new Set<string>();
-    for (const layerId in layerUsers) {
-      for (const layerUser of layerUsers[layerId] || []) {
-        const userId: string = layerUser.user?.id?.toString() || "";
-        if (userId) {
-          ids.add(userId);
-        }
-      }
-    }
-    return ids;
-  }, [layerUsers]);
-
-  /*
-   * The window the layer cards actually reason over: a little history so an
-   * in-progress turn keeps its true start, and the shared forward coverage
-   * window so an upcoming substitution reaches the shift table. Anchored once
-   * per layer/user change rather than to a ticking clock, so the override list
-   * is not refetched on every re-render.
-   *
-   * A rotation slower than the coverage window (an annual hand-off, say) can
-   * list turns beyond this window's end; a substitution that far out will not be
-   * reflected in those far-future rows. It is always reflected in the one row
-   * that can page somebody today — "on call now".
-   */
-  const overrideWindow: { start: Date; end: Date } = useMemo(() => {
-    const windowNow: Date = OneUptimeDate.getCurrentDate();
-    return {
-      start: OneUptimeDate.addRemoveDays(windowNow, -2),
-      end: getCoverageWindowEnd(windowNow),
-    };
-    /*
-     * The body reads neither dependency on purpose. They are here as a
-     * re-anchor signal: the window should move when the schedule's layers or
-     * users change (the cards are recomputed anyway), and NOT on every render,
-     * which is what keying it to the clock would do.
-     */
-  }, [layers, layerUsers]);
-
-  /*
-   * The overrides in force for this schedule, resolved the way the server does
-   * for routing (see ./ScheduleOverrides). Fed to every layer card so its "on
-   * call now" line and shift table name whoever is actually covering, instead of
-   * contradicting the final-schedule calendar at the bottom of this same page.
-   * https://github.com/OneUptime/oneuptime/issues/3411
-   */
-  const overrideResolution: ScheduleOverrideResolution =
-    useScheduleUserOverrides({
-      onCallDutyPolicyScheduleId: props.onCallDutyPolicyScheduleId,
-      scheduleUserIds,
-      windowStart: overrideWindow.start,
-      windowEnd: overrideWindow.end,
-    });
+  }, [
+    layers,
+    layerUsers,
+    scheduleTimezone,
+    overrideResolution.records,
+    overrideResolution.policyContextId,
+  ]);
 
   /*
    * A compact statement of the schedule's coverage, rendered above the layer
@@ -885,6 +933,9 @@ const Layers: FunctionComponent<ComponentProps> = (
               ) => {
                 updateLayerUsers(layerId, users);
               }}
+              onSkipUser={(person: { userId: string; name: string }) => {
+                setPersonToSkip(person);
+              }}
             />
           );
         })}
@@ -927,9 +978,27 @@ const Layers: FunctionComponent<ComponentProps> = (
             allLayerUsers={layerUsers}
             timezone={scheduleTimezone}
             onCallDutyPolicyScheduleId={props.onCallDutyPolicyScheduleId}
+            overridesRefreshKey={overrideRefreshKey}
           />
         </Card>
       </div>
+
+      {personToSkip && (
+        <SkipLayerUserModal
+          userId={personToSkip.userId}
+          name={personToSkip.name}
+          nameById={scheduleUserNameById}
+          onClose={() => {
+            setPersonToSkip(null);
+          }}
+          onSkipped={() => {
+            setPersonToSkip(null);
+            setOverrideRefreshKey((key: number) => {
+              return key + 1;
+            });
+          }}
+        />
+      )}
 
       {layerToDelete && (
         <ConfirmModal

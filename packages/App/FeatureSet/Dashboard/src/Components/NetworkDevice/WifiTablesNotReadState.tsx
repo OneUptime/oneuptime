@@ -164,7 +164,7 @@ const WifiTablesNotReadState: FunctionComponent<ComponentProps> = (
                 className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                 to={tablesRoute}
               >
-                {translator.translateText("SNMP Tables") || "SNMP Tables"}
+                {translator.translateTerm("SNMP Tables")}
               </AppLink>
             ),
           }}

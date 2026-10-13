@@ -105,7 +105,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Is Online**, **Tempo de resposta (em ms)**, **Packet Loss (in %)** e **Jitter (in ms)**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Is Online**, **Tempo de resposta (em ms)**, **Packet Loss (in %)**, **Jitter (in ms)** e **Is Request Timeout**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
@@ -114,6 +114,10 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 | **Any Value** | Pelo menos uma verificação na janela atende à condição. |
 
 **All Values** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Any Value** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
+
+**Is Request Timeout** não é um número que o OneUptime registre, por isso ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **All Values** ou **Any Value**.
+
+Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 
 **Se não houver dados** decide o que acontece enquanto a janela não consegue sustentar o critério:
 

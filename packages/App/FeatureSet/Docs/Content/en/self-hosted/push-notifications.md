@@ -105,22 +105,26 @@ The scope is deliberately narrow. Only pages produced by an on-call notification
 ```mermaid title="When an on-call page rings through silent mode"
 flowchart TB
     Page["An on-call page"]
+    Rule{"Its on-call rule set<br/>to Critical alert?"}
     Device{"Critical On-Call Alerts<br/>on for this device?"}
     OS{"The phone's system<br/>allows critical alerts?"}
     Loud["Plays a sound through<br/>silent mode and Do Not Disturb"]
     Quiet["Delivered quietly,<br/>as any other push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"yes"| Device
+    Rule -->|"no"| Quiet
     Device -->|"yes"| OS
     Device -->|"no"| Quiet
     OS -->|"yes"| Loud
     OS -->|"no"| Quiet
 ```
 
-Three things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
+Four things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
 
 1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions.
-2. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets the `oncall_critical` notification channel for Android.
-3. **The operating system allows it**, which is where the two platforms differ.
+2. **The on-call rule that sent the page asks for it.** Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings - so a responder can be woken for a critical incident and paged quietly for a minor one. Stored per rule in `UserNotificationRule.pushNotificationLevel`.
+3. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets the `oncall_critical` notification channel for Android.
+4. **The operating system allows it**, which is where the two platforms differ.
 
 :::tabs
 @tab iOS
@@ -171,6 +175,7 @@ To check it works, send a test notification to the device from **User Settings >
 ### Critical alerts do not override silent mode
 
 - Check the switch is on for **that** device - the setting is per device, and a reinstall or a new phone set up from scratch creates a new device registration (a phone set up from a backup of the old one takes over the old phone's registration once that no longer receives notifications, with the setting the app had)
+- Check the on-call rule for that severity under **User Settings > On-Call Rules**: a push rule set to Standard follows the phone's sound settings, whatever the device's switch says
 - **iOS**: confirm the build carries Apple's critical alerts entitlement (see above), and that Critical Alerts is allowed under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirm the app has Do Not Disturb access under Settings > Notifications > Do Not Disturb access
 - The settings screen states which of these is missing; it reads the current state back from the OS rather than trusting what the app last requested

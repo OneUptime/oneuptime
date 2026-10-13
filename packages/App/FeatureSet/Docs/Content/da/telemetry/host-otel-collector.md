@@ -801,7 +801,7 @@ Intet på maskinen rapporterer en firmwareversion, der er tilgængelig som opgra
 
 #### Kontrollér, at det virkede
 
-Åbn værtens element under **Produkter → Inventory**, og se på dens kort **Aktivdetaljer**. Værdierne vises inden for få minutter efter den næste batch; en detalje, som collectoren ikke har rapporteret, vises som ukendt med et link tilbage til denne sektion. Fordi de er stemplet og ikke detekteret, opdaterer de ikke sig selv: stempl dem igen efter et bundkortskift, en firmwareopdatering eller en geninstallation.
+Åbn værtens element under **Produkter → Inventar**, og se på dens kort **Aktivdetaljer**. Værdierne vises inden for få minutter efter den næste batch; en detalje, som collectoren ikke har rapporteret, vises som ukendt med et link tilbage til denne sektion. Fordi de er stemplet og ikke detekteret, opdaterer de ikke sig selv: stempl dem igen efter et bundkortskift, en firmwareopdatering eller en geninstallation.
 
 ## Andre måder at køre collectoren på
 

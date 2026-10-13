@@ -104,7 +104,7 @@ Atlassian API tokens के बारे में दो बातें, ज�
 
 description भारी लगता है क्योंकि Jira Cloud का v3 API rich text को **Atlassian Document Format** के रूप में लेता है — एक document tree, न कि string। ऊपर दिखाया गया आकार सबसे छोटा वैध document है: एक paragraph जिसमें एक text node है। यही बात `environment` पर और किसी भी multi-line text custom field पर लागू होती है; single-line text custom fields अब भी सादा string लेते हैं।
 
-अब **अवलोकन → Edit Workflow → सक्षम** से वर्कफ़्लो चालू करें, एक test incident घोषित करें, और **लॉग → रन** खोलें। `create-issue` ब्लॉक को `201` और ऐसा body दिखाना चाहिए जिसमें नई issue का `id`, `key` और `self` हो। कैनवास पर किए गए बदलाव अपने-आप सहेजे जाते हैं — कोई Save बटन नहीं है, और बंद पड़ा वर्कफ़्लो बिल्कुल नहीं चल सकता, हाथ से भी नहीं।
+अब **अवलोकन → Edit Workflow → सक्षम** से वर्कफ़्लो चालू करें, एक test incident घोषित करें, और **लॉग → रन** खोलें। `create-issue` ब्लॉक को `201` और ऐसा body दिखाना चाहिए जिसमें नई issue का `id`, `key` और `self` हो। कैनवास पर किए गए बदलाव अपने-आप सहेजे जाते हैं — कोई Save बटन नहीं है, और जब तक वर्कफ़्लो बंद है, कोई नई incident उसे शुरू नहीं करती।
 
 नई issue की key इसके बाद के किसी भी ब्लॉक को उपलब्ध रहती है:
 

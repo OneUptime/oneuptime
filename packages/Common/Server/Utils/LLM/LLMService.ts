@@ -15,6 +15,7 @@ import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataSourceEgressGuard, { PinnedAgents } from "../DataSource/EgressGuard";
 import ClaudeModels from "./ClaudeModels";
+import LLMProviderHTTPException from "./LLMProviderHTTPException";
 import RejectedRequestParameter from "./RejectedRequestParameter";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
@@ -1345,22 +1346,34 @@ export default class LLMService {
     const contextWindowOverflowError: string | undefined =
       this.describeContextWindowOverflow(data);
 
-    if (data.request.includeProviderErrorDetails !== false) {
+    const includeDetails: boolean =
+      data.request.includeProviderErrorDetails !== false;
+
+    if (includeDetails) {
       logger.error(data.response, data.logAttributes);
-      throw new BadDataException(
-        contextWindowOverflowError ??
-          `${data.providerName} API error: ${
-            data.hint ? `${data.hint} Details: ` : ""
-          }${JSON.stringify(data.response.jsonData)}`,
-      );
     }
 
-    throw new BadDataException(
-      contextWindowOverflowError ??
-        `${data.providerName} API request failed. ${
-          data.hint || "Review the provider configuration and try again."
-        }`,
-    );
+    if (contextWindowOverflowError) {
+      throw new BadDataException(contextWindowOverflowError);
+    }
+
+    /*
+     * The same message as ever, with the answer in parts beside it for a
+     * caller that words it for a person (LLMProviderHTTPException).
+     */
+    throw new LLMProviderHTTPException({
+      message: includeDetails
+        ? `${data.providerName} API error: ${
+            data.hint ? `${data.hint} Details: ` : ""
+          }${JSON.stringify(data.response.jsonData)}`
+        : `${data.providerName} API request failed. ${
+            data.hint || "Review the provider configuration and try again."
+          }`,
+      statusCode: data.response.statusCode,
+      llmType: data.llmType,
+      providerMessage: includeDetails ? data.response.message : "",
+      hint: data.hint,
+    });
   }
 
   /*

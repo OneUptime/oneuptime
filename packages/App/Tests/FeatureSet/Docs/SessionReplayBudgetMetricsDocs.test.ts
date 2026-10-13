@@ -961,7 +961,7 @@ describe("Session replay storage budget alerts docs", (): void => {
       );
 
       expect(alerting).toContain(
-        "Offered on the **Recommendations** tab once the application has recorded a replay; the monthly ones once it also has a monthly budget",
+        "They are offered once the application has recorded a replay, and the monthly pair once it also has a monthly budget.",
       );
     });
 

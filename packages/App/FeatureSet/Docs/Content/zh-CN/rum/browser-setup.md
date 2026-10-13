@@ -243,7 +243,7 @@ new FetchInstrumentation({
 
 ## 将追踪与会话回放关联
 
-如果你还在使用 [会话回放](/docs/telemetry/session-replay) ，你的 **后端** 遥测无需在这里写任何代码就会与录制关联。会话上传期间，录制器会在页面发往自身来源的请求中添加一个携带会话 ID 的 `tracestate` 成员，并把 `traceparent` 留给你的 `FetchInstrumentation` / `XMLHttpRequestInstrumentation` 。在每个延续 W3C 追踪上下文的服务中，后端 span 会在摄取时被打上会话 ID，其日志和异常则通过追踪 ID 关联到录制。工作原理、不涵盖的内容以及关闭它的开关，请参见 [与其他遥测关联](/docs/telemetry/session-replay#correlating-with-your-other-telemetry) 。
+如果你还在使用 [会话回放](/docs/telemetry/session-replay) ，你的 **后端** 遥测无需在这里写任何代码就会与录制关联。会话上传期间，录制器会在页面发往自身来源的请求中添加一个携带会话 ID 的 `tracestate` 成员，并把 `traceparent` 留给你的 `FetchInstrumentation` / `XMLHttpRequestInstrumentation` 。在每个延续 W3C 追踪上下文的服务中，后端 span 会在摄取时被打上会话 ID，其日志和异常则通过追踪 ID 关联到录制。工作原理、不涵盖的内容以及关闭它的开关，请参见 [与其他遥测关联](/docs/telemetry/session-replay#与其他遥测数据关联) 。
 
 无论调用传入的是 URL（带或不带 init 对象）还是 `Request` 对象，录制器都会读回你的插桩设置的 `traceparent` ，因此回放中的每个请求行都会链接到其后端追踪。对于另一个来源上的 API，请将它列在上面的 `propagateTraceHeaderCorsUrls` 中；它的请求不携带会话 ID，而是通过追踪 ID 关联到录制。对于 *没有* 使用此 SDK 的页面，应用程序回放策略中的 **Trace propagation origins** 起同样的作用。
 

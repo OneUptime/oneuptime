@@ -177,7 +177,7 @@ FLAG is one of `noout`, `norebalance`, `nobackfill`, `norecover`, `noscrub`, `no
    ONEUPTIME_AI_PROTECTED_TARGETS=osd.0,.mgr
    ```
 
-3. On the cluster's **AI → AI agent** page in OneUptime, choose how fixes are applied (*Ask for approval*, *Automatic* or *Bypass approval*).
+3. Fixes then wait for a person to approve each one (`ask-for-approval`, the default once writes are allowed). For another mode, set `ONEUPTIME_AI_FIXES` in the same `.env` (`automatic` or `bypass-approval`; `off` keeps the agent read-only) and run `docker compose up -d` again. The cluster's **AI → AI agent** page shows the mode, read-only.
 
 `install.sh` asks about fixes on a fresh install and, when it creates the client, gives it these caps for you.
 
@@ -222,7 +222,7 @@ docker exec oneuptime-ceph-ai-agent wget -qO- http://127.0.0.1:3877/status
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
 
 ```bash
-sudo cp systemd/oneuptime-ceph-agent.service /etc/systemd/system/
+sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/systemd/oneuptime-ceph-agent.service -o /etc/systemd/system/oneuptime-ceph-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-ceph-agent
 ```

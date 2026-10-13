@@ -17,6 +17,7 @@ import {
 } from "./FakeIRCServer";
 import { TestCertificate, createTestCertificate } from "./TestCertificate";
 import IRCValidation from "../../../../Server/Utils/IRC/IRCValidation";
+import { escapeRegExp } from "../../../../Utils/RegExpEscape";
 import dns from "dns";
 import net from "net";
 import tls from "tls";
@@ -1634,7 +1635,7 @@ describe("IRCClient — TLS", () => {
 
     expect(error.message).toMatch(
       new RegExp(
-        `^The TLS certificate of the IRC server ${HOST_NAME.replace(/\./g, "\\.")}:${fakeServer.port} is not trusted: self-signed certificate`,
+        `^The TLS certificate of the IRC server ${escapeRegExp(HOST_NAME)}:${fakeServer.port} is not trusted: self-signed certificate`,
       ),
     );
     expect(error.message).toContain(
@@ -1684,7 +1685,7 @@ describe("IRCClient — TLS", () => {
 
     expect(error.message).toMatch(
       new RegExp(
-        `^Could not start TLS with the IRC server ${HOST_NAME.replace(/\./g, "\\.")}:${fakeServer.port}: `,
+        `^Could not start TLS with the IRC server ${escapeRegExp(HOST_NAME)}:${fakeServer.port}: `,
       ),
     );
     expect(error.message).toContain(

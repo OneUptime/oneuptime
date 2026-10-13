@@ -153,7 +153,7 @@ Once all secrets are configured, push to the `release` branch. The workflow will
 3. Build the Android APK (`mobile-app-android-deploy` job)
 4. Build the iOS IPA (`mobile-app-ios-deploy` job)
 5. Upload both binaries to the draft release
-6. Publish the release after all jobs succeed
+6. Publish the release once both app jobs have finished. A failed app build does not hold the release back: it is published without that app, and the failed job shows in the run.
 
 Check the **Actions** tab in GitHub to monitor each job. If a signing job fails, the error logs will usually indicate whether the issue is with the certificate, provisioning profile, or keystore.
 

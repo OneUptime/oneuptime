@@ -5,6 +5,7 @@ import {
 } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../Server/Utils/Logger";
 import "../TestingUtils/Init";
+import { orderByColumns, outerOrderBy } from "../TestingUtils/AnalyticsOrderBy";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
@@ -318,30 +319,9 @@ describe("AnalyticsDatabaseService pagination stability", () => {
      * The sort-key boundary filter (toSortKeyBoundaryFilter) puts its own
      * `ORDER BY <key> LIMIT n` in a subquery inside the WHERE, so the
      * statement now carries two. The tiebreaker lives on the LAST one —
-     * the outer sort that actually orders the page.
+     * the outer sort that actually orders the page, which outerOrderBy and
+     * orderByColumns (TestingUtils/AnalyticsOrderBy) read.
      */
-    const outerOrderBy: (query: string) => string = (query: string): string => {
-      return query
-        .slice(query.lastIndexOf("ORDER BY "))
-        .replace("ORDER BY ", "")
-        .split(" LIMIT")[0]!;
-    };
-
-    /*
-     * Resolves the rendered `{pN:Identifier}` terms of an ORDER BY back to
-     * the column names they are bound to, so the assertions do not depend
-     * on parameter numbering.
-     */
-    const orderByColumns: (statement: Statement) => Array<string> = (
-      statement: Statement,
-    ): Array<string> => {
-      return outerOrderBy(statement.query)
-        .split(", ")
-        .map((term: string): string => {
-          const param: string = term.split(":")[0]!.replace("{", "");
-          return statement.query_params[param] as string;
-        });
-    };
 
     /*
      * The generator is NOT mocked here, so this asserts the real ORDER BY

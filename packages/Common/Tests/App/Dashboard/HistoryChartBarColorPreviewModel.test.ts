@@ -4,6 +4,7 @@ import {
   BarColorPreviewEntryKind,
   NO_DATA_ENTRY,
   addRecommendedBarColorRules,
+  formatRuleUptimePercent,
   formatUptimePercent,
   getLookAlikeEntryPairs,
   getRulePreviewEntries,
@@ -307,6 +308,94 @@ describe("formatUptimePercent", () => {
     [0, "0"],
   ])("%p reads %p", (percent: number, text: string) => {
     expect(formatUptimePercent(percent)).toBe(text);
+  });
+
+  /*
+   * Numbers a Terraform configuration computes, which the provider can
+   * apply since #4719: a day with one minute of downtime is
+   * 100 * (1 - 1 / 1440), kept by the API as 99.93055555555556.
+   */
+  test.each([
+    [100 * (1 - 1 / 1440), "99.9306"],
+    [100 / 3, "33.3333"],
+    [99.65, "99.65"],
+    [99.12346, "99.1235"],
+  ])(
+    "%p reads with at most four decimals, as %p",
+    (percent: number, text: string) => {
+      expect(formatUptimePercent(percent)).toBe(text);
+    },
+  );
+
+  /*
+   * Rounding to four decimals would name a rule a hair under 100 like the
+   * 100% rule above it, and one a hair over 0 would leave "Under 0%".
+   */
+  test.each([
+    [99.99999999999999, "99.9999"],
+    [99.99995, "99.9999"],
+    [99.99994, "99.9999"],
+    [0.000001, "0.0001"],
+    [0.00004, "0.0001"],
+    [0.00005, "0.0001"],
+  ])(
+    "%p never reads as 100 or 0, but as %p",
+    (percent: number, text: string) => {
+      expect(formatUptimePercent(percent)).toBe(text);
+    },
+  );
+});
+
+describe("formatRuleUptimePercent", () => {
+  function ruleWith(
+    uptimePercentGreaterThanOrEqualTo: number | string | null | undefined,
+  ): HistoryChartBarColorRuleInput {
+    return {
+      uptimePercentGreaterThanOrEqualTo: uptimePercentGreaterThanOrEqualTo,
+      barColor: "#22c55e",
+    };
+  }
+
+  test.each([
+    [100, "100%"],
+    [99.65, "99.65%"],
+    [99.999, "99.999%"],
+    [100 * (1 - 1 / 1440), "99.9306%"],
+    [0, "0%"],
+  ])(
+    "a rule at %p, as the API answers it since #4719, reads %p",
+    (percent: number, text: string) => {
+      expect(formatRuleUptimePercent(ruleWith(percent))).toBe(text);
+    },
+  );
+
+  test.each([
+    ["100", "100%"],
+    ["100.00", "100%"],
+    ["99.650", "99.65%"],
+    ["99.93055555555556", "99.9306%"],
+    ["0.00", "0%"],
+  ])(
+    "the decimal column's text %p, as servers before #4719 answered it, reads %p",
+    (percent: string, text: string) => {
+      expect(formatRuleUptimePercent(ruleWith(percent))).toBe(text);
+    },
+  );
+
+  test.each([[null], [undefined], [""], ["abc"], ["NaN"]])(
+    "%p is no percentage, and reads as nothing",
+    (percent: string | null | undefined) => {
+      expect(formatRuleUptimePercent(ruleWith(percent))).toBe("");
+    },
+  );
+
+  test("reads the rule a table row holds: the model itself", () => {
+    const rule: StatusPageHistoryChartBarColorRule =
+      new StatusPageHistoryChartBarColorRule();
+    rule.uptimePercentGreaterThanOrEqualTo = 99.93055555555556;
+    rule.barColor = Green;
+
+    expect(formatRuleUptimePercent(rule)).toBe("99.9306%");
   });
 });
 

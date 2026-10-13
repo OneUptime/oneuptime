@@ -34,6 +34,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -178,6 +179,14 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * The run's one message in Slack and Microsoft Teams (OnCallPolicyRunMessage).
+     * It is posted once the run has something to say - its first escalation
+     * rule, or how it ended - and edited after that; this and every later
+     * change to the run only ask for it to be brought up to date.
+     */
+    OnCallPolicyRunMessage.refresh(createdItem.id);
+
     // An archived policy's log says why nobody was paged; nothing follows it.
     if (
       (onCreate.carryForward as { isPolicyArchived?: boolean } | null)
@@ -257,6 +266,7 @@ export class Service extends ProjectReferencesService<Model> {
         const feedInfoInMarkdown: string =
           mdText`**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`.toString();
 
+        // The feed only: Slack and Teams get the run's one message instead.
         if (
           onCallPolicy &&
           onCallPolicy.id &&
@@ -268,9 +278,6 @@ export class Service extends ProjectReferencesService<Model> {
             incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
             displayColor: Yellow500,
             feedInfoInMarkdown: feedInfoInMarkdown,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-            },
           });
         }
 
@@ -457,6 +464,15 @@ export class Service extends ProjectReferencesService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     /*
+     * Every change to a run - its status, the escalation rule it is on, a
+     * repeat, who acknowledged - can change what its Slack / Microsoft Teams
+     * message says (OnCallPolicyRunMessage).
+     */
+    for (const id of updatedItemIds) {
+      OnCallPolicyRunMessage.refresh(id);
+    }
+
+    /*
      * When the status is updated, each execution log the update wrote that
      * an incident, an alert or an episode triggered adds its new status to
      * that record's feed.
@@ -567,6 +583,7 @@ export class Service extends ProjectReferencesService<Model> {
 
  On-call policy **[${onCallPolicy.name?.toString()}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`.toString();
 
+          // The feed only: Slack and Teams get the run's one message instead.
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
             await IncidentFeedService.createIncidentFeedItem({
               incidentId: onCalldutyPolicyExecutionLog.triggeredByIncidentId,
@@ -579,9 +596,6 @@ export class Service extends ProjectReferencesService<Model> {
                 : Blue500,
               moreInformationInMarkdown: moreInformationInMarkdown,
               feedInfoInMarkdown: feedInfoInMarkdown,
-              workspaceNotification: {
-                sendWorkspaceNotification: true,
-              },
             });
           }
 

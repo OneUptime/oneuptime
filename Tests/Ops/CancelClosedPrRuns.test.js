@@ -27,13 +27,17 @@
  *     cancelled); it does not itself run on `closed`; and its name is unique.
  *
  * Groups are evaluated with a small reader of GitHub's expressions that
- * understands context paths and `||`, the only things the groups use. Anything
- * else throws instead of being misread.
+ * understands context paths and `||`, the only things the groups use
+ * (Utils/WorkflowExpression.js, which ReleaseE2ePipeline.test.js reads
+ * terraform-provider-e2e.yml's group with too). Anything else throws instead of
+ * being misread.
  */
 
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+
+const { evaluateExpressions } = require("./Utils/WorkflowExpression");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const WORKFLOWS_DIR = ".github/workflows";
@@ -89,37 +93,9 @@ function concurrencyGroup(workflow) {
   return concurrency ? concurrency.group : undefined;
 }
 
-/**
- * A string with `${{ }}` expressions, evaluated the way GitHub evaluates
- * them, for the two forms concurrency groups here use: a context path
- * (`github.workflow`), and `||` between them, which yields the first truthy
- * operand, else the last one. Anything else throws.
- * @param {string} template - The string as written in the workflow
- * @param {object} context - The contexts, e.g. { github: {...}, matrix: {...} }
- * @returns {string} The evaluated string
- */
-function evaluate(template, context) {
-  return template.replace(/\$\{\{(.*?)\}\}/g, (whole, expression) => {
-    let value;
-    for (const operand of expression.split("||")) {
-      const contextPath = operand.trim();
-      if (!/^[A-Za-z_][\w-]*(\.[A-Za-z_][\w-]*)+$/.test(contextPath)) {
-        throw new Error(
-          `This suite cannot evaluate "${contextPath}" in "${template}": it reads context paths and "||" only`,
-        );
-      }
-      value = contextPath.split(".").reduce((object, key) => {
-        return object === undefined || object === null
-          ? undefined
-          : object[key];
-      }, context);
-      if (value) {
-        break;
-      }
-    }
-    return value === undefined || value === null ? "" : String(value);
-  });
-}
+// A string with `${{ }}` expressions, evaluated the way GitHub evaluates them
+// for context paths and `||`; anything else throws (see the module).
+const evaluate = evaluateExpressions;
 
 // The contexts GitHub gives a workflow run, for the events that matter here.
 function pullRequestContext(workflowName) {

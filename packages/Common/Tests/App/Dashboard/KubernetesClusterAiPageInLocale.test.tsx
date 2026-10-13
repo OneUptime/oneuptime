@@ -74,6 +74,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { toSentenceTerm } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * The cluster's AI agent page in the reader's language, read from the
@@ -213,7 +214,7 @@ function patternIn(code: string, template: string): RegExp {
     wordingIn(code, template)
       .split(/\{\{\w+\}\}/)
       .map((part: string): string => {
-        return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return escapeRegExp(part);
       })
       .join(".+"),
   );

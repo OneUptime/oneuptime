@@ -188,7 +188,7 @@ Monitorer som skapades innan OneUptime ändrade dessa standarder behåller de kr
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Is Online**, **Statuskod för svar** och **Svarstid (i ms)**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Is Online**, **Statuskod för svar**, **Svarstid (i ms)**, **Svarstext**, **Response Header**, **Response Header Value**, **JavaScript Expression** och **Is Request Timeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
 
 | Aggregering | Matchar när |
 | --- | --- |
@@ -197,6 +197,10 @@ Monitorer som skapades innan OneUptime ändrade dessa standarder behåller de kr
 | **Any Value** | Minst en kontroll i fönstret uppfyller villkoret. |
 
 **All Values** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Any Value** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
+
+En body, en header, ett headervärde eller ett uttryck är inte ett tal som OneUptime registrerar. För de filtren och för **Is Request Timeout** registrerar OneUptime därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **All Values** eller **Any Value**. Så tar sig en monitor igenom en omstart. En app som startar kan svara `200` med en tillfällig sida som `Application starting...`; med **All Values** sätter ett filter **Svarstext** som letar efter appens titel monitorn offline först när den tillfälliga sidan har varat hela fönstret.
+
+Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 
 **Om ingen data** avgör vad som händer så länge fönstret inte kan bära kriteriet:
 
@@ -214,6 +218,8 @@ Monitorer som skapades innan OneUptime ändrade dessa standarder behåller de kr
 | Offline när hälsokontrollen rapporterar ett problem | **Svarstext** | **Not Contains** | `"status":"ok"` |
 | Samma sak, läst ur den tolkade JSON:en | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
 | Godta bara `201` från en `POST` | **Statuskod för svar** | **Equal To** | `201` |
+
+För att ta dig igenom en omstart slår du på **Utvärdera dessa kriterier över en tidsperiod** för filtret på svarstexten och väljer **All Values** över 15 minuter.
 
 ## Felsökning
 

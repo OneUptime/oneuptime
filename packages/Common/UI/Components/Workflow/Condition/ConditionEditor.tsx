@@ -112,20 +112,22 @@ export const CHOOSE_FROM_LIST_LABEL: string = translationKey(
   "Choose from the list instead",
 );
 
-const COMPARISON_OPTIONS: Array<DropdownOption | DropdownOptionGroup> =
-  CONDITION_COMPARISON_GROUPS.flatMap(
-    (
-      group: ConditionComparisonGroup,
-    ): Array<DropdownOption | DropdownOptionGroup> => {
-      const options: Array<DropdownOption> = group.ids.map(
-        (id: ConditionComparisonId): DropdownOption => {
-          return { value: id, label: getConditionComparison(id).label };
-        },
-      );
+// The comparison list, grouped as its groups say. Switch / Case uses it too.
+export const CONDITION_COMPARISON_OPTIONS: Array<
+  DropdownOption | DropdownOptionGroup
+> = CONDITION_COMPARISON_GROUPS.flatMap(
+  (
+    group: ConditionComparisonGroup,
+  ): Array<DropdownOption | DropdownOptionGroup> => {
+    const options: Array<DropdownOption> = group.ids.map(
+      (id: ConditionComparisonId): DropdownOption => {
+        return { value: id, label: getConditionComparison(id).label };
+      },
+    );
 
-      return group.title ? [{ label: group.title, options: options }] : options;
-    },
-  );
+    return group.title ? [{ label: group.title, options: options }] : options;
+  },
+);
 
 type CompareWithPlaceholderFunction = (
   translator: Translator,
@@ -136,7 +138,7 @@ type CompareWithPlaceholderFunction = (
  * What Compare with suggests typing, by how it is compared. The examples are
  * values, typed the same in every language - true and false most of all.
  */
-const getCompareWithPlaceholder: CompareWithPlaceholderFunction = (
+export const getCompareWithPlaceholder: CompareWithPlaceholderFunction = (
   translator: Translator,
   type: ConditionValueType,
 ): string => {
@@ -316,7 +318,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
     </div>
   ) : (
     <Dropdown
-      options={COMPARISON_OPTIONS}
+      options={CONDITION_COMPARISON_OPTIONS}
       value={selectedComparison}
       onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
         chooseComparison(Array.isArray(value) ? null : value);

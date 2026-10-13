@@ -182,6 +182,18 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("jsonsubset_test.go", "internal/provider");
     await this.copyStaticFile("rfc3339.go", "internal/provider");
     await this.copyStaticFile("rfc3339_test.go", "internal/provider");
+    /*
+     * numberFromAPI, which every number attribute - of resources and data
+     * sources alike - is read through, and its tests: the shapes the API
+     * answers numbers in, and a create, read, plan and lookup of the
+     * resource issue #4719 was about, through the real protocol server.
+     */
+    await this.copyStaticFile("apinumber.go", "internal/provider");
+    await this.copyStaticFile("apinumber_test.go", "internal/provider");
+    await this.copyStaticFile(
+      "apinumber_roundtrip_test.go",
+      "internal/provider",
+    );
     await this.copyStaticFile("jsonenvelope.go", "internal/provider");
     await this.copyStaticFile("jsonenvelope_test.go", "internal/provider");
     await this.copyStaticFileIfExists("monitorsteps.go", "internal/provider");
@@ -2237,23 +2249,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }`;
 
       case "number":
-        return `if val, ok := ${responseValue}.(float64); ok {
-        ${fieldName} = types.NumberValue(big.NewFloat(val))
-    } else if val, ok := ${responseValue}.(int); ok {
-        ${fieldName} = types.NumberValue(big.NewFloat(float64(val)))
-    } else if val, ok := ${responseValue}.(int64); ok {
-        ${fieldName} = types.NumberValue(big.NewFloat(float64(val)))
-    } else if obj, ok := ${responseValue}.(map[string]interface{}); ok {
-        // Unwrap numeric wrapper objects (e.g. {_type: "Port", value: 443})
-        if val, ok := obj["value"].(float64); ok {
-            ${fieldName} = types.NumberValue(big.NewFloat(val))
-        } else {
-            ${fieldName} = types.NumberNull()
-        }
-    } else {
-        // Missing or unrecognized value: null, never unknown, so apply can complete.
-        ${fieldName} = types.NumberNull()
-    }`;
+        return GoCodeGenerator.generateNumberFromAPI(fieldName, responseValue);
       case "bool":
         if (hasDefault) {
           // For boolean fields with defaults, don't set to null when missing - let the default value be used

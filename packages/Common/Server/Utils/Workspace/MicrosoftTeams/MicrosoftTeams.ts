@@ -23,6 +23,7 @@ import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../WorkspaceBase";
@@ -96,10 +97,18 @@ import MicrosoftTeamsAuthAction, {
 } from "./Actions/Auth";
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
 import {
+  CREATE_INCIDENT_COMMAND,
+  CREATE_MAINTENANCE_COMMAND,
   MicrosoftTeamsActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
   MicrosoftTeamsOnCallDutyActionType,
+  getMicrosoftTeamsActionType,
 } from "./Actions/ActionTypes";
+import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
+import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
+import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
+import { WorkspaceConnectRequestAgainKind } from "../WorkspaceConnectRequest";
+import ProductBrandingText from "../../ProductBrandingText";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
 import MicrosoftTeamsAlertEpisodeActions from "./Actions/AlertEpisode";
 import MicrosoftTeamsIncidentEpisodeActions from "./Actions/IncidentEpisode";
@@ -333,10 +342,6 @@ const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
 
 // Maximum number of pages to fetch when paginating teams
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
-
-// Bot commands that open a form; text after them becomes the form's title.
-const CREATE_INCIDENT_COMMAND: string = "create incident";
-const CREATE_MAINTENANCE_COMMAND: string = "create maintenance";
 
 // How many affected monitors a "show ..." reply names for one item.
 const MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES: number = 10;
@@ -700,7 +705,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    return { actionType: actionType as MicrosoftTeamsActionType, actionValue };
+    // A card's button carries Slack's id for some actions: read as Teams'.
+    return {
+      actionType: getMicrosoftTeamsActionType(actionType),
+      actionValue,
+    };
   }
 
   /**
@@ -1743,6 +1752,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
                 workspaceChannel: channel,
                 adaptiveCard: adaptiveCard,
                 projectId: data.projectId,
+                summary: data.workspaceMessagePayload.text,
               });
             },
           });
@@ -1798,6 +1808,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
                   chatId: chatId,
                   adaptiveCard: adaptiveCard,
                   projectId: data.projectId,
+                  summary: data.workspaceMessagePayload.text,
                 });
               },
             });
@@ -1869,6 +1880,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     workspaceChannel: WorkspaceChannel;
     adaptiveCard: JSONObject;
     projectId: ObjectID;
+    /*
+     * Plain text: what a notification or the activity feed shows of the
+     * card. Without it Teams says only that a card was sent.
+     */
+    summary?: string | undefined;
   }): Promise<WorkspaceThread> {
     if (!data.projectId) {
       throw new BadDataException(
@@ -2051,6 +2067,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: data.adaptiveCard,
           });
+
+          if (data.summary) {
+            message.summary = data.summary;
+          }
 
           const response: ResourceResponse | undefined =
             await context.sendActivity(message);
@@ -2265,6 +2285,210 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         });
       },
     );
+  }
+
+  /*
+   * Posts an adaptive card into a conversation the bot was spoken to in -
+   * a channel post's thread ("<channel>;messageid=<post>"), a group chat or
+   * a personal chat - to answer a press after the fact, where it was made
+   * (MicrosoftTeamsActionAnswer). The serviceUrl is the one that
+   * conversation's activity came from; one that is not a Microsoft host is
+   * refused for the default (MicrosoftTeamsServiceUrl).
+   */
+  @CaptureSpan()
+  public static async sendCardToConversation(data: {
+    conversationId: string;
+    conversationType?: string | undefined;
+    tenantId?: string | undefined;
+    serviceUrl: string;
+    card: JSONObject;
+    summary?: string | undefined;
+  }): Promise<void> {
+    if (!MicrosoftTeamsAppClientId) {
+      throw new BadDataException(
+        "Microsoft Teams App Client ID not configured",
+      );
+    }
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: {
+        id: data.conversationId,
+        isGroup: data.conversationType !== "personal",
+        conversationType: data.conversationType || "channel",
+        tenantId: data.tenantId,
+      } as ConversationReference["conversation"],
+      channelId: "msteams",
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(data.serviceUrl),
+    };
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    await adapter.continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        const message: Partial<Activity> = MessageFactory.attachment({
+          contentType: "application/vnd.microsoft.card.adaptive",
+          content: data.card,
+        });
+
+        if (data.summary) {
+          message.summary = data.summary;
+        }
+
+        await context.sendActivity(message);
+      },
+    );
+  }
+
+  /*
+   * Edits a card the bot posted, in place (Bot Framework updateActivity): the
+   * post keeps its place in the channel or chat, and an edit notifies nobody.
+   *
+   * A post the bot started in a channel is the root of its own thread, and is
+   * addressed as that thread - "<channel id>;messageid=<post id>" - the same
+   * way OneUptime's replies into a thread are (sendTextReplyToChannelThread).
+   * A chat has no threads: the chat itself is the conversation. The
+   * serviceUrl is the one captured when the app was installed in the team or
+   * added to the chat, as for a new post.
+   */
+  @CaptureSpan()
+  public static override async updateMessage(data: {
+    authToken: string;
+    projectId: ObjectID;
+    location: WorkspaceMessageLocation;
+    messageId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    if (!MicrosoftTeamsAppClientId) {
+      throw new BadDataException(
+        "Microsoft Teams App Client ID not configured",
+      );
+    }
+
+    if (!data.location.channelId || !data.messageId) {
+      throw new BadDataException(
+        "A channel or chat and a message id are required to update a Microsoft Teams message",
+      );
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project",
+      );
+    }
+
+    const tenantId: string | undefined = projectAuth.workspaceProjectId;
+
+    if (!tenantId) {
+      throw new BadDataException(
+        "Tenant ID not found in Microsoft Teams integration",
+      );
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    let conversation: ConversationReference["conversation"];
+    let serviceUrl: string;
+
+    if (data.location.isChat) {
+      const chat: MicrosoftTeamsChat | undefined =
+        miscData.availableChats?.[data.location.channelId];
+
+      if (!chat) {
+        throw new BadDataException(
+          "This chat is not connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and try again.",
+        );
+      }
+
+      conversation = {
+        id: chat.id,
+        name: chat.name,
+        isGroup: chat.chatType === "groupChat",
+        conversationType: chat.chatType,
+        tenantId: tenantId,
+      } as ConversationReference["conversation"];
+      serviceUrl = MicrosoftTeamsServiceUrl.resolve(chat.serviceUrl);
+    } else {
+      const installedTeam: MicrosoftTeamsInstalledTeam | undefined = data
+        .location.teamId
+        ? this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+            data.location.teamId
+          ]
+        : undefined;
+
+      conversation = {
+        id: `${data.location.channelId};messageid=${data.messageId}`,
+        isGroup: true,
+        conversationType: "channel",
+        tenantId: tenantId,
+      } as ConversationReference["conversation"];
+      serviceUrl = MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl);
+    }
+
+    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
+      messageBlocks: data.messageBlocks,
+    });
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: conversation,
+      channelId: "msteams",
+      serviceUrl: serviceUrl,
+    };
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    await adapter.continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        const update: Partial<Activity> = MessageFactory.attachment({
+          contentType: "application/vnd.microsoft.card.adaptive",
+          content: adaptiveCard,
+        });
+
+        update.id = data.messageId;
+
+        if (data.text) {
+          update.summary = data.text;
+        }
+
+        await context.updateActivity(update);
+      },
+    );
+  }
+
+  /*
+   * The Bot Connector answers 404 (NotFound) when the activity is no longer
+   * there - somebody deleted the post.
+   */
+  public static override isMessageGoneError(error: unknown): boolean {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    if (statusCode === 404) {
+      return true;
+    }
+
+    const code: unknown = (error as { code?: unknown } | null)?.code;
+
+    return code === "NotFound" || code === "ActivityNotFoundInConversation";
   }
 
   /*
@@ -2538,6 +2762,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     chatId: string;
     projectId: ObjectID;
     adaptiveCard: JSONObject;
+    // What a notification shows of the card (sendAdaptiveCardToChannel).
+    summary?: string | undefined;
   }): Promise<WorkspaceThread> {
     logger.debug("sendAdaptiveCardToChat called with data:");
     logger.debug(`Chat ID: ${data.chatId}`);
@@ -2626,6 +2852,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             contentType: "application/vnd.microsoft.card.adaptive",
             content: data.adaptiveCard,
           });
+
+          if (data.summary) {
+            message.summary = data.summary;
+          }
 
           const response: ResourceResponse | undefined =
             await context.sendActivity(message);
@@ -3129,11 +3359,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): JSONObject {
     // If URL is present, render as link; otherwise use Action.Submit to post back action/value
     if (data.payloadButtonBlock.url) {
-      return {
+      const openUrl: JSONObject = {
         type: "Action.OpenUrl",
         title: data.payloadButtonBlock.title,
         url: data.payloadButtonBlock.url.toString(),
       };
+
+      if (data.payloadButtonBlock.isPrimary) {
+        openUrl["style"] = "positive";
+      }
+
+      return openUrl;
     }
 
     return {
@@ -3938,12 +4174,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           workspaceUserId: teamsUserId,
         },
       );
-      await turnContext.sendActivity(
-        await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
-          projectId: projectId,
-          purpose: "ask OneUptime questions from Microsoft Teams",
-        }),
-      );
+
+      /*
+       * Asked to connect, mentioning them, with a Connect button - and to
+       * ask again once they have: the answer is read with their permissions.
+       */
+      await MicrosoftTeamsConnectPrompt.prompt({
+        turnContext: turnContext,
+        projectId: projectId,
+        description: {
+          purpose: `ask ${ProductBrandingText.getProductName()} AI`,
+          again: { kind: WorkspaceConnectRequestAgainKind.Question },
+        },
+      });
       return;
     }
 
@@ -4804,7 +5047,15 @@ All monitoring checks are passing normally.`;
         await MicrosoftTeamsScheduledMaintenanceActions.handleBotScheduledMaintenanceAction(
           actionType as MicrosoftTeamsScheduledMaintenanceActionType,
           data.turnContext,
-          value,
+          /*
+           * A form this bot sent names the event's id; a button of the
+           * event's own card carries it as its value - the card is built
+           * from the same blocks as the Slack message - so it is named here
+           * too, or every button of that card was refused for want of it.
+           */
+          actionValue && !value["scheduledMaintenanceId"]
+            ? { ...value, scheduledMaintenanceId: actionValue }
+            : value,
           {
             userId: oneUptimeUserId.toString(),
             projectId,
@@ -4828,6 +5079,20 @@ All monitoring checks are passing normally.`;
         });
         return;
       }
+
+      /*
+       * A button no handler knows - from a card of an older OneUptime - is
+       * answered too, rather than met with nothing at all.
+       */
+      logger.debug("Bot invoke activity for an action no handler takes", {
+        actionType: actionType,
+        projectId: projectId.toString(),
+      });
+
+      await MicrosoftTeamsActionAnswer.reply({
+        turnContext: data.turnContext,
+        answer: this.getUnknownButtonAnswer(),
+      });
     } catch (error) {
       /*
        * Every reply below is sent best-effort: a reply that fails here must
@@ -4835,7 +5100,12 @@ All monitoring checks are passing normally.`;
        * delivers the action again (issue #4111).
        */
 
-      // The account is not connected: say where to connect it.
+      /*
+       * The account is not connected: asked to connect it, in the
+       * conversation it pressed in, mentioning them, with a Connect button
+       * that connects it and then finishes the press
+       * (MicrosoftTeamsConnectPrompt).
+       */
       if (
         error instanceof MicrosoftTeamsAccountNotLinkedException &&
         projectId
@@ -4846,13 +5116,14 @@ All monitoring checks are passing normally.`;
             actionType: actionType,
           },
         );
-        await MicrosoftTeamsReplies.sendBestEffort(
-          data.turnContext,
-          await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
-            projectId: projectId,
-            purpose: "use OneUptime actions in Microsoft Teams",
+        await MicrosoftTeamsConnectPrompt.prompt({
+          turnContext: data.turnContext,
+          projectId: projectId,
+          description: MicrosoftTeamsConnectPrompt.describe({
+            actionType: actionType,
+            actionValue: actionValue,
           }),
-        );
+        });
         return;
       }
 
@@ -4862,10 +5133,13 @@ All monitoring checks are passing normally.`;
           actionType: actionType,
         });
         // Placed as text: a refusal can name a label, a record or a person.
-        await MicrosoftTeamsReplies.sendBestEffort(
-          data.turnContext,
-          mdText`${error.message}`.toString(),
-        );
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: data.turnContext,
+          answer: {
+            markdown: mdText`${error.message}`.toString(),
+            text: error.message,
+          },
+        });
         return;
       }
 
@@ -4888,6 +5162,21 @@ All monitoring checks are passing normally.`;
           : "Sorry, that action failed. Please try again later.",
       );
     }
+  }
+
+  /*
+   * What a button no handler knows is answered with: a button of a card an
+   * older OneUptime posted, which no longer does anything. Where to go
+   * instead, not what the server could not work out.
+   */
+  public static getUnknownButtonAnswer(): WorkspaceAnswer {
+    const productName: string = ProductBrandingText.getProductName();
+
+    return {
+      markdown:
+        mdText`This button no longer works. Open the record in ${productName} instead.`.toString(),
+      text: "This button no longer works",
+    };
   }
 
   @CaptureSpan()

@@ -19,8 +19,14 @@ import {
 import * as React from "react";
 import StartPacketCaptureModal from "../../../../App/FeatureSet/Dashboard/src/Components/PacketCapture/StartPacketCaptureModal";
 import PacketCapture from "../../../Models/DatabaseModels/PacketCapture";
+import HTTPMethod from "../../../Types/API/HTTPMethod";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  DASHBOARD_START_COLUMNS,
+  dashboardStartBody,
+} from "../../Helpers/PacketCaptureStartBody";
 import PacketCaptureCapabilityUtil, {
   PacketCaptureCapability,
 } from "../../../Types/PacketCapture/PacketCaptureCapability";
@@ -38,6 +44,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const PROBE_ID: string = "11111111-1111-4111-8111-111111111111";
 const DEVICE_ID: string = "22222222-2222-4222-8222-222222222222";
+
+// The create route of packet captures, under the API's base path.
+const PACKET_CAPTURE_CREATE_PATH: RegExp = /\/packet-capture$/;
 
 function capability(overrides: JSONObject = {}): PacketCaptureCapability {
   return PacketCaptureCapabilityUtil.sanitize({
@@ -282,6 +291,36 @@ describe("starting a capture", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  /*
+   * The customer's screenshot: the red refusal drawn flush on the yellow
+   * notice, two banners reading as one. It is the dialog's own alert, above
+   * the notice, with the gap the dialog's blocks keep (ModalBody).
+   */
+  test("a refusal is the dialog's alert, above the notice and apart from it", async () => {
+    const refusal: string =
+      "User is not allowed to create on bpfFilter column of Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture.";
+
+    createMock.mockRejectedValue(new Error(refusal) as never);
+
+    renderModal();
+
+    await submit();
+
+    const alert: HTMLElement =
+      await within(modal()).findByTestId("modal-error");
+    const notice: HTMLElement = within(modal()).getByTestId(
+      "packet-capture-sensitive-data",
+    );
+
+    expect(alert).toHaveTextContent(refusal);
+    expect(alert).toHaveAttribute("role", "alert");
+    expect(alert).toHaveClass("mb-4");
+    expect(
+      alert.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(alert.contains(notice)).toBe(false);
+  });
+
   test("Cancel closes the form and starts nothing", () => {
     renderModal();
 
@@ -289,5 +328,134 @@ describe("starting a capture", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(createMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * What Start Capture puts on the wire, with ModelAPI.create running for real
+ * and the request caught where it leaves (API.fetch). It must be the body
+ * Tests/Helpers/PacketCaptureStartBody builds - the one the server suite
+ * (PacketCaptureCrudAsMember) sends to the real create route as each member
+ * the docs name. A customer's every start was refused on a column the form
+ * never sent; this pins what the form does send, so a column it starts
+ * sending is one the server suite has to take from a member.
+ */
+describe("what Start Capture sends to the server", () => {
+  let fetchMock: MockFunction;
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.spyOn(API, "getFriendlyMessage").mockImplementation((err: unknown) => {
+      return (err as Error).message;
+    });
+
+    fetchMock = getJestMockFunction();
+    fetchMock.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { _id: PROBE_ID }, {}) as never,
+    );
+    jest
+      .spyOn(API, "fetch")
+      .mockImplementation(fetchMock as unknown as typeof API.fetch);
+  });
+
+  function request(): {
+    method: HTTPMethod;
+    url: { toString: () => string };
+    data: JSONObject;
+  } {
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    return fetchMock.mock.calls[0]![0] as {
+      method: HTTPMethod;
+      url: { toString: () => string };
+      data: JSONObject;
+    };
+  }
+
+  test("one POST to the packet capture create route, with the body the server suite starts captures with", async () => {
+    renderModal({ defaultHost: "10.0.0.9" });
+
+    await submit();
+
+    await waitFor(() => {
+      expect(onStarted).toHaveBeenCalledTimes(1);
+    });
+
+    expect(request().method).toBe(HTTPMethod.POST);
+    expect(new URL(request().url.toString()).pathname).toMatch(
+      PACKET_CAPTURE_CREATE_PATH,
+    );
+    expect(request().data).toEqual(
+      dashboardStartBody({
+        probeId: new ObjectID(PROBE_ID),
+        interfaceName: "any",
+        bpfFilter: "host 10.0.0.9",
+        maxDurationInSeconds: 60,
+        maxPackets: 100000,
+        maxFileSizeInMB: 10,
+      }),
+    );
+  });
+
+  test("from a device's page, the same body with the device", async () => {
+    renderModal({
+      defaultHost: "10.0.0.9",
+      networkDeviceId: new ObjectID(DEVICE_ID),
+    });
+
+    await submit();
+
+    await waitFor(() => {
+      expect(onStarted).toHaveBeenCalledTimes(1);
+    });
+
+    expect(request().data).toEqual(
+      dashboardStartBody({
+        probeId: new ObjectID(PROBE_ID),
+        networkDeviceId: new ObjectID(DEVICE_ID),
+        interfaceName: "any",
+        bpfFilter: "host 10.0.0.9",
+        maxDurationInSeconds: 60,
+        maxPackets: 100000,
+        maxFileSizeInMB: 10,
+      }),
+    );
+  });
+
+  test("it never sends a column the server writes: the file, the status, the run's result", async () => {
+    renderModal({
+      defaultHost: "10.0.0.9",
+      networkDeviceId: new ObjectID(DEVICE_ID),
+    });
+
+    await submit();
+
+    await waitFor(() => {
+      expect(onStarted).toHaveBeenCalledTimes(1);
+    });
+
+    const sent: Array<string> = Object.keys(
+      request().data["data"] as JSONObject,
+    );
+
+    for (const column of sent) {
+      expect([column, DASHBOARD_START_COLUMNS.includes(column)]).toEqual([
+        column,
+        true,
+      ]);
+    }
+
+    for (const serverColumn of [
+      "fileId",
+      "file",
+      "status",
+      "name",
+      "statusMessage",
+      "packetCount",
+      "projectId",
+      "createdByUserId",
+    ]) {
+      expect(sent).not.toContain(serverColumn);
+    }
   });
 });

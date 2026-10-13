@@ -255,7 +255,7 @@ describe.each(KINDS)("$name's episode", (kind: Kind) => {
         expect(refusal).toBeInstanceOf(BadDataException);
         expect((refusal as Error).message).toMatch(
           new RegExp(
-            `^User is not allowed to create on (${kind.idColumn}|${kind.relation}) column of ${kind.name}$`,
+            `^User is not allowed to create on (${kind.idColumn}|${kind.relation}) column of ${kind.name}\\. No permission allows it: the column is set by the server, not by a request\\.$`,
           ),
         );
       }
@@ -288,7 +288,7 @@ describe.each(KINDS)("$name's episode", (kind: Kind) => {
         expect(refusal).toBeInstanceOf(BadDataException);
         expect((refusal as Error).message).toMatch(
           new RegExp(
-            `^User is not allowed to update on (${kind.idColumn}|${kind.relation}) column of ${kind.name}$`,
+            `^User is not allowed to update on (${kind.idColumn}|${kind.relation}) column of ${kind.name}\\. No permission allows it: the column is changed by the server, not by a request\\.$`,
           ),
         );
       }

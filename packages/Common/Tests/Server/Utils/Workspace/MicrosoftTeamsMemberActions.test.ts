@@ -47,6 +47,11 @@ import ScheduledMaintenancePublicNoteService from "../../../../Server/Services/S
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../../../Server/Services/ScheduledMaintenanceStateTimelineService";
+import UserService from "../../../../Server/Services/UserService";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
+import User from "../../../../Models/DatabaseModels/User";
+import URL from "../../../../Types/API/URL";
+import Name from "../../../../Types/Name";
 import {
   MicrosoftTeamsAlertActionType,
   MicrosoftTeamsAlertEpisodeActionType,
@@ -658,6 +663,68 @@ function repliesText(turn: FakeTurn): Array<string> {
   });
 }
 
+/*
+ * The text of every answer card a press was answered with
+ * (MicrosoftTeamsActionAnswer): one text block each.
+ */
+function answerTexts(turn: FakeTurn): Array<string> {
+  return turn.replies.map((reply: unknown): string => {
+    const card: JSONObject = (reply as { attachments: Array<JSONObject> })
+      .attachments[0]!["content"] as JSONObject;
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+
+    expect(body).toHaveLength(1);
+
+    return body[0]!["text"] as string;
+  });
+}
+
+const DASHBOARD_URL: string = "https://oneuptime.test/dashboard";
+
+// Who got there first, in a press that comes too late.
+const SIMON: ObjectID = ObjectID.generate();
+const ACKNOWLEDGED_AT: string = "2026-10-08T18:07:00Z";
+
+/*
+ * What an answer to a press that comes too late reads, besides the record:
+ * the record's state timeline (who moved it, and when), that person's name,
+ * and the dashboard address its link starts from.
+ */
+function stubLateAnswerReads(data: {
+  timelineService: unknown;
+  rows: Array<Record<string, unknown>>;
+}): void {
+  (
+    jest.spyOn(
+      data.timelineService as { findBy: () => Promise<unknown> },
+      "findBy",
+    ) as AnySpy
+  ).mockResolvedValue(data.rows);
+
+  const simon: User = new User();
+  simon.name = new Name("Simon Lee");
+
+  (jest.spyOn(UserService, "findOneBy") as AnySpy).mockImplementation(
+    async (findBy: { query: { _id: ObjectID } }): Promise<User | null> => {
+      return findBy.query._id.toString() === SIMON.toString() ? simon : null;
+    },
+  );
+
+  jest
+    .spyOn(DatabaseConfig, "getDashboardUrl")
+    .mockResolvedValue(URL.fromString(DASHBOARD_URL));
+}
+
+// "Incident Episode", as an answer names the record.
+function titleOf(noun: string): string {
+  return noun
+    .split(" ")
+    .map((word: string): string => {
+      return word.charAt(0).toUpperCase() + word.substring(1);
+    })
+    .join(" ");
+}
+
 describe.each(TEAMS_KINDS)(
   "Microsoft Teams $name card actions",
   (kind: TeamsKind): void => {
@@ -823,7 +890,12 @@ describe.each(TEAMS_KINDS)(
       },
     );
 
-    test(`a ${kind.noun} acknowledged already is not acknowledged again`, async (): Promise<void> => {
+    /*
+     * Customer feedback #1: "you cannot acknowledge the Incident INC-2. It
+     * has already been acknowledged." - an error, naming nobody. A press
+     * that comes too late is news: who got there first, and when.
+     */
+    test(`a ${kind.noun} acknowledged already is not acknowledged again: the member is told who acknowledged it, and when`, async (): Promise<void> => {
       const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
       const states: ProjectStates = kind.stubStates();
       stubRecord({
@@ -833,20 +905,48 @@ describe.each(TEAMS_KINDS)(
         currentStateId: states.acknowledged,
       });
       const createSpy: AnySpy = stubCreate(kind.timelineService);
+      stubLateAnswerReads({
+        timelineService: kind.timelineService,
+        rows: [
+          {
+            [kind.timelineStateColumn]: states.created,
+            startsAt: new Date("2026-10-08T18:00:00Z"),
+          },
+          {
+            [kind.timelineStateColumn]: states.acknowledged,
+            startsAt: new Date(ACKNOWLEDGED_AT),
+            createdByUserId: SIMON,
+          },
+        ],
+      });
+      const turn: FakeTurn = createTurn();
 
-      await expect(
-        kind.handle({
-          actionType: kind.ack.actionType,
-          actionValue: ObjectID.generate().toString(),
-          value: {},
-          props: props,
-          turnContext: createTurn().turnContext,
-        }),
-      ).rejects.toThrow(
-        new BadDataException(`${kind.subject} is already acknowledged.`),
-      );
+      await kind.handle({
+        actionType: kind.ack.actionType,
+        actionValue: ObjectID.generate().toString(),
+        value: {},
+        props: props,
+        turnContext: turn.turnContext,
+      });
 
       expect(createSpy).not.toHaveBeenCalled();
+
+      const answers: Array<string> = answerTexts(turn);
+
+      expect(answers).toHaveLength(1);
+      // The record, linked in OneUptime ...
+      expect(
+        answers[0]!.startsWith(
+          `✅ **[${titleOf(kind.noun)}](${DASHBOARD_URL}/${projectId.toString()}/`,
+        ),
+      ).toBe(true);
+      // ... then who acknowledged it, and when, in each reader's own time.
+      expect(
+        answers[0]!.endsWith(
+          `)** was already acknowledged by **Simon Lee** at {{TIME(${ACKNOWLEDGED_AT})}}.`,
+        ),
+      ).toBe(true);
+      expect(answers[0]!.toLowerCase()).not.toContain("unfortunately");
     });
 
     describe("Change State", (): void => {
@@ -1453,11 +1553,25 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     expect(repliesText(turn)).toEqual(["ScheduledMaintenance not found"]);
   });
 
-  test("a refusal from the write itself is told to the member", async (): Promise<void> => {
-    stubMaintenance(true, "completed");
+  test("Mark as Complete on an event that is complete: who completed it, and when, and nothing is written", async (): Promise<void> => {
+    const { states } = stubMaintenance(true, "completed");
     const createSpy: AnySpy = stubCreate(
       ScheduledMaintenanceStateTimelineService,
     );
+    stubLateAnswerReads({
+      timelineService: ScheduledMaintenanceStateTimelineService,
+      rows: [
+        {
+          scheduledMaintenanceStateId: states.ongoing,
+          startsAt: new Date("2026-10-08T17:00:00Z"),
+        },
+        {
+          scheduledMaintenanceStateId: states.completed,
+          startsAt: new Date(ACKNOWLEDGED_AT),
+          createdByUserId: SIMON,
+        },
+      ],
+    });
 
     const turn: FakeTurn = await press({
       actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
@@ -1466,9 +1580,20 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     });
 
     expect(createSpy).not.toHaveBeenCalled();
-    expect(repliesText(turn)).toEqual([
-      "Sorry, that action failed: Scheduled maintenance event is already complete.",
-    ]);
+
+    const answers: Array<string> = answerTexts(turn);
+
+    expect(answers).toHaveLength(1);
+    expect(
+      answers[0]!.startsWith(
+        `✅ **[Scheduled Maintenance](${DASHBOARD_URL}/${projectId.toString()}/`,
+      ),
+    ).toBe(true);
+    expect(
+      answers[0]!.endsWith(
+        `)** was already completed by **Simon Lee** at {{TIME(${ACKNOWLEDGED_AT})}}.`,
+      ),
+    ).toBe(true);
   });
 
   test("a refusal naming something with Markdown in it is told as text", async (): Promise<void> => {
@@ -1494,15 +1619,15 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     {
       label: "ongoing",
       current: "ongoing" as const,
-      answer: "Scheduled maintenance event is already ongoing.",
+      answer: "was already marked as ongoing",
     },
     {
       label: "over",
       current: "completed" as const,
-      answer: "Scheduled maintenance event is already complete.",
+      answer: "was already completed",
     },
   ])(
-    "Mark as Ongoing on an event that is $label is refused with what it is",
+    "Mark as Ongoing on an event that is $label: told what it is, by whom and when, and nothing is written",
     async ({
       current,
       answer,
@@ -1510,10 +1635,20 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       current: "ongoing" | "completed";
       answer: string;
     }): Promise<void> => {
-      stubMaintenance(true, current);
+      const { states } = stubMaintenance(true, current);
       const createSpy: AnySpy = stubCreate(
         ScheduledMaintenanceStateTimelineService,
       );
+      stubLateAnswerReads({
+        timelineService: ScheduledMaintenanceStateTimelineService,
+        rows: [
+          {
+            scheduledMaintenanceStateId: states[current],
+            startsAt: new Date(ACKNOWLEDGED_AT),
+            createdByUserId: SIMON,
+          },
+        ],
+      });
 
       const turn: FakeTurn = await press({
         actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
@@ -1522,9 +1657,15 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
       });
 
       expect(createSpy).not.toHaveBeenCalled();
-      expect(repliesText(turn)).toEqual([
-        `Sorry, that action failed: ${answer}`,
-      ]);
+
+      const answers: Array<string> = answerTexts(turn);
+
+      expect(answers).toHaveLength(1);
+      expect(
+        answers[0]!.endsWith(
+          `)** ${answer} by **Simon Lee** at {{TIME(${ACKNOWLEDGED_AT})}}.`,
+        ),
+      ).toBe(true);
     },
   );
 

@@ -35,7 +35,7 @@ Båda skickar samma data. Du kan byta en vCenter från den ena till den andra n�
 ## Innan du börjar
 
 - **En sond som når vCenter på TCP 443.** Det är oftast en [anpassad sond](/docs/probe/custom-probe) i vCenters nätverk. På OneUptime Cloud får de delade sonderna aldrig ett vCenter-lösenord, så lägg till en egen sond. På en egen driftsatt instans kan även instansens egna sonder samla in.
-- **En vSphere-användare med rollen Read-Only** på det översta vCenter-objektet, med **Propagate to children** markerat. Följ [Skapa den skrivskyddade vSphere-användaren](/docs/telemetry/vmware#create-the-read-only-vsphere-user): kontot är detsamma som agenten använder.
+- **En vSphere-användare med rollen Read-Only** på det översta vCenter-objektet, med **Propagate to children** markerat. Följ [Skapa den skrivskyddade vSphere-användaren](/docs/telemetry/vmware#skapa-den-skrivskyddade-vsphere-användaren): kontot är detsamma som agenten använder.
 
 > [!IMPORTANT]
 > Utan **Propagate to children** loggar användaren in men ser ingenting, och sonden rapporterar att kontot inte kan läsa vCenters inventarie.

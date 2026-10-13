@@ -4,6 +4,7 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * SendShiftReminders — the five-minute cron behind "your on-call shift on
@@ -120,10 +121,6 @@ function moduleSpecifierFor(fromDir: string, filePath: string): string {
   return relative.startsWith(".") ? relative : "./" + relative;
 }
 
-function escapeForRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function readSource(filePath: string): string {
   return fs.readFileSync(filePath, { encoding: "utf-8" });
 }
@@ -152,7 +149,7 @@ describe("SendShiftReminders - the job is wired into the worker at all", () => {
     expect(specifier).toBe("./Jobs/OnCallDutySchedule/SendShiftReminders");
 
     const sideEffectImport: RegExp = new RegExp(
-      `^\\s*import\\s+["']${escapeForRegExp(specifier)}["']\\s*;?\\s*$`,
+      `^\\s*import\\s+["']${escapeRegExp(specifier)}["']\\s*;?\\s*$`,
       "m",
     );
 

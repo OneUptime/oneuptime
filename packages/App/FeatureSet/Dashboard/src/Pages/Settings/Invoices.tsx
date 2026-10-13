@@ -34,6 +34,7 @@ import {
   getBillingActionLockedReason,
   getPayInvoiceGate,
 } from "../../Components/Billing/BillingActionGates";
+import { formatInvoiceAmount } from "../../Components/Billing/InvoiceAmount";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import { PaymentIntentResult, Stripe, StripeError } from "@stripe/stripe-js";
 /*
@@ -358,11 +359,12 @@ const Settings: FunctionComponent<ComponentProps> = (
 
               getElement: (item: BillingInvoice) => {
                 return (
-                  <span>{`${(item["amount"] as number) / 100} ${item[
-                    "currencyCode"
-                  ]
-                    ?.toString()
-                    .toUpperCase()}`}</span>
+                  <span>
+                    {formatInvoiceAmount({
+                      amount: item.amount,
+                      currencyCode: item.currencyCode,
+                    })}
+                  </span>
                 );
               },
             },

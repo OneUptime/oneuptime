@@ -18,6 +18,7 @@ import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProj
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import Model from "../../Models/DatabaseModels/UserSlack";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -148,7 +149,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!userAuth || !userAuth.workspaceUserId) {
       throw new BadDataException(
-        "Your Slack account is not connected to OneUptime for this project. Please go to User Settings > Slack Integration and connect your Slack account first.",
+        `Your Slack account is not connected to ${ProductBrandingText.getProductName()} in this project yet. Connect it under User Settings > Workspace > Slack, then add it here.`,
       );
     }
 

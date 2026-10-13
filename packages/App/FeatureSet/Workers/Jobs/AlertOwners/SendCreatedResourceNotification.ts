@@ -475,8 +475,12 @@ RunCron(
         displayColor: Yellow500,
         feedInfoInMarkdown: alertFeedText,
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * alert's creation, which the channel was told of itself.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

@@ -139,9 +139,15 @@ import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
+import ChannelMembersNotAddedNotice, {
+  ChannelMembersNotAdded,
+} from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import {
+  MessageBlocksByWorkspaceType,
+  WorkspaceChannelsCreated,
+} from "./WorkspaceNotificationRuleService";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
@@ -3379,6 +3385,14 @@ export class Service extends ProjectReferencesService<Model> {
     let aiInvestigationEnqueued: boolean = false;
 
     /*
+     * Who could not be added to the incident's new Slack channels: set by
+     * the workspace step, told in those channels right after "Incident
+     * Created" (ChannelMembersNotAddedNotice), so a channel opens on the
+     * incident rather than on who is missing from it.
+     */
+    let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
+
+    /*
      * Apply privacy rules BEFORE workspace operations so the workspace
      * channel is created with the correct privacy setting. This may set
      * createdItem.isPrivate=true in memory. Kept as its own promise (it never
@@ -3414,9 +3428,8 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id && isOngoing) {
-            return await this.handleIncidentWorkspaceOperationsAsync(
-              createdItem,
-            );
+            membersNotAddedToNewChannels =
+              await this.handleIncidentWorkspaceOperationsAsync(createdItem);
           }
           return Promise.resolve();
         } catch (error) {
@@ -3445,6 +3458,13 @@ export class Service extends ProjectReferencesService<Model> {
           );
           return Promise.resolve();
         }
+      })
+      .then(async () => {
+        // Under "Incident Created": who could not be added to the new channels.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
       })
       .then(() => {
         /*
@@ -4148,10 +4168,15 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Creates the incident's own channels and adds its people to them. Hands
+   * back who could not be added, for the channels to be told after
+   * "Incident Created".
+   */
   @CaptureSpan()
   private async handleIncidentWorkspaceOperationsAsync(
     createdItem: Model,
-  ): Promise<void> {
+  ): Promise<Array<ChannelMembersNotAdded>> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
@@ -4160,9 +4185,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       // send message to workspaces - slack, teams, etc.
-      const workspaceResult: {
-        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-      } | null =
+      const workspaceResult: WorkspaceChannelsCreated | null =
         await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
           projectId: createdItem.projectId,
           incidentId: createdItem.id,
@@ -4188,6 +4211,8 @@ export class Service extends ProjectReferencesService<Model> {
           },
         });
       }
+
+      return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(
         `Error in handleIncidentWorkspaceOperationsAsync: ${error}`,

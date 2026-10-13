@@ -357,7 +357,12 @@ describe("ProjectService.changePlan", () => {
       expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(runningTrialEndsAt);
     });
 
-    it("should mark the trial as over when there is none on either side", async () => {
+    it("should leave the trial column alone when there is none on either side", async () => {
+      /*
+       * A project created on Free never had a trial. Stamping the moment of
+       * the change on it made the Admin Dashboard show a trial that ended at
+       * the upgrade - which read as a trial the upgrade cut short.
+       */
       const spies: ChangePlanSpies = setup({
         project: fakeProject({ trialEndsAt: null }),
         billingTrialEndsAt: undefined,
@@ -368,10 +373,115 @@ describe("ProjectService.changePlan", () => {
         paymentProviderPlanId: NEW_PLAN_ID,
       });
 
+      expect(getUpdatedData(spies)).not.toHaveProperty("trialEndsAt");
+    });
+
+    it("should leave a lapsed trial date as it was", async () => {
+      /*
+       * The payment provider drops a lapsed trial, so it reports none. The
+       * date the trial really ended on is what the row keeps, not the moment
+       * of the change.
+       */
+      const lapsed: Date = OneUptimeDate.addRemoveDays(
+        OneUptimeDate.getCurrentDate(),
+        -5,
+      );
+      const spies: ChangePlanSpies = setup({
+        project: fakeProject({ trialEndsAt: lapsed }),
+        billingTrialEndsAt: undefined,
+      });
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(lapsed);
+    });
+
+    it("should leave a lapsed trial date alone when null is explicitly supplied", async () => {
+      const lapsed: Date = OneUptimeDate.addRemoveDays(
+        OneUptimeDate.getCurrentDate(),
+        -5,
+      );
+      const spies: ChangePlanSpies = setup({
+        project: fakeProject({ trialEndsAt: lapsed }),
+        billingTrialEndsAt: undefined,
+      });
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+        endTrialAt: null,
+      });
+
+      expect(getUpdatedData(spies)).not.toHaveProperty("trialEndsAt");
+    });
+
+    it("should close a trial the payment provider no longer has", async () => {
+      /*
+       * null ends the trial, and the payment provider reports none left. A
+       * row still claiming the old future date would show a trial Stripe
+       * does not have, so it is closed at the moment of the change.
+       */
+      const spies: ChangePlanSpies = setup({
+        project: fakeProject({
+          trialEndsAt: OneUptimeDate.getSomeDaysAfter(9),
+        }),
+        billingTrialEndsAt: undefined,
+      });
+
+      const before: number = Date.now();
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+        endTrialAt: null,
+      });
+
+      const after: number = Date.now();
+
       const written: Date = getUpdatedData(spies)["trialEndsAt"] as Date;
 
       expect(written).toBeInstanceOf(Date);
-      expect(OneUptimeDate.isInTheFuture(written)).toBe(false);
+      expect(written.getTime()).toBeGreaterThanOrEqual(before);
+      expect(written.getTime()).toBeLessThanOrEqual(after);
+    });
+
+    it("should still write a running trial", async () => {
+      const runningTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(9);
+      const spies: ChangePlanSpies = setup({
+        project: fakeProject({ trialEndsAt: runningTrialEndsAt }),
+        billingTrialEndsAt: runningTrialEndsAt,
+      });
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(runningTrialEndsAt);
+    });
+
+    it("should write the running trial the payment provider kept, even when null is explicitly supplied", async () => {
+      /*
+       * A plan change never shortens a trial, so the payment provider keeps
+       * the one its subscription carries. That trial is the one recorded -
+       * the row is not closed while Stripe is still trialing.
+       */
+      const trialFromBilling: Date = OneUptimeDate.getSomeDaysAfter(9);
+      const spies: ChangePlanSpies = setup({
+        project: fakeProject({ trialEndsAt: trialFromBilling }),
+        billingTrialEndsAt: trialFromBilling,
+      });
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+        endTrialAt: null,
+      });
+
+      expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(trialFromBilling);
     });
 
     it("should record the new subscriptions, plan and seat count", async () => {

@@ -1258,6 +1258,85 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       expect(queueArgs.returnValues).toEqual({ hello: "world" });
     });
 
+    /*
+     * "Why do I have to enable a workflow in order to test run it?" A run
+     * from the Builder is recorded as the signed-in caller's, and that is
+     * what lets it go ahead while the workflow is off, as a test run
+     * (QueueWorkflow). The id is the one the caller was checked as, never
+     * one the request names.
+     */
+    test("records the run as the signed-in caller's", async () => {
+      mockProps(editorProps());
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+        body: { data: {} },
+      });
+
+      const queueArgs: { startedByUserId?: ObjectID } = addWorkflowToQueueSpy
+        .mock.calls[0]![0] as { startedByUserId?: ObjectID };
+
+      expect(queueArgs.startedByUserId?.toString()).toBe(
+        callerUserId.toString(),
+      );
+    });
+
+    test("a Workflow Member's run is recorded as theirs", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.WorkflowMember],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunRoute({
+        method: "GET",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(
+        (
+          addWorkflowToQueueSpy.mock.calls[0]![0] as {
+            startedByUserId?: ObjectID;
+          }
+        ).startedByUserId?.toString(),
+      ).toBe(callerUserId.toString());
+    });
+
+    test("a body that names someone else changes neither who started the run nor its values' shape", async () => {
+      const someoneElse: ObjectID = ObjectID.generate();
+
+      mockProps(editorProps());
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+        body: {
+          data: { ticket: "INC-1" },
+          startedByUserId: someoneElse.toString(),
+          isTestRun: true,
+        },
+      });
+
+      const queueArgs: Record<string, unknown> = addWorkflowToQueueSpy.mock
+        .calls[0]![0] as Record<string, unknown>;
+
+      expect(String(queueArgs["startedByUserId"])).toBe(
+        callerUserId.toString(),
+      );
+      expect(queueArgs["returnValues"]).toEqual({ ticket: "INC-1" });
+      expect(Object.keys(queueArgs).sort()).toEqual([
+        "returnValues",
+        "startedByUserId",
+        "workflowId",
+      ]);
+    });
+
     test("responds with the Scheduled status", async () => {
       mockProps(editorProps());
       mockWorkflowInProject(callerProjectId);

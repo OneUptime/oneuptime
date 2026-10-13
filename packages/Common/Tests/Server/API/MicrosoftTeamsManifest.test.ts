@@ -4,6 +4,7 @@ import path from "path";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import MicrosoftTeamsAPI from "../../../Server/API/MicrosoftTeamsAPI";
 import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 const MOCK_TEAMS_CLIENT_ID: string = "11111111-2222-3333-4444-555555555555";
 
@@ -71,12 +72,6 @@ type ReadDocFunction = (filePath: string) => string;
 
 const readDoc: ReadDocFunction = (filePath: string): string => {
   return fs.readFileSync(filePath, "utf8");
-};
-
-type EscapeRegExpFunction = (text: string) => string;
-
-const escapeRegExp: EscapeRegExpFunction = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /*

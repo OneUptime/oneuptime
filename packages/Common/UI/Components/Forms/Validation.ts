@@ -155,7 +155,13 @@ export default class Validation {
     if (content && field.validation) {
       if (typeof content === "string") {
         try {
-          content = parseInt(content);
+          /*
+           * parseFloat, not parseInt: a decimal is judged as the number it
+           * is. parseInt read "100.5" as 100, so a percentage capped at 100
+           * (a status page bar color rule's uptime) took 100.5, and read
+           * "-0.5" as 0, which a floor of 0 let through.
+           */
+          content = parseFloat(content);
         } catch (e) {
           Logger.error(e as string);
           return translateValidationMessage("{{field}} should be a number.", {

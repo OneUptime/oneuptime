@@ -289,6 +289,76 @@ describe("RelationIdUtil.stamp", () => {
   });
 });
 
+/*
+ * leaveOut writes nothing: a reference the server fills in later (a packet
+ * capture's file) is left out of the write under every name, so the record
+ * starts without one and no permission is asked for it. stamp(..., null)
+ * writes a value, which a create's column check holds to the caller - on a
+ * column nobody may create, that refused every packet capture a member
+ * started.
+ */
+describe("RelationIdUtil.leaveOut", () => {
+  const FILE_KEYS: Array<string> = ["fileId", "file"];
+
+  it("leaves the ID column and the relation unset, whatever the write sent under either", () => {
+    const data: Record<string, unknown> = {
+      fileId: SITE_ID,
+      file: { _id: OTHER_SITE_ID.toString() },
+      name: "eth0: all traffic",
+    };
+
+    RelationIdUtil.leaveOut(data, FILE_KEYS);
+
+    expect(data["fileId"]).toBeUndefined();
+    expect(data["file"]).toBeUndefined();
+    expect(data["name"]).toBe("eth0: all traffic");
+  });
+
+  it("leaves a write that sent neither as it was, and adds no name", () => {
+    const data: Record<string, unknown> = { name: "eth0: all traffic" };
+
+    RelationIdUtil.leaveOut(data, FILE_KEYS);
+
+    expect(data["fileId"]).toBeUndefined();
+    expect(data["file"]).toBeUndefined();
+    expect(RelationIdUtil.isPresent(data, FILE_KEYS)).toBe(false);
+  });
+
+  it("clears rather than deletes: a model instance keeps its own properties", () => {
+    const data: Record<string, unknown> = {
+      fileId: SITE_ID,
+      file: SITE_ID.toString(),
+    };
+
+    RelationIdUtil.leaveOut(data, FILE_KEYS);
+
+    expect("fileId" in data).toBe(true);
+    expect("file" in data).toBe(true);
+  });
+
+  it("is what reads as nothing written, where a stamped clear reads as a value", () => {
+    const leftOut: Record<string, unknown> = { file: SITE_ID.toString() };
+    const stamped: Record<string, unknown> = { file: SITE_ID.toString() };
+
+    RelationIdUtil.leaveOut(leftOut, FILE_KEYS);
+    RelationIdUtil.stamp(stamped, FILE_KEYS, null);
+
+    expect(RelationIdUtil.isPresent(leftOut, FILE_KEYS)).toBe(false);
+    expect(RelationIdUtil.isPresent(stamped, FILE_KEYS)).toBe(true);
+    expect(
+      RelationIdUtil.readConsistent(leftOut, FILE_KEYS, "Capture File"),
+    ).toBeNull();
+  });
+
+  it("does nothing with no names", () => {
+    const data: Record<string, unknown> = { name: "x" };
+
+    RelationIdUtil.leaveOut(data, []);
+
+    expect(data).toEqual({ name: "x" });
+  });
+});
+
 describe("RelationIdUtil.readIntoIdColumn", () => {
   it("writes the id a relation-only write names into the ID column, and keeps the relation", () => {
     const relation: { _id: string } = { _id: SITE_ID.toString() };

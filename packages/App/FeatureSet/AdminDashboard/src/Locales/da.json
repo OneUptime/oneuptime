@@ -877,5 +877,13 @@
   "{{count}} more": "{{count}} mere",
   "{{count}} more_one": "{{count}} mere",
   "On": "Til",
-  "Off": "Fra"
+  "Off": "Fra",
+  "Test": "Test",
+  "Test LLM Provider": "Test LLM-udbyder",
+  "Sending a test prompt to your LLM provider…": "Sender en testprompt til din LLM-udbyder…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "Den kontrollerer API-nøglen, modellen og basis-URL'en, og om modellen kan kalde værktøjer.",
+  "Test again": "Test igen",
+  "Test passed": "Test bestået",
+  "Test passed, with a warning": "Test bestået med en advarsel",
+  "Test failed": "Testen mislykkedes"
 }

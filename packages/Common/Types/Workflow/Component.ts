@@ -32,6 +32,14 @@ export enum ComponentInputType {
    * Incident's Incident Template (Types/Workflow/CreateFromTemplate).
    */
   IncidentTemplateSelect = "Incident Template Select",
+  /*
+   * A Switch / Case step's list of cases, each a comparison and a value
+   * (Types/Workflow/Components/SwitchCases). Stored as a list, not as text,
+   * and edited in the step's own settings (Workflow/Switch). Each case is an
+   * output of the step, so its outputs depend on this setting
+   * (ComponentOutPorts).
+   */
+  SwitchCases = "Switch Cases",
 }
 
 /*

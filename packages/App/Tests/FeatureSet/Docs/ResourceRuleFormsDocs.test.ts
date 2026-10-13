@@ -23,9 +23,9 @@ import { escapeRegExp } from "./DocsTranslationChecks";
  * The pages that describe those forms say so, in English and in Persian,
  * the two languages that describe them: nobody is sent looking for a Basic
  * Info step or an Inherit step, or told a rule's labels are optional. The
- * Persian SLO page and status page overview name the form as the Persian
- * Dashboard draws it; the Persian incident pages keep the Dashboard's
- * English names.
+ * Persian SLO page, status page overview and RUM applications page name the
+ * form as the Persian Dashboard draws it; the Persian incident pages keep
+ * the Dashboard's English names.
  */
 
 const CONTENT_DIR: string = path.join(
@@ -63,6 +63,7 @@ const LANGUAGES: Array<string> = ["en", "fa"];
 const NAMED_AS_DRAWN: ReadonlyArray<string> = [
   "slo/label-and-owner-rules",
   "status-pages/index",
+  "rum/applications",
 ];
 
 // What a page in this language calls the Dashboard label written in English.

@@ -84,17 +84,57 @@ const PIN = yaml
   .load(agentFile("docker-compose.yml"))
   .services["oneuptime-vmware-agent"].image.split(":")[1];
 
-/* The body of one "## Heading" section, up to the next heading of the same or a higher level. */
+/*
+ * The body of one "## Heading" section, up to the next heading of the same
+ * or a higher level. A "# comment" line inside a code block is not a heading.
+ */
 function section(markdown, heading) {
   const lines = markdown.split("\n");
   const start = lines.indexOf(heading);
   expect({ heading, found: start >= 0 }).toEqual({ heading, found: true });
   const level = heading.match(/^#+/)[0].length;
   const body = [];
+  let fenced = false;
   for (const line of lines.slice(start + 1)) {
-    const match = line.match(/^(#{1,6})\s/);
+    if (line.startsWith("```")) {
+      fenced = !fenced;
+    }
+    const match = fenced ? null : line.match(/^(#{1,6})\s/);
     if (match && match[1].length <= level) {
       break;
+    }
+    body.push(line);
+  }
+  return body.join("\n");
+}
+
+/*
+ * The body of one tab of a ":::tabs" block ("@tab Name"), up to the next tab
+ * or the ":::" that closes the block. Blocks nested inside the tab, and code
+ * blocks, keep their own ":::" and "@tab" lines.
+ */
+function tab(markdown, name) {
+  const lines = markdown.split("\n");
+  const start = lines.indexOf(`@tab ${name}`);
+  expect({ tab: name, found: start >= 0 }).toEqual({ tab: name, found: true });
+  const body = [];
+  let fenced = false;
+  let depth = 0;
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("```")) {
+      fenced = !fenced;
+    } else if (!fenced) {
+      if (line.startsWith("@tab ") && depth === 0) {
+        break;
+      }
+      if (line.trim() === ":::") {
+        if (depth === 0) {
+          break;
+        }
+        depth -= 1;
+      } else if (line.startsWith(":::")) {
+        depth += 1;
+      }
     }
     body.push(line);
   }
@@ -109,21 +149,20 @@ function bashBlocks(markdown) {
   );
 }
 
+// The install without Docker is the page's systemd tab, in each section that has one.
+function withoutDocker(heading) {
+  return bashBlocks(tab(section(DOCS, heading), "systemd"));
+}
+
 const DOCS = fs.readFileSync(DOCS_PAGE, "utf8");
-const WITHOUT_DOCKER = bashBlocks(
-  section(DOCS, "## Alternative — Without Docker"),
-);
+const WITHOUT_DOCKER = withoutDocker("### Install and start the agent");
 const [INSTALL, ENV_FILE_COMMANDS, ENV_CONTENT, START] = WITHOUT_DOCKER;
-const UPGRADE = bashBlocks(section(DOCS, "## Upgrading the Agent")).find(
-  (block) => {
-    return block.startsWith('cd "$(mktemp -d)"');
-  },
-);
-const UNINSTALL = bashBlocks(section(DOCS, "## Uninstalling the Agent")).find(
-  (block) => {
-    return block.startsWith("sudo systemctl disable");
-  },
-);
+const UPGRADE = withoutDocker("## Upgrading the agent").find((block) => {
+  return block.startsWith('cd "$(mktemp -d)"');
+});
+const UNINSTALL = withoutDocker("## Uninstalling the agent").find((block) => {
+  return block.startsWith("sudo systemctl disable");
+});
 
 // The docs' rule for the user and password: double quotes, \ and " escaped.
 function doubleQuoted(value) {

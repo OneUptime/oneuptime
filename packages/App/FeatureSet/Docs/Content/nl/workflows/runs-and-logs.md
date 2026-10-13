@@ -76,6 +76,7 @@ Mislukte stappen, stappen met een waarschuwing en de enige stap van een uitvoeri
 
 Een paar uitvoeringen lezen anders:
 
+- **Een testrun.** Een uitvoering die iemand met **Workflow uitvoeren** of **Run just this step** startte terwijl de workflow uit stond, zegt bovenaan **Testrun**, met wie hem startte, en beide lijsten met uitvoeringen markeren hem als **Testrun** naast zijn status. Zijn blokken draaiden echt; alleen de trigger van de workflow was gepauzeerd. Filter op **Testrun** om alleen de testruns te tonen, of alleen de andere.
 - **Een test van één stap.** Een uitvoering die met **Run just this step** is gestart, zegt bovenaan **Only this step ran**. De stappen ervoor draaiden niet, dus waarden die ze daaruit leest ontbreken (verwacht daarvoor een waarschuwing **Did not resolve**), en de stappen erna zeggen **(not run in this test)**. Gebruik **Workflow uitvoeren** om het hele pad te proberen.
 - **Een uitvoering die tussen stappen stopte.** Stopte de uitvoering om een reden die geen enkele stap verklaart — haar tijd liep tussen twee stappen af, of ze mislukte vóór haar eerste stap —, dan eindigt het pad met **The run stopped here** en de reden.
 - **Een slapende uitvoering.** Een uitvoering die op een **Sleep**-blok wacht, eindigt met **Sleeping** en het moment waarop ze vanzelf verdergaat; de stappen na de Sleep zeggen **(not run yet)**.
@@ -106,7 +107,7 @@ Een download bevat niets wat je niet al in de uitvoering kon lezen. Geheimen en 
 ## Problemen oplossen
 
 :::details Mijn workflow draaide niet
-1. Controleer of de workflow **Ingeschakeld** is: de schakelaar staat bovenaan de **Bouwer**, die boven het canvas zegt dat de workflow uit staat als dat zo is. Nieuwe workflows beginnen uitgeschakeld, en een uitgeschakelde workflow weigert elke uitvoering — ook handmatige. Een webhook-aanroep ervan krijgt HTTP 400 met een melding die zegt hoe je hem inschakelt.
+1. Controleer of de workflow **Ingeschakeld** is: de schakelaar staat bovenaan de **Bouwer**, die boven het canvas zegt dat de workflow uit staat als dat zo is. Nieuwe workflows beginnen uitgeschakeld, en zolang een workflow uit staat, start zijn trigger hem niet: alleen **Workflow uitvoeren** en **Run just this step** doen dat, als testruns. Een webhook-aanroep ervan krijgt HTTP 400 met een melding die zegt hoe je hem inschakelt.
 2. Controleer bij een OneUptime-gebeurtenistrigger of de gebeurtenis echt plaatsvond: open het record en bekijk de geschiedenis ervan. Een **On Update**-trigger met **Listen on** gaat alleen af als een van die velden veranderde.
 3. Controleer bij een webhook-trigger of het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
 4. Controleer bij een schematrigger of de cron-expressie overeenkomt met de tijd die je verwacht. Schema's draaien in UTC.
