@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "Logga in med en passnyckel",
-      "description": "Använd ditt fingeravtryck, ditt ansikte eller enhetens PIN-kod.",
-      "passwordAlternative": "eller logga in med ett lösenord",
       "inProgress": "Slutför eller avbryt inloggningen med passnyckel innan du använder lösenordet.",
-      "title": "Använd en sparad passnyckel",
       "helpTitle": "Är passnycklar nytt för dig?",
-      "help": "Logga in med ditt lösenord eller SSO och öppna sedan Användarprofil → Passnycklar och tvåfaktorsautentisering för att skapa din första passnyckel.",
+      "help": "Med en passnyckel loggar du in med ditt fingeravtryck, ditt ansikte eller enhetens PIN-kod i stället för ett lösenord. För att lägga till en loggar du in med ditt lösenord eller SSO och öppnar sedan Användarprofil → Säkerhet → Passkeys.",
       "preparing": "Förbereder din passnyckel…",
       "waiting": "Titta på din enhet",
       "waitingDescription": "Följ anvisningarna från webbläsaren eller lösenordshanteraren.",
@@ -50,7 +47,7 @@
       "tryAgain": "Försök med passnyckeln igen"
     },
     "title": "Logga in på ditt konto",
-    "subtitle": "Använd en passnyckel, ett lösenord eller organisationens SSO.",
+    "subtitle": "Använd ditt lösenord, organisationens SSO eller en passnyckel.",
     "submitButton": "Logga in",
     "forgotPassword": "Glömt lösenord?",
     "useSso": "Använd istället enkel inloggning (SSO)",
@@ -209,7 +206,7 @@
     "complete": "Din nyckel har verifierats. Gå tillbaka till appen för att slutföra inloggningen.",
     "returnToApp": "Tillbaka till appen",
     "cancel": "Avbryt och återgå till appen",
-    "setup": "Skapa en nyckel under Användarprofil → Nycklar och tvåfaktorsautentisering i webbpanelen."
+    "setup": "Skapa en passnyckel i webbpanelen under Användarprofil → Säkerhet → Passkeys."
   },
   "mcpAuthorize": {
     "title": "Anslut en MCP-klient",

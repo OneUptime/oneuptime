@@ -32,16 +32,13 @@
   },
   "login": {
     "title": "Sign in to your account",
-    "subtitle": "Use a passkey, password, or your organization’s SSO.",
+    "subtitle": "Use your password, your organization’s SSO, or a passkey.",
     "submitButton": "Login",
     "passkey": {
       "signIn": "Sign in with a passkey",
-      "description": "Use your fingerprint, face, or device PIN.",
-      "passwordAlternative": "or sign in with a password",
       "inProgress": "Finish or cancel passkey sign-in before using your password.",
-      "title": "Use a saved passkey",
       "helpTitle": "New to passkeys?",
-      "help": "Sign in with your password or SSO, then open User Profile → Passkeys & Two Factor Auth to create your first passkey.",
+      "help": "A passkey lets you sign in with your fingerprint, face, or device PIN instead of a password. To add one, sign in with your password or SSO, then open User Profile → Security → Passkeys.",
       "preparing": "Getting your passkey ready…",
       "waiting": "Check your device",
       "waitingDescription": "Follow the prompt from your browser or password manager.",
@@ -209,7 +206,7 @@
     "complete": "Your passkey was verified. Return to the app to finish signing in.",
     "returnToApp": "Return to app",
     "cancel": "Cancel and return to app",
-    "setup": "Create a passkey in User Profile → Passkeys & Two Factor Auth in the web dashboard."
+    "setup": "Create a passkey in the web dashboard, under User Profile → Security → Passkeys."
   },
   "mcpAuthorize": {
     "title": "Connect an MCP client",

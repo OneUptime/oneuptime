@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "Mit einem Passkey anmelden",
-      "description": "Nutzen Sie Ihren Fingerabdruck, Ihr Gesicht oder Ihre Geräte-PIN.",
-      "passwordAlternative": "oder mit einem Passwort anmelden",
       "inProgress": "Beenden oder brechen Sie die Passkey-Anmeldung ab, bevor Sie Ihr Passwort verwenden.",
-      "title": "Gespeicherten Passkey verwenden",
       "helpTitle": "Neu bei Passkeys?",
-      "help": "Melden Sie sich mit Ihrem Passwort oder SSO an und öffnen Sie dann Benutzerprofil → Passkeys & Zwei-Faktor-Authentifizierung, um Ihren ersten Passkey zu erstellen.",
+      "help": "Mit einem Passkey melden Sie sich per Fingerabdruck, Gesicht oder Geräte-PIN statt mit einem Passwort an. Um einen hinzuzufügen, melden Sie sich mit Ihrem Passwort oder SSO an und öffnen Sie dann Benutzerprofil → Sicherheit → Passkeys.",
       "preparing": "Ihr Passkey wird vorbereitet…",
       "waiting": "Prüfen Sie Ihr Gerät",
       "waitingDescription": "Folgen Sie der Aufforderung Ihres Browsers oder Passwortmanagers.",
@@ -50,7 +47,7 @@
       "tryAgain": "Passkey erneut versuchen"
     },
     "title": "Melden Sie sich bei Ihrem Konto an",
-    "subtitle": "Verwenden Sie einen Passkey, ein Passwort oder das SSO Ihrer Organisation.",
+    "subtitle": "Verwenden Sie Ihr Passwort, das SSO Ihrer Organisation oder einen Passkey.",
     "submitButton": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "useSso": "Stattdessen Single Sign-On (SSO) verwenden",
@@ -209,7 +206,7 @@
     "complete": "Ihr Passkey wurde bestätigt. Kehren Sie zur App zurück, um die Anmeldung abzuschließen.",
     "returnToApp": "Zurück zur App",
     "cancel": "Abbrechen und zur App zurückkehren",
-    "setup": "Erstellen Sie im Web-Dashboard unter Benutzerprofil → Passkeys und Zwei-Faktor-Authentifizierung einen Passkey."
+    "setup": "Erstellen Sie im Web-Dashboard unter Benutzerprofil → Sicherheit → Passkeys einen Passkey."
   },
   "mcpAuthorize": {
     "title": "MCP-Client verbinden",

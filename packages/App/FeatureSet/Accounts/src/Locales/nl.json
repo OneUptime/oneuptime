@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "Inloggen met een passkey",
-      "description": "Gebruik je vingerafdruk, gezicht of de pincode van je apparaat.",
-      "passwordAlternative": "of log in met een wachtwoord",
       "inProgress": "Voltooi of annuleer het inloggen met een passkey voordat je je wachtwoord gebruikt.",
-      "title": "Een opgeslagen passkey gebruiken",
       "helpTitle": "Zijn passkeys nieuw voor je?",
-      "help": "Meld je aan met je wachtwoord of SSO en open daarna Gebruikersprofiel → Passkeys & tweefactorauthenticatie om je eerste passkey te maken.",
+      "help": "Met een passkey meld je je aan met je vingerafdruk, gezicht of de pincode van je apparaat in plaats van een wachtwoord. Om er een toe te voegen, meld je je aan met je wachtwoord of SSO en open je daarna Gebruikersprofiel → Beveiliging → Passkeys.",
       "preparing": "Je passkey wordt voorbereid…",
       "waiting": "Kijk op je apparaat",
       "waitingDescription": "Volg de aanwijzingen van je browser of wachtwoordmanager.",
@@ -50,7 +47,7 @@
       "tryAgain": "Passkey opnieuw proberen"
     },
     "title": "Meld u aan bij uw account",
-    "subtitle": "Gebruik een passkey, wachtwoord of de SSO van je organisatie.",
+    "subtitle": "Gebruik je wachtwoord, de SSO van je organisatie of een passkey.",
     "submitButton": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
     "useSso": "Gebruik in plaats daarvan single sign-on (SSO)",
@@ -209,7 +206,7 @@
     "complete": "Je toegangssleutel is geverifieerd. Ga terug naar de app om het aanmelden te voltooien.",
     "returnToApp": "Terug naar de app",
     "cancel": "Annuleren en terug naar de app",
-    "setup": "Maak een toegangssleutel via Gebruikersprofiel → Toegangssleutels en tweefactorauthenticatie in het webdashboard."
+    "setup": "Maak een passkey in het webdashboard, onder Gebruikersprofiel → Beveiliging → Passkeys."
   },
   "mcpAuthorize": {
     "title": "Een MCP-client koppelen",

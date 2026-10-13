@@ -417,11 +417,23 @@ const LoginPage: () => JSX.Element = () => {
 
   const signInWithPasskey: SignInWithPasskeyFunction =
     async (): Promise<void> => {
-      if (
-        passkeyInProgress.current ||
-        isPasswordLoading ||
-        !isPasskeySupported
-      ) {
+      if (passkeyInProgress.current || isPasswordLoading) {
+        return;
+      }
+
+      /*
+       * A browser that cannot use passkeys says so when somebody asks for
+       * one, not on every visit, and asks the server for nothing.
+       */
+      if (!isPasskeySupported) {
+        setPasskeyError("");
+        setPasskeyNotice(
+          t(
+            window.isSecureContext === false
+              ? "login.passkey.insecure"
+              : "login.passkey.unsupported",
+          ),
+        );
         return;
       }
 
@@ -800,7 +812,11 @@ const LoginPage: () => JSX.Element = () => {
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.title")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            {/*
+             * Balanced: on a phone the line breaks in the middle of the
+             * list rather than leaving its last word, "passkey", alone.
+             */}
+            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
               {t("login.subtitle")}
             </p>
           </>
@@ -989,127 +1005,15 @@ const LoginPage: () => JSX.Element = () => {
 
           {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
             <>
-              <section
-                aria-labelledby="passkey-heading"
-                className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4"
-              >
-                <div className="mb-4 flex items-start gap-3">
-                  <div
-                    aria-hidden="true"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm"
-                  >
-                    <Icon icon={IconProp.Fingerprint} className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3
-                      id="passkey-heading"
-                      className="text-sm font-semibold text-gray-900"
-                    >
-                      {t("login.passkey.title")}
-                    </h3>
-                    <p className="mt-1 text-sm leading-5 text-gray-600">
-                      {t("login.passkey.description")}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  id="passkey-login"
-                  title={t(
-                    passkeyStage === "preparing"
-                      ? "login.passkey.preparing"
-                      : passkeyStage === "prompt"
-                        ? "login.passkey.waiting"
-                        : passkeyStage === "verifying"
-                          ? "login.passkey.verifying"
-                          : passkeyError || passkeyNotice
-                            ? "login.passkey.tryAgain"
-                            : "login.passkey.signIn",
-                  )}
-                  /*
-                   * Plain: the page's one primary button is the password
-                   * form's "Sign in", the way most people still get in. The
-                   * passkey option keeps its own tinted panel at the top,
-                   * which is what makes it stand out; two filled buttons
-                   * made the page ask for two things at once.
-                   */
-                  buttonStyle={ButtonStyleType.NORMAL}
-                  className="w-full justify-center"
-                  style={{ width: "100%", marginLeft: 0 }}
-                  dataTestId="passkey-login"
-                  isLoading={isPasskeyLoading}
-                  disabled={
-                    !isPasskeySupported || isPasskeyLoading || isPasswordLoading
-                  }
-                  onClick={() => {
-                    void signInWithPasskey();
-                  }}
-                />
-                <div role="status" aria-live="polite" aria-atomic="true">
-                  {isPasskeyLoading && (
-                    <p className="mt-3 text-center text-sm text-gray-600">
-                      {t(
-                        passkeyStage === "prompt"
-                          ? "login.passkey.waitingDescription"
-                          : passkeyStage === "verifying"
-                            ? "login.passkey.verifying"
-                            : "login.passkey.preparing",
-                      )}
-                    </p>
-                  )}
-                  {passkeyNotice && (
-                    <p className="mt-3 text-sm text-gray-600">
-                      {passkeyNotice}
-                    </p>
-                  )}
-                </div>
-                {(passkeyStage === "preparing" ||
-                  passkeyStage === "prompt") && (
-                  <div className="mt-3 text-center">
-                    <Button
-                      title={t("common.cancel")}
-                      buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                      dataTestId="cancel-passkey-login"
-                      onClick={cancelPasskeySignIn}
-                    />
-                  </div>
-                )}
-                {passkeyError && (
-                  <div
-                    role="alert"
-                    className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-800"
-                  >
-                    {passkeyError}
-                  </div>
-                )}
-                {!isPasskeySupported && (
-                  <p className="mt-3 text-sm text-gray-600">
-                    {t(
-                      window.isSecureContext === false
-                        ? "login.passkey.insecure"
-                        : "login.passkey.unsupported",
-                    )}
-                  </p>
-                )}
-                <details className="mt-3 text-sm text-gray-600">
-                  <summary className="w-fit cursor-pointer rounded-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
-                    {t("login.passkey.helpTitle")}
-                  </summary>
-                  <p className="mt-2 leading-6">{t("login.passkey.help")}</p>
-                </details>
-              </section>
-              <div className="relative mb-6">
-                <div
-                  className="absolute inset-0 flex items-center"
-                  aria-hidden="true"
-                >
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-white px-3 text-sm text-gray-500">
-                    {t("login.passkey.passwordAlternative")}
-                  </span>
-                </div>
-              </div>
+              {/*
+               * The password form comes first, and its "Login" is the page's
+               * one filled button: it is how most people sign in. Passkeys
+               * used to open the card in a tinted panel of their own, with a
+               * heading, a description and a divider over the form; that
+               * pushed the form people came for below the fold on a phone.
+               * They are now a quiet option under it, at the weight of the
+               * single sign-on link (see the passkey option below).
+               */}
               <fieldset disabled={isPasskeyLoading}>
                 <ModelForm<User>
                   modelType={User}
@@ -1228,6 +1132,130 @@ const LoginPage: () => JSX.Element = () => {
                   }
                 />
               </fieldset>
+
+              {/*
+               * THE PASSKEY OPTION: a link-weight button under the single
+               * sign-on link, not a panel over the form. Outside the fieldset
+               * above on purpose: the fieldset is disabled while a passkey
+               * attempt runs, and its Cancel has to stay usable.
+               *
+               * Everything an attempt says - the device prompt, a cancel, a
+               * timeout, an error - appears right here, under the control
+               * that was clicked. "New to passkeys?" appears with those
+               * messages: it is for somebody whose attempt did not sign them
+               * in, typically because they have no passkey yet, and nobody
+               * else needs it on the page.
+               *
+               * A browser that cannot use passkeys (no WebAuthn, or a page
+               * not served over HTTPS) still shows the option, and says why
+               * it cannot work here when it is clicked: somebody whose only
+               * way in is a passkey learns to switch browsers, and nobody
+               * else reads a sentence about it on every visit.
+               */}
+              <div
+                className="mt-3 text-center text-sm"
+                data-testid="passkey-option"
+              >
+                <button
+                  type="button"
+                  id="passkey-login"
+                  data-testid="passkey-login"
+                  disabled={isPasskeyLoading || isPasswordLoading}
+                  onClick={() => {
+                    void signInWithPasskey();
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-sm text-indigo-500 enabled:hover:text-indigo-900 enabled:hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-default disabled:text-gray-500"
+                >
+                  <Icon
+                    icon={
+                      isPasskeyLoading ? IconProp.Spinner : IconProp.Fingerprint
+                    }
+                    className={`h-4 w-4 shrink-0${
+                      isPasskeyLoading ? " animate-spin" : ""
+                    }`}
+                  />
+                  <span>
+                    {t(
+                      passkeyStage === "preparing"
+                        ? "login.passkey.preparing"
+                        : passkeyStage === "prompt"
+                          ? "login.passkey.waiting"
+                          : passkeyStage === "verifying"
+                            ? "login.passkey.verifying"
+                            : isPasskeySupported &&
+                                (passkeyError || passkeyNotice)
+                              ? "login.passkey.tryAgain"
+                              : "login.passkey.signIn",
+                    )}
+                  </span>
+                </button>
+                <div role="status" aria-live="polite" aria-atomic="true">
+                  {isPasskeyLoading && (
+                    /*
+                     * Only the device prompt needs a line of its own; while
+                     * preparing and verifying, the button already says the
+                     * same words, so the line is there for screen readers.
+                     */
+                    <p
+                      className={
+                        passkeyStage === "prompt"
+                          ? "mt-2 text-gray-600"
+                          : "sr-only"
+                      }
+                    >
+                      {t(
+                        passkeyStage === "prompt"
+                          ? "login.passkey.waitingDescription"
+                          : passkeyStage === "verifying"
+                            ? "login.passkey.verifying"
+                            : "login.passkey.preparing",
+                      )}
+                    </p>
+                  )}
+                  {passkeyNotice && (
+                    <p
+                      className="mt-2 text-gray-600"
+                      data-testid="passkey-notice"
+                    >
+                      {passkeyNotice}
+                    </p>
+                  )}
+                </div>
+                {(passkeyStage === "preparing" ||
+                  passkeyStage === "prompt") && (
+                  <button
+                    type="button"
+                    data-testid="cancel-passkey-login"
+                    onClick={cancelPasskeySignIn}
+                    className="mt-2 rounded-sm text-gray-500 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  >
+                    {t("common.cancel")}
+                  </button>
+                )}
+                {passkeyError && (
+                  <div
+                    role="alert"
+                    className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-start text-red-800"
+                  >
+                    {passkeyError}
+                  </div>
+                )}
+                {isPasskeySupported &&
+                  !isPasskeyLoading &&
+                  (passkeyNotice || passkeyError) && (
+                    <details
+                      className="mt-2 text-gray-600"
+                      data-testid="passkey-help"
+                    >
+                      <summary className="mx-auto w-fit cursor-pointer rounded-sm text-indigo-500 hover:text-indigo-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                        {t("login.passkey.helpTitle")}
+                      </summary>
+                      <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">
+                        {t("login.passkey.help")}
+                      </p>
+                    </details>
+                  )}
+              </div>
             </>
           )}
 

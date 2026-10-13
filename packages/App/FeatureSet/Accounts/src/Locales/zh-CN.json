@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "使用通行密钥登录",
-      "description": "使用指纹、面容或设备 PIN 码。",
-      "passwordAlternative": "或使用密码登录",
       "inProgress": "使用密码前，请完成或取消通行密钥登录。",
-      "title": "使用已保存的通行密钥",
       "helpTitle": "初次使用通行密钥？",
-      "help": "先使用密码或 SSO 登录，然后打开用户资料 → 通行密钥和双重身份验证，创建您的第一个通行密钥。",
+      "help": "通行密钥让您用指纹、面容或设备 PIN 码登录，无需密码。要添加通行密钥，请先使用密码或 SSO 登录，然后打开用户配置 → 安全 → Passkeys。",
       "preparing": "正在准备通行密钥…",
       "waiting": "请查看您的设备",
       "waitingDescription": "按照浏览器或密码管理器的提示操作。",
@@ -50,7 +47,7 @@
       "tryAgain": "重试通行密钥"
     },
     "title": "登录您的账户",
-    "subtitle": "使用通行密钥、密码或组织的单点登录（SSO）。",
+    "subtitle": "使用密码、组织的单点登录（SSO）或通行密钥。",
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
     "useSso": "改用单点登录（SSO）",
@@ -209,7 +206,7 @@
     "complete": "通行密钥已验证。请返回应用完成登录。",
     "returnToApp": "返回应用",
     "cancel": "取消并返回应用",
-    "setup": "在网页控制台的“用户资料 → 通行密钥和双重身份验证”中创建通行密钥。"
+    "setup": "在网页控制台的“用户配置 → 安全 → Passkeys”中创建通行密钥。"
   },
   "mcpAuthorize": {
     "title": "连接 MCP 客户端",

@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "Log ind med en adgangsnøgle",
-      "description": "Brug dit fingeraftryk, dit ansigt eller enhedens pinkode.",
-      "passwordAlternative": "eller log ind med en adgangskode",
       "inProgress": "Fuldfør eller annuller login med adgangsnøgle, før du bruger din adgangskode.",
-      "title": "Brug en gemt adgangsnøgle",
       "helpTitle": "Er adgangsnøgler nyt for dig?",
-      "help": "Log ind med din adgangskode eller SSO, og åbn derefter Brugerprofil → Adgangsnøgler og tofaktorgodkendelse for at oprette din første adgangsnøgle.",
+      "help": "Med en adgangsnøgle logger du ind med dit fingeraftryk, dit ansigt eller enhedens pinkode i stedet for en adgangskode. For at tilføje en skal du logge ind med din adgangskode eller SSO og derefter åbne Brugerprofil → Sikkerhed → Passkeys.",
       "preparing": "Gør din adgangsnøgle klar…",
       "waiting": "Se på din enhed",
       "waitingDescription": "Følg anvisningerne fra din browser eller adgangskodeadministrator.",
@@ -50,7 +47,7 @@
       "tryAgain": "Prøv adgangsnøglen igen"
     },
     "title": "Log ind på din konto",
-    "subtitle": "Brug en adgangsnøgle, en adgangskode eller din organisations SSO.",
+    "subtitle": "Brug din adgangskode, din organisations SSO eller en adgangsnøgle.",
     "submitButton": "Log ind",
     "forgotPassword": "Glemt adgangskode?",
     "useSso": "Brug i stedet single sign-on (SSO)",
@@ -209,7 +206,7 @@
     "complete": "Din adgangsnøgle er bekræftet. Vend tilbage til appen for at fuldføre login.",
     "returnToApp": "Tilbage til appen",
     "cancel": "Annuller og vend tilbage til appen",
-    "setup": "Opret en adgangsnøgle under Brugerprofil → Adgangsnøgler og tofaktorgodkendelse i webdashboardet."
+    "setup": "Opret en adgangsnøgle i webdashboardet under Brugerprofil → Sikkerhed → Passkeys."
   },
   "mcpAuthorize": {
     "title": "Forbind en MCP-klient",

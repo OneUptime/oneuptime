@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "Accedi con una passkey",
-      "description": "Usa l’impronta digitale, il riconoscimento del volto o il PIN del dispositivo.",
-      "passwordAlternative": "oppure accedi con una password",
       "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
-      "title": "Usa una passkey salvata",
       "helpTitle": "Non conosci le passkey?",
-      "help": "Accedi con la password o l’SSO, poi apri Profilo utente → Passkey e autenticazione a due fattori per creare la tua prima passkey.",
+      "help": "Una passkey ti permette di accedere con l’impronta digitale, il volto o il PIN del dispositivo invece che con una password. Per aggiungerne una, accedi con la password o l’SSO, poi apri Profilo utente → Sicurezza → Passkeys.",
       "preparing": "Preparazione della passkey…",
       "waiting": "Controlla il dispositivo",
       "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
@@ -50,7 +47,7 @@
       "tryAgain": "Riprova con la passkey"
     },
     "title": "Accedi al tuo account",
-    "subtitle": "Usa una passkey, una password o l’SSO della tua organizzazione.",
+    "subtitle": "Usa la password, l’SSO della tua organizzazione o una passkey.",
     "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "useSso": "Usa invece il Single Sign-On (SSO)",
@@ -209,7 +206,7 @@
     "complete": "La tua passkey è stata verificata. Torna all’app per completare l’accesso.",
     "returnToApp": "Torna all’app",
     "cancel": "Annulla e torna all’app",
-    "setup": "Crea una passkey in Profilo utente → Passkey e autenticazione a due fattori nella dashboard web."
+    "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkeys."
   },
   "mcpAuthorize": {
     "title": "Collega un client MCP",

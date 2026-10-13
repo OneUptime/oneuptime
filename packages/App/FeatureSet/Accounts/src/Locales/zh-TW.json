@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "使用通行密鑰登入",
-      "description": "使用指紋、臉部辨識或裝置 PIN 碼。",
-      "passwordAlternative": "或使用密碼登入",
       "inProgress": "使用密碼前，請完成或取消通行密鑰登入。",
-      "title": "使用已儲存的通行密鑰",
       "helpTitle": "第一次使用通行密鑰？",
-      "help": "先使用密碼或 SSO 登入，再開啟使用者個人資料 → 通行密鑰與雙重驗證，建立您的第一個通行密鑰。",
+      "help": "通行密鑰讓您以指紋、臉部辨識或裝置 PIN 碼登入，不需要密碼。若要新增，請先使用密碼或 SSO 登入，再開啟使用者設定檔 → 安全性 → Passkeys。",
       "preparing": "正在準備通行密鑰…",
       "waiting": "請查看您的裝置",
       "waitingDescription": "按照瀏覽器或密碼管理員的提示操作。",
@@ -50,7 +47,7 @@
       "tryAgain": "重試通行密鑰"
     },
     "title": "登入您的帳號",
-    "subtitle": "使用通行密鑰、密碼或組織的單一登入（SSO）。",
+    "subtitle": "使用密碼、組織的單一登入（SSO）或通行密鑰。",
     "submitButton": "登入",
     "forgotPassword": "忘記密碼？",
     "useSso": "改用單一登入（SSO）",
@@ -209,7 +206,7 @@
     "complete": "通行金鑰已驗證。請返回應用程式完成登入。",
     "returnToApp": "返回應用程式",
     "cancel": "取消並返回應用程式",
-    "setup": "在網頁控制台的「使用者個人資料 → 通行金鑰和雙重驗證」中建立通行金鑰。"
+    "setup": "在網頁控制台的「使用者設定檔 → 安全性 → Passkeys」中建立通行密鑰。"
   },
   "mcpAuthorize": {
     "title": "連接 MCP 用戶端",

@@ -33,12 +33,9 @@
   "login": {
     "passkey": {
       "signIn": "Iniciar sesión con una clave de acceso",
-      "description": "Usa tu huella, tu rostro o el PIN de tu dispositivo.",
-      "passwordAlternative": "o inicia sesión con una contraseña",
       "inProgress": "Completa o cancela el inicio de sesión con clave de acceso antes de usar tu contraseña.",
-      "title": "Usar una clave de acceso guardada",
       "helpTitle": "¿No conoces las claves de acceso?",
-      "help": "Inicia sesión con tu contraseña o SSO y abre Perfil de usuario → Claves de acceso y autenticación de dos factores para crear tu primera clave de acceso.",
+      "help": "Una clave de acceso te permite iniciar sesión con tu huella, tu rostro o el PIN de tu dispositivo en lugar de una contraseña. Para añadir una, inicia sesión con tu contraseña o SSO y abre Perfil de usuario → Seguridad → Llaves de acceso.",
       "preparing": "Preparando tu clave de acceso…",
       "waiting": "Revisa tu dispositivo",
       "waitingDescription": "Sigue las indicaciones de tu navegador o gestor de contraseñas.",
@@ -50,7 +47,7 @@
       "tryAgain": "Volver a intentar con clave de acceso"
     },
     "title": "Inicie sesión en su cuenta",
-    "subtitle": "Usa una clave de acceso, una contraseña o el SSO de tu organización.",
+    "subtitle": "Usa tu contraseña, el SSO de tu organización o una clave de acceso.",
     "submitButton": "Iniciar sesión",
     "forgotPassword": "¿Olvidó su contraseña?",
     "useSso": "Usar inicio de sesión único (SSO) en su lugar",
@@ -209,7 +206,7 @@
     "complete": "Se ha verificado tu clave de acceso. Vuelve a la aplicación para completar el inicio de sesión.",
     "returnToApp": "Volver a la aplicación",
     "cancel": "Cancelar y volver a la aplicación",
-    "setup": "Crea una clave de acceso en Perfil de usuario → Claves de acceso y autenticación de dos factores en el panel web."
+    "setup": "Crea una clave de acceso en el panel web, en Perfil de usuario → Seguridad → Llaves de acceso."
   },
   "mcpAuthorize": {
     "title": "Conectar un cliente MCP",
