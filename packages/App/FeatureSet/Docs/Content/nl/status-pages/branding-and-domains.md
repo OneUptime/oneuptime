@@ -241,7 +241,7 @@ Het dialoogvenster ervan, **Reissue SSL Certificate for this Status Page**, vraa
 
 De actie verschijnt niet bij een domein dat een door u geüpload certificaat gebruikt: er is geen Let's Encrypt-certificaat om opnieuw uit te geven, dus upload in plaats daarvan een nieuw door het domein te bewerken. Ze verschijnt ook niet voordat het eerste certificaat van het domein is besteld, wat vanzelf gebeurt zodra het CNAME-record ervan is geverifieerd.
 
-Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen van dashboards onder **Dashboards → uw dashboard → Huisstijl → Aangepaste domeinen**, die net zo werken als aangepaste domeinen van statuspagina's: zie [Delen en publieke dashboards](/docs/dashboards/sharing#custom-domains).
+Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen van dashboards onder **Dashboards → uw dashboard → Huisstijl → Aangepaste domeinen**, die net zo werken als aangepaste domeinen van statuspagina's: zie [Delen en publieke dashboards](/docs/dashboards/sharing#aangepaste-domeinen).
 
 ### De kolom Status van het domein lezen
 

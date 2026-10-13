@@ -6,6 +6,7 @@ import {
   SnmpTableSnapshotColumn,
   SnmpTableSnapshotRow,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import OneUptimeDate from "Common/Types/Date";
 import { FIRST_PROBE_VERSION_WITH_SNMP_TABLES } from "Common/Types/Probe/ProbeCapability";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -20,6 +21,14 @@ export interface ComponentProps {
 
 // A value that already carries its unit, such as "80MHz" or "45%".
 const ENDS_WITH_UNIT: RegExp = /[a-z%]$/i;
+
+/*
+ * Column names and values up to this long stay on one line - "TX Power",
+ * "2.4 GHz", "20 dBm" or "active" never stack over two - and a narrow
+ * screen scrolls the table sideways. Longer text (a description, a long
+ * column name a table was given) wraps in a column of its own width.
+ */
+const ONE_LINE_VALUE_LENGTH: number = 24;
 
 // What each table kind is, in a few words, for the card's description.
 const KIND_DESCRIPTIONS: Record<SnmpTableKind, string> = {
@@ -75,6 +84,21 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
   }
 
   /*
+   * Rows the walk read and left out of the table: an SSID table's networks
+   * the access point runs for itself (UniFi's mesh link and adoption
+   * network) and interfaces that broadcast none.
+   */
+  const leftOutRowCount: number = snapshot.leftOutRowCount || 0;
+
+  /*
+   * An SSID table whose rows were all the device's own: it answered with
+   * rows, and none is a network people join. Saying "the device returned no
+   * rows - check the SNMP view" would send its owner the wrong way.
+   */
+  const ownNetworksOnly: boolean =
+    SnmpTableListUtil.showsOnlyOwnNetworks(snapshot);
+
+  /*
    * Why the last walk read nothing, in the words that fit what is left:
    * the rows from an earlier walk, or none at all. A probe that answered
    * without walking the table is told apart from a walk that failed - the
@@ -85,7 +109,8 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const hasRows: boolean = snapshot.rows.length > 0;
+    // An earlier walk read rows, even when every one of them was left out.
+    const hasRows: boolean = snapshot.rows.length > 0 || leftOutRowCount > 0;
 
     if (
       snapshot.failureReason === SnmpTableFailureReason.ProbeDidNotWalkTables
@@ -185,14 +210,28 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
         )}
 
         {snapshot.rows.length === 0 ? (
-          failureText ? (
+          ownNetworksOnly ? (
+            <p
+              className="py-6 text-center text-sm text-gray-500"
+              data-testid={`snmp-table-${snapshot.key}-no-rows`}
+            >
+              {translator.translateText(
+                "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.",
+              )}
+            </p>
+          ) : failureText || snapshot.isTruncated ? (
             /*
              * Nothing was read, so nothing was returned: the alert above
              * says why, and "the device returned no rows" would be wrong.
+             * So would it for a walk cut short before a row it keeps: the
+             * note below says more rows exist.
              */
             <></>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p
+              className="py-6 text-center text-sm text-gray-500"
+              data-testid={`snmp-table-${snapshot.key}-no-rows`}
+            >
               {translator.translateText(
                 "The device returned no rows for this table. Check that it implements these columns, and that the SNMP view your credentials use includes them.",
               )}
@@ -203,7 +242,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
                 <tr>
-                  <th className="py-2 pr-4 text-left font-medium text-gray-500">
+                  <th className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500">
                     {translator.translateText("Row")}
                   </th>
                   {snapshot.columns.map(
@@ -212,7 +251,11 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                         <th
                           key={column.oid}
                           title={column.oid}
-                          className="py-2 pr-4 text-left font-medium text-gray-500"
+                          className={`py-2 pr-4 text-left font-medium text-gray-500 ${
+                            column.name.length > ONE_LINE_VALUE_LENGTH
+                              ? "min-w-[8rem]"
+                              : "whitespace-nowrap"
+                          }`}
                         >
                           {column.name}
                         </th>
@@ -227,7 +270,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                     return (
                       <tr key={row.index}>
                         <td
-                          className="py-2 pr-4 font-medium text-gray-900"
+                          className="min-w-[10rem] py-2 pr-4 font-medium text-gray-900 [overflow-wrap:anywhere]"
                           title={translator.translateTemplate(
                             "Row index {{index}}",
                             { index: row.index },
@@ -237,9 +280,20 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                         </td>
                         {snapshot.columns.map(
                           (column: SnmpTableSnapshotColumn): ReactElement => {
+                            const cell: SnmpTableSnapshotCell | undefined =
+                              row.cells[column.oid];
+
                             return (
-                              <td key={column.oid} className="py-2 pr-4">
-                                {renderCell(column, row.cells[column.oid])}
+                              <td
+                                key={column.oid}
+                                className={`py-2 pr-4 ${
+                                  (cell?.display || "").length >
+                                  ONE_LINE_VALUE_LENGTH
+                                    ? "min-w-[12rem]"
+                                    : "whitespace-nowrap"
+                                }`}
+                              >
+                                {renderCell(column, cell)}
                               </td>
                             );
                           },

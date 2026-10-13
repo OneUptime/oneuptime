@@ -6,6 +6,9 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import AndroidNotificationChannel from "Common/Types/PushNotification/AndroidNotificationChannel";
+import PushNotificationLevel, {
+  DEFAULT_PUSH_NOTIFICATION_LEVEL,
+} from "Common/Types/NotificationRule/PushNotificationLevel";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -66,6 +69,10 @@ const SOURCES: Record<string, string> = {
   workflowEmailTrigger:
     "packages/Common/Types/Workflow/IncomingEmailTrigger.ts",
   userPush: "packages/Common/Models/DatabaseModels/UserPush.ts",
+  userNotificationRule:
+    "packages/Common/Models/DatabaseModels/UserNotificationRule.ts",
+  notificationRuleService: `${COMMON_SERVER}/Services/UserNotificationRuleService.ts`,
+  pushLevelControl: `${DASHBOARD}/Components/NotificationRule/PushNotificationLevelControl.tsx`,
   navBar: "packages/Common/UI/Components/Navbar/NavBar.tsx",
   dashboardNavBar: `${DASHBOARD}/Components/NavBar/NavBar.tsx`,
   navigationItems: `${DASHBOARD}/Utils/NavigationItems.tsx`,
@@ -863,6 +870,64 @@ describe("Push Notifications: critical on-call alerts, against the server and th
     expect(AndroidNotificationChannel.Critical).toBe("oncall_critical");
     expect(page).toContain(
       "plus `interruptionLevel: critical` for iOS, and targets the `oncall_critical` notification channel for Android.",
+    );
+  });
+
+  it("leaves the level to each on-call rule, Critical unless the rule is set to Standard", () => {
+    const model: string = readSource("userNotificationRule");
+    const column: number = model.indexOf(
+      "public pushNotificationLevel?: PushNotificationLevel",
+    );
+
+    expect(column).toBeGreaterThan(-1);
+    expect(model.slice(column - 400, column)).toContain(
+      "default: PushNotificationLevel.Critical,",
+    );
+    expect(DEFAULT_PUSH_NOTIFICATION_LEVEL).toBe(
+      PushNotificationLevel.Critical,
+    );
+
+    // The page's fourth condition is the rule's half of the server's decision.
+    const service: string = readSource("notificationRuleService");
+
+    expect(service).toContain("isCriticalPushNotification({");
+    expect(service).toContain(
+      "pushNotificationLevel: notificationRuleItem.pushNotificationLevel,",
+    );
+
+    expect(page).toContain(
+      "Four things must all be true for a page to override silent mode.",
+    );
+    expect(page).toContain(
+      "Stored per rule in `UserNotificationRule.pushNotificationLevel`.",
+    );
+    expect(page).toContain(
+      'Rule{"Its on-call rule set<br/>to Critical alert?"}',
+    );
+  });
+
+  it("names the On-Call Rules page where the user settings menu shows it, and the levels as a rule's row draws them", () => {
+    expect(
+      objectMenu(readSource("userSettingsSideMenu")).get(
+        "Alerts & Notifications",
+      ),
+    ).toContain("On-Call Rules");
+
+    const control: string = readSource("pushLevelControl");
+
+    expect(control).toContain('title: translationKey("Critical alert"),');
+    expect(control).toContain('title: translationKey("Standard"),');
+
+    // The device list's own word on the switch says the same as the page.
+    expect(readSource("pushCard")).toContain(
+      "override silent mode and Do Not Disturb, except from on-call rules set to Standard.",
+    );
+
+    expect(page).toContain(
+      "Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings",
+    );
+    expect(page).toContain(
+      "- Check the on-call rule for that severity under **User Settings > On-Call Rules**: a push rule set to Standard follows the phone's sound settings",
     );
   });
 

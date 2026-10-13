@@ -1,4 +1,4 @@
-import { AppState, Platform } from "react-native";
+import { AppState, Linking, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -10,6 +10,9 @@ import {
 import * as pushDeviceApi from "../api/pushDevice";
 import { getCriticalAlertsEnabled } from "../storage/preferences";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
+import { setupNotificationChannels } from "../notifications/setup";
+import { NotificationChannelId } from "../notifications/channels";
+import { FakeAndroidNotificationChannels } from "../__tests__/fakeAndroidNotificationChannels";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 jest.mock("../api/pushDevice", () => {
@@ -590,7 +593,7 @@ describe("useCriticalAlerts on Android", () => {
 
   test("is granted once the channel really bypasses Do Not Disturb", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     const { result } = await renderCriticalAlerts();
@@ -600,7 +603,7 @@ describe("useCriticalAlerts on Android", () => {
 
   test("turning it on after the grant reaches the server", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     const { result } = await renderCriticalAlerts();
@@ -617,7 +620,7 @@ describe("useCriticalAlerts on Android", () => {
 
   test("without Do Not Disturb access the responder is pointed at the right screen", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const { result } = await renderCriticalAlerts();
@@ -638,7 +641,7 @@ describe("useCriticalAlerts on Android", () => {
      * the responder kills and reopens the app.
      */
     const channelSpy: jest.SpyInstance = jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const addListenerSpy: jest.SpyInstance = jest.spyOn(
@@ -671,7 +674,7 @@ describe("useCriticalAlerts on Android", () => {
      * did not work.
      */
     const channelSpy: jest.SpyInstance = jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const addListenerSpy: jest.SpyInstance = jest.spyOn(
@@ -703,7 +706,7 @@ describe("useCriticalAlerts on Android", () => {
 
   test("backgrounding does not trigger a re-check", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const addListenerSpy: jest.SpyInstance = jest.spyOn(
@@ -718,7 +721,7 @@ describe("useCriticalAlerts on Android", () => {
 
     const channelSpy: jest.SpyInstance = jest.spyOn(
       Notifications,
-      "getNotificationChannelAsync",
+      "setNotificationChannelAsync",
     );
     channelSpy.mockClear();
 
@@ -727,6 +730,166 @@ describe("useCriticalAlerts on Android", () => {
     });
 
     expect(channelSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("useCriticalAlerts on Android, against Android's own channel rules", () => {
+  /*
+   * The responder's whole round trip, with Android's channel rules in play
+   * rather than a mock that flips the answer: the app starts and creates its
+   * channels, the responder turns the setting on, is sent to the Do Not
+   * Disturb access screen, allows it, and comes back to the app - which is
+   * still running.
+   *
+   * Under the old read-only status check the last step read the bypassDnd
+   * false stored at start-up, so the setting stayed off and the screen kept
+   * asking for the access just granted, until the app was restarted.
+   */
+  let android: FakeAndroidNotificationChannels;
+  let addListenerSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    setPlatform("android");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockClear();
+    serverSpy().mockResolvedValue(undefined as never);
+
+    android = new FakeAndroidNotificationChannels();
+    android.install();
+
+    // The settings screen the setting opens; the responder acts on it below.
+    jest.spyOn(Linking, "sendIntent").mockResolvedValue(undefined as never);
+
+    addListenerSpy = jest.spyOn(AppState, "addEventListener");
+
+    // The app's start, as usePushNotifications runs it.
+    await setupNotificationChannels();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function cameBackToTheApp(): Promise<void> {
+    const handler: (state: string) => void = addListenerSpy.mock
+      .calls[0]![1] as (state: string) => void;
+
+    await act(async () => {
+      handler("active");
+    });
+  }
+
+  test("granting Do Not Disturb access and coming back turns critical alerts on - no restart", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isPermissionGranted).toBe(false);
+
+    // Turning it on sends the responder to Android's settings...
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(Linking.sendIntent).toHaveBeenCalledWith(
+      "android.settings.NOTIFICATION_POLICY_ACCESS_SETTINGS",
+    );
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.error).toContain("Do Not Disturb access");
+    expect(serverSpy()).not.toHaveBeenCalled();
+
+    // ...where they allow it, and come back.
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isPermissionGranted).toBe(true);
+    });
+    expect(result.current.error).toBe("");
+
+    // Turning it on now reaches the server, and stays on.
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(serverSpy()).toHaveBeenCalledWith({
+      deviceToken: DEVICE_TOKEN,
+      isEnabled: true,
+    });
+    expect(result.current.isEnabled).toBe(true);
+    expect(android.stored(NotificationChannelId.CRITICAL)?.bypassDnd).toBe(
+      true,
+    );
+  });
+
+  test("a responder who had already turned it on sees it come back on by itself", async () => {
+    /*
+     * Opted in on this phone before (stored), but the channel was never given
+     * the bypass. Once access is granted the setting shows as on again
+     * without being toggled - it is on the server already.
+     */
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isEnabled).toBe(false);
+
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    expect(serverSpy()).not.toHaveBeenCalled();
+  });
+
+  test("coming back without granting it leaves the setting off and the instruction up", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    await cameBackToTheApp();
+
+    expect(result.current.isPermissionGranted).toBe(false);
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.error).toContain("Do Not Disturb access");
+  });
+
+  test("a channel the responder changed before granting stays off - the screen does not claim otherwise", async () => {
+    android.userChangesChannel(NotificationChannelId.CRITICAL, {
+      sound: "content://siren",
+    });
+
+    const { result } = await renderCriticalAlerts();
+
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    expect(result.current.isPermissionGranted).toBe(false);
+    expect(result.current.isEnabled).toBe(false);
+  });
+
+  test("switching the bypass off in Android's settings turns the setting off on the next return", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    android.grantDoNotDisturbAccess();
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+
+    android.userChangesChannel(NotificationChannelId.CRITICAL, {
+      bypassDnd: false,
+    });
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(false);
+    });
+    expect(result.current.isPermissionGranted).toBe(false);
   });
 });
 

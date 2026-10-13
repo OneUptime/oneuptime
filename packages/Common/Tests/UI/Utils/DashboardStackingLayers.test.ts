@@ -72,12 +72,14 @@ function moreMenuZIndex(): number {
   /*
    * The offset and the transform origin left this run when MoreMenu gained
    * isOpeningUpwards: they are now `mt-2 origin-top-right` OR `bottom-full
-   * mb-2 origin-bottom-right`, appended per direction. The layer is not -
-   * it is the same for a menu whichever way it opens - so this anchors on
-   * the invariant part of the class list.
+   * mb-2 origin-bottom-right`, appended per direction. The side left it when
+   * MoreMenu gained isMenuLeftAligned: `left-0` OR `right-0`. The layer is
+   * not - it is the same for a menu whichever way it opens and whichever edge
+   * it lines up with - so this anchors on the invariant part of the class
+   * list.
    */
   const match: RegExpMatchArray | null = source.match(
-    /absolute right-0 z-(\d+) w-56 rounded-lg/,
+    /z-(\d+) w-56 rounded-lg/,
   );
 
   if (!match || match[1] === undefined) {

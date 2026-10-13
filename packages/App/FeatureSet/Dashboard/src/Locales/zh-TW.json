@@ -14149,7 +14149,6 @@
   "On-call duty rotates through these users top to bottom. Drag the handle to reorder.": "On-call duty rotates through these users top to bottom. Drag the handle to reorder.",
   "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap below is dropped rather than delivered on another channel.": "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap below is dropped rather than delivered on another channel.",
   "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap listed below is dropped rather than delivered on another channel.": "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap listed below is dropped rather than delivered on another channel.",
-  "On-call pages to this device override silent mode and Do Not Disturb. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "On-call pages to this device override silent mode and Do Not Disturb. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
   "On-call policies to execute when this rule creates an alert.": "On-call policies to execute when this rule creates an alert.",
   "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.": "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
   "On-call policies to fire when an episode is created by this rule.": "On-call policies to fire when an episode is created by this rule.",
@@ -28173,5 +28172,19 @@
   "This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > User Overrides.": "它適用於所有待命策略。結束後，此人回到輪換中原本的位置。若要提前結束，請在「待命 > 使用者覆寫」中將其刪除。",
   "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.": "有人不在崗時，所有待命策略發給此人的呼叫都會轉給代班的人。若未指定任何人，此人的每個班次由輪換中的下一個人接手。若只想在一個策略中代班，請在該策略的「使用者覆寫」頁面新增覆寫。",
   "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.": "有人不在崗時，此策略發給此人的呼叫會轉給代班的人。若未指定任何人，此人的每個班次由輪換中的下一個人接手。若想在所有策略中同時代班，請在「待命 > 使用者覆寫」中新增覆寫。",
-  "Control whether search engines like Google and Bing may list this status page on its custom domains. Its preview URL is never listed.": "控制是否允許 Google 和 Bing 等搜尋引擎在搜尋結果中列出此狀態頁面（僅限其自訂網域）。其預覽 URL 永遠不會被列出。"
+  "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.": "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.",
+  "Control whether search engines like Google and Bing may list this status page on its custom domains. Its preview URL is never listed.": "控制是否允許 Google 和 Bing 等搜尋引擎在搜尋結果中列出此狀態頁面（僅限其自訂網域）。其預覽 URL 永遠不會被列出。",
+  "Could not change how this push sounds.": "Could not change how this push sounds.",
+  "Critical alert": "Critical alert",
+  "Follows the phone's sound, silent and Do Not Disturb settings.": "Follows the phone's sound, silent and Do Not Disturb settings.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
+  "Push Notification Level": "Push Notification Level",
+  "Push notification": "Push notification",
+  "Push notification: {{level}}. Change how this push sounds.": "Push notification: {{level}}. Change how this push sounds.",
+  "Rings even when the phone is on silent or in Do Not Disturb.": "Rings even when the phone is on silent or in Do Not Disturb.",
+  "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.": "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.",
+  "Standard": "Standard",
+  "The device reported no SSIDs on its last walk.": "裝置在上次遍歷中未回報任何 SSID。",
+  "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "裝置未回報任何 SSID。裝置為自身運作的網路（例如無線網狀連結）不會列出。",
+  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded."
 }

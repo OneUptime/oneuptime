@@ -36,6 +36,14 @@ import { FIRST_PROBE_VERSION_WITH_SNMP_TABLES } from "../../Probe/ProbeCapabilit
 export enum SnmpTableKind {
   Generic = "Generic",
   WifiRadio = "WifiRadio",
+  /*
+   * The networks people join, one row per SSID (on each band, where the
+   * vendor reports SSIDs per radio). A walked row that names no network,
+   * or holds one the access point runs for itself - UniFi's mesh link and
+   * device adoption network, an Extreme controller's WDS and mesh services
+   * (WifiInternalNetwork) - is not kept: an SSID table only ever holds
+   * SSIDs, whatever reads it.
+   */
   WifiSsid = "WifiSsid",
   /*
    * The access points a wireless controller manages - an Aruba Instant
@@ -250,6 +258,21 @@ export interface SnmpTableSnapshot {
   kind: SnmpTableKind;
   columns: Array<SnmpTableSnapshotColumn>;
   rows: Array<SnmpTableSnapshotRow>;
+  /*
+   * How many rows the walk read and left out, when it left any out: an SSID
+   * table's networks the access point runs for itself, interfaces that name
+   * none ("N/A") and rows whose SSID column held nothing
+   * (SnmpTableListUtil.isListedRow). It tells an access point that
+   * broadcasts no SSID from a walk that read nothing at all.
+   */
+  leftOutRowCount?: number | undefined;
+  /*
+   * Of those, the rows whose SSID column held nothing and that are no
+   * network of the device's own, when there are any. The column may be
+   * missing, mistyped or hidden by the SNMP view, so the table shows
+   * nothing about what the device broadcasts.
+   */
+  blankRowCount?: number | undefined;
   isTruncated?: boolean | undefined;
   failureCause?: string | undefined;
   // Set beside failureCause when the reason is one the views explain.

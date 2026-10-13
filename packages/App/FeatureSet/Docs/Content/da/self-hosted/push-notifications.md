@@ -105,22 +105,26 @@ Omfanget er bevidst snævert. Kun alarmer, som en vagtnotifikationsregel frembri
 ```mermaid title="Hvornår en vagtalarm ringer igennem lydløs tilstand"
 flowchart TB
     Page["En vagtalarm"]
+    Rule{"Står dens vagtregel<br/>på ”Critical alert”?"}
     Device{"Critical On-Call Alerts<br/>slået til for denne enhed?"}
     OS{"Tillader telefonens system<br/>kritiske alarmer?"}
     Loud["Afspiller en lyd trods<br/>lydløs og Forstyr ikke"]
     Quiet["Leveres lydløst,<br/>som ethvert andet push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"ja"| Device
+    Rule -->|"nej"| Quiet
     Device -->|"ja"| OS
     Device -->|"nej"| Quiet
     OS -->|"ja"| Loud
     OS -->|"nej"| Quiet
 ```
 
-Tre ting skal alle være opfyldt, før en alarm tilsidesætter lydløs tilstand. Mangler blot én, leveres alarmen stadig – bare lydløst.
+Fire ting skal alle være opfyldt, før en alarm tilsidesætter lydløs tilstand. Mangler blot én, leveres alarmen stadig – bare lydløst.
 
 1. **Personen har slået det til for den enhed.** Gemt pr. enhed, slået fra som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon og tablet er separate valg.
-2. **Serveren markerer alarmen som kritisk.** Den sender APNs' kritiske lyd-payload plus `interruptionLevel: critical` til iOS og bruger notifikationskanalen `oncall_critical` til Android.
-3. **Operativsystemet tillader det**, og det er her, de to platforme adskiller sig.
+2. **Den vagtregel, der sendte alarmen, beder om det.** Under **Brugerindstillinger > Vagtregler** står hver regel, der giver besked til en telefon, på ”Critical alert”, som er standard, eller på ”Standard”, der følger telefonens lydindstillinger – så en person kan blive vækket af en kritisk hændelse og få besked lydløst om en mindre. Gemt pr. regel i `UserNotificationRule.pushNotificationLevel`.
+3. **Serveren markerer alarmen som kritisk.** Den sender APNs' kritiske lyd-payload plus `interruptionLevel: critical` til iOS og bruger notifikationskanalen `oncall_critical` til Android.
+4. **Operativsystemet tillader det**, og det er her, de to platforme adskiller sig.
 
 :::tabs
 @tab iOS
@@ -171,6 +175,7 @@ For at tjekke, at det virker, sender du en testnotifikation til enheden fra **Br
 ### Kritiske alarmer tilsidesætter ikke lydløs tilstand
 
 - Tjek, at kontakten er slået til for **den** enhed – indstillingen gælder pr. enhed, og en geninstallation eller en ny telefon, der er sat op fra bunden, opretter en ny enhedsregistrering (en telefon, der er sat op fra en sikkerhedskopi af den gamle, overtager den gamle telefons registrering, så snart den ikke længere modtager notifikationer, med den indstilling, appen havde)
+- Tjek vagtreglen for den alvorlighed under **Brugerindstillinger > Vagtregler**: en push-regel på ”Standard” følger telefonens lydindstillinger, uanset hvad enhedens kontakt siger
 - **iOS**: Bekræft, at buildet bærer Apples entitlement til kritiske alarmer (se ovenfor), og at Critical Alerts er tilladt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekræft, at appen har adgang til Forstyr ikke under Settings > Notifications > Do Not Disturb access
 - Indstillingsskærmen siger, hvilken af disse der mangler; den læser den aktuelle tilstand tilbage fra operativsystemet i stedet for at stole på, hvad appen sidst bad om
