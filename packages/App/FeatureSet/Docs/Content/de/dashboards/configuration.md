@@ -1,80 +1,120 @@
-# Konfiguration & Berechtigungen
+# Dashboard-Konfiguration & Berechtigungen
 
-Diese Seite behandelt die Einstellungen und Zugriffskontrollen, die Sie kennen sollten, sobald Sie ein Dashboard haben, das Sie behalten möchten.
+Sobald Sie ein Dashboard haben, das sich zu behalten lohnt, behandelt diese Seite, wer es lesen und ändern darf, wie Eigentümer und Beschriftungen Ihre Dashboards ordnen und wie Sie eines kopieren, exportieren, archivieren und löschen.
+
+:::cards
+- [Wer was darf](#wer-was-darf): Die Berechtigungen hinter jeder Aktion und wer sie hat.
+- [Eigentümer](#eigentümer): Die Benutzer und Teams, denen ein Dashboard gehört.
+- [Ein Dashboard duplizieren](#ein-dashboard-duplizieren): Eine sichere Kopie, für Sie nummeriert.
+- [Ein Dashboard archivieren](#ein-dashboard-archivieren): Ein Dashboard wegräumen, ohne es zu löschen.
+:::
+
+## Wer was darf
+
+Dashboards folgen den [Berechtigungen](/docs/permissions/index) Ihres Projekts. Jede Aktion braucht eine davon, erhalten über ein Team:
+
+| Um | Braucht es |
+| --- | --- |
+| Dashboards zu lesen | `ReadDashboard` oder eine Projektrolle: Project Owner, Project Admin, Project Member, Viewer oder eine Settings-Rolle |
+| Dashboards zu erstellen | `CreateDashboard`, Project Owner oder Project Admin |
+| Ein Dashboard zu ändern: seine Widgets, Variablen, Freigabe, sein Branding, und es zu archivieren | `EditDashboard`, Project Owner oder Project Admin |
+| Ein Dashboard zu löschen | `DeleteDashboard`, Project Owner oder Project Admin |
+| Eigentümer hinzuzufügen und zu entfernen | Die Berechtigungen für Dashboard-Eigentümer, Project Owner, Project Admin oder Project Member |
+| Eigene Domains hinzuzufügen und zu ändern | Die Berechtigungen für Dashboard-Domains, Project Owner, Project Admin, Project Member, Settings Admin oder Settings Member |
+| Eigentümer- und Beschriftungsregeln zu erstellen | Die Berechtigungen für Regeln, Project Owner oder Project Admin |
+
+Ein Project Member liest also jedes Dashboard, braucht aber `CreateDashboard` und `EditDashboard`, um welche zu bauen. Lesen, Bearbeiten und Löschen lassen sich jeweils auf die Dashboards beschränken, die einem Team gehören, oder auf Dashboards mit bestimmten Beschriftungen: siehe [Geltungsbereich: wie weit eine Erlaubnis reicht](/docs/permissions/index#geltungsbereich-wie-weit-eine-erlaubt-berechtigung-reicht).
+
+Vergeben Sie sie auf der Seite **Berechtigungen** eines Teams: Öffnen Sie **Produkte → Teams** und wählen Sie das Team.
+
+Wer ein Dashboard außerhalb des Projekts sehen kann, ist eine eigene Frage, die auf seiner Seite **Freigabe** beantwortet wird: siehe [Zugriff auf öffentliche Dashboards](#zugriff-auf-öffentliche-dashboards).
 
 ## Eigentümer
 
-Die **Eigentümer** eines Dashboards sind Benutzer und Teams, denen Sie zusätzlich zu ihrer projektweiten Rolle expliziten Zugriff gewährt haben.
+Die **Eigentümer** eines Dashboards sind die Benutzer und Teams, denen es gehört. Fügen Sie sie auf der Seite **Eigentümer** des Dashboards hinzu, oder wählen Sie mehrere Dashboards in der Liste **Dashboards** aus und fügen Sie allen auf einmal Eigentümer hinzu.
 
-Unter **Dashboard → Eigentümer**:
+Eigentümer schränken den Zugriff ein, wenn Sie es wollen: Eine Teamberechtigung, die auf die Dashboards des Teams begrenzt ist, reicht nur bis zu den Dashboards, die dieses Team oder die handelnde Person als Eigentümer führen. Eigentum allein gewährt nichts.
 
-- Fügen Sie einen **Benutzer-Eigentümer** hinzu, um einer einzelnen Person zusätzlichen Zugriff auf dieses Dashboard zu geben.
-- Fügen Sie einen **Team-Eigentümer** hinzu, um das Gleiche jedem Mitglied eines Teams zu geben.
+Die Liste **Dashboards** zeigt die Eigentümer jedes Dashboards, und ihr Filter **Eigentümer** findet die Dashboards, die einer Person oder einem Team gehören.
 
-Verwenden Sie Eigentümer, wenn die projektweite Leserolle zu breit ist – zum Beispiel ein Dashboard mit kundenspezifischen Details, das nur das Customer-Success-Team sehen soll.
+## Beschriftungen
 
-## Labels
+Beschriftungen sind Schlagwörter, um Dashboards zu ordnen. Fügen Sie sie auf der Seite **Übersicht** des Dashboards hinzu, wo Sie auch seinen Namen und seine Beschreibung bearbeiten, oder mehreren Dashboards auf einmal über die Liste **Dashboards**.
 
-Labels sind Schlagworte zum Organisieren von Dashboards. Sie wenden sie unter **Dashboard → Übersicht** an.
-
-Übliche Muster:
+Häufige Muster:
 
 - **Nach Team**: `team:platform`, `team:checkout`, `team:growth`.
 - **Nach Umgebung**: `env:prod`, `env:staging`.
 - **Nach Zweck**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-In der Liste **Dashboards** können Sie nach Label filtern – der schnellste Weg, ein Dashboard in einem Projekt zu finden, in dem sich viele angesammelt haben.
+Der Filter **Beschriftungen** der Liste **Dashboards** ist der schnellste Weg, ein Dashboard in einem Projekt zu finden, das viele davon angesammelt hat. Beschriftungen begrenzen auch Berechtigungen: Eine auf bestimmte Beschriftungen beschränkte Teamberechtigung reicht nur bis zu den Dashboards, die eine davon tragen.
 
-## Berechtigungen
+## Eigentümer- und Beschriftungsregeln
 
-Dashboards arbeiten mit der rollenbasierten Zugriffskontrolle Ihres Projekts. Die relevanten Berechtigungen:
+Statt Eigentümer und Beschriftungen von Hand hinzuzufügen, lassen Sie Regeln das tun. Unter **Einstellungen** im Seitenmenü von **Dashboards** fügen **Eigentümerregeln** Eigentümer und **Beschriftungsregeln** Beschriftungen zu jedem neuen Dashboard hinzu, auf das sie passen: anhand der Beschriftungen, die es schon trägt, oder anhand eines Musters in seinem Namen oder seiner Beschreibung. [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules) erklärt, wie Regeln passen und wie Sie eine auf die Dashboards anwenden, die Sie schon haben.
 
-| Berechtigung             | Was sie erlaubt                              |
-| ------------------------ | -------------------------------------------- |
-| **Dashboard erstellen**  | Neue Dashboards anlegen.                     |
-| **Dashboard lesen**      | Dashboards anzeigen (im privaten Modus).     |
-| **Dashboard bearbeiten** | Widgets, Variablen und Einstellungen ändern. |
-| **Dashboard löschen**    | Ein Dashboard löschen.                       |
+## Zugriff auf öffentliche Dashboards
 
-Es gibt passende Berechtigungen für Dashboard-Eigentümer und eigene Domains, sodass Sie „Eigentümer verwalten" vergeben können, ohne „Dashboard bearbeiten" zu erteilen.
+Wer ein Dashboard außerhalb des Projekts sehen kann, ist eine einzige Wahl auf seiner Seite **Freigabe** (auch **⋯ → Teilen** im Dashboard selbst; siehe [Teilen & öffentliche Dashboards](/docs/dashboards/sharing)):
 
-Vergeben Sie diese in den Projektrollen unter **Produkte → Teams → Berechtigungen**.
+1. **Nur Personen in diesem Projekt** (Standard) — Das Dashboard hat keinen öffentlichen Link; seine öffentliche Adresse zeigt eine Seite „nicht gefunden“.
+2. **Alle mit dem Link** — Wer den öffentlichen Link hat, kann es sehen, ohne sich anzumelden.
+3. **Alle mit dem Link und einem Passwort** — Besucher geben ein Passwort ein, bevor das Dashboard erscheint.
 
-## Zugriff für öffentliche Dashboards
-
-Wenn Sie ein Dashboard öffentlich machen (siehe [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing)), steuern drei Einstellungen, wer es sehen kann:
-
-1. **Schalter „Öffentliches Dashboard"** – ist er aus, liefert die öffentliche URL einen 404.
-2. **Master-Passwort** – ist es gesetzt, geben Besucher ein Passwort ein, bevor das Dashboard erscheint.
-3. **IP-Whitelist** (Scale-Tarif) – ist sie gesetzt, werden Anfragen von anderen IPs abgelehnt.
-
-Sie können diese beliebig kombinieren. Die strengste Kombination ist „Öffentlich an, Passwort gesetzt, IP-Zugriffsliste aktiv" – nützlich für Partnerportale, in denen Sie alle drei Schichten wollen.
-
-## Datenaufbewahrung
-
-Dashboards selbst laufen nicht ab. Die angezeigten Daten richten sich nach den Aufbewahrungseinstellungen Ihres Projekts – Metriken, Logs und Traces sind so lange abfragbar, wie Ihr Tarif sie aufbewahrt. Ein Widget mit „letzte 90 Tage" in einem Tarif, der 30 Tage aufbewahrt, zeigt das, was tatsächlich noch gespeichert ist.
+Unter **Weitere Einstellungen** auf derselben Seite weist die **IP-Zulassungsliste** (Tarif Scale) Anfragen an den öffentlichen Link von jeder IP-Adresse ab, die nicht darauf steht. Die am stärksten abgeschottete öffentliche Einrichtung ist **Alle mit dem Link und einem Passwort** mit einer IP-Zulassungsliste — nützlich für Partnerportale, bei denen Sie beide Schichten wollen.
 
 ## Ein Dashboard duplizieren
 
-Um ein Dashboard zu kopieren, öffnen Sie es und gehen Sie zu **Einstellungen → Duplicate Dashboard**. Der Name der Kopie ist bereits ausgefüllt: der Name des Dashboards, weitergezählt über die Namen hinaus, die das Projekt schon hat („Checkout API“ wird als „Checkout API 2“ kopiert, eine Kopie davon als „Checkout API 3“). Ändern Sie ihn bei Bedarf, klicken Sie auf **Duplicate Dashboard**, und die Kopie öffnet sich. Sie enthält die Widgets, Variablen, die Beschreibung und die Labels des Dashboards. Branding und eigene Domains bleiben beim Original, und die öffentliche Freigabe startet immer ausgeschaltet, damit Sie entscheiden können, ob Sie sie einschalten möchten.
+Um ein Dashboard zu kopieren, öffnen Sie es, gehen Sie zu seiner Seite **Einstellungen** und klicken Sie auf **Dashboard duplizieren**. Der Name der Kopie wird für Sie ausgefüllt: der Name des Dashboards, über die Namen hinaus nummeriert, die das Projekt schon hat („Checkout API“ wird als „Checkout API 2“ kopiert, und eine Kopie davon als „Checkout API 3“). Ändern Sie ihn, wenn Sie möchten, bestätigen Sie mit **Dashboard duplizieren**, und die Kopie öffnet sich. Sie hat die Widgets, Variablen, Beschreibung und Beschriftungen des Dashboards. Branding und eigene Domains bleiben beim Original, und die öffentliche Freigabe ist immer zunächst aus, damit Sie entscheiden können, ob Sie sie einschalten.
 
-Das ist der richtige Schritt, wenn Sie eine Vorlage (zum Beispiel „unser Rufbereitschafts-Dashboard") in eine servicespezifische Kopie verzweigen möchten.
+Das ist der richtige Schritt, wenn Sie eine Vorlage (etwa „unser Dashboard für die Rufbereitschaft“) in eine Kopie für einen bestimmten Dienst abzweigen wollen.
+
+## Exportieren und importieren
+
+Ein Dashboard reist als JSON:
+
+- **Dashboard exportieren** auf der Seite **Einstellungen** des Dashboards lädt es als JSON-Datei herunter. Um mehrere zu exportieren, wählen Sie sie in der Liste **Dashboards** aus und wählen **JSON exportieren**.
+- **JSON importieren** über der Liste **Dashboards** erstellt Dashboards aus einer solchen Datei, in diesem Projekt oder in einem anderen.
+
+Ein Export enthält die eigenen Einstellungen des Dashboards, darunter seine Widgets und Variablen. Seine Eigentümer und Beschriftungen bleiben außen vor, und bei Widgets, die auf Ressourcen dieses Projekts zeigen, etwa ein SLO oder eine Datenquelle, müssen diese in einem anderen Projekt eventuell neu gewählt werden.
+
+## Ein Dashboard archivieren
+
+Archivieren Sie ein Dashboard, das Sie nicht mehr nutzen, aber behalten wollen. Ein archiviertes Dashboard verschwindet aus der Liste **Dashboards**, und wenn es öffentlich ist, funktioniert sein öffentlicher Link nicht mehr — seine URL und seine eigenen Domains antworten mit "Dashboard not found". Seine Widgets, Variablen, sein Branding, seine Domains und seine öffentlichen Einstellungen bleiben alle erhalten, sodass das Zurückholen aus dem Archiv es genau so wiederherstellt, wie es war, samt öffentlichem Link.
+
+```mermaid title="Archivieren behält alles; Löschen entfernt es"
+flowchart TB
+    A["In der Liste Dashboards,<br/>öffentlicher Link aktiv"] -->|"Archivieren"| R["Archiviert: nicht<br/>in der Liste, Link<br/>abgeschaltet"]
+    R -->|"Aus Archiv<br/>entfernen"| A
+    A -->|"Löschen"| X["Weg, samt seinen<br/>eigenen Domains"]
+    R -->|"Löschen"| X
+```
+
+Um ein Dashboard zu archivieren, öffnen Sie es, gehen Sie zu seiner Seite **Einstellungen** und klicken Sie auf **Archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Dashboards** aus und wählen **Archivieren**. Um eines zurückzuholen, öffnen Sie **Dashboards → Erweitert → Archiviert**, wählen es aus und wählen **Aus Archiv entfernen**, oder öffnen Sie es und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf seinen Seiten.
+
+Archivieren ist die umkehrbare Alternative zum Löschen: Greifen Sie zuerst dazu, wenn Sie unsicher sind.
 
 ## Ein Dashboard löschen
 
-Unter **Dashboard → Löschen**. Das kann nicht rückgängig gemacht werden – das Layout des Dashboards und alle daran angehängten eigenen Domains werden entfernt. Ihre Telemetriedaten sind davon nicht betroffen.
+Öffnen Sie die Seite **Löschen** des Dashboards. Löschen lässt sich nicht rückgängig machen: Das Dashboard, seine Widgets und Variablen und alle ihm zugeordneten eigenen Domains werden entfernt. Ihre Telemetrie bleibt unberührt.
 
-Ist das Dashboard öffentlich auf einer eigenen Domain, hört die URL sofort nach dem Löschen auf zu funktionieren. Verschieben Sie die Domain vorher auf ein anderes Dashboard, wenn Sie die URL erhalten möchten.
+Ist das Dashboard unter einer eigenen Domain öffentlich, antwortet die Adresse nicht mehr, sobald Sie es löschen. Um die Adresse weiter zu bedienen, fügen Sie die Domain nach dem Löschen einem anderen Dashboard hinzu: Eine Domain gehört jeweils zu einem Dashboard.
 
-## Sicherung
+## Audit-Protokolle
 
-Wenn Sie OneUptime selbst hosten, reicht eine regelmäßige Datenbank-Sicherung – die Konfiguration des Dashboards wird neben dem Rest Ihres Projekts gespeichert.
+Die Seite **Audit-Protokolle** des Dashboards führt jede Änderung am Dashboard auf und wer sie vorgenommen hat. Audit-Protokolle gehören zum Enterprise-Tarif und zur [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Bei OneUptime Cloud werden Sicherungen für Sie erledigt. Wenn Sie eine eigene Kopie wünschen, können Sie das Dashboard über die [OneUptime-API](/docs/api-reference/api-reference) auslesen.
+## Datenaufbewahrung und Backups
 
-## Weiterführende Themen
+Dashboards selbst verfallen nicht. Die Daten, die sie zeigen, folgen den Aufbewahrungseinstellungen Ihres Projekts: Mit dem Zeitbereich auf den letzten 3 Monaten zeigt ein Projekt, das seine Logs 15 Tage lang aufbewahrt, die letzten 15 Tage davon.
 
-- [Freigabe & öffentliche Dashboards](/docs/dashboards/sharing) – Steuerungen im öffentlichen Modus.
-- [Variablen & Filter](/docs/dashboards/variables) – Vorlagenbildung.
-- [Widgets](/docs/dashboards/widgets) – der Widget-Katalog.
-- [Dashboards – Überblick](/docs/dashboards/index) – das große Ganze.
+Wenn Sie OneUptime selbst hosten, genügt ein regelmäßiges Datenbank-Backup: Die Konfiguration eines Dashboards wird mit dem Rest Ihres Projekts gespeichert. In OneUptime Cloud werden Backups für Sie erledigt. Für eine eigene Kopie exportieren Sie das Dashboard als JSON oder lesen es über die [OneUptime-API](/docs/api-reference/api-reference).
+
+## Nächste Schritte
+
+:::cards
+- [Teilen & öffentliche Dashboards](/docs/dashboards/sharing): Öffentliche Links, Passwörter, IP-Zulassungslisten und eigene Domains.
+- [Benutzer, Teams & Berechtigungen](/docs/permissions/index): Teams, Rollen, Geltungsbereiche und Sperren.
+- [Dashboard-Variablen & Filter](/docs/dashboards/variables): Ein Dashboard für jeden Dienst.
+- [Dashboards – Übersicht](/docs/dashboards/index): Das große Ganze.
+:::

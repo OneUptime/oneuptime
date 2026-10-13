@@ -467,7 +467,7 @@ const Push: () => JSX.Element = (): ReactElement => {
             },
             title: "Critical Alerts",
             description:
-              "On-call pages to this device override silent mode and Do Not Disturb. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
+              "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
             type: FieldType.Boolean,
           },
           {
