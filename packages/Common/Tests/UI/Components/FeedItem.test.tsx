@@ -22,7 +22,10 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   };
 });
 
-import FeedItem, { FeedItemProps } from "../../../UI/Components/Feed/FeedItem";
+import FeedItem, {
+  FeedItemFocusRequest,
+  FeedItemProps,
+} from "../../../UI/Components/Feed/FeedItem";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import User from "../../../Models/DatabaseModels/User";
@@ -81,12 +84,16 @@ const renderEntry: (data: {
   entry?: Partial<FeedTimelineEntry<FeedItemProps>> | undefined;
   isLastInDay?: boolean | undefined;
   onToggleBurst?: ((key: string) => void) | undefined;
+  focusRequest?: FeedItemFocusRequest | undefined;
+  onFocusTaken?: (() => void) | undefined;
 }) => void = (data: {
   item: FeedItemProps;
   time?: Partial<FeedTimelineTime> | undefined;
   entry?: Partial<FeedTimelineEntry<FeedItemProps>> | undefined;
   isLastInDay?: boolean | undefined;
   onToggleBurst?: ((key: string) => void) | undefined;
+  focusRequest?: FeedItemFocusRequest | undefined;
+  onFocusTaken?: (() => void) | undefined;
 }): void => {
   render(
     <ol>
@@ -99,6 +106,8 @@ const renderEntry: (data: {
         }}
         isLastInDay={data.isLastInDay === true}
         onToggleBurst={data.onToggleBurst}
+        focusRequest={data.focusRequest}
+        onFocusTaken={data.onFocusTaken}
       />
     </ol>,
   );
@@ -159,7 +168,7 @@ describe("who did it", () => {
     expect(within(lead).getByTestId("feed-entry-avatar")).toBeInTheDocument();
   });
 
-  test("an entry that opens with a heading keeps the name on its own line above it", () => {
+  test("a record's created entry reads as the sentence of whoever created it", () => {
     renderEntry({
       item: item({
         user: nitin(),
@@ -168,14 +177,31 @@ describe("who did it", () => {
       }),
     });
 
+    expect(screen.getByTestId("feed-entry-lead")).toHaveTextContent(
+      "Nitin Kumar created Incident INC-8",
+    );
+    expect(screen.getByTestId("feed-entry-body").textContent).toBe(
+      "**Checkout down**:\n\nDetails.",
+    );
+    expect(screen.getByTestId("feed-entry")).not.toHaveTextContent("🚨");
+  });
+
+  test("an entry that opens with another heading keeps the name on its own line above it", () => {
+    renderEntry({
+      item: item({
+        user: nitin(),
+        textInMarkdown: "#### 🔎 Root cause\n\nThe pool was set to 5.",
+      }),
+    });
+
     expect(screen.getByTestId("feed-entry-author")).toHaveTextContent(
       "Nitin Kumar",
     );
     expect(screen.queryByTestId("feed-entry-lead")).not.toBeInTheDocument();
     expect(screen.getByTestId("feed-entry-body")).toHaveTextContent(
-      "#### Incident INC-8 Created:",
+      "#### Root cause",
     );
-    expect(screen.getByTestId("feed-entry-body")).not.toHaveTextContent("🚨");
+    expect(screen.getByTestId("feed-entry-body")).not.toHaveTextContent("🔎");
   });
 
   test("a person without a name is shown by their email", () => {
@@ -297,6 +323,99 @@ describe("the time", () => {
   });
 });
 
+describe("what somebody wrote", () => {
+  test("a note is set apart in a card, its author's sentence above it", () => {
+    renderEntry({
+      item: item({
+        user: nitin(),
+        isNote: true,
+        textInMarkdown: `📄 posted **private note** for this [Incident INC-8](${LINK}):\n\nRolling back now.\n\nWatching p95.`,
+      }),
+    });
+
+    expect(screen.getByTestId("feed-entry-lead")).toHaveTextContent(
+      "Nitin Kumar posted **private note**",
+    );
+
+    const card: HTMLElement = screen.getByTestId("feed-entry-body");
+
+    expect(card).toHaveAttribute("data-note", "true");
+    expect(card.textContent).toBe("Rolling back now.\n\nWatching p95.");
+    expect(card.className).toContain("rounded-lg");
+    expect(card.className).toContain("border");
+    expect(screen.queryByTestId("feed-entry-intro")).not.toBeInTheDocument();
+  });
+
+  test("with nobody to lead it, the note's first paragraph introduces the card from outside it", () => {
+    renderEntry({
+      item: item({
+        isNote: true,
+        textInMarkdown:
+          "**OneUptime AI posted a root cause analysis**\n\nThe pool was cut to 10.",
+      }),
+    });
+
+    expect(screen.getByTestId("feed-entry-intro").textContent).toBe(
+      "**OneUptime AI posted a root cause analysis**",
+    );
+    expect(screen.getByTestId("feed-entry-body").textContent).toBe(
+      "The pool was cut to 10.",
+    );
+  });
+
+  test("a note written on someone's behalf: author line, then its card", () => {
+    renderEntry({
+      item: item({
+        isNote: true,
+        authorName: "Aidil Rahman",
+        authorDetail: "via Slack (note added by Nitin Kumar)",
+        textInMarkdown: "Seen this before - it is the cache.",
+      }),
+    });
+
+    expect(screen.getByTestId("feed-entry-author")).toHaveTextContent(
+      "Aidil Rahman via Slack (note added by Nitin Kumar)",
+    );
+    expect(screen.queryByTestId("feed-entry-intro")).not.toBeInTheDocument();
+    expect(screen.getByTestId("feed-entry-body")).toHaveAttribute(
+      "data-note",
+      "true",
+    );
+  });
+
+  test("an entry that is not a note has no card", () => {
+    renderEntry({
+      item: item({
+        user: nitin(),
+        textInMarkdown: `🔴 Changed **[Incident INC-8](${LINK}) State** to **Identified**\n\nAfter the deploy.`,
+      }),
+    });
+
+    expect(screen.getByTestId("feed-entry-body")).not.toHaveAttribute(
+      "data-note",
+    );
+    expect(screen.getByTestId("feed-entry-body").className).not.toContain(
+      "border",
+    );
+  });
+
+  test("with nobody to lead it, an action's sentence starts with a capital", () => {
+    renderEntry({
+      item: item({
+        isNote: true,
+        textInMarkdown: `📄 posted **private note** for this [Incident INC-8](${LINK}):\n\nRolled back.`,
+      }),
+    });
+
+    expect(screen.getByTestId("feed-entry-intro").textContent).toBe(
+      `Posted **private note** for this [Incident INC-8](${LINK}):`,
+    );
+    expect(screen.getByTestId("feed-entry-body").textContent).toBe(
+      "Rolled back.",
+    );
+  });
+});
+
 describe("the details", () => {
   test("unfold in place under the entry, and fold back", () => {
     renderEntry({
@@ -337,6 +456,26 @@ describe("the details", () => {
     expect(
       screen.getByRole("button", { name: "Show who was notified" }),
     ).toBeVisible();
+  });
+
+  test("who an older owner notification reached unfolds as a list, not one run-on line", () => {
+    renderEntry({
+      item: item({
+        moreTextInMarkdown:
+          "**Notified:** Nitin Kumar (nitin@example.com)\n**Notified:** Aidil Rahman (aidil@example.com)\n",
+        detailsLabel: "Show who was notified",
+      }),
+    });
+
+    fireEvent.click(screen.getByTestId("feed-entry-details-toggle"));
+
+    // The Markdown handed to the viewer: one list item per person.
+    expect(
+      within(screen.getByTestId("feed-entry-details")).getByTestId("markdown")
+        .textContent,
+    ).toBe(
+      "- Nitin Kumar (nitin@example.com)\n- Aidil Rahman (aidil@example.com)\n",
+    );
   });
 
   test.each<[string, string | undefined]>([
@@ -452,5 +591,84 @@ describe("a burst's toggle", () => {
       "data-in-burst",
       "true",
     );
+  });
+
+  test("an unfolded burst's button folds it again, from under the group's last entry", () => {
+    renderEntry({
+      item: item(),
+      entry: {
+        isInBurst: true,
+        burstKey: "burst-1",
+        burstToggle: {
+          burstKey: "burst-1",
+          burstKind: FeedBurstKind.OnCall,
+          foldedCount: 3,
+          isExpanded: true,
+        },
+      },
+    });
+
+    const toggle: HTMLElement = screen.getByTestId("feed-burst-toggle");
+
+    expect(toggle).toHaveTextContent("Show fewer");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("the first entry a burst unfolds takes the focus it is handed, once", () => {
+    const onFocusTaken: ReturnType<typeof jest.fn<() => void>> =
+      jest.fn<() => void>();
+
+    renderEntry({
+      item: item(),
+      entry: { isInBurst: true, burstKey: "burst-1", isFirstInFold: true },
+      focusRequest: "entry",
+      onFocusTaken,
+    });
+
+    const entry: HTMLElement = screen.getByTestId("feed-entry");
+
+    expect(document.activeElement).toBe(entry);
+    // Focusable by script only: never a Tab stop.
+    expect(entry).toHaveAttribute("tabindex", "-1");
+    expect(onFocusTaken).toHaveBeenCalledTimes(1);
+  });
+
+  test("a folded burst's button takes the focus it is handed back", () => {
+    const onFocusTaken: ReturnType<typeof jest.fn<() => void>> =
+      jest.fn<() => void>();
+
+    renderEntry({
+      item: item(),
+      entry: {
+        burstKey: "burst-1",
+        burstToggle: {
+          burstKey: "burst-1",
+          burstKind: FeedBurstKind.Rule,
+          foldedCount: 2,
+          isExpanded: false,
+        },
+      },
+      focusRequest: "burst-toggle",
+      onFocusTaken,
+    });
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId("feed-burst-toggle"),
+    );
+    expect(onFocusTaken).toHaveBeenCalledTimes(1);
+  });
+
+  test("an entry nothing asks to take focus leaves it where it is", () => {
+    const onFocusTaken: ReturnType<typeof jest.fn<() => void>> =
+      jest.fn<() => void>();
+
+    renderEntry({
+      item: item(),
+      entry: { isInBurst: true, burstKey: "burst-1", isFirstInFold: true },
+      onFocusTaken,
+    });
+
+    expect(document.activeElement).toBe(document.body);
+    expect(onFocusTaken).not.toHaveBeenCalled();
   });
 });

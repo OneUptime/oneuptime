@@ -376,12 +376,75 @@ describe("bursts", () => {
         return entry.key;
       }),
     );
-    expect(day.entries[0]!.burstToggle!.isExpanded).toBe(true);
     expect(
       day.entries.map((entry: FeedTimelineEntry<FeedTimelineItem>) => {
         return entry.isInBurst;
       }),
     ).toEqual([false, true, true]);
+    // Every entry of the group knows its burst, by its first entry's key.
+    expect(
+      day.entries.map((entry: FeedTimelineEntry<FeedTimelineItem>) => {
+        return entry.burstKey;
+      }),
+    ).toEqual([items[0]!.key, items[0]!.key, items[0]!.key]);
+    // Where focus goes when the reader unfolds it: the first entry it shows.
+    expect(
+      day.entries.map((entry: FeedTimelineEntry<FeedTimelineItem>) => {
+        return entry.isFirstInFold === true;
+      }),
+    ).toEqual([false, true, false]);
+  });
+
+  test("folded, the button is under the burst's first entry; unfolded, it ends the group", () => {
+    const items: Array<FeedTimelineItem> = [
+      item("2026-10-13T07:20:00.000Z", FeedBurstKind.OnCall),
+      item("2026-10-13T07:19:00.000Z", FeedBurstKind.OnCall),
+      item("2026-10-13T07:18:00.000Z", FeedBurstKind.OnCall),
+      item("2026-10-13T07:17:00.000Z", FeedBurstKind.OnCall),
+      // Not in the burst: no button of its own.
+      item("2026-10-13T07:05:00.000Z"),
+    ];
+
+    const togglesOf: (
+      day: FeedTimelineDay<FeedTimelineItem>,
+    ) => Array<string | null> = (
+      day: FeedTimelineDay<FeedTimelineItem>,
+    ): Array<string | null> => {
+      return day.entries.map((entry: FeedTimelineEntry<FeedTimelineItem>) => {
+        if (!entry.burstToggle) {
+          return null;
+        }
+
+        return `${entry.burstToggle.burstKey}:${entry.burstToggle.foldedCount}:${
+          entry.burstToggle.isExpanded ? "expanded" : "folded"
+        }`;
+      });
+    };
+
+    const folded: FeedTimelineDay<FeedTimelineItem> = buildFeedTimeline({
+      items,
+      clock: clock(),
+    })[0]!;
+
+    expect(togglesOf(folded)).toEqual([`${items[0]!.key}:3:folded`, null]);
+
+    const unfolded: FeedTimelineDay<FeedTimelineItem> = buildFeedTimeline({
+      items,
+      clock: clock(),
+      expandedBurstKeys: new Set<string>([items[0]!.key]),
+    })[0]!;
+
+    /*
+     * "Show fewer" follows the group's last entry rather than splitting the
+     * group after its first, and still folds the burst its first entry keys.
+     */
+    expect(togglesOf(unfolded)).toEqual([
+      null,
+      null,
+      null,
+      `${items[0]!.key}:3:expanded`,
+      null,
+    ]);
   });
 
   test("the entry after a folded burst shows its time, even when an entry inside the fold read the same", () => {

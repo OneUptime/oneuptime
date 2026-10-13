@@ -187,6 +187,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       icon: kind.icon,
       burstKind: kind.burst,
       detailsLabel: kind.moreText,
+      isNote: kind.isNote,
       eventType: eventType || undefined,
     };
   };

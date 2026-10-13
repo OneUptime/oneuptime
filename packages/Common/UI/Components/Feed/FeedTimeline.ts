@@ -19,6 +19,11 @@ import {
  *   3:16 PM    entry                                a burst's first entry,
  *              [Show 4 more on-call updates]        the rest folded under it
  *
+ * Unfolded, a burst's entries follow its first one and the button that
+ * folds them again ("Show fewer") ends the group, after its last entry, so
+ * the group reads as one run of entries rather than being split by a
+ * button after its first.
+ *
  * The entries stay in the order the server sent them - newest or oldest
  * first, as the reader chose - and are only grouped, never reordered.
  *
@@ -69,10 +74,24 @@ export interface FeedTimelineBurstToggle {
 export interface FeedTimelineEntry<TItem extends FeedTimelineItem> {
   item: TItem;
   time: FeedTimelineTime;
-  // Set on the first entry of a burst: the button that unfolds the rest.
+  /*
+   * A burst's button: on its first entry while it is folded ("Show 4 more
+   * on-call updates"), on its last entry once it is unfolded ("Show
+   * fewer").
+   */
   burstToggle?: FeedTimelineBurstToggle | undefined;
   // True for an entry that unfolded out of a burst.
   isInBurst: boolean;
+  /*
+   * The key of the burst the entry belongs to (its first entry's key): set
+   * on that first entry and on every entry that unfolded out of it.
+   */
+  burstKey?: string | undefined;
+  /*
+   * True for the first entry that unfolded out of a burst: where the reader
+   * is taken when they unfold it, as the button they pressed goes away.
+   */
+  isFirstInFold?: boolean | undefined;
 }
 
 export interface FeedTimelineDay<TItem extends FeedTimelineItem> {
@@ -198,12 +217,16 @@ export const buildFeedTimeline: <TItem extends FeedTimelineItem>(data: {
     extra: {
       burstToggle?: FeedTimelineBurstToggle | undefined;
       isInBurst: boolean;
+      burstKey?: string | undefined;
+      isFirstInFold?: boolean | undefined;
     },
   ) => void = (
     item: TItem,
     extra: {
       burstToggle?: FeedTimelineBurstToggle | undefined;
       isInBurst: boolean;
+      burstKey?: string | undefined;
+      isFirstInFold?: boolean | undefined;
     },
   ): void => {
     const date: Date = isValidDate(item.itemDateTime)
@@ -246,6 +269,8 @@ export const buildFeedTimeline: <TItem extends FeedTimelineItem>(data: {
       },
       burstToggle: extra.burstToggle,
       isInBurst: extra.isInBurst,
+      burstKey: extra.burstKey,
+      isFirstInFold: extra.isFirstInFold,
     });
   };
 
@@ -262,24 +287,35 @@ export const buildFeedTimeline: <TItem extends FeedTimelineItem>(data: {
     }
 
     const isExpanded: boolean = expandedBurstKeys.has(item.key);
+    const burstToggle: FeedTimelineBurstToggle = {
+      burstKey: item.key,
+      burstKind: item.burstKind || "",
+      foldedCount: burst.endIndex - burst.headIndex - 1,
+      isExpanded: isExpanded,
+    };
 
+    // Folded, the button sits under the first entry, where the rest would be.
     addEntry(item, {
       isInBurst: false,
-      burstToggle: {
-        burstKey: item.key,
-        burstKind: item.burstKind || "",
-        foldedCount: burst.endIndex - burst.headIndex - 1,
-        isExpanded: isExpanded,
-      },
+      burstKey: item.key,
+      burstToggle: isExpanded ? undefined : burstToggle,
     });
 
     if (isExpanded) {
+      const lastIndex: number = burst.endIndex - 1;
+
       for (
         let inner: number = burst.headIndex + 1;
         inner < burst.endIndex;
         inner++
       ) {
-        addEntry(data.items[inner]!, { isInBurst: true });
+        // Unfolded, the button that folds them again ends the group.
+        addEntry(data.items[inner]!, {
+          isInBurst: true,
+          burstKey: item.key,
+          isFirstInFold: inner === burst.headIndex + 1,
+          burstToggle: inner === lastIndex ? burstToggle : undefined,
+        });
       }
     }
 

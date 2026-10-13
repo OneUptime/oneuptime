@@ -279,6 +279,28 @@ export default class OnCallFeedText {
     return mdText`${getPolicy(data.policyLink)} started paging.`.toString();
   }
 
+  /*
+   * Whether a run's new status is news for the record's feed. A run says it
+   * started when it is created (getRunStartedMarkdown), and every page it
+   * sends is an entry of its own (getStepMarkdown), so the statuses it
+   * passes through on the way - scheduled, started, executing - only said
+   * "started paging" twice and "is paging" once more, on every run. How the
+   * run ended is news: it stopped, paged nobody, or failed.
+   */
+  public static isRunStatusFeedNews(
+    status: OnCallDutyPolicyStatus | undefined,
+  ): boolean {
+    if (!status) {
+      return false;
+    }
+
+    return (
+      status !== OnCallDutyPolicyStatus.Scheduled &&
+      status !== OnCallDutyPolicyStatus.Started &&
+      status !== OnCallDutyPolicyStatus.Executing
+    );
+  }
+
   // Where a run stands now: started, paging, stopped and why, failed.
   public static getRunStatusMarkdown(
     input: OnCallRunStatusFeedTextInput,

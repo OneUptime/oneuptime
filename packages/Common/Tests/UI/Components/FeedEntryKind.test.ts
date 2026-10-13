@@ -71,6 +71,28 @@ describe("colours", () => {
   });
 });
 
+describe("what somebody wrote", () => {
+  test("notes, root causes, remediation and postmortem notes are notes; nothing else is", () => {
+    const notes: Array<string> = Object.keys(SHARED_FEED_ENTRY_KINDS).filter(
+      (name: string) => {
+        return (
+          (SHARED_FEED_ENTRY_KINDS as Record<string, FeedEntryKind>)[name]!
+            .isNote === true
+        );
+      },
+    );
+
+    expect(notes.sort()).toEqual([
+      "AIRootCause",
+      "PostmortemNote",
+      "PrivateNote",
+      "PublicNote",
+      "RemediationNotes",
+      "RootCause",
+    ]);
+  });
+});
+
 describe("looking a kind up", () => {
   const kinds: Record<"Known", FeedEntryKind> = {
     Known: SHARED_FEED_ENTRY_KINDS.PrivateNote,

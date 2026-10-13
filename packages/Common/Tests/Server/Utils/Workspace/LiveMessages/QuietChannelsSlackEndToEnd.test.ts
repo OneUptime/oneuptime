@@ -592,18 +592,22 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
       expect(post.text).not.toContain("Status Updated");
     }
 
-    // In the feed, one sentence each (OnCallFeedText).
+    /*
+     * In the feed, the run's start once, in one sentence (OnCallFeedText).
+     * Its own Started and Executing statuses add nothing: they said
+     * "started paging" a second time and "is paging" a third.
+     */
     const onCallFeed: Array<FeedEntry> = feedOf("OnCallPolicy");
     expect(
       onCallFeed.filter((entry: FeedEntry): boolean => {
         return entry.markdown.endsWith(" started paging.");
       }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(
       onCallFeed.filter((entry: FeedEntry): boolean => {
         return entry.markdown.includes(" is paging.");
       }),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
 
     for (const entry of onCallFeed) {
       expect(entry.postsToWorkspace).toBe(false);

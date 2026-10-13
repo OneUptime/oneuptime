@@ -338,6 +338,41 @@ describe("where the run stands", () => {
   });
 });
 
+describe("which of a run's statuses are news for the feed", () => {
+  /*
+   * The run's start is written when it is created and every page it sends
+   * is an entry of its own: the statuses it passes through on the way said
+   * "started paging" a second time and "is paging" once more, on every run.
+   * How it ended is news.
+   */
+  test.each<[OnCallDutyPolicyStatus, boolean]>([
+    [OnCallDutyPolicyStatus.Scheduled, false],
+    [OnCallDutyPolicyStatus.Started, false],
+    [OnCallDutyPolicyStatus.Executing, false],
+    [OnCallDutyPolicyStatus.Completed, true],
+    [OnCallDutyPolicyStatus.CompletedWithNoNotifications, true],
+    [OnCallDutyPolicyStatus.Error, true],
+  ])("%s: %p", (status: OnCallDutyPolicyStatus, isNews: boolean) => {
+    expect(OnCallFeedText.isRunStatusFeedNews(status)).toBe(isNews);
+  });
+
+  test("every status the enum has is decided (a new one is news until said otherwise)", () => {
+    for (const status of Object.values(OnCallDutyPolicyStatus)) {
+      expect(typeof OnCallFeedText.isRunStatusFeedNews(status)).toBe("boolean");
+    }
+
+    expect(
+      OnCallFeedText.isRunStatusFeedNews(
+        "Paused by an administrator" as OnCallDutyPolicyStatus,
+      ),
+    ).toBe(true);
+  });
+
+  test("no status at all is not news", () => {
+    expect(OnCallFeedText.isRunStatusFeedNews(undefined)).toBe(false);
+  });
+});
+
 describe("the record is never named", () => {
   test("no entry links back to the incident, alert or episode it is in the feed of", () => {
     const entries: Array<string> = [

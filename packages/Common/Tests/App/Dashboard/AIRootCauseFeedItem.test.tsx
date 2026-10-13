@@ -111,14 +111,37 @@ const REPORT: string = [
   "*Investigated automatically by OneUptime AI — read-only, 10 queries run across your own telemetry using claude-sonnet-4-5. This is an AI-generated first pass; verify before acting.*",
 ].join("\n");
 
-const COMPACT_TEXT: string = [
-  "**OneUptime AI posted a root cause analysis**",
+/*
+ * The compact item: its first line introduces what the AI wrote, which is
+ * set apart in a note's card under it.
+ */
+const COMPACT_INTRO: string = "**OneUptime AI posted a root cause analysis**";
+const COMPACT_NOTE: string = [
   "checkout-api p95 passed 2s because its pool was cut to 10.",
   "**Most likely root cause:** Release 2026.09.14-2 set `max=10`, so requests queued for a connection.",
 ].join("\n\n");
 
-const ENGINEER_ROOT_CAUSE: string =
-  "## Root cause\n\nAn engineer found a configuration regression.";
+const ENGINEER_ROOT_CAUSE_HEADING: string = "## Root cause";
+const ENGINEER_ROOT_CAUSE_TEXT: string =
+  "An engineer found a configuration regression.";
+const ENGINEER_ROOT_CAUSE: string = `${ENGINEER_ROOT_CAUSE_HEADING}\n\n${ENGINEER_ROOT_CAUSE_TEXT}`;
+
+/*
+ * An engineer's root cause, as the feed draws it: its heading, then what
+ * they wrote in a note's card - never in safe mode, nothing to unfold.
+ */
+function expectEngineerRootCause(): void {
+  for (const text of [ENGINEER_ROOT_CAUSE_HEADING, ENGINEER_ROOT_CAUSE_TEXT]) {
+    expect(viewerCallsWithText(text).length).toBeGreaterThan(0);
+    viewerCallsWithText(text).forEach((props: MarkdownViewerProps): void => {
+      expect(props.safeMode).toBe(false);
+    });
+  }
+  expect(screen.getByTestId("feed-entry-body").textContent).toBe(
+    ENGINEER_ROOT_CAUSE_TEXT,
+  );
+  expect(screen.queryByTestId("feed-entry-details-toggle")).toBeNull();
+}
 
 function listResult<T>(data: Array<T>): ListResult<T> {
   return { data, count: data.length, skip: 0, limit: 100 };
@@ -180,12 +203,22 @@ async function expectCompactItemWithFullReportUnfolding(): Promise<void> {
   ).toBeVisible();
 
   /* The feed body: compact, safe, and nothing of the full report yet. */
-  const compactCalls: Array<MarkdownViewerProps> =
-    viewerCallsWithText(COMPACT_TEXT);
-  expect(compactCalls.length).toBeGreaterThan(0);
-  compactCalls.forEach((props: MarkdownViewerProps): void => {
-    expect(props.safeMode).toBe(true);
-  });
+  for (const text of [COMPACT_INTRO, COMPACT_NOTE]) {
+    const compactCalls: Array<MarkdownViewerProps> = viewerCallsWithText(text);
+    expect(compactCalls.length).toBeGreaterThan(0);
+    compactCalls.forEach((props: MarkdownViewerProps): void => {
+      expect(props.safeMode).toBe(true);
+    });
+  }
+  // What the AI wrote is in the note's card, its introduction outside it.
+  expect(screen.getByTestId("feed-entry-intro").textContent).toBe(
+    COMPACT_INTRO,
+  );
+  expect(screen.getByTestId("feed-entry-body")).toHaveAttribute(
+    "data-note",
+    "true",
+  );
+  expect(screen.getByTestId("feed-entry-body").textContent).toBe(COMPACT_NOTE);
   expect(viewerCallsWithText(REPORT)).toHaveLength(0);
   expect(screen.queryByText(/Evidence checked/)).toBeNull();
   expect(screen.queryByText(/\[C\d+\]/)).toBeNull();
@@ -253,13 +286,7 @@ describe("AI root-cause feed items through the real feed", () => {
     );
 
     expect(await screen.findByText(/configuration regression/)).toBeVisible();
-    viewerCallsWithText(ENGINEER_ROOT_CAUSE).forEach(
-      (props: MarkdownViewerProps): void => {
-        expect(props.safeMode).toBe(false);
-      },
-    );
-    expect(viewerCallsWithText(ENGINEER_ROOT_CAUSE).length).toBeGreaterThan(0);
-    expect(screen.queryByTestId("feed-entry-details-toggle")).toBeNull();
+    expectEngineerRootCause();
 
     incidentView.unmount();
     markdownViewerMock.mockReset();
@@ -272,12 +299,6 @@ describe("AI root-cause feed items through the real feed", () => {
     render(<AlertFeedElement alertId={ALERT_ID} refreshToken={0} />);
 
     expect(await screen.findByText(/configuration regression/)).toBeVisible();
-    expect(viewerCallsWithText(ENGINEER_ROOT_CAUSE).length).toBeGreaterThan(0);
-    viewerCallsWithText(ENGINEER_ROOT_CAUSE).forEach(
-      (props: MarkdownViewerProps): void => {
-        expect(props.safeMode).toBe(false);
-      },
-    );
-    expect(screen.queryByTestId("feed-entry-details-toggle")).toBeNull();
+    expectEngineerRootCause();
   });
 });

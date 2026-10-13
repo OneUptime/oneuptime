@@ -105,6 +105,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       icon: kind.icon,
       burstKind: kind.burst,
       detailsLabel: kind.moreText,
+      isNote: kind.isNote,
       eventType: episodeFeed.alertEpisodeFeedEventType,
     };
   };

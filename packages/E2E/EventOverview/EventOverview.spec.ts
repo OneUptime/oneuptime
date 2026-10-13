@@ -9431,6 +9431,153 @@ test.describe("the feed, as a timeline", () => {
     await page.mouse.move(0, 0);
     await screenshotElement(card(page, "Incident Feed"), "incident-feed");
   });
+
+  test("what someone wrote is set apart in a card, as the Notes page draws a note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    // Maya's note: her name above it, her words in the card.
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    const noteCard: Locator = note.getByTestId("feed-entry-body");
+    await expect(noteCard).toHaveAttribute("data-note", "true");
+    await expect(noteCard).toContainText("Rolling checkout-api back");
+    await expect(noteCard).toHaveCSS("border-top-width", "1px");
+    await expect(noteCard).toHaveCSS("border-top-left-radius", "8px");
+    await expect(noteCard).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    expect(
+      (await documentBox(noteCard)).y,
+      "the card is under her name",
+    ).toBeGreaterThan(
+      (await documentBox(note.getByTestId("feed-entry-author"))).y,
+    );
+
+    // What the AI wrote is in a card too, the sentence that says so above it.
+    const report: Locator = feedEntry(
+      feed,
+      "OneUptime AI posted a root cause analysis",
+    );
+    await expect(report.getByTestId("feed-entry-intro")).toHaveText(
+      "OneUptime AI posted a root cause analysis",
+    );
+    await expect(report.getByTestId("feed-entry-body")).toHaveAttribute(
+      "data-note",
+      "true",
+    );
+    await expect(report.getByTestId("feed-entry-body")).not.toContainText(
+      "OneUptime AI posted",
+    );
+
+    // Something that happened is a sentence, not a card.
+    const resolved: Locator = feedEntry(feed, "Resolved").first();
+    await expect(resolved.locator("[data-note]")).toHaveCount(0);
+  });
+
+  test("a note's card follows the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark");
+
+    const noteCard: Locator = feedEntry(
+      card(page, "Incident Feed"),
+      "Rolling checkout-api back",
+    ).getByTestId("feed-entry-body");
+
+    await expect(noteCard).toHaveAttribute("data-note", "true");
+    await expect(noteCard).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await expect(noteCard).not.toHaveCSS("color", "rgb(31, 41, 55)");
+  });
+
+  test("a maintenance event's created entry reads as the sentence of whoever created it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE);
+
+    const created: Locator = feedEntry(
+      card(page, "Scheduled Maintenance Feed"),
+      "Primary database failover drill",
+    );
+
+    expect(await plainText(created.getByTestId("feed-entry-lead"))).toBe(
+      "Jordan Patel created Scheduled Maintenance #58",
+    );
+    // The heading it was written with is not drawn as one.
+    await expect(created.getByRole("heading")).toHaveCount(0);
+    await expect(created).not.toContainText("🕒");
+  });
+
+  test("an on-call run folds into its newest entry, unfolds in place with Show fewer at its end, and keyboard focus follows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=oncall-run");
+
+    const feed: Locator = card(page, "Incident Feed");
+    const head: Locator = feedEntry(feed, "Sam Rivera acknowledged the page");
+    const showMore: Locator = feed.getByRole("button", {
+      name: "Show 3 more on-call updates",
+    });
+
+    // Folded: one entry, its button under it, the rest out of the feed.
+    await expect(head).toHaveCount(1);
+    await expect(head.getByTestId("feed-burst-toggle")).toHaveText(
+      "Show 3 more on-call updates",
+    );
+    await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
+    await expect(feedEntry(feed, "Started Executing")).toHaveCount(0);
+
+    await showMore.focus();
+    await page.keyboard.press("Enter");
+
+    // Unfolded in place, in order, ending with the run's start.
+    const run: Array<string> = [];
+    for (const entry of await feed
+      .locator('[data-testid="feed-entry"][data-event-type="OnCallPolicy"]')
+      .all()) {
+      run.push(await plainText(entry));
+    }
+    expect(run.length).toBe(4);
+    expect(run[0]).toContain("Sam Rivera acknowledged the page");
+    expect(run[1]).toContain("paged nobody at escalation rule Backup");
+    expect(run[2]).toContain("paged Sam Rivera at escalation rule");
+    expect(run[3]).toContain("Started Executing");
+
+    // Show fewer ends the group, under its last entry, not after its first.
+    const showFewer: Locator = feed.getByRole("button", { name: "Show fewer" });
+    await expect(showFewer).toHaveCount(1);
+    await expect(
+      feedEntry(feed, "Started Executing").getByRole("button", {
+        name: "Show fewer",
+      }),
+    ).toHaveCount(1);
+    await expect(head.getByTestId("feed-burst-toggle")).toHaveCount(0);
+
+    // The button pressed went away: focus is on the first entry it unfolded.
+    const focused: string = await page.evaluate((): string => {
+      return document.activeElement?.textContent || "";
+    });
+    expect(focused).toContain("paged nobody at escalation rule");
+
+    // Folding it again hands focus back to the button that unfolds it.
+    await showFewer.focus();
+    await page.keyboard.press("Enter");
+    await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
+    await expect(showMore).toBeFocused();
+
+    await expectNoHorizontalOverflow(page);
+  });
 });
 
 /*

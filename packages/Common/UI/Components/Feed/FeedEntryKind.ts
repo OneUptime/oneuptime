@@ -105,6 +105,12 @@ export interface FeedEntryKind {
    * Dashboard's locale files translate.
    */
   moreText?: string | undefined;
+  /*
+   * The entry carries what somebody wrote - a note, a root cause, a
+   * postmortem: its body is set apart in a card, as the Notes page draws a
+   * note, so what people said stands out from what happened around it.
+   */
+  isNote?: boolean | undefined;
 }
 
 /*
@@ -148,13 +154,21 @@ export const SHARED_FEED_ENTRY_KINDS: {
   RoleUnassigned: FeedEntryKind;
   Other: FeedEntryKind;
 } = {
-  PublicNote: { icon: IconProp.Announcement, tone: FeedTone.Info },
-  PrivateNote: { icon: IconProp.Lock, tone: FeedTone.Info },
-  RootCause: { icon: IconProp.LightBulb, tone: FeedTone.Info },
+  PublicNote: {
+    icon: IconProp.Announcement,
+    tone: FeedTone.Info,
+    isNote: true,
+  },
+  PrivateNote: { icon: IconProp.Lock, tone: FeedTone.Info, isNote: true },
+  RootCause: { icon: IconProp.LightBulb, tone: FeedTone.Info, isNote: true },
   // A root cause an AI investigation wrote.
-  AIRootCause: { icon: IconProp.Sparkles, tone: FeedTone.AI },
-  RemediationNotes: { icon: IconProp.Wrench, tone: FeedTone.Info },
-  PostmortemNote: { icon: IconProp.Book, tone: FeedTone.Info },
+  AIRootCause: { icon: IconProp.Sparkles, tone: FeedTone.AI, isNote: true },
+  RemediationNotes: {
+    icon: IconProp.Wrench,
+    tone: FeedTone.Info,
+    isNote: true,
+  },
+  PostmortemNote: { icon: IconProp.Book, tone: FeedTone.Info, isNote: true },
   OwnerUserAdded: { icon: IconProp.UserPlus, tone: FeedTone.People },
   OwnerTeamAdded: { icon: IconProp.UserGroup, tone: FeedTone.People },
   OwnerUserRemoved: { icon: IconProp.UserMinus, tone: FeedTone.People },

@@ -275,6 +275,12 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
 );
+/*
+ * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
+ * its feed entries now (OnCallFeedText) - four on-call entries within a
+ * minute, which the feed folds into the newest of them.
+ */
+const feedMode = params.get("feed") === "oncall-run" ? "oncall-run" : "default";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -1144,6 +1150,35 @@ insert(IncidentFeed, {
   postedAt: at("18:01", 10),
   createdAt: at("18:01", 10),
 });
+if (feedMode === "oncall-run") {
+  const checkoutPolicy = `[${policies.checkout.name}](${dashboard}/on-call-duty/policies/${policies.checkout._id})`;
+  const sam = `[${people.sam.name.toString()}](${dashboard}/settings/users/${people.sam._id})`;
+  const runStep = (seconds, markdown, color) => {
+    insert(IncidentFeed, {
+      incidentId: mainIncident.id,
+      incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+      feedInfoInMarkdown: markdown,
+      displayColor: new Color(color),
+      postedAt: at("18:01", seconds),
+      createdAt: at("18:01", seconds),
+    });
+  };
+  runStep(
+    25,
+    `On-call policy **${checkoutPolicy}** paged **${sam}** at escalation rule **First responders** (schedule **EU days**).\n\nNotification sent by SMS and push.`,
+    "#3b82f6",
+  );
+  runStep(
+    35,
+    `On-call policy **${checkoutPolicy}** paged nobody at escalation rule **Backup**: nobody was on call in schedule **EU nights**.`,
+    "#f59e0b",
+  );
+  runStep(
+    50,
+    `**${sam}** acknowledged the page from on-call policy **${checkoutPolicy}** at escalation rule **First responders** (schedule **EU days**).`,
+    "#22c55e",
+  );
+}
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
   incidentFeedEventType: IncidentFeedEventType.IncidentMemberAdded,

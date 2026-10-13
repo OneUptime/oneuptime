@@ -1,8 +1,10 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import User from "../../../Models/DatabaseModels/User";
@@ -20,8 +22,11 @@ import useTranslator from "../../Utils/UseTranslator";
 import { FeedTimelineEntry } from "./FeedTimeline";
 import {
   FeedEntryLead,
+  FeedNoteParts,
   getFeedEntryText,
+  getFeedNoteParts,
   hasFeedEntryDetails,
+  tidyFeedEntryDetails,
 } from "./FeedEntryText";
 import {
   FEED_BURST_COLLAPSE_LABEL,
@@ -62,15 +67,29 @@ export interface FeedItemProps {
   authorDetail?: string | undefined;
   // The words of the details toggle, where "Show details" is not the best.
   detailsLabel?: string | undefined;
+  /*
+   * What somebody wrote - a note, a root cause (FeedEntryKind.isNote): the
+   * body is set apart in a card, as the Notes page draws a note.
+   */
+  isNote?: boolean | undefined;
   // The feed's event type, for tests and styling hooks.
   eventType?: string | undefined;
 }
+
+/*
+ * What the feed asks an entry to take keyboard focus for: the entry itself
+ * (the first one a burst unfolded) or its burst button (folded again).
+ */
+export type FeedItemFocusRequest = "entry" | "burst-toggle";
 
 export interface ComponentProps {
   entry: FeedTimelineEntry<FeedItemProps>;
   // The last entry of its day draws no line down to the next one.
   isLastInDay: boolean;
   onToggleBurst?: ((burstKey: string) => void) | undefined;
+  focusRequest?: FeedItemFocusRequest | undefined;
+  // Called once the entry has taken the focus it was asked to.
+  onFocusTaken?: (() => void) | undefined;
 }
 
 const DEFAULT_DETAILS_LABEL: string = translationKey("Show details");
@@ -158,6 +177,31 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   const item: FeedItemProps = props.entry.item;
   const detailsId: string = useId();
   const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
+  const entryRef: React.MutableRefObject<HTMLLIElement | null> =
+    useRef<HTMLLIElement | null>(null);
+  const burstToggleRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+
+  /*
+   * A burst's button goes away when it is pressed (it moves to the other
+   * end of the group), so the feed hands focus on: to the first entry that
+   * unfolded, without scrolling (it is where the button was), or back to
+   * the button that unfolds them, scrolled into view when the reader had
+   * read on past it.
+   */
+  useEffect(() => {
+    if (!props.focusRequest) {
+      return;
+    }
+
+    if (props.focusRequest === "entry") {
+      entryRef.current?.focus({ preventScroll: true });
+    } else {
+      burstToggleRef.current?.focus();
+    }
+
+    props.onFocusTaken?.();
+  }, [props.focusRequest]);
 
   const authorName: string | undefined = getAuthorName(item);
   const hasAuthorLine: boolean = Boolean(authorName && item.authorDetail);
@@ -175,6 +219,10 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   }, [item.textInMarkdown, authorName, hasAuthorLine]);
 
   const hasDetails: boolean = hasFeedEntryDetails(item.moreTextInMarkdown);
+  // Who older owner notifications reached, as a list (tidyFeedEntryDetails).
+  const details: string = useMemo(() => {
+    return tidyFeedEntryDetails(item.moreTextInMarkdown);
+  }, [item.moreTextInMarkdown]);
   const color: string = item.color.toString();
   const safeMode: boolean = item.safeMode === true;
 
@@ -277,6 +325,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
 
   const burstToggle: ReactElement | null = props.entry.burstToggle ? (
     <button
+      ref={burstToggleRef}
       type="button"
       aria-expanded={props.entry.burstToggle.isExpanded}
       onClick={() => {
@@ -306,18 +355,57 @@ const FeedItem: FunctionComponent<ComponentProps> = (
 
   const body: string = text.body.trim();
 
+  /*
+   * What somebody wrote - a note, a root cause - goes in a card, as the
+   * Notes page draws a note. The sentence that introduces it stays outside:
+   * after the author's name, or on its own when nobody leads it.
+   */
+  const noteParts: FeedNoteParts | null =
+    item.isNote && body
+      ? text.lead
+        ? { note: body }
+        : getFeedNoteParts(body)
+      : null;
+
+  /*
+   * The first entry a burst unfolds takes the focus of the button that
+   * unfolded it (see the effect above): reachable by script, never by Tab.
+   */
   return (
     <li
-      className="relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 pb-5 sm:grid-cols-[5.5rem_1.75rem_minmax(0,1fr)]"
+      ref={entryRef}
+      tabIndex={props.entry.isFirstInFold ? -1 : undefined}
+      className="relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 rounded-lg pb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:grid-cols-[5.5rem_1.75rem_minmax(0,1fr)]"
       data-testid="feed-entry"
       data-event-type={item.eventType}
       data-in-burst={props.entry.isInBurst ? "true" : undefined}
     >
       {time}
       {rail}
-      <div className="col-start-2 row-start-2 min-w-0 pt-1 sm:col-start-3 sm:row-start-1">
+      {/*
+       * break-words: a long link or token pasted into a note wraps inside
+       * the entry, instead of running out of its card on a phone.
+       */}
+      <div className="col-start-2 row-start-2 min-w-0 break-words pt-1 sm:col-start-3 sm:row-start-1">
         {getLead()}
-        {body && (
+        {noteParts && noteParts.intro && (
+          <div
+            className="text-sm text-gray-700 [&_.max-w-none>*:first-child]:mt-0 [&_.max-w-none>*:last-child]:mb-0"
+            data-testid="feed-entry-intro"
+          >
+            <FeedMarkdown text={noteParts.intro} safeMode={safeMode} />
+          </div>
+        )}
+        {noteParts && (
+          <div
+            className="mt-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-[0_1px_2px_rgba(16,24,40,0.04)] [&_.max-w-none>*:first-child]:mt-0 [&_.max-w-none>*:last-child]:mb-0"
+            data-testid="feed-entry-body"
+            data-note="true"
+          >
+            <FeedMarkdown text={noteParts.note} safeMode={safeMode} />
+          </div>
+        )}
+        {!noteParts && body && (
           <div
             className="text-sm text-gray-700 [&_.max-w-none>*:first-child]:mt-0"
             data-testid="feed-entry-body"
@@ -356,10 +444,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                 className="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 [&_.max-w-none>*:first-child]:mt-0"
                 data-testid="feed-entry-details"
               >
-                <FeedMarkdown
-                  text={item.moreTextInMarkdown || ""}
-                  safeMode={safeMode}
-                />
+                <FeedMarkdown text={details} safeMode={safeMode} />
               </div>
             )}
           </div>

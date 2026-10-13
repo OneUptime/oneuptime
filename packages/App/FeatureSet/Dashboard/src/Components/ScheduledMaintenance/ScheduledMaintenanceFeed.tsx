@@ -189,6 +189,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         icon: kind.icon,
         burstKind: kind.burst,
         detailsLabel: kind.moreText,
+        isNote: kind.isNote,
         eventType: scheduledMaintenanceFeed.scheduledMaintenanceFeedEventType,
       };
     };

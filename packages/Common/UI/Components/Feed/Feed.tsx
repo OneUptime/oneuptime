@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import FeedItem, { FeedItemProps } from "./FeedItem";
+import FeedItem, { FeedItemFocusRequest, FeedItemProps } from "./FeedItem";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -48,6 +48,48 @@ export const FEED_TEXT: {
   timesAreIn: translationKey("Times are in {{zone}}, your time zone."),
 };
 
+/*
+ * Where keyboard focus goes after a burst is unfolded or folded again. The
+ * button pressed goes away either way - it moves to the other end of the
+ * group - so focus is handed on rather than dropped to the page: to the
+ * first entry that unfolded, or back to the button that unfolds them.
+ */
+interface BurstFocusRequest {
+  burstKey: string;
+  target: "first-in-fold" | "toggle";
+}
+
+const getFocusRequestFor: (
+  entry: FeedTimelineEntry<FeedItemProps>,
+  request: BurstFocusRequest | null,
+) => FeedItemFocusRequest | undefined = (
+  entry: FeedTimelineEntry<FeedItemProps>,
+  request: BurstFocusRequest | null,
+): FeedItemFocusRequest | undefined => {
+  if (!request) {
+    return undefined;
+  }
+
+  if (
+    request.target === "first-in-fold" &&
+    entry.isFirstInFold &&
+    entry.burstKey === request.burstKey
+  ) {
+    return "entry";
+  }
+
+  if (
+    request.target === "toggle" &&
+    entry.burstToggle &&
+    !entry.burstToggle.isExpanded &&
+    entry.burstToggle.burstKey === request.burstKey
+  ) {
+    return "burst-toggle";
+  }
+
+  return undefined;
+};
+
 const getMoreLabel: (sortOrder: SortOrder | undefined) => string = (
   sortOrder: SortOrder | undefined,
 ): string => {
@@ -84,6 +126,8 @@ const Feed: FunctionComponent<ComponentProps> = (
       return new Set<string>();
     },
   );
+  const [burstFocusRequest, setBurstFocusRequest] =
+    useState<BurstFocusRequest | null>(null);
 
   const startingClock: FeedClock = getFeedClock({
     language: translator.language,
@@ -105,6 +149,11 @@ const Feed: FunctionComponent<ComponentProps> = (
 
   const toggleBurst: (burstKey: string) => void = useCallback(
     (burstKey: string): void => {
+      setBurstFocusRequest({
+        burstKey: burstKey,
+        target: expandedBurstKeys.has(burstKey) ? "toggle" : "first-in-fold",
+      });
+
       setExpandedBurstKeys((previous: Set<string>) => {
         const next: Set<string> = new Set<string>(previous);
 
@@ -117,8 +166,12 @@ const Feed: FunctionComponent<ComponentProps> = (
         return next;
       });
     },
-    [],
+    [expandedBurstKeys],
   );
+
+  const clearBurstFocusRequest: () => void = useCallback((): void => {
+    setBurstFocusRequest(null);
+  }, []);
 
   if (props.items.length === 0) {
     return (
@@ -195,6 +248,11 @@ const Feed: FunctionComponent<ComponentProps> = (
                       entry={entry}
                       isLastInDay={entryIndex === day.entries.length - 1}
                       onToggleBurst={toggleBurst}
+                      focusRequest={getFocusRequestFor(
+                        entry,
+                        burstFocusRequest,
+                      )}
+                      onFocusTaken={clearBurstFocusRequest}
                     />
                   );
                 },

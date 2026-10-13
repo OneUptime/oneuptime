@@ -3,9 +3,11 @@ import {
   FeedEntryLead,
   getFeedEntryLead,
   getFeedEntryText,
+  getFeedNoteParts,
   hasFeedEntryDetails,
   leadStartsWithName,
   stripLeadingDecoration,
+  tidyFeedEntryDetails,
 } from "../../../UI/Components/Feed/FeedEntryText";
 
 /*
@@ -161,8 +163,65 @@ describe("the sentence that follows the person's name", () => {
     );
   });
 
+  test.each<[string, string, string, string]>([
+    [
+      "an incident",
+      "#### 🚨 Incident INC-8 Created:\n        \n**Checkout down**:\n\nDetails.",
+      "created Incident INC-8",
+      "**Checkout down**:\n\nDetails.",
+    ],
+    [
+      "an alert, numbered without a prefix",
+      "#### 🚨 Alert #311 Created:\n\n**Webhook 5xx**:",
+      "created Alert #311",
+      "**Webhook 5xx**:",
+    ],
+    [
+      "a scheduled maintenance event",
+      "#### 🕒 Scheduled Maintenance SM-58 Created:\n\n**Failover drill**",
+      "created Scheduled Maintenance SM-58",
+      "**Failover drill**",
+    ],
+    ["only the heading", "### Episode #12 Created", "created Episode #12", ""],
+    [
+      "a monitor, whose heading names its kind alone",
+      "#### 🌎 Monitor Created: \n          \n**Checkout API**:\n\nThe checkout endpoint.",
+      "created this monitor",
+      "**Checkout API**:\n\nThe checkout endpoint.",
+    ],
+    [
+      "an on-call policy",
+      "#### 📞 On Call Policy Created: \n\n**Payments primary**:",
+      "created this on-call policy",
+      "**Payments primary**:",
+    ],
+  ])(
+    "a record's created entry reads as its creator's sentence: %s",
+    (_label: string, stored: string, expectedLead: string, body: string) => {
+      const text: FeedEntryLead = lead(stored, "Nitin Kumar");
+
+      expect(text.lead).toBe(expectedLead);
+      expect(text.body).toBe(body);
+      expect(text.leadNamesActor).toBe(false);
+    },
+  );
+
+  test("a created heading without anybody who created it stays a heading", () => {
+    const stored: string =
+      "#### 🚨 Incident INC-8 Created:\n\n**Checkout down**";
+    const text: FeedEntryLead = lead(stored);
+
+    expect(text.lead).toBeUndefined();
+    expect(text.body).toBe("#### Incident INC-8 Created:\n\n**Checkout down**");
+  });
+
   test.each<[string, string]>([
-    ["a heading", "#### 🚨 Incident INC-8 Created:\n\n**Checkout down**"],
+    ["a heading", "#### Root cause\n\nThe pool was set to 5."],
+    ["a heading that only ends in the word", "#### Recreated\n\nText"],
+    [
+      "a created heading too long to be a record's name",
+      `#### ${"x".repeat(220)} Created:\n\nText`,
+    ],
     ["a list", "- one\n- two"],
     ["a quote", "> quoted"],
     ["a table", "| a | b |\n| - | - |"],
@@ -197,6 +256,32 @@ describe("the sentence that follows the person's name", () => {
     expect(text.lead).toBeUndefined();
     expect(text.body).toBe("Owners were notified of the new private note.");
   });
+
+  test("without a person, a sentence written to follow a name starts with a capital", () => {
+    // A note an API key or a workflow posted: nobody to lead the sentence.
+    expect(
+      lead(
+        `📄 posted **private note** for this [Incident INC-8](${LINK}):\n\nRolled back.`,
+      ).body,
+    ).toBe(
+      `Posted **private note** for this [Incident INC-8](${LINK}):\n\nRolled back.`,
+    );
+    expect(lead("  started on-call policy **X**.").body).toBe(
+      "  Started on-call policy **X**.",
+    );
+  });
+
+  test.each<[string, string]>([
+    ["a word that is not an action's verb", "iOS builds failed on the runner."],
+    ["bold first", "**posted** by the API"],
+    ["already a capital", "Posted by the API."],
+    ["a verb that runs on into another word", "created-item was archived."],
+  ])(
+    "without a person, %s is left as written",
+    (_label: string, stored: string) => {
+      expect(lead(stored).body).toBe(stored);
+    },
+  );
 
   test("a first paragraph longer than a sentence stays where it is", () => {
     const long: string = `posted ${"a very long note ".repeat(60)}`;
@@ -268,5 +353,95 @@ describe("whether an entry has details to show", () => {
 
   test("long details are details, whatever they end with", () => {
     expect(hasFeedEntryDetails(`${"x".repeat(100)}:`)).toBe(true);
+  });
+});
+
+describe("a note's card", () => {
+  test("the paragraph that introduces a note stays out of its card", () => {
+    expect(
+      getFeedNoteParts(
+        "**OneUptime AI posted a root cause analysis**\n\nThe pool was cut to 10.\n\n**Most likely root cause:** a release.",
+      ),
+    ).toEqual({
+      intro: "**OneUptime AI posted a root cause analysis**",
+      note: "The pool was cut to 10.\n\n**Most likely root cause:** a release.",
+    });
+  });
+
+  test.each<[string, string]>([
+    ["a single paragraph", "Rolling checkout-api back to 2026.09.14-1."],
+    ["nothing after the first paragraph", "Rolled back.\n\n   "],
+  ])("%s is all note", (_label: string, body: string) => {
+    expect(getFeedNoteParts(body)).toEqual({ note: body.trim() });
+  });
+
+  test("a first paragraph longer than a sentence is the note itself", () => {
+    const long: string = `${"We looked at the pool. ".repeat(40)}\n\nThen more.`;
+
+    expect(getFeedNoteParts(long)).toEqual({ note: long.trim() });
+  });
+
+  test("nothing is no note", () => {
+    expect(getFeedNoteParts("")).toEqual({ note: "" });
+  });
+});
+
+describe("details as the feed unfolds them", () => {
+  test.each<[string, string | undefined, string]>([
+    [
+      "who an older owner notification reached, one line each",
+      "**Notified:** Nitin Kumar (nitin@example.com)\n**Notified:** Aidil Rahman (aidil@example.com)\n",
+      "- Nitin Kumar (nitin@example.com)\n- Aidil Rahman (aidil@example.com)\n",
+    ],
+    [
+      "the created notifications' spelling, colon outside the bold",
+      "**Notified**: Nitin Kumar (nitin@example.com)\n",
+      "- Nitin Kumar (nitin@example.com)\n",
+    ],
+    [
+      "a reminder's people, as profile links, with blank lines and CRLF",
+      "**Notified:** [Nitin](https://oneuptime.com/u/1)\r\n\r\n**Notified:** [Aidil](https://oneuptime.com/u/2)\r\n",
+      "- [Nitin](https://oneuptime.com/u/1)\n- [Aidil](https://oneuptime.com/u/2)\n",
+    ],
+    [
+      "a line naming nobody is left out",
+      "**Notified:** Nitin\n**Notified:** \n",
+      "- Nitin\n",
+    ],
+  ])("%s", (_label: string, details: string | undefined, tidied: string) => {
+    expect(tidyFeedEntryDetails(details)).toBe(tidied);
+  });
+
+  test.each<[string, string | undefined]>([
+    ["nothing", undefined],
+    ["blank", ""],
+    ["the list newer entries write", "- Nitin Kumar\n- Aidil Rahman\n"],
+    ["a cause", "**Cause:**\nThe pool was set to 5."],
+    [
+      "a Notified line among other details",
+      "**Notified:** Nitin\n\n**Status:** Sent",
+    ],
+    ["only labels, naming nobody", "**Notified:**\n**Notified:** \n"],
+    [
+      "a note that only mentions the word",
+      "Notified the vendor. **Notified:** Nitin",
+    ],
+  ])(
+    "%s is shown as it was written",
+    (_label: string, details: string | undefined) => {
+      expect(tidyFeedEntryDetails(details)).toBe(details || "");
+    },
+  );
+
+  test("a long list of the old lines stays a list, quickly", () => {
+    const lines: string =
+      "**Notified:** Someone (someone@example.com)\n".repeat(5000);
+    const startedAt: number = Date.now();
+
+    const tidied: string = tidyFeedEntryDetails(lines);
+
+    expect(Date.now() - startedAt).toBeLessThan(500);
+    expect(tidied.split("\n").filter(Boolean)).toHaveLength(5000);
+    expect(tidied.startsWith("- Someone (someone@example.com)\n")).toBe(true);
   });
 });

@@ -412,51 +412,104 @@ describe("Feed", () => {
     render(
       <Feed
         items={[
-          makeItem("paged Nitin", "2026-10-13T07:20:00.000Z", {
+          makeItem("Paged Nitin", "2026-10-13T07:20:00.000Z", {
             burstKind: FeedBurstKind.OnCall,
           }),
-          makeItem("paged Aidil", "2026-10-13T07:20:00.000Z", {
+          makeItem("Paged Aidil", "2026-10-13T07:20:00.000Z", {
             burstKind: FeedBurstKind.OnCall,
           }),
-          makeItem("paged nobody", "2026-10-13T07:19:00.000Z", {
+          makeItem("Paged nobody", "2026-10-13T07:19:00.000Z", {
             burstKind: FeedBurstKind.OnCall,
           }),
-          makeItem("started", "2026-10-13T07:18:00.000Z", {
+          makeItem("Started", "2026-10-13T07:18:00.000Z", {
             burstKind: FeedBurstKind.OnCall,
           }),
-          makeItem("declared", "2026-10-13T07:10:00.000Z"),
+          makeItem("Declared", "2026-10-13T07:10:00.000Z"),
         ]}
         noItemsMessage="No activity"
       />,
     );
 
-    expect(entryTexts()).toEqual(["paged Nitin", "declared"]);
+    expect(entryTexts()).toEqual(["Paged Nitin", "Declared"]);
 
     const toggle: HTMLElement = screen.getByTestId("feed-burst-toggle");
 
     expect(toggle).toHaveTextContent("Show 3 more on-call updates");
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // Under the burst's first entry, where the rest are folded.
+    expect(textOf(toggle.closest("li")!)).toContain("Paged Nitin");
 
     fireEvent.click(toggle);
 
     expect(entryTexts()).toEqual([
-      "paged Nitin",
-      "paged Aidil",
-      "paged nobody",
-      "started",
-      "declared",
+      "Paged Nitin",
+      "Paged Aidil",
+      "Paged nobody",
+      "Started",
+      "Declared",
     ]);
-    expect(screen.getByTestId("feed-burst-toggle")).toHaveTextContent(
-      "Show fewer",
+
+    const showFewer: HTMLElement = screen.getByTestId("feed-burst-toggle");
+
+    expect(showFewer).toHaveTextContent("Show fewer");
+    expect(showFewer).toHaveAttribute("aria-expanded", "true");
+    // It ends the group, under its last entry, not between its first two.
+    expect(textOf(showFewer.closest("li")!)).toContain("Started");
+
+    fireEvent.click(showFewer);
+
+    expect(entryTexts()).toEqual(["Paged Nitin", "Declared"]);
+  });
+
+  test("unfolding a burst hands focus to its first unfolded entry, and folding it hands focus back to its button", () => {
+    render(
+      <Feed
+        items={[
+          makeItem("Paged Nitin", "2026-10-13T07:20:00.000Z", {
+            burstKind: FeedBurstKind.OnCall,
+          }),
+          makeItem("Paged Aidil", "2026-10-13T07:20:00.000Z", {
+            burstKind: FeedBurstKind.OnCall,
+          }),
+          makeItem("Started", "2026-10-13T07:19:00.000Z", {
+            burstKind: FeedBurstKind.OnCall,
+          }),
+        ]}
+        noItemsMessage="No activity"
+      />,
     );
-    expect(screen.getByTestId("feed-burst-toggle")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+
+    const showMore: HTMLElement = screen.getByTestId("feed-burst-toggle");
+
+    showMore.focus();
+    fireEvent.click(showMore);
+
+    /*
+     * The button pressed is gone (it moved to the end of the group), so the
+     * focus is not left on nothing: it is on the first entry that unfolded,
+     * which only a script can focus.
+     */
+    const firstUnfolded: HTMLElement = screen
+      .getAllByTestId("feed-entry")
+      .find((entry: HTMLElement) => {
+        return textOf(entry).includes("Paged Aidil");
+      })!;
+
+    expect(document.activeElement).toBe(firstUnfolded);
+    expect(firstUnfolded).toHaveAttribute("tabindex", "-1");
 
     fireEvent.click(screen.getByTestId("feed-burst-toggle"));
 
-    expect(entryTexts()).toEqual(["paged Nitin", "declared"]);
+    // Folded again: back on the button that unfolds it.
+    const showMoreAgain: HTMLElement = screen.getByTestId("feed-burst-toggle");
+
+    expect(showMoreAgain).toHaveTextContent("Show 2 more on-call updates");
+    expect(document.activeElement).toBe(showMoreAgain);
+
+    // No entry of the feed is a Tab stop of its own.
+    for (const entry of screen.getAllByTestId("feed-entry")) {
+      expect(entry).not.toHaveAttribute("tabindex", "0");
+    }
   });
 
   test("a folded burst stays as the reader left it when the feed refreshes with the same entries", () => {

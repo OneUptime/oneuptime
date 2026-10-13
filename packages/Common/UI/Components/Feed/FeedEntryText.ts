@@ -15,9 +15,13 @@
  *    someone's action reads after their name - chat puts it there ("@nitin
  *    posted private note ...") - so the feed does too: "Nitin posted a
  *    private note", with the avatar, instead of the name on one line and
- *    a sentence without a subject on the next. Where the first block is not
- *    a sentence that can follow a name (a heading, a list, a noun phrase),
- *    the name stays on a line of its own above it.
+ *    a sentence without a subject on the next. A record's created entry,
+ *    which opens with a heading ("#### Incident INC-8 Created:"), reads
+ *    "Nitin created Incident INC-8". Where the first block is not a
+ *    sentence that can follow a name (another heading, a list, a noun
+ *    phrase), the name stays on a line of its own above it. Without anyone
+ *    to follow, a sentence written to follow a name starts with a capital
+ *    ("Posted private note ..."), as a sentence does.
  *
  * Only the start of the Markdown is ever looked at - never a whole entry,
  * which can be megabytes long (a log pasted into a note).
@@ -51,6 +55,22 @@ const FIRST_WORD: RegExp = /^[A-Za-z]+/;
 
 // A letter or a digit in any script: what a name cannot run on into.
 const NAME_CHARACTER: RegExp = /[\p{L}\p{N}]/u;
+
+/*
+ * How a record's created entry opens: "#### Incident INC-8 Created:",
+ * "#### Scheduled Maintenance #58 Created:". Matched against its first line
+ * only, which is never long.
+ */
+const CREATED_HEADING: RegExp = /^#{1,6}[ \t]+(\S.*?)[ \t]+Created:?[ \t]*$/;
+
+// The longest first line read as a created heading.
+const CREATED_HEADING_MAX_LENGTH: number = 200;
+
+// A record named by its number ("Incident INC-8"), not by its kind alone.
+const HAS_DIGIT: RegExp = /\d/;
+
+// "on call policy", as the product writes it: "on-call policy".
+const ON_CALL_WORDS: RegExp = /\bon call\b/g;
 
 /*
  * Past-tense verbs an entry written for someone's action opens with, as
@@ -293,6 +313,42 @@ const lowerCaseLeadVerb: LowerCaseLeadVerbFunction = (
 };
 
 /*
+ * How a created entry's record reads after its creator's name: by its
+ * number when the heading has one ("created Incident INC-8"), else as the
+ * record whose feed this is ("#### Monitor Created:" - "created this
+ * monitor").
+ */
+const getCreatedLead: (record: string) => string = (record: string): string => {
+  if (HAS_DIGIT.test(record)) {
+    return `created ${record}`;
+  }
+
+  return `created this ${record.toLowerCase().replace(ON_CALL_WORDS, "on-call")}`;
+};
+
+/*
+ * The record a created entry's heading names - "Incident INC-8" for
+ * "#### Incident INC-8 Created:" - or null for any other opening.
+ */
+const readCreatedHeading: (text: string) => string | null = (
+  text: string,
+): string | null => {
+  const lineEnd: number = text.indexOf("\n");
+  const firstLine: string = (
+    lineEnd === -1 ? text : text.slice(0, lineEnd)
+  ).trim();
+
+  if (firstLine.length > CREATED_HEADING_MAX_LENGTH) {
+    return null;
+  }
+
+  const match: RegExpMatchArray | null = firstLine.match(CREATED_HEADING);
+  const name: string = (match?.[1] || "").trim();
+
+  return name || null;
+};
+
+/*
  * Splits an entry (already without its decoration) into the sentence that
  * follows the person's name and the rest. Without a person there is no
  * lead: the entry is drawn as it is.
@@ -313,6 +369,19 @@ export const getFeedEntryLead: (data: {
 
   const text: string = markdown.trimStart();
   const head: string = text.slice(0, LEAD_SCAN_LENGTH);
+
+  // "#### Incident INC-8 Created:" reads "Nitin created Incident INC-8".
+  const createdRecord: string | null = readCreatedHeading(head);
+
+  if (createdRecord !== null) {
+    const lineEnd: number = text.indexOf("\n");
+
+    return {
+      lead: getCreatedLead(createdRecord),
+      body: lineEnd === -1 ? "" : text.slice(lineEnd + 1).trim(),
+      leadNamesActor: false,
+    };
+  }
 
   if (!head || BLOCK_OPENING.test(head)) {
     return { body: markdown, leadNamesActor: false };
@@ -394,6 +463,113 @@ export const hasFeedEntryDetails: (markdown: string | undefined) => boolean = (
 };
 
 /*
+ * How older owner notifications named each person they reached: one line
+ * each, "**Notified:** Nitin Kumar (nitin@example.com)" ("**Notified**:" in
+ * the created ones).
+ */
+const NOTIFIED_LINE_LABELS: ReadonlyArray<string> = [
+  "**Notified:**",
+  "**Notified**:",
+];
+
+const readNotifiedLine: (line: string) => string | null = (
+  line: string,
+): string | null => {
+  for (const label of NOTIFIED_LINE_LABELS) {
+    if (line.startsWith(label)) {
+      return line.slice(label.length).trim();
+    }
+  }
+
+  return null;
+};
+
+/*
+ * An entry's details as the feed unfolds them. Who an owner notification
+ * reached was once written as "**Notified:** <person>" lines, which
+ * Markdown runs together into one paragraph ("Notified: Nitin (...)
+ * Notified: Aidil (...)"); those details are shown as the list newer
+ * entries write ("- Nitin (...)"). Any other details are shown as written.
+ */
+export const tidyFeedEntryDetails: (markdown: string | undefined) => string = (
+  markdown: string | undefined,
+): string => {
+  const text: string = markdown || "";
+
+  if (text.indexOf("**Notified") === -1) {
+    return text;
+  }
+
+  const people: Array<string> = [];
+
+  for (const line of text.split("\n")) {
+    const trimmed: string = line.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    const person: string | null = readNotifiedLine(trimmed);
+
+    // Anything but a "Notified" line: the details are not just a list.
+    if (person === null) {
+      return text;
+    }
+
+    if (person) {
+      people.push(person);
+    }
+  }
+
+  if (people.length === 0) {
+    return text;
+  }
+
+  return (
+    people
+      .map((person: string) => {
+        return `- ${person}`;
+      })
+      .join("\n") + "\n"
+  );
+};
+
+/*
+ * A sentence written to follow somebody's name ("posted **private note**
+ * for this ..."), drawn where there is nobody to follow - a note an API key
+ * posted - starts with a capital, as a sentence does. Only the verbs an
+ * action is written with are touched, so a body that happens to open in
+ * lower case ("iOS builds failed") is left alone.
+ */
+const capitalizeLeadVerb: (markdown: string) => string = (
+  markdown: string,
+): string => {
+  const leadingWhitespaceLength: number =
+    markdown.length - markdown.trimStart().length;
+  const text: string = markdown.slice(leadingWhitespaceLength);
+  const word: RegExpMatchArray | null = text
+    .slice(0, LEAD_SCAN_LENGTH)
+    .match(FIRST_WORD);
+
+  if (!word || !LEAD_VERBS.has(word[0])) {
+    return markdown;
+  }
+
+  // The verb must be a word of its own: "created-item" is not "created".
+  const after: string = text.charAt(word[0].length);
+
+  if (after !== "" && after !== " " && after !== "\t") {
+    return markdown;
+  }
+
+  return (
+    markdown.slice(0, leadingWhitespaceLength) +
+    text.charAt(0).toUpperCase() +
+    text.slice(1)
+  );
+};
+
+/*
  * The entry as the feed draws it: decoration off, and for an entry with a
  * person, split into the sentence that follows their name and the rest.
  */
@@ -404,8 +580,53 @@ export const getFeedEntryText: (data: {
   markdown: string;
   actorName?: string | undefined;
 }): FeedEntryLead => {
-  return getFeedEntryLead({
+  const entry: FeedEntryLead = getFeedEntryLead({
     markdown: stripLeadingDecoration(data.markdown || ""),
     actorName: data.actorName,
   });
+
+  if ((data.actorName || "").trim()) {
+    return entry;
+  }
+
+  return { ...entry, body: capitalizeLeadVerb(entry.body) };
+};
+
+export interface FeedNoteParts {
+  /*
+   * The sentence that introduces what was written, drawn as the entry's
+   * text: "OneUptime AI posted a root cause analysis". Undefined when the
+   * entry is nothing but what was written.
+   */
+  intro?: string | undefined;
+  // What was written: drawn in the note's card.
+  note: string;
+}
+
+/*
+ * A note's entry (FeedEntryKind.isNote) without a sentence led by its
+ * author - nobody to lead it, or an author line of its own - split into
+ * the first paragraph that introduces the note and the note itself, so
+ * only what was written goes in the note's card. A single paragraph is all
+ * note.
+ */
+export const getFeedNoteParts: (body: string) => FeedNoteParts = (
+  body: string,
+): FeedNoteParts => {
+  const text: string = (body || "").trim();
+  const firstBlockEnd: number = findFirstBlockEnd(text);
+
+  // A first paragraph longer than a sentence is the note itself.
+  if (firstBlockEnd > LEAD_SCAN_LENGTH) {
+    return { note: text };
+  }
+
+  const intro: string = text.slice(0, firstBlockEnd).trim();
+  const note: string = text.slice(firstBlockEnd).trim();
+
+  if (!intro || !note) {
+    return { note: text };
+  }
+
+  return { intro: intro, note: note };
 };

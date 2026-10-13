@@ -426,9 +426,17 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * When the status is updated, each execution log the update wrote that
      * an incident, an alert or an episode triggered adds its new status to
-     * that record's feed.
+     * that record's feed - when the status is news there: how the run ended.
+     * Its start is already in the feed (onCreateSuccess) and so is every
+     * page it sent, so "started" and "executing" would only say it again
+     * (OnCallFeedText.isRunStatusFeedNews).
      */
-    if (!onUpdate.updateBy.data.status) {
+    if (
+      !onUpdate.updateBy.data.status ||
+      !OnCallFeedText.isRunStatusFeedNews(
+        onUpdate.updateBy.data.status as OnCallDutyPolicyStatus,
+      )
+    ) {
       return onUpdate;
     }
 
