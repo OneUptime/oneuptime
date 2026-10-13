@@ -6,10 +6,12 @@ import WifiRadioUtil, {
   WifiTablesState,
 } from "../../../Utils/NetworkDevice/WifiRadioUtil";
 import {
+  SnmpTableColumnRole,
   SnmpTableDefinition,
   SnmpTableFailureReason,
   SnmpTableKind,
   SnmpTableSnapshot,
+  SnmpTableSnapshotColumn,
   SnmpTableSnapshotRow,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
@@ -1064,5 +1066,84 @@ describe("WifiRadioUtil.hasReadSsidTable", () => {
         read,
       ]),
     ).toBe(true);
+  });
+});
+
+/*
+ * The Clients tile of an access point that broadcasts no network: as its
+ * SSIDs tile reads 0, so do its clients - not "not reported" - when the SSID
+ * table counts clients and the last walk read it. When nothing says so, the
+ * total stays unknown.
+ */
+describe("the client total of an access point that broadcasts no SSID", () => {
+  const OWN_NETWORKS_ONLY: Array<WalkedVap> = BUSY_VAPS.filter(
+    (vap: WalkedVap): boolean => {
+      return !vap.essid.startsWith("Shop");
+    },
+  );
+
+  it("is 0 when its only networks are UniFi's own: the meshed access point is no client", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      unifiWalk(OWN_NETWORKS_ONLY),
+    );
+
+    expect(summary.ssids).toEqual([]);
+    expect(summary.totalClients).toBe(0);
+    // No radio takes a client count from SSIDs it does not have.
+    expect(
+      summary.radios.map((radio: WifiRadioView): number | undefined => {
+        return radio.clients;
+      }),
+    ).toEqual([undefined, undefined]);
+  });
+
+  it("is 0 from a snapshot stored before #4730 too", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      unifiStoredBeforeTheFix(
+        OWN_NETWORKS_ONLY.map((vap: WalkedVap): StoredVap => {
+          return { ...vap };
+        }),
+      ),
+    );
+
+    expect(summary.ssids).toEqual([]);
+    expect(summary.totalClients).toBe(0);
+  });
+
+  it("is unknown when the SSID table's last walk failed", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiWalk([]).map(
+      (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+        return snapshot.key === "wifi_ssids"
+          ? { ...snapshot, failureCause: "Request timed out" }
+          : snapshot;
+      },
+    );
+
+    expect(WifiRadioUtil.getSummary(snapshots).totalClients).toBeUndefined();
+  });
+
+  it("is unknown when the SSID table counts no clients", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiWalk([]).map(
+      (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+        return snapshot.key === "wifi_ssids"
+          ? {
+              ...snapshot,
+              columns: snapshot.columns.filter(
+                (column: SnmpTableSnapshotColumn): boolean => {
+                  return column.role !== SnmpTableColumnRole.Clients;
+                },
+              ),
+            }
+          : snapshot;
+      },
+    );
+
+    expect(WifiRadioUtil.getSummary(snapshots).totalClients).toBeUndefined();
+  });
+
+  it("is the SSIDs' as before when the access point lists any", () => {
+    expect(WifiRadioUtil.getSummary(unifiWalk(BUSY_VAPS)).totalClients).toBe(
+      22,
+    );
   });
 });

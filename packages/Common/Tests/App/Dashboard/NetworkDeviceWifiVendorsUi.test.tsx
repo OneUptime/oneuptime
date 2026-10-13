@@ -696,6 +696,8 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
       expect(screen.queryByTestId("wifi-ssids")).not.toBeInTheDocument();
       expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
       expect(tileValue("SSIDs")).toBe("0");
+      // No network to be on, so nobody on one - not "not reported".
+      expect(tileValue("Clients")).toBe("0");
 
       expect(document.body).not.toHaveTextContent("element-");
       expect(document.body).not.toHaveTextContent("vwire-");

@@ -120,7 +120,8 @@ export interface WifiSummary {
   ssids: Array<WifiSsidView>;
   /*
    * Every client the device reports: the radios' when the radio table
-   * counts them, otherwise the SSIDs', otherwise the access points'.
+   * counts them, otherwise the SSIDs', otherwise the access points' - and
+   * 0 when an SSID table that counts clients was read and lists no SSID.
    */
   totalClients?: number | undefined;
   collectedAt?: string | undefined;
@@ -241,10 +242,28 @@ export default class WifiRadioUtil {
       ssids: ssids,
     };
 
+    /*
+     * An SSID table that counts clients, read by the last walk and listing
+     * no SSID, counts nobody: the access point broadcasts no network to be
+     * on (one whose only networks are UniFi's own, say). Its clients read 0
+     * beside its "SSIDs 0", rather than "not reported".
+     */
+    const ssidTablesCountNobody: boolean =
+      ssids.length === 0 &&
+      ssidTables.some((snapshot: SnmpTableSnapshot) => {
+        return (
+          !snapshot.failureCause &&
+          (snapshot.columns || []).some((column: SnmpTableSnapshotColumn) => {
+            return column.role === SnmpTableColumnRole.Clients;
+          })
+        );
+      });
+
     const totalClients: number | undefined = radiosCountClients
       ? WifiRadioUtil.sumClients(radios)
       : WifiRadioUtil.sumClients(ssids) ??
-        WifiRadioUtil.sumClients(accessPoints);
+        WifiRadioUtil.sumClients(accessPoints) ??
+        (ssidTablesCountNobody ? 0 : undefined);
 
     if (totalClients !== undefined) {
       summary.totalClients = totalClients;
