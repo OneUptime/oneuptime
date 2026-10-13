@@ -136,7 +136,6 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
-import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
 import URL from "../../Types/API/URL";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
@@ -1681,33 +1680,32 @@ export class ProjectService extends ProjectReferencesService<Model> {
       return;
     }
 
-    const slackMessage: string = `*Subscriptions could not be cancelled after a plan change:*
-*Project ID:* ${data.projectId.toString()}
-*Subscriptions still open at the payment provider:* ${data.subscriptionIds.join(", ")}
-These are no longer recorded against the project and have to be cancelled by hand.
-`;
-
     /*
-     * Delivery is deliberately not awaited, and neither is reading the
-     * configured webhook. SlackUtil retries three times with exponential
-     * backoff and sets no HTTP timeout, so awaiting it would let a webhook
-     * that hangs hold the plan-change response open with it - for a message
-     * whose contents are already on the error log above. Same shape as
-     * sendSubscriptionChangeWebhookSlackNotification below.
+     * Delivery is deliberately not awaited. SlackUtil retries three times
+     * with exponential backoff and sets no HTTP timeout, so awaiting it would
+     * let a webhook that hangs hold the plan-change response open with it -
+     * for a message whose contents are already on the error log above. Same
+     * shape as sendSubscriptionChangeWebhookSlackNotification below. Posting
+     * never throws (OperatorSlackNotice.post); writing the message is kept
+     * from throwing here too.
      */
     try {
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
-        text: slackMessage,
-      }).catch((error: Error) => {
-        logger.error("Error sending slack message: " + error, {
-          projectId: data.projectId.toString(),
-        } as LogAttributes);
+      void OperatorSlackNotice.post({
+        webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+        text: OperatorSlackNotice.getSubscriptionsPendingCancellationText({
+          projectId: data.projectId,
+          subscriptionIds: data.subscriptionIds,
+        }),
+        about: "subscriptions a plan change could not cancel",
+        projectId: data.projectId,
       });
     } catch (error) {
-      logger.error("Error sending slack message: " + error, {
-        projectId: data.projectId.toString(),
-      } as LogAttributes);
+      logger.error(
+        `Could not write the Slack message for subscriptions a plan change could not cancel: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
     }
   }
 
@@ -2050,57 +2048,50 @@ These are no longer recorded against the project and have to be cancelled by han
     });
   }
 
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON
+   * _SUBSCRIPTION_UPDATE) that a project's plan changed, or its
+   * subscription was reactivated, with the plan it is on now
+   * (OperatorSlackNotice). The project is read again for it; the message is
+   * posted in the background, so the plan change waits on no webhook.
+   */
   private async sendSubscriptionChangeWebhookSlackNotification(
     projectId: ObjectID,
   ): Promise<void> {
-    if (NotificationSlackWebhookOnSubscriptionUpdate) {
-      // fetch project again.
-      const project: Model | null = await this.findOneById({
-        id: new ObjectID(projectId.toString()),
-        select: {
-          name: true,
-          _id: true,
-          createdOwnerName: true,
-          createdOwnerEmail: true,
-          planName: true,
-          createdByUserId: true,
-          paymentProviderSubscriptionStatus: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project) {
-        throw new BadDataException("Project not found");
-      }
-
-      let slackMessage: string = `*Project Plan Changed:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project.id?.toString() || "N/A"}
-`;
-
-      if (project.createdOwnerName && project.createdOwnerEmail) {
-        slackMessage += `*Project Created By:* ${project?.createdOwnerName?.toString() + " (" + project.createdOwnerEmail.toString() + ")" || "N/A"}
-`;
-      }
-
-      if (IsBillingEnabled) {
-        // which plan?
-        slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"} 
-*Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
-`;
-      }
-
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
-        text: slackMessage,
-      }).catch((error: Exception) => {
-        logger.error("Error sending slack message: " + error, {
-          projectId: project?.id?.toString(),
-        } as LogAttributes);
-      });
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
     }
+
+    // fetch project again.
+    const project: Model | null = await this.findOneById({
+      id: new ObjectID(projectId.toString()),
+      select: {
+        name: true,
+        _id: true,
+        createdOwnerName: true,
+        createdOwnerEmail: true,
+        planName: true,
+        createdByUserId: true,
+        paymentProviderSubscriptionStatus: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    void OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+      text: OperatorSlackNotice.getProjectPlanChangedText({
+        project: project,
+        isBillingEnabled: IsBillingEnabled,
+      }),
+      about: "plan change",
+      projectId: projectId,
+    });
   }
 
   /**
@@ -2371,56 +2362,59 @@ These are no longer recorded against the project and have to be cancelled by han
       });
     }
 
-    if (NotificationSlackWebhookOnCreateProject) {
-      // fetch project again.
-      const project: Model | null = await this.findOneById({
-        id: createdItem.id!,
-        select: {
-          name: true,
-          _id: true,
-          createdOwnerName: true,
-          createdOwnerEmail: true,
-          planName: true,
-          createdByUserId: true,
-          paymentProviderSubscriptionStatus: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project) {
-        throw new BadDataException("Project not found");
-      }
-
-      let slackMessage: string = `*Project Created:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project.id?.toString() || "N/A"}
-`;
-
-      if (project.createdOwnerName && project.createdOwnerEmail) {
-        slackMessage += `*Created By:* ${project?.createdOwnerName?.toString() + " (" + project.createdOwnerEmail.toString() + ")" || "N/A"}
-`;
-
-        if (IsBillingEnabled) {
-          // which plan?
-          slackMessage += `*Plan:* ${project.planName?.toString() || "N/A"}
-*Subscription Status:* ${project.paymentProviderSubscriptionStatus?.toString() || "N/A"}
-`;
-        }
-
-        SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: URL.fromString(NotificationSlackWebhookOnCreateProject),
-          text: slackMessage,
-        }).catch((error: Exception) => {
-          logger.error("Error sending slack message: " + error, {
-            projectId: createdItem.id?.toString(),
-          } as LogAttributes);
-        });
-      }
-    }
+    await this.sendProjectCreatedSlackNotification(createdItem.id!);
 
     return createdItem;
+  }
+
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_CREATED
+   * _PROJECT) that a project was created, by whom and on which plan
+   * (OperatorSlackNotice). The project is read again for it; the message is
+   * posted in the background, so the create waits on no webhook.
+   *
+   * Every project is announced. The message used to go only when its creator
+   * had both a name and an email, so a project created by a user with no
+   * name - one made by an invitation or by SSO - never reached the channel;
+   * a creator is now named by whichever of the two is known.
+   */
+  private async sendProjectCreatedSlackNotification(
+    projectId: ObjectID,
+  ): Promise<void> {
+    if (!NotificationSlackWebhookOnCreateProject) {
+      return;
+    }
+
+    // fetch project again.
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: {
+        name: true,
+        _id: true,
+        createdOwnerName: true,
+        createdOwnerEmail: true,
+        planName: true,
+        createdByUserId: true,
+        paymentProviderSubscriptionStatus: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    void OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnCreateProject,
+      text: OperatorSlackNotice.getProjectCreatedText({
+        project: project,
+        isBillingEnabled: IsBillingEnabled,
+      }),
+      about: "project creation",
+      projectId: projectId,
+    });
   }
 
   private async addDefaultIncidentState(createdItem: Model): Promise<Model> {
