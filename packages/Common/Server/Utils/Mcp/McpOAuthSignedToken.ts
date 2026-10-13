@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { EncryptionSecret } from "../../EnvironmentConfig";
+import TokenSigningKey from "../TokenSigningKey";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -10,13 +10,13 @@ import { JSONObject } from "../../../Types/JSON";
  *
  * WHY THESE ARE NOT JWTS
  *
- * JSONWebToken.decode accepts any JWT signed with EncryptionSecret that
+ * JSONWebToken.decode accepts any JWT signed with TokenSigningKey that
  * carries a user id and an email as a full dashboard session. Both tokens
  * here name a user, so minted as such a JWT either one would BE a session -
  * for every project the user belongs to, with none of the limits an MCP grant
  * carries. So, like the verification-email resend token, they use a format no
  * JWT parser accepts ("v1.<payload>.<signature>") and a key that signs
- * nothing else: an HMAC key derived from EncryptionSecret under a label that
+ * nothing else: an HMAC key derived from TokenSigningKey under a label that
  * is different for each purpose. A token made for one purpose therefore does
  * not verify as the other, and neither verifies anywhere else.
  *
@@ -212,10 +212,7 @@ export default class McpOAuthSignedToken {
     purpose: McpOAuthSignedTokenPurpose,
     payloadB64: string,
   ): string {
-    const key: Buffer = crypto
-      .createHmac("sha256", EncryptionSecret.toString())
-      .update(purpose.keyDerivationLabel)
-      .digest();
+    const key: Buffer = TokenSigningKey.deriveKey(purpose.keyDerivationLabel);
 
     return crypto
       .createHmac("sha256", key)

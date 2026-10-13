@@ -23,7 +23,7 @@ flowchart LR
 
 ## O feed do SLO
 
-O feed fica na página **Feed** do SLO, e os itens mais recentes dele em **Recent activity** na **Visão geral** do SLO. Os itens levam ao SLO, aos monitores, aos alertas e aos incidentes que mencionam, e a maioria tem uma seção **More Information** com os números ou os valores antigos e novos.
+O feed fica na página **Feed** do SLO, e os itens mais recentes dele em **Recent activity** na **Visão geral** do SLO. Os itens levam ao SLO, aos monitores, aos alertas e aos incidentes que mencionam, e a maioria tem detalhes com os números ou os valores antigos e novos, que **Mostrar detalhes** abre sob o item.
 
 | Evento | Publicado quando |
 | --- | --- |

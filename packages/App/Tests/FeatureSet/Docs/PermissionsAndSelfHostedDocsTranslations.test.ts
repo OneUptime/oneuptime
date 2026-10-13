@@ -170,6 +170,7 @@ const NAMES: Record<string, Array<string>> = {
 const OTHER_CONSOLES: Record<string, Array<string>> = {
   [PUSH_PAGE]: [
     "Settings > Notifications > Critical On-Call Alerts",
+    "Settings > Notifications > Alarm sound",
     "Settings > Notifications > OneUptime On-Call",
     "Settings > Notifications > Do Not Disturb access",
     "Critical Alerts",
@@ -261,6 +262,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   ],
   [PUSH_PAGE]: [
     "The responder turned it on for that device.",
+    "The on-call rule that sent the page asks for it.",
     "The server marks the page critical.",
     "The operating system allows it",
     "version 1.5.0",

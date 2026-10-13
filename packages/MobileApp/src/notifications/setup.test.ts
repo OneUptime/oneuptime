@@ -63,13 +63,18 @@ describe("setupNotificationChannels", () => {
     );
   });
 
-  test("creates all four channels", async () => {
+  test("creates every channel, the alarm sounds' critical channels included", async () => {
     setPlatform("android");
 
     await setupNotificationChannels();
 
     expect(createdChannelIds(channelSpy)).toEqual([
       "oncall_critical",
+      "oncall_critical_klaxon",
+      "oncall_critical_siren",
+      "oncall_critical_digital",
+      "oncall_critical_smoke_alarm",
+      "oncall_critical_rising",
       "oncall_high",
       "oncall_normal",
       "oncall_low",
@@ -98,6 +103,11 @@ describe("setupNotificationChannels", () => {
 
     expect(createdChannelIds(channelSpy)).toEqual([
       "oncall_critical",
+      "oncall_critical_klaxon",
+      "oncall_critical_siren",
+      "oncall_critical_digital",
+      "oncall_critical_smoke_alarm",
+      "oncall_critical_rising",
       "oncall_high",
       "oncall_normal",
       "oncall_low",
@@ -122,7 +132,7 @@ describe("setupNotificationChannels", () => {
     await setupNotificationChannels();
     await setupNotificationChannels();
 
-    expect(channelSpy).toHaveBeenCalledTimes(8);
+    expect(channelSpy).toHaveBeenCalledTimes(18);
   });
 });
 

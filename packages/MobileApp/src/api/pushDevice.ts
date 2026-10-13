@@ -1,12 +1,20 @@
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import apiClient from "./client";
+import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
 import logger from "../utils/logger";
 
 export async function registerPushDevice(params: {
   deviceToken: string;
   projectId: string;
   isCriticalAlertEnabled?: boolean;
+  /*
+   * The alarm sound and iPhone volume this device chose for critical pages
+   * (Settings > Alarm sound), restated like isCriticalAlertEnabled. A server
+   * older than the choice ignores them.
+   */
+  criticalAlertSound?: CriticalAlertSoundIdValue | undefined;
+  criticalAlertVolume?: number | undefined;
   /*
    * The token this app had before `deviceToken`, when it changed: the
    * server moves the device registered with it, rules and all, to the new
@@ -35,6 +43,16 @@ export async function registerPushDevice(params: {
        * just joined.
        */
       isCriticalAlertEnabled: Boolean(params.isCriticalAlertEnabled),
+      /*
+       * The same goes for the alarm: a row created without it plays the
+       * system sound, not the one the responder picked.
+       */
+      ...(params.criticalAlertSound
+        ? { criticalAlertSound: params.criticalAlertSound }
+        : {}),
+      ...(params.criticalAlertVolume !== undefined
+        ? { criticalAlertVolume: params.criticalAlertVolume }
+        : {}),
       ...(params.previousDeviceToken
         ? { previousDeviceToken: params.previousDeviceToken }
         : {}),
@@ -90,6 +108,62 @@ export async function setCriticalAlertsEnabledOnServer(params: {
     `[PushNotifications] Critical alerts ${
       params.isEnabled ? "enabled" : "disabled"
     } for this device`,
+  );
+}
+
+/*
+ * A server from before alarm sounds could be chosen has no route for them.
+ * Told apart from any other failure because the cure is different: nothing
+ * the responder does on the phone helps until the server is updated.
+ */
+export class CriticalAlertPreferencesUnsupportedError extends Error {
+  public constructor() {
+    super(
+      "This OneUptime server does not support choosing an alarm sound yet. Ask your administrator to update OneUptime.",
+    );
+    this.name = "CriticalAlertPreferencesUnsupportedError";
+  }
+}
+
+/*
+ * Choose the alarm this handset's critical pages play, and on an iPhone how
+ * loud, across every project it is registered against - keyed on the push
+ * token, like the critical alerts toggle. Either may be left out to keep what
+ * the server has.
+ *
+ * Errors are not swallowed: the screen shows the choice only once the server
+ * holds it, because the server is what puts the sound in the page.
+ */
+export async function setCriticalAlertPreferencesOnServer(params: {
+  deviceToken: string;
+  sound?: CriticalAlertSoundIdValue | undefined;
+  volume?: number | undefined;
+}): Promise<void> {
+  try {
+    await apiClient.post("/api/user-push/critical-alert-preferences", {
+      deviceToken: params.deviceToken,
+      ...(params.sound !== undefined ? { sound: params.sound } : {}),
+      ...(params.volume !== undefined ? { volume: params.volume } : {}),
+    });
+  } catch (error: unknown) {
+    const status: number | undefined = (
+      error as { response?: { status?: number } }
+    )?.response?.status;
+
+    if (status === 404) {
+      throw new CriticalAlertPreferencesUnsupportedError();
+    }
+
+    throw error;
+  }
+
+  logger.info(
+    `[PushNotifications] Critical alert ${[
+      params.sound !== undefined ? `sound set to ${params.sound}` : "",
+      params.volume !== undefined ? `volume set to ${params.volume}%` : "",
+    ]
+      .filter(Boolean)
+      .join(" and ")} for this device`,
   );
 }
 

@@ -7,10 +7,10 @@ import {
 } from "@testing-library/react";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { Blue500 } from "../../../Types/BrandColors";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import { FeedItemProps } from "../../../UI/Components/Feed/FeedItem";
 import {
+  FEED_PAGE_SIZE,
   FeedOptions,
   getFeedOptionsKey,
 } from "../../../UI/Components/Feed/FeedOptions";
@@ -25,8 +25,8 @@ import useFeedOptions, {
 /*
  * The viewKey contract of useFeedItems: a change of sort order or event type
  * filter re-reads the feed from its first window, exactly like moving to
- * another resource. LimitMax is deliberately not mocked here, so every window
- * below is the real DEFAULT_LIMIT.
+ * another resource. Nothing is mocked here, so every window below is the
+ * real FEED_PAGE_SIZE a feed reads with.
  */
 
 interface TestFeedModel {
@@ -373,7 +373,7 @@ afterEach(() => {
 });
 
 describe("useFeedItems viewKey", () => {
-  test("re-reads from DEFAULT_LIMIT when the view changes, even after More widened the window", async () => {
+  test("re-reads from FEED_PAGE_SIZE when the view changes, even after More widened the window", async () => {
     const api: FakeFeedApi = createFakeFeedApi();
     const feed: FeedHarness = renderFeed(api, {
       resourceKey: "monitor-1",
@@ -385,15 +385,15 @@ describe("useFeedItems viewKey", () => {
     await getLatestRequest(api).respond(["newest", "next"]);
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE * 2),
     ]);
 
     feed.show({ resourceKey: "monitor-1", viewKey: OLDEST_FIRST });
 
     expect(getRequestNames(api)).toHaveLength(3);
     expect(getRequestNames(api)[2]).toBe(
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
     );
 
     await getLatestRequest(api).respond(["oldest"]);
@@ -408,7 +408,7 @@ describe("useFeedItems viewKey", () => {
     loadMore(feed);
 
     expect(getRequestNames(api)[3]).toBe(
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
     );
   });
 
@@ -448,14 +448,14 @@ describe("useFeedItems viewKey", () => {
     });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("incident-1", "sort=DESC types=", DEFAULT_LIMIT),
-      getRequestName("incident-1", "sort=DESC types=", DEFAULT_LIMIT * 2),
+      getRequestName("incident-1", "sort=DESC types=", FEED_PAGE_SIZE),
+      getRequestName("incident-1", "sort=DESC types=", FEED_PAGE_SIZE * 2),
       getRequestName(
         "incident-1",
         "sort=ASC types=IncidentStateChanged",
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       ),
-      getRequestName("incident-1", "sort=ASC types=", DEFAULT_LIMIT),
+      getRequestName("incident-1", "sort=ASC types=", FEED_PAGE_SIZE),
     ]);
   });
 
@@ -483,13 +483,13 @@ describe("useFeedItems viewKey", () => {
 
     // Exactly one read for the next incident, and it is unfiltered.
     expect(getRequestNames(api)).toEqual([
-      getRequestName("incident-1", "sort=DESC types=", DEFAULT_LIMIT),
+      getRequestName("incident-1", "sort=DESC types=", FEED_PAGE_SIZE),
       getRequestName(
         "incident-1",
         "sort=ASC types=IncidentStateChanged",
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       ),
-      getRequestName("incident-2", "sort=ASC types=", DEFAULT_LIMIT),
+      getRequestName("incident-2", "sort=ASC types=", FEED_PAGE_SIZE),
     ]);
 
     await getLatestRequest(api).respond(["oldest"]);
@@ -501,7 +501,7 @@ describe("useFeedItems viewKey", () => {
     hook.rerender({ resourceKey: "incident-1" });
 
     expect(getRequestNames(api).slice(3)).toEqual([
-      getRequestName("incident-1", "sort=ASC types=", DEFAULT_LIMIT),
+      getRequestName("incident-1", "sort=ASC types=", FEED_PAGE_SIZE),
     ]);
   });
 
@@ -648,10 +648,10 @@ describe("useFeedItems viewKey", () => {
     loadMore(feed);
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT * 2),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
     ]);
     expect(getForeignPaintedItems(feed.renders)).toEqual([]);
   });
@@ -679,9 +679,9 @@ describe("useFeedItems viewKey", () => {
     const freshNewestRequest: FeedRequest = getLatestRequest(api);
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
     ]);
 
     await firstNewestRequest.respond(["stale"]);
@@ -729,10 +729,10 @@ describe("useFeedItems viewKey", () => {
     await getLatestRequest(api).respond(["fresh"]);
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT * 2),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
     ]);
     expect(getItemKeys(feed.result.current)).toEqual([
       getItemKey({ resourceKey: "monitor-1", viewKey: NEWEST_FIRST }, "fresh"),
@@ -760,7 +760,7 @@ describe("useFeedItems viewKey", () => {
     feed.show({ resourceKey: "monitor-1", viewKey: OLDEST_FIRST });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
     ]);
     expect(feed.result.current.isCurrentFeedLoaded).toBe(true);
     expect(feed.result.current.isLoading).toBe(false);
@@ -784,8 +784,8 @@ describe("useFeedItems viewKey", () => {
     feed.show({ resourceKey: "monitor-1", viewKey: undefined });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", undefined, DEFAULT_LIMIT),
-      getRequestName("monitor-1", undefined, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", undefined, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", undefined, FEED_PAGE_SIZE * 2),
     ]);
     expect(feed.result.current.isCurrentFeedLoaded).toBe(true);
     expect(feed.result.current.feedItems).toHaveLength(2);
@@ -798,8 +798,8 @@ describe("useFeedItems viewKey", () => {
     feed.show({ resourceKey: "monitor-2" });
 
     expect(getRequestNames(api).slice(2)).toEqual([
-      getRequestName("monitor-1", undefined, DEFAULT_LIMIT * 3),
-      getRequestName("monitor-2", undefined, DEFAULT_LIMIT),
+      getRequestName("monitor-1", undefined, FEED_PAGE_SIZE * 3),
+      getRequestName("monitor-2", undefined, FEED_PAGE_SIZE),
     ]);
     expect(feed.result.current.isCurrentFeedLoaded).toBe(false);
     expect(feed.result.current.feedItems).toEqual([]);
@@ -846,10 +846,10 @@ describe("useFeedItems viewKey", () => {
     });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
     ]);
 
     // A refresh keeps the rows on screen while it reads.
@@ -867,13 +867,13 @@ describe("useFeedItems viewKey", () => {
   });
 
   /*
-   * The view change itself always reads DEFAULT_LIMIT rows. What a refresh
+   * The view change itself always reads FEED_PAGE_SIZE rows. What a refresh
    * reads is the remembered window, and until the new view's first read lands
    * nothing has replaced the window More widened on the old view - so the
    * view change has to reset it, or a refresh in that gap reads the old view's
    * wider window for the new one.
    */
-  test("a refresh before the new view's first read lands asks for DEFAULT_LIMIT, not the old view's widened window", async () => {
+  test("a refresh before the new view's first read lands asks for FEED_PAGE_SIZE, not the old view's widened window", async () => {
     const api: FakeFeedApi = createFakeFeedApi();
     const feed: FeedHarness = renderFeed(api, {
       resourceKey: "monitor-1",
@@ -900,10 +900,10 @@ describe("useFeedItems viewKey", () => {
     });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT * 2),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
     ]);
 
     const refreshRequest: FeedRequest = getLatestRequest(api);
@@ -926,7 +926,7 @@ describe("useFeedItems viewKey", () => {
     loadMore(feed);
 
     expect(getRequestNames(api).slice(4)).toEqual([
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
     ]);
   });
 
@@ -935,7 +935,7 @@ describe("useFeedItems viewKey", () => {
    * view's first read fails only the view change's own reset keeps the
    * reader's retry from reading the old view's wider window.
    */
-  test("a refresh after the new view's first read failed asks for DEFAULT_LIMIT", async () => {
+  test("a refresh after the new view's first read failed asks for FEED_PAGE_SIZE", async () => {
     const api: FakeFeedApi = createFakeFeedApi();
     const feed: FeedHarness = renderFeed(api, {
       resourceKey: "monitor-1",
@@ -960,10 +960,10 @@ describe("useFeedItems viewKey", () => {
     });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", NEWEST_FIRST, DEFAULT_LIMIT * 2),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", NEWEST_FIRST, FEED_PAGE_SIZE * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
     ]);
 
     await getLatestRequest(api).respond(["oldest"]);
@@ -977,7 +977,7 @@ describe("useFeedItems viewKey", () => {
     loadMore(feed);
 
     expect(getRequestNames(api).slice(4)).toEqual([
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
     ]);
   });
 
@@ -995,9 +995,9 @@ describe("useFeedItems viewKey", () => {
     feed.show({ resourceKey: "monitor-2", viewKey: OLDEST_FIRST });
 
     expect(getRequestNames(api)).toEqual([
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT),
-      getRequestName("monitor-1", OLDEST_FIRST, DEFAULT_LIMIT * 2),
-      getRequestName("monitor-2", OLDEST_FIRST, DEFAULT_LIMIT),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE),
+      getRequestName("monitor-1", OLDEST_FIRST, FEED_PAGE_SIZE * 2),
+      getRequestName("monitor-2", OLDEST_FIRST, FEED_PAGE_SIZE),
     ]);
     expect(feed.result.current.isCurrentFeedLoaded).toBe(false);
     expect(feed.result.current.feedItems).toEqual([]);

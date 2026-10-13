@@ -6,6 +6,12 @@ import type {
   OnCallRuleSeverity,
   SeverityForeignKeyColumn,
 } from "./OnCallRuleKinds";
+import PushNotificationLevelControl, {
+  getPushNotificationLevelCardSelectOptions,
+} from "./PushNotificationLevelControl";
+import PushRepeatControl, {
+  PUSH_REPEAT_DROPDOWN_OPTIONS,
+} from "./PushRepeatControl";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -28,12 +34,16 @@ import {
 } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { NO_NOTIFICATION_REPEAT } from "Common/Types/NotificationRule/NotificationRepeat";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "Common/Types/ObjectID";
+import { isExpoPushDeviceType } from "Common/Types/PushNotification/ExpoPushDeviceType";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -803,6 +813,259 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       : [];
 
   /*
+   * ==========================================================================
+   * PUSH NOTIFICATION LEVEL
+   * ==========================================================================
+   *
+   * Every rule that pages a phone says how its push sounds: Critical rings
+   * through silent mode and Do Not Disturb, Standard follows the phone's own
+   * settings. That is what lets a responder be woken for a Sev 1 and not for
+   * a Sev 4 - the device's Critical On-Call Alerts switch in the mobile app is
+   * one answer for every page, and these cards are one per severity.
+   *
+   * It is chosen on the form that adds a push rule, and changed on the rule's
+   * row: a pill that names the level and opens a menu of the two. Not on the
+   * edit form, which cannot tell a push rule from any other - it loads only
+   * the columns its fields write, and the method is not one of them (see the
+   * note on `formFields` below for why the method stays off that form).
+   */
+
+  /*
+   * The phone the create form's method dropdown has picked, if it picked one
+   * the level means something on. A browser is a push device too, but no
+   * browser can ring through a silenced phone, so the choice is not offered
+   * for one. For somebody else's rules the device type is not known - the
+   * masked methods carry only "Push" - so every push method is offered it.
+   */
+  type IsPushMethodWithLevel = (selectedValue: unknown) => boolean;
+
+  const isPushMethodWithLevel: IsPushMethodWithLevel = (
+    selectedValue: unknown,
+  ): boolean => {
+    if (!selectedValue) {
+      return false;
+    }
+
+    const selectedId: string = selectedValue.toString();
+
+    if (isViewerTheOwner) {
+      return userPush.some((device: UserPush): boolean => {
+        return (
+          device.id?.toString() === selectedId &&
+          isExpoPushDeviceType(device.deviceType)
+        );
+      });
+    }
+
+    return (props.notificationMethods || []).some(
+      (method: NotificationMethodChoice): boolean => {
+        return method.methodId === selectedId && method.methodType === "Push";
+      },
+    );
+  };
+
+  /*
+   * A push method of any kind - a browser included - which is what repeating
+   * until acknowledged applies to: a page sent again to a browser still
+   * reaches somebody at their desk. For somebody else's rules, any "Push".
+   */
+  type IsPushMethod = (selectedValue: unknown) => boolean;
+
+  const isPushMethod: IsPushMethod = (selectedValue: unknown): boolean => {
+    if (!selectedValue) {
+      return false;
+    }
+
+    const selectedId: string = selectedValue.toString();
+
+    if (isViewerTheOwner) {
+      return userPush.some((device: UserPush): boolean => {
+        return device.id?.toString() === selectedId;
+      });
+    }
+
+    return (props.notificationMethods || []).some(
+      (method: NotificationMethodChoice): boolean => {
+        return method.methodId === selectedId && method.methodType === "Push";
+      },
+    );
+  };
+
+  /*
+   * The same gate as the row editor's, on the same question: may this viewer
+   * rewrite how somebody gets paged? A viewer who may not still sees the
+   * level and the repeat - the pills are drawn without their menus.
+   */
+  const canChangeRules: boolean =
+    isEditable &&
+    Boolean(
+      PermissionGate.check(new UserNotificationRule(), ModelAction.Update)
+        .isAllowed || User.isMasterAdmin(),
+    );
+
+  // Saves one of a push rule's settings from its row: only what changed.
+  type UpdatePushRule = (
+    rule: UserNotificationRule,
+    data:
+      | { pushNotificationLevel: PushNotificationLevel }
+      | { repeatEveryMinutes: number },
+  ) => Promise<void>;
+
+  const updatePushRule: UpdatePushRule = async (
+    rule: UserNotificationRule,
+    data:
+      | { pushNotificationLevel: PushNotificationLevel }
+      | { repeatEveryMinutes: number },
+  ): Promise<void> => {
+    if (!rule.id) {
+      throw new Error(
+        translator.translateText(
+          "This rule cannot be changed until the page is reloaded.",
+        ),
+      );
+    }
+
+    await ModelAPI.updateById<UserNotificationRule>({
+      modelType: UserNotificationRule,
+      id: rule.id,
+      data: data,
+    });
+  };
+
+  /*
+   * The controls under a push rule's method, or nothing for a rule that pages
+   * anything else: how the push sounds (phones only) and how often it repeats
+   * until acknowledged (any push device).
+   *
+   * On your own page the rule's phone is one of the devices loaded above, so
+   * the level can also say when the phone has not turned critical alerts on -
+   * the one case where "Critical alert" on the row would not be true on the
+   * night. A browser has no level, but can repeat. A phone missing from that
+   * list (no longer verified) still gets both: the rule still names it.
+   */
+  type GetPushControlsElement = (
+    rule: UserNotificationRule,
+  ) => ReactElement | null;
+
+  const getPushControlsElement: GetPushControlsElement = (
+    rule: UserNotificationRule,
+  ): ReactElement | null => {
+    const rawUserPushId: unknown = rule["userPushId"];
+
+    if (!rawUserPushId) {
+      return null;
+    }
+
+    const userPushId: string = new ObjectID(rawUserPushId as string).toString();
+
+    let hasLevel: boolean = true;
+    let isDeviceCriticalAlertEnabled: boolean | undefined = undefined;
+
+    if (isViewerTheOwner) {
+      const device: UserPush | undefined = userPush.find(
+        (candidate: UserPush): boolean => {
+          return candidate.id?.toString() === userPushId;
+        },
+      );
+
+      if (device && !isExpoPushDeviceType(device.deviceType)) {
+        hasLevel = false;
+      }
+
+      if (device && hasLevel) {
+        isDeviceCriticalAlertEnabled = Boolean(device.isCriticalAlertEnabled);
+      }
+    }
+
+    return (
+      <div
+        className="mt-1.5 flex flex-wrap items-start gap-x-2 gap-y-1"
+        data-testid="push-rule-controls"
+      >
+        {hasLevel ? (
+          <PushNotificationLevelControl
+            level={rule["pushNotificationLevel"] as string | undefined}
+            isEditable={canChangeRules}
+            isDeviceCriticalAlertEnabled={isDeviceCriticalAlertEnabled}
+            onChange={(level: PushNotificationLevel): Promise<void> => {
+              return updatePushRule(rule, { pushNotificationLevel: level });
+            }}
+          />
+        ) : (
+          <></>
+        )}
+        <PushRepeatControl
+          repeatEveryMinutes={rule["repeatEveryMinutes"] as number | undefined}
+          isEditable={canChangeRules}
+          onChange={(repeatEveryMinutes: number): Promise<void> => {
+            return updatePushRule(rule, {
+              repeatEveryMinutes: repeatEveryMinutes,
+            });
+          }}
+        />
+      </div>
+    );
+  };
+
+  // The "Notification Method" cell's method, without the push level under it.
+  type GetMethodElement = (rule: UserNotificationRule) => ReactElement;
+
+  const getMethodElement: GetMethodElement = (
+    item: UserNotificationRule,
+  ): ReactElement => {
+    /*
+     * An opt-out row has no method by design, so the default cell
+     * renders empty - identical to a rule whose method relation
+     * failed to load, and identical to nothing at all. Labelling it
+     * is what stops "this row looks broken, delete it" from silently
+     * turning somebody's paging back on.
+     */
+    if (item["isOptOut"]) {
+      return (
+        <p className="text-gray-500 italic">
+          {translator.translateText(OPT_OUT_LABEL)}
+        </p>
+      );
+    }
+
+    /*
+     * The owner reads their own identifiers unmasked, out of the
+     * relations selected above - unchanged, and your own On-Call
+     * Rules page is the whole reason it stays that way.
+     */
+    if (isViewerTheOwner) {
+      return (
+        <NotificationMethodView item={item} modelType={UserNotificationRule} />
+      );
+    }
+
+    const suppliedLabel: string = getSuppliedMethodLabel(
+      props.notificationMethods || [],
+      item,
+    );
+
+    /*
+     * No method column set at all, and not an opt-out either. The
+     * owner path renders an empty cell for the same row, so this
+     * does too rather than inventing a state the other path does
+     * not have.
+     */
+    if (!suppliedLabel) {
+      return <></>;
+    }
+
+    if (suppliedLabel === UNRESOLVED_METHOD_LABEL) {
+      return (
+        <p className="text-gray-500 italic">
+          {translator.translateText(suppliedLabel)}
+        </p>
+      );
+    }
+
+    return <p>{suppliedLabel}</p>;
+  };
+
+  /*
    * What the table asks the server for in order to render the method cell, and
    * the second place `isViewerTheOwner` decides between reading the methods and
    * being handed them.
@@ -908,6 +1171,18 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
 
           applySelectedMethod(model, miscDataProps["notificationMethod"]);
 
+          /*
+           * Repeating is for push rules, and its field is shown only for one.
+           * An interval picked for a push device is still sent after the
+           * method is changed to something else - the form sends a hidden
+           * field's value too - and the server refuses a repeating rule that
+           * pages anything but a push device, in words about a field the
+           * form no longer shows.
+           */
+          if (!isPushMethod(miscDataProps["notificationMethod"])) {
+            model.repeatEveryMinutes = NO_NOTIFICATION_REPEAT;
+          }
+
           return Promise.resolve(model);
         }}
         sortOrder={SortOrder.Ascending}
@@ -993,6 +1268,68 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             dropdownOptions: notificationMethodsDropdownOptions,
             doNotShowWhenEditing: true,
           },
+          /*
+           * Shown once a phone is picked above, starting on the column's
+           * default (Critical) like every create form field. Required, so it
+           * is not labelled optional: one of the two always applies, and it
+           * starts answered. Hidden, it is not validated and the rule is
+           * stored with that default, which is meaningless on a rule that
+           * pages anything but a phone. Changed later from the rule's row,
+           * not from the edit form - see PUSH NOTIFICATION LEVEL above.
+           */
+          {
+            field: {
+              pushNotificationLevel: true,
+            },
+            title: "Push notification",
+            description:
+              "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.",
+            fieldType: FormFieldSchemaType.CardSelect,
+            cardSelectOptions: getPushNotificationLevelCardSelectOptions(),
+            cardSelectSingleColumn: true,
+            required: true,
+            doNotShowWhenEditing: true,
+            showIf: (values: FormValues<UserNotificationRule>): boolean => {
+              return isPushMethodWithLevel(
+                (values as Record<string, unknown>)["notificationMethod"],
+              );
+            },
+            dataTestId: "push-notification-level-field",
+          },
+          /*
+           * Shown once a push method is picked - a browser included - and
+           * starting on "Don't repeat", the column's default. Changed later
+           * from the rule's row, like the level above.
+           *
+           * Started by getDefaultValue, not by the column's default: a form
+           * fills a field in with its defaultValue only when that is truthy
+           * (BasicForm), so 0 left the field empty and - required - refused
+           * every push rule until "Don't repeat" was picked by hand. And a
+           * dropdown draws 0 as no choice at all, so the placeholder says
+           * what it holds, as "Immediately" does for the delay below.
+           */
+          {
+            field: {
+              repeatEveryMinutes: true,
+            },
+            title: "Repeat until acknowledged",
+            description:
+              "Send the push again this often until somebody acknowledges, up to 10 more times.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: PUSH_REPEAT_DROPDOWN_OPTIONS,
+            getDefaultValue: (): number => {
+              return NO_NOTIFICATION_REPEAT;
+            },
+            placeholder: "Don't repeat",
+            required: true,
+            doNotShowWhenEditing: true,
+            showIf: (values: FormValues<UserNotificationRule>): boolean => {
+              return isPushMethod(
+                (values as Record<string, unknown>)["notificationMethod"],
+              );
+            },
+            dataTestId: "push-repeat-field",
+          },
           {
             field: {
               notifyAfterMinutes: true,
@@ -1013,6 +1350,17 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
            * width of a column to say nothing.
            */
           isOptOut: true,
+          /*
+           * For the push level under the method, likewise in the method cell:
+           * as its own column it would be a dash on every rule that does not
+           * page a phone. The phone's id is how the cell knows a rule is a
+           * push rule, and which loaded device it pages - an id, which the
+           * admin projection above already asks for and which is no more
+           * than it is.
+           */
+          pushNotificationLevel: true,
+          repeatEveryMinutes: true,
+          userPushId: true,
         }}
         filters={[]}
         columns={[
@@ -1020,60 +1368,31 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
             field: methodProjection as SelectEntityField<UserNotificationRule>,
             title: "Notification Method",
             type: FieldType.Text,
+            /*
+             * The push level under a phone can carry a sentence - the note
+             * that the phone has not turned critical alerts on - and a body
+             * cell does not wrap unless it is told to: the note would run
+             * across the delay column beside it.
+             */
+            wrapContent: true,
             getElement: (item: UserNotificationRule): ReactElement => {
-              /*
-               * An opt-out row has no method by design, so the default cell
-               * renders empty - identical to a rule whose method relation
-               * failed to load, and identical to nothing at all. Labelling it
-               * is what stops "this row looks broken, delete it" from silently
-               * turning somebody's paging back on.
-               */
-              if (item["isOptOut"]) {
-                return (
-                  <p className="text-gray-500 italic">
-                    {translator.translateText(OPT_OUT_LABEL)}
-                  </p>
-                );
+              const methodElement: ReactElement = getMethodElement(item);
+
+              // An opt-out row pages nothing, so it has no level either.
+              const pushControlsElement: ReactElement | null = item["isOptOut"]
+                ? null
+                : getPushControlsElement(item);
+
+              if (!pushControlsElement) {
+                return methodElement;
               }
 
-              /*
-               * The owner reads their own identifiers unmasked, out of the
-               * relations selected above - unchanged, and your own On-Call
-               * Rules page is the whole reason it stays that way.
-               */
-              if (isViewerTheOwner) {
-                return (
-                  <NotificationMethodView
-                    item={item}
-                    modelType={UserNotificationRule}
-                  />
-                );
-              }
-
-              const suppliedLabel: string = getSuppliedMethodLabel(
-                props.notificationMethods || [],
-                item,
+              return (
+                <div>
+                  {methodElement}
+                  {pushControlsElement}
+                </div>
               );
-
-              /*
-               * No method column set at all, and not an opt-out either. The
-               * owner path renders an empty cell for the same row, so this
-               * does too rather than inventing a state the other path does
-               * not have.
-               */
-              if (!suppliedLabel) {
-                return <></>;
-              }
-
-              if (suppliedLabel === UNRESOLVED_METHOD_LABEL) {
-                return (
-                  <p className="text-gray-500 italic">
-                    {translator.translateText(suppliedLabel)}
-                  </p>
-                );
-              }
-
-              return <p>{suppliedLabel}</p>;
             },
           },
           {
@@ -1207,6 +1526,12 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           select: {
             deviceName: true,
             deviceType: true,
+            /*
+             * Whether the phone turned critical alerts on, for the note
+             * under a Critical push rule that it will not ring through yet.
+             * Readable here because these are the viewer's own devices.
+             */
+            isCriticalAlertEnabled: true,
           },
           sort: {},
         }),

@@ -8,9 +8,11 @@ import {
   requestCriticalAlertPermission,
 } from "../notifications/criticalAlerts";
 import {
+  getCriticalAlertSound,
   getCriticalAlertsEnabled,
   setCriticalAlertsEnabled as storeCriticalAlertsEnabled,
 } from "../storage/preferences";
+import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
 import { setCriticalAlertsEnabledOnServer } from "../api/pushDevice";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
 import logger from "../utils/logger";
@@ -89,9 +91,15 @@ export function useCriticalAlerts(): CriticalAlertsState {
    */
   const syncStatus: () => Promise<CriticalAlertStatus> =
     useCallback(async (): Promise<CriticalAlertStatus> => {
+      /*
+       * On Android the alarm the responder chose decides which channel has to
+       * ring through Do Not Disturb, so it is read first.
+       */
+      const sound: CriticalAlertSoundIdValue = await getCriticalAlertSound();
+
       const [status, storedPreference]: [CriticalAlertStatus, boolean] =
         await Promise.all([
-          getCriticalAlertStatus(),
+          getCriticalAlertStatus({ sound: sound }),
           getCriticalAlertsEnabled(),
         ]);
 
@@ -175,14 +183,18 @@ export function useCriticalAlerts(): CriticalAlertsState {
       setError("");
 
       try {
-        let status: CriticalAlertStatus = await getCriticalAlertStatus();
+        const sound: CriticalAlertSoundIdValue = await getCriticalAlertSound();
+
+        let status: CriticalAlertStatus = await getCriticalAlertStatus({
+          sound: sound,
+        });
 
         if (
           enabled &&
           status.availability === CriticalAlertAvailability.Denied
         ) {
           // Not granted yet: prompt on iOS, open the settings screen on Android.
-          status = await requestCriticalAlertPermission();
+          status = await requestCriticalAlertPermission({ sound: sound });
         }
 
         applyStatus(status);

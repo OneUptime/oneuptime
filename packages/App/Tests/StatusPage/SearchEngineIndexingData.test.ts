@@ -8,9 +8,10 @@
  *
  * The cases that matter most are the unhappy ones. The flag reaches these
  * functions over a network call to the status page API; when that call fails
- * the page still has to render, and it has to render indexable, because the
- * alternative is dropping pages out of search results over a transient blip
- * that nobody would ever see in a log.
+ * the page still has to render, and on a custom domain it has to render
+ * indexable, because the alternative is dropping pages out of search results
+ * over a transient blip that nobody would ever see in a log. A preview URL is
+ * never indexable, whatever the call returns.
  */
 
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -172,18 +173,19 @@ describe.each(IMPLEMENTATIONS)(
 
     describe("a status page on its preview URL", () => {
       /*
-       * The preview URL (/status-page/:id) is the only URL a status page has
-       * until someone attaches a custom domain, so it is the URL most
-       * OneUptime status pages are actually crawled at. An opt-out that only
-       * worked on custom domains would do nothing for most of the people who
-       * asked for it.
+       * Every status page has a preview URL (/status-page/:id) on OneUptime's
+       * own domain, from the moment it is created. Spam sites used them to put
+       * pages for pirated films into search results under that domain, so a
+       * preview URL is never indexable: a page that should be in search
+       * results needs a custom domain.
        */
-      it("looks the page up by id so the toggle applies here too", async () => {
+      it("looks the page up by id, for its title and description", async () => {
         const get: SpiedApiGet = mockSeoApi(
           seoResponse({
             _id: STATUS_PAGE_ID,
             title: "Acme Status",
-            enableSearchEngineIndexing: false,
+            description: "How Acme is doing.",
+            enableSearchEngineIndexing: true,
           }),
         );
 
@@ -191,7 +193,8 @@ describe.each(IMPLEMENTATIONS)(
           getStatusPageData(previewRequest()),
         ).resolves.toMatchObject({
           id: STATUS_PAGE_ID,
-          isSearchEngineIndexingEnabled: false,
+          title: "Acme Status",
+          description: "How Acme is doing.",
         });
 
         expect(get.mock.calls).toHaveLength(1);
@@ -200,7 +203,7 @@ describe.each(IMPLEMENTATIONS)(
         );
       });
 
-      it("is indexable when the owner left the toggle on", async () => {
+      it("is not indexable even when the owner left the toggle on", async () => {
         mockSeoApi(
           seoResponse({
             _id: STATUS_PAGE_ID,
@@ -212,11 +215,48 @@ describe.each(IMPLEMENTATIONS)(
         await expect(
           getStatusPageData(previewRequest()),
         ).resolves.toMatchObject({
-          isSearchEngineIndexingEnabled: true,
+          isSearchEngineIndexingEnabled: false,
         });
       });
 
-      it("still renders, indexable, when the lookup fails", async () => {
+      it("is not indexable when the owner turned the toggle off", async () => {
+        mockSeoApi(
+          seoResponse({
+            _id: STATUS_PAGE_ID,
+            title: "Acme Status",
+            enableSearchEngineIndexing: false,
+          }),
+        );
+
+        await expect(
+          getStatusPageData(previewRequest()),
+        ).resolves.toMatchObject({
+          isSearchEngineIndexingEnabled: false,
+        });
+      });
+
+      it("is not indexable on the pages under it either", async () => {
+        mockSeoApi(
+          seoResponse({
+            _id: STATUS_PAGE_ID,
+            title: "Acme Status",
+            enableSearchEngineIndexing: true,
+          }),
+        );
+
+        const req: ExpressRequest = {
+          path: `/status-page/${STATUS_PAGE_ID}/incidents/${STATUS_PAGE_ID}`,
+          hostname: "oneuptime.com",
+          headers: { host: "oneuptime.com" },
+        } as unknown as ExpressRequest;
+
+        await expect(getStatusPageData(req)).resolves.toMatchObject({
+          id: STATUS_PAGE_ID,
+          isSearchEngineIndexingEnabled: false,
+        });
+      });
+
+      it("still renders when the lookup fails, and is not indexable", async () => {
         /*
          * The id came from the URL, so the page can be served without the
          * lookup. Returning null here instead would take preview pages down
@@ -230,17 +270,17 @@ describe.each(IMPLEMENTATIONS)(
         ).resolves.toMatchObject({
           id: STATUS_PAGE_ID,
           title: "Status Page",
-          isSearchEngineIndexingEnabled: true,
+          isSearchEngineIndexingEnabled: false,
         });
       });
 
-      it("renders indexable when the API throws outright", async () => {
+      it("returns nothing when the API throws outright", async () => {
         spyOnApiGet().mockRejectedValue(new Error("ECONNREFUSED"));
 
         /*
          * getStatusPageData swallows throws and returns null, so the caller
-         * renders its own placeholder - which carries no noindex. Pinned so a
-         * future refactor cannot quietly turn a thrown error into a de-index.
+         * renders its own placeholder, and decides indexing from the path:
+         * a preview URL gets noindex there too (SearchEngineIndexingWiring).
          */
         await expect(getStatusPageData(previewRequest())).resolves.toBeNull();
       });

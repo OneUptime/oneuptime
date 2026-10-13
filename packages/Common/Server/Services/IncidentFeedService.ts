@@ -149,9 +149,8 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
         incidentFeed.aiRunId = data.aiRunId;
       }
 
-      if (!data.postedAt) {
-        incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
-      }
+      // When it happened: the time the caller gives, or now.
+      incidentFeed.postedAt = data.postedAt || OneUptimeDate.getCurrentDate();
 
       if (data.userId) {
         incidentFeed.userId = data.userId;

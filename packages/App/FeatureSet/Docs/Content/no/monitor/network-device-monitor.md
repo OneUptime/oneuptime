@@ -413,6 +413,7 @@ Produsentene deler opp disse opplysningene ulikt, og siden setter dem sammen igj
 - UniFi rapporterer kanal, sendeeffekt og klienter per SSID: en radio henter dem fra SSID-ene på båndet sitt.
 - Aruba teller klienter per radio: et tilgangspunkts klienter er radioenes.
 - Et grensesnitt som ikke sender ut noe nettverk (IQ Engine viser hvert grensesnitt, med N/A for dem), vises ikke som SSID.
+- Et nettverk et tilgangspunkt kjører for seg selv, er ikke en SSID, så det blir verken vist eller telt: UniFis trådløse mesh-forbindelse (`vwire-…`) og nettverket for å adoptere nye UniFi-enheter (`element-…`), og WDS- og mesh-tjenestene til en Extreme-kontroller. En skjult SSID du har opprettet selv, vises som alle andre.
 
 På en enhet som ikke rapporterer Wi-Fi ennå, nevner siden produsentens mal, matchet fra siste polling på samme måte som automatisk bruk matcher den, og bruker den med **Bruk mal**; radioene dukker opp etter neste polling.
 

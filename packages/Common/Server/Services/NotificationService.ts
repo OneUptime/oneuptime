@@ -13,7 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
 import {
   BillingFailureNoticeKind,
   shouldSendBillingFailureNotice,
@@ -23,7 +23,7 @@ import BalanceRechargeGuard, {
   AutoRechargeSettings,
   getAutoRechargeSettings,
 } from "../Utils/Billing/BalanceRechargeGuard";
-import URL from "../../Types/API/URL";
+import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import Exception from "../../Types/Exception/Exception";
 
 /*
@@ -353,6 +353,9 @@ export class NotificationService extends BaseService {
         name: true,
         sendInvoicesByEmail: true,
         financeAccountingEmail: true,
+        // Who created the project, for the operator's Slack message.
+        createdOwnerName: true,
+        createdOwnerEmail: true,
       },
       props: {
         isRoot: true,
@@ -527,11 +530,12 @@ export class NotificationService extends BaseService {
       );
     }
 
-    // Send Slack notification for balance refill
+    // Tell the operator's Slack channel, in the background.
     this.sendBalanceRefillSlackNotification({
       project: project,
       amountInUSD: amountInUSD,
       currentBalanceInUSD: updatedAmount / 100,
+      isAutomatic: data.isAutomatic,
     }).catch((error: Exception) => {
       logger.error("Error sending slack message for balance refill: " + error, {
         projectId: data.projectId.toString(),
@@ -541,33 +545,34 @@ export class NotificationService extends BaseService {
     return updatedAmount;
   }
 
+  /*
+   * The operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION
+   * _UPDATE) hears of every refill, in the words AI credits use too
+   * (OperatorSlackNotice).
+   */
   @CaptureSpan()
   private async sendBalanceRefillSlackNotification(data: {
     project: Project;
     amountInUSD: number;
     currentBalanceInUSD: number;
+    isAutomatic: boolean;
   }): Promise<void> {
-    const { project, amountInUSD, currentBalanceInUSD } = data;
-
-    if (NotificationSlackWebhookOnSubscriptionUpdate) {
-      const slackMessage: string = `*SMS and Call Balance Refilled:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project.id?.toString() || "N/A"}
-*Refill Amount:* $${amountInUSD} USD
-*Current Balance:* $${currentBalanceInUSD} USD
-
-${project.createdOwnerName && project.createdOwnerEmail ? `*Project Created By:* ${project.createdOwnerName.toString()} (${project.createdOwnerEmail.toString()})` : ""}`;
-
-      SlackUtil.sendMessageToChannelViaIncomingWebhook({
-        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
-        text: slackMessage,
-      }).catch((error: Exception) => {
-        logger.error(
-          "Error sending slack message for balance refill: " + error,
-          { projectId: project.id?.toString() } as LogAttributes,
-        );
-      });
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
     }
+
+    await OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+      text: OperatorSlackNotice.getBalanceRefilledText({
+        balance: ProjectBalanceType.SmsOrCall,
+        project: data.project,
+        amountInUSD: data.amountInUSD,
+        currentBalanceInUSD: data.currentBalanceInUSD,
+        isAutomatic: data.isAutomatic,
+      }),
+      about: "SMS and call balance refill",
+      projectId: data.project.id,
+    });
   }
 }
 

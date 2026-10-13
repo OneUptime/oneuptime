@@ -105,22 +105,26 @@ Omfattningen är medvetet snäv. Bara larm som en aviseringsregel för jour skap
 ```mermaid title="När ett jourlarm ringer igenom tyst läge"
 flowchart TB
     Page["Ett jourlarm"]
+    Rule{"Står dess jourregel<br/>på ”Critical alert”?"}
     Device{"Critical On-Call Alerts<br/>på för den här enheten?"}
     OS{"Tillåter telefonens system<br/>kritiska larm?"}
     Loud["Spelar ett ljud trots<br/>tyst läge och Stör ej"]
     Quiet["Levereras tyst,<br/>som alla andra pushar"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"ja"| Device
+    Rule -->|"nej"| Quiet
     Device -->|"ja"| OS
     Device -->|"nej"| Quiet
     OS -->|"ja"| Loud
     OS -->|"nej"| Quiet
 ```
 
-Tre saker måste alla stämma för att ett larm ska åsidosätta tyst läge. Saknas någon av dem levereras larmet ändå – bara tyst.
+Fyra saker måste alla stämma för att ett larm ska åsidosätta tyst läge. Saknas någon av dem levereras larmet ändå – bara tyst.
 
 1. **Personen har slagit på det för den enheten.** Lagras per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon och surfplatta är separata beslut.
-2. **Servern markerar larmet som kritiskt.** Den skickar APNs kritiska ljud-payload plus `interruptionLevel: critical` för iOS, och använder aviseringskanalen `oncall_critical` för Android.
-3. **Operativsystemet tillåter det**, och det är här de två plattformarna skiljer sig.
+2. **Jourregeln som skickade larmet ber om det.** Under **Användarinställningar > Jourregler** står varje regel som aviserar en telefon på ”Critical alert”, som är standard, eller på ”Standard”, som följer telefonens ljudinställningar – så kan en person väckas av en kritisk incident och aviseras tyst om en mindre. Lagras per regel i `UserNotificationRule.pushNotificationLevel`.
+3. **Servern markerar larmet som kritiskt.** Den skickar APNs kritiska ljud-payload plus `interruptionLevel: critical` för iOS, och använder en kritisk aviseringskanal för Android: `oncall_critical`, eller det valda larmets egen kanal (se [Välja larmljud](#välja-larmljud)).
+4. **Operativsystemet tillåter det**, och det är här de två plattformarna skiljer sig.
 
 :::tabs
 @tab iOS
@@ -144,13 +148,26 @@ Android har inget godkännandesteg hos tillverkaren, men förbikoppling av Stör
 
 Två mekanismer är i spel, och de täcker olika fall:
 
-- Aviseringskanalen `oncall_critical` begär `bypassDnd`, vilket täcker Stör ej och kräver den åtkomst som beskrivs ovan.
-- Samma kanal använder ljudströmmen **alarm**, som hörs på en telefon vars ringsignal bara är avstängd. Den halvan behöver ingen behörighet alls.
+- Varje kritisk aviseringskanal – `oncall_critical` och kanalen för varje larmljud – begär `bypassDnd`, vilket täcker Stör ej och kräver den åtkomst som beskrivs ovan.
+- Samma kanaler använder ljudströmmen **alarm**, som hörs på en telefon vars ringsignal bara är avstängd. Den halvan behöver ingen behörighet alls.
 
 Android fryser en kanals inställningar när kanalen skapas första gången, så de kan inte ändras med en appuppdatering – bara genom att leverera ett nytt kanal-id.
 :::
 
 För att kontrollera att det fungerar skickar du en testavisering till enheten från **Användarinställningar > Aviseringsmetoder > Push Notifications**. När enheten har kritiska larm aktiverade skickas även testet som ett kritiskt larm – så stäng av ljudet på telefonen först, så hör du om ett riktigt larm skulle nå dig.
+
+### Välja larmljud
+
+Ett kritiskt larm spelar telefonens eget ljud för kritiska larm, om inte personen väljer ett annat. I appen erbjuder **Settings > Notifications > Alarm sound**, som visas när Critical On-Call Alerts är på, fem kraftigare larm som är gjorda för att väcka: Klaxon, Siren, Digital alarm, Smoke alarm och Rising alarm, som börjar svagt och blir allt starkare. Vart och ett kan spelas upp innan det väljs. Valet hör till enheten och lagras i `UserPush.criticalAlertSound`, och testaviseringen spelar det också.
+
+- **iOS**: larmet anger ljudet, och iOS spelar det från appen genom tyst läge med den volym som valts på samma skärm: 25 %, 50 %, 75 % eller 100 %, som är standard. Volymen lagras i `UserPush.criticalAlertVolume`.
+- **Android**: varje larm har en egen aviseringskanal (`oncall_critical_klaxon`, `oncall_critical_siren` och så vidare), eftersom Android låser en kanals ljud när kanalen skapas. Servern skickar larmet på det valda larmets kanal, och det spelas med telefonens alarmvolym.
+
+En enhet behåller systemljudet tills den kör en version av appen som erbjuder valet, så en äldre app får aldrig ett larm som den inte har.
+
+### Upprepa ett larm tills det bekräftas
+
+En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Användarinställningar > Jourregler** anger du **Upprepa tills bekräftad** när du lägger till en push-regel, eller ändrar det senare på regelns rad: varje minut, eller med 2, 3, 5, 10, 15 eller 30 minuters mellanrum. Larmet skickas igen med det intervallet, högst 10 gånger till, och slutar så snart incidenten, larmet eller episoden har bekräftats. Lagras per regel i `UserNotificationRule.repeatEveryMinutes`, där 0, som är standard, skickar larmet en gång.
 
 ## Felsökning
 
@@ -171,8 +188,10 @@ För att kontrollera att det fungerar skickar du en testavisering till enheten f
 ### Kritiska larm åsidosätter inte tyst läge
 
 - Kontrollera att reglaget är på för **den** enheten – inställningen gäller per enhet, och en ominstallation eller en ny telefon som konfigurerats från början skapar en ny enhetsregistrering (en telefon som konfigurerats från en säkerhetskopia av den gamla tar över den gamla telefonens registrering så snart den inte längre tar emot aviseringar, med den inställning appen hade)
+- Kontrollera jourregeln för den allvarlighetsgraden under **Användarinställningar > Jourregler**: en push-regel på ”Standard” följer telefonens ljudinställningar, oavsett vad enhetens reglage säger
 - **iOS**: bekräfta att bygget har Apples entitlement för kritiska larm (se ovan), och att Critical Alerts är tillåtet under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: bekräfta att appen har åtkomst till Stör ej under Settings > Notifications > Do Not Disturb access
+- **Android**: om du har valt ett larmljud måste även dess egen aviseringskanal få åsidosätta Stör ej; appens skärm Alarm sound talar om när den inte får det
 - Inställningsskärmen anger vilken av dessa som saknas; den läser tillbaka det aktuella tillståndet från operativsystemet i stället för att lita på vad appen senast begärde
 
 ### Pushar markerade som "inte levererade"

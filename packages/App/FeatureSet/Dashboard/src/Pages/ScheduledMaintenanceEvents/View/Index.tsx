@@ -81,6 +81,13 @@ import {
   getMaintenanceEndsAtError,
   moveMaintenanceEndWithStart,
 } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 
 // How many status page names the header lists before summarising the rest.
 const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
@@ -318,6 +325,8 @@ const ScheduledMaintenanceView: FunctionComponent<
             select: {
               startsAt: true,
               endsAt: true,
+              // When it was created: how long to look for its new channel.
+              createdAt: true,
               title: true,
               scheduledMaintenanceNumber: true,
               scheduledMaintenanceNumberWithPrefix: true,
@@ -434,6 +443,16 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   const isCurrentEventLoaded: boolean = loadedEvent?.modelId === modelIdString;
 
+  // The event's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.ScheduledMaintenance,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new event is created.
+    recordStartedAt: isCurrentEventLoaded
+      ? loadedEvent?.item?.createdAt
+      : undefined,
+  });
+
   if (!isCurrentEventLoaded) {
     if (loadedModelId === modelIdString && loadError) {
       return (
@@ -520,6 +539,7 @@ const ScheduledMaintenanceView: FunctionComponent<
         eventEndsAt={eventEndsAt}
         subscriberNotificationSettings={scheduledMaintenance}
         facts={heroFacts}
+        secondaryActions={getOpenInChatActions(channelLinks)}
         onActionComplete={() => {
           // The state change adds a feed item and can change the details.
           refreshPage();

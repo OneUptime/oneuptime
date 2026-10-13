@@ -25,7 +25,7 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * WHAT STOPS ANYBODY ELSE MINTING ONE
  *
- * It is signed with a key derived from EncryptionSecret under a label used
+ * It is signed with a key derived from TokenSigningKey under a label used
  * for nothing else (McpOAuthSignedToken), which only the server holds. It
  * lives for a minute, because it is minted per tool call and used at once. A
  * stolen access token is therefore worth exactly what the MCP tools can do

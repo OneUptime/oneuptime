@@ -548,7 +548,7 @@ describe("McpDelegationToken: only a delegation token is one", () => {
     }
   });
 
-  test("a token minted on an instance with a different EncryptionSecret is refused", () => {
+  test("a token minted on an instance with a different ENCRYPTION_SECRET is refused", () => {
     let other: DelegationTokenClass | null = null;
 
     jest.isolateModules((): void => {
@@ -558,6 +558,8 @@ describe("McpDelegationToken: only a delegation token is one", () => {
             "../../../../Server/EnvironmentConfig",
           ) as Record<string, unknown>),
           EncryptionSecret: new ObjectID("another-instances-secret"),
+          // An installation that set its own: it signs with exactly that.
+          IsEncryptionSecretInsecure: false,
         };
       });
 
@@ -611,7 +613,7 @@ describe("McpDelegationToken is never a JWT, in either direction", () => {
     expect(McpDelegationToken.verify(sessionToken)).toBeNull();
   });
 
-  test("a JWT signed with EncryptionSecret that carries the delegation claims is not one either", () => {
+  test("a JWT signed with TokenSigningKey that carries the delegation claims is not one either", () => {
     const lookalike: string = JSONWebToken.signJsonPayload(wireClaims(), 60);
 
     expect(McpDelegationToken.verify(lookalike)).toBeNull();

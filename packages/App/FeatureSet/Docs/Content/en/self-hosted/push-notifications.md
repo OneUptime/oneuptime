@@ -105,22 +105,26 @@ The scope is deliberately narrow. Only pages produced by an on-call notification
 ```mermaid title="When an on-call page rings through silent mode"
 flowchart TB
     Page["An on-call page"]
+    Rule{"Its on-call rule set<br/>to Critical alert?"}
     Device{"Critical On-Call Alerts<br/>on for this device?"}
     OS{"The phone's system<br/>allows critical alerts?"}
     Loud["Plays a sound through<br/>silent mode and Do Not Disturb"]
     Quiet["Delivered quietly,<br/>as any other push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"yes"| Device
+    Rule -->|"no"| Quiet
     Device -->|"yes"| OS
     Device -->|"no"| Quiet
     OS -->|"yes"| Loud
     OS -->|"no"| Quiet
 ```
 
-Three things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
+Four things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
 
 1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions.
-2. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets the `oncall_critical` notification channel for Android.
-3. **The operating system allows it**, which is where the two platforms differ.
+2. **The on-call rule that sent the page asks for it.** Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings - so a responder can be woken for a critical incident and paged quietly for a minor one. Stored per rule in `UserNotificationRule.pushNotificationLevel`.
+3. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets a critical notification channel for Android: `oncall_critical`, or the chosen alarm's own channel (see [Choosing the alarm sound](#choosing-the-alarm-sound)).
+4. **The operating system allows it**, which is where the two platforms differ.
 
 :::tabs
 @tab iOS
@@ -144,13 +148,26 @@ Android has no vendor approval step, but Do Not Disturb bypass is granted by the
 
 Two mechanisms are in play, and they cover different cases:
 
-- The `oncall_critical` notification channel requests `bypassDnd`, which covers Do Not Disturb and needs the access described above.
-- The same channel uses the **alarm** audio stream, which is audible on a phone whose ringer is simply muted. That half needs no permission at all.
+- Every critical notification channel - `oncall_critical`, and one for each alarm sound - requests `bypassDnd`, which covers Do Not Disturb and needs the access described above.
+- The same channels use the **alarm** audio stream, which is audible on a phone whose ringer is simply muted. That half needs no permission at all.
 
 Android freezes a channel's settings when the channel is first created, so these cannot be changed by an app update - only by shipping a new channel id.
 :::
 
 To check it works, send a test notification to the device from **User Settings > Notification Methods > Push Notifications**. When the device has critical alerts enabled, the test is sent as a critical alert too - so silence the phone first, and you will hear whether a real page would reach you.
+
+### Choosing the alarm sound
+
+A critical page plays the phone's own critical alert sound unless the responder picks another. In the app, **Settings > Notifications > Alarm sound**, shown once Critical On-Call Alerts is on, offers five louder alarms made to wake people: Klaxon, Siren, Digital alarm, Smoke alarm and Rising alarm, which starts soft and keeps getting louder. Each one can be played before it is chosen. The choice belongs to the device and is stored in `UserPush.criticalAlertSound`, and the test notification plays it too.
+
+- **iOS**: the page names the sound, and iOS plays it from the app through silent mode at the volume chosen on the same screen: 25%, 50%, 75% or 100%, the default. The volume is stored in `UserPush.criticalAlertVolume`.
+- **Android**: each alarm has a notification channel of its own (`oncall_critical_klaxon`, `oncall_critical_siren` and so on), because Android fixes a channel's sound when the channel is created. The server sends the page on the chosen alarm's channel, and it plays at the phone's alarm volume.
+
+A device keeps the system sound until it runs a version of the app that offers the choice, so an older app is never sent an alarm it does not have.
+
+### Repeating a page until it is acknowledged
+
+A push rule can send its page again until somebody acknowledges it. Under **User Settings > On-Call Rules**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row: every minute, or every 2, 3, 5, 10, 15 or 30 minutes. The page is sent again at that interval, up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. It is stored per rule in `UserNotificationRule.repeatEveryMinutes`, where 0, the default, sends the page once.
 
 ## Troubleshooting
 
@@ -171,8 +188,10 @@ To check it works, send a test notification to the device from **User Settings >
 ### Critical alerts do not override silent mode
 
 - Check the switch is on for **that** device - the setting is per device, and a reinstall or a new phone set up from scratch creates a new device registration (a phone set up from a backup of the old one takes over the old phone's registration once that no longer receives notifications, with the setting the app had)
+- Check the on-call rule for that severity under **User Settings > On-Call Rules**: a push rule set to Standard follows the phone's sound settings, whatever the device's switch says
 - **iOS**: confirm the build carries Apple's critical alerts entitlement (see above), and that Critical Alerts is allowed under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirm the app has Do Not Disturb access under Settings > Notifications > Do Not Disturb access
+- **Android**: if you chose an alarm sound, its own notification channel must be allowed to override Do Not Disturb too; the app's Alarm sound screen says when it is not
 - The settings screen states which of these is missing; it reads the current state back from the OS rather than trusting what the app last requested
 
 ### Pushes marked "not delivered"

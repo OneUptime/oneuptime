@@ -105,22 +105,26 @@ Het bereik is bewust smal. Alleen meldingen die een meldingsregel voor de dienst
 ```mermaid title="Wanneer een dienstmelding door de stille modus heen klinkt"
 flowchart TB
     Page["Een dienstmelding"]
+    Rule{"Staat de bereikbaarheidsregel<br/>op ‘Critical alert’?"}
     Device{"Critical On-Call Alerts<br/>aan voor dit apparaat?"}
     OS{"Staat het systeem van de telefoon<br/>kritieke meldingen toe?"}
     Loud["Speelt een geluid ondanks<br/>stille modus en Niet storen"]
     Quiet["Stil afgeleverd,<br/>zoals elke andere push"]
-    Page --> Device
+    Page --> Rule
+    Rule -->|"ja"| Device
+    Rule -->|"nee"| Quiet
     Device -->|"ja"| OS
     Device -->|"nee"| Quiet
     OS -->|"ja"| Loud
     OS -->|"nee"| Quiet
 ```
 
-Om de stille modus te doorbreken, moeten drie dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
+Om de stille modus te doorbreken, moeten vier dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
 
 1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes.
-2. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich op het meldingskanaal `oncall_critical` voor Android.
-3. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
+2. **De bereikbaarheidsregel die de melding stuurde, vraagt erom.** Onder **Gebruikersinstellingen > Bereikbaarheidsregels** staat elke regel die een telefoon waarschuwt op ‘Critical alert’, de standaard, of op ‘Standard’, dat de geluidsinstellingen van de telefoon volgt – zo kan iemand gewekt worden voor een kritiek incident en stil gewaarschuwd voor een klein incident. Per regel opgeslagen in `UserNotificationRule.pushNotificationLevel`.
+3. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich voor Android op een kritiek meldingskanaal: `oncall_critical`, of het eigen kanaal van het gekozen alarm (zie [Het alarmgeluid kiezen](#het-alarmgeluid-kiezen)).
+4. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
 
 :::tabs
 @tab iOS
@@ -144,13 +148,26 @@ Android kent geen goedkeuringsstap van de leverancier, maar het omzeilen van Nie
 
 Er spelen twee mechanismen, en ze dekken verschillende gevallen:
 
-- Het meldingskanaal `oncall_critical` vraagt `bypassDnd` aan, wat Niet storen dekt en de hierboven beschreven toegang nodig heeft.
-- Hetzelfde kanaal gebruikt de audiostroom **wekker**, die hoorbaar is op een telefoon waarvan de beltoon alleen gedempt is. Die helft heeft helemaal geen toestemming nodig.
+- Elk kritiek meldingskanaal – `oncall_critical` en dat van elk alarmgeluid – vraagt `bypassDnd` aan, wat Niet storen dekt en de hierboven beschreven toegang nodig heeft.
+- Dezelfde kanalen gebruiken de audiostroom **wekker**, die hoorbaar is op een telefoon waarvan de beltoon alleen gedempt is. Die helft heeft helemaal geen toestemming nodig.
 
 Android bevriest de instellingen van een kanaal wanneer het kanaal voor het eerst wordt aangemaakt, dus ze kunnen niet worden gewijzigd door een app-update – alleen door een nieuwe kanaal-id uit te brengen.
 :::
 
 Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldingsmethoden > Push Notifications** een testmelding naar het apparaat. Wanneer het apparaat kritieke meldingen heeft ingeschakeld, wordt ook de test als kritieke melding verstuurd – zet de telefoon dus eerst op stil, dan hoort u of een echte melding u zou bereiken.
+
+### Het alarmgeluid kiezen
+
+Een kritieke melding speelt het eigen geluid van de telefoon voor kritieke meldingen af, tenzij de persoon een ander kiest. In de app biedt **Settings > Notifications > Alarm sound**, zichtbaar zodra Critical On-Call Alerts aan staat, vijf luidere alarmen die gemaakt zijn om mensen te wekken: Klaxon, Siren, Digital alarm, Smoke alarm en Rising alarm, dat zacht begint en steeds harder wordt. Elk ervan kan worden afgespeeld voordat het wordt gekozen. De keuze hoort bij het apparaat en wordt opgeslagen in `UserPush.criticalAlertSound`, en ook de testmelding speelt hem af.
+
+- **iOS**: de melding noemt het geluid, en iOS speelt het vanuit de app af door de stille modus heen, op het volume dat op hetzelfde scherm is gekozen: 25%, 50%, 75% of 100%, de standaard. Het volume wordt opgeslagen in `UserPush.criticalAlertVolume`.
+- **Android**: elk alarm heeft een eigen meldingskanaal (`oncall_critical_klaxon`, `oncall_critical_siren` enzovoort), omdat Android het geluid van een kanaal vastlegt wanneer het kanaal wordt aangemaakt. De server stuurt de melding op het kanaal van het gekozen alarm, en die klinkt op het wekkervolume van de telefoon.
+
+Een apparaat houdt het systeemgeluid tot er een versie van de app op draait die de keuze biedt, zodat een oudere app nooit een alarm krijgt dat hij niet heeft.
+
+### Een melding herhalen tot bevestiging
+
+Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **Herhalen tot bevestiging** in onder **Gebruikersinstellingen > Bereikbaarheidsregels** wanneer u een pushregel toevoegt, of wijzig het later in de rij van de regel: elke minuut, of elke 2, 3, 5, 10, 15 of 30 minuten. De melding wordt met die tussenpoos opnieuw verstuurd, maximaal 10 keer extra, en stopt zodra het incident, de waarschuwing of de episode is bevestigd. Per regel opgeslagen in `UserNotificationRule.repeatEveryMinutes`, waarbij 0, de standaard, de melding één keer stuurt.
 
 ## Problemen oplossen
 
@@ -171,8 +188,10 @@ Om te controleren of het werkt, stuurt u vanuit **Gebruikersinstellingen > Meldi
 ### Kritieke meldingen doorbreken de stille modus niet
 
 - Controleer of de schakelaar aan staat voor **dat** apparaat – de instelling geldt per apparaat, en een herinstallatie of een nieuwe telefoon die vanaf nul is ingericht, maakt een nieuwe apparaatregistratie aan (een telefoon die uit een back-up van de oude is ingericht, neemt de registratie van de oude telefoon over zodra die geen meldingen meer ontvangt, met de instelling die de app had)
+- Controleer de bereikbaarheidsregel voor die ernst onder **Gebruikersinstellingen > Bereikbaarheidsregels**: een pushregel op ‘Standard’ volgt de geluidsinstellingen van de telefoon, wat de schakelaar van het apparaat ook zegt
 - **iOS**: controleer of de build de entitlement voor kritieke meldingen van Apple draagt (zie hierboven), en of Critical Alerts is toegestaan onder iOS Settings > Notifications > OneUptime On-Call
 - **Android**: controleer of de app toegang tot Niet storen heeft onder Settings > Notifications > Do Not Disturb access
+- **Android**: als u een alarmgeluid hebt gekozen, moet ook het eigen meldingskanaal van dat geluid Niet storen mogen doorbreken; het scherm Alarm sound van de app zegt wanneer dat niet zo is
 - Het instellingenscherm zegt welke hiervan ontbreekt; het leest de huidige status terug van het besturingssysteem in plaats van te vertrouwen op wat de app het laatst heeft gevraagd
 
 ### Pushes gemarkeerd als "niet afgeleverd"

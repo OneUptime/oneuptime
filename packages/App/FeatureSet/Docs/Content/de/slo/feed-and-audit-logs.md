@@ -23,7 +23,7 @@ flowchart LR
 
 ## Der SLO-Feed
 
-Der Feed steht auf der Seite **Feed** des SLO, und seine neuesten Einträge stehen unter **Neueste Aktivität** auf der **Übersicht** des SLO. Einträge verlinken das SLO, die Monitore, Warnungen und Vorfälle, die sie nennen, und die meisten haben einen Abschnitt **Weitere Informationen** mit den Zahlen oder den alten und neuen Werten.
+Der Feed steht auf der Seite **Feed** des SLO, und seine neuesten Einträge stehen unter **Neueste Aktivität** auf der **Übersicht** des SLO. Einträge verlinken das SLO, die Monitore, Warnungen und Vorfälle, die sie nennen, und die meisten haben Details mit den Zahlen oder den alten und neuen Werten, die **Details anzeigen** unter dem Eintrag aufklappt.
 
 | Ereignis | Erscheint, wenn |
 | --- | --- |

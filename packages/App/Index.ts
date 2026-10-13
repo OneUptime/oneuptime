@@ -26,6 +26,7 @@ import {
   ClickhouseMigrationInstance,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import InstanceTokenSigningKeyService from "Common/Server/Services/InstanceTokenSigningKeyService";
 import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
@@ -111,6 +112,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Connect to Postgres database
     await PostgresAppInstance.connect();
+
+    /*
+     * Before anything signs or checks a token: an installation whose
+     * ENCRYPTION_SECRET is unset or a placeholder the repository ships signs
+     * with a key of its own, kept in Postgres and shared by every app and
+     * worker process (TokenSigningKey). It never signs with the public value,
+     * and it refuses a token signed with it.
+     */
+    await InstanceTokenSigningKeyService.loadTokenSigningKey();
 
     // Connect to Redis
     await Redis.connect();

@@ -18,7 +18,8 @@ import path from "path";
  * on any request the fixture does not model.
  */
 
-const PORT: string = "4222";
+// The fixture server's port: EVENT_OVERVIEW_FIXTURE_PORT, as the config and server.js read it.
+const PORT: string = process.env["EVENT_OVERVIEW_FIXTURE_PORT"] || "4222";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
@@ -1890,7 +1891,7 @@ test.describe("AI investigation report", () => {
     await expect(investigation.getByText("Fix task created")).toHaveCount(0);
   });
 
-  test("the feed shows a compact AI item and the full report behind More Information", async ({
+  test("the feed shows a compact AI item and unfolds the full report in place", async ({
     page,
   }: {
     page: Page;
@@ -1911,25 +1912,34 @@ test.describe("AI investigation report", () => {
     await expect(item).not.toContainText("Automated Root Cause Analysis");
     await expect(item).not.toContainText("Suggested next steps");
 
-    await item.getByRole("button", { name: "More Information" }).click();
-    const dialog: Locator = page.getByRole("dialog", {
-      name: "More Information",
+    const toggle: Locator = item.getByRole("button", {
+      name: "Show the full report",
     });
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("Most likely root cause");
-    await expect(dialog).toContainText("Suggested next steps");
-    await expect(dialog).toContainText("Evidence checked");
-    await expect(dialog).toContainText(
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+
+    // Under the entry, where it was asked for: no dialog over the page.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const report: Locator = item.getByTestId("feed-entry-details");
+    await expect(report).toBeVisible();
+    await expect(
+      item.getByRole("button", { name: "Hide details" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(report).toContainText("Most likely root cause");
+    await expect(report).toContainText("Suggested next steps");
+    await expect(report).toContainText("Evidence checked");
+    await expect(report).toContainText(
       "Incident #1042 timeline (1 entry) — 1 row(s)",
     );
-    await expect(dialog).toContainText(
+    await expect(report).toContainText(
       "Investigated automatically by OneUptime AI",
     );
-    // Safe mode: nothing in the modal is a link or an image from the report.
-    await expect(dialog.locator("img")).toHaveCount(0);
+    // Safe mode: nothing in the report is an image.
+    await expect(report.locator("img")).toHaveCount(0);
 
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(dialog).toHaveCount(0);
+    await item.getByRole("button", { name: "Hide details" }).click();
+    await expect(report).toHaveCount(0);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
   test("the alert page shows its report, references and header summary", async ({
@@ -9269,6 +9279,513 @@ test.describe("measurements", () => {
     ]);
     await page.mouse.move(0, 0);
     await screenshotElement(measurementsCard(page), "incident-measurements");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The feed, as a timeline
+ * ---------------------------------------------------------------------------
+ *
+ * Datadog's timeline, which the maintainer pointed at: a date and a time on
+ * every entry, never only "x days ago". Each day under a heading of its own
+ * (with Today / Yesterday beside it and the zone the times are in), each
+ * entry with the time it happened - a short "8 min. ago" only for the last
+ * hour - and its icon on a rail. The clock is pinned at 18:20 UTC on Monday,
+ * September 14, 2026, and the browser is in UTC.
+ */
+
+// Intl writes a narrow no-break space before AM/PM; read it as a space.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+async function plainText(locator: Locator): Promise<string> {
+  return ((await locator.innerText()) || "")
+    .replace(WHITESPACE_RUN, " ")
+    .trim();
+}
+
+function feedEntry(feed: Locator, text: string): Locator {
+  return feed.getByTestId("feed-entry").filter({ hasText: text });
+}
+
+test.describe("the feed, as a timeline", () => {
+  test("the day is a heading with its date, Today beside it, and the zone the times are in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+    const day: Locator = feed.getByTestId("feed-day");
+
+    await expect(day).toHaveCount(1);
+    await expect(
+      day.getByRole("heading", {
+        level: 3,
+        name: "Monday, September 14, 2026",
+      }),
+    ).toBeVisible();
+    await expect(day.getByTestId("feed-day-relative")).toHaveText("Today");
+    /*
+     * The zone the dashboard reads every date in (OneUptimeDate's current
+     * timezone): for this browser's UTC clock, moment-timezone's guess,
+     * whose name is GMT - the same clock.
+     */
+    await expect(day.getByTestId("feed-day-zone")).toHaveText("GMT");
+    // The day's section is named by its heading.
+    await expect(
+      feed.getByRole("region", { name: "Monday, September 14, 2026" }),
+    ).toHaveCount(1);
+  });
+
+  test("every entry has the time it happened, newest first, and the last hour also says how long ago", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    expect(
+      await plainText(
+        feedEntry(feed, "Rolling checkout-api back").getByTestId(
+          "feed-entry-time",
+        ),
+      ),
+    ).toBe("6:09 PM 11 min. ago");
+
+    const times: Array<string> = [];
+    for (const time of await feed.getByTestId("feed-entry-time").all()) {
+      times.push(await plainText(time));
+    }
+
+    /*
+     * 18:12 resolved, 18:09 note, 18:05 commander, 18:04 acknowledged,
+     * 18:03 the AI report, 18:01 the on-call policy and, in the same minute,
+     * the incident itself: its time is not said twice.
+     */
+    expect(times).toEqual([
+      "6:12 PM 8 min. ago",
+      "6:09 PM 11 min. ago",
+      "6:05 PM 15 min. ago",
+      "6:04 PM 16 min. ago",
+      "6:03 PM 17 min. ago",
+      "6:01 PM 19 min. ago",
+      "",
+    ]);
+
+    // The time is a <time> with the instant it stands for.
+    await expect(
+      feedEntry(feed, "Rolling checkout-api back").locator("time"),
+    ).toHaveAttribute("datetime", "2026-09-14T18:09:00.000Z");
+  });
+
+  test("an entry reads as a sentence that starts with who did it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    // "✅ Changed Incident #1042 State to Resolved", by Maya Chen.
+    const resolved: Locator = feedEntry(feed, "Resolved").first();
+    expect(await plainText(resolved.getByTestId("feed-entry-lead"))).toBe(
+      "Maya Chen changed Incident #1042 State to Resolved",
+    );
+    expect(await plainText(resolved)).not.toContain("✅");
+
+    // A note is hers too, her name above what she wrote.
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    await expect(note.getByTestId("feed-entry-author")).toHaveText("Maya Chen");
+    expect(await plainText(note)).not.toContain("🔒");
+    // The rail's icon says what kind of entry it is.
+    await expect(note.getByTestId("feed-entry-icon")).toBeVisible();
+    await expect(note).toHaveAttribute("data-event-type", "PrivateNote");
+  });
+
+  test("a phone keeps the time above each entry, without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    const time: Box = await documentBox(note.getByTestId("feed-entry-time"));
+    const body: Box = await documentBox(note.getByTestId("feed-entry-author"));
+
+    expect(time.y + time.height).toBeLessThanOrEqual(body.y + 1);
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(feed, "incident-feed-mobile");
+  });
+
+  test("screenshot of the incident feed", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+    await page.mouse.move(0, 0);
+    await screenshotElement(card(page, "Incident Feed"), "incident-feed");
+  });
+
+  test("what someone wrote is set apart in a card, as the Notes page draws a note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const feed: Locator = card(page, "Incident Feed");
+
+    // Maya's note: her name above it, her words in the card.
+    const note: Locator = feedEntry(feed, "Rolling checkout-api back");
+    const noteCard: Locator = note.getByTestId("feed-entry-body");
+    await expect(noteCard).toHaveAttribute("data-note", "true");
+    await expect(noteCard).toContainText("Rolling checkout-api back");
+    await expect(noteCard).toHaveCSS("border-top-width", "1px");
+    await expect(noteCard).toHaveCSS("border-top-left-radius", "8px");
+    await expect(noteCard).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    expect(
+      (await documentBox(noteCard)).y,
+      "the card is under her name",
+    ).toBeGreaterThan(
+      (await documentBox(note.getByTestId("feed-entry-author"))).y,
+    );
+
+    // What the AI wrote is in a card too, the sentence that says so above it.
+    const report: Locator = feedEntry(
+      feed,
+      "OneUptime AI posted a root cause analysis",
+    );
+    await expect(report.getByTestId("feed-entry-intro")).toHaveText(
+      "OneUptime AI posted a root cause analysis",
+    );
+    await expect(report.getByTestId("feed-entry-body")).toHaveAttribute(
+      "data-note",
+      "true",
+    );
+    await expect(report.getByTestId("feed-entry-body")).not.toContainText(
+      "OneUptime AI posted",
+    );
+
+    // Something that happened is a sentence, not a card.
+    const resolved: Locator = feedEntry(feed, "Resolved").first();
+    await expect(resolved.locator("[data-note]")).toHaveCount(0);
+  });
+
+  test("a note's card follows the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "theme=dark");
+
+    const noteCard: Locator = feedEntry(
+      card(page, "Incident Feed"),
+      "Rolling checkout-api back",
+    ).getByTestId("feed-entry-body");
+
+    await expect(noteCard).toHaveAttribute("data-note", "true");
+    await expect(noteCard).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await expect(noteCard).not.toHaveCSS("color", "rgb(31, 41, 55)");
+  });
+
+  test("a maintenance event's created entry reads as the sentence of whoever created it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE);
+
+    const created: Locator = feedEntry(
+      card(page, "Scheduled Maintenance Feed"),
+      "Primary database failover drill",
+    );
+
+    expect(await plainText(created.getByTestId("feed-entry-lead"))).toBe(
+      "Jordan Patel created Scheduled Maintenance #58",
+    );
+    // The heading it was written with is not drawn as one.
+    await expect(created.getByRole("heading")).toHaveCount(0);
+    await expect(created).not.toContainText("🕒");
+  });
+
+  test("an on-call run folds into its newest entry, unfolds in place with Show fewer at its end, and keyboard focus follows", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=oncall-run");
+
+    const feed: Locator = card(page, "Incident Feed");
+    const head: Locator = feedEntry(feed, "Sam Rivera acknowledged the page");
+    const showMore: Locator = feed.getByRole("button", {
+      name: "Show 3 more on-call updates",
+    });
+
+    // Folded: one entry, its button under it, the rest out of the feed.
+    await expect(head).toHaveCount(1);
+    await expect(head.getByTestId("feed-burst-toggle")).toHaveText(
+      "Show 3 more on-call updates",
+    );
+    await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
+    await expect(feedEntry(feed, "Started Executing")).toHaveCount(0);
+
+    await showMore.focus();
+    await page.keyboard.press("Enter");
+
+    // Unfolded in place, in order, ending with the run's start.
+    const run: Array<string> = [];
+    for (const entry of await feed
+      .locator('[data-testid="feed-entry"][data-event-type="OnCallPolicy"]')
+      .all()) {
+      run.push(await plainText(entry));
+    }
+    expect(run.length).toBe(4);
+    expect(run[0]).toContain("Sam Rivera acknowledged the page");
+    expect(run[1]).toContain("paged nobody at escalation rule Backup");
+    expect(run[2]).toContain("paged Sam Rivera at escalation rule");
+    expect(run[3]).toContain("Started Executing");
+
+    // Show fewer ends the group, under its last entry, not after its first.
+    const showFewer: Locator = feed.getByRole("button", { name: "Show fewer" });
+    await expect(showFewer).toHaveCount(1);
+    await expect(
+      feedEntry(feed, "Started Executing").getByRole("button", {
+        name: "Show fewer",
+      }),
+    ).toHaveCount(1);
+    await expect(head.getByTestId("feed-burst-toggle")).toHaveCount(0);
+
+    // The button pressed went away: focus is on the first entry it unfolded.
+    const focused: string = await page.evaluate((): string => {
+      return document.activeElement?.textContent || "";
+    });
+    expect(focused).toContain("paged nobody at escalation rule");
+
+    // Folding it again hands focus back to the button that unfolds it.
+    await showFewer.focus();
+    await page.keyboard.press("Enter");
+    await expect(feedEntry(feed, "paged nobody")).toHaveCount(0);
+    await expect(showMore).toBeFocused();
+
+    await expectNoHorizontalOverflow(page);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Open in Slack / Open in Microsoft Teams
+ * ---------------------------------------------------------------------------
+ *
+ * A record a workspace notification rule made a channel for has a button in
+ * its header that opens that channel (?channels= picks the record's
+ * channels). One channel is a link that opens in a new tab; a workspace with
+ * several is a menu of them; no channel, no button.
+ */
+
+const SLACK_CHANNEL_URL: string =
+  "https://slack.com/app_redirect?channel=C0ACME0001&team=T0ACMECOM";
+
+test.describe("Open in Slack / Microsoft Teams", () => {
+  test("no channel, no button", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    await expect(
+      heroActions(page).getByRole("button", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    // The page asked, for this incident.
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      `/workspace-channel-link/incident/${INCIDENT_ID}`,
+    );
+    expect(requests).not.toHaveLength(0);
+    expect(requests[0]!.method).toBe("GET");
+  });
+
+  test("an incident's Slack channel is a link in its header, opening in a new tab", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const slack: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Slack",
+    });
+
+    await expect(slack).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(slack).toHaveAttribute("target", "_blank");
+    await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
+
+    // Pointing at the button names the channel.
+    await slack.hover();
+    await expect(
+      page.getByText("#incident-1042-checkout-latency"),
+    ).toBeVisible();
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-chat");
+  });
+
+  test("a Microsoft Teams channel is a link to Teams, with its team", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const teams: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Microsoft Teams",
+    });
+    const teamsUrl: URL = new URL((await teams.getAttribute("href")) || "");
+
+    expect(teamsUrl.host).toBe("teams.microsoft.com");
+    expect(teamsUrl.searchParams.get("groupId")).toBe(
+      "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
+    );
+    await expect(teams).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  /*
+   * Two buttons as wide as "Open in Slack" and "Open in Microsoft Teams"
+   * beside Acknowledge and Resolve left the title "Checko..." at 1280px.
+   * Channels in both products share one Open channel menu instead.
+   */
+  test("channels in Slack and Teams: one Open channel that lists them all, and the title keeps its room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,teams&state=created");
+
+    await expect(heroActions(page).getByRole("link")).toHaveCount(0);
+
+    const button: Locator = heroActions(page).getByRole("button", {
+      name: "Open channel",
+    });
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+
+    const title: Box = await documentBox(
+      hero(page).getByRole("heading", { level: 2 }),
+    );
+    expect(title.width).toBeGreaterThanOrEqual(250);
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-channel");
+
+    await button.click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Slack · #incident-1042-checkout-latency",
+      "Microsoft Teams · incident-1042-checkout-latency",
+    ]);
+    await screenshotElement(hero(page), "incident-hero-open-channel-menu");
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu
+      .getByRole("menuitem", {
+        name: "Microsoft Teams · incident-1042-checkout-latency",
+      })
+      .click();
+    const tab: Page = await opened;
+    expect(new URL(tab.url()).host).toBe("teams.microsoft.com");
+    await tab.close();
+  });
+
+  test("two Slack channels: one Open in Slack that lists both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2");
+
+    const button: Locator = heroActions(page).getByRole("button", {
+      name: "Open in Slack",
+    });
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+    await button.click();
+
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "#incident-1042-checkout-latency",
+      "#sre-war-room",
+    ]);
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu.getByRole("menuitem", { name: "#sre-war-room" }).click();
+    const tab: Page = await opened;
+    expect(tab.url()).toContain("C0ACME0002");
+    await tab.close();
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        heroActions(page).getByRole("link", { name: "Open in Slack" }),
+      ).toHaveAttribute("href", SLACK_CHANNEL_URL);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-link/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a failure to read the channels hides the buttons and breaks nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-links");
+
+    await expect(
+      heroActions(page).getByRole("link", { name: "Open in Slack" }),
+    ).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("a phone shows the buttons without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(
+      heroActions(page).getByRole("button", { name: "Open channel" }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
   });
 });
 

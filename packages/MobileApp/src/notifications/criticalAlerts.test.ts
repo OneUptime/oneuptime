@@ -9,6 +9,7 @@ import {
   openAndroidDoNotDisturbAccessSettings,
   requestCriticalAlertPermission,
 } from "./criticalAlerts";
+import { CRITICAL_CHANNEL } from "./channels";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -128,7 +129,11 @@ describe("getCriticalAlertStatus on iOS", () => {
   });
 
   test("does not consult Android notification channels", async () => {
-    const channelSpy: jest.SpyInstance = jest.spyOn(
+    const writeSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "setNotificationChannelAsync",
+    );
+    const readSpy: jest.SpyInstance = jest.spyOn(
       Notifications,
       "getNotificationChannelAsync",
     );
@@ -139,7 +144,8 @@ describe("getCriticalAlertStatus on iOS", () => {
 
     await getCriticalAlertStatus();
 
-    expect(channelSpy).not.toHaveBeenCalled();
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(readSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -302,7 +308,7 @@ describe("getCriticalAlertStatus on Android", () => {
 
   test("is granted when the critical channel really carries the DND bypass", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ id: "oncall_critical", bypassDnd: true } as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -317,7 +323,7 @@ describe("getCriticalAlertStatus on Android", () => {
      * not granted Do Not Disturb access. Nothing errored.
      */
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ id: "oncall_critical", bypassDnd: false } as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -327,7 +333,7 @@ describe("getCriticalAlertStatus on Android", () => {
 
   test("is denied when the channel does not exist at all", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue(null as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -337,7 +343,7 @@ describe("getCriticalAlertStatus on Android", () => {
 
   test("the denial names Do Not Disturb access, which is where the toggle lives", async () => {
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -345,19 +351,104 @@ describe("getCriticalAlertStatus on Android", () => {
     expect(status.reason).toContain("Do Not Disturb access");
   });
 
-  test("reads the channel the server actually targets", async () => {
+  test("writes and reads back the channel the server actually targets", async () => {
     const channelSpy: jest.SpyInstance = jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     await getCriticalAlertStatus();
 
-    expect(channelSpy).toHaveBeenCalledWith("oncall_critical");
+    expect(channelSpy).toHaveBeenCalledWith(
+      "oncall_critical",
+      CRITICAL_CHANNEL,
+    );
   });
 
-  test("a thrown channel read is reported as denied", async () => {
+  test("a channel written while access is granted is reported as granted, without a separate read", async () => {
+    /*
+     * The write's answer is Android's answer: it returns the channel as
+     * Android stored it. Reading again would only add a second call that can
+     * fail.
+     */
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: true } as never);
+    const readSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "getNotificationChannelAsync",
+    );
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Granted);
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  test("a failed write falls back to what Android stored: a channel that already bypasses stays granted", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
     jest
       .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: true } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Granted);
+  });
+
+  test("a failed write and a stored channel without the bypass is denied", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: false } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a failed write reads back the critical channel, not another one", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    const readSpy: jest.SpyInstance = jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: false } as never);
+
+    await getCriticalAlertStatus();
+
+    expect(readSpy).toHaveBeenCalledWith("oncall_critical");
+  });
+
+  test("a write that hands back no channel is denied, not guessed", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue(null as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a thrown write and a thrown read are reported as denied", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockRejectedValue(new Error("no such channel") as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a thrown channel write is reported as denied", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockRejectedValue(new Error("no such channel") as never);
 
     const status: CriticalAlertStatus = await getCriticalAlertStatus();
@@ -372,7 +463,7 @@ describe("getCriticalAlertStatus on Android", () => {
     );
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     await getCriticalAlertStatus();
@@ -430,11 +521,52 @@ describe("isCriticalChannelBypassingDnd", () => {
     expect(await isCriticalChannelBypassingDnd()).toBe(false);
   });
 
+  test("neither writes nor reads a channel on iOS", async () => {
+    setPlatform("ios");
+
+    const writeSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "setNotificationChannelAsync",
+    );
+    const readSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "getNotificationChannelAsync",
+    );
+
+    await isCriticalChannelBypassingDnd();
+
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  test("asks Android for the bypass again, with the critical channel's own definition", async () => {
+    /*
+     * Writing is what lets Android turn the bypass on for a channel created
+     * before the access was granted - the whole reason this writes rather
+     * than only reads.
+     */
+    setPlatform("android");
+
+    const writeSpy: jest.SpyInstance = jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: true } as never);
+
+    await isCriticalChannelBypassingDnd();
+
+    // Every critical channel: the system sound's and one per alarm sound.
+    expect(writeSpy).toHaveBeenCalledTimes(6);
+    expect(writeSpy.mock.calls[0]![0]).toBe("oncall_critical");
+
+    for (const call of writeSpy.mock.calls) {
+      expect(call[1]).toEqual(expect.objectContaining({ bypassDnd: true }));
+    }
+  });
+
   test("reports what the OS stored, not what the app asked for", async () => {
     setPlatform("android");
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     expect(await isCriticalChannelBypassingDnd()).toBe(false);
@@ -444,7 +576,7 @@ describe("isCriticalChannelBypassingDnd", () => {
     setPlatform("android");
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: true } as never);
 
     expect(await isCriticalChannelBypassingDnd()).toBe(true);
@@ -685,7 +817,7 @@ describe("requestCriticalAlertPermission on Android", () => {
       .mockResolvedValue(undefined as never);
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     await requestCriticalAlertPermission();
@@ -698,7 +830,7 @@ describe("requestCriticalAlertPermission on Android", () => {
   test("returns the state as it stands, since the user has not acted yet", async () => {
     jest.spyOn(Linking, "sendIntent").mockResolvedValue(undefined as never);
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     const status: CriticalAlertStatus = await requestCriticalAlertPermission();
@@ -720,7 +852,7 @@ describe("requestCriticalAlertPermission on Android", () => {
       .mockResolvedValue(undefined as never);
 
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     await requestCriticalAlertPermission();
@@ -736,7 +868,7 @@ describe("requestCriticalAlertPermission on Android", () => {
       .spyOn(Linking, "openSettings")
       .mockRejectedValue(new Error("nope") as never);
     jest
-      .spyOn(Notifications, "getNotificationChannelAsync")
+      .spyOn(Notifications, "setNotificationChannelAsync")
       .mockResolvedValue({ bypassDnd: false } as never);
 
     await expect(requestCriticalAlertPermission()).resolves.toBeDefined();

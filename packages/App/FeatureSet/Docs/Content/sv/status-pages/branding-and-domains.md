@@ -92,7 +92,7 @@ Hur många dagar diagrammet täcker anges inte här. Det är **Upptidshistorik**
 
 OneUptime levereras med sjutton språk: engelska, tyska, franska, spanska, italienska, portugisiska, nederländska, danska, norska, svenska, ryska, japanska, koreanska, kinesiska (förenklad), kinesiska (traditionell), hindi och persiska.
 
-**Indexering i sökmotorer.** Ett enda reglage, **Tillåt sökmotorer att indexera den här statussidan**, avgör om Google, Bing och andra sökmotorer får lista sidan. Det är på som standard. Det finns ingen knapp **Redigera**: reglaget sparas i samma ögonblick som du slår om det. Stäng av det så serveras sidan med `noindex, nofollow` (en robots-metatagg och huvudet `X-Robots-Tag`); alla med länken kan fortfarande öppna den. Sökmotorer kan behöva några veckor för att ta bort en sida som de redan har indexerat.
+**Indexering i sökmotorer.** Ett enda reglage, **Tillåt sökmotorer att indexera den här statussidan**, avgör om Google, Bing och andra sökmotorer får lista sidan. Det är på som standard. Det finns ingen knapp **Redigera**: reglaget sparas i samma ögonblick som du slår om det. Stäng av det så serveras sidan med `noindex, nofollow` (en robots-metatagg och huvudet `X-Robots-Tag`); alla med länken kan fortfarande öppna den. Sökmotorer kan behöva några veckor för att ta bort en sida som de redan har indexerat. Reglaget gäller bara sidan på dess anpassade domäner. Dess förhandsgransknings-URL serveras alltid med `noindex, nofollow`, så en statussida visas i sökresultat först när den har en anpassad domän.
 
 > [!TIP]
 > Stäng av **Tillåt sökmotorer att indexera den här statussidan** medan en sida bara är intern eller fortfarande håller på att konfigureras, så att en halvfärdig sida inte börjar ranka på ditt varumärkesnamn.

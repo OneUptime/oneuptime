@@ -25,6 +25,8 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import PushNotificationLevel from "../../Types/NotificationRule/PushNotificationLevel";
+import { NO_NOTIFICATION_REPEAT } from "../../Types/NotificationRule/NotificationRepeat";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -1020,12 +1022,14 @@ class UserNotificationRule extends BaseModel {
   public userEmailId?: ObjectID = undefined;
 
   /*
-   * The escalation delay, and one of only two plain preference columns an
-   * administrator may rewrite. It is here rather than frozen because "you are
-   * on the escalation policy but your first rule waits thirty minutes" is a
-   * real, common misconfiguration, and correcting a number carries none of the
-   * redirect risk the method relations do - the page still goes to the same
-   * place, it just goes sooner.
+   * The escalation delay, and one of the plain preference columns an
+   * administrator may rewrite (with `pushNotificationLevel`,
+   * `repeatEveryMinutes` and `isOptOut`).
+   * It is here rather than frozen because "you are on the escalation policy
+   * but your first rule waits thirty minutes" is a real, common
+   * misconfiguration, and correcting a number carries none of the redirect
+   * risk the method relations do - the page still goes to the same place, it
+   * just goes sooner.
    */
   @ColumnAccessControl({
     create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
@@ -1049,6 +1053,87 @@ class UserNotificationRule extends BaseModel {
     default: 0,
   })
   public notifyAfterMinutes?: number = undefined;
+
+  /*
+   * How a push from this rule sounds: Critical rings through silent mode and
+   * Do Not Disturb, Standard follows the phone's sound settings. It is what
+   * lets a responder be woken for a critical incident and not for a
+   * low-severity one - the device's own Critical On-Call Alerts switch is
+   * one answer for every page.
+   *
+   * Critical by default, here and in the migration that added it, so every
+   * rule that existed before the choice pages exactly as it did. That is safe
+   * because the level can only lower what the device allows: a Critical push
+   * rings through only on a device whose owner turned on critical alerts in
+   * the mobile app (isCriticalPushNotification in PushNotificationLevel). It
+   * is ignored on a rule that pages anything but a push device.
+   *
+   * Updatable by the owner and by an administrator, like `notifyAfterMinutes`:
+   * it changes how loud a page is, never where it goes, and an administrator
+   * repairing a responder who sleeps through Sev 1 pages needs to be able to
+   * set it. An administrator's change is audited and mailed to the owner like
+   * any other edit of their rules.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser, ...ADMIN_READ_PERMISSIONS],
+    update: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    isDefaultValueColumn: true,
+    canReadOnRelationQuery: true,
+    title: "Push Notification Level",
+    description:
+      "How a push notification from this rule sounds. Critical rings through silent mode and Do Not Disturb on a device that has Critical On-Call Alerts turned on in the OneUptime On-Call app; Standard follows the device's sound settings. Only applies to rules that notify a push device.",
+    defaultValue: PushNotificationLevel.Critical,
+    example: PushNotificationLevel.Critical,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: PushNotificationLevel.Critical,
+  })
+  public pushNotificationLevel?: PushNotificationLevel = undefined;
+
+  /*
+   * Send this rule's push again every N minutes until somebody acknowledges
+   * (NotificationRepeat): so a responder who slept through the first critical
+   * alert hears another, rather than the phone going quiet after one sound.
+   * 0, the default, sends once - as every rule did before the option existed.
+   *
+   * Push rules only: repeating a call or a text every minute costs the project
+   * money and a phone number its reputation, and the service refuses it on any
+   * other rule. Stops when the page is acknowledged (the on-call worker ends
+   * the log) and after MAX_NOTIFICATION_REPEATS at most.
+   *
+   * Updatable by the owner and by an administrator, like the push level: it
+   * changes how often a page sounds, never where it goes.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser, ...ADMIN_READ_PERMISSIONS],
+    update: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    isDefaultValueColumn: true,
+    canReadOnRelationQuery: true,
+    title: "Repeat Every Minutes",
+    description:
+      "Send this rule's push notification again every this many minutes until the page is acknowledged, up to 10 more times: 0 (do not repeat), 1, 2, 3, 5, 10, 15 or 30. Push notification rules only.",
+    defaultValue: NO_NOTIFICATION_REPEAT,
+    example: 5,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: NO_NOTIFICATION_REPEAT,
+  })
+  public repeatEveryMinutes?: number = undefined;
 
   /*
    * Part of the rule's address, like `ruleType` - create-only for everybody.
