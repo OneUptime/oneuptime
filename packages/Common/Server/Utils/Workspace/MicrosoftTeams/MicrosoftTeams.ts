@@ -4158,15 +4158,29 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       /*
        * Asked to connect, mentioning them, with a Connect button - and to
        * ask again once they have: the answer is read with their permissions.
+       * Once in the conversation - a channel's thread, a chat - and not on
+       * each question they ask there while its button works: the card
+       * stays where they asked (MicrosoftTeamsConnectPrompt.promptOnce).
        */
-      await MicrosoftTeamsConnectPrompt.prompt({
-        turnContext: turnContext,
-        projectId: projectId,
-        description: {
-          purpose: `ask ${ProductBrandingText.getProductName()} AI`,
-          again: { kind: WorkspaceConnectRequestAgainKind.Question },
-        },
-      });
+      const isPrompted: boolean | null =
+        await MicrosoftTeamsConnectPrompt.promptOnce({
+          turnContext: turnContext,
+          projectId: projectId,
+          description: {
+            purpose: `ask ${ProductBrandingText.getProductName()} AI`,
+            again: { kind: WorkspaceConnectRequestAgainKind.Question },
+          },
+        });
+
+      if (isPrompted === null) {
+        logger.debug(
+          "Not answered: the Teams user was asked to connect their account in this conversation already",
+          {
+            projectId: projectId.toString(),
+          },
+        );
+      }
+
       return;
     }
 
