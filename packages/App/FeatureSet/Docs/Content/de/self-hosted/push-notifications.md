@@ -154,7 +154,7 @@ Zwei Mechanismen wirken hier, und sie decken unterschiedliche Fälle ab:
 Android friert die Einstellungen eines Kanals ein, wenn der Kanal zum ersten Mal angelegt wird; sie lassen sich also nicht durch ein App-Update ändern – nur durch eine neue Kanal-ID.
 :::
 
-Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde.
+Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde. Dieselbe Liste zeigt für jedes Gerät, ob kritische Warnungen eingeschaltet sind, und für ein Telefon, bei dem sie aus sind, wie man sie einschaltet.
 
 ### Den Alarmton wählen
 

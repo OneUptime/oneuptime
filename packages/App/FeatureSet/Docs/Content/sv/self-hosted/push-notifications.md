@@ -154,7 +154,7 @@ Två mekanismer är i spel, och de täcker olika fall:
 Android fryser en kanals inställningar när kanalen skapas första gången, så de kan inte ändras med en appuppdatering – bara genom att leverera ett nytt kanal-id.
 :::
 
-För att kontrollera att det fungerar skickar du en testavisering till enheten från **Användarinställningar > Aviseringsmetoder > Push Notifications**. När enheten har kritiska larm aktiverade skickas även testet som ett kritiskt larm – så stäng av ljudet på telefonen först, så hör du om ett riktigt larm skulle nå dig.
+För att kontrollera att det fungerar skickar du en testavisering till enheten från **Användarinställningar > Aviseringsmetoder > Push Notifications**. När enheten har kritiska larm aktiverade skickas även testet som ett kritiskt larm – så stäng av ljudet på telefonen först, så hör du om ett riktigt larm skulle nå dig. Samma lista visar om varje enhet har kritiska larm aktiverade och, för en telefon som inte har det, hur du slår på dem.
 
 ### Välja larmljud
 
