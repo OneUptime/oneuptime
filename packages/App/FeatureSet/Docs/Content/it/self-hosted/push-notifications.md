@@ -105,7 +105,7 @@ L'ambito è volutamente ristretto. Possono farlo solo gli avvisi prodotti da una
 ```mermaid title="Quando un avviso di reperibilità suona in modalità silenziosa"
 flowchart TB
     Page["Un avviso di reperibilità"]
-    Rule{"La sua regola di reperibilità<br/>è su «Critical alert»?"}
+    Rule{"La sua regola di reperibilità<br/>è su «Avviso critico»?"}
     Device{"Critical On-Call Alerts<br/>attivo su questo dispositivo?"}
     OS{"Il sistema del telefono<br/>consente gli avvisi critici?"}
     Loud["Emette un suono nonostante la<br/>modalità silenziosa e Non disturbare"]
@@ -122,7 +122,7 @@ flowchart TB
 Perché un avviso superi la modalità silenziosa devono essere vere quattro condizioni. Se ne manca anche una, l'avviso viene comunque consegnato – solo in silenzio.
 
 1. **La persona l'ha attivato per quel dispositivo.** Memorizzato per dispositivo, disattivato per impostazione predefinita, in `UserPush.isCriticalAlertEnabled`. Il telefono e il tablet di una stessa persona sono decisioni separate.
-2. **La regola di reperibilità che ha inviato l'avviso lo chiede.** In **Impostazioni utente > Regole di reperibilità**, ogni regola che notifica un telefono è impostata su «Critical alert», il valore predefinito, o su «Standard», che segue le impostazioni audio del telefono – così una persona può essere svegliata per un incidente critico e avvisata in silenzio per uno minore. Memorizzato per regola in `UserNotificationRule.pushNotificationLevel`.
+2. **La regola di reperibilità che ha inviato l'avviso lo chiede.** In **Impostazioni utente > Regole di reperibilità**, ogni regola che notifica un telefono è impostata su «Avviso critico», il valore predefinito, o su «Standard», che segue le impostazioni audio del telefono – così una persona può essere svegliata per un incidente critico e avvisata in silenzio per uno minore. Memorizzato per regola in `UserNotificationRule.pushNotificationLevel`.
 3. **Il server contrassegna l'avviso come critico.** Invia il payload del suono critico di APNs più `interruptionLevel: critical` per iOS, e punta a un canale di notifica critico per Android: `oncall_critical`, o il canale proprio dell'allarme scelto (vedi [Scegliere il suono di allarme](#scegliere-il-suono-di-allarme)).
 4. **Il sistema operativo lo consente**, ed è qui che le due piattaforme differiscono.
 

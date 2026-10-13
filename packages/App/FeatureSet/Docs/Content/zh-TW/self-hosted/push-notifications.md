@@ -105,7 +105,7 @@ expo:
 ```mermaid title="值班呼叫何時會穿透靜音模式響起"
 flowchart TB
     Page["一次值班呼叫"]
-    Rule{"它的待命規則設為<br/>Critical alert？"}
+    Rule{"它的待命規則設為<br/>「重大警示」？"}
     Device{"此裝置上開啟了<br/>Critical On-Call Alerts？"}
     OS{"手機系統允許<br/>重大警示？"}
     Loud["穿透靜音模式和勿擾模式<br/>播放聲音"]
@@ -122,7 +122,7 @@ flowchart TB
 呼叫要穿透靜音模式，必須同時滿足四個條件。只要缺少任何一個，呼叫仍會投遞——只是靜默投遞。
 
 1. **值班人員在該裝置上開啟了它。** 依裝置儲存在 `UserPush.isCriticalAlertEnabled` 中，預設關閉。同一個人的手機和平板是分別決定的。
-2. **傳送呼叫的待命規則要求這樣做。** 在 **使用者設定 > 待命規則** 中，每條通知手機的規則都設為預設的「Critical alert」，或設為遵循手機聲音設定的「Standard」——這樣值班人員可以在重大事件時被叫醒，而輕微事件只是靜默通知。依規則儲存在 `UserNotificationRule.pushNotificationLevel` 中。
+2. **傳送呼叫的待命規則要求這樣做。** 在 **使用者設定 > 待命規則** 中，每條通知手機的規則都設為預設的「重大警示」，或設為遵循手機聲音設定的「一般」——這樣值班人員可以在重大事件時被叫醒，而輕微事件只是靜默通知。依規則儲存在 `UserNotificationRule.pushNotificationLevel` 中。
 3. **伺服器把呼叫標記為重大。** 它為 iOS 傳送 APNs 的重大聲音承載以及 `interruptionLevel: critical`，並為 Android 指定一個重大通知頻道：`oncall_critical`，或所選警報聲自己的頻道（見 [選擇警報聲](#選擇警報聲)）。
 4. **作業系統允許它**，這正是兩個平台的不同之處。
 
@@ -188,7 +188,7 @@ Android 會在頻道首次建立時凍結其設定，因此無法透過應用程
 ### 重大警示沒有穿透靜音模式
 
 - 檢查**那台**裝置上的開關是否已開啟——這項設定依裝置區分，重新安裝或從頭設定的新手機會建立新的裝置註冊（從舊手機備份還原的手機，會在舊手機不再接收通知時接管舊手機的註冊，並保留應用程式原有的設定）
-- 在 **使用者設定 > 待命規則** 中檢查該嚴重程度的待命規則：設為「Standard」的推播規則會遵循手機的聲音設定，無論裝置上的開關如何
+- 在 **使用者設定 > 待命規則** 中檢查該嚴重程度的待命規則：設為「一般」的推播規則會遵循手機的聲音設定，無論裝置上的開關如何
 - **iOS**：確認建置帶有 Apple 的重大警示權限（見上文），並且已在 iOS Settings > Notifications > OneUptime On-Call 下允許 Critical Alerts
 - **Android**：確認應用程式在 Settings > Notifications > Do Not Disturb access 下擁有勿擾存取權限
 - **Android**：如果你選擇了警報聲，它自己的通知頻道也必須獲准略過勿擾模式；未獲准時，應用程式的 Alarm sound 畫面會說明
