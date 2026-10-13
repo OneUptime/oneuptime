@@ -328,11 +328,11 @@ docker compose down
 
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該叢集上的事件和警示，叢集的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不安裝代理程式。
 - API 權杖是硬性限制。調查會使用 Collector 的 PVEAuditor 權杖（`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`），它只能讀取，不能做其他任何事；如果你執行自己的匯出器而 `.env` 中沒有權杖，請加入一個。修正需要一個屬於 AI 代理程式自己、可以控制客體電源的權杖（`VM.PowerMgmt`，例如在 `/vms` 或某一個資源池上的 `PVEVMUser` 角色），設定為 `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`。
-- 除非你設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，否則它是唯讀的；`ONEUPTIME_AI_WRITE_TARGETS`（VMID，例如 `100,101`，以及節點服務的 `<node>/<service>`）會限制修正可以觸及的內容。如果代理程式在此叢集的某個客體中執行，請將該客體的 VMID 放入 `ONEUPTIME_AI_PROTECTED_TARGETS`。同一個 `.env` 中的 `ONEUPTIME_AI_FIXES` 決定修正如何執行——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。
+- 除非你設定 `ONEUPTIME_AI_ALLOW_WRITES=true`，否則它是唯讀的；`ONEUPTIME_AI_WRITE_TARGETS`（VMID，例如 `100,101`，以及節點服務的 `<node>/<service>`）會限制修正可以觸及的內容。如果代理程式在此叢集的某個客體中執行，請將該客體的 VMID 放入 `ONEUPTIME_AI_PROTECTED_TARGETS`。同一個 `.env` 中的 `ONEUPTIME_AI_FIXES` 決定修正如何執行——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。
 - 與匯出器一樣，除非你設定 `PVE_VERIFY_SSL=true`，或將 `PVE_CA_FILE` 指向叢集的 CA（`/etc/pve/pve-root-ca.pem`，掛載到容器中），否則它不會驗證 API 的自我簽署憑證。
 - 它以 UID 1000 執行，沒有任何 capability，根檔案系統為唯讀，而且從不讀取 `/access`、開啟主控台或變更設定。如果你不使用 OneUptime AI，請從 `docker-compose.yml` 中刪除 `oneuptime-proxmox-ai-agent` 服務。
 
-它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-clusters)。代理程式的 README 中有為修正權杖準備的確切 `pveum` 指令。
+它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-叢集)。代理程式的 README 中有為修正權杖準備的確切 `pveum` 指令。
 
 ## 疑難排解
 
