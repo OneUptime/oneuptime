@@ -10,10 +10,9 @@ import {
   generateSitemapIndexXml,
   generatePagesSitemapXml,
   generateCompareSitemapXml,
-  generateTagsSitemapXml,
   generateBlogSitemapXml,
   getBlogSitemapPageCount,
-  getTagsSitemapPageCount,
+  sendRetiredSitemap,
 } from "./Utils/Sitemap";
 import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
@@ -343,9 +342,12 @@ const HomeFeatureSet: FeatureSet = {
     /*
      * Markdown variants of marketing pages: append `.md` to a page path
      * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
-     * Generated from the same structured data as the HTML pages.
+     * Generated from the same structured data as the HTML pages. A variant
+     * is the page again, for tools and AI assistants, so it is never a
+     * search result of its own: every answer here is noindex.
      */
     app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
+      res.setHeader("X-Robots-Tag", "noindex");
       const homeUrl: string = res.locals["homeUrl"] as string;
       const pagePath: string = req.path.replace(/\.md$/, "");
 
@@ -1354,16 +1356,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/legal.ejs`, {
-        support: false,
-        enableGoogleTagManager: GoogleTagManagerEnabled,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        section: "terms",
-        requestDemoCta: false,
-      });
+    /*
+     * /legal always rendered the Terms of Service: the same page as
+     * /legal/terms, under a second URL, so search engines saw two copies of
+     * one document. It redirects there permanently, which keeps what every
+     * link to /legal (the footer, the trust center, the product's own
+     * footers) has always shown, and leaves one URL to rank. The Legal Center
+     * header and sidebar on every legal page still list every document.
+     */
+    app.get("/legal", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/legal/terms", 301);
     });
 
     app.get("/legal/terms", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -2043,30 +2045,14 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog tags sitemap (paginated)
+    /*
+     * Blog tags sitemaps, retired: tag pages are noindex, and the index no
+     * longer lists these. Gone (410), so crawlers drop the addresses.
+     */
     app.get(
       "/sitemap-tags-:page.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const page: number = parseInt(req.params["page"] as string, 10);
-
-          if (isNaN(page) || page < 1) {
-            return res.status(404).send("Invalid sitemap page");
-          }
-
-          // Check if page exists
-          const totalPages: number = await getTagsSitemapPageCount();
-          if (page > totalPages) {
-            return res.status(404).send("Sitemap page not found");
-          }
-
-          const xml: string = await generateTagsSitemapXml(page);
-          res.setHeader("Content-Type", "text/xml");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating sitemap");
-        }
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return sendRetiredSitemap(res);
       },
     );
 

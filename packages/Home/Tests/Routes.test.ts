@@ -233,6 +233,59 @@ describe("Sitemap hygiene", () => {
     }
   });
 
+  test("the short product addresses and /legal are excluded, and the pages they redirect to are routes", () => {
+    for (const [routePath, target] of [
+      ["/incident-management", "/product/incident-management"],
+      ["/ai-agent", "/product/ai-agent"],
+      ["/legal", "/legal/terms"],
+    ] as Array<[string, string]>) {
+      expect(redirectTargetOf(routePath)).toBe(target);
+      expect(isRedirectPath(routePath)).toBe(true);
+      expect(hasGetRoute(target)).toBe(true);
+      expect(isRedirectPath(target)).toBe(false);
+    }
+  });
+
+  test("/docs and /reference are excluded as redirects, though they are the app's, not routes here", () => {
+    for (const routePath of ["/docs", "/reference"]) {
+      expect(isRedirectPath(routePath)).toBe(true);
+      // The ingress sends them to the app: a route here would never be reached.
+      expect(hasGetRoute(routePath)).toBe(false);
+      // Kept apart from REDIRECT_PATHS, whose every path is a redirect route here.
+      expect(REDIRECT_PATHS.has(routePath)).toBe(false);
+    }
+
+    // Only the two addresses themselves: every page under them is a page.
+    expect(isRedirectPath("/docs/en/introduction/getting-started")).toBe(false);
+    expect(isRedirectPath("/reference/en/introduction")).toBe(false);
+  });
+
+  test("the retired tag sitemaps answer 410 Gone rather than a sitemap", () => {
+    const body: string | null = bodyOfGetRoute("/sitemap-tags-:page.xml");
+
+    expect(body).not.toBeNull();
+    expect(body).toContain("sendRetiredSitemap(res)");
+    expect(body).not.toContain("generateTagsSitemapXml");
+    expect(body).not.toContain("res.send(xml)");
+  });
+
+  test("a page's .md variant is never indexed, whether it is found or not", () => {
+    const start: number = routesSource.indexOf("app.get(/^\\/.+\\.md$/");
+
+    expect(start).toBeGreaterThan(-1);
+
+    const next: number = routesSource.indexOf("app.get(", start + 1);
+    const body: string = routesSource.slice(start, next);
+    const noindex: number = body.indexOf(
+      'res.setHeader("X-Robots-Tag", "noindex")',
+    );
+
+    expect(noindex).toBeGreaterThan(-1);
+    // Set before the handler answers, so the 404 carries it as well.
+    expect(noindex).toBeLessThan(body.indexOf("res.status(404)"));
+    expect(noindex).toBeLessThan(body.indexOf("sendAITextResponse("));
+  });
+
   test("the self-hosted page is prioritised in the sitemap config", () => {
     const sitemapSource: string = fs.readFileSync(
       path.join(__dirname, "..", "Utils", "Sitemap.ts"),
