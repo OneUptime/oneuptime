@@ -334,7 +334,7 @@ describe("MicrosoftTeamsConnectPrompt.describe", () => {
     });
   });
 
-  test("a form to create something: to type its command again", () => {
+  test("a form to create something: to type its command again, as the word Slack's /oneuptime takes too", () => {
     expect(
       MicrosoftTeamsConnectPrompt.describe({
         actionType: MicrosoftTeamsIncidentActionType.SubmitNewIncident,
@@ -343,7 +343,19 @@ describe("MicrosoftTeamsConnectPrompt.describe", () => {
       purpose: "declare an incident",
       again: {
         kind: WorkspaceConnectRequestAgainKind.Command,
-        label: "create incident",
+        label: "incident",
+      },
+    });
+    expect(
+      MicrosoftTeamsConnectPrompt.describe({
+        actionType:
+          MicrosoftTeamsScheduledMaintenanceActionType.SubmitNewScheduledMaintenance,
+      }),
+    ).toEqual({
+      purpose: "create a scheduled maintenance event",
+      again: {
+        kind: WorkspaceConnectRequestAgainKind.Command,
+        label: "maintenance",
       },
     });
   });

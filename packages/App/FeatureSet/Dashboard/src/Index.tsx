@@ -3,6 +3,7 @@ import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/Not
 import { i18nReady } from "./Utils/i18n";
 import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
+import UiAnalytics from "Common/UI/Utils/Analytics";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -71,6 +72,15 @@ Telemetry.setGlobalAttributes({
     ? { projectId: ProjectUtil.getCurrentProjectId()!.toString() }
     : {}),
 });
+
+/*
+ * Let Google Analytics join a signed-in person's sessions across devices, on
+ * the internal user ID. Nothing is sent unless consent let the page load
+ * Google Analytics.
+ */
+if (UserUtil.isLoggedIn()) {
+  UiAnalytics.setGoogleAnalyticsUserId(UserUtil.getUserId().toString());
+}
 
 const root: any = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,

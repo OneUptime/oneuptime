@@ -14,6 +14,7 @@ import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import UiAnalytics from "Common/UI/Utils/Analytics";
+import Analytics, { PurchaseData } from "Common/Utils/Analytics";
 import {
   RevenueEventName,
   RevenueFunnelStage,
@@ -326,6 +327,17 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         : {}),
                     },
                   );
+
+                  const purchase: PurchaseData | null =
+                    Analytics.purchaseForNewProject({
+                      projectId: project.id?.toString() || "",
+                      planName: plan.getName(),
+                      monthlyAmountInUSD: monthlyAmountInUSD,
+                    });
+
+                  if (purchase) {
+                    UiAnalytics.capturePurchase(purchase);
+                  }
                 }
               }
             }

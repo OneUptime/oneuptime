@@ -1,23 +1,27 @@
 import React, { ReactElement, useCallback } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import Feed from "Common/UI/Components/Feed/Feed";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
-import { Gray500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import User from "Common/Models/DatabaseModels/User";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedItems, {
+  UseFeedItemsResult,
+} from "Common/UI/Components/Feed/useFeedItems";
 import useFeedOptions, {
   UseFeedOptionsResult,
 } from "Common/UI/Components/Feed/useFeedOptions";
 import FeedCard from "Common/UI/Components/Feed/FeedCard";
+import FeedContent from "Common/UI/Components/Feed/FeedContent";
+import {
+  FeedEntryKind,
+  SHARED_FEED_ENTRY_KINDS,
+  getFeedEntryColor,
+} from "Common/UI/Components/Feed/FeedEntryKind";
 import {
   GetFeedEventTypeIconFunction,
   getFeedEventTypeQuery,
@@ -33,7 +37,7 @@ import {
  * column), along with the list of event types the event type filter
  * offers, so the whole feed page is one component parameterised by those
  * rather than eleven copies that drift apart. A feed whose events the shared
- * icon rules do not cover passes its own `getIcon`.
+ * kind rules do not cover passes its own `getKind`.
  */
 export interface ResourceFeedModel extends BaseModel {
   feedInfoInMarkdown?: string | undefined;
@@ -60,83 +64,99 @@ export interface ComponentProps<TFeedModel extends ResourceFeedModel> {
   description: string;
   noItemsMessage: string;
   /*
-   * Icons for the event types that are this feed's own - an SLO's
+   * Kinds for the event types that are this feed's own - an SLO's
    * StatusChanged or BurnRateAlertRaised - which the shared suffix rules
    * below know nothing about. Returning undefined falls back to those rules,
    * so a feed maps only what is its own and its Created / Updated / owner
    * events still look like every other feed's.
    */
-  getIcon?: GetResourceFeedIconFunction | undefined;
+  getKind?: GetResourceFeedKindFunction | undefined;
 }
 
-export type GetResourceFeedIconFunction = (
+export type GetResourceFeedKindFunction = (
   eventType: string,
-) => IconProp | undefined;
+) => FeedEntryKind | undefined;
 
-type GetIconForEventType = (eventType: string) => IconProp;
+type GetKindForEventType = (eventType: string) => FeedEntryKind;
 
 /*
  * Event type members are named <Model>Created / <Model>Updated / ... per feed
- * model, so the icon is chosen from the suffix rather than from an enum this
- * component would have to import ten times over.
+ * model, so the kind is chosen from the suffix rather than from an enum this
+ * component would have to import ten times over. The owner and rule events
+ * share their names across every feed, and their kinds with every other
+ * feed in the product.
  */
-export const getIconForEventType: GetIconForEventType = (
+export const getKindForEventType: GetKindForEventType = (
   eventType: string,
-): IconProp => {
+): FeedEntryKind => {
+  switch (eventType) {
+    case "OwnerUserAdded":
+      return SHARED_FEED_ENTRY_KINDS.OwnerUserAdded;
+    case "OwnerTeamAdded":
+      return SHARED_FEED_ENTRY_KINDS.OwnerTeamAdded;
+    case "OwnerUserRemoved":
+      return SHARED_FEED_ENTRY_KINDS.OwnerUserRemoved;
+    case "OwnerTeamRemoved":
+      return SHARED_FEED_ENTRY_KINDS.OwnerTeamRemoved;
+    case "OwnerRuleExecuted":
+      return SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted;
+    case "LabelRuleExecuted":
+      return SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted;
+    default:
+      break;
+  }
+
   if (eventType.endsWith("Created")) {
-    return IconProp.Add;
+    return SHARED_FEED_ENTRY_KINDS.Created;
   }
 
   if (eventType.endsWith("Updated")) {
-    return IconProp.Edit;
+    return SHARED_FEED_ENTRY_KINDS.Updated;
   }
 
   if (eventType.endsWith("Archived")) {
-    return IconProp.Archive;
+    return SHARED_FEED_ENTRY_KINDS.Archived;
   }
 
   if (eventType.endsWith("Restored")) {
-    return IconProp.Refresh;
+    return SHARED_FEED_ENTRY_KINDS.Restored;
   }
 
-  if (eventType === "OwnerUserAdded") {
-    return IconProp.User;
-  }
-
-  if (eventType === "OwnerTeamAdded") {
-    return IconProp.Team;
-  }
-
-  if (eventType === "OwnerUserRemoved" || eventType === "OwnerTeamRemoved") {
-    return IconProp.Close;
-  }
-
-  if (eventType === "OwnerRuleExecuted") {
-    return IconProp.Team;
-  }
-
-  if (eventType === "LabelRuleExecuted") {
-    return IconProp.Label;
-  }
-
-  return IconProp.Circle;
+  return SHARED_FEED_ENTRY_KINDS.Other;
 };
 
-export type ResolveResourceFeedIconFunction = (data: {
+// The icon of the shared rules alone: the event type filter's checklist.
+export const getIconForEventType: (eventType: string) => IconProp = (
+  eventType: string,
+): IconProp => {
+  return getKindForEventType(eventType).icon;
+};
+
+export type ResolveResourceFeedKindFunction = (data: {
   eventType: string;
-  getIcon?: GetResourceFeedIconFunction | undefined;
-}) => IconProp;
+  getKind?: GetResourceFeedKindFunction | undefined;
+}) => FeedEntryKind;
 
 // The feed's own mapping first, then the shared suffix rules.
-export const resolveResourceFeedIcon: ResolveResourceFeedIconFunction = (data: {
+export const resolveResourceFeedKind: ResolveResourceFeedKindFunction = (data: {
   eventType: string;
-  getIcon?: GetResourceFeedIconFunction | undefined;
-}): IconProp => {
-  const ownIcon: IconProp | undefined = data.getIcon
-    ? data.getIcon(data.eventType)
+  getKind?: GetResourceFeedKindFunction | undefined;
+}): FeedEntryKind => {
+  const ownKind: FeedEntryKind | undefined = data.getKind
+    ? data.getKind(data.eventType)
     : undefined;
 
-  return ownIcon || getIconForEventType(data.eventType);
+  return ownKind || getKindForEventType(data.eventType);
+};
+
+export const resolveResourceFeedIcon: (data: {
+  eventType: string;
+  getKind?: GetResourceFeedKindFunction | undefined;
+}) => IconProp = (data: {
+  eventType: string;
+  getKind?: GetResourceFeedKindFunction | undefined;
+}): IconProp => {
+  return resolveResourceFeedKind(data).icon;
 };
 
 const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
@@ -152,17 +172,23 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
         props.eventTypeColumn
       ] as string) || "";
 
+    const kind: FeedEntryKind = resolveResourceFeedKind({
+      eventType: eventType,
+      getKind: props.getKind,
+    });
+
     return {
       key: feed.id!.toString(),
       textInMarkdown: feed.feedInfoInMarkdown || "",
       moreTextInMarkdown: feed.moreInformationInMarkdown || "",
       user: feed.user,
       itemDateTime: feed.postedAt || feed.createdAt!,
-      color: feed.displayColor || Gray500,
-      icon: resolveResourceFeedIcon({
-        eventType: eventType,
-        getIcon: props.getIcon,
-      }),
+      color: getFeedEntryColor({ kind: kind, rowColor: feed.displayColor }),
+      icon: kind.icon,
+      burstKind: kind.burst,
+      detailsLabel: kind.moreText,
+      isNote: kind.isNote,
+      eventType: eventType || undefined,
     };
   };
 
@@ -174,10 +200,10 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
     (eventType: string): IconProp => {
       return resolveResourceFeedIcon({
         eventType: eventType,
-        getIcon: props.getIcon,
+        getKind: props.getKind,
       });
     },
-    [props.getIcon],
+    [props.getKind],
   );
 
   const feedOptions: UseFeedOptionsResult = useFeedOptions({
@@ -187,17 +213,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
     resetKey: props.resourceId.toString(),
   });
 
-  const {
-    feedItems,
-    isLoading,
-    isLoadingMore,
-    error,
-    loadMoreError,
-    hasMore,
-    isCurrentFeedLoaded,
-    refresh,
-    loadMore,
-  } = useFeedItems<TFeedModel>({
+  const feed: UseFeedItemsResult = useFeedItems<TFeedModel>({
     resourceKey: props.resourceId.toString(),
     viewKey: feedOptions.optionsKey,
     getItems: async (limit: number): Promise<ListResult<TFeedModel>> => {
@@ -247,24 +263,17 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       title={props.title}
       description={props.description}
       feedOptions={feedOptions}
-      onRefresh={refresh}
+      onRefresh={feed.refresh}
     >
       <div>
-        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
-        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage={getFeedNoItemsMessage({
-              options: feedOptions.options,
-              noItemsMessage: props.noItemsMessage,
-            })}
-            hasMore={hasMore}
-            isLoadingMore={isLoadingMore}
-            onMore={loadMore}
-          />
-        )}
-        {loadMoreError && <ErrorMessage message={loadMoreError} />}
+        <FeedContent
+          feed={feed}
+          noItemsMessage={getFeedNoItemsMessage({
+            options: feedOptions.options,
+            noItemsMessage: props.noItemsMessage,
+          })}
+          sortOrder={feedOptions.options.sortOrder}
+        />
       </div>
     </FeedCard>
   );

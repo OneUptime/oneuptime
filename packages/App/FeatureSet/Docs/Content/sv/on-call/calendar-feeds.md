@@ -61,7 +61,7 @@ Personliga flöden är per projekt: ett andra projekt får en andra länk och en
 Klicka på **Skapa kalenderlänk**. Kortet **Prenumerera på dina jourpass** erbjuder nu ett sätt att prenumerera:
 
 - **Lägg till i din kalender**: **Google Kalender** öppnar Google Kalender, som frågar om kalendern ska läggas till. **Apple Kalender / Outlook** öppnar länkens `webcal://`-form i den app som din dator eller telefon prenumererar med: Apple Kalender på en Mac, iPhone eller iPad, Outlook på Windows.
-- **Eller kopiera länken**: **Kopiera länk** kopierar `https://`-länken för alla andra appar som kan prenumerera på en kalender via en URL. Länken är dold på sidan tills du klickar för att visa den.
+- **Eller kopiera länken**: **Kopiera länk** kopierar `https://`-länken för alla andra appar som kan prenumerera på en kalender via en URL, utan att visa den. Länken är dold på sidan tills du klickar på **Visa**.
 
 ### Prenumerera på länken
 
@@ -78,15 +78,23 @@ Klicka på **Redigera inställningar** på kortet **Inställningar för kalender
 | **Dagar med tidigare pass** | Hur långt bakåt kalendern når (standard 2, högst 60). |
 | **Dagar framåt** | Hur långt framåt kalendern når (standard 90, mellan 7 och 180). |
 
-Statusraden visar när länken senast hämtades, av vilken kalenderapp, hur många gånger, och de fyra sista tecknen i token så att du kan skilja länkar åt. Om inget har hämtat länken efter två dagar frågar sidan om servern kan nås från internet (se Felsökning).
+Panelen **Status** bredvid prenumerationsvalen visar om länken fungerar: när den senast hämtades och av vilken kalenderapp, ungefär hur många gånger, och de fyra sista tecknen i token så att du kan skilja länkar åt. Märket visar:
+
+- **Aktiv**: en kalenderapp har hämtat länken.
+- **Väntar på första synkroniseringen**: inget har hämtat länken ännu. De flesta appar gör det inom några minuter efter att du har prenumererat; Google Kalender kan ta några timmar.
+- **Inte hämtad ännu**: inget har hämtat länken under de två dagarna sedan den skapades, så sidan frågar om servern kan nås från platsen där din kalenderapp körs (se Felsökning).
+- **Inaktiverad**: länken levererar en tom kalender tills du klickar på **Aktivera länk**.
+- **Behöver skapas på nytt**: den sparade länken kan inte längre läsas, oftast för att serverns krypteringshemlighet har ändrats. **Skapa länken på nytt** ger dig en ny.
 
 ### Hantera länken
+
+Resten finns i menyn **⋯** på kortet. **Skapa länken på nytt** och **Ta bort länk** frågar innan de gör något.
 
 | Åtgärd | Vad som händer |
 | --- | --- |
 | **Skapa länken på nytt** | Skapar en ny token. Alla appar som prenumererar på den gamla länken slutar uppdateras: i 30 dagar levererar den gamla länken en tom kalender så att de apparna tömmer sin kopia, därefter svarar den 404. Prenumerera igen med den nya länken. |
-| **Inaktivera** | Behåller länken men levererar en tom kalender tills du aktiverar den igen. |
-| **Ta bort** | Tar bort länken. Appar som fortfarande hämtar den får 404 och fortsätter att visa det de senast hämtade — inaktivera först om du vill att de ska tömmas. |
+| **Inaktivera länk** | Behåller länken men levererar en tom kalender tills du klickar på **Aktivera länk**, i samma meny eller i panelen **Status**. |
+| **Ta bort länk** | Tar bort länken. Appar som fortfarande hämtar den får 404 och fortsätter att visa det de senast hämtade — inaktivera först om du vill att de ska tömmas. |
 
 ### Kommande pass och ersättare
 
@@ -109,7 +117,7 @@ Använd **Google Kalender** eller **Apple Kalender / Outlook** i OneUptime där 
 
 Knappen **Google Kalender** öppnar Googles sida för att lägga till via URL, `https://calendar.google.com/calendar/r?cid=` följt av länkens `webcal://`-form, procentkodad. Den sidan tar bara `webcal://`-formen: med `https://`-formen svarar Google "Unable to add calendar. Check the URL." **Från webbadress** tar båda formerna.
 
-Google hämtar flödet **från Googles servrar**, så OneUptime-servern måste kunna nås från internet — OneUptime Cloud kan alltid det; för en egen installation, se Felsökning. Den första hämtningen sker oftast inom några minuter efter att du har prenumererat; därefter uppdaterar Google ungefär var 8:e till 24:e timme, ibland mer sällan. Det finns ingen uppdateringsknapp för prenumererade kalendrar, och Google ignorerar uppdateringstipsen i flödet. Statusraden på flödessidan visar **Senast hämtad … av Google Calendar** när Google har läst länken.
+Google hämtar flödet **från Googles servrar**, så OneUptime-servern måste kunna nås från internet — OneUptime Cloud kan alltid det; för en egen installation, se Felsökning. Den första hämtningen sker oftast inom några minuter efter att du har prenumererat; därefter uppdaterar Google ungefär var 8:e till 24:e timme, ibland mer sällan. Det finns ingen uppdateringsknapp för prenumererade kalendrar, och Google ignorerar uppdateringstipsen i flödet. Statusen på kortet visar **Senast hämtad … av Google Calendar** när Google har läst länken.
 
 Kalenderns namn och tidszon läses **bara när du prenumererar första gången**: att byta namn på ett schema senare byter inte namn på kalendern i Google — ta bort den och lägg till den igen om namnet spelar roll. Google slänger påminnelser i kalenderfiler, så ställ in standardaviseringar för den kalendern i Googles inställningar, eller hellre: använd OneUptimes egna påminnelser. Google minns en adress som den inte kunde läsa: när du har åtgärdat det som stoppade den lägger du till länken igen med `?nocache=1` på slutet (OneUptime ignorerar okända frågeparametrar, så själva flödet är oförändrat), eller skapar länken på nytt. Google Kalender-appen på Android och iOS kan inte prenumerera via URL; lägg till länken på en dator, så dyker den upp på telefonen.
 @tab Outlook på webben
@@ -194,7 +202,7 @@ En delad länk tillhör **projektet**, inte den som kopierade den, och den visar
 
 ### Schemaflöde
 
-På ett schemas sida har kortet **Prenumerera på det här schemat** två halvor: **Bara mina pass i det här schemat** (din personliga länk med ett schemafilter) och **Allas pass i det här schemat (delad teamlänk)**. Alla med behörigheten **Redigera** för scheman kan använda **Publicera delad länk**, förnya länken med **Skapa länken på nytt** eller stänga av den med **Inaktivera**; alla som kan läsa schemat kan kopiera den. Kortet visar när länken senast förnyades.
+På ett schemas sida har kortet **Prenumerera på det här schemat** två halvor: **Bara mina pass i det här schemat** (din personliga länk med ett schemafilter) och **Allas pass i det här schemat (delad teamlänk)**. Alla med behörigheten **Redigera** för scheman kan använda **Publicera delad länk** och i menyn **⋯** på kortet förnya länken med **Skapa länken på nytt** eller stänga av den med **Inaktivera länk**; alla som kan läsa schemat kan kopiera den. Statusen på kortet visar när länken senast förnyades.
 
 ### Projektflöde
 
@@ -231,7 +239,7 @@ Flödet visar rotationen **som den är inställd nu**, även för tidigare dagar
 
 - Token i länken är den enda inloggningsuppgiften. Alla som har länken ser passen — namn, scheman, policyer — tills den skapas på nytt. Klistra inte in länkar i chattrum eller ärenden; när ett team behöver en kalender delar du schema- eller projektlänken i stället för din personliga.
 - Länkar är per projekt. En läckt personlig länk avslöjar ett projekts pass, inte alla projekt du tillhör.
-- Att skapa en länk på nytt flyttar den gamla token till en frist på 30 dagar (tom kalender, sedan 404). **Inaktivera** levererar en tom kalender. En okänd eller utgången länk ger en ren 404 utan ledtråd. Tomma kalendrar får prenumererande appar att tömma sin kopia; en 404 får dem att behålla den, och därför levererar inaktivering och ny länk tomma kalendrar.
+- Att skapa en länk på nytt flyttar den gamla token till en frist på 30 dagar (tom kalender, sedan 404). **Inaktivera länk** levererar en tom kalender. En okänd eller utgången länk ger en ren 404 utan ledtråd. Tomma kalendrar får prenumererande appar att tömma sin kopia; en 404 får dem att behålla den, och därför levererar inaktivering och ny länk tomma kalendrar.
 - Token lagras hashade; kopian som visas på inställningssidan är krypterad med `ENCRYPTION_SECRET`. Ställ in den variabeln på en riktig hemlighet i en egen installation — servern varnar vid start när den inte är inställd eller fortfarande är en av platshållarna som det här kodförrådet levererar (`secret`, eller den `please-change-this-to-random-value` som `config.example.env` anger). Om du ändrar den senare erbjuder sidan **Skapa länken på nytt**, eftersom den lagrade kopian inte längre kan läsas; flödet fortsätter att fungera tills du gör det.
 - Flödessvar är märkta `Cache-Control: private`, utesluts från sökmotorer (`X-Robots-Tag: noindex`) och har en hastighetsgräns per länk och per klientadress.
 
@@ -277,7 +285,7 @@ Också relevant:
 :::
 
 :::details Google Kalender visar kalendern men inga pass
-Kontrollera först statusraden på flödessidan. **Senast hämtad … av Google Calendar** betyder att Google har läst länken: öppna länken i en webbläsare och se vad den levererar — en tom kalender anger sin orsak i `X-WR-CALDESC` (se "Kalendern är tom" nedan).
+Kontrollera först statusen på kortet. **Senast hämtad … av Google Calendar** betyder att Google har läst länken: öppna länken i en webbläsare och se vad den levererar — en tom kalender anger sin orsak i `X-WR-CALDESC` (se "Kalendern är tom" nedan).
 
 **Inte hämtad ännu** betyder att Google inte kunde läsa den: från en dator utanför ditt nätverk måste `curl -sI <link>` svara `200` med `Content-Type: text/calendar` direkt. En omdirigering, en inloggningssida, en brandvägg eller en robotkontroll framför OneUptime stoppar Googles hämtare; det gjorde också en omdirigeringsslinga i äldre versioner av OneUptime, i installationer med `PROVISION_SSL=true` där TLS avslutas framför Nginx. När den svarar `200` lägger du till länken igen med `?nocache=1` på slutet, så att Google läser den på nytt.
 :::
@@ -285,7 +293,7 @@ Kontrollera först statusraden på flödessidan. **Senast hämtad … av Google 
 :::details Inget har hämtat länken, eller "Det gick inte att hämta webbadressen"
 Google Kalender, Outlook på webben, Fastmail och Proton hämtar **från sina egna servrar**, så OneUptime-värden måste kunna nås från det öppna internet med ett certifikat som de litar på. En installation på ett privat nätverk, bakom en VPN eller med en intern certifikatutfärdare är onåbar för dem, vad du än klistrar in.
 
-Apple Kalender, Thunderbird och klassiska Outlook hämtar från enheten, så de fungerar överallt där enheten kan öppna instrumentpanelen — efter att certifikatet har betrotts på den enheten om det är självsignerat. Statusraden på flödessidan talar om ifall något har hämtat länken ännu; `curl -I` mot länken utanför ditt nätverk är den snabbaste kontrollen:
+Apple Kalender, Thunderbird och klassiska Outlook hämtar från enheten, så de fungerar överallt där enheten kan öppna instrumentpanelen — efter att certifikatet har betrotts på den enheten om det är självsignerat. Statusen på kortet talar om ifall något har hämtat länken ännu; `curl -I` mot länken utanför ditt nätverk är den snabbaste kontrollen:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

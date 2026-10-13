@@ -1,4 +1,4 @@
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
@@ -81,7 +81,7 @@ const UNDECODABLE_TOKENS: Array<[string, () => string]> = [
     (): string => {
       return jwt.sign(
         tokenPayload(),
-        `${EncryptionSecret.toString()}-before-rotation`,
+        `${TokenSigningKey.get()}-before-rotation`,
         { expiresIn: 15 * 60 },
       );
     },
@@ -89,7 +89,7 @@ const UNDECODABLE_TOKENS: Array<[string, () => string]> = [
   [
     "an expired token",
     (): string => {
-      return jwt.sign(tokenPayload(), EncryptionSecret.toString(), {
+      return jwt.sign(tokenPayload(), TokenSigningKey.get(), {
         expiresIn: -60,
       });
     },

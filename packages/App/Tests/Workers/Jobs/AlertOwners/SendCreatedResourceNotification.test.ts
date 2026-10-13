@@ -460,10 +460,10 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
     expect(emailEnvelope.subject).toBe("[New Alert #7] - High latency");
 
     /*
-     * The dashboard link is NOT part of this fix: one call for the feed text
-     * plus one per owner, exactly as before.
+     * The dashboard link: one per owner. The feed entry no longer links to
+     * the alert whose feed it is in.
      */
-    expect(alertService.getAlertLinkInDashboard).toHaveBeenCalledTimes(4);
+    expect(alertService.getAlertLinkInDashboard).toHaveBeenCalledTimes(3);
 
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
   });
@@ -696,8 +696,8 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
         }
       ).moreInformationInMarkdown,
     ).toBe(
-      "**Notified**: Owner user-2 (user-2@acme.test)\n" +
-        "**Notified**: Owner user-3 (user-3@acme.test)\n",
+      "- Owner user-2 (user-2@acme.test)\n" +
+        "- Owner user-3 (user-3@acme.test)\n",
     );
   });
 

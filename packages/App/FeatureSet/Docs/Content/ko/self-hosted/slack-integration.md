@@ -143,9 +143,8 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 
 | 기능 | 하는 일 | 경로 |
 | --- | --- | --- |
-| `/incident`와 **Create New Incident** 바로 가기 | Slack에서 인시던트 선언 | `POST /api/slack/interactive` |
-| `/maintenance`와 **Create Scheduled Event** 바로 가기 | Slack에서 유지 관리 예약 | `POST /api/slack/interactive` |
-| `/oneuptime` | 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 OneUptime AI에 질문 | `POST /api/slack/command` |
+| `/oneuptime` | 인시던트 선언, 유지 관리 예약, 온콜 담당자 확인, OneUptime AI에 질문. `/oneuptime help`로 모든 명령 목록을 봅니다 | `POST /api/slack/command` |
+| **Create New Incident** 및 **Create Scheduled Event** 바로 가기 | Slack 바로 가기에서 인시던트 선언 또는 유지 관리 예약 | `POST /api/slack/interactive` |
 | OneUptime 메시지의 버튼과 양식 | 확인, 해결, 메모 추가, 상태 변경, 온콜 정책 실행 | `POST /api/slack/interactive` 및 `POST /api/slack/options-load` |
 | 이벤트 | 멘션, 메시지, 반응, 고정. 예를 들어 메시지를 메모로 저장 | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 인시던트와 알림의 설명에는 스크린샷이 들어갈 수 있습니다. 예를 들어 합성 모니터의 스크린샷입니다([스크린샷 표시](/docs/monitor/incident-alert-templating#스크린샷-표시) 참고). OneUptime은 각 스크린샷을 비공개 파일로 워크스페이스에 업로드해 Slack 메시지에 표시하며, 이를 위해 봇 스코프 `files:write`가 필요합니다. 생성된 매니페스트에는 이 스코프가 포함되어 있습니다.
 
 이전 매니페스트로 Slack 앱을 만들었다면 **OAuth & Permissions > Bot Token Scopes**에 `files:write`를 추가하세요(또는 현재 매니페스트로 앱을 업데이트하세요). 그런 다음 **프로젝트 설정 > 워크스페이스 > Slack**에서 **Connect with Slack**을 다시 선택해 새 스코프가 부여되게 합니다. 그때까지 각 스크린샷은 대체 텍스트로 표시됩니다.
+
+### 이전 매니페스트로 만든 앱
+
+이전 OneUptime 매니페스트로 만든 Slack 앱은 `/incident`와 `/maintenance`를 자체 명령으로 등록하며, 이 명령은 다른 앱의 같은 이름 명령과 충돌할 수 있습니다. 이 명령은 계속 작동하고 `/oneuptime incident`, `/oneuptime maintenance`와 같은 양식을 엽니다. `/oneuptime`으로 바꾸려면 서버가 생성하는 매니페스트로 앱을 업데이트하세요. [api.slack.com/apps](https://api.slack.com/apps)에서 앱의 **App Manifest**를 열고 매니페스트를 붙여 넣은 뒤 저장합니다. 스코프는 그대로이므로 앱을 다시 설치할 필요가 없습니다.
 
 ## 자체 호스팅 배포의 네트워크 접근
 
@@ -172,7 +175,7 @@ Slack 앱의 **Event Subscriptions**에서 요청 URL을 확인합니다. OneUpt
 | 메서드와 경로 | 용도 |
 | --- | --- |
 | `POST /api/slack/events` | Events API 확인, 반응, 고정, 멘션, 메시지 |
-| `POST /api/slack/interactive` | 버튼, 바로 가기, 모달 제출, `/incident`와 `/maintenance` |
+| `POST /api/slack/interactive` | 버튼, 바로 가기, 모달 제출, 이전 앱의 `/incident`와 `/maintenance` |
 | `POST /api/slack/options-load` | 인터랙티브 메뉴의 옵션 요청 |
 | `POST /api/slack/command` | `/oneuptime` 명령 |
 

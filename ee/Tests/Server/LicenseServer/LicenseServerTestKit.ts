@@ -49,8 +49,8 @@ export const toBase64Pem: (pem: string) => string = (pem: string): string => {
 export const LEGACY_TEST_SECRET: string = "license-server-test-secret";
 
 /*
- * Stands in for JSONWebToken.signJsonPayload (which needs the server's
- * ENCRYPTION_SECRET): a real HS256 JWT, so a legacy token can be fed to
+ * Stands in for JSONWebToken.signJsonPayload (which signs with the server's
+ * own TokenSigningKey): a real HS256 JWT, so a legacy token can be fed to
  * classifyLicenseToken exactly as an installation would receive it.
  */
 export const signLegacyHs256: (

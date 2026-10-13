@@ -683,14 +683,16 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(updates[0]!.id.toString()).toBe(TIMELINE_1_ID.toString());
     expect(updates[0]!.data).toEqual({ isOwnerNotified: true });
 
-    // The feed item is unchanged, one entry per notified owner.
+    // One feed item: a sentence, and who was notified behind its details.
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident INC-7](${INCIDENT_LINK}).**: Owners have been notified about the state change of the incident because the incident state changed to **Acknowledged**.`,
-        moreInformationInMarkdown: `**Notified:** @${USER_1_ID.toString()})\n**Notified:** @${USER_2_ID.toString()})\n**Notified:** @${USER_3_ID.toString()})\n`,
+        feedInfoInMarkdown:
+          "Owners were notified that this incident is now **Acknowledged**.",
+        // Who was notified: a list, one per line.
+        moreInformationInMarkdown: `- @${USER_1_ID.toString()}\n- @${USER_2_ID.toString()}\n- @${USER_3_ID.toString()}\n`,
         /*
          * The feed only: the incident's Slack and Microsoft Teams channels
          * were told of the state change itself, and used to get this right

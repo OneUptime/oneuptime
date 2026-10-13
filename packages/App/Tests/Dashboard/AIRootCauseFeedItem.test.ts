@@ -12,7 +12,7 @@ import {
 /*
  * The incident and alert feeds show an AI investigation as a short entry:
  * a lead, the Summary and the root cause, without citation markers. The full
- * report moves behind More Information. These tests pin that shape for every
+ * report moves behind Show the full report. These tests pin that shape for every
  * report layout the parser understands, and pin that anything it cannot
  * structure is posted exactly as before.
  */
@@ -82,7 +82,7 @@ describe("buildAIRootCauseFeedContent", () => {
     expect(content.moreInformationInMarkdown).toBe(SERVER_REPORT);
   });
 
-  test("leaves the evidence, next steps, evidence checked list, footer and brand heading to More Information", () => {
+  test("leaves the evidence, next steps, evidence checked list, footer and brand heading to the full report", () => {
     const content: AIRootCauseFeedContent =
       buildAIRootCauseFeedContent(SERVER_REPORT);
 
@@ -254,7 +254,7 @@ describe("buildAIRootCauseFeedContent", () => {
     });
   });
 
-  test("text before the first section is left to More Information", () => {
+  test("text before the first section is left to the full report", () => {
     const markdown: string = `## AI — Automated Root Cause Analysis\n\nI looked at 10 data sources before writing this.\n\n**Summary** — ${SUMMARY_TEXT}`;
     const content: AIRootCauseFeedContent =
       buildAIRootCauseFeedContent(markdown);
@@ -310,7 +310,7 @@ describe("buildAIRootCauseFeedContent", () => {
     );
   });
 
-  test("CRLF reports produce the same compact text and keep the original as More Information", () => {
+  test("CRLF reports produce the same compact text and keep the original as the full report", () => {
     const crlfReport: string = SERVER_REPORT.replace(/\n/g, "\r\n");
     const content: AIRootCauseFeedContent =
       buildAIRootCauseFeedContent(crlfReport);
@@ -338,7 +338,7 @@ describe("buildAIRootCauseFeedContent", () => {
     ["an empty report", ""],
     ["a whitespace-only report", "  \r\n\t\n"],
   ])(
-    "%s is returned unchanged with no More Information",
+    "%s is returned unchanged with no full report",
     (_shape: string, markdown: string) => {
       const content: AIRootCauseFeedContent =
         buildAIRootCauseFeedContent(markdown);
@@ -532,7 +532,7 @@ describe("stripCitationMarkers", () => {
 });
 
 describe("getFeedItemMarkdown", () => {
-  test("an AI investigation with a structured report is compact, with the full report as More Information", () => {
+  test("an AI investigation with a structured report is compact, with the full report behind its toggle", () => {
     const markdown: FeedItemMarkdown = getFeedItemMarkdown({
       isAIInvestigation: true,
       feedInfoInMarkdown: SERVER_REPORT,

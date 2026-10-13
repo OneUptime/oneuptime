@@ -267,6 +267,8 @@
     "Private Network Access": "دسترسی به شبکه خصوصی",
     "Architecture": "معماری",
     "Enterprise Edition": "نسخه سازمانی",
+    "Inventory Overview": "نمای کلی موجودی",
+    "Inventory Custom Fields": "فیلدهای سفارشی موجودی",
     "Custom Fields": "فیلدهای سفارشی",
     "Exporting to a CMDB": "خروجی گرفتن به CMDB",
     "Incidents Overview": "نمای کلی حوادث",

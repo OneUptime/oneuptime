@@ -268,6 +268,8 @@
     "Private Network Access": "私有网络访问",
     "Architecture": "架构",
     "Enterprise Edition": "企业版",
+    "Inventory Overview": "资产清单概览",
+    "Inventory Custom Fields": "资产清单自定义字段",
     "Custom Fields": "自定义字段",
     "Exporting to a CMDB": "导出到 CMDB",
     "Incidents Overview": "事件概览",

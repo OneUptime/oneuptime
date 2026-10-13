@@ -1419,7 +1419,8 @@ describe("One Status Page per Audience docs", () => {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));
 
         expect(names.has(drawnActionLabel(language, label))).toBe(true);
-        expect(names.has(drawnActionLabel(language, "More Information"))).toBe(
+        // What unfolds the list under the entry (FeedItem's details toggle).
+        expect(names.has(drawnActionLabel(language, "Show details"))).toBe(
           true,
         );
       }

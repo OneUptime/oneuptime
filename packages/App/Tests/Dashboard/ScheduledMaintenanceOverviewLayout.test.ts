@@ -548,15 +548,19 @@ describe("scheduled maintenance feed", () => {
     expect(feed).not.toContain("state change");
   });
 
-  test("maps every feed event type to an icon through a typed record", () => {
+  test("maps every feed event type to a kind through a typed record, and its icons from it", () => {
     expect(feed).toContain(
-      "export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record< ScheduledMaintenanceFeedEventType, IconProp > = {",
+      "export const SCHEDULED_MAINTENANCE_FEED_KINDS: Record< ScheduledMaintenanceFeedEventType, FeedEntryKind > = {",
     );
     expect(feed).toContain(
-      "[ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]: IconProp.User,",
+      "[ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]: SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,",
     );
     expect(feed).toContain(
-      "[ScheduledMaintenanceFeedEventType.LabelRuleExecuted]: IconProp.Tag,",
+      "[ScheduledMaintenanceFeedEventType.LabelRuleExecuted]: SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,",
+    );
+    // The event type filter's checklist shows the icons the entries show.
+    expect(feed).toContain(
+      "export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record< ScheduledMaintenanceFeedEventType, IconProp > = getFeedIcons(SCHEDULED_MAINTENANCE_FEED_KINDS);",
     );
   });
 });

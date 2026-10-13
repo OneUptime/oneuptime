@@ -5,7 +5,7 @@ Forbind OneUptime med Slack for at slå hændelser, advarsler, episoder, planlag
 :::cards
 - [Forbind Slack](#forbind-slack): Installér OneUptime i dit workspace, og knyt derefter din egen konto.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
-- [Opret hændelser og vedligeholdelse fra Slack](#opret-hændelser-og-vedligeholdelse-fra-slack): `/incident` og `/maintenance`, som dig selv.
+- [Kommandoen /oneuptime](#kommandoen-oneuptime): Erklær hændelser, planlæg vedligeholdelse, se hvem der har vagt, og spørg AI.
 - [Handl på hændelser, advarsler og begivenheder fra Slack](#handl-på-hændelser-advarsler-og-begivenheder-fra-slack): Knapperne i OneUptimes beskeder.
 :::
 
@@ -76,6 +76,8 @@ At oprette en regel går gennem fire trin:
 
 En kanal, som reglen opretter, får sit navn fra **New Slack Channel Name** efterfulgt af postens nummer, som `oneuptime-incident-42`, og kun en oprettet kanal får de folk, reglen inviterer: postens ejere, valgte teams og brugere og, for hændelser og advarsler, de vagthavende, efterhånden som de tilkaldes. En privat hændelse, advarsel eller episode får en privat kanal. Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler, dens regler nævner. En hændelse, advarsel eller episode, der blev oprettet allerede løst, får ingen egen kanal; dens oprettelsesbesked går stadig til de kanaler, dine regler nævner. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 
+En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Slack** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, i Slack-appen eller i browseren. En post med to egne kanaler viser dem begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler, dine regler slår op i, tilbydes ikke.
+
 En kanal forbliver læsbar: hver begivenhed slås op én gang, og postens første tilstand står i den besked, der annoncerer posten, ikke i en besked for sig. En kørsel af en vagtpolitik er én besked, der redigeres, efterhånden som kørslen eskalerer: hvem der blev tilkaldt, hvor ofte og hvordan, hvem der ikke blev det og hvorfor, og hvem der bekræftede. En ny besked slås kun op, når nogen skal handle: en eskaleringsregel nåede ingen, eller kørslen sluttede, uden at nogen bekræftede. En person, hvis Slack-konto ikke er forbundet med OneUptime, kan ikke tilføjes til en kanal; OneUptime siger det én gang pr. kanal, i én besked, der nævner dem alle og redigeres, når listen vokser. Send dem beskedens link **Connect Slack account**, så de kan forbinde deres konto i ét trin. At postens ejere eller statussidens abonnenter har fået besked, står i dens feed i OneUptime.
 
 **Projektindstillinger** > **Arbejdsområde** > **Slack** viser de kanaler, OneUptime kan se, med **Send test** ved siden af hver. OneUptime melder sig selv ind i en offentlig kanal første gang, den slår op der. En privat kanal vises, og kan modtage opslag, først når OneUptime-appen er inviteret ind i den i Slack.
@@ -123,13 +125,30 @@ Reagér på en besked i kanalen for en hændelse, advarsel, episode eller planla
 
 Noten gemmes som dig, med dine rettigheder, så din egen Slack-konto skal være forbundet. En besked gemmes kun én gang, uanset hvor mange der reagerer.
 
+## Kommandoen /oneuptime
+
+OneUptime har én kommando i Slack, `/oneuptime`. Ordet, du skriver efter den, siger, hvad der skal ske; alt andet efter den er et spørgsmål til OneUptime AI.
+
+| Kommando | Hvad den gør |
+| --- | --- |
+| `/oneuptime help` | Viser kommandoerne med eksempler. |
+| `/oneuptime incident [title]` | Åbner hændelsesformularen med titlen udfyldt. |
+| `/oneuptime maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
+| `/oneuptime oncall` | Viser, hvem der har vagt lige nu i hver vagtplan, du kan se, til hvornår, og hvem der er den næste. |
+| `/oneuptime ask [question]`, eller ethvert spørgsmål | OneUptime AI svarer om dine logs, traces, metrikker, hændelser og monitorer. |
+
+Svarene på `help` og `oncall` er beskeder, som kun du kan se, under kommandoen. Et første ord, der ligner en kommando med en stavefejl, som `incidnet`, får den kommando, det ligner, ikke et svar fra OneUptime AI. Formularerne til hændelser og vedligeholdelse handler som dig: se [Opret hændelser og vedligeholdelse fra Slack](#opret-hændelser-og-vedligeholdelse-fra-slack).
+
+> [!NOTE]
+> `/oneuptime incident` og `/oneuptime maintenance` erstatter `/incident` og `/maintenance`, som kunne støde sammen med andre Slack-apps' kommandoer med samme navn. En Slack-app, der er oprettet ud fra et tidligere manifest, beholder dem, og de åbner de samme formularer, indtil appen bliver opdateret: se [Apps oprettet ud fra et ældre manifest](/docs/self-hosted/slack-integration#apps-oprettet-ud-fra-et-ældre-manifest).
+
 ## Spørg OneUptime AI fra Slack
 
 Spørg om dine logs, traces, metrikker, hændelser og monitorer på almindeligt sprog. Nævn OneUptime med @ i en kanal, eller send den en direkte besked, så svarer den i tråden; svar der for at spørge om mere. `/oneuptime ask which monitors are down?` slår svaret op i kanalen. Begge kræver, at din egen Slack-konto er forbundet, og at AI er slået til for projektet. Svar i Slack læser kun: brug knapperne for at ændre noget. Se [Spørg AI](/docs/ai/ask-ai).
 
 ## Opret hændelser og vedligeholdelse fra Slack
 
-`/incident` og `/maintenance` åbner en formular, som du udfylder og indsender som dig selv: som den OneUptime-konto, din Slack-konto er forbundet med (se [Forbind Slack](#forbind-slack)), med den kontos rettigheder i projektet. Hvis din Slack-konto ikke er forbundet, eller din OneUptime-konto ikke længere er medlem af projektet, fortæller OneUptime dig, hvad du skal gøre, der hvor du kørte kommandoen, i en besked kun du kan se, og ingen formular åbnes. Genvejene **Create New Incident** og **Create Scheduled Event** åbner de samme formularer.
+`/oneuptime incident` og `/oneuptime maintenance` åbner en formular, som du udfylder og indsender som dig selv: som den OneUptime-konto, din Slack-konto er forbundet med (se [Forbind Slack](#forbind-slack)), med den kontos rettigheder i projektet. Hvis din Slack-konto ikke er forbundet, eller din OneUptime-konto ikke længere er medlem af projektet, fortæller OneUptime dig, hvad du skal gøre, der hvor du kørte kommandoen, i en besked kun du kan se, og ingen formular åbnes. Genvejene **Create New Incident** og **Create Scheduled Event** åbner de samme formularer.
 
 - **Hvem der må bruge dem.** De personer, der må oprette en hændelse eller en planlagt vedligeholdelsesbegivenhed i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member** for en hændelse (**Create Incident** i en brugerdefineret rolle), og **Scheduled Maintenance Admin** og **Scheduled Maintenance Member** for en begivenhed (**Create Scheduled Maintenance**). Alle andre får det at vide der, hvor de kørte den, og ingen formular åbnes.
 - **Hvad en formular tilbyder.** Hver liste — alvorligheder, monitorer, monitorstatusser, vagtpolitikker og etiketter — indeholder det, du må læse, ligesom den samme liste i OneUptime: med en rolle, der er begrænset til nogle etiketter, de monitorer og vagtpolitikker, der har de etiketter. En liste, du slet ikke må læse, udelades fra formularen. Arkiverede vagtpolitikker tilbydes aldrig.
