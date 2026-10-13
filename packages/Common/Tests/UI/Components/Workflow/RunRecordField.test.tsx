@@ -1,0 +1,521 @@
+/*
+ * The record a record trigger runs with, in the Run Workflow panel
+ * (UI/Components/Workflow/RunRecordField): "Instead of UUID can I enter the
+ * user-facing incident ID, for convenience?" - a search that lists the newest
+ * records, finds them by number or name, and is walked with the keyboard.
+ */
+
+import RunRecordField, {
+  RUN_RECORD_SEARCH_DELAY_MS,
+  RunRecordFieldCopy,
+  formatRunRecordCreatedAt,
+  getRunRecordDescription,
+  getRunRecordLabel,
+  getRunRecordPlaceholder,
+} from "../../../../UI/Components/Workflow/RunRecordField";
+import { LoadRunRecordsFunction } from "../../../../UI/Components/Workflow/RunRecordSource";
+import { FeedClock } from "../../../../UI/Components/Feed/FeedTime";
+import { createTranslator } from "../../../../UI/Utils/TranslateTemplate";
+import ObjectID from "../../../../Types/ObjectID";
+import {
+  RunRecordEvent,
+  RunRecordMatch,
+  RunRecordOption,
+  RunRecordTriggerInfo,
+} from "../../../../Types/Workflow/RunRecord";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import "@testing-library/jest-dom";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import React, { ReactElement, useState } from "react";
+
+const WORKFLOW_ID: ObjectID = new ObjectID(
+  "b0c3f6d2-5d2e-4c55-9a0e-6f1e2d3c4b5a",
+);
+
+const NOW: Date = new Date("2026-10-13T12:00:00.000Z");
+
+const INFO: RunRecordTriggerInfo = {
+  argument: {
+    id: "_id",
+    name: "Incident ID",
+    description: "",
+    required: true,
+    type: "Text" as RunRecordTriggerInfo["argument"]["type"],
+  },
+  event: RunRecordEvent.Created,
+  singularName: "Incident",
+  pluralName: "Incidents",
+  hasNumber: true,
+  hasName: true,
+};
+
+const EIGHT: RunRecordOption = {
+  id: "11111111-1111-4111-8111-111111111111",
+  number: "INC-8",
+  name: "Database is down",
+  createdAt: "2026-10-13T09:30:00.000Z",
+  matchedBy: RunRecordMatch.Number,
+};
+
+const SEVEN: RunRecordOption = {
+  id: "22222222-2222-4222-8222-222222222222",
+  number: "INC-7",
+  name: "Disk full",
+  createdAt: "2026-09-30T08:00:00.000Z",
+  matchedBy: RunRecordMatch.Recent,
+};
+
+interface LoadCall {
+  search: string;
+  resolve: (records: Array<RunRecordOption>) => void;
+  reject: (error: unknown) => void;
+}
+
+interface Harness {
+  calls: Array<LoadCall>;
+  onChange: jest.Mock<(value: string) => void>;
+  onRecordChange: jest.Mock<(record: RunRecordOption | null) => void>;
+  value: () => string;
+}
+
+type RenderFieldFunction = (options?: {
+  info?: RunRecordTriggerInfo;
+  initialValue?: string;
+  autoResolve?: Array<RunRecordOption> | undefined;
+}) => Harness;
+
+const renderField: RenderFieldFunction = (options?: {
+  info?: RunRecordTriggerInfo;
+  initialValue?: string;
+  autoResolve?: Array<RunRecordOption> | undefined;
+}): Harness => {
+  const calls: Array<LoadCall> = [];
+  const onChange: jest.Mock<(value: string) => void> = jest.fn();
+  const onRecordChange: jest.Mock<(record: RunRecordOption | null) => void> =
+    jest.fn();
+  let current: string = options?.initialValue || "";
+
+  const load: LoadRunRecordsFunction = (data: {
+    workflowId: ObjectID;
+    search: string;
+  }): Promise<Array<RunRecordOption>> => {
+    expect(data.workflowId.toString()).toBe(WORKFLOW_ID.toString());
+
+    return new Promise<Array<RunRecordOption>>(
+      (
+        resolve: (records: Array<RunRecordOption>) => void,
+        reject: (error: unknown) => void,
+      ) => {
+        calls.push({ search: data.search, resolve: resolve, reject: reject });
+
+        if (options?.autoResolve) {
+          resolve(options.autoResolve);
+        }
+      },
+    );
+  };
+
+  const Host: () => ReactElement = (): ReactElement => {
+    const [value, setValue] = useState<string>(current);
+
+    return (
+      <RunRecordField
+        workflowId={WORKFLOW_ID}
+        info={options?.info || INFO}
+        value={value}
+        onChange={(next: string) => {
+          current = next;
+          setValue(next);
+          onChange(next);
+        }}
+        onRecordChange={onRecordChange}
+        load={load}
+        now={NOW}
+      />
+    );
+  };
+
+  render(<Host />);
+
+  return {
+    calls: calls,
+    onChange: onChange,
+    onRecordChange: onRecordChange,
+    value: (): string => {
+      return current;
+    },
+  };
+};
+
+type SearchBoxFunction = () => HTMLInputElement;
+
+const searchBox: SearchBoxFunction = (): HTMLInputElement => {
+  return screen.getByTestId("run-record-field-search") as HTMLInputElement;
+};
+
+type OptionsFunction = () => Array<HTMLElement>;
+
+const options: OptionsFunction = (): Array<HTMLElement> => {
+  return screen.queryAllByTestId("run-record-field-option");
+};
+
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+type FlushFunction = (ms?: number) => Promise<void>;
+
+const flush: FlushFunction = async (ms: number = 0): Promise<void> => {
+  await act(async () => {
+    jest.advanceTimersByTime(ms);
+    await Promise.resolve();
+  });
+};
+
+describe("the record field", () => {
+  test("says what it can be searched by", () => {
+    renderField();
+
+    expect(searchBox()).toHaveAttribute(
+      "placeholder",
+      "Search by number or name",
+    );
+    expect(searchBox()).toHaveAttribute("role", "combobox");
+    expect(searchBox()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("opened with nothing typed, lists the newest records at once", async () => {
+    const harness: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(harness.calls.map((call: LoadCall) => call.search)).toEqual([""]);
+
+    await act(async () => {
+      harness.calls[0]!.resolve([EIGHT, SEVEN]);
+    });
+
+    expect(searchBox()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Most recent")).toBeInTheDocument();
+    expect(options()).toHaveLength(2);
+    expect(options()[0]).toHaveTextContent("INC-8");
+    expect(options()[0]).toHaveTextContent("Database is down");
+    expect(options()[0]).toHaveTextContent("Created Today");
+    expect(options()[1]).toHaveTextContent("INC-7");
+    expect(options()[1]).toHaveTextContent("Disk full");
+  });
+
+  test("typing searches once the typing pauses, and says it is searching", async () => {
+    const harness: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    await flush();
+    await act(async () => {
+      harness.calls[0]!.resolve([SEVEN]);
+    });
+
+    fireEvent.change(searchBox(), { target: { value: "INC" } });
+    fireEvent.change(searchBox(), { target: { value: "INC-8" } });
+
+    // Still typing: nothing asked yet, and the list says it is searching.
+    await flush(RUN_RECORD_SEARCH_DELAY_MS - 50);
+    expect(harness.calls).toHaveLength(1);
+    expect(screen.getByTestId("run-record-field-searching")).toHaveTextContent(
+      "Searching…",
+    );
+
+    await flush(60);
+    expect(harness.calls.map((call: LoadCall) => call.search)).toEqual([
+      "",
+      "INC-8",
+    ]);
+    expect(harness.onChange).toHaveBeenLastCalledWith("INC-8");
+
+    await act(async () => {
+      harness.calls[1]!.resolve([EIGHT]);
+    });
+
+    expect(options()).toHaveLength(1);
+    expect(screen.queryByText("Most recent")).toBeNull();
+  });
+
+  test("an older answer never replaces a newer one", async () => {
+    const harness: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    fireEvent.change(searchBox(), { target: { value: "dat" } });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+    fireEvent.change(searchBox(), { target: { value: "INC-8" } });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    // The newest answer first, then the stale one.
+    await act(async () => {
+      harness.calls[harness.calls.length - 1]!.resolve([EIGHT]);
+    });
+    await act(async () => {
+      harness.calls[0]!.resolve([SEVEN]);
+      harness.calls[1]?.resolve([SEVEN]);
+    });
+
+    expect(options()).toHaveLength(1);
+    expect(options()[0]).toHaveTextContent("INC-8");
+  });
+
+  test("the keyboard walks the list, Enter picks, and the record shows in place of the box", async () => {
+    const harness: Harness = renderField({ autoResolve: [EIGHT, SEVEN] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(options()[0]).toHaveAttribute("aria-selected", "true");
+    expect(searchBox()).toHaveAttribute(
+      "aria-activedescendant",
+      options()[0]!.id,
+    );
+
+    fireEvent.keyDown(searchBox(), { key: "ArrowDown" });
+    expect(options()[1]).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(searchBox(), { key: "ArrowDown" });
+    expect(options()[0]).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(searchBox(), { key: "ArrowUp" });
+    expect(options()[1]).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(searchBox(), { key: "Enter" });
+
+    expect(harness.value()).toBe(SEVEN.id);
+    expect(harness.onRecordChange).toHaveBeenLastCalledWith(SEVEN);
+
+    const picked: HTMLElement = screen.getByTestId("run-record-field-picked");
+
+    expect(picked).toHaveTextContent("INC-7");
+    expect(picked).toHaveTextContent("Disk full");
+    expect(screen.queryByTestId("run-record-field-search")).toBeNull();
+    expect(options()).toHaveLength(0);
+  });
+
+  test("a click picks too, and Change goes back to the search", async () => {
+    const harness: Harness = renderField({ autoResolve: [EIGHT] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    fireEvent.click(options()[0]!);
+
+    expect(harness.value()).toBe(EIGHT.id);
+
+    fireEvent.click(
+      within(screen.getByTestId("run-record-field-picked")).getByRole("button", {
+        name: "Change",
+      }),
+    );
+    await flush();
+
+    expect(harness.value()).toBe("");
+    expect(harness.onRecordChange).toHaveBeenLastCalledWith(null);
+    expect(searchBox()).toHaveFocus();
+    expect(searchBox()).toHaveValue("");
+    expect(options()).toHaveLength(1);
+  });
+
+  test("Escape closes the list, not the panel around it", async () => {
+    const outer: jest.Mock<() => void> = jest.fn();
+
+    document.addEventListener("keydown", outer);
+
+    try {
+      renderField({ autoResolve: [EIGHT] });
+
+      fireEvent.focus(searchBox());
+      await flush();
+      expect(options()).toHaveLength(1);
+
+      fireEvent.keyDown(searchBox(), { key: "Escape" });
+
+      expect(options()).toHaveLength(0);
+      expect(outer).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("keydown", outer);
+    }
+  });
+
+  test("leaving the field closes the list", async () => {
+    renderField({ autoResolve: [EIGHT] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+    expect(options()).toHaveLength(1);
+
+    fireEvent.blur(searchBox(), { relatedTarget: document.body });
+
+    expect(options()).toHaveLength(0);
+  });
+
+  test("an empty project says there is nothing to pick yet", async () => {
+    renderField({ autoResolve: [] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(screen.getByTestId("run-record-field-empty")).toHaveTextContent(
+      "There are no incidents in this project yet.",
+    );
+  });
+
+  test("a search that finds nothing says so", async () => {
+    renderField({ autoResolve: [] });
+
+    fireEvent.focus(searchBox());
+    fireEvent.change(searchBox(), { target: { value: "INC-80" } });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    expect(screen.getByTestId("run-record-field-empty")).toHaveTextContent(
+      "Nothing matches “INC-80”.",
+    );
+  });
+
+  test("a refused search shows the server's words", async () => {
+    const harness: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    await act(async () => {
+      harness.calls[0]!.reject(
+        new Error(
+          "You don't have permission to read incidents, so you can't look one up here.",
+        ),
+      );
+    });
+
+    expect(screen.getByTestId("run-record-field-failed")).toHaveTextContent(
+      "You don't have permission to read incidents, so you can't look one up here.",
+    );
+  });
+
+  test("a record without a name is listed by its number, one without either by its ID", async () => {
+    renderField({
+      autoResolve: [
+        { id: "a", number: "INC-1", matchedBy: RunRecordMatch.Recent },
+        { id: "bbbb", matchedBy: RunRecordMatch.Recent },
+      ],
+    });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(options()[0]).toHaveTextContent("INC-1");
+    expect(options()[1]).toHaveTextContent("bbbb");
+  });
+
+  test("the clear button empties the box and keeps the focus there", async () => {
+    const harness: Harness = renderField({ initialValue: "INC-8" });
+
+    expect(searchBox()).toHaveValue("INC-8");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(searchBox()).toHaveValue("");
+    expect(harness.value()).toBe("");
+  });
+});
+
+describe("the words around it", () => {
+  const translator: ReturnType<typeof createTranslator> = createTranslator(
+    undefined,
+    "en",
+  );
+
+  test.each([
+    [
+      RunRecordEvent.Created,
+      "The run starts as if this incident had just been created.",
+    ],
+    [
+      RunRecordEvent.Updated,
+      "The run starts as if this incident had just been updated.",
+    ],
+    [
+      RunRecordEvent.Deleted,
+      "The run starts as if this incident had just been deleted. Nothing is deleted.",
+    ],
+  ])("the help for a %s trigger", (event: RunRecordEvent, help: string) => {
+    expect(getRunRecordDescription(translator, { ...INFO, event: event })).toBe(
+      help,
+    );
+  });
+
+  test.each([
+    [true, true, RunRecordFieldCopy.searchByNumberOrName],
+    [true, false, RunRecordFieldCopy.searchByNumber],
+    [false, true, RunRecordFieldCopy.searchByName],
+    [false, false, RunRecordFieldCopy.pasteId],
+  ])(
+    "number %p and name %p: the box says %p",
+    (hasNumber: boolean, hasName: boolean, placeholder: string) => {
+      expect(
+        getRunRecordPlaceholder({
+          ...INFO,
+          hasNumber: hasNumber,
+          hasName: hasName,
+        }),
+      ).toBe(placeholder);
+    },
+  );
+
+  test("a record's label", () => {
+    expect(getRunRecordLabel(EIGHT)).toBe("INC-8 · Database is down");
+    expect(
+      getRunRecordLabel({ ...EIGHT, name: undefined } as RunRecordOption),
+    ).toBe("INC-8");
+    expect(
+      getRunRecordLabel({ ...EIGHT, number: undefined } as RunRecordOption),
+    ).toBe("Database is down");
+    expect(
+      getRunRecordLabel({ id: "x", matchedBy: RunRecordMatch.Id }),
+    ).toBe("x");
+  });
+
+  test("when a record was created, short", () => {
+    const clock: FeedClock = {
+      timezone: "UTC",
+      language: "en",
+      use12HourClock: true,
+      now: NOW,
+    };
+
+    expect(
+      formatRunRecordCreatedAt(new Date("2026-10-13T09:30:00.000Z"), clock),
+    ).toBe("Today, 9:30 AM");
+    expect(
+      formatRunRecordCreatedAt(new Date("2026-10-12T21:05:00.000Z"), clock),
+    ).toBe("Yesterday, 9:05 PM");
+    expect(
+      formatRunRecordCreatedAt(new Date("2026-10-02T15:25:00.000Z"), clock),
+    ).toBe("Oct 2, 3:25 PM");
+    expect(
+      formatRunRecordCreatedAt(new Date("2025-12-31T15:25:00.000Z"), clock),
+    ).toBe("Dec 31, 2025, 3:25 PM");
+  });
+});

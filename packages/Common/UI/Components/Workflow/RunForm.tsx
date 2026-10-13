@@ -222,16 +222,18 @@ const RunForm: FunctionComponent<ComponentProps> = (
           component.metadata.runWorkflowManuallyArguments.length === 0 && (
             <ErrorMessage
               message={
-                <TranslatedSentence
-                  template={RunFormCopy.noValues}
-                  slots={{
-                    button: (
-                      <strong className="font-semibold text-gray-700">
-                        {translator.translateText(RUN_WORKFLOW_SUBMIT_TITLE)}
-                      </strong>
-                    ),
-                  }}
-                />
+                <span data-testid="run-form-no-values">
+                  <TranslatedSentence
+                    template={RunFormCopy.noValues}
+                    slots={{
+                      button: (
+                        <strong className="font-semibold text-gray-700">
+                          {translator.translateText(RUN_WORKFLOW_SUBMIT_TITLE)}
+                        </strong>
+                      ),
+                    }}
+                  />
+                </span>
               }
             />
           )}
