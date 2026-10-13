@@ -246,12 +246,15 @@ export default class CriteriaFilterUtil {
     const checkByCheckWindow: string =
       CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter, monitorType);
 
+    /*
+     * A body, header or expression filter with the box ticked but no minutes
+     * is judged on the latest check, so it reads as one.
+     */
+    const isEvaluatedOverTime: boolean =
+      CommonCriteriaFilterUtil.isEvaluatedOverTime(criteriaFilter, monitorType);
+
     // check evaluation over time values.
-    if (
-      criteriaFilter?.evaluateOverTime &&
-      evaluateOverTimeType &&
-      !checkByCheckWindow
-    ) {
+    if (isEvaluatedOverTime && evaluateOverTimeType && !checkByCheckWindow) {
       if (evaluateOverTimeType === EvaluateOverTimeType.AllValues) {
         text += `all values of `;
       } else if (evaluateOverTimeType === EvaluateOverTimeType.AnyValue) {
@@ -363,7 +366,7 @@ export default class CriteriaFilterUtil {
 
       // add minutes if evaluate over time is true
       if (
-        criteriaFilter?.evaluateOverTime &&
+        isEvaluatedOverTime &&
         criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes &&
         !checkByCheckWindow
       ) {
@@ -447,13 +450,16 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes;
 
     if (
-      !criteriaFilter?.evaluateOverTime ||
-      !minutes ||
-      !CommonCriteriaFilterUtil.isJudgedCheckByCheck(
-        criteriaFilter.checkOn,
+      !CommonCriteriaFilterUtil.isEvaluatedOverTime(
+        criteriaFilter,
         monitorType,
       ) ||
-      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter.checkOn)
+      !minutes ||
+      !CommonCriteriaFilterUtil.keepsMatchHistory(
+        criteriaFilter?.checkOn,
+        monitorType,
+      ) ||
+      CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
     ) {
       return "";
     }

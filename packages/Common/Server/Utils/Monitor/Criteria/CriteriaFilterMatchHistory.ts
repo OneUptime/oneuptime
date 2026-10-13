@@ -171,12 +171,13 @@ export default class CriteriaFilterMatchHistory {
 
   /**
    * Whether this filter, on this monitor, is judged from its match history:
-   * it asks to be evaluated over a period of time, says how, and checks
-   * something no series records.
+   * it asks to be evaluated over a period of time, over a window of some
+   * minutes, and checks something no series records.
    *
-   * A filter with the checkbox on but no window (saved before the form
-   * filled one in) is not: like every other over-time filter without
-   * options, it is judged on this check alone (EvaluateOverTime).
+   * A filter with the checkbox on but no window - none saved, or no minutes
+   * in it (through the API, or a cleared dropdown) - is not: it is judged
+   * on this check alone, as it always was, rather than by its If No Data
+   * setting on every check.
    */
   public static isJudgedFromHistory(data: {
     criteriaFilter: CriteriaFilter;
@@ -184,7 +185,7 @@ export default class CriteriaFilterMatchHistory {
   }): boolean {
     return (
       Boolean(data.criteriaFilter.evaluateOverTime) &&
-      Boolean(data.criteriaFilter.evaluateOverTimeOptions) &&
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(data.criteriaFilter) > 0 &&
       CriteriaFilterUtil.hasMatchHistory({
         checkOn: data.criteriaFilter.checkOn,
         monitorType: data.monitorType,
@@ -324,13 +325,8 @@ export default class CriteriaFilterMatchHistory {
       data.criteriaFilter,
     );
 
-    /*
-     * The dashboard has saved the window as a string, the API and Terraform
-     * send a number.
-     */
     const windowInMinutes: number =
-      Number(data.criteriaFilter.evaluateOverTimeOptions?.timeValueInMinutes) ||
-      0;
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(data.criteriaFilter);
 
     /*
      * An aggregate saved on a yes/no check means nothing, so it is judged as
@@ -343,11 +339,18 @@ export default class CriteriaFilterMatchHistory {
       ) === EvaluateOverTimeType.AnyValue;
 
     if (windowInMinutes <= 0) {
-      return CriteriaFilterMatchHistory.applyNoDataPolicy({
-        criteriaFilter: data.criteriaFilter,
-        waitingMessage: `${filterLabel} has no window to look back over, so it was not judged.`,
-        triggeredMessage: `${filterLabel} has no window to look back over, and its If No Data setting is Trigger.`,
-      });
+      /*
+       * Never reached from the evaluator (isJudgedFromHistory), and judged
+       * the way the evaluator judges such a filter: on this check alone.
+       */
+      const message: string = `${filterLabel} ${
+        data.check.matched ? "matched" : "did not match"
+      } on this check, and has no window to look back over.`;
+
+      return {
+        rootCause: data.check.matched ? message : null,
+        message: message,
+      };
     }
 
     const windowName: string =
@@ -467,14 +470,13 @@ export default class CriteriaFilterMatchHistory {
       });
     }
 
-    const intervalMs: number | null = CriteriaFilterMatchHistory.toMilliseconds(
-      EvaluateOverTime.getSamplingIntervalInSeconds({
-        monitoringInterval: data.monitoringInterval,
-        sortedSampleTimes: checks.map((check: JudgedCheck) => {
-          return check.at.getTime();
-        }),
-      }),
-    );
+    /*
+     * The monitor's schedule; without one, the typical gap between its
+     * checks. Not the widest gap, as a series window takes it: a gap is
+     * measured against the interval, and would never be wider than itself.
+     */
+    const intervalMs: number | null =
+      scheduledIntervalMs ?? CriteriaFilterMatchHistory.getTypicalGapMs(checks);
 
     const gapInChecksMs: number | null =
       intervalMs === null ? null : GAP_IN_CHECKS_FACTOR * intervalMs;
@@ -641,6 +643,11 @@ export default class CriteriaFilterMatchHistory {
   /*
    * Every probe's checks of one filter from `from` to `to`. Rows that cannot
    * be read are skipped.
+   *
+   * Newest first: a read of every probe's checks over a long window can
+   * reach the row limit, and what it then leaves out must be the oldest
+   * checks - a history that starts later, which makes All Values wait -
+   * never checks at random from the middle of a run.
    */
   public static async readMatches(data: {
     projectId: ObjectID;
@@ -660,6 +667,7 @@ export default class CriteriaFilterMatchHistory {
       windowEnd: data.to,
       attributes: filterKeyAttribute,
       selectAttributes: true,
+      newestFirst: true,
     });
 
     const matches: Array<RecordedMatch> = [];
@@ -756,6 +764,35 @@ export default class CriteriaFilterMatchHistory {
     const text: string = String(value);
 
     return text.length > 0 ? text : undefined;
+  }
+
+  /*
+   * The lower median of the gaps between consecutive checks (the checks
+   * sorted oldest first): what the cadence is most of the time, so the gaps
+   * that are not stand out. Checks written at the same moment say nothing
+   * of the cadence and are left out. Null without two checks apart.
+   */
+  private static getTypicalGapMs(checks: Array<JudgedCheck>): number | null {
+    const gaps: Array<number> = [];
+
+    for (let index: number = 1; index < checks.length; index++) {
+      const gapMs: number =
+        checks[index]!.at.getTime() - checks[index - 1]!.at.getTime();
+
+      if (gapMs > 0) {
+        gaps.push(gapMs);
+      }
+    }
+
+    if (gaps.length === 0) {
+      return null;
+    }
+
+    gaps.sort((a: number, b: number) => {
+      return a - b;
+    });
+
+    return gaps[Math.floor((gaps.length - 1) / 2)]!;
   }
 
   private static toMilliseconds(seconds: number | null): number | null {

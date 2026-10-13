@@ -357,6 +357,150 @@ describe("CriteriaFilterUtil.isJudgedCheckByCheck", () => {
   });
 });
 
+describe("CriteriaFilterUtil.keepsMatchHistory", () => {
+  test("with a monitor type, is hasMatchHistory", () => {
+    expect(
+      CriteriaFilterUtil.keepsMatchHistory(
+        CheckOn.JavaScriptExpression,
+        MonitorType.API,
+      ),
+    ).toBe(true);
+    expect(
+      CriteriaFilterUtil.keepsMatchHistory(
+        CheckOn.JavaScriptExpression,
+        MonitorType.SQLQuery,
+      ),
+    ).toBe(false);
+  });
+
+  test("without one, whether any monitor type keeps one for the check", () => {
+    for (const checkOn of HTTP_MATCH_HISTORY_CHECK_ONS) {
+      expect(CriteriaFilterUtil.keepsMatchHistory(checkOn)).toBe(true);
+    }
+
+    expect(CriteriaFilterUtil.keepsMatchHistory(CheckOn.IsOnline)).toBe(false);
+    expect(CriteriaFilterUtil.keepsMatchHistory(CheckOn.ResponseTime)).toBe(
+      false,
+    );
+    expect(CriteriaFilterUtil.keepsMatchHistory(undefined)).toBe(false);
+  });
+});
+
+describe("CriteriaFilterUtil.getEvaluateOverTimeMinutes", () => {
+  test.each([
+    [5, 5],
+    ["15", 15],
+    [undefined, 0],
+    [null, 0],
+    ["", 0],
+    [0, 0],
+    [-5, 0],
+    ["soon", 0],
+  ])(
+    "a window of %p minutes is %p",
+    (timeValueInMinutes: unknown, expected: number) => {
+      expect(
+        CriteriaFilterUtil.getEvaluateOverTimeMinutes(
+          filter(CheckOn.ResponseBody, {
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: timeValueInMinutes as number,
+              evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+            },
+          }),
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  test("is 0 without a window", () => {
+    expect(
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(
+        filter(CheckOn.ResponseBody),
+      ),
+    ).toBe(0);
+    expect(CriteriaFilterUtil.getEvaluateOverTimeMinutes(undefined)).toBe(0);
+  });
+});
+
+/*
+ * What everything that describes a filter asks before it describes a
+ * window: the criteria list, the incident's expectation text.
+ */
+describe("CriteriaFilterUtil.isEvaluatedOverTime", () => {
+  function withWindow(
+    checkOn: CheckOn,
+    timeValueInMinutes: unknown,
+  ): CriteriaFilter {
+    return filter(checkOn, {
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        timeValueInMinutes: timeValueInMinutes as number,
+        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+      },
+    });
+  }
+
+  test("a filter that keeps a match history is, with a window of some minutes", () => {
+    expect(
+      CriteriaFilterUtil.isEvaluatedOverTime(
+        withWindow(CheckOn.ResponseBody, 5),
+        MonitorType.Website,
+      ),
+    ).toBe(true);
+  });
+
+  test.each([undefined, 0, null, ""])(
+    "a filter that keeps a match history is not with a window of %p minutes - it is judged on the latest check",
+    (timeValueInMinutes: unknown) => {
+      expect(
+        CriteriaFilterUtil.isEvaluatedOverTime(
+          withWindow(CheckOn.ResponseBody, timeValueInMinutes),
+          MonitorType.Website,
+        ),
+      ).toBe(false);
+      expect(
+        CriteriaFilterUtil.isEvaluatedOverTime(
+          withWindow(CheckOn.IsRequestTimeout, timeValueInMinutes),
+          MonitorType.Ping,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("any other filter is whenever its box is ticked, as before", () => {
+    expect(
+      CriteriaFilterUtil.isEvaluatedOverTime(
+        withWindow(CheckOn.ResponseTime, undefined),
+        MonitorType.Website,
+      ),
+    ).toBe(true);
+    // A JavaScript expression keeps no history on a SQL Query monitor.
+    expect(
+      CriteriaFilterUtil.isEvaluatedOverTime(
+        withWindow(CheckOn.JavaScriptExpression, undefined),
+        MonitorType.SQLQuery,
+      ),
+    ).toBe(true);
+  });
+
+  test("no filter is with its box unticked", () => {
+    expect(
+      CriteriaFilterUtil.isEvaluatedOverTime(
+        filter(CheckOn.ResponseBody, {
+          evaluateOverTime: false,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          },
+        }),
+        MonitorType.Website,
+      ),
+    ).toBe(false);
+    expect(CriteriaFilterUtil.isEvaluatedOverTime(undefined)).toBe(false);
+  });
+});
+
 describe("the evaluation types a check judged check by check is offered", () => {
   test.each([
     CheckOn.ResponseBody,

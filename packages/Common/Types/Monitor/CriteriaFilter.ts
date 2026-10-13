@@ -550,6 +550,16 @@ export class CriteriaFilterUtil {
     );
   }
 
+  // The checks of a response a Website or an API monitor gets, alike.
+  private static readonly HTTP_MATCH_HISTORY_CHECK_ONS: ReadonlyArray<CheckOn> =
+    [
+      CheckOn.ResponseBody,
+      CheckOn.ResponseHeader,
+      CheckOn.ResponseHeaderValue,
+      CheckOn.JavaScriptExpression,
+      CheckOn.IsRequestTimeout,
+    ];
+
   /*
    * The checks that keep a match history, per monitor type - see
    * hasMatchHistory. Read through getMatchHistoryCheckOns, never directly,
@@ -558,20 +568,8 @@ export class CriteriaFilterUtil {
   private static readonly MATCH_HISTORY_CHECK_ONS: Partial<
     Record<MonitorType, ReadonlyArray<CheckOn>>
   > = {
-    [MonitorType.Website]: [
-      CheckOn.ResponseBody,
-      CheckOn.ResponseHeader,
-      CheckOn.ResponseHeaderValue,
-      CheckOn.JavaScriptExpression,
-      CheckOn.IsRequestTimeout,
-    ],
-    [MonitorType.API]: [
-      CheckOn.ResponseBody,
-      CheckOn.ResponseHeader,
-      CheckOn.ResponseHeaderValue,
-      CheckOn.JavaScriptExpression,
-      CheckOn.IsRequestTimeout,
-    ],
+    [MonitorType.Website]: CriteriaFilterUtil.HTTP_MATCH_HISTORY_CHECK_ONS,
+    [MonitorType.API]: CriteriaFilterUtil.HTTP_MATCH_HISTORY_CHECK_ONS,
     [MonitorType.Ping]: [CheckOn.IsRequestTimeout],
     [MonitorType.IP]: [CheckOn.IsRequestTimeout],
     [MonitorType.Port]: [CheckOn.IsRequestTimeout],
@@ -638,12 +636,63 @@ export class CriteriaFilterUtil {
     checkOn: CheckOn | undefined,
     monitorType?: MonitorType | undefined,
   ): boolean {
-    if (!checkOn) {
+    return (
+      CriteriaFilterUtil.isBooleanSeries(checkOn) ||
+      CriteriaFilterUtil.keepsMatchHistory(checkOn, monitorType)
+    );
+  }
+
+  /*
+   * A window's length in minutes, 0 when it has none. The dashboard has
+   * saved it as a string, the API and Terraform send a number.
+   */
+  public static getEvaluateOverTimeMinutes(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): number {
+    const minutes: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes,
+    );
+
+    return Number.isFinite(minutes) && minutes > 0 ? minutes : 0;
+  }
+
+  /**
+   * Whether a filter is judged over a window, for everything that describes
+   * it. A check that keeps a match history (keepsMatchHistory) is judged
+   * from it only with a window of some minutes; with the box ticked and no
+   * minutes - through the API, or a cleared dropdown - it is judged on the
+   * latest check, as it always was, so nothing should describe a window for
+   * it. Every other filter is evaluated over time whenever its box is
+   * ticked.
+   */
+  public static isEvaluatedOverTime(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (!criteriaFilter?.evaluateOverTime) {
       return false;
     }
 
-    if (CriteriaFilterUtil.isBooleanSeries(checkOn)) {
-      return true;
+    if (
+      CriteriaFilterUtil.keepsMatchHistory(criteriaFilter.checkOn, monitorType)
+    ) {
+      return CriteriaFilterUtil.getEvaluateOverTimeMinutes(criteriaFilter) > 0;
+    }
+
+    return true;
+  }
+
+  /**
+   * hasMatchHistory for a caller that may not know the monitor type: with
+   * one, whether the check keeps a match history on that monitor; without
+   * one, whether it does on any.
+   */
+  public static keepsMatchHistory(
+    checkOn: CheckOn | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (!checkOn) {
+      return false;
     }
 
     if (monitorType) {

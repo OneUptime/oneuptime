@@ -16,6 +16,7 @@ import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
 import MetricService from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import CronTab from "../../CronTab";
 import MonitoringIntervalUtil from "../../../../Utils/Monitor/MonitoringIntervalUtil";
 import logger from "../../Logger";
@@ -394,7 +395,9 @@ export default class EvaluateOverTime {
    * read one.
    *
    * `selectAttributes` also reads each row's attributes, for a caller that
-   * splits one read between the probes that wrote it.
+   * splits one read between the probes that wrote it. `newestFirst` orders
+   * the rows by time, newest first, so a read cut at the row limit leaves
+   * out the oldest rows rather than any.
    */
   public static async readWindowRows(data: {
     projectId: ObjectID;
@@ -404,6 +407,7 @@ export default class EvaluateOverTime {
     windowEnd: Date;
     attributes?: JSONObject | undefined;
     selectAttributes?: boolean | undefined;
+    newestFirst?: boolean | undefined;
   }): Promise<Array<Metric>> {
     const query: Query<Metric> = {
       projectId: data.projectId,
@@ -433,6 +437,7 @@ export default class EvaluateOverTime {
             value: true,
             time: true,
           },
+      ...(data.newestFirst ? { sort: { time: SortOrder.Descending } } : {}),
     });
   }
 

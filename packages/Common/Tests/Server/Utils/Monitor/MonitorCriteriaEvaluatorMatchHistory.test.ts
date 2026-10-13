@@ -27,6 +27,7 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
+  NoDataPolicy,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import {
   CRITERIA_FILTER_KEY_ATTRIBUTE,
@@ -882,6 +883,47 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
       expect(store).toHaveLength(0);
       expect(matchHistoryReads).toBe(0);
       expect(MetricService.insertJsonRows).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Saved through the API with no minutes, or with the dropdown cleared:
+     * judged from a history its If No Data setting would decide every check,
+     * and Trigger would keep the monitor offline for good. It is judged on
+     * the latest check, as before #4686, and keeps no history.
+     */
+    test("a window without minutes is judged on the latest check, whatever If No Data says", async () => {
+      const monitor: Monitor = monitorOf(MonitorType.Website);
+      const step: MonitorStep = stepWith([
+        criteria({
+          name: "Offline",
+          filters: [
+            {
+              ...BODY_MISSING_TITLE,
+              evaluateOverTime: true,
+              evaluateOverTimeOptions: {
+                timeValueInMinutes: undefined,
+                evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                onNoDataPolicy: NoDataPolicy.Trigger,
+              },
+            },
+          ],
+        }),
+        criteria({ name: "Online", filters: [IS_ONLINE] }),
+      ]);
+
+      atMinute(0);
+      expect((await check({ monitor, monitorStep: step })).criteriaMet).toBe(
+        "Online",
+      );
+
+      atMinute(1);
+      expect(
+        (await check({ monitor, monitorStep: step, body: PLACEHOLDER_PAGE }))
+          .criteriaMet,
+      ).toBe("Offline");
+
+      expect(store).toHaveLength(0);
+      expect(matchHistoryReads).toBe(0);
     });
 
     test("Any Value fires on the first placeholder and stays for its window", async () => {

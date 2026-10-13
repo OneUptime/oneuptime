@@ -10,6 +10,8 @@ import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
 import logger from "../../../../../Server/Utils/Logger";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import FilterCondition from "../../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../../Types/JSON";
 import {
@@ -393,6 +395,50 @@ describe("CriteriaFilterMatchHistory", () => {
       ).toBe(false);
     });
 
+    /*
+     * Saved through the API, or with the minutes dropdown cleared: judged
+     * from the history, its If No Data setting would decide every check -
+     * Trigger would keep the monitor down for good. It is judged on the
+     * latest check instead, as it always was.
+     */
+    test.each([
+      ["no minutes", undefined],
+      ["0 minutes", 0],
+      ["a cleared dropdown", null],
+      ["an empty string", ""],
+      ["text", "soon"],
+    ])(
+      "a window of %s is not",
+      (_name: string, timeValueInMinutes: unknown) => {
+        expect(
+          CriteriaFilterMatchHistory.isJudgedFromHistory({
+            criteriaFilter: bodyFilter({
+              evaluateOverTimeOptions: {
+                timeValueInMinutes: timeValueInMinutes as number,
+                evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                onNoDataPolicy: NoDataPolicy.Trigger,
+              },
+            }),
+            monitorType: MonitorType.Website,
+          }),
+        ).toBe(false);
+      },
+    );
+
+    test("a window saved as a string of minutes is", () => {
+      expect(
+        CriteriaFilterMatchHistory.isJudgedFromHistory({
+          criteriaFilter: bodyFilter({
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: "5" as unknown as number,
+              evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+            },
+          }),
+          monitorType: MonitorType.Website,
+        }),
+      ).toBe(true);
+    });
+
     test("a check with a series of its own is not - its series is", () => {
       expect(
         CriteriaFilterMatchHistory.isJudgedFromHistory({
@@ -658,6 +704,30 @@ describe("CriteriaFilterMatchHistory", () => {
       expect(judgement.message).toContain("for 2 minutes (3 checks)");
     });
 
+    /*
+     * Without a schedule the cadence is the typical gap between the checks,
+     * not the widest: measured against the widest, no gap could ever be
+     * wider than the interval, and a run would be followed back across an
+     * outage nobody saw.
+     */
+    test("sees a gap in the checks when the schedule is unknown", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 14 }),
+        storedCheck({ matched: true, minutesAgo: 13 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+        monitoringInterval: "not a schedule",
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check since a 13-minute gap in its checks; All Values waits until it has matched on every check for 5 minutes.',
+      );
+    });
+
     test("is not met when the app came back for a single check in the window - flapping", async () => {
       storedChecks = everyMinuteBefore([1, 1, 0, 1, 1]);
 
@@ -747,6 +817,15 @@ describe("CriteriaFilterMatchHistory", () => {
         attributes: true,
       });
       expect(findByCalls[0]!.props).toEqual({ isRoot: true });
+
+      /*
+       * Newest first, so a read that reaches the row limit - every probe's
+       * checks over a long window - leaves out the oldest checks: a history
+       * that starts later, which makes All Values wait, never checks at
+       * random from the middle of a run.
+       */
+      expect(findByCalls[0]!.sort).toEqual({ time: SortOrder.Descending });
+      expect(findByCalls[0]!.limit).toBe(LIMIT_PER_PROJECT);
     });
 
     test("is not met when the history cannot be read - a read failure is never a breach", async () => {
@@ -1121,32 +1200,34 @@ describe("CriteriaFilterMatchHistory", () => {
       ).toBeNull();
     });
 
-    test("a window with no length waits, or is met with Trigger", async () => {
-      const noWindow: CriteriaFilter = bodyFilter(allValues(0));
-
-      const ignored: MatchHistoryJudgement = await judge({
-        criteriaFilter: noWindow,
-        matched: true,
+    test("a window with no length is judged on this check alone, whatever If No Data says", async () => {
+      const noWindowTrigger: CriteriaFilter = bodyFilter({
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: undefined,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          onNoDataPolicy: NoDataPolicy.Trigger,
+        },
       });
 
-      expect(ignored.rootCause).toBeNull();
-      expect(ignored.message).toBe(
-        'Response Body Not Contains "App Title" has no window to look back over, so it was not judged.',
+      const notMatched: MatchHistoryJudgement = await judge({
+        criteriaFilter: noWindowTrigger,
+        matched: false,
+      });
+
+      expect(notMatched.rootCause).toBeNull();
+      expect(notMatched.message).toBe(
+        'Response Body Not Contains "App Title" did not match on this check, and has no window to look back over.',
       );
 
-      const triggered: MatchHistoryJudgement = await judge({
-        criteriaFilter: bodyFilter({
-          evaluateOverTimeOptions: {
-            timeValueInMinutes: undefined,
-            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-            onNoDataPolicy: NoDataPolicy.Trigger,
-          },
-        }),
-        matched: true,
-      });
-
-      expect(triggered.rootCause).toBe(
-        'Response Body Not Contains "App Title" has no window to look back over, and its If No Data setting is Trigger.',
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(allValues(0)),
+            matched: true,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on this check, and has no window to look back over.',
       );
       expect(findByCalls).toHaveLength(0);
     });

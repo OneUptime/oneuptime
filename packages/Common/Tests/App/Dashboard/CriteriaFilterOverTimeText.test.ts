@@ -147,6 +147,31 @@ describe("the criteria list, for a filter judged from its match history", () => 
     ).toBe('Check if "Response Body" not contains App Title ');
   });
 
+  test("nor does a window without minutes - saved through the API, or with the dropdown cleared", () => {
+    for (const timeValueInMinutes of [undefined, 0, null]) {
+      const noMinutes: CriteriaFilter = {
+        ...BODY,
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: timeValueInMinutes as unknown as number,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          onNoDataPolicy: NoDataPolicy.Trigger,
+        },
+      };
+
+      expect(
+        CriteriaFilterUtil.translateFilterToText(
+          noMinutes,
+          undefined,
+          MonitorType.Website,
+        ),
+      ).toBe('Check if "Response Body" not contains App Title ');
+      expect(CriteriaFilterUtil.translateFilterToText(noMinutes)).toBe(
+        'Check if "Response Body" not contains App Title ',
+      );
+    }
+  });
+
   /*
    * Only the monitor types where the check keeps a match history judge its
    * window check by check; given the monitor, the list says so only there.
