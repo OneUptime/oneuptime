@@ -50,7 +50,8 @@ export interface FeedItemProps {
   /*
    * The author of an entry written on someone's behalf, when they are not a
    * OneUptime user - a Slack member who has not connected their account.
-   * Shown like a user's name, with a blank avatar.
+   * Shown like a user's name, with a blank avatar. It wins over `user`, who
+   * is then whoever saved the entry for them (named in authorDetail).
    */
   authorName?: string | undefined;
   /*
@@ -90,25 +91,34 @@ const FeedMarkdown: FunctionComponent<{
 FeedMarkdown.displayName = "FeedMarkdown";
 
 /*
+ * Whether the entry names an author of its own: someone who is not a
+ * OneUptime user, such as the Slack member whose message was saved as a note.
+ */
+const hasNamedAuthor: (item: FeedItemProps) => boolean = (
+  item: FeedItemProps,
+): boolean => {
+  return Boolean((item.authorName || "").trim());
+};
+
+/*
  * The name an entry's author goes by, or undefined for an entry nobody in
- * particular did (OneUptime itself, a rule, a schedule).
+ * particular did (OneUptime itself, a rule, a schedule). A named author wins
+ * over the entry's user, who only saved it for them.
  */
 const getAuthorName: (item: FeedItemProps) => string | undefined = (
   item: FeedItemProps,
 ): string | undefined => {
+  if (hasNamedAuthor(item)) {
+    return (item.authorName || "").trim();
+  }
+
   const userName: string = (
     item.user?.name?.toString() ||
     item.user?.email?.toString() ||
     ""
   ).trim();
 
-  if (userName) {
-    return userName;
-  }
-
-  const authorName: string = (item.authorName || "").trim();
-
-  return authorName || undefined;
+  return userName || undefined;
 };
 
 const Avatar: FunctionComponent<{ user?: User | undefined }> = (props: {
@@ -151,6 +161,10 @@ const FeedItem: FunctionComponent<ComponentProps> = (
 
   const authorName: string | undefined = getAuthorName(item);
   const hasAuthorLine: boolean = Boolean(authorName && item.authorDetail);
+  // A named author is not the user: their picture would be someone else's.
+  const avatarUser: User | undefined = hasNamedAuthor(item)
+    ? undefined
+    : item.user;
 
   const text: FeedEntryLead = useMemo(() => {
     return getFeedEntryText({
@@ -226,7 +240,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           className="text-sm leading-6 text-gray-700"
           data-testid="feed-entry-author"
         >
-          <Avatar user={item.user} />
+          <Avatar user={avatarUser} />
           {authorNameElement}{" "}
           <span className="text-gray-500">{item.authorDetail}</span>
         </div>
@@ -243,7 +257,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           className="text-sm leading-6 text-gray-700 [&_div]:inline [&_p]:m-0 [&_p]:inline"
           data-testid="feed-entry-lead"
         >
-          <Avatar user={item.user} />
+          <Avatar user={avatarUser} />
           {!text.leadNamesActor && <>{authorNameElement} </>}
           <FeedMarkdown text={text.lead} safeMode={safeMode} />
         </div>
@@ -255,7 +269,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
         className="text-sm leading-6 text-gray-700"
         data-testid="feed-entry-author"
       >
-        <Avatar user={item.user} />
+        <Avatar user={avatarUser} />
         {authorNameElement}
       </div>
     );

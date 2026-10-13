@@ -238,6 +238,32 @@ describe("who did it", () => {
       "Seen this before - it is the cache.",
     );
   });
+
+  test("a note saved by a user for someone else names who wrote it, with a blank avatar, not the user's", () => {
+    const savedBy: User = new User();
+    savedBy.id = new ObjectID("5b5b5b5b-5b5b-4b5b-8b5b-5b5b5b5b5b5b");
+    savedBy.name = new Name("Nitin Kumar");
+
+    renderEntry({
+      item: item({
+        user: savedBy,
+        authorName: "Aidil Rahman",
+        authorDetail: "via Slack (note added by Nitin Kumar)",
+        textInMarkdown: "Seen this before - it is the cache.",
+      }),
+    });
+
+    const author: HTMLElement = screen.getByTestId("feed-entry-author");
+
+    expect(author).toHaveTextContent(
+      "Aidil Rahman via Slack (note added by Nitin Kumar)",
+    );
+    expect(author.querySelector("strong")).toHaveTextContent("Aidil Rahman");
+    // Not Nitin's picture: the blank one.
+    expect(
+      screen.getByTestId("feed-entry-avatar").getAttribute("src") || "",
+    ).not.toContain(savedBy.id!.toString());
+  });
 });
 
 describe("the time", () => {
