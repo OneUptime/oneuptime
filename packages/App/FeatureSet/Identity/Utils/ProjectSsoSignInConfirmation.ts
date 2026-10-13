@@ -58,6 +58,26 @@ import User from "Common/Models/DatabaseModels/User";
  *
  * Global SSO and Global OIDC are unaffected everywhere: the instance operator
  * configures those providers, so their assertions are trusted as before.
+ *
+ * ---------------------------------------------------------------------------
+ * A PROJECT'S SINGLE SIGN-ON NEVER SIGNS IN A ONEUPTIME ADMINISTRATOR.
+ *
+ * A separate, stronger rule that holds on EVERY edition, hosted or not, and
+ * does not depend on the mailbox consent above. The master-admin capability
+ * is instance-wide: the access token's `isMasterAdmin` claim is what the
+ * master-admin middleware trusts for the whole instance. A project's SAML and
+ * OIDC providers are configured by that project's admins and can assert any
+ * address, so letting one authenticate an administrator account would let a
+ * tenant mint an administrator session and take the instance over -- exactly
+ * the escalation the mailbox gate does NOT close on a self-hosted install, or
+ * on the hosted service once an administrator has confirmed a project once.
+ *
+ * So a project provider refuses an administrator account outright: no session,
+ * no provisioning, and no confirmation email. Administrators sign in with a
+ * first-party credential instead -- email and password, a passkey, or an
+ * instance-wide Global SSO/OIDC provider the operator themselves configured.
+ * This is never reached by an account a project provider has just created,
+ * because new accounts are never administrators.
  * ---------------------------------------------------------------------------
  */
 
@@ -93,6 +113,22 @@ export const PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE: string =
 // The same, as the reason code on the mobile app's deep link.
 export const PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR: string =
   "sso_confirmation_required";
+
+/*
+ * What an administrator account is told when a project's single sign-on
+ * refuses to authenticate it (see the doctrine above). Deliberately names a
+ * first-party way back in rather than why, so the page reads the same to the
+ * person whether or not they expected it.
+ */
+export const PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE: string =
+  "Sign in with your OneUptime account.";
+
+export const PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE: string =
+  "This account has OneUptime administrator access, which a project's single sign-on cannot grant. Sign in with your email and password, a passkey, or an instance-wide single sign-on instead.";
+
+// The same, as the reason code on the mobile app's deep link.
+export const PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR: string =
+  "sso_admin_not_allowed";
 
 /*
  * One email per account, per project, per window, per node. The SSO callback
@@ -140,6 +176,21 @@ export default class ProjectSsoSignInConfirmation {
       userId: data.user.id,
       projectId: data.projectId,
     });
+  }
+
+  /*
+   * Whether a project's own SAML or OIDC provider is forbidden from
+   * authenticating this account at all (see the second doctrine block above).
+   * True for a OneUptime administrator: a project provider must never confer
+   * the instance-wide master-admin capability. Holds on every edition, and is
+   * checked before anything is emailed, provisioned, or signed. Reads only the
+   * account's own `isMasterAdmin`, so a project provider that asserts the
+   * address of a non-administrator is unaffected.
+   */
+  public static mustNotSignInThroughProjectProvider(user: {
+    isMasterAdmin?: boolean | undefined;
+  }): boolean {
+    return user.isMasterAdmin === true;
   }
 
   public static isProjectSsoKind(value: unknown): value is ProjectSsoKind {
@@ -467,6 +518,7 @@ export default class ProjectSsoSignInConfirmation {
         email: true,
         isEmailVerified: true,
         isBlocked: true,
+        isMasterAdmin: true,
       },
       props: {
         isRoot: true,
@@ -483,6 +535,16 @@ export default class ProjectSsoSignInConfirmation {
       !user.email ||
       user.email.toString() !== savedToken.email.toString()
     ) {
+      return invalid;
+    }
+
+    /*
+     * A project provider never signs an administrator in, so its mailbox is
+     * never sent a confirmation link in the first place. Should a stale link
+     * reach here -- an account made an administrator after a link went out --
+     * spending it confers nothing: no consent, no membership, no verification.
+     */
+    if (this.mustNotSignInThroughProjectProvider(user)) {
       return invalid;
     }
 
