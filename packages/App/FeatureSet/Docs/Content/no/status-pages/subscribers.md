@@ -47,6 +47,21 @@ Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**
 
 **Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på *og* minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
 
+## Å slå av alle varsler
+
+Det første kortet på **Abonnentsinnstillinger**, **Varsler**, inneholder **Send varsler til abonnenter** (`sendSubscriberNotifications`), på som standard, som lagres så snart du slår den om. Er den av, sender statussiden ingenting til abonnentene sine: ingen varsler om hendelser, episoder, planlagt vedlikehold eller kunngjøringer, ingen notater eller etteranalyser og ingen e-postrapport, uansett hva kanalene og hendelsestypene dens sier. Abonnentene beholdes, og besøkende kan fortsatt abonnere så lenge siden **Abonner** og en kanal er på; en ny e-postabonnent får fortsatt e-posten som bekrefter abonnementet. Ingenting holdes tilbake for å bli sendt senere: slås den på igjen, forteller siden abonnentene sine om det som skjer fra da av.
+
+Mens den er av, sier toppen av hver abonnentliste det, med en lenke tilbake til **Abonnentsinnstillinger**. Oppsummeringen av hvem som blir varslet, på en hendelse eller et offentlig notat, nevner siden som en som ikke sender varsler til abonnentene sine, og statusmeldingen til et varsel og oppføringen for det i feeden sier hvorfor siden ble hoppet over. Det fungerer på alle abonnementer. En testrapport som sendes til en adresse du skriver inn, blir fortsatt sendt.
+
+## Hvem kan abonnere
+
+Kortet **Hvem kan abonnere**, også på **Abonnentsinnstillinger**, holder en sides varsler til personene den er ment for:
+
+- **Bare private brukere kan abonnere** (`limitSubscribersToPrivateUsers`), av som standard, lagres så snart du slår den om. Er den på, kan bare sidens [private brukere](/docs/status-pages/index#private-brukere), enten de er lagt til manuelt, logget inn med SSO eller opprettet av SCIM, abonnere, via e-post og med adressen de logger inn med. Siden **Abonner** fyller ut den adressen, lar den ikke endres og tilbyr ingen annen kanal. Teamet ditt kan bare legge til en privat brukers adresse, og ingen abonnent via SMS, Slack, Microsoft Teams eller webhook. En abonnent med en adresse som ikke nå tilhører en privat bruker av siden, enten det er en som ble lagt til før du slo den på, eller en leser som er fjernet siden, manuelt eller av SCIM, får ingenting og telles ikke med. En offentlig side har ingen innlogging, så mens den er på der, kan bare teamet ditt legge til abonnenter.
+- **Tillatte e-postdomener** (`allowedSubscriberEmailDomains`) inneholder domenene en e-postabonnents adresse kan ligge på, ett per linje, som `acme.com`. En adresse på et underdomene samsvarer også (`eu.acme.com` for `acme.com`), men ikke en som bare slutter på de samme bokstavene (`evilacme.com`). Påmeldinger og tillegg på et hvilket som helst annet domene avvises, og en e-postabonnent som allerede er på et annet domene, får ingenting. La feltet stå tomt for å tillate alle domener. Abonnenter via SMS, Slack, Microsoft Teams og webhook har ikke noe domene og påvirkes ikke. Skriv inn listen og velg **Lagre domener**: en oppføring som ikke er et domene, nevnes før noe lagres, og listen lagres med små bokstaver, ett domene per linje, opptil 100 av dem.
+
+Ingen av innstillingene sletter en abonnent, og å slå dem av sender til alle igjen. På OneUptime Cloud krever det abonnementet **Scale** å slå på en av dem; å slå dem av fungerer på alle abonnementer.
+
 ## Hva en besøkende ser på abonnementssiden
 
 Siden **Abonner** har en undermeny med én fane per påslått kanal. Hver fane ber om det minste den trenger:
