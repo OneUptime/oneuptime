@@ -321,8 +321,13 @@ RunCron(
           mdText`🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`.toString(),
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
+        /*
+         * The feed only. That the owners were told is a side effect of the
+         * state change, which the channel was told of itself: posting it to
+         * Slack and Microsoft Teams said the same change twice.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     }

@@ -88,6 +88,8 @@ Completa los siguientes campos:
 - **URL base** (opcional): URL de punto de conexión de API personalizado (requerida para Azure OpenAI, Ollama y OpenAI Compatible; opcional para otros)
 - **Más campos**, plegado bajo los campos anteriores: **Establecer como predeterminado**, que viene activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada solicitud (por ejemplo, `{"temperature": 0.2}`)
 
+**Probar un proveedor.** **Probar**, en la página del proveedor o en el menú de su fila, envía al proveedor una indicación breve con los valores de **Clave de API**, **Nombre del modelo**, **URL base** y **Parámetros adicionales**, e indica si respondió y llamó a una herramienta, algo que las funciones de IA de OneUptime necesitan. Una prueba fallida dice primero qué revisar y después qué respondió el proveedor. Quien puede cambiar un proveedor puede probarlo: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** y **Edit LLM**. Todos los demás que ven el proveedor encuentran **Probar** bloqueado. Un proveedor LLM global lo prueba un administrador del servidor, en el panel de administración, en **Ajustes** > **Proveedores LLM globales**.
+
 ## Configuración específica del proveedor
 
 ### OpenAI

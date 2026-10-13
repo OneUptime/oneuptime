@@ -1,5 +1,12 @@
 import Entities from "../../../Models/DatabaseModels/Index";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import PacketCapture from "../../../Models/DatabaseModels/PacketCapture";
+import PacketCaptureAPI, {
+  PacketCaptureDownload,
+} from "../../../Server/API/PacketCaptureAPI";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
+import AuditLogService from "../../../Server/Services/AuditLogService";
+import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import PacketCaptureService, {
   ALREADY_FINISHED_MESSAGE,
   HEARTBEAT_TIMEOUT_MESSAGE,
@@ -8,12 +15,19 @@ import PacketCaptureService, {
   UPLOAD_TIMEOUT_MESSAGE,
 } from "../../../Server/Services/PacketCaptureService";
 import logger from "../../../Server/Utils/Logger";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
+import { PacketCaptureCapability } from "../../../Types/PacketCapture/PacketCaptureCapability";
 import PacketCaptureEndReason from "../../../Types/PacketCapture/PacketCaptureEndReason";
 import { PacketCaptureJob } from "../../../Types/PacketCapture/PacketCaptureJob";
 import { PACKET_CAPTURE_NOT_FOUND_MESSAGE } from "../../../Types/PacketCapture/PacketCapturePermissions";
 import PacketCaptureStatus from "../../../Types/PacketCapture/PacketCaptureStatus";
+import Permission from "../../../Types/Permission";
+import { customDomainCaller } from "../API/CustomDomainCallers";
+import { dashboardStartCapture } from "../../Helpers/PacketCaptureStartBody";
+import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   makePcap,
   makePcapRecord,
@@ -35,7 +49,9 @@ import { DataSource, QueryRunner } from "typeorm";
  * database right after its drift check (CI runs it in
  * .github/workflows/postgres-schema-drift.yaml). The PacketCapture, File and Probe
  * tables' STRUCTURE is cloned into a unique schema (search_path holds only
- * that schema), dropped afterwards. Credentials from DATABASE_USERNAME /
+ * that schema), dropped afterwards - with the Project, User and
+ * NetworkDevice tables a capture's relations join when the service reads
+ * one whole (a delete's audit snapshot). Credentials from DATABASE_USERNAME /
  * DATABASE_PASSWORD, database from PACKET_CAPTURE_SQL_TEST_DATABASE_NAME or
  * DATABASE_NAME, endpoint from PACKET_CAPTURE_SQL_TEST_DATABASE_HOST /
  * _PORT (default localhost:5400, Scripts/Dev/docker-compose.dev.yml).
@@ -48,7 +64,14 @@ const describePostgres: typeof describe =
 // A statement that blocks instead of skipping a locked row fails, never hangs.
 const LOCK_TIMEOUT_MS: number = 5000;
 
-const TABLES: Array<string> = ["PacketCapture", "File", "Probe"];
+const TABLES: Array<string> = [
+  "PacketCapture",
+  "File",
+  "Probe",
+  "Project",
+  "User",
+  "NetworkDevice",
+];
 
 const DASHES: RegExp = /-/g;
 
@@ -62,6 +85,7 @@ describePostgres("packet capture SQL against Postgres", () => {
   const otherProjectId: ObjectID = ObjectID.generate();
   const probeId: ObjectID = ObjectID.generate();
   const otherProbeId: ObjectID = ObjectID.generate();
+  const deviceId: ObjectID = ObjectID.generate();
 
   beforeAll(async () => {
     database = new DataSource({
@@ -843,6 +867,307 @@ describePostgres("packet capture SQL against Postgres", () => {
 
       expect(byId.get(probeId.toString())).toEqual(report);
       expect(byId.get(globalProbeId.toString())).toBeNull();
+    });
+  });
+
+  /*
+   * A capture as the people the docs name make one, through the whole
+   * service against this Postgres - DatabaseService's create, its hooks, the
+   * permission checks and the INSERT - and on through the probe's claim and
+   * upload, a download, a viewer's list and a delete, with the audit trail
+   * the docs promise. Every start was once refused, the project owner's
+   * included ("User is not allowed to create on fileId column of Packet
+   * Capture"), and nothing here made one: the rows above are written by hand.
+   */
+  describe("a capture, as the members the docs name make it", () => {
+    const CAPABILITY: PacketCaptureCapability = {
+      isEnabled: true,
+      isToolAvailable: true,
+      interfaces: [
+        { name: "any", addresses: [], isUp: true },
+        { name: "ens18", addresses: ["192.168.50.37/24"], isUp: true },
+      ],
+      limits: {
+        maxDurationInSeconds: 1800,
+        maxPackets: 1000000,
+        maxFileSizeInMB: 25,
+      },
+    } as unknown as PacketCaptureCapability;
+
+    function member(
+      permissions: Array<Permission>,
+    ): DatabaseCommonInteractionProps {
+      return {
+        ...customDomainCaller({
+          permissions: permissions,
+          projectId: projectId,
+        }),
+        ...ON_HIGHEST_PLAN,
+      };
+    }
+
+    function customerCapture(): PacketCapture {
+      return dashboardStartCapture({
+        probeId: probeId,
+        interfaceName: "ens18",
+        bpfFilter: "net 192.168.50.0/24 and tcp",
+        maxDurationInSeconds: 60,
+        maxPackets: 100000,
+        maxFileSizeInMB: 10,
+      });
+    }
+
+    async function startedBy(id: ObjectID): Promise<{
+      name: string | null;
+      createdByUserId: string | null;
+    }> {
+      const rows: Array<{
+        name: string | null;
+        createdByUserId: string | null;
+      }> = await database.query(
+        `SELECT "name", "createdByUserId" FROM "${schema}"."PacketCapture" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      return rows[0]!;
+    }
+
+    beforeEach(() => {
+      getJestSpyOn(PacketCaptureService, "onTriggerWorkflow").mockResolvedValue(
+        undefined,
+      );
+      getJestSpyOn(PacketCaptureService, "onTriggerRealtime").mockResolvedValue(
+        undefined,
+      );
+    });
+
+    test("one given Start Packet Capture starts it, the probe runs it, one given Download downloads it, a viewer sees it, one given Delete deletes it and its file", async () => {
+      const recordCreate: jest.SpyInstance = getJestSpyOn(
+        AuditLogService,
+        "recordCreate",
+      ).mockResolvedValue(undefined);
+      const recordDownload: jest.SpyInstance = getJestSpyOn(
+        AuditLogService,
+        "recordDownload",
+      ).mockResolvedValue(undefined);
+      const recordDelete: jest.SpyInstance = getJestSpyOn(
+        AuditLogService,
+        "recordDelete",
+      ).mockResolvedValue(undefined);
+
+      // The probe says what it can capture on, as its report does.
+      expect(
+        await PacketCaptureService.recordProbeCapability({
+          probeId: probeId,
+          capability: CAPABILITY,
+        }),
+      ).toBe(true);
+
+      // 1. Started from the probe's page by a member given Start Packet Capture.
+      const starter: DatabaseCommonInteractionProps = member([
+        Permission.ProjectMember,
+        Permission.CreatePacketCapture,
+      ]);
+
+      const started: PacketCapture = await PacketCaptureService.create({
+        data: customerCapture(),
+        props: starter,
+      });
+      const id: ObjectID = started.id!;
+
+      let row: CaptureRow = (await readCapture(id))!;
+
+      expect(row.status).toBe(PacketCaptureStatus.Pending);
+      expect(row.fileId).toBeNull();
+      expect(await startedBy(id)).toEqual({
+        name: "ens18: net 192.168.50.0/24 and tcp",
+        createdByUserId: starter.userId!.toString(),
+      });
+      // Starting one is in the audit log, as a create by whoever started it.
+      expect(recordCreate).toHaveBeenCalledTimes(1);
+      expect(recordCreate.mock.calls[0]![0].props.userId?.toString()).toBe(
+        starter.userId!.toString(),
+      );
+
+      // A member without the permission is refused, and nothing is stored.
+      await expect(
+        PacketCaptureService.create({
+          data: customerCapture(),
+          props: member([Permission.ProjectMember]),
+        }),
+      ).rejects.toThrow(
+        "You do not have permissions to create Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture",
+      );
+      expect(await countRows("PacketCapture")).toBe(1);
+
+      // 2. The probe picks it up, captures, and uploads its file.
+      const jobs: Array<PacketCaptureJob> =
+        await PacketCaptureService.claimPendingForProbe({
+          probeId: probeId,
+          limit: 2,
+        });
+
+      expect(
+        jobs.map((job: PacketCaptureJob): string => {
+          return job.id;
+        }),
+      ).toEqual([id.toString()]);
+      expect(jobs[0]!.bpfFilter).toBe("net 192.168.50.0/24 and tcp");
+
+      const pcap: Buffer = makePcap({ packetLengths: [60, 98] });
+
+      expect(
+        await PacketCaptureService.recordCompletion({
+          probeId: probeId,
+          packetCaptureId: id,
+          pcap: pcap,
+          endReason: PacketCaptureEndReason.DurationReached,
+        }),
+      ).toBe(true);
+
+      row = (await readCapture(id))!;
+
+      expect(row.status).toBe(PacketCaptureStatus.Completed);
+      expect(row.packetCount).toBe(2);
+      expect(row.fileId).toBeTruthy();
+      expect(await countRows("File")).toBe(1);
+
+      // 3. Downloaded by a member given Download Packet Capture, and audited.
+      const downloaded: PacketCaptureDownload =
+        await PacketCaptureAPI.readDownload({
+          packetCaptureId: id,
+          projectId: projectId,
+          props: member([
+            Permission.ProjectMember,
+            Permission.DownloadPacketCapture,
+          ]),
+        });
+
+      expect(Buffer.from(downloaded.base64, "base64").equals(pcap)).toBe(true);
+      expect(downloaded.fileType).toBe(MimeType.pcap);
+      expect(recordDownload).toHaveBeenCalledTimes(1);
+
+      // 4. A viewer sees it in the list; the file's id is never theirs to read.
+      const viewer: DatabaseCommonInteractionProps = member([
+        Permission.Viewer,
+      ]);
+      const listed: Array<PacketCapture> = await PacketCaptureService.findBy({
+        query: { probeId: probeId },
+        select: {
+          _id: true,
+          status: true,
+          interfaceName: true,
+          bpfFilter: true,
+          packetCount: true,
+          createdByUserId: true,
+        },
+        skip: 0,
+        limit: 10,
+        props: viewer,
+      });
+
+      expect(
+        listed.map((capture: PacketCapture): string => {
+          return capture.id!.toString();
+        }),
+      ).toEqual([id.toString()]);
+      expect(listed[0]!.status).toBe(PacketCaptureStatus.Completed);
+      expect(listed[0]!.fileId).toBeUndefined();
+
+      await expect(
+        PacketCaptureService.findBy({
+          query: { probeId: probeId },
+          select: { fileId: true },
+          skip: 0,
+          limit: 10,
+          props: viewer,
+        }),
+      ).rejects.toThrow("You do not have permissions to select on - fileId.");
+
+      // 5. Not deleted by the starter, who may not delete; then by one who may, with its file.
+      await expect(
+        PacketCaptureService.deleteOneById({ id: id, props: starter }),
+      ).rejects.toThrow();
+      expect(await countRows("PacketCapture")).toBe(1);
+
+      expect(
+        await PacketCaptureService.deleteOneById({
+          id: id,
+          props: member([
+            Permission.ProjectMember,
+            Permission.DeletePacketCapture,
+          ]),
+        }),
+      ).toBe(1);
+
+      expect(await readCapture(id)).toBeUndefined();
+      expect(await countRows("File")).toBe(0);
+      expect(recordDelete).toHaveBeenCalledTimes(1);
+
+      /*
+       * The audit log's snapshot of the deleted capture: what it ran, and
+       * never the traffic itself. The delete reads every column for the
+       * snapshot, the file's relation included, and gets its id alone - not
+       * its bytes - which the audit recorder then leaves out as well, with
+       * fileId (nobody may read either).
+       */
+      const deletedItem: PacketCapture = recordDelete.mock.calls[0]![0]
+        .deletedItem as PacketCapture;
+
+      expect(deletedItem.interfaceName).toBe("ens18");
+      expect(deletedItem.bpfFilter).toBe("net 192.168.50.0/24 and tcp");
+      expect(deletedItem.file?.file).toBeUndefined();
+    });
+
+    test("a capture started from a device's Traffic card is the device's, and a probe's limits hold", async () => {
+      await PacketCaptureService.recordProbeCapability({
+        probeId: probeId,
+        capability: CAPABILITY,
+      });
+      getJestSpyOn(NetworkDeviceService, "findOneById").mockImplementation(
+        async (): Promise<NetworkDevice> => {
+          const device: NetworkDevice = new NetworkDevice(deviceId);
+          device.projectId = projectId;
+          return device;
+        },
+      );
+
+      const started: PacketCapture = await PacketCaptureService.create({
+        data: dashboardStartCapture({
+          probeId: probeId,
+          networkDeviceId: deviceId,
+          interfaceName: "any",
+          bpfFilter: "host 192.168.50.10",
+          maxDurationInSeconds: 60,
+          maxPackets: 100000,
+          maxFileSizeInMB: 10,
+        }),
+        props: member([Permission.ProjectOwner]),
+      });
+
+      const rows: Array<{ networkDeviceId: string | null }> =
+        await database.query(
+          `SELECT "networkDeviceId" FROM "${schema}"."PacketCapture" WHERE "_id" = $1`,
+          [started.id!.toString()],
+        );
+
+      expect(rows[0]!.networkDeviceId).toBe(deviceId.toString());
+
+      // Past the probe's own maximum, refused in words that say so.
+      await expect(
+        PacketCaptureService.create({
+          data: dashboardStartCapture({
+            probeId: probeId,
+            interfaceName: "ens18",
+            bpfFilter: "",
+            maxDurationInSeconds: 3600,
+            maxPackets: 100000,
+            maxFileSizeInMB: 10,
+          }),
+          props: member([Permission.ProjectOwner]),
+        }),
+      ).rejects.toThrow();
+      expect(await countRows("PacketCapture")).toBe(1);
     });
   });
 

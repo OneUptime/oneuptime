@@ -385,6 +385,7 @@ When Microsoft sends you back and the connection was not made (granting admin co
 | **"You are no longer a member of this project."** | Connecting your own Microsoft account needs you to be a member of the project when Microsoft sends you back. |
 | **"You signed in to a different Microsoft 365 organization from the one this connection is for."** | Sign in with an account from the Microsoft 365 organization that granted admin consent, or that the project is connected to. |
 | **"Your Microsoft 365 organization has no teams yet."** | Create a team in Microsoft Teams, then grant admin consent again. |
+| **"You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected."** | A **Connect Microsoft Teams account** button works only for the Microsoft account that pressed it. Sign in to Microsoft as yourself, or ask the person who pressed it to press it. |
 | **"The connection was cancelled, so nothing was changed."** | Consent was not granted in Microsoft. Start again and accept it. |
 | **"Microsoft Teams is not set up on this OneUptime server."** | Set the Microsoft Teams app's client ID and secret (see [Step 6](#step-6-configure-oneuptime-environment-variables)) and restart OneUptime. |
 | **"OneUptime could not finish connecting. Please try again."** | Microsoft answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the app registration's settings. |

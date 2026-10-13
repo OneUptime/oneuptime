@@ -877,5 +877,13 @@
   "{{count}} more": "{{count}} और",
   "{{count}} more_one": "{{count}} और",
   "On": "चालू",
-  "Off": "बंद"
+  "Off": "बंद",
+  "Test": "परीक्षण",
+  "Test LLM Provider": "LLM प्रदाता का परीक्षण करें",
+  "Sending a test prompt to your LLM provider…": "आपके LLM प्रदाता को परीक्षण प्रॉम्प्ट भेजा जा रहा है…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "यह इसकी API कुंजी, मॉडल और बेस URL की जाँच करता है, और यह भी कि इसका मॉडल टूल कॉल कर सकता है या नहीं।",
+  "Test again": "फिर से परीक्षण करें",
+  "Test passed": "परीक्षण सफल",
+  "Test passed, with a warning": "परीक्षण सफल, एक चेतावनी के साथ",
+  "Test failed": "परीक्षण विफल"
 }

@@ -257,6 +257,9 @@ export class Service extends DatabaseService<Model> {
         query: onUpdate.updateBy.query,
         select: {
           onCallDutyPolicyExecutionLogTimelineId: true,
+          onCallDutyPolicyExecutionLogTimeline: {
+            status: true,
+          },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -288,6 +291,25 @@ export class Service extends DatabaseService<Model> {
       }
 
       for (const item of items) {
+        /*
+         * A log that completes says "Notification Sent" on its timeline step
+         * - unless the step already says what became of the page: skipped
+         * (an opt-out, somebody who left), failed, or acknowledged. Moving
+         * those back to "Notification Sent" claimed a page went out that
+         * never did.
+         */
+        if (
+          status === OnCallDutyExecutionLogTimelineStatus.NotificationSent &&
+          item.onCallDutyPolicyExecutionLogTimeline?.status &&
+          [
+            OnCallDutyExecutionLogTimelineStatus.Skipped,
+            OnCallDutyExecutionLogTimelineStatus.Error,
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+          ].includes(item.onCallDutyPolicyExecutionLogTimeline.status)
+        ) {
+          continue;
+        }
+
         await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
           id: item.onCallDutyPolicyExecutionLogTimelineId!,
           data: {
@@ -973,6 +995,14 @@ export class Service extends DatabaseService<Model> {
     timelineStatus: OnCallDutyExecutionLogTimelineStatus;
     statusMessage: string;
   }): Promise<void> {
+    /*
+     * Without the log's own hook: it would carry the log's status over to
+     * the on-call timeline (onUpdateSuccess) - Completed as "Notification
+     * Sent" - and the timeline write below says what this outcome really is.
+     * Through the hook, every responder skipped here showed first as
+     * "Notification Sent" and then as "Skipped", in the record's feed and in
+     * Slack and Microsoft Teams alike.
+     */
     await this.updateOneById({
       id: data.createdItem.id!,
       data: {
@@ -981,6 +1011,7 @@ export class Service extends DatabaseService<Model> {
       },
       props: {
         isRoot: true,
+        ignoreHooks: true,
       },
     });
 

@@ -1019,6 +1019,25 @@ describe.each(TIMELINE_CASES)(
       });
     });
 
+    /*
+     * The create hook marks a timeline's first state as notified already:
+     * its owners heard about the event itself. A value a hook writes is held
+     * to the caller's create permission unless the column is computed, and
+     * nobody may create isOwnerNotified - so on the episode timelines, which
+     * were not computed, a member's first state was refused ("User is not
+     * allowed to create on isOwnerNotified column").
+     */
+    describe("a change that is the timeline's first", () => {
+      test("is saved for a project member, marked as notified already", async () => {
+        timelines.rows.length = 0;
+
+        await changeState(projectMemberProps());
+
+        expect(timelines.inserts).toHaveLength(1);
+        expect(timelines.inserts[0]!["isOwnerNotified"]).toBe(true);
+      });
+    });
+
     describe("a change that is saved", () => {
       test("gives the lock back once, after writing the event's current state", async () => {
         await changeState(projectMemberProps());

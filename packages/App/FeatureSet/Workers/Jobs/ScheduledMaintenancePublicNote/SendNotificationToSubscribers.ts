@@ -858,8 +858,12 @@ ${chatStatusLine}
         moreInformationInMarkdown: mdText`**Public Note:**
 
 ${FeedMarkdown.asMarkdown(publicNote.note)}`.toString(),
+        /*
+         * The feed only: a side effect of the public note the channel was
+         * told of already.
+         */
         workspaceNotification: {
-          sendWorkspaceNotification: true,
+          sendWorkspaceNotification: false,
         },
       });
     } else {

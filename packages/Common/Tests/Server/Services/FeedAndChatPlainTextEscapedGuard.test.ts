@@ -659,11 +659,26 @@ const REPLY_TEXT_ARGUMENTS: Record<string, number> = {
   sendMessageToThread: 0,
 };
 
+/*
+ * The calls that answer a press where it was made - SlackActionAnswer in
+ * Slack, MicrosoftTeamsActionAnswer in Microsoft Teams - by name, and which
+ * argument carries the answer, as its `answer`: a WorkspaceAnswer, whose
+ * `markdown` the chat shows.
+ */
+const ANSWER_ARGUMENTS: Record<string, number> = {
+  answer: 0,
+  reply: 0,
+  sendToPlace: 0,
+};
+
 // A Slack or Microsoft Teams message block written as Markdown.
 const MARKDOWN_PAYLOAD_TYPE: string = "WorkspacePayloadMarkdown";
 
 // A function whose result a reply posts as it is: a reply of its own.
 const REPLY_BUILDER_NAME_PATTERN: RegExp = /Message$/;
+
+// A function whose result a press is answered with: an answer of its own.
+const ANSWER_BUILDER_NAME_PATTERN: RegExp = /(?:Answer|Prompt)$/;
 
 // What a scan read: how many replies, and the builders of their text.
 export interface ChatRepliesSeen {
@@ -822,9 +837,11 @@ function functionName(node: ts.Node): string | null {
  * reply the bots post is mdText. A template with values in it, a "+" that
  * joins a value, or an error's `.message`, given to a reply as it is, is a
  * finding - as the argument of a reply call (REPLY_TEXT_ARGUMENTS), as the
- * text of a WorkspacePayloadMarkdown, as a value of a variable either is
- * built in, or as what a ...Message function returns whose result a reply
- * posts.
+ * text of a WorkspacePayloadMarkdown, as the Markdown of an answer to a
+ * press (ANSWER_ARGUMENTS), as a value of a variable any of these is built
+ * in, or as what a ...Message function returns whose result a reply posts,
+ * or a ...Answer or ...Prompt function whose result a press is answered
+ * with.
  */
 export function findUnescapedChatReplies(
   files: ReadonlyArray<SourceFile>,
@@ -834,6 +851,8 @@ export function findUnescapedChatReplies(
   const reported: Set<ts.Node> = new Set<ts.Node>();
   const examined: Set<ts.Node> = new Set<ts.Node>();
   const builderNames: Set<string> = new Set<string>();
+  const answerBuilderNames: Set<string> = new Set<string>();
+  const examinedAnswers: Set<ts.Node> = new Set<ts.Node>();
 
   const sources: Array<{ file: string; source: ts.SourceFile }> = files.map(
     (entry: SourceFile): { file: string; source: ts.SourceFile } => {
@@ -987,6 +1006,54 @@ export function findUnescapedChatReplies(
     }
   };
 
+  // An answer to a press, as written: the Markdown in it is examined.
+  const examineAnswer: (expression: ts.Expression) => void = (
+    expression: ts.Expression,
+  ): void => {
+    const value: ts.Expression = unwrap(expression);
+
+    if (examinedAnswers.has(value)) {
+      return;
+    }
+
+    examinedAnswers.add(value);
+
+    if (ts.isObjectLiteralExpression(value)) {
+      for (const property of value.properties) {
+        if (
+          ts.isPropertyAssignment(property) &&
+          property.name.getText() === "markdown"
+        ) {
+          examine(property.initializer);
+        }
+      }
+
+      return;
+    }
+
+    if (ts.isConditionalExpression(value)) {
+      examineAnswer(value.whenTrue);
+      examineAnswer(value.whenFalse);
+      return;
+    }
+
+    if (ts.isIdentifier(value)) {
+      for (const given of valuesGivenTo(value)) {
+        examineAnswer(given);
+      }
+
+      return;
+    }
+
+    if (ts.isCallExpression(value)) {
+      const name: string | null = calledName(value);
+
+      if (name && ANSWER_BUILDER_NAME_PATTERN.test(name)) {
+        answerBuilderNames.add(name);
+      }
+    }
+  };
+
   // The text of every reply call and Markdown block.
   for (const entry of sources) {
     const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -999,6 +1066,34 @@ export function findUnescapedChatReplies(
             : undefined;
         const argument: ts.Expression | undefined =
           index === undefined ? undefined : node.arguments[index];
+
+        const answerIndex: number | undefined =
+          name !== null &&
+          Object.prototype.hasOwnProperty.call(ANSWER_ARGUMENTS, name)
+            ? ANSWER_ARGUMENTS[name]
+            : undefined;
+        const answerArgument: ts.Expression | undefined =
+          answerIndex === undefined ? undefined : node.arguments[answerIndex];
+
+        if (
+          answerArgument &&
+          ts.isObjectLiteralExpression(unwrap(answerArgument))
+        ) {
+          for (const property of (
+            unwrap(answerArgument) as ts.ObjectLiteralExpression
+          ).properties) {
+            if (
+              ts.isPropertyAssignment(property) &&
+              property.name.getText() === "answer"
+            ) {
+              if (seen) {
+                seen.replies++;
+              }
+
+              examineAnswer(property.initializer);
+            }
+          }
+        }
 
         if (argument) {
           if (seen) {
@@ -1063,16 +1158,26 @@ export function findUnescapedChatReplies(
     visit(entry.source);
   }
 
-  // What each reply builder returns, until no new builder turns up.
+  /*
+   * What each reply builder and answer builder returns, until no new
+   * builder turns up.
+   */
   const builtAlready: Set<string> = new Set<string>();
+  const answersBuiltAlready: Set<string> = new Set<string>();
   let pending: Array<string> = Array.from(builderNames);
+  let pendingAnswers: Array<string> = Array.from(answerBuilderNames);
 
-  while (pending.length > 0) {
+  while (pending.length > 0 || pendingAnswers.length > 0) {
     for (const name of pending) {
       builtAlready.add(name);
     }
 
+    for (const name of pendingAnswers) {
+      answersBuiltAlready.add(name);
+    }
+
     const names: Set<string> = new Set<string>(pending);
+    const answerNames: Set<string> = new Set<string>(pendingAnswers);
 
     for (const entry of sources) {
       const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -1082,6 +1187,12 @@ export function findUnescapedChatReplies(
           if (name !== null && names.has(name)) {
             for (const returned of returnedValues(node)) {
               examine(returned);
+            }
+          }
+
+          if (name !== null && answerNames.has(name)) {
+            for (const returned of returnedValues(node)) {
+              examineAnswer(returned);
             }
           }
         }
@@ -1095,10 +1206,19 @@ export function findUnescapedChatReplies(
     pending = Array.from(builderNames).filter((name: string): boolean => {
       return !builtAlready.has(name);
     });
+    pendingAnswers = Array.from(answerBuilderNames).filter(
+      (name: string): boolean => {
+        return !answersBuiltAlready.has(name);
+      },
+    );
   }
 
   if (seen) {
     for (const name of builderNames) {
+      seen.builders.add(name);
+    }
+
+    for (const name of answerBuilderNames) {
       seen.builders.add(name);
     }
   }
@@ -1324,12 +1444,15 @@ describe("feed and chat Markdown is written with mdText", () => {
     expect(seen.replies).toBeGreaterThan(100);
 
     for (const builder of [
-      "getAccountNotLinkedMessage",
       "getNotLinkedMessage",
       "getUnexpectedErrorMessage",
       "getConfirmationMessage",
       "getIncidentCreateFailedMessage",
       "getFormNotAcceptedMessage",
+      // What a press is answered with where it was made, in both chats.
+      "getConnectPrompt",
+      "getAlreadyAnswer",
+      "getUnknownButtonAnswer",
     ]) {
       expect(seen.builders).toContain(builder);
     }
@@ -1611,6 +1734,40 @@ describe("findUnescapedChatReplies", () => {
         "async function f(): Promise<void> { await turnContext.sendActivity(Size.fit({ text: `${title} is down` })); }",
       ),
     ).toHaveLength(1);
+  });
+
+  test("finds the Markdown of an answer to a press written with a template", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await MicrosoftTeamsActionAnswer.reply({ turnContext: t, answer: { markdown: `${name} was here`, text: name } }); }",
+      ),
+    ).toEqual([expect.stringMatching(/^D: `\$\{name\} was here`/)]);
+  });
+
+  test("passes the same answer written with mdText", () => {
+    expect(
+      find(
+        "async function f(): Promise<void> { await SlackActionAnswer.answer({ place: p, answer: { markdown: mdText`${name} was here`.toString(), text: name } }); }",
+      ),
+    ).toEqual([]);
+  });
+
+  test("reads what a ...Answer or ...Prompt function returns when a press is answered with it", () => {
+    expect(
+      find(
+        [
+          "class A {",
+          "  static getLateAnswer(name: string): WorkspaceAnswer { return { markdown: `Done by ${name}`, text: name }; }",
+          "  static getConnectPrompt(purpose: string): WorkspaceAnswer { return { markdown: mdText`Connect to ${purpose}`.toString(), text: purpose }; }",
+          "  static async f(): Promise<void> {",
+          "    const answer: WorkspaceAnswer = A.getConnectPrompt(p);",
+          "    await SlackActionAnswer.answer({ place: p, answer: answer });",
+          "    await MicrosoftTeamsActionAnswer.sendToPlace({ place: p, answer: A.getLateAnswer(n) });",
+          "  }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([expect.stringMatching(/^D: `Done by/)]);
   });
 });
 

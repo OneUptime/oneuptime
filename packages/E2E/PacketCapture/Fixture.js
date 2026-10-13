@@ -12,6 +12,7 @@ import "Common/UI/Styles/Theme.css";
 import PacketCapturesTable from "../../App/FeatureSet/Dashboard/src/Components/PacketCapture/PacketCapturesTable";
 import DevicePacketCaptures from "../../App/FeatureSet/Dashboard/src/Components/PacketCapture/DevicePacketCaptures";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import PacketCapture from "Common/Models/DatabaseModels/PacketCapture";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -212,6 +213,8 @@ const state = {
       ]
     : [],
   created: [],
+  // The columns each Start put on the wire, as ModelAPI.create serializes it.
+  sent: [],
   stops: [],
   downloads: [],
   deletes: [],
@@ -316,6 +319,7 @@ ModelAPI.create = async (args) => {
   }
 
   const model = args.model;
+  state.sent.push(Object.keys(BaseModel.toJSON(model, args.modelType)).sort());
   state.created.push({
     probeId: model.probeId ? model.probeId.toString() : null,
     networkDeviceId: model.networkDeviceId

@@ -88,6 +88,8 @@ Udfyld følgende felter:
 - **Basis-URL** (valgfrit): Brugerdefineret API-endpoint-URL (påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; valgfrit for andre)
 - **Flere felter**, klappet sammen under felterne ovenfor: **Indstil som standard**, som er slået til for en ny udbyder, fordi AI-funktioner kun bruger projektets standardudbyder, og **Yderligere parametre**, et valgfrit JSON-objekt med ekstra parametre, der sendes til udbyderen med hver anmodning (for eksempel `{"temperature": 0.2}`)
 
+**Test en udbyder.** **Test**, på udbyderens side eller i menuen på dens række, sender udbyderen en kort prompt med værdierne fra **API-nøgle**, **Modelnavn**, **Basis-URL** og **Yderligere parametre** og fortæller, om den svarede og kaldte et værktøj, hvilket OneUptimes AI-funktioner har brug for. En mislykket test fortæller først, hvad du skal kontrollere, og derefter, hvad udbyderen svarede. Den, der må ændre en udbyder, kan teste den: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** og **Edit LLM**. Alle andre, der kan se udbyderen, finder **Test** låst. En global LLM-udbyder testes af en serveradministrator i administrationsdashboardet under **Indstillinger** > **Globale LLM-udbydere**.
+
 ## Udbyderspecifik konfiguration
 
 ### OpenAI

@@ -125,6 +125,7 @@ import DatabaseNotConnectedException from "../../../../Types/Exception/DatabaseN
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
 import type { Activity, ResourceResponse, TurnContext } from "botbuilder";
 
 // ---- Fixtures ----
@@ -2364,7 +2365,54 @@ describe("MicrosoftTeamsUtil.recoverFromFailedTurn: the turn ends normally, with
 });
 
 describe("handleBotInvokeActivity: a failed action gets one reply that says why, and never throws", () => {
-  const SETTINGS_LINK_TEXT: string = `[OneUptime → User Settings → Microsoft Teams](${DASHBOARD_URL}/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration)`;
+  const SETTINGS_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/user-settings/microsoft-teams-integration`;
+
+  // Who pressed (invokeActivity), as every answer mentions them.
+  const MENTION: string = "<at>Alice Admin</at>";
+
+  interface AnswerCard {
+    // The answer, after the mention it opens with.
+    text: string;
+    // The Connect button's link, if it has one.
+    connectUrl: string | null;
+  }
+
+  /*
+   * A reply that is an answer card (MicrosoftTeamsActionAnswer): one text
+   * block that mentions who pressed, and at most the Connect button.
+   */
+  function answerCardOf(reply: Reply | undefined): AnswerCard {
+    const attachments: Array<JSONObject> = (reply as Partial<Activity>)
+      .attachments as unknown as Array<JSONObject>;
+
+    expect(attachments).toHaveLength(1);
+
+    const card: JSONObject = attachments[0]!["content"] as JSONObject;
+    const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
+
+    expect(body).toHaveLength(1);
+
+    const text: string = body[0]!["text"] as string;
+
+    expect(text.startsWith(`${MENTION} `)).toBe(true);
+    expect((card["msteams"] as JSONObject)["entities"]).toEqual([
+      {
+        type: "mention",
+        text: MENTION,
+        mentioned: { id: "29:1Hk8-teams-user", name: "Alice Admin" },
+      },
+    ]);
+
+    const actions: Array<JSONObject> =
+      (card["actions"] as Array<JSONObject> | undefined) || [];
+
+    expect(actions.length).toBeLessThanOrEqual(1);
+
+    return {
+      text: text.substring(MENTION.length + 1),
+      connectUrl: actions[0] ? (actions[0]["url"] as string) : null,
+    };
+  }
 
   function stubLinkedMember(): void {
     jest
@@ -2418,7 +2466,7 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
     return turn;
   }
 
-  test("a Teams account nobody connected: guidance with the link to User Settings, not an error", async () => {
+  test("a Teams account nobody connected: asked, by name, to connect it to acknowledge the incident, with a one-click Connect button; not an error", async () => {
     jest
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
       .mockRejectedValue(
@@ -2427,6 +2475,10 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
         ),
       );
     stubDashboardUrl();
+    // The press, kept to finish once the account is connected.
+    const kept: SpyInstance<typeof GlobalCache.setString> = jest
+      .spyOn(GlobalCache, "setString")
+      .mockResolvedValue(undefined);
     const action: SpyInstance<
       typeof MicrosoftTeamsIncidentActions.handleBotIncidentAction
     > = stubIncidentAction().mockResolvedValue(undefined);
@@ -2436,15 +2488,28 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
       invokeActivity(acknowledgeIncidentValue()),
     );
 
-    expect(turn.attempted).toEqual([
-      `To use OneUptime actions in Microsoft Teams, first connect your Microsoft Teams account to OneUptime in ${SETTINGS_LINK_TEXT}, then try again.`,
-    ]);
+    expect(turn.attempted).toHaveLength(1);
+
+    const answer: AnswerCard = answerCardOf(turn.attempted[0]);
+
+    // master: "To use OneUptime actions in Microsoft Teams, first connect ..."
+    expect(answer.text).toBe(
+      "🔗 **Connect your Microsoft Teams account to acknowledge this incident.** It takes one click, and OneUptime acknowledges it for you as soon as you're connected.",
+    );
+
+    const url: globalThis.URL = new globalThis.URL(answer.connectUrl || "");
+
+    expect(`${url.origin}${url.pathname}`).toBe(SETTINGS_LINK);
+    expect(url.searchParams.get("connect")).toMatch(
+      CONNECT_REQUEST_TOKEN_PATTERN,
+    );
+    expect(kept).toHaveBeenCalledTimes(1);
     expect(action).not.toHaveBeenCalled();
     // Expected, not a server fault: nothing for an operator to chase.
     expect(errorLog).not.toHaveBeenCalled();
   });
 
-  test("a Teams account nobody connected, dashboard URL unknown: the same guidance without a link", async () => {
+  test("a Teams account nobody connected, dashboard URL unknown: where to connect it in words, with no button", async () => {
     jest
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
       .mockRejectedValue(
@@ -2458,9 +2523,11 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
       invokeActivity(acknowledgeIncidentValue()),
     );
 
-    expect(turn.attempted).toEqual([
-      "To use OneUptime actions in Microsoft Teams, first connect your Microsoft Teams account to OneUptime in OneUptime under User Settings → Microsoft Teams, then try again.",
-    ]);
+    expect(turn.attempted).toHaveLength(1);
+    expect(answerCardOf(turn.attempted[0])).toEqual({
+      text: "🔗 **Connect your Microsoft Teams account to acknowledge this incident.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, press the button again.",
+      connectUrl: null,
+    });
   });
 
   test("a sender who is not a member of the project: the refusal's own message, not an error", async () => {
@@ -2474,9 +2541,11 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
       invokeActivity(acknowledgeIncidentValue()),
     );
 
-    expect(turn.attempted).toEqual([
-      WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-    ]);
+    expect(turn.attempted).toHaveLength(1);
+    expect(answerCardOf(turn.attempted[0])).toEqual({
+      text: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+      connectUrl: null,
+    });
     expect(action).not.toHaveBeenCalled();
     expect(errorLog).not.toHaveBeenCalled();
   });
@@ -2498,9 +2567,10 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
       }),
     ).resolves.toBeUndefined();
 
-    expect(turn.attempted).toEqual([
+    expect(turn.attempted).toHaveLength(1);
+    expect(answerCardOf(turn.attempted[0]).text).toBe(
       WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-    ]);
+    );
     expect(turn.delivered).toEqual([]);
   });
 
@@ -2517,9 +2587,10 @@ describe("handleBotInvokeActivity: a failed action gets one reply that says why,
       invokeActivity(acknowledgeIncidentValue()),
     );
 
-    expect(turn.attempted).toEqual([
+    expect(turn.attempted).toHaveLength(1);
+    expect(answerCardOf(turn.attempted[0]).text).toBe(
       "You do not have permission to acknowledge this incident.",
-    ]);
+    );
     expect(errorLog).not.toHaveBeenCalled();
   });
 

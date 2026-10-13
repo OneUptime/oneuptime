@@ -877,5 +877,13 @@
   "{{count}} more": "nog {{count}}",
   "{{count}} more_one": "nog {{count}}",
   "On": "Aan",
-  "Off": "Uit"
+  "Off": "Uit",
+  "Test": "Testen",
+  "Test LLM Provider": "LLM-provider testen",
+  "Sending a test prompt to your LLM provider…": "Er wordt een testprompt naar uw LLM-provider gestuurd…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "Hiermee worden de API-sleutel, het model en de basis-URL gecontroleerd, en of het model tools kan aanroepen.",
+  "Test again": "Opnieuw testen",
+  "Test passed": "Test geslaagd",
+  "Test passed, with a warning": "Test geslaagd, met een waarschuwing",
+  "Test failed": "Test mislukt"
 }

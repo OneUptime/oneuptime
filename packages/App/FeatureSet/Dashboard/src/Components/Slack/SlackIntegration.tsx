@@ -40,10 +40,18 @@ import ConnectCallbackNotice, {
   useConnectCallbackNotice,
 } from "../Workspace/ConnectCallbackNotice";
 import {
+  CONNECT_REQUEST_QUERY_PARAM,
   CONNECT_START_PAGE_QUERY_PARAM,
   ConnectProvider,
   ConnectStartPage,
 } from "Common/Types/Workspace/ConnectCallback";
+import ConnectRequestNotice, {
+  ConnectRequestConnecting,
+  ConnectRequestState,
+  useConnectRequest,
+} from "../Workspace/ConnectRequestNotice";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -61,10 +69,25 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
 
+  const translator: Translator = useTranslator();
+
   // What a connection that came back unmade says (?error=).
   const connectCallback: ConnectCallbackNoticeState = useConnectCallbackNotice({
     provider: ConnectProvider.Slack,
   });
+
+  /*
+   * A Connect button pressed in Slack (?connect=), and what became of the
+   * press once the account was connected (?pressed=); or a note's Connect
+   * Slack account link (?connectAccount=).
+   */
+  const connectRequest: ConnectRequestState = useConnectRequest({
+    provider: ConnectProvider.Slack,
+  });
+
+  // On its way to Slack to sign in, for a Connect button pressed there.
+  const [isConnectingFromSlack, setIsConnectingFromSlack] =
+    React.useState<boolean>(false);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -182,14 +205,134 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
+  /*
+   * Starts "sign in with Slack" for the press a Connect button in Slack
+   * stands for (`connect`), and takes the browser there. A press that can no
+   * longer be used - spent, or expired - is answered by the server with a
+   * 400: the page says so, its own Connect button right below. Without a
+   * token (a note's Connect Slack account link) it is the sign-in the
+   * page's own Connect button starts.
+   */
+  type StartSignInFromSlackFunction = (token: string | null) => Promise<void>;
+
+  const startSignInFromSlack: StartSignInFromSlackFunction = async (
+    token: string | null,
+  ): Promise<void> => {
+    const signInUrl: URL = URL.fromURL(APP_API_URL)
+      .addRoute("/slack/sign-in-url")
+      .addQueryParam(
+        CONNECT_START_PAGE_QUERY_PARAM,
+        props.startPage || ConnectStartPage.ProjectSettings,
+      );
+
+    if (token) {
+      signInUrl.addQueryParam(CONNECT_REQUEST_QUERY_PARAM, token);
+    }
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get<JSONObject>({
+        url: signInUrl,
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      if (token && response.statusCode === 400) {
+        setIsConnectingFromSlack(false);
+        connectRequest.markLinkGone(isUserAccountConnected);
+        return;
+      }
+
+      throw response;
+    }
+
+    const authorizationUrl: string | undefined = (response.data as JSONObject)[
+      "authorizationUrl"
+    ] as string | undefined;
+
+    if (!authorizationUrl) {
+      throw new Error(
+        "OneUptime could not start the Slack connection. Please try again.",
+      );
+    }
+
+    Navigation.navigate(URL.fromString(authorizationUrl));
+  };
+
+  /*
+   * Opened from a Connect button in Slack: the account is connected straight
+   * away - the sign-in starts on its own, carrying the press, so the person
+   * presses nothing more here. Only once the page knows the project is
+   * connected to Slack; otherwise the page shows itself as usual.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectToken) {
+      return;
+    }
+
+    const token: string = connectRequest.connectToken;
+    connectRequest.takeToken();
+
+    if (!isProjectAccountConnected || !SlackAppClientId) {
+      return;
+    }
+
+    setIsConnectingFromSlack(true);
+
+    /*
+     * A start that fails is said above the page, which shows as usual: its
+     * own Connect button is right there to try again.
+     */
+    startSignInFromSlack(token).catch((error: Exception) => {
+      setIsConnectingFromSlack(false);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
+    });
+  }, [isLoading, isProjectAccountConnected]);
+
+  /*
+   * Opened from the Connect Slack account link in a Slack channel's note
+   * (the people OneUptime could not add to it): somebody whose account is
+   * not connected yet is taken to Slack to connect it straight away.
+   * Somebody connected already sees the page as usual - it says so - and
+   * so does everybody while the project itself is not connected to Slack.
+   */
+  useEffect(() => {
+    if (isLoading || !connectRequest.connectAccount) {
+      return;
+    }
+
+    connectRequest.takeConnectAccount();
+
+    if (
+      // A Connect button's press, opened with it, signs in for that press.
+      connectRequest.connectToken ||
+      isUserAccountConnected ||
+      !isProjectAccountConnected ||
+      !SlackAppClientId
+    ) {
+      return;
+    }
+
+    setIsConnectingFromSlack(true);
+
+    startSignInFromSlack(null).catch((error: Exception) => {
+      setIsConnectingFromSlack(false);
+      connectRequest.markStartFailed(API.getFriendlyErrorMessage(error));
+    });
+  }, [isLoading, isProjectAccountConnected, isUserAccountConnected]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
+  }
+
+  if (isConnectingFromSlack) {
+    return <ConnectRequestConnecting provider={ConnectProvider.Slack} />;
   }
 
   if (error) {
     return (
       <Fragment>
         <ConnectCallbackNotice state={connectCallback} />
+        <ConnectRequestNotice state={connectRequest} />
         <ErrorMessage message={error} />
       </Fragment>
     );
@@ -364,10 +507,19 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     };
   };
 
-  // if user is not connected and the project is connected with slack.
+  /*
+   * The project is connected to Slack, the person is not: what to do, as
+   * the Setup Checklist says it, and the workspace to sign in to. A Connect
+   * button that expired, or a sign-in that could not start, points here.
+   */
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Slack (but OneUptime is already installed in ${slackTeamName} team)`;
-    cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
+    cardTitle = "Connect your Slack account";
+    cardDescription = slackTeamName
+      ? translator.translateTemplate(
+          "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
+          { team: slackTeamName },
+        )
+      : "Acknowledge incidents and get messages from OneUptime as yourself, in Slack.";
     cardButtons = [
       // connect with slack button.
       getConnectWithSlackButton(`Connect my account with Slack`),
@@ -454,6 +606,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <ConnectCallbackNotice state={connectCallback} />
+      <ConnectRequestNotice state={connectRequest} />
 
       <div>
         <Card

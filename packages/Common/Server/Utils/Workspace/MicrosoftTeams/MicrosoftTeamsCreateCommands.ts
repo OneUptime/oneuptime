@@ -20,6 +20,12 @@ import MicrosoftTeamsScheduledMaintenanceActions, {
 } from "./Actions/ScheduledMaintenance";
 import MicrosoftTeamsMessageSize from "./MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
+import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
+import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
+import {
+  CREATE_INCIDENT_COMMAND,
+  CREATE_MAINTENANCE_COMMAND,
+} from "./Actions/ActionTypes";
 import MicrosoftTeamsTimezone from "./MicrosoftTeamsTimezone";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
@@ -50,8 +56,11 @@ export interface CreateFormText {
   what: string;
   // Below the project in the dashboard, where the same thing can be created.
   dashboardRoute: string;
-  // Completes "To ...": why the sender needs a connected account.
-  purpose: string;
+  /*
+   * The command that opens the form: what a sender without a connected
+   * account types again once it is (MicrosoftTeamsConnectPrompt).
+   */
+  command: string;
   // The lists that are left off a card refused as too large.
   lists: string;
 }
@@ -59,14 +68,14 @@ export interface CreateFormText {
 const INCIDENT_FORM: CreateFormText = {
   what: "an incident",
   dashboardRoute: "/incidents/create",
-  purpose: "create incidents from Microsoft Teams",
+  command: CREATE_INCIDENT_COMMAND,
   lists: "monitors, labels and on-call policies",
 };
 
 const SCHEDULED_MAINTENANCE_FORM: CreateFormText = {
   what: "a scheduled maintenance event",
   dashboardRoute: "/scheduled-maintenance-events/create",
-  purpose: "schedule maintenance from Microsoft Teams",
+  command: CREATE_MAINTENANCE_COMMAND,
   lists: "monitors and labels",
 };
 
@@ -285,23 +294,31 @@ export default class MicrosoftTeamsCreateCommands {
 
       return props;
     } catch (error) {
+      /*
+       * Not connected: asked to connect, mentioning the sender, with a
+       * Connect button - and to type the command again once they have.
+       */
       if (error instanceof MicrosoftTeamsAccountNotLinkedException) {
-        await MicrosoftTeamsReplies.sendBestEffort(
-          turnContext,
-          await MicrosoftTeamsReplies.getAccountNotLinkedMessage({
-            projectId: projectId,
-            purpose: form.purpose,
+        await MicrosoftTeamsConnectPrompt.prompt({
+          turnContext: turnContext,
+          projectId: projectId,
+          description: MicrosoftTeamsConnectPrompt.describeCommand({
+            purpose: data.createPermission.action,
+            command: form.command,
           }),
-        );
+        });
         return null;
       }
 
       // Placed as text: a refusal can name a label, a record or a person.
       if (error instanceof NotAuthorizedException) {
-        await MicrosoftTeamsReplies.sendBestEffort(
-          turnContext,
-          mdText`${error.message}`.toString(),
-        );
+        await MicrosoftTeamsActionAnswer.reply({
+          turnContext: turnContext,
+          answer: {
+            markdown: mdText`${error.message}`.toString(),
+            text: error.message,
+          },
+        });
         return null;
       }
 

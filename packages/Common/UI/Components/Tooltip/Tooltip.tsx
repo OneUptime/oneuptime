@@ -3,12 +3,14 @@ import React, {
   cloneElement,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
 import useTranslateValue from "../../Utils/Translation";
+import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 
 export interface ComponentProps {
   text?: string | undefined;
@@ -30,16 +32,31 @@ export interface ComponentProps {
    * then have it read twice, so leave it off.
    */
   isTriggerAlreadyDescribed?: boolean | undefined;
+  /*
+   * Show on focus only when the keyboard moved it there; hover still shows
+   * it. For a trigger a script focuses after a click: a menu opened with the
+   * mouse focuses its first item, so that item's tooltip popped up at once,
+   * unasked, over whatever was under it - and, drawn before the menu had
+   * settled, beside the place the menu opened from rather than the item.
+   * From the keyboard it still shows the moment the item takes focus.
+   */
+  isShownOnKeyboardFocusOnly?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
   reference?: HTMLElement | undefined;
 }
 
+// What a focus-triggered show says it was triggered by (Tippy's onTrigger).
+const FOCUS_TRIGGERS: Array<string> = ["focus", "focusin"];
+
 const TooltipPopup: FunctionComponent<PopupProps> = (
   props: PopupProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+
+  // The event that last asked this tooltip to show.
+  const lastTriggerRef: React.MutableRefObject<string> = useRef<string>("");
 
   if (!props.text && !props.richContent) {
     return props.children;
@@ -59,6 +76,29 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
 
   const animationProps: { animation: string } | Record<string, never> = isRich
     ? { animation: "shift-away-subtle" }
+    : {};
+
+  const keyboardFocusOnlyProps:
+    | {
+        onTrigger: (instance: unknown, event: Event) => void;
+        onShow: () => false | undefined;
+      }
+    | Record<string, never> = props.isShownOnKeyboardFocusOnly
+    ? {
+        onTrigger: (_instance: unknown, event: Event): void => {
+          lastTriggerRef.current = event.type;
+        },
+        onShow: (): false | undefined => {
+          if (
+            FOCUS_TRIGGERS.includes(lastTriggerRef.current) &&
+            !wasLastInputFromKeyboard()
+          ) {
+            return false;
+          }
+
+          return undefined;
+        },
+      }
     : {};
 
   return (
@@ -87,6 +127,7 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       placement={isRich ? "top" : "top"}
       {...themeProps}
       {...animationProps}
+      {...keyboardFocusOnlyProps}
       aria={{
         content: props.isTriggerAlreadyDescribed ? null : "describedby",
         /*

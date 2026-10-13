@@ -100,6 +100,7 @@ jest.mock("react-i18next", () => {
 
 type ColumnProps = {
   title: string;
+  getElement?: (item: BillingInvoice) => ReactElement;
 };
 
 type InvoicesTableProps = {
@@ -509,6 +510,85 @@ describe("Invoices page Pay Invoice", () => {
  * once it does not. These tests look at each kind of row the way a customer
  * does, and check that each action still runs for the invoice it sits on.
  */
+/*
+ * The Amount column. The payment provider keeps amounts in cents, and the
+ * list used to divide by 100 and print the result: 125050 read
+ * "1250.5 USD". The API answers the amount as a JSON number since #4719,
+ * where it answered the decimal column's text; both read as money.
+ */
+describe("Invoices page Amount column", () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    invoicesForTest = [];
+    lastTableProps = null;
+    postMock.mockReset().mockResolvedValue(apiResponse({}));
+    getListMock.mockReset().mockResolvedValue({ data: [], count: 0 });
+    getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(projectId);
+    getJestSpyOn(ProjectUtil, "isSubscriptionInactive").mockReturnValue(false);
+    getJestSpyOn(Navigation, "reload").mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  type AmountCellFunction = (
+    amount: number | string,
+    currencyCode: string,
+  ) => string;
+
+  const amountCell: AmountCellFunction = (
+    amount: number | string,
+    currencyCode: string,
+  ): string => {
+    const column: ColumnProps | undefined = lastTableProps?.columns.find(
+      (candidate: ColumnProps) => {
+        return candidate.title === "Amount";
+      },
+    );
+
+    expect(column?.getElement).toBeDefined();
+
+    const invoice: BillingInvoice = makeInvoice({
+      invoiceId: "in_amount",
+      status: InvoiceStatus.Paid,
+    });
+    (invoice as unknown as { amount: number | string }).amount = amount;
+    invoice.currencyCode = currencyCode;
+
+    const { container } = render(column!.getElement!(invoice));
+
+    return container.textContent || "";
+  };
+
+  it("lists each amount as money: two decimals, grouped thousands, then the currency", () => {
+    render(
+      <Invoices
+        pageRoute={new Route("/settings/invoices")}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
+
+    expect(amountCell(2200, "usd")).toBe("22.00 USD");
+    expect(amountCell(125050, "usd")).toBe("1,250.50 USD");
+    expect(amountCell(999, "usd")).toBe("9.99 USD");
+    expect(amountCell(0, "usd")).toBe("0.00 USD");
+    expect(amountCell(1000, "eur")).toBe("10.00 EUR");
+  });
+
+  it("reads the text an older server answered the same way", () => {
+    render(
+      <Invoices
+        pageRoute={new Route("/settings/invoices")}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
+
+    expect(amountCell("125050", "usd")).toBe("1,250.50 USD");
+    expect(amountCell("0", "usd")).toBe("0.00 USD");
+  });
+});
+
 describe("Invoices page row actions", () => {
   let navigate: jest.SpyInstance;
 

@@ -5,6 +5,10 @@ import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
 import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
+import {
+  rememberWorkspaceConnectLink,
+  resumeWorkspaceConnect,
+} from "./Utils/WorkspaceConnectResume";
 import { listenForRealtimeSsoSignIn } from "./Utils/RealtimeSsoSignIn";
 import PageMap from "./Utils/PageMap";
 import {
@@ -442,6 +446,13 @@ const App: () => JSX.Element = () => {
   const fetchProjects: PromiseVoidFunction = async (): Promise<void> => {
     setLoading(true);
 
+    /*
+     * A Connect link from Slack or Microsoft Teams is remembered before the
+     * first request, which sends a signed-out browser to the sign-in page
+     * (see Utils/WorkspaceConnectResume).
+     */
+    rememberWorkspaceConnectLink();
+
     // get list of projects.
     try {
       const result: ListResult<Project> = await ModelAPI.getList<Project>({
@@ -470,6 +481,14 @@ const App: () => JSX.Element = () => {
        * with.
        */
       if (resumePendingMcpAuthorization()) {
+        return;
+      }
+
+      /*
+       * Somebody who pressed Connect in Slack or Microsoft Teams and had to
+       * sign in first: back to the page that connects their account.
+       */
+      if (resumeWorkspaceConnect()) {
         return;
       }
     } catch (err) {

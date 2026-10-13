@@ -191,6 +191,18 @@ import { ProjectScopedReferenceException } from "../../../../Server/Utils/Databa
 import { UnreadableReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
+import MicrosoftTeamsServiceUrl from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsServiceUrl";
+import MicrosoftTeamsAlertActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Alert";
+import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestRecord,
+  WorkspacePendingActionKind,
+} from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
+import UserService from "../../../../Server/Services/UserService";
+import User from "../../../../Models/DatabaseModels/User";
+import Name from "../../../../Types/Name";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
@@ -1316,6 +1328,105 @@ function dashboardLink(route: string): string {
   return `${DASHBOARD_URL}/${projectId.toString()}${route}`;
 }
 
+// ---- Reading an answer card ----
+
+// Who sends every activity here (SENDER), as the bot's answers mention them.
+const SENDER_MENTION: string = "<at>Customer User</at>";
+
+/*
+ * A call that is an answer card (MicrosoftTeamsActionAnswer) - a refusal, or
+ * a request to connect the account - read as what it says after mentioning
+ * the sender, whom the card mentions. Any other call reads as its label.
+ */
+function answerOf(call: ConnectorCall): string {
+  if (call.kind !== "card" || !call.card) {
+    return call.label;
+  }
+
+  const texts: Array<string> = getTextBlocks(call.card);
+
+  if (texts.length !== 1 || !texts[0]!.startsWith(`${SENDER_MENTION} `)) {
+    return call.label;
+  }
+
+  expect(asObject(call.card["msteams"])["entities"]).toEqual([
+    {
+      type: "mention",
+      text: SENDER_MENTION,
+      mentioned: { id: SENDER["id"], name: SENDER["name"] },
+    },
+  ]);
+
+  return texts[0]!.substring(SENDER_MENTION.length + 1);
+}
+
+function answersOf(calls: Array<ConnectorCall>): Array<string> {
+  return calls.map((call: ConnectorCall) => {
+    return answerOf(call);
+  });
+}
+
+// The Connect button an answer card carries, or null.
+function connectUrlOf(call: ConnectorCall | undefined): string | null {
+  const button: JSONObject | undefined = getActions(cardOf(call)).find(
+    (action: JSONObject) => {
+      return (
+        action["type"] === "Action.OpenUrl" &&
+        action["title"] === "Connect Microsoft Teams account"
+      );
+    },
+  );
+
+  return button ? String(button["url"]) : null;
+}
+
+/*
+ * The Connect button opens the sender's own Microsoft Teams settings in the
+ * project, with the press it carries.
+ */
+function expectOneClickConnect(call: ConnectorCall | undefined): void {
+  const url: globalThis.URL = new globalThis.URL(connectUrlOf(call) || "");
+
+  expect(`${url.origin}${url.pathname}`).toBe(
+    dashboardLink("/user-settings/microsoft-teams-integration"),
+  );
+  expect(url.searchParams.get("connect")).toMatch(
+    CONNECT_REQUEST_TOKEN_PATTERN,
+  );
+}
+
+/*
+ * The presses Connect buttons carry (WorkspaceConnectRequest) live in Redis,
+ * which is not connected here: they live in this map instead.
+ */
+const keptConnectRequests: Map<string, string> = new Map<string, string>();
+
+function keepConnectRequestsInMemory(): void {
+  keptConnectRequests.clear();
+
+  jest
+    .spyOn(GlobalCache, "setString")
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        keptConnectRequests.set(`${namespace}:${key}`, value);
+      },
+    );
+  jest
+    .spyOn(GlobalCache, "getString")
+    .mockImplementation(async (namespace: string, key: string) => {
+      return keptConnectRequests.get(`${namespace}:${key}`) ?? null;
+    });
+  jest
+    .spyOn(GlobalCache, "getAndDeleteString")
+    .mockImplementation(async (namespace: string, key: string) => {
+      const value: string | undefined = keptConnectRequests.get(
+        `${namespace}:${key}`,
+      );
+      keptConnectRequests.delete(`${namespace}:${key}`);
+      return value ?? null;
+    });
+}
+
 interface CardListExpectation {
   choiceSetId: string;
   pluralNoun: string;
@@ -1463,6 +1574,7 @@ beforeEach(() => {
   stubTenantAndInstallCapture(projectId);
   stubSenderCheck(projectId);
   stubDashboardUrl();
+  keepConnectRequestsInMemory();
 
   loggedErrors = [];
   loggedErrorCalls = [];
@@ -2097,21 +2209,21 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
   // A type, not an interface: test.each wants a Record<string, unknown> row.
   type NotLinkedCase = {
     command: string;
-    // How the reply starts: why the sender needs a connected account.
+    // What the sender is asked to connect their account for.
     purpose: string;
   };
 
   test.each<NotLinkedCase>([
     {
       command: "create incident",
-      purpose: "To create incidents from Microsoft Teams",
+      purpose: "declare an incident",
     },
     {
       command: "create maintenance",
-      purpose: "To schedule maintenance from Microsoft Teams",
+      purpose: "create a scheduled maintenance event",
     },
   ])(
-    "'$command' from a Teams user with no connected account: one reply pointing at User Settings → Microsoft Teams, no form",
+    "'$command' from a Teams user with no connected account: one reply, mentioning them, with a one-click Connect button and the command to type again; no form",
     async (notLinked: NotLinkedCase) => {
       stubProjectData({ monitors: 800 });
       /*
@@ -2137,12 +2249,11 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
       expect(view.httpStatuses).toEqual([200]);
       expect(view.refused).toEqual([]);
       expect(view.bubbles).toHaveLength(1);
-      const reply: string = textOf(view.bubbles[0]);
-      expect(reply.startsWith(notLinked.purpose)).toBe(true);
-      expect(reply).toContain("User Settings → Microsoft Teams");
-      expect(reply).toContain(
-        dashboardLink("/user-settings/microsoft-teams-integration"),
+      // master: a line of text naming nobody, then "try again".
+      expect(answerOf(view.bubbles[0]!)).toBe(
+        `🔗 **Connect your Microsoft Teams account to ${notLinked.purpose}.** It takes one click. Then type **${notLinked.command}** again.`,
       );
+      expectOneClickConnect(view.bubbles[0]);
       // The link looked for was this sender's, in this project.
       expect(WorkspaceUserAuthTokenService.findOneBy).toHaveBeenCalledTimes(1);
       expect(WorkspaceUserAuthTokenService.findOneBy).toHaveBeenCalledWith(
@@ -2355,7 +2466,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
       conversationId: CHANNEL_CONVERSATION_ID,
     },
   ])(
-    "'$command' in a $conversation, from a sender without a connected account: told where to connect it, and no form is posted for everyone there",
+    "'$command' in a $conversation, from a sender without a connected account: asked, by name, to connect it, and no form is posted for everyone there",
     async (sharedChat: SharedChatCase) => {
       stubProjectData({ monitors: 5 });
       // Each check would refuse this sender, were it asked.
@@ -2394,15 +2505,20 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
       expect(view.httpStatuses).toEqual([200]);
       expect(view.refused).toEqual([]);
-      // One text bubble, in the chat it was asked in: where to connect the account.
+      // One answer card, in the chat it was asked in: connect the account.
       expect(
         view.bubbles.map((call: ConnectorCall) => {
           return [call.kind, call.conversationId];
         }),
-      ).toEqual([["text", sharedChat.conversationId]]);
-      expect(view.bubbles[0]!.label).toMatch(
-        /^To (create incidents|schedule maintenance) from Microsoft Teams, first connect your Microsoft Teams account to OneUptime/,
+      ).toEqual([["card", sharedChat.conversationId]]);
+      expect(answerOf(view.bubbles[0]!)).toBe(
+        `🔗 **Connect your Microsoft Teams account to ${
+          sharedChat.command === "create incident"
+            ? "declare an incident"
+            : "create a scheduled maintenance event"
+        }.** It takes one click. Then type **${sharedChat.command}** again.`,
       );
+      expectOneClickConnect(view.bubbles[0]);
       expect(
         MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId,
       ).toHaveBeenCalledTimes(1);
@@ -2442,7 +2558,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
       );
 
       expect(view.httpStatuses).toEqual([200]);
-      expect(labelsOf(view.bubbles)).toEqual([
+      expect(answersOf(view.bubbles)).toEqual([
         "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
       ]);
       // The one checked is the sender, in this project, from the database.
@@ -2477,7 +2593,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the maintenance submit tests).
-    expect(labelsOf(view.bubbles)).toEqual([
+    expect(answersOf(view.bubbles)).toEqual([
       "You do not have permission to create a scheduled maintenance event. You do not have permissions to create Scheduled Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
@@ -2508,7 +2624,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the incident submit tests).
-    expect(labelsOf(view.bubbles)).toEqual([
+    expect(answersOf(view.bubbles)).toEqual([
       "You do not have permission to declare an incident. You do not have permissions to create Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident",
     ]);
     expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
@@ -2652,7 +2768,7 @@ describe("questions for the AI assistant (#4111 review): one answer, and the que
   ];
 
   test.each<QuestionCase>(QUESTIONS)(
-    "$description from a Teams user with no connected account: one reply that says where to connect it, with the link; nothing logged as an error",
+    "$description from a Teams user with no connected account: one reply, mentioning them, with a one-click Connect button and to ask again; nothing logged as an error",
     async (question: QuestionCase) => {
       // The real account lookup runs, and finds no link.
       jest
@@ -2672,9 +2788,10 @@ describe("questions for the AI assistant (#4111 review): one answer, and the que
       );
 
       expect(view.httpStatuses).toEqual([200]);
-      expect(labelsOf(view.bubbles)).toEqual([
-        `To ask OneUptime questions from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](${dashboardLink("/user-settings/microsoft-teams-integration")}), then try again.`,
+      expect(answersOf(view.bubbles)).toEqual([
+        "🔗 **Connect your Microsoft Teams account to ask OneUptime AI.** It takes one click. Then ask your question again.",
       ]);
+      expectOneClickConnect(view.bubbles[0]);
       expect(loggedErrors).toEqual([]);
     },
   );
@@ -3713,7 +3830,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     ).toEqual([200]);
     expect(
       deliveries[0]!.calls.map((call: ConnectorCall) => {
-        return [call.method, call.label, call.connectorStatus];
+        return [call.method, answerOf(call), call.connectorStatus];
       }),
     ).toEqual([
       [
@@ -3790,7 +3907,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     );
 
     expect(view.httpStatuses).toEqual([200]);
-    expect(labelsOf(view.bubbles)).toEqual([
+    expect(answersOf(view.bubbles)).toEqual([
       "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
     ]);
     expect(IncidentService.create).not.toHaveBeenCalled();
@@ -4747,4 +4864,318 @@ describe("card size sweep: whatever the project, the form Teams gets fits the 40
       });
     }
   }
+});
+
+/*
+ * CUSTOMER FEEDBACK #1, END TO END: A BUTTON ON A CARD IS ANSWERED WHERE IT
+ * WAS PRESSED, MENTIONING WHO PRESSED IT.
+ *
+ * Somebody added to an incident's channel, whose Microsoft Teams account
+ * was never connected to OneUptime, pressed Acknowledge on the incident's
+ * card: "nothing happens on the channel". The answer was a line of text
+ * naming nobody, with a link to a settings page and "then try again".
+ *
+ * Through the real botbuilder stack, the press - an Action.Submit, which
+ * Teams sends as a message replying to the card - is answered in the same
+ * conversation (the channel post's thread), with a card that mentions the
+ * person who pressed, asks them to connect their account to acknowledge
+ * the incident, and carries a Connect button that keeps the press, to
+ * finish once they are connected. A press that comes too late says who got
+ * there first, and when. Buttons of cards built from Slack's blocks, and
+ * maintenance buttons, are acted on (they were dead), and a button no
+ * handler knows is answered too.
+ */
+describe("a card's button, pressed in a channel (customer feedback #1)", () => {
+  // The incident's card, posted in the channel: its thread is the conversation.
+  const CARD_POST_ID: string = "1727611200000";
+  const THREAD_ID: string = `${CHANNEL_CONVERSATION_ID};messageid=${CARD_POST_ID}`;
+
+  // An Action.Submit on the card in the channel, as Teams delivers it.
+  function pressOnCard(value: JSONObject, label: string): JSONObject {
+    const activity: JSONObject = buildCardSubmitActivity({
+      id: nextActivityId(label),
+      replyToId: CARD_POST_ID,
+      value: value,
+      conversation: "channel",
+    });
+
+    (activity["conversation"] as JSONObject)["id"] = THREAD_ID;
+
+    return activity;
+  }
+
+  // The answer card a bubble is: its text after the mention, and its button.
+  function answerIn(call: ConnectorCall | undefined): {
+    text: string;
+    connectUrl: string | null;
+  } {
+    const card: JSONObject = cardOf(call);
+    const texts: Array<string> = getTextBlocks(card);
+
+    expect(texts).toHaveLength(1);
+    expect(texts[0]!.startsWith(`${SENDER_MENTION} `)).toBe(true);
+    expect(asObject(card["msteams"])["entities"]).toEqual([
+      {
+        type: "mention",
+        text: SENDER_MENTION,
+        mentioned: { id: SENDER["id"], name: SENDER["name"] },
+      },
+    ]);
+
+    return {
+      text: texts[0]!.substring(SENDER_MENTION.length + 1),
+      connectUrl: connectUrlOf(call),
+    };
+  }
+
+  test("Acknowledge from an account nobody connected: one answer in the card's thread, mentioning them, with a Connect button that keeps the press", async () => {
+    // The real account lookup runs, and finds no link.
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRestore();
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockResolvedValue(null);
+    // The fake Bot Connector stands in for Microsoft's.
+    jest.spyOn(MicrosoftTeamsServiceUrl, "isTrusted").mockReturnValue(true);
+    const acknowledge: SpyInstance<typeof WorkspaceMemberActions.acknowledge> =
+      jest.spyOn(WorkspaceMemberActions, "acknowledge");
+    const incidentId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-not-connected",
+        ),
+      ),
+    );
+
+    // Answered at once, and once: no redelivery, no second bubble.
+    expect(view.httpStatuses).toEqual([200]);
+    expect(view.refused).toEqual([]);
+    expect(
+      view.bubbles.map((call: ConnectorCall) => {
+        return [call.kind, call.conversationId];
+      }),
+    ).toEqual([["card", THREAD_ID]]);
+
+    // master: "To use OneUptime actions in Microsoft Teams, first connect ..."
+    const answer: { text: string; connectUrl: string | null } = answerIn(
+      view.bubbles[0],
+    );
+    expect(answer.text).toBe(
+      "🔗 **Connect your Microsoft Teams account to acknowledge this incident.** It takes one click, and OneUptime acknowledges it for you as soon as you're connected.",
+    );
+    expectOneClickConnect(view.bubbles[0]);
+
+    // The press, kept for that Microsoft account, to finish and answer here.
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        new globalThis.URL(answer.connectUrl!).searchParams.get("connect"),
+      );
+    expect(request).not.toBeNull();
+    expect(request!.workspaceUserId).toBe(SENDER_AAD_OBJECT_ID);
+    expect(request!.pendingAction!.kind).toBe(
+      WorkspacePendingActionKind.Acknowledge,
+    );
+    expect(request!.pendingAction!.eventId.toString()).toBe(incidentId);
+    expect(request!.teams).toEqual({
+      serviceUrl: connector.serviceUrl,
+      conversationId: THREAD_ID,
+      conversationType: "channel",
+      tenantId: TENANT_ID,
+      userTeamsId: SENDER["id"],
+      userName: SENDER["name"],
+    });
+
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("pressed twice: two answers in the thread, each with a Connect button of its own", async () => {
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockRestore();
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockResolvedValue(null);
+    const incidentId: string = ObjectID.generate().toString();
+
+    const first: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-twice",
+        ),
+      ),
+    );
+    const second: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-twice",
+        ),
+      ),
+    );
+
+    expect([...first.bubbles, ...second.bubbles]).toHaveLength(2);
+    for (const bubble of [...first.bubbles, ...second.bubbles]) {
+      expect(bubble.conversationId).toBe(THREAD_ID);
+    }
+    expect(connectUrlOf(first.bubbles[0])).not.toBe(
+      connectUrlOf(second.bubbles[0]),
+    );
+  });
+
+  test("Acknowledge on an incident somebody acknowledged already: who did it and when, in the thread, as news", async () => {
+    const states: Array<IncidentState> = [
+      { order: 1, isCreatedState: true },
+      { order: 2, isAcknowledgedState: true },
+      { order: 3, isResolvedState: true },
+    ].map((flags: Partial<IncidentState>): IncidentState => {
+      const state: IncidentState = new IncidentState();
+      state.id = ObjectID.generate();
+      state.projectId = projectId;
+      Object.assign(state, flags);
+      return state;
+    });
+    const simonId: ObjectID = ObjectID.generate();
+    const simon: User = new User();
+    simon.name = new Name("Simon Lee");
+
+    jest
+      .spyOn(WorkspaceMemberActions, "authorize")
+      .mockImplementation(async (data: { event: WorkspaceEvent }) => {
+        return {
+          type: data.event.type,
+          id: data.event.id,
+          projectId: projectId,
+          currentStateId: states[1]!.id!,
+          number: 2,
+          numberWithPrefix: "INC-2",
+        };
+      });
+    jest
+      .spyOn(IncidentStateService, "getAllIncidentStates")
+      .mockResolvedValue(states);
+    jest.spyOn(IncidentStateTimelineService, "findBy").mockResolvedValue([
+      {
+        incidentStateId: states[1]!.id!,
+        startsAt: new Date("2026-10-08T18:07:00Z"),
+        createdByUserId: simonId,
+      },
+    ] as never);
+    jest.spyOn(UserService, "findOneBy").mockResolvedValue(simon);
+    const acknowledge: SpyInstance<typeof WorkspaceMemberActions.acknowledge> =
+      jest.spyOn(WorkspaceMemberActions, "acknowledge");
+    const incidentId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: MicrosoftTeamsIncidentActionType.AckIncident,
+            actionValue: incidentId,
+          },
+          "ack-already",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(view.bubbles).toHaveLength(1);
+    // master: "Sorry, that action failed: Incident is already acknowledged."
+    expect(answerIn(view.bubbles[0])).toEqual({
+      text: `✅ **[Incident INC-2](${dashboardLink(`/incidents/${incidentId}`)})** was already acknowledged by **Simon Lee** at {{TIME(2026-10-08T18:07:00Z)}}.`,
+      connectUrl: null,
+    });
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(loggedErrors).toEqual([]);
+  });
+
+  test("a button of a card built from Slack's blocks (AcknowledgeAlert) acknowledges the alert, as the Teams button does", async () => {
+    const handle: SpyInstance<
+      typeof MicrosoftTeamsAlertActions.handleBotAlertAction
+    > = jest
+      .spyOn(MicrosoftTeamsAlertActions, "handleBotAlertAction")
+      .mockResolvedValue(undefined);
+    const alertId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          { action: "AcknowledgeAlert", actionValue: alertId },
+          "slack-alias",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(handle.mock.calls[0]![0]).toMatchObject({
+      actionType: MicrosoftTeamsAlertActionType.AckAlert,
+      actionValue: alertId,
+    });
+  });
+
+  test("Mark as Ongoing on a maintenance event's card names the event it is on", async () => {
+    const handle: SpyInstance<
+      typeof MicrosoftTeamsScheduledMaintenanceActions.handleBotScheduledMaintenanceAction
+    > = jest
+      .spyOn(
+        MicrosoftTeamsScheduledMaintenanceActions,
+        "handleBotScheduledMaintenanceAction",
+      )
+      .mockResolvedValue(undefined);
+    const eventId: string = ObjectID.generate().toString();
+
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          {
+            action: "MarkScheduledMaintenanceAsOngoing",
+            actionValue: eventId,
+          },
+          "maintenance-button",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(handle).toHaveBeenCalledTimes(1);
+    expect(handle.mock.calls[0]![0]).toBe(
+      MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
+    );
+    expect(handle.mock.calls[0]![2]).toMatchObject({
+      scheduledMaintenanceId: eventId,
+    });
+  });
+
+  test("a button no handler knows is answered in the thread, not met with silence", async () => {
+    const view: TeamsView = viewOf(
+      await deliverLikeTeams(
+        pressOnCard(
+          { action: "SomeButtonOfAnOlderCard", actionValue: "x" },
+          "unknown-button",
+        ),
+      ),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    // Where to go instead - not what the server could not work out.
+    expect(answerIn(view.bubbles[0])).toEqual({
+      text: "This button no longer works. Open the record in OneUptime instead.",
+      connectUrl: null,
+    });
+  });
 });

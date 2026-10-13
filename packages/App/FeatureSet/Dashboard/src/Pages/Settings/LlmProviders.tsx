@@ -4,7 +4,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -13,12 +13,11 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import TestLlmProviderModal from "Common/UI/Components/AI/TestLlmProviderModal";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import TestLLMProvider, {
-  LLMProviderTestResult,
-} from "Common/UI/Utils/TestLLMProvider";
+import TestLLMProvider from "Common/UI/Utils/TestLLMProvider";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
@@ -43,35 +42,20 @@ const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
 
 const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [showTestModal, setShowTestModal] = useState<boolean>(false);
-  const [isTesting, setIsTesting] = useState<boolean>(false);
-  const [testError, setTestError] = useState<string>("");
-  const [testMessage, setTestMessage] = useState<string>("");
+
+  // The provider whose Test dialog is open.
+  const [testedProviderId, setTestedProviderId] = useState<string | null>(null);
+
+  /*
+   * Who may test a provider: whoever may change it (the server asks the
+   * same). Anyone else who may read providers sees Test locked, saying who
+   * may; before the permission snapshot has landed it is not offered.
+   */
+  const testGate: PermissionGateResult = TestLLMProvider.getTestGate();
 
   const codeRepositoriesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.CODE_REPOSITORY] as Route,
   );
-
-  const runTest: (item: LlmProvider) => Promise<void> = async (
-    item: LlmProvider,
-  ): Promise<void> => {
-    setIsTesting(true);
-    setTestError("");
-    setTestMessage("");
-
-    const result: LLMProviderTestResult = await TestLLMProvider.test({
-      llmProviderId: item["_id"]?.toString() || "",
-      headers: ModelAPI.getCommonHeaders(),
-    });
-
-    if (result.success) {
-      setTestMessage(result.message);
-    } else {
-      setTestError(result.message);
-    }
-
-    setIsTesting(false);
-  };
 
   return (
     <Fragment>
@@ -287,19 +271,15 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Test",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.Play,
-              onClick: async (
-                item: LlmProvider,
-                onCompleteAction: VoidFunction,
-                onError: ErrorFunction,
-              ) => {
-                try {
-                  setShowTestModal(true);
-                  await runTest(item);
-                  onCompleteAction();
-                } catch (err) {
-                  onCompleteAction();
-                  onError(err as Error);
-                }
+              isVisible: (): boolean => {
+                return testGate.isAllowed || Boolean(testGate.disabledReason);
+              },
+              disabled: !testGate.isAllowed,
+              // Locked, it says who may; unlocked, its dialog says what it does.
+              tooltip: testGate.isAllowed ? undefined : testGate.disabledReason,
+              onClick: (item: LlmProvider, onCompleteAction: VoidFunction) => {
+                setTestedProviderId(item.id?.toString() || null);
+                onCompleteAction();
               },
             },
           ]}
@@ -499,22 +479,12 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ]}
         />
 
-        {showTestModal ? (
-          <ConfirmModal
-            title={"Test LLM Provider"}
-            error={testError}
-            description={
-              isTesting
-                ? "Sending a test prompt to your LLM provider…"
-                : testMessage ||
-                  "Testing the connection to your LLM provider. This sends a small prompt using your configured API key, model, and base URL."
-            }
-            submitButtonText={"Close"}
-            isLoading={isTesting}
-            onSubmit={async () => {
-              setShowTestModal(false);
-              setTestError("");
-              setTestMessage("");
+        {testedProviderId ? (
+          <TestLlmProviderModal
+            llmProviderId={testedProviderId}
+            headers={ModelAPI.getCommonHeaders()}
+            onClose={() => {
+              setTestedProviderId(null);
             }}
           />
         ) : null}

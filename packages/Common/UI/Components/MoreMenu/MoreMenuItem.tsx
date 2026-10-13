@@ -170,6 +170,11 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
     return menuItem;
   }
 
+  /*
+   * A menu opened with the mouse focuses its first item, and that focus is
+   * the script's, not the person's: the item's tooltip waits for the pointer
+   * to reach it. Moved to with the keys, it shows at once.
+   */
   if (isExplainedLock) {
     /*
      * The reason sits outside the button so it describes the item without
@@ -178,7 +183,11 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
      */
     return (
       <>
-        <Tooltip text={props.tooltip} isTriggerAlreadyDescribed={true}>
+        <Tooltip
+          text={props.tooltip}
+          isTriggerAlreadyDescribed={true}
+          isShownOnKeyboardFocusOnly={true}
+        >
           {menuItem}
         </Tooltip>
         <span id={reasonId} className="sr-only">
@@ -188,7 +197,11 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return <Tooltip text={props.tooltip}>{menuItem}</Tooltip>;
+  return (
+    <Tooltip text={props.tooltip} isShownOnKeyboardFocusOnly={true}>
+      {menuItem}
+    </Tooltip>
+  );
 };
 
 export default MoreMenuItem;

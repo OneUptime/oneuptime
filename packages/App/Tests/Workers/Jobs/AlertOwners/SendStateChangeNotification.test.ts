@@ -689,6 +689,14 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
         displayColor: Blue500,
         feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert AL-42](${ALERT_LINK}).**: Owners have been notified about the state change of the alert because the alert state changed to **Acknowledged**.`,
         moreInformationInMarkdown: `**Notified:** @${USER_1_ID.toString()})\n**Notified:** @${USER_2_ID.toString()})\n**Notified:** @${USER_3_ID.toString()})\n`,
+        /*
+         * The feed only: the alert's Slack and Microsoft Teams channels were
+         * told of the state change itself, and used to get this right under
+         * it as well.
+         */
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
       }),
     );
   });
