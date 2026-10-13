@@ -237,6 +237,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
   const evalOverTimeDropdownOptions: Array<DropdownOption> =
     CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
       criteriaFilter,
+      props.monitorType,
     ).map((item: EvaluateOverTimeType) => {
       return {
         value: item,
@@ -252,7 +253,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     evalOverTimeDropdownOptions.find((item: DropdownOption) => {
       return (
         item.value ===
-        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter)
+        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+          criteriaFilter,
+          props.monitorType,
+        )
       );
     });
 
@@ -1293,6 +1297,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       title="Evaluate"
                       description={CriteriaFilterUiUtil.getEvaluateOverTimeTypeDescription(
                         criteriaFilter,
+                        props.monitorType,
                       )}
                     />
                     <Dropdown

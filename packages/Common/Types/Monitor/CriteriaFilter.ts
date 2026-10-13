@@ -623,18 +623,34 @@ export class CriteriaFilterUtil {
   /**
    * Whether an over-time window of this check is judged one check at a
    * time: a 1 / 0 series (isBooleanSeries), or a check judged from its
-   * match history. Either way every check is a yes or a no, so the window
-   * is offered All Values and Any Value only - an average of "contained the
-   * text" means nothing - and an aggregate saved on it through the API or
-   * Terraform is judged as All Values (getEffectiveEvaluateOverTimeType).
+   * match history (hasMatchHistory). Either way every check is a yes or a
+   * no, so the window is offered All Values and Any Value only - an average
+   * of "contained the text" means nothing - and an aggregate saved on it
+   * through the API or Terraform is judged as All Values
+   * (getEffectiveEvaluateOverTimeType).
+   *
+   * Pass the monitor type whenever it is known: a JavaScript Expression
+   * keeps a match history on an API monitor but not on a SQL Query monitor,
+   * whose window the server does not judge check by check. Without one, a
+   * check that keeps a match history on any monitor type counts.
    */
-  public static isJudgedCheckByCheck(checkOn: CheckOn | undefined): boolean {
+  public static isJudgedCheckByCheck(
+    checkOn: CheckOn | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
     if (!checkOn) {
       return false;
     }
 
     if (CriteriaFilterUtil.isBooleanSeries(checkOn)) {
       return true;
+    }
+
+    if (monitorType) {
+      return CriteriaFilterUtil.hasMatchHistory({
+        checkOn: checkOn,
+        monitorType: monitorType,
+      });
     }
 
     return Object.values(CriteriaFilterUtil.MATCH_HISTORY_CHECK_ONS).some(
@@ -657,6 +673,7 @@ export class CriteriaFilterUtil {
    */
   public static getEffectiveEvaluateOverTimeType(
     criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
   ): EvaluateOverTimeType | undefined {
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
       criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType;
@@ -665,7 +682,10 @@ export class CriteriaFilterUtil {
       !evaluateOverTimeType ||
       evaluateOverTimeType === EvaluateOverTimeType.AllValues ||
       evaluateOverTimeType === EvaluateOverTimeType.AnyValue ||
-      !CriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter?.checkOn)
+      !CriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
     ) {
       return evaluateOverTimeType;
     }
@@ -675,12 +695,18 @@ export class CriteriaFilterUtil {
 
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
   ): Array<EvaluateOverTimeType> {
     if (!criteriaFilter) {
       return [];
     }
 
-    if (CriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter.checkOn)) {
+    if (
+      CriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter.checkOn,
+        monitorType,
+      )
+    ) {
       return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
     }
 

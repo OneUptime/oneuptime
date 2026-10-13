@@ -147,6 +147,46 @@ describe("the criteria list, for a filter judged from its match history", () => 
     ).toBe('Check if "Response Body" not contains App Title ');
   });
 
+  /*
+   * Only the monitor types where the check keeps a match history judge its
+   * window check by check; given the monitor, the list says so only there.
+   */
+  test("given the monitor type, a check-by-check window is described only where the monitor judges one", () => {
+    expect(
+      CriteriaFilterUtil.translateFilterToText(
+        overTime(EXPRESSION),
+        undefined,
+        MonitorType.API,
+      ),
+    ).toBe(
+      "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5 minutes.",
+    );
+
+    expect(
+      CriteriaFilterUtil.translateFilterToText(
+        overTime(BODY),
+        undefined,
+        MonitorType.Website,
+      ),
+    ).toBe(
+      'Check if "Response Body" not contains App Title on every check in the past 5 minutes ',
+    );
+
+    for (const monitorType of [
+      MonitorType.SQLQuery,
+      MonitorType.CustomJavaScriptCode,
+      MonitorType.IncomingRequest,
+    ]) {
+      expect(
+        CriteriaFilterUtil.translateFilterToText(
+          overTime(EXPRESSION),
+          undefined,
+          monitorType,
+        ),
+      ).not.toContain("on every check");
+    }
+  });
+
   test("a measured value keeps its aggregate wording", () => {
     expect(
       CriteriaFilterUtil.translateFilterToText(
@@ -199,6 +239,27 @@ describe("getCheckByCheckWindowText", () => {
         overTime(HEADER, EvaluateOverTimeType.AnyValue, 30),
       ),
     ).toBe("on any check in the past 30 minutes ");
+  });
+
+  test("is empty on a monitor type that keeps no match history for the check", () => {
+    expect(
+      CriteriaFilterUtil.getCheckByCheckWindowText(
+        overTime(EXPRESSION),
+        MonitorType.SQLQuery,
+      ),
+    ).toBe("");
+    expect(
+      CriteriaFilterUtil.getCheckByCheckWindowText(
+        overTime(BODY),
+        MonitorType.SyntheticMonitor,
+      ),
+    ).toBe("");
+    expect(
+      CriteriaFilterUtil.getCheckByCheckWindowText(
+        overTime(EXPRESSION),
+        MonitorType.API,
+      ),
+    ).toBe("on every check in the past 5 minutes ");
   });
 });
 
@@ -330,6 +391,25 @@ describe("the form's window helpers", () => {
         filterType: FilterType.GreaterThan,
         value: 3000,
       }),
+    ).toBe(
+      "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.",
+    );
+  });
+
+  test("the Evaluate description follows the monitor type", () => {
+    expect(
+      CriteriaFilterUtil.getEvaluateOverTimeTypeDescription(
+        EXPRESSION,
+        MonitorType.API,
+      ),
+    ).toBe(
+      "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
+    );
+    expect(
+      CriteriaFilterUtil.getEvaluateOverTimeTypeDescription(
+        EXPRESSION,
+        MonitorType.SQLQuery,
+      ),
     ).toBe(
       "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.",
     );

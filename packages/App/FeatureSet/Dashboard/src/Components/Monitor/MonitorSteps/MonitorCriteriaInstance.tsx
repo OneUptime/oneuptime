@@ -5,6 +5,7 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
@@ -38,6 +39,7 @@ export interface ComponentProps {
   teamOptions: Array<Team>;
   userOptions: Array<User>;
   incidentRoleOptions: Array<IncidentRole>;
+  monitorType?: MonitorType | undefined;
 }
 
 const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
@@ -106,6 +108,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         <CriteriaFilters
           criteriaFilters={filters}
           filterCondition={filterCondition}
+          monitorType={props.monitorType}
         />
       </div>
 

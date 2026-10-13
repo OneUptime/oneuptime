@@ -148,15 +148,19 @@ export default class CriteriaFilterUtil {
   /*
    * What the "Evaluate" dropdown's choices mean for this filter. A check
    * judged check by check (a yes/no series, or a body, header or expression
-   * judged from its match history) is offered All Values and Any Value
-   * only, so it is told what those two mean; a measured value is told the
-   * aggregates as well.
+   * judged from its match history on this monitor type) is offered All
+   * Values and Any Value only, so it is told what those two mean; a
+   * measured value is told the aggregates as well.
    */
   public static getEvaluateOverTimeTypeDescription(
     criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
   ): string {
     if (
-      CommonCriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter?.checkOn)
+      CommonCriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
     ) {
       return translationKey(
         "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.",
@@ -168,9 +172,15 @@ export default class CriteriaFilterUtil {
     );
   }
 
+  /*
+   * The filter as a sentence, for the criteria list. Pass the monitor type
+   * when it is known: whether a window is judged check by check depends on
+   * it (CommonCriteriaFilterUtil.isJudgedCheckByCheck).
+   */
   public static translateFilterToText(
     criteriaFilter: CriteriaFilter,
     filterCondition?: FilterCondition | undefined,
+    monitorType?: MonitorType | undefined,
   ): string {
     let text: string = "Check if ";
 
@@ -221,7 +231,10 @@ export default class CriteriaFilterUtil {
      * Online and the like) saved with an aggregate is judged as All Values.
      */
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
-      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(criteriaFilter);
+      CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      );
 
     /*
      * A body, a header or an expression judged from its match history has
@@ -231,7 +244,7 @@ export default class CriteriaFilterUtil {
      * 5 minutes.
      */
     const checkByCheckWindow: string =
-      CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter);
+      CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter, monitorType);
 
     // check evaluation over time values.
     if (
@@ -419,14 +432,16 @@ export default class CriteriaFilterUtil {
   /*
    * "on every check in the past 5 minutes " for a body, header or
    * expression filter judged from its match history, "on any check ..." for
-   * Any Value; empty for every other filter, and for one whose window is not
-   * set (the server judges that one on the latest check alone).
+   * Any Value; empty for every other filter, for one whose window is not
+   * set (the server judges that one on the latest check alone), and for one
+   * on a monitor type that keeps no match history for it.
    *
    * Is Request Timeout keeps a match history too, but it is a true/false
    * check like Is Online and reads like one: "all values of ... is true".
    */
   public static getCheckByCheckWindowText(
     criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
   ): string {
     const minutes: number | string | undefined =
       criteriaFilter?.evaluateOverTimeOptions?.timeValueInMinutes;
@@ -434,7 +449,10 @@ export default class CriteriaFilterUtil {
     if (
       !criteriaFilter?.evaluateOverTime ||
       !minutes ||
-      !CommonCriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter.checkOn) ||
+      !CommonCriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter.checkOn,
+        monitorType,
+      ) ||
       CommonCriteriaFilterUtil.isBooleanSeries(criteriaFilter.checkOn)
     ) {
       return "";
@@ -443,6 +461,7 @@ export default class CriteriaFilterUtil {
     const whichChecks: string =
       CommonCriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
         criteriaFilter,
+        monitorType,
       ) === EvaluateOverTimeType.AnyValue
         ? "any check"
         : "every check";

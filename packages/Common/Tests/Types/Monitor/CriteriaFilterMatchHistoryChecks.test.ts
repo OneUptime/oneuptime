@@ -218,7 +218,8 @@ describe("the match history list stays honest", () => {
 
   /*
    * "Every check over the last N minutes" is measured against the
-   * monitor's schedule (EvaluateOverTime.isWindowCovered): only monitors a
+   * monitor's schedule - how far apart its checks should be, what counts as
+   * a gap in them (CriteriaFilterMatchHistory.judgeWindow): only monitors a
    * probe checks on their monitoring interval have one.
    */
   test("every monitor type that keeps a match history is checked on a schedule", () => {
@@ -265,6 +266,94 @@ describe("CriteriaFilterUtil.isJudgedCheckByCheck", () => {
 
   test("a missing check is not", () => {
     expect(CriteriaFilterUtil.isJudgedCheckByCheck(undefined)).toBe(false);
+  });
+
+  /*
+   * The server judges a window check by check only where the check keeps a
+   * match history. Elsewhere it compares the latest check, so the criteria
+   * list must not describe a check-by-check wait there.
+   */
+  describe("with the monitor type", () => {
+    test.each(EXPECTED_MATCH_HISTORY)(
+      "every check that keeps a match history on a $monitorType monitor is",
+      (entry: { monitorType: MonitorType; checkOns: Array<CheckOn> }) => {
+        for (const checkOn of entry.checkOns) {
+          expect(
+            CriteriaFilterUtil.isJudgedCheckByCheck(checkOn, entry.monitorType),
+          ).toBe(true);
+        }
+      },
+    );
+
+    test.each([
+      [CheckOn.JavaScriptExpression, MonitorType.SQLQuery],
+      [CheckOn.JavaScriptExpression, MonitorType.CustomJavaScriptCode],
+      [CheckOn.JavaScriptExpression, MonitorType.IncomingRequest],
+      [CheckOn.ResponseBody, MonitorType.SyntheticMonitor],
+      [CheckOn.ResponseBody, MonitorType.Ping],
+      [CheckOn.ResponseHeader, MonitorType.Port],
+    ])(
+      "%s on a %s monitor, which keeps no match history for it, is not",
+      (checkOn: CheckOn, monitorType: MonitorType) => {
+        expect(
+          CriteriaFilterUtil.isJudgedCheckByCheck(checkOn, monitorType),
+        ).toBe(false);
+      },
+    );
+
+    test.each([MonitorType.SQLQuery, MonitorType.Server, MonitorType.Ping])(
+      "a yes/no series is, on a %s monitor as anywhere",
+      (monitorType: MonitorType) => {
+        expect(
+          CriteriaFilterUtil.isJudgedCheckByCheck(
+            CheckOn.IsOnline,
+            monitorType,
+          ),
+        ).toBe(true);
+      },
+    );
+
+    test("a JavaScript expression on a SQL Query monitor keeps every aggregate, and an aggregate saved on it is kept as saved", () => {
+      const expression: CriteriaFilter = filter(CheckOn.JavaScriptExpression, {
+        filterType: FilterType.EvaluatesToTrue,
+        value: "{{rowCount}} > 0",
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.Average,
+        },
+      });
+
+      expect(
+        CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+          expression,
+          MonitorType.SQLQuery,
+        ),
+      ).toContain(EvaluateOverTimeType.Average);
+      expect(
+        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+          expression,
+          MonitorType.SQLQuery,
+        ),
+      ).toBe(EvaluateOverTimeType.Average);
+
+      // On an API monitor the same filter is judged check by check.
+      expect(
+        CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+          expression,
+          MonitorType.API,
+        ),
+      ).toEqual([
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+      ]);
+      expect(
+        CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+          expression,
+          MonitorType.API,
+        ),
+      ).toBe(EvaluateOverTimeType.AllValues);
+    });
   });
 });
 
