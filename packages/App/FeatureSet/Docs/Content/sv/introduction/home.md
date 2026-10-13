@@ -3,7 +3,7 @@
 Hem är den första sidan du ser i ett projekt. Den visar med en blick om något behöver dig just nu, och leder ett nytt projekt genom den första konfigurationen. Den här sidan förklarar vad Hem visar, hur du hittar vilken produkt, sida eller åtgärd som helst i instrumentpanelen, och kortkommandona som sparar dig turer genom menyerna.
 
 :::cards
-- [Vad Hem visar](#vad-hem-visar): Välkomstchecklistan, de fem rutorna och de aktiva incidenterna.
+- [Vad Hem visar](#vad-hem-visar): Om något är fel, vad som behöver dig, vad projektet innehåller och varje produkt.
 - [Hitta rätt](#hitta-rätt): Menyn Produkter och fälten högst upp på varje sida.
 - [Sök](#sök-efter-en-sida-en-inställning-eller-en-åtgärd): Hitta vilken sida, inställning eller åtgärd som helst genom att skriva namnet.
 - [Kortkommandon](#kortkommandon): Gå till Hem, Övervakare eller Incidenter med två tangenter.
@@ -11,11 +11,46 @@ Hem är den första sidan du ser i ett projekt. Den visar med en blick om något
 
 ## Vad Hem visar
 
-Öppna **Hem** i fältet högst upp, eller tryck `g` och sedan `h` var du än är. Uppifrån och ned visar Hem:
+Öppna **Hem** i fältet högst upp, eller tryck `g` och sedan `h` var du än är. Hem är översikten över ditt projekt. Uppifrån och ned visar den:
 
-1. **Välkommen till OneUptime 👋**, en checklista för ett nytt projekt, tills den är klar.
-2. Fem rutor som räknar det som behöver uppmärksamhet.
-3. **Aktiva incidenter**, varje incident som inte är löst än.
+1. En sökruta, med **Deklarera incident** och **Skapa** bredvid.
+2. En rad som säger om något är fel, ovanför fem siffror som räknar det som behöver uppmärksamhet.
+3. **Välkommen till OneUptime 👋**, en checklista för ett nytt projekt, tills den är klar.
+4. **Kräver uppmärksamhet**, varje problem som är öppet just nu, med namn.
+5. **Ditt projekt**, vad projektet består av, och **Kommande underhåll** när något underhåll är schemalagt.
+6. **Utforska OneUptime**, varje produkt, en kategori i taget.
+
+### Sök och skapa
+
+Sökrutan öppnar sökningen, precis som `Mod` + `K`: skriv namnet på vilken sida, monitor, incident, varning, statussida eller jourpolicy som helst. Se [Sök](#sök-efter-en-sida-en-inställning-eller-en-åtgärd). **Deklarera incident** öppnar formuläret där du deklarerar en incident. **Skapa** erbjuder **Skapa monitor**, **Schemalägg underhåll** och **Skapa meddelande**. Var och en visas bara för den som får använda den.
+
+### Rubriken
+
+Raden högst upp nämner det mest brådskande som är öppet, i en färg som passar:
+
+| När | Hem visar |
+| --- | --- |
+| En incident är öppen | Hur många incidenter som är aktiva, i rött |
+| Ingen incident är öppen, men det finns öppna varningar, monitorer som inte fungerar eller SLO:er i riskzonen | Hur många problem som kräver uppmärksamhet, i orange |
+| Inget är fel och ett underhåll pågår | Hur många underhållshändelser som pågår |
+| Monitorer körs och inget är öppet | **Alla system fungerar** |
+| Projektet har inga monitorer ännu | **Inget övervakas ännu** |
+
+Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
+
+### De fem siffrorna
+
+Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom den.
+
+| Siffra | Vad den räknar | När siffran är noll |
+| --- | --- | --- |
+| **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** |
+| **Aktiva varningar** | Varningar som inte är lösta | **Allt är i sin ordning** |
+| **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer räknas inte. | **Alla fungerar** |
+| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** |
+| **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** |
+
+En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** för underhåll och SLO:er. Ett projekt utan monitorer ser **Inga monitorer ännu**, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två siffrorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
 
 ### Välkomstchecklistan
 
@@ -41,26 +76,27 @@ flowchart TB
 
 Checklistan försvinner när alla fyra steg är klara. Klicka på **Stäng** för att dölja den tidigare. Det sparas i den här webbläsaren för det här projektet; allt som stegen öppnar finns kvar i menyn **Produkter**.
 
-### Rutorna
+### Kräver uppmärksamhet
 
-Varje ruta räknar något, säger om det behöver dig och öppnar listan bakom siffran.
+**Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna varningarna, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller varning började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten. När inget är öppet står det **Inget kräver din uppmärksamhet**.
 
-| Ruta | Vad den räknar | När siffran är noll |
-| --- | --- | --- |
-| **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** |
-| **Aktiva varningar** | Varningar som inte är lösta | **Allt är i sin ordning** |
-| **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer räknas inte. | **Alla fungerar** |
-| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** |
-| **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** |
+### Ditt projekt
 
-En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** på rutorna för underhåll och SLO:er. Ett projekt utan monitorer ser **Inga monitorer ännu** på monitorrutan, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två rutorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
+**Ditt projekt** räknar projektets **Monitorer**, **Statussidor**, **Jourpolicyer**, **SLOs**, **Tjänster**, **Instrumentpaneler** och **Arbetsflöden**; arkiverade räknas inte. Varje rad öppnar sin lista. En typ som projektet saknar visar **Konfigurera** i stället för en siffra.
+
+**Kommande underhåll** listar de tre nästa schemalagda underhållsfönstren, det närmaste först. Avsnittet visas inte när inget är schemalagt.
+
+### Utforska OneUptime
+
+**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den.
 
 ### Hems sidomeny
 
-Sidomenyn bredvid Hem har samma listor, var och en med en siffra:
+Sidomenyn bredvid Hem öppnas på **Översikt**, den här sidan, och har listorna bakom siffrorna, var och en med sitt antal:
 
 | Avsnitt | Sidor |
 | --- | --- |
+| **Hem** | **Översikt** |
 | **Incidenter** | **Aktiva incidenter** och **Aktiva episoder** |
 | **Varningar** | **Aktiva varningar** och **Aktiva episoder** |
 | **Monitorer** | **Ej operativ** |

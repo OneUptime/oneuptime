@@ -3,7 +3,7 @@
 Start is de eerste pagina die u in een project ziet. Ze laat in één oogopslag zien of er nu iets is dat u nodig heeft, en begeleidt een nieuw project door de eerste inrichting. Deze pagina legt uit wat Start toont, hoe u elk product, elke pagina of actie in het dashboard vindt, en de sneltoetsen die u tochten door menu's besparen.
 
 :::cards
-- [Wat Start toont](#wat-start-toont): De welkomstchecklist, de vijf tegels en de actieve incidenten.
+- [Wat Start toont](#wat-start-toont): Of er iets mis is, wat uw aandacht nodig heeft, wat het project bevat en elk product.
 - [Uw weg vinden](#uw-weg-vinden): Het menu Producten en de balken boven aan elke pagina.
 - [Zoeken](#zoeken-naar-een-pagina-een-instelling-of-een-actie): Elke pagina, instelling of actie vinden door de naam te typen.
 - [Sneltoetsen](#sneltoetsen): Met twee toetsen naar Start, Monitoren of Incidenten.
@@ -11,11 +11,46 @@ Start is de eerste pagina die u in een project ziet. Ze laat in één oogopslag 
 
 ## Wat Start toont
 
-Open **Start** in de balk bovenaan, of druk vanaf elke plek op `g` en dan `h`. Van boven naar beneden toont Start:
+Open **Start** in de balk bovenaan, of druk vanaf elke plek op `g` en dan `h`. Start is het overzicht van uw project. Van boven naar beneden toont Start:
 
-1. **Welkom bij OneUptime 👋**, een checklist voor een nieuw project, tot die klaar is.
-2. Vijf tegels die tellen wat aandacht nodig heeft.
-3. **Actieve incidenten**, elk incident dat nog niet is opgelost.
+1. Een zoekvak, met **Incident melden** en **Aanmaken** ernaast.
+2. Eén regel die zegt of er iets mis is, boven vijf getallen die tellen wat aandacht nodig heeft.
+3. **Welkom bij OneUptime 👋**, een checklist voor een nieuw project, tot die klaar is.
+4. **Vraagt aandacht**, elk probleem dat nu openstaat, bij naam.
+5. **Je project**, waaruit het project bestaat, en **Aankomend onderhoud** als er onderhoud gepland is.
+6. **Verken OneUptime**, elk product, één categorie tegelijk.
+
+### Zoeken en aanmaken
+
+Het zoekvak opent Zoeken, net als `Mod` + `K`: typ de naam van een pagina, monitor, incident, waarschuwing, statuspagina of bereikbaarheidsbeleid. Zie [Zoeken](#zoeken-naar-een-pagina-een-instelling-of-een-actie). **Incident melden** opent het formulier waarmee u een incident meldt. **Aanmaken** biedt **Monitor maken**, **Onderhoud plannen** en **Aankondiging aanmaken**. Elk ervan wordt alleen getoond aan wie het mag gebruiken.
+
+### De kopregel
+
+De regel bovenaan noemt het dringendste dat openstaat, in een bijpassende kleur:
+
+| Wanneer | Start zegt |
+| --- | --- |
+| Er staat een incident open | Hoeveel incidenten actief zijn, in rood |
+| Er staat geen incident open, maar er zijn open waarschuwingen, monitoren die niet operationeel zijn of SLO's in gevaar | Hoeveel problemen aandacht vragen, in oranje |
+| Er is niets mis en er loopt onderhoud | Hoeveel onderhoudsgebeurtenissen er lopen |
+| Er draaien monitoren en er staat niets open | **Alle systemen operationeel** |
+| Het project heeft nog geen monitoren | **Er wordt nog niets gemonitord** |
+
+Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
+
+### De vijf getallen
+
+Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erachter.
+
+| Getal | Wat het telt | Als het getal nul is |
+| --- | --- | --- |
+| **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** |
+| **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** |
+| **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren tellen niet mee. | **Alle operationeel** |
+| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** |
+| **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** |
+
+Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
 
 ### De welkomstchecklist
 
@@ -41,26 +76,27 @@ flowchart TB
 
 De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verbergen, klikt u op **Sluiten**. Dat wordt onthouden in deze browser, voor dit project; alles wat de stappen openen, staat nog steeds in het menu **Producten**.
 
-### De tegels
+### Vraagt aandacht
 
-Elke tegel telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst achter het getal.
+**Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
 
-| Tegel | Wat ze telt | Als het getal nul is |
-| --- | --- | --- |
-| **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** |
-| **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** |
-| **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren tellen niet mee. | **Alle operationeel** |
-| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** |
-| **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** |
+### Je project
 
-Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** op de tegels voor onderhoud en SLO's. Een project zonder monitoren ziet **Nog geen monitoren** op de monitortegel, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee tegels openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
+**Je project** telt de **Monitoren**, **Statuspagina's**, **Bereikbaarheidsbeleid**, **SLOs**, **Services**, **Dashboards** en **Workflows** van het project, zonder de gearchiveerde. Elke rij opent de bijbehorende lijst. Een soort waarvan het project er nog geen heeft, toont **Instellen** in plaats van een getal.
+
+**Aankomend onderhoud** toont de volgende drie geplande onderhoudsvensters, het eerstvolgende eerst. Het ontbreekt als er niets gepland is.
+
+### Verken OneUptime
+
+**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt.
 
 ### Het zijmenu van Start
 
-Het zijmenu naast Start bevat dezelfde lijsten, elk met een teller:
+Het zijmenu naast Start opent op **Overzicht**, deze pagina, en bevat de lijsten achter de getallen, elk met een teller:
 
 | Sectie | Pagina's |
 | --- | --- |
+| **Start** | **Overzicht** |
 | **Incidenten** | **Actieve incidenten** en **Actieve episodes** |
 | **Waarschuwingen** | **Actieve waarschuwingen** en **Actieve episodes** |
 | **Monitoren** | **Niet operationeel** |

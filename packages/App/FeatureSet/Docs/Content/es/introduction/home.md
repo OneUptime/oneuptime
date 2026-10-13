@@ -3,7 +3,7 @@
 Inicio es la primera página que ves en un proyecto. Te dice de un vistazo si algo te necesita ahora mismo, y guía a un proyecto nuevo por su primera configuración. Esta página explica qué muestra Inicio, cómo encontrar cualquier producto, página o acción en el panel, y los atajos de teclado que te ahorran viajes por los menús.
 
 :::cards
-- [Qué muestra Inicio](#qué-muestra-inicio): La lista de bienvenida, los cinco mosaicos y los incidentes activos.
+- [Qué muestra Inicio](#qué-muestra-inicio): Si algo va mal, qué te necesita, qué contiene el proyecto y todos los productos.
 - [Orientarse](#orientarse): El menú Productos y las barras de la parte superior de cada página.
 - [Buscar](#buscar-una-página-un-ajuste-o-una-acción): Encontrar cualquier página, ajuste o acción escribiendo su nombre.
 - [Atajos de teclado](#atajos-de-teclado): Ir a Inicio, a Monitores o a Incidentes con dos teclas.
@@ -11,11 +11,46 @@ Inicio es la primera página que ves en un proyecto. Te dice de un vistazo si al
 
 ## Qué muestra Inicio
 
-Abre **Inicio** en la barra superior, o pulsa `g` y luego `h` desde cualquier sitio. De arriba abajo, Inicio muestra:
+Abre **Inicio** en la barra superior, o pulsa `g` y luego `h` desde cualquier sitio. Inicio es la vista general de tu proyecto. De arriba abajo, muestra:
 
-1. **Te damos la bienvenida a OneUptime 👋**, una lista para un proyecto nuevo, hasta que esté completa.
-2. Cinco mosaicos que cuentan lo que necesita atención.
-3. **Incidentes activos**, cada incidente que aún no está resuelto.
+1. Un cuadro de búsqueda, con **Declarar incidente** y **Crear** al lado.
+2. Una línea que dice si algo va mal, sobre cinco números que cuentan lo que necesita atención.
+3. **Te damos la bienvenida a OneUptime 👋**, una lista para un proyecto nuevo, hasta que esté completa.
+4. **Requiere atención**, cada problema abierto ahora mismo, por su nombre.
+5. **Tu proyecto**, de qué se compone el proyecto, y **Próximos mantenimientos** cuando hay alguno programado.
+6. **Explora OneUptime**, todos los productos, una categoría cada vez.
+
+### Buscar y crear
+
+El cuadro de búsqueda abre la búsqueda, igual que `Mod` + `K`: escribe el nombre de cualquier página, monitor, incidente, alerta, página de estado o política de guardia. Consulta la sección [Buscar](#buscar-una-página-un-ajuste-o-una-acción). **Declarar incidente** abre el formulario para declarar un incidente. **Crear** ofrece **Crear monitor**, **Programar mantenimiento** y **Crear anuncio**. Cada uno solo se muestra a quien tiene permiso para usarlo.
+
+### El titular
+
+La línea superior nombra lo más urgente que hay abierto, en un color acorde:
+
+| Cuándo | Inicio dice |
+| --- | --- |
+| Hay un incidente abierto | Cuántos incidentes están activos, en rojo |
+| No hay ningún incidente abierto, pero hay alertas abiertas, monitores no operativos o SLO en riesgo | Cuántos problemas requieren atención, en ámbar |
+| No hay ningún problema y hay un mantenimiento en curso | Cuántos eventos de mantenimiento están en curso |
+| Hay monitores funcionando y no hay nada abierto | **Todos los sistemas están operativos** |
+| El proyecto aún no tiene monitores | **Aún no se monitoriza nada** |
+
+Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
+
+### Los cinco números
+
+Cada número cuenta algo, dice si eso te necesita y abre la lista que hay detrás.
+
+| Número | Qué cuenta | Cuando el número es cero |
+| --- | --- | --- |
+| **Incidentes activos** | Incidentes que no están resueltos | **Todo en orden** |
+| **Alertas activas** | Alertas que no están resueltas | **Todo en orden** |
+| **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados no cuentan. | **Todos operativos** |
+| **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** |
+| **SLO en riesgo** | SLO activados que están en riesgo o han agotado su presupuesto de error | **Presupuestos en buen estado** |
+
+Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Presupuesto agotándose** para el mantenimiento y los SLO. Un proyecto sin monitores ve **Aún no hay monitores**, y uno sin SLO ve **Aún no hay SLO**: un proyecto vacío no es lo mismo que uno sano. Esos dos abren entonces las listas **Monitores** y **SLO**, donde creas uno.
 
 ### La lista de bienvenida
 
@@ -41,26 +76,27 @@ flowchart TB
 
 La lista desaparece cuando los cuatro pasos están completados. Para ocultarla antes, haz clic en **Descartar**. El descarte se recuerda en este navegador, para este proyecto; todo lo que abren los pasos sigue en el menú **Productos**.
 
-### Los mosaicos
+### Requiere atención
 
-Cada mosaico cuenta algo, dice si eso te necesita y abre la lista que hay detrás del número.
+**Requiere atención** lista, por su nombre, lo que cuentan los números: los incidentes abiertos, las alertas abiertas, los monitores no operativos, los SLO en riesgo y los mantenimientos en curso, primero lo más urgente. Cada fila muestra su gravedad o su estado, dice cuándo empezó un incidente o una alerta y cuándo termina un mantenimiento, y abre el elemento. De cada tipo se muestran hasta cinco, con **Ver todo** para el resto. Cuando no hay nada abierto, dice **Nada requiere tu atención**.
 
-| Mosaico | Qué cuenta | Cuando el número es cero |
-| --- | --- | --- |
-| **Incidentes activos** | Incidentes que no están resueltos | **Todo en orden** |
-| **Alertas activas** | Alertas que no están resueltas | **Todo en orden** |
-| **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados no cuentan. | **Todos operativos** |
-| **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** |
-| **SLO en riesgo** | SLO activados que están en riesgo o han agotado su presupuesto de error | **Presupuestos en buen estado** |
+### Tu proyecto
 
-Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Presupuesto agotándose** en los mosaicos de mantenimiento y de SLO. Un proyecto sin monitores ve **Aún no hay monitores** en el mosaico de monitores, y uno sin SLO ve **Aún no hay SLO**: un proyecto vacío no es lo mismo que uno sano. Esos dos mosaicos abren entonces las listas **Monitores** y **SLO**, donde creas uno.
+**Tu proyecto** cuenta los **Monitores**, las **Páginas de estado**, las **Políticas de guardia**, los **SLO**, los **Servicios**, los **Paneles** y los **Flujos de trabajo** del proyecto, sin contar los archivados. Cada fila abre su lista. Un tipo del que el proyecto no tiene ninguno muestra **Configurar** en lugar de un número.
+
+**Próximos mantenimientos** lista las tres próximas ventanas de mantenimiento programado, la más cercana primero. No aparece cuando no hay nada programado.
+
+### Explora OneUptime
+
+**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él.
 
 ### El menú lateral de Inicio
 
-El menú lateral de Inicio tiene las mismas listas, cada una con un contador:
+El menú lateral de Inicio se abre en **Vista general**, esta página, y tiene las listas que hay detrás de los números, cada una con un contador:
 
 | Sección | Páginas |
 | --- | --- |
+| **Inicio** | **Vista general** |
 | **Incidentes** | **Incidentes activos** y **Episodios activos** |
 | **Alertas** | **Alertas activas** y **Episodios activos** |
 | **Monitores** | **No operativo** |

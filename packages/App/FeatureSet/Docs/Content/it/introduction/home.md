@@ -3,7 +3,7 @@
 La home è la prima pagina che vedi in un progetto. Ti dice a colpo d'occhio se in questo momento qualcosa ha bisogno di te, e guida un nuovo progetto nella sua prima configurazione. Questa pagina spiega cosa mostra la home, come trovare qualsiasi prodotto, pagina o azione nella dashboard, e le scorciatoie da tastiera che ti risparmiano giri nei menu.
 
 :::cards
-- [Cosa mostra la home](#cosa-mostra-la-home): L'elenco di benvenuto, i cinque riquadri e gli incidenti attivi.
+- [Cosa mostra la home](#cosa-mostra-la-home): Se qualcosa non va, cosa ha bisogno di te, cosa contiene il progetto e tutti i prodotti.
 - [Orientarsi](#orientarsi): Il menu Prodotti e le barre in cima a ogni pagina.
 - [Cercare](#cercare-una-pagina-unimpostazione-o-unazione): Trovare qualsiasi pagina, impostazione o azione digitandone il nome.
 - [Scorciatoie da tastiera](#scorciatoie-da-tastiera): Andare alla home, ai monitor o agli incidenti con due tasti.
@@ -11,11 +11,46 @@ La home è la prima pagina che vedi in un progetto. Ti dice a colpo d'occhio se 
 
 ## Cosa mostra la home
 
-Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto. Dall'alto verso il basso, la home mostra:
+Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto. La home è la panoramica del tuo progetto. Dall'alto verso il basso, mostra:
 
-1. **Benvenuto in OneUptime 👋**, un elenco per un nuovo progetto, finché non è completato.
-2. Cinque riquadri che contano ciò che richiede attenzione.
-3. **Incidenti attivi**, ogni incidente non ancora risolto.
+1. Una casella di ricerca, con accanto **Dichiara incidente** e **Crea**.
+2. Una riga che dice se qualcosa non va, sopra cinque numeri che contano ciò che richiede attenzione.
+3. **Benvenuto in OneUptime 👋**, un elenco per un nuovo progetto, finché non è completato.
+4. **Richiede attenzione**, ogni problema aperto in questo momento, per nome.
+5. **Il tuo progetto**, di cosa è fatto il progetto, e **Prossime manutenzioni** quando ce n'è qualcuna in programma.
+6. **Esplora OneUptime**, tutti i prodotti, una categoria alla volta.
+
+### Cercare e creare
+
+La casella di ricerca apre la ricerca, come `Mod` + `K`: digita il nome di qualsiasi pagina, monitor, incidente, avviso, pagina di stato o policy di reperibilità. Vedi la sezione [Cercare](#cercare-una-pagina-unimpostazione-o-unazione). **Dichiara incidente** apre il modulo per dichiarare un incidente. **Crea** offre **Crea monitor**, **Pianifica manutenzione** e **Crea annuncio**. Ognuno viene mostrato solo a chi ha il permesso di usarlo.
+
+### Il titolo
+
+La riga in alto nomina la cosa più urgente tra quelle aperte, in un colore corrispondente:
+
+| Quando | La home dice |
+| --- | --- |
+| C'è un incidente aperto | Quanti incidenti sono attivi, in rosso |
+| Nessun incidente è aperto, ma ci sono avvisi aperti, monitor non operativi o SLO a rischio | Quanti problemi richiedono attenzione, in ambra |
+| Non c'è nessun problema e una manutenzione è in corso | Quanti eventi di manutenzione sono in corso |
+| I monitor sono attivi e non c'è nulla di aperto | **Tutti i sistemi sono operativi** |
+| Il progetto non ha ancora monitor | **Non c'è ancora nulla sotto monitoraggio** |
+
+Accanto, la home dice quando ha caricato il progetto l'ultima volta, e **Aggiorna** lo ricarica. Quando torni a una scheda della home dopo un minuto o più, si aggiorna da sola.
+
+### I cinque numeri
+
+Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco che c'è dietro.
+
+| Numero | Cosa conta | Quando il numero è zero |
+| --- | --- | --- |
+| **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** |
+| **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** |
+| **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati non contano. | **Tutti operativi** |
+| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** |
+| **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** |
+
+Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
 
 ### L'elenco di benvenuto
 
@@ -41,26 +76,27 @@ flowchart TB
 
 L'elenco sparisce quando tutti e quattro i passaggi sono completati. Per nasconderlo prima, fai clic su **Chiudi**. La chiusura vale per questo browser e per questo progetto; tutto ciò che i passaggi aprono resta nel menu **Prodotti**.
 
-### I riquadri
+### Richiede attenzione
 
-Ogni riquadro conta qualcosa, dice se richiede la tua attenzione e apre l'elenco dietro il numero.
+**Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
 
-| Riquadro | Cosa conta | Quando il numero è zero |
-| --- | --- | --- |
-| **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** |
-| **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** |
-| **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati non contano. | **Tutti operativi** |
-| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** |
-| **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** |
+### Il tuo progetto
 
-Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** nei riquadri di manutenzione e SLO. Un progetto senza monitor vede **Nessun monitor ancora** nel riquadro dei monitor, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due riquadri aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
+**Il tuo progetto** conta i **Monitor**, le **Pagine di stato**, le **Policy di reperibilità**, gli **SLOs**, i **Servizi**, le **Dashboard** e i **Flussi di lavoro** del progetto, esclusi quelli archiviati. Ogni riga apre il suo elenco. Un tipo di cui il progetto non ha nessun elemento mostra **Configura** al posto di un numero.
+
+**Prossime manutenzioni** elenca le prossime tre finestre di manutenzione programmata, prima la più vicina. Non compare quando non c'è nulla in programma.
+
+### Esplora OneUptime
+
+**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic.
 
 ### Il menu laterale della home
 
-Il menu laterale accanto alla home contiene gli stessi elenchi, ognuno con un contatore:
+Il menu laterale accanto alla home si apre su **Panoramica**, questa pagina, e contiene gli elenchi dietro i numeri, ognuno con un contatore:
 
 | Sezione | Pagine |
 | --- | --- |
+| **Home** | **Panoramica** |
 | **Incidenti** | **Incidenti attivi** ed **Episodi attivi** |
 | **Avvisi** | **Avvisi attivi** ed **Episodi attivi** |
 | **Monitor** | **Non operativo** |
