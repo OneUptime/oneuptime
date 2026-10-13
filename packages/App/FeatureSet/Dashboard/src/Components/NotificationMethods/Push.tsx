@@ -62,7 +62,10 @@ interface RegisteredBrowser {
   alreadyRegistered: boolean;
 }
 
-// A device's Critical Alerts cell in a CSV export, in English.
+/*
+ * A device's Critical Alerts cell in a CSV export: the words the cell shows,
+ * not a raw true or false. English here, looked up when exported.
+ */
 const CRITICAL_ALERT_EXPORT_TEXT: Record<CriticalAlertDeviceState, string> = {
   [CriticalAlertDeviceState.On]: translationKey("On"),
   [CriticalAlertDeviceState.Off]: translationKey("Off"),
@@ -660,7 +663,6 @@ const Push: () => JSX.Element = (): ReactElement => {
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",
-            // The words the cell shows, not a raw true or false.
             getExportValue: (item: UserPush): string => {
               const text: string =
                 CRITICAL_ALERT_EXPORT_TEXT[getCriticalAlertDeviceState(item)];
