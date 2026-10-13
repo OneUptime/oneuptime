@@ -76,7 +76,7 @@ const STATEMENTS: Record<string, Statements> = {
   },
   nl: {
     leaving: "Als een override iemands meldingen doorstuurt na",
-    mcpClient: "Als u het project verlaat, wordt de clie",
+    mcpClient: "Als je het project verlaat, wordt de cli",
     scim: "Gebruikers die SCIM zelf aanmaakt en gebruikers die lid zijn",
     personalLink: "Een persoonlijke link toont alleen diens",
     emptyCalendar: "Als je het project hebt verlaten, bl",
