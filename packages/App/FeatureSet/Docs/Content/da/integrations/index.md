@@ -57,7 +57,7 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 | [Splunk Enterprise Security](/docs/integrations/splunk) | Indgående | Henter notable events fra Splunk ind i Sikkerhedshændelser. |
 | [Elastic Security](/docs/integrations/elastic-security) | Indgående | Henter detektionsalarmer fra Elastic Security ind i Sikkerhedshændelser. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Indgående | Henter fund fra AWS Security Hub ind i Sikkerhedshændelser. |
-| [Okta-systemlog](/docs/integrations/okta) | Indgående | Henter logins, kontoændringer og trusselsdetektioner fra Okta ind i Sikkerhedshændelser. |
+| [Okta System Log](/docs/integrations/okta) | Indgående | Henter logins, kontoændringer og trusselsdetektioner fra Okta ind i Sikkerhedshændelser. |
 
 ### Sagsstyring og IT-servicestyring
 

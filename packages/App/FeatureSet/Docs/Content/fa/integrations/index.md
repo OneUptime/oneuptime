@@ -57,7 +57,7 @@ flowchart TB
 | [Splunk Enterprise Security](/docs/integrations/splunk) | ورودی | رویدادهای قابل توجه (notable event) Splunk را به رویدادهای امنیتی می‌آورد. |
 | [Elastic Security](/docs/integrations/elastic-security) | ورودی | هشدارهای تشخیص Elastic Security را به رویدادهای امنیتی می‌آورد. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | ورودی | یافته‌های AWS Security Hub را به رویدادهای امنیتی می‌آورد. |
-| [لاگ سیستم Okta](/docs/integrations/okta) | ورودی | ورودهای Okta، تغییرات حساب و تشخیص تهدیدها را به رویدادهای امنیتی می‌آورد. |
+| [Okta System Log](/docs/integrations/okta) | ورودی | ورودهای Okta، تغییرات حساب و تشخیص تهدیدها را به رویدادهای امنیتی می‌آورد. |
 
 ### تیکت و مدیریت خدمات فناوری اطلاعات
 

@@ -57,7 +57,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Splunk Enterprise Security](/docs/integrations/splunk) | Inkommande | Hämtar notable events från Splunk till Säkerhetshändelser. |
 | [Elastic Security](/docs/integrations/elastic-security) | Inkommande | Hämtar detektionslarm från Elastic Security till Säkerhetshändelser. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkommande | Hämtar fynd från AWS Security Hub till Säkerhetshändelser. |
-| [Okta-systemlogg](/docs/integrations/okta) | Inkommande | Hämtar inloggningar, kontoändringar och hotdetektioner från Okta till Säkerhetshändelser. |
+| [Okta System Log](/docs/integrations/okta) | Inkommande | Hämtar inloggningar, kontoändringar och hotdetektioner från Okta till Säkerhetshändelser. |
 
 ### Ärendehantering och IT-tjänstehantering
 

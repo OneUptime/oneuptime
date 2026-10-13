@@ -57,7 +57,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Splunk Enterprise Security](/docs/integrations/splunk) | インバウンド | Splunk の notable event をセキュリティイベントに取り込みます。 |
 | [Elastic Security](/docs/integrations/elastic-security) | インバウンド | Elastic Security の検出アラートをセキュリティイベントに取り込みます。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | インバウンド | AWS Security Hub の検出結果をセキュリティイベントに取り込みます。 |
-| [Okta システムログ](/docs/integrations/okta) | インバウンド | Okta のサインイン、アカウントの変更、脅威の検出をセキュリティイベントに取り込みます。 |
+| [Okta System Log](/docs/integrations/okta) | インバウンド | Okta のサインイン、アカウントの変更、脅威の検出をセキュリティイベントに取り込みます。 |
 
 ### チケットと IT サービス管理
 

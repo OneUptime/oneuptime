@@ -57,7 +57,7 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 | [Splunk Enterprise Security](/docs/integrations/splunk) | De entrada | Traz os eventos notáveis do Splunk para Eventos de segurança. |
 | [Elastic Security](/docs/integrations/elastic-security) | De entrada | Traz os alertas de detecção do Elastic Security para Eventos de segurança. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | De entrada | Traz as descobertas do AWS Security Hub para Eventos de segurança. |
-| [Registro do sistema do Okta](/docs/integrations/okta) | De entrada | Traz os logins, as mudanças de conta e as detecções de ameaças do Okta para Eventos de segurança. |
+| [Okta System Log](/docs/integrations/okta) | De entrada | Traz os logins, as mudanças de conta e as detecções de ameaças do Okta para Eventos de segurança. |
 
 ### Tickets e gestão de serviços de TI
 

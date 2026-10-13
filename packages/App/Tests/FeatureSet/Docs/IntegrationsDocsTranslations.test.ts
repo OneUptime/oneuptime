@@ -110,13 +110,13 @@ const PAGE_NAMES: Array<string> = INTEGRATIONS_PAGES.map(
  * the column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  "integrations/index": 26,
-  "integrations/zabbix": 26,
-  "integrations/jira": 26,
-  "integrations/pagerduty": 26,
-  "integrations/opsgenie": 26,
-  "integrations/servicenow": 26,
-  "integrations/microsoft-dynamics-365": 26,
+  "integrations/index": 23,
+  "integrations/zabbix": 23,
+  "integrations/jira": 22,
+  "integrations/pagerduty": 22,
+  "integrations/opsgenie": 20,
+  "integrations/servicenow": 24,
+  "integrations/microsoft-dynamics-365": 24,
 };
 
 // The names, longest first: "Jira Cloud" goes before "Jira" takes its first word.

@@ -57,7 +57,7 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | [Splunk Enterprise Security](/docs/integrations/splunk) | In entrata | Porta i notable event di Splunk in Eventi di sicurezza. |
 | [Elastic Security](/docs/integrations/elastic-security) | In entrata | Porta gli alert di rilevamento di Elastic Security in Eventi di sicurezza. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | In entrata | Porta i finding di AWS Security Hub in Eventi di sicurezza. |
-| [Log di sistema Okta](/docs/integrations/okta) | In entrata | Porta gli accessi, le modifiche agli account e i rilevamenti di minacce di Okta in Eventi di sicurezza. |
+| [Okta System Log](/docs/integrations/okta) | In entrata | Porta gli accessi, le modifiche agli account e i rilevamenti di minacce di Okta in Eventi di sicurezza. |
 
 ### Ticketing e gestione dei servizi IT
 

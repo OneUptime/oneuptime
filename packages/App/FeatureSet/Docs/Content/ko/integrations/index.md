@@ -57,7 +57,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Splunk Enterprise Security](/docs/integrations/splunk) | 인바운드 | Splunk notable event를 보안 이벤트로 가져옵니다. |
 | [Elastic Security](/docs/integrations/elastic-security) | 인바운드 | Elastic Security 탐지 알림을 보안 이벤트로 가져옵니다. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 인바운드 | AWS Security Hub 검색 결과를 보안 이벤트로 가져옵니다. |
-| [Okta 시스템 로그](/docs/integrations/okta) | 인바운드 | Okta 로그인, 계정 변경, 위협 탐지를 보안 이벤트로 가져옵니다. |
+| [Okta System Log](/docs/integrations/okta) | 인바운드 | Okta 로그인, 계정 변경, 위협 탐지를 보안 이벤트로 가져옵니다. |
 
 ### 티켓 및 IT 서비스 관리
 

@@ -57,7 +57,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Splunk Enterprise Security](/docs/integrations/splunk) | Inkomend | Brengt notable events van Splunk naar Beveiligingsgebeurtenissen. |
 | [Elastic Security](/docs/integrations/elastic-security) | Inkomend | Brengt detectie-alerts van Elastic Security naar Beveiligingsgebeurtenissen. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkomend | Brengt bevindingen van AWS Security Hub naar Beveiligingsgebeurtenissen. |
-| [Okta-systeemlogboek](/docs/integrations/okta) | Inkomend | Brengt aanmeldingen, accountwijzigingen en dreigingsdetecties van Okta naar Beveiligingsgebeurtenissen. |
+| [Okta System Log](/docs/integrations/okta) | Inkomend | Brengt aanmeldingen, accountwijzigingen en dreigingsdetecties van Okta naar Beveiligingsgebeurtenissen. |
 
 ### Ticketing en IT-servicemanagement
 

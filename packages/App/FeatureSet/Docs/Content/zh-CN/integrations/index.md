@@ -57,7 +57,7 @@ flowchart TB
 | [Splunk Enterprise Security](/docs/integrations/splunk) | 入站 | 把 Splunk 重要事件（notable event）导入安全事件。 |
 | [Elastic Security](/docs/integrations/elastic-security) | 入站 | 把 Elastic Security 检测警报导入安全事件。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 入站 | 把 AWS Security Hub 发现结果导入安全事件。 |
-| [Okta 系统日志](/docs/integrations/okta) | 入站 | 把 Okta 登录、账户变更和威胁检测导入安全事件。 |
+| [Okta System Log](/docs/integrations/okta) | 入站 | 把 Okta 登录、账户变更和威胁检测导入安全事件。 |
 
 ### 工单与 IT 服务管理
 

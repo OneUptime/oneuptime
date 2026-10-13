@@ -57,7 +57,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Splunk Enterprise Security](/docs/integrations/splunk) | इनबाउंड | Splunk notable event को सुरक्षा इवेंट में लाता है। |
 | [Elastic Security](/docs/integrations/elastic-security) | इनबाउंड | Elastic Security डिटेक्शन अलर्ट को सुरक्षा इवेंट में लाता है। |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | इनबाउंड | AWS Security Hub फ़ाइंडिंग को सुरक्षा इवेंट में लाता है। |
-| [Okta सिस्टम लॉग](/docs/integrations/okta) | इनबाउंड | Okta साइन-इन, खाते के बदलाव और खतरे के डिटेक्शन को सुरक्षा इवेंट में लाता है। |
+| [Okta System Log](/docs/integrations/okta) | इनबाउंड | Okta साइन-इन, खाते के बदलाव और खतरे के डिटेक्शन को सुरक्षा इवेंट में लाता है। |
 
 ### टिकटिंग और IT सर्विस मैनेजमेंट
 

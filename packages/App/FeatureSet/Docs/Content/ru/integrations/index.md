@@ -57,7 +57,7 @@ flowchart TB
 | [Splunk Enterprise Security](/docs/integrations/splunk) | Входящее | Передаёт notable events Splunk в События безопасности. |
 | [Elastic Security](/docs/integrations/elastic-security) | Входящее | Передаёт оповещения об обнаружениях Elastic Security в События безопасности. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Входящее | Передаёт находки AWS Security Hub в События безопасности. |
-| [Системный журнал Okta](/docs/integrations/okta) | Входящее | Передаёт входы, изменения учётных записей и обнаружения угроз Okta в События безопасности. |
+| [Okta System Log](/docs/integrations/okta) | Входящее | Передаёт входы, изменения учётных записей и обнаружения угроз Okta в События безопасности. |
 
 ### Тикеты и управление ИТ-услугами
 
