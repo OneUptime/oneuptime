@@ -146,7 +146,7 @@ const WORD: RegExp = /\S+/g;
 const TRAILING_PUNCTUATION: RegExp = /[:,.!?]+$/;
 
 // A word with an apostrophe is a word of a sentence, never a misspelling.
-const APOSTROPHE: RegExp = /['’]/;
+const APOSTROPHE: RegExp = /['\u2019]/;
 
 const WHITESPACE: RegExp = /\s+/g;
 

@@ -102,7 +102,7 @@ describe("WorkspaceCommands.parse: letter case, spaces and punctuation", () => {
   test.each([
     ["   incident    Checkout   is down   ", "Checkout   is down"],
     ["\tincident\tCheckout is down\n", "Checkout is down"],
-    ["incident Checkout is down", "Checkout is down"],
+    ["incident\u{00a0}Checkout is down", "Checkout is down"],
     ["create    incident   Disk full", "Disk full"],
   ])(
     "%j: spaces around the command are dropped, those inside the title kept",
@@ -203,7 +203,7 @@ describe("WorkspaceCommands.parse: questions for OneUptime AI", () => {
     "inc 42",
     // A word with an apostrophe is a sentence's.
     "incident's root cause?",
-    "incident’s root cause?",
+    "incident\u{2019}s root cause?",
   ])("%j is a question, not a misspelt command", (text: string) => {
     const input: WorkspaceCommandInput = parse(text);
 

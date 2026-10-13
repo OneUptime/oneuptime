@@ -160,13 +160,19 @@ export default class WorkspaceOnCallNow {
 
     const isCut: boolean = schedules.length > WorkspaceOnCallNow.MAX_SCHEDULES;
 
+    /*
+     * After a blank line: a line right after the list would be read as part
+     * of its last item.
+     */
     if (schedulesLink) {
+      lines.push(FeedMarkdown.empty());
       lines.push(
         isCut
           ? mdText`These are the first ${WorkspaceOnCallNow.MAX_SCHEDULES} schedules. [See them all in ${productName}](${schedulesLink}).`
           : mdText`[Open the on-call schedules in ${productName}](${schedulesLink})`,
       );
     } else if (isCut) {
+      lines.push(FeedMarkdown.empty());
       lines.push(
         mdText`These are the first ${WorkspaceOnCallNow.MAX_SCHEDULES} schedules. See them all in ${productName}, under On-Call Duty → Schedules.`,
       );
