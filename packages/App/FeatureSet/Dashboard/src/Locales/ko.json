@@ -28149,5 +28149,16 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime이 버튼을 누른 {{workspace}}의 그 자리에서 답했습니다.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime이 Slack 워크스페이스 {{team}}에 설치되어 있습니다. 그곳에서 계정을 연결하면 Slack에서 본인으로 인시던트를 인지하고 메시지를 받을 수 있습니다.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "이 연결 버튼은 이미 사용되었습니다. {{workspace}}(으)로 돌아가 버튼을 다시 누르세요.",
-  "Your {{workspace}} account is already connected": "{{workspace}} 계정이 이미 연결되어 있습니다"
+  "Your {{workspace}} account is already connected": "{{workspace}} 계정이 이미 연결되어 있습니다",
+  "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.": "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.",
+  "Could not change how this push sounds.": "Could not change how this push sounds.",
+  "Critical alert": "Critical alert",
+  "Follows the phone's sound, silent and Do Not Disturb settings.": "Follows the phone's sound, silent and Do Not Disturb settings.",
+  "Push Notification Level": "Push Notification Level",
+  "Push notification": "Push notification",
+  "Push notification: {{level}}. Change how this push sounds.": "Push notification: {{level}}. Change how this push sounds.",
+  "Rings even when the phone is on silent or in Do Not Disturb.": "Rings even when the phone is on silent or in Do Not Disturb.",
+  "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.": "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.",
+  "Standard": "Standard",
+  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded."
 }

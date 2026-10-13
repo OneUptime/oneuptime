@@ -5339,6 +5339,11 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // A value check: refused before anything below reads the database.
+    this.assertPushNotificationLevelIsKnown(
+      (createBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+
     await super.onBeforeCreate(createBy);
 
     const carrier: RuleColumnCarrier =
@@ -5394,8 +5399,6 @@ export class Service extends ProjectReferencesService<Model> {
       isOptOut: Boolean(createBy.data.isOptOut),
       hasNotificationMethod: hasNotificationMethod,
     });
-
-    this.assertPushNotificationLevelIsKnown(carrier["pushNotificationLevel"]);
 
     return {
       createBy,
@@ -5615,12 +5618,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // A value check: refused before anything below reads the database.
+    this.assertPushNotificationLevelIsKnown(
+      (updateBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+
     await super.onBeforeUpdate(updateBy);
 
     const patch: RuleColumnCarrier =
       updateBy.data as unknown as RuleColumnCarrier;
-
-    this.assertPushNotificationLevelIsKnown(patch["pushNotificationLevel"]);
 
     const references: Array<NotificationMethodReference> =
       UserNotificationRuleAdminService.collectNotificationMethodReferences(

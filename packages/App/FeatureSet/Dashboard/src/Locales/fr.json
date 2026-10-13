@@ -28149,5 +28149,16 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime vous a répondu dans {{workspace}}, là où vous avez appuyé sur le bouton.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime est installé dans l'espace de travail Slack {{team}}. Connectez-y votre compte pour prendre en compte les incidents et recevoir les messages en votre nom, dans Slack.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Ce bouton de connexion a déjà été utilisé. Retournez dans {{workspace}} et appuyez de nouveau sur le bouton.",
-  "Your {{workspace}} account is already connected": "Votre compte {{workspace}} est déjà connecté"
+  "Your {{workspace}} account is already connected": "Votre compte {{workspace}} est déjà connecté",
+  "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.": "A critical alert rings through only on a phone with Critical On-Call Alerts turned on in the OneUptime On-Call app.",
+  "Could not change how this push sounds.": "Could not change how this push sounds.",
+  "Critical alert": "Critical alert",
+  "Follows the phone's sound, silent and Do Not Disturb settings.": "Follows the phone's sound, silent and Do Not Disturb settings.",
+  "Push Notification Level": "Push Notification Level",
+  "Push notification": "Push notification",
+  "Push notification: {{level}}. Change how this push sounds.": "Push notification: {{level}}. Change how this push sounds.",
+  "Rings even when the phone is on silent or in Do Not Disturb.": "Rings even when the phone is on silent or in Do Not Disturb.",
+  "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.": "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.",
+  "Standard": "Standard",
+  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded."
 }
