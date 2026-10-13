@@ -453,3 +453,91 @@ describe("SEO registration", () => {
     expect(new Set(canonicalPaths).size).toBe(canonicalPaths.length);
   });
 });
+
+describe("One handler per path", () => {
+  /*
+   * Express answers a request with the first route that matches it, so a
+   * second registration of the same path never runs. Four paths had one:
+   * /product/status-page, /status-page, /legal/iso-27017 and
+   * /legal/iso-27018. Three were exact copies; the dead /product/status-page
+   * differed from the live one - it passed no SEO data, so the page would
+   * have lost its canonical URL had it been the copy that ran - which is how
+   * an edit made to whichever copy a reader finds first can quietly do
+   * nothing.
+   */
+  const blogApiSource: string = fs.readFileSync(
+    path.join(__dirname, "..", "API", "BlogAPI.ts"),
+    "utf-8",
+  );
+
+  function registeredGetPaths(source: string): Array<string> {
+    return Array.from(
+      source.matchAll(/app\.get\(\s*"([^"]+)"/g),
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+  }
+
+  test("no GET path is registered twice, in the route table or the blog", () => {
+    const paths: Array<string> = [
+      ...registeredGetPaths(routesSource),
+      ...registeredGetPaths(blogApiSource),
+    ];
+    const counts: Map<string, number> = new Map<string, number>();
+
+    // Express matches a path whatever its letter case, so compare them that way.
+    for (const routePath of paths) {
+      const key: string = routePath.toLowerCase();
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+
+    expect(paths.length).toBeGreaterThan(100);
+    expect(
+      Array.from(counts.entries())
+        .filter(([, count]: [string, number]): boolean => {
+          return count > 1;
+        })
+        .map(([routePath]: [string, number]): string => {
+          return routePath;
+        }),
+    ).toEqual([]);
+  });
+
+  test.each([
+    ["/product/status-page"],
+    ["/status-page"],
+    ["/legal/iso-27017"],
+    ["/legal/iso-27018"],
+  ])("%s is still served, by one handler", (routePath: string) => {
+    expect(
+      registeredGetPaths(routesSource).filter((registered: string) => {
+        return registered === routePath;
+      }),
+    ).toEqual([routePath]);
+  });
+
+  test("the /product/status-page that answers is the one that hands the page its SEO data", () => {
+    const body: string = bodyOfGetRoute("/product/status-page")!;
+
+    expect(body).toMatch(/getSEOForPath\(\s*"\/product\/status-page"/);
+    expect(body).toContain("`${ViewsPath}/status-page`");
+    expect(body).toMatch(/seo,\s*\}\)/);
+    expect(body).not.toContain("footerCtaText");
+  });
+
+  test.each([["/legal/iso-27017"], ["/legal/iso-27018"]])(
+    "%s renders its own section of the legal center",
+    (routePath: string) => {
+      const body: string = bodyOfGetRoute(routePath)!;
+
+      expect(body).toContain("`${ViewsPath}/legal.ejs`");
+      expect(body).toContain(`section: "${routePath.replace("/legal/", "")}"`);
+    },
+  );
+
+  test("/status-page still redirects permanently to the product page", () => {
+    expect(redirectTargetOf("/status-page")).toBe("/product/status-page");
+    expect(redirectsPermanently("/status-page")).toBe(true);
+  });
+});

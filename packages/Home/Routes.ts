@@ -605,26 +605,6 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
-    app.get(
-      "/product/status-page",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/status-page`, {
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          footerCards: true,
-          cta: true,
-          blackLogo: false,
-          requestDemoCta: false,
-          footerCtaText:
-            "Start with Status Pages, expand into everything else. Sign up today.",
-        });
-      },
-    );
-
-    app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page", 301);
-    });
-
     app.get("/workflows", (req: ExpressRequest, res: ExpressResponse) => {
       redirectPreservingQuery(req, res, "/product/workflows", 301);
     });
@@ -1519,36 +1499,6 @@ const HomeFeatureSet: FeatureSet = {
           cta: true,
           blackLogo: false,
           section: "iso-27001",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27017",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27017",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27018",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27018",
           requestDemoCta: false,
         });
       },
