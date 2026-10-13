@@ -28,7 +28,8 @@ import {
  * failed, or the request named no page). A string rather than a symbol, so it
  * compares equal however many copies of this module a process loads.
  */
-export const PUBLIC_PAGE_NOT_FOUND: "PublicPageNotFound" = "PublicPageNotFound";
+export const PUBLIC_PAGE_NOT_FOUND: "PublicPageNotFound" =
+  "PublicPageNotFound" as const;
 
 export type PublicPageNotFound = typeof PUBLIC_PAGE_NOT_FOUND;
 

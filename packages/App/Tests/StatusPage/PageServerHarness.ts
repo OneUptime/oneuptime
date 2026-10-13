@@ -217,9 +217,7 @@ export async function loadPageServers(): Promise<PageServers> {
 
   const getExpressApp: jest.SpyInstance = jest
     .spyOn(Express, "getExpressApp")
-    .mockReturnValue(
-      recordingApp as ReturnType<typeof Express.getExpressApp>,
-    );
+    .mockReturnValue(recordingApp as ReturnType<typeof Express.getExpressApp>);
 
   /*
    * Loaded now, not imported at the top: each takes the Express app the

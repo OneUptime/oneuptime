@@ -82,10 +82,7 @@ function fakeResponse(): FakeResponse {
  * and the request either goes on (next) or is answered. The handler's work
  * is asynchronous, so the result is awaited by polling the two outcomes.
  */
-async function runGate(
-  paramName: string,
-  value: unknown,
-): Promise<GateResult> {
+async function runGate(paramName: string, value: unknown): Promise<GateResult> {
   const handler: ParamHandler | undefined = handlers.get(paramName);
 
   if (!handler) {
@@ -208,60 +205,61 @@ describe("BlockedProjectStatusPages.guard", () => {
     );
   });
 
-  describe.each(STATUS_PAGE_ROUTE_PARAMS.map((name: string) => [name]))(
-    ":%s",
-    (paramName: string) => {
-      test("answers a page of a blocked project as a page that does not exist", async () => {
-        expectTakenDown(await runGate(paramName, BLOCKED_PAGE_ID.toString()));
-      });
+  describe.each(
+    STATUS_PAGE_ROUTE_PARAMS.map((name: string) => {
+      return [name];
+    }),
+  )(":%s", (paramName: string) => {
+    test("answers a page of a blocked project as a page that does not exist", async () => {
+      expectTakenDown(await runGate(paramName, BLOCKED_PAGE_ID.toString()));
+    });
 
-      test("lets a page of a project that is not blocked through to its route", async () => {
-        expectLetThrough(await runGate(paramName, LIVE_PAGE_ID.toString()));
-      });
+    test("lets a page of a project that is not blocked through to its route", async () => {
+      expectLetThrough(await runGate(paramName, LIVE_PAGE_ID.toString()));
+    });
 
-      test("reads the id however it is written", async () => {
-        expectTakenDown(
-          await runGate(paramName, BLOCKED_PAGE_ID.toString().toUpperCase()),
-        );
-      });
+    test("reads the id however it is written", async () => {
+      expectTakenDown(
+        await runGate(paramName, BLOCKED_PAGE_ID.toString().toUpperCase()),
+      );
+    });
 
-      test("answers a blocked project's custom domain as not found too", async () => {
-        expectTakenDown(await runGate(paramName, BLOCKED_DOMAIN));
-        expect(resolveStatusPageIdOrNull).toHaveBeenCalledWith(BLOCKED_DOMAIN);
-      });
+    test("answers a blocked project's custom domain as not found too", async () => {
+      expectTakenDown(await runGate(paramName, BLOCKED_DOMAIN));
+      expect(resolveStatusPageIdOrNull).toHaveBeenCalledWith(BLOCKED_DOMAIN);
+    });
 
-      test("lets a live custom domain through", async () => {
-        expectLetThrough(await runGate(paramName, LIVE_DOMAIN));
-      });
+    test("lets a live custom domain through", async () => {
+      expectLetThrough(await runGate(paramName, LIVE_DOMAIN));
+    });
 
-      test("lets a domain no page has through: its route answers it as it always has", async () => {
-        expectLetThrough(await runGate(paramName, "unknown.example.com"));
+    test("lets a domain no page has through: its route answers it as it always has", async () => {
+      expectLetThrough(await runGate(paramName, "unknown.example.com"));
+      expect(getProjectIdOfStatusPage).not.toHaveBeenCalled();
+      expect(isProjectBlocked).not.toHaveBeenCalled();
+    });
+
+    test("lets an id no page has through, without asking about any project", async () => {
+      expectLetThrough(
+        await runGate(paramName, ObjectID.generate().toString()),
+      );
+      expect(isProjectBlocked).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["a word that is neither an id nor a domain", "not-a-page"],
+      ["an empty value", ""],
+      ["a value that is not text", 42],
+    ])(
+      "lets %s through without a lookup",
+      async (_label: string, value: unknown) => {
+        expectLetThrough(await runGate(paramName, value));
+        expect(resolveStatusPageIdOrNull).not.toHaveBeenCalled();
         expect(getProjectIdOfStatusPage).not.toHaveBeenCalled();
         expect(isProjectBlocked).not.toHaveBeenCalled();
-      });
-
-      test("lets an id no page has through, without asking about any project", async () => {
-        expectLetThrough(
-          await runGate(paramName, ObjectID.generate().toString()),
-        );
-        expect(isProjectBlocked).not.toHaveBeenCalled();
-      });
-
-      test.each([
-        ["a word that is neither an id nor a domain", "not-a-page"],
-        ["an empty value", ""],
-        ["a value that is not text", 42],
-      ])(
-        "lets %s through without a lookup",
-        async (_label: string, value: unknown) => {
-          expectLetThrough(await runGate(paramName, value));
-          expect(resolveStatusPageIdOrNull).not.toHaveBeenCalled();
-          expect(getProjectIdOfStatusPage).not.toHaveBeenCalled();
-          expect(isProjectBlocked).not.toHaveBeenCalled();
-        },
-      );
-    },
-  );
+      },
+    );
+  });
 
   describe("fails open: a lookup that fails lets the request through to its route", () => {
     test("the page's project cannot be read", async () => {

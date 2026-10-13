@@ -100,7 +100,10 @@ function onCustomDomain(domain: string, path: string = "/"): ExpressRequest {
   return pageRequest({ host: domain, path });
 }
 
-function onDashboardUrl(dashboardId: string, path: string = ""): ExpressRequest {
+function onDashboardUrl(
+  dashboardId: string,
+  path: string = "",
+): ExpressRequest {
   return pageRequest({
     host: "oneuptime.example",
     path: `/public-dashboard/${dashboardId}${path}`,
@@ -258,9 +261,7 @@ beforeAll(async () => {
   servers = await loadPageServers();
 });
 
-const SHELLS: Array<
-  [string, () => PageRenderer, () => PageRenderer]
-> = [
+const SHELLS: Array<[string, () => PageRenderer, () => PageRenderer]> = [
   [
     "combined App container",
     () => {
