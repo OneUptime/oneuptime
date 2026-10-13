@@ -173,10 +173,12 @@ const SETTINGS_POLICY: string = `${DASHBOARD_APP}/Components/Inventory/Inventory
 const ARCHIVE_CARD: string = `${DASHBOARD_APP}/Components/TelemetryResource/ArchiveResourceCard.tsx`;
 const CUSTOM_FIELDS_PAGE_BASE: string = `${DASHBOARD_APP}/Pages/Settings/Base/CustomFieldsPageBase.tsx`;
 const CUSTOM_FIELD_OPTIONS: string = `${DASHBOARD_APP}/Components/CustomFields/CustomFieldOptionsField.tsx`;
-const COLOR_PICKER: string = "Common/UI/Components/Forms/Fields/ColorPicker.tsx";
+const COLOR_PICKER: string =
+  "Common/UI/Components/Forms/Fields/ColorPicker.tsx";
 const CUSTOM_FIELD_COLUMNS: string =
   "Common/UI/Components/ModelTable/CustomFieldColumns.tsx";
-const ENTITY_REGISTRY: string = "Common/Server/Utils/Telemetry/EntityRegistry.ts";
+const ENTITY_REGISTRY: string =
+  "Common/Server/Utils/Telemetry/EntityRegistry.ts";
 const CUSTOM_FIELD_VALUE_STORES: string =
   "Common/Server/Utils/CustomField/CustomFieldValueStores.ts";
 const SERVICES_DIR: string = "Common/Server/Services";
@@ -521,7 +523,11 @@ const RETENTION_WORDS: ReadonlyArray<[string, ReadonlyArray<EntityType>]> = [
   ["Proxmox nodes", [EntityType.ProxmoxNode]],
   [
     "VMware hosts, clusters and datastores",
-    [EntityType.VMwareHost, EntityType.VMwareCluster, EntityType.VMwareDatastore],
+    [
+      EntityType.VMwareHost,
+      EntityType.VMwareCluster,
+      EntityType.VMwareDatastore,
+    ],
   ],
   [
     "the databases and remote services your traces call",
@@ -574,9 +580,7 @@ describe("Inventory Overview: where items come from", () => {
     );
 
     for (const [type, record] of MIRRORED_RECORDS) {
-      const plural: string = (
-        new record().pluralName as string
-      ).toLowerCase();
+      const plural: string = (new record().pluralName as string).toLowerCase();
 
       expect({ type, named: mirrored.toLowerCase().includes(plural) }).toEqual({
         type,
@@ -651,12 +655,12 @@ describe("Inventory Overview: where items come from", () => {
     expect(policy).toContain(
       "This item is mirrored from another OneUptime resource.",
     );
-    expect(new InventoryItem().getColumnAccessControlFor("entityType")?.update).toEqual(
-      [],
-    );
-    expect(new InventoryItem().getColumnAccessControlFor("source")?.update).toEqual(
-      [],
-    );
+    expect(
+      new InventoryItem().getColumnAccessControlFor("entityType")?.update,
+    ).toEqual([]);
+    expect(
+      new InventoryItem().getColumnAccessControlFor("source")?.update,
+    ).toEqual([]);
   });
 
   it("gives a heartbeat to discovered items only, with the Status column's windows", () => {
@@ -684,7 +688,9 @@ describe("Inventory Overview: where items come from", () => {
 
     expect(Number(live?.[1])).toBe(INVENTORY_LIVE_WINDOW_MINUTES);
     expect(INVENTORY_STALE_AFTER_MINUTES).toBe(DAY_IN_HOURS * 60);
-    expect((statusRows[1] as Array<string>)[1]).toBe("Seen within the last day.");
+    expect((statusRows[1] as Array<string>)[1]).toBe(
+      "Seen within the last day.",
+    );
     expect((statusRows[2] as Array<string>)[1]).toContain(
       "Not seen for more than a day. The **Gone Quiet** page lists these.",
     );
@@ -693,7 +699,10 @@ describe("Inventory Overview: where items come from", () => {
 
 describe("Inventory Overview: how long a silent item stays", () => {
   const overview: string = englishPage(INVENTORY_OVERVIEW);
-  const section: string = sectionOf(overview, "### How long a silent item stays");
+  const section: string = sectionOf(
+    overview,
+    "### How long a silent item stays",
+  );
 
   it("removes discovered items every three hours, archived ones and their custom field values included", () => {
     expect((mockCapturedJobs[PRUNE_JOB] as MockCapturedJob).schedule).toBe(
@@ -865,7 +874,10 @@ describe("Inventory Overview: finding your way around", () => {
 
   it("lists an item's own pages in its side menu's order", () => {
     const itemMenu: Array<MenuSection> = menuSections(ITEM_MENU);
-    const line: string = lineStartingWith(section, "Open an item, and its own side menu");
+    const line: string = lineStartingWith(
+      section,
+      "Open an item, and its own side menu",
+    );
     const expected: Array<string> = itemMenu.flatMap(
       (entry: MenuSection): Array<string> => {
         return entry.title === "Advanced"
@@ -947,9 +959,7 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
       expect(form).toContain(`title: "${title}"`);
     }
 
-    expect(form).toContain(
-      "Two items of the same type cannot share a name.",
-    );
+    expect(form).toContain("Two items of the same type cannot share a name.");
     expect(steps).toContain(
       "The name and the type together are the item's identity, so two items of the same type cannot share a name.",
     );
@@ -969,7 +979,10 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("archives rather than deletes: only an item added by hand is gone for good", () => {
-    const section: string = sectionOf(overview, "## Archive instead of deleting");
+    const section: string = sectionOf(
+      overview,
+      "## Archive instead of deleting",
+    );
     const rows: Array<Array<string>> = firstTableRows(section);
 
     expect(
@@ -998,7 +1011,10 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("archives from the list in one go or from the item's Settings page", () => {
-    const section: string = sectionOf(overview, "## Archive instead of deleting");
+    const section: string = sectionOf(
+      overview,
+      "## Archive instead of deleting",
+    );
     const table: string = readSource(INVENTORY_TABLE);
     const settings: string = readSource(ITEM_SETTINGS);
     const card: string = readSource(ARCHIVE_CARD);
@@ -1013,7 +1029,10 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("archives a mirrored item whose record went, instead of deleting it, only when it carries custom field values", () => {
-    const section: string = sectionOf(overview, "## Archive instead of deleting");
+    const section: string = sectionOf(
+      overview,
+      "## Archive instead of deleting",
+    );
     const typed: InventoryItem = new InventoryItem();
     const untyped: InventoryItem = new InventoryItem();
     const typedId: ObjectID = ObjectID.generate();
@@ -1040,7 +1059,10 @@ describe("Inventory Overview: adding, archiving and relationships", () => {
   });
 
   it("lists every relationship OneUptime draws between items, and no other, with true examples", () => {
-    const section: string = sectionOf(overview, "## Relationships and topology");
+    const section: string = sectionOf(
+      overview,
+      "## Relationships and topology",
+    );
     const cataloged: Array<EntityType> = catalogedFromTelemetry();
     const drawn: Set<string> = new Set<string>([
       // Derived from the spans that cross services (ComputeServiceDependencies).
@@ -1190,11 +1212,9 @@ describe("Inventory Custom Fields", () => {
         return row[0] as string;
       }),
     ).toEqual(
-      getCustomFieldTypeOptions().map(
-        (option: { label: string }): string => {
-          return bold(option.label);
-        },
-      ),
+      getCustomFieldTypeOptions().map((option: { label: string }): string => {
+        return bold(option.label);
+      }),
     );
   });
 
@@ -1238,14 +1258,18 @@ describe("Inventory Custom Fields", () => {
       }
     }
 
-    expect([...covered].sort()).toEqual([...Object.values(CustomFieldType)].sort());
+    expect([...covered].sort()).toEqual(
+      [...Object.values(CustomFieldType)].sort(),
+    );
   });
 
   it("starts custom field columns hidden and never sorts them", () => {
     const columns: string = readSource(CUSTOM_FIELD_COLUMNS);
 
     expect(columns).toContain("disableSort: true");
-    expect(columns).toContain("const isHidden: boolean = data.isHiddenByDefault !== false;");
+    expect(columns).toContain(
+      "const isHidden: boolean = data.isHiddenByDefault !== false;",
+    );
     expect(page).toContain(
       "Custom field columns start hidden: turn them on from the column picker. They cannot be sorted",
     );
@@ -1258,9 +1282,7 @@ describe("Inventory Custom Fields", () => {
       .filter((file: string): boolean => {
         return (
           file.endsWith(".ts") &&
-          readSource(`${SERVICES_DIR}/${file}`).includes(
-            "renameCustomField(",
-          )
+          readSource(`${SERVICES_DIR}/${file}`).includes("renameCustomField(")
         );
       });
 

@@ -171,6 +171,11 @@ const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
 const DIGIT_GROUP: RegExp = /(\d)[\s.,'٬](\d{3})(?!\d)/g;
 const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 const RIGHT_ARROW: string = "→";
+/*
+ * The comma a language lists items with: ", " in Latin, Cyrillic and
+ * Devanagari text, "、" in Chinese and Japanese, "، " in Persian.
+ */
+const LIST_ITEM_SEPARATOR: RegExp = /, |\u{3001}|\u{060C} /u;
 const INLINE_CODE_SPAN: RegExp = /`[^`\n]*`/g;
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 // A word of four Latin letters or more: what an untranslated line is made of.
@@ -965,8 +970,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       if (language === "fa") {
         it("joins its menu paths with ' > ', leaving no '→' in its prose", () => {
           expect(
-            prose(readPage(language, entry.page)).split(RIGHT_ARROW).length -
-              1,
+            prose(readPage(language, entry.page)).split(RIGHT_ARROW).length - 1,
           ).toBe(0);
         });
       }
@@ -1011,6 +1015,41 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       );
     });
 
+    /*
+     * The comparisons a chip offers are words the Dashboard does not always
+     * draw as a phrase ("is" draws as a colon in Japanese and Korean), so
+     * a translation words them freely; it keeps how many there are, for the
+     * same field types.
+     */
+    it("the custom fields page lists as many comparisons as English for each field type, the types named as the picker draws them", () => {
+      const translated: Array<Array<string>> = (
+        tableUnder(language, INVENTORY_CUSTOM_FIELDS, "## Filter the list") ||
+        []
+      ).slice(1);
+      const english: Array<Array<string>> = (
+        tableUnder("en", INVENTORY_CUSTOM_FIELDS, "## Filter the list") || []
+      ).slice(1);
+
+      expect(translated.length).toBe(english.length);
+
+      english.forEach((row: Array<string>, index: number): void => {
+        const translatedRow: Array<string> = translated[index] || [];
+
+        expect({
+          row: index,
+          types: boldSpans(translatedRow[0] || ""),
+          comparisons: (translatedRow[1] || "").split(LIST_ITEM_SEPARATOR)
+            .length,
+        }).toEqual({
+          row: index,
+          types: boldSpans(row[0] as string).map((label: string): string => {
+            return drawnLabel(language, label);
+          }),
+          comparisons: (row[1] as string).split(LIST_ITEM_SEPARATOR).length,
+        });
+      });
+    });
+
     it("the CMDB page's Asset Details table names each fact as the Asset Details card labels it, in the card's order", () => {
       const facts: Array<string> = firstColumn(
         tableUnder(language, CMDB_SYNC, ASSET_DETAILS_HEADING),
@@ -1036,9 +1075,9 @@ describe("the helpers, on these pages' shapes", () => {
       "**Products → Resources → Inventory**",
     );
     // The Persian menu reads موجودی; the flat "Inventory" label is English.
-    expect(drawnPathSegment("fa", ["Products", "Resources", "Inventory"], 2)).toBe(
-      "موجودی",
-    );
+    expect(
+      drawnPathSegment("fa", ["Products", "Resources", "Inventory"], 2),
+    ).toBe("موجودی");
     expect(drawnDashboardLabel("fa", "Inventory")).toBe("Inventory");
     // A side menu item is looked up whole: no "Delete {{itemName}}" is filled in.
     expect(drawnLabel("fa", "Delete Item")).toBe(
@@ -1084,9 +1123,9 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
-    expect(
-      expectedLink("en", API_REFERENCE, "#records-a-request-names"),
-    ).toBe("#records-a-request-names");
+    expect(expectedLink("en", API_REFERENCE, "#records-a-request-names")).toBe(
+      "#records-a-request-names",
+    );
     expect(
       expectedLink(
         "en",

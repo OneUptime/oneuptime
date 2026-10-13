@@ -214,7 +214,10 @@ describe("OneUptime API Reference: a request and its answer", () => {
       const cell: string = codeIn(row[1] as string)[0] as string;
       const match: RegExpMatchArray | null = cell.match(REQUEST_CELL);
 
-      expect({ cell, request: Boolean(match) }).toEqual({ cell, request: true });
+      expect({ cell, request: Boolean(match) }).toEqual({
+        cell,
+        request: true,
+      });
 
       return `${match![1]} ${(match![2] as string).replace("<id>", ":id")}`;
     });
@@ -223,7 +226,14 @@ describe("OneUptime API Reference: a request and its answer", () => {
       rows.map((row: Array<string>): string => {
         return row[0] as string;
       }),
-    ).toEqual(["List", "Count", "Read one", "Create", "Change one", "Delete one"]);
+    ).toEqual([
+      "List",
+      "Count",
+      "Read one",
+      "Create",
+      "Change one",
+      "Delete one",
+    ]);
 
     for (const request of requests) {
       expect(routes).toContain(request);
@@ -291,9 +301,10 @@ describe("OneUptime API Reference: a request and its answer", () => {
 
     for (const type of types) {
       expect(Object.values(ObjectType)).toContain(type);
-      expect({ type, deserialized: Boolean(SerializableObjectDictionary[type]) }).toEqual(
-        { type, deserialized: true },
-      );
+      expect({
+        type,
+        deserialized: Boolean(SerializableObjectDictionary[type]),
+      }).toEqual({ type, deserialized: true });
     }
 
     // InBetween reads the two values the page names.
@@ -401,7 +412,9 @@ describe("OneUptime API Reference: a request and its answer", () => {
     // An unusable key is bad data (400), a key below its plan a 402.
     const authorization: string = readSource(PROJECT_AUTHORIZATION);
 
-    expect(authorization).toContain('throw new BadDataException("Invalid API Key");');
+    expect(authorization).toContain(
+      'throw new BadDataException("Invalid API Key");',
+    );
     expect(authorization).toContain("throw planRefusal;");
     expect((rows[1] as Array<string>)[1]).toContain("the API key is invalid");
 
@@ -412,7 +425,9 @@ describe("OneUptime API Reference: a request and its answer", () => {
     const tablePermission: string = readSource(TABLE_PERMISSION);
 
     expect(tablePermission).toContain("throw new NotAuthorizedException(");
-    expect(tablePermission).toContain("`You do not have permissions to ${type} ${");
+    expect(tablePermission).toContain(
+      "`You do not have permissions to ${type} ${",
+    );
     expect((rows[4] as Array<string>)[1]).toContain(
       "the API key has no permission for this kind of record",
     );
@@ -432,7 +447,9 @@ describe("OneUptime API Reference: a request and its answer", () => {
 
     expect(statuses).toEqual(["400", "402", "404 or 422", "400"]);
     // The key is looked up before the plan is asked about.
-    expect(authorization.indexOf("ApiKeyService.findApiKey(apiKey)")).toBeLessThan(
+    expect(
+      authorization.indexOf("ApiKeyService.findApiKey(apiKey)"),
+    ).toBeLessThan(
       authorization.indexOf("PlanCutoffCredentialAccess.getRefusal("),
     );
   });
@@ -504,16 +521,16 @@ describe("OneUptime API Reference: an API key", () => {
     const keys: string = readSource(API_KEYS_PAGE);
     const view: string = readSource(API_KEY_PAGE);
 
-    expect(keys).toContain("Navigation.navigate(getApiKeyRoute(createdApiKey.id));");
+    expect(keys).toContain(
+      "Navigation.navigate(getApiKeyRoute(createdApiKey.id));",
+    );
     expect(view).toContain('title: "API Key Details"');
     expect(view).toContain('title: "API Key",');
     expect(view).toContain('title: "Expires",');
     expect(steps).toContain(
       "The key's page opens. Copy the **API Key** from the **API Key Details** card",
     );
-    expect(page).toContain(
-      "where its **Expires** date is too.",
-    );
+    expect(page).toContain("where its **Expires** date is too.");
   });
 
   it("adds a role or a single permission from the key's Permissions card", () => {
@@ -521,9 +538,7 @@ describe("OneUptime API Reference: an API key", () => {
 
     expect(permissions).toContain('title: "Add Role",');
     expect(permissions).toContain('title: "Add Permission",');
-    expect(page).toContain(
-      "then click **Add Role** or **Add Permission**.",
-    );
+    expect(page).toContain("then click **Add Role** or **Add Permission**.");
     expect(englishPage(CMDB_SYNC)).toContain(
       "On the key's page, click **Add Permission** and pick it.",
     );
@@ -540,7 +555,9 @@ describe("OneUptime API Reference: an API key", () => {
 
     // Node lower-cases header names: ApiKey reaches the server as apikey.
     expect(authorization).toContain('req.headers?.["apikey"]');
-    expect(header).toBe(`-H "ApiKey: $${ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE}"`);
+    expect(header).toBe(
+      `-H "ApiKey: $${ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE}"`,
+    );
 
     for (const markdown of [page, englishPage(CMDB_SYNC)]) {
       const scripts: Array<string> = codeBlocks(markdown, "bash");
@@ -606,7 +623,9 @@ describe("Exporting to a CMDB: the requests", () => {
       }),
     ).toEqual(
       [InventoryItem, InventoryItemCustomField, InventoryItemRelationship].map(
-        (model: { new (): { crudApiPath: { toString(): string } | null } }): string => {
+        (model: {
+          new (): { crudApiPath: { toString(): string } | null };
+        }): string => {
           return `/api${new model().crudApiPath?.toString()}`;
         },
       ),
@@ -617,13 +636,15 @@ describe("Exporting to a CMDB: the requests", () => {
     const rows: Array<Array<string>> = tables(
       sectionOf(page, "## What you can pull"),
     )[1]!.slice(1);
-    const columns: Array<string> = new InventoryItem().getTableColumns().columns;
+    const columns: Array<string> = new InventoryItem().getTableColumns()
+      .columns;
 
     for (const row of rows) {
       for (const column of codeIn(row[0] as string)) {
-        expect({ column, known: column === "_id" || columns.includes(column) }).toEqual(
-          { column, known: true },
-        );
+        expect({
+          column,
+          known: column === "_id" || columns.includes(column),
+        }).toEqual({ column, known: true });
       }
     }
 

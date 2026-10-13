@@ -65,15 +65,14 @@ export const WHOLE_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
  * (Permission.ts's title, which no locale translates), so every page keeps
  * it as written although "Edit Telemetry Service" reads like a button.
  */
-export const PERMISSION_NAMES: Readonly<
-  Record<string, ReadonlyArray<string>>
-> = {
-  [CMDB_SYNC]: [
-    "Read Telemetry Service",
-    "Edit Telemetry Service",
-    "Create Telemetry Service",
-  ],
-};
+export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
+  {
+    [CMDB_SYNC]: [
+      "Read Telemetry Service",
+      "Edit Telemetry Service",
+      "Create Telemetry Service",
+    ],
+  };
 
 // The plans the pages name: the Dashboard shows a plan's name as written.
 export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
