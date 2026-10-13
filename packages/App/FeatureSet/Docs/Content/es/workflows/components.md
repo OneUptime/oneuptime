@@ -17,6 +17,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | ------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Publicar en una herramienta de chat                           | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) o [Mattermost](#mattermost) |
 | Enviar un correo a través de tu propio servidor de correo     | [Email](#email)                                                   |
+| Avisar a una persona, a un equipo o a quien esté de guardia | [Paging](#paging) |
 | Llamar a cualquier otra API o a tu propio servicio            | [API](#api)                                                       |
 | Resumir, clasificar o redactar texto                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | Tomar un camino u otro según un valor                         | [Conditions](#conditions)                                         |
@@ -198,6 +199,49 @@ Envía un correo a través de un servidor SMTP que indicas en el bloque. El bloq
 El bloque se conecta directamente al servidor de sus ajustes. No usa los ajustes de [SMTP](/docs/emails/smtp) de tu proyecto ni el propio servidor de correo de OneUptime, y los correos que envía no aparecen en los registros de notificaciones. Para comprobar lo que hizo, mira las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo.
 
 Las conexiones a direcciones de loopback (`localhost`, `127.0.0.1`), de enlace local y de metadatos de la nube se rechazan. En OneUptime Cloud, un host SMTP en una dirección de red privada, o un nombre que se resuelve a una, también se rechaza. Las instalaciones autoalojadas pueden llegar a un servidor de correo de su propia red, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` esté definido como `true`. Un host rechazado toma la salida **Error**, y no se envía nada.
+
+## Paging
+
+Avisa a personas desde un flujo de trabajo: cada una recibe una llamada, un SMS, una notificación push o un correo, según indiquen sus propias reglas de guardia, hasta que alguien reconoce el aviso. Hay un bloque para cada forma de decir a quién avisar. En el panel **Añadir componente**, busca `page`.
+
+| Bloque                      | A quién avisa |
+| --------------------------- | ------------- |
+| **Page Users**              | A las personas que nombras. |
+| **Page a Team**             | A todos los miembros de un equipo. |
+| **Page Whoever Is On Call** | A quien esté de guardia en una programación de guardia cuando se ejecuta el bloque. |
+| **Page an On-Call Policy**  | A una política de guardia, que avisa siguiendo sus reglas de escalado y se repite como esté configurada. |
+
+Los tres primeros avisan a la vez a todos los que nombran, y a nadie más después. Para un escalado, usa **Page an On-Call Policy**.
+
+Para avisar solo cuando algo se cumple, pon [If / Else](#conditions) delante del bloque y conéctale la salida que debe avisar. Con más de dos caminos, [Switch / Case](#switch-case) toma un camino para cada valor, y cada camino puede avisar a otra persona.
+
+```mermaid title="Avisar a quien esté de guardia, pero solo en incidentes críticos"
+flowchart TB
+    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
+    check -->|"Yes"| page["Page Whoever Is On Call"]
+    check -->|"No"| log["Log"]
+```
+
+Al crear un flujo de trabajo, las plantillas de **De guardia** tienen este ya preparado, y otro que avisa según la gravedad con **Switch / Case**. Una plantilla te deja a ti elegir a quién avisar: el flujo de trabajo se abre en el Constructor, donde cada bloque de aviso dice **Haz clic para configurar**.
+
+| Ajuste | Qué hace |
+| ------ | -------- |
+| **Users**, **Teams**, **On-Call Schedules** o **On-Call Policies** | A quién avisar: cada bloque tiene el que corresponde a su nombre. Elige por nombre, o pulsa **{ }** al final de la fila para añadir un valor de un bloque anterior. Un valor puede contener un ID o varios y, en **Users**, una dirección de correo. |
+| **Page About** | De qué trata el aviso: **A new alert**, **An incident** o **An alert**. Reconocer el aviso también lo reconoce. |
+| **Title** y **Message** | Para una alerta nueva. OneUptime crea una alerta con ellos, y se queda entre tus alertas como cualquier otra. |
+| **Incident ID** o **Alert ID** | Para un incidente o una alerta que ya existe, normalmente aquel con el que empezó el flujo de trabajo: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Severity** | Para una alerta nueva, en **Más campos**. Decide cuáles de las reglas de guardia de cada persona le avisan. Si se deja vacía, es la más grave del proyecto. |
+
+Un bloque añadido a un flujo de trabajo que empieza con un incidente o una alerta ya está configurado para avisar sobre ese registro, así que solo pregunta a quién avisar.
+
+**Success** se ejecuta en cuanto se avisa al menos a una persona, o se ha iniciado una política. **Error** se ejecuta cuando no se avisó a nadie, y el valor **Error** del bloque dice por qué, por ejemplo que no hay nadie de guardia en la programación. **Summary** dice en una frase a quién se avisó y a quién se dejó fuera, lista para publicarla en un canal, y **Paged Users** enumera a las personas avisadas.
+
+A quien está ausente no se le avisa: se avisa en su lugar a quien su sustitución de usuario nombra para cubrirle. Un aviso nombra como máximo 100 personas, equipos y programaciones. Consulta [Cómo se localiza a cada persona](/docs/on-call/escalation-rules#cómo-se-localiza-a-cada-persona).
+
+Un aviso sin política de guardia detrás aparece junto a las ejecuciones de las políticas como **Aviso directo**: en los registros de guardia del incidente o de la alerta, en su feed y su canal de Slack o Microsoft Teams, y en los registros de cada persona avisada. Sigue abierto 30 minutos, y después mientras sigan saliendo avisos. Si para entonces nadie lo ha reconocido, termina sin avisar a nadie más.
+
+> [!WARNING]
+> **Ejecutar flujo de trabajo** avisa a personas de verdad, esté el flujo de trabajo activado o no, y **Ejecutar solo este paso** también. Ponte a ti mismo mientras pruebas.
 
 ## Custom Code
 
