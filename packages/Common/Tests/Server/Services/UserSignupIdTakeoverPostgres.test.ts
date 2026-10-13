@@ -22,6 +22,21 @@ jest.mock("../../../Server/Infrastructure/Postgres/DataSourceOptions", () => {
 });
 
 /*
+ * config.env may carry real incoming webhooks for the operator's channels,
+ * and every user this suite creates is announced on one
+ * (UserService.onCreateSuccess). Blanked so the suite cannot post to Slack.
+ */
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  return {
+    ...jest.requireActual("../../../Server/EnvironmentConfig"),
+    NotificationSlackWebhookOnCreateUser: "",
+    NotificationSlackWebhookOnCreateProject: "",
+    NotificationSlackWebhookOnDeleteProject: "",
+    NotificationSlackWebhookOnSubscriptionUpdate: "",
+  };
+});
+
+/*
  * A signup that names another user's id, against a real, migrated User table.
  *
  * /signup used to deserialize the whole request body into the new User and
