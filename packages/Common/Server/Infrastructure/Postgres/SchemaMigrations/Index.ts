@@ -83,6 +83,7 @@ import { AddVMwareProbeCollectionIndexes1801350000000 } from "./1801350000000-Ad
 import { AddWorkflowLogTestRun1801400000000 } from "./1801400000000-AddWorkflowLogTestRun";
 import { AddWorkflowLogStartedByForeignKey1801450000000 } from "./1801450000000-AddWorkflowLogStartedByForeignKey";
 import { AddWorkspaceLiveMessage1801500000000 } from "./1801500000000-AddWorkspaceLiveMessage";
+import { AddUserNotificationRulePushNotificationLevel1801550000000 } from "./1801550000000-AddUserNotificationRulePushNotificationLevel";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1366,4 +1367,5 @@ export default [
   AddWorkflowLogTestRun1801400000000,
   AddWorkflowLogStartedByForeignKey1801450000000,
   AddWorkspaceLiveMessage1801500000000,
+  AddUserNotificationRulePushNotificationLevel1801550000000,
 ];

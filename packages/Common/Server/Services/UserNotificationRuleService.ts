@@ -61,6 +61,11 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import {
+  isCriticalPushNotification,
+  isPushNotificationLevel,
+  PUSH_NOTIFICATION_LEVELS,
+} from "../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
@@ -628,6 +633,14 @@ export class Service extends ProjectReferencesService<Model> {
       select: {
         _id: true,
         userId: true,
+        /*
+         * Whether this rule's push may ring through silent mode, the rule's
+         * half of the decision the device's isCriticalAlertEnabled below is
+         * the other half of. Unselected it would read as the default,
+         * Critical, so a rule set to Standard would keep ringing through - the
+         * responder told it not to, and it is selected here so it obeys.
+         */
+        pushNotificationLevel: true,
         /*
          * Every method relation also selects its OWN userId, which none of the
          * channel blocks below read. It is here for the ownership check that
@@ -2587,12 +2600,16 @@ export class Service extends ProjectReferencesService<Model> {
        * This is the on-call paging path - the notification that exists to wake
        * somebody at 3am - so it is the only push in the product allowed to
        * override the ringer switch, and then only for a device whose owner
-       * turned the option on. Owner subscriptions and note-posted notifications
-       * go out through UserNotificationSettingService and never set this.
+       * turned the option on, from a rule its owner left at Critical (a rule
+       * set to Standard pages that severity quietly). Owner subscriptions and
+       * note-posted notifications go out through UserNotificationSettingService
+       * and never set this.
        */
-      const isCriticalAlert: boolean = Boolean(
-        notificationRuleItem.userPush.isCriticalAlertEnabled,
-      );
+      const isCriticalAlert: boolean = isCriticalPushNotification({
+        pushNotificationLevel: notificationRuleItem.pushNotificationLevel,
+        isDeviceCriticalAlertEnabled:
+          notificationRuleItem.userPush.isCriticalAlertEnabled,
+      });
       // send push notification for alert
       if (
         options.userNotificationEventType ===
@@ -5378,10 +5395,33 @@ export class Service extends ProjectReferencesService<Model> {
       hasNotificationMethod: hasNotificationMethod,
     });
 
+    this.assertPushNotificationLevelIsKnown(carrier["pushNotificationLevel"]);
+
     return {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * A push notification level the delivery path knows, or none at all - left
+   * out, the column's default (Critical) is stored.
+   *
+   * Anything else is refused rather than stored. The delivery path treats
+   * every value but Standard as Critical, so a typo such as "standard" would
+   * otherwise be saved without complaint and keep ringing a phone through Do
+   * Not Disturb for a severity its owner had just asked to be quiet. Null is
+   * refused for the same reason and because the column is NOT NULL: the
+   * database would refuse it anyway, in words nobody can act on.
+   */
+  private assertPushNotificationLevelIsKnown(value: unknown): void {
+    if (value === undefined || isPushNotificationLevel(value)) {
+      return;
+    }
+
+    throw new BadDataException(
+      `Push notification level must be one of: ${PUSH_NOTIFICATION_LEVELS.join(", ")}.`,
+    );
   }
 
   /**
@@ -5580,6 +5620,8 @@ export class Service extends ProjectReferencesService<Model> {
     const patch: RuleColumnCarrier =
       updateBy.data as unknown as RuleColumnCarrier;
 
+    this.assertPushNotificationLevelIsKnown(patch["pushNotificationLevel"]);
+
     const references: Array<NotificationMethodReference> =
       UserNotificationRuleAdminService.collectNotificationMethodReferences(
         patch,
@@ -5623,6 +5665,7 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: true,
         ruleType: true,
         notifyAfterMinutes: true,
+        pushNotificationLevel: true,
         isOptOut: true,
         incidentSeverityId: true,
         alertSeverityId: true,
@@ -5865,6 +5908,7 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: true,
         ruleType: true,
         notifyAfterMinutes: true,
+        pushNotificationLevel: true,
         isOptOut: true,
         incidentSeverityId: true,
         alertSeverityId: true,
