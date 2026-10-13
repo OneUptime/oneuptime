@@ -62,6 +62,12 @@ export const NOTE_REFRESH_MAX_MS: number = 10 * 60 * 1000;
 // How long "Copied!" stays on a note's Copy button.
 const COPIED_FEEDBACK_MS: number = 2000;
 
+/*
+ * How long the steps that cannot be used are kept in view after they are
+ * opened, while their styles arrive and their lines wrap.
+ */
+export const UNAVAILABLE_SETTLE_MS: number = 2000;
+
 export const ValuePickerMenuCopy: {
   readonly notAvailable: PluralTemplate;
   readonly notAvailableHint: string;
@@ -247,17 +253,46 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
      * The steps that cannot be used are at the end of the list, so opened
      * they were under its fold: the line said "1 step isn't available here"
      * and showed nothing. Opening it brings them into view.
+     *
+     * And keeps them there while they settle. The Dashboard builds a class's
+     * style the first time the class is drawn, so a moment after the block
+     * opens its reasons get their indent, the longer ones wrap onto another
+     * line, and the last step would end under the list's edge.
      */
     useEffect(() => {
       const block: HTMLDivElement | null = unavailableRef.current;
 
       if (
-        isUnavailableOpen &&
-        block &&
-        typeof block.scrollIntoView === "function"
+        !isUnavailableOpen ||
+        !block ||
+        typeof block.scrollIntoView !== "function"
       ) {
-        block.scrollIntoView({ block: "nearest" });
+        return;
       }
+
+      const reveal: () => void = (): void => {
+        block.scrollIntoView({ block: "nearest" });
+      };
+
+      reveal();
+
+      if (typeof ResizeObserver === "undefined") {
+        return;
+      }
+
+      const observer: ResizeObserver = new ResizeObserver(reveal);
+
+      observer.observe(block);
+
+      // Settled: from here on the list is the reader's to scroll.
+      const settled: ReturnType<typeof setTimeout> = setTimeout(() => {
+        observer.disconnect();
+      }, UNAVAILABLE_SETTLE_MS);
+
+      return () => {
+        clearTimeout(settled);
+        observer.disconnect();
+      };
     }, [isUnavailableOpen]);
 
     /*
@@ -664,13 +699,21 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
     type RenderOptionFunction = (
       option: MenuOption,
       index: number,
+      caveatId?: string | undefined,
     ) => ReactElement;
 
     const renderOption: RenderOptionFunction = (
       option: MenuOption,
       index: number,
+      caveatId?: string | undefined,
     ): ReactElement => {
       const isActive: boolean = index === activeIndex;
+      /*
+       * What a row says besides its name is gray-500 on the list's white,
+       * and a shade darker on the row the pointer or the keys are on, whose
+       * tint would otherwise leave it at 4.3:1.
+       */
+      const quiet: string = isActive ? "text-gray-600" : "text-gray-500";
 
       return (
         <div
@@ -678,6 +721,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           id={optionId(index)}
           role="option"
           aria-selected={isActive}
+          aria-describedby={caveatId}
           title={option.reference}
           data-testid="value-picker-option"
           data-reference={option.reference}
@@ -701,8 +745,9 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               <span
+                data-part="name"
                 className={`truncate text-sm ${
-                  option.isEmptyHere ? "text-gray-500" : "text-gray-900"
+                  option.isEmptyHere ? quiet : "text-gray-900"
                 }`}
               >
                 {option.label}
@@ -720,7 +765,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
             {/* An empty-here field's section says why; each says no more. */}
             {option.description && !option.isEmptyHere && (
-              <div className="truncate text-xs text-gray-500">
+              <div data-part="detail" className={`truncate text-xs ${quiet}`}>
                 {translator.translateText(option.description)}
               </div>
             )}
@@ -731,7 +776,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
            */}
           {option.isSampleHidden ? (
             <div
-              className="mt-0.5 flex max-w-[45%] shrink-0 items-center gap-1 text-xs text-gray-400"
+              className={`mt-0.5 flex max-w-[45%] shrink-0 items-center gap-1 text-xs ${quiet}`}
               title={translator.translateText(HIDDEN_SAMPLE_TITLE)}
               data-testid="value-picker-sample"
               data-hidden="true"
@@ -743,7 +788,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </div>
           ) : option.sample !== undefined ? (
             <span
-              className="mt-0.5 max-w-[45%] shrink-0 truncate text-xs text-gray-500"
+              className={`mt-0.5 max-w-[45%] shrink-0 truncate text-xs ${quiet}`}
               title={option.sample}
               data-testid="value-picker-sample"
             >
@@ -751,7 +796,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             </span>
           ) : null}
           {option.typeLabel && (
-            <span className="mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-500">
+            <span
+              data-part="kind"
+              className={`mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide ${quiet}`}
+            >
               {translator.translateText(option.typeLabel)}
             </span>
           )}
@@ -928,8 +976,13 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             className="mx-1 mt-1 border-t border-gray-100 pt-1"
             data-testid="value-picker-unavailable"
           >
+            {/*
+             * The words that explain - this title, the line under the fold
+             * and each step's reason - are gray-500: they are there to be
+             * read. Only the values that cannot be picked are fainter.
+             */}
             {isSearching ? (
-              <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 {translator.translateText(
                   ValuePickerMenuCopy.notAvailableTitle,
                 )}
@@ -963,7 +1016,10 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
             )}
 
             {isOpen && !isSearching ? (
-              <p className="px-2 pb-1 text-xs text-gray-400">
+              <p
+                className="px-2 pb-1 text-xs text-gray-500"
+                data-testid="value-picker-unavailable-hint"
+              >
                 {translator.translateText(ValuePickerMenuCopy.notAvailableHint)}
               </p>
             ) : null}
@@ -984,17 +1040,26 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                             className="h-3.5 w-3.5 shrink-0 text-gray-300"
                           />
                         ) : null}
-                        <span className="truncate text-xs font-semibold text-gray-500">
+                        <span
+                          className="truncate text-xs font-semibold text-gray-500"
+                          data-part="step-name"
+                        >
                           {translator.translateText(group.title)}
                         </span>
                         {group.subtitle ? (
-                          <span className="truncate text-[11px] text-gray-400">
+                          <span
+                            className="truncate text-[11px] text-gray-500"
+                            data-part="step-id"
+                          >
                             {group.subtitle}
                           </span>
                         ) : null}
                       </div>
                       {group.availability ? (
-                        <p className="pl-5 text-xs text-gray-400">
+                        <p
+                          className="pl-5 text-xs text-gray-500"
+                          data-testid="value-picker-unavailable-reason"
+                        >
                           {translateSentence(
                             translator,
                             group.availability.reason,
@@ -1166,12 +1231,27 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
 
           {sections.map((section: OptionSection) => {
             const headerId: string = `${listboxId}-${section.key}`;
+            /*
+             * The line over a section's values that says what sets them
+             * apart - they can be empty on some runs, or are not passed on -
+             * is what the eye reads before it reads them. Each of the values
+             * is described by it too, so someone walking the list by ear
+             * hears it with the value the keys are on.
+             */
+            const hasCaveat: boolean =
+              section.availability?.state ===
+                ValueAvailabilityState.Sometimes ||
+              Boolean(section.emptyHereNote);
+            const caveatId: string | undefined = hasCaveat
+              ? `${headerId}-caveat`
+              : undefined;
 
             return (
               <div
                 key={section.key}
                 role="group"
                 aria-labelledby={section.title ? headerId : undefined}
+                aria-describedby={caveatId}
                 className="pb-1"
               >
                 {section.title && (
@@ -1185,11 +1265,22 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                         className="h-3.5 w-3.5 shrink-0 text-gray-400"
                       />
                     )}
-                    <span className="truncate text-xs font-semibold text-gray-700">
+                    <span
+                      className="truncate text-xs font-semibold text-gray-700"
+                      data-part="group-title"
+                    >
                       {translator.translateText(section.title)}
                     </span>
+                    {/*
+                     * A step's ID, which is all that tells two steps of one
+                     * kind apart - or a line about the group. Read, either
+                     * way: gray-500, not the gray-400 of decoration.
+                     */}
                     {section.subtitle && (
-                      <span className="truncate text-[11px] text-gray-400">
+                      <span
+                        className="truncate text-[11px] text-gray-500"
+                        data-part="group-subtitle"
+                      >
                         {translator.translateText(section.subtitle)}
                       </span>
                     )}
@@ -1198,6 +1289,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 {section.availability?.state ===
                 ValueAvailabilityState.Sometimes ? (
                   <div
+                    id={caveatId}
                     className="mx-1 mb-1 flex items-start gap-1.5 px-2 text-xs text-amber-700"
                     data-testid="value-picker-sometimes"
                   >
@@ -1215,6 +1307,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 ) : null}
                 {section.emptyHereNote ? (
                   <div
+                    id={caveatId}
                     className="mx-1 mb-1 mt-1 border-t border-gray-100 px-2 pt-2 text-xs text-gray-500"
                     data-testid="value-picker-empty-here-note"
                   >
@@ -1223,7 +1316,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 ) : null}
                 {renderNote(section)}
                 {section.options.map((option: MenuOption) => {
-                  return renderOption(option, optionIndex++);
+                  return renderOption(option, optionIndex++, caveatId);
                 })}
               </div>
             );

@@ -52,6 +52,14 @@ import ModelFieldPicker, {
 } from "../../../../UI/Components/Workflow/ModelFieldPicker";
 import API from "../../../../UI/Utils/API/API";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
+import {
+  AA_TEXT_CONTRAST,
+  PAGE_TEXT_CLASS,
+  WrittenWords,
+  contrastOf,
+  unreadableWords,
+  wordsIn,
+} from "../../../Helpers/TailwindContrast";
 import { INCIDENT_COLUMNS } from "./FieldPicker/FieldPickerFixture";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -930,5 +938,184 @@ describe("Fields to watch", () => {
     expect(
       screen.getByTestId(`${harness.testId}-option-labels`),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * Every word the two lists ask a reader to read can be read where it is: a
+ * chip, the line that says what empty means, a group's name and its hint, a
+ * field's name, the line under it and its kind - on the list's white, and on
+ * the tint of the row the pointer or the keys are on, where gray-500 would
+ * be 4.3:1. A group's hint was gray-400, 2.5:1.
+ */
+describe("every word of the lists can be read", () => {
+  type RootFunction = (harness: Harness) => HTMLElement;
+
+  const root: RootFunction = (harness: Harness): HTMLElement => {
+    return screen.getByTestId(harness.testId);
+  };
+
+  type OpenWordsFunction = (harness: Harness) => Array<WrittenWords>;
+
+  // The words of the open Add field list.
+  const panelWords: OpenWordsFunction = (
+    harness: Harness,
+  ): Array<WrittenWords> => {
+    return wordsIn(
+      screen.getByTestId(`${harness.testId}-panel`),
+      PAGE_TEXT_CLASS,
+    );
+  };
+
+  test("what a list holds: chips, a related record's field, a field the record does not have", async () => {
+    const harness: Harness = await renderPicker({
+      value: {
+        title: true,
+        oldField: true,
+        currentIncidentState: { name: true },
+      },
+    });
+
+    expect(chips(harness.testId)).toHaveLength(3);
+    expect(unreadableWords(root(harness), PAGE_TEXT_CLASS)).toEqual([]);
+  });
+
+  test("an empty list, in both: the line that says what empty means", async () => {
+    const passOn: Harness = await renderPicker({ value: "" });
+
+    expect(screen.getByTestId(`${passOn.testId}-empty`)).toBeInTheDocument();
+    expect(unreadableWords(root(passOn), PAGE_TEXT_CLASS)).toEqual([]);
+
+    const watch: Harness = await renderPicker({
+      mode: FieldPickerMode.Watch,
+      value: "",
+    });
+
+    expect(screen.getByTestId(`${watch.testId}-empty`)).toBeInTheDocument();
+    expect(unreadableWords(root(watch), PAGE_TEXT_CLASS)).toEqual([]);
+  });
+
+  test("the open Add field list, with a related record opened and the keys on each row in turn", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+    fireEvent.click(
+      screen.getByTestId(`${harness.testId}-option-currentIncidentState`),
+    );
+
+    const search: HTMLElement = screen.getByTestId(`${harness.testId}-search`);
+    const rows: number = within(
+      screen.getByTestId(`${harness.testId}-panel`),
+    ).getAllByRole("option").length;
+
+    expect(rows).toBeGreaterThan(15);
+
+    for (let step: number = 0; step < rows; step++) {
+      expect({
+        step: step,
+        unreadable: unreadableWords(root(harness), PAGE_TEXT_CLASS),
+      }).toEqual({ step: step, unreadable: [] });
+
+      fireEvent.keyDown(search, { key: "ArrowDown" });
+    }
+  });
+
+  test("a group's hint is written to be read, beside the group's name", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    const hint: WrittenWords | undefined = panelWords(harness).find(
+      (written: WrittenWords): boolean => {
+        return written.words === "Open one to pick its fields";
+      },
+    );
+
+    expect(hint).toEqual({
+      words: "Open one to pick its fields",
+      textClass: "text-gray-500",
+      groundClass: "bg-white",
+      contrast: 4.8,
+    });
+    expect(
+      screen
+        .getByTestId(`${harness.testId}-group-related`)
+        .querySelector('[data-part="hint"]'),
+    ).toHaveTextContent("Open one to pick its fields");
+  });
+
+  test("the line under a field's name is a shade darker on the row the keys are on, and as it was on the others", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    type DetailFunction = (path: string) => HTMLElement;
+
+    const detail: DetailFunction = (path: string): HTMLElement => {
+      return screen
+        .getByTestId(`${harness.testId}-option-${path}`)
+        .querySelector('[data-part="detail"]') as HTMLElement;
+    };
+
+    type RowFunction = (path: string) => HTMLElement;
+
+    const row: RowFunction = (path: string): HTMLElement => {
+      return screen.getByTestId(`${harness.testId}-option-${path}`);
+    };
+
+    // The list opens with the keys on its first row, the title: not these.
+    expect(detail("declaredAt")).toHaveTextContent(
+      "Date and time when this incident was declared.",
+    );
+    expect(detail("declaredAt")).toHaveClass("text-gray-500");
+    // A related record's line says how many fields it has.
+    expect(detail("currentIncidentState")).toHaveTextContent(/^\d+ fields$/);
+    expect(detail("currentIncidentState")).toHaveClass("text-gray-500");
+
+    // The pointer on one of them.
+    fireEvent.mouseMove(row("declaredAt"));
+
+    expect(row("declaredAt")).toHaveClass("bg-indigo-50");
+    expect(detail("declaredAt")).toHaveClass("text-gray-600");
+    expect(detail("declaredAt")).not.toHaveClass("text-gray-500");
+    expect(detail("currentIncidentState")).toHaveClass("text-gray-500");
+
+    for (const path of ["declaredAt", "currentIncidentState"]) {
+      expect(contrastOf(detail(path))).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST);
+    }
+
+    // And on the other: the first is as it was.
+    fireEvent.mouseMove(row("currentIncidentState"));
+
+    expect(detail("declaredAt")).toHaveClass("text-gray-500");
+    expect(detail("currentIncidentState")).toHaveClass("text-gray-600");
+
+    for (const path of ["declaredAt", "currentIncidentState"]) {
+      expect(contrastOf(detail(path))).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST);
+    }
+  });
+
+  test("a search with no match, and a value kept as JSON with the reason", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+    fireEvent.change(screen.getByTestId(`${harness.testId}-search`), {
+      target: { value: "zzzz" },
+    });
+
+    expect(
+      screen.getByTestId(`${harness.testId}-no-match`),
+    ).toBeInTheDocument();
+    expect(unreadableWords(root(harness), PAGE_TEXT_CLASS)).toEqual([]);
+
+    const kept: Harness = await renderPicker({
+      mode: FieldPickerMode.Watch,
+      value: "not json",
+    });
+
+    expect(
+      screen.getByTestId(`${kept.testId}-kept-as-json`),
+    ).toBeInTheDocument();
+    expect(unreadableWords(root(kept), PAGE_TEXT_CLASS)).toEqual([]);
   });
 });

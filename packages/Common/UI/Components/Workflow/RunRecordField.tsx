@@ -554,9 +554,16 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
         >
           {record.name || (record.number ? "" : record.id)}
         </span>
+        {/*
+         * gray-500 on white, and a shade darker on the row the pointer or
+         * the keys are on, whose tint would otherwise leave it at 4.3:1.
+         */}
         {hasDate && createdAt ? (
           <span
-            className="max-sm:hidden shrink-0 text-xs text-gray-500"
+            data-part="created"
+            className={`max-sm:hidden shrink-0 text-xs ${
+              isActive ? "text-gray-600" : "text-gray-500"
+            }`}
             title={formatFeedFullTime(createdAt, clock)}
           >
             {translator.translateTemplate(RunRecordFieldCopy.createdOn, {

@@ -32,8 +32,21 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  PAGE_TEXT_CLASS,
+  WrittenWords,
+  unreadableWords,
+  wordsIn,
+} from "../../../Helpers/TailwindContrast";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
 import type { Mock } from "jest-mock";
 
@@ -756,6 +769,101 @@ describe("the record what was typed names outright", () => {
     expect(
       getExactRunRecord({ search: "x", listedFor: "x", records: [SEVEN] }),
     ).toBeNull();
+  });
+});
+
+/*
+ * A row's number, its name and when it was created are each written to be
+ * read where they are: on the list's white, and on the tint of the row the
+ * pointer or the keys are on, where gray-500 would be 4.3:1.
+ */
+describe("every word of the field can be read", () => {
+  type FieldFunction = () => HTMLElement;
+
+  const field: FieldFunction = (): HTMLElement => {
+    return screen.getByTestId("run-record-field");
+  };
+
+  test("the newest records listed, with the keys on each row in turn", async () => {
+    renderField({ autoResolve: [EIGHT, SEVEN] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(options()).toHaveLength(2);
+    expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
+
+    // When it was created is among the words, on both rows.
+    expect(
+      wordsIn(field(), PAGE_TEXT_CLASS).filter((written: WrittenWords) => {
+        return written.words.startsWith("Created");
+      }),
+    ).toEqual([
+      // Under the keys: a shade darker, on the row's tint.
+      expect.objectContaining({
+        textClass: "text-gray-600",
+        groundClass: "bg-indigo-50",
+      }),
+      expect.objectContaining({
+        textClass: "text-gray-500",
+        groundClass: "bg-white",
+      }),
+    ]);
+
+    fireEvent.keyDown(searchBox(), { key: "ArrowDown" });
+
+    expect(options()[1]).toHaveAttribute("aria-selected", "true");
+    expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
+    expect(
+      wordsIn(field(), PAGE_TEXT_CLASS)
+        .filter((written: WrittenWords) => {
+          return written.words.startsWith("Created");
+        })
+        .map((written: WrittenWords) => {
+          return written.textClass;
+        }),
+    ).toEqual(["text-gray-500", "text-gray-600"]);
+  });
+
+  test("a record picked, a search that finds nothing, an empty project and a refused search", async () => {
+    const picked: Harness = renderField({ autoResolve: [EIGHT] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+    fireEvent.click(options()[0]!);
+
+    expect(picked.value()).toBe(EIGHT.id);
+    expect(screen.getByTestId("run-record-field-picked")).toBeInTheDocument();
+    expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
+
+    cleanup();
+
+    // Nothing to pick: an empty project, then a search with no match.
+    renderField({ autoResolve: [] });
+    fireEvent.focus(searchBox());
+    await flush();
+
+    expect(screen.getByTestId("run-record-field-empty")).toBeInTheDocument();
+    expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
+
+    fireEvent.change(searchBox(), { target: { value: "zzzz" } });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    expect(screen.getByTestId("run-record-field-empty")).toBeInTheDocument();
+    expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
+
+    cleanup();
+
+    const refused: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    await flush();
+    await act(async () => {
+      refused.calls[0]!.reject(new Error("The incidents could not be listed."));
+    });
+
+    expect(field()).toHaveTextContent("The incidents could not be listed.");
+    expect(unreadableWords(field(), PAGE_TEXT_CLASS)).toEqual([]);
   });
 });
 

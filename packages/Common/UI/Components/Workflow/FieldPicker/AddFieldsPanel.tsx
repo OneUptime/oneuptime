@@ -434,8 +434,12 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                 <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   {translator.translateText(row.group.label)}
                 </span>
+                {/* Says how the group works: written to be read, not gray-400. */}
                 {row.group.hint ? (
-                  <span className="truncate text-[11px] text-gray-400">
+                  <span
+                    className="truncate text-[11px] text-gray-500"
+                    data-part="hint"
+                  >
                     {translator.translateText(row.group.hint)}
                   </span>
                 ) : null}
@@ -511,8 +515,18 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                     row.depth > 0 ? option.shortTitle : option.title,
                   )}
                 </div>
+                {/*
+                 * The line under the name: gray-500 on white, and a shade
+                 * darker on the row the pointer or the keys are on, whose
+                 * tint would otherwise leave it at 4.3:1.
+                 */}
                 {option.isRelation ? (
-                  <div className="truncate text-xs text-gray-500">
+                  <div
+                    data-part="detail"
+                    className={`truncate text-xs ${
+                      isActive ? "text-gray-600" : "text-gray-500"
+                    }`}
+                  >
                     {chosenInside > 0
                       ? translator.translatePlural(
                           AddFieldsPanelCopy.chosen,
@@ -525,7 +539,10 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                   </div>
                 ) : option.description ? (
                   <div
-                    className="truncate text-xs text-gray-500"
+                    data-part="detail"
+                    className={`truncate text-xs ${
+                      isActive ? "text-gray-600" : "text-gray-500"
+                    }`}
                     title={translator.translateText(option.description)}
                   >
                     {translator.translateText(option.description)}

@@ -20,6 +20,7 @@ jest.mock("../../../../../Models/DatabaseModels/Index", () => {
 });
 
 import ValuePickerMenu, {
+  UNAVAILABLE_SETTLE_MS,
   ValuePickerMenuCopy,
 } from "../../../../../UI/Components/Workflow/ValuePicker/ValuePickerMenu";
 import {
@@ -55,9 +56,18 @@ import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import Components from "../../../../../Types/Workflow/Components";
 import IconProp from "../../../../../Types/Icon/IconProp";
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
+import {
+  AA_TEXT_CONTRAST,
+  PAGE_TEXT_CLASS,
+  WrittenWords,
+  contrastOf,
+  unreadableWords,
+  wordsIn,
+} from "../../../../Helpers/TailwindContrast";
 import React from "react";
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -66,7 +76,14 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent, { UserEvent } from "@testing-library/user-event";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const POST_BODY: string =
   "{{local.components.api-post-1.returnValues.response-body}}";
@@ -338,6 +355,94 @@ describe("a step before this one on some runs only", () => {
     expect(optionReferences()).toEqual([POST_STATUS]);
     expect(screen.getByTestId("value-picker-sometimes")).toBeInTheDocument();
   });
+
+  /*
+   * The amber line is read by eye before the values under it. Walking the
+   * list by ear, each of those values is described by the same line, so it
+   * is heard with the value the keys are on.
+   */
+  test("each of its values is described by the line, and the values of a step that always ran by nothing", async () => {
+    const { user } = renderMenu([SAMPLE_GROUPS[0]!, SOMETIMES_GROUP]);
+    const line: string =
+      "Runs only when If / Else takes Yes, so its values can be empty here.";
+
+    type OptionFunction = (reference: string) => HTMLElement;
+
+    const option: OptionFunction = (reference: string): HTMLElement => {
+      return screen.getAllByRole("option").find((row: HTMLElement) => {
+        return row.getAttribute("data-reference") === reference;
+      })!;
+    };
+
+    expect(option(POST_BODY)).toHaveAccessibleDescription(line);
+    expect(option(POST_STATUS)).toHaveAccessibleDescription(line);
+    // And its group, for a reader that says a group's description on the way in.
+    expect(
+      screen.getByTestId("value-picker-sometimes").closest("[role='group']"),
+    ).toHaveAccessibleDescription(line);
+
+    // The Webhook ran on every run: its values have nothing to add.
+    for (const row of within(
+      screen.getByText("Webhook").closest("[role='group']") as HTMLElement,
+    ).getAllByRole("option")) {
+      expect(row).not.toHaveAttribute("aria-describedby");
+    }
+
+    expect(
+      screen.getByText("Webhook").closest("[role='group']"),
+    ).not.toHaveAttribute("aria-describedby");
+
+    // A search keeps the line, and the value it finds still points at it.
+    await user.type(screen.getByTestId("value-picker-search"), "status");
+
+    expect(option(POST_STATUS)).toHaveAccessibleDescription(line);
+  });
+
+  test("two steps on some runs only are each described by their own line", () => {
+    renderMenu([
+      SOMETIMES_GROUP,
+      {
+        ...SOMETIMES_GROUP,
+        id: "step:api-post-2",
+        subtitle: "api-post-2",
+        order: 2,
+        items: [
+          {
+            reference:
+              "{{local.components.api-post-2.returnValues.response-body}}",
+            label: "Response Body",
+            typeLabel: "JSON",
+          },
+        ],
+        availability: {
+          state: ValueAvailabilityState.Sometimes,
+          reason: {
+            template: StepValueCopy.sometimesWhen,
+            values: { step: "Switch / Case", output: "production" },
+          },
+        },
+      },
+    ]);
+
+    const lines: Array<HTMLElement> = screen.getAllByTestId(
+      "value-picker-sometimes",
+    );
+
+    expect(lines).toHaveLength(2);
+    // Each line has an id of its own, or the second would be read as the first.
+    expect(lines[0]!.id).not.toBe("");
+    expect(lines[1]!.id).not.toBe("");
+    expect(lines[0]!.id).not.toBe(lines[1]!.id);
+
+    const options: Array<HTMLElement> = screen.getAllByRole("option");
+
+    expect(options[0]).toHaveAccessibleDescription(
+      "Runs only when If / Else takes Yes, so its values can be empty here.",
+    );
+    expect(options[options.length - 1]).toHaveAccessibleDescription(
+      "Runs only when Switch / Case takes production, so its values can be empty here.",
+    );
+  });
 });
 
 describe("steps whose values are not there", () => {
@@ -468,6 +573,230 @@ describe("steps whose values are not there", () => {
           .scrollIntoView;
       }
     }
+  });
+
+  /*
+   * The Dashboard builds a class's style the first time the class is drawn.
+   * A moment after the block opens its reasons get their indent, the longer
+   * ones wrap onto another line, and the last step would end under the
+   * list's edge: the block is kept in view while it settles.
+   */
+  describe("opened, while their lines settle", () => {
+    type ScrollIntoViewFunction = typeof Element.prototype.scrollIntoView;
+
+    interface WatchedSize {
+      notify: () => void;
+      watched: Array<string | null>;
+      isDisconnected: boolean;
+    }
+
+    let original: ScrollIntoViewFunction | undefined = undefined;
+    let blockScrolls: number = 0;
+    let observers: Array<WatchedSize> = [];
+
+    type InstallResizeObserverFunction = () => void;
+
+    const installResizeObserver: InstallResizeObserverFunction = (): void => {
+      class FakeResizeObserver {
+        private readonly entry: WatchedSize;
+
+        public constructor(callback: () => void) {
+          this.entry = {
+            notify: callback,
+            watched: [],
+            isDisconnected: false,
+          };
+          observers.push(this.entry);
+        }
+
+        public observe(element: Element): void {
+          this.entry.watched.push(element.getAttribute("data-testid"));
+        }
+
+        public disconnect(): void {
+          this.entry.isDisconnected = true;
+        }
+      }
+
+      (window as unknown as Record<string, unknown>)["ResizeObserver"] =
+        FakeResizeObserver;
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      original = Element.prototype.scrollIntoView;
+      blockScrolls = 0;
+      observers = [];
+
+      Element.prototype.scrollIntoView = function (this: Element): void {
+        if (this.getAttribute("data-testid") === "value-picker-unavailable") {
+          blockScrolls++;
+        }
+      };
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      delete (window as unknown as Record<string, unknown>)["ResizeObserver"];
+
+      if (original) {
+        Element.prototype.scrollIntoView = original;
+      } else {
+        delete (Element.prototype as { scrollIntoView?: unknown })
+          .scrollIntoView;
+      }
+    });
+
+    test("the block is watched once it is open, and brought into view again each time it grows", () => {
+      installResizeObserver();
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      // Folded: nothing to watch.
+      expect(observers).toHaveLength(0);
+
+      fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+      expect(blockScrolls).toBe(1);
+      expect(observers).toHaveLength(1);
+      expect(observers[0]!.watched).toEqual(["value-picker-unavailable"]);
+      expect(observers[0]!.isDisconnected).toBe(false);
+
+      // A reason wraps onto another line.
+      act(() => {
+        observers[0]!.notify();
+      });
+
+      expect(blockScrolls).toBe(2);
+
+      // And once more, as the next style arrives.
+      act(() => {
+        observers[0]!.notify();
+      });
+
+      expect(blockScrolls).toBe(3);
+    });
+
+    test("once they have settled the list is the reader's to scroll: the block is watched no longer", () => {
+      installResizeObserver();
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+      act(() => {
+        jest.advanceTimersByTime(UNAVAILABLE_SETTLE_MS - 1);
+      });
+
+      expect(observers[0]!.isDisconnected).toBe(false);
+
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+
+      expect(observers[0]!.isDisconnected).toBe(true);
+      // Still open, and scrolled to only the once.
+      expect(unavailableSteps()).toHaveLength(2);
+      expect(blockScrolls).toBe(1);
+    });
+
+    test("folded again before they settle, the block is let go at once, and opening it again starts over", () => {
+      installResizeObserver();
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      const toggle: HTMLElement = screen.getByTestId(
+        "value-picker-unavailable-toggle",
+      );
+
+      fireEvent.click(toggle);
+      fireEvent.click(toggle);
+
+      expect(observers).toHaveLength(1);
+      expect(observers[0]!.isDisconnected).toBe(true);
+      expect(blockScrolls).toBe(1);
+
+      // The timer went with it: nothing is left to fire.
+      expect(jest.getTimerCount()).toBe(0);
+
+      fireEvent.click(toggle);
+
+      expect(observers).toHaveLength(2);
+      expect(observers[1]!.isDisconnected).toBe(false);
+      expect(blockScrolls).toBe(2);
+    });
+
+    test("closing the list lets the block go too", () => {
+      installResizeObserver();
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+      cleanup();
+
+      expect(observers[0]!.isDisconnected).toBe(true);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test("a search opens them without the fold, and watches nothing", () => {
+      installResizeObserver();
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      fireEvent.change(screen.getByTestId("value-picker-search"), {
+        target: { value: "response" },
+      });
+
+      expect(unavailableValues()).toHaveLength(2);
+      expect(observers).toHaveLength(0);
+      expect(blockScrolls).toBe(0);
+    });
+
+    test("in a browser that cannot watch a size they are still brought into view, the once", () => {
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+      expect(blockScrolls).toBe(1);
+      expect(observers).toHaveLength(0);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+  });
+
+  /*
+   * The words that explain - the line under the fold, each step's reason,
+   * its ID - are there to be read: gray-500, which is 4.8:1 on the list's
+   * white. gray-400 (2.5:1) is left to what cannot be picked.
+   */
+  test("opened, the words that explain are written to be read, not as faint as what cannot be picked", async () => {
+    const { user } = renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+    fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+    const step: HTMLElement = unavailableSteps()[0]!;
+
+    for (const words of [
+      screen.getByTestId("value-picker-unavailable-hint"),
+      within(step).getByTestId("value-picker-unavailable-reason"),
+      within(step).getByText("api-get-after"),
+      within(step).getByText("HTTP GET"),
+    ]) {
+      expect(words).toHaveClass("text-gray-500");
+      expect(words).not.toHaveClass("text-gray-400");
+    }
+
+    // Two HTTP GETs: the ID is what tells them apart.
+    expect(within(step).getByText("api-get-after")).toHaveAttribute(
+      "data-part",
+      "step-id",
+    );
+
+    await user.type(screen.getByTestId("value-picker-search"), "response");
+
+    expect(
+      within(screen.getByTestId("value-picker-unavailable")).getByText(
+        ValuePickerMenuCopy.notAvailableTitle,
+      ),
+    ).toHaveClass("text-gray-500");
+    // The values that cannot be picked are the fainter ones.
+    expect(
+      within(unavailableValues()[0]!).getByText("Response Body"),
+    ).toHaveClass("text-gray-400");
   });
 
   test("the toggle leaves the focus in the search box", async () => {
@@ -609,6 +938,130 @@ describe("steps whose values are not there", () => {
   });
 });
 
+/*
+ * A row's description, its kind and what it last held are gray-500, which
+ * reads at 4.8:1 on the list's white - and at 4.3:1 on the tint of the row
+ * the pointer or the keys are on. There they are a shade darker.
+ */
+describe("what a row says besides its name", () => {
+  type RowFunction = (reference: string) => HTMLElement;
+
+  const row: RowFunction = (reference: string): HTMLElement => {
+    return screen.getAllByRole("option").find((option: HTMLElement) => {
+      return option.getAttribute("data-reference") === reference;
+    })!;
+  };
+
+  const WEBHOOK_BODY: string =
+    "{{local.components.webhook-1.returnValues.request-body}}";
+  const WEBHOOK_HEADERS: string =
+    "{{local.components.webhook-1.returnValues.request-headers}}";
+
+  test("is gray-500, and a shade darker on the row the keys are on", async () => {
+    const { user } = renderMenu(SAMPLE_GROUPS);
+
+    // The list opens with the keys on its first row.
+    expect(row(WEBHOOK_BODY)).toHaveAttribute("aria-selected", "true");
+    expect(
+      within(row(WEBHOOK_BODY)).getByText("What the request sent."),
+    ).toHaveClass("text-gray-600");
+    expect(within(row(WEBHOOK_BODY)).getByText("JSON")).toHaveClass(
+      "text-gray-600",
+    );
+    expect(within(row(WEBHOOK_HEADERS)).getByText("Key / value")).toHaveClass(
+      "text-gray-500",
+    );
+
+    await user.keyboard("{ArrowDown}");
+
+    expect(
+      within(row(WEBHOOK_BODY)).getByText("What the request sent."),
+    ).toHaveClass("text-gray-500");
+    expect(within(row(WEBHOOK_BODY)).getByText("JSON")).toHaveClass(
+      "text-gray-500",
+    );
+    expect(within(row(WEBHOOK_HEADERS)).getByText("Key / value")).toHaveClass(
+      "text-gray-600",
+    );
+    // The name is as dark as ever on either.
+    expect(within(row(WEBHOOK_BODY)).getByText("Request Body")).toHaveClass(
+      "text-gray-900",
+    );
+    expect(
+      within(row(WEBHOOK_HEADERS)).getByText("Request Headers"),
+    ).toHaveClass("text-gray-900");
+  });
+
+  test("what a value last held is drawn the same way", async () => {
+    const { user } = renderMenu([
+      {
+        ...SAMPLE_GROUPS[0]!,
+        items: [
+          { ...SAMPLE_GROUPS[0]!.items[0]!, sample: "3 fields" },
+          { ...SAMPLE_GROUPS[0]!.items[1]!, sample: "12 headers" },
+        ],
+      },
+    ]);
+
+    expect(screen.getByText("3 fields")).toHaveClass("text-gray-600");
+    expect(screen.getByText("12 headers")).toHaveClass("text-gray-500");
+
+    await user.keyboard("{ArrowDown}");
+
+    expect(screen.getByText("3 fields")).toHaveClass("text-gray-500");
+    expect(screen.getByText("12 headers")).toHaveClass("text-gray-600");
+  });
+
+  /*
+   * "hidden", beside a lock, stands where a secret's value would be. It is
+   * a word to read like any sample - it was gray-400, 2.5:1.
+   */
+  test("a value that is kept hidden says so in words that can be read, on either kind of row", async () => {
+    const { user } = renderMenu([
+      {
+        ...SAMPLE_GROUPS[0]!,
+        items: [
+          { ...SAMPLE_GROUPS[0]!.items[0]!, isSampleHidden: true },
+          { ...SAMPLE_GROUPS[0]!.items[1]!, sample: "12 headers" },
+        ],
+      },
+    ]);
+
+    type HiddenFunction = () => HTMLElement;
+
+    const hidden: HiddenFunction = (): HTMLElement => {
+      return screen
+        .getAllByTestId("value-picker-sample")
+        .find((sample: HTMLElement): boolean => {
+          return sample.getAttribute("data-hidden") === "true";
+        })!;
+    };
+
+    // On the row under the keys.
+    expect(hidden()).toHaveTextContent("hidden");
+    expect(contrastOf(hidden())).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST);
+    expect(unreadableWords(document.body, PAGE_TEXT_CLASS)).toEqual([]);
+
+    await user.keyboard("{ArrowDown}");
+
+    // And on a row that is not.
+    expect(contrastOf(hidden())).toBeGreaterThanOrEqual(AA_TEXT_CONTRAST);
+    expect(unreadableWords(document.body, PAGE_TEXT_CLASS)).toEqual([]);
+  });
+
+  test("a step's ID beside its name is gray-500 too: it is all that tells two steps of one kind apart", () => {
+    renderMenu(SAMPLE_GROUPS);
+
+    const id: HTMLElement = screen.getByText("webhook-1");
+
+    expect(id).toHaveAttribute("data-part", "group-subtitle");
+    expect(id).toHaveClass("text-gray-500");
+    expect(id).not.toHaveClass("text-gray-400");
+    // The step's name stays the darker of the two.
+    expect(screen.getByText("Webhook")).toHaveClass("text-gray-700");
+  });
+});
+
 describe("a record's fields its step does not pass on", () => {
   type OpenRecordFunction = (
     fields?: Array<ValueSuggestion>,
@@ -700,6 +1153,38 @@ describe("a record's fields its step does not pass on", () => {
     expect(within(title).getByText("The incident's title")).toBeInTheDocument();
   });
 
+  test("a greyed field under the keys is a shade darker, and still greyer than one that can be used", async () => {
+    const { user } = await openRecord();
+
+    type NameFunction = (reference: string, label: string) => HTMLElement;
+
+    const name: NameFunction = (
+      reference: string,
+      label: string,
+    ): HTMLElement => {
+      return within(
+        screen.getAllByRole("option").find((option: HTMLElement) => {
+          return option.getAttribute("data-reference") === reference;
+        })!,
+      ).getByText(label);
+    };
+
+    // The whole Incident, its ID, the title - then the description.
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+
+    expect(name(INCIDENT_DESCRIPTION, "Description")).toHaveClass(
+      "text-gray-600",
+    );
+    expect(name(INCIDENT_DESCRIPTION, "Description")).not.toHaveClass(
+      "text-gray-900",
+    );
+    // The one beside it, not under the keys, is as it was.
+    expect(name(INCIDENT_SEVERITY, "Incident Severity")).toHaveClass(
+      "text-gray-500",
+    );
+    expect(name(INCIDENT_TITLE, "Title")).toHaveClass("text-gray-900");
+  });
+
   test("can still be picked, by a click or the keys", async () => {
     const { onPick, user } = await openRecord();
 
@@ -739,6 +1224,43 @@ describe("a record's fields its step does not pass on", () => {
     // Only fields it passes on: no note about the others.
     expect(optionReferences()).toEqual([INCIDENT_TITLE]);
     expect(screen.queryByTestId("value-picker-empty-here-note")).toBeNull();
+  });
+
+  /*
+   * Greyed says "not passed on" to the eye. Each greyed field is described
+   * by the line over them, so it is said with the field the keys are on.
+   */
+  test("each is described by the line over them, and a field that is passed on by nothing", async () => {
+    const { user } = await openRecord();
+    const note: string =
+      "On Update Incident doesn't pass these on, so they are empty here. Add them to its Fields to pass on to use them.";
+
+    type OptionFunction = (reference: string) => HTMLElement;
+
+    const option: OptionFunction = (reference: string): HTMLElement => {
+      return screen.getAllByRole("option").find((row: HTMLElement) => {
+        return row.getAttribute("data-reference") === reference;
+      })!;
+    };
+
+    expect(option(INCIDENT_DESCRIPTION)).toHaveAccessibleDescription(note);
+    expect(option(INCIDENT_SEVERITY)).toHaveAccessibleDescription(note);
+    // The section they are in has no name of its own: the line describes it.
+    expect(
+      screen
+        .getByTestId("value-picker-empty-here-note")
+        .closest("[role='group']"),
+    ).toHaveAccessibleDescription(note);
+
+    for (const reference of [INCIDENT, INCIDENT_ID, INCIDENT_TITLE]) {
+      expect(option(reference)).not.toHaveAttribute("aria-describedby");
+    }
+
+    // A search that still finds one keeps what describes it.
+    await user.type(screen.getByTestId("value-picker-search"), "severity");
+
+    expect(optionReferences()).toEqual([INCIDENT_SEVERITY]);
+    expect(option(INCIDENT_SEVERITY)).toHaveAccessibleDescription(note);
   });
 
   test("a record whose fields are all passed on has no such section", async () => {
@@ -1007,5 +1529,172 @@ describe("from the workflow's steps to the list", () => {
         ),
       ],
     ]);
+  });
+});
+
+/*
+ * Greyed is for telling apart, not for hiding. Every word the list asks a
+ * reader to read - a step's ID, why a step cannot be used, the line over the
+ * fields that are not passed on, a description on the row under the keys -
+ * reads at 4.5:1 or better on what is behind it. Only the values that cannot
+ * be picked are fainter, as WCAG leaves out what cannot be used.
+ */
+describe("every word of the list can be read", () => {
+  type ListWordsFunction = () => Array<WrittenWords>;
+
+  // The list is drawn here without the popup around it, whose ground is white.
+  const unreadable: ListWordsFunction = (): Array<WrittenWords> => {
+    return unreadableWords(document.body, PAGE_TEXT_CLASS);
+  };
+
+  const written: ListWordsFunction = (): Array<WrittenWords> => {
+    return wordsIn(document.body, PAGE_TEXT_CLASS);
+  };
+
+  type WalkEveryRowFunction = (user: UserEvent) => Promise<void>;
+
+  // The keys on each row in turn: the row under them has a tint of its own.
+  const walkEveryRow: WalkEveryRowFunction = async (
+    user: UserEvent,
+  ): Promise<void> => {
+    const rows: number = screen.getAllByRole("option").length;
+
+    for (let step: number = 0; step < rows; step++) {
+      expect({ step: step, unreadable: unreadable() }).toEqual({
+        step: step,
+        unreadable: [],
+      });
+
+      await user.keyboard("{ArrowDown}");
+    }
+  };
+
+  test("browsing: steps, a step on some runs only, variables and the folded steps opened", async () => {
+    const { user } = renderMenu([
+      ...SAMPLE_GROUPS,
+      SOMETIMES_GROUP,
+      AFTER_GROUP,
+      LOOSE_GROUP,
+    ]);
+
+    fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+    expect(unavailableSteps()).toHaveLength(2);
+    await walkEveryRow(user);
+
+    // Among them: the amber line, the fold's own line, a reason and an ID.
+    expect(
+      written().map((words: WrittenWords): string => {
+        return words.words;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "Runs only when If / Else takes Yes, so its values can be empty here.",
+        "2 steps aren't available here",
+        "Their values aren't there when this step runs.",
+        "Runs after this step.",
+        "Not connected to the trigger, so it never runs.",
+        "api-get-after",
+        "webhook-1",
+      ]),
+    );
+  });
+
+  test("a search: what it finds that can be used, and under their own title what cannot", async () => {
+    const { user } = renderMenu([
+      ...SAMPLE_GROUPS,
+      SOMETIMES_GROUP,
+      AFTER_GROUP,
+      LOOSE_GROUP,
+    ]);
+
+    await user.type(screen.getByTestId("value-picker-search"), "response");
+
+    expect(unavailableValues()).toHaveLength(2);
+    await walkEveryRow(user);
+
+    const words: Array<string> = written().map(
+      (entry: WrittenWords): string => {
+        return entry.words;
+      },
+    );
+
+    expect(words).toContain("Not available here");
+    expect(words).toContain("Runs after this step.");
+    /*
+     * A value that cannot be picked is not among the words that have to be
+     * read at 4.5:1 - its step and the reason are - and it is the one thing
+     * here that is fainter.
+     */
+    expect(
+      within(unavailableValues()[0]!).getByText("Response Body"),
+    ).toHaveClass("text-gray-400");
+    expect(
+      contrastOf(within(unavailableValues()[0]!).getByText("Response Body")),
+    ).toBeLessThan(AA_TEXT_CONTRAST);
+  });
+
+  test("inside a record: its fields, the line over the ones that are not passed on, and the path box", async () => {
+    const { user } = renderMenu([recordGroup(INCIDENT_FIELDS)]);
+
+    fireEvent.click(screen.getAllByRole("option")[0]!);
+
+    await waitFor(() => {
+      expect(optionReferences()).toContain(INCIDENT_SEVERITY);
+    });
+
+    await walkEveryRow(user);
+
+    expect(
+      written().find((entry: WrittenWords): boolean => {
+        return entry.words.startsWith("On Update Incident doesn't pass");
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        textClass: "text-gray-500",
+        groundClass: "bg-white",
+      }),
+    );
+  });
+
+  test("a webhook nothing has called yet: its note, the request to copy and the line that it is waiting", () => {
+    renderMenu([
+      {
+        ...SAMPLE_GROUPS[0]!,
+        note: {
+          text: StepSampleCopy.noRequestYetWithTest,
+          copyText: "curl -X POST https://oneuptime.example/workflow/abc",
+          copyLabel: StepSampleCopy.copyTestRequest,
+          waitingText: StepSampleCopy.waitingForRequest,
+        },
+      },
+    ]);
+
+    expect(screen.getByTestId("value-picker-group-note")).toHaveTextContent(
+      "No request has reached this webhook yet.",
+    );
+    expect(screen.getByTestId("value-picker-note-copy")).toBeInTheDocument();
+    expect(unreadable()).toEqual([]);
+  });
+
+  test("the same webhook while the workflow is off: the note that offers a test run", () => {
+    renderMenu(
+      [
+        {
+          ...SAMPLE_GROUPS[0]!,
+          note: {
+            text: StepSampleCopy.noRequestYetWhileOff,
+            waitingText: StepSampleCopy.waitingForTestRun,
+            offersTestRun: true,
+          },
+        },
+      ],
+      { isWorkflowOff: true, onTestRun: getJestMockFunction() },
+    );
+
+    expect(screen.getByTestId("value-picker-note-test-run")).toHaveTextContent(
+      "Test with Run Workflow",
+    );
+    expect(unreadable()).toEqual([]);
   });
 });
