@@ -258,11 +258,61 @@ describe("the calendar feed cards in the dark theme", () => {
         "bg-red-50",
         "text-red-700",
         "ring-red-200",
-        // The footer's strip.
-        "border-gray-100",
       ]),
     );
     expect(unmapped).toEqual([]);
+  });
+
+  /*
+   * The footer's rule and edges are the card's ruled body (CardSurface), a
+   * class this folder does not spell: its colours are held here too.
+   */
+  test("the footer's strip and the card's ruled body it sits on are remapped", () => {
+    const footer: string = readCode(
+      "Components/OnCallPolicy/CalendarFeed/FeedCardFooter.tsx",
+    );
+    const surface: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Components",
+          "Card",
+          "CardSurface.ts",
+        ),
+        "utf8",
+      )
+      .replace(BLOCK_COMMENT, " ");
+    const ruledBody: string | undefined = surface.match(
+      /CARD_RULED_BODY_CLASS_NAME: string =\s*"([^"]+)"/,
+    )?.[1];
+
+    expect(footer).toContain("CARD_RULED_BODY_CLASS_NAME");
+    expect(ruledBody).toBeDefined();
+
+    const tokens: Array<string> = [
+      ...tokensIn(footer),
+      ...tokensIn(ruledBody as string),
+    ];
+
+    expect(tokens).toEqual(
+      expect.arrayContaining([
+        "border-gray-200",
+        "bg-gray-50",
+        "text-gray-500",
+      ]),
+    );
+
+    for (const token of tokens) {
+      expect({ token, remapped: isRemapped(token) }).toEqual({
+        token,
+        remapped: true,
+      });
+    }
   });
 
   test("every pill tone is a tinted ground, a dark text and a ring - each remapped", () => {
