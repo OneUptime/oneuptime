@@ -46,7 +46,7 @@ Se a sua organização usa a gestão centralizada de usuários da Atlassian, há
 ## Passo 2 — Abra um issue no Jira para cada incidente
 
 1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Incidents → Jira` e abra o **Construtor**.
-2. Clique no bloco tracejado de espaço reservado e adicione o gatilho **On Create Incident**. Em **Select Fields**, peça as colunas que você quer enviar:
+2. Clique no bloco tracejado de espaço reservado e adicione o gatilho **On Create Incident**. Em **Fields to pass on**, clique em **Editar como JSON** e peça as colunas que você quer enviar:
 
    ```json
    {
@@ -164,14 +164,14 @@ Já que você está por aqui, vale a pena adicionar no issue do Jira um link de 
 }
 ```
 
-dá a todo mundo no Jira um caminho de volta em um clique. Adicione `projectId` ao **Select Fields** do gatilho para isso. O `globalId` é o que torna a chamada segura para repetir: o Jira atualiza o link que já carrega esse id em vez de adicionar um segundo. E como uma atualização também zera qualquer coisa que você deixe de fora, envie sempre o `object` inteiro, e não um trecho dele.
+dá a todo mundo no Jira um caminho de volta em um clique. Adicione `projectId` ao **Fields to pass on** do gatilho para isso. O `globalId` é o que torna a chamada segura para repetir: o Jira atualiza o link que já carrega esse id em vez de adicionar um segundo. E como uma atualização também zera qualquer coisa que você deixe de fora, envie sempre o `object` inteiro, e não um trecho dele.
 
 ## Passo 4 — Comente e faça a transição conforme o incidente avança
 
 Construa isso como um **segundo** workflow, para que uma falha aqui nunca impeça a abertura dos issues.
 
 1. **Criar fluxo de trabalho**, nomeie-o `Incident updates → Jira` e adicione o gatilho **On Update Incident**.
-2. Em **Listen on**, coloque `{"currentIncidentStateId": true}`. O gatilho passa então a disparar apenas em mudanças de estado, em vez de a cada edição. Em **Select Fields**, peça `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. Em **Fields to watch**, clique em **Editar como JSON** e coloque `{"currentIncidentStateId": true}`. O gatilho passa então a disparar apenas em mudanças de estado, em vez de a cada edição. Em **Fields to pass on**, faça o mesmo com `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Adicione um bloco **If / Else**: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — ou como quer que o estado resolvido se chame no seu projeto. Veja [Estados e severidades](/docs/incidents/states-and-severities).
 
 A partir da ramificação **Sim**, você primeiro precisa encontrar o issue que abriu no Passo 2. Peça-o ao Jira pelo id que você guardou no Passo 3, com um bloco **API Post (JSON)** cujo **Identifier** seja `find-issue`:

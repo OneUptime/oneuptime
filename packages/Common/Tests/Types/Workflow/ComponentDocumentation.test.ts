@@ -617,7 +617,11 @@ describe("every name the help uses is real", () => {
     ).flatMap(getDocumentationTextNames);
 
     expect(names).toEqual(
-      expect.arrayContaining(["Fields to watch", "Fields to pass on", "Success"]),
+      expect.arrayContaining([
+        "Fields to watch",
+        "Fields to pass on",
+        "Success",
+      ]),
     );
   });
 
@@ -1018,6 +1022,29 @@ describe("built-in help says what each step really does", () => {
     expect(allText(documentation).join(" ")).toContain(
       `{{local.components.${STEP_ID}.returnValues.<key>}}`,
     );
+  });
+
+  /*
+   * Run Workflow sends the JSON typed for the trigger as JSON (RunValues),
+   * so one field of it is read by its name. The help used to say it arrived
+   * as one piece of text and sent the reader through a Text to JSON step.
+   */
+  test("Manual says JSON typed into Run Workflow is read field by field", () => {
+    const documentation: ComponentDocumentation = docsOf(
+      findStep(BUILT_IN, ComponentID.Manual),
+    );
+    const text: string = allText(documentation).join(" ");
+
+    expect(documentation.examples[1]).toEqual({
+      title: "One field of it, such as name",
+      code: `{{local.components.${STEP_ID}.returnValues.value.name}}`,
+    });
+    expect(text).toContain(
+      "JSON typed into **Run Workflow** arrives as JSON, so a later step can read one field of it straight away",
+    );
+    expect(text).toContain("Text that is not JSON arrives as it was typed.");
+    expect(text).not.toContain("one piece of text");
+    expect(text).not.toContain("Text to JSON");
   });
 
   test("Slack's warning is the prefix the step checks", () => {

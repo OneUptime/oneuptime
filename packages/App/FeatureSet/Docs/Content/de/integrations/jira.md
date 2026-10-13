@@ -46,7 +46,7 @@ Wenn Ihre Organisation Atlassians zentralisierte Benutzerverwaltung nutzt, gibt 
 ## Schritt 2 — Für jeden Vorfall ein Jira-Issue öffnen
 
 1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Jira`, und öffnen Sie den **Editor**.
-2. Klicken Sie auf den gestrichelten Platzhalter-Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Fordern Sie in dessen **Select Fields** die Spalten an, die Sie senden möchten:
+2. Klicken Sie auf den gestrichelten Platzhalter-Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Klicken Sie in dessen **Fields to pass on** auf **Als JSON bearbeiten** und fordern Sie die Spalten an, die Sie senden möchten:
 
    ```json
    {
@@ -164,14 +164,14 @@ Wo Sie gerade dabei sind, lohnt es sich, am Jira-Issue einen Link zurück zum Vo
 }
 ```
 
-gibt allen in Jira einen Weg zurück mit einem Klick. Fügen Sie dafür `projectId` zu den **Select Fields** des Triggers hinzu. Die `globalId` ist das, was den Aufruf gefahrlos wiederholbar macht: Jira aktualisiert den Link, der diese ID bereits trägt, statt einen zweiten hinzuzufügen. Weil eine Aktualisierung außerdem alles leert, was Sie weglassen, senden Sie immer das ganze `object`, nicht einen Ausschnitt davon.
+gibt allen in Jira einen Weg zurück mit einem Klick. Fügen Sie dafür `projectId` zu den **Fields to pass on** des Triggers hinzu. Die `globalId` ist das, was den Aufruf gefahrlos wiederholbar macht: Jira aktualisiert den Link, der diese ID bereits trägt, statt einen zweiten hinzuzufügen. Weil eine Aktualisierung außerdem alles leert, was Sie weglassen, senden Sie immer das ganze `object`, nicht einen Ausschnitt davon.
 
 ## Schritt 4 — Kommentieren und übergehen, während sich der Vorfall bewegt
 
 Bauen Sie das als **zweiten** Workflow, damit ein Fehler hier niemals das Öffnen von Issues verhindern kann.
 
 1. **Arbeitsablauf erstellen**, benennen Sie ihn `Incident updates → Jira`, und fügen Sie den Trigger **On Update Incident** hinzu.
-2. Tragen Sie in **Listen on** `{"currentIncidentStateId": true}` ein. Der Trigger feuert dann nur bei Zustandsänderungen statt bei jeder Bearbeitung. Fordern Sie in **Select Fields** `{"_id": true, "currentIncidentState": {"name": true}}` an.
+2. Klicken Sie in **Fields to watch** auf **Als JSON bearbeiten** und tragen Sie `{"currentIncidentStateId": true}` ein. Der Trigger feuert dann nur bei Zustandsänderungen statt bei jeder Bearbeitung. Verfahren Sie in **Fields to pass on** genauso mit `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Fügen Sie einen Baustein **If / Else** hinzu: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` – oder wie auch immer der aufgelöste Zustand in Ihrem Projekt heißt. Siehe [Vorfallszustände & Schweregrade](/docs/incidents/states-and-severities).
 
 Vom Zweig **Ja** aus müssen Sie zuerst das Issue finden, das Sie in Schritt 2 geöffnet haben. Fragen Sie Jira mit der in Schritt 3 gespeicherten ID danach, über einen Baustein **API Post (JSON)**, dessen **Identifier** `find-issue` lautet:

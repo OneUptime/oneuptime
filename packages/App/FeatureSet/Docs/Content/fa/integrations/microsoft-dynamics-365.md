@@ -68,7 +68,7 @@ Dynamics 365 Case changed  ──►  Power Automate flow (HTTP)  ──►  One
 هر اجرا توکن خودش را می‌گیرد. توکن‌ها ۶۰ تا ۹۰ دقیقه عمر می‌کنند و جریان client credentials هرگز توکن تازه‌سازی صادر نمی‌کند، پس نه چیزی برای انباشتن هست و نه چیزی برای تمدید — یک فراخوان HTTP اضافه در هر اجرا تمام هزینه است.
 
 1. گزینه **Workflows → Create Workflow** را باز کنید، نامش را `Incidents → Dynamics 365` بگذارید و **Builder** را باز کنید.
-2. روی جانگهدار خط‌چین کلیک کنید، تریگر **On Create Incident** را بیفزایید، و در **Select Fields** آن، ستون‌هایی را که می‌خواهید بفرستید بخواهید:
+2. روی جانگهدار خط‌چین کلیک کنید، تریگر **On Create Incident** را بیفزایید، و در **Fields to pass on** آن، روی **ویرایش به‌صورت JSON** کلیک کنید و ستون‌هایی را که می‌خواهید بفرستید بخواهید:
 
    ```json
    {
@@ -192,7 +192,7 @@ Dynamics 365 Case changed  ──►  Power Automate flow (HTTP)  ──►  One
 این را به‌عنوان گردش کاری **دوم** بسازید تا شکستی در اینجا نتواند جلوی باز شدن caseها را بگیرد.
 
 1. گزینه **Create Workflow** را بزنید، نامش را `Incident resolved → Close Dynamics case` بگذارید و تریگر **On Update Incident** را بیفزایید.
-2. در **Listen on** تریگر، مقدار `{"currentIncidentStateId": true}` را بگذارید تا گردش کاری فقط برای تغییر وضعیت بیدار شود، نه برای هر ویرایشی. در **Select Fields**، مقدار `{"_id": true, "currentIncidentState": {"name": true}}` را بخواهید.
+2. در **Fields to watch** تریگر، روی **ویرایش به‌صورت JSON** کلیک کنید و مقدار `{"currentIncidentStateId": true}` را بگذارید تا گردش کاری فقط برای تغییر وضعیت بیدار شود، نه برای هر ویرایشی. در **Fields to pass on**، به همین شکل مقدار `{"_id": true, "currentIncidentState": {"name": true}}` را بگذارید.
 3. بلوکی از نوع **If / Else** بیفزایید. مقدار **Input 1** برابر `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`، **Operator** برابر `==` و **Input 2** برابر `Resolved` است — یا هر نامی که وضعیت برطرف‌شده پروژه شما دارد. [وضعیت‌ها و شدت‌ها](/docs/incidents/states-and-severities) را ببینید.
 4. از شاخه **Yes**، بلوک `get-token` گام ۴ را تکرار کنید.
 5. بلوکی از نوع **API Get (JSON)** بیفزایید، **Identifier** آن را `find-case` بگذارید و نشانی `$filter` گام ۶ را به آن بدهید. پرس‌وجوی Dataverse با آرایه‌ای به نام `value` پاسخ می‌دهد، و ارجاع گردش کاری می‌تواند با کروشه در یک آرایه نمایه بگیرد، پس شناسه case برابر `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}` است.

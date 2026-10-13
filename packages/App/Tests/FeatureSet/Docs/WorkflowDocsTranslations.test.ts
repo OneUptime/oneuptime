@@ -115,10 +115,9 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "workflows/authoring": [
     "Success",
     "Error",
-    // The Log block's setting, a Webhook's value, Text to JSON's setting.
+    // The Log block's setting and a Webhook's value.
     "Value",
     "Request Body",
-    "Text",
   ],
   "workflows/triggers": [
     // What the Webhook and Incoming Email triggers return.
@@ -166,10 +165,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Value",
     "JSON",
     "Text",
-    // If / Else.
-    "Value to check",
-    "Comparison",
-    "Compare with",
+    /*
+     * If / Else's Value to check, Comparison and Compare with are not here:
+     * its editor draws them in the reader's language (ConditionModel), so a
+     * translation names them as its Dashboard does.
+     */
     // Switch / Case: its setting, and the output taken when no case matches.
     "Cases",
     "Default",
@@ -190,9 +190,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Query",
     "Request Body",
     "Message Text",
-    "Value to check",
-    "Comparison",
-    "Compare with",
     "URL",
     "Yes",
     "Success",
@@ -349,13 +346,13 @@ function stepDefinedNames(): Set<string> {
   // What every record step names its settings (Types/Workflow/Components/BaseModel).
   for (const name of [
     "Query",
-    "Select Fields",
+    "Fields to pass on",
     "Skip",
     "Limit",
     "JSON Object",
     "JSON Array",
     "Data (JSON Object)",
-    "Listen on",
+    "Fields to watch",
     "Incident Template",
   ]) {
     names.add(name);

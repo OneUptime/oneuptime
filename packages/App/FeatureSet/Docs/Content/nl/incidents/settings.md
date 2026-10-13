@@ -615,8 +615,8 @@ Dezelfde generatie geeft je triggers voor de configuratie zelf: **On Create Inci
 
 Een paar details die ertoe doen als je ze aansluit:
 
-- **On Update X** neemt een optioneel argument **Listen on** dat de trigger beperkt tot updates die specifieke velden wijzigen, waarin ze ook veranderen: een schakelaar die wordt uitgezet of een veld dat wordt gewist, telt ook. Een veld dat wordt opgeslagen met de waarde die het al heeft, is geen wijziging, dus een bewerkingsformulier dat het bij elke keer opslaan terugstuurt, wekt de workflow niet. Laat het leeg om bij elke wijziging af te gaan. Komt een update binnen zonder vastlegging van welke velden veranderden, dan wordt het filter overgeslagen en draait de workflow toch.
-- **On Create X** en **On Update X** nemen allebei een verplicht argument **Select Fields**; **On Delete X** neemt geen argumenten.
+- **On Update X** neemt een optioneel argument **Fields to watch** dat de trigger beperkt tot updates die specifieke velden wijzigen, waarin ze ook veranderen: een schakelaar die wordt uitgezet of een veld dat wordt gewist, telt ook. Een veld dat wordt opgeslagen met de waarde die het al heeft, is geen wijziging, dus een bewerkingsformulier dat het bij elke keer opslaan terugstuurt, wekt de workflow niet. Laat het leeg om bij elke wijziging af te gaan. Komt een update binnen zonder vastlegging van welke velden veranderden, dan wordt het filter overgeslagen en draait de workflow toch.
+- **On Create X** en **On Update X** nemen allebei een verplicht argument **Fields to pass on**; **On Delete X** neemt geen argumenten.
 - Alle drie hebben één uitgangspoort **Success**, en elk accepteert een ID-argument zodat je de workflow met de hand op één record kunt uitvoeren.
 - Namen komen van de enkelvoudige naam van het model, niet van de tabelnaam — daarom zie je **On Create Incident Team Owner** en **On Create Incident User Owner** in plaats van namen in de vorm van tabellen.
 - Er zijn geen triggers voor de definities van aangepaste incidentvelden. Dat model is het enige lid van de incidentfamilie waarvoor workflows zijn uitgeschakeld.

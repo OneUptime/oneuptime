@@ -46,7 +46,7 @@ Jira Cloud 的 REST API 採用 **Basic auth**，由您的 Atlassian 帳號電子
 ## 步驟 2 — 為每個事件開立一張 Jira issue
 
 1. 開啟 **工作流程 → 建立工作流程**，把它命名為 `Incidents → Jira`，然後開啟 **建構器**。
-2. 點擊虛線的預留位置區塊，加入 **On Create Incident** 觸發器。在它的 **Select Fields** 中，指定您想送出的欄位：
+2. 點擊虛線的預留位置區塊，加入 **On Create Incident** 觸發器。在它的 **Fields to pass on** 中，點擊 **以 JSON 編輯**，指定您想送出的欄位：
 
    ```json
    {
@@ -164,14 +164,14 @@ curl -u 'you@example.com:your_api_token' \
 }
 ```
 
-這就給了 Jira 裡的每個人一條一鍵返回的路徑。為此請把 `projectId` 加進觸發器的 **Select Fields**。`globalId` 是讓這個呼叫可以安全重複的關鍵：Jira 會更新已經帶有該 id 的連結，而不是再加一條。由於更新也會把您沒寫進去的東西清空，請一律送出完整的 `object`，而不是它的一部分。
+這就給了 Jira 裡的每個人一條一鍵返回的路徑。為此請把 `projectId` 加進觸發器的 **Fields to pass on**。`globalId` 是讓這個呼叫可以安全重複的關鍵：Jira 會更新已經帶有該 id 的連結，而不是再加一條。由於更新也會把您沒寫進去的東西清空，請一律送出完整的 `object`，而不是它的一部分。
 
 ## 步驟 4 — 隨著事件變動留言與轉換狀態
 
 請把這一段建成**第二個**工作流程，這樣這裡的失敗就永遠不會擋住 issue 的開立。
 
 1. **建立工作流程**，把它命名為 `Incident updates → Jira`，並加入 **On Update Incident** 觸發器。
-2. 在 **Listen on** 中填入 `{"currentIncidentStateId": true}`。這樣觸發器就只會在狀態變更時觸發，而不是每次編輯都觸發。在 **Select Fields** 中，指定 `{"_id": true, "currentIncidentState": {"name": true}}`。
+2. 在 **Fields to watch** 中點擊 **以 JSON 編輯**，填入 `{"currentIncidentStateId": true}`。這樣觸發器就只會在狀態變更時觸發，而不是每次編輯都觸發。在 **Fields to pass on** 中用同樣的方式填入 `{"_id": true, "currentIncidentState": {"name": true}}`。
 3. 加入一個 **If / Else** 區塊：**Input 1** 為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Operator** 為 `==`，**Input 2** 為 `Resolved`——或您專案中已解決狀態實際的名稱。請參閱 [Incident States & Severities](/docs/incidents/states-and-severities)。
 
 從 **Yes** 分支開始，您首先得找出您在步驟 2 開立的那張 issue。用您在步驟 3 儲存的 id 向 Jira 詢問它，使用一個 **Identifier** 為 `find-issue` 的 **API Post (JSON)** 區塊：

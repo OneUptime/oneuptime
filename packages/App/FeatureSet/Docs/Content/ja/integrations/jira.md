@@ -46,7 +46,7 @@ Atlassian の API トークンについて、誰も見ていない連携をい�
 ## ステップ 2 — インシデントごとに Jira の課題を開く
 
 1. **ワークフロー → ワークフローを作成** を開き、`Incidents → Jira` という名前にして **ビルダー** を開きます。
-2. 破線のプレースホルダーブロックをクリックして **On Create Incident** トリガーを追加します。その **Select Fields** で、送信したい列を指定します。
+2. 破線のプレースホルダーブロックをクリックして **On Create Incident** トリガーを追加します。その **Fields to pass on** で **JSON として編集** をクリックし、送信したい列を指定します。
 
    ```json
    {
@@ -164,14 +164,14 @@ curl -u 'you@example.com:your_api_token' \
 }
 ```
 
-これで Jira にいる全員がワンクリックで戻れるようになります。このためにトリガーの **Select Fields** に `projectId` を追加してください。この呼び出しを繰り返しても安全なのは `globalId` のおかげです。Jira は 2 つ目のリンクを追加するのではなく、その id を持つ既存のリンクを更新します。ただし更新では省略した項目が null になるため、`object` は部分的なパッチではなく常に全体を送ってください。
+これで Jira にいる全員がワンクリックで戻れるようになります。このためにトリガーの **Fields to pass on** に `projectId` を追加してください。この呼び出しを繰り返しても安全なのは `globalId` のおかげです。Jira は 2 つ目のリンクを追加するのではなく、その id を持つ既存のリンクを更新します。ただし更新では省略した項目が null になるため、`object` は部分的なパッチではなく常に全体を送ってください。
 
 ## ステップ 4 — インシデントの進行に合わせてコメントと遷移を行う
 
 これは **2 つ目の** ワークフローとして構築します。こうしておけば、ここでの失敗が課題の作成を止めることは決してありません。
 
 1. **ワークフローを作成** し、`Incident updates → Jira` という名前にして **On Update Incident** トリガーを追加します。
-2. **Listen on** に `{"currentIncidentStateId": true}` を設定します。これでトリガーは編集のたびではなく状態変更のときだけ発火します。**Select Fields** には `{"_id": true, "currentIncidentState": {"name": true}}` を指定します。
+2. **Fields to watch** で **JSON として編集** をクリックし、`{"currentIncidentStateId": true}` を設定します。これでトリガーは編集のたびではなく状態変更のときだけ発火します。**Fields to pass on** でも同じようにして `{"_id": true, "currentIncidentState": {"name": true}}` を指定します。
 3. **If / Else** ブロックを追加します。**Input 1** は `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`、**Operator** は `==`、**Input 2** は `Resolved` — またはプロジェクトの解決済み状態の名前です。[インシデントの状態と重大度](/docs/incidents/states-and-severities) を参照してください。
 
 **Yes** ブランチからは、まずステップ 2 で開いた課題を見つける必要があります。ステップ 3 で保存した id を使って Jira に問い合わせます。**Identifier** が `find-issue` の **API Post (JSON)** ブロックを使います。

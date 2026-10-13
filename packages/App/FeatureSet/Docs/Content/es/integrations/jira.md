@@ -46,7 +46,7 @@ Si tu organización usa la gestión centralizada de usuarios de Atlassian, hay u
 ## Paso 2 — Abrir un issue de Jira para cada incidente
 
 1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → Jira` y abre el **Constructor**.
-2. Haz clic en el bloque de marcador de posición punteado y añade el disparador **On Create Incident**. En su **Select Fields**, pide las columnas que quieras enviar:
+2. Haz clic en el bloque de marcador de posición punteado y añade el disparador **On Create Incident**. En su **Fields to pass on**, haz clic en **Editar como JSON** y pide las columnas que quieras enviar:
 
    ```json
    {
@@ -164,14 +164,14 @@ Ya que estás aquí, merece la pena añadir en el issue de Jira un enlace de vue
 }
 ```
 
-da a todo el mundo en Jira un camino de vuelta con un solo clic. Para esto, añade `projectId` a los **Select Fields** del disparador. El `globalId` es lo que hace que la llamada sea segura de repetir: Jira actualiza el enlace que ya lleva ese id en lugar de añadir un segundo. Como una actualización también deja a nulo lo que omitas, envía siempre el `object` completo, no un parche de él.
+da a todo el mundo en Jira un camino de vuelta con un solo clic. Para esto, añade `projectId` a los **Fields to pass on** del disparador. El `globalId` es lo que hace que la llamada sea segura de repetir: Jira actualiza el enlace que ya lleva ese id en lugar de añadir un segundo. Como una actualización también deja a nulo lo que omitas, envía siempre el `object` completo, no un parche de él.
 
 ## Paso 4 — Comentar y transicionar a medida que avanza el incidente
 
 Construye esto como un **segundo** workflow, para que un fallo aquí nunca pueda impedir que se abran issues.
 
 1. **Crear flujo de trabajo**, nómbralo `Incident updates → Jira` y añade el disparador **On Update Incident**.
-2. En **Listen on**, pon `{"currentIncidentStateId": true}`. Así el disparador solo se dispara con los cambios de estado en lugar de con cada edición. En **Select Fields**, pide `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. En **Fields to watch**, haz clic en **Editar como JSON** y pon `{"currentIncidentStateId": true}`. Así el disparador solo se dispara con los cambios de estado en lugar de con cada edición. En **Fields to pass on**, haz lo mismo con `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Añade un bloque **If / Else**: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — o como se llame el estado resuelto de tu proyecto. Consulta [Estados y gravedades de incidentes](/docs/incidents/states-and-severities).
 
 Desde la rama **Sí** primero tienes que encontrar el issue que abriste en el Paso 2. Pídeselo a Jira por el id que guardaste en el Paso 3, con un bloque **API Post (JSON)** cuyo **Identifier** sea `find-issue`:

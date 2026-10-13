@@ -247,27 +247,27 @@ Le sue impostazioni si leggono come una frase: **Se** *valore da verificare* *co
 
 | Impostazione       | Cosa fa                                                                                                                                  |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Di solito un valore di un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`.                          |
-| **Comparison**     | Come confrontare, a parole. I confronti sono elencati qui sotto.                                                                         |
-| **Compare with**   | Con cosa confrontare, scritto o scelto allo stesso modo. **è vuoto**, **non è vuoto**, **is true** e **is false** non lo usano.          |
-| **Compare as**     | Raccolto sotto il confronto: **Text**, **Numero** o **True / False**. Scegli **Text** per ordinare date scritte `2026-10-01`, oppure **Numero** per rendere uguali `200` e `200.0`. |
+| **Valore da verificare** | Di solito un valore di un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`.                          |
+| **Confronto**     | Come confrontare, a parole. I confronti sono elencati qui sotto.                                                                         |
+| **Confronta con**   | Con cosa confrontare, scritto o scelto allo stesso modo. **è vuoto**, **non è vuoto**, **è vero** e **è falso** non lo usano.          |
+| **Confronta come**     | Raccolto sotto il confronto: **Text**, **Numero** o **Vero / Falso**. Scegli **Text** per ordinare date scritte `2026-10-01`, oppure **Numero** per rendere uguali `200` e `200.0`. |
 
 I confronti:
 
-- **is equal to** e **is not equal to**;
+- **è uguale a** e **è diverso da**;
 - per il testo: **contiene**, **non contiene**, **inizia con** e **termina con**;
-- per i numeri: **è maggiore di**, **is greater than or equal to**, **è minore di** e **is less than or equal to**;
+- per i numeri: **è maggiore di**, **è maggiore o uguale a**, **è minore di** e **è minore o uguale a**;
 - **è vuoto** e **non è vuoto**, che verificano se il valore c'è;
-- **is true** e **is false**.
+- **è vero** e **è falso**.
 
-I confronti numerici confrontano numeri e quelli testuali confrontano testo, quindi raramente ti serve **Compare as**. Come vengono confrontati i valori:
+I confronti numerici confrontano numeri e quelli testuali confrontano testo, quindi raramente ti serve **Confronta come**. Come vengono confrontati i valori:
 
 - Come testo, le maiuscole contano: `Error` non è `error`.
 - Come numeri, un testo che non è un numero vale `0`. Le impostazioni segnalano un valore scritto così.
 - Come vero o falso, solo `true` conta come vero.
 - **è vuoto** è soddisfatto dall'assenza di un valore, da un testo vuoto, da una lista o un oggetto vuoti, o da un valore che il blocco precedente non aveva, come un campo che il webhook non ha inviato. `0` e `false` sono valori, quindi non sono vuoti.
 
-**Yes** viene eseguito quando la condizione è soddisfatta e **No** quando non lo è. I blocchi configurati prima che le impostazioni avessero questi nomi funzionano esattamente come prima. Una vecchia scelta non è più offerta: confrontare un valore come **Null** o **Undefined**, che ignorava ciò che il valore conteneva. Un blocco che la usa ancora lo dice quando lo apri; scegli **è vuoto** per verificare un valore mancante.
+**Yes** viene eseguito quando la condizione è soddisfatta e **No** quando non lo è. I blocchi configurati prima che le impostazioni avessero questi nomi funzionano esattamente come prima. Una vecchia scelta non è più offerta: confrontare un valore come **Nullo** o **Non definito**, che ignorava ciò che il valore conteneva. Un blocco che la usa ancora lo dice quando lo apri; scegli **è vuoto** per verificare un valore mancante.
 
 ## Switch / Case
 
@@ -277,12 +277,12 @@ Confronta un valore con ciascuno dei suoi casi a turno, dall'alto, e prosegue da
 
 | Impostazione       | Cosa fa |
 | ------------------ | ------- |
-| **Value to check** | Il valore con cui viene confrontato ogni caso, di solito da un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`. |
+| **Valore da verificare** | Il valore con cui viene confrontato ogni caso, di solito da un blocco precedente. Premi **{ }** nella casella per sceglierne uno, oppure scrivi `{{`. |
 | **Cases**          | Un confronto e un valore per ogni percorso, controllati dall'alto. Premi **Aggiungi caso** per aggiungerne un altro, e trascina un caso dalla sua maniglia per spostarlo. Un blocco contiene al massimo 25 casi. |
 
-Ogni caso è un'uscita sulla tela, con il nome del suo valore: un caso che chiede **is equal to** `production` è l'uscita *production*, e uno che chiede **è maggiore di** `500` è *is greater than 500*. **Default** è sempre l'ultima uscita. Collega ogni uscita a ciò che deve essere eseguito dopo.
+Ogni caso è un'uscita sulla tela, con il nome del suo valore: un caso che chiede **è uguale a** `production` è l'uscita *production*, e uno che chiede **è maggiore di** `500` è *is greater than 500*. **Default** è sempre l'ultima uscita. Collega ogni uscita a ciò che deve essere eseguito dopo.
 
-Un caso corrisponde esattamente quando un [If / Else](#conditions) con lo stesso confronto e lo stesso valore prenderebbe **Yes**: i confronti sono gli stessi, e i valori vengono confrontati allo stesso modo. **Compare as** è raccolto sotto i casi, con una scelta per ogni caso.
+Un caso corrisponde esattamente quando un [If / Else](#conditions) con lo stesso confronto e lo stesso valore prenderebbe **Yes**: i confronti sono gli stessi, e i valori vengono confrontati allo stesso modo. **Confronta come** è raccolto sotto i casi, con una scelta per ogni caso.
 
 Quando rimuovi un caso che ha un collegamento, le impostazioni dicono a quali blocchi portava, e **Ripristina** riporta il caso. Il salvataggio rimuove il collegamento insieme al caso. I controlli del Costruttore segnalano un caso a cui non è collegato nulla, e un caso che non viene mai scelto perché uno sopra di esso chiede la stessa cosa.
 
@@ -366,7 +366,7 @@ Una query è sempre limitata al progetto in cui viene eseguito il workflow. Non 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Select Fields**, sui componenti Find e sui trigger, usa le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`.
+Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Fields to pass on**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`.
 
 I **campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
 

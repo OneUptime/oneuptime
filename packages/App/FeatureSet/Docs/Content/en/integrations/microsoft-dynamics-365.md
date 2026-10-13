@@ -264,7 +264,7 @@ Every run fetches its own token. Tokens last 60–90 minutes and the client cred
 > **Or let an OAuth 2.0 variable do this step.** A token fetched by an API block is that block's output, and the run log shows it. An [OAuth 2.0 variable](/docs/workflows/variables#oauth-20-variables-tokens-that-refresh-themselves) fetches the token for you, fetches a new one before it expires, and keeps it out of the log. Create one from **Workflows → Global Variables**: open the **More** menu (**⋯**) beside the create button, choose **Create OAuth 2.0 Variable**, pick **Microsoft Entra ID**, put your tenant ID in the token URL, enter the client ID and secret, and set the scope to `https://yourorg.crm.dynamics.com/.default`. Then leave out the `get-token` block below, and send `Bearer {{global.variables.DYNAMICS_TOKEN}}` — your variable's name — in the `Authorization` header. The [templates](#start-from-a-template) sign in this way.
 
 1. Open **Workflows → Create Workflow**, name it `Incidents → Dynamics 365`, and open the **Builder**.
-2. Click the dashed placeholder, add the **On Create Incident** trigger, and in its **Select Fields** ask for the columns you want to send:
+2. Click the dashed placeholder, add the **On Create Incident** trigger, and in its **Fields to pass on** click **Edit as JSON** and ask for the columns you want to send:
 
    ```json
    {
@@ -390,7 +390,7 @@ The reverse direction — storing the Dynamics case id on the OneUptime incident
 Build this as a **second** workflow so a failure here cannot stop cases being opened.
 
 1. **Create Workflow**, name it `Incident resolved → Close Dynamics case`, and add the **On Update Incident** trigger.
-2. In the trigger's **Listen on**, put `{"currentIncidentStateId": true}` so the workflow only wakes for state changes rather than every edit. In **Select Fields**, ask for `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. In the trigger's **Fields to watch**, click **Edit as JSON** and put `{"currentIncidentStateId": true}` so the workflow only wakes for state changes rather than every edit. In **Fields to pass on**, do the same with `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Add an **If / Else** block. **Value to check** is `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** is **is equal to**, and **Compare with** is `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
 4. From the **Yes** branch, repeat the `get-token` block from Step 4.
 5. Add an **API Get (JSON)** block, set its **Identifier** to `find-case`, and give it the `$filter` URL from Step 6. A Dataverse query answers with a `value` array, and a workflow reference can index into an array with brackets, so the case id is `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

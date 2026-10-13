@@ -46,7 +46,7 @@ Jira Cloud 的 REST API 用的是 **Basic 认证**，由你的 Atlassian 账户�
 ## 步骤 2——为每个事件开一张 Jira 工单
 
 1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → Jira`，然后打开 **生成器**。
-2. 点那个虚线占位方块，添加 **On Create Incident** 触发器。在它的 **Select Fields** 里，把你想发送的列要出来：
+2. 点那个虚线占位方块，添加 **On Create Incident** 触发器。在它的 **Fields to pass on** 里，点击 **以 JSON 编辑**，把你想发送的列要出来：
 
    ```json
    {
@@ -164,14 +164,14 @@ curl -u 'you@example.com:your_api_token' \
 }
 ```
 
-这样 Jira 里的每个人都有了一条一键返回的路。为此要把 `projectId` 也加到触发器的 **Select Fields** 里。`globalId` 正是这个调用可以安全重复的原因：Jira 会更新已经带着这个 id 的那条链接，而不是再加一条。因为更新还会把你没带上的字段清空，所以永远要发完整的 `object`，别发它的一部分。
+这样 Jira 里的每个人都有了一条一键返回的路。为此要把 `projectId` 也加到触发器的 **Fields to pass on** 里。`globalId` 正是这个调用可以安全重复的原因：Jira 会更新已经带着这个 id 的那条链接，而不是再加一条。因为更新还会把你没带上的字段清空，所以永远要发完整的 `object`，别发它的一部分。
 
 ## 步骤 4——随着事件推进留言和流转
 
 把这一段搭成**第二个**工作流，这样这里出问题也绝不会挡住工单的创建。
 
 1. **创建工作流**，命名为 `Incident updates → Jira`，加上 **On Update Incident** 触发器。
-2. 在 **Listen on** 里填 `{"currentIncidentStateId": true}`。这样触发器只在状态变化时开火，而不是每次编辑都开火。在 **Select Fields** 里，要 `{"_id": true, "currentIncidentState": {"name": true}}`。
+2. 在 **Fields to watch** 里点击 **以 JSON 编辑**，填 `{"currentIncidentStateId": true}`。这样触发器只在状态变化时开火，而不是每次编辑都开火。在 **Fields to pass on** 里用同样的方法填 `{"_id": true, "currentIncidentState": {"name": true}}`。
 3. 加一个 **If / Else** 方块：**Input 1** 填 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Operator** 选 `==`，**Input 2** 填 `Resolved`——或者你项目里表示已解决的那个状态的名字。见[事件状态与严重级别](/docs/incidents/states-and-severities)。
 
 从 **是** 分支出发，你首先得找到步骤 2 里开的那张工单。用一个 **Identifier** 为 `find-issue` 的 **API Post (JSON)** 方块，按你在步骤 3 里存的 id 去问 Jira：

@@ -46,7 +46,7 @@ Zit je organisatie op Atlassians centrale gebruikersbeheer, dan is er een derde 
 ## Stap 2 — Open een Jira-issue voor elk incident
 
 1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Jira`, en open de **Bouwer**.
-2. Klik op het gestippelde plaatshouderblok en voeg de trigger **On Create Incident** toe. Vraag in zijn **Select Fields** om de kolommen die je wilt meesturen:
+2. Klik op het gestippelde plaatshouderblok en voeg de trigger **On Create Incident** toe. Klik in zijn **Fields to pass on** op **Bewerken als JSON** en vraag om de kolommen die je wilt meesturen:
 
    ```json
    {
@@ -164,14 +164,14 @@ Nu je toch bezig bent, is het de moeite waard om op de Jira-issue een link terug
 }
 ```
 
-geeft iedereen in Jira een route terug met één klik. Voeg hiervoor `projectId` toe aan de **Select Fields** van de trigger. De `globalId` is wat de aanroep veilig herhaalbaar maakt: Jira werkt de link bij die die id al draagt in plaats van er een tweede toe te voegen. Omdat een update ook alles leegmaakt wat je weglaat, stuur je altijd het hele `object` mee, niet een deel ervan.
+geeft iedereen in Jira een route terug met één klik. Voeg hiervoor `projectId` toe aan de **Fields to pass on** van de trigger. De `globalId` is wat de aanroep veilig herhaalbaar maakt: Jira werkt de link bij die die id al draagt in plaats van er een tweede toe te voegen. Omdat een update ook alles leegmaakt wat je weglaat, stuur je altijd het hele `object` mee, niet een deel ervan.
 
 ## Stap 4 — Reageren en overzetten terwijl het incident verschuift
 
 Bouw dit als een **tweede** workflow, zodat een fout hier nooit kan verhinderen dat er issues worden geopend.
 
 1. **Workflow maken**, geef het de naam `Incident updates → Jira`, en voeg de trigger **On Update Incident** toe.
-2. Zet in **Listen on** `{"currentIncidentStateId": true}`. De trigger vuurt dan alleen af bij statuswijzigingen in plaats van bij elke bewerking. Vraag in **Select Fields** om `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. Klik in **Fields to watch** op **Bewerken als JSON** en zet er `{"currentIncidentStateId": true}` in. De trigger vuurt dan alleen af bij statuswijzigingen in plaats van bij elke bewerking. Doe in **Fields to pass on** hetzelfde met `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Voeg een **If / Else**-blok toe: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — of hoe de opgeloste status in jouw project ook heet. Zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
 
 Vanaf de tak **Yes** moet je eerst de issue vinden die je in Stap 2 hebt geopend. Vraag hem bij Jira op met de id die je in Stap 3 hebt opgeslagen, via een **API Post (JSON)**-blok met als **Identifier** `find-issue`:

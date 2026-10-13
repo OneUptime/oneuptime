@@ -32,7 +32,7 @@ Good for: one-click automations you want a button for, like "rotate this key" or
 
 **Returns**: **JSON** — what the run was started with.
 
-- From **Run Workflow**, it is the JSON you typed, as text. To read one field of it, pass it through a **Text to JSON** block first.
+- From **Run Workflow**, it is the JSON you typed. To read one field of it, add the field's name to the reference, as in `{{local.components.manual-1.returnValues.value.name}}`.
 - From an **Execute Workflow** block, each key of the block's **Arguments** is a value of its own. With `{"customerId": "42"}`, a later block reads `{{local.components.manual-1.returnValues.customerId}}`, where `manual-1` is the Manual trigger's ID.
 
 ## Schedule
@@ -161,24 +161,24 @@ Almost every thing in OneUptime — monitors, incidents, alerts, scheduled maint
 
 This is how you build "when X happens in OneUptime, do Y" without needing to check things in a loop.
 
-**On Update** can be narrowed to some fields with **Listen on**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.
+**On Update** can be narrowed to some fields with **Fields to watch**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.
 
 ```mermaid title="When an On Update trigger fires"
 flowchart TB
     save["A record is saved"] --> changed{"Did a value change?"}
     changed -->|"No"| nothing["Nothing fires"]
-    changed -->|"Yes"| listen{"Listen on set?"}
+    changed -->|"Yes"| listen{"Fields to watch set?"}
     listen -->|"No"| fires["The workflow runs"]
     listen -->|"Yes"| field{"One of its fields changed?"}
     field -->|"Yes"| fires
     field -->|"No"| nothing
 ```
 
-**On Create** and **On Update** pass the record to the next block, with the fields you pick in the trigger's **Select Fields**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`. A field you didn't select comes through empty.
+**On Create** and **On Update** pass the record to the next block, with the fields you pick in the trigger's **Fields to pass on**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`. A field you didn't select comes through empty.
 
 **On Delete** passes only the deleted record's ID: the record is gone by the time the workflow runs, so its other fields can't be read.
 
-To test an event trigger without waiting for the event, click **Run Workflow** on the **Builder** and enter the ID of an existing record, such as an **Incident ID**. The run reads that record with the fields you selected.
+To test an event trigger without waiting for the event, click **Run Workflow** on the **Builder** and pick an existing record: the most recent ones are listed, and typing a record's number or part of its name finds another. The run reads that record with the fields you selected, as if the event had just happened to it; the record itself is not changed or deleted.
 
 ### Events teams use most
 

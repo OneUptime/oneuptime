@@ -210,7 +210,7 @@ sequenceDiagram
 - هدرها و فیلدهای بدنه (درون مقدارهای رشته‌ای).
 - هر دو طرف یک بلوک **If / Else**.
 
-در فیلدهای JSON — **Data (JSON Object)**، **Query** و **Select Fields** در مؤلفه‌های رکورد، **Request Body** یک بلوک API، و **Arguments** در **Run Custom JavaScript** — یک ارجاع بسته به جایی که قرار گرفته پر می‌شود:
+در فیلدهای JSON — **Data (JSON Object)** و **Query** در مؤلفه‌های رکورد، **Request Body** یک بلوک API، و **Arguments** در **Run Custom JavaScript** — یک ارجاع بسته به جایی که قرار گرفته پر می‌شود:
 
 - **درون گیومه، متن است.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` مقدار را درون رشته می‌گذارد. گیومه‌ها، بک‌اسلش‌ها و شکست‌های سطر در مقدار گریز داده می‌شوند، پس JSON معتبر می‌ماند و مقدار یک رشته باقی می‌ماند.
 - **به‌تنهایی، خود مقدار است.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` کل شیء را می‌گذارد، فهرست فهرست می‌ماند و عدد عدد. متنی که خودش JSON است — `5`، `true`، یا شیئی که یک بلوک به شکل متن JSON برگرداند — به‌عنوان همان مقدار گذاشته می‌شود. هر متن دیگری به‌عنوان رشته گذاشته می‌شود.
@@ -238,7 +238,7 @@ sequenceDiagram
 یک وب‌هوک با بدنه‌ای مانند `{ "service": "checkout", "status": "failed" }` می‌رسد. برای تبدیل آن به یک حادثه OneUptime:
 
 1. تریگر **وب‌هوک** با شناسه `ci-webhook`.
-2. بلوک **If / Else**: **Value to check** فیلد `status` از Request Body وب‌هوک است (`{{local.components.ci-webhook.returnValues.request-body.status}}`)، **Comparison** برابر **is equal to** است، و **Compare with** برابر `failed` است.
+2. بلوک **If / Else**: **مقدار مورد بررسی** فیلد `status` از Request Body وب‌هوک است (`{{local.components.ci-webhook.returnValues.request-body.status}}`)، **مقایسه** برابر **برابر است با** است، و **مقایسه با** برابر `failed` است.
 3. از شاخه **Yes**، یک بلوک **Create One Incident** با:
    - عنوان: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - توضیحات: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`

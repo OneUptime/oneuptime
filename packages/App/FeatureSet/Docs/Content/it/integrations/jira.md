@@ -46,7 +46,7 @@ Se la tua organizzazione usa la gestione utenti centralizzata di Atlassian, c'è
 ## Passaggio 2 — Apri un ticket Jira per ogni incidente
 
 1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → Jira` e apri il **Costruttore**.
-2. Clicca sul blocco segnaposto tratteggiato e aggiungi il trigger **On Create Incident**. Nel suo **Select Fields**, richiedi le colonne che vuoi inviare:
+2. Clicca sul blocco segnaposto tratteggiato e aggiungi il trigger **On Create Incident**. Nel suo **Fields to pass on**, clicca su **Modifica come JSON** e richiedi le colonne che vuoi inviare:
 
    ```json
    {
@@ -164,14 +164,14 @@ Già che ci sei, vale la pena aggiungere sul ticket Jira un link che riporta all
 }
 ```
 
-dà a chiunque in Jira un percorso di ritorno in un clic. Per questo aggiungi `projectId` al **Select Fields** del trigger. È il `globalId` a rendere la chiamata ripetibile senza rischi: Jira aggiorna il link che porta già quell'id invece di aggiungerne un secondo. Poiché un aggiornamento azzera anche tutto ciò che ometti, invia sempre l'`object` completo, non una sua parte.
+dà a chiunque in Jira un percorso di ritorno in un clic. Per questo aggiungi `projectId` al **Fields to pass on** del trigger. È il `globalId` a rendere la chiamata ripetibile senza rischi: Jira aggiorna il link che porta già quell'id invece di aggiungerne un secondo. Poiché un aggiornamento azzera anche tutto ciò che ometti, invia sempre l'`object` completo, non una sua parte.
 
 ## Passaggio 4 — Commenta e sposta il ticket mentre l'incidente evolve
 
 Costruiscilo come **secondo** workflow, così un errore qui non potrà mai impedire l'apertura dei ticket.
 
 1. **Crea flusso di lavoro**, chiamalo `Incident updates → Jira` e aggiungi il trigger **On Update Incident**.
-2. In **Listen on**, metti `{"currentIncidentStateId": true}`. Il trigger scatterà così solo per i cambi di stato invece che a ogni modifica. In **Select Fields**, richiedi `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. In **Fields to watch**, clicca su **Modifica come JSON** e metti `{"currentIncidentStateId": true}`. Il trigger scatterà così solo per i cambi di stato invece che a ogni modifica. In **Fields to pass on**, fai lo stesso con `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Aggiungi un blocco **If / Else**: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — o comunque si chiami lo stato risolto nel tuo progetto. Vedi [Stati e gravità degli incidenti](/docs/incidents/states-and-severities).
 
 Dal ramo **Yes** devi prima trovare il ticket che hai aperto nel Passaggio 2. Chiedilo a Jira tramite l'id che hai salvato nel Passaggio 3, con un blocco **API Post (JSON)** il cui **Identifier** è `find-issue`:

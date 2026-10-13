@@ -46,7 +46,7 @@ Atlassian API 토큰에 대해, 아무도 지켜보지 않는 통합에서 언�
 ## 2단계 — 모든 인시던트에 대해 Jira 이슈 열기
 
 1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → Jira` 로 지정한 다음 **빌더** 를 엽니다.
-2. 점선 자리 표시자 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Select Fields** 에서 전송할 컬럼을 요청합니다:
+2. 점선 자리 표시자 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on** 에서 **JSON으로 편집** 을 클릭하고 전송할 컬럼을 요청합니다:
 
    ```json
    {
@@ -164,14 +164,14 @@ curl -u 'you@example.com:your_api_token' \
 }
 ```
 
-Jira의 모든 사람이 한 번의 클릭으로 되돌아올 수 있습니다. 이를 위해 트리거의 **Select Fields** 에 `projectId` 를 추가하세요. 이 호출을 반복해도 안전한 이유는 `globalId` 덕분입니다. Jira는 링크를 하나 더 추가하는 대신 그 id를 가진 기존 링크를 업데이트합니다. 업데이트는 빠뜨린 항목을 null로 만들기도 하므로, 일부만 담은 패치가 아니라 항상 `object` 전체를 보내세요.
+Jira의 모든 사람이 한 번의 클릭으로 되돌아올 수 있습니다. 이를 위해 트리거의 **Fields to pass on** 에 `projectId` 를 추가하세요. 이 호출을 반복해도 안전한 이유는 `globalId` 덕분입니다. Jira는 링크를 하나 더 추가하는 대신 그 id를 가진 기존 링크를 업데이트합니다. 업데이트는 빠뜨린 항목을 null로 만들기도 하므로, 일부만 담은 패치가 아니라 항상 `object` 전체를 보내세요.
 
 ## 4단계 — 인시던트가 진행될 때 댓글 달기와 전환하기
 
 이 부분은 **두 번째** 워크플로로 만드세요. 그래야 여기서 실패해도 이슈 생성이 멈추지 않습니다.
 
 1. **워크플로 생성** 으로 이름을 `Incident updates → Jira` 로 지정하고 **On Update Incident** 트리거를 추가합니다.
-2. **Listen on** 에 `{"currentIncidentStateId": true}` 를 넣습니다. 그러면 트리거는 모든 편집이 아니라 상태 변경에만 발동합니다. **Select Fields** 에는 `{"_id": true, "currentIncidentState": {"name": true}}` 를 요청합니다.
+2. **Fields to watch** 에서 **JSON으로 편집** 을 클릭하고 `{"currentIncidentStateId": true}` 를 넣습니다. 그러면 트리거는 모든 편집이 아니라 상태 변경에만 발동합니다. **Fields to pass on** 에도 같은 방법으로 `{"_id": true, "currentIncidentState": {"name": true}}` 를 넣습니다.
 3. **If / Else** 블록을 추가합니다: **Input 1** 은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** 는 `==`, **Input 2** 는 `Resolved` — 또는 프로젝트에서 해결 상태를 부르는 이름입니다. [인시던트 상태 및 심각도](/docs/incidents/states-and-severities) 를 참조하세요.
 
 **Yes** 분기에서는 먼저 2단계에서 연 이슈를 찾아야 합니다. 3단계에서 저장한 id로 Jira에 조회하며, **Identifier** 가 `find-issue` 인 **API Post (JSON)** 블록을 사용합니다:

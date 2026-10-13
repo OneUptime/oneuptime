@@ -68,7 +68,7 @@ client secret को ठीक वैसे ही पेस्ट करें 
 हर run अपना token खुद लाता है। Tokens 60–90 मिनट चलते हैं और client credentials flow कभी refresh token जारी नहीं करता, इसलिए न कुछ cache करना है और न कुछ नवीनीकृत — प्रति run एक अतिरिक्त HTTP कॉल ही पूरी लागत है।
 
 1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → Dynamics 365` नाम दें, और **बिल्डर** खोलें।
-2. डैश वाले placeholder पर क्लिक करें, **On Create Incident** trigger जोड़ें, और उसके **Select Fields** में वे columns माँगें जो आप भेजना चाहते हैं:
+2. डैश वाले placeholder पर क्लिक करें, **On Create Incident** trigger जोड़ें, और उसके **Fields to pass on** में **JSON के रूप में संपादित करें** पर क्लिक करके वे columns माँगें जो आप भेजना चाहते हैं:
 
    ```json
    {
@@ -192,7 +192,7 @@ Case table में एक **single line of text** column जोड़ें, �
 इसे एक **दूसरे** वर्कफ़्लो के रूप में बनाएँ ताकि यहाँ की कोई विफलता cases खुलने को न रोक सके।
 
 1. **वर्कफ़्लो बनाएं**, इसे `Incident resolved → Close Dynamics case` नाम दें, और **On Update Incident** trigger जोड़ें।
-2. trigger के **Listen on** में `{"currentIncidentStateId": true}` डालें ताकि वर्कफ़्लो हर edit की बजाय सिर्फ़ state बदलने पर जागे। **Select Fields** में `{"_id": true, "currentIncidentState": {"name": true}}` माँगें।
+2. trigger के **Fields to watch** में **JSON के रूप में संपादित करें** पर क्लिक करें और `{"currentIncidentStateId": true}` डालें ताकि वर्कफ़्लो हर edit की बजाय सिर्फ़ state बदलने पर जागे। **Fields to pass on** में इसी तरह `{"_id": true, "currentIncidentState": {"name": true}}` डालें।
 3. एक **If / Else** ब्लॉक जोड़ें। **Input 1** है `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** है `==`, **Input 2** है `Resolved` — या आपके project में resolved state का जो भी नाम हो। [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) देखें।
 4. **Yes** शाखा से, चरण 4 वाला `get-token` ब्लॉक दोहराएँ।
 5. एक **API Get (JSON)** ब्लॉक जोड़ें, उसका **Identifier** `find-case` सेट करें, और उसे चरण 6 वाला `$filter` URL दें। Dataverse query एक `value` array के साथ जवाब देती है, और वर्कफ़्लो reference brackets से array में index कर सकता है, इसलिए case id `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}` है।

@@ -68,7 +68,7 @@ Referera till vilken som helst av dem från ett block med `{{global.variables.DY
 Varje körning hämtar sin egen token. Tokens håller i 60–90 minuter och flödet client credentials utfärdar aldrig en uppdateringstoken, så det finns inget att cacha och inget att förnya — ett extra HTTP-anrop per körning är hela kostnaden.
 
 1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Dynamics 365` och öppna **Byggare**.
-2. Klicka på den streckade platshållaren, lägg till utlösaren **On Create Incident**, och be i dess **Select Fields** om kolumnerna du vill skicka:
+2. Klicka på den streckade platshållaren, lägg till utlösaren **On Create Incident**, klicka i dess **Fields to pass on** på **Redigera som JSON** och be om kolumnerna du vill skicka:
 
    ```json
    {
@@ -192,7 +192,7 @@ Den omvända riktningen — att spara Dynamics-ärendets id på OneUptime-incide
 Bygg det här som ett **andra** arbetsflöde så att ett fel här inte kan hindra att ärenden öppnas.
 
 1. **Skapa arbetsflöde**, namnge det `Incident resolved → Close Dynamics case` och lägg till utlösaren **On Update Incident**.
-2. I utlösarens **Listen on**, skriv `{"currentIncidentStateId": true}` så att arbetsflödet bara vaknar för tillståndsändringar snarare än varje redigering. I **Select Fields**, be om `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. I utlösarens **Fields to watch**, klicka på **Redigera som JSON** och skriv `{"currentIncidentStateId": true}` så att arbetsflödet bara vaknar för tillståndsändringar snarare än varje redigering. I **Fields to pass on**, gör likadant med `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Lägg till ett **If / Else**-block. **Input 1** är `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** är `==`, **Input 2** är `Resolved` — eller vad ditt projekts lösta tillstånd nu heter. Se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
 4. Från grenen **Yes**, upprepa blocket `get-token` från Steg 4.
 5. Lägg till ett **API Get (JSON)**-block, sätt dess **Identifier** till `find-case` och ge det `$filter`-URL:en från Steg 6. En Dataverse-fråga svarar med en `value`-array, och en arbetsflödesreferens kan indexera in i en array med hakparenteser, så ärende-id:t är `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

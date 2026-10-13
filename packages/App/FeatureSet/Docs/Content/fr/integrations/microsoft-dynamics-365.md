@@ -68,7 +68,7 @@ Référencez n'importe laquelle d'entre elles depuis un bloc avec `{{global.vari
 Chaque exécution récupère son propre jeton. Les jetons durent 60 à 90 minutes et le flux client credentials n'émet jamais de jeton de rafraîchissement : il n'y a donc rien à mettre en cache ni à renouveler — un appel HTTP supplémentaire par exécution, c'est tout le coût.
 
 1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → Dynamics 365`, et ouvrez le **Constructeur**.
-2. Cliquez sur le bloc en pointillés, ajoutez le déclencheur **On Create Incident**, et dans son **Select Fields** demandez les colonnes que vous voulez envoyer :
+2. Cliquez sur le bloc en pointillés, ajoutez le déclencheur **On Create Incident**, et dans son **Fields to pass on** cliquez sur **Modifier en JSON** et demandez les colonnes que vous voulez envoyer :
 
    ```json
    {
@@ -192,7 +192,7 @@ La direction inverse — stocker l'id du case Dynamics sur l'incident OneUptime 
 Construisez ceci comme un **second** workflow, pour qu'un échec ici ne puisse pas empêcher l'ouverture des cases.
 
 1. **Créer un flux de travail**, nommez-le `Incident resolved → Close Dynamics case`, et ajoutez le déclencheur **On Update Incident**.
-2. Dans le **Listen on** du déclencheur, mettez `{"currentIncidentStateId": true}` pour que le workflow ne se réveille que pour les changements d'état, et non à chaque modification. Dans **Select Fields**, demandez `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. Dans le **Fields to watch** du déclencheur, cliquez sur **Modifier en JSON** et mettez `{"currentIncidentStateId": true}` pour que le workflow ne se réveille que pour les changements d'état, et non à chaque modification. Dans **Fields to pass on**, faites de même avec `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Ajoutez un bloc **If / Else**. **Input 1** est `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** est `==`, **Input 2** est `Resolved` — ou le nom que porte l'état résolu dans votre projet. Voir [États et sévérités des incidents](/docs/incidents/states-and-severities).
 4. Depuis la branche **Oui**, répétez le bloc `get-token` de l'Étape 4.
 5. Ajoutez un bloc **API Get (JSON)**, réglez son **Identifier** sur `find-case`, et donnez-lui l'URL avec `$filter` de l'Étape 6. Une requête Dataverse répond par un tableau `value`, et une référence de workflow peut indexer un tableau avec des crochets : l'id du case est donc `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

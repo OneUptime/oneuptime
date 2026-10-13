@@ -26,13 +26,13 @@ Et workflow kan kun have én trigger. Har du brug for to måder at starte den sa
 
 ## Manual
 
-Kør workflowet, når du vil: klik på **Kør arbejdsgang** på siden **Bygger**, udfyld triggerens **JSON**, klik på **Run Workflow Manually**, og bekræft med **Run**. Et andet workflow kan også starte det med en **Execute Workflow**-blok.
+Kør workflowet, når du vil: klik på **Kør arbejdsgang** på siden **Bygger**, udfyld triggerens **JSON**, klik på **Kør arbejdsgang manuelt**, og bekræft med **Kør**. Et andet workflow kan også starte det med en **Execute Workflow**-blok.
 
 God til: automatik med ét klik, som du vil have en knap til, som «udskift denne nøgle» eller «send en testadvarsel», og logik, du deler mellem workflows.
 
 **Returns**: **JSON** — det, kørslen blev startet med.
 
-- Fra **Kør arbejdsgang** er det den JSON, du skrev, som tekst. For at læse et felt i den sender du den først gennem en **Text to JSON**-blok.
+- Fra **Kør arbejdsgang** er det den JSON, du skrev. For at læse et felt i den tilføjer du feltets navn til referencen, som i `{{local.components.manual-1.returnValues.value.name}}`.
 - Fra en **Execute Workflow**-blok er hver nøgle i blokkens **Arguments** en værdi for sig. Med `{"customerId": "42"}` læser en senere blok `{{local.components.manual-1.returnValues.customerId}}`, hvor `manual-1` er Manual-triggerens ID.
 
 ## Schedule
@@ -96,7 +96,7 @@ sequenceDiagram
 
 Læs et enkelt felt ved at tilføje dets navn til referencen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
-Når en forespørgsel er kommet, ved værdivælgeren i hver blok efter triggeren, hvad der var i den: den viser bodyens felter, headerne og forespørgselsparametrene, hver med sit indhold, så du kan vælge `incident.title` i stedet for at skrive en sti. Indtil da siger den, at ingen forespørgsel er kommet, og tilbyder **Copy test request**, en `curl`-kommando til URL'en; felterne dukker op, så snart den kørsel, forespørgslen starter, er færdig. Se [Brug værdier fra tidligere blokke](/docs/workflows/authoring#brug-værdier-fra-tidligere-blokke).
+Når en forespørgsel er kommet, ved værdivælgeren i hver blok efter triggeren, hvad der var i den: den viser bodyens felter, headerne og forespørgselsparametrene, hver med sit indhold, så du kan vælge `incident.title` i stedet for at skrive en sti. Indtil da siger den, at ingen forespørgsel er kommet, og tilbyder **Kopiér testanmodning**, en `curl`-kommando til URL'en; felterne dukker op, så snart den kørsel, forespørgslen starter, er færdig. Se [Brug værdier fra tidligere blokke](/docs/workflows/authoring#brug-værdier-fra-tidligere-blokke).
 
 For at teste workflowet uden det andet værktøj klikker du på **Kør arbejdsgang** i **Bygger** og indtaster headere, forespørgselsparametre og en body.
 
@@ -161,24 +161,24 @@ Næsten alt i OneUptime — monitorer, hændelser, advarsler, planlagte vedligeh
 
 Sådan bygger du «når X sker i OneUptime, så gør Y» uden at skulle tjekke ting i en løkke.
 
-**On Update** kan begrænses til nogle felter med **Listen on**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi — at slå en kontakt fra eller rydde et felt tæller med.
+**On Update** kan begrænses til nogle felter med **Fields to watch**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi — at slå en kontakt fra eller rydde et felt tæller med.
 
 ```mermaid title="Hvornår en On Update-trigger udløses"
 flowchart TB
     save["En post gemmes"] --> changed{"Blev en værdi ændret?"}
     changed -->|"Nej"| nothing["Intet udløses"]
-    changed -->|"Ja"| listen{"Er Listen on angivet?"}
+    changed -->|"Ja"| listen{"Er Fields to watch angivet?"}
     listen -->|"Nej"| fires["Workflowet kører"]
     listen -->|"Ja"| field{"Blev et af dens felter ændret?"}
     field -->|"Ja"| fires
     field -->|"Nej"| nothing
 ```
 
-**On Create** og **On Update** sender posten videre til den næste blok, med de felter, du vælger i triggerens **Select Fields**. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorlighed eller ethvert andet felt, du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt, du ikke valgte, kommer tomt frem.
+**On Create** og **On Update** sender posten videre til den næste blok, med de felter, du vælger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorlighed eller ethvert andet felt, du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt, du ikke valgte, kommer tomt frem.
 
 **On Delete** sender kun den slettede posts ID videre: posten er væk, når workflowet kører, så dens andre felter kan ikke læses.
 
-For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på **Kør arbejdsgang** i **Bygger** og indtaster ID'et på en eksisterende post, som et **Hændelses-ID**. Kørslen læser den post med de felter, du valgte.
+For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på **Kør arbejdsgang** i **Bygger** og vælger en eksisterende post: de seneste er vist, og når du skriver en posts nummer eller en del af dens navn, finder du en anden. Kørslen læser den post med de felter, du valgte, som om begivenheden lige var sket for den; selve posten bliver hverken ændret eller slettet.
 
 ### Begivenheder, som teams bruger mest
 

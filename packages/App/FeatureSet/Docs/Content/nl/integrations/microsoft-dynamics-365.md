@@ -68,7 +68,7 @@ Verwijs vanuit een blok naar elk ervan met `{{global.variables.DYNAMICS_CLIENT_I
 Elke run haalt zijn eigen token op. Tokens gaan 60–90 minuten mee en de client credentials-flow geeft nooit een refresh token uit, dus er valt niets te cachen en niets te vernieuwen — één extra HTTP-aanroep per run is de hele prijs.
 
 1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Dynamics 365`, en open de **Bouwer**.
-2. Klik op de gestippelde plaatshouder, voeg de trigger **On Create Incident** toe, en vraag in zijn **Select Fields** om de kolommen die je wilt meesturen:
+2. Klik op de gestippelde plaatshouder, voeg de trigger **On Create Incident** toe, klik in zijn **Fields to pass on** op **Bewerken als JSON** en vraag om de kolommen die je wilt meesturen:
 
    ```json
    {
@@ -192,7 +192,7 @@ De omgekeerde richting — het Dynamics-case-id opslaan op het OneUptime-inciden
 Bouw dit als een **tweede** workflow, zodat een fout hier niet kan verhinderen dat er cases worden geopend.
 
 1. **Workflow maken**, geef het de naam `Incident resolved → Close Dynamics case`, en voeg de trigger **On Update Incident** toe.
-2. Zet in de **Listen on** van de trigger `{"currentIncidentStateId": true}` zodat de workflow alleen wakker wordt bij statuswijzigingen en niet bij elke bewerking. Vraag in **Select Fields** om `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. Klik in de **Fields to watch** van de trigger op **Bewerken als JSON** en zet er `{"currentIncidentStateId": true}` in, zodat de workflow alleen wakker wordt bij statuswijzigingen en niet bij elke bewerking. Doe in **Fields to pass on** hetzelfde met `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Voeg een **If / Else**-blok toe. **Input 1** is `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** is `==`, **Input 2** is `Resolved` — of hoe de opgeloste status in jouw project ook heet. Zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
 4. Herhaal vanaf de tak **Yes** het blok `get-token` uit Stap 4.
 5. Voeg een **API Get (JSON)**-blok toe, zet zijn **Identifier** op `find-case`, en geef het de `$filter`-URL uit Stap 6. Een Dataverse-query antwoordt met een `value`-array, en een workflowverwijzing kan met blokhaken in een array indexeren, dus het case-id is `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

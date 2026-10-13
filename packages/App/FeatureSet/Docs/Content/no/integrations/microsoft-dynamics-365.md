@@ -68,7 +68,7 @@ Referer til hvilken som helst av dem fra en blokk med `{{global.variables.DYNAMI
 Hver kjøring henter sitt eget token. Tokener varer i 60–90 minutter, og client credentials-flyten utsteder aldri et refresh token, så det er ingenting å mellomlagre og ingenting å fornye — ett ekstra HTTP-kall per kjøring er hele kostnaden.
 
 1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → Dynamics 365`, og åpne **Bygger**.
-2. Klikk på den stiplede plassholderen, legg til triggeren **On Create Incident**, og be i dens **Select Fields** om kolonnene du vil sende:
+2. Klikk på den stiplede plassholderen, legg til triggeren **On Create Incident**, klikk i dens **Fields to pass on** på **Rediger som JSON**, og be om kolonnene du vil sende:
 
    ```json
    {
@@ -192,7 +192,7 @@ Den motsatte retningen — å lagre Dynamics-saks-id-en på OneUptime-hendelsen 
 Bygg dette som en **andre** arbeidsflyt, slik at en feil her ikke kan stoppe at saker blir åpnet.
 
 1. **Opprett arbeidsflyt**, gi den navnet `Incident resolved → Close Dynamics case`, og legg til triggeren **On Update Incident**.
-2. I triggerens **Listen on** legger du `{"currentIncidentStateId": true}` slik at arbeidsflyten bare våkner ved tilstandsendringer og ikke ved hver eneste redigering. I **Select Fields** ber du om `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. I triggerens **Fields to watch** klikker du på **Rediger som JSON** og legger inn `{"currentIncidentStateId": true}` slik at arbeidsflyten bare våkner ved tilstandsendringer og ikke ved hver eneste redigering. I **Fields to pass on** gjør du det samme med `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Legg til en **If / Else**-blokk. **Input 1** er `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** er `==`, og **Input 2** er `Resolved` — eller hva prosjektets løste tilstand nå heter. Se [Tilstander og alvorlighetsgrader](/docs/incidents/states-and-severities).
 4. Fra **Yes**-grenen gjentar du `get-token`-blokken fra Steg 4.
 5. Legg til en **API Get (JSON)**-blokk, sett **Identifier** til `find-case`, og gi den `$filter`-URL-en fra Steg 6. En Dataverse-spørring svarer med et `value`-array, og en arbeidsflytreferanse kan indeksere inn i et array med klammer, så saks-id-en er `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

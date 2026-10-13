@@ -46,7 +46,7 @@ Atlassian API tokens के बारे में दो बातें, ज�
 ## चरण 2 — हर incident के लिए एक Jira issue खोलें
 
 1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → Jira` नाम दें, और **बिल्डर** खोलें।
-2. डैश वाले placeholder ब्लॉक पर क्लिक करें और **On Create Incident** trigger जोड़ें। उसके **Select Fields** में वे columns माँगें जो आप भेजना चाहते हैं:
+2. डैश वाले placeholder ब्लॉक पर क्लिक करें और **On Create Incident** trigger जोड़ें। उसके **Fields to pass on** में **JSON के रूप में संपादित करें** पर क्लिक करें और वे columns माँगें जो आप भेजना चाहते हैं:
 
    ```json
    {
@@ -164,14 +164,14 @@ two-way sync के दोनों हिस्सों के लिए ज�
 }
 ```
 
-Jira में सबको एक-क्लिक में वापस लौटने का रास्ता दे देता है। इसके लिए trigger के **Select Fields** में `projectId` जोड़ें। `globalId` ही इस कॉल को बार-बार करने लायक सुरक्षित बनाता है: Jira दूसरा link जोड़ने की बजाय उसी id वाले मौजूदा link को अपडेट कर देता है। चूँकि update उन सब चीज़ों को null भी कर देता है जिन्हें आप छोड़ देते हैं, इसलिए हमेशा पूरा `object` भेजें, उसका कोई हिस्सा नहीं।
+Jira में सबको एक-क्लिक में वापस लौटने का रास्ता दे देता है। इसके लिए trigger के **Fields to pass on** में `projectId` जोड़ें। `globalId` ही इस कॉल को बार-बार करने लायक सुरक्षित बनाता है: Jira दूसरा link जोड़ने की बजाय उसी id वाले मौजूदा link को अपडेट कर देता है। चूँकि update उन सब चीज़ों को null भी कर देता है जिन्हें आप छोड़ देते हैं, इसलिए हमेशा पूरा `object` भेजें, उसका कोई हिस्सा नहीं।
 
 ## चरण 4 — incident आगे बढ़ने पर comment और transition करें
 
 इसे एक **दूसरे** वर्कफ़्लो के रूप में बनाएँ, ताकि यहाँ की कोई विफलता issues खुलने को कभी न रोके।
 
 1. **वर्कफ़्लो बनाएं**, इसे `Incident updates → Jira` नाम दें, और **On Update Incident** trigger जोड़ें।
-2. **Listen on** में `{"currentIncidentStateId": true}` डालें। तब trigger हर edit की बजाय सिर्फ़ state बदलने पर चलता है। **Select Fields** में `{"_id": true, "currentIncidentState": {"name": true}}` माँगें।
+2. **Fields to watch** में **JSON के रूप में संपादित करें** पर क्लिक करें और `{"currentIncidentStateId": true}` डालें। तब trigger हर edit की बजाय सिर्फ़ state बदलने पर चलता है। **Fields to pass on** में इसी तरह `{"_id": true, "currentIncidentState": {"name": true}}` डालें।
 3. एक **If / Else** ब्लॉक जोड़ें: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — या आपके project में resolved state का जो भी नाम हो। [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) देखें।
 
 **Yes** शाखा से आपको पहले वह issue ढूँढनी होगी जो आपने चरण 2 में खोली थी। चरण 3 में स्टोर की गई id से Jira से उसे माँगें, एक **API Post (JSON)** ब्लॉक के साथ जिसका **Identifier** `find-issue` हो:

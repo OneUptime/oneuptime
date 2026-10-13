@@ -125,11 +125,11 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 트리거 추가하기
 
-점선 블록 **Choose what starts this workflow** 를 클릭하고 **Add Trigger** 패널에서 **On Create Alert** 를 고릅니다. 트리거를 클릭하고 **Select Fields** 에서 제목과 설명을 체크한 뒤 **저장** 을 클릭합니다. 블록에 표시된 ID `alert-on-create-1` 은 이후 블록이 이 블록을 참조할 때 쓰입니다.
+점선 블록 **Choose what starts this workflow** 를 클릭하고 **Add Trigger** 패널에서 **On Create Alert** 를 고릅니다. 트리거를 클릭합니다. **Fields to pass on** 에는 처음부터 제목이 들어 있으므로, **필드 추가** 를 클릭해 설명을 체크한 뒤 **저장** 을 클릭합니다. 블록에 표시된 ID `alert-on-create-1` 은 이후 블록이 이 블록을 참조할 때 쓰입니다.
 
 ### 제목 확인하기
 
-**구성 요소 추가** 를 클릭하고 **If / Else** 를 고른 뒤, 트리거의 **Success** 점을 거기에 연결합니다. **Value to check** 를 알림 제목으로( **{ }** 를 클릭해 고릅니다), **Comparison** 을 **포함** 으로, **Compare with** 를 트립 와이어 제목들이 공통으로 시작하는 문구, 예를 들어 `LLM budget exceeded` 로 설정합니다.
+**구성 요소 추가** 를 클릭하고 **If / Else** 를 고른 뒤, 트리거의 **Success** 점을 거기에 연결합니다. **확인할 값** 을 알림 제목으로( **{ }** 를 클릭해 고릅니다), **비교** 를 **포함** 으로, **비교 대상** 을 트립 와이어 제목들이 공통으로 시작하는 문구, 예를 들어 `LLM budget exceeded` 로 설정합니다.
 
 ### 엔드포인트 호출하기
 
@@ -189,7 +189,7 @@ API 블록의 **Request Headers**:
 :::
 
 :::details 워크플로는 실행되지만 항상 No 분기로 감
-제목이 비어 있거나 일치하지 않습니다. 트리거의 **Select Fields** 에서 체크하지 않은 필드는 비어 있는 채로 오므로 제목을 체크하세요. 그다음 알림 제목을 **Compare with** 와 비교하세요. **포함** 은 그 텍스트를 정확히 찾아내야 합니다.
+제목이 비어 있거나 일치하지 않습니다. 트리거의 **Fields to pass on** 에 없는 필드는 비어 있는 채로 오므로 거기에 제목을 추가하세요. 그다음 알림 제목을 **비교 대상** 과 비교하세요. **포함** 은 그 텍스트를 정확히 찾아내야 합니다.
 :::
 
 :::details 엔드포인트가 401을 반환함

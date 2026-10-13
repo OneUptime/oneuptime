@@ -247,18 +247,18 @@ Sus ajustes se leen como una frase: **Si** *valor que comprobar* *comparación* 
 
 | Ajuste             | Qué hace                                                                                                                                 |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Normalmente un valor de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`.                                   |
-| **Comparison**     | Cómo comparar, en palabras. Las comparaciones aparecen más abajo.                                                                        |
-| **Compare with**   | Con qué comparar, escrito o elegido de la misma forma. **está vacío**, **no está vacío**, **is true** e **is false** no lo usan.         |
-| **Comparar como**  | Plegado bajo la comparación: **Text**, **Número** o **True / False**. Elige **Text** para ordenar fechas escritas `2026-10-01`, o **Número** para que `200` y `200.0` sean iguales. |
+| **Valor que comprobar** | Normalmente un valor de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`.                                   |
+| **Comparación**     | Cómo comparar, en palabras. Las comparaciones aparecen más abajo.                                                                        |
+| **Comparar con**   | Con qué comparar, escrito o elegido de la misma forma. **está vacío**, **no está vacío**, **es verdadero** e **es falso** no lo usan.         |
+| **Comparar como**  | Plegado bajo la comparación: **Text**, **Número** o **Verdadero / Falso**. Elige **Text** para ordenar fechas escritas `2026-10-01`, o **Número** para que `200` y `200.0` sean iguales. |
 
 Las comparaciones:
 
-- **is equal to** e **is not equal to**;
+- **es igual a** e **no es igual a**;
 - para texto: **contiene**, **no contiene**, **comienza con** y **termina con**;
-- para números: **es mayor que**, **is greater than or equal to**, **es menor que** e **is less than or equal to**;
+- para números: **es mayor que**, **es mayor o igual que**, **es menor que** e **es menor o igual que**;
 - **está vacío** y **no está vacío**, que comprueban si el valor está presente;
-- **is true** e **is false**.
+- **es verdadero** e **es falso**.
 
 Las comparaciones de números comparan números y las de texto comparan texto, así que rara vez necesitas **Comparar como**. Cómo se comparan los valores:
 
@@ -267,7 +267,7 @@ Las comparaciones de números comparan números y las de texto comparan texto, a
 - Como verdadero o falso, solo `true` cuenta como verdadero.
 - **está vacío** se cumple con la ausencia de valor, un texto en blanco, una lista o un objeto vacío, o un valor que el bloque anterior no tenía, como un campo que el webhook no envió. `0` y `false` son valores, así que no están vacíos.
 
-**Yes** se ejecuta cuando se cumple la condición y **No** cuando no. Los bloques configurados antes de que los ajustes tuvieran estos nombres se ejecutan exactamente igual que antes. Ya no se ofrece una opción antigua: comparar un valor como **Null** o **Undefined**, que ignoraba lo que contenía el valor. Un bloque que todavía la usa lo indica al abrirlo; elige **está vacío** para comprobar si falta un valor.
+**Yes** se ejecuta cuando se cumple la condición y **No** cuando no. Los bloques configurados antes de que los ajustes tuvieran estos nombres se ejecutan exactamente igual que antes. Ya no se ofrece una opción antigua: comparar un valor como **Nulo** o **Indefinido**, que ignoraba lo que contenía el valor. Un bloque que todavía la usa lo indica al abrirlo; elige **está vacío** para comprobar si falta un valor.
 
 ## Switch / Case
 
@@ -277,10 +277,10 @@ Compara un valor con cada uno de sus casos por turno, desde arriba, y continúa 
 
 | Ajuste             | Qué hace |
 | ------------------ | -------- |
-| **Value to check** | El valor con el que se compara cada caso, normalmente de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`. |
+| **Valor que comprobar** | El valor con el que se compara cada caso, normalmente de un bloque anterior. Pulsa **{ }** en el cuadro para elegir uno, o escribe `{{`. |
 | **Cases**          | Una comparación y un valor para cada camino, comprobados desde arriba. Pulsa **Añadir caso** para añadir otro, y arrastra un caso por su asa para moverlo. Un bloque admite como máximo 25 casos. |
 
-Cada caso es una salida en el lienzo, con el nombre de su valor: un caso que pregunta **is equal to** `production` es la salida *production*, y uno que pregunta **es mayor que** `500` es *is greater than 500*. **Default** es siempre la última salida. Conecta cada salida a lo que deba ejecutarse a continuación.
+Cada caso es una salida en el lienzo, con el nombre de su valor: un caso que pregunta **es igual a** `production` es la salida *production*, y uno que pregunta **es mayor que** `500` es *is greater than 500*. **Default** es siempre la última salida. Conecta cada salida a lo que deba ejecutarse a continuación.
 
 Un caso coincide exactamente cuando un [If / Else](#conditions) con la misma comparación y el mismo valor tomaría **Yes**: las comparaciones son las mismas, y los valores se comparan de la misma forma. **Comparar como** está plegado bajo los casos, con una opción para cada caso.
 
@@ -366,7 +366,7 @@ Una consulta siempre se limita al proyecto en el que se ejecuta el flujo de trab
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Select Fields**, en los componentes Find y en los disparadores, usa las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`.
+Una clave que no es una columna se ignora en lugar de rechazarse — el registro de la ejecución nombra las que descartó, así que míralo cuando un campo no llegue. **Fields to pass on**, en los componentes Find y en los disparadores, se elige de una lista; su **Editar como JSON** muestra las mismas claves de columna con valores `true`: `{"_id": true, "name": true}`.
 
 Los **campos personalizados** son una sola columna, `customFields`, que guarda el valor de cada campo personalizado con el nombre del campo. Los componentes Update solo cambian los campos personalizados que nombras, y todos los demás conservan su valor:
 

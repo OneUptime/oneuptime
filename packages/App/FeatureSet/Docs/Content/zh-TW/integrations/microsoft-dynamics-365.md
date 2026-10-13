@@ -68,7 +68,7 @@ OneUptime 是以應用程式而非個人的身分驗證，所以它使用 OAuth 
 每一次執行都會自己取得權杖。權杖有效 60–90 分鐘，而 client credentials 流程從不發出更新權杖（refresh token），所以沒有東西要快取、也沒有東西要續期——每次執行多一個 HTTP 呼叫就是全部的成本。
 
 1. 開啟 **工作流程 → 建立工作流程**，把它命名為 `Incidents → Dynamics 365`，然後開啟 **建構器**。
-2. 點擊虛線的預留位置，加入 **On Create Incident** 觸發器，並在它的 **Select Fields** 中指定您想送出的欄位：
+2. 點擊虛線的預留位置，加入 **On Create Incident** 觸發器，並在它的 **Fields to pass on** 中點擊 **以 JSON 編輯**，指定您想送出的欄位：
 
    ```json
    {
@@ -192,7 +192,7 @@ Dynamics 出廠的 `severitycode` 只有一個選項「Default Value」，所以
 請把這一段建成**第二個**工作流程，這樣這裡的失敗就不會擋住 case 的開立。
 
 1. **建立工作流程**，把它命名為 `Incident resolved → Close Dynamics case`，並加入 **On Update Incident** 觸發器。
-2. 在觸發器的 **Listen on** 中填入 `{"currentIncidentStateId": true}`，讓工作流程只在狀態變更時醒來，而不是每次編輯都醒來。在 **Select Fields** 中，指定 `{"_id": true, "currentIncidentState": {"name": true}}`。
+2. 在觸發器的 **Fields to watch** 中點擊 **以 JSON 編輯**，填入 `{"currentIncidentStateId": true}`，讓工作流程只在狀態變更時醒來，而不是每次編輯都醒來。在 **Fields to pass on** 中用同樣的方式填入 `{"_id": true, "currentIncidentState": {"name": true}}`。
 3. 加入一個 **If / Else** 區塊。**Input 1** 是 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Operator** 是 `==`，**Input 2** 是 `Resolved`——或您專案中已解決狀態實際的名稱。請參閱 [Incident States & Severities](/docs/incidents/states-and-severities)。
 4. 從 **Yes** 分支重複步驟 4 的 `get-token` 區塊。
 5. 加入一個 **API Get (JSON)** 區塊，把它的 **Identifier** 設為 `find-case`，並給它步驟 6 的那個 `$filter` URL。Dataverse 查詢會以一個 `value` 陣列回應，而工作流程的參照可以用中括號索引陣列，所以 case id 就是 `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`。

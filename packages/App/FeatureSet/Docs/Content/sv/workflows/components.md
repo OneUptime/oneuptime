@@ -247,27 +247,27 @@ Dess inställningar läses som en mening: **Om** *värde att kontrollera* *jämf
 
 | Inställning        | Vad den gör                                                                                                                              |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Vanligtvis ett värde från ett tidigare block. Tryck på **{ }** i fältet för att välja ett, eller skriv `{{`.                             |
-| **Comparison**     | Hur det ska jämföras, i ord. Jämförelserna står nedan.                                                                                   |
-| **Compare with**   | Det som ska jämföras med, skrivet eller valt på samma sätt. **är tom**, **är inte tom**, **is true** och **is false** använder det inte.   |
-| **Compare as**     | Hopfällt under jämförelsen: **Text**, **Tal** eller **True / False**. Välj **Text** för att sortera datum skrivna `2026-10-01`, eller **Tal** för att göra `200` och `200.0` lika. |
+| **Värde att kontrollera** | Vanligtvis ett värde från ett tidigare block. Tryck på **{ }** i fältet för att välja ett, eller skriv `{{`.                             |
+| **Jämförelse**     | Hur det ska jämföras, i ord. Jämförelserna står nedan.                                                                                   |
+| **Jämför med**   | Det som ska jämföras med, skrivet eller valt på samma sätt. **är tom**, **är inte tom**, **är sant** och **är falskt** använder det inte.   |
+| **Jämför som**     | Hopfällt under jämförelsen: **Text**, **Tal** eller **Sant / Falskt**. Välj **Text** för att sortera datum skrivna `2026-10-01`, eller **Tal** för att göra `200` och `200.0` lika. |
 
 Jämförelserna:
 
-- **is equal to** och **is not equal to**;
+- **är lika med** och **är inte lika med**;
 - för text: **innehåller**, **innehåller inte**, **börjar med** och **slutar med**;
-- för tal: **är större än**, **is greater than or equal to**, **är mindre än** och **is less than or equal to**;
+- för tal: **är större än**, **är större än eller lika med**, **är mindre än** och **är mindre än eller lika med**;
 - **är tom** och **är inte tom**, som kontrollerar om värdet över huvud taget finns;
-- **is true** och **is false**.
+- **är sant** och **är falskt**.
 
-Taljämförelserna jämför tal och textjämförelserna jämför text, så du behöver sällan **Compare as**. Så här jämförs värdena:
+Taljämförelserna jämför tal och textjämförelserna jämför text, så du behöver sällan **Jämför som**. Så här jämförs värdena:
 
 - Som text spelar versaler roll: `Error` är inte `error`.
 - Som tal räknas text som inte är ett tal som `0`. Inställningarna påpekar ett sådant skrivet värde.
 - Som sant eller falskt räknas bara `true` som sant.
 - **är tom** uppfylls av ingenting alls, tom text, en tom lista eller ett tomt objekt, eller ett värde som det tidigare blocket inte hade, som ett fält som webhooken inte skickade. `0` och `false` är värden, så de är inte tomma.
 
-**Yes** körs när villkoret är uppfyllt och **No** när det inte är det. Block som ställdes in innan inställningarna fick de här namnen körs exakt som tidigare. Ett gammalt val erbjuds inte längre: att jämföra ett värde som **Null** eller **Undefined**, vilket ignorerade vad värdet innehöll. Ett block som fortfarande använder det säger det när du öppnar det; välj **är tom** för att kontrollera om ett värde saknas.
+**Yes** körs när villkoret är uppfyllt och **No** när det inte är det. Block som ställdes in innan inställningarna fick de här namnen körs exakt som tidigare. Ett gammalt val erbjuds inte längre: att jämföra ett värde som **Null** eller **Odefinierat**, vilket ignorerade vad värdet innehöll. Ett block som fortfarande använder det säger det när du öppnar det; välj **är tom** för att kontrollera om ett värde saknas.
 
 ## Switch / Case
 
@@ -277,12 +277,12 @@ Det jämför ett värde med vart och ett av sina fall i tur och ordning, uppifr�
 
 | Inställning        | Vad den gör |
 | ------------------ | ----------- |
-| **Value to check** | Värdet som varje fall jämförs med, vanligtvis från ett tidigare block. Tryck på **{ }** i fältet för att välja ett, eller skriv `{{`. |
+| **Värde att kontrollera** | Värdet som varje fall jämförs med, vanligtvis från ett tidigare block. Tryck på **{ }** i fältet för att välja ett, eller skriv `{{`. |
 | **Cases**          | En jämförelse och ett värde för varje väg, kontrollerade uppifrån. Tryck på **Lägg till fall** för att lägga till ett till, och dra ett fall i dess handtag för att flytta det. Ett block rymmer högst 25 fall. |
 
-Varje fall är en utgång på arbetsytan, uppkallad efter sitt värde: ett fall som frågar **is equal to** `production` är utgången *production*, och ett som frågar **är större än** `500` är *is greater than 500*. **Default** är alltid den sista utgången. Koppla varje utgång till det som ska köras härnäst.
+Varje fall är en utgång på arbetsytan, uppkallad efter sitt värde: ett fall som frågar **är lika med** `production` är utgången *production*, och ett som frågar **är större än** `500` är *is greater than 500*. **Default** är alltid den sista utgången. Koppla varje utgång till det som ska köras härnäst.
 
-Ett fall matchar exakt när ett [If / Else](#conditions) med samma jämförelse och värde skulle ta **Yes**: jämförelserna är desamma, och värdena jämförs på samma sätt. **Compare as** är hopfällt under fallen, med ett val för varje fall.
+Ett fall matchar exakt när ett [If / Else](#conditions) med samma jämförelse och värde skulle ta **Yes**: jämförelserna är desamma, och värdena jämförs på samma sätt. **Jämför som** är hopfällt under fallen, med ett val för varje fall.
 
 När du tar bort ett fall som har en koppling visar inställningarna vilka block det ledde till, och **Återställ** tar tillbaka fallet. När du sparar tas kopplingen bort tillsammans med fallet. Byggarens kontroller påpekar ett fall som inget är kopplat till, och ett fall som aldrig väljs eftersom ett fall ovanför frågar samma sak.
 
@@ -366,7 +366,7 @@ En fråga är alltid begränsad till projektet som arbetsflödet körs i. Du kan
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körningens logg nämner de som släpptes, så titta där när ett fält inte landar. **Select Fields**, på Find-komponenterna och utlösarna, använder samma kolumnnycklar med värdet `true`: `{"_id": true, "name": true}`.
+En nyckel som inte är en kolumn ignoreras i stället för att avvisas — körningens logg nämner de som släpptes, så titta där när ett fält inte landar. **Fields to pass on**, på Find-komponenterna och utlösarna, väljs från en lista; dess **Redigera som JSON** visar samma kolumnnycklar med värdet `true`: `{"_id": true, "name": true}`.
 
 **Anpassade fält** är en kolumn, `customFields`, som rymmer varje anpassat fälts värde under fältets namn. Update-komponenterna ändrar bara de anpassade fält du nämner, och alla andra behåller sitt värde:
 

@@ -320,7 +320,7 @@ If your organization is on Atlassian's centralized user management, there is a t
 ## Step 2 — Open a Jira issue for every incident
 
 1. Open **Workflows → Create Workflow**, name it `Incidents → Jira`, and open the **Builder**.
-2. Click the dashed placeholder block and add the **On Create Incident** trigger. In its **Select Fields**, ask for the columns you want to send:
+2. Click the dashed placeholder block and add the **On Create Incident** trigger. In its **Fields to pass on**, click **Edit as JSON** and ask for the columns you want to send:
 
    ```json
    {
@@ -438,14 +438,14 @@ While you are here, it is worth adding a link on the Jira issue back to the inci
 }
 ```
 
-gives everyone in Jira a one-click route back. Add `projectId` to the trigger's **Select Fields** for this, and keep the `.value` after it: a column holding another record's id arrives as `{"_type": "ObjectID", "value": "..."}`, and without `.value` the URL gets that whole object as JSON. The incident's own `_id` is a plain string, so it needs nothing. The `globalId` is what makes the call safe to repeat: Jira updates the link that already carries that id instead of adding a second one. Because an update also nulls anything you leave out, always send the whole `object`, not a patch of it.
+gives everyone in Jira a one-click route back. Add `projectId` to the trigger's **Fields to pass on** for this, and keep the `.value` after it: a column holding another record's id arrives as `{"_type": "ObjectID", "value": "..."}`, and without `.value` the URL gets that whole object as JSON. The incident's own `_id` is a plain string, so it needs nothing. The `globalId` is what makes the call safe to repeat: Jira updates the link that already carries that id instead of adding a second one. Because an update also nulls anything you leave out, always send the whole `object`, not a patch of it.
 
 ## Step 4 — Comment and transition as the incident moves
 
 Build this as a **second** workflow, so a failure here can never stop issues being opened.
 
 1. **Create Workflow**, name it `Incident updates → Jira`, and add the **On Update Incident** trigger.
-2. In **Listen on**, put `{"currentIncidentStateId": true}`. The trigger then only fires for state changes instead of every edit. In **Select Fields**, ask for `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. In **Fields to watch**, click **Edit as JSON** and put `{"currentIncidentStateId": true}`. The trigger then only fires for state changes instead of every edit. In **Fields to pass on**, do the same with `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Add an **If / Else** block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved` — or whatever your project's resolved state is called. See [Incident States & Severities](/docs/incidents/states-and-severities).
 
 From the **Yes** branch you first have to find the issue you opened in Step 2. Ask Jira for it by the id you stored in Step 3, with an **API Post (JSON)** block whose **Identifier** is `find-issue`:

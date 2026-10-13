@@ -68,7 +68,7 @@ OneUptime 是以应用程序而不是以某个人的身份来认证的，所以�
 每次运行都取自己的令牌。令牌能活 60–90 分钟，而客户端凭据流程从不颁发刷新令牌，所以既没有东西要缓存，也没有东西要续期——代价就是每次运行多一个 HTTP 调用。
 
 1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → Dynamics 365`，然后打开 **生成器**。
-2. 点那个虚线占位方块，添加 **On Create Incident** 触发器，在它的 **Select Fields** 里把你想发送的列要出来：
+2. 点那个虚线占位方块，添加 **On Create Incident** 触发器，在它的 **Fields to pass on** 里点击 **以 JSON 编辑**，把你想发送的列要出来：
 
    ```json
    {
@@ -192,7 +192,7 @@ Dynamics 自带的 `severitycode` 只有一个选项 "Default Value"，所以开
 把这一段搭成**第二个**工作流，这样这里出问题也挡不住案例的创建。
 
 1. **创建工作流**，命名为 `Incident resolved → Close Dynamics case`，加上 **On Update Incident** 触发器。
-2. 在触发器的 **Listen on** 里填 `{"currentIncidentStateId": true}`，这样工作流只在状态变化时醒来，而不是每次编辑都醒。在 **Select Fields** 里，要 `{"_id": true, "currentIncidentState": {"name": true}}`。
+2. 在触发器的 **Fields to watch** 里点击 **以 JSON 编辑**，填 `{"currentIncidentStateId": true}`，这样工作流只在状态变化时醒来，而不是每次编辑都醒。在 **Fields to pass on** 里用同样的方法填 `{"_id": true, "currentIncidentState": {"name": true}}`。
 3. 加一个 **If / Else** 方块。**Input 1** 是 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`，**Operator** 是 `==`，**Input 2** 是 `Resolved`——或者你项目里表示已解决的那个状态的名字。见[事件状态与严重级别](/docs/incidents/states-and-severities)。
 4. 从 **是** 分支出发，重复一遍步骤 4 里的 `get-token` 方块。
 5. 加一个 **API Get (JSON)** 方块，把它的 **Identifier** 设成 `find-case`，并给它步骤 6 里那个带 `$filter` 的 URL。Dataverse 的查询会用一个 `value` 数组来回答，而工作流的引用可以用方括号索引数组，所以案例 id 就是 `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`。

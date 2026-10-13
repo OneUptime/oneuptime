@@ -46,7 +46,7 @@ Hvis din organisation kører på Atlassians centraliserede brugeradministration,
 ## Trin 2 — Åbn en Jira-sag for hver hændelse
 
 1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Incidents → Jira`, og åbn **Bygger**.
-2. Klik på den stiplede pladsholderblok og tilføj triggeren **On Create Incident**. I dens **Select Fields** beder du om de kolonner, du vil sende:
+2. Klik på den stiplede pladsholderblok og tilføj triggeren **On Create Incident**. I dens **Fields to pass on** klikker du på **Rediger som JSON** og beder om de kolonner, du vil sende:
 
    ```json
    {
@@ -164,14 +164,14 @@ Mens du er i gang, er det værd at tilføje et link på Jira-sagen tilbage til h
 }
 ```
 
-giver alle i Jira en vej tilbage med ét klik. Tilføj `projectId` til triggerens **Select Fields** til dette. Det er `globalId`, der gør kaldet sikkert at gentage: Jira opdaterer det link, der allerede bærer det id, i stedet for at tilføje endnu et. Fordi en opdatering også nulstiller alt det, du udelader, skal du altid sende hele `object`, ikke en delmængde af det.
+giver alle i Jira en vej tilbage med ét klik. Tilføj `projectId` til triggerens **Fields to pass on** til dette. Det er `globalId`, der gør kaldet sikkert at gentage: Jira opdaterer det link, der allerede bærer det id, i stedet for at tilføje endnu et. Fordi en opdatering også nulstiller alt det, du udelader, skal du altid sende hele `object`, ikke en delmængde af det.
 
 ## Trin 4 — Kommentér og flyt sagen, når hændelsen ændrer sig
 
 Byg dette som et **andet** workflow, så en fejl her aldrig kan forhindre, at der oprettes sager.
 
 1. **Opret arbejdsgang**, navngiv det `Incident updates → Jira`, og tilføj triggeren **On Update Incident**.
-2. I **Listen on** sætter du `{"currentIncidentStateId": true}`. Triggeren udløses så kun ved tilstandsændringer i stedet for ved hver redigering. I **Select Fields** beder du om `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. I **Fields to watch** klikker du på **Rediger som JSON** og sætter `{"currentIncidentStateId": true}`. Triggeren udløses så kun ved tilstandsændringer i stedet for ved hver redigering. I **Fields to pass on** gør du det samme med `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Tilføj en **If / Else**-blok: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — eller hvad dit projekts løste tilstand nu hedder. Se [Hændelsestilstande og alvorligheder](/docs/incidents/states-and-severities).
 
 Fra grenen **Yes** skal du først finde den sag, du oprettede i Trin 2. Bed Jira om den ved hjælp af det id, du gemte i Trin 3, med en **API Post (JSON)**-blok, hvis **Identifier** er `find-issue`:

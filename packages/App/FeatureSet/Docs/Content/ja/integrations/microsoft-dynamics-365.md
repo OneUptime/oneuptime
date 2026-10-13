@@ -68,7 +68,7 @@ Microsoft は本番アプリケーションではクライアントシークレ�
 実行のたびに自前のトークンを取得します。トークンの寿命は 60〜90 分で、クライアント資格情報フローはリフレッシュトークンを発行しないため、キャッシュするものも更新するものもありません — 実行ごとの HTTP 呼び出し 1 回がコストのすべてです。
 
 1. **ワークフロー → ワークフローを作成** を開き、`Incidents → Dynamics 365` という名前にして **ビルダー** を開きます。
-2. 破線のプレースホルダーをクリックして **On Create Incident** トリガーを追加し、その **Select Fields** で送信したい列を指定します。
+2. 破線のプレースホルダーをクリックして **On Create Incident** トリガーを追加し、その **Fields to pass on** で **JSON として編集** をクリックして、送信したい列を指定します。
 
    ```json
    {
@@ -192,7 +192,7 @@ Dynamics の `severitycode` は既定で「Default Value」という選択肢が
 これは **2 つ目の** ワークフローとして作ってください。そうすればここでの失敗がケースの作成を止めることはありません。
 
 1. **ワークフローを作成** し、`Incident resolved → Close Dynamics case` という名前にして **On Update Incident** トリガーを追加します。
-2. トリガーの **Listen on** に `{"currentIncidentStateId": true}` を設定し、編集のたびではなく状態変更のときだけワークフローが起きるようにします。**Select Fields** には `{"_id": true, "currentIncidentState": {"name": true}}` を指定します。
+2. トリガーの **Fields to watch** で **JSON として編集** をクリックして `{"currentIncidentStateId": true}` を設定し、編集のたびではなく状態変更のときだけワークフローが起きるようにします。**Fields to pass on** でも同じようにして `{"_id": true, "currentIncidentState": {"name": true}}` を指定します。
 3. **If / Else** ブロックを追加します。**Input 1** は `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`、**Operator** は `==`、**Input 2** は `Resolved` — またはプロジェクトの解決済み状態の名前です。[インシデントの状態と重大度](/docs/incidents/states-and-severities) を参照してください。
 4. **Yes** ブランチから、ステップ 4 の `get-token` ブロックを繰り返します。
 5. **API Get (JSON)** ブロックを追加し、**Identifier** を `find-case` にして、ステップ 6 の `$filter` URL を指定します。Dataverse のクエリは `value` 配列で応答し、ワークフローの参照は角かっこで配列に添字を付けられるので、ケース id は `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}` になります。

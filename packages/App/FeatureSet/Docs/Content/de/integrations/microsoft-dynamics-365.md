@@ -68,7 +68,7 @@ Referenzieren Sie jede davon aus einem Baustein mit `{{global.variables.DYNAMICS
 Jede Ausführung holt ihr eigenes Token. Token halten 60–90 Minuten, und der Flow client credentials stellt nie ein Refresh Token aus, es gibt also nichts zwischenzuspeichern und nichts zu erneuern – ein zusätzlicher HTTP-Aufruf pro Ausführung ist der gesamte Aufwand.
 
 1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**, benennen Sie ihn `Incidents → Dynamics 365`, und öffnen Sie den **Editor**.
-2. Klicken Sie auf den gestrichelten Platzhalter, fügen Sie den Trigger **On Create Incident** hinzu und fordern Sie in dessen **Select Fields** die Spalten an, die Sie senden möchten:
+2. Klicken Sie auf den gestrichelten Platzhalter, fügen Sie den Trigger **On Create Incident** hinzu, klicken Sie in dessen **Fields to pass on** auf **Als JSON bearbeiten** und fordern Sie die Spalten an, die Sie senden möchten:
 
    ```json
    {
@@ -192,7 +192,7 @@ Die umgekehrte Richtung – die Dynamics-Case-ID am OneUptime-Vorfall zu speiche
 Bauen Sie das als **zweiten** Workflow, damit ein Fehler hier das Öffnen von Cases nicht verhindern kann.
 
 1. **Arbeitsablauf erstellen**, benennen Sie ihn `Incident resolved → Close Dynamics case`, und fügen Sie den Trigger **On Update Incident** hinzu.
-2. Tragen Sie in **Listen on** des Triggers `{"currentIncidentStateId": true}` ein, damit der Workflow nur bei Zustandsänderungen aufwacht statt bei jeder Bearbeitung. Fordern Sie in **Select Fields** `{"_id": true, "currentIncidentState": {"name": true}}` an.
+2. Klicken Sie in **Fields to watch** des Triggers auf **Als JSON bearbeiten** und tragen Sie `{"currentIncidentStateId": true}` ein, damit der Workflow nur bei Zustandsänderungen aufwacht statt bei jeder Bearbeitung. Verfahren Sie in **Fields to pass on** genauso mit `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Fügen Sie einen Baustein **If / Else** hinzu. **Input 1** ist `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** ist `==`, **Input 2** ist `Resolved` – oder wie auch immer der aufgelöste Zustand in Ihrem Projekt heißt. Siehe [Vorfallszustände & Schweregrade](/docs/incidents/states-and-severities).
 4. Wiederholen Sie vom Zweig **Ja** aus den Baustein `get-token` aus Schritt 4.
 5. Fügen Sie einen Baustein **API Get (JSON)** hinzu, setzen Sie seinen **Identifier** auf `find-case` und geben Sie ihm die `$filter`-URL aus Schritt 6. Eine Dataverse-Abfrage antwortet mit einem `value`-Array, und eine Workflow-Referenz kann mit Klammern in ein Array hineingreifen, die Case-ID ist also `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

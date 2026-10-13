@@ -68,7 +68,7 @@ Referencia cualquiera de ellas desde un bloque con `{{global.variables.DYNAMICS_
 Cada ejecución obtiene su propio token. Los tokens duran de 60 a 90 minutos y el flujo de client credentials nunca emite un refresh token, así que no hay nada que cachear ni nada que renovar — una llamada HTTP extra por ejecución es todo el coste.
 
 1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → Dynamics 365` y abre el **Constructor**.
-2. Haz clic en el marcador de posición punteado, añade el disparador **On Create Incident** y en su **Select Fields** pide las columnas que quieras enviar:
+2. Haz clic en el marcador de posición punteado, añade el disparador **On Create Incident** y en su **Fields to pass on** haz clic en **Editar como JSON** y pide las columnas que quieras enviar:
 
    ```json
    {
@@ -192,7 +192,7 @@ La dirección inversa —guardar el id del caso de Dynamics en el incidente de O
 Construye esto como un **segundo** workflow para que un fallo aquí no pueda impedir que se abran casos.
 
 1. **Crear flujo de trabajo**, nómbralo `Incident resolved → Close Dynamics case` y añade el disparador **On Update Incident**.
-2. En el **Listen on** del disparador, pon `{"currentIncidentStateId": true}` para que el workflow solo despierte con los cambios de estado en lugar de con cada edición. En **Select Fields**, pide `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. En el **Fields to watch** del disparador, haz clic en **Editar como JSON** y pon `{"currentIncidentStateId": true}` para que el workflow solo despierte con los cambios de estado en lugar de con cada edición. En **Fields to pass on**, haz lo mismo con `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Añade un bloque **If / Else**. **Input 1** es `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** es `==`, **Input 2** es `Resolved` — o como se llame el estado resuelto de tu proyecto. Consulta [Estados y gravedades de incidentes](/docs/incidents/states-and-severities).
 4. Desde la rama **Sí**, repite el bloque `get-token` del Paso 4.
 5. Añade un bloque **API Get (JSON)**, pon su **Identifier** en `find-case` y dale la URL con `$filter` del Paso 6. Una consulta de Dataverse responde con un array `value`, y una referencia de workflow puede indexar dentro de un array con corchetes, así que el id del caso es `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}`.

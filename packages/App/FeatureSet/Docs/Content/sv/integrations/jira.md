@@ -46,7 +46,7 @@ Om din organisation använder Atlassians centraliserade användarhantering finns
 ## Steg 2 — Öppna ett Jira-ärende för varje incident
 
 1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Jira` och öppna **Byggare**.
-2. Klicka på det streckade platshållarblocket och lägg till utlösaren **On Create Incident**. I dess **Select Fields**, be om kolumnerna du vill skicka:
+2. Klicka på det streckade platshållarblocket och lägg till utlösaren **On Create Incident**. I dess **Fields to pass on**, klicka på **Redigera som JSON** och be om kolumnerna du vill skicka:
 
    ```json
    {
@@ -164,14 +164,14 @@ När du ändå är här är det värt att lägga till en länk på Jira-ärendet
 }
 ```
 
-ger alla i Jira en väg tillbaka med ett klick. Lägg till `projectId` i utlösarens **Select Fields** för det här. `globalId` är det som gör anropet säkert att upprepa: Jira uppdaterar länken som redan bär det id:t i stället för att lägga till en andra. Eftersom en uppdatering också nollställer allt du utelämnar ska du alltid skicka hela `object`, inte en delmängd av det.
+ger alla i Jira en väg tillbaka med ett klick. Lägg till `projectId` i utlösarens **Fields to pass on** för det här. `globalId` är det som gör anropet säkert att upprepa: Jira uppdaterar länken som redan bär det id:t i stället för att lägga till en andra. Eftersom en uppdatering också nollställer allt du utelämnar ska du alltid skicka hela `object`, inte en delmängd av det.
 
 ## Steg 4 — Kommentera och byt status när incidenten rör sig
 
 Bygg det här som ett **andra** arbetsflöde, så att ett fel här aldrig kan hindra att ärenden öppnas.
 
 1. **Skapa arbetsflöde**, namnge det `Incident updates → Jira` och lägg till utlösaren **On Update Incident**.
-2. I **Listen on**, skriv `{"currentIncidentStateId": true}`. Utlösaren utlöses då bara för tillståndsändringar i stället för varje redigering. I **Select Fields**, be om `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. I **Fields to watch**, klicka på **Redigera som JSON** och skriv `{"currentIncidentStateId": true}`. Utlösaren utlöses då bara för tillståndsändringar i stället för varje redigering. I **Fields to pass on**, gör likadant med `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Lägg till ett **If / Else**-block: **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — eller vad ditt projekts lösta tillstånd nu heter. Se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
 
 Från grenen **Yes** måste du först hitta ärendet du öppnade i Steg 2. Be Jira om det med id:t du sparade i Steg 3, med ett **API Post (JSON)**-block vars **Identifier** är `find-issue`:

@@ -68,7 +68,7 @@ Microsoft는 프로덕션 애플리케이션에서 클라이언트 시크릿보�
 실행할 때마다 자체 토큰을 가져옵니다. 토큰은 60~90분 동안 유효하고 client credentials 흐름은 리프레시 토큰을 발급하지 않으므로, 캐시할 것도 갱신할 것도 없습니다. 실행당 HTTP 호출 한 번이 전부입니다.
 
 1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → Dynamics 365` 로 지정한 다음 **빌더** 를 엽니다.
-2. 점선 자리 표시자를 클릭해 **On Create Incident** 트리거를 추가하고, 그 **Select Fields** 에서 전송할 컬럼을 요청합니다:
+2. 점선 자리 표시자를 클릭해 **On Create Incident** 트리거를 추가하고, 그 **Fields to pass on** 에서 **JSON으로 편집** 을 클릭하고 전송할 컬럼을 요청합니다:
 
    ```json
    {
@@ -192,7 +192,7 @@ Case 테이블에 **single line of text** 컬럼을 추가하고, 예를 들어 
 이 부분은 **두 번째** 워크플로로 만드세요. 그래야 여기서 실패해도 케이스 생성이 멈추지 않습니다.
 
 1. **워크플로 생성** 으로 이름을 `Incident resolved → Close Dynamics case` 로 지정하고 **On Update Incident** 트리거를 추가합니다.
-2. 트리거의 **Listen on** 에 `{"currentIncidentStateId": true}` 를 넣어 모든 편집이 아니라 상태 변경에만 워크플로가 깨어나게 합니다. **Select Fields** 에는 `{"_id": true, "currentIncidentState": {"name": true}}` 를 요청합니다.
+2. 트리거의 **Fields to watch** 에서 **JSON으로 편집** 을 클릭하고 `{"currentIncidentStateId": true}` 를 넣어 모든 편집이 아니라 상태 변경에만 워크플로가 깨어나게 합니다. **Fields to pass on** 에도 같은 방법으로 `{"_id": true, "currentIncidentState": {"name": true}}` 를 넣습니다.
 3. **If / Else** 블록을 추가합니다. **Input 1** 은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** 는 `==`, **Input 2** 는 `Resolved` — 또는 프로젝트에서 해결 상태를 부르는 이름입니다. [인시던트 상태 및 심각도](/docs/incidents/states-and-severities) 를 참조하세요.
 4. **Yes** 분기에서 4단계의 `get-token` 블록을 그대로 반복합니다.
 5. **API Get (JSON)** 블록을 추가하고 **Identifier** 를 `find-case` 로 설정한 다음 6단계의 `$filter` URL을 지정합니다. Dataverse 쿼리는 `value` 배열로 응답하고 워크플로 참조는 대괄호로 배열을 인덱싱할 수 있으므로, 케이스 id는 `{{local.components.find-case.returnValues.response-body.value[0].incidentid}}` 입니다.

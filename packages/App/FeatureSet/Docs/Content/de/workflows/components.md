@@ -247,27 +247,27 @@ Seine Einstellungen lesen sich wie ein Satz: **Wenn** *zu prüfender Wert* *Verg
 
 | Einstellung        | Was sie tut                                                                                                                                  |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Meist ein Wert aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`.                            |
-| **Comparison**     | Wie verglichen wird, in Worten. Die Vergleiche stehen unten.                                                                                 |
-| **Compare with**   | Womit verglichen wird, getippt oder auf dieselbe Weise gewählt. **ist leer**, **ist nicht leer**, **is true** und **is false** verwenden es nicht. |
-| **Compare as**     | Unter dem Vergleich eingeklappt: **Text**, **Zahl** oder **True / False**. Wählen Sie **Text**, um als `2026-10-01` geschriebene Daten zu ordnen, oder **Zahl**, damit `200` und `200.0` gleich sind. |
+| **Zu prüfender Wert** | Meist ein Wert aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`.                            |
+| **Vergleich**     | Wie verglichen wird, in Worten. Die Vergleiche stehen unten.                                                                                 |
+| **Vergleichen mit**   | Womit verglichen wird, getippt oder auf dieselbe Weise gewählt. **ist leer**, **ist nicht leer**, **ist wahr** und **ist falsch** verwenden es nicht. |
+| **Vergleichen als**     | Unter dem Vergleich eingeklappt: **Text**, **Zahl** oder **Wahr / Falsch**. Wählen Sie **Text**, um als `2026-10-01` geschriebene Daten zu ordnen, oder **Zahl**, damit `200` und `200.0` gleich sind. |
 
 Die Vergleiche:
 
-- **is equal to** und **is not equal to**;
+- **ist gleich** und **ist ungleich**;
 - für Text: **enthält**, **enthält nicht**, **beginnt mit** und **endet mit**;
-- für Zahlen: **ist größer als**, **is greater than or equal to**, **ist kleiner als** und **is less than or equal to**;
+- für Zahlen: **ist größer als**, **ist größer oder gleich**, **ist kleiner als** und **ist kleiner oder gleich**;
 - **ist leer** und **ist nicht leer**, die prüfen, ob der Wert überhaupt da ist;
-- **is true** und **is false**.
+- **ist wahr** und **ist falsch**.
 
-Die Zahlenvergleiche vergleichen Zahlen und die Textvergleiche Text, daher brauchen Sie **Compare as** selten. So werden die Werte verglichen:
+Die Zahlenvergleiche vergleichen Zahlen und die Textvergleiche Text, daher brauchen Sie **Vergleichen als** selten. So werden die Werte verglichen:
 
 - Als Text zählen Großbuchstaben: `Error` ist nicht `error`.
 - Als Zahlen zählt Text, der keine Zahl ist, als `0`. Die Einstellungen weisen auf einen solchen getippten Wert hin.
 - Als wahr oder falsch zählt nur `true` als wahr.
 - **ist leer** wird erfüllt von gar nichts, leerem Text, einer leeren Liste oder einem leeren Objekt oder einem Wert, den der frühere Baustein nicht hatte, etwa einem Feld, das der Webhook nicht gesendet hat. `0` und `false` sind Werte, also nicht leer.
 
-**Yes** läuft, wenn die Bedingung erfüllt ist, und **No**, wenn nicht. Bausteine, die eingerichtet wurden, bevor die Einstellungen diese Namen hatten, laufen genau wie zuvor. Eine alte Wahl wird nicht mehr angeboten: einen Wert als **Null** oder **Undefined** zu vergleichen, was ignorierte, was der Wert enthielt. Ein Baustein, der sie noch verwendet, sagt das, wenn Sie ihn öffnen; wählen Sie **ist leer**, um auf einen fehlenden Wert zu prüfen.
+**Yes** läuft, wenn die Bedingung erfüllt ist, und **No**, wenn nicht. Bausteine, die eingerichtet wurden, bevor die Einstellungen diese Namen hatten, laufen genau wie zuvor. Eine alte Wahl wird nicht mehr angeboten: einen Wert als **Null** oder **Undefiniert** zu vergleichen, was ignorierte, was der Wert enthielt. Ein Baustein, der sie noch verwendet, sagt das, wenn Sie ihn öffnen; wählen Sie **ist leer**, um auf einen fehlenden Wert zu prüfen.
 
 ## Switch / Case
 
@@ -277,12 +277,12 @@ Er vergleicht einen Wert der Reihe nach von oben mit jedem seiner Fälle und geh
 
 | Einstellung        | Was sie tut |
 | ------------------ | ----------- |
-| **Value to check** | Der Wert, mit dem jeder Fall verglichen wird, meist aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`. |
+| **Zu prüfender Wert** | Der Wert, mit dem jeder Fall verglichen wird, meist aus einem früheren Baustein. Drücken Sie **{ }** im Feld, um einen zu wählen, oder tippen Sie `{{`. |
 | **Cases**          | Ein Vergleich und ein Wert für jeden Weg, von oben geprüft. Drücken Sie **Fall hinzufügen** für einen weiteren, und ziehen Sie einen Fall an seinem Griff, um ihn zu verschieben. Ein Baustein enthält höchstens 25 Fälle. |
 
-Jeder Fall ist ein Ausgang auf der Arbeitsfläche, benannt nach seinem Wert: Ein Fall mit **is equal to** `production` ist der Ausgang *production*, und einer mit **ist größer als** `500` ist *is greater than 500*. **Default** ist immer der letzte Ausgang. Verbinden Sie jeden Ausgang mit dem, was als Nächstes laufen soll.
+Jeder Fall ist ein Ausgang auf der Arbeitsfläche, benannt nach seinem Wert: Ein Fall mit **ist gleich** `production` ist der Ausgang *production*, und einer mit **ist größer als** `500` ist *is greater than 500*. **Default** ist immer der letzte Ausgang. Verbinden Sie jeden Ausgang mit dem, was als Nächstes laufen soll.
 
-Ein Fall passt genau dann, wenn ein [If / Else](#conditions) mit demselben Vergleich und Wert **Yes** nehmen würde: Die Vergleiche sind dieselben, und die Werte werden auf dieselbe Weise verglichen. **Compare as** ist unter den Fällen eingeklappt, mit einer Wahl für jeden Fall.
+Ein Fall passt genau dann, wenn ein [If / Else](#conditions) mit demselben Vergleich und Wert **Yes** nehmen würde: Die Vergleiche sind dieselben, und die Werte werden auf dieselbe Weise verglichen. **Vergleichen als** ist unter den Fällen eingeklappt, mit einer Wahl für jeden Fall.
 
 Wenn Sie einen Fall entfernen, der eine Verbindung hat, zeigen die Einstellungen, zu welchen Bausteinen er führte, und **Wiederherstellen** holt den Fall zurück. Beim Speichern wird die Verbindung zusammen mit dem Fall entfernt. Die Prüfungen des Editors weisen auf einen Fall hin, mit dem nichts verbunden ist, und auf einen Fall, der nie genommen wird, weil ein Fall darüber dasselbe fragt.
 
@@ -366,7 +366,7 @@ Eine Abfrage ist immer auf das Projekt beschränkt, in dem der Workflow läuft. 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Protokoll der Ausführung nennt die verworfenen, schauen Sie also dort nach, wenn ein Feld nicht ankommt. **Select Fields** bei den Find-Komponenten und den Triggern verwendet dieselben Spaltenschlüssel mit `true`-Werten: `{"_id": true, "name": true}`.
+Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Protokoll der Ausführung nennt die verworfenen, schauen Sie also dort nach, wenn ein Feld nicht ankommt. **Fields to pass on** bei den Find-Komponenten und den Triggern wird aus einer Liste gewählt; **Als JSON bearbeiten** zeigt dort dieselben Spaltenschlüssel mit `true`-Werten: `{"_id": true, "name": true}`.
 
 **Custom fields** sind eine Spalte, `customFields`, die den Wert jedes benutzerdefinierten Felds unter dem Namen des Felds enthält. Die Update-Komponenten ändern nur die benutzerdefinierten Felder, die Sie nennen, und jedes andere behält seinen Wert:
 

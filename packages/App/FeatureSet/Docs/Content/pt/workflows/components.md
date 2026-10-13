@@ -247,27 +247,27 @@ As configurações dele se leem como uma frase: **Se** *valor a verificar* *comp
 
 | Configuração       | O que faz                                                                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Value to check** | Normalmente um valor de um bloco anterior. Pressione **{ }** na caixa para escolher um, ou digite `{{`.                                  |
-| **Comparison**     | Como comparar, em palavras. As comparações estão listadas abaixo.                                                                        |
-| **Compare with**   | Com o que comparar, digitado ou escolhido do mesmo jeito. **está vazio**, **não está vazio**, **is true** e **is false** não o usam.     |
-| **Compare as**     | Recolhido sob a comparação: **Text**, **Número** ou **True / False**. Escolha **Text** para ordenar datas escritas `2026-10-01`, ou **Número** para que `200` e `200.0` sejam iguais. |
+| **Valor a verificar** | Normalmente um valor de um bloco anterior. Pressione **{ }** na caixa para escolher um, ou digite `{{`.                                  |
+| **Comparação**     | Como comparar, em palavras. As comparações estão listadas abaixo.                                                                        |
+| **Comparar com**   | Com o que comparar, digitado ou escolhido do mesmo jeito. **está vazio**, **não está vazio**, **é verdadeiro** e **é falso** não o usam.     |
+| **Comparar como**     | Recolhido sob a comparação: **Text**, **Número** ou **Verdadeiro / Falso**. Escolha **Text** para ordenar datas escritas `2026-10-01`, ou **Número** para que `200` e `200.0` sejam iguais. |
 
 As comparações:
 
-- **is equal to** e **is not equal to**;
+- **é igual a** e **não é igual a**;
 - para texto: **contém**, **não contém**, **começa com** e **termina com**;
-- para números: **é maior que**, **is greater than or equal to**, **é menor que** e **is less than or equal to**;
+- para números: **é maior que**, **é maior ou igual a**, **é menor que** e **é menor ou igual a**;
 - **está vazio** e **não está vazio**, que verificam se o valor está presente;
-- **is true** e **is false**.
+- **é verdadeiro** e **é falso**.
 
-As comparações de números comparam números e as de texto comparam texto, então você raramente precisa de **Compare as**. Como os valores são comparados:
+As comparações de números comparam números e as de texto comparam texto, então você raramente precisa de **Comparar como**. Como os valores são comparados:
 
 - Como texto, maiúsculas contam: `Error` não é `error`.
 - Como números, um texto que não é número vale `0`. As configurações apontam um valor digitado assim.
 - Como verdadeiro ou falso, só `true` conta como verdadeiro.
 - **está vazio** é satisfeito pela ausência de valor, um texto em branco, uma lista ou um objeto vazio, ou um valor que o bloco anterior não tinha, como um campo que o webhook não enviou. `0` e `false` são valores, então não estão vazios.
 
-**Yes** roda quando a condição é atendida e **No** quando não é. Os blocos configurados antes de as configurações terem esses nomes rodam exatamente como antes. Uma opção antiga não é mais oferecida: comparar um valor como **Null** ou **Undefined**, o que ignorava o que o valor continha. Um bloco que ainda a usa avisa quando você o abre; escolha **está vazio** para verificar um valor ausente.
+**Yes** roda quando a condição é atendida e **No** quando não é. Os blocos configurados antes de as configurações terem esses nomes rodam exatamente como antes. Uma opção antiga não é mais oferecida: comparar um valor como **Nulo** ou **Indefinido**, o que ignorava o que o valor continha. Um bloco que ainda a usa avisa quando você o abre; escolha **está vazio** para verificar um valor ausente.
 
 ## Switch / Case
 
@@ -277,12 +277,12 @@ Ele compara um valor com cada um dos seus casos, um de cada vez, de cima para ba
 
 | Configuração       | O que faz |
 | ------------------ | --------- |
-| **Value to check** | O valor com que cada caso é comparado, normalmente de um bloco anterior. Pressione **{ }** na caixa para escolher um, ou digite `{{`. |
+| **Valor a verificar** | O valor com que cada caso é comparado, normalmente de um bloco anterior. Pressione **{ }** na caixa para escolher um, ou digite `{{`. |
 | **Cases**          | Uma comparação e um valor para cada caminho, verificados de cima para baixo. Pressione **Adicionar caso** para adicionar outro, e arraste um caso pela alça para movê-lo. Um bloco comporta no máximo 25 casos. |
 
-Cada caso é uma saída no canvas, com o nome do seu valor: um caso que pergunta **is equal to** `production` é a saída *production*, e um que pergunta **é maior que** `500` é *is greater than 500*. **Default** é sempre a última saída. Conecte cada saída ao que deve rodar em seguida.
+Cada caso é uma saída no canvas, com o nome do seu valor: um caso que pergunta **é igual a** `production` é a saída *production*, e um que pergunta **é maior que** `500` é *is greater than 500*. **Default** é sempre a última saída. Conecte cada saída ao que deve rodar em seguida.
 
-Um caso corresponde exatamente quando um [If / Else](#conditions) com a mesma comparação e o mesmo valor seguiria por **Yes**: as comparações são as mesmas, e os valores são comparados do mesmo jeito. **Compare as** fica recolhido sob os casos, com uma escolha para cada caso.
+Um caso corresponde exatamente quando um [If / Else](#conditions) com a mesma comparação e o mesmo valor seguiria por **Yes**: as comparações são as mesmas, e os valores são comparados do mesmo jeito. **Comparar como** fica recolhido sob os casos, com uma escolha para cada caso.
 
 Quando você remove um caso que tem uma conexão, as configurações dizem a quais blocos ele levava, e **Restaurar** traz o caso de volta. Salvar remove a conexão junto com o caso. As verificações do Construtor apontam um caso sem nada conectado e um caso que nunca é escolhido porque um caso acima dele pergunta o mesmo.
 
@@ -366,7 +366,7 @@ Uma consulta sempre fica limitada ao projeto em que o workflow roda. Você não 
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Uma chave que não é coluna é ignorada em vez de recusada — o log da execução nomeia as que foram descartadas, então confira lá quando um campo não for gravado. **Select Fields**, nos componentes Find e nos gatilhos, usa as mesmas chaves de coluna com valores `true`: `{"_id": true, "name": true}`.
+Uma chave que não é coluna é ignorada em vez de recusada — o log da execução nomeia as que foram descartadas, então confira lá quando um campo não for gravado. **Fields to pass on**, nos componentes Find e nos gatilhos, é escolhido em uma lista; o **Editar como JSON** dele mostra as mesmas chaves de coluna com valores `true`: `{"_id": true, "name": true}`.
 
 Os **campos personalizados** são uma única coluna, `customFields`, que guarda o valor de cada campo personalizado sob o nome do campo. Os componentes Update só alteram os campos personalizados que você nomeia, e todos os outros mantêm o valor:
 

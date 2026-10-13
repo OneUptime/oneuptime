@@ -46,7 +46,7 @@ Si votre organisation utilise la gestion centralisée des utilisateurs d'Atlassi
 ## Étape 2 — Ouvrir un ticket Jira pour chaque incident
 
 1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → Jira`, et ouvrez le **Constructeur**.
-2. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Dans son champ **Select Fields**, demandez les colonnes que vous voulez envoyer :
+2. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Dans son champ **Fields to pass on**, cliquez sur **Modifier en JSON** et demandez les colonnes que vous voulez envoyer :
 
    ```json
    {
@@ -164,14 +164,14 @@ Tant que vous y êtes, il vaut la peine d'ajouter sur le ticket Jira un lien ver
 }
 ```
 
-donne à tout le monde dans Jira un chemin de retour en un clic. Ajoutez `projectId` au **Select Fields** du déclencheur pour cela. Le `globalId` est ce qui rend l'appel sûr à répéter : Jira met à jour le lien qui porte déjà cet identifiant au lieu d'en ajouter un second. Comme une mise à jour vide aussi tout ce que vous omettez, envoyez toujours l'`object` entier, pas un correctif partiel.
+donne à tout le monde dans Jira un chemin de retour en un clic. Ajoutez `projectId` au **Fields to pass on** du déclencheur pour cela. Le `globalId` est ce qui rend l'appel sûr à répéter : Jira met à jour le lien qui porte déjà cet identifiant au lieu d'en ajouter un second. Comme une mise à jour vide aussi tout ce que vous omettez, envoyez toujours l'`object` entier, pas un correctif partiel.
 
 ## Étape 4 — Commenter et faire transiter le ticket à mesure que l'incident évolue
 
 Construisez ceci comme un **second** workflow, pour qu'un échec ici n'empêche jamais l'ouverture des tickets.
 
 1. **Créer un flux de travail**, nommez-le `Incident updates → Jira`, et ajoutez le déclencheur **On Update Incident**.
-2. Dans **Listen on**, mettez `{"currentIncidentStateId": true}`. Le déclencheur ne se déclenche alors que pour les changements d'état, et non à chaque modification. Dans **Select Fields**, demandez `{"_id": true, "currentIncidentState": {"name": true}}`.
+2. Dans **Fields to watch**, cliquez sur **Modifier en JSON** et mettez `{"currentIncidentStateId": true}`. Le déclencheur ne se déclenche alors que pour les changements d'état, et non à chaque modification. Dans **Fields to pass on**, faites de même avec `{"_id": true, "currentIncidentState": {"name": true}}`.
 3. Ajoutez un bloc **If / Else** : **Input 1** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Operator** `==`, **Input 2** `Resolved` — ou le nom que porte l'état résolu dans votre projet. Voir [États et sévérités des incidents](/docs/incidents/states-and-severities).
 
 Depuis la branche **Oui**, il faut d'abord retrouver le ticket ouvert à l'Étape 2. Demandez-le à Jira par l'id que vous avez stocké à l'Étape 3, avec un bloc **API Post (JSON)** dont l'**Identifier** est `find-issue` :
