@@ -85,7 +85,9 @@ interface StoredDevice {
   id: string;
   deviceName: string;
   deviceToken: string;
+  deviceType?: string;
   isVerified: boolean;
+  isCriticalAlertEnabled?: boolean;
 }
 
 // A subscription as the stand-in push service holds it.
@@ -1098,5 +1100,413 @@ test.describe("when the browser replaces its push subscription", () => {
       deviceToken: state.browserSubscription,
       isVerified: true,
     });
+  });
+});
+
+/*
+ * Critical Alerts in the device list (Push.tsx, PushDeviceCriticalAlert*):
+ * a state of each device, set in the OneUptime On-Call app on it, drawn as a
+ * status and never as a control - and, while it is off, the steps that turn
+ * it on, for that phone's platform. The fixture's devices stand in for what
+ * the app and the browsers registered (POST /__fixture/devices).
+ */
+test.describe("critical alerts in the device list", () => {
+  interface SeededDevice {
+    deviceName: string;
+    deviceType: string;
+    isCriticalAlertEnabled?: boolean;
+    isVerified?: boolean;
+    deviceToken?: string;
+  }
+
+  const PIXEL: SeededDevice = {
+    deviceName: "Pixel 10",
+    deviceType: "android",
+    isCriticalAlertEnabled: true,
+  };
+
+  const IPHONE: SeededDevice = {
+    deviceName: "iPhone 15 Pro",
+    deviceType: "ios",
+  };
+
+  const GALAXY: SeededDevice = {
+    deviceName: "SM-S918B",
+    deviceType: "android",
+  };
+
+  const CHROME: SeededDevice = {
+    deviceName: "Chrome on macOS",
+    deviceType: "web",
+    deviceToken: '{"endpoint":"https://fcm.googleapis.com/fcm/send/mac"}',
+  };
+
+  const CHANNEL: RegExp = /[\d.]+/g;
+
+  async function seed(
+    request: APIRequestContext,
+    devices: Array<SeededDevice>,
+  ): Promise<void> {
+    const response: Awaited<ReturnType<APIRequestContext["post"]>> =
+      await request.post("/__fixture/devices", {
+        data: { devices: devices },
+      });
+
+    expect(response.ok()).toBe(true);
+  }
+
+  async function open(page: Page, query: string = ""): Promise<void> {
+    await page.goto(`${ROUTE}${query}`);
+    await expect(
+      page.getByRole("heading", { name: "Push Notification Devices" }),
+    ).toBeVisible();
+  }
+
+  function status(page: Page, deviceName: string): Locator {
+    return row(page, deviceName).getByTestId("critical-alert-status");
+  }
+
+  function steps(page: Page): Locator {
+    return dialog(page).locator(
+      "[data-testid='critical-alert-steps-list'] li > p",
+    );
+  }
+
+  async function listReads(page: Page): Promise<number> {
+    return await page.evaluate((): number => {
+      return (window as Window & { __fixture: { listReads: number } })
+        .__fixture.listReads;
+    });
+  }
+
+  // The average of a CSS colour's channels, 0 (black) to 255 (white).
+  function brightnessOf(color: string): number {
+    const channels: Array<number> = (color.match(CHANNEL) || [])
+      .slice(0, 3)
+      .map((channel: string): number => {
+        return Number(channel);
+      });
+
+    return (
+      channels.reduce((sum: number, channel: number): number => {
+        return sum + channel;
+      }, 0) / 3
+    );
+  }
+
+  async function badgeColours(
+    badge: Locator,
+  ): Promise<{ background: string; text: string }> {
+    return await badge.evaluate(
+      (element: Element): { background: string; text: string } => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return { background: style.backgroundColor, text: style.color };
+      },
+    );
+  }
+
+  test("each device's critical alerts read as a status, and Registered At is gone", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL, IPHONE, GALAXY, CHROME]);
+    await open(page);
+
+    await expect(status(page, "Pixel 10")).toHaveAttribute("data-state", "on");
+    await expect(status(page, "Pixel 10")).toContainText("On");
+    await expect(status(page, "Pixel 10")).toContainText(
+      "Rings through silent mode and Do Not Disturb",
+    );
+
+    await expect(status(page, "iPhone 15 Pro")).toHaveAttribute(
+      "data-state",
+      "off",
+    );
+    await expect(
+      status(page, "iPhone 15 Pro").getByRole("button", {
+        name: "How to turn on critical alerts on iPhone 15 Pro",
+      }),
+    ).toBeVisible();
+
+    await expect(status(page, "Chrome on macOS")).toHaveAttribute(
+      "data-state",
+      "not-available",
+    );
+    await expect(status(page, "Chrome on macOS")).toContainText(
+      "Not available in browsers",
+    );
+    await expect(status(page, "Chrome on macOS")).toContainText(
+      "A browser can't ring through silent mode",
+    );
+
+    // A status, never a control: nothing in the column to tick or flip.
+    expect(
+      await page
+        .locator(
+          "[data-testid='critical-alert-status'] input, [data-testid='critical-alert-status'] [role='switch'], [data-testid='critical-alert-status'] [role='checkbox']",
+        )
+        .count(),
+    ).toBe(0);
+
+    // Each device says what kind it is, and nothing says when it was added.
+    await expect(
+      row(page, "SM-S918B").getByTestId("push-device-platform"),
+    ).toHaveText("Android phone");
+    await expect(page.getByRole("columnheader")).toHaveText([
+      "Select all items",
+      "Device",
+      "Critical Alerts",
+      "Actions",
+    ]);
+    await expect(page.getByText("Registered At")).toHaveCount(0);
+
+    await screenshot(page, "critical-alerts-list-synthetic");
+  });
+
+  test("an iPhone's steps: open the app's Settings, turn the switch on, allow iOS's prompt", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL, IPHONE]);
+    await open(page);
+
+    await status(page, "iPhone 15 Pro")
+      .getByTestId("critical-alert-steps-link")
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Turn on critical alerts",
+    );
+    await expect(
+      dialog(page).getByTestId("critical-alert-steps-device"),
+    ).toContainText("iPhone 15 Pro");
+    await expect(steps(page)).toHaveText([
+      "Open OneUptime On-Call on this iPhone or iPad and tap Settings.",
+      "Under Notifications, turn on Critical On-Call Alerts.",
+      "When iOS asks whether OneUptime On-Call may send critical alerts, tap Allow.",
+    ]);
+    await expect(
+      dialog(page).getByTestId("critical-alert-steps-once-on"),
+    ).toContainText("Settings > Notifications > Alarm sound");
+    await expect(
+      dialog(page).getByTestId("critical-alert-steps-troubleshooting"),
+    ).toContainText("Tapped Don't Allow?");
+
+    await screenshot(page, "critical-alerts-ios-steps-synthetic");
+  });
+
+  test("an Android phone's steps end by turning the switch on again, after Do Not Disturb access", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [GALAXY]);
+    await open(page);
+
+    await status(page, "SM-S918B")
+      .getByTestId("critical-alert-steps-link")
+      .click();
+
+    await expect(steps(page)).toHaveText([
+      "Open OneUptime On-Call on this phone and tap Settings.",
+      "Under Notifications, turn on Critical On-Call Alerts.",
+      "Android opens Do Not Disturb access. Allow it for OneUptime On-Call.",
+      "Go back to the app and turn on Critical On-Call Alerts again.",
+    ]);
+
+    await screenshot(page, "critical-alerts-android-steps-synthetic");
+  });
+
+  test("closing the steps reads the list again: a phone turned on meanwhile reads On", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [IPHONE]);
+    await open(page);
+
+    await status(page, "iPhone 15 Pro")
+      .getByTestId("critical-alert-steps-link")
+      .click();
+    await expect(dialog(page)).toBeVisible();
+
+    const readsWithTheStepsOpen: number = await listReads(page);
+
+    // The responder follows the steps on the phone; the app tells the server.
+    await seed(request, [{ ...IPHONE, isCriticalAlertEnabled: true }]);
+
+    await dialog(page).getByTestId("modal-footer-close-button").click();
+
+    await expect(dialog(page)).toHaveCount(0);
+    await expect(status(page, "iPhone 15 Pro")).toHaveAttribute(
+      "data-state",
+      "on",
+    );
+    expect(await listReads(page)).toBeGreaterThan(readsWithTheStepsOpen);
+  });
+
+  test("a browser alone is offered the mobile app, with both stores", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [CHROME]);
+    await open(page);
+
+    await status(page, "Chrome on macOS")
+      .getByRole("button", { name: "How to get critical alerts on your phone" })
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Get the mobile app",
+    );
+    await expect(
+      dialog(page).getByRole("link", { name: "App Store" }),
+    ).toHaveAttribute(
+      "href",
+      "https://apps.apple.com/us/app/oneuptime-on-call/id6759615391",
+    );
+    await expect(
+      dialog(page).getByRole("link", { name: "Google Play" }),
+    ).toHaveAttribute(
+      "href",
+      "https://play.google.com/store/apps/details?id=com.oneuptime.oncall",
+    );
+    await expect(steps(page)).toHaveCount(3);
+
+    await screenshot(page, "critical-alerts-get-the-app-synthetic");
+  });
+
+  test("no devices yet: the card offers this browser and the mobile app", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, []);
+    await open(page);
+
+    await expect(page.getByText("No devices yet")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Register Device" }),
+    ).toHaveCount(2);
+
+    await screenshot(page, "critical-alerts-empty-synthetic");
+
+    await page.getByTestId("push-devices-empty-get-app").click();
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Get the mobile app",
+    );
+  });
+
+  test("a test to a phone with critical alerts on says it went as a critical alert", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL]);
+    await open(page);
+
+    await row(page, "Pixel 10")
+      .getByRole("button", { name: "Test Notification" })
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Test Notification Sent",
+    );
+    await expect(page.getByTestId("confirm-modal-description")).toHaveText(
+      "Sent to Pixel 10 as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
+    );
+  });
+
+  test("on a phone, in the dark theme: the list and the steps fit the screen, in dark-theme colours", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seed(request, [PIXEL, IPHONE, CHROME]);
+    await open(page, "?theme=dark");
+
+    await expect(page.locator("html")).toHaveClass("dark");
+
+    const onStatus: Locator = page.locator(
+      "[data-testid='critical-alert-status'][data-state='on']",
+    );
+
+    await expect(onStatus).toBeVisible();
+
+    const fits: () => Promise<boolean> = async (): Promise<boolean> => {
+      return await page.evaluate((): boolean => {
+        return (
+          document.documentElement.scrollWidth <= window.innerWidth &&
+          document.body.scrollWidth <= window.innerWidth
+        );
+      });
+    };
+
+    expect(await fits()).toBe(true);
+
+    // The On badge is a dark-theme wash with light text, not a pale patch.
+    const dark: { background: string; text: string } = await badgeColours(
+      onStatus.locator("> div").first(),
+    );
+
+    expect(brightnessOf(dark.background)).toBeLessThan(100);
+    expect(brightnessOf(dark.text)).toBeGreaterThan(150);
+
+    await screenshot(page, "critical-alerts-phone-dark-synthetic");
+
+    await page
+      .locator("[data-testid='critical-alert-status'][data-state='off']")
+      .getByTestId("critical-alert-steps-link")
+      .click();
+
+    await expect(dialog(page)).toBeVisible();
+
+    const box: { x: number; width: number } | null =
+      await dialog(page).boundingBox();
+
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    expect(await fits()).toBe(true);
+
+    await screenshot(page, "critical-alerts-phone-dark-steps-synthetic");
+  });
+
+  test("in the light theme the On badge is a pale green wash with dark text", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL]);
+    await open(page);
+
+    const light: { background: string; text: string } = await badgeColours(
+      status(page, "Pixel 10").locator("> div").first(),
+    );
+
+    expect(brightnessOf(light.background)).toBeGreaterThan(200);
+    expect(brightnessOf(light.text)).toBeLessThan(120);
   });
 });
