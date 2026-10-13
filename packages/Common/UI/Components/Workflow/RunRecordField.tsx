@@ -284,9 +284,16 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     useRef<HTMLButtonElement | null>(null);
   // Only the newest request may fill the list: a slow answer is dropped.
   const requestRef: React.MutableRefObject<number> = useRef<number>(0);
-  const focusInputRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
-  const focusChangeRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
+  /*
+   * Where the focus goes after a pick or after Change. Kept as state, set
+   * with the pick itself, so the move belongs to the render that swaps the
+   * box for the record (or back): a ref read by an effect can be read by an
+   * effect still waiting from the render before, while what it is to focus
+   * is not there yet.
+   */
+  const [focusAfter, setFocusAfter] = useState<{
+    on: "search" | "change";
+  } | null>(null);
 
   const trimmedQuery: string = query.trim();
 
@@ -357,16 +364,14 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
    * otherwise be nowhere.
    */
   useEffect(() => {
-    if (!picked && focusInputRef.current) {
-      focusInputRef.current = false;
+    if (focusAfter?.on === "search") {
       inputRef.current?.focus();
     }
 
-    if (picked && focusChangeRef.current) {
-      focusChangeRef.current = false;
+    if (focusAfter?.on === "change") {
       changeRef.current?.focus();
     }
-  }, [picked]);
+  }, [focusAfter]);
 
   const records: Array<RunRecordOption> =
     list.status === "loaded" ? list.records : [];
@@ -404,7 +409,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
     record: RunRecordOption,
     options?: { keepFocus: boolean },
   ): void => {
-    focusChangeRef.current = options?.keepFocus !== false;
+    setFocusAfter(options?.keepFocus === false ? null : { on: "change" });
     setPicked(record);
     setIsOpen(false);
     setQuery("");
@@ -426,7 +431,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
 
   // Back to the search, with the list open and the box focused.
   const change: ChangeFunction = (): void => {
-    focusInputRef.current = true;
+    setFocusAfter({ on: "search" });
     setPicked(null);
     setIsOpen(true);
     setList(IDLE_LIST);

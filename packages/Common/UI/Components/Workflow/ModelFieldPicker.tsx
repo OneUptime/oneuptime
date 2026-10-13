@@ -178,9 +178,16 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     useRef<HTMLButtonElement | null>(null);
   const chipsRef: React.MutableRefObject<HTMLUListElement | null> =
     useRef<HTMLUListElement | null>(null);
-  const focusAfterRemoveRef: React.MutableRefObject<number | null> = useRef<
-    number | null
-  >(null);
+  /*
+   * Where the focus goes once a chip is gone: the place the chip had. Kept
+   * as state, set with the removal itself, so the move belongs to the render
+   * that takes the chip away. As a ref read by an effect it could be read
+   * too soon - by an effect still waiting from the render before - which
+   * put the focus on the very chip being removed, and so on nothing.
+   */
+  const [focusAfterRemove, setFocusAfterRemove] = useState<{
+    index: number;
+  } | null>(null);
 
   type ShowChosenFunction = (chosen: ChosenFields) => void;
 
@@ -222,13 +229,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
 
   // After a chip goes, the focus moves to the chip that takes its place.
   useEffect(() => {
-    const index: number | null = focusAfterRemoveRef.current;
-
-    if (index === null) {
+    if (!focusAfterRemove) {
       return;
     }
-
-    focusAfterRemoveRef.current = null;
 
     const buttons: Array<HTMLButtonElement> = Array.from(
       chipsRef.current?.querySelectorAll<HTMLButtonElement>(
@@ -237,10 +240,10 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
     );
 
     const target: HTMLButtonElement | undefined =
-      buttons[Math.min(index, buttons.length - 1)];
+      buttons[Math.min(focusAfterRemove.index, buttons.length - 1)];
 
     (target || addButtonRef.current)?.focus();
-  }, [paths]);
+  }, [focusAfterRemove]);
 
   type EmitFunction = (next: Array<string>) => void;
 
@@ -275,7 +278,7 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
       return candidate !== path;
     });
 
-    focusAfterRemoveRef.current = current.indexOf(path);
+    setFocusAfterRemove({ index: current.indexOf(path) });
     setUnknownPaths((unknown: Array<string>) => {
       return unknown.filter((candidate: string): boolean => {
         return candidate !== path;

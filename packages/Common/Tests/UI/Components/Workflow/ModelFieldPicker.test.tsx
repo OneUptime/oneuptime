@@ -329,6 +329,62 @@ describe("Fields to pass on", () => {
     });
   });
 
+  /*
+   * The press that comes the moment the chips are drawn, before React has
+   * run that render's effects. Where the focus goes used to be a ref an
+   * effect read: the effect still waiting from the render before read it
+   * first, put the focus on the very chip being removed, and the focus was
+   * left on nothing. It showed as a test that failed once in a long while.
+   */
+  test("a chip removed the moment the chips are drawn still hands the focus on", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const pressed: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        const observer: MutationObserver = new MutationObserver((): void => {
+          const removes: NodeListOf<HTMLElement> =
+            document.querySelectorAll<HTMLElement>(
+              '[data-testid="fields-to-pass-on-remove"]',
+            );
+
+          if (removes.length === 3) {
+            observer.disconnect();
+            // Description, the middle one of three.
+            removes[1]!.click();
+            resolve();
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+      },
+    );
+
+    render(
+      <ModelFieldPicker
+        tableName="Incident"
+        initialValue={{ title: true, description: true, declaredAt: true }}
+        onChange={(value: string) => {
+          onChange(value);
+        }}
+      />,
+    );
+
+    await pressed;
+
+    await waitFor(() => {
+      expect(chips("fields-to-pass-on")).toEqual(["Title", "Declared At"]);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("fields-to-pass-on-remove")[1],
+      ).toHaveFocus();
+    });
+    expect(
+      screen.getAllByTestId("fields-to-pass-on-remove")[1],
+    ).toHaveAccessibleName("Remove Declared At");
+  });
+
   test("taking every field out stores nothing, which the form reads as not filled in", async () => {
     const harness: Harness = await renderPicker({ value: { title: true } });
 
