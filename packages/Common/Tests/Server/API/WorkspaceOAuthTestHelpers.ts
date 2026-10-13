@@ -153,12 +153,25 @@ export type CacheEntry = { value: string; expiresAt: number };
 export function createInMemoryGlobalCache(): {
   store: Map<string, CacheEntry>;
   setString: jest.Mock;
+  getString: jest.Mock;
   getAndDeleteString: jest.Mock;
 } {
   const store: Map<string, CacheEntry> = new Map();
 
   return {
     store,
+    // Reads without spending: a Connect button's request is peeked first.
+    getString: jest.fn(
+      async (namespace: string, key: string): Promise<string | null> => {
+        const entry: CacheEntry | undefined = store.get(`${namespace}-${key}`);
+
+        if (!entry || entry.expiresAt <= Date.now()) {
+          return null;
+        }
+
+        return entry.value;
+      },
+    ),
     setString: jest.fn(
       async (
         namespace: string,

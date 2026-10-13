@@ -376,12 +376,83 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Modal shown to user successfully.", modalLogAttributes);
   }
 
+  // The most a modal's title holds.
+  public static readonly MODAL_TITLE_MAX_LENGTH: number = 24;
+
+  /*
+   * A message shown in a modal that only closes: the answer to a press that
+   * has no channel to answer in - a global shortcut - opened where the
+   * person is. `triggerId` is the press's, good for three seconds.
+   */
+  @CaptureSpan()
+  public static async showMessageInModal(data: {
+    authToken: string;
+    triggerId: string;
+    title: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<void> {
+    const title: string =
+      data.title.length > SlackUtil.MODAL_TITLE_MAX_LENGTH
+        ? data.title.substring(0, SlackUtil.MODAL_TITLE_MAX_LENGTH - 1) + "…"
+        : data.title;
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString("https://slack.com/api/views.open"),
+        data: {
+          trigger_id: data.triggerId,
+          view: {
+            type: "modal",
+            title: {
+              type: "plain_text",
+              text: title,
+            },
+            close: {
+              type: "plain_text",
+              text: "Close",
+            },
+            blocks: this.getBlocksFromWorkspaceMessagePayload({
+              messageBlocks: data.messageBlocks,
+              maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
+            }),
+          },
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 1,
+          retryOnlyOnRetryableErrors: true,
+        },
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    if ((result.jsonData as JSONObject)?.["ok"] !== true) {
+      throw new BadRequestException(
+        "Error from Slack " +
+          String((result.jsonData as JSONObject)?.["error"] || ""),
+      );
+    }
+  }
+
+  /*
+   * A message only `userId` sees, in the channel - in the thread `threadTs`,
+   * when given - where they are: Slack shows it under "Only visible to you".
+   * `text` is what its notification shows.
+   */
   @CaptureSpan()
   public static async sendEphemeralMessageToChannel(data: {
     authToken: string;
     channelId: string;
     userId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    threadTs?: string | undefined;
+    text?: string | undefined;
   }): Promise<void> {
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       {
@@ -389,14 +460,24 @@ export default class SlackUtil extends WorkspaceBase {
       },
     );
 
+    const requestData: JSONObject = {
+      channel: data.channelId,
+      user: data.userId,
+      blocks: blocks,
+    };
+
+    if (data.threadTs) {
+      requestData["thread_ts"] = data.threadTs;
+    }
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString("https://slack.com/api/chat.postEphemeral"),
-        data: {
-          channel: data.channelId,
-          user: data.userId,
-          blocks: blocks,
-        },
+        data: requestData,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
@@ -433,11 +514,90 @@ export default class SlackUtil extends WorkspaceBase {
     } as LogAttributes);
   }
 
+  /*
+   * Whether `url` is a response_url Slack hands out: https on
+   * hooks.slack.com, read off the WHATWG parser (SSRFProtection), so a "#"
+   * or "?" in it cannot make another host look like Slack's.
+   */
+  public static isSlackResponseUrl(url: string | undefined): boolean {
+    if (!url) {
+      return false;
+    }
+
+    return SSRFProtection.isUrlOnAllowedDomain(url, ["hooks.slack.com"]);
+  }
+
+  /*
+   * Answers a press - a button, a slash command - through the response_url
+   * Slack handed with it: a message only the person who pressed sees, where
+   * they pressed it ("Only visible to you"), never replacing the message the
+   * button is on. Works whether or not OneUptime is in that channel, for
+   * thirty minutes and five answers per press. Throws when Slack refuses it
+   * (an expired or used address).
+   */
+  @CaptureSpan()
+  public static async sendEphemeralResponse(data: {
+    responseUrl: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text?: string | undefined;
+  }): Promise<void> {
+    if (!this.isSlackResponseUrl(data.responseUrl)) {
+      throw new BadDataException("Not a Slack response URL.");
+    }
+
+    const requestData: JSONObject = {
+      response_type: "ephemeral",
+      replace_original: false,
+      blocks: this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: data.messageBlocks,
+      }),
+    };
+
+    if (data.text) {
+      requestData["text"] = this.getNotificationText(data.text);
+    }
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString(data.responseUrl),
+        data: requestData,
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 1,
+          retryOnlyOnRetryableErrors: true,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    // Slack answers {"ok": false, "error": "expired_url"} for an address it no longer takes.
+    const body: unknown = response.jsonData;
+
+    if (
+      body &&
+      typeof body === "object" &&
+      (body as JSONObject)["ok"] === false
+    ) {
+      throw new BadRequestException(
+        "Error from Slack " + String((body as JSONObject)["error"] || ""),
+      );
+    }
+  }
+
   @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;
     messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * What the notification of the direct message says (Slack's top-level
+     * `text`): a direct message notifies, so it says something readable.
+     */
+    text?: string | undefined;
   }): Promise<void> {
     // Send direct message to user
 
@@ -455,6 +615,7 @@ export default class SlackUtil extends WorkspaceBase {
         workspaceType: WorkspaceType.Slack,
       },
       blocks: blocks,
+      text: data.text,
     });
   }
 
@@ -3201,6 +3362,10 @@ export default class SlackUtil extends WorkspaceBase {
         ? data.payloadButtonBlock.url.toString()
         : undefined,
     };
+
+    if (data.payloadButtonBlock.isPrimary) {
+      buttonBlock["style"] = "primary";
+    }
 
     logger.debug("Button block generated:", {} as LogAttributes);
     logger.debug(buttonBlock, {} as LogAttributes);

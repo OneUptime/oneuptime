@@ -215,11 +215,16 @@ export default class SlackReactionNoteActions {
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
 
+    /*
+     * A refusal is told where the reaction was made: a message only they
+     * see, in the channel (SlackActionAnswer), not a direct message.
+     */
     const requester: SlackActionRequester = {
       userId: oneUptimeUserId,
       projectId: projectId,
       projectAuthToken: authToken,
       slackUserId: userId,
+      slackChannelId: channelId,
     };
 
     const props: DatabaseCommonInteractionProps | null =

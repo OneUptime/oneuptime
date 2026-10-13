@@ -153,7 +153,7 @@ flowchart TB
 
 ## 从 Microsoft Teams 创建事件和维护
 
-向 OneUptime 机器人输入 `create incident` 或 `create maintenance`，无论是在个人聊天、频道还是群聊中，都会为输入的人打开一个表单。表单以此人的身份填写：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Microsoft Teams](#连接-microsoft-teams) ），按该账户在项目中的权限提交。账户未连接的人，或 OneUptime 账户已不再是项目成员的人，会收到该怎么做的说明，而不是表单。
+向 OneUptime 机器人输入 `create incident` 或 `create maintenance`，无论是在个人聊天、频道还是群聊中，都会为输入的人打开一个表单。表单以此人的身份填写：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份（请参阅 [连接 Microsoft Teams](#连接-microsoft-teams) ），按该账户在项目中的权限提交。账户未连接的人，或 OneUptime 账户已不再是项目成员的人，会在提及其本人的回复中收到该怎么做的说明，而不是表单。
 
 - **谁可以使用。** 能在 OneUptime 中声明事件或创建计划维护活动的人：对于事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自定义角色中的 **Create Incident** ）；对于活动，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都会收到告知，并且得不到表单。
 - **表单提供什么。** 每个列表（严重程度、监视器、监视器状态、值班策略和标签）都包含请求表单的人可以读取的内容，与 OneUptime 中的同一列表一致，卡片上的 "not shown" 说明也只统计这些：如果角色仅限于某些标签，则为带有这些标签的监视器和值班策略。此人完全无法读取的列表会被省略。已归档的值班策略永远不会提供。
@@ -169,6 +169,8 @@ OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊�
 - **哪些记录。** 与在 OneUptime 中一样，是此人可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录或其他项目的记录上的按钮，都会得到该记录 "was not found in this project, or you do not have access to it." 的回复，并且不会有任何更改。在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
 - **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to."。这两种情况都不会显示空卡片。
 - **Escalate.** 卡片上的 **Escalate** 会针对卡片所涉及的事件、警报或片段执行其值班策略，以点击者的身份，并使用与 **Execute On-Call Policy** 相同的权限。不涉及其中任何一种的卡片会得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回复，并且不会呼叫任何人。
+- **在哪里收到回复。** 在同一个对话中（在频道中即卡片的话题中）以提及此人的回复答复，因此 Microsoft Teams 会通知此人。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **如果此人的账户未连接。** 回复会请此人连接，并附带一个 **Connect Microsoft Teams account** 按钮。该按钮会打开此人在 OneUptime 中自己的 Microsoft Teams 设置，并在按需登录 OneUptime 后一步连接账户。随后 OneUptime 会以此人的身份完成其按下的操作，并在同一个对话中回复；对于打开表单的按钮或命令，它会请此人再按一次或再输入一次。该按钮只能使用一次，有效 30 分钟，并且只对按下它的 Microsoft 账户有效。
 
 ## 断开连接
 
@@ -189,7 +191,7 @@ Microsoft 拒绝了发布，因为机器人不在该团队中。将应用添加�
 :::
 
 :::details 机器人提示我的账户未连接
-在登录到项目所连接的组织的情况下，在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联它。来自其他组织的来宾账户不是同一个账户。
+在机器人的回复中按 **Connect Microsoft Teams account** 即可一步连接，或在登录到项目所连接的组织的情况下，在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联它。来自其他组织的来宾账户不是同一个账户。
 :::
 
 :::details 在自托管服务器上所有通知都失败

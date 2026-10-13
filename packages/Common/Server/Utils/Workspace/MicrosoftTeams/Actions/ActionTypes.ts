@@ -109,6 +109,10 @@ export enum MicrosoftTeamsGeneralActionType {
   ViewProject = "ViewProject",
 }
 
+// Bot commands that open a form; text after them becomes the form's title.
+export const CREATE_INCIDENT_COMMAND: string = "create incident";
+export const CREATE_MAINTENANCE_COMMAND: string = "create maintenance";
+
 // Activity Types from Microsoft Teams
 export enum TeamsActivityType {
   Message = "message",
@@ -129,5 +133,47 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsScheduledMaintenanceActionType
   | MicrosoftTeamsOnCallDutyActionType
   | MicrosoftTeamsGeneralActionType;
+
+/*
+ * The buttons of the cards OneUptime posts to Microsoft Teams are built from
+ * the same blocks as its Slack messages (WorkspaceMessages), so they carry
+ * Slack's action ids. Most are the Microsoft Teams ids too. These five are
+ * not, and no Teams handler took them: Acknowledge on an alert or an
+ * episode, and Mark as Ongoing and Mark as Completed on a scheduled
+ * maintenance event, were pressed and nothing happened. Each is read as the
+ * Teams action it is.
+ */
+const SLACK_BUTTON_ACTION_TYPES: ReadonlyMap<string, MicrosoftTeamsActionType> =
+  new Map<string, MicrosoftTeamsActionType>([
+    ["AcknowledgeAlert", MicrosoftTeamsAlertActionType.AckAlert],
+    [
+      "AcknowledgeAlertEpisode",
+      MicrosoftTeamsAlertEpisodeActionType.AckAlertEpisode,
+    ],
+    [
+      "AcknowledgeIncidentEpisode",
+      MicrosoftTeamsIncidentEpisodeActionType.AckIncidentEpisode,
+    ],
+    [
+      "MarkScheduledMaintenanceAsOngoing",
+      MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
+    ],
+    [
+      "MarkScheduledMaintenanceAsComplete",
+      MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete,
+    ],
+  ]);
+
+// The Microsoft Teams action a card's button names, Slack's id or Teams'.
+export const getMicrosoftTeamsActionType: (
+  actionType: string,
+) => MicrosoftTeamsActionType = (
+  actionType: string,
+): MicrosoftTeamsActionType => {
+  return (
+    SLACK_BUTTON_ACTION_TYPES.get(actionType) ||
+    (actionType as MicrosoftTeamsActionType)
+  );
+};
 
 export default MicrosoftTeamsActionType;

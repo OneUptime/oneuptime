@@ -4,14 +4,12 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
-import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
   WorkspaceDropdownBlock,
   WorkspaceModalBlock,
-  WorkspacePayloadMarkdown,
   WorkspaceTextAreaBlock,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import AlertEpisodeInternalNoteService from "../../../../Services/AlertEpisodeInternalNoteService";
@@ -36,8 +34,9 @@ import WorkspaceMemberActions, {
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import SlackActionAnswer from "./Answer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackAlertEpisodeActions {
   // Changing an alert episode's state, as a refusal names it.
@@ -78,7 +77,7 @@ export default class SlackAlertEpisodeActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -140,17 +139,12 @@ export default class SlackAlertEpisodeActions {
 
       const { props, event: episode } = authorized;
 
+      // Somebody got there first: who and when, where the press was.
       if ((await WorkspaceMemberActions.getStanding(episode)).isAcknowledged) {
-        // send a message to the channel visible to user, that the episode has already been acknowledged.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot acknowledge the **[Alert Episode](${await AlertEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been acknowledged.`.toString(),
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: episode,
+          press: WorkspaceLatePress.Acknowledge,
         });
 
         return;
@@ -230,7 +224,7 @@ export default class SlackAlertEpisodeActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -289,17 +283,12 @@ export default class SlackAlertEpisodeActions {
 
       const { props, event: episode } = authorized;
 
+      // Resolved already: who and when, where the press was.
       if ((await WorkspaceMemberActions.getStanding(episode)).isResolved) {
-        // send a message to the channel visible to user, that the episode has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Alert Episode](${await AlertEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`.toString(),
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: episode,
+          press: WorkspaceLatePress.Resolve,
         });
 
         return;
@@ -398,19 +387,11 @@ export default class SlackAlertEpisodeActions {
       });
 
     if (dropdownOption.length === 0) {
-      if (data.slackRequest.slackChannelId) {
-        await SlackUtil.sendEphemeralMessageToChannel({
-          messageBlocks: [
-            {
-              _type: "WorkspacePayloadMarkdown",
-              text: "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.",
-            } as WorkspacePayloadMarkdown,
-          ],
-          authToken: data.slackRequest.projectAuthToken!,
-          channelId: data.slackRequest.slackChannelId,
-          userId: data.slackRequest.slackUserId!,
-        });
-      }
+      // Said where the press was, as every other answer is.
+      await SlackActionAuthorization.sendRefusal({
+        requester: data.slackRequest,
+        message: SlackActionAnswer.NO_ON_CALL_POLICIES_MESSAGE,
+      });
       return;
     }
 
@@ -432,10 +413,9 @@ export default class SlackAlertEpisodeActions {
       blocks: [onCallPolicyDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -532,10 +512,9 @@ export default class SlackAlertEpisodeActions {
       blocks: [statePickerDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -658,7 +637,7 @@ export default class SlackAlertEpisodeActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -737,17 +716,12 @@ export default class SlackAlertEpisodeActions {
 
       const { props, event: episode } = authorized;
 
+      // Resolved already: nobody is paged, and the person is told why.
       if ((await WorkspaceMemberActions.getStanding(episode)).isResolved) {
-        // send a message to the channel visible to user, that the episode has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Alert Episode](${await AlertEpisodeService.getEpisodeLinkInDashboard(slackRequest.projectId!, episodeId)})**. It has already been resolved.`.toString(),
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: episode,
+          press: WorkspaceLatePress.ExecuteOnCallPolicy,
         });
 
         return;
@@ -881,10 +855,9 @@ export default class SlackAlertEpisodeActions {
       blocks: [noteTextArea],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 

@@ -76,7 +76,7 @@ flowchart TB
 
 規則建立的頻道以 **New Slack Channel Name** 加上紀錄編號命名，例如 `oneuptime-incident-42`。只有建立的頻道才會接收規則邀請的人員：紀錄的擁有者、所選的團隊和使用者，以及對於事件和警示，在被呼叫時加入的待命人員。私人事件、警示或片段會獲得私人頻道。此後紀錄的每次更新（狀態變化、備註、新擁有者）都會發布到它的頻道，以及其規則指定的現有頻道。建立時即已解決的事件、警示或片段不會獲得專屬頻道；其建立訊息仍會送到您的規則指定的頻道。請參閱 [宣告時即已確認或已解決](/docs/incidents/declaring-incidents#宣告時即已確認或已解決)。
 
-頻道保持易讀：每次更新只發布一次，紀錄的第一個狀態寫在宣布該紀錄的訊息裡，而不是單獨發一則訊息。待命策略的一次執行就是一則訊息，隨著上報推進而被編輯：呼叫了誰、呼叫了幾次以及透過什麼方式、誰沒有被呼叫以及原因、誰確認了。只有在需要有人採取行動時才會發布新訊息：某條上報規則沒有呼叫到任何人，或者執行結束時仍沒有人確認。Slack 帳戶未連接到 OneUptime 的人無法被加入頻道；OneUptime 在每個頻道中只說一次，用一則列出所有這些人的訊息，名單變長時編輯這則訊息。紀錄的擁有者或狀態頁面訂閱者已收到通知這件事，保留在 OneUptime 中該紀錄的動態裡。
+頻道保持易讀：每次更新只發布一次，紀錄的第一個狀態寫在宣布該紀錄的訊息裡，而不是單獨發一則訊息。待命策略的一次執行就是一則訊息，隨著上報推進而被編輯：呼叫了誰、呼叫了幾次以及透過什麼方式、誰沒有被呼叫以及原因、誰確認了。只有在需要有人採取行動時才會發布新訊息：某條上報規則沒有呼叫到任何人，或者執行結束時仍沒有人確認。Slack 帳戶未連接到 OneUptime 的人無法被加入頻道；OneUptime 在每個頻道中只說一次，用一則列出所有這些人的訊息，名單變長時編輯這則訊息。把該訊息中的 **Connect Slack account** 連結傳給他們，即可一步連接帳戶。紀錄的擁有者或狀態頁面訂閱者已收到通知這件事，保留在 OneUptime 中該紀錄的動態裡。
 
 **專案設定** > **工作區** > **Slack** 列出 OneUptime 看得到的頻道，每個頻道旁邊都有 **傳送測試**。OneUptime 第一次在公開頻道發布時會自行加入。私人頻道只有在 Slack 中邀請 OneUptime 應用程式加入後，才會被列出並可以發布訊息。
 
@@ -129,11 +129,11 @@ flowchart TB
 
 ## 從 Slack 建立事件和維護
 
-`/incident` 和 `/maintenance` 會開啟一個表單，由您以本人身分填寫並提交：也就是以您的 Slack 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Slack](#連接-slack) ），依該帳戶在專案中的權限提交。如果您的 Slack 帳戶未連接，或您的 OneUptime 帳戶已不再是專案成員，OneUptime 會透過私人訊息告訴您該怎麼做，並且不會開啟表單。 **Create New Incident** 和 **Create Scheduled Event** 捷徑會開啟相同的表單。
+`/incident` 和 `/maintenance` 會開啟一個表單，由您以本人身分填寫並提交：也就是以您的 Slack 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Slack](#連接-slack) ），依該帳戶在專案中的權限提交。如果您的 Slack 帳戶未連接，或您的 OneUptime 帳戶已不再是專案成員，OneUptime 會在您執行命令的地方，以只有您看得到的訊息告訴您該怎麼做，並且不會開啟表單。 **Create New Incident** 和 **Create Scheduled Event** 捷徑會開啟相同的表單。
 
-- **誰可以使用。** 能在 OneUptime 中宣告事件或建立排定維護活動的人：對於事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自訂角色中的 **Create Incident** ）；對於活動，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都會收到私人訊息告知，並且不會開啟表單。
+- **誰可以使用。** 能在 OneUptime 中宣告事件或建立排定維護活動的人：對於事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自訂角色中的 **Create Incident** ）；對於活動，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都會在執行命令的地方收到告知，並且不會開啟表單。
 - **表單提供什麼。** 每個清單（嚴重程度、監測器、監測器狀態、待命策略和標籤）都包含您可以讀取的內容，與 OneUptime 中的同一清單一致：如果角色僅限於某些標籤，則為帶有這些標籤的監測器和待命策略。您完全無法讀取的清單不會出現在表單中。已封存的待命策略永遠不會提供。
-- **表單可以指定什麼。** 事件或活動以您自己的權限建立，並記在您名下。您無法讀取的監測器、待命策略、標籤、嚴重程度或狀態，或屬於其他專案的，都會像專案中不存在一樣被拒絕，即使表單是在您的權限變化之前開啟的，也不會建立任何內容。OneUptime 會透過私人訊息告訴您原因。
+- **表單可以指定什麼。** 事件或活動以您自己的權限建立，並記在您名下。您無法讀取的監測器、待命策略、標籤、嚴重程度或狀態，或屬於其他專案的，都會像專案中不存在一樣被拒絕，即使表單是在您的權限變化之前開啟的，也不會建立任何內容。OneUptime 會在頻道中，以只有您看得到的訊息告訴您原因。
 
 事件、警示或片段上的 **Execute On-Call Policy** 也以同樣方式運作：它需要執行待命策略的權限（ **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自訂角色中的 **Create On-Call Duty Policy Execution Log** ）以及讀取該事件、警示或片段的權限，並提供您可以讀取的有效待命策略。
 
@@ -141,9 +141,11 @@ flowchart TB
 
 OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以您的 Slack 帳戶所連接的 OneUptime 帳戶的身分，依該帳戶在專案中的權限執行。事件、警示或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及排定維護活動上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自會做出與 OneUptime 中相同操作一樣的變更，並在那裡記在您名下：紀錄的狀態時間軸和動態會顯示是您變更了其狀態，備註也歸您所有。透過表情符號回應從訊息儲存的備註也以同樣方式發布。
 
-- **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或排定維護活動需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。其他任何人都會收到私人訊息告知，並且不會有任何變更。
+- **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或排定維護活動需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。其他任何人都會收到告知，並且不會有任何變更。
 - **哪些紀錄。** 與在 OneUptime 中一樣，是您可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄或其他專案的紀錄上的按鈕，都會得到該紀錄 "was not found in this project, or you do not have access to it." 的回覆，並且不會有任何變更。在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
 - **Change State 提供什麼。** 依專案的順序，提供您可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中回退（請參閱 [順序是真正的限制，而不是顯示偏好](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好) ）。如果您一個都無法讀取，會收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，會收到 "There is no later state to move this incident to."。這兩種情況都不會開啟空白表單。
+- **在哪裡收到回覆。** 在帶有按鈕的訊息下方，以只有您看得到的訊息回覆；只有當 Slack 拒絕時，才會改用私人訊息。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **如果您的 Slack 帳戶未連接。** 回覆會請您連接它，並附上一個 **Connect Slack account** 按鈕。該按鈕會開啟您在 OneUptime 中自己的 Slack 設定，並在您視需要登入 OneUptime 後一步連接您的帳戶。隨後 OneUptime 會以您的身分完成您按下的操作，並在同一則訊息下方回覆；對於開啟表單的按鈕或命令，它會請您再按一次或再執行一次。該按鈕只能使用一次，有效 30 分鐘，並且只對按下它的 Slack 帳戶有效：以其他人的身分登入 Slack 時，它不會連接任何帳戶。
 
 ## 中斷連接
 
@@ -164,7 +166,7 @@ OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以
 :::
 
 :::details 按鈕或指令提示我的 Slack 帳戶未連接
-在 **使用者設定** > **工作區** > **Slack** 中透過 **Connect my account with Slack** 連結它。如果您已不再是專案成員，OneUptime 會改為告知這一點，並且不會替您執行任何操作。
+在該回覆中按 **Connect Slack account** 即可一步連接，或在 **使用者設定** > **工作區** > **Slack** 中透過 **Connect my account with Slack** 連結它。如果您已不再是專案成員，OneUptime 會改為告知這一點，並且不會替您執行任何操作。
 :::
 
 :::details 通知能送達，但按鈕和指令沒有反應

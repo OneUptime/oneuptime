@@ -32,6 +32,8 @@ import MicrosoftTeamsCardChoices, {
   MicrosoftTeamsCardChoiceList,
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -118,6 +120,16 @@ export default class MicrosoftTeamsIncidentActions {
           event: { type: WorkspaceEventType.Incident, id: incidentId },
         });
 
+      // Somebody got there first: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(incident)).isAcknowledged) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: incident,
+          press: WorkspaceLatePress.Acknowledge,
+        });
+        return;
+      }
+
       /*
        * Acknowledged by the member, as the dashboard acknowledges it for
        * them (WorkspaceMemberActions). A refusal is theirs to read:
@@ -149,6 +161,16 @@ export default class MicrosoftTeamsIncidentActions {
           action: "resolve this incident",
           event: { type: WorkspaceEventType.Incident, id: incidentId },
         });
+
+      // Resolved already: who and when, to whoever pressed.
+      if ((await WorkspaceMemberActions.getStanding(incident)).isResolved) {
+        await MicrosoftTeamsActionAnswer.replyAlready({
+          turnContext: turnContext,
+          event: incident,
+          press: WorkspaceLatePress.Resolve,
+        });
+        return;
+      }
 
       // Resolved by the member, as the dashboard resolves it for them.
       await WorkspaceMemberActions.resolve({

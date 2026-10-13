@@ -32,6 +32,8 @@ import MicrosoftTeamsCardChoices, {
   MicrosoftTeamsCardChoiceList,
 } from "../MicrosoftTeamsCardChoices";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
@@ -363,6 +365,16 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             action: "mark this scheduled maintenance event as ongoing",
           });
 
+          // Started already - ongoing, or over: who and when.
+          if ((await WorkspaceMemberActions.getStanding(event)).hasStarted) {
+            await MicrosoftTeamsActionAnswer.replyAlready({
+              turnContext: turnContext,
+              event: event,
+              press: WorkspaceLatePress.MarkAsOngoing,
+            });
+            break;
+          }
+
           /*
            * Marked by the member, as the dashboard marks it for them
            * (WorkspaceMemberActions).
@@ -383,6 +395,16 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             modelType: ScheduledMaintenanceStateTimeline,
             action: "mark this scheduled maintenance event as complete",
           });
+
+          // Complete already: who and when.
+          if ((await WorkspaceMemberActions.getStanding(event)).isComplete) {
+            await MicrosoftTeamsActionAnswer.replyAlready({
+              turnContext: turnContext,
+              event: event,
+              press: WorkspaceLatePress.MarkAsComplete,
+            });
+            break;
+          }
 
           // Marked by the member, as the dashboard marks it for them.
           await WorkspaceMemberActions.resolve({
