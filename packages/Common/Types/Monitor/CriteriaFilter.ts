@@ -1,6 +1,7 @@
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
 import MonitorMetricType from "./MonitorMetricType";
+import MonitorType from "./MonitorType";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -549,15 +550,110 @@ export class CriteriaFilterUtil {
     );
   }
 
+  /*
+   * The checks that keep a match history, per monitor type - see
+   * hasMatchHistory. Read through getMatchHistoryCheckOns, never directly,
+   * so a copy cannot drift from it.
+   */
+  private static readonly MATCH_HISTORY_CHECK_ONS: Partial<
+    Record<MonitorType, ReadonlyArray<CheckOn>>
+  > = {
+    [MonitorType.Website]: [
+      CheckOn.ResponseBody,
+      CheckOn.ResponseHeader,
+      CheckOn.ResponseHeaderValue,
+      CheckOn.JavaScriptExpression,
+      CheckOn.IsRequestTimeout,
+    ],
+    [MonitorType.API]: [
+      CheckOn.ResponseBody,
+      CheckOn.ResponseHeader,
+      CheckOn.ResponseHeaderValue,
+      CheckOn.JavaScriptExpression,
+      CheckOn.IsRequestTimeout,
+    ],
+    [MonitorType.Ping]: [CheckOn.IsRequestTimeout],
+    [MonitorType.IP]: [CheckOn.IsRequestTimeout],
+    [MonitorType.Port]: [CheckOn.IsRequestTimeout],
+  };
+
+  /**
+   * Whether this filter, evaluated over a period of time, is judged from
+   * its match history: whether it matched, check by check.
+   *
+   * Nothing records a response body, a header or a JavaScript expression as
+   * a series, so there is no value to look back over the way Response Time
+   * has one. What can be recorded is whether the filter matched: on every
+   * check of such a filter OneUptime writes 1 or 0 for it
+   * (CriteriaFilterMatchHistory on the server), and All Values / Any Value
+   * then judge the window from that record. That is how "the body has not
+   * contained 'App Title' for 5 minutes" is told apart from a restarting
+   * app's one placeholder page (issue #4686).
+   *
+   * Per monitor type, because "every check over the last N minutes" needs a
+   * schedule to measure against: these are monitors a probe checks on their
+   * monitoring interval. The criteria form offers the checkbox from this and
+   * the evaluator decides how to judge the filter from it, so the two cannot
+   * disagree.
+   */
+  public static hasMatchHistory(data: {
+    checkOn: CheckOn | undefined;
+    monitorType: MonitorType | undefined;
+  }): boolean {
+    if (!data.checkOn) {
+      return false;
+    }
+
+    return CriteriaFilterUtil.getMatchHistoryCheckOns(
+      data.monitorType,
+    ).includes(data.checkOn);
+  }
+
+  // The checks of a monitor type that keep a match history, in form order.
+  public static getMatchHistoryCheckOns(
+    monitorType: MonitorType | undefined,
+  ): Array<CheckOn> {
+    if (!monitorType) {
+      return [];
+    }
+
+    return [...(CriteriaFilterUtil.MATCH_HISTORY_CHECK_ONS[monitorType] || [])];
+  }
+
+  /**
+   * Whether an over-time window of this check is judged one check at a
+   * time: a 1 / 0 series (isBooleanSeries), or a check judged from its
+   * match history. Either way every check is a yes or a no, so the window
+   * is offered All Values and Any Value only - an average of "contained the
+   * text" means nothing - and an aggregate saved on it through the API or
+   * Terraform is judged as All Values (getEffectiveEvaluateOverTimeType).
+   */
+  public static isJudgedCheckByCheck(checkOn: CheckOn | undefined): boolean {
+    if (!checkOn) {
+      return false;
+    }
+
+    if (CriteriaFilterUtil.isBooleanSeries(checkOn)) {
+      return true;
+    }
+
+    return Object.values(CriteriaFilterUtil.MATCH_HISTORY_CHECK_ONS).some(
+      (checkOns: ReadonlyArray<CheckOn> | undefined): boolean => {
+        return Boolean(checkOns?.includes(checkOn));
+      },
+    );
+  }
+
   /**
    * The evaluation type a filter is actually judged with.
    *
-   * This only differs from the saved type on a boolean series that was saved
-   * with Average, Sum, Maximum Value or Minimum Value. The dashboard no
-   * longer offers those there, but older filters, and filters sent through
-   * the API or Terraform, can still carry them. They are judged as All
-   * Values: the stricter of the two choices, so the filter fires only when
-   * the whole window agrees rather than off a single sample.
+   * This only differs from the saved type on a check judged check by check
+   * (isJudgedCheckByCheck) that was saved with Average, Sum, Maximum Value
+   * or Minimum Value. The dashboard does not offer those there, but older
+   * filters, and filters sent through the API or Terraform, can still carry
+   * them. They are judged as All Values: the stricter of the two choices, so
+   * the filter fires only when the whole window agrees rather than off a
+   * single sample.
    */
   public static getEffectiveEvaluateOverTimeType(
     criteriaFilter: CriteriaFilter | undefined,
@@ -569,7 +665,7 @@ export class CriteriaFilterUtil {
       !evaluateOverTimeType ||
       evaluateOverTimeType === EvaluateOverTimeType.AllValues ||
       evaluateOverTimeType === EvaluateOverTimeType.AnyValue ||
-      !CriteriaFilterUtil.isBooleanSeries(criteriaFilter?.checkOn)
+      !CriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter?.checkOn)
     ) {
       return evaluateOverTimeType;
     }
@@ -584,7 +680,7 @@ export class CriteriaFilterUtil {
       return [];
     }
 
-    if (CriteriaFilterUtil.isBooleanSeries(criteriaFilter.checkOn)) {
+    if (CriteriaFilterUtil.isJudgedCheckByCheck(criteriaFilter.checkOn)) {
       return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
     }
 
@@ -644,7 +740,28 @@ export class CriteriaFilterUtil {
     );
   }
 
-  public static isEvaluateOverTimeFilter(checkOn: CheckOn): boolean {
+  /**
+   * Whether the criteria form offers "Evaluate this criteria over a period
+   * of time" for this check.
+   *
+   * Every check with a recorded series is offered it, whatever the monitor.
+   * The checks judged from their match history (hasMatchHistory) are
+   * offered it only when the monitor type is known and keeps that history,
+   * so a caller that does not pass one sees the series-backed list alone.
+   */
+  public static isEvaluateOverTimeFilter(
+    checkOn: CheckOn,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (
+      CriteriaFilterUtil.hasMatchHistory({
+        checkOn: checkOn,
+        monitorType: monitorType,
+      })
+    ) {
+      return true;
+    }
+
     return (
       checkOn === CheckOn.ResponseStatusCode ||
       checkOn === CheckOn.ResponseTime ||

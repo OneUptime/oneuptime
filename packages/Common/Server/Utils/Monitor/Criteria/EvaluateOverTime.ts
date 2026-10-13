@@ -413,8 +413,11 @@ export default class EvaluateOverTime {
    * immune to a probe skipping a beat, to several probes writing into the
    * same series, and to a sample landing a fraction of a second outside the
    * window.
+   *
+   * Public so a filter judged from its match history
+   * (CriteriaFilterMatchHistory) waits for its window by exactly this rule.
    */
-  private static isWindowCovered(data: {
+  public static isWindowCovered(data: {
     windowStart: Date;
     windowEnd: Date;
     sampleTimes: Array<Date>;

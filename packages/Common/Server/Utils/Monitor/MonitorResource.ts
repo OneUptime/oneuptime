@@ -770,6 +770,12 @@ export default class MonitorResourceUtil {
         monitor: monitor,
         probeApiIngestResponse: response,
         evaluationSummary: evaluationSummary,
+        /*
+         * This is the check that just arrived: record its results for the
+         * filters judged from their match history. The probe agreement pass
+         * below re-reads other probes' stored checks and records nothing.
+         */
+        recordMatchHistory: true,
       });
 
       // Check probe agreement for probe-based monitors
