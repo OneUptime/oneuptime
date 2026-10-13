@@ -198,13 +198,13 @@
   "Jeff Smith": "Jeff Smith",
   "mobilePasskey": {
     "title": "登入 OneUptime On-Call",
-    "description": "使用為此 OneUptime 伺服器儲存的通行金鑰。",
+    "description": "使用為此 OneUptime 伺服器儲存的通行密鑰。",
     "returnDescription": "確認後，你將返回行動應用程式。",
     "invalid": "請從 OneUptime 行動應用程式開始登入。此請求缺失或無效。",
-    "insecure": "通行金鑰需要 HTTPS。請返回應用程式並檢查伺服器位址。",
+    "insecure": "通行密鑰需要 HTTPS。請返回應用程式並檢查伺服器位址。",
     "unsupported": "此瀏覽器不支援通行密鑰。請返回應用程式，使用密碼或 SSO 登入。",
     "failed": "無法完成登入。請返回應用程式重試。",
-    "complete": "通行金鑰已驗證。請返回應用程式完成登入。",
+    "complete": "通行密鑰已驗證。請返回應用程式完成登入。",
     "returnToApp": "返回應用程式",
     "cancel": "取消並返回應用程式",
     "setup": "在網頁控制台的「使用者設定檔 → 安全性 → Passkeys」中建立通行密鑰。"

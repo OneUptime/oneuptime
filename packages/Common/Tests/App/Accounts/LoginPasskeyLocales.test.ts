@@ -22,7 +22,9 @@ import path from "path";
  *    form above that, and the mobile hand-off page, which shows the same
  *    notices, has no password form at all;
  *  - where that hand-off page cannot use passkeys, it sends the person back
- *    to the app, as its other messages do, not to a form it does not have.
+ *    to the app, as its other messages do, not to a form it does not have;
+ *  - the hand-off page names a passkey with the sign-in page's word. Its own
+ *    messages used another word in four languages, so one page showed two.
  */
 
 const FEATURE_SETS: string = path.resolve(
@@ -111,6 +113,18 @@ const PASSKEY_WORD: Record<string, string> = {
   "zh-TW": "通行密鑰",
   hi: "पासकी",
   fa: "کلید عبور",
+};
+
+/*
+ * Words the hand-off page's own messages used for a passkey where the
+ * sign-in page, whose button and notices that page also shows, says
+ * PASSKEY_WORD. Swedish is not here: its other word, "nyckel", is the end
+ * of the right one, "passnyckel", and is checked by counting.
+ */
+const OTHER_PASSKEY_WORDS: Record<string, string> = {
+  nl: "toegangssleutel",
+  no: "tilgangsnøk",
+  "zh-TW": "通行金鑰",
 };
 
 // What ends a sentence in these languages' notices.
@@ -371,17 +385,14 @@ describe("Sign-in passkey copy in every Accounts language", () => {
 
       for (const key of ATTEMPT_NOTICES) {
         const notice: string = valueAt(locale, key);
-        const characters: Array<string> = Array.from(notice);
 
         expect({
           language,
           key,
           notice,
-          sentences: characters.filter((character: string) => {
-            return SENTENCE_ENDS.includes(character);
-          }).length,
+          sentences: sentencesOf(notice).length,
           endsWithASentenceEnd: SENTENCE_ENDS.includes(
-            characters[characters.length - 1] || "",
+            Array.from(notice).pop() || "",
           ),
           namesThePassword: notice
             .toLowerCase()
@@ -400,9 +411,7 @@ describe("Sign-in passkey copy in every Accounts language", () => {
 
   test("the one-sentence check counts the sentences of a notice (positive control)", () => {
     const sentences: (text: string) => number = (text: string): number => {
-      return Array.from(text).filter((character: string) => {
-        return SENTENCE_ENDS.includes(character);
-      }).length;
+      return sentencesOf(text).length;
     };
 
     expect(
@@ -465,6 +474,54 @@ describe("Sign-in passkey copy in every Accounts language", () => {
       });
     },
   );
+
+  test.each(LANGUAGES)(
+    "%s: the hand-off page names a passkey with the sign-in page's word",
+    (language: string) => {
+      const messages: string = Object.values(
+        accounts(language)["mobilePasskey"] as Json,
+      )
+        .filter((value: unknown): value is string => {
+          return typeof value === "string";
+        })
+        .join("\n")
+        .toLowerCase();
+      const other: string | undefined = OTHER_PASSKEY_WORDS[language];
+
+      // Every message that could name a passkey is read.
+      expect(messages).toContain(PASSKEY_WORD[language]!.toLowerCase());
+      if (other) {
+        expect(messages).not.toContain(other.toLowerCase());
+      }
+      if (language === "sv") {
+        // Every "nyckel" is a "passnyckel".
+        expect(countOf(messages, "nyck")).toBe(countOf(messages, "passnyck"));
+        expect(countOf(messages, "passnyck")).toBeGreaterThanOrEqual(4);
+      }
+    },
+  );
+
+  test("the other words for a passkey are still ones this check would find (positive control)", () => {
+    expect(Object.keys(OTHER_PASSKEY_WORDS).sort()).toEqual([
+      "nl",
+      "no",
+      "zh-TW",
+    ]);
+    for (const language of Object.keys(OTHER_PASSKEY_WORDS)) {
+      expect(LANGUAGES).toContain(language);
+      // Not a part of the right word, or the check could never pass.
+      expect(PASSKEY_WORD[language]!.toLowerCase()).not.toContain(
+        OTHER_PASSKEY_WORDS[language]!.toLowerCase(),
+      );
+    }
+    expect(
+      "Toegangssleutels vereisen HTTPS."
+        .toLowerCase()
+        .includes(OTHER_PASSKEY_WORDS["nl"]!),
+    ).toBe(true);
+    expect(countOf("nycklar kräver https. din nyckel", "nyck")).toBe(2);
+    expect(countOf("nycklar kräver https. din nyckel", "passnyck")).toBe(0);
+  });
 
   test("the hand-off page reads its own 'not available' sentence, and the sign-in page keeps the other", () => {
     const handOffPage: string = fs.readFileSync(

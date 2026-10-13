@@ -501,6 +501,45 @@ describe("Passwordless passkey login", () => {
       expect(posted).toHaveLength(0);
     });
 
+    /*
+     * What an attempt said is cleared once the password form is used. What
+     * the browser cannot do is not an attempt: it stays said, and the option
+     * stays unavailable, however often the form is submitted. Cleared, the
+     * option went back to looking like a link that works.
+     */
+    test("stays unavailable, with its reason, after the password form is used", async () => {
+      Object.defineProperty(window, "PublicKeyCredential", {
+        configurable: true,
+        value: undefined,
+      });
+      jest
+        .spyOn(ModelAPI, "createOrUpdate")
+        .mockRejectedValue(new Error("Invalid email or password."));
+      renderPage();
+      await clickPasskey();
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+      await user.type(await screen.findByTestId("email"), "ada@example.com");
+      await user.type(screen.getByTestId("password"), "wrong-password");
+      await act(async () => {
+        await user.click(screen.getByTestId("Login"));
+      });
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Invalid email or password.",
+      );
+      const option: HTMLElement = screen.getByTestId("passkey-login");
+      expect(option).toHaveAttribute("aria-disabled", "true");
+      expect(option).toHaveClass("text-gray-500");
+      expect(option).not.toHaveClass("text-indigo-500");
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        english.login.passkey.unsupported,
+      );
+      expect(posted).toHaveLength(0);
+    });
+
     test("a browser that can use passkeys never draws the option as unavailable", async () => {
       jest
         .spyOn(navigator.credentials, "get")
@@ -859,14 +898,14 @@ describe("Passwordless passkey login", () => {
     });
 
     /*
-     * While an attempt runs, the form cannot start a second sign-in. It is
-     * disabled, and its fields and Login are drawn faded, so Login does not
-     * look clickable. Only they fade: the links in the form (forgot
-     * password, single sign-on) still work during an attempt and keep their
-     * colour, and the passkey option, its prompt line and its Cancel are
-     * outside the form altogether.
+     * While an attempt runs, the form is paused, and looks it: disabled,
+     * faded as a whole and out of the pointer's reach. Its links pause with
+     * it - leaving the page while the server finishes the sign-in would
+     * throw that sign-in away - and so would a captcha. The passkey option,
+     * its prompt line and its Cancel are outside the form, so they stay at
+     * full strength and Cancel brings the form back.
      */
-    test("the form is disabled, and its fields and Login drawn faded, while an attempt runs", async () => {
+    test("the form is paused, and drawn faded, while an attempt runs", async () => {
       const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
       renderPage();
       const form: HTMLElement = (await screen.findByTestId("email")).closest(
@@ -875,28 +914,21 @@ describe("Passwordless passkey login", () => {
 
       expect(form).toBeEnabled();
       expect(form).toHaveClass(
-        "[&:disabled_input]:opacity-50",
-        "[&:disabled_button]:opacity-50",
-        "[&:disabled_button]:pointer-events-none",
+        "disabled:opacity-50",
+        "disabled:pointer-events-none",
+        "transition-opacity",
+        "motion-reduce:transition-none",
       );
-      // Nothing fades the form as a whole, which would take its links along.
-      expect(
-        form.className.split(" ").filter((name: string) => {
-          return name.includes("opacity") && !name.startsWith("[&:disabled_");
-        }),
-      ).toEqual([]);
+      // The fade and the pointer rule apply only while the form is disabled.
+      expect(form).not.toHaveClass("opacity-50");
+      expect(form).not.toHaveClass("pointer-events-none");
       expect(form.contains(screen.getByTestId("passkey-option"))).toBe(false);
+      // Everything of the form pauses together, its two links included.
       expect(form.contains(screen.getByTestId("Login"))).toBe(true);
-      // What the fade reaches, and what it leaves alone.
-      expect(screen.getByTestId("email").tagName).toBe("INPUT");
-      expect(screen.getByTestId("password").tagName).toBe("INPUT");
-      expect(screen.getByTestId("Login").tagName).toBe("BUTTON");
-      expect(ssoLink().tagName).toBe("A");
       expect(form.contains(ssoLink())).toBe(true);
       expect(
-        (screen.getByText("Forgot password?").closest("a") as HTMLElement)
-          .tagName,
-      ).toBe("A");
+        form.contains(screen.getByText("Forgot password?").closest("a")),
+      ).toBe(true);
 
       await clickPasskey();
 

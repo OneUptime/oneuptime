@@ -586,38 +586,39 @@ test.describe("Passkey account lifecycle", () => {
         page.getByRole("button", { name: "Check your device", exact: true }),
       ).toBeVisible();
       /*
-       * While the attempt runs, the password form is disabled, and its
-       * fields and Login are drawn faded so Login does not look clickable.
-       * Only they fade: the form's links still work, so the form as a whole
-       * keeps its strength, and the passkey option and its Cancel are
-       * outside the form.
+       * While the attempt runs, the password form is paused, and looks it:
+       * disabled, faded as a whole and out of the pointer's reach, its
+       * links included. The passkey option and its Cancel, outside the
+       * form, are not.
        */
       const passwordForm: Locator = page
         .locator("fieldset")
         .filter({ has: page.getByTestId("email") });
       await expect(page.getByTestId("email")).toBeDisabled();
       await expect(page.getByTestId("Login")).toBeDisabled();
-      await expect(page.getByTestId("email")).toHaveCSS("opacity", "0.5");
-      await expect(page.getByTestId("password")).toHaveCSS("opacity", "0.5");
-      await expect(page.getByTestId("Login")).toHaveCSS("opacity", "0.5");
-      await expect(passwordForm).toHaveCSS("opacity", "1");
+      await expect(passwordForm).toHaveCSS("opacity", "0.5");
+      await expect(passwordForm).toHaveCSS("pointer-events", "none");
       await expect(
         page.getByRole("link", {
           name: "Use single sign-on (SSO) instead",
           exact: true,
         }),
-      ).toHaveCSS("opacity", "1");
+      ).toHaveCSS("pointer-events", "none");
       await expect(page.getByTestId("passkey-option")).toHaveCSS(
         "opacity",
         "1",
+      );
+      await expect(page.getByTestId("cancel-passkey-login")).toHaveCSS(
+        "pointer-events",
+        "auto",
       );
       await page.getByTestId("cancel-passkey-login").click();
       await expect(
         page.getByText("Passkey sign-in canceled.", { exact: true }),
       ).toBeVisible();
       await expect(page.getByTestId("email")).toBeEnabled();
-      await expect(page.getByTestId("email")).toHaveCSS("opacity", "1");
-      await expect(page.getByTestId("Login")).toHaveCSS("opacity", "1");
+      await expect(passwordForm).toHaveCSS("opacity", "1");
+      await expect(passwordForm).toHaveCSS("pointer-events", "auto");
       await expect(
         page.getByText("New to passkeys?", { exact: true }),
       ).toBeVisible();

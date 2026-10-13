@@ -198,13 +198,13 @@
   "Jeff Smith": "Jeff Smith",
   "mobilePasskey": {
     "title": "Logg inn på OneUptime On-Call",
-    "description": "Bruk en tilgangsnøkkel som er lagret for denne OneUptime-serveren.",
+    "description": "Bruk en passnøkkel som er lagret for denne OneUptime-serveren.",
     "returnDescription": "Etter at du har godkjent, kommer du tilbake til mobilappen.",
     "invalid": "Start innloggingen fra OneUptime-mobilappen. Forespørselen mangler eller er ugyldig.",
-    "insecure": "Tilgangsnøkler krever HTTPS. Gå tilbake til appen og kontroller serveradressen.",
+    "insecure": "Passnøkler krever HTTPS. Gå tilbake til appen og kontroller serveradressen.",
     "unsupported": "Passnøkler er ikke tilgjengelige i denne nettleseren. Gå tilbake til appen og logg inn med passord eller SSO.",
     "failed": "Innloggingen kunne ikke fullføres. Gå tilbake til appen og prøv igjen.",
-    "complete": "Tilgangsnøkkelen din er bekreftet. Gå tilbake til appen for å fullføre innloggingen.",
+    "complete": "Passnøkkelen din er bekreftet. Gå tilbake til appen for å fullføre innloggingen.",
     "returnToApp": "Tilbake til appen",
     "cancel": "Avbryt og gå tilbake til appen",
     "setup": "Opprett en passnøkkel i nettdashbordet under Brukerprofil → Sikkerhet → Passkeys."

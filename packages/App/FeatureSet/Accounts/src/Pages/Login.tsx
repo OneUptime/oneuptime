@@ -592,7 +592,8 @@ const LoginPage: () => JSX.Element = () => {
   /*
    * A browser that cannot use passkeys has said so (see signInWithPasskey).
    * From then on the option is drawn as unavailable, and says so to a screen
-   * reader, instead of looking like something to click again.
+   * reader, instead of looking like something to click again. The notice
+   * stays for as long as the page does: nothing clears it there.
    */
   const isPasskeyUnavailable: boolean =
     !isPasskeySupported && Boolean(passkeyNotice);
@@ -1075,16 +1076,17 @@ const LoginPage: () => JSX.Element = () => {
                * They are now a quiet option under it, at the weight of the
                * single sign-on link (see the passkey option below).
                *
-               * While a passkey attempt runs, the form is disabled - its
-               * Login could not start a second sign-in - and its fields and
-               * button look it: a bright Login that does nothing when clicked
-               * reads as broken. Only they fade. The links in the form
-               * (forgot password, single sign-on) still work during an
-               * attempt, so they keep their colour.
+               * While a passkey attempt runs, the form is paused, and looks
+               * it: disabled, faded, and out of the pointer's reach, its
+               * links and any captcha included. A bright Login that does
+               * nothing when clicked reads as broken, and a link that leaves
+               * the page while the server is finishing the sign-in would
+               * throw that sign-in away. Cancel, outside the form, brings it
+               * back.
                */}
               <fieldset
                 disabled={isPasskeyLoading}
-                className="[&:disabled_button]:pointer-events-none [&:disabled_button]:opacity-50 [&:disabled_input]:opacity-50"
+                className="transition-opacity disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none"
               >
                 <ModelForm<User>
                   modelType={User}
@@ -1101,7 +1103,14 @@ const LoginPage: () => JSX.Element = () => {
                       throw new Error(t("login.passkey.inProgress"));
                     }
                     setPasskeyError("");
-                    setPasskeyNotice(null);
+                    /*
+                     * What an attempt said is over once the form is used.
+                     * What this browser cannot do stays said, next to the
+                     * option it leaves unavailable.
+                     */
+                    if (isPasskeySupported) {
+                      setPasskeyNotice(null);
+                    }
                     if (isCaptchaEnabled) {
                       const captchaToken: string | undefined = (
                         miscDataProps["captchaToken"] as string | undefined
