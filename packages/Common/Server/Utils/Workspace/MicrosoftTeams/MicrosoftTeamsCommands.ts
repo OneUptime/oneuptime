@@ -102,11 +102,7 @@ export const MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP: ReadonlyArray<WorkspaceExtra
     },
   ];
 
-/*
- * What Teams takes in a manifest command (commandLists): a title of at most
- * 32 characters, a description of at most 128.
- */
-export const MICROSOFT_TEAMS_MANIFEST_COMMAND_TITLE_MAX_LENGTH: number = 32;
+// The longest description Teams takes in a manifest command (commandLists).
 export const MICROSOFT_TEAMS_MANIFEST_COMMAND_DESCRIPTION_MAX_LENGTH: number = 128;
 
 // What the bot is told a command needs: who sent it, connected and a member.
