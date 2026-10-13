@@ -299,25 +299,47 @@ describe("what the palette says each component does", () => {
     }
   });
 
-  test("the On Update listen-on description is spelled correctly and honest", () => {
-    const description: string =
-      argumentOf(find("-on-update"), "listen-on")?.description || "";
-
-    expect(description).not.toContain("upate");
-    /*
-     * OnTriggerBaseModel skips this filter entirely when the event carries no
-     * record of which fields changed, so it cannot be described as a guarantee.
-     */
-    expect(description).toMatch(/skipped|anyway/);
-    /*
-     * DatabaseService tells the trigger the fields an update changed
-     * (getChangedColumns), so the filter is about changes: a field saved with
-     * the value it already has does not count.
-     */
-    expect(description).toContain("updates that change these fields");
-    expect(description).toContain(
-      "A field saved with the value it already has is not a change.",
+  /*
+   * "Listen on" and "Select Fields" were the maintainer's "very confusing"
+   * pair. Each is named for what it decides, and its one line says what
+   * leaving it empty means. The finer points - a field written back as it
+   * was is no change; an update that says nothing of its fields runs the
+   * workflow anyway - are in the step's How to use (ComponentDocumentation
+   * holds them there).
+   */
+  test("On Update's two field lists say what they decide, and what empty means", () => {
+    const watch: Argument | undefined = argumentOf(
+      find("-on-update"),
+      "listen-on",
     );
+    const passOn: Argument | undefined = argumentOf(
+      find("-on-update"),
+      "select",
+    );
+
+    expect(watch?.name).toBe("Fields to watch");
+    expect(watch?.required).toBe(false);
+    expect(watch?.description).toBe(
+      "Run only when an update changes one of these fields. Leave it empty to run on every change to the Monitor.",
+    );
+    expect(passOn?.name).toBe("Fields to pass on");
+    expect(passOn?.required).toBe(true);
+    expect(passOn?.description).toBe(
+      "The Monitor fields the next steps can use. A field you leave out is empty in later steps.",
+    );
+  });
+
+  test("every step that passes a record on calls its field list Fields to pass on, never Select Fields", () => {
+    for (const idSuffix of ["-on-create", "-on-update", "-find-one", "-find-many"]) {
+      const select: Argument | undefined = argumentOf(find(idSuffix), "select");
+
+      expect([idSuffix, select?.name]).toEqual([idSuffix, "Fields to pass on"]);
+      // Column keys only matter in the JSON, which says so itself.
+      expect([idSuffix, select?.description.includes("_id")]).toEqual([
+        idSuffix,
+        false,
+      ]);
+    }
   });
 });
 

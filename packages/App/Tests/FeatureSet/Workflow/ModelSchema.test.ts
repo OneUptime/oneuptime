@@ -61,6 +61,7 @@ interface Column {
   type: string;
   isRelation: boolean;
   relatedColumns?: Array<Column> | undefined;
+  relationIdColumn?: string | undefined;
   required?: boolean | undefined;
   hasDefault?: boolean | undefined;
   isTenantColumn?: boolean | undefined;
@@ -469,6 +470,55 @@ describe("Workflow /model-schema/:tableName column descriptors", () => {
 
       for (const column of columns) {
         expect(["string", "undefined"]).toContain(typeof column.example);
+      }
+    }
+  });
+
+  /*
+   * An update changes the column holding a related record's ID, never the
+   * relation, so the On Update trigger's Fields to watch stores that column
+   * for a relation it offers by name. The endpoint says which column it is.
+   */
+  test("names the column holding a related record's ID, for a relation to one record", async () => {
+    const columns: Array<Column> = await getColumnsFor("Incident");
+
+    expect(
+      findColumn(columns, "currentIncidentState")?.relationIdColumn,
+    ).toBe("currentIncidentStateId");
+    expect(findColumn(columns, "incidentSeverity")?.relationIdColumn).toBe(
+      "incidentSeverityId",
+    );
+    // That column is described too, as a field of its own.
+    expect(findColumn(columns, "currentIncidentStateId")).toBeDefined();
+  });
+
+  test("names none for a relation to many records, or for a field", async () => {
+    const columns: Array<Column> = await getColumnsFor("Incident");
+
+    expect(findColumn(columns, "labels")?.isRelation).toBe(true);
+    expect(findColumn(columns, "labels")?.relationIdColumn).toBeUndefined();
+    expect(findColumn(columns, "title")?.relationIdColumn).toBeUndefined();
+  });
+
+  test("every relation to one record it names an ID column for has that column described", async () => {
+    for (const model of ["Incident", "Alert", "Monitor", "ScheduledMaintenance"]) {
+      const columns: Array<Column> = await getColumnsFor(model);
+
+      for (const column of columns) {
+        if (!column.relationIdColumn) {
+          continue;
+        }
+
+        expect([model, column.id, column.type]).toEqual([
+          model,
+          column.id,
+          "Entity",
+        ]);
+        expect([
+          model,
+          column.relationIdColumn,
+          Boolean(findColumn(columns, column.relationIdColumn)),
+        ]).toEqual([model, column.relationIdColumn, true]);
       }
     }
   });

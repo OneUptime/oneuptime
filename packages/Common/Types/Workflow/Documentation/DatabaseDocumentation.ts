@@ -20,6 +20,7 @@ import {
   hasCustomFieldsColumn,
 } from "../CustomFieldsColumn";
 import { DatabaseOperation, getDatabaseOperation } from "../DatabaseOperation";
+import { RunRecordColumns, getRunRecordColumns } from "../RunRecord";
 import { componentReturnValueReference } from "../TemplateSyntax";
 import { WORKFLOW_TEST_WHILE_OFF_HELP } from "../WorkflowEnabled";
 import ComponentDocumentation, {
@@ -199,6 +200,31 @@ const idSpellingTopic: TopicFunction = (
   };
 };
 
+type PickOneRecordFunction = (words: ModelWords) => string;
+
+/*
+ * How Run Workflow is told which record to run with: by its number, where
+ * its records have one (INC-8), by part of its name, or by its ID
+ * (Types/Workflow/RunRecord, RunRecordField).
+ */
+const pickOneRecord: PickOneRecordFunction = (words: ModelWords): string => {
+  const columns: RunRecordColumns = getRunRecordColumns(words.model);
+
+  if (columns.number && columns.nameColumn) {
+    return `pick one ${words.one}: type its number or part of its name.`;
+  }
+
+  if (columns.number) {
+    return `pick one ${words.one}: type its number or its ID.`;
+  }
+
+  if (columns.nameColumn) {
+    return `pick one ${words.one}: type part of its name, or paste its ID.`;
+  }
+
+  return `paste the ID of one ${words.one}.`;
+};
+
 type BuildFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -212,7 +238,7 @@ const findOne: BuildFunction = (
     summary: `Finds one ${words.one} in this project and passes it to the next steps.`,
     steps: [
       `Under **Query**, add what the ${words.one} must match.`,
-      "Under **Select Fields**, choose the fields later steps need. Only those come back.",
+      "Under **Fields to pass on**, choose the fields later steps need. Only those come back.",
       "Connect **Success** to what runs next, and **Error** to handle a failure.",
     ],
     examples: [
@@ -222,7 +248,7 @@ const findOne: BuildFunction = (
         description:
           words.display.id === ID_COLUMN_ID
             ? undefined
-            : `\`${words.display.id}\` must be one of the **Select Fields**.`,
+            : `\`${words.display.id}\` must be one of the **Fields to pass on**.`,
       },
     ],
     notes: [
@@ -251,7 +277,7 @@ const findMany: BuildFunction = (
     summary: `Finds the ${words.many} in this project that match a query, and passes them to the next steps as a list.`,
     steps: [
       `Under **Query**, add what the ${words.many} must match.`,
-      "Under **Select Fields**, choose the fields later steps need. Only those come back.",
+      "Under **Fields to pass on**, choose the fields later steps need. Only those come back.",
       "Connect **Success** to what runs next, and **Error** to handle a failure.",
     ],
     examples: [
@@ -592,10 +618,10 @@ const onCreateOrUpdate: UpdateOrDeleteFunction = (
     steps: [
       ...(isUpdate
         ? [
-            "To run only when particular fields change, choose them in **Listen on**. Leave it empty to run on any change.",
+            "To run only when particular fields change, add them to **Fields to watch**. Leave it empty to run on any change.",
           ]
         : []),
-      `Under **Select Fields**, choose the fields of the ${words.one} later steps need.`,
+      `Under **Fields to pass on**, choose the fields of the ${words.one} later steps need.`,
       "Connect **Success** to the steps to run.",
       `Turn the workflow on. Only ${words.many} ${event} while it is on start a run.`,
     ],
@@ -606,19 +632,19 @@ const onCreateOrUpdate: UpdateOrDeleteFunction = (
         description:
           words.display.id === ID_COLUMN_ID
             ? undefined
-            : `\`${words.display.id}\` must be one of the **Select Fields**.`,
+            : `\`${words.display.id}\` must be one of the **Fields to pass on**.`,
       },
     ],
     notes: [
       {
         type: ComponentDocumentationNoteType.Warning,
-        text: `A field left out of **Select Fields** is empty in later steps, even though the ${words.one} has it.`,
+        text: `A field left out of **Fields to pass on** is empty in later steps, even though the ${words.one} has it.`,
       },
       ...(isUpdate
         ? [
             {
               type: ComponentDocumentationNoteType.Tip,
-              text: "**Listen on** cuts out noise, but it is not a guarantee: when an update does not say which fields changed, the workflow runs anyway.",
+              text: "**Fields to watch** hears changes only: a field saved with the value it already has is not one. It is no guarantee either: when an update does not say which fields changed, the workflow runs anyway.",
             },
           ]
         : []),
@@ -627,7 +653,7 @@ const onCreateOrUpdate: UpdateOrDeleteFunction = (
       {
         title: "Testing it",
         paragraphs: [
-          `Click **Run Workflow** in the builder's toolbar and enter the ID of any ${words.one}. The workflow runs as if that ${words.one} had just been ${event}. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+          `Click **Run Workflow** in the builder's toolbar and ${pickOneRecord(words)} The workflow runs as if that ${words.one} had just been ${event}. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
         ],
       },
     ],
@@ -661,7 +687,7 @@ const onDelete: BuildFunction = (
       {
         title: "Testing it",
         paragraphs: [
-          `Click **Run Workflow** in the builder's toolbar and enter the ID of any ${words.one}. The workflow runs as if that ${words.one} had just been deleted. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+          `Click **Run Workflow** in the builder's toolbar and ${pickOneRecord(words)} The workflow runs as if that ${words.one} had just been deleted, and it is not deleted. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
         ],
       },
     ],

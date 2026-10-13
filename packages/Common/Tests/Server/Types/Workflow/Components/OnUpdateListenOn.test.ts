@@ -164,6 +164,61 @@ describe("and only such a field", () => {
     ).resolves.toEqual([]);
   });
 
+  /*
+   * The old field list offered a related record's fields in Listen on, and
+   * stored {"currentMonitorStatus": {"name": true}}. An update reports the
+   * column holding the related record's ID, never the relation, so such a
+   * workflow never ran. A relation is now heard by its ID column too
+   * (Types/Workflow/WatchedFields), and the field list stores the ID column.
+   */
+  test("a related record watched by its name runs when the column holding its ID changes", async () => {
+    const LISTENS_ON_STATUS: string = "6ba7b810-9dad-41d1-80b4-00c04fd43104";
+    const LISTENS_ON_STATUS_ID: string = "6ba7b810-9dad-41d1-80b4-00c04fd43105";
+
+    const workflows: Array<Workflow> = [
+      workflowListeningOn(LISTENS_ON_STATUS, {
+        currentMonitorStatus: { name: true },
+      }),
+      workflowListeningOn(LISTENS_ON_STATUS_ID, {
+        currentMonitorStatusId: true,
+      }),
+      workflowListeningOn(LISTENS_ON_NAME, { name: true }),
+    ];
+
+    await expect(
+      runsFor(workflows, {
+        updatedFields: {
+          currentMonitorStatusId: "6ba7b810-9dad-41d1-80b4-00c04fd43199",
+        },
+      }),
+    ).resolves.toEqual([LISTENS_ON_STATUS, LISTENS_ON_STATUS_ID]);
+
+    // And only then: another change does not run them.
+    await expect(
+      runsFor(workflows, { updatedFields: { name: "Checkout API" } }),
+    ).resolves.toEqual([LISTENS_ON_NAME]);
+  });
+
+  test("a related record watched as JSON text is heard the same way", async () => {
+    const LISTENS_ON_STATUS: string = "6ba7b810-9dad-41d1-80b4-00c04fd43106";
+
+    await expect(
+      runsFor(
+        [
+          workflowListeningOn(
+            LISTENS_ON_STATUS,
+            '{"currentMonitorStatus": {"name": true}}',
+          ),
+        ],
+        {
+          updatedFields: {
+            currentMonitorStatusId: "6ba7b810-9dad-41d1-80b4-00c04fd43199",
+          },
+        },
+      ),
+    ).resolves.toEqual([LISTENS_ON_STATUS]);
+  });
+
   test("an update that says nothing of its fields skips the filter, as before", async () => {
     await expect(
       runsFor([workflowListeningOn(LISTENS_ON_NAME, { name: true })], {

@@ -359,9 +359,13 @@ export const getFieldOptions: GetFieldOptionsFunction = (
       const subColumns: Array<ModelSchemaColumn> = (
         column.relatedColumns || []
       ).filter((sub: ModelSchemaColumn): boolean => {
+        const isStoredSub: boolean = storedSubPaths.includes(sub.id);
+
         return (
           !sub.isRelation &&
-          (!isAlwaysEmptyColumnId(sub.id) || storedSubPaths.includes(sub.id))
+          // The related record's project is this record's project.
+          (!sub.isTenantColumn || isStoredSub) &&
+          (!isAlwaysEmptyColumnId(sub.id) || isStoredSub)
         );
       });
 
