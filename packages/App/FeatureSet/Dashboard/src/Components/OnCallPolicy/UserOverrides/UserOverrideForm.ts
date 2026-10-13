@@ -1,6 +1,7 @@
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { toUserOverrideTime } from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
@@ -36,7 +37,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *   - Who is away? - the person whose alerts go elsewhere, saved as
  *     overrideUserId. It starts as you: booking your own leave is the
  *     commonest case. Change it to book cover for someone else.
- *   - Who covers? - the person who gets those alerts, saved as
+ *   - Who covers? - left to the rotation unless somebody is picked: the
+ *     picker reads "Next person in the rotation" while it is empty, and an
+ *     override saved that way is a SKIP - each of the person's turns goes
+ *     to the next person in its rotation who is not away, and they are back
+ *     in their usual place when it ends (ScheduleResolution). Pick somebody,
+ *     and they get all of the person's pages instead, saved as
  *     routeAlertsToUserId. Whoever is away is left out of its list, and
  *     picking the same person anyway is refused.
  *   - Starts - now, unless changed.
@@ -47,6 +53,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Four short rows on one page, so the whole override can be read back -
  * who, who instead, from when, until when - before it is saved. The saved
  * columns did not change; only the words, the defaults and the checks did.
+ *
+ * A customer asked to "skip user X until [date]" for holidays, without
+ * naming a replacement. That is this form with nobody picked to cover - one
+ * concept for time away, not a second one next to it - and "Skip..." on a
+ * person in a schedule layer opens it with them away and the rotation
+ * covering (SkipLayerUserModal).
  *
  * React-free, so the page, its tests and the server's regression test share
  * one description of the form.
@@ -62,8 +74,10 @@ export const USER_OVERRIDE_AWAY_REQUIRED_MESSAGE: string = translationKey(
   "Choose who is away.",
 );
 
-export const USER_OVERRIDE_COVER_REQUIRED_MESSAGE: string =
-  translationKey("Choose who covers.");
+// What "Who covers?" says while nobody is picked: the rotation covers.
+export const USER_OVERRIDE_ROTATION_COVERS_TEXT: string = translationKey(
+  "Next person in the rotation",
+);
 
 export const USER_OVERRIDE_SAME_PERSON_MESSAGE: string = translationKey(
   "Choose someone other than the person who is away.",
@@ -92,7 +106,8 @@ export const getUserOverrideAwayPickerConfig: () => PeoplePickerFieldConfig =
 
 /*
  * The person who covers: one project member other than the person who is
- * away, written to the override's routeAlertsToUserId column.
+ * away, written to the override's routeAlertsToUserId column - or nobody,
+ * which the picker shows as the rotation covering.
  */
 export const getUserOverrideCoverPickerConfig: () => PeoplePickerFieldConfig =
   (): PeoplePickerFieldConfig => {
@@ -104,9 +119,13 @@ export const getUserOverrideCoverPickerConfig: () => PeoplePickerFieldConfig =
       excludePicksOf: [
         { kind: PeoplePickerKind.User, valueKey: USER_OVERRIDE_AWAY_KEY },
       ],
-      addButtonText: translationKey("Choose who covers"),
+      addButtonText: translationKey("Choose someone"),
       searchPlaceholder: translationKey("Search by name or email…"),
       emptyText: translationKey("There is no one else in this project."),
+      whenNobodyPicked: {
+        text: USER_OVERRIDE_ROTATION_COVERS_TEXT,
+        icon: IconProp.Refresh,
+      },
     };
   };
 
@@ -135,7 +154,7 @@ export { toUserOverrideTime };
 export interface UserOverridePeople {
   // The person whose alerts go elsewhere (overrideUserId).
   awayUserId: string | null;
-  // The person who gets them (routeAlertsToUserId).
+  // The person who gets them (routeAlertsToUserId); null when the rotation covers.
   coverUserId: string | null;
 }
 
@@ -170,23 +189,27 @@ export const getUserOverrideAwayError: (values: unknown) => string | null = (
 };
 
 /*
- * "Who covers?": somebody, and not the person who is away - an override
- * from someone to themselves would reroute nothing.
+ * "Who covers?": nobody (the rotation covers), or somebody other than the
+ * person who is away - an override from someone to themselves would reroute
+ * nothing.
  */
 export const getUserOverrideCoverError: (values: unknown) => string | null = (
   values: unknown,
 ): string | null => {
   const people: UserOverridePeople = readUserOverridePeople(values);
 
-  if (!people.coverUserId) {
-    return translateValidationMessage(USER_OVERRIDE_COVER_REQUIRED_MESSAGE);
-  }
-
   if (isSamePerson(people.awayUserId, people.coverUserId)) {
     return translateValidationMessage(USER_OVERRIDE_SAME_PERSON_MESSAGE);
   }
 
   return null;
+};
+
+// True when the form's values leave covering to the rotation: a skip.
+export const isUserOverrideSkip: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return !readUserOverridePeople(values).coverUserId;
 };
 
 /*
@@ -226,6 +249,11 @@ export interface UserOverrideFormOptions {
    * (nobody is signed in, as in a test), it starts empty.
    */
   currentUserId?: string | null | undefined;
+  /*
+   * Who "Who is away?" starts as instead, when the form is opened for a
+   * particular person: "Skip..." on somebody in a schedule layer.
+   */
+  awayUserId?: string | null | undefined;
 }
 
 /*
@@ -243,22 +271,31 @@ export const getUserOverrideFormFields: <TEntity>(
     {
       field: { overrideUserId: true } as SelectFormFields<TEntity>,
       title: "Who is away?",
-      description: "Alerts that would page them go to the person who covers.",
+      description: "They are not paged while they are away.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       peoplePicker: getUserOverrideAwayPickerConfig(),
       required: true,
-      defaultValue: currentUserId || undefined,
+      defaultValue: options?.awayUserId
+        ? readPersonId(options.awayUserId) || undefined
+        : currentUserId || undefined,
       customValidation: (values: FormValues<TEntity>): string | null => {
         return getUserOverrideAwayError(values);
       },
     },
     {
+      /*
+       * Optional: nobody picked is an answer - the rotation covers - and the
+       * picker says so in place of a pick, so "(Optional)" would only add
+       * noise to a question that already shows its answer.
+       */
       field: { routeAlertsToUserId: true } as SelectFormFields<TEntity>,
       title: "Who covers?",
-      description: "They get those alerts until the override ends.",
+      description:
+        "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       peoplePicker: getUserOverrideCoverPickerConfig(),
-      required: true,
+      required: false,
+      hideOptionalLabel: true,
       customValidation: (values: FormValues<TEntity>): string | null => {
         return getUserOverrideCoverError(values);
       },
@@ -297,10 +334,11 @@ export interface UserOverrideColumns {
 }
 
 /*
- * A new override as it is sent: the two people as ids in their own columns,
- * in the project, and - from a policy's own User Overrides page - for that
- * policy only (a global override has none). Refuses an override that names
- * nobody, or the same person twice, which the form never lets through.
+ * A new override as it is sent: the person away, and who covers - or no one,
+ * for the rotation to cover - as ids in their own columns, in the project,
+ * and - from a policy's own User Overrides page - for that policy only (a
+ * global override has none). Refuses an override with nobody away, or the
+ * same person twice, which the form never lets through.
  */
 export const prepareUserOverrideForCreate: <
   TOverride extends UserOverrideColumns,
@@ -327,12 +365,6 @@ export const prepareUserOverrideForCreate: <
     );
   }
 
-  if (!people.coverUserId) {
-    throw new BadDataException(
-      translateValidationMessage(USER_OVERRIDE_COVER_REQUIRED_MESSAGE),
-    );
-  }
-
   if (isSamePerson(people.awayUserId, people.coverUserId)) {
     throw new BadDataException(
       translateValidationMessage(USER_OVERRIDE_SAME_PERSON_MESSAGE),
@@ -340,7 +372,14 @@ export const prepareUserOverrideForCreate: <
   }
 
   override.overrideUserId = new ObjectID(people.awayUserId);
-  override.routeAlertsToUserId = new ObjectID(people.coverUserId);
+
+  if (people.coverUserId) {
+    override.routeAlertsToUserId = new ObjectID(people.coverUserId);
+  } else {
+    // The rotation covers: the column is left out, not sent empty.
+    delete override.routeAlertsToUserId;
+  }
+
   override.projectId = scope.projectId;
 
   if (scope.onCallDutyPolicyId) {

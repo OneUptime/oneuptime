@@ -179,6 +179,18 @@ const MAX_NAMES_IN_AN_ALARM: number = 5;
 const SENTENCE_END: RegExp = /[.!?]$/;
 
 export default class OnCallPolicyRunMessageView {
+  /*
+   * Why a rule did not page somebody who is away with nobody named to cover,
+   * for the alarm about a rule that reached nobody: "Alex Kim: away until
+   * <day and time>", in each reader's own time.
+   */
+  public static getAwayReason(
+    personName: string,
+    awayUntil: Date,
+  ): MarkdownText {
+    return mdText`${personName}: away until ${WorkspaceMessageTime.dateAndTime(awayUntil)}`;
+  }
+
   // The run's message, as Markdown.
   public static getMarkdown(run: OnCallPolicyRun): string {
     const parts: Array<MarkdownText> = [this.getHeadline(run)];

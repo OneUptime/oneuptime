@@ -44,7 +44,7 @@ import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
-import { mdText, MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
   ON_CALL_RUN_NOT_PAGED,
   OnCallPolicyRun,
@@ -807,7 +807,7 @@ export default class OnCallPolicyRunMessage {
             });
             addRuleReason(
               step.onCallDutyPolicyEscalationRuleId,
-              mdText`${name}: away until ${WorkspaceMessageTime.dateAndTime(awayUntil)}`,
+              OnCallPolicyRunMessageView.getAwayReason(name, awayUntil),
             );
             continue;
           }
