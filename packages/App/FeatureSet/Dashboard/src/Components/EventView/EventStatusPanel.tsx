@@ -63,6 +63,8 @@ export interface EventPanelAction {
 export interface EventPanelMenuItem {
   id: string;
   label: string;
+  // The Open channel menu marks each channel with its product's logo.
+  icon?: IconProp | undefined;
   onClick: () => void;
 }
 
@@ -290,6 +292,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 <MoreMenuItem
                   key={item.id}
                   text={item.label}
+                  icon={item.icon}
                   onClick={item.onClick}
                 />
               );

@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "裝置在上次遍歷中未回報任何 SSID。",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "裝置未回報任何 SSID。裝置為自身運作的網路（例如無線網狀連結）不會列出。",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "時間以您的時區 {{zone}} 顯示。"
+  "Times are in {{zone}}, your time zone.": "時間以您的時區 {{zone}} 顯示。",
+  "Open channel": "開啟頻道"
 }

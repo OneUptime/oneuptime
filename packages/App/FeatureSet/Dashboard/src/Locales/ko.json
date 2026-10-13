@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "장치가 마지막 워크에서 SSID를 보고하지 않았습니다.",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "장치가 SSID를 보고하지 않습니다. 무선 메시 링크처럼 장치가 자체 용도로 운영하는 네트워크는 나열되지 않습니다.",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "시간은 사용자의 시간대인 {{zone}} 기준입니다."
+  "Times are in {{zone}}, your time zone.": "시간은 사용자의 시간대인 {{zone}} 기준입니다.",
+  "Open channel": "채널 열기"
 }

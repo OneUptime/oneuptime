@@ -8,15 +8,21 @@ import WorkspaceChannelLinkUtil, {
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import IconProp from "Common/Types/Icon/IconProp";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useEffect, useState } from "react";
-import { EventPanelAction } from "../EventView/EventStatusPanel";
 import {
+  EventPanelAction,
+  EventPanelMenuItem,
+} from "../EventView/EventStatusPanel";
+import {
+  CHANNEL_LINK_TEXT,
   ChannelLinkGroup,
   getChannelLinkGroups,
   getChannelLinkLabel,
+  getChannelLinkMenuLabel,
   getChannelLinkRecheckDelay,
   getChannelLinkRoute,
 } from "./ChannelLinks";
@@ -138,46 +144,76 @@ const openInNewTab: (url: string) => void = (url: string): void => {
 };
 
 /*
- * The header's Open in Slack / Open in Microsoft Teams buttons: one per
- * workspace the record has a channel in. A button opens its channel in a new
- * tab, so the page stays where the responder left it; a workspace with
- * several channels lists them in a menu under its button.
+ * The header's Open in Slack / Open in Microsoft Teams button. A button
+ * opens its channel in a new tab, so the page stays where the responder left
+ * it; a workspace with several channels lists them in a menu under its
+ * button. Channels in both workspaces share one Open channel menu, Slack's
+ * first: beside two state buttons and a call, two more buttons as wide as
+ * "Open in Microsoft Teams" left the record's title a few letters.
  */
 export function getOpenInChatActions(
   links: Array<WorkspaceChannelLink>,
 ): Array<EventPanelAction> {
-  return getChannelLinkGroups(links).map(
-    (group: ChannelLinkGroup): EventPanelAction => {
-      const onlyLink: WorkspaceChannelLink | undefined =
-        group.links.length === 1 ? group.links[0] : undefined;
+  const groups: Array<ChannelLinkGroup> = getChannelLinkGroups(links);
 
-      return {
-        id:
-          group.workspaceType === WorkspaceType.Slack
-            ? "open-in-slack"
-            : "open-in-microsoft-teams",
-        label: group.label,
-        icon: group.icon,
-        href: onlyLink?.url,
-        tooltip: onlyLink ? getChannelLinkLabel(onlyLink) : undefined,
-        onClick: () => {
-          if (onlyLink) {
-            openInNewTab(onlyLink.url);
-          }
-        },
-        menuItems:
-          group.links.length > 1
-            ? group.links.map((link: WorkspaceChannelLink) => {
-                return {
-                  id: link.url,
-                  label: getChannelLinkLabel(link),
-                  onClick: () => {
-                    openInNewTab(link.url);
-                  },
-                };
-              })
-            : undefined,
-      };
-    },
-  );
+  if (groups.length > 1) {
+    const menuItems: Array<EventPanelMenuItem> = [];
+
+    for (const group of groups) {
+      for (const link of group.links) {
+        menuItems.push({
+          id: link.url,
+          label: getChannelLinkMenuLabel(link),
+          icon: group.icon,
+          onClick: () => {
+            openInNewTab(link.url);
+          },
+        });
+      }
+    }
+
+    return [
+      {
+        id: "open-channel",
+        label: CHANNEL_LINK_TEXT.openChannel,
+        icon: IconProp.ChatBubbleLeftRight,
+        // The menu is the action: the button itself goes nowhere.
+        onClick: () => {},
+        menuItems: menuItems,
+      },
+    ];
+  }
+
+  return groups.map((group: ChannelLinkGroup): EventPanelAction => {
+    const onlyLink: WorkspaceChannelLink | undefined =
+      group.links.length === 1 ? group.links[0] : undefined;
+
+    return {
+      id:
+        group.workspaceType === WorkspaceType.Slack
+          ? "open-in-slack"
+          : "open-in-microsoft-teams",
+      label: group.label,
+      icon: group.icon,
+      href: onlyLink?.url,
+      tooltip: onlyLink ? getChannelLinkLabel(onlyLink) : undefined,
+      onClick: () => {
+        if (onlyLink) {
+          openInNewTab(onlyLink.url);
+        }
+      },
+      menuItems:
+        group.links.length > 1
+          ? group.links.map((link: WorkspaceChannelLink) => {
+              return {
+                id: link.url,
+                label: getChannelLinkLabel(link),
+                onClick: () => {
+                  openInNewTab(link.url);
+                },
+              };
+            })
+          : undefined,
+    };
+  });
 }

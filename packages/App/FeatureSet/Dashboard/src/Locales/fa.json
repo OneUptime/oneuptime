@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "دستگاه در آخرین پیمایش خود هیچ SSIDی گزارش نکرد.",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "دستگاه هیچ SSIDی گزارش نمی‌کند. شبکه‌هایی که برای خودش اجرا می‌کند، مانند یک پیوند mesh بی‌سیم، فهرست نمی‌شوند.",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "زمان‌ها به وقت {{zone}}، منطقه زمانی شما هستند."
+  "Times are in {{zone}}, your time zone.": "زمان‌ها به وقت {{zone}}، منطقه زمانی شما هستند.",
+  "Open channel": "باز کردن کانال"
 }

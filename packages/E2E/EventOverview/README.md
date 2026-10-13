@@ -228,10 +228,11 @@ Query parameters, parsed once per page load:
   place; the time above the entry on a phone; the AI entry's full report unfolding in place
   under Show the full report, and folding again under Hide details.
 - **Open in Slack / Microsoft Teams**: no button without a channel (the page still asks, for
-  its record); with `?channels=slack,teams` two links in the hero, Slack first, opening in a
-  new tab without an opener, Teams' link on teams.microsoft.com with its team, the channel named
-  when pointed at; with `slack,slack2` one Open in Slack menu listing both channels, each
-  opening in a new tab; the alert, scheduled maintenance and both episode pages too;
+  its record); with `?channels=slack` a link in the hero opening in a new tab without an opener,
+  the channel named when pointed at; with `teams` a link on teams.microsoft.com with its team;
+  with `slack,slack2` one Open in Slack menu listing both channels, each opening in a new tab;
+  with `slack,teams` one Open channel menu naming each product, so a created incident's title
+  keeps its room at 1280px; the alert, scheduled maintenance and both episode pages too;
   `?fail=channel-links` hiding the buttons with nothing broken; a phone with all three.
 
 Two tests are marked `test.fail` because they pin known layout bugs and pass (as expected
@@ -274,7 +275,7 @@ and the Affected Resources tests add
 `{incident,alert,scheduled-maintenance}-overview-affected-resources` and
 `incident-affected-resources-{many,mobile,empty,light,dark}`, the Measurements card
 `incident-measurements{,-dark,-mobile}`, the feed `incident-feed{,-mobile}`, and the hero's
-chat buttons `incident-hero-open-in-chat{,-mobile}`.
+chat buttons `incident-hero-open-in-chat{,-mobile}` and `incident-hero-open-channel{,-menu}`.
 
 ## Poke at it by hand
 

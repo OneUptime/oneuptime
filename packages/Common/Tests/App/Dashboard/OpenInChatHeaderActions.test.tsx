@@ -38,6 +38,7 @@ jest.mock("react-i18next", () => {
 import EventStatusPanel, {
   ComponentProps,
   EventPanelAction,
+  EventPanelMenuItem,
   EventStateItem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import useRecordChannelLinks, {
@@ -180,21 +181,55 @@ describe("the buttons a record's links make", () => {
     );
   });
 
-  test("Slack and Teams: two buttons, Slack first", () => {
-    expect(
-      getOpenInChatActions([TEAMS_LINK, SLACK_LINK]).map(
-        (action: EventPanelAction) => {
-          return [action.id, action.label, action.icon];
-        },
-      ),
-    ).toEqual([
-      ["open-in-slack", "Open in Slack", IconProp.Slack],
-      [
-        "open-in-microsoft-teams",
-        "Open in Microsoft Teams",
-        IconProp.MicrosoftTeams,
-      ],
+  test("one Teams channel: a link straight to it", () => {
+    const [action] = getOpenInChatActions([TEAMS_LINK]);
+
+    expect(action).toMatchObject({
+      id: "open-in-microsoft-teams",
+      label: "Open in Microsoft Teams",
+      icon: IconProp.MicrosoftTeams,
+      href: TEAMS_URL,
+      tooltip: "Incident 42",
+    });
+  });
+
+  test("Slack and Teams: one Open channel menu, each channel under its product's name and logo, Slack first", () => {
+    const actions: Array<EventPanelAction> = getOpenInChatActions([
+      TEAMS_LINK,
+      SLACK_LINK,
+      SECOND_SLACK_LINK,
     ]);
+
+    // One button: two as wide as their products' names crowd out the title.
+    expect(actions).toHaveLength(1);
+
+    const [action] = actions;
+
+    expect(action).toMatchObject({
+      id: "open-channel",
+      label: "Open channel",
+      icon: IconProp.ChatBubbleLeftRight,
+    });
+    expect(action!.href).toBeUndefined();
+    expect(
+      action!.menuItems!.map((item: EventPanelMenuItem) => {
+        return [item.label, item.icon];
+      }),
+    ).toEqual([
+      ["Slack · #incident-42-checkout", IconProp.Slack],
+      ["Slack · #sre-war-room", IconProp.Slack],
+      ["Microsoft Teams · Incident 42", IconProp.MicrosoftTeams],
+    ]);
+
+    action!.onClick();
+    expect(windowOpen).not.toHaveBeenCalled();
+
+    action!.menuItems![2]!.onClick();
+    expect(windowOpen).toHaveBeenCalledWith(
+      TEAMS_URL,
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
   test("two Slack channels: one Open in Slack listing both, each opening its own", () => {
@@ -271,10 +306,8 @@ describe("in the header", () => {
     ).toBeInTheDocument();
   });
 
-  test("several channels: a menu button that lists them", () => {
-    renderPanel(
-      getOpenInChatActions([SLACK_LINK, SECOND_SLACK_LINK, TEAMS_LINK]),
-    );
+  test("several Slack channels: a menu button that lists them", () => {
+    renderPanel(getOpenInChatActions([SLACK_LINK, SECOND_SLACK_LINK]));
 
     const group: HTMLElement = getActionGroup();
     const slackButton: HTMLElement = within(group).getByRole("button", {
@@ -286,11 +319,6 @@ describe("in the header", () => {
     expect(
       within(group).queryByRole("link", { name: "In Slack öffnen" }),
     ).toBeNull();
-
-    // Teams has one channel: a link of its own.
-    expect(
-      within(group).getByRole("link", { name: "Open in Microsoft Teams" }),
-    ).toHaveAttribute("href", TEAMS_URL);
 
     fireEvent.click(slackButton);
 
@@ -312,8 +340,56 @@ describe("in the header", () => {
     );
   });
 
+  test("channels in Slack and Teams: one Open channel button whose menu names each product", () => {
+    renderPanel(
+      getOpenInChatActions([SLACK_LINK, TEAMS_LINK, SECOND_SLACK_LINK]),
+    );
+
+    const group: HTMLElement = getActionGroup();
+
+    expect(within(group).queryByRole("link")).toBeNull();
+    expect(
+      within(group).queryByRole("button", { name: "In Slack öffnen" }),
+    ).toBeNull();
+
+    const button: HTMLElement = within(group).getByRole("button", {
+      name: "Open channel",
+    });
+
+    expect(button).toHaveAttribute("aria-haspopup", "menu");
+    expect(button).toHaveAttribute("data-testid", "open-channel");
+
+    fireEvent.click(button);
+
+    const choices: Array<HTMLElement> = within(
+      screen.getByRole("menu"),
+    ).getAllByRole("menuitem");
+
+    expect(
+      choices.map((choice: HTMLElement) => {
+        return choice.textContent?.trim();
+      }),
+    ).toEqual([
+      "Slack · #incident-42-checkout",
+      "Slack · #sre-war-room",
+      "Microsoft Teams · Incident 42",
+    ]);
+    // Each item carries its product's logo.
+    for (const choice of choices) {
+      expect(choice.querySelector("svg")).not.toBeNull();
+    }
+
+    fireEvent.click(choices[2]!);
+
+    expect(windowOpen).toHaveBeenCalledWith(
+      TEAMS_URL,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   test("a disabled header shows the button but does not open anything", () => {
-    renderPanel(getOpenInChatActions([SLACK_LINK, TEAMS_LINK]), {
+    renderPanel(getOpenInChatActions([SLACK_LINK]), {
       isDisabled: true,
     });
 
@@ -328,6 +404,21 @@ describe("in the header", () => {
     expect(windowOpen).not.toHaveBeenCalled();
   });
 
+  test("a disabled header's Open channel does not open its menu", () => {
+    renderPanel(getOpenInChatActions([SLACK_LINK, TEAMS_LINK]), {
+      isDisabled: true,
+    });
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Open channel",
+    });
+
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(windowOpen).not.toHaveBeenCalled();
+  });
+
   test("a record without channels has no button at all", () => {
     renderPanel(getOpenInChatActions([]));
 
@@ -338,6 +429,7 @@ describe("in the header", () => {
     expect(
       screen.queryByRole("button", { name: "Open in Microsoft Teams" }),
     ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open channel" })).toBeNull();
   });
 });
 

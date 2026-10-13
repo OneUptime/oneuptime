@@ -211,13 +211,25 @@ describe("the header renders them as links", () => {
     );
   });
 
-  test("several channels in one workspace: a menu under its button", () => {
+  test("several channels: a menu under the button, each item with its product's logo", () => {
     expect(panel).toContain(
       "if (action.menuItems && action.menuItems.length > 0 && !props.isDisabled) {",
     );
     expect(panel).toContain(
-      "{action.menuItems.map((item: EventPanelMenuItem) => { return ( <MoreMenuItem key={item.id} text={item.label} onClick={item.onClick} /> ); })}",
+      "{action.menuItems.map((item: EventPanelMenuItem) => { return ( <MoreMenuItem key={item.id} text={item.label} icon={item.icon} onClick={item.onClick} /> ); })}",
     );
+  });
+
+  test("channels in both Slack and Teams share one Open channel menu", () => {
+    const hook: string = readDashboard(
+      "Components/Workspace/useRecordChannelLinks.ts",
+    );
+
+    expect(hook).toContain("if (groups.length > 1) {");
+    expect(hook).toContain(
+      'id: "open-channel", label: CHANNEL_LINK_TEXT.openChannel,',
+    );
+    expect(hook).toContain("label: getChannelLinkMenuLabel(link),");
   });
 
   test("a menu opens each channel in a new tab, without an opener", () => {

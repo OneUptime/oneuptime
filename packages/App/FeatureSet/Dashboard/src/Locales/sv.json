@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "Enheten rapporterade inga SSID:er vid den senaste walken.",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "Enheten rapporterar inga SSID:er. Nätverk som den kör för egen del, till exempel en trådlös mesh-länk, listas inte.",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "Tiderna är i {{zone}}, din tidszon."
+  "Times are in {{zone}}, your time zone.": "Tiderna är i {{zone}}, din tidszon.",
+  "Open channel": "Öppna kanal"
 }

@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "デバイスは最後のウォークで SSID を報告しませんでした。",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "デバイスは SSID を報告していません。ワイヤレスメッシュリンクなど、デバイスが自分のために運用しているネットワークは一覧に含めません。",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "時刻はお使いのタイムゾーン（{{zone}}）で表示されています。"
+  "Times are in {{zone}}, your time zone.": "時刻はお使いのタイムゾーン（{{zone}}）で表示されています。",
+  "Open channel": "チャネルを開く"
 }

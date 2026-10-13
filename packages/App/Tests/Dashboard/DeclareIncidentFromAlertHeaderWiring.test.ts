@@ -446,7 +446,7 @@ describe("EventStatusPanel secondary actions", () => {
       "exportinterfaceEventPanelAction{id:string;label:string;icon?:IconProp|undefined;onClick:()=>void;isDisabled?:boolean|undefined;tooltip?:string|undefined;href?:string|undefined;menuItems?:Array<EventPanelMenuItem>|undefined;}",
     );
     expect(code).toContain(
-      "exportinterfaceEventPanelMenuItem{id:string;label:string;onClick:()=>void;}",
+      "exportinterfaceEventPanelMenuItem{id:string;label:string;icon?:IconProp|undefined;onClick:()=>void;}",
     );
     expect(code).toContain(
       "secondaryActions?:Array<EventPanelAction>|undefined;",

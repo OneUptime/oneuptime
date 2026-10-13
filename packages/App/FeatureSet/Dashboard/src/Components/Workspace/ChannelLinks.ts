@@ -16,7 +16,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * header that opens that channel - Datadog's "Open Slack": the room where
  * the incident is being worked is one click from its page. One button per
  * workspace; a record with two Slack channels gets one Open in Slack that
- * lists both. No channel, no button.
+ * lists both. A record with channels in both Slack and Microsoft Teams gets
+ * one Open channel that lists them all: two buttons as wide as their
+ * products' names left the title a few letters beside the state buttons.
+ * No channel, no button.
  *
  * React-free so the rules can be tested on their own.
  */
@@ -31,10 +34,20 @@ export interface ChannelLinkGroup {
 export const CHANNEL_LINK_TEXT: {
   openInSlack: string;
   openInMicrosoftTeams: string;
+  openChannel: string;
 } = {
   openInSlack: translationKey("Open in Slack"),
   openInMicrosoftTeams: translationKey("Open in Microsoft Teams"),
+  openChannel: translationKey("Open channel"),
 };
+
+/*
+ * The product a channel is in, by its own name: brand names read the same in
+ * every language.
+ */
+export function getWorkspaceName(workspaceType: WorkspaceType): string {
+  return workspaceType === WorkspaceType.Slack ? "Slack" : "Microsoft Teams";
+}
 
 // Slack first: the order the record's channels are listed in everywhere.
 const WORKSPACE_ORDER: Array<WorkspaceType> = [
@@ -77,7 +90,9 @@ export function getChannelLinkGroups(
 
 /*
  * A channel as its menu item names it: "#incident-42-checkout" in Slack,
- * where channels are written with their #, the bare name in Teams.
+ * where channels are written with their #, the bare name in Teams. In the
+ * Open channel menu, which mixes the two, each item says its product first:
+ * "Slack · #incident-42-checkout" (getChannelLinkMenuLabel).
  */
 export function getChannelLinkLabel(link: WorkspaceChannelLink): string {
   const name: string = link.channelName.trim();
@@ -91,6 +106,10 @@ export function getChannelLinkLabel(link: WorkspaceChannelLink): string {
   }
 
   return name;
+}
+
+export function getChannelLinkMenuLabel(link: WorkspaceChannelLink): string {
+  return `${getWorkspaceName(link.workspaceType)} · ${getChannelLinkLabel(link)}`;
 }
 
 export function getChannelLinkRoute(data: {

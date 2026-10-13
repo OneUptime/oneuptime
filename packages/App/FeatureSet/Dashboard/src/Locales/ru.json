@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "Устройство не сообщило ни одного SSID при последнем обходе.",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "Устройство не сообщает ни одного SSID. Сети, которые оно держит для себя, например беспроводной mesh-канал, не показываются.",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "Время указано в {{zone}}, вашем часовом поясе."
+  "Times are in {{zone}}, your time zone.": "Время указано в {{zone}}, вашем часовом поясе.",
+  "Open channel": "Открыть канал"
 }

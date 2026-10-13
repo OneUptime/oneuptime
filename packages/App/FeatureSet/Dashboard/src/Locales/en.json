@@ -28209,5 +28209,6 @@
   "The device reported no SSIDs on its last walk.": "The device reported no SSIDs on its last walk.",
   "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.": "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.",
   "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
-  "Times are in {{zone}}, your time zone.": "Times are in {{zone}}, your time zone."
+  "Times are in {{zone}}, your time zone.": "Times are in {{zone}}, your time zone.",
+  "Open channel": "Open channel"
 }

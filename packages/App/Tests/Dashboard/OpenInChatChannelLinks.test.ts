@@ -13,6 +13,8 @@ import {
   ChannelLinkGroup,
   getChannelLinkGroups,
   getChannelLinkLabel,
+  getChannelLinkMenuLabel,
+  getWorkspaceName,
   getChannelLinkRecheckDelay,
   getChannelLinkRoute,
 } from "../../FeatureSet/Dashboard/src/Components/Workspace/ChannelLinks";
@@ -127,6 +129,25 @@ describe("a channel as people write it", () => {
     [teams(" "), "Channel"],
   ])("%p reads %p", (link: WorkspaceChannelLink, expected: string) => {
     expect(getChannelLinkLabel(link)).toBe(expected);
+  });
+});
+
+describe("a menu that mixes Slack and Teams", () => {
+  test("names each channel's product first, by the product's own name", () => {
+    expect(getWorkspaceName(WorkspaceType.Slack)).toBe("Slack");
+    expect(getWorkspaceName(WorkspaceType.MicrosoftTeams)).toBe(
+      "Microsoft Teams",
+    );
+    expect(getChannelLinkMenuLabel(slack("incident-42"))).toBe(
+      "Slack · #incident-42",
+    );
+    expect(getChannelLinkMenuLabel(teams("Incident 42"))).toBe(
+      "Microsoft Teams · Incident 42",
+    );
+  });
+
+  test("the merged button's words are a key of their own", () => {
+    expect(CHANNEL_LINK_TEXT.openChannel).toBe("Open channel");
   });
 });
 

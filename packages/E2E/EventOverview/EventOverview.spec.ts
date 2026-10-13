@@ -9466,37 +9466,20 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     expect(requests[0]!.method).toBe("GET");
   });
 
-  test("an incident's Slack and Teams channels are links in its header, opening in a new tab", async ({
+  test("an incident's Slack channel is a link in its header, opening in a new tab", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openReady(page, INCIDENT_PAGE, "channels=slack,teams");
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
 
     const slack: Locator = heroActions(page).getByRole("link", {
       name: "Open in Slack",
-    });
-    const teams: Locator = heroActions(page).getByRole("link", {
-      name: "Open in Microsoft Teams",
     });
 
     await expect(slack).toHaveAttribute("href", SLACK_CHANNEL_URL);
     await expect(slack).toHaveAttribute("target", "_blank");
     await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
-
-    const teamsUrl: URL = new URL((await teams.getAttribute("href")) || "");
-    expect(teamsUrl.host).toBe("teams.microsoft.com");
-    expect(teamsUrl.searchParams.get("groupId")).toBe(
-      "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
-    );
-
-    // Slack first, both after the state actions.
-    const slackBox: Box = await documentBox(slack);
-    const teamsBox: Box = await documentBox(teams);
-    expect(
-      slackBox.y < teamsBox.y ||
-        (Math.abs(slackBox.y - teamsBox.y) < 2 && slackBox.x < teamsBox.x),
-    ).toBe(true);
 
     // Pointing at the button names the channel.
     await slack.hover();
@@ -9505,6 +9488,72 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     ).toBeVisible();
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat");
+  });
+
+  test("a Microsoft Teams channel is a link to Teams, with its team", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const teams: Locator = heroActions(page).getByRole("link", {
+      name: "Open in Microsoft Teams",
+    });
+    const teamsUrl: URL = new URL((await teams.getAttribute("href")) || "");
+
+    expect(teamsUrl.host).toBe("teams.microsoft.com");
+    expect(teamsUrl.searchParams.get("groupId")).toBe(
+      "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b",
+    );
+    await expect(teams).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  /*
+   * Two buttons as wide as "Open in Slack" and "Open in Microsoft Teams"
+   * beside Acknowledge and Resolve left the title "Checko..." at 1280px.
+   * Channels in both products share one Open channel menu instead.
+   */
+  test("channels in Slack and Teams: one Open channel that lists them all, and the title keeps its room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,teams&state=created");
+
+    await expect(heroActions(page).getByRole("link")).toHaveCount(0);
+
+    const button: Locator = heroActions(page).getByRole("button", {
+      name: "Open channel",
+    });
+    await expect(button).toHaveAttribute("aria-haspopup", "menu");
+
+    const title: Box = await documentBox(
+      hero(page).getByRole("heading", { level: 2 }),
+    );
+    expect(title.width).toBeGreaterThanOrEqual(250);
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-open-channel");
+
+    await button.click();
+    const menu: Locator = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Slack · #incident-1042-checkout-latency",
+      "Microsoft Teams · incident-1042-checkout-latency",
+    ]);
+    await screenshotElement(hero(page), "incident-hero-open-channel-menu");
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await menu
+      .getByRole("menuitem", {
+        name: "Microsoft Teams · incident-1042-checkout-latency",
+      })
+      .click();
+    const tab: Page = await opened;
+    expect(new URL(tab.url()).host).toBe("teams.microsoft.com");
+    await tab.close();
   });
 
   test("two Slack channels: one Open in Slack that lists both", async ({
@@ -9585,10 +9634,7 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
 
     await expect(
-      heroActions(page).getByRole("button", { name: "Open in Slack" }),
-    ).toBeVisible();
-    await expect(
-      heroActions(page).getByRole("link", { name: "Open in Microsoft Teams" }),
+      heroActions(page).getByRole("button", { name: "Open channel" }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.mouse.move(0, 0);
