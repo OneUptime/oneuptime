@@ -145,17 +145,18 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 | 메시지 | 봇이 하는 일 |
 | --- | --- |
 | `help` | 할 수 있는 일을 나열합니다. |
-| `ask <question>`, 또는 일상적인 말로 하는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. 예를 들어 "지금 다운된 모니터는?" 입니다. 답변은 읽기만 합니다. |
-| `create incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
-| `create maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
+| `incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
+| `maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
+| `oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
+| `ask [question]`, 또는 일상적인 말로 하는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. 예를 들어 "지금 다운된 모니터는?" 입니다. 답변은 읽기만 합니다. |
 | `show active incidents`, `show active alerts` | 지금 열려 있는 것을 나열합니다. |
 | `show scheduled maintenance`, `show ongoing maintenance` | 예정된, 또는 진행 중인 유지 관리 이벤트를 나열합니다. |
 
-OneUptime AI 에게 질문하려면 프로젝트에서 AI 가 켜져 있어야 합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+처음 다섯 개는 Slack 에서 `/oneuptime` 뒤에 오는 단어입니다. `create incident` 와 `create maintenance` 도 계속 작동합니다. OneUptime AI 에게 질문하려면 프로젝트에서 AI 가 켜져 있어야 합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
 
 ## Microsoft Teams 에서 인시던트와 유지 관리 만들기
 
-OneUptime 봇에게 `create incident` 또는 `create maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.
+OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.
 
 - **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 그렇게 알리며 양식을 주지 않습니다.
 - **양식이 제공하는 것.** 각 목록 (심각도, 모니터, 모니터 상태, 온콜 정책, 레이블) 에는 OneUptime 의 같은 목록과 마찬가지로 양식을 요청한 사람이 읽을 수 있는 것이 들어 있으며, 카드의 "not shown" 안내도 그것만 셉니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 모니터와 온콜 정책입니다. 전혀 읽을 수 없는 목록은 빠집니다. 보관된 온콜 정책은 제공되지 않습니다.

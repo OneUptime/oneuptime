@@ -5,7 +5,7 @@ Verbinden Sie OneUptime mit Slack, um Vorfälle, Warnungen, Episoden, geplante W
 :::cards
 - [Slack verbinden](#slack-verbinden): Installieren Sie OneUptime in Ihrem Workspace und verknüpfen Sie dann Ihr eigenes Konto.
 - [Benachrichtigungsregeln](#benachrichtigungsregeln): Legen Sie fest, welche Ereignisse wohin posten und welche einen eigenen Kanal bekommen.
-- [Vorfälle und Wartungen aus Slack erstellen](#vorfälle-und-wartungen-aus-slack-erstellen): `/incident` und `/maintenance`, als Sie selbst.
+- [Der Befehl /oneuptime](#der-befehl-oneuptime): Vorfälle melden, Wartungen planen, sehen, wer Bereitschaft hat, und die KI fragen.
 - [Aus Slack auf Vorfälle, Warnungen und Ereignisse reagieren](#aus-slack-auf-vorfälle-warnungen-und-ereignisse-reagieren): Die Schaltflächen in den Nachrichten von OneUptime.
 :::
 
@@ -125,13 +125,30 @@ Reagieren Sie auf eine Nachricht im Kanal eines Vorfalls, einer Warnung, einer E
 
 Die Notiz wird als Sie gespeichert, mit Ihren Berechtigungen, daher muss Ihr eigenes Slack-Konto verbunden sein. Eine Nachricht wird nur einmal gespeichert, egal wie viele Personen reagieren.
 
+## Der Befehl /oneuptime
+
+OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie danach schreiben, sagt, was zu tun ist; alles andere danach ist eine Frage an OneUptime AI.
+
+| Befehl | Was er tut |
+| --- | --- |
+| `/oneuptime help` | Listet die Befehle auf, mit Beispielen. |
+| `/oneuptime incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
+| `/oneuptime maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
+| `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
+| `/oneuptime ask [question]`, oder jede Frage | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. |
+
+Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter dem Befehl. Ein erstes Wort, das wie ein vertippter Befehl aussieht, etwa `incidnet`, bekommt die Liste der Befehle statt einer Antwort von OneUptime AI. Die Formulare für Vorfälle und Wartungen handeln als Sie: siehe [Vorfälle und Wartungen aus Slack erstellen](#vorfälle-und-wartungen-aus-slack-erstellen).
+
+> [!NOTE]
+> `/oneuptime incident` und `/oneuptime maintenance` ersetzen `/incident` und `/maintenance`, die mit gleichnamigen Befehlen anderer Slack-Apps kollidieren konnten. Eine Slack-App, die aus einem früheren Manifest erstellt wurde, behält sie, und sie öffnen dieselben Formulare, bis die App aktualisiert wird: siehe [Apps aus einem älteren Manifest](/docs/self-hosted/slack-integration#apps-aus-einem-älteren-manifest).
+
 ## OneUptime AI aus Slack fragen
 
 Fragen Sie in natürlicher Sprache nach Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. Erwähnen Sie OneUptime in einem Kanal mit @ oder schicken Sie eine Direktnachricht, und die Antwort kommt im Thread; antworten Sie dort, um weiterzufragen. `/oneuptime ask which monitors are down?` postet seine Antwort im Kanal. Beides braucht Ihr verbundenes Slack-Konto und eingeschaltete KI für das Projekt. Antworten in Slack lesen nur: Um etwas zu ändern, nutzen Sie die Schaltflächen. Siehe [KI fragen](/docs/ai/ask-ai).
 
 ## Vorfälle und Wartungen aus Slack erstellen
 
-`/incident` und `/maintenance` öffnen ein Formular, das Sie als Sie selbst ausfüllen und absenden: als das OneUptime-Konto, mit dem Ihr Slack-Konto verbunden ist (siehe [Slack verbinden](#slack-verbinden)), mit dessen Berechtigungen im Projekt. Ist Ihr Slack-Konto nicht verbunden oder Ihr OneUptime-Konto kein Mitglied des Projekts mehr, sagt Ihnen OneUptime dort, wo Sie den Befehl ausgeführt haben, in einer Nachricht, die nur Sie sehen, was zu tun ist, und es öffnet sich kein Formular. Die Verknüpfungen **Create New Incident** und **Create Scheduled Event** öffnen dieselben Formulare.
+`/oneuptime incident` und `/oneuptime maintenance` öffnen ein Formular, das Sie als Sie selbst ausfüllen und absenden: als das OneUptime-Konto, mit dem Ihr Slack-Konto verbunden ist (siehe [Slack verbinden](#slack-verbinden)), mit dessen Berechtigungen im Projekt. Ist Ihr Slack-Konto nicht verbunden oder Ihr OneUptime-Konto kein Mitglied des Projekts mehr, sagt Ihnen OneUptime dort, wo Sie den Befehl ausgeführt haben, in einer Nachricht, die nur Sie sehen, was zu tun ist, und es öffnet sich kein Formular. Die Verknüpfungen **Create New Incident** und **Create Scheduled Event** öffnen dieselben Formulare.
 
 - **Wer sie nutzen darf.** Die Personen, die in OneUptime einen Vorfall melden oder ein geplantes Wartungsereignis anlegen dürfen: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** und **Incident Member** für einen Vorfall (**Create Incident** in einer benutzerdefinierten Rolle), und **Scheduled Maintenance Admin** und **Scheduled Maintenance Member** für ein Ereignis (**Create Scheduled Maintenance**). Alle anderen erfahren das dort, wo sie ihn ausgeführt haben, und es öffnet sich kein Formular.
 - **Was ein Formular anbietet.** Jede Liste — Schweregrade, Monitore, Monitorstatus, Bereitschaftsrichtlinien und Beschriftungen — enthält, was Sie lesen dürfen, wie dieselbe Liste in OneUptime: bei einer auf einige Beschriftungen beschränkten Rolle die Monitore und Bereitschaftsrichtlinien mit diesen Beschriftungen. Eine Liste, die Sie gar nicht lesen dürfen, fehlt im Formular. Archivierte Bereitschaftsrichtlinien werden nie angeboten.

@@ -145,17 +145,18 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 | Bericht | Wat de bot doet |
 | --- | --- |
 | `help` | Toont wat hij kan. |
-| `ask <question>`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen. |
-| `create incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
-| `create maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
+| `incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
+| `maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
+| `oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
+| `ask [question]`, of elke vraag in gewone taal | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren, bijvoorbeeld "welke monitoren liggen er nu uit?". Antwoorden lezen alleen. |
 | `show active incidents`, `show active alerts` | Toont wat er nu openstaat. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Toont komende, of lopende, onderhoudsgebeurtenissen. |
 
-OneUptime AI vragen stellen vereist dat AI voor het project aanstaat. Zie [AI vragen](/docs/ai/ask-ai).
+De eerste vijf zijn de woorden die in Slack na `/oneuptime` komen; `create incident` en `create maintenance` werken ook nog. OneUptime AI vragen stellen vereist dat AI voor het project aanstaat. Zie [AI vragen](/docs/ai/ask-ai).
 
 ## Incidenten en onderhoud aanmaken vanuit Microsoft Teams
 
-`create incident` of `create maintenance` typen aan de OneUptime-bot opent een formulier voor de persoon die het typte, in een persoonlijke chat, een kanaal of een groepschat. Het wordt ingevuld als die persoon: als het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)), met de rechten van dat account in het project. Iemand van wie het account niet gekoppeld is, of van wie het OneUptime-account geen lid meer is van het project, krijgt in een antwoord dat diegene noemt te horen wat te doen, in plaats van het formulier.
+`incident` of `maintenance` typen aan de OneUptime-bot opent een formulier voor de persoon die het typte, in een persoonlijke chat, een kanaal of een groepschat. Het wordt ingevuld als die persoon: als het OneUptime-account waaraan diens Microsoft Teams-account is gekoppeld (zie [Microsoft Teams koppelen](#microsoft-teams-koppelen)), met de rechten van dat account in het project. Iemand van wie het account niet gekoppeld is, of van wie het OneUptime-account geen lid meer is van het project, krijgt in een antwoord dat diegene noemt te horen wat te doen, in plaats van het formulier.
 
 - **Wie ze mag gebruiken.** De mensen die in OneUptime een incident mogen melden of een geplande onderhoudsgebeurtenis mogen aanmaken: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** en **Incident Member** voor een incident (**Create Incident** in een aangepaste rol), en **Scheduled Maintenance Admin** en **Scheduled Maintenance Member** voor een gebeurtenis (**Create Scheduled Maintenance**). Ieder ander krijgt dat te horen, en krijgt geen formulier.
 - **Wat een formulier aanbiedt.** Elke lijst — ernstniveaus, monitoren, monitorstatussen, bereikbaarheidsbeleid en labels — bevat wat de persoon die erom vroeg mag lezen, net als dezelfde lijst in OneUptime, en de "not shown"-notities op de kaart tellen alleen die: met een rol die tot enkele labels beperkt is, de monitoren en het bereikbaarheidsbeleid met die labels. Een lijst die hij helemaal niet mag lezen, blijft weg. Gearchiveerd bereikbaarheidsbeleid wordt nooit aangeboden.

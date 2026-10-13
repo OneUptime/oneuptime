@@ -5,7 +5,7 @@ Connect OneUptime to Slack to post incidents, alerts, episodes, scheduled mainte
 :::cards
 - [Connect Slack](#connect-slack): Install OneUptime in your workspace, then link your own account.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
-- [Creating incidents and maintenance from Slack](#creating-incidents-and-maintenance-from-slack): `/incident` and `/maintenance`, as yourself.
+- [The /oneuptime command](#the-oneuptime-command): Declare incidents, schedule maintenance, see who is on call and ask AI.
 - [Acting on incidents, alerts and events from Slack](#acting-on-incidents-alerts-and-events-from-slack): The buttons on OneUptime's messages.
 :::
 
@@ -125,13 +125,30 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 
 The note is saved as you, with your permissions, so your own Slack account must be connected. A message is saved only once, however many people react.
 
+## The /oneuptime command
+
+OneUptime has one command in Slack, `/oneuptime`. The word you type after it says what to do; anything else after it is a question for OneUptime AI.
+
+| Command | What it does |
+| --- | --- |
+| `/oneuptime help` | Lists the commands, with examples. |
+| `/oneuptime incident [title]` | Opens the incident form, with the title filled in. |
+| `/oneuptime maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
+| `/oneuptime oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
+| `/oneuptime ask [question]`, or any question | OneUptime AI answers about your logs, traces, metrics, incidents and monitors. |
+
+The answers to `help` and `oncall` are messages only you see, under the command. A first word that looks like a command misspelt, such as `incidnet`, gets the list of commands, not an answer from OneUptime AI. The incident and maintenance forms act as you: see [Creating incidents and maintenance from Slack](#creating-incidents-and-maintenance-from-slack).
+
+> [!NOTE]
+> `/oneuptime incident` and `/oneuptime maintenance` replace `/incident` and `/maintenance`, which could clash with other Slack apps' commands of the same name. A Slack app created from an earlier manifest keeps them, and they open the same forms, until the app is updated: see [Apps created from an older manifest](/docs/self-hosted/slack-integration#apps-created-from-an-older-manifest).
+
 ## Asking OneUptime AI from Slack
 
 Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread; reply there to ask more. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).
 
 ## Creating incidents and maintenance from Slack
 
-`/incident` and `/maintenance` open a form that you fill in and submit as yourself: as the OneUptime account your Slack account is connected to (see [Connect Slack](#connect-slack)), with that account's permissions in the project. If your Slack account is not connected, or your OneUptime account is no longer a member of the project, OneUptime tells you what to do where you ran the command, in a message only you see, and no form opens. The **Create New Incident** and **Create Scheduled Event** shortcuts open the same forms.
+`/oneuptime incident` and `/oneuptime maintenance` open a form that you fill in and submit as yourself: as the OneUptime account your Slack account is connected to (see [Connect Slack](#connect-slack)), with that account's permissions in the project. If your Slack account is not connected, or your OneUptime account is no longer a member of the project, OneUptime tells you what to do where you ran the command, in a message only you see, and no form opens. The **Create New Incident** and **Create Scheduled Event** shortcuts open the same forms.
 
 - **Who may use them.** The people who may declare an incident or create a scheduled maintenance event in OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident (**Create Incident** in a custom role), and **Scheduled Maintenance Admin** and **Scheduled Maintenance Member** for an event (**Create Scheduled Maintenance**). Anyone else is told so where they ran it, and no form opens.
 - **What a form offers.** Each list — severities, monitors, monitor statuses, on-call policies and labels — holds what you may read, as the same list in OneUptime does: with a role limited to some labels, the monitors and on-call policies carrying those labels. A list you may not read at all is left off the form. Archived on-call policies are never offered.

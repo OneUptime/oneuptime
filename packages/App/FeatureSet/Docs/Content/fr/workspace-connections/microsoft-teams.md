@@ -145,17 +145,18 @@ La note est enregistrée en votre nom, avec vos autorisations, donc votre propre
 | Message | Ce que fait le bot |
 | --- | --- |
 | `help` | Liste ce qu'il sait faire. |
-| `ask <question>`, ou toute question en langage courant | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs, par exemple "Quels moniteurs sont en panne en ce moment ?". Les réponses ne font que lire. |
-| `create incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
-| `create maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
+| `incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
+| `maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
+| `oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
+| `ask [question]`, ou toute question en langage courant | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs, par exemple "Quels moniteurs sont en panne en ce moment ?". Les réponses ne font que lire. |
 | `show active incidents`, `show active alerts` | Liste ce qui est ouvert maintenant. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Liste les événements de maintenance à venir, ou en cours. |
 
-Interroger OneUptime AI demande l'IA activée pour le projet. Voir [Demander à l'IA](/docs/ai/ask-ai).
+Les cinq premiers sont les mots qui suivent `/oneuptime` dans Slack ; `create incident` et `create maintenance` fonctionnent toujours. Interroger OneUptime AI demande l'IA activée pour le projet. Voir [Demander à l'IA](/docs/ai/ask-ai).
 
 ## Créer des incidents et des maintenances depuis Microsoft Teams
 
-Écrire `create incident` ou `create maintenance` au bot OneUptime ouvre un formulaire pour la personne qui l'a écrit, dans une conversation personnelle, un canal ou une conversation de groupe indifféremment. Il est rempli au nom de cette personne : en tant que compte OneUptime auquel son compte Microsoft Teams est connecté (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)), avec les autorisations de ce compte dans le projet. Une personne dont le compte n'est pas connecté, ou dont le compte OneUptime n'est plus membre du projet, apprend quoi faire dans une réponse qui la mentionne, au lieu de recevoir le formulaire.
+Écrire `incident` ou `maintenance` au bot OneUptime ouvre un formulaire pour la personne qui l'a écrit, dans une conversation personnelle, un canal ou une conversation de groupe indifféremment. Il est rempli au nom de cette personne : en tant que compte OneUptime auquel son compte Microsoft Teams est connecté (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)), avec les autorisations de ce compte dans le projet. Une personne dont le compte n'est pas connecté, ou dont le compte OneUptime n'est plus membre du projet, apprend quoi faire dans une réponse qui la mentionne, au lieu de recevoir le formulaire.
 
 - **Qui peut les utiliser.** Les personnes qui peuvent déclarer un incident ou créer un événement de maintenance planifiée dans OneUptime : **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** et **Incident Member** pour un incident (**Create Incident** dans un rôle personnalisé), et **Scheduled Maintenance Admin** et **Scheduled Maintenance Member** pour un événement (**Create Scheduled Maintenance**). Tous les autres en sont informés, et ne reçoivent pas de formulaire.
 - **Ce qu'un formulaire propose.** Chaque liste — gravités, moniteurs, états de moniteur, politiques d'astreinte et étiquettes — contient ce que la personne qui l'a demandé peut lire, comme la même liste dans OneUptime, et les notes "not shown" de la carte ne comptent que ceux-là : avec un rôle limité à certaines étiquettes, les moniteurs et politiques d'astreinte portant ces étiquettes. Une liste qu'elle ne peut pas lire du tout est retirée. Les politiques d'astreinte archivées ne sont jamais proposées.
