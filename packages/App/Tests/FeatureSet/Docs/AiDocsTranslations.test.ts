@@ -131,13 +131,13 @@ const ACCOUNTS_LOCALES_DIR: string = path.resolve(
  * the column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [ASK_AI]: 26,
-  [AI_SRE]: 26,
+  [ASK_AI]: 23,
+  [AI_SRE]: 24,
   [INFRASTRUCTURE_AI_AGENTS]: 26,
-  [FIX_TASKS]: 26,
-  [GITHUB_APP]: 26,
-  [LLM_PROVIDERS]: 26,
-  [MCP_SERVER]: 26,
+  [FIX_TASKS]: 25,
+  [GITHUB_APP]: 25,
+  [LLM_PROVIDERS]: 25,
+  [MCP_SERVER]: 24,
 };
 
 /*
