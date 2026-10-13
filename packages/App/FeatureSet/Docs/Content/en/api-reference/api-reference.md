@@ -17,15 +17,11 @@ The API is organized around REST: standard HTTP methods and status codes, JSON i
 
 ```mermaid title="The checks a request goes through"
 flowchart TB
-    R["A request with<br/>an ApiKey header"] --> K{"A valid key?"}
-    K -->|"No"| E1["400: Invalid API Key"]
-    K -->|"Yes"| P{"The project<br/>on the plan?"}
-    P -->|"No"| E2["402: names<br/>the plan"]
-    P -->|"Yes"| A{"May the key<br/>do this?"}
-    A -->|"No"| E3["404 or 422:<br/>not found, or why"]
-    A -->|"Yes"| V{"Every record<br/>it names yours?"}
-    V -->|"No"| E4["400: names the<br/>field and the ID"]
-    V -->|"Yes"| OK["200: the answer"]
+    R["A request with<br/>an ApiKey header"] --> K["Is the API key valid?<br/>If not: 400"]
+    K --> P["Is the project on<br/>the plan? If not: 402"]
+    P --> A["May the key do this?<br/>If not: 404 or 422"]
+    A --> V["Is every record it<br/>names yours? If not: 400"]
+    V --> OK["The answer, with 200"]
 ```
 
 ## Make your first request

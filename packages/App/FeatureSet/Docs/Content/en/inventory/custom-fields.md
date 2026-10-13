@@ -16,8 +16,8 @@ A field is defined once for the project, and every item can carry a value for it
 ```mermaid title="From one definition to every item"
 flowchart TB
     D["Define a field<br/>under Settings"] --> V["Set its value on<br/>any item"]
-    V --> F["Filter chips<br/>on the list"]
-    V --> C["Columns and<br/>the CSV export"]
+    V --> F["Filter<br/>chips"]
+    V --> C["Columns and<br/>CSV export"]
     V --> A["customFields<br/>in the API"]
 ```
 

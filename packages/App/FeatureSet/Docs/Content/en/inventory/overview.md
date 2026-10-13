@@ -16,8 +16,8 @@ OneUptime is already watching your estate to monitor it, so the catalog is built
 ```mermaid title="Three ways into one list"
 flowchart TB
     T["Telemetry<br/>you send"] -->|"Discovered"| I["Inventory: one item<br/>per thing, with a<br/>stable identity key"]
-    R["Records a OneUptime<br/>poller keeps"] -->|"Mirrored every<br/>15 minutes"| I
-    Y["Things that send<br/>no telemetry"] -->|"Added by you"| I
+    R["OneUptime's<br/>pollers"] -->|"Mirrored every<br/>15 minutes"| I
+    Y["Things with<br/>no telemetry"] -->|"Added by you"| I
     I --> L["All Items, the Topology<br/>Map and item pages"]
     I --> X["Custom fields, the CSV<br/>export and the API"]
 ```
