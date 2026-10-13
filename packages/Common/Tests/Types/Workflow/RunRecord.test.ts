@@ -21,6 +21,7 @@ import {
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
+import Permission from "../../../Types/Permission";
 import BuiltInComponents from "../../../Types/Workflow/Components";
 import BaseModelComponent from "../../../Types/Workflow/Components/BaseModel";
 import ComponentMetadata, {
@@ -31,7 +32,9 @@ import {
   MAX_RUN_RECORD_NUMBER,
   RUN_RECORD_ARGUMENT_ID,
   RUN_RECORD_NAME_MAX_LENGTH,
+  RUN_RECORD_SEARCH_MAX_WORDS,
   RecordNumberColumns,
+  RunRecordColumns,
   RunRecordEvent,
   RunRecordMatch,
   RunRecordMessages,
@@ -43,6 +46,7 @@ import {
   getRecordNumberColumns,
   getRunRecordArgument,
   getRunRecordColumns,
+  getRunRecordSearchWords,
   getRunRecordTriggerInfo,
   isRunRecordId,
   isRunRecordNumberMatch,
@@ -139,14 +143,63 @@ describe("what a typed reference means", () => {
   });
 
   test("a number no record can have is read as text, never sent to the database", () => {
-    expect(
-      parseRunRecordReference(String(MAX_RUN_RECORD_NUMBER)).kind,
-    ).toBe(RunRecordReferenceKind.Number);
+    expect(parseRunRecordReference(String(MAX_RUN_RECORD_NUMBER)).kind).toBe(
+      RunRecordReferenceKind.Number,
+    );
     expect(
       parseRunRecordReference(String(MAX_RUN_RECORD_NUMBER + 1)).kind,
     ).toBe(RunRecordReferenceKind.Text);
     expect(parseRunRecordReference("1234567890123456789").kind).toBe(
       RunRecordReferenceKind.Text,
+    );
+  });
+});
+
+describe("the words of what was typed, each of which a name has to hold", () => {
+  test("split where there is space, however much of it", () => {
+    expect(getRunRecordSearchWords("database down")).toEqual([
+      "database",
+      "down",
+    ]);
+    expect(getRunRecordSearchWords("  database \t  is\n down  ")).toEqual([
+      "database",
+      "is",
+      "down",
+    ]);
+  });
+
+  test("one word is one word, and nothing typed is none", () => {
+    expect(getRunRecordSearchWords("INC-8")).toEqual(["INC-8"]);
+    expect(getRunRecordSearchWords("")).toEqual([]);
+    expect(getRunRecordSearchWords("   ")).toEqual([]);
+  });
+
+  test("kept as typed: a % or an _ is not taken out here, and case is the database's to ignore", () => {
+    expect(getRunRecordSearchWords("100% db_1 Down")).toEqual([
+      "100%",
+      "db_1",
+      "Down",
+    ]);
+  });
+
+  test("wide letters and a wide space typed on a CJK keyboard read as plain ones", () => {
+    expect(getRunRecordSearchWords("ｄａｔａｂａｓｅ\u3000ｄｏｗｎ")).toEqual([
+      "database",
+      "down",
+    ]);
+  });
+
+  test("no more than twelve are asked for", () => {
+    const typed: string = Array.from(
+      { length: 40 },
+      (_value: unknown, index: number): string => {
+        return `w${index}`;
+      },
+    ).join(" ");
+
+    expect(RUN_RECORD_SEARCH_MAX_WORDS).toBe(12);
+    expect(getRunRecordSearchWords(typed)).toEqual(
+      typed.split(" ").slice(0, 12),
     );
   });
 });
@@ -310,6 +363,68 @@ describe("the columns a record is looked up in, for every model", () => {
       ].sort(),
     );
   });
+
+  /*
+   * The search reads as the person asking, and a read is refused when it
+   * asks for a column they may not read - even one of a record they may. So
+   * for every model a workflow can run with a record, whoever may read the
+   * record may read what it is looked up by and listed with: its ID, when it
+   * was made, its number and its name. A model that guards one of those more
+   * closely than the record itself would refuse its own readers here.
+   */
+  test("whoever may read a record may read every column it is looked up by, for every model a workflow can watch", () => {
+    const refused: Array<string> = [];
+    let models: number = 0;
+    let numbered: number = 0;
+    let named: number = 0;
+
+    for (const ModelType of Entities) {
+      const model: BaseModel = new ModelType();
+      const watched: boolean = Boolean(
+        model.enableWorkflowOn &&
+          (model.enableWorkflowOn.create ||
+            model.enableWorkflowOn.update ||
+            model.enableWorkflowOn.delete),
+      );
+
+      if (!watched) {
+        continue;
+      }
+
+      models++;
+
+      const columns: RunRecordColumns = getRunRecordColumns(model);
+      const asked: Array<string> = ["_id", "createdAt"];
+
+      if (columns.number) {
+        numbered++;
+        asked.push(columns.number.numberColumn);
+        asked.push(columns.number.numberWithPrefixColumn);
+      }
+
+      if (columns.nameColumn) {
+        named++;
+        asked.push(columns.nameColumn);
+      }
+
+      for (const column of asked) {
+        const mayRead: Array<Permission> =
+          model.getColumnAccessControlFor(column)?.read || [];
+
+        for (const permission of model.readRecordPermissions || []) {
+          if (!mayRead.includes(permission)) {
+            refused.push(`${model.tableName}.${column}: ${permission}`);
+          }
+        }
+      }
+    }
+
+    // Not vacuous: hundreds of models, the five numbered ones among them.
+    expect(models).toBeGreaterThan(100);
+    expect(numbered).toBe(5);
+    expect(named).toBeGreaterThan(50);
+    expect(refused).toEqual([]);
+  });
 });
 
 describe("the triggers that run with a record", () => {
@@ -354,9 +469,10 @@ describe("the triggers that run with a record", () => {
         }
 
         triggers++;
-        expect([component.id, Boolean(getRunRecordTriggerInfo(component))]).toEqual(
-          [component.id, true],
-        );
+        expect([
+          component.id,
+          Boolean(getRunRecordTriggerInfo(component)),
+        ]).toEqual([component.id, true]);
       }
     }
 
@@ -405,7 +521,10 @@ describe("how a record is named in the list", () => {
       formatRunRecordNumber({ number: null, numberWithPrefix: null }),
     ).toBeUndefined();
     expect(
-      formatRunRecordNumber({ number: Number.NaN, numberWithPrefix: undefined }),
+      formatRunRecordNumber({
+        number: Number.NaN,
+        numberWithPrefix: undefined,
+      }),
     ).toBeUndefined();
   });
 

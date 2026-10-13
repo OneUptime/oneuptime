@@ -55,7 +55,10 @@ describe("the columns Fields to watch hears", () => {
 
   test("a key that is no column is heard as written, as it always was", () => {
     expect(
-      getWatchedColumns({ listenOn: { nonsense: true }, model: new Incident() }),
+      getWatchedColumns({
+        listenOn: { nonsense: true },
+        model: new Incident(),
+      }),
     ).toEqual(["nonsense"]);
   });
 

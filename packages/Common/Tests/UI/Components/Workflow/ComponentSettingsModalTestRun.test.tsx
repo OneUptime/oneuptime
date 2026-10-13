@@ -15,9 +15,11 @@ import React from "react";
 jest.mock("../../../../UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../UI/Config",
-  );
-  const URLType: { fromString: (url: string) => unknown } = jest.requireActual(
-    "../../../../Types/API/URL",
+  ) as Record<string, unknown>;
+  const URLType: { fromString: (url: string) => unknown } = (
+    jest.requireActual("../../../../Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    }
   ).default;
 
   return {
@@ -266,9 +268,7 @@ describe("a Webhook nothing has called, while the workflow is off", () => {
 
     // The note still says why there are no fields; it just offers no run.
     expect(note).toHaveTextContent("while this workflow is off");
-    expect(
-      within(note).queryByTestId("value-picker-note-test-run"),
-    ).toBeNull();
+    expect(within(note).queryByTestId("value-picker-note-test-run")).toBeNull();
     expect(onSave).not.toHaveBeenCalled();
     expect(onRequestTestRun).not.toHaveBeenCalled();
   });
@@ -283,9 +283,7 @@ describe("a Webhook nothing has called, while the workflow is off", () => {
     const note: HTMLElement = await openPicker();
 
     expect(note).toHaveTextContent("while this workflow is off");
-    expect(
-      within(note).queryByTestId("value-picker-note-test-run"),
-    ).toBeNull();
+    expect(within(note).queryByTestId("value-picker-note-test-run")).toBeNull();
   });
 });
 
@@ -303,9 +301,7 @@ describe("the same Webhook while the workflow is on", () => {
     expect(
       within(note).getByTestId("value-picker-note-copy"),
     ).toHaveTextContent("Copy test request");
-    expect(
-      within(note).queryByTestId("value-picker-note-test-run"),
-    ).toBeNull();
+    expect(within(note).queryByTestId("value-picker-note-test-run")).toBeNull();
   });
 });
 
@@ -336,8 +332,6 @@ describe("an Incoming Email trigger no email has reached, while the workflow is 
     const note: HTMLElement = await openPicker();
 
     expect(note).toHaveTextContent(StepSampleCopy.noEmailYet);
-    expect(
-      within(note).queryByTestId("value-picker-note-test-run"),
-    ).toBeNull();
+    expect(within(note).queryByTestId("value-picker-note-test-run")).toBeNull();
   });
 });

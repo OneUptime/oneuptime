@@ -55,7 +55,7 @@ import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import Components from "../../../../../Types/Workflow/Components";
 import IconProp from "../../../../../Types/Icon/IconProp";
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
-import React, { ReactElement } from "react";
+import React from "react";
 import "@testing-library/jest-dom";
 import {
   cleanup,
@@ -253,11 +253,9 @@ type ReferencesFunction = () => Array<string>;
 
 // What can be picked: the options, in the order the keys walk them.
 const optionReferences: ReferencesFunction = (): Array<string> => {
-  return screen
-    .queryAllByRole("option")
-    .map((option: HTMLElement): string => {
-      return option.getAttribute("data-reference") || "";
-    });
+  return screen.queryAllByRole("option").map((option: HTMLElement): string => {
+    return option.getAttribute("data-reference") || "";
+  });
 };
 
 type ElementsFunction = () => Array<HTMLElement>;
@@ -410,6 +408,68 @@ describe("steps whose values are not there", () => {
     expect(unavailableSteps()).toHaveLength(0);
   });
 
+  /*
+   * They are at the end of a list that scrolls, so opened they were under
+   * its fold: the line said a step was not available and showed nothing.
+   */
+  test("opened, they are brought into view; closed, or never opened, nothing is scrolled to", () => {
+    type ScrollIntoViewFunction = typeof Element.prototype.scrollIntoView;
+
+    const original: ScrollIntoViewFunction | undefined =
+      Element.prototype.scrollIntoView;
+    const scrolled: Array<{ testId: string | null; options: unknown }> = [];
+
+    Element.prototype.scrollIntoView = function (
+      this: Element,
+      options?: boolean | ScrollIntoViewOptions,
+    ): void {
+      scrolled.push({
+        testId: this.getAttribute("data-testid"),
+        options: options,
+      });
+    };
+
+    type BlockScrollsFunction = () => number;
+
+    const blockScrolls: BlockScrollsFunction = (): number => {
+      return scrolled.filter(
+        (call: { testId: string | null; options: unknown }): boolean => {
+          return call.testId === "value-picker-unavailable";
+        },
+      ).length;
+    };
+
+    try {
+      renderMenu([...SAMPLE_GROUPS, AFTER_GROUP, LOOSE_GROUP]);
+
+      // Folded, as it opens: the list stays at its top.
+      expect(blockScrolls()).toBe(0);
+
+      fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+      expect(blockScrolls()).toBe(1);
+      expect(
+        scrolled.find(
+          (call: { testId: string | null; options: unknown }): boolean => {
+            return call.testId === "value-picker-unavailable";
+          },
+        )?.options,
+      ).toEqual({ block: "nearest" });
+
+      // Folding it again moves nothing.
+      fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
+
+      expect(blockScrolls()).toBe(1);
+    } finally {
+      if (original) {
+        Element.prototype.scrollIntoView = original;
+      } else {
+        delete (Element.prototype as { scrollIntoView?: unknown })
+          .scrollIntoView;
+      }
+    }
+  });
+
   test("the toggle leaves the focus in the search box", async () => {
     const { user } = renderMenu([...SAMPLE_GROUPS, AFTER_GROUP]);
 
@@ -431,9 +491,7 @@ describe("steps whose values are not there", () => {
 
     fireEvent.click(screen.getByTestId("value-picker-unavailable-toggle"));
 
-    expect(optionReferences()).toEqual([
-      "{{global.variables.API_KEY}}",
-    ]);
+    expect(optionReferences()).toEqual(["{{global.variables.API_KEY}}"]);
     await user.keyboard("{ArrowDown}");
     expect(activeReference()).toBe("{{global.variables.API_KEY}}");
     await user.keyboard("{Enter}");
@@ -564,7 +622,9 @@ describe("a record's fields its step does not pass on", () => {
     fireEvent.click(screen.getAllByRole("option")[0]!);
 
     await waitFor(() => {
-      expect(optionReferences()).toContain(fields[fields.length - 1]!.reference);
+      expect(optionReferences()).toContain(
+        fields[fields.length - 1]!.reference,
+      );
     });
 
     return rendered;
@@ -794,7 +854,10 @@ describe("a note that waits for a run while the workflow is off", () => {
 describe("from the workflow's steps to the list", () => {
   type NodeFunction = (metadataId: string, id: string) => StepGraphNode;
 
-  const node: NodeFunction = (metadataId: string, id: string): StepGraphNode => {
+  const node: NodeFunction = (
+    metadataId: string,
+    id: string,
+  ): StepGraphNode => {
     const metadata: ComponentMetadata = Components.find(
       (component: ComponentMetadata): boolean => {
         return component.id === metadataId;

@@ -63,20 +63,23 @@ const mockRoutes: Array<MockRoute> = [];
 
 const register: (
   method: string,
-) => (uri: string, _middleware: RouterFunction, handler: RouterFunction) => void =
-  (method: string) => {
-    return (
-      uri: string,
-      _middleware: RouterFunction,
-      handler: RouterFunction,
-    ): void => {
-      mockRoutes.push({
-        method: method,
-        uri: uri,
-        handlerFunction: handler,
-      });
-    };
+) => (
+  uri: string,
+  _middleware: RouterFunction,
+  handler: RouterFunction,
+) => void = (method: string) => {
+  return (
+    uri: string,
+    _middleware: RouterFunction,
+    handler: RouterFunction,
+  ): void => {
+    mockRoutes.push({
+      method: method,
+      uri: uri,
+      handlerFunction: handler,
+    });
   };
+};
 
 const mockRouter: Dictionary<jest.Mock> = {
   get: jest.fn().mockImplementation(register("GET")),
@@ -148,28 +151,29 @@ describe("Run Workflow with a record's number", () => {
     const permission: UserTenantAccessPermission = {
       _type: "UserTenantAccessPermission",
       projectId: projectId,
-      permissions: [Permission.EditWorkflow, Permission.ReadProjectIncident].map(
-        (each: Permission): UserPermission => {
-          return {
-            _type: "UserPermission",
-            permission: each,
-            labelIds: [],
-            isBlockPermission: false,
-          };
-        },
-      ),
+      permissions: [
+        Permission.EditWorkflow,
+        Permission.ReadProjectIncident,
+      ].map((each: Permission): UserPermission => {
+        return {
+          _type: "UserPermission",
+          permission: each,
+          labelIds: [],
+          isBlockPermission: false,
+        };
+      }),
     };
 
-    jest.spyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockResolvedValue(
-      {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue({
         tenantId: projectId,
         userId: userId,
         userType: UserType.User,
         userTenantAccessPermission: {
           [projectId.toString()]: permission,
         },
-      } as DatabaseCommonInteractionProps,
-    );
+      } as DatabaseCommonInteractionProps);
 
     const workflowRow: () => WorkflowModel = (): WorkflowModel => {
       const workflow: WorkflowModel = new WorkflowModel();
@@ -180,11 +184,9 @@ describe("Run Workflow with a record's number", () => {
       return workflow;
     };
 
-    jest
-      .spyOn(WorkflowService, "findOneById")
-      .mockImplementation(async () => {
-        return workflowRow();
-      });
+    jest.spyOn(WorkflowService, "findOneById").mockImplementation(async () => {
+      return workflowRow();
+    });
     jest
       .spyOn(WorkflowService, "findOneUpdatableById")
       .mockImplementation(async () => {
@@ -198,7 +200,9 @@ describe("Run Workflow with a record's number", () => {
     incidentFindBySpy = jest
       .spyOn(IncidentService, "findBy")
       .mockImplementation(
-        async (args: { query: Dictionary<unknown> }): Promise<Array<Incident>> => {
+        async (args: {
+          query: Dictionary<unknown>;
+        }): Promise<Array<Incident>> => {
           return incidents.filter((incident: Incident): boolean => {
             return Object.entries(args.query).every(
               ([column, expected]: [string, unknown]): boolean => {
@@ -262,7 +266,10 @@ describe("Run Workflow with a record's number", () => {
     incident(7);
     const eight: Incident = incident(8);
 
-    const thrown: unknown = await run({ _id: "INC-8", select: { title: true } });
+    const thrown: unknown = await run({
+      _id: "INC-8",
+      select: { title: true },
+    });
 
     expect(thrown).toBeUndefined();
     expect(queued()["returnValues"]).toEqual({

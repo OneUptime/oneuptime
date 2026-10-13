@@ -109,15 +109,13 @@ describe("a field its step passes on", () => {
   });
 
   test("the ID is always passed on, named or not", () => {
-    expect(describeIn(`{{${FIND_MODEL}._id}}`).tone).toBe(
-      ReferenceTone.Normal,
-    );
+    expect(describeIn(`{{${FIND_MODEL}._id}}`).tone).toBe(ReferenceTone.Normal);
   });
 
   test("so is a related record's field it names", () => {
-    expect(
-      describeIn(`{{${FIND_MODEL}.currentIncidentState.name}}`).tone,
-    ).toBe(ReferenceTone.Normal);
+    expect(describeIn(`{{${FIND_MODEL}.currentIncidentState.name}}`).tone).toBe(
+      ReferenceTone.Normal,
+    );
     // The related record itself is passed on with it.
     expect(describeIn(`{{${FIND_MODEL}.currentIncidentState}}`).tone).toBe(
       ReferenceTone.Normal,
@@ -186,7 +184,9 @@ describe("a field its step does not pass on", () => {
         [webhook, find, slack],
         ["find-1"],
       ).problem,
-    ).toBe('"Find One Incident" runs after this step, so this value is empty here.');
+    ).toBe(
+      '"Find One Incident" runs after this step, so this value is empty here.',
+    );
   });
 });
 
@@ -218,8 +218,8 @@ describe("what is not judged by it", () => {
   });
 
   test("with no workflow to look in, nothing is judged", () => {
-    expect(
-      describeReference(`{{${FIND_MODEL}.description}}`, {})!.tone,
-    ).toBe(ReferenceTone.Normal);
+    expect(describeReference(`{{${FIND_MODEL}.description}}`, {})!.tone).toBe(
+      ReferenceTone.Normal,
+    );
   });
 });

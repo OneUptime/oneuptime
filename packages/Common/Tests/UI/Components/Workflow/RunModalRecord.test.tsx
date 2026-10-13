@@ -15,14 +15,9 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import React, { ReactElement } from "react";
+import type { Mock } from "jest-mock";
 
 // The code editor does not run under jsdom; the field only has to hold text.
 jest.mock("../../../../UI/Components/CodeEditor/CodeEditor", () => {
@@ -115,23 +110,32 @@ const builtIn: BuiltInFunction = (id: string): NodeDataProp => {
 };
 
 interface Harness {
-  onRun: jest.Mock<(trigger: NodeDataProp) => void>;
-  load: jest.Mock<LoadRunRecordsFunction>;
+  onRun: Mock<(trigger: NodeDataProp) => void>;
+  load: Mock<LoadRunRecordsFunction>;
+}
+
+interface RenderPanelOptions {
+  withWorkflowId?: boolean;
+  // What a search finds; the one newest record unless a test says otherwise.
+  records?: (search: string) => Array<RunRecordOption>;
 }
 
 type RenderPanelFunction = (
   trigger: NodeDataProp,
-  options?: { withWorkflowId?: boolean },
+  options?: RenderPanelOptions,
 ) => Harness;
 
 const renderPanel: RenderPanelFunction = (
   trigger: NodeDataProp,
-  options?: { withWorkflowId?: boolean },
+  options?: RenderPanelOptions,
 ): Harness => {
-  const onRun: jest.Mock<(trigger: NodeDataProp) => void> = jest.fn();
-  const load: jest.Mock<LoadRunRecordsFunction> = jest.fn(
-    async (): Promise<Array<RunRecordOption>> => {
-      return [EIGHT];
+  const onRun: Mock<(trigger: NodeDataProp) => void> = jest.fn();
+  const load: Mock<LoadRunRecordsFunction> = jest.fn(
+    async (data: {
+      workflowId: ObjectID;
+      search: string;
+    }): Promise<Array<RunRecordOption>> => {
+      return options?.records ? options.records(data.search) : [EIGHT];
     },
   );
 
@@ -245,6 +249,48 @@ describe("running an incident trigger", () => {
 
     expect(harness.onRun.mock.calls[0]![0].arguments).toEqual({
       _id: "INC-8",
+    });
+  });
+
+  test("INC-8 typed out and the box left: the field shows the incident, the confirmation names it, and the run gets its ID", async () => {
+    const found: RunRecordOption = {
+      ...EIGHT,
+      matchedBy: RunRecordMatch.Number,
+    };
+    const harness: Harness = renderPanel(incidentTrigger("on-update"), {
+      records: (search: string): Array<RunRecordOption> => {
+        return search === "INC-8" ? [found] : [];
+      },
+    });
+
+    const search: HTMLElement = screen.getByTestId("run-record-field-search");
+
+    fireEvent.focus(search);
+    fireEvent.change(search, { target: { value: "INC-8" } });
+
+    await screen.findByTestId("run-record-field-option");
+
+    // Pressing the panel's button takes the focus out of the box first.
+    fireEvent.blur(search, { relatedTarget: document.body });
+
+    expect(screen.getByTestId("run-record-field-picked")).toHaveTextContent(
+      "Database is down",
+    );
+
+    pressRun();
+
+    expect(
+      within(confirmDialog()).getByText(
+        "It runs as if INC-8 · Database is down had just been updated. Every step runs for real: anything it sends, writes or deletes actually happens.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(confirmDialog()).getByTestId("modal-footer-submit-button"),
+    );
+
+    expect(harness.onRun.mock.calls[0]![0].arguments).toEqual({
+      _id: EIGHT.id,
     });
   });
 

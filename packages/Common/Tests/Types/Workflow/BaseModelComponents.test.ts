@@ -330,7 +330,12 @@ describe("what the palette says each component does", () => {
   });
 
   test("every step that passes a record on calls its field list Fields to pass on, never Select Fields", () => {
-    for (const idSuffix of ["-on-create", "-on-update", "-find-one", "-find-many"]) {
+    for (const idSuffix of [
+      "-on-create",
+      "-on-update",
+      "-find-one",
+      "-find-many",
+    ]) {
       const select: Argument | undefined = argumentOf(find(idSuffix), "select");
 
       expect([idSuffix, select?.name]).toEqual([idSuffix, "Fields to pass on"]);

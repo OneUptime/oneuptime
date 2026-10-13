@@ -246,9 +246,9 @@ describe("Fields to watch: only what an update can change", () => {
   });
 
   test("unless a stored value names one, so it can be removed", () => {
-    expect(
-      paths(optionsFor(FieldPickerMode.Watch, ["createdAt"])),
-    ).toContain("createdAt");
+    expect(paths(optionsFor(FieldPickerMode.Watch, ["createdAt"]))).toContain(
+      "createdAt",
+    );
   });
 });
 
@@ -359,11 +359,14 @@ describe("the rows the list shows", () => {
     const one: Array<FieldGroup> = groups.slice(0, 1);
 
     expect(
-      getPanelRows({ options: options, groups: one, query: "", expanded: [] }).some(
-        (row: PanelRow): boolean => {
-          return row.kind === PanelRowKind.Heading;
-        },
-      ),
+      getPanelRows({
+        options: options,
+        groups: one,
+        query: "",
+        expanded: [],
+      }).some((row: PanelRow): boolean => {
+        return row.kind === PanelRowKind.Heading;
+      }),
     ).toBe(false);
   });
 
@@ -424,9 +427,7 @@ describe("reading a stored Fields to pass on", () => {
   });
 
   test("a field set to false is not chosen", () => {
-    expect(read({ title: true, description: false }).paths).toEqual([
-      "title",
-    ]);
+    expect(read({ title: true, description: false }).paths).toEqual(["title"]);
   });
 
   test("a field the record does not have is shown, flagged, to be removed", () => {
@@ -439,7 +440,11 @@ describe("reading a stored Fields to pass on", () => {
 
   test("empty is nothing chosen", () => {
     for (const value of [undefined, null, "", "  ", {}]) {
-      expect(read(value)).toEqual({ paths: [], unknownPaths: [], problems: [] });
+      expect(read(value)).toEqual({
+        paths: [],
+        unknownPaths: [],
+        problems: [],
+      });
     }
   });
 
@@ -452,7 +457,9 @@ describe("reading a stored Fields to pass on", () => {
     ]);
     expect(
       read({ currentIncidentState: { name: { deeper: true } } }).problems,
-    ).toEqual(["“currentIncidentState.name” goes more than one related record deep."]);
+    ).toEqual([
+      "“currentIncidentState.name” goes more than one related record deep.",
+    ]);
     expect(read("{ not json").problems).toEqual([
       "The current value isn't valid JSON.",
     ]);

@@ -152,7 +152,13 @@ const keysOf: KeysOfFunction = (
  * StepSampleCopy.partial is added to a sentence built from pieces (where a
  * value came from, and when), which is looked up as a whole elsewhere.
  */
-const { partial: _partial, ...STEP_SAMPLE_SENTENCES } = StepSampleCopy;
+const STEP_SAMPLE_SENTENCES: Record<string, unknown> = Object.fromEntries(
+  Object.entries(StepSampleCopy).filter(
+    ([name]: [string, unknown]): boolean => {
+      return name !== "partial";
+    },
+  ),
+);
 
 const SCREENS: Array<{ name: string; keys: Array<string> }> = [
   {

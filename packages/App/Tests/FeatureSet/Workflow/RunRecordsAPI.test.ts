@@ -27,9 +27,9 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import FindBy from "Common/Server/Types/Database/FindBy";
 import Response from "Common/Server/Utils/Response";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import Search from "Common/Types/BaseDatabase/Search";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
@@ -46,9 +46,14 @@ import {
   RUN_RECORD_SEARCH_MAX_LENGTH,
   RunRecordMatch,
   RunRecordMessages,
+  RunRecordOption,
   RunRecordSearchResponse,
 } from "Common/Types/Workflow/RunRecord";
 import { WORKFLOW_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowRunPermissions";
+import {
+  isQueryCondition,
+  meetsCondition,
+} from "Common/Tests/Server/TestingUtils/QueryConditions";
 import {
   afterEach,
   beforeAll,
@@ -289,29 +294,30 @@ describe("POST /workflow/run-records/:workflowId", () => {
     incidentFindBySpy = jest
       .spyOn(IncidentService, "findBy")
       .mockImplementation(
-        async (args: {
-          query: Dictionary<unknown>;
-          limit: number;
-        }): Promise<Array<Incident>> => {
+        async (args: FindBy<Incident>): Promise<Array<Incident>> => {
+          const query: Dictionary<unknown> =
+            args.query as unknown as Dictionary<unknown>;
+          const limit: number =
+            typeof args.limit === "number" ? args.limit : args.limit.toNumber();
+
           return incidents
             .filter((incident: Incident): boolean => {
-              return Object.entries(args.query).every(
+              return Object.entries(query).every(
                 ([column, expected]: [string, unknown]): boolean => {
                   const actual: unknown = (
                     incident as unknown as Dictionary<unknown>
                   )[column];
 
-                  if (expected instanceof Search) {
-                    return String(actual)
-                      .toLowerCase()
-                      .includes(expected.toString().toLowerCase());
+                  // A condition on the title: every word typed, anywhere.
+                  if (isQueryCondition(expected)) {
+                    return meetsCondition(expected, String(actual));
                   }
 
                   return String(actual) === String(expected);
                 },
               );
             })
-            .slice(0, args.limit);
+            .slice(0, limit);
         },
       );
   });
@@ -490,9 +496,11 @@ describe("POST /workflow/run-records/:workflowId", () => {
       });
 
       expect(
-        result.body?.records.map((record: { number?: string }) => {
-          return record.number;
-        }),
+        result.body?.records.map(
+          (record: RunRecordOption): string | undefined => {
+            return record.number;
+          },
+        ),
       ).toEqual(["INC-1", "INC-2"]);
       expect(
         (incidentFindBySpy.mock.calls[0]![0] as { sort: Dictionary<unknown> })
@@ -524,7 +532,11 @@ describe("POST /workflow/run-records/:workflowId", () => {
     });
 
     test("a workflow whose trigger does not run on a record", async () => {
-      for (const trigger of [ComponentID.Webhook, ComponentID.Manual, undefined]) {
+      for (const trigger of [
+        ComponentID.Webhook,
+        ComponentID.Manual,
+        undefined,
+      ]) {
         jest.clearAllMocks();
         triggerId = trigger;
 

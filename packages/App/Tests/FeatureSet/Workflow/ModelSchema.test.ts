@@ -482,9 +482,9 @@ describe("Workflow /model-schema/:tableName column descriptors", () => {
   test("names the column holding a related record's ID, for a relation to one record", async () => {
     const columns: Array<Column> = await getColumnsFor("Incident");
 
-    expect(
-      findColumn(columns, "currentIncidentState")?.relationIdColumn,
-    ).toBe("currentIncidentStateId");
+    expect(findColumn(columns, "currentIncidentState")?.relationIdColumn).toBe(
+      "currentIncidentStateId",
+    );
     expect(findColumn(columns, "incidentSeverity")?.relationIdColumn).toBe(
       "incidentSeverityId",
     );
@@ -501,7 +501,12 @@ describe("Workflow /model-schema/:tableName column descriptors", () => {
   });
 
   test("every relation to one record it names an ID column for has that column described", async () => {
-    for (const model of ["Incident", "Alert", "Monitor", "ScheduledMaintenance"]) {
+    for (const model of [
+      "Incident",
+      "Alert",
+      "Monitor",
+      "ScheduledMaintenance",
+    ]) {
       const columns: Array<Column> = await getColumnsFor(model);
 
       for (const column of columns) {

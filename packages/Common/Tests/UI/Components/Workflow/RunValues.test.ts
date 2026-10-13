@@ -68,7 +68,9 @@ describe("the values Run Workflow sends", () => {
 
   test("the Manual trigger's JSON arrives as JSON, so value.name can be read", () => {
     expect(
-      getRunValues(nodeOf(builtIn(ComponentID.Manual), { value: '{ "name": "Ada" }' })),
+      getRunValues(
+        nodeOf(builtIn(ComponentID.Manual), { value: '{ "name": "Ada" }' }),
+      ),
     ).toEqual({ value: { name: "Ada" } });
   });
 

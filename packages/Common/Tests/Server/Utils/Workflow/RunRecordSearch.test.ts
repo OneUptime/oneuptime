@@ -4,8 +4,9 @@
  * a title, or an ID.
  *
  * The service here is a fake that answers findBy from records in memory, the
- * way the database would answer the query the search builds: equality,
- * an ObjectID, a Search (case-insensitive contains), newest first, a limit.
+ * way the database would answer the query the search builds: equality, an
+ * ObjectID, every word anywhere in a name (ILIKE, read by
+ * TestingUtils/QueryConditions), newest first, a limit.
  * So these check both what is asked of the database - always in the
  * workflow's project, always as the caller - and what comes back, for every
  * model that numbers its records.
@@ -23,7 +24,6 @@ import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import Search from "../../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../../Types/Dictionary";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -31,12 +31,18 @@ import ObjectID from "../../../../Types/ObjectID";
 import UserType from "../../../../Types/UserType";
 import {
   RUN_RECORD_SEARCH_LIMIT,
+  RUN_RECORD_SEARCH_MAX_WORDS,
   RecordNumberColumns,
   RunRecordMatch,
   RunRecordOption,
   getRecordNumberColumns,
 } from "../../../../Types/Workflow/RunRecord";
+import {
+  isQueryCondition,
+  meetsCondition,
+} from "../../TestingUtils/QueryConditions";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
@@ -63,7 +69,10 @@ interface FakeService {
   calls: Array<FindByCall>;
 }
 
-type MatchesFunction = (record: StoredRecord, query: Dictionary<unknown>) => boolean;
+type MatchesFunction = (
+  record: StoredRecord,
+  query: Dictionary<unknown>,
+) => boolean;
 
 // The query, as the database reads it.
 const matches: MatchesFunction = (
@@ -74,11 +83,9 @@ const matches: MatchesFunction = (
     ([column, expected]: [string, unknown]): boolean => {
       const actual: unknown = record[column];
 
-      if (expected instanceof Search) {
-        return (
-          typeof actual === "string" &&
-          actual.toLowerCase().includes(expected.toString().toLowerCase())
-        );
+      // A condition on a name: every word typed, anywhere in it.
+      if (isQueryCondition(expected)) {
+        return typeof actual === "string" && meetsCondition(expected, actual);
       }
 
       if (expected instanceof ObjectID) {
@@ -175,7 +182,12 @@ interface NumberedModel {
 
 // Every model that numbers its records, with the prefix new projects get.
 const NUMBERED_MODELS: Array<NumberedModel> = [
-  { name: "Incident", model: new Incident(), prefix: "INC-", nameColumn: "title" },
+  {
+    name: "Incident",
+    model: new Incident(),
+    prefix: "INC-",
+    nameColumn: "title",
+  },
   { name: "Alert", model: new Alert(), prefix: "ALT-", nameColumn: "title" },
   {
     name: "ScheduledMaintenance",
@@ -287,7 +299,9 @@ describe.each(NUMBERED_MODELS)(
     test("never by another model's prefix", async () => {
       const fake: FakeService = makeService({
         model: kind.model,
-        records: [recordOf({ kind: kind, number: 8, name: "Database is down" })],
+        records: [
+          recordOf({ kind: kind, number: 8, name: "Database is down" }),
+        ],
       });
 
       const found: Array<RunRecordOption> = await RunRecordSearch.search(
@@ -295,15 +309,15 @@ describe.each(NUMBERED_MODELS)(
       );
 
       expect(found).toEqual([]);
-      expect(
-        await RunRecordSearch.resolve(request(fake, "ZZZ-8")),
-      ).toBeNull();
+      expect(await RunRecordSearch.resolve(request(fake, "ZZZ-8"))).toBeNull();
     });
 
     test("a number nothing has finds nothing", async () => {
       const fake: FakeService = makeService({
         model: kind.model,
-        records: [recordOf({ kind: kind, number: 8, name: "Database is down" })],
+        records: [
+          recordOf({ kind: kind, number: 8, name: "Database is down" }),
+        ],
       });
 
       expect(
@@ -357,7 +371,9 @@ describe.each(NUMBERED_MODELS)(
     test("every read is in the workflow's project, as the caller", async () => {
       const fake: FakeService = makeService({
         model: kind.model,
-        records: [recordOf({ kind: kind, number: 8, name: "Database is down" })],
+        records: [
+          recordOf({ kind: kind, number: 8, name: "Database is down" }),
+        ],
       });
 
       await RunRecordSearch.search(request(fake, `${kind.prefix}8`));
@@ -424,6 +440,105 @@ describe("finding a record by name", () => {
     });
 
     expect(await RunRecordSearch.resolve(request(fake, "Database"))).toBeNull();
+  });
+
+  type FoundNamesFunction = (
+    fake: FakeService,
+    search: string,
+  ) => Promise<Array<string | undefined>>;
+
+  const foundNames: FoundNamesFunction = async (
+    fake: FakeService,
+    search: string,
+  ): Promise<Array<string | undefined>> => {
+    return (await RunRecordSearch.search(request(fake, search))).map(
+      (option: RunRecordOption): string | undefined => {
+        return option.name;
+      },
+    );
+  };
+
+  /*
+   * A title half remembered is typed as its words, not as a run of them:
+   * "database down" for "Database is down". One run of characters found
+   * nothing for that.
+   */
+  test("every word typed has to be in the title, in any order", async () => {
+    const fake: FakeService = makeService({
+      model: INCIDENT.model,
+      records: [
+        recordOf({ kind: INCIDENT, number: 1, name: "Database is down" }),
+        recordOf({ kind: INCIDENT, number: 2, name: "Database replica lag" }),
+        recordOf({ kind: INCIDENT, number: 3, name: "API is down" }),
+      ],
+    });
+
+    expect(await foundNames(fake, "database down")).toEqual([
+      "Database is down",
+    ]);
+    expect(await foundNames(fake, "DOWN   database")).toEqual([
+      "Database is down",
+    ]);
+    // One word of two is not enough.
+    expect(await foundNames(fake, "database checkout")).toEqual([]);
+    // A word is found inside a longer one, as part of a title is.
+    expect(await foundNames(fake, "data repl")).toEqual([
+      "Database replica lag",
+    ]);
+  });
+
+  test("a % or an _ typed is that character, not anything at all", async () => {
+    const fake: FakeService = makeService({
+      model: INCIDENT.model,
+      records: [
+        recordOf({ kind: INCIDENT, number: 1, name: "CPU at 100% on db_1" }),
+        recordOf({ kind: INCIDENT, number: 2, name: "CPU at 1000 on db-1" }),
+      ],
+    });
+
+    expect(await foundNames(fake, "100%")).toEqual(["CPU at 100% on db_1"]);
+    expect(await foundNames(fake, "db_1")).toEqual(["CPU at 100% on db_1"]);
+    expect(await foundNames(fake, "%")).toEqual(["CPU at 100% on db_1"]);
+    expect(await foundNames(fake, "_")).toEqual(["CPU at 100% on db_1"]);
+  });
+
+  test("the database is asked for each word on the name column, escaped, and for no more than twelve", async () => {
+    const fake: FakeService = makeService({
+      model: INCIDENT.model,
+      records: [],
+    });
+
+    await RunRecordSearch.search(request(fake, "  50%  off_peak \\ load  "));
+
+    const condition: unknown = fake.calls[0]!.query["title"];
+
+    expect(condition).toBeInstanceOf(FindOperator);
+    expect(
+      Object.values(
+        (condition as FindOperator<unknown>).objectLiteralParameters!,
+      ),
+    ).toEqual(["%50\\%%", "%off\\_peak%", "%\\\\%", "%load%"]);
+    // In the workflow's project, like every other read.
+    expect(fake.calls[0]!.query["projectId"]).toBe(PROJECT_ID);
+
+    const many: string = Array.from(
+      { length: RUN_RECORD_SEARCH_MAX_WORDS + 8 },
+      (_value: unknown, index: number): string => {
+        return `w${index}`;
+      },
+    ).join(" ");
+
+    await RunRecordSearch.search(request(fake, many));
+
+    // The last read: the words end in a number, which is looked up first.
+    const lastRead: FindByCall = fake.calls[fake.calls.length - 1]!;
+
+    expect(
+      Object.values(
+        (lastRead.query["title"] as FindOperator<unknown>)
+          .objectLiteralParameters!,
+      ),
+    ).toHaveLength(RUN_RECORD_SEARCH_MAX_WORDS);
   });
 
   test("a number in a title is found too, after the record with that number, and once", async () => {
@@ -521,7 +636,11 @@ describe("with nothing typed", () => {
 
     for (let number: number = 1; number <= 14; number++) {
       records.push(
-        recordOf({ kind: INCIDENT, number: number, name: `Incident ${number}` }),
+        recordOf({
+          kind: INCIDENT,
+          number: number,
+          name: `Incident ${number}`,
+        }),
       );
     }
 

@@ -28,12 +28,15 @@ describe("the trigger a workflow is run with", () => {
     ["incident-on-delete", IncidentService],
     ["alert-on-create", AlertService],
     ["scheduled-maintenance-on-update", ScheduledMaintenanceService],
-  ])("%s runs with the records its model's service reads", (triggerId: string, service: unknown) => {
-    const trigger: RunRecordTrigger | null = getRunRecordTrigger(triggerId);
+  ])(
+    "%s runs with the records its model's service reads",
+    (triggerId: string, service: unknown) => {
+      const trigger: RunRecordTrigger | null = getRunRecordTrigger(triggerId);
 
-    expect(trigger?.metadata.id).toBe(triggerId);
-    expect(trigger?.service).toBe(service);
-  });
+      expect(trigger?.metadata.id).toBe(triggerId);
+      expect(trigger?.service).toBe(service);
+    },
+  );
 
   test("a step that is no record trigger has none", () => {
     for (const id of [
@@ -84,10 +87,10 @@ describe("the trigger a workflow is run with", () => {
         component.tableName,
       ]);
       // Records are looked up in the workflow's project.
-      expect([component.id, Boolean(trigger?.service.getModel().getTenantColumn())]).toEqual([
+      expect([
         component.id,
-        true,
-      ]);
+        Boolean(trigger?.service.getModel().getTenantColumn()),
+      ]).toEqual([component.id, true]);
     }
 
     expect(triggers).toBeGreaterThan(100);

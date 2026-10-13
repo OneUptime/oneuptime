@@ -9,6 +9,7 @@ import RunRecordField, {
   RUN_RECORD_SEARCH_DELAY_MS,
   RunRecordFieldCopy,
   formatRunRecordCreatedAt,
+  getExactRunRecord,
   getRunRecordDescription,
   getRunRecordLabel,
   getRunRecordPlaceholder,
@@ -32,14 +33,9 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
+import type { Mock } from "jest-mock";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "b0c3f6d2-5d2e-4c55-9a0e-6f1e2d3c4b5a",
@@ -86,8 +82,8 @@ interface LoadCall {
 
 interface Harness {
   calls: Array<LoadCall>;
-  onChange: jest.Mock<(value: string) => void>;
-  onRecordChange: jest.Mock<(record: RunRecordOption | null) => void>;
+  onChange: Mock<(value: string) => void>;
+  onRecordChange: Mock<(record: RunRecordOption | null) => void>;
   value: () => string;
 }
 
@@ -103,8 +99,8 @@ const renderField: RenderFieldFunction = (options?: {
   autoResolve?: Array<RunRecordOption> | undefined;
 }): Harness => {
   const calls: Array<LoadCall> = [];
-  const onChange: jest.Mock<(value: string) => void> = jest.fn();
-  const onRecordChange: jest.Mock<(record: RunRecordOption | null) => void> =
+  const onChange: Mock<(value: string) => void> = jest.fn();
+  const onRecordChange: Mock<(record: RunRecordOption | null) => void> =
     jest.fn();
   let current: string = options?.initialValue || "";
 
@@ -207,7 +203,11 @@ describe("the record field", () => {
     fireEvent.focus(searchBox());
     await flush();
 
-    expect(harness.calls.map((call: LoadCall) => call.search)).toEqual([""]);
+    expect(
+      harness.calls.map((call: LoadCall) => {
+        return call.search;
+      }),
+    ).toEqual([""]);
 
     await act(async () => {
       harness.calls[0]!.resolve([EIGHT, SEVEN]);
@@ -243,10 +243,11 @@ describe("the record field", () => {
     );
 
     await flush(60);
-    expect(harness.calls.map((call: LoadCall) => call.search)).toEqual([
-      "",
-      "INC-8",
-    ]);
+    expect(
+      harness.calls.map((call: LoadCall) => {
+        return call.search;
+      }),
+    ).toEqual(["", "INC-8"]);
     expect(harness.onChange).toHaveBeenLastCalledWith("INC-8");
 
     await act(async () => {
@@ -326,9 +327,12 @@ describe("the record field", () => {
     expect(harness.value()).toBe(EIGHT.id);
 
     fireEvent.click(
-      within(screen.getByTestId("run-record-field-picked")).getByRole("button", {
-        name: "Change",
-      }),
+      within(screen.getByTestId("run-record-field-picked")).getByRole(
+        "button",
+        {
+          name: "Change",
+        },
+      ),
     );
     await flush();
 
@@ -340,7 +344,7 @@ describe("the record field", () => {
   });
 
   test("Escape closes the list, not the panel around it", async () => {
-    const outer: jest.Mock<() => void> = jest.fn();
+    const outer: Mock<() => void> = jest.fn();
 
     document.addEventListener("keydown", outer);
 
@@ -441,6 +445,320 @@ describe("the record field", () => {
   });
 });
 
+type ChangeButtonFunction = () => HTMLElement;
+
+const changeButton: ChangeButtonFunction = (): HTMLElement => {
+  return within(screen.getByTestId("run-record-field-picked")).getByRole(
+    "button",
+    { name: "Change" },
+  );
+};
+
+type TypeAndListFunction = (
+  harness: Harness,
+  text: string,
+  records: Array<RunRecordOption>,
+) => Promise<void>;
+
+// Types into the box, lets the typing pause, and answers the search.
+const typeAndList: TypeAndListFunction = async (
+  harness: Harness,
+  text: string,
+  records: Array<RunRecordOption>,
+): Promise<void> => {
+  fireEvent.focus(searchBox());
+  fireEvent.change(searchBox(), { target: { value: text } });
+  await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+  await act(async () => {
+    harness.calls[harness.calls.length - 1]!.resolve(records);
+  });
+};
+
+/*
+ * A pick takes the search box away, and the keyboard's place with it: the
+ * focus was left on nothing at all, and a screen reader said nothing. It
+ * goes to Change, the one control the picked record has.
+ */
+describe("where the focus is after a pick", () => {
+  test("Enter picks, and the focus is on Change", async () => {
+    renderField({ autoResolve: [EIGHT, SEVEN] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+    act(() => {
+      searchBox().focus();
+    });
+
+    fireEvent.keyDown(searchBox(), { key: "Enter" });
+
+    expect(changeButton()).toHaveFocus();
+  });
+
+  test("a click picks, and the focus is on Change", async () => {
+    renderField({ autoResolve: [EIGHT, SEVEN] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+    act(() => {
+      searchBox().focus();
+    });
+
+    fireEvent.click(options()[1]!);
+
+    expect(changeButton()).toHaveFocus();
+  });
+
+  test("Change takes it back to the box, and a second pick to Change again", async () => {
+    renderField({ autoResolve: [EIGHT, SEVEN] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+    fireEvent.click(options()[0]!);
+
+    fireEvent.click(changeButton());
+    await flush();
+
+    expect(searchBox()).toHaveFocus();
+
+    fireEvent.keyDown(searchBox(), { key: "ArrowDown" });
+    fireEvent.keyDown(searchBox(), { key: "Enter" });
+
+    expect(changeButton()).toHaveFocus();
+    expect(screen.getByTestId("run-record-field-picked")).toHaveTextContent(
+      "INC-7",
+    );
+  });
+});
+
+/*
+ * "Instead of UUID can I enter the user-facing incident ID": INC-8 typed out
+ * and the box left. The server would look INC-8 up when the run starts; the
+ * field shows which incident that is as soon as it knows, so the
+ * confirmation can name it before anything runs.
+ */
+describe("a number or an ID typed out, and the box left", () => {
+  const OTHER: HTMLElement = document.body;
+
+  test("the one record its number found is picked, as if it had been chosen", async () => {
+    const harness: Harness = renderField();
+
+    await typeAndList(harness, "INC-8", [EIGHT]);
+
+    expect(harness.value()).toBe("INC-8");
+
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe(EIGHT.id);
+    expect(harness.onRecordChange).toHaveBeenLastCalledWith(EIGHT);
+
+    const picked: HTMLElement = screen.getByTestId("run-record-field-picked");
+
+    expect(picked).toHaveTextContent("INC-8");
+    expect(picked).toHaveTextContent("Database is down");
+    expect(screen.queryByTestId("run-record-field-search")).toBeNull();
+    expect(options()).toHaveLength(0);
+  });
+
+  test("the focus was on its way elsewhere, and is not pulled back to Change", async () => {
+    const harness: Harness = renderField();
+
+    await typeAndList(harness, "8", [EIGHT]);
+
+    const elsewhere: HTMLButtonElement = document.createElement("button");
+
+    document.body.appendChild(elsewhere);
+
+    try {
+      elsewhere.focus();
+      fireEvent.blur(searchBox(), { relatedTarget: elsewhere });
+
+      expect(screen.getByTestId("run-record-field-picked")).toBeInTheDocument();
+      expect(changeButton()).not.toHaveFocus();
+      expect(elsewhere).toHaveFocus();
+    } finally {
+      elsewhere.remove();
+    }
+  });
+
+  test("an ID pasted in is the record it found", async () => {
+    const harness: Harness = renderField();
+    const byId: RunRecordOption = { ...SEVEN, matchedBy: RunRecordMatch.Id };
+
+    await typeAndList(harness, SEVEN.id, [byId]);
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe(SEVEN.id);
+    expect(harness.onRecordChange).toHaveBeenLastCalledWith(byId);
+    expect(screen.getByTestId("run-record-field-picked")).toHaveTextContent(
+      "Disk full",
+    );
+  });
+
+  test("records found by their name after it do not get in its way", async () => {
+    const harness: Harness = renderField();
+    const named: RunRecordOption = {
+      id: "33333333-3333-4333-8333-333333333333",
+      number: "INC-3",
+      name: "Port 8 is closed",
+      matchedBy: RunRecordMatch.Name,
+    };
+
+    await typeAndList(harness, "8", [EIGHT, named]);
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe(EIGHT.id);
+  });
+
+  test("part of a name is no record's name: nothing is picked", async () => {
+    const harness: Harness = renderField();
+
+    await typeAndList(harness, "data", [
+      { ...EIGHT, matchedBy: RunRecordMatch.Name },
+    ]);
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe("data");
+    expect(harness.onRecordChange).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("run-record-field-picked")).toBeNull();
+    expect(searchBox()).toHaveValue("data");
+  });
+
+  test("a number two records answer to picks neither", async () => {
+    const harness: Harness = renderField();
+
+    await typeAndList(harness, "8", [
+      EIGHT,
+      {
+        id: "44444444-4444-4444-8444-444444444444",
+        number: "OPS-8",
+        name: "Queue is stuck",
+        matchedBy: RunRecordMatch.Number,
+      },
+    ]);
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe("8");
+    expect(screen.queryByTestId("run-record-field-picked")).toBeNull();
+  });
+
+  test("an answer to what was typed before is not what is typed now", async () => {
+    const harness: Harness = renderField();
+
+    await typeAndList(harness, "INC-8", [EIGHT]);
+
+    // One more digit, and the box is left before the list has answered.
+    fireEvent.change(searchBox(), { target: { value: "INC-80" } });
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe("INC-80");
+    expect(screen.queryByTestId("run-record-field-picked")).toBeNull();
+  });
+
+  test("nothing typed picks nothing from the newest records", async () => {
+    const harness: Harness = renderField({ autoResolve: [EIGHT] });
+
+    fireEvent.focus(searchBox());
+    await flush();
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.onChange).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("run-record-field-picked")).toBeNull();
+  });
+
+  test("moving within the field - to its clear button - picks nothing", async () => {
+    const harness: Harness = renderField();
+
+    await typeAndList(harness, "INC-8", [EIGHT]);
+
+    fireEvent.blur(searchBox(), {
+      relatedTarget: screen.getByRole("button", { name: "Clear" }),
+    });
+
+    expect(harness.value()).toBe("INC-8");
+    expect(options()).toHaveLength(1);
+  });
+
+  test("a search that failed picks nothing", async () => {
+    const harness: Harness = renderField();
+
+    fireEvent.focus(searchBox());
+    fireEvent.change(searchBox(), { target: { value: "INC-8" } });
+    await flush(RUN_RECORD_SEARCH_DELAY_MS + 10);
+
+    await act(async () => {
+      harness.calls[harness.calls.length - 1]!.reject(new Error("No"));
+    });
+
+    fireEvent.blur(searchBox(), { relatedTarget: OTHER });
+
+    expect(harness.value()).toBe("INC-8");
+    expect(screen.queryByTestId("run-record-field-picked")).toBeNull();
+  });
+});
+
+describe("the record what was typed names outright", () => {
+  const byName: RunRecordOption = { ...SEVEN, matchedBy: RunRecordMatch.Name };
+  const byId: RunRecordOption = { ...SEVEN, matchedBy: RunRecordMatch.Id };
+
+  test("the only record found by its number", () => {
+    expect(
+      getExactRunRecord({
+        search: "INC-8",
+        listedFor: "INC-8",
+        records: [EIGHT, byName],
+      }),
+    ).toBe(EIGHT);
+  });
+
+  test("the only record found by its ID", () => {
+    expect(
+      getExactRunRecord({
+        search: SEVEN.id,
+        listedFor: SEVEN.id,
+        records: [byId],
+      }),
+    ).toBe(byId);
+  });
+
+  test("none when only names matched, when nothing did, or when two numbers did", () => {
+    expect(
+      getExactRunRecord({
+        search: "disk",
+        listedFor: "disk",
+        records: [byName],
+      }),
+    ).toBeNull();
+    expect(
+      getExactRunRecord({ search: "INC-9", listedFor: "INC-9", records: [] }),
+    ).toBeNull();
+    expect(
+      getExactRunRecord({
+        search: "8",
+        listedFor: "8",
+        records: [EIGHT, { ...EIGHT, id: "other" }],
+      }),
+    ).toBeNull();
+  });
+
+  test("none for a list that answers something else, or nothing typed", () => {
+    expect(
+      getExactRunRecord({
+        search: "INC-80",
+        listedFor: "INC-8",
+        records: [EIGHT],
+      }),
+    ).toBeNull();
+    expect(
+      getExactRunRecord({ search: "", listedFor: "", records: [EIGHT] }),
+    ).toBeNull();
+    // The newest records are how they were found, not a match.
+    expect(
+      getExactRunRecord({ search: "x", listedFor: "x", records: [SEVEN] }),
+    ).toBeNull();
+  });
+});
+
 describe("the words around it", () => {
   const translator: ReturnType<typeof createTranslator> = createTranslator(
     undefined,
@@ -492,9 +810,9 @@ describe("the words around it", () => {
     expect(
       getRunRecordLabel({ ...EIGHT, number: undefined } as RunRecordOption),
     ).toBe("Database is down");
-    expect(
-      getRunRecordLabel({ id: "x", matchedBy: RunRecordMatch.Id }),
-    ).toBe("x");
+    expect(getRunRecordLabel({ id: "x", matchedBy: RunRecordMatch.Id })).toBe(
+      "x",
+    );
   });
 
   test("when a record was created, short", () => {

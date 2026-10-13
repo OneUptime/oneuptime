@@ -46,6 +46,7 @@ jest.mock("../../../../UI/Components/CodeEditor/CodeEditor", () => {
 
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../Types/JSON";
+import { ADD_FIELDS_LIST_MAX_HEIGHT } from "../../../../UI/Components/Workflow/FieldPicker/AddFieldsPanel";
 import ModelFieldPicker, {
   FieldPickerMode,
 } from "../../../../UI/Components/Workflow/ModelFieldPicker";
@@ -87,6 +88,8 @@ afterEach(() => {
 
 interface Harness {
   onChange: MockFunction;
+  // The form's "this field was left": what shows a required list's message.
+  onBlur: MockFunction;
   testId: string;
 }
 
@@ -100,6 +103,7 @@ const renderPicker: RenderPickerFunction = async (options: {
   value?: string | JSONObject | null;
 }): Promise<Harness> => {
   const onChange: MockFunction = getJestMockFunction();
+  const onBlur: MockFunction = getJestMockFunction();
   const testId: string =
     options.mode === FieldPickerMode.Watch
       ? "fields-to-watch"
@@ -113,12 +117,15 @@ const renderPicker: RenderPickerFunction = async (options: {
       onChange={(value: string) => {
         onChange(value);
       }}
+      onBlur={() => {
+        onBlur();
+      }}
     />,
   );
 
   await screen.findByTestId(testId);
 
-  return { onChange: onChange, testId: testId };
+  return { onChange: onChange, onBlur: onBlur, testId: testId };
 };
 
 type ChipsFunction = (testId: string) => Array<string>;
@@ -172,7 +179,9 @@ describe("Fields to pass on", () => {
     expect(screen.getByTestId(`${harness.testId}-search`)).toHaveFocus();
     expect(within(panel).getByText("Main fields")).toBeInTheDocument();
     expect(within(panel).getByText("Related records")).toBeInTheDocument();
-    expect(within(panel).getByText("Filled in by OneUptime")).toBeInTheDocument();
+    expect(
+      within(panel).getByText("Filled in by OneUptime"),
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId(`${harness.testId}-option-title`),
     ).toHaveAttribute("aria-selected", "true");
@@ -272,7 +281,10 @@ describe("Fields to pass on", () => {
     try {
       fireEvent.keyDown(search, { key: "Escape" });
     } finally {
-      document.removeEventListener("keydown", outer as unknown as EventListener);
+      document.removeEventListener(
+        "keydown",
+        outer as unknown as EventListener,
+      );
     }
 
     expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
@@ -358,7 +370,11 @@ describe("Fields to pass on", () => {
 
     const editor: HTMLElement = screen.getByTestId("code-editor");
 
-    expect(screen.getByText('Keys are the field names, such as "title". The ID is "_id".')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Keys are the field names, such as "title". The ID is "_id".',
+      ),
+    ).toBeInTheDocument();
 
     fireEvent.change(editor, {
       target: { value: '{"title": true, "description": true}' },
@@ -426,6 +442,372 @@ describe("Fields to pass on", () => {
   });
 });
 
+/*
+ * What a real browser showed and jsdom's one-event clicks do not: a press is
+ * a mousedown, a change of focus and then a click, and each of the three
+ * reaches the list.
+ */
+describe("opening and closing the Add field list", () => {
+  type PressFunction = (harness: Harness) => void;
+
+  // A press on Add field, as a browser delivers it.
+  const pressAddField: PressFunction = (harness: Harness): void => {
+    const add: HTMLElement = screen.getByTestId(`${harness.testId}-add`);
+    const search: HTMLElement | null = screen.queryByTestId(
+      `${harness.testId}-search`,
+    );
+
+    fireEvent.mouseDown(add);
+
+    if (search && document.activeElement === search) {
+      // The button takes the focus from the search box.
+      fireEvent.blur(search, { relatedTarget: add });
+      add.focus();
+    }
+
+    fireEvent.mouseUp(add);
+    fireEvent.click(add);
+  };
+
+  test("a second press on Add field closes the list, and a third opens it again", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    pressAddField(harness);
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+    expect(screen.getByTestId(`${harness.testId}-add`)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    // It used to close on the press and open again on its click.
+    pressAddField(harness);
+    expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    expect(screen.getByTestId(`${harness.testId}-add`)).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+
+    pressAddField(harness);
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+  });
+
+  test("a press anywhere else closes it, and the focus stays where the press put it", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    pressAddField(harness);
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+    expect(screen.getByTestId(`${harness.testId}-add`)).not.toHaveFocus();
+  });
+
+  test("a press inside it - on a field, on its foot - keeps it open", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    pressAddField(harness);
+    fireEvent.mouseDown(screen.getByTestId(`${harness.testId}-option-title`));
+    fireEvent.mouseDown(screen.getByTestId(`${harness.testId}-chosen-count`));
+
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+  });
+
+  test("the focus moving on past it closes it; moving within it does not", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    pressAddField(harness);
+
+    const search: HTMLElement = screen.getByTestId(`${harness.testId}-search`);
+    const done: HTMLElement = screen.getByTestId(`${harness.testId}-done`);
+
+    fireEvent.blur(search, { relatedTarget: done });
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+
+    fireEvent.blur(done, {
+      relatedTarget: screen.getByTestId(`${harness.testId}-edit-json`),
+    });
+    expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+  });
+
+  test.each(["done", "close", "list"])(
+    "Escape with the focus on its %s closes the list, and is not the dialog's to hear",
+    async (part: string) => {
+      const harness: Harness = await renderPicker({ value: { title: true } });
+      const outer: MockFunction = getJestMockFunction();
+
+      pressAddField(harness);
+      document.addEventListener("keydown", outer as unknown as EventListener);
+
+      let wasLeftAlone: boolean = true;
+
+      try {
+        // False when the key was answered here: the dialog checks for that.
+        wasLeftAlone = fireEvent.keyDown(
+          screen.getByTestId(`${harness.testId}-${part}`),
+          { key: "Escape" },
+        );
+      } finally {
+        document.removeEventListener(
+          "keydown",
+          outer as unknown as EventListener,
+        );
+      }
+
+      expect(wasLeftAlone).toBe(false);
+      expect(outer).not.toHaveBeenCalled();
+      expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+      expect(screen.getByTestId(`${harness.testId}-add`)).toHaveFocus();
+    },
+  );
+
+  test("Escape with the focus back on Add field, or on a chip, closes the list too", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    for (const part of ["add", "remove"]) {
+      pressAddField(harness);
+      expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+
+      const wasLeftAlone: boolean = fireEvent.keyDown(
+        screen.getByTestId(`${harness.testId}-${part}`),
+        { key: "Escape" },
+      );
+
+      expect({ part, wasLeftAlone }).toEqual({ part, wasLeftAlone: false });
+      expect(screen.queryByTestId(`${harness.testId}-panel`)).toBeNull();
+      expect(screen.getByTestId(`${harness.testId}-add`)).toHaveFocus();
+    }
+  });
+
+  test("with no list open, Escape is the dialog's: the field leaves it alone", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+    const outer: MockFunction = getJestMockFunction();
+
+    document.addEventListener("keydown", outer as unknown as EventListener);
+
+    let wasLeftAlone: boolean = false;
+
+    try {
+      wasLeftAlone = fireEvent.keyDown(
+        screen.getByTestId(`${harness.testId}-add`),
+        { key: "Escape" },
+      );
+    } finally {
+      document.removeEventListener(
+        "keydown",
+        outer as unknown as EventListener,
+      );
+    }
+
+    expect(wasLeftAlone).toBe(true);
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
+  test("any other key on Done is Done's own", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    pressAddField(harness);
+
+    expect(
+      fireEvent.keyDown(screen.getByTestId(`${harness.testId}-done`), {
+        key: "Enter",
+      }),
+    ).toBe(true);
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+  });
+});
+
+describe("where the Add field list lands when it opens", () => {
+  type ScrollIntoViewFunction = typeof Element.prototype.scrollIntoView;
+
+  const original: ScrollIntoViewFunction | undefined =
+    Element.prototype.scrollIntoView;
+  let scrolled: Array<{ testId: string | null; options: unknown }> = [];
+
+  beforeEach(() => {
+    scrolled = [];
+    Element.prototype.scrollIntoView = function (
+      this: Element,
+      options?: boolean | ScrollIntoViewOptions,
+    ): void {
+      scrolled.push({
+        testId: this.getAttribute("data-testid"),
+        options: options,
+      });
+    };
+  });
+
+  afterEach(() => {
+    if (original) {
+      Element.prototype.scrollIntoView = original;
+    } else {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  test("the whole list is brought into view - down to Done - and no further than it needs", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    // The list first, then the row the keyboard is on, which is in it.
+    expect(scrolled[0]).toEqual({
+      testId: `${harness.testId}-panel`,
+      options: { block: "nearest" },
+    });
+    expect(scrolled[1]).toEqual({
+      testId: `${harness.testId}-option-title`,
+      options: { block: "nearest" },
+    });
+  });
+
+  test("a pick that adds a chip above it brings it back into view; walking the list does not", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    type PanelScrollsFunction = () => number;
+
+    const panelScrolls: PanelScrollsFunction = (): number => {
+      return scrolled.filter(
+        (call: { testId: string | null; options: unknown }): boolean => {
+          return call.testId === `${harness.testId}-panel`;
+        },
+      ).length;
+    };
+
+    expect(panelScrolls()).toBe(1);
+
+    // The keys move the row they are on, never the list itself.
+    fireEvent.keyDown(screen.getByTestId(`${harness.testId}-search`), {
+      key: "ArrowDown",
+    });
+    fireEvent.change(screen.getByTestId(`${harness.testId}-search`), {
+      target: { value: "de" },
+    });
+
+    expect(panelScrolls()).toBe(1);
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-option-declaredAt`));
+
+    expect(chips(harness.testId)).toEqual(["Title", "Declared At"]);
+    expect(panelScrolls()).toBe(2);
+
+    // Taking one out can pull the list up: it is kept in view then too.
+    fireEvent.click(screen.getByTestId(`${harness.testId}-option-declaredAt`));
+
+    expect(panelScrolls()).toBe(3);
+  });
+
+  test("its height is on the element, so it is right the moment it is measured", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    const list: HTMLElement = screen.getByTestId(`${harness.testId}-list`);
+
+    expect(ADD_FIELDS_LIST_MAX_HEIGHT).toBe("18rem");
+    expect(list.style.maxHeight).toBe(ADD_FIELDS_LIST_MAX_HEIGHT);
+    expect(list.style.overflowY).toBe("auto");
+    // Not left to a class the page may not have drawn yet.
+    expect(list.className).not.toContain("max-h-");
+  });
+});
+
+describe("the Add field list where a finger is the pointer", () => {
+  type MatchMediaFunction = typeof window.matchMedia;
+
+  const original: MatchMediaFunction | undefined = window.matchMedia;
+
+  type SetPointerFunction = (coarse: boolean) => void;
+
+  const setPointer: SetPointerFunction = (coarse: boolean): void => {
+    window.matchMedia = ((query: string): MediaQueryList => {
+      return {
+        matches: coarse && query === "(pointer: coarse)",
+        media: query,
+      } as MediaQueryList;
+    }) as MatchMediaFunction;
+  };
+
+  afterEach(() => {
+    if (original) {
+      window.matchMedia = original;
+    } else {
+      delete (window as { matchMedia?: unknown }).matchMedia;
+    }
+  });
+
+  test("on a phone it opens for browsing: the search box is not focused, so no keyboard covers the fields", async () => {
+    setPointer(true);
+
+    const harness: Harness = await renderPicker({ value: { title: true } });
+    const add: HTMLElement = screen.getByTestId(`${harness.testId}-add`);
+
+    add.focus();
+    fireEvent.click(add);
+
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+    expect(screen.getByTestId(`${harness.testId}-search`)).not.toHaveFocus();
+    expect(add).toHaveFocus();
+
+    // A tap on a field still picks it, and the list stays open.
+    fireEvent.click(screen.getByTestId(`${harness.testId}-option-declaredAt`));
+    expect(chips(harness.testId)).toEqual(["Title", "Declared At"]);
+    expect(screen.getByTestId(`${harness.testId}-panel`)).toBeInTheDocument();
+  });
+
+  test("with a mouse it opens with the search box focused, ready to type", async () => {
+    setPointer(false);
+
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+
+    expect(screen.getByTestId(`${harness.testId}-search`)).toHaveFocus();
+  });
+});
+
+describe("a list left with nothing in it", () => {
+  test("taking the last field out tells the form at once, so a list that must hold one says so", async () => {
+    const harness: Harness = await renderPicker({
+      value: { title: true, description: true },
+    });
+
+    fireEvent.click(screen.getAllByTestId(`${harness.testId}-remove`)[0]!);
+
+    // One field is left: nothing to say yet.
+    expect(harness.onBlur).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-remove`));
+
+    expect(harness.onChange).toHaveBeenLastCalledWith("");
+    expect(harness.onBlur).toHaveBeenCalledTimes(1);
+  });
+
+  test("unticking the last field in the open list does not: the list is still being picked from", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+
+    fireEvent.click(screen.getByTestId(`${harness.testId}-add`));
+    fireEvent.click(screen.getByTestId(`${harness.testId}-option-title`));
+
+    expect(harness.onChange).toHaveBeenLastCalledWith("");
+    expect(harness.onBlur).not.toHaveBeenCalled();
+  });
+
+  test("leaving the field tells the form, as leaving any field does", async () => {
+    const harness: Harness = await renderPicker({ value: { title: true } });
+    const add: HTMLElement = screen.getByTestId(`${harness.testId}-add`);
+
+    // To the chip beside it: still inside the field.
+    fireEvent.blur(add, {
+      relatedTarget: screen.getByTestId(`${harness.testId}-remove`),
+    });
+    expect(harness.onBlur).not.toHaveBeenCalled();
+
+    fireEvent.blur(add, { relatedTarget: document.body });
+    expect(harness.onBlur).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("Fields to watch", () => {
   test("empty, it says every change runs the workflow", async () => {
     const harness: Harness = await renderPicker({
@@ -483,7 +865,9 @@ describe("Fields to watch", () => {
 
     expect(within(panel).queryByText("Related records")).toBeNull();
     expect(screen.queryByTestId(`${harness.testId}-option-_id`)).toBeNull();
-    expect(screen.queryByTestId(`${harness.testId}-option-createdAt`)).toBeNull();
+    expect(
+      screen.queryByTestId(`${harness.testId}-option-createdAt`),
+    ).toBeNull();
     expect(
       screen.queryByTestId(`${harness.testId}-option-incidentNumber`),
     ).toBeNull();

@@ -131,7 +131,9 @@ describe("where this step runs, as the graph says", () => {
       },
     };
 
-    render(ui({ sources: [source], valueSources: VALUE_SOURCES }, { current: null }));
+    render(
+      ui({ sources: [source], valueSources: VALUE_SOURCES }, { current: null }),
+    );
 
     const context: ValueSuggestionContext = seen[seen.length - 1]!;
 
@@ -176,7 +178,11 @@ describe("whether the workflow is off", () => {
     await act(async () => {
       view = render(
         ui(
-          { sources: sources, valueSources: VALUE_SOURCES, isWorkflowOff: true },
+          {
+            sources: sources,
+            valueSources: VALUE_SOURCES,
+            isWorkflowOff: true,
+          },
           captured,
         ),
       );
@@ -189,7 +195,11 @@ describe("whether the workflow is off", () => {
     await act(async () => {
       view!.rerender(
         ui(
-          { sources: sources, valueSources: VALUE_SOURCES, isWorkflowOff: false },
+          {
+            sources: sources,
+            valueSources: VALUE_SOURCES,
+            isWorkflowOff: false,
+          },
           captured,
         ),
       );
@@ -215,7 +225,11 @@ describe("whether the workflow is off", () => {
     await act(async () => {
       view = render(
         ui(
-          { sources: sources, valueSources: VALUE_SOURCES, isWorkflowOff: true },
+          {
+            sources: sources,
+            valueSources: VALUE_SOURCES,
+            isWorkflowOff: true,
+          },
           captured,
         ),
       );
@@ -224,7 +238,11 @@ describe("whether the workflow is off", () => {
     await act(async () => {
       view!.rerender(
         ui(
-          { sources: sources, valueSources: VALUE_SOURCES, isWorkflowOff: true },
+          {
+            sources: sources,
+            valueSources: VALUE_SOURCES,
+            isWorkflowOff: true,
+          },
           captured,
         ),
       );

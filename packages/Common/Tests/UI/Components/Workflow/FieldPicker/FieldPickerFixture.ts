@@ -29,20 +29,58 @@ type RelatedFieldsFunction = () => Array<ModelSchemaColumn>;
 export const relatedFields: RelatedFieldsFunction =
   (): Array<ModelSchemaColumn> => {
     return [
-      column({ id: "_id", title: "ID", type: TableColumnType.ObjectID, isSystemColumn: true }),
+      column({
+        id: "_id",
+        title: "ID",
+        type: TableColumnType.ObjectID,
+        isSystemColumn: true,
+      }),
       column({ id: "color", title: "Color", type: TableColumnType.Color }),
-      column({ id: "createdAt", title: "Created At", type: TableColumnType.Date, isSystemColumn: true }),
-      column({ id: "deletedAt", title: "Deleted At", type: TableColumnType.Date, isSystemColumn: true }),
-      column({ id: "description", title: "Description", type: TableColumnType.LongText }),
+      column({
+        id: "createdAt",
+        title: "Created At",
+        type: TableColumnType.Date,
+        isSystemColumn: true,
+      }),
+      column({
+        id: "deletedAt",
+        title: "Deleted At",
+        type: TableColumnType.Date,
+        isSystemColumn: true,
+      }),
+      column({
+        id: "description",
+        title: "Description",
+        type: TableColumnType.LongText,
+      }),
       column({ id: "name", title: "Name" }),
-      column({ id: "projectId", title: "Project ID", type: TableColumnType.ObjectID, isTenantColumn: true }),
+      column({
+        id: "projectId",
+        title: "Project ID",
+        type: TableColumnType.ObjectID,
+        isTenantColumn: true,
+      }),
     ];
   };
 
 export const INCIDENT_COLUMNS: Array<ModelSchemaColumn> = [
-  column({ id: "_id", title: "ID", type: TableColumnType.ObjectID, isSystemColumn: true }),
-  column({ id: "title", title: "Title", type: TableColumnType.LongText, required: true }),
-  column({ id: "description", title: "Description", type: TableColumnType.Markdown }),
+  column({
+    id: "_id",
+    title: "ID",
+    type: TableColumnType.ObjectID,
+    isSystemColumn: true,
+  }),
+  column({
+    id: "title",
+    title: "Title",
+    type: TableColumnType.LongText,
+    required: true,
+  }),
+  column({
+    id: "description",
+    title: "Description",
+    type: TableColumnType.Markdown,
+  }),
   column({
     id: "declaredAt",
     title: "Declared At",
@@ -106,19 +144,52 @@ export const INCIDENT_COLUMNS: Array<ModelSchemaColumn> = [
     relatedTableName: "Probe",
     relatedColumns: relatedFields(),
   }),
-  column({ id: "createdByProbeId", title: "Created By Probe ID", type: TableColumnType.ObjectID }),
-  column({ id: "createdAt", title: "Created At", type: TableColumnType.Date, isSystemColumn: true }),
-  column({ id: "updatedAt", title: "Updated At", type: TableColumnType.Date, isSystemColumn: true }),
-  column({ id: "createdByUserId", title: "Created by User ID", type: TableColumnType.ObjectID, isSystemColumn: true }),
-  column({ id: "deletedAt", title: "Deleted At", type: TableColumnType.Date, isSystemColumn: true }),
-  column({ id: "incidentNumber", title: "Incident Number", type: TableColumnType.Number, isSystemColumn: true }),
+  column({
+    id: "createdByProbeId",
+    title: "Created By Probe ID",
+    type: TableColumnType.ObjectID,
+  }),
+  column({
+    id: "createdAt",
+    title: "Created At",
+    type: TableColumnType.Date,
+    isSystemColumn: true,
+  }),
+  column({
+    id: "updatedAt",
+    title: "Updated At",
+    type: TableColumnType.Date,
+    isSystemColumn: true,
+  }),
+  column({
+    id: "createdByUserId",
+    title: "Created by User ID",
+    type: TableColumnType.ObjectID,
+    isSystemColumn: true,
+  }),
+  column({
+    id: "deletedAt",
+    title: "Deleted At",
+    type: TableColumnType.Date,
+    isSystemColumn: true,
+  }),
+  column({
+    id: "incidentNumber",
+    title: "Incident Number",
+    type: TableColumnType.Number,
+    isSystemColumn: true,
+  }),
   column({
     id: "incidentNumberWithPrefix",
     title: "Incident Number With Prefix",
     type: TableColumnType.ShortText,
     isSystemColumn: true,
   }),
-  column({ id: "isPrivate", title: "Is Private?", type: TableColumnType.Boolean }),
+  column({
+    id: "isPrivate",
+    title: "Is Private?",
+    type: TableColumnType.Boolean,
+  }),
   column({
     id: "project",
     title: "Project",

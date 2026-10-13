@@ -321,9 +321,7 @@ describe("steps nothing runs", () => {
       node(ComponentID.ApiGet, "api-get-1"),
       node(ComponentID.Log, "log-1"),
     ];
-    const edges: Array<StepGraphEdge> = [
-      edge("api-get-1", "success", "log-1"),
-    ];
+    const edges: Array<StepGraphEdge> = [edge("api-get-1", "success", "log-1")];
 
     const sources: StepValueSources = sourcesOf(nodes, edges, "log-1");
 
