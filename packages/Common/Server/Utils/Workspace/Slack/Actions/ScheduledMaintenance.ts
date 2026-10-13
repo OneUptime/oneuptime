@@ -41,6 +41,9 @@ import WorkspaceMemberActions, {
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import SlackActionAnswer from "./Answer";
+import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import Dictionary from "../../../../../Types/Dictionary";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
@@ -48,10 +51,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import SlackActionAuthorization, {
   SlackAuthorizedEvent,
 } from "./Authorization";
-import {
-  MarkdownText,
-  mdText,
-} from "../../../../../Utils/Markdown/FeedMarkdown";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class SlackScheduledMaintenanceActions {
   // Changing an event's state, as a refusal names it.
@@ -82,6 +82,30 @@ export default class SlackScheduledMaintenanceActions {
       default:
         return false;
     }
+  }
+
+  /*
+   * What the new-event form says under a date it cannot schedule, keyed by
+   * the date's block: a start or an end in the past, an end not after the
+   * start. Nothing for dates it can.
+   */
+  public static getDateErrors(data: {
+    startDate: Date;
+    endDate: Date;
+  }): Dictionary<string> {
+    const errors: Dictionary<string> = {};
+
+    if (!OneUptimeDate.isInTheFuture(data.startDate)) {
+      errors["startDate"] = "This is in the past. Pick a start in the future.";
+    }
+
+    if (!OneUptimeDate.isInTheFuture(data.endDate)) {
+      errors["endDate"] = "This is in the past. Pick an end in the future.";
+    } else if (!OneUptimeDate.isAfter(data.endDate, data.startDate)) {
+      errors["endDate"] = "Pick an end after the start.";
+    }
+
+    return errors;
   }
 
   @CaptureSpan()
@@ -166,6 +190,31 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
+      const startDate: Date = OneUptimeDate.fromString(
+        data.slackRequest.viewValues["startDate"].toString(),
+      );
+      const endDate: Date = OneUptimeDate.fromString(
+        data.slackRequest.viewValues["endDate"].toString(),
+      );
+
+      /*
+       * Dates that cannot be scheduled are said in the form itself, under
+       * the date that needs fixing, and the form stays open - not in a
+       * message somewhere else once the form has closed.
+       */
+      const dateErrors: Dictionary<string> =
+        SlackScheduledMaintenanceActions.getDateErrors({
+          startDate: startDate,
+          endDate: endDate,
+        });
+
+      if (Object.keys(dateErrors).length > 0) {
+        return Response.sendJsonObjectResponse(req, res, {
+          response_action: "errors",
+          errors: dateErrors,
+        });
+      }
+
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
@@ -221,58 +270,6 @@ export default class SlackScheduledMaintenanceActions {
       const monitorStatusId: ObjectID | undefined = monitorStatus
         ? new ObjectID(monitorStatus)
         : undefined;
-
-      const startDate: Date = OneUptimeDate.fromString(
-        data.slackRequest.viewValues["startDate"].toString(),
-      );
-      const endDate: Date = OneUptimeDate.fromString(
-        data.slackRequest.viewValues["endDate"].toString(),
-      );
-
-      // make sure start and end date are in the future.
-      if (OneUptimeDate.isInTheFuture(startDate) === false) {
-        // send slack message to user that start date is in the past.
-        const markdownPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with start date in the past.`.toString(),
-        };
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdownPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
-        });
-        return;
-      }
-
-      if (OneUptimeDate.isInTheFuture(endDate) === false) {
-        // send slack message to user that end date is in the past.
-        const markdownPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date in the past.`.toString(),
-        };
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdownPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
-        });
-        return;
-      }
-
-      // make sure end date is after start date.
-
-      if (OneUptimeDate.isAfter(endDate, startDate) === false) {
-        // send slack message to user that end date is before start date.
-        const markdownPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date before start date.`.toString(),
-        };
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdownPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
-        });
-        return;
-      }
 
       const scheduledMaintenance: ScheduledMaintenance =
         new ScheduledMaintenance();
@@ -558,10 +555,9 @@ export default class SlackScheduledMaintenanceActions {
       blocks: blocks,
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -573,7 +569,7 @@ export default class SlackScheduledMaintenanceActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -645,23 +641,14 @@ export default class SlackScheduledMaintenanceActions {
         await WorkspaceMemberActions.getStanding(scheduledMaintenance);
 
       if (standing.hasStarted) {
-        // Started already: ongoing, or over.
-        const isCompleted: boolean = standing.isComplete;
-
-        const eventLink: MarkdownText = mdText`**[Scheduled Maintenance ${scheduledMaintenance.numberWithPrefix || "#" + scheduledMaintenance.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**`;
-
-        // send a message to the channel visible to user, that the scheduledMaintenance has already started.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: isCompleted
-            ? mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the ${eventLink} is already complete.`.toString()
-            : mdText`@${slackUsername}, unfortunately you cannot change the state to ongoing because the ${eventLink} is already in ongoing state.`.toString(),
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+        /*
+         * Started already - ongoing, or over: who and when, where the press
+         * was (getAlreadyAnswer says which).
+         */
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: scheduledMaintenance,
+          press: WorkspaceLatePress.MarkAsOngoing,
         });
 
         return;
@@ -746,7 +733,7 @@ export default class SlackScheduledMaintenanceActions {
     res: ExpressResponse;
   }): Promise<void> {
     const { slackRequest, req, res } = data;
-    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
 
     const { actionValue } = data.action;
 
@@ -811,20 +798,15 @@ export default class SlackScheduledMaintenanceActions {
 
       const { props, event: scheduledMaintenance } = authorized;
 
+      // Complete already: who and when, where the press was.
       if (
         (await WorkspaceMemberActions.getStanding(scheduledMaintenance))
           .isComplete
       ) {
-        // send a message to the channel visible to user, that the scheduledMaintenance has already been Resolved.
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: mdText`@${slackUsername}, unfortunately you cannot resolve the **[Scheduled Maintenance ${scheduledMaintenance.numberWithPrefix || "#" + scheduledMaintenance.number}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`.toString(),
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          messageBlocks: [markdwonPayload],
-          authToken: projectAuthToken,
-          workspaceUserId: slackRequest.slackUserId!,
+        await SlackActionAnswer.answerAlready({
+          source: slackRequest,
+          event: scheduledMaintenance,
+          press: WorkspaceLatePress.MarkAsComplete,
         });
 
         return;
@@ -990,10 +972,9 @@ export default class SlackScheduledMaintenanceActions {
       blocks: [statePickerDropdown],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 
@@ -1248,10 +1229,9 @@ export default class SlackScheduledMaintenanceActions {
       blocks: [notePickerDropdown, noteTextArea],
     };
 
-    await SlackUtil.showModalToUser({
-      authToken: data.slackRequest.projectAuthToken!,
+    await SlackActionAnswer.showModal({
+      source: data.slackRequest,
       modalBlock: modalBlock,
-      triggerId: data.slackRequest.triggerId!,
     });
   }
 

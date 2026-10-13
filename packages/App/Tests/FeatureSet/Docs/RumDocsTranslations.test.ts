@@ -40,6 +40,7 @@ import {
   cardTargets,
   comparableFence,
   diagramLabelLines,
+  escapeRegExp,
   inlineCode,
   labelLineWidth,
   linesLaidOutBackwards,
@@ -52,21 +53,33 @@ import {
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import {
+  ADMIN_DASHBOARD_LABELS,
   BROWSER_SETUP,
   CREATE_BUTTONS,
   KEPT_AS_WRITTEN,
   MOBILE_SETUP,
+  OTHER_PRODUCTS,
   PROSE,
+  RUM_APPLICATIONS,
   RUM_INDEX,
-  RUM_SETUP_PAGES,
+  RUM_PAGES,
+  RUM_TROUBLESHOOTING,
   RumDocsPageEntry,
+  SESSION_REPLAY,
+  SESSION_REPLAY_TROUBLESHOOTING,
+  SESSION_SIGNAL_OPTIONS,
+  SESSION_SORT_OPTIONS,
   WEB_VITALS,
 } from "./RumDocsPages";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
- * Docs overhaul task 25a: the RUM Overview, Browser Setup, Mobile Setup and
- * Core Web Vitals pages, in every docs language. RumDocsFacts holds the
+ * Docs overhaul tasks 25a and 25b: the eight pages of the Real User
+ * Monitoring group - RUM Overview, Browser Setup, Mobile Setup, Core Web
+ * Vitals, Managing Applications, Session Replay, Session Replay
+ * Troubleshooting and RUM Troubleshooting - in every docs language. RumDocsFacts holds the
  * English pages to the product; this suite holds each translation to its
  * English page:
  *
@@ -98,10 +111,16 @@ const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   },
 );
 
-const PAGE_NAMES: Array<string> = RUM_SETUP_PAGES.map(
+const PAGE_NAMES: Array<string> = RUM_PAGES.map(
   (entry: RumDocsPageEntry): string => {
     return entry.page;
   },
+);
+
+// The Admin Dashboard's own locale files: a self-hosted administrator's screens.
+const ADMIN_DASHBOARD_LOCALES: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/AdminDashboard/src/Locales",
 );
 
 /*
@@ -109,15 +128,26 @@ const PAGE_NAMES: Array<string> = RUM_SETUP_PAGES.map(
  * the docs' own font, in every language: their label lines are broken
  * (<br/>) to be no wider than this, counting a Chinese, Japanese or Korean
  * character twice. Each cap is the widest line the 17 languages drew when
- * they were measured; the widest diagram of all, the Russian single-page
- * app diagram, drew 521px. A label put back on one line runs its diagram off
- * the column, and the docs scroll it rather than shrink it.
+ * they were measured; the widest diagram of all, the Norwegian decision tree
+ * on RUM Troubleshooting, drew 541px. A label put back on one line runs its
+ * diagram off the column, and the docs scroll it rather than shrink it.
+ *
+ * A line's length is not the whole of a diagram's width: a decision tree
+ * spends the column on the nodes it lays side by side, and a sequence
+ * diagram on its participants (three of them draw 650px, whatever their
+ * labels say). That is why RUM Troubleshooting's tree asks one question a
+ * row and breaks its leaves into three short lines, and why Session Replay's
+ * backend linking is a flowchart, not a sequence diagram.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [RUM_INDEX]: 25,
   [BROWSER_SETUP]: 20,
   [MOBILE_SETUP]: 29,
   [WEB_VITALS]: 28,
+  [RUM_APPLICATIONS]: 28,
+  [SESSION_REPLAY]: 31,
+  [SESSION_REPLAY_TROUBLESHOOTING]: 29,
+  [RUM_TROUBLESHOOTING]: 24,
 };
 
 /*
@@ -131,6 +161,11 @@ const NAME_TABS: ReadonlyArray<string> = [
   "React Native",
   "Vue Router",
   "React Router",
+  // Session Replay's sampler, for each SDK.
+  "Node.js",
+  "Java",
+  "Python",
+  "Go",
 ];
 
 /*
@@ -154,6 +189,16 @@ const PRODUCT_NAMES: ReadonlyArray<string> = [
   "Cumulative Layout Shift",
   "First Contentful Paint",
   "Time to First Byte",
+  // Session Replay's pages: the agents, firewalls and tools they name.
+  "Datadog RUM",
+  "New Relic",
+  "Elastic APM",
+  "Azure Front Door",
+  "Power Pages",
+  "Google Tag Manager",
+  "Next.js",
+  "Expo Go",
+  "OWASP Core Rule Set",
 ];
 
 /*
@@ -255,8 +300,30 @@ function accountedFor(page: string, span: string): boolean {
   return (
     listed(KEPT_AS_WRITTEN, page).includes(span) ||
     listed(CREATE_BUTTONS, page).includes(span) ||
-    listed(PROSE, page).includes(span)
+    listed(PROSE, page).includes(span) ||
+    listed(OTHER_PRODUCTS, page).includes(span) ||
+    listed(ADMIN_DASHBOARD_LABELS, page).includes(span)
   );
+}
+
+/*
+ * What the Admin Dashboard draws for a label written in English, in this
+ * language: its own locale's value, or the English when it has none.
+ */
+function drawnAdminDashboardLabel(language: string, english: string): string {
+  if (language === "en") {
+    return english;
+  }
+
+  const locale: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.join(ADMIN_DASHBOARD_LOCALES, `${language}.json`),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+  const value: unknown = locale[english];
+
+  return typeof value === "string" && value.trim() ? value : english;
 }
 
 /*
@@ -288,6 +355,14 @@ function englishBoldDrawings(
     ...boldPaths(englishPage(page)).map(
       (segments: Array<string>): [string, string] => {
         return [drawnPath("en", segments), drawnPath(language, segments)];
+      },
+    ),
+    ...listed(ADMIN_DASHBOARD_LABELS, page).map(
+      (label: string): [string, string] => {
+        return [
+          `**${label}**`,
+          `**${drawnAdminDashboardLabel(language, label)}**`,
+        ];
       },
     ),
   ];
@@ -359,8 +434,8 @@ function inEnglishShape(language: string, page: string): boolean {
  * page, and the anchor of the heading in the English heading's place in the
  * reader's language. The page's own anchors ("#x") open the page itself.
  *
- * A page whose copy in this language still has its old shape (the Persian
- * Session Replay page, until it is translated again) has no heading in the
+ * A page whose copy in this language still has its old shape (a page of
+ * another group a translation has not caught up with) has no heading in the
  * English one's place: a link into it keeps the page, and either drops the
  * anchor or names a heading that page has (anchorProblems holds it to one).
  * The result is null when either is fine.
@@ -426,7 +501,10 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 
-    for (const kept of listed(KEPT_AS_WRITTEN, page)) {
+    for (const kept of [
+      ...listed(KEPT_AS_WRITTEN, page),
+      ...listed(OTHER_PRODUCTS, page),
+    ]) {
       text = text.split(`**${kept}**`).join(" ");
     }
 
@@ -460,6 +538,8 @@ describe("the lists this test keeps", () => {
       CREATE_BUTTONS,
       KEPT_AS_WRITTEN,
       PROSE,
+      OTHER_PRODUCTS,
+      ADMIN_DASHBOARD_LABELS,
       WIDEST_DIAGRAM_LINE,
       DETAILS_WORDS,
     ]) {
@@ -488,6 +568,8 @@ describe("the lists this test keeps", () => {
         ...listed(KEPT_AS_WRITTEN, page),
         ...listed(CREATE_BUTTONS, page),
         ...listed(PROSE, page),
+        ...listed(OTHER_PRODUCTS, page),
+        ...listed(ADMIN_DASHBOARD_LABELS, page),
       ].filter((span: string): boolean => {
         return !english.includes(span);
       });
@@ -506,6 +588,22 @@ describe("the lists this test keeps", () => {
           page,
           name,
           label: permission,
+        });
+      }
+    }
+  });
+
+  it("name the Admin Dashboard by labels its own English locale has", () => {
+    const english: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(ADMIN_DASHBOARD_LOCALES, "en.json"), "utf8"),
+    ) as Record<string, unknown>;
+
+    for (const page of PAGE_NAMES) {
+      for (const label of listed(ADMIN_DASHBOARD_LABELS, page)) {
+        expect({ page, label, key: english[label] }).toEqual({
+          page,
+          label,
+          key: label,
         });
       }
     }
@@ -554,7 +652,7 @@ describe("the lists this test keeps", () => {
 });
 
 describe("the English pages", () => {
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page draws at least one diagram, with a caption",
     (entry: RumDocsPageEntry) => {
       const diagrams: Array<{ info: string }> = scanMarkdown(
@@ -571,7 +669,7 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page opens with cards to its own sections and ends on a Next steps section of cards",
     (entry: RumDocsPageEntry) => {
       const markdown: string = englishPage(entry.page);
@@ -630,7 +728,7 @@ describe("the English pages", () => {
     expect(getStarted).toContain("(/docs/rum/troubleshooting)");
   });
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page breaks its diagrams' labels to fit the 590px docs column",
     (entry: RumDocsPageEntry) => {
       expect(widestDiagramLine("en", entry.page)).toBeLessThanOrEqual(
@@ -639,7 +737,33 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  /*
+   * A sequence diagram draws each participant 150px wide with 50px between
+   * them, so three of them overrun the column whatever their labels say, and
+   * a flowchart laid out left to right puts every step of a chain side by
+   * side. The pages draw top to bottom, one step under the next.
+   */
+  it.each(RUM_PAGES)(
+    "$page draws every diagram as a flowchart read top to bottom",
+    (entry: RumDocsPageEntry) => {
+      const kinds: Array<string> = scanMarkdown(englishPage(entry.page))
+        .fences.filter((fence: { lang: string }): boolean => {
+          return fence.lang === "mermaid";
+        })
+        .map((fence: { code: string }): string => {
+          return fence.code.trim().split("\n")[0]?.trim() || "";
+        });
+
+      expect(kinds.length).toBeGreaterThan(0);
+      expect(
+        kinds.filter((kind: string): boolean => {
+          return kind !== "flowchart TB";
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it.each(RUM_PAGES)(
     "$page has no two headings with the same anchor",
     (entry: RumDocsPageEntry) => {
       const slugs: Array<string> = scanMarkdown(
@@ -652,14 +776,14 @@ describe("the English pages", () => {
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page closes every bold and code span it opens",
     (entry: RumDocsPageEntry) => {
       expect(unbalancedLines(englishPage(entry.page))).toEqual([]);
     },
   );
 
-  it.each(RUM_SETUP_PAGES)(
+  it.each(RUM_PAGES)(
     "$page says no 'left navigation': products open from the Products menu",
     (entry: RumDocsPageEntry) => {
       expect(englishPage(entry.page)).not.toMatch(/left nav/i);
@@ -668,7 +792,7 @@ describe("the English pages", () => {
 });
 
 describe.each(LANGUAGES)("%s", (language: string) => {
-  describe.each(RUM_SETUP_PAGES)("$page", (entry: RumDocsPageEntry) => {
+  describe.each(RUM_PAGES)("$page", (entry: RumDocsPageEntry) => {
     const english: string = englishPage(entry.page);
 
     it("is translated, under the nav link's title", () => {
@@ -913,6 +1037,24 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    it("keeps another product's screens as that product writes them, and draws the Admin Dashboard's from its own locale", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = [
+        ...listed(OTHER_PRODUCTS, entry.page).map((name: string): string => {
+          return `**${name}**`;
+        }),
+        ...listed(ADMIN_DASHBOARD_LABELS, entry.page).map(
+          (label: string): string => {
+            return `**${drawnAdminDashboardLabel(language, label)}**`;
+          },
+        ),
+      ].filter((bold: string): boolean => {
+        return !translated.includes(bold);
+      });
+
+      expect(missing).toEqual([]);
+    });
+
     it("keeps in English what every Dashboard draws in English: a permission, the vitals card's words, P75 and the recommendations", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = listed(KEPT_AS_WRITTEN, entry.page).filter(
@@ -972,6 +1114,52 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
   });
 });
+
+/*
+ * Session Replay's session list: the Signal chip draws its options as the
+ * option table writes them, so in English in every language, while the sort
+ * menu looks its options up in the locale (RumReplayDocsFacts holds both to
+ * the components). Neither is bold, so the label checks above do not see
+ * them: this reads the line that names them.
+ */
+describe.each(LANGUAGES)(
+  "%s Session Replay's session list",
+  (language: string) => {
+    const index: number = englishPage(SESSION_REPLAY)
+      .split("\n")
+      .findIndex((line: string): boolean => {
+        return line.includes("**Signal**");
+      });
+    const line: string =
+      readPage(language, SESSION_REPLAY).split("\n")[index] || "";
+
+    it("names the Signal chip's options in English, as every Dashboard draws them", () => {
+      expect(index).toBeGreaterThan(0);
+
+      const missing: Array<string> = SESSION_SIGNAL_OPTIONS.filter(
+        (option: string): boolean => {
+          return !new RegExp(
+            `(?<![A-Za-z])${escapeRegExp(option)}(?![A-Za-z])`,
+          ).test(line);
+        },
+      );
+
+      expect(missing).toEqual([]);
+    });
+
+    it("names the sort menu's options as this language's Dashboard draws them", () => {
+      const missing: Array<string> = SESSION_SORT_OPTIONS.map(
+        (option: string): string => {
+          return drawnDashboardLabel(language, option);
+        },
+      ).filter((drawn: string): boolean => {
+        return !line.includes(drawn);
+      });
+
+      expect(missing).toEqual([]);
+    });
+  },
+);
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw a path through the Products menu's Resources group from the menu's keys", () => {
@@ -1034,7 +1222,7 @@ describe("the helpers, on these pages' shapes", () => {
     ).toBeLessThan(3);
   });
 
-  it("name every link's anchor by the heading in the English heading's place, and tolerate a stale page", () => {
+  it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
     expect(expectedLink("en", WEB_VITALS, "#single-page-apps")).toBe(
       "#single-page-apps",
     );
@@ -1044,15 +1232,38 @@ describe("the helpers, on these pages' shapes", () => {
     expect(expectedLink("en", RUM_INDEX, "/docs/rum/web-vitals")).toBe(
       "/docs/rum/web-vitals",
     );
-    // The Persian Session Replay page keeps its old shape for now.
-    expect(inEnglishShape("fa", "telemetry/session-replay")).toBe(false);
+
+    /*
+     * Every copy of these pages has its English page's headings, the
+     * Persian Session Replay page included, so no link into the group is
+     * excused for naming no heading.
+     */
+    for (const language of LANGUAGES) {
+      for (const page of PAGE_NAMES) {
+        if (hasPage(language, page)) {
+          expect({
+            language,
+            page,
+            inShape: inEnglishShape(language, page),
+          }).toEqual({
+            language,
+            page,
+            inShape: true,
+          });
+        }
+      }
+    }
+
+    // A Persian link into Session Replay names the Persian heading in the English heading's place.
+    const install: string | null = expectedLink(
+      "fa",
+      MOBILE_SETUP,
+      "/docs/telemetry/session-replay#install-in-react-native",
+    );
+
+    expect(install).toBe("/docs/telemetry/session-replay#نصب-در-react-native");
     expect(
-      expectedLink(
-        "fa",
-        MOBILE_SETUP,
-        "/docs/telemetry/session-replay#install-in-react-native",
-      ),
-    ).toBeNull();
-    expect(anchorsOf("fa", "telemetry/session-replay").size).toBeGreaterThan(0);
+      anchorsOf("fa", "telemetry/session-replay").has("نصب-در-react-native"),
+    ).toBe(true);
   });
 });

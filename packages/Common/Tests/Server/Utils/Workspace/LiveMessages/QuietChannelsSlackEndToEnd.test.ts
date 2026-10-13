@@ -14,10 +14,12 @@ import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiv
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
 import QuietChannelsWorld, {
+  DASHBOARD,
   JANE,
   NB_USER_2,
   NB_USER_3,
   NITIN,
+  PROJECT_ID,
   STATE_ACKNOWLEDGED,
   STATE_IDENTIFIED,
   STATE_RESOLVED,
@@ -319,7 +321,7 @@ describe("an incident from declared to resolved, in its Slack channel", () => {
 
     // 2. Who could not be added - once, naming NB User 3 and how to fix it.
     expect(posts[1]!.text).toContain("NB User 3");
-    expect(posts[1]!.text).toContain("User Settings → Slack");
+    expect(posts[1]!.text).toContain("|Connect Slack account>");
 
     // 3. The on-call run: posted as it began paging Nitin.
     expect(posts[2]!.text).toContain("is paging for");
@@ -653,8 +655,24 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
       expect.stringContaining("NB User 3"),
     ]);
     expect(notes[0]!.text).toContain(
-      "NB User 3*\u200b could not be added to this channel: they have not connected their Slack account yet. Add them here yourself, or ask them to connect Slack in",
+      "NB User 3*\u200b could not be added to this channel: they have not connected their Slack account to OneUptime yet. Add them here yourself, or send them this link to connect in one click:",
     );
+
+    /*
+     * The link, as Slack shows it: the Slack settings page of whoever opens
+     * it, which connects their account in one click.
+     */
+    const link: string | undefined = notes[0]!.text.match(
+      /<(https:[^|>\s]+)\|Connect Slack account>/u,
+    )?.[1];
+    expect(link).toBeDefined();
+    const url: URL = new URL(link!);
+    expect(url.origin + url.pathname).toBe(
+      `${DASHBOARD}/${PROJECT_ID.toString()}/user-settings/slack-integration`,
+    );
+    expect(Array.from(url.searchParams.entries())).toEqual([
+      ["connectAccount", "true"],
+    ]);
 
     for (const post of slack.posts()) {
       expect(post.text).not.toContain("cannot be invited");

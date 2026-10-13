@@ -76,7 +76,7 @@ flowchart TB
 
 규칙이 만드는 채널의 이름은 **New Slack Channel Name** 뒤에 레코드 번호를 붙인 것입니다 (예: `oneuptime-incident-42`). 규칙이 초대하는 사람을 받는 것은 생성된 채널뿐입니다. 레코드의 소유자, 선택한 팀과 사용자, 그리고 인시던트와 경고의 경우 호출되는 대로 온콜 담당자가 초대됩니다. 비공개 인시던트, 경고, 에피소드에는 비공개 채널이 만들어집니다. 이후 레코드의 모든 업데이트 (상태 변경, 메모, 새 소유자) 는 레코드의 채널과 규칙이 지정한 기존 채널에 게시됩니다. 이미 해결된 상태로 생성된 인시던트, 경고, 에피소드에는 전용 채널이 만들어지지 않지만, 생성 메시지는 여전히 규칙이 지정한 채널로 갑니다. [이미 인지되었거나 해결된 상태로 선언된 인시던트](/docs/incidents/declaring-incidents#이미-인지되었거나-해결된-상태로-선언된-인시던트) 를 참조하세요.
 
-채널은 읽기 쉽게 유지됩니다. 각 업데이트는 한 번만 게시되고, 레코드의 첫 상태는 레코드를 알리는 메시지 안에 들어가며 따로 게시되지 않습니다. 온콜 정책의 실행은 하나의 메시지이며, 에스컬레이션이 진행되는 대로 편집됩니다. 누가 호출되었는지, 몇 번 어떤 방법으로 호출되었는지, 누가 호출되지 않았고 왜 그런지, 누가 확인했는지가 담깁니다. 새 메시지는 누군가 조치해야 할 때만 게시됩니다. 에스컬레이션 규칙이 아무에게도 닿지 않았거나, 아무도 확인하지 않은 채 실행이 끝났을 때입니다. Slack 계정을 OneUptime 에 연결하지 않은 사람은 채널에 추가할 수 없습니다. OneUptime 은 채널마다 한 번, 해당하는 사람을 모두 나열하는 하나의 메시지로 이를 알리고, 목록이 늘어나면 그 메시지를 편집합니다. 레코드의 소유자나 상태 페이지 구독자에게 알렸다는 사실은 OneUptime 의 레코드 피드에 남습니다.
+채널은 읽기 쉽게 유지됩니다. 각 업데이트는 한 번만 게시되고, 레코드의 첫 상태는 레코드를 알리는 메시지 안에 들어가며 따로 게시되지 않습니다. 온콜 정책의 실행은 하나의 메시지이며, 에스컬레이션이 진행되는 대로 편집됩니다. 누가 호출되었는지, 몇 번 어떤 방법으로 호출되었는지, 누가 호출되지 않았고 왜 그런지, 누가 확인했는지가 담깁니다. 새 메시지는 누군가 조치해야 할 때만 게시됩니다. 에스컬레이션 규칙이 아무에게도 닿지 않았거나, 아무도 확인하지 않은 채 실행이 끝났을 때입니다. Slack 계정을 OneUptime 에 연결하지 않은 사람은 채널에 추가할 수 없습니다. OneUptime 은 채널마다 한 번, 해당하는 사람을 모두 나열하는 하나의 메시지로 이를 알리고, 목록이 늘어나면 그 메시지를 편집합니다. 그 메시지의 **Connect Slack account** 링크를 보내 주면 한 단계로 계정을 연결할 수 있습니다. 레코드의 소유자나 상태 페이지 구독자에게 알렸다는 사실은 OneUptime 의 레코드 피드에 남습니다.
 
 **프로젝트 설정** > **워크스페이스** > **Slack** 에는 OneUptime 이 볼 수 있는 채널이 표시되고, 각 채널 옆에 **테스트 보내기** 가 있습니다. OneUptime 은 공개 채널에 처음 게시할 때 스스로 참여합니다. 비공개 채널은 Slack 에서 OneUptime 앱을 초대한 뒤에만 목록에 표시되고 게시할 수 있습니다.
 
@@ -129,11 +129,11 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 ## Slack 에서 인시던트와 유지 관리 만들기
 
-`/incident` 와 `/maintenance` 는 본인이 작성해 본인으로서 제출하는 양식을 엽니다. 자신의 Slack 계정이 연결된 OneUptime 계정 ( [Slack 연결하기](#slack-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. Slack 계정이 연결되어 있지 않거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아니면, OneUptime 이 다이렉트 메시지로 무엇을 해야 하는지 알려 주며 양식은 열리지 않습니다. **Create New Incident** 와 **Create Scheduled Event** 바로 가기도 같은 양식을 엽니다.
+`/incident` 와 `/maintenance` 는 본인이 작성해 본인으로서 제출하는 양식을 엽니다. 자신의 Slack 계정이 연결된 OneUptime 계정 ( [Slack 연결하기](#slack-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. Slack 계정이 연결되어 있지 않거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아니면, OneUptime 이 명령을 실행한 곳에서 본인에게만 보이는 메시지로 무엇을 해야 하는지 알려 주며 양식은 열리지 않습니다. **Create New Incident** 와 **Create Scheduled Event** 바로 가기도 같은 양식을 엽니다.
 
-- **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 다이렉트 메시지로 그렇게 알리며 양식은 열리지 않습니다.
+- **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 명령을 실행한 곳에서 그렇게 알리며 양식은 열리지 않습니다.
 - **양식이 제공하는 것.** 각 목록 (심각도, 모니터, 모니터 상태, 온콜 정책, 레이블) 에는 OneUptime 의 같은 목록과 마찬가지로 본인이 읽을 수 있는 것이 들어 있습니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 모니터와 온콜 정책입니다. 전혀 읽을 수 없는 목록은 양식에서 빠집니다. 보관된 온콜 정책은 제공되지 않습니다.
-- **양식이 지정할 수 있는 것.** 인시던트나 이벤트는 본인의 권한으로 만들어지고 본인의 작업으로 기록됩니다. 읽을 수 없는 모니터, 온콜 정책, 레이블, 심각도, 상태, 또는 다른 프로젝트의 것은, 접근 권한이 바뀌기 전에 연 양식에서라도 프로젝트에 없는 것처럼 거부되며 아무것도 만들어지지 않습니다. OneUptime 이 다이렉트 메시지로 그 이유를 알려 줍니다.
+- **양식이 지정할 수 있는 것.** 인시던트나 이벤트는 본인의 권한으로 만들어지고 본인의 작업으로 기록됩니다. 읽을 수 없는 모니터, 온콜 정책, 레이블, 심각도, 상태, 또는 다른 프로젝트의 것은, 접근 권한이 바뀌기 전에 연 양식에서라도 프로젝트에 없는 것처럼 거부되며 아무것도 만들어지지 않습니다. OneUptime 이 채널에서 본인에게만 보이는 메시지로 그 이유를 알려 줍니다.
 
 인시던트, 경고, 에피소드의 **Execute On-Call Policy** 도 같은 방식으로 작동합니다. 온콜 정책을 실행할 권한 ( **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member**, 또는 사용자 지정 역할의 **Create On-Call Duty Policy Execution Log** ) 과 해당 인시던트, 경고, 에피소드를 읽을 권한이 필요하며, 본인이 읽을 수 있는 활성 온콜 정책이 제공됩니다.
 
@@ -141,9 +141,11 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 OneUptime 의 Slack 메시지에 있는 버튼도 본인으로서 작동합니다. 자신의 Slack 계정이 연결된 OneUptime 계정으로서, 그 계정의 프로젝트 권한으로 작동합니다. 인시던트, 경고, 에피소드의 **Acknowledge**, **Resolve**, **Change State**, **Add Note**, **Execute On-Call Policy**, 그리고 예정된 유지 관리 이벤트의 **Mark as Ongoing**, **Mark as Complete**, **Change State**, **Add Note** 는 각각 OneUptime 에서 같은 동작이 하는 것과 같은 변경을 하며, 그 변경은 OneUptime 에서 본인의 작업으로 기록됩니다. 레코드의 상태 타임라인과 피드에 본인이 상태를 변경했다고 표시되고, 메모도 본인의 것이 됩니다. 이모지 반응으로 메시지에서 저장한 메모도 같은 방식으로 게시됩니다.
 
-- **사용할 수 있는 사람.** OneUptime 에서 같은 변경을 할 수 있는 사람입니다. 인시던트를 인지, 해결하거나 상태를 변경하려면 그 상태를 변경할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident State Timeline** 입니다. 경고, 에피소드, 예정된 유지 관리 이벤트에는 각 종류에 맞는 같은 권한 (예: **Create Alert State Timeline** ) 이 필요하고, 메모에는 그 종류의 메모를 게시할 권한이 필요합니다. 그 밖의 사람에게는 다이렉트 메시지로 그렇게 알리며 아무것도 바뀌지 않습니다.
+- **사용할 수 있는 사람.** OneUptime 에서 같은 변경을 할 수 있는 사람입니다. 인시던트를 인지, 해결하거나 상태를 변경하려면 그 상태를 변경할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident State Timeline** 입니다. 경고, 에피소드, 예정된 유지 관리 이벤트에는 각 종류에 맞는 같은 권한 (예: **Create Alert State Timeline** ) 이 필요하고, 메모에는 그 종류의 메모를 게시할 권한이 필요합니다. 그 밖의 사람에게는 그렇게 알리며 아무것도 바뀌지 않습니다.
 - **대상 레코드.** OneUptime 에서와 마찬가지로 본인이 읽을 수 있는 레코드입니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 인시던트, 경고, 에피소드, 이벤트입니다. 다른 레코드나 다른 프로젝트의 레코드에 있는 버튼에는 해당 레코드가 "was not found in this project, or you do not have access to it." 라는 응답이 오며 아무것도 바뀌지 않습니다. OneUptime Cloud 에서는 프로젝트의 플랜에 포함되지 않은 변경은 필요한 플랜과 함께 거부됩니다.
 - **Change State 가 제공하는 것.** 본인이 읽을 수 있는 상태 중 레코드가 다음으로 옮겨 갈 수 있는 상태를 프로젝트의 순서대로 제공합니다. 현재 상태보다 앞선 상태는 없습니다. 이는 인시던트, 경고, 예정된 유지 관리 이벤트와 마찬가지로 에피소드에도 적용되는데, 상태 변경으로 레코드가 목록의 위쪽으로 되돌아가는 일은 없기 때문입니다 ( [순서는 표시 취향이 아니라 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다) 참조). 읽을 수 있는 상태가 하나도 없으면 "No incident states are available to you in this project. Ask a project admin for access to them." 라고 알리고, 레코드가 도달할 수 있는 마지막 상태에 있으면 "There is no later state to move this incident to." 라고 알립니다. 어느 경우에도 빈 양식은 열리지 않습니다.
+- **답변을 받는 곳.** 버튼이 있는 메시지 아래에, 본인에게만 보이는 메시지로 받습니다. Slack이 이를 받지 않을 때만 다이렉트 메시지로 받습니다. 너무 늦게 누른 버튼은 누가 언제 먼저 했는지 알려 줍니다. 예: "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **Slack 계정이 연결되어 있지 않은 경우.** 답변은 **Connect Slack account** 버튼으로 연결을 요청합니다. 이 버튼은 OneUptime 에서 본인의 Slack 설정을 열고, 필요하면 OneUptime 에 로그인한 뒤 한 단계로 계정을 연결합니다. 그런 다음 OneUptime 은 본인이 누른 작업을 본인으로서 마무리하고 같은 메시지 아래에 답변합니다. 양식을 여는 버튼이나 명령이라면 다시 누르거나 실행하라고 안내합니다. 버튼은 30 분 동안 한 번, 누른 Slack 계정에 대해서만 작동합니다. 다른 사람으로 Slack 에 로그인되어 있으면 아무것도 연결하지 않습니다.
 
 ## 연결 해제
 
@@ -164,7 +166,7 @@ Slack 이 연결 없이 돌려보내면, 시작한 페이지에 **Slack이 연�
 :::
 
 :::details 버튼이나 명령에서 Slack 계정이 연결되지 않았다고 표시됨
-**사용자 설정** > **워크스페이스** > **Slack** 에서 **Connect my account with Slack** 으로 연결하세요. 더 이상 프로젝트의 멤버가 아니면 OneUptime 이 대신 그렇게 알리고, 본인을 위해 아무것도 조치하지 않습니다.
+그 답변의 **Connect Slack account** 를 눌러 한 단계로 연결하거나, **사용자 설정** > **워크스페이스** > **Slack** 에서 **Connect my account with Slack** 으로 연결하세요. 더 이상 프로젝트의 멤버가 아니면 OneUptime 이 대신 그렇게 알리고, 본인을 위해 아무것도 조치하지 않습니다.
 :::
 
 :::details 알림은 도착하지만 버튼과 명령이 아무것도 하지 않음

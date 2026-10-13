@@ -3,6 +3,10 @@ import WorkspaceLiveMessage from "../../../../Models/DatabaseModels/WorkspaceLiv
 import URL from "../../../../Types/API/URL";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  CONNECT_ACCOUNT_QUERY_PARAM,
+  CONNECT_ACCOUNT_QUERY_VALUE,
+} from "../../../../Types/Workspace/ConnectCallback";
 import WorkspaceLiveMessageKey, {
   WorkspaceLiveMessageData,
 } from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
@@ -61,8 +65,13 @@ export interface ChannelMembersNotAddedNote {
  * which is edited in place; somebody it names already changes nothing.
  *
  * The note is read by the people in the channel - the people it names are
- * not in it - so it tells them what they can do: add them, or have them
- * connect their account.
+ * not in it - so it tells them what they can do: add them, or send them its
+ * Connect Slack account link. The link opens the Slack settings page of
+ * whoever opens it with `?connectAccount=true`, which connects that
+ * person's account straight away (one click, then Slack's own Allow): a
+ * link in a message everybody reads cannot be anybody's in particular, so
+ * it carries no token and finishes nothing - it only connects the account
+ * of the person who opened it, as the page's own Connect button would.
  *
  * In a channel OneUptime has just created, the note comes after the record's
  * own first message ("Incident INC-8 Created"): channel setup hands back who
@@ -240,11 +249,14 @@ export default class ChannelMembersNotAddedNotice {
    * reads them:
    *
    *   👥 NB User 3 and Jane Doe could not be added to this channel: they
-   *   have not connected their Slack accounts yet. Add them here yourself,
-   *   or ask them to connect Slack in OneUptime → User Settings → Slack.
+   *   have not connected their Slack accounts to OneUptime yet. Add them
+   *   here yourself, or send them this link to connect in one click:
+   *   Connect Slack account.
    *
-   * Names are text: a person's name is theirs to set. The product's name is
-   * the one the installation goes by (ProductBrandingText).
+   * Without a dashboard address to link to, the settings page is named in
+   * words instead. Names are text: a person's name is theirs to set. The
+   * product's name is the one the installation goes by
+   * (ProductBrandingText).
    */
   public static async getNote(data: {
     projectId: ObjectID;
@@ -253,29 +265,31 @@ export default class ChannelMembersNotAddedNotice {
     const names: Array<string> = await this.getNames(data.userIds);
     const productName: string = ProductBrandingText.getProductName();
 
-    let settingsLink: MarkdownText = mdText`${productName} under **User Settings → Slack**`;
+    const accounts: string =
+      names.length === 1 ? "their Slack account" : "their Slack accounts";
+
+    const missing: MarkdownText = mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected ${accounts} to ${productName} yet.`;
+
+    let whatToDo: MarkdownText = mdText`Add them here yourself, or ask them to connect Slack in ${productName} under **User Settings → Slack**.`;
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-      settingsLink = mdText`[${productName} → User Settings → Slack](${URL.fromString(
-        dashboardUrl.toString(),
-      )
+      const connectLink: string = URL.fromString(dashboardUrl.toString())
         .addRoute(
           `/${data.projectId.toString()}/user-settings/slack-integration`,
         )
-        .toString()})`;
+        .addQueryParam(CONNECT_ACCOUNT_QUERY_PARAM, CONNECT_ACCOUNT_QUERY_VALUE)
+        .toString();
+
+      whatToDo = mdText`Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${connectLink}).`;
     } catch (err) {
       logger.debug("Could not build the Slack settings link.");
       logger.debug(err);
     }
 
-    const accounts: string =
-      names.length === 1 ? "their Slack account" : "their Slack accounts";
-
     return {
-      markdown:
-        mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected ${accounts} yet. Add them here yourself, or ask them to connect Slack in ${settingsLink}.`.toString(),
+      markdown: mdText`${missing} ${whatToDo}`.toString(),
       text: `${this.joinNames(names)} could not be added to this channel`,
     };
   }

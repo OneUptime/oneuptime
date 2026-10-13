@@ -172,6 +172,7 @@ jobs:
               test-incoming-call-policies-ui
               test-push-registration-ui
               test-packet-capture-ui
+              test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
@@ -317,5 +318,7 @@ jobs:
             output/playwright/workflow-builder-ui/test-results
             output/playwright/diagrams-ui/test-results
             output/playwright/packet-capture-ui/test-results
+            output/playwright/llm-provider-test-ui/*.png
+            output/playwright/llm-provider-test-ui/test-results
             output/playwright/pagination-ui/test-results
           retention-days: 7

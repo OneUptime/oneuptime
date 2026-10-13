@@ -3,6 +3,7 @@ import stubLLMEgressGuard from "../Utils/AI/StubLLMEgressGuard";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import LlmProviderAPI from "../../../Server/API/LlmProviderAPI";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
+import Encryption from "../../../Server/Utils/Encryption";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -11,15 +12,21 @@ import {
 import LLMService from "../../../Server/Utils/LLM/LLMService";
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
-import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Exception from "../../../Types/Exception/Exception";
 import { JSONObject } from "../../../Types/JSON";
 import LlmType from "../../../Types/LLM/LlmType";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import API from "../../../Utils/API";
 import { getJestSpyOn } from "../../Spy";
+import { customDomainCaller } from "./CustomDomainCallers";
+import {
+  StoredRow,
+  useInMemoryTable,
+} from "../TestingUtils/InMemoryRepository";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeAll,
@@ -76,32 +83,41 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 
-const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
-
 const PROBE_TOOL_NAME: string = "connection_test_ping";
 
 let postSpy: jest.SpyInstance;
-let provider: LlmProvider;
 
+// The API key as the table stores it: encrypted, as DatabaseService writes it.
+let storedApiKey: string;
+
+/*
+ * The provider, as a row of the project's table: the route's own access
+ * check runs on it with a project owner's real permissions.
+ */
 function anthropicProvider(data: {
   modelName?: string;
   additionalParams?: JSONObject;
-}): LlmProvider {
-  const row: LlmProvider = new LlmProvider(PROVIDER_ID);
-  row.projectId = PROJECT_ID;
-  row.isGlobalLlm = false;
-  row.llmType = LlmType.Anthropic;
-  row.apiKey = "sk-ant-connection-test";
+}): void {
+  const row: StoredRow = {
+    _id: PROVIDER_ID.toString(),
+    projectId: PROJECT_ID.toString(),
+    name: "Production Anthropic",
+    isGlobalLlm: false,
+    llmType: LlmType.Anthropic,
+    apiKey: storedApiKey,
+    isDefault: true,
+    version: 1,
+  };
 
   if (data.modelName) {
-    row.modelName = data.modelName;
+    row["modelName"] = data.modelName;
   }
 
   if (data.additionalParams) {
-    row.additionalParams = data.additionalParams;
+    row["additionalParams"] = data.additionalParams;
   }
 
-  return row;
+  useInMemoryTable(LlmProviderService, [row]);
 }
 
 function anthropicReply(
@@ -161,9 +177,10 @@ function sentError(): Exception {
   return send.mock.calls[0]![2] as Exception;
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   mockRouter.routes.length = 0;
   new LlmProviderAPI();
+  storedApiKey = await Encryption.encrypt("sk-ant-connection-test");
 });
 
 beforeEach(() => {
@@ -172,17 +189,14 @@ beforeEach(() => {
   stubLLMEgressGuard();
 
   jest.spyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockResolvedValue({
-    userId: USER_ID,
-    tenantId: PROJECT_ID,
+    ...customDomainCaller({
+      permissions: [Permission.ProjectOwner],
+      projectId: PROJECT_ID,
+    }),
+    ...ON_HIGHEST_PLAN,
   });
 
-  provider = anthropicProvider({});
-
-  getJestSpyOn(LlmProviderService, "findOneById").mockImplementation(
-    async (): Promise<LlmProvider> => {
-      return provider;
-    },
-  );
+  anthropicProvider({});
 
   postSpy = getJestSpyOn(API, "post");
 
@@ -227,7 +241,7 @@ describe("Test LLM Provider on the default Anthropic setup (issue #4583)", () =>
   });
 
   test("a model that refuses the temperature anyway is certified after one adapted retry", async () => {
-    provider = anthropicProvider({ modelName: "prod-claude-gateway" });
+    anthropicProvider({ modelName: "prod-claude-gateway" });
 
     postSpy
       .mockResolvedValueOnce(
@@ -258,7 +272,7 @@ describe("Test LLM Provider on the default Anthropic setup (issue #4583)", () =>
   });
 
   test("the provider's Additional Parameters go into the probe, but never over its own fields", async () => {
-    provider = anthropicProvider({
+    anthropicProvider({
       modelName: "claude-opus-5-5",
       additionalParams: {
         output_config: { effort: "low" },
@@ -320,8 +334,10 @@ describe("Test LLM Provider when a current model's reply is not an answer", () =
 
     const error: Exception = sentError();
 
-    expect(error.message).toContain("LLM Provider test failed");
-    expect(error.message).toContain("Anthropic declined this request");
+    // LLMService's own words for it, with nothing in front of them.
+    expect(error.message.startsWith("Anthropic declined this request")).toBe(
+      true,
+    );
     expect(error.message).toContain("(cyber)");
     expect(error.message).not.toContain("No text content");
   });

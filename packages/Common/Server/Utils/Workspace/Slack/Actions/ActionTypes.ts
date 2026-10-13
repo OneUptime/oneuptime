@@ -76,6 +76,13 @@ enum SlackActionType {
    * click, which only has to be acknowledged.
    */
   JoinVideoCall = "JoinVideoCall",
+
+  /*
+   * The Connect button of an answer to somebody whose Slack account is not
+   * connected yet (SlackConnectPrompt). A link button too: it opens their
+   * settings page to connect, and the click Slack reports is acknowledged.
+   */
+  ConnectSlackAccount = "ConnectSlackAccount",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

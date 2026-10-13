@@ -54,10 +54,20 @@ import ConnectCallback, {
   ConnectCallbackRefusal,
 } from "./ConnectCallback";
 import ConnectCallbackUtil, {
+  CONNECT_REQUEST_OUTCOME_QUERY_PARAM,
+  CONNECT_REQUEST_QUERY_PARAM,
   CONNECT_START_PAGE_QUERY_PARAM,
   ConnectCallbackError,
   ConnectProvider,
+  ConnectRequestOutcome,
 } from "../../Types/Workspace/ConnectCallback";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestRecord,
+} from "../Utils/Workspace/WorkspaceConnectRequest";
+import WorkspaceConnectCompletion, {
+  WorkspaceConnectCompletionResult,
+} from "../Utils/Workspace/WorkspaceConnectCompletion";
+import MicrosoftTeamsActionAnswer from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -77,6 +87,108 @@ export default class MicrosoftTeamsAPI {
    */
   public static readonly CONNECT_PERMISSION_MESSAGE: string =
     "You do not have permission to connect this project to Microsoft Teams.";
+
+  /*
+   * What the sign-in a Connect button in Microsoft Teams starts is refused
+   * with when the press behind it is gone - spent by an earlier sign-in, or
+   * past its thirty minutes - or is not this project's.
+   */
+  public static readonly CONNECT_REQUEST_GONE_MESSAGE: string =
+    "This Connect button has expired or was already used. Press the button in Microsoft Teams again.";
+
+  /*
+   * The press a sign-in's `?connect=` stands for, as the state's payload -
+   * nothing when there is no `?connect=`. Refused when the press is gone
+   * or is another project's.
+   */
+  private static async getConnectRequestPayload(data: {
+    value: unknown;
+    projectId: ObjectID;
+  }): Promise<JSONObject | undefined> {
+    if (data.value === undefined) {
+      return undefined;
+    }
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await MicrosoftTeamsAPI.peekConnectRequest({
+        token: data.value,
+        projectId: data.projectId,
+      });
+
+    if (!request) {
+      throw new BadDataException(
+        MicrosoftTeamsAPI.CONNECT_REQUEST_GONE_MESSAGE,
+      );
+    }
+
+    return { connectToken: data.value as string };
+  }
+
+  // A Microsoft Teams press behind `token` in `projectId`, left in place.
+  private static async peekConnectRequest(data: {
+    token: unknown;
+    projectId: ObjectID;
+  }): Promise<WorkspaceConnectRequestRecord | null> {
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(data.token);
+
+    if (
+      !request ||
+      request.workspaceType !== WorkspaceType.MicrosoftTeams ||
+      request.projectId.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return request;
+  }
+
+  /*
+   * Once the account a Connect button was for is connected: spends the
+   * press, finishes it as the member (WorkspaceConnectCompletion), answers
+   * in the conversation it was made in (MicrosoftTeamsActionAnswer), and
+   * says what the settings page should tell the person.
+   */
+  private static async finishConnectRequest(data: {
+    token: unknown;
+    connectRequest: WorkspaceConnectRequestRecord | null;
+    userId: ObjectID;
+  }): Promise<Dictionary<string>> {
+    // Spent once, however many times its sign-in comes back.
+    const request: WorkspaceConnectRequestRecord | null = data.connectRequest
+      ? await WorkspaceConnectRequest.take(data.token)
+      : null;
+
+    if (!request) {
+      return {
+        [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]: ConnectRequestOutcome.Expired,
+      };
+    }
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request,
+        userId: data.userId,
+      });
+
+    const isAnswered: boolean = request.teams
+      ? await MicrosoftTeamsActionAnswer.sendToPlace({
+          place: request.teams,
+          answer: result.answer,
+        })
+      : false;
+
+    return {
+      /*
+       * The page never says the answer is in Microsoft Teams when Teams
+       * took none: it says to look at the record instead.
+       */
+      [CONNECT_REQUEST_OUTCOME_QUERY_PARAM]:
+        ConnectCallbackUtil.pointsToChatAnswer(result.outcome) && !isAnswered
+          ? ConnectRequestOutcome.NotAnswered
+          : result.outcome,
+    };
+  }
 
   private static getTeamsAppManifest(): JSONObject {
     if (!MicrosoftTeamsAppClientId) {
@@ -800,6 +912,17 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
+          /*
+           * Started from a Connect button in Microsoft Teams (`?connect=`):
+           * the press it stands for goes with the sign-in, so the callback
+           * can finish it - when it is still there, and is this project's.
+           */
+          const payload: JSONObject | undefined =
+            await MicrosoftTeamsAPI.getConnectRequestPayload({
+              value: req.query[CONNECT_REQUEST_QUERY_PARAM],
+              projectId: projectId,
+            });
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
@@ -809,6 +932,7 @@ export default class MicrosoftTeamsAPI {
             startPage: ConnectCallbackUtil.readStartPage(
               req.query[CONNECT_START_PAGE_QUERY_PARAM],
             ),
+            payload: payload,
           });
 
           const authorizationUrl: string = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
@@ -939,6 +1063,34 @@ export default class MicrosoftTeamsAPI {
 
           const userProfile: JSONObject = userProfileResponse.data;
 
+          /*
+           * Started from a Connect button in Microsoft Teams: the Microsoft
+           * account that signed in must be the one that pressed it (Teams
+           * names it by the same Entra object id). Another one is refused
+           * and nothing is connected: connecting it would let that account
+           * act as you.
+           */
+          const connectToken: unknown = record.payload?.["connectToken"];
+
+          const connectRequest: WorkspaceConnectRequestRecord | null =
+            connectToken
+              ? await MicrosoftTeamsAPI.peekConnectRequest({
+                  token: connectToken,
+                  projectId: record.projectId,
+                })
+              : null;
+
+          if (
+            connectRequest &&
+            connectRequest.workspaceUserId.toLowerCase() !==
+              String(userProfile["id"] || "").toLowerCase()
+          ) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.TeamsOtherAccount,
+              "The Microsoft account signed in is not the one that pressed the Connect button.",
+            );
+          }
+
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: record.projectId,
             userId: record.userId,
@@ -953,6 +1105,19 @@ export default class MicrosoftTeamsAPI {
                 (userProfile["userPrincipalName"] as string),
             },
           });
+
+          /*
+           * The press the Connect button stood for, finished now as the
+           * member, and answered where it was made; the page is told what
+           * became of it.
+           */
+          const connectParams: Dictionary<string> = connectToken
+            ? await MicrosoftTeamsAPI.finishConnectRequest({
+                token: connectToken,
+                connectRequest: connectRequest,
+                userId: record.userId,
+              })
+            : {};
 
           // Check if admin consent is already granted
           const existingProjectAuth: WorkspaceProjectAuthToken | null =
@@ -970,11 +1135,14 @@ export default class MicrosoftTeamsAPI {
               projectId: record.projectId,
             });
 
-            return data.backToPage();
+            return data.backToPage(connectParams);
           }
 
           // Need admin consent
-          return data.backToPage({ needAdminConsent: "true" });
+          return data.backToPage({
+            needAdminConsent: "true",
+            ...connectParams,
+          });
         },
       }),
     );

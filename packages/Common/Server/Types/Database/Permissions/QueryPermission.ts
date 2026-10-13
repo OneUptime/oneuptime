@@ -2,6 +2,7 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
+import ColumnRefusalMessage from "./ColumnRefusalMessage";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -15,7 +16,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../../../Types/JSON";
-import Permission, { PermissionHelper } from "../../../../Types/Permission";
+import Permission from "../../../../Types/Permission";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../../Types/HeldPermissions";
@@ -156,9 +157,7 @@ export default class QueryPermission {
                   relatedModel.singularName
                 } on ${
                   model.singularName
-                }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                  readPermissions,
-                ).join(", ")}`,
+                }. ${ColumnRefusalMessage.getWhoMay("query", readPermissions)}`,
               );
             }
           }
@@ -259,11 +258,10 @@ export default class QueryPermission {
 
           if (!canReadOnTheseColumns.columns.includes(field)) {
             throw new NotAuthorizedException(
-              `You do not have permissions to query on - ${field}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                model.getColumnAccessControlFor(field)
-                  ? model.getColumnAccessControlFor(field)!.read
-                  : [],
-              ).join(", ")}`,
+              ColumnRefusalMessage.getQueryRefusal({
+                column: field,
+                permissions: model.getColumnAccessControlFor(field)?.read || [],
+              }),
             );
           }
         }
@@ -278,12 +276,12 @@ export default class QueryPermission {
           );
         }
 
+        // Who may read it, or that nobody may (ColumnRefusalMessage).
         throw new NotAuthorizedException(
-          `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-            model.getColumnAccessControlFor(key)
-              ? model.getColumnAccessControlFor(key)!.read
-              : [],
-          ).join(", ")}`,
+          ColumnRefusalMessage.getQueryRefusal({
+            column: key,
+            permissions: model.getColumnAccessControlFor(key)?.read || [],
+          }),
         );
       }
     }

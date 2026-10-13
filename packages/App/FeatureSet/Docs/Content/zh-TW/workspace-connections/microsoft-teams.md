@@ -153,7 +153,7 @@ flowchart TB
 
 ## 從 Microsoft Teams 建立事件和維護
 
-向 OneUptime 機器人輸入 `create incident` 或 `create maintenance`，無論是在個人聊天、頻道還是群組聊天中，都會為輸入的人開啟一個表單。表單以此人的身分填寫：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ），依該帳戶在專案中的權限提交。帳戶未連接的人，或 OneUptime 帳戶已不再是專案成員的人，會收到該怎麼做的說明，而不是表單。
+向 OneUptime 機器人輸入 `create incident` 或 `create maintenance`，無論是在個人聊天、頻道還是群組聊天中，都會為輸入的人開啟一個表單。表單以此人的身分填寫：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ），依該帳戶在專案中的權限提交。帳戶未連接的人，或 OneUptime 帳戶已不再是專案成員的人，會在提及其本人的回覆中收到該怎麼做的說明，而不是表單。
 
 - **誰可以使用。** 能在 OneUptime 中宣告事件或建立排定維護活動的人：對於事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自訂角色中的 **Create Incident** ）；對於活動，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都會收到告知，並且得不到表單。
 - **表單提供什麼。** 每個清單（嚴重程度、監測器、監測器狀態、待命策略和標籤）都包含要求表單的人可以讀取的內容，與 OneUptime 中的同一清單一致，卡片上的 "not shown" 說明也只計算這些：如果角色僅限於某些標籤，則為帶有這些標籤的監測器和待命策略。此人完全無法讀取的清單會被省略。已封存的待命策略永遠不會提供。
@@ -169,6 +169,8 @@ OneUptime 卡片上的按鈕以按下者的身分執行，無論是在個人聊�
 - **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄或其他專案的紀錄上的按鈕，都會得到該紀錄 "was not found in this project, or you do not have access to it." 的回覆，並且不會有任何變更。在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
 - **Change State 提供什麼。** 依專案的順序，提供此人可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中回退（請參閱 [順序是真正的限制，而不是顯示偏好](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好) ）。如果此人一個都無法讀取，機器人會說 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，則會說 "There is no later state to move this incident to."。這兩種情況都不會顯示空白卡片。
 - **Escalate.** 卡片上的 **Escalate** 會針對卡片所涉及的事件、警示或片段執行其待命策略，以按下者的身分，並使用與 **Execute On-Call Policy** 相同的權限。不涉及其中任何一種的卡片會得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回覆，並且不會呼叫任何人。
+- **在哪裡收到回覆。** 在同一個對話中（在頻道中即卡片的討論串中）以提及此人的回覆答覆，因此 Microsoft Teams 會通知此人。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **如果此人的帳戶未連接。** 回覆會請此人連接，並附上一個 **Connect Microsoft Teams account** 按鈕。該按鈕會開啟此人在 OneUptime 中自己的 Microsoft Teams 設定，並在視需要登入 OneUptime 後一步連接帳戶。隨後 OneUptime 會以此人的身分完成其按下的操作，並在同一個對話中回覆；對於開啟表單的按鈕或命令，它會請此人再按一次或再輸入一次。該按鈕只能使用一次，有效 30 分鐘，並且只對按下它的 Microsoft 帳戶有效。
 
 ## 中斷連接
 
@@ -189,7 +191,7 @@ Microsoft 拒絕了發布，因為機器人不在該團隊中。將應用程式�
 :::
 
 :::details 機器人提示我的帳戶未連接
-在登入專案所連接的組織的情況下，在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結它。來自其他組織的來賓帳戶不是同一個帳戶。
+在機器人的回覆中按 **Connect Microsoft Teams account** 即可一步連接，或在登入專案所連接的組織的情況下，在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結它。來自其他組織的來賓帳戶不是同一個帳戶。
 :::
 
 :::details 在自行託管的伺服器上所有通知都失敗

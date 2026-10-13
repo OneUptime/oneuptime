@@ -340,7 +340,13 @@ describe("onBeforeCreate: what a capture is started with", () => {
     expect(createBy.data.projectId?.toString()).toBe(PROJECT_ID.toString());
     expect(createBy.data.probeId?.toString()).toBe(PROBE_ID.toString());
     expect(createBy.data.networkDeviceId).toBeNull();
-    expect(createBy.data.fileId).toBeNull();
+    /*
+     * No file: left out of the write, never stamped null - a null is a
+     * value the create's column check holds to the caller, and nobody may
+     * create fileId (PacketCaptureCrudAsMember runs the whole create).
+     */
+    expect(createBy.data.fileId).toBeUndefined();
+    expect(createBy.data.file).toBeUndefined();
   });
 
   test("a capture of every packet is named 'all traffic'", async () => {
@@ -403,8 +409,12 @@ describe("onBeforeCreate: what a capture is started with", () => {
       });
     }
 
-    expect(data["fileId"]).toBeNull();
-    expect("file" in data).toBe(false);
+    /*
+     * A posted file is dropped under both of its names, not refused and not
+     * stored: the row starts with none, and the probe's upload writes it.
+     */
+    expect(data["fileId"]).toBeUndefined();
+    expect(data["file"]).toBeUndefined();
   });
 
   test("the limits asked for are kept, as whole numbers", async () => {

@@ -243,7 +243,7 @@ new FetchInstrumentation({
 
 ## 트레이스를 세션 리플레이에 연결하기
 
-[세션 리플레이](/docs/telemetry/session-replay)도 사용한다면, **백엔드** 텔레메트리는 여기서 코드를 쓰지 않아도 녹화에 연결됩니다. 세션이 업로드되는 동안 레코더는 페이지가 자신의 출처로 보내는 요청에 세션 ID를 담은 `tracestate` 멤버를 추가하고, `traceparent`는 `FetchInstrumentation` / `XMLHttpRequestInstrumentation`에 맡깁니다. W3C 트레이스 컨텍스트를 이어 가는 모든 서비스에서 백엔드 스팬에는 수집 시 세션 ID가 찍히고, 그 로그와 예외는 트레이스 ID로 녹화에 연결됩니다. 작동 방식, 다루지 않는 범위, 끄는 스위치는 [다른 텔레메트리와 상관관계 분석](/docs/telemetry/session-replay#correlating-with-your-other-telemetry)을 참고하세요.
+[세션 리플레이](/docs/telemetry/session-replay)도 사용한다면, **백엔드** 텔레메트리는 여기서 코드를 쓰지 않아도 녹화에 연결됩니다. 세션이 업로드되는 동안 레코더는 페이지가 자신의 출처로 보내는 요청에 세션 ID를 담은 `tracestate` 멤버를 추가하고, `traceparent`는 `FetchInstrumentation` / `XMLHttpRequestInstrumentation`에 맡깁니다. W3C 트레이스 컨텍스트를 이어 가는 모든 서비스에서 백엔드 스팬에는 수집 시 세션 ID가 찍히고, 그 로그와 예외는 트레이스 ID로 녹화에 연결됩니다. 작동 방식, 다루지 않는 범위, 끄는 스위치는 [다른 텔레메트리와 상관관계 분석](/docs/telemetry/session-replay#나머지-텔레메트리와-연결하기)을 참고하세요.
 
 레코더는 호출이 URL(init 객체가 있든 없든)을 넘기든 `Request` 객체를 넘기든 계측이 설정한 `traceparent`를 다시 읽으므로, 리플레이의 요청 행마다 해당 백엔드 트레이스로 연결됩니다. 다른 출처의 API는 위의 `propagateTraceHeaderCorsUrls`에 등록하세요. 그 요청에는 세션 ID가 붙지 않고 트레이스 ID로 녹화에 연결됩니다. 이 SDK를 *쓰지 않는* 페이지에서는 애플리케이션 리플레이 정책의 **Trace propagation origins**가 같은 역할을 합니다.
 

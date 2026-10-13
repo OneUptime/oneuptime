@@ -244,8 +244,13 @@ describe("the dashboard shell resumes a pending MCP authorization", () => {
   });
 
   test("it stops there when the browser is being sent away", () => {
+    /*
+     * A Connect link from Slack or Microsoft Teams is picked up the same way
+     * right after it (WorkspaceConnectResume.test.ts): an MCP client waiting
+     * on a consent screen goes first.
+     */
     expect(fetchProjectsBody()).toMatch(
-      /setProjects\(result\.data\); if \(resumePendingMcpAuthorization\(\)\) \{ return; \} \} catch \(err\) \{/,
+      /setProjects\(result\.data\); if \(resumePendingMcpAuthorization\(\)\) \{ return; \} if \(resumeWorkspaceConnect\(\)\) \{ return; \} \} catch \(err\) \{/,
     );
   });
 

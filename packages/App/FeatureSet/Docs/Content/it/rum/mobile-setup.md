@@ -193,7 +193,7 @@ Apri la pagina **Client** dell'applicazione: ogni modello di dispositivo da `dev
 
 ## Session Replay su mobile
 
-Le app React Native possono registrare le sessioni con `@oneuptime/react-native-replay`. Registra l'albero delle viste native come wireframe, mai schermate né il testo a video, e le sue registrazioni si aprono nello stesso player di quelle web. Invia con una chiave **Browser** le cui **Allowed Origins** elencano la tua app come `app://` seguito dal suo ID applicazione Android o dal suo bundle ID iOS: una chiave diversa dalla chiave Server usata dal tuo SDK OpenTelemetry. [Installare in React Native](/docs/telemetry/session-replay#install-in-react-native) ti guida passo per passo.
+Le app React Native possono registrare le sessioni con `@oneuptime/react-native-replay`. Registra l'albero delle viste native come wireframe, mai schermate né il testo a video, e le sue registrazioni si aprono nello stesso player di quelle web. Invia con una chiave **Browser** le cui **Allowed Origins** elencano la tua app come `app://` seguito dal suo ID applicazione Android o dal suo bundle ID iOS: una chiave diversa dalla chiave Server usata dal tuo SDK OpenTelemetry. [Installare in React Native](/docs/telemetry/session-replay#installazione-in-react-native) ti guida passo per passo.
 
 Le app Android e iOS native, e le altre piattaforme, non hanno un registratore di sessioni: la loro pagina **Session Replay** resta vuota, mentre tracce, log, metriche, eccezioni e la pagina **Client** funzionano come sempre.
 

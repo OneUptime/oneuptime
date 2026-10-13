@@ -177,8 +177,11 @@ describe("what a code reads as", () => {
     const owner: Record<string, ConnectProvider> = {
       [ConnectCallbackError.SlackOtherWorkspace]: ConnectProvider.Slack,
       [ConnectCallbackError.SlackNotInstalled]: ConnectProvider.Slack,
+      // A Connect button pressed by one account, signed in to as another.
+      [ConnectCallbackError.SlackOtherAccount]: ConnectProvider.Slack,
       [ConnectCallbackError.TeamsOtherTenant]: ConnectProvider.MicrosoftTeams,
       [ConnectCallbackError.TeamsNoTeams]: ConnectProvider.MicrosoftTeams,
+      [ConnectCallbackError.TeamsOtherAccount]: ConnectProvider.MicrosoftTeams,
       [ConnectCallbackError.GitHubNoInstallation]: ConnectProvider.GitHub,
       [ConnectCallbackError.GitHubNoAuthorization]: ConnectProvider.GitHub,
       [ConnectCallbackError.GitHubNotVerified]: ConnectProvider.GitHub,

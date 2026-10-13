@@ -877,5 +877,13 @@
   "{{count}} more": "ещё {{count}}",
   "{{count}} more_one": "ещё {{count}}",
   "On": "Включено",
-  "Off": "Выключено"
+  "Off": "Выключено",
+  "Test": "Тест",
+  "Test LLM Provider": "Проверка поставщика LLM",
+  "Sending a test prompt to your LLM provider…": "Отправка тестового запроса вашему поставщику LLM…",
+  "This checks its API key, model and Base URL, and whether its model can call tools.": "Проверяются API-ключ, модель и базовый URL, а также может ли модель вызывать инструменты.",
+  "Test again": "Проверить снова",
+  "Test passed": "Проверка пройдена",
+  "Test passed, with a warning": "Проверка пройдена, но есть предупреждение",
+  "Test failed": "Проверка не пройдена"
 }

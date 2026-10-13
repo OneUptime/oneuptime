@@ -9,6 +9,30 @@ import {
 } from "@jest/globals";
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
+
+/*
+ * A press from an account not connected yet is kept, to finish once it is,
+ * behind its Connect button (WorkspaceConnectRequest): in memory here.
+ */
+jest.mock("../../../../../Server/Infrastructure/GlobalCache", () => {
+  return {
+    __esModule: true,
+    default: (
+      jest.requireActual("../../../API/WorkspaceOAuthTestHelpers") as Record<
+        string,
+        () => unknown
+      >
+    )["createInMemoryGlobalCache"]!(),
+  };
+});
+
+import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import WorkspaceConnectRequest, {
+  WorkspaceConnectRequestAgainKind,
+  WorkspaceConnectRequestRecord,
+} from "../../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
+import URL from "../../../../../Types/API/URL";
+import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
 import logger, { LogAttributes } from "../../../../../Server/Utils/Logger";
@@ -69,10 +93,12 @@ import Permission, {
  *
  * - The form is filled in as whoever asked for it, in a personal chat, a
  *   channel or a group chat alike: the sender is checked before any list is
- *   read - no AAD object id, no connected account (with the settings link),
- *   not a project member, no permission to create the thing (to declare an
+ *   read - no AAD object id, no connected account (a card mentioning them,
+ *   with a one-click Connect button, then to type the command again), not a
+ *   project member, no permission to create the thing (to declare an
  *   incident, to create a maintenance event; also with the real permission
- *   model deciding) - and a check that itself fails gets a reply of its own.
+ *   model deciding; each a card mentioning them) - and a check that itself
+ *   fails gets a reply of its own.
  *   The lists are then read as the sender, with their own props, so the form
  *   offers only what they may read. In a channel anyone there may submit the
  *   form, and the submit is checked as whoever does.
@@ -166,8 +192,9 @@ interface CommandProfile {
   // Every reply the command gives instead of the form, word for word.
   replies: {
     senderUnknown: string;
-    accountNotLinked: string;
-    accountNotLinkedWithoutLink: string;
+    // After the mention of the sender: connect, then type the command again.
+    connectPrompt: string;
+    connectPromptWithoutLink: string;
     senderCheckFailed: string;
     listsUnreadable: string;
     listsUnreadableWithoutLink: string;
@@ -183,7 +210,7 @@ const INCIDENT: CommandProfile = {
   form: {
     what: "an incident",
     dashboardRoute: "/incidents/create",
-    purpose: "create incidents from Microsoft Teams",
+    command: "create incident",
     lists: "monitors, labels and on-call policies",
   },
   createLink: CREATE_INCIDENT_LINK,
@@ -202,9 +229,10 @@ const INCIDENT: CommandProfile = {
   replies: {
     senderUnknown:
       "Sorry, I couldn't tell who sent this message, so I can't open the form to create an incident. Please try again.",
-    accountNotLinked: `To create incidents from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](${TEAMS_SETTINGS_LINK}), then try again.`,
-    accountNotLinkedWithoutLink:
-      "To create incidents from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in OneUptime under User Settings → Microsoft Teams, then try again.",
+    connectPrompt:
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **create incident** again.",
+    connectPromptWithoutLink:
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create incident** again.",
     senderCheckFailed:
       "Sorry, I couldn't open the form to create an incident because OneUptime could not check your account just now. Please try again in a minute.",
     listsUnreadable: `Sorry, I couldn't open the form to create an incident because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_INCIDENT_LINK}`,
@@ -223,7 +251,7 @@ const MAINTENANCE: CommandProfile = {
   form: {
     what: "a scheduled maintenance event",
     dashboardRoute: "/scheduled-maintenance-events/create",
-    purpose: "schedule maintenance from Microsoft Teams",
+    command: "create maintenance",
     lists: "monitors and labels",
   },
   createLink: CREATE_MAINTENANCE_LINK,
@@ -237,9 +265,10 @@ const MAINTENANCE: CommandProfile = {
   replies: {
     senderUnknown:
       "Sorry, I couldn't tell who sent this message, so I can't open the form to create a scheduled maintenance event. Please try again.",
-    accountNotLinked: `To schedule maintenance from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in [OneUptime → User Settings → Microsoft Teams](${TEAMS_SETTINGS_LINK}), then try again.`,
-    accountNotLinkedWithoutLink:
-      "To schedule maintenance from Microsoft Teams, first connect your Microsoft Teams account to OneUptime in OneUptime under User Settings → Microsoft Teams, then try again.",
+    connectPrompt:
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **create maintenance** again.",
+    connectPromptWithoutLink:
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create maintenance** again.",
     senderCheckFailed:
       "Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not check your account just now. Please try again in a minute.",
     listsUnreadable: `Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
@@ -620,6 +649,83 @@ function bodyOf(card: JSONObject): Array<JSONObject> {
   return card["body"] as Array<JSONObject>;
 }
 
+// The sender of every message here (messageActivity), as a reply mentions them.
+const SENDER_MENTION: string = "<at>Jane Doe</at>";
+
+interface DeliveredAnswer {
+  // The answer, after the mention of the sender it opens with.
+  text: string;
+  // The Connect button's link, if the card has one.
+  connectUrl: string | null;
+}
+
+/*
+ * The one reply that reached the user, which must be an answer card
+ * (MicrosoftTeamsActionAnswer): a single text block that mentions the
+ * sender, and at most one button, the Connect button.
+ */
+function theDeliveredAnswer(teams: FakeTeams): DeliveredAnswer {
+  const card: JSONObject = theDeliveredCard(teams);
+  const body: Array<JSONObject> = bodyOf(card);
+
+  expect(body).toHaveLength(1);
+  expect(body[0]!["type"]).toBe("TextBlock");
+
+  const text: string = body[0]!["text"] as string;
+
+  expect(text.startsWith(`${SENDER_MENTION} `)).toBe(true);
+  expect((card["msteams"] as JSONObject)["entities"]).toEqual([
+    {
+      type: "mention",
+      text: SENDER_MENTION,
+      mentioned: { id: "29:1f2e3d4c5b6a7980", name: "Jane Doe" },
+    },
+  ]);
+
+  const actions: Array<JSONObject> =
+    (card["actions"] as Array<JSONObject> | undefined) || [];
+
+  expect(actions.length).toBeLessThanOrEqual(1);
+
+  if (actions[0]) {
+    expect(actions[0]["type"]).toBe("Action.OpenUrl");
+    expect(actions[0]["title"]).toBe("Connect Microsoft Teams account");
+  }
+
+  return {
+    text: text.substring(SENDER_MENTION.length + 1),
+    connectUrl: actions[0] ? (actions[0]["url"] as string) : null,
+  };
+}
+
+/*
+ * The Connect button opens the sender's own Microsoft Teams settings in the
+ * project, carrying the command - kept for that Microsoft account, to type
+ * again once connected (a form opens only on a fresh command).
+ */
+async function expectConnectLink(
+  connectUrl: string | null,
+  profile: CommandProfile,
+): Promise<void> {
+  const url: globalThis.URL = new globalThis.URL(connectUrl || "");
+  const token: string | null = url.searchParams.get("connect");
+
+  expect(`${url.origin}${url.pathname}`).toBe(TEAMS_SETTINGS_LINK);
+  expect(token).toMatch(CONNECT_REQUEST_TOKEN_PATTERN);
+
+  const request: WorkspaceConnectRequestRecord | null =
+    await WorkspaceConnectRequest.peek(token);
+
+  expect(request).not.toBeNull();
+  expect(request!.projectId.toString()).toBe(PROJECT_ID.toString());
+  expect(request!.workspaceUserId).toBe(AAD_OBJECT_ID);
+  expect(request!.pendingAction).toBeUndefined();
+  expect(request!.again).toEqual({
+    kind: WorkspaceConnectRequestAgainKind.Command,
+    label: profile.command,
+  });
+}
+
 function inputOf(card: JSONObject, id: string): JSONObject | undefined {
   return bodyOf(card).find((element: JSONObject) => {
     return element["id"] === id;
@@ -901,6 +1007,8 @@ let maintenanceChoicesSpy: SpyInstance<
 let dashboardLinkSpy: SpyInstance<
   typeof MicrosoftTeamsReplies.getDashboardLink
 >;
+// Where the Connect button's link starts (WorkspaceConnectRequest).
+let dashboardUrlSpy: SpyInstance<typeof DatabaseConfig.getDashboardUrl>;
 let incidentCardSpy: SpyInstance<
   typeof MicrosoftTeamsIncidentActions.buildNewIncidentCardForBudget
 >;
@@ -988,6 +1096,10 @@ beforeEach((): void => {
         return `${DASHBOARD_URL}/${data.projectId.toString()}${data.route}`;
       },
     );
+
+  dashboardUrlSpy = jest
+    .spyOn(DatabaseConfig, "getDashboardUrl")
+    .mockResolvedValue(URL.fromString(DASHBOARD_URL));
 
   // The real card builders, watched for the budgets they are asked for.
   incidentCardSpy = jest.spyOn(
@@ -1222,7 +1334,7 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
       },
     );
 
-    test("an account nobody connected yet: one reply with the settings link, no form, no lists read", async (): Promise<void> => {
+    test("an account nobody connected yet: one reply, mentioning them, with a one-click Connect button and the command to type again; no form, no lists read", async (): Promise<void> => {
       senderLookupSpy.mockRejectedValue(
         new MicrosoftTeamsAccountNotLinkedException(
           "No OneUptime user linked to this Microsoft Teams user. Please authenticate with Microsoft Teams.",
@@ -1232,11 +1344,9 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
       const teams: FakeTeams = await runCommand({ profile: profile });
 
       expectSends(teams, { attempted: 1, delivered: 1 });
-      expect(theDeliveredText(teams)).toBe(profile.replies.accountNotLinked);
-      expect(dashboardLinkSpy).toHaveBeenCalledWith({
-        projectId: PROJECT_ID,
-        route: "/user-settings/microsoft-teams-integration",
-      });
+      const answer: DeliveredAnswer = theDeliveredAnswer(teams);
+      expect(answer.text).toBe(profile.replies.connectPrompt);
+      await expectConnectLink(answer.connectUrl, profile);
       expect(memberPropsSpy).not.toHaveBeenCalled();
       expect(assertCanCreateSpy).not.toHaveBeenCalled();
       expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
@@ -1244,18 +1354,20 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
       expect(errorLogSpy).not.toHaveBeenCalled();
     });
 
-    test("an account nobody connected yet, with no dashboard URL known: says where to connect it in words", async (): Promise<void> => {
+    test("an account nobody connected yet, with no dashboard URL known: says where to connect it in words, with no button", async (): Promise<void> => {
       senderLookupSpy.mockRejectedValue(
         new MicrosoftTeamsAccountNotLinkedException("No linked user."),
       );
-      dashboardLinkSpy.mockResolvedValue(null);
+      dashboardUrlSpy.mockRejectedValue(new Error("No host is configured."));
 
       const teams: FakeTeams = await runCommand({ profile: profile });
 
       expectSends(teams, { attempted: 1, delivered: 1 });
-      expect(theDeliveredText(teams)).toBe(
-        profile.replies.accountNotLinkedWithoutLink,
-      );
+      expect(theDeliveredAnswer(teams)).toEqual({
+        text: profile.replies.connectPromptWithoutLink,
+        connectUrl: null,
+      });
+      expect(errorLogSpy).not.toHaveBeenCalled();
     });
 
     test("a sender who is not a member of the project: one reply with that message, verbatim", async (): Promise<void> => {
@@ -1268,9 +1380,10 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
       const teams: FakeTeams = await runCommand({ profile: profile });
 
       expectSends(teams, { attempted: 1, delivered: 1 });
-      expect(theDeliveredText(teams)).toBe(
-        "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
-      );
+      expect(theDeliveredAnswer(teams)).toEqual({
+        text: "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+        connectUrl: null,
+      });
       expect(assertCanCreateSpy).not.toHaveBeenCalled();
       expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
       expect(errorLogSpy).not.toHaveBeenCalled();
@@ -1362,7 +1475,7 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
     );
 
     test.each(SHARED_CONVERSATIONS)(
-      "in a $name, a sender without a connected account is told where to connect it, and no form is posted",
+      "in a $name, a sender without a connected account is asked, by name, to connect it, and no form is posted",
       async (conversation: SharedConversation): Promise<void> => {
         senderLookupSpy.mockRejectedValue(
           new MicrosoftTeamsAccountNotLinkedException("No linked user."),
@@ -1374,7 +1487,9 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
         });
 
         expectSends(teams, { attempted: 1, delivered: 1 });
-        expect(theDeliveredText(teams)).toBe(profile.replies.accountNotLinked);
+        const answer: DeliveredAnswer = theDeliveredAnswer(teams);
+        expect(answer.text).toBe(profile.replies.connectPrompt);
+        await expectConnectLink(answer.connectUrl, profile);
         expect(memberPropsSpy).not.toHaveBeenCalled();
         expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
         expect(errorLogSpy).not.toHaveBeenCalled();
@@ -1395,7 +1510,7 @@ describe.each(COMMANDS)("$command", (profile: CommandProfile): void => {
         });
 
         expectSends(teams, { attempted: 1, delivered: 1 });
-        expect(theDeliveredText(teams)).toBe(refusal);
+        expect(theDeliveredAnswer(teams).text).toBe(refusal);
         expect(choicesSpyOf(profile)).not.toHaveBeenCalled();
         expect(errorLogSpy).not.toHaveBeenCalled();
       },
@@ -1930,7 +2045,7 @@ describe("create incident", (): void => {
     });
 
     expectSends(teams, { attempted: 1, delivered: 1 });
-    const reply: string = theDeliveredText(teams);
+    const reply: string = theDeliveredAnswer(teams).text;
     expect(reply).toBe((refusal as NotAuthorizedException).message);
     expect(
       reply.startsWith("You do not have permission to declare an incident."),
@@ -2097,7 +2212,7 @@ describe("create maintenance", (): void => {
       const teams: FakeTeams = await runCommand({ profile: MAINTENANCE });
 
       expectSends(teams, { attempted: 1, delivered: 1 });
-      expect(theDeliveredText(teams)).toBe(refusal);
+      expect(theDeliveredAnswer(teams).text).toBe(refusal);
       expect(maintenanceChoicesSpy).not.toHaveBeenCalled();
       expect(maintenanceCardSpy).not.toHaveBeenCalled();
       expect(errorLogSpy).not.toHaveBeenCalled();
@@ -2152,7 +2267,7 @@ describe("create maintenance", (): void => {
         const teams: FakeTeams = await runCommand({ profile: MAINTENANCE });
 
         expectSends(teams, { attempted: 1, delivered: 1 });
-        const reply: string = theDeliveredText(teams);
+        const reply: string = theDeliveredAnswer(teams).text;
         expect(reply).toBe((refusal as NotAuthorizedException).message);
         expect(
           reply.startsWith(

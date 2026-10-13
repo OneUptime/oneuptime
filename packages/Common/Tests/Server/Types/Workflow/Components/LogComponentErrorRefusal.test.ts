@@ -105,7 +105,7 @@ describe("describeRefusal", () => {
       }),
     ).toBe(
       REFUSED +
-        "User is not allowed to update on isTeamEditable column of Team",
+        "User is not allowed to update on isTeamEditable column of Team. No permission allows it: the column is changed by the server, not by a request.",
     );
   });
 

@@ -112,7 +112,7 @@ An update that writes a record's values as they already are changes nothing: it 
 A project's reseller, reseller plan and reseller license (`resellerId`, `resellerPlanId`, `resellerLicenseId`, and the relations `reseller` and `resellerPlan`) are set by OneUptime alone: when a project is created with a reseller's promo code, and when the reseller changes the plan. A create or a change of a project that sends one of them is refused with a `400` that names the field, whoever sends it:
 
 ```text
-User is not allowed to create on resellerId column of Project
+User is not allowed to create on resellerId column of Project. No permission allows it: the column is set by the server, not by a request.
 ```
 
 ### Who created a record

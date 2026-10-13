@@ -18,6 +18,7 @@ jest.mock(
 
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import DatabaseConfig from "../../../../Server/DatabaseConfig";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
@@ -38,11 +39,13 @@ import { MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE } from "../../../../Serve
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAuthAction, {
   SlackAction,
+  SlackAuthRefusalReason,
   SlackRequest,
 } from "../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../Server/Utils/Workspace/Slack/Actions/Incident";
 import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../../Types/Dictionary";
@@ -51,7 +54,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import {
   WorkspaceDropdownBlock,
+  WorkspaceMessageBlock,
   WorkspaceModalBlock,
+  WorkspacePayloadButtons,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -83,7 +88,9 @@ import { DataSource, Logger } from "typeorm";
  *
  *   - Slack's request is authorized from the stored workspace rows: a Slack
  *     user who never connected an account, or whose OneUptime account has
- *     left the project, is refused before any form is built;
+ *     left the project, is refused before any form is built, and told why
+ *     where they asked - a message only they see, in the channel - like
+ *     every other refusal here;
  *   - the member's permission rows are read from TeamPermission and
  *     TeamPermissionLabel, as the dashboard reads them;
  *   - a member whose monitor and on-call policy reads are limited to a label
@@ -116,7 +123,8 @@ import { DataSource, Logger } from "typeorm";
  * a uniquely named schema that is dropped afterwards; every other table a
  * read joins is found, empty, in public. Every row is synthetic. Only what
  * lies outside OneUptime's database is stubbed: Slack and Teams themselves,
- * the permission cache (Redis), and the HTTP response.
+ * the cache (Redis) - permissions and the press a Connect button carries -
+ * the dashboard's address, and the HTTP response.
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_WORKSPACE_CREATE_FORM_TESTS"] === "true"
@@ -186,6 +194,15 @@ interface PermissionRow {
   labelIds?: Array<ObjectID>;
 }
 
+// An answer only the person sees, in the channel they asked in.
+interface ChannelAnswer {
+  channelId: string;
+  userId: string;
+  text: string;
+  // The Connect button's link, when the answer has one.
+  connectUrl: string | null;
+}
+
 describePostgres(
   "Slack and Microsoft Teams new-incident forms, on Postgres",
   () => {
@@ -198,6 +215,8 @@ describePostgres(
 
     const SLACK_TEAM_ID: string = "T0PAYMENTS";
     const PROJECT_AUTH_TOKEN: string = "xoxb-synthetic-project-token";
+    // The channel every Slack press here is made in, and so answered in.
+    const SLACK_CHANNEL: string = "C0INCIDENTS";
 
     const projectId: ObjectID = ObjectID.generate();
     const otherProjectId: ObjectID = ObjectID.generate();
@@ -250,6 +269,9 @@ describePostgres(
     const SEARCH_POLICY_NAME: string = "Search on-call";
 
     let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
+    let ephemeralSpy: SpyInstance<
+      typeof SlackUtil.sendEphemeralMessageToChannel
+    >;
     let showModalSpy: SpyInstance<typeof SlackUtil.showModalToUser>;
     let hooksSpy: SpyInstance<
       (createBy: CreateBy<Incident>) => Promise<OnCreate<Incident>>
@@ -426,6 +448,18 @@ describePostgres(
       jest
         .spyOn(GlobalCache, "deleteKey")
         .mockResolvedValue(undefined as never);
+
+      /*
+       * A Connect button records the press it carries in the cache, under a
+       * token only its link holds (WorkspaceConnectRequest), and links into
+       * the dashboard.
+       */
+      jest
+        .spyOn(GlobalCache, "setString")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(DatabaseConfig, "getDashboardUrl")
+        .mockResolvedValue(URL.fromString("https://oneuptime.test/dashboard"));
 
       // Workflows run elsewhere.
       jest
@@ -668,7 +702,7 @@ describePostgres(
         channelsPosted: [],
         threadPosted: false,
       } as never);
-      jest
+      ephemeralSpy = jest
         .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
         .mockResolvedValue();
 
@@ -694,6 +728,7 @@ describePostgres(
       expect(await countRows("IncidentOnCallDutyPolicy")).toBe(0);
 
       directMessageSpy.mockRestore();
+      ephemeralSpy.mockRestore();
       showModalSpy.mockRestore();
       hooksSpy.mockRestore();
     });
@@ -719,7 +754,7 @@ describePostgres(
           user_id: slackUserId,
           user_name: "jane",
           team_id: SLACK_TEAM_ID,
-          channel_id: "C0INCIDENTS",
+          channel_id: SLACK_CHANNEL,
           trigger_id: "trigger-1",
         },
       } as unknown as ExpressRequest;
@@ -750,7 +785,8 @@ describePostgres(
             team: { id: SLACK_TEAM_ID },
             view: {
               callback_id: SlackActionType.SubmitNewIncident,
-              private_metadata: "C0INCIDENTS",
+              // The form carries the channel /incident was run in.
+              private_metadata: SLACK_CHANNEL,
               state: {
                 values: {
                   incidentTitle: {
@@ -792,12 +828,52 @@ describePostgres(
       } as unknown as ExpressRequest;
     }
 
-    function directMessageTexts(): Array<string> {
-      return directMessageSpy.mock.calls.map(
-        (call: Parameters<typeof SlackUtil.sendDirectMessageToUser>) => {
-          return (call[0].messageBlocks[0] as WorkspacePayloadMarkdown).text;
+    // Every answer Slack was asked to show one person, in a channel.
+    function channelAnswers(): Array<ChannelAnswer> {
+      return ephemeralSpy.mock.calls.map(
+        (
+          call: Parameters<typeof SlackUtil.sendEphemeralMessageToChannel>,
+        ): ChannelAnswer => {
+          const blocks: Array<WorkspaceMessageBlock> = call[0].messageBlocks;
+          const buttons: WorkspacePayloadButtons | undefined = blocks.find(
+            (block: WorkspaceMessageBlock): boolean => {
+              return block._type === "WorkspacePayloadButtons";
+            },
+          ) as WorkspacePayloadButtons | undefined;
+
+          return {
+            channelId: call[0].channelId,
+            userId: call[0].userId,
+            text: (blocks[0] as WorkspacePayloadMarkdown).text,
+            connectUrl: buttons?.buttons[0]?.url?.toString() || null,
+          };
         },
       );
+    }
+
+    /*
+     * The one answer a press got: shown only to the person who pressed, in
+     * the channel they pressed in - never in a direct message.
+     */
+    function theAnswerTo(slackUserId: string): ChannelAnswer {
+      expect(directMessageSpy).not.toHaveBeenCalled();
+
+      const answers: Array<ChannelAnswer> = channelAnswers();
+      expect(answers).toHaveLength(1);
+      expect(answers[0]!.channelId).toBe(SLACK_CHANNEL);
+      expect(answers[0]!.userId).toBe(slackUserId);
+
+      return answers[0]!;
+    }
+
+    // The Connect button's link: the person's Slack settings, carrying the press.
+    function expectConnectLink(answer: ChannelAnswer): void {
+      const link: globalThis.URL = new globalThis.URL(answer.connectUrl || "");
+
+      expect(`${link.origin}${link.pathname}`).toBe(
+        `https://oneuptime.test/dashboard/${projectId.toString()}/user-settings/slack-integration`,
+      );
+      expect(link.searchParams.get("connect")).toHaveLength(43);
     }
 
     // The options of each dropdown of the one form Slack was asked to show.
@@ -851,16 +927,25 @@ describePostgres(
     }
 
     describe("Slack authorizes /incident and its submit from the stored rows", () => {
-      test("a Slack user who never connected an account is told to connect it, and no form is built", async () => {
+      test("a Slack user who never connected an account is asked, in the channel, to connect it, and no form is built", async () => {
         const slackRequest: SlackRequest = await authorizeSlack(
           slashCommand(SLACK_STRANGER),
         );
 
         expect(slackRequest.isAuthorized).toBe(false);
-        expect(directMessageTexts()).toHaveLength(1);
-        expect(directMessageTexts()[0]).toContain(
-          "your slack account is not connected to OneUptime",
+        expect(slackRequest.refusal?.reason).toBe(
+          SlackAuthRefusalReason.NotConnected,
         );
+        // Nothing is said before the press is acknowledged to Slack.
+        expect(ephemeralSpy).not.toHaveBeenCalled();
+
+        await SlackAuthAction.answerRefusal(slackRequest);
+
+        const answer: ChannelAnswer = theAnswerTo(SLACK_STRANGER);
+        expect(answer.text).toBe(
+          "🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **/incident** again.",
+        );
+        expectConnectLink(answer);
         expect(showModalSpy).not.toHaveBeenCalled();
       });
 
@@ -870,9 +955,17 @@ describePostgres(
         );
 
         expect(slackRequest.isAuthorized).toBe(false);
-        expect(directMessageTexts()[0]).toContain(
-          "your slack account is not connected to OneUptime",
+        expect(slackRequest.refusal?.reason).toBe(
+          SlackAuthRefusalReason.NotConnected,
         );
+
+        await SlackAuthAction.answerRefusal(slackRequest);
+
+        const answer: ChannelAnswer = theAnswerTo(SLACK_STRANGER);
+        expect(answer.text).toBe(
+          "🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **/incident** again.",
+        );
+        expectConnectLink(answer);
         expect(hooksSpy).not.toHaveBeenCalled();
       });
 
@@ -882,9 +975,19 @@ describePostgres(
         );
 
         expect(slackRequest.isAuthorized).toBe(false);
-        expect(directMessageTexts()[0]).toContain(
-          WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+        expect(slackRequest.refusal?.reason).toBe(
+          SlackAuthRefusalReason.NotAMember,
         );
+
+        await SlackAuthAction.answerRefusal(slackRequest);
+
+        expect(theAnswerTo(SLACK_FORMER_MEMBER)).toEqual({
+          channelId: SLACK_CHANNEL,
+          userId: SLACK_FORMER_MEMBER,
+          text: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+          // Connecting again would not make them a member.
+          connectUrl: null,
+        });
         expect(showModalSpy).not.toHaveBeenCalled();
       });
 
@@ -894,9 +997,11 @@ describePostgres(
         );
 
         expect(slackRequest.isAuthorized).toBe(true);
+        expect(slackRequest.refusal).toBeUndefined();
         expect(slackRequest.userId?.toString()).toBe(responderId.toString());
         expect(slackRequest.projectId?.toString()).toBe(projectId.toString());
         expect(directMessageSpy).not.toHaveBeenCalled();
+        expect(ephemeralSpy).not.toHaveBeenCalled();
       });
     });
 
@@ -927,6 +1032,7 @@ describePostgres(
           labels: ["payments", "search"],
         });
         expect(directMessageSpy).not.toHaveBeenCalled();
+        expect(ephemeralSpy).not.toHaveBeenCalled();
       });
 
       test("a project-wide member is offered every live record of the project, and nothing of another project", async () => {
@@ -945,12 +1051,11 @@ describePostgres(
         });
       });
 
-      test("a member who may not declare an incident is told so, and no form is built", async () => {
+      test("a member who may not declare an incident is told so, in the channel, and no form is built", async () => {
         await openForm(SLACK_VIEWER);
 
         expect(showModalSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()).toHaveLength(1);
-        expect(directMessageTexts()[0]).toContain(
+        expect(theAnswerTo(SLACK_VIEWER).text).toContain(
           "You do not have permission to declare an incident.",
         );
       });
@@ -1019,9 +1124,9 @@ describePostgres(
           await submit(SLACK_RESPONDER, row.named);
 
           expect(hooksSpy).not.toHaveBeenCalled();
-          expect(directMessageTexts()).toHaveLength(1);
 
-          const refusal: string = directMessageTexts()[0]!;
+          // Answered in the channel the form was opened from.
+          const refusal: string = theAnswerTo(SLACK_RESPONDER).text;
           expect(refusal).toContain("Could not declare the incident:");
           expect(refusal).toContain("not in this project");
           expect(refusal).toContain(row.refusedId.toString());
@@ -1044,13 +1149,14 @@ describePostgres(
         expect(createBy.props.isRoot).toBeFalsy();
         expect(createBy.props.userId?.toString()).toBe(responderId.toString());
         expect(directMessageSpy).not.toHaveBeenCalled();
+        expect(ephemeralSpy).not.toHaveBeenCalled();
       });
 
-      test("a member who may not declare an incident is told so, and the create is never asked", async () => {
+      test("a member who may not declare an incident is told so, in the channel, and the create is never asked", async () => {
         await submit(SLACK_VIEWER, { monitors: [checkoutMonitorId] });
 
         expect(hooksSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()[0]).toContain(
+        expect(theAnswerTo(SLACK_VIEWER).text).toContain(
           "You do not have permission to declare an incident.",
         );
       });
@@ -1064,7 +1170,7 @@ describePostgres(
               type: "block_actions",
               user: { id: slackUserId, username: "jane" },
               team: { id: SLACK_TEAM_ID },
-              channel: { id: "C0INCIDENTS" },
+              channel: { id: SLACK_CHANNEL },
               trigger_id: "trigger-2",
               actions: [
                 {
@@ -1101,11 +1207,11 @@ describePostgres(
         });
       });
 
-      test("a member who may not execute a policy is told so, and no picker is built", async () => {
+      test("a member who may not execute a policy is told so, in the channel, and no picker is built", async () => {
         await openPicker(SLACK_VIEWER);
 
         expect(showModalSpy).not.toHaveBeenCalled();
-        expect(directMessageTexts()[0]).toContain(
+        expect(theAnswerTo(SLACK_VIEWER).text).toContain(
           "You do not have permission to execute an on-call policy for this incident.",
         );
       });

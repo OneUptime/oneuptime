@@ -41,8 +41,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  * Microsoft Teams channel, so there is nothing to fix there.
  *
  * The people it names are not in the channel, so it is written for those
- * who are: who is missing, why, and what they can do - add them, or have
- * them connect Slack.
+ * who are: who is missing, why, and what they can do - add them, or send
+ * them its Connect Slack account link, which connects the account of
+ * whoever opens it in one click (the Slack settings page with
+ * `?connectAccount=true`).
  */
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -53,10 +55,10 @@ const CHANNEL: { id: string; name: string } = {
   id: "C0INC8",
   name: "inc-inc-8",
 };
-const SETTINGS_LINK: string =
+const CONNECT_LINK: string =
   "https://oneuptime.test/dashboard/" +
   PROJECT_ID.toString() +
-  "/user-settings/slack-integration";
+  "/user-settings/slack-integration?connectAccount=true";
 
 function person(id: ObjectID, name?: string, email?: string): User {
   const user: User = new User();
@@ -184,7 +186,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     expect(payload.workspaceType).toBe(WorkspaceType.Slack);
     expect(payload.channelIds).toEqual([CHANNEL.id]);
     expect(postedText(0)).toBe(
-      `👥 **NB User 3** could not be added to this channel: they have not connected their Slack account yet. Add them here yourself, or ask them to connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}).`,
+      `👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to OneUptime yet. Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${CONNECT_LINK}).`,
     );
     expect(postedNotificationText(0)).toBe(
       "NB User 3 could not be added to this channel",
@@ -223,7 +225,7 @@ describe("ChannelMembersNotAddedNotice", () => {
       isChat: false,
     });
     expect(updatedText(0)).toBe(
-      `👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts yet. Add them here yourself, or ask them to connect Slack in [OneUptime → User Settings → Slack](${SETTINGS_LINK}).`,
+      `👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet. Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${CONNECT_LINK}).`,
     );
     expect(updateSpy.mock.calls[0]![0].text).toBe(
       "NB User 3 and Jane Doe could not be added to this channel",
@@ -238,7 +240,7 @@ describe("ChannelMembersNotAddedNotice", () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postedText(0)).toContain(
-      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts yet.",
+      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet.",
     );
     expect(postedNotificationText(0)).toBe(
       "NB User 3, Jane Doe and noname@example.com could not be added to this channel",
@@ -255,7 +257,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     expect(postedText(0)).not.toContain("\n");
   });
 
-  test("the settings page is named by the product's name as the installation has it", async () => {
+  test("the product is named as the installation has it", async () => {
     jest
       .spyOn(ProductBrandingText, "getProductName")
       .mockReturnValue("Acme Status");
@@ -263,20 +265,44 @@ describe("ChannelMembersNotAddedNotice", () => {
     await note([NB_USER_3]);
 
     expect(postedText(0)).toContain(
-      `ask them to connect Slack in [Acme Status → User Settings → Slack](${SETTINGS_LINK}).`,
+      "they have not connected their Slack account to Acme Status yet.",
     );
     expect(postedText(0)).not.toContain("OneUptime");
   });
 
-  test("without a dashboard address, the settings page is named in words", async () => {
+  test("the Connect Slack account link opens the Slack settings page of whoever opens it, asking it to connect their account - no token, no press, nobody's id", async () => {
+    await note([NB_USER_3]);
+
+    const link: string | undefined = postedText(0).match(
+      /\[Connect Slack account\]\(([^)]+)\)/u,
+    )?.[1];
+
+    expect(link).toBeDefined();
+
+    const url: globalThis.URL = new globalThis.URL(link!);
+
+    expect(url.origin).toBe("https://oneuptime.test");
+    expect(url.pathname).toBe(
+      `/dashboard/${PROJECT_ID.toString()}/user-settings/slack-integration`,
+    );
+    // Nothing but the flag: the page connects whoever opened it.
+    expect(Array.from(url.searchParams.entries())).toEqual([
+      ["connectAccount", "true"],
+    ]);
+  });
+
+  test("without a dashboard address, the settings page is named in words, product and all", async () => {
     jest
       .spyOn(DatabaseConfig, "getDashboardUrl")
       .mockRejectedValue(new Error("no host"));
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Status");
 
     await note([NB_USER_3]);
 
-    expect(postedText(0)).toContain(
-      "ask them to connect Slack in OneUptime under **User Settings → Slack**.",
+    expect(postedText(0)).toBe(
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to Acme Status yet. Add them here yourself, or ask them to connect Slack in Acme Status under **User Settings → Slack**.",
     );
   });
 
@@ -381,13 +407,13 @@ describe("ChannelMembersNotAddedNotice.noteAll", () => {
       postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual([CHANNEL.id]);
     expect(postedText(0)).toContain(
-      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account yet.",
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to OneUptime yet.",
     );
     expect(
       postSpy.mock.calls[1]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual(["C0OTHER"]);
     expect(postedText(1)).toContain(
-      "👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts yet.",
+      "👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet.",
     );
   });
 

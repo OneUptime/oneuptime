@@ -153,7 +153,7 @@ OneUptime AI 에게 질문하려면 프로젝트에서 AI 가 켜져 있어야 �
 
 ## Microsoft Teams 에서 인시던트와 유지 관리 만들기
 
-OneUptime 봇에게 `create incident` 또는 `create maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 무엇을 해야 하는지 안내를 받습니다.
+OneUptime 봇에게 `create incident` 또는 `create maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.
 
 - **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 그렇게 알리며 양식을 주지 않습니다.
 - **양식이 제공하는 것.** 각 목록 (심각도, 모니터, 모니터 상태, 온콜 정책, 레이블) 에는 OneUptime 의 같은 목록과 마찬가지로 양식을 요청한 사람이 읽을 수 있는 것이 들어 있으며, 카드의 "not shown" 안내도 그것만 셉니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 모니터와 온콜 정책입니다. 전혀 읽을 수 없는 목록은 빠집니다. 보관된 온콜 정책은 제공되지 않습니다.
@@ -169,6 +169,8 @@ OneUptime 카드의 버튼은 개인 채팅, 채널, 그룹 채팅 어디서든 
 - **대상 레코드.** OneUptime 에서와 마찬가지로 그 사람이 읽을 수 있는 레코드입니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 인시던트, 경고, 에피소드, 이벤트입니다. 다른 레코드나 다른 프로젝트의 레코드에 있는 버튼에는 해당 레코드가 "was not found in this project, or you do not have access to it." 라는 응답이 오며 아무것도 바뀌지 않습니다. OneUptime Cloud 에서는 프로젝트의 플랜에 포함되지 않은 변경은 필요한 플랜과 함께 거부됩니다.
 - **Change State 가 제공하는 것.** 그 사람이 읽을 수 있는 상태 중 레코드가 다음으로 옮겨 갈 수 있는 상태를 프로젝트의 순서대로 제공합니다. 현재 상태보다 앞선 상태는 없습니다. 이는 인시던트, 경고, 예정된 유지 관리 이벤트와 마찬가지로 에피소드에도 적용되는데, 상태 변경으로 레코드가 목록의 위쪽으로 되돌아가는 일은 없기 때문입니다 ( [순서는 표시 취향이 아니라 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다) 참조). 읽을 수 있는 상태가 하나도 없으면 봇은 "No incident states are available to you in this project. Ask a project admin for access to them." 라고 말하고, 레코드가 도달할 수 있는 마지막 상태에 있으면 "There is no later state to move this incident to." 라고 말합니다. 어느 경우에도 빈 카드는 표시되지 않습니다.
 - **Escalate.** 카드의 **Escalate** 는 카드가 다루는 인시던트, 경고, 에피소드에 대해 그 온콜 정책을, 누른 사람으로서 **Execute On-Call Policy** 와 같은 권한으로 실행합니다. 그중 어느 것도 다루지 않는 카드에는 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 라는 응답이 오며, 아무도 호출되지 않습니다.
+- **답변을 받는 곳.** 같은 대화 (채널에서는 카드의 스레드) 에서 그 사람을 멘션하는 답글로 받으므로 Microsoft Teams 가 그 사람에게 알립니다. 너무 늦게 누른 버튼은 누가 언제 먼저 했는지 알려 줍니다. 예: "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
+- **계정이 연결되어 있지 않은 경우.** 답글은 **Connect Microsoft Teams account** 버튼으로 연결을 요청합니다. 이 버튼은 OneUptime 에서 그 사람의 Microsoft Teams 설정을 열고, 필요하면 OneUptime 에 로그인한 뒤 한 단계로 계정을 연결합니다. 그런 다음 OneUptime 은 그 사람이 누른 작업을 그 사람으로서 마무리하고 같은 대화에서 답합니다. 양식을 여는 버튼이나 명령이라면 다시 누르거나 입력하라고 안내합니다. 버튼은 30 분 동안 한 번, 누른 Microsoft 계정에 대해서만 작동합니다.
 
 ## 연결 해제
 
@@ -189,7 +191,7 @@ Microsoft 가 연결 없이 돌려보내면, 시작한 페이지에 **Microsoft 
 :::
 
 :::details 봇이 내 계정이 연결되지 않았다고 말함
-프로젝트가 연결된 조직에 로그인한 상태로 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 연결하세요. 다른 조직의 게스트 계정은 같은 계정이 아닙니다.
+봇의 답글에서 **Connect Microsoft Teams account** 를 눌러 한 단계로 연결하거나, 프로젝트가 연결된 조직에 로그인한 상태로 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 연결하세요. 다른 조직의 게스트 계정은 같은 계정이 아닙니다.
 :::
 
 :::details 자체 호스팅 서버에서 모든 알림이 실패함

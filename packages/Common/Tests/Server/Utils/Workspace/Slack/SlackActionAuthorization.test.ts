@@ -42,6 +42,7 @@ import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions
 import SlackAlertActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../../../../../Server/Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackAuthAction, {
+  SlackAuthRefusalReason,
   SlackRequest,
 } from "../../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Incident";
@@ -66,8 +67,9 @@ import {
 /*
  * Slack buttons, modals and emoji reactions act as the OneUptime member the
  * Slack account is connected to: someone who may not acknowledge, resolve or
- * post a public status-page note is told so and nothing is written, and so
- * is someone who has left the project. What a permitted member's action
+ * post a public status-page note is told so - where they pressed, in a
+ * message only they see - and nothing is written, and so is someone who has
+ * left the project. What a permitted member's action
  * writes is their own write (SlackMemberActions.test.ts pins each one).
  * These tests drive the real handlers with the real permission logic; only
  * persistence and the Slack API are stubbed.
@@ -82,6 +84,7 @@ const projectAuthToken: string = "xoxb-project-token";
 type AnySpy = SpyInstance<(...args: Array<any>) => any>;
 
 let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
+let ephemeralSpy: SpyInstance<typeof SlackUtil.sendEphemeralMessageToChannel>;
 
 function createTenantPermission(
   permissions: Array<Permission>,
@@ -188,9 +191,12 @@ function incidentStates(): Array<IncidentState> {
   );
 }
 
-function directMessageTexts(): Array<string> {
-  return directMessageSpy.mock.calls.map(
-    (call: Parameters<typeof SlackUtil.sendDirectMessageToUser>): string => {
+// What the person was told in the channel they pressed in, only to them.
+function channelAnswerTexts(): Array<string> {
+  return ephemeralSpy.mock.calls.map(
+    (
+      call: Parameters<typeof SlackUtil.sendEphemeralMessageToChannel>,
+    ): string => {
       const block: WorkspaceMessageBlock | undefined = call[0].messageBlocks[0];
       return (block as WorkspacePayloadMarkdown).text;
     },
@@ -208,6 +214,9 @@ beforeEach((): void => {
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});
   directMessageSpy = jest
     .spyOn(SlackUtil, "sendDirectMessageToUser")
+    .mockResolvedValue();
+  ephemeralSpy = jest
+    .spyOn(SlackUtil, "sendEphemeralMessageToChannel")
     .mockResolvedValue();
 });
 
@@ -458,8 +467,9 @@ const writeCases: Array<WriteCase> = [
         handlerArgs(SlackActionType.SubmitNewScheduledMaintenance, id, {
           scheduledMaintenanceTitle: "Database upgrade",
           scheduledMaintenanceDescription: "Planned.",
-          startDate: new Date(),
-          endDate: new Date(),
+          // Dates the form takes: it refuses past ones itself, in the form.
+          startDate: new Date(Date.now() + 60 * 60 * 1000),
+          endDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
         }),
       );
     },
@@ -478,13 +488,18 @@ describe("Slack interactive actions refuse a read-only member", (): void => {
       await testCase.run(ObjectID.generate().toString());
 
       expect(mutationSpy).not.toHaveBeenCalled();
-      expect(directMessageSpy).toHaveBeenCalledTimes(1);
-      expect(directMessageSpy.mock.calls[0]![0].workspaceUserId).toBe(
-        slackUserId,
-      );
-      expect(directMessageTexts()[0]).toContain(
+      // Told in the channel they pressed in, only to them; not by DM.
+      expect(ephemeralSpy).toHaveBeenCalledTimes(1);
+      expect(ephemeralSpy.mock.calls[0]![0]).toMatchObject({
+        channelId: "C0CHANNEL",
+        userId: slackUserId,
+      });
+      expect(channelAnswerTexts()[0]).toContain(
         `You do not have permission to ${testCase.refusal}.`,
       );
+      // Said plainly, without an "@name," in front of it.
+      expect(channelAnswerTexts()[0]!.startsWith("You do not")).toBe(true);
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 });
@@ -501,9 +516,10 @@ describe("Slack interactive actions refuse a user removed from the project", ():
       await testCase.run(ObjectID.generate().toString());
 
       expect(mutationSpy).not.toHaveBeenCalled();
-      expect(directMessageTexts()[0]).toContain(
+      expect(channelAnswerTexts()).toEqual([
         WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-      );
+      ]);
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 });
@@ -558,6 +574,7 @@ describe("Slack interactive actions still work for members who hold the permissi
     // The button is logged as pressed once the change is made.
     expect(logSpy).toHaveBeenCalledTimes(1);
     expect(directMessageSpy).not.toHaveBeenCalled();
+    expect(ephemeralSpy).not.toHaveBeenCalled();
   });
 
   test("a refusal from the state change itself is told to the member, and the button is not logged", async (): Promise<void> => {
@@ -591,7 +608,7 @@ describe("Slack interactive actions still work for members who hold the permissi
     );
 
     expect(logSpy).not.toHaveBeenCalled();
-    expect(directMessageTexts()).toEqual([
+    expect(channelAnswerTexts()).toEqual([
       expect.stringContaining(
         "Could not acknowledge the incident: You do not have permissions to create Incident State Timeline.",
       ),
@@ -642,7 +659,7 @@ describe("Slack interactive actions still work for members who hold the permissi
     );
 
     expect(resolveSpy).not.toHaveBeenCalled();
-    expect(directMessageTexts()[0]).toContain(
+    expect(channelAnswerTexts()[0]).toContain(
       "the incident was not found in this project",
     );
   });
@@ -710,7 +727,13 @@ describe("Slack emoji reactions", (): void => {
 
       expect(addNoteSpy).not.toHaveBeenCalled();
       expect(fetchMessageSpy).not.toHaveBeenCalled();
-      expect(directMessageSpy).toHaveBeenCalledTimes(1);
+      // Told in the channel the reaction was made in, only to them.
+      expect(ephemeralSpy).toHaveBeenCalledTimes(1);
+      expect(ephemeralSpy.mock.calls[0]![0]).toMatchObject({
+        channelId: "C0INCIDENT",
+        userId: slackUserId,
+      });
+      expect(directMessageSpy).not.toHaveBeenCalled();
     },
   );
 });
@@ -763,9 +786,21 @@ describe("SlackAuthAction.isAuthorized", (): void => {
 
     expect(result.isAuthorized).toBe(false);
     expect(result.userId).toBeUndefined();
-    expect(directMessageTexts()[0]).toContain(
+    expect(result.refusal?.reason).toBe(SlackAuthRefusalReason.NotAMember);
+    // Answered once Slack has its acknowledgement (answerRefusal), not here.
+    expect(ephemeralSpy).not.toHaveBeenCalled();
+    expect(directMessageSpy).not.toHaveBeenCalled();
+
+    await SlackAuthAction.answerRefusal(result);
+
+    expect(channelAnswerTexts()).toEqual([
       WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
-    );
+    ]);
+    expect(ephemeralSpy.mock.calls[0]![0]).toMatchObject({
+      channelId: "C0CHANNEL",
+      userId: slackUserId,
+    });
+    expect(directMessageSpy).not.toHaveBeenCalled();
   });
 
   test("a removed member keeps only what an unconnected Slack user has", async (): Promise<void> => {

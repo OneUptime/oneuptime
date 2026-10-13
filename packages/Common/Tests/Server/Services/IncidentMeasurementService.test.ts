@@ -57,6 +57,7 @@ interface MeasurementHooks {
   onBeforeUpdate(
     updateBy: UpdateBy<IncidentMeasurement>,
   ): Promise<OnUpdate<IncidentMeasurement>>;
+  onUpdatePermitted(updateBy: UpdateBy<IncidentMeasurement>): Promise<void>;
   onBeforeDelete(
     deleteBy: DeleteBy<IncidentMeasurement>,
   ): Promise<OnDelete<IncidentMeasurement>>;
@@ -64,6 +65,21 @@ interface MeasurementHooks {
 
 const hooks: MeasurementHooks =
   IncidentMeasurementService as unknown as MeasurementHooks;
+
+/*
+ * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+ * decides whether the change rewrites the history, and onUpdatePermitted -
+ * once the caller has passed every permission check - asks for the backfill.
+ * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+ * held to the caller's column permissions and refused every member's change
+ * (MeasurementEditsAsMember runs the whole update).
+ */
+async function runUpdateHooks(
+  updateBy: UpdateBy<IncidentMeasurement>,
+): Promise<void> {
+  await hooks.onBeforeUpdate(updateBy);
+  await hooks.onUpdatePermitted(updateBy);
+}
 
 function buildCreateBy(input: {
   key?: string;
@@ -303,7 +319,7 @@ describe("IncidentMeasurementService", () => {
         skip: 0,
       } as unknown as UpdateBy<IncidentMeasurement>;
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = updateBy.data as unknown as Record<
         string,
@@ -326,7 +342,7 @@ describe("IncidentMeasurementService", () => {
         skip: 0,
       } as unknown as UpdateBy<IncidentMeasurement>;
 
-      await hooks.onBeforeUpdate(updateBy);
+      await runUpdateHooks(updateBy);
 
       const data: Record<string, unknown> = updateBy.data as unknown as Record<
         string,

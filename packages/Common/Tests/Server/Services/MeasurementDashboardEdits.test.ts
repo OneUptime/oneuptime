@@ -68,6 +68,7 @@ const LAST_STATE_ID: ObjectID = new ObjectID(
 interface MeasurementHooks {
   onBeforeCreate(createBy: CreateBy<BaseModel>): Promise<OnCreate<BaseModel>>;
   onBeforeUpdate(updateBy: UpdateBy<BaseModel>): Promise<OnUpdate<BaseModel>>;
+  onUpdatePermitted(updateBy: UpdateBy<BaseModel>): Promise<void>;
 }
 
 interface Spyable {
@@ -157,6 +158,21 @@ describe.each(DOMAINS)(
   "$label, as the dashboard edits them",
   (domain: Domain) => {
     const hooks: MeasurementHooks = domain.service as MeasurementHooks;
+
+    /*
+     * An update's hooks in the order DatabaseService runs them: onBeforeUpdate
+     * decides whether the change rewrites the history, and onUpdatePermitted -
+     * once the caller has passed every permission check - asks for the backfill.
+     * The backfill columns are OneUptime's: written by onBeforeUpdate, they were
+     * held to the caller's column permissions and refused every member's change
+     * (MeasurementEditsAsMember runs the whole update).
+     */
+    async function runUpdateHooks(
+      updateBy: UpdateBy<BaseModel>,
+    ): Promise<void> {
+      await hooks.onBeforeUpdate(updateBy);
+      await hooks.onUpdatePermitted(updateBy);
+    }
     const service: Spyable = domain.service as Spyable;
     const stateService: Spyable = domain.stateService as Spyable;
 
@@ -354,7 +370,7 @@ describe.each(DOMAINS)(
           aggregationType: "P90",
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(restartsHistory(updateBy)).toBe(false);
       });
@@ -364,7 +380,7 @@ describe.each(DOMAINS)(
           [domain.endState]: picked(MIDDLE_STATE_ID),
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(restartsHistory(updateBy)).toBe(true);
       });
@@ -375,7 +391,7 @@ describe.each(DOMAINS)(
           [domain.endStateRole]: domain.role,
         });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(restartsHistory(updateBy)).toBe(true);
       });
@@ -383,7 +399,7 @@ describe.each(DOMAINS)(
       test("changing the unit works the history out again, so every chart point is in the new unit", async () => {
         const updateBy: UpdateBy<BaseModel> = update({ unit: "hours" });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(restartsHistory(updateBy)).toBe(true);
       });
@@ -391,7 +407,7 @@ describe.each(DOMAINS)(
       test("the unit spelled the same way is no change", async () => {
         const updateBy: UpdateBy<BaseModel> = update({ unit: "seconds" });
 
-        await hooks.onBeforeUpdate(updateBy);
+        await runUpdateHooks(updateBy);
 
         expect(restartsHistory(updateBy)).toBe(false);
       });

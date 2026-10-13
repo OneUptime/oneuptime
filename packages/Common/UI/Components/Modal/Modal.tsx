@@ -270,6 +270,36 @@ const Modal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  /*
+   * Why the last action failed - a refusal the server sent back - is drawn
+   * at the top of the body (ModalBody). A body scrolled down, as a long form
+   * is on a phone or with its fold open, left it out of sight: the button
+   * was pressed, its spinner stopped, and nothing seemed to happen. A new
+   * reason brings the top of the body back into view. The same reason kept,
+   * or none, leaves the scroll where the person put it.
+   */
+  useEffect(() => {
+    const content: HTMLDivElement | null = contentRef.current;
+
+    if (!props.error || !content || content.scrollTop <= 0) {
+      return;
+    }
+
+    const prefersReducedMotion: boolean =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (typeof content.scrollTo === "function") {
+      content.scrollTo({
+        top: 0,
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+      return;
+    }
+
+    content.scrollTop = 0;
+  }, [props.error]);
+
   const isTopmostDialog: () => boolean = useCallback((): boolean => {
     const modal: HTMLDivElement | null = modalRef.current;
 
