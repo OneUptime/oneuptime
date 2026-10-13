@@ -300,8 +300,8 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
           />
           <SwappingLabel
             labels={[
-              translator.translateText("Copy link"),
-              translator.translateText("Copied!"),
+              translator.translateText("Copy link") || "Copy link",
+              translator.translateText("Copied!") || "Copied!",
             ]}
             showsSecond={isCopied}
             dataTestId={`${props.idPrefix}-copy-label`}
