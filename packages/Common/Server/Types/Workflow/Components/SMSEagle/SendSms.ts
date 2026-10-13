@@ -4,7 +4,7 @@ import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
-import { JSONArray, JSONObject, JSONValue } from "../../../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
@@ -13,26 +13,9 @@ import SMSEagleComponents from "../../../../../Types/Workflow/Components/SMSEagl
 import API from "../../../../../Utils/API";
 import SSRFProtection from "../../../../Utils/SSRFProtection";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { SMSEAGLE_MAX_STEP_TIME_IN_MS, SMSEagleComponentUtils } from "./Utils";
 
 export default class SendSms extends ComponentCode {
-  // SMSEagle returns errors in 'message' field, one per parameter on 400
-  public static getErrorMessage(response: HTTPErrorResponse): string {
-    const message: JSONValue | undefined = response.data?.["message"];
-
-    if (message && typeof message === "object") {
-      return Object.entries(message as JSONObject)
-        .map(([parameter, error]: [string, JSONValue]) => {
-          return `${parameter}: ${error}`;
-        })
-        .join("; ");
-    }
-
-    return (
-      (message as string) ||
-      `SMSEagle answered with HTTP ${response.statusCode}.`
-    );
-  }
-
   public constructor() {
     super();
 
@@ -121,8 +104,11 @@ export default class SendSms extends ComponentCode {
     );
 
     let apiResult: HTTPResponse<JSONArray> | HTTPErrorResponse | null = null;
+    let timeoutInMs: number = SMSEAGLE_MAX_STEP_TIME_IN_MS;
 
     try {
+      timeoutInMs = SMSEagleComponentUtils.getTimeoutInMs(options);
+
       // https://www.smseagle.eu/docs/apiv2/
       apiResult = await API.post<JSONArray>({
         url: smsEagleApiUrl,
@@ -135,11 +121,13 @@ export default class SendSms extends ComponentCode {
         },
         options: {
           doNotFollowRedirects: true,
+          timeout: timeoutInMs,
         },
       });
 
       if (apiResult instanceof HTTPErrorResponse) {
-        const smsEagleError: string = SendSms.getErrorMessage(apiResult);
+        const smsEagleError: string =
+          SMSEagleComponentUtils.getErrorMessage(apiResult);
         return Promise.resolve({
           returnValues: {
             error: smsEagleError,
@@ -148,7 +136,7 @@ export default class SendSms extends ComponentCode {
         });
       }
 
-      // Check if SMSEagle queued the message (errors can return 200 OK)
+      // Anything other than "queued" means SMSEagle did not accept it
       const result: JSONObject | undefined = apiResult.data?.[0] as
         | JSONObject
         | undefined;
@@ -172,10 +160,20 @@ export default class SendSms extends ComponentCode {
       });
     } catch (err) {
       if (err instanceof HTTPErrorResponse) {
-        const smsEagleError: string = SendSms.getErrorMessage(err);
+        const smsEagleError: string =
+          SMSEagleComponentUtils.getErrorMessage(err);
         return Promise.resolve({
           returnValues: {
             error: smsEagleError,
+          },
+          executePort: errorPort,
+        });
+      }
+
+      if (SMSEagleComponentUtils.isTimeoutError(err)) {
+        return Promise.resolve({
+          returnValues: {
+            error: `SMSEagle did not answer within ${Math.max(1, Math.round(timeoutInMs / 1000))} seconds, so the SMS may not have been sent.`,
           },
           executePort: errorPort,
         });

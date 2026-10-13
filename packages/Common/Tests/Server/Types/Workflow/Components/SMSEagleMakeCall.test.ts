@@ -3,6 +3,10 @@ import {
   RunOptions,
   RunReturnType,
 } from "../../../../../Server/Types/Workflow/ComponentCode";
+import {
+  SMSEAGLE_MAX_STEP_TIME_IN_MS,
+  SMSEagleComponentUtils,
+} from "../../../../../Server/Types/Workflow/Components/SMSEagle/Utils";
 import SSRFProtection from "../../../../../Server/Utils/SSRFProtection";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
@@ -14,6 +18,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import API, { RequestOptions } from "../../../../../Utils/API";
 import { beforeEach, describe, expect, test } from "@jest/globals";
+import { AxiosError } from "axios";
 
 jest.mock("../../../../../Utils/API", () => {
   return {
@@ -35,7 +40,7 @@ const ssrfMock: jest.Mock =
 
 const ACCESS_TOKEN: string = "abc123def456";
 
-function makeOptions(): RunOptions {
+function makeOptions(remainingInMs?: number | undefined): RunOptions {
   return {
     log: jest.fn() as RunOptions["log"],
     workflowLogId: ObjectID.generate(),
@@ -45,6 +50,12 @@ function makeOptions(): RunOptions {
       return exception;
     }) as RunOptions["onError"],
     executeWorkflow: async (): Promise<void> => {},
+    getRemainingExecutionTimeInMs:
+      remainingInMs === undefined
+        ? undefined
+        : (): number => {
+            return remainingInMs;
+          },
   };
 }
 
@@ -162,7 +173,41 @@ describe("SMSEagle MakeCall - sending", () => {
 
     await new MakeCall().run(makeArgs(), makeOptions());
 
-    expect(getPostRequest().options).toEqual({ doNotFollowRedirects: true });
+    expect(getPostRequest().options.doNotFollowRedirects).toBe(true);
+  });
+
+  test("gives up on a device that does not answer", async () => {
+    apiPostMock.mockResolvedValue(queued(1));
+
+    await new MakeCall().run(makeArgs(), makeOptions());
+
+    expect(getPostRequest().options.timeout).toBe(SMSEAGLE_MAX_STEP_TIME_IN_MS);
+  });
+
+  test("the step's time is at most 30 seconds, however much the workflow has left", () => {
+    expect(
+      SMSEagleComponentUtils.getTimeoutInMs(makeOptions(10 * 60 * 1000)),
+    ).toBe(SMSEAGLE_MAX_STEP_TIME_IN_MS);
+    expect(SMSEAGLE_MAX_STEP_TIME_IN_MS).toBe(30 * 1000);
+    expect(SMSEagleComponentUtils.getTimeoutInMs(makeOptions())).toBe(
+      SMSEAGLE_MAX_STEP_TIME_IN_MS,
+    );
+    expect(SMSEagleComponentUtils.getTimeoutInMs(makeOptions(12_000))).toBe(
+      10_000,
+    );
+  });
+
+  test("with less than the step needs left of the workflow's time, nothing is sent", async () => {
+    const result: RunReturnType = await new MakeCall().run(
+      makeArgs(),
+      makeOptions(3000),
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe(
+      "Not enough of the workflow's run time is left to send the request to SMSEagle.",
+    );
+    expect(apiPostMock).not.toHaveBeenCalled();
   });
 });
 
@@ -329,6 +374,25 @@ describe("SMSEagle MakeCall - SMSEagle errors go to the error port", () => {
     expect(result.executePort?.id).toBe("error");
     expect(result.returnValues["error"]).toBe(
       "Request failed to https://192.168.0.100/api/v2/calls/tts_advanced. connect ECONNREFUSED",
+    );
+  });
+
+  test("a device that does not answer in time goes to the error port, saying so", async () => {
+    apiPostMock.mockRejectedValue(
+      new APIException(
+        "Request failed to https://192.168.0.100/api/v2/calls/tts_advanced. timeout of 10000ms exceeded",
+        new AxiosError("timeout of 10000ms exceeded", "ECONNABORTED"),
+      ),
+    );
+
+    const result: RunReturnType = await new MakeCall().run(
+      makeArgs(),
+      makeOptions(12_000),
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe(
+      "SMSEagle did not answer within 10 seconds, so the call may not have been made.",
     );
   });
 
