@@ -670,7 +670,7 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks); All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -688,7 +688,7 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -736,6 +736,110 @@ describe("CriteriaFilterMatchHistory", () => {
         matched: true,
       });
 
+      /*
+       * Five of the window's six checks matched, but the log says what
+       * counts: the run since the app last came back, and what it waits for.
+       */
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks); All Values waits until it has matched on every check for 5 minutes.',
+      );
+    });
+
+    /*
+     * The common case of issue #4686: an app that was healthy starts
+     * answering its placeholder. The window still holds the healthy checks
+     * from before the restart, and the log used to count them - "matched on
+     * 1 of the 2 checks over the last 5 minutes; All Values needs every
+     * check" - which reads like the end of the story. It is the start: the
+     * log says how long the placeholder has lasted and what the filter waits
+     * for.
+     */
+    test("says how long it has matched, not how many checks of the window did, once a healthy app starts failing", async () => {
+      storedChecks = everyMinuteBefore([0, 0, 0, 0, 0]);
+
+      const firstCheck: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+      });
+
+      expect(firstCheck.rootCause).toBeNull();
+      expect(firstCheck.message).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
+      );
+
+      storedChecks = everyMinuteBefore([0, 0, 1, 1, 1]);
+
+      const fourthCheck: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+      });
+
+      expect(fourthCheck.rootCause).toBeNull();
+      expect(fourthCheck.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 3 minutes (4 checks); All Values waits until it has matched on every check for 5 minutes.',
+      );
+    });
+
+    test("on a monitor checked every 5 minutes, the first failing check after a healthy one waits for the next", async () => {
+      storedChecks = [
+        storedCheck({ matched: false, minutesAgo: 10 }),
+        storedCheck({ matched: false, minutesAgo: 5 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+        monitoringInterval: EVERY_FIVE_MINUTES,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
+      );
+    });
+
+    /*
+     * Whatever the message says, the verdict is the window's: a check that
+     * did not match within the window keeps All Values from being met, even
+     * when the run since it - with a check that lands a little early - is
+     * long enough to count as lasting the window.
+     */
+    test("a run that lasts the window is not met while the window still holds a check that did not match", async () => {
+      storedChecks = [
+        storedCheck({ matched: false, minutesAgo: 4.99 }),
+        storedCheck({ matched: true, minutesAgo: 4.8 }),
+        storedCheck({ matched: true, minutesAgo: 3 }),
+        storedCheck({ matched: true, minutesAgo: 2 }),
+        storedCheck({ matched: true, minutesAgo: 1 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.Trigger)),
+        matched: true,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has matched on every check for 5 minutes.',
+      );
+    });
+
+    /*
+     * Without a schedule, a stored check read back for probe agreement is
+     * judged with its history even when it did not match: then the window's
+     * count is what there is to say.
+     */
+    test("counts the window's checks when the newest of them did not match", async () => {
+      storedChecks = everyMinuteBefore([1, 1, 1, 1, 1]);
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: false,
+        monitoringInterval: "not a schedule",
+        storedMinutesAgo: 0,
+      });
+
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
         'Response Body Not Contains "App Title" matched on 5 of the 6 checks over the last 5 minutes; All Values needs every check.',
@@ -764,7 +868,7 @@ describe("CriteriaFilterMatchHistory", () => {
        */
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (6 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (6 checks); All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -857,13 +961,21 @@ describe("CriteriaFilterMatchHistory", () => {
         storedCheck({ matched: false, minutesAgo: 0.5 }),
       ];
 
+      // Any Value counts the checks it read: 5 matched, and the 0.
       const judgement: MatchHistoryJudgement = await judge({
-        criteriaFilter: bodyFilter(),
-        matched: true,
+        criteriaFilter: bodyFilter(anyValue()),
+        matched: false,
       });
 
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" matched on 6 of the 7 checks over the last 5 minutes; All Values needs every check.',
+        'Response Body Not Contains "App Title" matched on 5 of the 7 checks over the last 5 minutes, though not on this one.',
+      );
+
+      // And All Values reads the 0 as the check the run starts after.
+      expect(
+        (await judge({ criteriaFilter: bodyFilter(), matched: true })).message,
+      ).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -881,7 +993,9 @@ describe("CriteriaFilterMatchHistory", () => {
       });
 
       expect(judgement.rootCause).toBeNull();
-      expect(judgement.message).toContain("All Values needs every check");
+      expect(judgement.message).toContain(
+        "All Values waits until it has matched on every check for 5 minutes",
+      );
     });
 
     test("a window saved as a string, as the dashboard used to, is the same window", async () => {
@@ -942,6 +1056,28 @@ describe("CriteriaFilterMatchHistory", () => {
       );
     });
 
+    /*
+     * The gap is missing data, but the window also holds a check from before
+     * it that did not match: that is data, and it says the filter has not
+     * matched on every check. Trigger has no say.
+     */
+    test("Trigger does not fire across a gap when the window holds a check that did not match", async () => {
+      storedChecks = [
+        storedCheck({ matched: false, minutesAgo: 14 }),
+        ...everyMinuteBefore([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(allValues(15, NoDataPolicy.Trigger)),
+        matched: true,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 10 minutes (11 checks) since a 4-minute gap in its checks; All Values waits until it has matched on every check for 15 minutes.',
+      );
+    });
+
     test("a monitor that was paused waits a whole window from when it resumed", async () => {
       storedChecks = [
         storedCheck({ matched: true, minutesAgo: 9 }),
@@ -958,7 +1094,7 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks) since a 5-minute gap in its checks; All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks) since a 5-minute gap in its checks; All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -1030,7 +1166,7 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 10 minutes (3 checks); All Values waits until it has for 15 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 10 minutes (3 checks); All Values waits until it has matched on every check for 15 minutes.',
       );
     });
 
@@ -1351,7 +1487,7 @@ describe("CriteriaFilterMatchHistory", () => {
           })
         ).message,
       ).toBe(
-        'Response Body Not Contains "App Title" matched on 1 of the 6 checks over the last 5 minutes; All Values needs every check.',
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -1498,7 +1634,7 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 

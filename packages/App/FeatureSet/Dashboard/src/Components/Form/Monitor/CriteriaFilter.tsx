@@ -363,6 +363,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 return i.value === criteriaFilter?.checkOn;
               })}
               options={checkOnOptions}
+              ariaLabel="Filter Type"
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
@@ -1142,6 +1143,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               <Dropdown
                 value={filterConditionValue}
                 options={filterTypeOptions}
+                ariaLabel={isMetricOnly ? "Condition" : "Filter Condition"}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -1218,6 +1220,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   <Input
                     placeholder={valuePlaceholder}
                     value={criteriaFilter?.value?.toString()}
+                    ariaLabel={translator.translateText(
+                      isMetricOnly ? "Threshold" : "Value",
+                    )}
                     onChange={(value: string) => {
                       props.onChange?.({
                         ...criteriaFilter,
@@ -1241,6 +1246,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               <div className="mt-1">
                 <FieldLabelElement title="Value" />
                 <Dropdown
+                  ariaLabel="Value"
                   options={CriteriaFilterUiUtil.getDropdownOptionsByCheckOn({
                     checkOn: criteriaFilter?.checkOn,
                   })}
@@ -1287,6 +1293,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 }}
               />
 
+              {/*
+               * The window's three settings always hold a value - ticking the
+               * box gives them one - so none of them offers a clear (x): a
+               * cleared "For the last" left a ticked box over no window, and
+               * the filter was judged on the latest check alone. Each is
+               * named for screen readers by its label, which the labels
+               * above them are not wired to.
+               */}
               {criteriaFilter.evaluateOverTime ? (
                 <div
                   className="mt-2 ml-7 space-y-1"
@@ -1303,6 +1317,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <Dropdown
                       value={evaluateOverTimeTypeValue}
                       options={evalOverTimeDropdownOptions}
+                      ariaLabel="Evaluate"
+                      isClearable={false}
                       onChange={(
                         value: DropdownValue | Array<DropdownValue> | null,
                       ) => {
@@ -1327,6 +1343,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <Dropdown
                       value={evaluateOverTimeMinutesValue}
                       options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
+                      ariaLabel="For the last (in minutes)"
+                      isClearable={false}
                       onChange={(
                         value: DropdownValue | Array<DropdownValue> | null,
                       ) => {
@@ -1369,6 +1387,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                           label: NoDataPolicy.Trigger,
                         },
                       ]}
+                      ariaLabel="If No Data"
+                      isClearable={false}
                       onChange={(
                         value: DropdownValue | Array<DropdownValue> | null,
                       ) => {

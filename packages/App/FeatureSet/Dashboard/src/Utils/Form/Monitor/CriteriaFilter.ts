@@ -240,8 +240,8 @@ export default class CriteriaFilterUtil {
      * A body, a header or an expression judged from its match history has
      * no values to speak of - "all values of Response Body" reads as
      * nonsense - so it says which checks it must have matched on, after
-     * what it checks: ... not contains App Title on every check in the past
-     * 5 minutes.
+     * what it checks: ... not contains "App Title" on every check in the
+     * past 5 minutes.
      */
     const checkByCheckWindow: string =
       CriteriaFilterUtil.getCheckByCheckWindowText(criteriaFilter, monitorType);
@@ -378,8 +378,16 @@ export default class CriteriaFilterUtil {
 
       // ADD FILTER TYPE - like greater than, less than, etc
 
+      /*
+       * A text comparison reads as a verb of its own - contains, starts
+       * with - where the others read "is greater than", "is true".
+       */
+      const isTextComparison: boolean = CriteriaFilterUtil.isTextComparison(
+        criteriaFilter?.filterType,
+      );
+
       if (criteriaFilter?.filterType) {
-        if (criteriaFilter?.filterType.toLowerCase().includes("contains")) {
+        if (isTextComparison) {
           text += criteriaFilter?.filterType.toString().toLowerCase() + " ";
         } else {
           text +=
@@ -389,7 +397,20 @@ export default class CriteriaFilterUtil {
 
       /// FINALLY ADD THE VALUE
 
-      if (criteriaFilter?.value !== undefined) {
+      if (
+        criteriaFilter?.value !== undefined &&
+        criteriaFilter?.value !== null &&
+        isTextComparison
+      ) {
+        /*
+         * The text a comparison looks for is quoted, as the evaluation log
+         * and an incident's root cause quote it (Response Body Not Contains
+         * "App Title"): a window can follow it - ... not contains "App
+         * Title" on every check in the past 5 minutes - and the reader has
+         * to see where the text ends.
+         */
+        text += `"${criteriaFilter.value.toString()}" `;
+      } else if (criteriaFilter?.value !== undefined) {
         const thresholdUnitSuffix: string =
           criteriaFilter?.checkOn === CheckOn.MetricValue &&
           criteriaFilter?.metricMonitorOptions?.thresholdUnit
@@ -430,6 +451,19 @@ export default class CriteriaFilterUtil {
     }
 
     return text;
+  }
+
+  /*
+   * Whether a condition compares text: what it looks for is a piece of
+   * text, quoted when the filter is written as a sentence.
+   */
+  public static isTextComparison(filterType: FilterType | undefined): boolean {
+    return (
+      filterType === FilterType.Contains ||
+      filterType === FilterType.NotContains ||
+      filterType === FilterType.StartsWith ||
+      filterType === FilterType.EndsWith
+    );
   }
 
   /*

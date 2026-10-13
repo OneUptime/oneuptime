@@ -67,7 +67,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         FilterCondition.All,
       ),
     ).toBe(
-      'Check if "Response Body" not contains App Title on every check in the past 5 minutes and,',
+      'Check if "Response Body" not contains "App Title" on every check in the past 5 minutes and,',
     );
   });
 
@@ -77,7 +77,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(BODY, EvaluateOverTimeType.AnyValue, 15),
       ),
     ).toBe(
-      'Check if "Response Body" not contains App Title on any check in the past 15 minutes ',
+      'Check if "Response Body" not contains "App Title" on any check in the past 15 minutes ',
     );
   });
 
@@ -87,7 +87,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(BODY, EvaluateOverTimeType.Average),
       ),
     ).toBe(
-      'Check if "Response Body" not contains App Title on every check in the past 5 minutes ',
+      'Check if "Response Body" not contains "App Title" on every check in the past 5 minutes ',
     );
   });
 
@@ -98,14 +98,14 @@ describe("the criteria list, for a filter judged from its match history", () => 
         FilterCondition.Any,
       ),
     ).toBe(
-      'Check if "Response Header" contains x-maintenance on every check in the past 5 minutes or,',
+      'Check if "Response Header" contains "x-maintenance" on every check in the past 5 minutes or,',
     );
     expect(
       CriteriaFilterUtil.translateFilterToText(
         overTime(HEADER_VALUE, undefined, 10),
       ),
     ).toBe(
-      'Check if "Response Header Value" contains starting on every check in the past 10 minutes ',
+      'Check if "Response Header Value" contains "starting" on every check in the past 10 minutes ',
     );
   });
 
@@ -129,9 +129,9 @@ describe("the criteria list, for a filter judged from its match history", () => 
     );
   });
 
-  test("the same filters without a window read as before", () => {
+  test("the same filters without a window read without one", () => {
     expect(CriteriaFilterUtil.translateFilterToText(BODY)).toBe(
-      'Check if "Response Body" not contains App Title ',
+      'Check if "Response Body" not contains "App Title" ',
     );
     expect(CriteriaFilterUtil.translateFilterToText(EXPRESSION)).toBe(
       "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true.",
@@ -144,7 +144,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         ...BODY,
         evaluateOverTime: true,
       }),
-    ).toBe('Check if "Response Body" not contains App Title ');
+    ).toBe('Check if "Response Body" not contains "App Title" ');
   });
 
   test("nor does a window without minutes - saved through the API, or with the dropdown cleared", () => {
@@ -165,9 +165,9 @@ describe("the criteria list, for a filter judged from its match history", () => 
           undefined,
           MonitorType.Website,
         ),
-      ).toBe('Check if "Response Body" not contains App Title ');
+      ).toBe('Check if "Response Body" not contains "App Title" ');
       expect(CriteriaFilterUtil.translateFilterToText(noMinutes)).toBe(
-        'Check if "Response Body" not contains App Title ',
+        'Check if "Response Body" not contains "App Title" ',
       );
     }
   });
@@ -194,7 +194,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         MonitorType.Website,
       ),
     ).toBe(
-      'Check if "Response Body" not contains App Title on every check in the past 5 minutes ',
+      'Check if "Response Body" not contains "App Title" on every check in the past 5 minutes ',
     );
 
     for (const monitorType of [
@@ -225,6 +225,93 @@ describe("the criteria list, for a filter judged from its match history", () => 
         ),
       ),
     ).toContain('average value"Response Time (in ms)" in the past 5 minutes');
+  });
+});
+
+/*
+ * The window follows the text a filter looks for - ... not contains "App
+ * Title" on every check in the past 5 minutes - so the text is quoted, as the
+ * evaluation log and an incident's root cause quote it, and the reader sees
+ * where it ends. Before, "contains starting on every check" ran the two
+ * together.
+ */
+describe("the criteria list quotes the text a comparison looks for", () => {
+  test.each([
+    [FilterType.Contains, "contains"],
+    [FilterType.NotContains, "not contains"],
+    [FilterType.StartsWith, "starts with"],
+    [FilterType.EndsWith, "ends with"],
+  ])(
+    "%s reads as '%s' and the text in quotes",
+    (filterType: FilterType, verb: string) => {
+      expect(
+        CriteriaFilterUtil.translateFilterToText({
+          checkOn: CheckOn.ResponseHeaderValue,
+          filterType: filterType,
+          value: "max-age=0",
+        }),
+      ).toBe(`Check if "Response Header Value" ${verb} "max-age=0" `);
+    },
+  );
+
+  test("a text with spaces is one quoted text, the window after it", () => {
+    expect(
+      CriteriaFilterUtil.translateFilterToText(
+        overTime(
+          {
+            checkOn: CheckOn.ResponseBody,
+            filterType: FilterType.Contains,
+            value: "Application starting...",
+          },
+          EvaluateOverTimeType.AllValues,
+          15,
+        ),
+        undefined,
+        MonitorType.Website,
+      ),
+    ).toBe(
+      'Check if "Response Body" contains "Application starting..." on every check in the past 15 minutes ',
+    );
+  });
+
+  test("numbers, status codes and true/false checks are not quoted", () => {
+    expect(
+      CriteriaFilterUtil.translateFilterToText({
+        checkOn: CheckOn.ResponseTime,
+        filterType: FilterType.GreaterThan,
+        value: 3000,
+      }),
+    ).toBe('Check if "Response Time (in ms)" is greater than 3000ms ');
+    expect(
+      CriteriaFilterUtil.translateFilterToText({
+        checkOn: CheckOn.ResponseStatusCode,
+        filterType: FilterType.EqualTo,
+        value: 200,
+      }),
+    ).toBe('Check if "Response Status Code" is equal to 200 ');
+    expect(
+      CriteriaFilterUtil.translateFilterToText({
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.True,
+        value: undefined,
+      }),
+    ).toBe('Check if "Is Online" is true ');
+  });
+
+  test("isTextComparison is exactly the four text conditions", () => {
+    const textComparisons: Array<FilterType> = Object.values(FilterType).filter(
+      (filterType: FilterType) => {
+        return CriteriaFilterUtil.isTextComparison(filterType);
+      },
+    );
+
+    expect(textComparisons).toEqual([
+      FilterType.Contains,
+      FilterType.NotContains,
+      FilterType.StartsWith,
+      FilterType.EndsWith,
+    ]);
+    expect(CriteriaFilterUtil.isTextComparison(undefined)).toBe(false);
   });
 });
 

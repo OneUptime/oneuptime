@@ -531,7 +531,7 @@ export default class CriteriaFilterMatchHistory {
       };
     }
 
-    if (matchedCount < checkCount) {
+    if (matchedCount < checkCount && !newestCheck.matched) {
       return {
         rootCause: null,
         message: `${filterLabel} matched on ${matchedCount} of the ${CriteriaFilterMatchHistory.countChecks(checkCount)} over the last ${windowName}; All Values needs every check.`,
@@ -539,8 +539,13 @@ export default class CriteriaFilterMatchHistory {
     }
 
     /*
-     * Every check of the window matched. Follow the run of matching checks
-     * back from the newest: how long has the filter matched on every check?
+     * The newest check matched. Follow the run of matching checks back from
+     * it: how long has the filter matched on every check? That is what the
+     * evaluation log says while the filter waits - "has matched on every
+     * check for 3 minutes (4 checks)" - rather than how many checks of the
+     * window matched: a window that still holds the healthy checks from
+     * before the run (an app that was fine until it restarted) says nothing
+     * of how long is left to wait.
      */
     let runStartIndex: number = checks.length - 1;
     let runStart: RunStart = RunStart.HistoryStart;
@@ -573,7 +578,14 @@ export default class CriteriaFilterMatchHistory {
         ? 0
         : RUN_START_ALLOWANCE_FACTOR * Math.min(intervalMs, windowMs);
 
-    if (runLastedMs >= windowMs - runStartAllowanceMs) {
+    /*
+     * Met only when every check of the window matched, as All Values says,
+     * and the run lasts the window.
+     */
+    if (
+      matchedCount === checkCount &&
+      runLastedMs >= windowMs - runStartAllowanceMs
+    ) {
       const message: string = `${filterLabel} matched on every check over the last ${windowName} (${CriteriaFilterMatchHistory.countChecks(checkCount)}).`;
 
       return { rootCause: message, message: message };
@@ -591,16 +603,13 @@ export default class CriteriaFilterMatchHistory {
             runLastedMs,
           )} (${CriteriaFilterMatchHistory.countChecks(runCheckCount)})${sinceGap}`;
 
-    const waitingMessage: string =
-      runCheckCount === 1
-        ? `${soFar}; All Values waits until it has matched on every check for ${windowName}.`
-        : `${soFar}; All Values waits until it has for ${windowName}.`;
+    const waitingMessage: string = `${soFar}; All Values waits until it has matched on every check for ${windowName}.`;
 
-    if (runStart === RunStart.CheckNotMatched) {
+    if (runStart === RunStart.CheckNotMatched || matchedCount < checkCount) {
       /*
-       * The check before the run did not match: the history reaches back,
-       * and says the run is younger than the window. That is no missing
-       * data, so If No Data has no say.
+       * A check before the run did not match, in the window or just before
+       * it: the history reaches back, and says the run is younger than the
+       * window. That is no missing data, so If No Data has no say.
        */
       return { rootCause: null, message: waitingMessage };
     }

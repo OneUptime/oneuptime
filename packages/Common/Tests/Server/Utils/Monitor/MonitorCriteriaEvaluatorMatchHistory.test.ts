@@ -493,11 +493,16 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           checkOn: CheckOn.ResponseBody,
         }),
       ).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 3 minutes (4 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 3 minutes (4 checks); All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
-    test("and why a window with a good page in it is not met", async () => {
+    /*
+     * The window still holds the good page from before the placeholder: the
+     * log says how long the placeholder has lasted and what it waits for,
+     * not how many of the window's checks matched.
+     */
+    test("and why a window with a good page in it is not met yet", async () => {
       const monitor: Monitor = monitorOf(MonitorType.Website);
       const step: MonitorStep = customerStep();
 
@@ -526,7 +531,7 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           checkOn: CheckOn.ResponseBody,
         }),
       ).toBe(
-        'Response Body Not Contains "App Title" matched on 6 of the 7 checks over the last 5 minutes; All Values needs every check.',
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (6 checks); All Values waits until it has matched on every check for 5 minutes.',
       );
     });
   });

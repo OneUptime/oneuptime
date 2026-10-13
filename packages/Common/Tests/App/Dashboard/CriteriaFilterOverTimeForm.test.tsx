@@ -359,6 +359,89 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
     });
   });
 
+  /*
+   * The window's three settings always hold a value - ticking the box gives
+   * them one - so none of them can be cleared: a cleared "For the last" left
+   * a ticked box over no window, and the filter was judged on the latest
+   * check alone. And each is named for screen readers by its label.
+   */
+  describe("the window's dropdowns", () => {
+    test("are named for screen readers by their labels", () => {
+      renderFilter(bodyOverTime(), MonitorType.Website);
+
+      const options: HTMLElement = screen.getByTestId(OVER_TIME_OPTIONS);
+
+      expect(
+        within(options)
+          .getAllByRole("combobox")
+          .map((combobox: HTMLElement): string | null => {
+            return combobox.getAttribute("aria-label");
+          }),
+      ).toEqual(["Evaluate", "For the last (in minutes)", "If No Data"]);
+    });
+
+    test("offer no clear control, where the filter's other dropdowns do", () => {
+      const { container }: { container: HTMLElement } = render(
+        <CriteriaFilterElement
+          monitorType={MonitorType.Website}
+          monitorStep={new MonitorStep()}
+          value={bodyOverTime({ onNoDataPolicy: NoDataPolicy.Trigger })}
+          onChange={() => {}}
+        />,
+      );
+
+      const options: HTMLElement = screen.getByTestId(OVER_TIME_OPTIONS);
+
+      expect(
+        options.querySelectorAll(".ou-select__clear-indicator").length,
+      ).toBe(0);
+
+      // Filter Type and Filter Condition still have theirs.
+      expect(
+        container.querySelectorAll(".ou-select__clear-indicator").length,
+      ).toBe(2);
+    });
+
+    test("never send a window without minutes from the form", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+      const rendered: Rendered = renderFilter(
+        bodyOverTime({ timeValueInMinutes: 10 }),
+        MonitorType.API,
+      );
+
+      const minutes: HTMLElement = screen.getByRole("combobox", {
+        name: "For the last (in minutes)",
+      });
+
+      // Backspace is react-select's other way to clear a value.
+      await user.click(minutes);
+      await user.keyboard("{Backspace}{Escape}");
+
+      for (const emitted of rendered.emitted) {
+        expect(emitted.evaluateOverTimeOptions?.timeValueInMinutes).toBe(10);
+      }
+
+      expect(
+        within(screen.getByTestId(OVER_TIME_OPTIONS)).getAllByText("10 Minutes")
+          .length,
+      ).toBe(1);
+    });
+  });
+
+  describe("the filter's own controls", () => {
+    test("are named for screen readers by their labels", () => {
+      renderFilter(BODY_FILTER, MonitorType.Website);
+
+      expect(
+        screen.getByRole("combobox", { name: "Filter Type" }),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("combobox", { name: "Filter Condition" }),
+      ).toBeTruthy();
+      expect(screen.getByRole("textbox", { name: "Value" })).toBeTruthy();
+    });
+  });
+
   describe("the order a filter reads in", () => {
     /*
      * What the filter checks first - Response Body, Not Contains, "App
