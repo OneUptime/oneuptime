@@ -10,10 +10,9 @@ import {
   generateSitemapIndexXml,
   generatePagesSitemapXml,
   generateCompareSitemapXml,
-  generateTagsSitemapXml,
   generateBlogSitemapXml,
   getBlogSitemapPageCount,
-  getTagsSitemapPageCount,
+  sendRetiredSitemap,
 } from "./Utils/Sitemap";
 import { generateBlogRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
@@ -66,6 +65,19 @@ import {
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "./Utils/Claims";
+import {
+  TailwindStylesheet,
+  TailwindStylesheetRoutePattern,
+  findTailwindStylesheet,
+  serveTailwindStylesheet,
+} from "./Utils/TailwindStylesheet";
+import {
+  ProductIconSprite,
+  ProductIconSpriteRoutePattern,
+  buildProductIconSprite,
+  serveProductIconSprite,
+} from "./Utils/ProductIconSprite";
+import logger from "Common/Server/Utils/Logger";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
@@ -101,6 +113,59 @@ const getSEOForPath: (
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    /*
+     * The compiled Tailwind stylesheet the image build wrote
+     * (Utils/TailwindStylesheet.ts). Every page reads its URL from
+     * app.locals - not res.locals, which the blog's routes (API/BlogAPI.ts,
+     * registered before this middleware) never get. With no build the URL
+     * is null and head-basic.ejs loads the Play CDN runtime instead.
+     */
+    const tailwindStylesheet: TailwindStylesheet | null =
+      findTailwindStylesheet();
+
+    app.locals["tailwindStylesheetHref"] = tailwindStylesheet
+      ? tailwindStylesheet.href
+      : null;
+
+    if (tailwindStylesheet) {
+      logger.info(`Serving compiled Tailwind CSS: ${tailwindStylesheet.href}`);
+    } else {
+      logger.warn(
+        "No compiled Tailwind CSS (npm run build:css); pages load the Tailwind Play CDN runtime instead.",
+      );
+    }
+
+    app.get(
+      TailwindStylesheetRoutePattern,
+      serveTailwindStylesheet(tailwindStylesheet),
+    );
+
+    /*
+     * The product icons as one cached sprite (Utils/ProductIconSprite.ts),
+     * which the nav's menus and the sections below the fold draw from. If it
+     * cannot be made, productIconSpriteHref is null and every icon is drawn
+     * inline, as before.
+     */
+    let productIconSprite: ProductIconSprite | null = null;
+
+    try {
+      productIconSprite = await buildProductIconSprite();
+    } catch (err) {
+      logger.error(
+        "Could not build the product icon sprite; icons are inline.",
+      );
+      logger.error(err);
+    }
+
+    app.locals["productIconSpriteHref"] = productIconSprite
+      ? productIconSprite.href
+      : null;
+
+    app.get(
+      ProductIconSpriteRoutePattern,
+      serveProductIconSprite(productIconSprite),
+    );
 
     /*
      * Routes
@@ -341,9 +406,12 @@ const HomeFeatureSet: FeatureSet = {
     /*
      * Markdown variants of marketing pages: append `.md` to a page path
      * (e.g. /pricing.md, /product/monitoring.md, /compare/pagerduty.md).
-     * Generated from the same structured data as the HTML pages.
+     * Generated from the same structured data as the HTML pages. A variant
+     * is the page again, for tools and AI assistants, so it is never a
+     * search result of its own: every answer here is noindex.
      */
     app.get(/^\/.+\.md$/, (req: ExpressRequest, res: ExpressResponse) => {
+      res.setHeader("X-Robots-Tag", "noindex");
       const homeUrl: string = res.locals["homeUrl"] as string;
       const pagePath: string = req.path.replace(/\.md$/, "");
 
@@ -2032,30 +2100,14 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog tags sitemap (paginated)
+    /*
+     * Blog tags sitemaps, retired: tag pages are noindex, and the index no
+     * longer lists these. Gone (410), so crawlers drop the addresses.
+     */
     app.get(
       "/sitemap-tags-:page.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const page: number = parseInt(req.params["page"] as string, 10);
-
-          if (isNaN(page) || page < 1) {
-            return res.status(404).send("Invalid sitemap page");
-          }
-
-          // Check if page exists
-          const totalPages: number = await getTagsSitemapPageCount();
-          if (page > totalPages) {
-            return res.status(404).send("Sitemap page not found");
-          }
-
-          const xml: string = await generateTagsSitemapXml(page);
-          res.setHeader("Content-Type", "text/xml");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating sitemap");
-        }
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return sendRetiredSitemap(res);
       },
     );
 

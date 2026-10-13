@@ -147,7 +147,7 @@ Vad blocket kräver, och vad det kostar:
 
 - **Aktivera AI** måste vara påslaget under **Projektinställningar → AI → AI Features**. I OneUptime Cloud behöver projektet också planen Growth eller högre och ett betalt abonnemang. Självhostade installationer utan fakturering har inget plankrav.
 - Anrop via en global leverantör med kostnad använder projektets AI-krediter.
-- Varje anrop räknas mot [projektets egna dagliga AI-gränser](/docs/ai/ai-sre#the-projects-own-daily-limits), när en projektägare anger dem. När en gräns är nådd tar blocket **Error** utan att kontakta modellen, fram till midnatt UTC.
+- Varje anrop räknas mot [projektets egna dagliga AI-gränser](/docs/ai/ai-sre#projektets-egna-dagliga-gränser), när en projektägare anger dem. När en gräns är nådd tar blocket **Error** utan att kontakta modellen, fram till midnatt UTC.
 
 | Gräns                                                         | Värde                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |

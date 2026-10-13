@@ -188,7 +188,7 @@ För den fullständiga listan över `{{variable}}`-platshållare som du kan anv�
 
 Incidenter som skapas på det här sättet märks av servern: `isCreatedAutomatically` sätts, `createdCriteriaId` registrerar vilket kriteriefilter som utlöstes, och `createdByProbe` registrerar vilken sond som såg det. Allt annat med dem beter sig exakt som en incident som deklarerats för hand.
 
-En incident som en monitor deklarerar länkas till det som monitorn övervakar: allt som dess konfiguration nämner (värden för en värdmonitor, klustret för en Kubernetes-monitor, tjänsterna för en loggmonitor) och allt under dess **Länkade resurser**. En webbplats- eller API-monitors konfiguration nämner ingen infrastruktur, så länka den till klustret, värdarna eller databasen bakom webbplatsen: dess incidenter hamnar då på de resursernas sidor, OneUptime AI kan utreda dem där, och klustrets eller resursens AI-åtgärd kan agera på dem (se [AI SRE](/docs/ai/ai-sre#which-incidents-a-clusters-fixes-act-on)). Larm som en monitor skapar länkas på samma sätt.
+En incident som en monitor deklarerar länkas till det som monitorn övervakar: allt som dess konfiguration nämner (värden för en värdmonitor, klustret för en Kubernetes-monitor, tjänsterna för en loggmonitor) och allt under dess **Länkade resurser**. En webbplats- eller API-monitors konfiguration nämner ingen infrastruktur, så länka den till klustret, värdarna eller databasen bakom webbplatsen: dess incidenter hamnar då på de resursernas sidor, OneUptime AI kan utreda dem där, och klustrets eller resursens AI-åtgärd kan agera på dem (se [AI SRE](/docs/ai/ai-sre#vilka-incidenter-ett-klusters-åtgärder-gäller)). Larm som en monitor skapar länkas på samma sätt.
 
 ## Deklarera via API:t
 

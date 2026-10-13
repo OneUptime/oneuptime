@@ -236,7 +236,7 @@ Die `docker-compose.yml` des Agents führt außerdem den **Ceph-KI-Agent** aus, 
 
 - **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Alarme auf diesem Cluster mit ihm, und die **Übersicht** des Clusters zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder lassen den Agent weg.
 - **Sein eigener Ceph-Client ist die harte Grenze.** Er verbindet sich als `client.oneuptime-ai`, mit der minimalen `ceph.conf` des Clusters und dem Keyring dieses Clients in einem Ordner `ceph/` neben `docker-compose.yml` (schreibgeschützt unter `/etc/ceph` eingehängt). Mit Lese-Caps kann nichts, was er ausführt, den Cluster ändern. Bei einer Neuinstallation bietet `install.sh` an, den Client anzulegen; ein erneuter Lauf tut das nie. Legen Sie nie den Admin-Keyring in diesen Ordner.
-- Er ist **schreibgeschützt**, sofern Sie nicht `ONEUPTIME_AI_ALLOW_WRITES=true` setzen und dem Client die Caps für die Korrekturen geben (das README des Agents listet sie auf); `ONEUPTIME_AI_WRITE_TARGETS` (zum Beispiel `osd.*,cluster`) begrenzt, was eine Korrektur antasten darf. `ONEUPTIME_AI_FIXES` in derselben `.env` legt fest, wie Korrekturen ablaufen — `ask-for-approval` (ein Mensch genehmigt jede), `automatic` oder `bypass-approval` —, und die Seite des KI-Agents zeigt es schreibgeschützt an ([Was die KI tun darf, vom Agent festgelegt](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- Er ist **schreibgeschützt**, sofern Sie nicht `ONEUPTIME_AI_ALLOW_WRITES=true` setzen und dem Client die Caps für die Korrekturen geben (das README des Agents listet sie auf); `ONEUPTIME_AI_WRITE_TARGETS` (zum Beispiel `osd.*,cluster`) begrenzt, was eine Korrektur antasten darf. `ONEUPTIME_AI_FIXES` in derselben `.env` legt fest, wie Korrekturen ablaufen — `ask-for-approval` (ein Mensch genehmigt jede), `automatic` oder `bypass-approval` —, und die Seite des KI-Agents zeigt es schreibgeschützt an ([Was die KI tun darf, vom Agent festgelegt](/docs/ai/infrastructure-ai-agents#was-die-ki-tun-darf-vom-agenten-festgelegt)).
 - Er verbindet sich ausgehend mit den Monitoren (TCP 3300 und 6789) sowie den mgr- und OSD-Daemons (TCP 6800–7300), läuft als UID 1000 ohne Capabilities und führt nie `auth`, `config-key`, `tell` oder etwas aus, das Daten löscht. Löschen Sie den Dienst `oneuptime-ceph-ai-agent` aus `docker-compose.yml`, wenn Sie OneUptime AI nicht verwenden.
 
 Um den Client von Hand anzulegen, führen Sie dies auf einem Ceph-Admin-Knoten im Ordner des Agents aus (kopieren Sie die beiden Dateien in den Ordner `ceph/` auf dem Rechner des Agents, falls das ein anderer ist):
@@ -250,7 +250,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-Was er ausführen darf, wie Korrekturen funktionieren und wie Sie Fehler beheben: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).
+Was er ausführen darf, wie Korrekturen funktionieren und wie Sie Fehler beheben: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-cluster).
 
 ## Fehlerbehebung
 

@@ -18,7 +18,7 @@ import path from "path";
  *   - in every docs language, "where to find it" no longer lists Block
  *     Permissions as a team page beside Members and Permissions, but says
  *     it is under More settings on the Permissions page;
- *   - the MCP server guide (English and Persian) says where to add
+ *   - the MCP server guide, in every docs language, says where to add
  *     Authorize MCP Client as a block.
  *
  * The choices are read from the form's own source (the Access question
@@ -244,10 +244,16 @@ describe("where a team's Block Permissions are", () => {
 });
 
 describe("the MCP server guide", () => {
-  it.each(["en", "fa"])(
+  /*
+   * Every language names the team's page and the folded section as its
+   * Dashboard draws them, Persian included; the permission keeps its English
+   * name, as the role pickers and the API write it.
+   */
+  it.each(languages())(
     "%s: adds Authorize MCP Client as a block under More settings on the team's Permissions page",
     (language: string) => {
       const page: string = readPage(language, "ai/mcp-server");
+      const names: TeamPageNames = teamPageNames(language);
       const line: string | undefined = page
         .split("\n")
         .find((candidate: string): boolean => {
@@ -255,9 +261,9 @@ describe("the MCP server guide", () => {
         });
 
       expect(line).toBeDefined();
-      expect(line).toContain("**Permissions**");
-      expect(line).toContain("**More settings**");
-      expect(line).toContain("**Block Permissions**");
+      expect(line).toContain(`**${names.permissions}**`);
+      expect(line).toContain(`**${names.moreSettings}**`);
+      expect(line).toContain(`**${names.blockPermissions}**`);
     },
   );
 

@@ -1,34 +1,90 @@
-# AI Fix Tasks — Fix Exceptions with a Pull Request
+# Задачи исправления
 
-<!-- TODO(i18n): Translate this page. English source: en/ai/ai-agent.md (rewritten for the v12 Runner merge; the previous translation described the retired standalone AI Agent). -->
+Задача исправления — это pull request, который OneUptime AI пишет в вашем коде. Вы запускаете её из исключения, трассировки, сервиса или расследования, либо OneUptime запускает её сам; [Runner](/docs/runbooks/agents) клонирует репозиторий, пишет изменение в новой ветке, собирает и тестирует его и открывает pull request. Каждый из них проверяет и сливает человек: Runner может отправлять ветки и открывать pull request, и ничего больше.
 
-OneUptime AI turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with AI**: a [Runner](/docs/runbooks/agents) picks the task up, reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
+:::cards
+- [Как проходит запуск исправления](#как-проходит-запуск-исправления): От клика до pull request, шаг за шагом.
+- [Где начинаются задачи исправления](#где-начинаются-задачи-исправления): Кнопки, которые запускают задачу, и что делает каждый pull request.
+- [Прежде чем начать](#прежде-чем-начать): Модель, подключённый репозиторий и Runner.
+- [Когда исправление не удаётся](#когда-исправление-не-удаётся): Что происходит с запуском, который завершается ошибкой, зависает или ждёт.
+:::
 
-Every pull request is reviewed and merged by a human. The Runner never merges its own changes — it can push branches and open PRs, nothing more.
+> [!TIP]
+> Это можно запустить и из GitHub. Упомяните GitHub App от OneUptime в issue или в pull request, и он реализует, доработает или проверит изменение прямо там: см. [GitHub App](/docs/ai/github-app). Это тот же агент, тот же Runner и те же бюджеты; отличается только триггер.
 
-> **You can also start this from GitHub itself.** Mention the OneUptime GitHub App on an issue or a pull request and it will implement, revise or review right there — see [Working with OneUptime from GitHub](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
+## Как проходит запуск исправления
 
-## How a fix run works
+```mermaid title="От клика до pull request"
+flowchart TB
+    S["Fix with AI или<br/>автоматический триггер"] --> Q["Задача исправления<br/>ставится в очередь"]
+    Q --> R["Runner, выполняющий<br/>ИИ-исправления кода,<br/>берёт её"]
+    R --> C["Он клонирует репозиторий<br/>и создаёт ветку"]
+    C --> A["Агент кода<br/>пишет изменение"]
+    A --> V["Команды настройки,<br/>сборки и тестов<br/>проверяют его"]
+    V -->|"сбой"| A
+    V --> P["Commit, push и<br/>открытие pull request"]
+    P --> H["Человек проверяет<br/>и сливает его"]
+```
 
-1. You click **Fix with AI** on an unresolved exception.
-2. A fix task is created and picked up by an available Runner with the **Выполняет ИИ-исправления кода** capability.
-3. The Runner fetches the exception details — exception type, error message, and stack trace.
-4. It clones the linked repository into an ephemeral workspace and creates a branch (named `oneuptime-fix-exception-` followed by the first characters of the run id).
-5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The LLM calls are executed by the OneUptime server — the Runner container never holds your provider's API key — and every call is metered and logged in the AI logs.
-6. The Runner commits, pushes the branch, opens a pull request, and deletes the workspace.
+1. Вы нажимаете **Fix with AI** в нерешённом исключении, или задачу запускает другая кнопка или триггер (см. [Где начинаются задачи исправления](#где-начинаются-задачи-исправления)).
+2. Задача ставится в очередь, и её берёт свободный Runner с включённым **Выполняет ИИ-исправления кода**.
+3. Runner получает контекст задачи. Для исключения это его тип, сообщение и трассировка стека.
+4. Он клонирует репозиторий в собственное рабочее пространство и создаёт ветку. Исправление исключения называется `oneuptime-fix-exception-`, за которым идут первые символы id запуска.
+5. Агент кода, работающий на провайдере LLM вашего проекта, читает код и пишет изменение. Вызовы LLM делает сервер OneUptime, поэтому у Runner никогда нет API-ключа вашего провайдера, а каждый вызов учитывается и попадает в журналы ИИ.
+6. Если у репозитория есть команды проверки, Runner собирает и тестирует изменение до любого коммита и возвращает сбой агенту кода на исправление (см. [Проверка перед pull request](#проверка-перед-pull-request)).
+7. Runner делает коммит, отправляет ветку, открывает pull request и удаляет рабочее пространство.
 
-The exception page shows the task's live status. The task's detail page (under **AI** > **Tasks**) keeps the full run log — including a line for every file the Runner read or wrote and every command it ran — and links to every pull request the task opened.
+Страница, с которой запустили задачу, показывает её статус в реальном времени. Все задачи перечислены в **Продукты → Код → Задачи**: откройте задачу, чтобы увидеть её **Обзор**, её **Журналы** (строка на каждый файл, который Runner прочитал или записал, и на каждую выполненную им команду) и её **Запросы на слияние**.
 
-Each fix run is capped by server-enforced loop budgets: at most **40 LLM calls** and **100,000 output tokens** per run. A run that hits its budget finishes with a summary of the work done so far instead of looping forever. Fix runs also count against the project's daily autonomous AI token budget, if one is set.
+Каждый запуск ограничен бюджетами, которые соблюдает сервер: не более **40 вызовов LLM** и **100 000 выходных токенов**. Запуск, достигший одного из них, завершается сводкой проделанной работы, а не ходит по кругу. Запуски исправлений также учитываются в дневных лимитах ИИ проекта, если проект их задаёт.
 
-## Prerequisites
+## Где начинаются задачи исправления
 
-Three things must be in place before a fix task can run. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
+| Где | Нажать | Что делает pull request |
+| --- | --- | --- |
+| Страница **AI Assistance** исключения | **Fix with AI** | Исправляет ошибку, стоящую за исключением. |
+| Страница **AI Assistance** исключения | **Generate Regression Test** | Добавляет тест, который воспроизводит исключение и падает, пока ошибка не исправлена. |
+| Страница **AI Assistance** исключения | **Improve Error Handling** | Для ожидаемой ошибки, например неверного ввода: убирает пользовательские данные из сообщения, проверяет ввод раньше и помечает ошибку как обработанную, не меняя поведения. |
+| Карточка **AI Investigation** инцидента или оповещения | **Open Fix PR from this analysis** | Исправляет первопричину, опубликованную расследованием (см. [Автоматические исправления кода по расследованиям](#автоматические-исправления-кода-по-расследованиям)). |
+| Трассировка | **Fix performance with AI** | Исправляет медленный шаблон, найденный в трассировке, например запросы N+1 или один доминирующий медленный span. |
+| Страница **Журналы** сервиса | **Improve Logging** | Делает логи сервиса структурированными, с правильным уровнем важности и связанными с его трассировками, не меняя поведения. |
+| Страница **Трассировки** сервиса | **Improve Tracing** | Добавляет span-ы и атрибуты там, где трассировки сервиса не хватает, не меняя поведения. |
 
-### 1. An LLM provider
+Чтобы открыть страницу **AI Assistance** исключения, откройте исключение в **Продукты → Наблюдаемость → Исключения** и выберите **AI Assistance** в его боковом меню. Решённое или архивированное исключение сначала нужно пометить как нерешённое.
 
-- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Настройки проекта** > **ИИ** > **Провайдеры LLM** — a project-owned provider always takes precedence.
-- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a self-hosted Ollama:
+OneUptime AI также запускает задачи исправления сам: из расследования, которое находит изменение в коде, из расследования, завершившегося без вывода из-за нехватки телеметрии, и из AI Insights об исключениях и медленных трассировках. У каждого источника свой переключатель; см. [Автоматические исправления кода](/docs/ai/ai-sre#автоматические-исправления-кода).
+
+## Проверка перед pull request
+
+У репозитория кода может быть до трёх команд проверки на его странице **Настройки**, в разделе **Репозитории кода**:
+
+| Команда | Пример | Когда выполняется |
+| --- | --- | --- |
+| **Setup Command** | `npm ci` | Первой, чтобы установить зависимости. |
+| **Build Command** | `npm run build` | После настройки. |
+| **Test Command** | `npm test` | Последней. |
+
+Когда задана хотя бы одна из них, каждый запуск исправления проверяет своё изменение до открытия pull request:
+
+1. Когда агент кода заканчивает, команды выполняются по порядку в корне репозитория, на Runner, в клонированном рабочем пространстве. Каждой даётся до 15 минут, и она выполняется с `CI=true`, чтобы ничто не ждало ввода; первый сбой останавливает проход.
+2. При сбое конец вывода упавшей команды возвращается тому же агенту кода как задача на починку, с указанием исправить собственное изменение, а не ослаблять или пропускать тесты, и команды выполняются снова. Он делает не более **2** попыток починки. Они делят бюджет LLM запуска, а их правки попадают в тот же коммит, что и исправление.
+3. Итог — пройдено, не пройдено или пропущено (команды не заданы) — записывается в раздел Verification описания pull request и сохраняется в pull request задачи.
+
+Изменение, которое так и не прошло проверку, не выбрасывается: pull request всё равно открывается, с хорошо заметным разделом "Verification failed", который называет упавшую команду и заканчивается её выводом. Работа сохраняется, а решает проверяющий. Репозиторий без заданных команд отмечается как пропущенный, а не делает вид, что сборка зелёная.
+
+Команды — это настройки репозитория, которые пишет ваша команда, и выполняются они на вашем собственном Runner: та же модель доверия, что и у шагов Bash в runbook. ИИ никогда их не пишет и не меняет.
+
+## Прежде чем начать
+
+Задаче исправления нужны три вещи. Страница **AI Assistance** исключения проверяет все три, прежде чем предложить запуск, и сообщает, чего не хватает.
+
+| Что | OneUptime Cloud | Самостоятельный хостинг |
+| --- | --- | --- |
+| Провайдер LLM | Ничего настраивать не нужно: проект без собственного провайдера использует глобальный провайдер, оплачиваемый из ИИ-кредитов проекта. Собственный провайдер в **Настройки проекта → ИИ → Провайдеры LLM** имеет приоритет. | Один раз задайте на сервере переменные окружения `GLOBAL_LLM_PROVIDER_*` или добавьте провайдер в проект. |
+| Репозиторий, подключённый через GitHub App | **Продукты → Код → Задачи**, затем **Репозитории кода** и **Connect with GitHub App**. Нужен тариф Growth. | То же самое, когда у вашего экземпляра есть GitHub App (см. [Интеграция с GitHub](/docs/self-hosted/github-integration)). |
+| Runner, выполняющий ИИ-исправления кода | Ничего запускать не нужно: это делают общие Runner-ы OneUptime. | Сервис `runner` из Docker Compose или Runner из Helm-чарта (`runner.enabled`, включён по умолчанию) сам регистрируется и выполняет ИИ-исправления кода. |
+
+На собственном экземпляре глобальный провайдер — это один блок в `config.env` (Docker Compose) или в ваших значениях Helm. Для собственного Ollama:
 
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
@@ -38,22 +94,18 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
 ```
 
-Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for all providers and the full list of environment variables.
+Подходит любой поддерживаемый провайдер: см. [Провайдеры LLM](/docs/ai/llm-provider), где описаны все провайдеры и каждая переменная окружения.
 
-### 2. GitHub connected through the GitHub App
+Вы не сопоставляете репозитории с сервисами. Когда задача запускается, OneUptime находит репозиторий, сравнивая пути файлов из трассировки стека исключения с вашими подключёнными репозиториями. Если ничего не совпадает, он берёт репозиторий с тем же именем, что и сервис, а затем единственный репозиторий проекта, если он один. Страница **AI Assistance** показывает, какой репозиторий найден.
 
-Connect GitHub under **Репозитории кода** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the Runner can push through (GitLab is on the roadmap).
+### Запуск собственного Runner
 
-You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved.
+Чтобы запустить Runner в другом месте, например на машине рядом с вашими репозиториями:
 
-### 3. A Runner with AI code fixes enabled
+:::steps
+### Создайте Runner
 
-- **OneUptime Cloud**: the shared Runner fleet is available automatically — there is nothing to run.
-- **Self-hosted**: the Runner container runs by default — the Docker Compose install includes the `runner` service, and the Helm chart deploys it (`runner.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and works on AI code fixes out of the box. The Runner idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
-
-To run an additional Runner elsewhere (for example on a machine closer to your repositories):
-
-1. Create a Runner under **Сборники инструкций** > **Агенты runbook-ов** and use **Показать инструкции по настройке** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
+Создайте Runner в **Сборники инструкций → Агенты runbook-ов** и нажмите **Показать инструкции по настройке** в его строке. Команда содержит секретный ключ Runner, который может прочитать только Project Owner, Project Admin или Runbook Admin. Она выглядит так:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -63,34 +115,68 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-2. Enable **Выполняет ИИ-исправления кода** on the Runner — the capability is off by default, and the Runner adopts the change on its next heartbeat (about a minute); no restart needed.
+### Включите ИИ-исправления кода
 
-Any way of running the container works (Docker Compose, Kubernetes, and so on) as long as these environment variables are set and the container can reach your OneUptime instance over HTTPS:
+Включите **Выполняет ИИ-исправления кода** у Runner. По умолчанию это выключено, и Runner подхватывает изменение со следующим heartbeat, примерно в течение минуты; ничего перезапускать не нужно.
 
-| Variable               | Description                                                    |
-| ---------------------- | -------------------------------------------------------------- |
-| `ONEUPTIME_RUNNER_ID`  | The Runner id from the dashboard                               |
-| `ONEUPTIME_RUNNER_KEY` | The Runner key shown when the Runner was created               |
-| `ONEUPTIME_URL`        | Your OneUptime instance URL (`https://oneuptime.com` on Cloud) |
+### Проверьте подключение
 
-The Runner shows as connected on the **Сборники инструкций** > **Агенты runbook-ов** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
+Runner появляется как подключённый на странице **Сборники инструкций → Агенты runbook-ов** в течение минуты-двух. Если нет, посмотрите лог контейнера (`docker logs oneuptime-runner`) на предмет ошибки учётных данных или сети.
+:::
 
-> Before OneUptime 12, AI code fixes ran on a separate **AI Agent** component (the `oneuptime/ai-agent` image with `AI_AGENT_*` variables). That component merged into the Runner — if you still run one, see the [v11 → v12 upgrade guide](/docs/installation/upgrading) for how to replace it.
+Подходит любой способ запуска контейнера (Docker Compose, Kubernetes и так далее), если у него есть эти переменные и он может достучаться до вашего экземпляра OneUptime по HTTPS:
 
-## When a fix fails
+| Переменная | Что это |
+| --- | --- |
+| `ONEUPTIME_RUNNER_ID` | Id Runner из панели управления. |
+| `ONEUPTIME_RUNNER_KEY` | Секретный ключ Runner. |
+| `ONEUPTIME_URL` | Адрес вашего экземпляра OneUptime (`https://oneuptime.com` в OneUptime Cloud). |
 
-- **The run errors** (the fix could not be applied, the repository was unreachable, the LLM call failed): the task's error is shown on the exception page with the reason, and you can retry the fix from there. The full run log is on the task's detail page.
-- **The Runner crashes mid-run**: a run whose heartbeat goes stale for more than about ten minutes is failed with an error. It is never requeued automatically — the Runner may already have pushed a partial fix branch — but you can retry the fix from the exception page.
-- **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Выполняет ИИ-исправления кода** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
+> [!NOTE]
+> До OneUptime 12 ИИ-исправления кода работали в отдельном компоненте AI Agent (образ `oneuptime/ai-agent` с переменными `AI_AGENT_*`). Он вошёл в Runner: если вы всё ещё запускаете его, [руководство по обновлению с v11 до v12](/docs/installation/upgrading) объясняет, как его заменить.
 
-## Privacy
+## Автоматические исправления кода по расследованиям
 
-The repository clone lives in an ephemeral workspace inside the Runner container and is deleted when the run finishes, whether it succeeded or failed. The Runner container never holds your LLM provider's API key — LLM calls are executed by the OneUptime server on the Runner's behalf. OneUptime does not retain your repository and does not train on your code; the task's run log keeps a short preview of each step's output (a few hundred characters) so you can audit what the Runner did, and those previews can include code snippets. Run a self-hosted Runner with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
+Когда [ИИ-расследование](/docs/ai/ai-sre) публикует анализ первопричины в инциденте или оповещении, и его тщательная классификация рекомендует изменение в коде, карточка расследования предлагает **Open Fix PR from this analysis**: задачу исправления, весь контекст которой — опубликованный анализ. Кнопка скрыта, когда решение операционное, касается только инфраструктуры, внешнее, является ожидаемым отказом, ошибкой пользователя или не дало вывода. Подходящие исправления происходят без клика, пока включён переключатель **Открывать запрос на слияние с исправлением, когда расследование находит изменение в коде**. Он относится к исправлению: находится под **Автоматически исправлять новые инциденты** на **Инциденты → ИИ → Настройки** (и под **Автоматически исправлять новые оповещения** на **Оповещения → ИИ → Настройки**), включается, когда включают исправление, и открывает pull request только пока исправление включено. Оба изначально выключены, в том числе в новых проектах.
 
-## On the roadmap
+Пока он включён, расследование, которое завершается уверенной, подкреплённой доказательствами первопричиной, устранимой изменением кода, ставит в очередь ту же задачу исправления, что создаёт кнопка. Решение — это ограниченная классификация, которую проверяет сервер, а не шаблон, сопоставленный с текстом анализа: pull request открывает только положительный вердикт об исправлении кода. Нехватка доказательств, решение вне кода и неудачная классификация — всё это заканчивается тем, что ничего не происходит.
 
-Planned, but **not available today**:
+Всё остальное совпадает с кнопкой:
 
-- **GitLab support** — repository connections are currently GitHub App only.
-- **Richer telemetry context** — feeding related traces, logs, and metrics around the exception into the fix, beyond the stack trace.
-- **Verification loop** — building the project and running its tests against the fix before the pull request is opened.
+- Pull request открывается готовым к проверке, написанным по опубликованному анализу, и требует репозитория, подключённого через GitHub App, и Runner с включённым **Выполняет ИИ-исправления кода**.
+- Он учитывается в дневном лимите задач исправления этого сигнала (**Daily Incident AI Fix Task Limit** или **Daily Alert AI Fix Task Limit**, в **Дополнительные настройки** на его странице настроек ИИ) и в ограничении репозитория на открытые pull request, если что-то из этого задано. Если не задано, ничто ничего не ограничивает.
+- Каждый триггер сначала ищет задачу исправления, уже стоящую в очереди или выполняющуюся для того же инцидента или оповещения, так что автоматический триггер и клик обычно дают одну задачу, а не два pull request. Проверка — это чтение перед записью, а не блокировка, поэтому два триггера в один и тот же момент всё же могут пройти оба.
+- Запуск создаётся системой, никому не приписывается, и ничего не сливается само.
+
+## Когда исправление не удаётся
+
+:::details Запуск завершается ошибкой
+Исправление не удалось применить, репозиторий был недоступен или вызов LLM не удался. Страница, с которой запустили задачу, показывает причину и предлагает попробовать снова. На странице **Журналы** задачи есть полный журнал запуска.
+:::
+
+:::details Runner останавливается посреди запуска
+Запуск, чей heartbeat молчит дольше 12 минут, завершается с ошибкой. Он никогда не ставится в очередь заново сам, потому что Runner мог уже отправить часть ветки исправления; запустите его снова там, где запускали.
+:::
+
+:::details Ни один Runner не берёт задачу
+Задача, которая ждёт дольше 30 минут, пока не подключён ни один Runner с **Выполняет ИИ-исправления кода**, завершается ошибкой с сообщением проверить Runner, чтобы она никогда не висела в работе вечно. Когда Runner в сети, но занят, задачи в очереди ждут своей очереди.
+:::
+
+## Конфиденциальность
+
+Клон вашего репозитория находится в рабочем пространстве внутри контейнера Runner и удаляется, когда запуск заканчивается, успешно или нет. У Runner никогда нет API-ключа вашего провайдера LLM: вызовы LLM за него делает сервер OneUptime. OneUptime не хранит ваш репозиторий и не обучается на вашем коде. Журнал задачи хранит первые 300 символов вывода каждого шага, чтобы вы могли проверить, что сделал Runner, и туда могут попасть фрагменты кода. Запустите собственный Runner со своим провайдером LLM (включая локальный Ollama), и ваш код никогда не покинет вашу инфраструктуру.
+
+## В планах
+
+Запланировано и **пока недоступно**:
+
+- **Поддержка GitLab.** Репозитории подключаются только через GitHub App.
+- **Больше телеметрии в исправлении.** Передавать в исправление трассировки, логи и метрики вокруг исключения, помимо трассировки стека.
+
+## Дальнейшие шаги
+
+:::cards
+- [GitHub App](/docs/ai/github-app): Попросите изменение, доработку или проверку прямо из GitHub.
+- [AI SRE](/docs/ai/ai-sre): Расследования, чьи анализы задачи исправления могут превратить в pull request.
+- [Агенты runbook-ов](/docs/runbooks/agents): Исполнитель, который выполняет каждый запуск исправления.
+:::
