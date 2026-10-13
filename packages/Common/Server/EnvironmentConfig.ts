@@ -500,8 +500,14 @@ export const InsecureEncryptionSecretPrefix: string = "please-change-this";
  * ENCRYPTION_SECRET, so leaving it unset or at one of the shipped placeholders
  * means anyone who can read a database dump can read every one of those
  * columns with a key that is public on GitHub. Nothing refuses to start over
- * it (that would take down an existing install on upgrade), but the boot log
- * says so loudly; see EncryptionSecretWarning and StartServer.init.
+ * it (that would take down an existing install on upgrade, and changing the
+ * key would make those columns unreadable), but the boot log says so loudly;
+ * see EncryptionSecretWarning and StartServer.init.
+ *
+ * Tokens are another matter: a token signed with a public key is a session
+ * anybody can mint. So when this is true nothing is signed with
+ * ENCRYPTION_SECRET at all - TokenSigningKey signs with a random key the
+ * installation keeps for itself in Postgres instead.
  *
  * The comparison is case-sensitive on purpose: the encryption key is, and the
  * warning is about the exact values an attacker would try first. Any other
@@ -530,7 +536,7 @@ export const IsEncryptionSecretInsecure: boolean = ((): boolean => {
  * exported and the process entrypoint emits it.
  */
 export const EncryptionSecretWarning: string | null = IsEncryptionSecretInsecure
-  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable.'
+  ? 'ENCRYPTION_SECRET is unset or still one of the placeholder values shipped in this repository ("secret", or the "please-change-this-to-random-value" that config.example.env sets). Every encrypted database column (integration tokens, SMTP credentials, on-call calendar feed tokens) is protected only by a key that is public in the OneUptime repository. Set ENCRYPTION_SECRET to a long random value in config.env (or the Helm chart) before storing anything sensitive. Note that changing it later makes values encrypted with the old key unreadable. Sign-in and other tokens are not signed with it: until it is set, OneUptime signs them with a random key it generated for this installation and keeps in the database.'
   : null;
 
 export const OpenSourceDeploymentWebhookUrl: string =
