@@ -30,7 +30,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertEpisodeOwner:SendStateChangeEmail",
@@ -310,17 +310,14 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
-          {
+        moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          await UserService.getUserMarkdownString({
             userId: user.id!,
             projectId: episodeStateTimeline.projectId!,
-          },
-        )}\n`;
+          }),
+        );
       }
 
-      const episodeDisplayNumber: string =
-        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
-      const projectId: ObjectID = episode.projectId!;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,
@@ -329,7 +326,10 @@ RunCron(
           AlertEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown:
-          mdText`🔔 **Owners have been notified about the state change of the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the alert episode because the episode state changed to **${alertState.name}**.`.toString(),
+          OwnerNotificationFeedText.stateChanged({
+            recordNoun: "alert episode",
+            stateName: alertState.name,
+          }),
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

@@ -7,16 +7,14 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  DEFAULT_LIMIT,
-  LIMIT_PER_PROJECT,
-} from "../../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import {
   PromiseVoidFunction,
   VoidFunction,
 } from "../../../Types/FunctionTypes";
 import API from "../../Utils/API/API";
 import { FeedItemProps } from "./FeedItem";
+import { FEED_PAGE_SIZE } from "./FeedOptions";
 
 export interface FeedPage<TFeedModel> {
   data: Array<TFeedModel>;
@@ -36,6 +34,11 @@ export interface UseFeedItemsProps<TFeedModel> {
   refreshToken?: number | undefined;
   getItems: (limit: number) => Promise<FeedPage<TFeedModel>>;
   mapItems: (items: Array<TFeedModel>) => Array<FeedItemProps>;
+  /*
+   * How many rows the first window holds, and how many each More adds.
+   * FEED_PAGE_SIZE unless a test needs another.
+   */
+  pageSize?: number | undefined;
 }
 
 export interface UseFeedItemsResult {
@@ -97,8 +100,10 @@ const useFeedItems: <TFeedModel>(
   const previousResourceKeyRef: MutableRefObject<string | null> = useRef<
     string | null
   >(null);
-  const currentLimitRef: MutableRefObject<number> =
-    useRef<number>(DEFAULT_LIMIT);
+  const pageSize: number = props.pageSize || FEED_PAGE_SIZE;
+  const pageSizeRef: MutableRefObject<number> = useRef<number>(pageSize);
+  pageSizeRef.current = pageSize;
+  const currentLimitRef: MutableRefObject<number> = useRef<number>(pageSize);
   const fetchGenerationRef: MutableRefObject<number> = useRef<number>(0);
   const isLoadingMoreRef: MutableRefObject<boolean> = useRef<boolean>(false);
   const getItemsRef: MutableRefObject<
@@ -192,7 +197,7 @@ const useFeedItems: <TFeedModel>(
 
     fetchItems({
       limit: Math.min(
-        currentLimitRef.current + DEFAULT_LIMIT,
+        currentLimitRef.current + pageSizeRef.current,
         LIMIT_PER_PROJECT,
       ),
       isLoadingMore: true,
@@ -207,14 +212,16 @@ const useFeedItems: <TFeedModel>(
     previousResourceKeyRef.current = feedKey;
 
     if (hasResourceChanged) {
-      currentLimitRef.current = DEFAULT_LIMIT;
+      currentLimitRef.current = pageSizeRef.current;
       setFeedItems([]);
       setHasMore(false);
       setLoadedResourceKey(null);
     }
 
     fetchItems({
-      limit: hasResourceChanged ? DEFAULT_LIMIT : currentLimitRef.current,
+      limit: hasResourceChanged
+        ? pageSizeRef.current
+        : currentLimitRef.current,
       isLoadingMore: false,
     }).catch(() => {
       // fetchItems converts request failures into the appropriate UI state.

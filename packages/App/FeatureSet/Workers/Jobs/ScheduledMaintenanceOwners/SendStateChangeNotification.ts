@@ -24,13 +24,12 @@ import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
-import ObjectID from "Common/Types/ObjectID";
 import UserService from "Common/Server/Services/UserService";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -297,19 +296,14 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
-          {
+        moreScheduledMaintenanceFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          await UserService.getUserMarkdownString({
             userId: user.id!,
             projectId: scheduledMaintenanceStateTimeline.projectId!,
-          },
-        )})\n`;
+          }),
+        );
       }
 
-      const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
-        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
-      const projectId: ObjectID = scheduledMaintenance.projectId!;
-      const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
@@ -318,7 +312,10 @@ RunCron(
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown:
-          mdText`🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`.toString(),
+          OwnerNotificationFeedText.stateChanged({
+            recordNoun: "scheduled maintenance event",
+            stateName: scheduledMaintenanceState.name,
+          }),
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
         /*

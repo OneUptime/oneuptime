@@ -26,7 +26,7 @@ import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/
 import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendsNotePostedEmail",
@@ -255,21 +255,23 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += mdText`**Notified:** ${user.name?.toString()} (${user.email?.toString()})\n`;
+        moreScheduledMaintenanceFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(
         note._id!.toString(),
       );
 
-      const projectId: ObjectID = scheduledMaintenance.projectId!;
-      const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
-      const scheduledMaintenanceDisplayNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
-        "#" + scheduledMaintenance.scheduledMaintenanceNumber;
 
       const scheduledMaintenanceFeedText: string =
-        mdText`🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Scheduled Maintenance ${scheduledMaintenanceDisplayNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).`.toString();
+        OwnerNotificationFeedText.notePosted({
+          isPrivateNote: isPrivateNote,
+        });
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,

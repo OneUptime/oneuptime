@@ -33,7 +33,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 RunCron(
   "AlertOwner:SendStateChangeEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -389,17 +389,14 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
-          {
+        moreAlertFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          await UserService.getUserMarkdownString({
             userId: user.id!,
             projectId: alertStateTimeline.projectId!,
-          },
-        )})\n`;
+          }),
+        );
       }
 
-      const alertDisplayNumber: string =
-        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
-      const projectId: ObjectID = alert.projectId!;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
@@ -407,7 +404,10 @@ RunCron(
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown:
-          mdText`🔔 **Owners have been notified about the state change of the [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`.toString(),
+          OwnerNotificationFeedText.stateChanged({
+            recordNoun: "alert",
+            stateName: alertState.name,
+          }),
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
         /*
          * The feed only. That the owners were told is a side effect of the

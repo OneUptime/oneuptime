@@ -26,7 +26,7 @@ import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFe
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentEpisodeOwner:SendCreatedResourceEmail",
@@ -75,8 +75,7 @@ RunCron(
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
       const episodeFeedText: string =
-        mdText`🔔 **Owner Incident Episode Created Notification Sent**:
-      Notification sent to owners because [Incident Episode ${episodeDisplayNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}) was created.`.toString();
+        OwnerNotificationFeedText.created("incident episode");
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -219,7 +218,12 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
+          moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
         } catch (e) {
           logger.error(
             "Error in sending incident episode created resource notification",

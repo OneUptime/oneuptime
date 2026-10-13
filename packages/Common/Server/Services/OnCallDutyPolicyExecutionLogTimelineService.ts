@@ -17,20 +17,11 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
-import AlertService from "./AlertService";
-import AlertEpisodeService from "./AlertEpisodeService";
-import IncidentEpisodeService from "./IncidentEpisodeService";
-import IncidentService from "./IncidentService";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import FeedMarkdown, {
-  mdText,
-  MarkdownText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
-
-// A message that already ends its own sentence.
-const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
+import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -55,49 +46,6 @@ export class Service extends DatabaseService<Model> {
         return Green500;
       default:
         return Blue500;
-    }
-  }
-
-  /*
-   * " with the message: <message>." for the end of the sentence that names a
-   * step's status, or "." when the step has no message. The message is text,
-   * placed as a sentence (mdText) rather than in a code span, which a "`" in
-   * it would end early, so an address in an error message stays a whole
-   * address. It ends the sentence once, whether or not it ends with its own
-   * full stop.
-   */
-  private getStatusMessageClause(
-    statusMessage: string | undefined,
-  ): MarkdownText {
-    const message: string = (statusMessage || "").trim();
-
-    if (!message) {
-      return mdText`.`;
-    }
-
-    return SENTENCE_END_PATTERN.test(message)
-      ? mdText` with the message: ${message}`
-      : mdText` with the message: ${message}.`;
-  }
-
-  public getEmojiBasedOnStatus(
-    status: OnCallDutyExecutionLogTimelineStatus,
-  ): string {
-    switch (status) {
-      case OnCallDutyExecutionLogTimelineStatus.Started:
-        return "🚀";
-      case OnCallDutyExecutionLogTimelineStatus.Executing:
-        return "🔄";
-      case OnCallDutyExecutionLogTimelineStatus.Error:
-        return "❌";
-      case OnCallDutyExecutionLogTimelineStatus.NotificationSent:
-        return "📧";
-      case OnCallDutyExecutionLogTimelineStatus.Skipped:
-        return "🚫";
-      case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
-        return "✅";
-      default:
-        return "🚀";
     }
   }
 
@@ -208,129 +156,58 @@ export class Service extends DatabaseService<Model> {
           ? this.getColorBasedOnStatus(status)
           : Blue500;
 
-        let incidentOrAlertLink: MarkdownText = FeedMarkdown.empty();
-
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId) {
-          const projectId: ObjectID | undefined =
-            onCallDutyPolicyExecutionLogTimeline.projectId;
-          const incidentId: ObjectID | undefined =
-            onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentId;
-          const incidentNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await IncidentService.getIncidentNumber({
-            incidentId: incidentId,
-          });
-          const incidentNumberDisplay: string =
-            incidentNumberResult.numberWithPrefix ||
-            "#" + incidentNumberResult.number;
-          incidentOrAlertLink = mdText`[Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()})`;
-        }
-
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId) {
-          const alertNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await AlertService.getAlertNumber({
-            alertId: onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId,
-          });
-          incidentOrAlertLink = mdText`[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertId)).toString()})`;
-        }
-
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId) {
-          const alertEpisodeNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await AlertEpisodeService.getEpisodeNumber({
-            episodeId:
-              onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId,
-          });
-          incidentOrAlertLink = mdText`[Alert Episode ${alertEpisodeNumberResult.numberWithPrefix || "#" + alertEpisodeNumberResult.number}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByAlertEpisodeId)).toString()})`;
-        }
-
-        if (onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId) {
-          const incidentEpisodeNumberResult: {
-            number: number | null;
-            numberWithPrefix: string | null;
-          } = await IncidentEpisodeService.getEpisodeNumber({
-            episodeId:
-              onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId,
-          });
-          incidentOrAlertLink = mdText`[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
-        }
-
         /*
-         * The policy, schedule, escalation rule and team names are plain
-         * text, placed into the incident's, alert's or episode's feed item
-         * (posted to Slack and Teams too): the policy's inside its link's own
-         * text, the rest inside bold. The step's status message is text as
-         * well (getStatusMessageClause).
+         * One sentence in the words the run's Slack and Microsoft Teams
+         * message uses (OnCallFeedText). The record it is for is not
+         * named: the entry goes to that record's own feed only.
          */
-        const policyLink: MarkdownText = mdText`**[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
-
-        const scheduleClause: MarkdownText =
-          onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name
-            ? mdText` and schedule **${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name}**`
-            : FeedMarkdown.empty();
-
-        /*
-         * Some timeline rows have NO recipient by construction: a schedule that
-         * currently has nobody on call (a coverage gap), or an escalation rule
-         * with no responders at all. Those rows are exactly the ones an operator
-         * most needs to understand, so they get their own wording.
-         *
-         * Building the "was alerted" sentence for them used to interpolate
-         * `alertSentToUserId!` — a non-null assertion on a field that is never
-         * set here — which rendered a feed entry claiming somebody was paged
-         * when in fact nobody was.
-         */
-        const hasRecipient: boolean = Boolean(
-          onCallDutyPolicyExecutionLogTimeline.alertSentToUserId,
+        const policyLink: MarkdownText = FeedMarkdown.link(
+          onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name || "",
+          (
+            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+              onCallDutyPolicyExecutionLogTimeline.projectId!,
+              onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!,
+            )
+          ).toString(),
         );
 
-        let feedInfoInMarkdown: string = "";
-
-        if (!hasRecipient) {
-          const noRecipientReason: MarkdownText =
-            onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name
-              ? mdText`no one was on call in schedule **${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name}**`
-              : mdText`this escalation rule had no responders`;
-
-          feedInfoInMarkdown =
-            mdText`**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} — nobody was notified**
-
-The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule"}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)}`.toString();
-        } else {
-          feedInfoInMarkdown =
-            mdText`**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
-              {
-                userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
+        /*
+         * Some timeline rows have NO recipient by construction: a schedule
+         * that currently has nobody on call (a coverage gap), or an
+         * escalation rule with no responders at all. Those rows are exactly
+         * the ones an operator most needs to understand, so they get their
+         * own wording - and never a user looked up by an id that is not set,
+         * which would name an arbitrary person.
+         */
+        const recipient: MarkdownText | undefined =
+          onCallDutyPolicyExecutionLogTimeline.alertSentToUserId
+            ? await UserService.getUserMarkdownString({
+                userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId,
                 projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-              },
-            )}**
+              })
+            : undefined;
 
-The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule"}** ${scheduleClause} were applied. ${await UserService.getUserMarkdownString(
-              {
-                userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
+        const overriddenUser: MarkdownText | undefined =
+          recipient && onCallDutyPolicyExecutionLogTimeline.overridedByUser?.id
+            ? await UserService.getUserMarkdownString({
+                userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id,
                 projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-              },
-            )} was alerted. The status of this alert is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)} ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? mdText`The alert was sent because the user belogs to the team **${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam.name}** ` : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? mdText`The alert was acknowledged at **${String(onCallDutyPolicyExecutionLogTimeline.acknowledgedAt)}** ` : ""}`.toString();
-        }
+              })
+            : undefined;
 
-        if (
-          hasRecipient &&
-          onCallDutyPolicyExecutionLogTimeline.overridedByUser
-        ) {
-          feedInfoInMarkdown += mdText`The alert was supposed to be sent to **${await UserService.getUserMarkdownString(
-            {
-              userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id!,
-              projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            },
-          )}** but was routed to **${await UserService.getUserMarkdownString({
-            userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
-            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          })}** instead, because of an override rule.`;
-        }
+        const feedInfoInMarkdown: string = OnCallFeedText.getStepMarkdown({
+          status: status,
+          policyLink: policyLink,
+          ruleName:
+            onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule
+              ?.name,
+          scheduleName:
+            onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+          teamName: onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
+          recipient: recipient,
+          overriddenUser: overriddenUser,
+          statusMessage: onCallDutyPolicyExecutionLogTimeline.statusMessage,
+        });
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown, {
           projectId:

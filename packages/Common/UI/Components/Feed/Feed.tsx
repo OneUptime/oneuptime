@@ -149,7 +149,7 @@ const Feed: FunctionComponent<ComponentProps> = (
               className={dayIndex > 0 ? "mt-2" : ""}
               data-testid="feed-day"
             >
-              <div className="mb-3 flex items-center gap-2">
+              <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <h3
                   id={headingId}
                   className="text-sm font-semibold text-gray-900"

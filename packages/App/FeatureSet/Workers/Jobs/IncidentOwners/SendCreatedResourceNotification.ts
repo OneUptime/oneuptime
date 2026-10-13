@@ -27,7 +27,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -76,8 +76,6 @@ RunCron(
       const projectId: ObjectID = incident.projectId!;
       const incidentId: ObjectID = incident.id!;
       const incidentNumber: number = incident.incidentNumber!;
-      const incidentNumberDisplay: string =
-        incident.incidentNumberWithPrefix || "#" + incidentNumber;
 
       /*
        * Mark the incident as notified first (matching the MonitorOwner worker)
@@ -95,8 +93,7 @@ RunCron(
       });
 
       const incidentFeedText: string =
-        mdText`🔔 **Owner Incident Created Notification Sent**:
-Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) was created.`.toString();
+        OwnerNotificationFeedText.created("incident");
       let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =
@@ -285,7 +282,12 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             eventType,
           });
 
-          moreIncidentFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
+          moreIncidentFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",

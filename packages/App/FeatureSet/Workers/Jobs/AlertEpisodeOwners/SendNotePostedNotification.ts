@@ -24,7 +24,7 @@ import AlertEpisodeFeedService from "Common/Server/Services/AlertEpisodeFeedServ
 import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertEpisodeOwner:SendsNotePostedEmail",
@@ -228,16 +228,19 @@ RunCron(
           eventType,
         });
 
-        moreEpisodeFeedInformationInMarkdown += mdText`**Notified:** ${user.name?.toString()} (${user.email?.toString()})\n`;
+        moreEpisodeFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
       }
 
-      const projectId: ObjectID = episode.projectId!;
-      const episodeId: ObjectID = episode.id!;
-      const episodeDisplayNumber: string =
-        episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
       const episodeFeedText: string =
-        mdText`🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).`.toString();
+        OwnerNotificationFeedText.notePosted({
+          isPrivateNote: true,
+        });
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id!,

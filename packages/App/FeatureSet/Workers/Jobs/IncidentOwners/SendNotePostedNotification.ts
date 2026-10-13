@@ -27,7 +27,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -272,20 +272,21 @@ RunCron(
           eventType,
         });
 
-        moreIncidentFeedInformationInMarkdown += mdText`**Notified:** ${user.name?.toString()} (${user.email?.toString()})\n`;
+        moreIncidentFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(
         note._id!.toString(),
       );
 
-      const projectId: ObjectID = incident.projectId!;
-      const incidentId: ObjectID = incident.id!;
-      const incidentNumberDisplayValue: string =
-        incident.incidentNumberWithPrefix || "#" + incident.incidentNumber!; // incident number is not null here.
-
-      const incidentFeedText: string =
-        mdText`🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).`.toString();
+      const incidentFeedText: string = OwnerNotificationFeedText.notePosted({
+        isPrivateNote: isPrivateNote,
+      });
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,

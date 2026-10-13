@@ -32,7 +32,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -105,8 +105,6 @@ RunCron(
     for (const alert of alerts) {
       const projectId: ObjectID = alert.projectId!;
       const alertId: ObjectID = alert.id!;
-      const alertDisplayNumber: string =
-        alert.alertNumberWithPrefix || "#" + alert.alertNumber!;
 
       /*
        * Mark the alert as notified first (matching the MonitorOwner worker) so
@@ -124,8 +122,7 @@ RunCron(
       });
 
       const alertFeedText: string =
-        mdText`🔔 **Owner Alert Created Notification Sent**:
-      Notification sent to owners because [Alert ${alertDisplayNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`.toString();
+        OwnerNotificationFeedText.created("alert");
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -461,7 +458,12 @@ RunCron(
             eventType,
           });
 
-          moreAlertFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()})\n`;
+          moreAlertFeedInformationInMarkdown += OwnerNotificationFeedText.notifiedLine(
+          OwnerNotificationFeedText.nameAndEmail({
+            name: user.name?.toString(),
+            email: user.email?.toString(),
+          }),
+        );
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
           logger.error(e);
