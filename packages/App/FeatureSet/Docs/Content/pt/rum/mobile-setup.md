@@ -193,7 +193,7 @@ Abra a página **Clientes** da aplicação: cada modelo de dispositivo de `devic
 
 ## Session Replay em dispositivos móveis
 
-Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Browser** cujas **Allowed Origins** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Servidor que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#install-in-react-native) mostra o passo a passo.
+Aplicativos React Native podem gravar sessões com `@oneuptime/react-native-replay`. Ele grava a árvore de views nativa como um wireframe, nunca capturas de tela nem o texto na tela, e as gravações dele abrem no mesmo player que as da web. Ele envia com uma chave **Browser** cujas **Allowed Origins** listam o seu aplicativo como `app://` seguido do ID do aplicativo Android ou do ID de bundle do iOS: uma chave diferente da chave Servidor que o seu SDK do OpenTelemetry usa. [Instalar no React Native](/docs/telemetry/session-replay#instalação-no-react-native) mostra o passo a passo.
 
 Aplicativos nativos de Android e iOS, e as demais plataformas, não têm gravador de sessão: a página **Session Replay** deles fica vazia, enquanto traços, registros, métricas, exceções e a página **Clientes** funcionam normalmente.
 

@@ -243,7 +243,7 @@ new FetchInstrumentation({
 
 ## トレースをセッションリプレイにつなぐ
 
-[セッションリプレイ](/docs/telemetry/session-replay) も使っている場合、 **バックエンド** のテレメトリは、ここでコードを書かなくても録画にひも付きます。セッションのアップロード中、レコーダーはページが自身のオリジンに送るリクエストにセッション ID を含む `tracestate` メンバーを追加し、 `traceparent` は `FetchInstrumentation` / `XMLHttpRequestInstrumentation` に任せます。W3C トレースコンテキストを引き継ぐすべてのサービスで、バックエンドのスパンには取り込み時にセッション ID が付き、そのログと例外はトレース ID で録画にひも付きます。仕組み、対象外のもの、無効にするスイッチについては [ほかのテレメトリとの相関](/docs/telemetry/session-replay#correlating-with-your-other-telemetry) を参照してください。
+[セッションリプレイ](/docs/telemetry/session-replay) も使っている場合、 **バックエンド** のテレメトリは、ここでコードを書かなくても録画にひも付きます。セッションのアップロード中、レコーダーはページが自身のオリジンに送るリクエストにセッション ID を含む `tracestate` メンバーを追加し、 `traceparent` は `FetchInstrumentation` / `XMLHttpRequestInstrumentation` に任せます。W3C トレースコンテキストを引き継ぐすべてのサービスで、バックエンドのスパンには取り込み時にセッション ID が付き、そのログと例外はトレース ID で録画にひも付きます。仕組み、対象外のもの、無効にするスイッチについては [ほかのテレメトリとの相関](/docs/telemetry/session-replay#ほかのテレメトリとの関連付け) を参照してください。
 
 レコーダーは、呼び出しが URL (init オブジェクトの有無を問わず) を渡す場合も `Request` オブジェクトを渡す場合も、インストルメンテーションが設定した `traceparent` を読み戻すため、リプレイのリクエスト行はそれぞれのバックエンドのトレースにリンクします。別のオリジンにある API は、上の `propagateTraceHeaderCorsUrls` に登録してください。そのリクエストにはセッション ID が付かず、トレース ID で録画にひも付きます。この SDK *を使っていない* ページでは、アプリケーションのリプレイポリシーにある **トレース伝播のオリジン** が同じ役割を果たします。
 

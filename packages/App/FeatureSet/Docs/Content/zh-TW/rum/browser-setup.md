@@ -243,7 +243,7 @@ new FetchInstrumentation({
 
 ## 將追蹤與工作階段重播連結
 
-如果你也使用 [工作階段重播](/docs/telemetry/session-replay) ，你的 **後端** 遙測不需要在這裡寫任何程式碼就會與錄製連結。工作階段上傳期間，錄製器會在頁面傳往自身來源的請求中，加入一個攜帶工作階段 ID 的 `tracestate` 成員，並把 `traceparent` 留給你的 `FetchInstrumentation` / `XMLHttpRequestInstrumentation` 。在每個延續 W3C 追蹤內容的服務中，後端 span 會在擷取時被標上工作階段 ID，其日誌和例外則透過追蹤 ID 連結到錄製。運作方式、不涵蓋的範圍以及關閉它的開關，請參閱 [與其他遙測建立關聯](/docs/telemetry/session-replay#correlating-with-your-other-telemetry) 。
+如果你也使用 [工作階段重播](/docs/telemetry/session-replay) ，你的 **後端** 遙測不需要在這裡寫任何程式碼就會與錄製連結。工作階段上傳期間，錄製器會在頁面傳往自身來源的請求中，加入一個攜帶工作階段 ID 的 `tracestate` 成員，並把 `traceparent` 留給你的 `FetchInstrumentation` / `XMLHttpRequestInstrumentation` 。在每個延續 W3C 追蹤內容的服務中，後端 span 會在擷取時被標上工作階段 ID，其日誌和例外則透過追蹤 ID 連結到錄製。運作方式、不涵蓋的範圍以及關閉它的開關，請參閱 [與其他遙測建立關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。
 
 無論呼叫傳入的是 URL（帶或不帶 init 物件）還是 `Request` 物件，錄製器都會讀回你的檢測所設定的 `traceparent` ，因此重播中的每個請求列都會連到其後端追蹤。若 API 位於其他來源，請把它列在上面的 `propagateTraceHeaderCorsUrls` 中；它的請求不攜帶工作階段 ID，而是透過追蹤 ID 連結到錄製。對於 *沒有* 使用此 SDK 的頁面，應用程式重播政策中的 **Trace propagation origins** 有同樣的作用。
 
