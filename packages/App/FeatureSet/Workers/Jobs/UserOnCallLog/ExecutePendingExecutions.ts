@@ -25,6 +25,10 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import {
+  getDueRuleExecution,
+  isRuleFullyExecuted,
+} from "Common/Types/NotificationRule/NotificationRepeat";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -352,6 +356,8 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           select: {
             _id: true,
             notifyAfterMinutes: true,
+            // Whether the rule's push repeats until acknowledged.
+            repeatEveryMinutes: true,
           },
           props: {
             isRoot: true,
@@ -368,21 +374,44 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           OneUptimeDate.getCurrentDate(),
         );
 
-      for (const notificationRule of notificationRules) {
-        // check if this rule is already executed.
-        const isAlreadyExecuted: boolean = Object.keys(
-          pendingNotificationLog.executedNotificationRules! || {},
-        ).includes(notificationRule.id?.toString() || "");
+      /*
+       * Every delivery already sent on this log: each rule's first push under
+       * the rule's id, each repeat under a key of its own (NotificationRepeat).
+       */
+      const executedClaimKeys: Array<string> = Object.keys(
+        pendingNotificationLog.executedNotificationRules! || {},
+      );
 
-        if (isAlreadyExecuted) {
+      for (const notificationRule of notificationRules) {
+        const ruleId: string = notificationRule.id?.toString() || "";
+
+        // Its first push, and every repeat it has, already sent.
+        if (
+          isRuleFullyExecuted({
+            executedClaimKeys: executedClaimKeys,
+            ruleId: ruleId,
+            repeatEveryMinutes: notificationRule.repeatEveryMinutes,
+          })
+        ) {
           continue;
         }
 
         isAllExecuted = false;
 
-        if (
-          notificationRule.notifyAfterMinutes! > minutesSinceExecutionStarted
-        ) {
+        /*
+         * The first push once it is due, then - for a rule that repeats until
+         * acknowledged - the latest repeat due. Acknowledging ends the log
+         * above, which is what stops the repeats.
+         */
+        const dueExecution: number | null = getDueRuleExecution({
+          executedClaimKeys: executedClaimKeys,
+          ruleId: ruleId,
+          notifyAfterMinutes: notificationRule.notifyAfterMinutes || 0,
+          repeatEveryMinutes: notificationRule.repeatEveryMinutes,
+          minutesSinceStart: minutesSinceExecutionStarted,
+        });
+
+        if (dueExecution === null) {
           continue;
         }
 
@@ -410,6 +439,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             onCallDutyPolicyExecutionLogTimelineId:
               pendingNotificationLog.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: pendingNotificationLog.onCallDutyScheduleId,
+            ...(dueExecution > 0 ? { repeatNumber: dueExecution } : {}),
           },
         );
       }
@@ -442,9 +472,10 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
        * steps, including the loud last-resort "call at N minutes" page (audit
        * H3). For a transient/unknown error we LEAVE the log Executing (only log
        * it) so the next EVERY_MINUTE tick retries. Retries are idempotent: the
-       * loop above skips rules already in executedNotificationRules, so no rule
-       * is re-sent. Mirrors the F16 rationale that a delayed retry beats a
-       * dropped page for an on-call system.
+       * loop above skips deliveries already in executedNotificationRules - a
+       * rule's first push and each repeat - so none is re-sent. Mirrors the
+       * F16 rationale that a delayed retry beats a dropped page for an on-call
+       * system.
        */
       if (err instanceof BadDataException) {
         await UserOnCallLogService.updateOneById({

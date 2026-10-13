@@ -66,8 +66,16 @@ import {
   isPushNotificationLevel,
   PUSH_NOTIFICATION_LEVELS,
 } from "../../Types/NotificationRule/PushNotificationLevel";
+import {
+  getRepeatEveryMinutes,
+  isRepeatEveryMinutes,
+  MAX_NOTIFICATION_REPEATS,
+  NO_NOTIFICATION_REPEAT,
+  REPEAT_EVERY_MINUTES_OPTIONS,
+} from "../../Types/NotificationRule/NotificationRepeat";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
@@ -167,6 +175,13 @@ export interface ExecuteNotificationRuleOptions {
   userBelongsToTeamId?: ObjectID | undefined;
   onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
   onCallScheduleId?: ObjectID | undefined;
+  /*
+   * Which repeat of the rule this is (NotificationRepeat), 1 for the first
+   * push sent again; absent for the rule's first push. A repeat is claimed on
+   * the on-call log under a key of its own, so it is sent once whatever the
+   * first push's claim says.
+   */
+  repeatNumber?: number | undefined;
 }
 
 export interface ExecuteFallbackNotificationOptions
@@ -620,6 +635,7 @@ export class Service extends ProjectReferencesService<Model> {
       await UserOnCallLogService.claimNotificationRuleExecution({
         userOnCallLogId: options.userNotificationLogId,
         userNotificationRuleId: userNotificationRuleId,
+        repeatNumber: options.repeatNumber,
       });
 
     if (!claimedRuleExecution) {
@@ -706,6 +722,13 @@ export class Service extends ProjectReferencesService<Model> {
            * that cannot happen.
            */
           isCriticalAlertEnabled: true,
+          /*
+           * The alarm and volume the handset chose. Unselected they read as
+           * the defaults, so the page would play the system sound at full
+           * volume instead of the one its owner picked.
+           */
+          criticalAlertSound: true,
+          criticalAlertVolume: true,
         },
       },
       props: {
@@ -743,7 +766,35 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
+    if (options.repeatNumber && options.repeatNumber > 0) {
+      this.keepOnlyPushMethod(notificationRuleItem);
+    }
+
     await this.deliverNotificationForRule(notificationRuleItem, options);
+  }
+
+  /*
+   * A repeat sends the rule's push again - and only its push. Repeating is
+   * offered on push rules, and the write guards refuse it on a rule without a
+   * push device, but a rule written through the API can carry an email, a
+   * text or a call beside its phone. Those went out once, with the first
+   * push: a repeat never calls a phone line or sends another message, whatever
+   * else the rule names. The rule was read for this delivery alone, so it is
+   * changed in place.
+   */
+  private keepOnlyPushMethod(notificationRuleItem: Model): void {
+    const rule: Record<string, unknown> =
+      notificationRuleItem as unknown as Record<string, unknown>;
+
+    for (const idColumn of UserNotificationRuleAdminService.getNotificationMethodIdColumns()) {
+      if (idColumn === "userPushId") {
+        continue;
+      }
+
+      rule[idColumn] = undefined;
+      // The relation beside it: the id column's name without "Id".
+      rule[idColumn.replace(/Id$/, "")] = undefined;
+    }
   }
 
   /*
@@ -2619,7 +2670,9 @@ export class Service extends ProjectReferencesService<Model> {
         // create a log.
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2652,6 +2705,10 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -2703,7 +2760,9 @@ export class Service extends ProjectReferencesService<Model> {
         // create a log.
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2736,6 +2795,10 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -2786,7 +2849,9 @@ export class Service extends ProjectReferencesService<Model> {
       ) {
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2820,6 +2885,10 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         PushNotificationService.sendPushNotification(
           {
@@ -2869,7 +2938,9 @@ export class Service extends ProjectReferencesService<Model> {
       ) {
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.statusMessage = this.getPushSendingStatusMessage(
+          options.repeatNumber,
+        );
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
@@ -2903,6 +2974,10 @@ export class Service extends ProjectReferencesService<Model> {
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
+        pushMessage.criticalAlertSound =
+          notificationRuleItem.userPush.criticalAlertSound;
+        pushMessage.criticalAlertVolume =
+          notificationRuleItem.userPush.criticalAlertVolume;
 
         PushNotificationService.sendPushNotification(
           {
@@ -5339,9 +5414,12 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    // A value check: refused before anything below reads the database.
+    // Value checks: refused before anything below reads the database.
     this.assertPushNotificationLevelIsKnown(
       (createBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+    this.assertRepeatEveryMinutesIsKnown(
+      (createBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
     );
 
     await super.onBeforeCreate(createBy);
@@ -5400,6 +5478,11 @@ export class Service extends ProjectReferencesService<Model> {
       hasNotificationMethod: hasNotificationMethod,
     });
 
+    this.assertRepeatIsForPushRule({
+      repeatEveryMinutes: carrier["repeatEveryMinutes"],
+      hasPushMethod: Boolean(carrier["userPushId"] || carrier["userPush"]),
+    });
+
     return {
       createBy,
       carryForward: null,
@@ -5425,6 +5508,60 @@ export class Service extends ProjectReferencesService<Model> {
     throw new BadDataException(
       `Push notification level must be one of: ${PUSH_NOTIFICATION_LEVELS.join(", ")}.`,
     );
+  }
+
+  /*
+   * What the on-call log's timeline says as a push goes out: which repeat it
+   * is, when it is one, so a page sent again reads as such and not as the
+   * same push logged twice.
+   */
+  private getPushSendingStatusMessage(
+    repeatNumber: number | undefined,
+  ): string {
+    if (repeatNumber && repeatNumber > 0) {
+      return `Sending push notification to device again (repeat ${repeatNumber} of ${MAX_NOTIFICATION_REPEATS}, until acknowledged).`;
+    }
+
+    return `Sending push notification to device.`;
+  }
+
+  /*
+   * A repeat interval the On-Call Rules page offers, or none at all. Anything
+   * else is refused rather than stored: the worker would read an unknown
+   * interval as "do not repeat", and a responder who asked for a phone that
+   * keeps ringing would get one push.
+   */
+  private assertRepeatEveryMinutesIsKnown(value: unknown): void {
+    if (value === undefined || isRepeatEveryMinutes(value)) {
+      return;
+    }
+
+    throw new BadDataException(
+      `Repeat every minutes must be one of: ${[
+        NO_NOTIFICATION_REPEAT,
+        ...REPEAT_EVERY_MINUTES_OPTIONS,
+      ].join(", ")}.`,
+    );
+  }
+
+  /*
+   * Repeating is for push notification rules. A call or a text sent again
+   * every minute costs the project money and a phone number its reputation,
+   * and the option is only offered on a push rule.
+   */
+  private assertRepeatIsForPushRule(data: {
+    repeatEveryMinutes: unknown;
+    hasPushMethod: boolean;
+  }): void {
+    if (
+      getRepeatEveryMinutes(data.repeatEveryMinutes) !==
+        NO_NOTIFICATION_REPEAT &&
+      !data.hasPushMethod
+    ) {
+      throw new BadDataException(
+        "Only push notification rules can repeat until acknowledged.",
+      );
+    }
   }
 
   /**
@@ -5618,9 +5755,12 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    // A value check: refused before anything below reads the database.
+    // Value checks: refused before anything below reads the database.
     this.assertPushNotificationLevelIsKnown(
       (updateBy.data as unknown as RuleColumnCarrier)["pushNotificationLevel"],
+    );
+    this.assertRepeatEveryMinutesIsKnown(
+      (updateBy.data as unknown as RuleColumnCarrier)["repeatEveryMinutes"],
     );
 
     await super.onBeforeUpdate(updateBy);
@@ -5651,9 +5791,22 @@ export class Service extends ProjectReferencesService<Model> {
         patch,
       );
 
+    /*
+     * A patch that turns repeating on, or moves a rule off its push device,
+     * can leave a repeating rule that pages something other than a phone -
+     * visible only once the patch is laid over the row.
+     */
+    const touchesRepeat: boolean =
+      getRepeatEveryMinutes(patch["repeatEveryMinutes"]) !==
+        NO_NOTIFICATION_REPEAT ||
+      UserNotificationRuleAdminService.mentionsAnyNotificationMethodColumn(
+        patch,
+      );
+
     const needsAffectedRules: boolean =
       (references.length > 0 && !isInternalWrite) ||
       touchesRuleCoherence ||
+      touchesRepeat ||
       Boolean(updateBy.props.userId);
 
     if (!needsAffectedRules) {
@@ -5672,6 +5825,7 @@ export class Service extends ProjectReferencesService<Model> {
         ruleType: true,
         notifyAfterMinutes: true,
         pushNotificationLevel: true,
+        repeatEveryMinutes: true,
         isOptOut: true,
         incidentSeverityId: true,
         alertSeverityId: true,
@@ -5753,6 +5907,31 @@ export class Service extends ProjectReferencesService<Model> {
         this.assertRuleIsCoherent({
           isOptOut: isOptOutAfterPatch,
           hasNotificationMethod: methodIdsAfterPatch.length > 0,
+        });
+      }
+    }
+
+    if (touchesRepeat) {
+      for (const affectedRule of affectedRules) {
+        /*
+         * The push device the row pages once the patch is laid over it, read
+         * with the ORM's precedence as getNotificationMethodIdsAfterPatch
+         * reads every method: the relation slot when the patch has it, then
+         * the id column, then the row as it stands.
+         */
+        const userPushAfterPatch: unknown =
+          patch["userPush"] !== undefined
+            ? patch["userPush"]
+            : patch["userPushId"] !== undefined
+              ? patch["userPushId"]
+              : affectedRule.userPushId;
+
+        this.assertRepeatIsForPushRule({
+          repeatEveryMinutes:
+            patch["repeatEveryMinutes"] !== undefined
+              ? patch["repeatEveryMinutes"]
+              : affectedRule.repeatEveryMinutes,
+          hasPushMethod: Boolean(resolveReferenceId(userPushAfterPatch)),
         });
       }
     }
@@ -5915,6 +6094,7 @@ export class Service extends ProjectReferencesService<Model> {
         ruleType: true,
         notifyAfterMinutes: true,
         pushNotificationLevel: true,
+        repeatEveryMinutes: true,
         isOptOut: true,
         incidentSeverityId: true,
         alertSeverityId: true,

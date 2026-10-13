@@ -39,6 +39,14 @@ import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog
 import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import AndroidNotificationChannel from "../../Types/PushNotification/AndroidNotificationChannel";
+import {
+  CriticalAlertSoundDefinition,
+  getCriticalAlertSoundDefinition,
+} from "../../Types/PushNotification/CriticalAlertSound";
+import {
+  DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT,
+  toCriticalAlertSoundVolume,
+} from "../../Types/PushNotification/CriticalAlertVolume";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
   fitTextsToBudget,
@@ -1211,11 +1219,13 @@ export default class PushNotificationService {
   }
 
   /*
-   * Volume is pinned rather than exposed as a setting. A critical alert exists
-   * to wake somebody, and a responder who has already opted this device in and
-   * granted the OS permission has not asked to be woken quietly.
+   * The volume of a critical page from a device that has not chosen one: full,
+   * as every critical page played before the choice existed. A critical alert
+   * exists to wake somebody. A device that chose a quieter alarm in the app
+   * (UserPush.criticalAlertVolume) is paged at that volume instead.
    */
-  public static readonly CRITICAL_ALERT_VOLUME: number = 1;
+  public static readonly CRITICAL_ALERT_VOLUME: number =
+    toCriticalAlertSoundVolume(DEFAULT_CRITICAL_ALERT_VOLUME_PERCENT);
 
   public static getExpoDeliveryOptions(
     message: PushNotificationMessage,
@@ -1225,13 +1235,24 @@ export default class PushNotificationService {
     const isCritical: boolean = Boolean(message.isCriticalAlert);
 
     /*
+     * The device's chosen alarm, or the system's own critical sound on the
+     * original channel (AndroidNotificationChannel.Critical) when it chose
+     * none - or chose something this server does not know.
+     */
+    const sound: CriticalAlertSoundDefinition = getCriticalAlertSoundDefinition(
+      message.criticalAlertSound,
+    );
+
+    /*
      * iOS has no channels, so "default" here is the payload's own sound rather
      * than a channel id. Android without the critical flag stays on
-     * oncall_high, which is what every push has used until now.
+     * oncall_high, which is what every push has used until now. A critical
+     * page goes on the channel of the device's sound: Android plays a
+     * channel's sound and ignores the payload's.
      */
     const channelId: string = isAndroid
       ? isCritical
-        ? AndroidNotificationChannel.Critical
+        ? sound.androidChannelId
         : AndroidNotificationChannel.High
       : "default";
 
@@ -1247,14 +1268,15 @@ export default class PushNotificationService {
       channelId: channelId,
       /*
        * Sent to Android too, and harmlessly ignored there. Expo forwards it to
-       * APNs where it is the whole mechanism, and to FCM where the channel has
+       * APNs where it is the whole mechanism - the bundled file to play and
+       * how loud, whatever the ringer says - and to FCM where the channel has
        * already decided the sound; keeping one shape avoids a per-platform
        * branch that could silently drop the iOS half.
        */
       sound: {
         critical: true,
-        name: "default",
-        volume: PushNotificationService.CRITICAL_ALERT_VOLUME,
+        name: sound.iosSoundName,
+        volume: toCriticalAlertSoundVolume(message.criticalAlertVolume),
       },
       priority: "high",
       interruptionLevel: "critical",
