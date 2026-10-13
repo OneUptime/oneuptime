@@ -122,7 +122,7 @@ export default class TokenSigningKey {
   public static useInstallationKey(key: string): void {
     if (!TokenSigningKey.isWellFormedInstallationKey(key)) {
       throw new Error(
-        "The stored token signing key is not 64 hexadecimal characters, so OneUptime will not sign with it. Delete the row in the InstanceTokenSigningKey table and restart every OneUptime app and worker to generate a new one (everybody signs in again), or set ENCRYPTION_SECRET to a long random value.",
+        "The stored token signing key is not 64 hexadecimal characters, so OneUptime will not sign with it. Delete the row in the InstanceTokenSigningKey table and restart every OneUptime app and worker to generate a new one; everybody signs in again.",
       );
     }
 

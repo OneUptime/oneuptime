@@ -54,7 +54,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!TokenSigningKey.isWellFormedInstallationKey(key)) {
       throw new Error(
-        "The InstanceTokenSigningKey table holds no well-formed token signing key, so OneUptime will not start signing with it. Delete its row and restart every OneUptime app and worker to generate a new one (everybody signs in again), or set ENCRYPTION_SECRET to a long random value.",
+        "The InstanceTokenSigningKey table holds no well-formed token signing key, so OneUptime will not start signing with it. Delete its row and restart every OneUptime app and worker to generate a new one; everybody signs in again.",
       );
     }
 
