@@ -393,9 +393,14 @@
 <link rel="apple-touch-icon-precomposed" href="/img/favicons/apple-touch-icon.png">
 <link rel="image_src" type="image/png" href="/img/hou-wb.svg">
 
-<!-- Canonical URL -->
-<% const canonicalUrl = (typeof seo !== 'undefined' && seo.fullCanonicalUrl) ? seo.fullCanonicalUrl : (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com'); %>
-<link rel="canonical" href="<%= canonicalUrl %>">
+<!--
+    Canonical URL: only the page's own, from seo.fullCanonicalUrl. A page that
+    does not supply one gets no canonical tag; pointing it at the homepage would
+    mark the page as a copy of the homepage.
+-->
+<% if (typeof seo !== 'undefined' && seo.fullCanonicalUrl) { %>
+<link rel="canonical" href="<%= seo.fullCanonicalUrl %>">
+<% } %>
 
 <!-- Feed autodiscovery -->
 <% const feedBaseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.com').replace(/\/$/, ''); %>

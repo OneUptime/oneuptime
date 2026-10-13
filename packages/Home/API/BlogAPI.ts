@@ -15,6 +15,12 @@ import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 
 const app: ExpressApplication = Express.getExpressApp();
 
+/*
+ * Routes.ts imports this module before it registers the middleware that gives
+ * every other page its `seo` (and with it the canonical URL), so these routes
+ * never get one from there. Each page the blog renders passes its own.
+ */
+
 // create redirect for old blog post urls. This is to handle old blog post urls that are indexed by search engines.
 
 app.get(
@@ -56,6 +62,9 @@ app.get(
         requestDemoCta: false,
         blogPost: blogPost,
         enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo: {
+          fullCanonicalUrl: blogPost.blogUrl,
+        },
       });
     } catch (e) {
       logger.error(e);
@@ -209,6 +218,9 @@ app.get(
         start + pageSize,
       );
       const allTags: Array<string> = await BlogPostUtil.getTags();
+      const homeUrl: string = (await BlogPostUtil.getHomeUrl())
+        .toString()
+        .replace(/\/$/, "");
 
       res.render(`${ViewsPath}/Blog/ListByTag`, {
         support: false,
@@ -226,6 +238,10 @@ app.get(
         totalPosts: totalPosts,
         basePath: `/blog/tag/${tagSlug}`,
         enableGoogleTagManager: GoogleTagManagerEnabled,
+        // Every page of a tag points at its first page, as the main blog list does.
+        seo: {
+          fullCanonicalUrl: `${homeUrl}/blog/tag/${encodeURIComponent(tagSlug)}`,
+        },
       });
     } catch (e) {
       logger.error(e);
