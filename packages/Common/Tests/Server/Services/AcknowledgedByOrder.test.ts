@@ -46,6 +46,7 @@ import URL from "../../../Types/API/URL";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
+import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -706,6 +707,14 @@ describe("a responder acknowledging their page: on-call stops as for Acknowledge
 
 describe("Microsoft Teams leaves a record that is acknowledged already as it is", () => {
   let moves: StateMoves;
+  // What the bot sent back to the member who pressed, in order.
+  let replies: Array<unknown>;
+
+  // The colleague who got there first, and when.
+  const COLLEAGUE_ID: ObjectID = new ObjectID(
+    "0193c0de-5a7e-4fab-8bcd-2000000000b2",
+  );
+  const MOVED_AT: Date = new Date("2026-10-06T08:05:00.000Z");
 
   /*
    * A member who may acknowledge, as handleBotInvokeActivity hands every
@@ -740,7 +749,9 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
     kind: "incident" | "alert";
   }): Promise<unknown> {
     const turnContext: never = {
-      sendActivity: async (): Promise<void> => {},
+      sendActivity: async (activity: unknown): Promise<void> => {
+        replies.push(activity);
+      },
     } as never;
 
     try {
@@ -772,10 +783,73 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
     return null;
   }
 
+  /*
+   * The record's state timeline, as the answer to a press that came too
+   * late reads it: declared in Identified, then moved by a colleague
+   * straight into `stateId`, past any state on the way. The colleague is
+   * named in the answer.
+   */
+  function serveTimelineInto(stateId: string): void {
+    const changes: Array<{ stateId: string; startsAt: Date; by?: ObjectID }> = [
+      { stateId: IDENTIFIED, startsAt: DECLARED_AT },
+      { stateId: stateId, startsAt: MOVED_AT, by: COLLEAGUE_ID },
+    ];
+
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockImplementation((async (): Promise<Array<IncidentStateTimeline>> => {
+        return changes.map((change: (typeof changes)[number]) => {
+          const row: IncidentStateTimeline = new IncidentStateTimeline();
+          row.incidentStateId = new ObjectID(change.stateId);
+          row.startsAt = change.startsAt;
+          if (change.by) {
+            row.createdByUserId = change.by;
+          }
+          return row;
+        });
+      }) as never);
+    jest
+      .spyOn(AlertStateTimelineService, "findBy")
+      .mockImplementation((async (): Promise<Array<AlertStateTimeline>> => {
+        return changes.map((change: (typeof changes)[number]) => {
+          const row: AlertStateTimeline = new AlertStateTimeline();
+          row.alertStateId = new ObjectID(change.stateId);
+          row.startsAt = change.startsAt;
+          if (change.by) {
+            row.createdByUserId = change.by;
+          }
+          return row;
+        });
+      }) as never);
+
+    jest.spyOn(UserService, "findOneBy").mockImplementation((async (findOneBy: {
+      query: Record<string, unknown>;
+    }): Promise<User | null> => {
+      if (idOf(findOneBy.query) !== COLLEAGUE_ID.toString()) {
+        return null;
+      }
+
+      const colleague: User = new User();
+      colleague._id = COLLEAGUE_ID.toString();
+      colleague.name = new Name("Jane Doe");
+      return colleague;
+    }) as never);
+  }
+
+  // Each reply as the member's notification reads it: a card's summary.
+  function repliesAsRead(): Array<string> {
+    return replies.map((reply: unknown): string => {
+      return typeof reply === "string"
+        ? reply
+        : String((reply as JSONObject)["summary"]);
+    });
+  }
+
   beforeEach(() => {
     serveStates(IncidentStateService, IncidentState);
     serveStates(AlertStateService, AlertState);
     moves = watchStateMoves();
+    replies = [];
 
     // The project's plan, as the card's checks read it where a plan decides.
     jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
@@ -785,21 +859,26 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
   });
 
   test.each([
-    ["a state between Acknowledged and Resolved", INVESTIGATING],
-    ["the acknowledged state", ACKNOWLEDGED],
-    ["a state after Resolved", CLOSED],
+    [
+      "a state between Acknowledged and Resolved",
+      INVESTIGATING,
+      "acknowledged",
+    ],
+    ["the acknowledged state", ACKNOWLEDGED, "acknowledged"],
+    ["a state after Resolved", CLOSED, "resolved"],
   ])(
     "an incident in %s is not acknowledged again",
-    async (_label: string, stateId: string) => {
+    async (_label: string, stateId: string, standing: string) => {
       serveIncidentIn(stateId);
+      serveTimelineInto(stateId);
 
-      const refusal: unknown = await acknowledgeFromTeams({ kind: "incident" });
+      // A press that came too late is news, not an error.
+      expect(await acknowledgeFromTeams({ kind: "incident" })).toBeNull();
 
-      // handleBotInvokeActivity tells the member why, in these words.
-      expect(refusal).toBeInstanceOf(BadDataException);
-      expect((refusal as Error).message).toMatch(
-        /^Incident is already (acknowledged|resolved)\.$/,
-      );
+      // The member is told where it is already, and who took it there.
+      expect(repliesAsRead()).toEqual([
+        `Incident #17 was already ${standing} by Jane Doe`,
+      ]);
       expect(moves.incident).toEqual([]);
     },
   );
@@ -809,16 +888,19 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
 
     expect(await acknowledgeFromTeams({ kind: "incident" })).toBeNull();
 
+    expect(repliesAsRead()).toEqual(["✅ Incident acknowledged."]);
     expect(moves.incident).toEqual([ACKNOWLEDGED]);
   });
 
   test("an alert in a state between Acknowledged and Resolved is not moved back to Acknowledged", async () => {
     serveAlertIn(INVESTIGATING);
+    serveTimelineInto(INVESTIGATING);
 
-    const refusal: unknown = await acknowledgeFromTeams({ kind: "alert" });
+    expect(await acknowledgeFromTeams({ kind: "alert" })).toBeNull();
 
-    expect(refusal).toBeInstanceOf(BadDataException);
-    expect((refusal as Error).message).toBe("Alert is already acknowledged.");
+    expect(repliesAsRead()).toEqual([
+      "Alert was already acknowledged by Jane Doe",
+    ]);
     expect(moves.alert).toEqual([]);
   });
 
@@ -827,6 +909,7 @@ describe("Microsoft Teams leaves a record that is acknowledged already as it is"
 
     expect(await acknowledgeFromTeams({ kind: "alert" })).toBeNull();
 
+    expect(repliesAsRead()).toEqual(["✅ Alert acknowledged."]);
     expect(moves.alert).toEqual([ACKNOWLEDGED]);
   });
 });
