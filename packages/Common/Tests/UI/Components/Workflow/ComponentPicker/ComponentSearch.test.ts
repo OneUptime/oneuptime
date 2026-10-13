@@ -499,6 +499,13 @@ describe("hand-written steps and resources together", () => {
       "Send Message to Slack",
     );
     expect(titles(ACTIONS, "send a webhook")[0]).toBe("API Post (JSON)");
+    expect([...titles(ACTIONS, "smseagle")].sort()).toEqual([
+      "Make a Call via SMSEagle",
+      "Send SMS via SMSEagle",
+    ]);
+    expect(titles(ACTIONS, "send sms")[0]).toBe("Send SMS via SMSEagle");
+    expect(titles(ACTIONS, "phone call")[0]).toBe("Make a Call via SMSEagle");
+    expect(titles(ACTIONS, "tts")[0]).toBe("Make a Call via SMSEagle");
     expect(titles(ACTIONS, "resolve incident")[0]).toBe("Update One Incident");
     expect(titles(ACTIONS, "open an incident")[0]).toBe("Create One Incident");
 
