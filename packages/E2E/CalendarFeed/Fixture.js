@@ -45,8 +45,10 @@ import UserUtil from "Common/UI/Utils/User";
  *              minute ago, never read) | stale (made three days ago, never
  *              read) | disabled | regenerate (the stored link cannot be
  *              read) | truncated | rotated (a previous link is winding down)
- *              | warnings (HOST, HTTP and a private address) | empty (no
- *              link yet) | unsupported (an older API: 404) | error (500)
+ *              | warnings (HOST and HTTP_PROTOCOL) | private (HOST is a
+ *              private address) | empty (no
+ *              link yet) | unsupported (an older API: 404) | error (the
+ *              first read fails with a 500, Try again reads an active link)
  *   ?shared=   the schedule's or the project's shared link: active (default)
  *              | empty | disabled | regenerate
  *   ?role=     owner (default) | viewer (may read a shared link, not
@@ -194,7 +196,7 @@ function feedUrl(kind, token) {
  * for one of the scenarios above.
  */
 function personalStatus(name) {
-  if (name === "empty" || name === "unsupported" || name === "error") {
+  if (name === "empty" || name === "unsupported") {
     return absentStatus();
   }
 
@@ -289,6 +291,13 @@ function personalStatus(name) {
           "HTTP_PROTOCOL is http, so this link travels unencrypted. Anyone who can see the traffic can read the link and the shifts it serves; serve OneUptime over https to fix this.",
       });
       break;
+    case "private":
+      Object.assign(status, {
+        privateHost: "oneuptime.internal",
+        lastFetchedAt: ago(20 * MINUTE),
+        lastFetchedClient: "Apple Calendar",
+      });
+      break;
     default:
       break;
   }
@@ -364,6 +373,8 @@ const state = {
   requests: [],
   // Every text the page put on the clipboard.
   copied: [],
+  // How many status reads still fail before one answers.
+  failuresLeft: scenario === "error" ? 1 : 0,
 };
 
 window.__calendarFeedFixture = {
@@ -454,7 +465,9 @@ function answer(path) {
     if (scenario === "unsupported") {
       return new HTTPErrorResponse(404, { message: "Not found" }, {});
     }
-    if (scenario === "error") {
+    // ?state=error: the first read fails; Try again reads an active link.
+    if (state.failuresLeft > 0) {
+      state.failuresLeft--;
       return new HTTPErrorResponse(
         500,
         { message: "The calendar feed service is not responding." },
