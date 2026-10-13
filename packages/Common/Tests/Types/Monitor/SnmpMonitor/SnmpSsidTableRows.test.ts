@@ -496,6 +496,8 @@ describe("the templates walk what the rules read", () => {
       ),
     ).toMatchObject({
       name: "Service Type",
+      // A kind of service: shown by its label, never charted.
+      valueType: SnmpTableValueType.Text,
       valueLabels: {
         "0": "standard",
         "3": "WDS",
@@ -504,6 +506,17 @@ describe("the templates walk what the rules read", () => {
         "6": "mesh",
       },
     });
+
+    // The agent hands the enumeration over as a number; it reads as its label, no number.
+    expect(
+      SnmpTableListUtil.buildCell(
+        column(
+          ssidTable("extreme-wireless-controller"),
+          EXTREME_WLAN_SERVICE_TYPE_OID,
+        ),
+        5,
+      ),
+    ).toEqual({ raw: 5, display: "remote" });
   });
 
   it.each(["ubiquiti-unifi-ap", "extreme-wireless-controller"])(

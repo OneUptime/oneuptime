@@ -1760,7 +1760,8 @@ const EXTREME_WIRELESS_CONTROLLER: SnmpVendorTemplate = {
           oid: "1.3.6.1.4.1.4329.15.3.3.4.4.1.3",
           name: "Service Type",
           description:
-            "wlanServiceType - standard, third-party or remote. WDS (3) and mesh (6) services are left out.",
+            "wlanServiceType - standard, third-party or remote. WDS (3) and mesh (6) services are left out. Text: a kind of service, not a number to chart.",
+          valueType: SnmpTableValueType.Text,
           valueLabels: {
             "0": "standard",
             "3": "WDS",
