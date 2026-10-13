@@ -147,7 +147,7 @@ Do que o bloco precisa, e quanto ele custa:
 
 - **Habilitar IA** precisa estar ligado, em **Configurações do projeto → IA → AI Features**. No OneUptime Cloud, o projeto também precisa do plano Growth ou superior e de uma assinatura paga. Instalações self-hosted sem cobrança não têm restrição de plano.
 - As chamadas por um provedor global pago usam os créditos de IA do projeto.
-- Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#the-projects-own-daily-limits), quando um proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Error** sem contatar o modelo, até a meia-noite UTC.
+- Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#os-limites-diários-do-próprio-projeto), quando um proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Error** sem contatar o modelo, até a meia-noite UTC.
 
 | Limite                                                       | Valor                                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |

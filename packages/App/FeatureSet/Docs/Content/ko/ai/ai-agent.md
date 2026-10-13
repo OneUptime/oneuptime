@@ -1,34 +1,90 @@
-# AI Fix Tasks — Fix Exceptions with a Pull Request
+# 수정 작업
 
-<!-- TODO(i18n): Translate this page. English source: en/ai/ai-agent.md (rewritten for the v12 Runner merge; the previous translation described the retired standalone AI Agent). -->
+수정 작업은 OneUptime AI가 여러분의 코드에 작성하는 풀 리퀘스트입니다. 예외, 트레이스, 서비스 또는 조사에서 시작하거나, OneUptime이 스스로 시작합니다. [Runner](/docs/runbooks/agents)가 저장소를 복제하고, 새 브랜치에 변경을 작성하고, 빌드하고 테스트한 뒤 풀 리퀘스트를 엽니다. 모든 풀 리퀘스트는 사람이 검토하고 병합합니다. Runner는 브랜치를 푸시하고 풀 리퀘스트를 여는 것 외에는 아무것도 할 수 없습니다.
 
-OneUptime AI turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with AI**: a [Runner](/docs/runbooks/agents) picks the task up, reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
+:::cards
+- [수정 실행의 흐름](#수정-실행의-흐름): 클릭부터 풀 리퀘스트까지 단계별로 설명합니다.
+- [수정 작업이 시작되는 곳](#수정-작업이-시작되는-곳): 작업을 시작하는 버튼과 각 풀 리퀘스트가 하는 일입니다.
+- [시작하기 전에](#시작하기-전에): 모델, 연결된 저장소, Runner가 필요합니다.
+- [수정이 실패할 때](#수정이-실패할-때): 오류가 나거나, 멈추거나, 기다리는 실행이 어떻게 되는지 설명합니다.
+:::
 
-Every pull request is reviewed and merged by a human. The Runner never merges its own changes — it can push branches and open PRs, nothing more.
+> [!TIP]
+> GitHub에서 시작할 수도 있습니다. 이슈나 풀 리퀘스트에서 OneUptime GitHub App을 멘션하면 그 자리에서 구현하거나, 수정하거나, 리뷰합니다. [GitHub App](/docs/ai/github-app)을 참조하세요. 같은 에이전트, 같은 Runner, 같은 예산을 쓰며 트리거만 다릅니다.
 
-> **You can also start this from GitHub itself.** Mention the OneUptime GitHub App on an issue or a pull request and it will implement, revise or review right there — see [Working with OneUptime from GitHub](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
+## 수정 실행의 흐름
 
-## How a fix run works
+```mermaid title="클릭부터 풀 리퀘스트까지"
+flowchart TB
+    S["Fix with AI 또는<br/>자동 트리거"] --> Q["수정 작업이<br/>대기열에 들어감"]
+    Q --> R["AI 코드 수정을 실행하는<br/>Runner가 가져감"]
+    R --> C["저장소를 복제하고<br/>브랜치를 만듦"]
+    C --> A["코드 에이전트가<br/>변경을 작성"]
+    A --> V["설정·빌드·테스트<br/>명령이 확인"]
+    V -->|"실패"| A
+    V --> P["커밋, 푸시 후<br/>풀 리퀘스트 열기"]
+    P --> H["사람이 검토하고<br/>병합함"]
+```
 
-1. You click **Fix with AI** on an unresolved exception.
-2. A fix task is created and picked up by an available Runner with the **Runs AI Code Fixes** capability.
-3. The Runner fetches the exception details — exception type, error message, and stack trace.
-4. It clones the linked repository into an ephemeral workspace and creates a branch (named `oneuptime-fix-exception-` followed by the first characters of the run id).
-5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The LLM calls are executed by the OneUptime server — the Runner container never holds your provider's API key — and every call is metered and logged in the AI logs.
-6. The Runner commits, pushes the branch, opens a pull request, and deletes the workspace.
+1. 해결되지 않은 예외에서 **Fix with AI** 를 클릭하거나, 다른 버튼이나 트리거가 작업을 시작합니다([수정 작업이 시작되는 곳](#수정-작업이-시작되는-곳) 참조).
+2. 작업이 대기열에 들어가고, **AI 코드 수정 실행** 이 켜진 사용 가능한 Runner가 작업을 가져갑니다.
+3. Runner가 작업의 컨텍스트를 가져옵니다. 예외의 경우 유형, 메시지, 스택 트레이스입니다.
+4. 저장소를 자체 작업 공간에 복제하고 브랜치를 만듭니다. 예외 수정 브랜치의 이름은 `oneuptime-fix-exception-` 뒤에 실행 ID의 앞 글자들이 붙은 것입니다.
+5. 프로젝트의 LLM 공급자로 동작하는 코드 에이전트가 코드를 읽고 변경을 작성합니다. LLM 호출은 OneUptime 서버가 하므로 Runner는 공급자의 API 키를 절대 갖지 않으며, 모든 호출은 측정되어 AI 로그에 표시됩니다.
+6. 저장소에 검증 명령이 있으면 Runner는 무엇이든 커밋하기 전에 변경을 빌드하고 테스트하며, 실패를 코드 에이전트에 돌려보내 고치게 합니다([풀 리퀘스트 전 검증](#풀-리퀘스트-전-검증) 참조).
+7. Runner가 커밋하고, 브랜치를 푸시하고, 풀 리퀘스트를 연 뒤 작업 공간을 삭제합니다.
 
-The exception page shows the task's live status. The task's detail page (under **AI** > **Tasks**) keeps the full run log — including a line for every file the Runner read or wrote and every command it ran — and links to every pull request the task opened.
+작업을 시작한 페이지에 실시간 상태가 표시됩니다. 모든 작업은 **제품 → 코드 → 작업** 에 나열됩니다. 작업을 열면 **개요**, **로그**(Runner가 읽거나 쓴 모든 파일과 실행한 모든 명령마다 한 줄), **풀 리퀘스트** 를 볼 수 있습니다.
 
-Each fix run is capped by server-enforced loop budgets: at most **40 LLM calls** and **100,000 output tokens** per run. A run that hits its budget finishes with a summary of the work done so far instead of looping forever. Fix runs also count against the project's daily autonomous AI token budget, if one is set.
+각 실행은 서버가 강제하는 예산 안에서 동작합니다. 최대 **LLM 호출 40회** 와 **출력 토큰 100,000개** 입니다. 둘 중 하나에 도달한 실행은 반복하는 대신 그때까지의 작업 요약으로 끝납니다. 프로젝트가 일일 AI 한도를 설정한 경우 수정 실행도 그 한도에 포함됩니다.
 
-## Prerequisites
+## 수정 작업이 시작되는 곳
 
-Three things must be in place before a fix task can run. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
+| 위치 | 클릭 | 풀 리퀘스트 |
+| --- | --- | --- |
+| 예외의 **AI Assistance** 페이지 | **Fix with AI** | 예외의 원인인 버그를 수정합니다. |
+| 예외의 **AI Assistance** 페이지 | **Generate Regression Test** | 예외를 재현하고 버그가 수정될 때까지 실패하는 테스트를 추가합니다. |
+| 예외의 **AI Assistance** 페이지 | **Improve Error Handling** | 잘못된 입력처럼 예상된 오류에 대해, 메시지에서 사용자 데이터를 빼고, 입력을 더 일찍 검증하고, 오류를 처리됨으로 표시합니다. 동작은 바꾸지 않습니다. |
+| 인시던트나 경고의 **AI Investigation** 카드 | **Open Fix PR from this analysis** | 조사가 게시한 근본 원인을 수정합니다([조사에서 시작되는 자동 코드 수정](#조사에서-시작되는-자동-코드-수정) 참조). |
+| 트레이스 | **Fix performance with AI** | N+1 쿼리나 지배적인 느린 스팬 하나처럼 트레이스에서 찾은 느린 패턴을 수정합니다. |
+| 서비스의 **로그** 페이지 | **Improve Logging** | 동작을 바꾸지 않고, 서비스의 로그를 구조화하고, 알맞은 심각도로 맞추고, 트레이스와 연결합니다. |
+| 서비스의 **트레이스** 페이지 | **Improve Tracing** | 동작을 바꾸지 않고, 서비스의 트레이싱이 빠진 곳에 스팬과 속성을 추가합니다. |
 
-### 1. An LLM provider
+예외의 **AI Assistance** 페이지를 열려면 **제품 → 관측 가능성 → 예외** 에서 예외를 열고 사이드 메뉴에서 **AI Assistance** 를 선택합니다. 해결되었거나 보관된 예외는 먼저 미해결로 표시해야 합니다.
 
-- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Project Settings** > **AI** > **LLM Providers** — a project-owned provider always takes precedence.
-- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a self-hosted Ollama:
+OneUptime AI는 스스로 수정 작업을 시작하기도 합니다. 코드 변경을 찾은 조사, 텔레메트리가 없어 결론 없이 끝난 조사, 그리고 예외와 느린 트레이스에 대한 AI Insights에서 시작합니다. 각각 자체 스위치가 있습니다. [자동 코드 수정](/docs/ai/ai-sre#자동-코드-수정)을 참조하세요.
+
+## 풀 리퀘스트 전 검증
+
+코드 저장소는 **설정** 페이지의 **코드 저장소** 에서 최대 세 개의 검증 명령을 가질 수 있습니다.
+
+| 명령 | 예 | 실행 시점 |
+| --- | --- | --- |
+| **Setup Command** | `npm ci` | 맨 처음, 의존성을 설치하기 위해. |
+| **Build Command** | `npm run build` | 설정 다음. |
+| **Test Command** | `npm test` | 마지막. |
+
+하나라도 설정되어 있으면, 모든 수정 실행은 풀 리퀘스트를 열기 전에 변경을 확인합니다.
+
+1. 코드 에이전트가 끝나면 명령이 저장소 루트에서, Runner 위의 복제된 작업 공간 안에서 순서대로 실행됩니다. 각 명령에는 최대 15분이 주어지고 `CI=true` 로 실행되므로 어떤 것도 입력을 기다리지 않습니다. 첫 번째 실패에서 그 회차가 멈춥니다.
+2. 실패하면 실패한 명령 출력의 끝부분이 수리 작업으로 같은 코드 에이전트에 돌아가며, 테스트를 약하게 하거나 건너뛰지 말고 자기 변경을 고치라는 지시가 함께 전달되고, 명령이 다시 실행됩니다. 수리 시도는 최대 **2** 번입니다. 수리 시도는 실행의 LLM 예산을 공유하고, 그 수정 내용은 수정과 같은 커밋에 들어갑니다.
+3. 결과(통과, 실패, 또는 설정된 명령이 없어 건너뜀)는 풀 리퀘스트 설명의 Verification 섹션에 기록되고 작업의 풀 리퀘스트에 저장됩니다.
+
+검증을 여전히 통과하지 못한 변경도 버려지지 않습니다. 풀 리퀘스트는 그래도 열리며, 실패한 명령을 밝히고 그 출력으로 끝나는 눈에 띄는 "Verification failed" 섹션이 붙습니다. 작업은 남고, 결정은 리뷰어가 합니다. 명령이 설정되지 않은 저장소는 빌드가 통과한 것처럼 보이게 하지 않고 건너뜀으로 보고됩니다.
+
+명령은 팀이 작성하는 저장소 설정이며 여러분의 Runner에서 실행됩니다. 런북의 Bash 단계와 같은 신뢰 모델입니다. AI는 명령을 작성하거나 바꾸지 않습니다.
+
+## 시작하기 전에
+
+수정 작업에는 세 가지가 필요합니다. 예외의 **AI Assistance** 페이지는 시작을 제안하기 전에 세 가지를 모두 확인하고, 무엇이 빠졌는지 알려 줍니다.
+
+| 필요한 것 | OneUptime Cloud | 자체 호스팅 |
+| --- | --- | --- |
+| LLM 공급자 | 설정할 것이 없습니다. 자체 공급자가 없는 프로젝트는 전역 공급자를 사용하며, 비용은 프로젝트의 AI 크레딧에서 지불됩니다. **프로젝트 설정 → AI → LLM 공급자** 에 추가한 자체 공급자가 우선합니다. | 서버에 `GLOBAL_LLM_PROVIDER_*` 환경 변수를 한 번 설정하거나, 프로젝트에 공급자를 추가합니다. |
+| GitHub App으로 연결된 저장소 | **제품 → 코드 → 작업**, 그다음 **코드 저장소** 와 **Connect with GitHub App**. Growth 플랜이 필요합니다. | 인스턴스에 GitHub App이 있으면 동일합니다([GitHub 연동](/docs/self-hosted/github-integration) 참조). |
+| AI 코드 수정을 실행하는 Runner | 운영할 것이 없습니다. OneUptime의 공유 Runner가 처리합니다. | Docker Compose의 `runner` 서비스나 Helm 차트의 Runner(`runner.enabled`, 기본값 켜짐)가 스스로 등록하고 AI 코드 수정을 실행합니다. |
+
+자체 호스팅 인스턴스에서 전역 공급자는 `config.env`(Docker Compose) 또는 Helm 값의 블록 하나입니다. 자체 호스팅 Ollama의 경우:
 
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
@@ -38,22 +94,18 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
 ```
 
-Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for all providers and the full list of environment variables.
+지원되는 모든 공급자가 동작합니다. 모든 공급자와 각 환경 변수는 [LLM 공급자](/docs/ai/llm-provider)를 참조하세요.
 
-### 2. GitHub connected through the GitHub App
+저장소를 서비스에 매핑하지 않아도 됩니다. 작업이 시작되면 OneUptime은 예외 스택 트레이스의 파일 경로를 연결된 저장소와 맞춰 보며 저장소를 찾습니다. 일치하는 것이 없으면 서비스와 같은 이름의 저장소로, 그다음 저장소가 하나뿐일 때는 프로젝트의 유일한 저장소로 대체합니다. **AI Assistance** 페이지에 찾은 저장소가 표시됩니다.
 
-Connect GitHub under **Code Repositories** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the Runner can push through (GitLab is on the roadmap).
+### 자체 Runner 실행하기
 
-You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved.
+Runner를 다른 곳, 예를 들어 저장소와 가까운 머신에서 실행하려면:
 
-### 3. A Runner with AI code fixes enabled
+:::steps
+### Runner 만들기
 
-- **OneUptime Cloud**: the shared Runner fleet is available automatically — there is nothing to run.
-- **Self-hosted**: the Runner container runs by default — the Docker Compose install includes the `runner` service, and the Helm chart deploys it (`runner.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and works on AI code fixes out of the box. The Runner idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
-
-To run an additional Runner elsewhere (for example on a machine closer to your repositories):
-
-1. Create a Runner under **Runbooks** > **Runners** and use **Show setup instructions** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
+**런북 → Runbook 에이전트** 에서 Runner를 만들고 해당 행의 **설정 지침 표시** 를 클릭합니다. 명령에는 Runner의 비밀 키가 들어 있으며, 이 키는 Project Owner, Project Admin 또는 Runbook Admin만 읽을 수 있습니다. 다음과 같은 형태입니다:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -63,34 +115,68 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-2. Enable **Runs AI Code Fixes** on the Runner — the capability is off by default, and the Runner adopts the change on its next heartbeat (about a minute); no restart needed.
+### AI 코드 수정 켜기
 
-Any way of running the container works (Docker Compose, Kubernetes, and so on) as long as these environment variables are set and the container can reach your OneUptime instance over HTTPS:
+Runner에서 **AI 코드 수정 실행** 을 켭니다. 기본값은 꺼짐이며, Runner는 다음 heartbeat에서 약 1분 안에 변경을 반영합니다. 다시 시작할 것은 없습니다.
 
-| Variable               | Description                                                    |
-| ---------------------- | -------------------------------------------------------------- |
-| `ONEUPTIME_RUNNER_ID`  | The Runner id from the dashboard                               |
-| `ONEUPTIME_RUNNER_KEY` | The Runner key shown when the Runner was created               |
-| `ONEUPTIME_URL`        | Your OneUptime instance URL (`https://oneuptime.com` on Cloud) |
+### 연결 확인하기
 
-The Runner shows as connected on the **Runbooks** > **Runners** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
+Runner는 1~2분 안에 **런북 → Runbook 에이전트** 페이지에 연결됨으로 표시됩니다. 그렇지 않으면 컨테이너 로그(`docker logs oneuptime-runner`)에서 자격 증명이나 네트워크 오류를 확인하세요.
+:::
 
-> Before OneUptime 12, AI code fixes ran on a separate **AI Agent** component (the `oneuptime/ai-agent` image with `AI_AGENT_*` variables). That component merged into the Runner — if you still run one, see the [v11 → v12 upgrade guide](/docs/installation/upgrading) for how to replace it.
+컨테이너를 실행하는 방법은 무엇이든 됩니다(Docker Compose, Kubernetes 등). 이 변수들이 있고 HTTPS로 OneUptime 인스턴스에 도달할 수 있으면 됩니다:
 
-## When a fix fails
+| 변수 | 의미 |
+| --- | --- |
+| `ONEUPTIME_RUNNER_ID` | 대시보드에서 확인하는 Runner의 ID. |
+| `ONEUPTIME_RUNNER_KEY` | Runner의 비밀 키. |
+| `ONEUPTIME_URL` | OneUptime 인스턴스의 주소(OneUptime Cloud에서는 `https://oneuptime.com`). |
 
-- **The run errors** (the fix could not be applied, the repository was unreachable, the LLM call failed): the task's error is shown on the exception page with the reason, and you can retry the fix from there. The full run log is on the task's detail page.
-- **The Runner crashes mid-run**: a run whose heartbeat goes stale for more than about ten minutes is failed with an error. It is never requeued automatically — the Runner may already have pushed a partial fix branch — but you can retry the fix from the exception page.
-- **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Runs AI Code Fixes** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
+> [!NOTE]
+> OneUptime 12 이전에는 AI 코드 수정이 별도의 AI Agent 구성 요소(`AI_AGENT_*` 변수를 쓰는 `oneuptime/ai-agent` 이미지)에서 실행되었습니다. 이 구성 요소는 Runner에 합쳐졌습니다. 아직 실행 중이라면 [v11에서 v12로 업그레이드 가이드](/docs/installation/upgrading)에서 교체 방법을 확인하세요.
 
-## Privacy
+## 조사에서 시작되는 자동 코드 수정
 
-The repository clone lives in an ephemeral workspace inside the Runner container and is deleted when the run finishes, whether it succeeded or failed. The Runner container never holds your LLM provider's API key — LLM calls are executed by the OneUptime server on the Runner's behalf. OneUptime does not retain your repository and does not train on your code; the task's run log keeps a short preview of each step's output (a few hundred characters) so you can audit what the Runner did, and those previews can include code snippets. Run a self-hosted Runner with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
+[AI 조사](/docs/ai/ai-sre)가 인시던트나 경고에 근본 원인 분석을 게시하고, 그 신중한 분류가 코드 변경을 권하면, 조사 카드에 **Open Fix PR from this analysis** 가 나타납니다. 게시된 분석 전체를 컨텍스트로 하는 수정 작업입니다. 해결책이 운영상의 것, 인프라에만 해당하는 것, 외부의 것, 예상된 거부, 사용자 오류, 또는 결론이 없는 경우 이 버튼은 숨겨집니다. 스위치 **조사에서 코드 변경이 발견되면 수정 풀 리퀘스트 열기** 가 켜져 있는 동안에는 해당하는 수정이 클릭 없이 이루어집니다. 이 스위치는 수정의 일부입니다. **인시던트 → AI → 설정** 의 **새 인시던트 자동 수정** 아래(그리고 **경고 → AI → 설정** 의 **새 경고 자동 수정** 아래)에 있으며, 수정을 켜면 함께 켜지고, 수정이 켜져 있는 동안에만 풀 리퀘스트를 엽니다. 둘 다 처음에는 꺼져 있으며, 새 프로젝트도 마찬가지입니다.
 
-## On the roadmap
+이 스위치가 켜져 있는 동안, 코드 변경으로 고칠 수 있는 확실하고 근거 있는 근본 원인으로 끝난 조사는 버튼이 만드는 것과 같은 수정 작업을 대기열에 넣습니다. 이 결정은 서버가 확인하는 제한된 분류이며, 분석 텍스트에 패턴을 맞추는 방식이 아닙니다. 코드 수정에 대한 긍정적인 판정만 풀 리퀘스트를 엽니다. 근거 부족, 코드 밖의 해결책, 분류 실패는 모두 아무것도 하지 않고 끝납니다.
 
-Planned, but **not available today**:
+나머지는 모두 버튼과 같습니다:
 
-- **GitLab support** — repository connections are currently GitHub App only.
-- **Richer telemetry context** — feeding related traces, logs, and metrics around the exception into the fix, beyond the stack trace.
-- **Verification loop** — building the project and running its tests against the fix before the pull request is opened.
+- 풀 리퀘스트는 게시된 분석을 바탕으로 작성되어 검토 준비 상태로 열리며, GitHub App으로 연결된 저장소와 **AI 코드 수정 실행** 이 켜진 Runner가 필요합니다.
+- 해당 신호의 일일 수정 작업 한도(**Daily Incident AI Fix Task Limit** 또는 **Daily Alert AI Fix Task Limit**, AI 설정 페이지의 **추가 설정** 아래)와 저장소의 열린 풀 리퀘스트 상한에, 둘 중 하나가 설정되어 있으면 포함됩니다. 설정하지 않으면 둘 다 아무것도 제한하지 않습니다.
+- 모든 트리거는 먼저 같은 인시던트나 경고에 대해 이미 대기 중이거나 실행 중인 수정 작업을 찾으므로, 자동 트리거와 클릭은 보통 두 개의 풀 리퀘스트가 아니라 하나의 작업이 됩니다. 이 확인은 잠금이 아니라 쓰기 전의 읽기이므로, 정확히 같은 순간의 두 트리거가 모두 통과할 수도 있습니다.
+- 실행은 시스템이 작성하며, 누구의 공으로도 돌아가지 않고, 아무것도 스스로 병합되지 않습니다.
+
+## 수정이 실패할 때
+
+:::details 실행에 오류가 남
+수정을 적용할 수 없었거나, 저장소에 연결할 수 없었거나, LLM 호출이 실패했습니다. 작업을 시작한 페이지에 이유가 표시되고 다시 시도하도록 제안합니다. 작업의 **로그** 페이지에 전체 실행 로그가 있습니다.
+:::
+
+:::details Runner가 실행 도중에 멈춤
+heartbeat가 12분 넘게 조용한 실행은 오류와 함께 실패 처리됩니다. Runner가 이미 수정 브랜치의 일부를 푸시했을 수 있으므로 스스로 다시 대기열에 들어가지 않습니다. 시작했던 곳에서 다시 시작하세요.
+:::
+
+:::details 어떤 Runner도 작업을 가져가지 않음
+**AI 코드 수정 실행** 이 켜진 Runner가 하나도 연결되지 않은 상태로 30분 넘게 기다린 작업은 Runner를 확인하라는 메시지와 함께 실패하므로, 영원히 진행 중으로 표시되지 않습니다. Runner가 온라인이지만 바쁜 경우, 대기열의 작업은 차례를 기다립니다.
+:::
+
+## 개인정보 보호
+
+저장소의 복제본은 Runner 컨테이너 안의 작업 공간에 있으며, 실행이 끝나면 성공 여부와 관계없이 삭제됩니다. Runner는 LLM 공급자의 API 키를 절대 갖지 않으며, OneUptime 서버가 대신 LLM 호출을 합니다. OneUptime은 저장소를 보관하지 않으며 여러분의 코드로 학습하지 않습니다. 작업 로그는 각 단계 출력의 처음 300자를 보관하므로 Runner가 한 일을 확인할 수 있으며, 여기에는 코드 일부가 포함될 수 있습니다. 자체 LLM 공급자(로컬 Ollama 포함)와 함께 자체 호스팅 Runner를 실행하면 코드가 인프라 밖으로 나가지 않습니다.
+
+## 로드맵
+
+계획되어 있으며 **아직 사용할 수 없습니다**:
+
+- **GitLab 지원.** 저장소는 GitHub App으로만 연결됩니다.
+- **수정에 더 많은 텔레메트리.** 스택 트레이스를 넘어, 예외 주변의 트레이스, 로그, 메트릭을 수정에 반영합니다.
+
+## 다음 단계
+
+:::cards
+- [GitHub App](/docs/ai/github-app): GitHub에서 바로 변경, 수정, 리뷰를 요청합니다.
+- [AI SRE](/docs/ai/ai-sre): 수정 작업이 그 분석을 풀 리퀘스트로 바꿀 수 있는 조사입니다.
+- [Runbook 에이전트](/docs/runbooks/agents): 모든 수정 실행을 수행하는 워커입니다.
+:::

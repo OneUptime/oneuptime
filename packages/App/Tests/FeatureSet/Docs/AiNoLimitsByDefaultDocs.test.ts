@@ -1,3 +1,5 @@
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { drawnPath } from "./DocsProductsMenu";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   PACKAGES_ROOT,
@@ -243,6 +245,7 @@ const REMOVED_MENU_PATTERNS: ReadonlyArray<RegExp> = [
 interface AiSrePage {
   file: string;
   costControlsHeading: string;
+  // Where the cost controls are set, as the section above the table says it.
   where: string;
   // Where the page says auto-remediation rules are.
   remediation: string;
@@ -266,9 +269,9 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
   en: {
     file: path.join(CONTENT_DIR, "en/ai/ai-sre.md"),
     costControlsHeading: "## Cost controls",
-    where: "Incidents or Alerts > AI > Settings",
+    where: "on **Incidents → AI → Settings** and **Alerts → AI → Settings**",
     remediation:
-      "the auto remediation rules under **More settings** on **Incidents > AI > Settings** and **Alerts > AI > Settings**",
+      "the auto remediation rules under **More settings** on **Incidents → AI → Settings** and **Alerts → AI → Settings**",
     oldDefaults: [
       "top two severity tiers",
       "Default **30 minutes**",
@@ -315,9 +318,10 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
   fa: {
     file: path.join(CONTENT_DIR, "fa/ai/ai-sre.md"),
     costControlsHeading: "## کنترل‌های هزینه",
-    where: "Incidents یا Alerts > AI > Settings",
+    where:
+      "در **حوادث** > **هوش مصنوعی** > **تنظیمات** و **هشدارها** > **هوش مصنوعی** > **تنظیمات**",
     remediation:
-      "زیر **More settings** در **Incidents > AI > Settings** و **Alerts > AI > Settings**",
+      "زیر **تنظیمات بیشتر** در **حوادث** > **هوش مصنوعی** > **تنظیمات** و **هشدارها** > **هوش مصنوعی** > **تنظیمات**",
     oldDefaults: [
       "دو رده شدت بالای",
       "پیش‌فرض **۳۰ دقیقه**",
@@ -826,8 +830,12 @@ describe("AI has no limits by default", () => {
 
         expect({
           language: language,
-          incidents: markdown.includes("**Incidents > AI > Settings**"),
-          alerts: markdown.includes("**Alerts > AI > Settings**"),
+          incidents: markdown.includes(
+            drawnPath(language, ["Incidents", "AI", "Settings"]),
+          ),
+          alerts: markdown.includes(
+            drawnPath(language, ["Alerts", "AI", "Settings"]),
+          ),
           remediation: markdown.includes(page.remediation),
           removed: removedPathsIn(markdown),
         }).toEqual({
@@ -848,16 +856,16 @@ describe("AI has no limits by default", () => {
         expect({
           language: language,
           named: [
-            "**Incidents > AI > Insights**",
-            "**Alerts > AI > Insights**",
-            "**Incidents > AI > Logs**",
-            "**Alerts > AI > Logs**",
-            "**Load older entries**",
+            drawnPath(language, ["Incidents", "AI", "Insights"]),
+            drawnPath(language, ["Alerts", "AI", "Insights"]),
+            drawnPath(language, ["Incidents", "AI", "Logs"]),
+            drawnPath(language, ["Alerts", "AI", "Logs"]),
+            `**${drawnDashboardLabel(language, "Load older entries")}**`,
             "`…/settings/ai`",
             "`…/settings/auto-remediation-rules`",
             "`…/ai/auto-remediation-rules`",
-            "**AI > Settings**",
-            "**More settings**",
+            drawnPath(language, ["AI", "Settings"]),
+            `**${drawnDashboardLabel(language, "More settings")}**`,
           ].filter((name: string): boolean => {
             return !markdown.includes(name);
           }),
@@ -868,24 +876,31 @@ describe("AI has no limits by default", () => {
     it("says in the cost controls that no limit applies until it is set, and where each is set", () => {
       for (const language of Object.keys(AI_SRE_PAGES)) {
         const page: AiSrePage = AI_SRE_PAGES[language] as AiSrePage;
-        const rows: Array<Array<string>> = tableRows(
-          getSection(read(page.file), page.costControlsHeading),
-        )
+        const section: string = getSection(
+          read(page.file),
+          page.costControlsHeading,
+        );
+        const rows: Array<Array<string>> = tableRows(section)
           .slice(2)
           .map(cells);
 
+        /*
+         * The section names the two pages once, above the table, rather
+         * than in a column of every row.
+         */
         expect({
           language: language,
           controls: rows.map((row: Array<string>): string => {
             return row[0] || "";
           }),
-          where: Array.from(
+          columns: Array.from(
             new Set(
-              rows.map((row: Array<string>): string => {
-                return row[2] || "";
+              rows.map((row: Array<string>): number => {
+                return row.length;
               }),
             ),
           ),
+          where: flat(section).includes(page.where),
         }).toEqual({
           language: language,
           controls: page.rows.map(
@@ -893,7 +908,8 @@ describe("AI has no limits by default", () => {
               return row.name;
             },
           ),
-          where: [page.where],
+          columns: [2],
+          where: true,
         });
 
         for (const expected of page.rows) {
@@ -948,6 +964,11 @@ describe("AI has no limits by default", () => {
       }
 
       for (const kept of [
+        "**Incidents → AI → Settings**",
+        "**Alerts → AI → Insights**",
+        "on the incident AI settings page (**Incidents → AI → Settings**)",
+        "**Enable AI**, on **Project Settings → AI → AI Features**",
+        "**Products → AI → Insights → Settings**",
         "**Incidents > AI > Settings**",
         "**Alerts > AI > Insights**",
         "on the incident AI settings page (Incidents > AI > Settings)",

@@ -236,7 +236,7 @@ AI エージェントの Ceph クライアントを作成した場合は、管�
 
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってこのクラスターのインシデントやアラートを調査し、クラスターの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、エージェントを省きます。
 - **専用の Ceph クライアントが越えられない上限です**。`client.oneuptime-ai` として接続し、クラスターの最小限の `ceph.conf` とそのクライアントのキーリングを `docker-compose.yml` の横の `ceph/` フォルダーに置きます (`/etc/ceph` に読み取り専用でマウント)。読み取りの caps しかなければ、実行するものがクラスターを変更することはありません。新規インストールでは `install.sh` がクライアントの作成を提案しますが、再実行時には作成しません。admin のキーリングは決してそのフォルダーに置かないでください。
-- `ONEUPTIME_AI_ALLOW_WRITES=true` を設定し、修正に必要な caps をクライアントに与えない限り **読み取り専用** です (必要な caps はエージェントの README に記載)。`ONEUPTIME_AI_WRITE_TARGETS` (例: `osd.*,cluster`) で修正が触れてよい範囲を制限します。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する AI に許可する操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))。
+- `ONEUPTIME_AI_ALLOW_WRITES=true` を設定し、修正に必要な caps をクライアントに与えない限り **読み取り専用** です (必要な caps はエージェントの README に記載)。`ONEUPTIME_AI_WRITE_TARGETS` (例: `osd.*,cluster`) で修正が触れてよい範囲を制限します。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
 - モニター (TCP 3300 と 6789) と mgr および OSD デーモン (TCP 6800–7300) に外向きに接続し、UID 1000 で capabilities なしで動作し、`auth`、`config-key`、`tell` やデータを削除するものは一切実行しません。OneUptime AI を使わない場合は、`docker-compose.yml` から `oneuptime-ceph-ai-agent` サービスを削除してください。
 
 クライアントを手動で作成するには、Ceph の管理ノードのエージェントのフォルダーで次を実行します (エージェントのマシンが別の場合は、2 つのファイルをそのマシンの `ceph/` フォルダーにコピーします):
@@ -250,7 +250,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters)。
+実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-クラスター)。
 
 ## トラブルシューティング
 

@@ -273,7 +273,7 @@ describe("AI SRE (English)", () => {
 
   test("the global provider needs AI credits, which an owner or Manage Billing adds", () => {
     expect(page).toContain(
-      "so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**, where **Auto Recharge** keeps them from running out.",
+      "so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**, where **Auto Recharge** keeps them from running out.",
     );
   });
 

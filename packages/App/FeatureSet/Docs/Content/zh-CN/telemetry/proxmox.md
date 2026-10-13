@@ -328,11 +328,11 @@ docker compose down
 
 - **AI 调查默认开启。** 代理连接后，OneUptime AI 会用它来调查该集群上的事件和警报，集群的 **概览** 会显示代理的状态。要停止，请在代理运行的位置设置 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理页面上 **AI 可以执行的操作** 下的 **更改** 会显示方法），或者不安装代理。
 - API 令牌是硬性限制。调查使用 Collector 的 PVEAuditor 令牌（`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`），它只能读取，不能做其他任何事；如果你运行自己的导出器而 `.env` 中没有令牌，请添加一个。修复需要一个属于 AI 代理自己、可以控制客户机电源的令牌（`VM.PowerMgmt`，例如在 `/vms` 或某一个资源池上的 `PVEVMUser` 角色），设置为 `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`。
-- 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，否则它是只读的；`ONEUPTIME_AI_WRITE_TARGETS`（VMID，例如 `100,101`，以及节点服务的 `<node>/<service>`）限制修复可以触及的内容。如果代理运行在此集群的某个客户机中，请把该客户机的 VMID 放入 `ONEUPTIME_AI_PROTECTED_TARGETS`。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[由代理设置的 AI 可以执行的操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。
+- 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，否则它是只读的；`ONEUPTIME_AI_WRITE_TARGETS`（VMID，例如 `100,101`，以及节点服务的 `<node>/<service>`）限制修复可以触及的内容。如果代理运行在此集群的某个客户机中，请把该客户机的 VMID 放入 `ONEUPTIME_AI_PROTECTED_TARGETS`。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[由代理设置的 AI 可以执行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什么由代理设置)）。
 - 与导出器一样，除非你设置 `PVE_VERIFY_SSL=true`，或把 `PVE_CA_FILE` 指向集群的 CA（`/etc/pve/pve-root-ca.pem`，挂载到容器中），否则它不会验证 API 的自签名证书。
 - 它以 UID 1000 运行，没有任何 capability，根文件系统为只读，并且从不读取 `/access`、打开控制台或更改配置。如果你不使用 OneUptime AI，请从 `docker-compose.yml` 中删除 `oneuptime-proxmox-ai-agent` 服务。
 
-它可以运行什么、修复如何工作以及如何排查问题，请参阅 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-clusters)。代理的 README 中有为修复令牌准备的确切 `pveum` 命令。
+它可以运行什么、修复如何工作以及如何排查问题，请参阅 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-集群)。代理的 README 中有为修复令牌准备的确切 `pveum` 命令。
 
 ## 故障排查
 

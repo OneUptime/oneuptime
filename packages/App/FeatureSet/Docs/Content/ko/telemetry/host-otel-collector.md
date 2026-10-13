@@ -1165,9 +1165,9 @@ sudo bash install.sh
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 알림을 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 제거하세요.
 - `HOST_NAME`으로 등록됩니다. 비워 두면 호스트 자체의 호스트 이름을 사용하며, 다른 이름을 설정하지 않는 한 이 Collector가 `host.name`으로 보고하는 것도 그 이름입니다. 두 값이 일치해야 에이전트가 이 Collector가 만든 호스트를 담당합니다. OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
 - `nsenter`로 호스트의 네임스페이스에 들어가 호스트 자체의 프로그램을 실행하므로, `pid: host`와 함께 root 권한의 privileged 모드로 실행됩니다. 즉 호스트의 root입니다. 한계는 에이전트의 명령 정책입니다. `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 읽기 전용 명령만 실행하며, 셸, `sudo`, 목록에 없는 프로그램은 절대 실행하지 않고, 자기 자신, 이 Collector의 유닛, `ONEUPTIME_AI_PROTECTED_TARGETS`에 있는 것은 절대 건드리지 않습니다.
-- `ONEUPTIME_AI_ALLOW_WRITES=true`일 때 `ONEUPTIME_AI_WRITE_TARGETS`(`nginx.service,app-*` 같은 전체 유닛 이름)가 수정이 건드릴 수 있는 유닛을 제한합니다. `ONEUPTIME_AI_FIXES`는 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다. 설치 프로그램은 두 값을 환경에서 에이전트의 `.env`에 기록합니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- `ONEUPTIME_AI_ALLOW_WRITES=true`일 때 `ONEUPTIME_AI_WRITE_TARGETS`(`nginx.service,app-*` 같은 전체 유닛 이름)가 수정이 건드릴 수 있는 유닛을 제한합니다. `ONEUPTIME_AI_FIXES`는 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다. 설치 프로그램은 두 값을 환경에서 에이전트의 `.env`에 기록합니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 
-실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts)를 참조하세요.
+실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#호스트)를 참조하세요.
 
 ## 문제 해결
 

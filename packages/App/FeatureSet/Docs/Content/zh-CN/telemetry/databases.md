@@ -425,7 +425,7 @@ Database Agent 的 `docker-compose.yml` 还会运行 **数据库 AI 代理**，�
 - **AI 调查默认开启。** 代理连接后，OneUptime AI 会用它来调查此数据库上的事件和警报，数据库的 **概览** 会显示代理的状态。要停止，请在代理运行的位置设置 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理页面上 **AI 可以执行的操作** 下的 **更改** 会显示方法），或者不安装代理。
 - 它支持 PostgreSQL、MySQL（以及 MariaDB 和 Percona Server）、Redis（以及 Valkey、KeyDB 和 Dragonfly）和 MongoDB。对于 SQL Server、Oracle、Elasticsearch / OpenSearch 和 Memcached，它不运行任何东西，并在数据库的 **人工智能 → AI 代理** 页面上说明这一点。
 - 它注册为 Collector 所报告的数据库（`DATABASE_SERVER_ID`，或 `DATABASE_SYSTEM`、`DATABASE_SERVER_ADDRESS` 和 `DATABASE_SERVER_PORT`），并使用同一个 `.env` 中 Collector 的监控登录账号连接 `DATABASE_ENDPOINT`。**登录账号就是硬性边界**：监控登录账号只能读取，别无他用。
-- 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，否则它是 **只读** 的。修复需要一个 AI 代理专用、可以向其他会话发送信号的登录账号（PostgreSQL 上的 `pg_signal_backend`、MySQL 8 上的 `CONNECTION_ADMIN` 权限、Redis ACL 用户的 `+client|kill`、MongoDB 上的 `killop` 操作），在同一个 `.env` 中设置为 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`，这样 Collector 的登录账号仍保持只读（代理的 README 列出了这些授权，其他资源的授权见 [凭据和最小权限](/docs/ai/infrastructure-ai-agents#credentials-and-least-privilege)）。它从不结束自己的会话。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行：`ask-for-approval`（每个修复都由人员批准）、`automatic` 或 `bypass-approval`；AI 代理页面会以只读方式显示它（[由代理设置的 AI 可以执行的操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。
+- 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，否则它是 **只读** 的。修复需要一个 AI 代理专用、可以向其他会话发送信号的登录账号（PostgreSQL 上的 `pg_signal_backend`、MySQL 8 上的 `CONNECTION_ADMIN` 权限、Redis ACL 用户的 `+client|kill`、MongoDB 上的 `killop` 操作），在同一个 `.env` 中设置为 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`，这样 Collector 的登录账号仍保持只读（代理的 README 列出了这些授权，其他资源的授权见 [凭据和最小权限](/docs/ai/infrastructure-ai-agents#凭据与最小权限)）。它从不结束自己的会话。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行：`ask-for-approval`（每个修复都由人员批准）、`automatic` 或 `bypass-approval`；AI 代理页面会以只读方式显示它（[由代理设置的 AI 可以执行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什么由代理设置)）。
 - 它以 UID 1000 运行，没有任何 capabilities。如果你不使用 OneUptime AI，请从 `docker-compose.yml` 中删除 `oneuptime-database-ai-agent` 服务。
 
 它自己的变量位于同一个 `.env` 中（compose 文件只把它们传给 AI 代理；更改任何一个后请运行 `docker compose up -d`）：
@@ -444,7 +444,7 @@ Database Agent 的 `docker-compose.yml` 还会运行 **数据库 AI 代理**，�
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Collector 的身份标识 | 将 AI 代理注册为与 Collector 不同的数据库：它在 OneUptime 中的 id，或 `<engine>\|<address>:<port>`。请留空 |
 | `LOG_LEVEL` | `info` | AI 代理的日志级别：`debug`、`info`、`warn` 或 `error` |
 
-它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#database-servers)。
+它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#数据库服务器)。
 
 ## Kubernetes
 
