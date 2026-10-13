@@ -54,6 +54,7 @@ const useHomeOverview: (projectId: ObjectID | null) => UseHomeOverviewResult = (
   const latestRequest: MutableRefObject<number> = useRef<number>(0);
   const loadedAtRef: MutableRefObject<Date | null> = useRef<Date | null>(null);
   const isLoadInFlight: MutableRefObject<boolean> = useRef<boolean>(false);
+  const hasData: MutableRefObject<boolean> = useRef<boolean>(false);
 
   const load: (options: { isRefresh: boolean }) => Promise<void> = useCallback(
     async (options: { isRefresh: boolean }): Promise<void> => {
@@ -65,7 +66,11 @@ const useHomeOverview: (projectId: ObjectID | null) => UseHomeOverviewResult = (
       const requestNumber: number = latestRequest.current;
       isLoadInFlight.current = true;
 
-      if (options.isRefresh) {
+      /*
+       * A refresh with nothing on screen yet - Try again after a failed
+       * first load - is a load: the skeletons say something is happening.
+       */
+      if (options.isRefresh && hasData.current) {
         setIsRefreshing(true);
       } else {
         setIsLoading(true);
@@ -82,6 +87,7 @@ const useHomeOverview: (projectId: ObjectID | null) => UseHomeOverviewResult = (
 
         const now: Date = new Date();
         loadedAtRef.current = now;
+        hasData.current = true;
         setData(result);
         setLoadedAt(now);
         setError("");
@@ -105,6 +111,7 @@ const useHomeOverview: (projectId: ObjectID | null) => UseHomeOverviewResult = (
   useEffect(() => {
     // A new project: nothing of the last one may stay on screen.
     setData(null);
+    hasData.current = false;
     setLoadedAt(null);
     loadedAtRef.current = null;
     setError("");

@@ -107,7 +107,8 @@ interface CountRequest {
 
 beforeEach(() => {
   setViewportWidth(DESKTOP_WIDTH);
-  goTo(routeFor(PageMap.HOME));
+  // The project's id in the address is what the menu fills its links with.
+  goTo(`/dashboard/${PROJECT_ID}/home/`);
   countMock.mockImplementation(() => {
     return Promise.resolve(0);
   });
@@ -184,7 +185,7 @@ describe("Home's side menu", () => {
     expect(activeLinkTitles()).toEqual(["Overview"]);
 
     cleanup();
-    goTo(routeFor(PageMap.HOME_ACTIVE_INCIDENTS));
+    goTo(`/dashboard/${PROJECT_ID}/home/active-incidents`);
     await renderHomeMenu();
 
     expect(activeLinkTitles()).toEqual(["Active Incidents"]);

@@ -708,7 +708,8 @@ test.describe("the requests", () => {
       },
     );
     expect(upcoming).toHaveLength(1);
-    expect(upcoming[0]!.sort).toEqual({ startsAt: "Ascending" });
+    // SortOrder.Ascending, as the request serializes it.
+    expect(upcoming[0]!.sort).toEqual({ startsAt: "ASC" });
 
     for (const name of ["Monitor", "ServiceLevelObjective"]) {
       const totals: Array<RecordedRequest> = state.countRequests.filter(
@@ -779,6 +780,41 @@ test.describe("screens and themes", () => {
     expect(third.y).toBeGreaterThan(first.y + 10);
 
     await screenshot(page, "home-tablet");
+  });
+
+  test("German: the page reads in German, relative times included", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "lang=de");
+
+    // The words come from de.json, the times from Intl in German.
+    await expect(page.getByTestId("home-health-headline")).toHaveText(
+      "2 aktive Vorfälle",
+    );
+    await expect(page.getByTestId("home-health-updated")).not.toHaveText(
+      "Updated just now",
+    );
+    await expect(
+      page.getByTestId("home-attention-row-incidents").first(),
+    ).toContainText("vor 12 Minuten");
+    await expect(
+      page.getByTestId("home-attention-row-maintenance").first(),
+    ).toContainText("in 40 Minuten");
+    await expect(page.getByTestId("home-search")).not.toContainText(
+      "Search monitors",
+    );
+    for (const english of [
+      "Needs attention",
+      "Your project",
+      "Upcoming maintenance",
+      "Explore OneUptime",
+    ]) {
+      await expect(page.locator("body")).not.toContainText(english);
+    }
+
+    await screenshot(page, "home-busy-de");
   });
 
   test("dark: every card on a dark surface", async ({ page }: { page: Page }) => {

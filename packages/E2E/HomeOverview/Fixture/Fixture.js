@@ -589,8 +589,26 @@ const maintenanceStates = {
   }),
 };
 
-// Tables Home may read that hold nothing in any scenario.
-for (const modelType of [IncidentEpisode, AlertEpisode]) {
+/*
+ * Every table Home reads, registered up front: a scenario that leaves one
+ * empty (a new project has no incidents) still answers its reads with
+ * nothing, rather than recording them as unmodelled.
+ */
+for (const modelType of [
+  Incident,
+  IncidentEpisode,
+  Alert,
+  AlertEpisode,
+  Monitor,
+  ScheduledMaintenance,
+  ServiceLevelObjective,
+  StatusPage,
+  OnCallDutyPolicy,
+  Service,
+  Dashboard,
+  Workflow,
+  TeamMember,
+]) {
   table(modelType);
 }
 
@@ -1088,6 +1106,25 @@ function StubPage(props) {
   );
 }
 
+/*
+ * One of Home's own lists, drawn inside the Home layout, whose Page already
+ * has the list's title as its heading: says where it is, with no heading of
+ * its own.
+ */
+function InLayoutStubPage(props) {
+  useNavigationHooks();
+  const location = useLocation();
+  return (
+    <p
+      data-testid="stub-page"
+      data-page={props.pageKey}
+      className="rounded-xl border border-gray-200 bg-white p-6 font-mono text-sm text-gray-600"
+    >
+      {location.pathname}
+    </p>
+  );
+}
+
 // Home's own lists, drawn in the Home layout beside its side menu.
 const HOME_TABS = [
   [PageMap.HOME_ACTIVE_INCIDENTS, "Active Incidents"],
@@ -1123,12 +1160,12 @@ function FixtureApp() {
       <Routes>
         <Route element={<FixtureHomeLayout />}>
           <Route path={RouteMap[PageMap.HOME].toString()} element={<HomePage />} />
-          {HOME_TABS.map(([pageKey, title]) => {
+          {HOME_TABS.map(([pageKey]) => {
             return (
               <Route
                 key={pageKey}
                 path={RouteMap[pageKey].toString()}
-                element={<StubPage pageKey={pageKey} title={title} />}
+                element={<InLayoutStubPage pageKey={pageKey} />}
               />
             );
           })}

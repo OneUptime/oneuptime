@@ -1200,6 +1200,41 @@ describe("the requests behind the strip", () => {
   );
 });
 
+describe("trying again after a failed first load", () => {
+  test("shows the loading placeholders while it reads, not the error", async () => {
+    let answer: "fail" | "hang" = "fail";
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ModelRequest = args[0] as ModelRequest;
+      requests.push({ kind: kindOf(request), type: "list", request });
+      if (answer === "fail") {
+        return Promise.reject(new Error("read failed"));
+      }
+      return new Promise(() => {
+        // still reading
+      });
+    });
+
+    await mountHarness();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("home-health-try-again")).toBeVisible();
+    });
+
+    answer = "hang";
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("home-health-try-again"));
+    });
+
+    // Nothing was on screen, so the retry is a load: placeholders, no error.
+    expect(screen.getByTestId("home-health-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-health-error")).toBeNull();
+    expect(
+      screen.getByTestId("home-stat-active-incidents-loading"),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("the wording", () => {
   test("the monitors cell is titled Not operational monitors", async () => {
     await renderStats();
