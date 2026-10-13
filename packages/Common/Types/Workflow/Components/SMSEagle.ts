@@ -120,7 +120,7 @@ const components: Array<ComponentMetadata> = [
         description: "Phone number in international format.",
         type: ComponentInputType.Text,
         required: true,
-        placeholder: "+1987654321",
+        placeholder: "+15551234567",
       },
       {
         id: "voice-id",

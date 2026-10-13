@@ -419,7 +419,7 @@ export const getSMSEagleSendSmsDocumentation: MessagingDocumentationFunction = (
   return {
     summary: "Sends an SMS through an SMSEagle device.",
     steps: [
-      "Create an API key in the SMSEagle web panel under Settings > API > API v2 ([SMSEagle's guide](https://www.smseagle.eu/docs/apiv2/)) and paste it into **SMSEagle Access Token**.",
+      "Create an access token in the SMSEagle web panel under Settings > API > API v2 ([SMSEagle's guide](https://www.smseagle.eu/docs/apiv2/)) and paste it into **SMSEagle Access Token**.",
       "Put the device's address in **SMSEagle URL**, and the number in international format in **Phone Number**.",
       "Write the message in **Message Text**, then connect **Success** and **Error**.",
     ],
@@ -433,7 +433,7 @@ export const getSMSEagleSendSmsDocumentation: MessagingDocumentationFunction = (
     notes: [
       {
         type: ComponentDocumentationNoteType.Tip,
-        text: "The API key needs the Send SMS permission.",
+        text: "The access token needs the Send SMS permission.",
       },
       {
         type: ComponentDocumentationNoteType.Tip,
@@ -444,6 +444,7 @@ export const getSMSEagleSendSmsDocumentation: MessagingDocumentationFunction = (
     links: [
       externalLink("SMSEagle APIv2", "https://www.smseagle.eu/docs/apiv2/"),
       docsLink("SMSEagle step guide", WorkflowDocsPaths.smsEagle),
+      docsLink("Outbound network access", WorkflowDocsPaths.networkAccess),
     ],
   };
 };
@@ -454,7 +455,7 @@ export const getSMSEagleMakeCallDocumentation: MessagingDocumentationFunction =
       summary:
         "Calls a phone through an SMSEagle device and reads the text out.",
       steps: [
-        "Create an API key in the SMSEagle web panel under Settings > API > API v2 ([SMSEagle's guide](https://www.smseagle.eu/docs/apiv2/)) and paste it into **SMSEagle Access Token**.",
+        "Create an access token in the SMSEagle web panel under Settings > API > API v2 ([SMSEagle's guide](https://www.smseagle.eu/docs/apiv2/)) and paste it into **SMSEagle Access Token**.",
         "Put the device's address in **SMSEagle URL**, the number in international format in **Phone Number**, and the ID of a text-to-speech voice on the device in **Voice ID**.",
         "Write the text in **Text to Read Out**, then connect **Success** and **Error**.",
       ],
@@ -468,7 +469,7 @@ export const getSMSEagleMakeCallDocumentation: MessagingDocumentationFunction =
       notes: [
         {
           type: ComponentDocumentationNoteType.Tip,
-          text: "The API key needs the Make a TTS Advanced Call permission.",
+          text: "The access token needs the Make a TTS Advanced Call permission.",
         },
         {
           type: ComponentDocumentationNoteType.Tip,
@@ -477,8 +478,9 @@ export const getSMSEagleMakeCallDocumentation: MessagingDocumentationFunction =
       ],
       learnMore: [whenRefusedTopic(context, "SMSEagle")],
       links: [
-        externalLink("SMSEagle: APIv2", "https://www.smseagle.eu/docs/apiv2/"),
+        externalLink("SMSEagle: API v2", "https://www.smseagle.eu/docs/apiv2/"),
         docsLink("SMSEagle step guide", WorkflowDocsPaths.smsEagle),
+        docsLink("Outbound network access", WorkflowDocsPaths.networkAccess),
       ],
     };
   };

@@ -15,6 +15,7 @@ import SSRFProtection from "../../../../Utils/SSRFProtection";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class MakeCall extends ComponentCode {
+  // SMSEagle returns errors in 'message' field, one per parameter on 400
   public static getErrorMessage(response: HTTPErrorResponse): string {
     const message: JSONValue | undefined = response.data?.["message"];
 
@@ -116,8 +117,8 @@ export default class MakeCall extends ComponentCode {
     const text: string = args["text"]?.toString() as string;
 
     /*
-     * Same SSRF check as the API components. Private targets are allowed,
-     * as the device usually sits on the local network.
+     * Same SSRF check as the API components. Private targets are allowed
+     * only where the instance permits them.
      */
     try {
       await SSRFProtection.validateWebhookTargetIsSafe(apiUrl, {

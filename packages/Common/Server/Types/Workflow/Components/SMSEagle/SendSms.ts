@@ -99,8 +99,8 @@ export default class SendSms extends ComponentCode {
     const text: string = args["text"]?.toString() as string;
 
     /*
-     * Same SSRF check as the API components. Private targets are allowed,
-     * as the device usually sits on the local network.
+     * Same SSRF check as the API components. Private targets are allowed
+     * only where the instance permits them.
      */
     try {
       await SSRFProtection.validateWebhookTargetIsSafe(apiUrl, {
