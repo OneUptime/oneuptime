@@ -159,7 +159,7 @@ describe("WorkspaceMessageTime.dateAndTime - a moment days away, with its day", 
 
   test("is Markdown Teams shows as the reader's own day and time", () => {
     expect(WorkspaceMessageTime.dateAndTime(BACK).toString()).toBe(
-      "{{DATE(2026-03-06T12:00:00Z, SHORT)}} {{TIME(2026-03-06T12:00:00Z)}}",
+      "{{DATE(2026-03-06T12:00:00Z, SHORT)}} at {{TIME(2026-03-06T12:00:00Z)}}",
     );
   });
 
@@ -169,7 +169,7 @@ describe("WorkspaceMessageTime.dateAndTime - a moment days away, with its day", 
         `away until ${WorkspaceMessageTime.dateAndTime(BACK).toString()}`,
       ),
     ).toBe(
-      `away until <!date^${BACK_UNIX}^{date_short_pretty}|2026-03-06> <!date^${BACK_UNIX}^{time}|12:00 UTC>`,
+      `away until <!date^${BACK_UNIX}^{date_short_pretty}|2026-03-06> at <!date^${BACK_UNIX}^{time}|12:00 UTC>`,
     );
   });
 
@@ -178,7 +178,7 @@ describe("WorkspaceMessageTime.dateAndTime - a moment days away, with its day", 
       WorkspaceMessageTime.toPlainText(
         `away until ${WorkspaceMessageTime.dateAndTime(BACK).toString()}`,
       ),
-    ).toBe("away until 2026-03-06 12:00 UTC");
+    ).toBe("away until 2026-03-06 at 12:00 UTC");
   });
 
   test("a day alone, in text that has no time, is still converted", () => {

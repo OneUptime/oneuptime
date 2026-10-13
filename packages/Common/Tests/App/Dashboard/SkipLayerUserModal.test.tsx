@@ -34,7 +34,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     cover, no policy;
  *   - picking somebody under Who covers? makes it a named cover instead, and
  *     the person away is not offered to cover for themselves;
- *   - without an end, nothing is sent.
+ *   - without an end, nothing is sent;
+ *   - the title and the button name whoever Who is away? holds: changed to
+ *     somebody else on the schedule, they follow; changed to somebody the
+ *     page cannot name, or to nobody, the title is "Skip until..." and the
+ *     button saves - never naming a person the form will not skip;
+ *   - the description says what the fields do not (how far it reaches, what
+ *     happens when it ends, how to end it early), true whoever covers.
  */
 
 let signedInUserId: string | null = null;
@@ -144,7 +150,9 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-import SkipLayerUserModal from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal";
+import SkipLayerUserModal, {
+  getSkippedPersonName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/SkipLayerUserModal";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
@@ -168,6 +176,10 @@ const PEOPLE: Record<string, { name: string; email: string }> = {
   [SAM]: { name: "Sam Rivera", email: "sam@example.com" },
   [PAT]: { name: "Pat Kim", email: "pat@example.com" },
 };
+
+// The description: what the fields do not say, true whoever covers.
+const DESCRIPTION: string =
+  "This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > User Overrides.";
 
 // The dialog opens at 12:34 on 3 March 2026, UTC.
 const NOW: Date = OneUptimeDate.fromString("2026-03-03T12:34:00.000Z");
@@ -244,12 +256,15 @@ afterEach(() => {
   OneUptimeDate.setUserTimezone(null);
 });
 
-async function renderModal(): Promise<HTMLElement> {
+async function renderModal(
+  nameById?: Record<string, string> | undefined,
+): Promise<HTMLElement> {
   render(
     <MemoryRouter>
       <SkipLayerUserModal
         userId={ALEX}
         name="Alex Chen"
+        nameById={nameById}
         onClose={() => {
           onClose();
         }}
@@ -331,15 +346,48 @@ function setEnds(modal: HTMLElement, at: Date): void {
   });
 }
 
-async function submit(modal: HTMLElement): Promise<void> {
+async function submit(
+  modal: HTMLElement,
+  buttonName: string = "Skip Alex Chen",
+): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(
       within(modal).getByRole("button", {
-        name: "Skip Alex Chen",
+        name: buttonName,
         exact: true,
       }),
     );
   });
+}
+
+// Picks a person in a picker's popup, by id.
+async function pickPerson(
+  modal: HTMLElement,
+  question: string,
+  listName: string,
+  userId: string,
+): Promise<void> {
+  const popup: HTMLElement = await openPicker(modal, question, listName);
+
+  const option: HTMLElement | undefined = within(popup)
+    .getAllByRole("option")
+    .find((candidate: HTMLElement): boolean => {
+      return candidate.getAttribute("data-id") === userId;
+    });
+
+  expect(option).toBeDefined();
+
+  await act(async (): Promise<void> => {
+    fireEvent.click(option!);
+  });
+
+  await waitFor(() => {
+    expect(chipIds(picker(modal, question))).toEqual([userId]);
+  });
+}
+
+function heading(modal: HTMLElement): string {
+  return (within(modal).getAllByRole("heading")[0]!.textContent || "").trim();
 }
 
 function sentOverride(): OnCallDutyPolicyUserOverride {
@@ -360,8 +408,8 @@ describe("Skip until... on a person in a layer", () => {
     expect(
       within(modal).getByRole("heading", { name: "Skip Alex Chen" }),
     ).toBeInTheDocument();
-    expect(modal).toHaveTextContent(
-      "While Alex Chen is away, each of their turns goes to the next person in the rotation, and they are back in their usual place when it ends. It applies to every on-call policy, and is listed under On-Call Duty > User Overrides.",
+    expect(within(modal).getByTestId("modal-description")).toHaveTextContent(
+      DESCRIPTION,
     );
     expect(
       within(modal).getByRole("button", {
@@ -516,5 +564,164 @@ describe("Skip until... on a person in a layer", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("the dialog names whoever Who is away? holds", () => {
+  test("the description says what the fields do not, and repeats none of Who covers?", async () => {
+    const modal: HTMLElement = await renderModal();
+    const description: HTMLElement =
+      within(modal).getByTestId("modal-description");
+
+    expect(description).toHaveTextContent(DESCRIPTION);
+    // What happens to the turns is the Who covers? field's to say.
+    expect(description).not.toHaveTextContent("who is not away");
+    expect(description).not.toHaveTextContent("Alex Chen");
+  });
+
+  test("picking somebody to cover keeps the title, the button and the description true", async () => {
+    const modal: HTMLElement = await renderModal();
+
+    await pickPerson(modal, "Who covers?", "Choose someone", PAT);
+
+    expect(heading(modal)).toBe("Skip Alex Chen");
+    expect(
+      within(modal).getByRole("button", {
+        name: "Skip Alex Chen",
+        exact: true,
+      }),
+    ).toBeInTheDocument();
+    expect(within(modal).getByTestId("modal-description")).toHaveTextContent(
+      DESCRIPTION,
+    );
+  });
+
+  test("changed to somebody else on the schedule, the title and the button name them, and they are skipped", async () => {
+    const modal: HTMLElement = await renderModal({ [SAM]: "Sam Rivera" });
+
+    await pickPerson(modal, "Who is away?", "Choose who is away", SAM);
+
+    await waitFor(() => {
+      expect(heading(modal)).toBe("Skip Sam Rivera");
+    });
+    expect(
+      within(modal).queryByRole("button", {
+        name: "Skip Alex Chen",
+        exact: true,
+      }),
+    ).toBeNull();
+
+    setEnds(modal, BACK_ON);
+    await submit(modal, "Skip Sam Rivera");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(idOf(sentOverride().overrideUserId)).toBe(SAM);
+    expect(sentOverride().routeAlertsToUserId).toBeFalsy();
+  });
+
+  test("changed to somebody the page cannot name, it names nobody: 'Skip until…', and the button saves", async () => {
+    const modal: HTMLElement = await renderModal({ [SAM]: "Sam Rivera" });
+
+    await pickPerson(modal, "Who is away?", "Choose who is away", PAT);
+
+    await waitFor(() => {
+      expect(heading(modal)).toBe("Skip until…");
+    });
+    expect(modal).not.toHaveTextContent("Skip Alex Chen");
+
+    setEnds(modal, BACK_ON);
+    await submit(modal, "Save");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(idOf(sentOverride().overrideUserId)).toBe(PAT);
+  });
+
+  test("with nobody under Who is away?, it names nobody, and saving asks who is away", async () => {
+    const modal: HTMLElement = await renderModal();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(picker(modal, "Who is away?")).getByRole("button", {
+          name: "Remove Alex Chen",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(heading(modal)).toBe("Skip until…");
+    });
+
+    setEnds(modal, BACK_ON);
+    await submit(modal, "Save");
+
+    expect(await within(modal).findByText("Choose who is away.")).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("changed back to the person whose row it was, it names them again", async () => {
+    const modal: HTMLElement = await renderModal({ [SAM]: "Sam Rivera" });
+
+    await pickPerson(modal, "Who is away?", "Choose who is away", SAM);
+    await waitFor(() => {
+      expect(heading(modal)).toBe("Skip Sam Rivera");
+    });
+
+    await pickPerson(modal, "Who is away?", "Choose who is away", ALEX);
+    await waitFor(() => {
+      expect(heading(modal)).toBe("Skip Alex Chen");
+    });
+  });
+});
+
+describe("getSkippedPersonName", () => {
+  const person: { userId: string; name: string } = {
+    userId: ALEX,
+    name: "Alex Chen",
+  };
+
+  test("the person whose row it was, whatever the case of the id", () => {
+    expect(
+      getSkippedPersonName({ awayUserId: ALEX.toUpperCase(), person }),
+    ).toBe("Alex Chen");
+  });
+
+  test("somebody else the page knows, by id in any case", () => {
+    expect(
+      getSkippedPersonName({
+        awayUserId: SAM,
+        person,
+        nameById: { [SAM.toUpperCase()]: "Sam Rivera" },
+      }),
+    ).toBe("Sam Rivera");
+  });
+
+  test("nobody, somebody the page cannot name, or a name it does not have: null", () => {
+    expect(getSkippedPersonName({ awayUserId: null, person })).toBeNull();
+    expect(
+      getSkippedPersonName({
+        awayUserId: PAT,
+        person,
+        nameById: { [SAM]: "Sam Rivera" },
+      }),
+    ).toBeNull();
+    expect(
+      getSkippedPersonName({
+        awayUserId: SAM,
+        person,
+        nameById: { [SAM]: "" },
+      }),
+    ).toBeNull();
+    expect(
+      getSkippedPersonName({
+        awayUserId: ALEX,
+        person: { userId: ALEX, name: "" },
+      }),
+    ).toBeNull();
   });
 });

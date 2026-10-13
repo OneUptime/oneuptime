@@ -295,7 +295,7 @@ export const getUserOverrideFormFields: <TEntity>(
       field: { routeAlertsToUserId: true } as SelectFormFields<TEntity>,
       title: "Who covers?",
       description:
-        "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
+        "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
       fieldType: FormFieldSchemaType.PeoplePicker,
       peoplePicker: getUserOverrideCoverPickerConfig(),
       required: false,

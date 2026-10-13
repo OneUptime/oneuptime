@@ -524,10 +524,48 @@ describe("the layer card's 'on call now' line", () => {
     });
 
     expect(liveLine()).toHaveTextContent(`${BOB.name} on call now`);
-    expect(screen.getByTestId("layer-card-covering")).toHaveTextContent(
-      `covering for ${ALICE.name}`.toLowerCase(),
+    // The name as it is written: never lowercased ("alice ...").
+    expect(screen.getByTestId("layer-card-covering").textContent).toBe(
+      `(Covering for ${ALICE.name})`,
     );
     expect(screen.queryByTestId("layer-card-everyone-away")).toBeNull();
+  });
+
+  /*
+   * The line wraps on a phone. The dot used to be a flex item of its own, so
+   * a long status left it alone on the first line, and "Up next" started the
+   * next line with a dangling "·".
+   */
+  test("on a phone the dot stays with what it marks, and 'Up next' takes a line of its own", () => {
+    renderCard({
+      overrides: [
+        away({ who: ALICE, from: hoursFromNow(-1), until: hoursFromNow(3) }),
+      ],
+    });
+
+    const status: HTMLElement = screen.getByTestId("layer-card-live-status");
+
+    // The dot and the status it marks wrap as one.
+    expect(
+      status.querySelector("span.inline-block.h-2.w-2.rounded-full"),
+    ).not.toBeNull();
+    expect(status).toHaveTextContent(`${BOB.name} on call now`);
+    expect(status).toHaveTextContent(`(Covering for ${ALICE.name})`);
+    expect(status).not.toHaveTextContent("Up next");
+
+    // "Up next" is a line of its own below sm, and joins the line from sm up.
+    const upNext: HTMLElement = screen.getByTestId("layer-card-up-next");
+    expect(upNext).toHaveTextContent("Up next");
+    expect(upNext.className.split(" ")).toEqual(
+      expect.arrayContaining(["basis-full", "sm:basis-auto"]),
+    );
+
+    // The "·" between them shows only where they share a line.
+    const separator: HTMLElement = upNext.previousElementSibling as HTMLElement;
+    expect(separator.textContent).toBe("·");
+    expect(separator.className.split(" ")).toEqual(
+      expect.arrayContaining(["hidden", "sm:inline"]),
+    );
   });
 
   test("Alice and Bob skipped: it goes on to Carol, never to somebody away", () => {
@@ -688,6 +726,47 @@ describe("the layer's users list", () => {
     expect(
       await tooltipOf(within(rowOf(CAROL)).getByTestId("layer-user-away-now")),
     ).toBe(`${DANA.name} covers for them.`);
+  });
+
+  /*
+   * The tooltip shows on hover only, so a screen reader hears what it says
+   * as part of the badge: hidden from sight, not from assistive technology.
+   */
+  test("a screen reader hears who has their turns along with the date", async () => {
+    const aliceBack: Date = hoursFromNow(70);
+
+    await renderUsersList({
+      overrides: [
+        away({ who: ALICE, from: hoursFromNow(-2), until: aliceBack }),
+        away({
+          who: CAROL,
+          from: hoursFromNow(30),
+          until: hoursFromNow(40),
+          cover: DANA,
+        }),
+      ],
+    });
+
+    const alices: HTMLElement = within(rowOf(ALICE)).getByTestId(
+      "layer-user-away-now",
+    );
+    const aliceSaid: HTMLElement | null = alices.querySelector(".sr-only");
+
+    expect(aliceSaid).not.toBeNull();
+    expect(aliceSaid).toHaveTextContent(
+      "Each of their turns goes to the next person in the rotation who is not away.",
+    );
+    expect(alices).toHaveTextContent(
+      `Away until ${formatShiftInstant(aliceBack, "UTC")}`,
+    );
+
+    const carols: HTMLElement = within(rowOf(CAROL)).getByTestId(
+      "layer-user-away-soon",
+    );
+
+    expect(carols.querySelector(".sr-only")).toHaveTextContent(
+      `${DANA.name} covers for them.`,
+    );
   });
 
   test("time away that is over says nothing", async () => {

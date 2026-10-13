@@ -103,7 +103,7 @@ export interface OnCallPolicyRunNotPaged {
   failed?: boolean | undefined;
   /*
    * The person is away with nobody named to cover (a user override that
-   * skips them) until then: "not paged · away until Oct 17, 2026 5:00 PM",
+   * skips them) until then: "not paged · away until Oct 17, 2026 at 5:00 PM",
    * in each reader's own time.
    */
   awayUntil?: Date | undefined;

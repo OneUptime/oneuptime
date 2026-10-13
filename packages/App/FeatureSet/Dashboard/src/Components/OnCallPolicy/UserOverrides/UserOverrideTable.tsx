@@ -134,19 +134,22 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
 
         /*
          * Nobody named: the person away is skipped, and the next person in
-         * each of their rotations takes the turn.
+         * each of their rotations takes the turn. Drawn the way a person is
+         * in the cell beside it (UserElement): a round mark where the avatar
+         * would be - the rotation's icon - and the words where the name is.
          */
         return (
-          <span
+          <div
             data-testid="user-override-rotation-covers"
-            className="inline-flex items-center gap-1.5 text-sm text-gray-600"
+            className="flex items-center"
           >
-            <Icon
-              icon={IconProp.Refresh}
-              className="h-4 w-4 flex-shrink-0 text-gray-400"
-            />
-            {translator.translateText(USER_OVERRIDE_ROTATION_COVERS_TEXT)}
-          </span>
+            <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 ring-1 ring-inset ring-gray-200">
+              <Icon icon={IconProp.Refresh} className="h-4 w-4" />
+            </span>
+            <span className="ml-3">
+              {translator.translateText(USER_OVERRIDE_ROTATION_COVERS_TEXT)}
+            </span>
+          </div>
         );
       },
     },
@@ -262,8 +265,8 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "On-Call Policy User Overrides"
             : "Global User Overrides",
           description: props.onCallDutyPolicyId
-            ? "While someone is away, an override sends their pages from this policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
-            : "While someone is away, an override sends their pages from every on-call policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+            ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
+            : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.",
         }}
         formFields={formFields}
         noItemsMessage={

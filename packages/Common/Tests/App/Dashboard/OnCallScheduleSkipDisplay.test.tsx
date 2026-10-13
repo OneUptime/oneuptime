@@ -31,8 +31,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     away, and its tooltip says why it is them;
  *   - the overrides card shows the person away and "Next person in the
  *     rotation", with the rotation's icon where an avatar would be;
- *   - "on call right now" and the hand-off rows say "Skipped", with the time
- *     away;
+ *   - "on call right now" says the person is "Next in the rotation" -
+ *     never "Skipped", which read as if they had been skipped - with the time
+ *     away, and the hand-off rows carry the skip icon;
  *   - with everybody in the layer away, nobody is drawn on call;
  *   - the Schedule Timeline's bars say "Next in the rotation while ... is
  *     away" and "(away)".
@@ -385,8 +386,11 @@ describe("the final schedule, with Alice skipped", () => {
     );
 
     expect(strip).toHaveAttribute("data-skip", "true");
-    expect(strip).toHaveTextContent("Skipped");
+    // Why it is Carol: she is next in the rotation, covering for Alice.
+    expect(strip.firstElementChild).toHaveTextContent("Next in the rotation");
     expect(strip).toHaveTextContent(`Covering for ${ALICE}`);
+    // Not "Skipped": next to Carol's name it read as if Carol was skipped.
+    expect(strip).not.toHaveTextContent("Skipped");
     expect(strip).toHaveTextContent(
       `Away ${formatShiftInstant(aliceAway.startsAt, "UTC")} → ${formatShiftInstant(aliceAway.endsAt, "UTC")}`,
     );

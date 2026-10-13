@@ -116,8 +116,7 @@ const Layers: FunctionComponent<ComponentProps> = (
     name: string;
   } | null>(null);
 
-  const [overrideRefreshKey, setOverrideRefreshKey] =
-    React.useState<number>(0);
+  const [overrideRefreshKey, setOverrideRefreshKey] = React.useState<number>(0);
 
   const hasInitialized: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
@@ -541,6 +540,27 @@ const Layers: FunctionComponent<ComponentProps> = (
   }, [layerUsers]);
 
   /*
+   * The names of the people on this schedule's layers, by user id: the
+   * "Skip until..." dialog names whoever its "Who is away?" is changed to.
+   */
+  const scheduleUserNameById: Record<string, string> = useMemo(() => {
+    const names: Record<string, string> = {};
+    for (const layerId in layerUsers) {
+      for (const layerUser of layerUsers[layerId] || []) {
+        const userId: string = layerUser.user?.id?.toString() || "";
+        const name: string =
+          layerUser.user?.name?.toString() ||
+          layerUser.user?.email?.toString() ||
+          "";
+        if (userId && name) {
+          names[userId] = name;
+        }
+      }
+    }
+    return names;
+  }, [layerUsers]);
+
+  /*
    * The window the layer cards actually reason over: a little history so an
    * in-progress turn keeps its true start, and the shared forward coverage
    * window so an upcoming substitution reaches the shift table. Anchored once
@@ -659,7 +679,6 @@ const Layers: FunctionComponent<ComponentProps> = (
     overrideResolution.records,
     overrideResolution.policyContextId,
   ]);
-
 
   /*
    * A compact statement of the schedule's coverage, rendered above the layer
@@ -968,6 +987,7 @@ const Layers: FunctionComponent<ComponentProps> = (
         <SkipLayerUserModal
           userId={personToSkip.userId}
           name={personToSkip.name}
+          nameById={scheduleUserNameById}
           onClose={() => {
             setPersonToSkip(null);
           }}

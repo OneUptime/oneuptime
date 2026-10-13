@@ -436,58 +436,74 @@ const LayerCard: FunctionComponent<ComponentProps> = (
            * Rendered even with no users assigned — that is precisely the case
            * where this layer can never put anybody on call, so suppressing the
            * line there (as this used to) hid the most important state it has.
+           *
+           * On a phone the line wraps: the dot stays with the first line of
+           * what it marks (it was left on a line of its own), and "Up next"
+           * takes a line of its own rather than starting with a dangling "·".
            */}
           <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
             <span
-              className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-              style={{
-                backgroundColor: currentAndNext.current
-                  ? getColorForUserId(currentAndNext.current.userId)
-                  : "#d1d5db",
-              }}
-            />
-            {currentAndNext.current ? (
-              <span>
-                <TranslatedSentence
-                  template="{{name}} on call now"
-                  slots={{
-                    name: (
-                      <span className="font-semibold text-gray-700">
-                        {nameById[currentAndNext.current.userId] ||
-                          translator.translateText("Unknown user")}
-                      </span>
-                    ),
-                  }}
-                />
-                {coveringLabel && (
-                  <span
-                    data-testid="layer-card-covering"
-                    className="ml-1 font-medium text-indigo-600"
-                  >
-                    ({coveringLabel.toLowerCase()})
-                  </span>
-                )}
-              </span>
-            ) : (
+              data-testid="layer-card-live-status"
+              className="inline-flex min-w-0 max-w-full items-start gap-1.5"
+            >
               <span
-                data-testid={
-                  isEveryoneAway ? "layer-card-everyone-away" : undefined
-                }
-                className="text-amber-700"
-              >
-                {translator.translateText(
-                  userCount === 0
-                    ? "No users assigned - this layer never puts anyone on call"
-                    : isEveryoneAway
-                      ? "Everyone in this layer is away right now"
-                      : "No one on call in this layer right now",
-                )}
-              </span>
-            )}
+                className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: currentAndNext.current
+                    ? getColorForUserId(currentAndNext.current.userId)
+                    : "#d1d5db",
+                }}
+              />
+              {currentAndNext.current ? (
+                <span>
+                  <TranslatedSentence
+                    template="{{name}} on call now"
+                    slots={{
+                      name: (
+                        <span className="font-semibold text-gray-700">
+                          {nameById[currentAndNext.current.userId] ||
+                            translator.translateText("Unknown user")}
+                        </span>
+                      ),
+                    }}
+                  />
+                  {/*
+                   * As the label is written: lowercasing it turned the name it
+                   * holds into "alex kim", and a German noun into a misspelling.
+                   */}
+                  {coveringLabel && (
+                    <span
+                      data-testid="layer-card-covering"
+                      className="ml-1 font-medium text-indigo-600"
+                    >
+                      ({coveringLabel})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span
+                  data-testid={
+                    isEveryoneAway ? "layer-card-everyone-away" : undefined
+                  }
+                  className="text-amber-700"
+                >
+                  {translator.translateText(
+                    userCount === 0
+                      ? "No users assigned - this layer never puts anyone on call"
+                      : isEveryoneAway
+                        ? "Everyone in this layer is away right now"
+                        : "No one on call in this layer right now",
+                  )}
+                </span>
+              )}
+            </span>
             {currentAndNext.next && (
               <>
-                <span className="text-gray-300">&middot;</span>
-                <span>
+                <span className="hidden text-gray-300 sm:inline">&middot;</span>
+                <span
+                  data-testid="layer-card-up-next"
+                  className="basis-full sm:basis-auto"
+                >
                   <TranslatedSentence
                     template="Up next {{name}} {{when}}"
                     values={{

@@ -187,7 +187,7 @@ describe("the questions the form asks", () => {
       "They are not paged while they are away.",
     );
     expect(byTitle(list, "Who covers?").description).toBe(
-      "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
+      "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
     );
     expect(byTitle(list, "Starts").description).toBe(
       "It starts now unless you pick another time.",

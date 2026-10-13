@@ -46,7 +46,7 @@ const NEW_STRINGS: Array<string> = [
   "Choose who is away",
   "Choose who is away.",
   "Who covers?",
-  "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
+  "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
   "Next person in the rotation",
   "Choose someone",
   "There is no one else in this project.",
@@ -58,8 +58,10 @@ const NEW_STRINGS: Array<string> = [
   // The overrides list and its cards, on a policy and for every policy.
   "Away",
   "Covered by",
-  "While someone is away, an override sends their pages from this policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
-  "While someone is away, an override sends their pages from every on-call policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+  "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
+  "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+  // "Skip until..." on a person in a layer opens the same form as "Skip <name>".
+  "This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > User Overrides.",
 ];
 
 /*
@@ -107,6 +109,16 @@ const RETIRED_STRINGS: Array<string> = [
   "Choose who covers.",
   "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
   "While someone is away, an override sends their pages from every on-call policy to the person who covers. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+  /*
+   * Its first wording, replaced in the UI review: "get all of their pages"
+   * read as "pick someone in order to get their pages", the card sentences
+   * ran a dash and a colon together, and the Skip dialog repeated what Who
+   * covers? says.
+   */
+  "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
+  "While someone is away, an override sends their pages from this policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
+  "While someone is away, an override sends their pages from every on-call policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+  "While {{name}} is away, each of their turns goes to the next person in the rotation, and they are back in their usual place when it ends. It applies to every on-call policy, and is listed under On-Call Duty > User Overrides.",
 ];
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];

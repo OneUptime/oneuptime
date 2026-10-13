@@ -51,15 +51,15 @@ export default class WorkspaceMessageTime {
 
   /*
    * The moment with its day, as Markdown both workspaces show in the
-   * reader's own calendar and clock: "Oct 17, 2026 5:00 PM" - or "tomorrow
-   * 5:00 PM" in Slack. For a moment that may be days away: when somebody
-   * who is away is back.
+   * reader's own calendar and clock: "Fri, Oct 17, 2026 at 5:00 PM" in
+   * Teams, "Oct 17, 2026 at 5:00 PM" - or "tomorrow at 5:00 PM" - in Slack.
+   * For a moment that may be days away: when somebody who is away is back.
    */
   public static dateAndTime(date: Date): MarkdownText {
     const iso: string = this.toIsoSeconds(date);
 
     return FeedMarkdown.asMarkdown(
-      `{{DATE(${iso}, SHORT)}} {{TIME(${iso})}}`,
+      `{{DATE(${iso}, SHORT)}} at {{TIME(${iso})}}`,
     );
   }
 

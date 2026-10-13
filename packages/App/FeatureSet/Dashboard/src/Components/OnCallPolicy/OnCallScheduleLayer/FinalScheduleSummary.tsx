@@ -162,8 +162,10 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     });
 
     /*
-     * A skip says so: nobody was named, the person away is skipped and this
-     * one is next in the rotation - and the window is their time away.
+     * A skip says why it is this person: nobody was named, so they are next
+     * in the rotation - "Next in the rotation · Covering for Alex Kim" - and
+     * the window is the time the person is away. ("Skipped" here read as if
+     * this person had been skipped.)
      */
     return (
       <div
@@ -178,7 +180,9 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             }
             className="h-3.5 w-3.5"
           />
-          {translator.translateText(described.isSkip ? "Skipped" : "Override")}
+          {described.isSkip
+            ? translator.translateText("Next in the rotation")
+            : translator.translateText("Override")}
         </span>
         <span className="text-gray-700">{described.coveringLabel}</span>
         <span
@@ -556,7 +560,12 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-4 space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/*
+       * grid-cols-1 below sm: an implicit column grows to its widest content,
+       * so a long name on a phone pushed the page sideways instead of being
+       * cut short.
+       */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {getNowCard()}
         {getNextCard()}
       </div>

@@ -112,6 +112,11 @@ const LayerUserAwayBadge: FunctionComponent<{
         />
         {/* Wraps rather than cut off: the date is the point of it. */}
         <span className="min-w-0">{label}</span>
+        {/*
+         * The tooltip shows on hover only: a screen reader hears who has
+         * their turns with the date.
+         */}
+        <span className="sr-only">{who}</span>
       </span>
     </Tooltip>
   );

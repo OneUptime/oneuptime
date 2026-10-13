@@ -229,7 +229,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
        */}
       <p className="mt-1 text-xs text-gray-600">
         {translator.translateText(
-          "An override sends the alerts that would page someone who is away to the person who covers - or, with nobody named, skips them: each of their turns goes to the next person in the rotation. Wherever one applies, the calendar below shows who has the shift rather than the person the rotation put on call.",
+          "An override sends the pages of someone who is away to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation instead. The calendar below shows who has each shift.",
         )}
       </p>
 

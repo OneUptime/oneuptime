@@ -596,6 +596,34 @@ describe.each(["global", "policy"] as Array<Page>)(
 
       expect(covers).toHaveTextContent("Next person in the rotation");
       expect(screen.queryByText("No user.")).not.toBeInTheDocument();
+
+      /*
+       * Drawn the way the person beside it is: a round mark the size of an
+       * avatar - the rotation's icon - with the words beside it, not a small
+       * icon in a line of its own.
+       */
+      const mark: HTMLElement = covers.firstElementChild as HTMLElement;
+      expect(mark.className).toContain("h-8");
+      expect(mark.className).toContain("w-8");
+      expect(mark.className).toContain("rounded-full");
+      expect(mark.querySelector("svg")).not.toBeNull();
+      expect(mark).toHaveTextContent("");
+      expect(covers.lastElementChild).toHaveTextContent(
+        "Next person in the rotation",
+      );
+    });
+
+    test("the card says what an override does, a skip included, in plain sentences", async () => {
+      await renderPage(page);
+
+      const description: string =
+        page === "policy"
+          ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
+          : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.";
+
+      expect(await screen.findByText(description)).toBeInTheDocument();
+      // The old one-sentence version ran a dash and a colon together.
+      expect(document.body).not.toHaveTextContent("skips them, so the next");
     });
 
     test("lists the overrides it is about: the policy's, or the global ones", async () => {
@@ -648,7 +676,7 @@ describe.each(["global", "policy"] as Array<Page>)(
         "They are not paged while they are away.",
       );
       expect(modal).toHaveTextContent(
-        "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
+        "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to take all of their pages instead.",
       );
 
       // "Who covers?" shows its answer, so it says no "(Optional)".

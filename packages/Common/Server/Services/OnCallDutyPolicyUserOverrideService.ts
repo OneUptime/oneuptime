@@ -312,7 +312,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
               projectId: projectId!,
             },
           )}** from **${from}**  to **${until}**. `
-        : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged directly.`;
+        : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,

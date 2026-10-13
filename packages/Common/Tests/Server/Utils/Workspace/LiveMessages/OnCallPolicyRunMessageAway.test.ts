@@ -115,7 +115,7 @@ function build(
 }
 
 const DATE_AND_TIME: string =
-  "{{DATE(2026-03-06T12:00:00Z, SHORT)}} {{TIME(2026-03-06T12:00:00Z)}}";
+  "{{DATE(2026-03-06T12:00:00Z, SHORT)}} at {{TIME(2026-03-06T12:00:00Z)}}";
 
 describe("buildRun: somebody away", () => {
   test("is not paged, away until when they are back", () => {
@@ -232,7 +232,7 @@ describe("the message says it in each reader's own time", () => {
     expect(
       WorkspaceMessageTime.toSlack(OnCallPolicyRunMessageView.getMarkdown(run)),
     ).toContain(
-      `**Alex Kim**: not paged · away until <!date^${BACK_UNIX}^{date_short_pretty}|2026-03-06> <!date^${BACK_UNIX}^{time}|12:00 UTC>`,
+      `**Alex Kim**: not paged · away until <!date^${BACK_UNIX}^{date_short_pretty}|2026-03-06> at <!date^${BACK_UNIX}^{time}|12:00 UTC>`,
     );
   });
 
@@ -241,7 +241,7 @@ describe("the message says it in each reader's own time", () => {
       WorkspaceMessageTime.toPlainText(
         OnCallPolicyRunMessageView.getMarkdown(run),
       ),
-    ).toContain("**Alex Kim**: not paged · away until 2026-03-06 12:00 UTC");
+    ).toContain("**Alex Kim**: not paged · away until 2026-03-06 at 12:00 UTC");
   });
 
   test("the alarm for a rule that reached nobody because they are away", () => {
