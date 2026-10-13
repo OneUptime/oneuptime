@@ -28307,7 +28307,7 @@
   "Pick the fields the next steps need.": "次のステップに必要なフィールドを選んでください。",
   "Records": "レコード",
   "Remove {{field}}": "{{field}} を削除",
-  "Run this workflow now?": "このワークフローを今すぐ実行しますか?",
+  "Run this workflow now?": "このワークフローを今すぐ実行しますか？",
   "Runs after this step.": "このステップの後に実行されます。",
   "Runs only when {{step}} takes {{output}}, so its values can be empty here.": "{{step}} が {{output}} に進んだときだけ実行されるため、ここではその値が空になることがあります。",
   "Search by name, or paste an ID": "名前で検索するか ID を貼り付け",
