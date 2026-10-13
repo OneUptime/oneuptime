@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Gebruik bij een zelf gehoste installatie je eigen OneUptime-adres in plaats van `https://oneuptime.com`. Het antwoord is `{ "data": [...], "count": ... }`, waarbij `count` aangeeft hoeveel items er in totaal overeenkomen. Blader door `skip` met je `limit` te verhogen tot je ze allemaal hebt; `limit` gaat tot 10.000.
+Gebruik bij een zelf gehoste installatie je eigen OneUptime-adres in plaats van `https://oneuptime.com`. Het antwoord is `{ "data": [...], "count": ... }`, waarbij `count` aangeeft hoeveel items er in totaal overeenkomen. Blader door `skip` met je `limit` te verhogen tot je ze allemaal hebt; `limit` gaat tot 10.000. Datums en ID's behalve `_id` komen verpakt terug, als `{ "_type": "DateTime", "value": "..." }` en `{ "_type": "ObjectID", "value": "..." }`: lees ze uit `value`.
 
 ### Alleen de netwerkapparaten
 
@@ -222,18 +222,22 @@ Datums in `customFields` zijn ISO-8601-tekenreeksen in UTC, en de CSV-export sch
 
 Er is geen wijzigingsfeed. Vraag het lijstendpoint op met het interval dat je uitkomt, en vergelijk op `entityKey`. `lastSeenAt` vertelt wanneer een item voor het laatst is waargenomen, wat meestal de goedkoopste manier is om te zien wat sinds je vorige ronde stil is geworden.
 
-Een item dat tussen twee rondes verdwijnt, is ofwel verlopen (een ontdekt item dat langer stil bleef dan zijn venster), ofwel is het eigen record verwijderd. Een item dat waarden van aangepaste velden draagt, wordt gearchiveerd in plaats van verwijderd, dus vraag op met `"isArchived": true` om te zien wat buiten gebruik is gesteld zonder de bijbehorende assetgegevens kwijt te raken.
+Een item dat tussen twee rondes verdwijnt, is ofwel verlopen (een ontdekt item dat langer stil bleef dan zijn venster), ofwel is het eigen record verwijderd. Een gespiegeld item dat waarden van aangepaste velden draagt, wordt gearchiveerd in plaats van verwijderd wanneer zijn record verdwijnt, dus vraag op met `"isArchived": true` om te zien wat buiten gebruik is gesteld zonder de bijbehorende assetgegevens kwijt te raken.
 
 ## Terugschrijven
 
 Dezelfde endpoints accepteren schrijfacties, dus een synchronisatie kan waarden in `customFields` zetten: bijvoorbeeld de assettag die je CMDB al beheert, gestempeld op het bijbehorende OneUptime-item. De sleutel heeft daarvoor **Edit Telemetry Service** nodig.
 
-Je kunt ook items toevoegen voor dingen die OneUptime niet kan zien, met `POST /api/inventory-item`, een `entityType` van `external.service`, `external.database` of `appliance`, en een `displayName`. OneUptime bepaalt de identiteitssleutel voor je, en die items verlopen nooit.
+Je kunt ook items toevoegen voor dingen die OneUptime niet kan zien, met `POST /api/inventory-item`, een `entityType` van `external.service`, `external.database` of `appliance`, en een `displayName`. OneUptime bepaalt de identiteitssleutel voor je, en die items verlopen nooit. De sleutel heeft daarvoor **Create Telemetry Service** nodig.
 
 ## Problemen oplossen
 
 :::details Elk verzoek wordt geweigerd met 402 Payment Required
 In OneUptime Cloud werken API-sleutels alleen zolang het project op het abonnement **Growth** of hoger zit. Er wordt niets verwijderd: de sleutel werkt weer zoals hij is zodra het project terug op het abonnement is. Zie [API-sleutels en SCIM onder hun abonnement](/docs/api-reference/api-reference#api-sleutels-en-scim-onder-hun-abonnement).
+:::
+
+:::details Elk verzoek antwoordt 422 You do not have permissions
+De sleutel heeft geen machtiging die de inventaris leest. Een sleutel die met **Machtigingen later kiezen** is gemaakt, kan niets tot hij er een krijgt: voeg op zijn pagina **Read Telemetry Service** toe, zoals in [Voordat je begint](#voordat-je-begint).
 :::
 
 :::details De lijst komt terug zonder de kolommen die ik nodig heb

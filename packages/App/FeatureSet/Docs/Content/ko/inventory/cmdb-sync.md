@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-자체 호스팅 설치에서는 `https://oneuptime.com` 대신 자신의 OneUptime 주소를 사용합니다. 응답은 `{ "data": [...], "count": ... }`이며, `count`는 일치하는 항목의 전체 수입니다. 모두 받을 때까지 `skip`을 `limit`만큼 늘려 가며 페이지를 넘깁니다. `limit`은 최대 10,000입니다.
+자체 호스팅 설치에서는 `https://oneuptime.com` 대신 자신의 OneUptime 주소를 사용합니다. 응답은 `{ "data": [...], "count": ... }`이며, `count`는 일치하는 항목의 전체 수입니다. 모두 받을 때까지 `skip`을 `limit`만큼 늘려 가며 페이지를 넘깁니다. `limit`은 최대 10,000입니다. 날짜와 `_id`가 아닌 ID는 `{ "_type": "DateTime", "value": "..." }`, `{ "_type": "ObjectID", "value": "..." }`처럼 감싸진 채 돌아오므로 `value`에서 읽으세요.
 
 ### 네트워크 장치만
 
@@ -222,18 +222,22 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 
 변경 피드는 없습니다. 원하는 간격으로 목록 엔드포인트를 폴링하고 `entityKey`로 비교하세요. `lastSeenAt`은 항목이 마지막으로 관찰된 시각을 알려 주며, 지난 실행 이후 조용해진 것을 찾는 가장 손쉬운 방법인 경우가 많습니다.
 
-실행 사이에 사라진 항목은 만료되었거나(기간을 넘겨 조용했던 검색된 항목), 원본 레코드가 삭제된 것입니다. 사용자 정의 필드 값이 있는 항목은 삭제되지 않고 보관되므로, `"isArchived": true`로 조회하면 연결된 자산 데이터를 잃지 않고 폐기된 것을 볼 수 있습니다.
+실행 사이에 사라진 항목은 만료되었거나(기간을 넘겨 조용했던 검색된 항목), 원본 레코드가 삭제된 것입니다. 사용자 정의 필드 값이 있는 미러링된 항목은 원본 레코드가 사라질 때 삭제되지 않고 보관되므로, `"isArchived": true`로 조회하면 연결된 자산 데이터를 잃지 않고 폐기된 것을 볼 수 있습니다.
 
 ## 다시 쓰기
 
 같은 엔드포인트는 쓰기도 받으므로, 동기화가 `customFields`에 값을 보낼 수 있습니다. 예를 들어 CMDB가 이미 관리하는 자산 태그를 대응하는 OneUptime 항목에 지정할 수 있습니다. 이를 위해 키에 **Edit Telemetry Service**가 필요합니다.
 
-OneUptime이 볼 수 없는 것에 대한 항목도 `POST /api/inventory-item`으로 추가할 수 있습니다. `entityType`에 `external.service`, `external.database`, `appliance` 중 하나를, 그리고 `displayName`을 지정합니다. 식별 키는 OneUptime이 계산하며, 이런 항목은 만료되지 않습니다.
+OneUptime이 볼 수 없는 것에 대한 항목도 `POST /api/inventory-item`으로 추가할 수 있습니다. `entityType`에 `external.service`, `external.database`, `appliance` 중 하나를, 그리고 `displayName`을 지정합니다. 식별 키는 OneUptime이 계산하며, 이런 항목은 만료되지 않습니다. 이 작업에는 키에 **Create Telemetry Service**가 필요합니다.
 
 ## 문제 해결
 
 :::details 모든 요청이 402 Payment Required로 거부됨
 OneUptime Cloud에서 API 키는 프로젝트가 **Growth** 이상의 플랜에 있는 동안에만 작동합니다. 아무것도 삭제되지 않습니다. 프로젝트가 플랜으로 돌아오면 키는 그대로 다시 작동합니다. [플랜 미만의 API 키와 SCIM](/docs/api-reference/api-reference#플랜-미만의-api-키와-scim)을 참조하세요.
+:::
+
+:::details 모든 요청이 422 You do not have permissions로 응답함
+키에 인벤토리를 읽는 권한이 없습니다. **나중에 권한 선택**으로 만든 키는 권한을 받기 전까지 아무것도 할 수 없습니다. [시작하기 전에](#시작하기-전에)처럼 키의 페이지에서 **Read Telemetry Service**를 추가하세요.
 :::
 
 :::details 필요한 열 없이 목록이 돌아옴

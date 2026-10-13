@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-在自托管安装中，请用你自己的 OneUptime 地址替换 `https://oneuptime.com`。响应为 `{ "data": [...], "count": ... }`，其中 `count` 是匹配条目的总数。按你的 `limit` 递增 `skip` 来翻页，直到取完全部；`limit` 最大为 10,000。
+在自托管安装中，请用你自己的 OneUptime 地址替换 `https://oneuptime.com`。响应为 `{ "data": [...], "count": ... }`，其中 `count` 是匹配条目的总数。按你的 `limit` 递增 `skip` 来翻页，直到取完全部；`limit` 最大为 10,000。日期和 `_id` 以外的 ID 会被包装后返回，形如 `{ "_type": "DateTime", "value": "..." }` 和 `{ "_type": "ObjectID", "value": "..." }`：请从 `value` 中读取。
 
 ### 仅网络设备
 
@@ -222,18 +222,22 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 
 没有变更推送。按适合你的间隔轮询列表端点，并按 `entityKey` 比较。`lastSeenAt` 表示条目最后一次被观察到的时间，这通常是发现自上次运行以来变得静默的条目的最省事的方法。
 
-在两次运行之间消失的条目，要么已经过期（发现的条目静默时间超过了其时间窗口），要么其所属记录已被删除。带有自定义字段值的条目会被归档而不是删除，因此用 `"isArchived": true` 查询，即可在不丢失其附带资产数据的情况下查看已停用的条目。
+在两次运行之间消失的条目，要么已经过期（发现的条目静默时间超过了其时间窗口），要么其所属记录已被删除。带有自定义字段值的镜像条目在其记录消失时会被归档而不是删除，因此用 `"isArchived": true` 查询，即可在不丢失其附带资产数据的情况下查看已停用的条目。
 
 ## 写回
 
 相同的端点也接受写入，因此同步可以把值推送到 `customFields`：例如，把你的 CMDB 已拥有的资产标签标注到对应的 OneUptime 条目上。为此，密钥需要 **Edit Telemetry Service**。
 
-你也可以为 OneUptime 看不到的东西添加条目：使用 `POST /api/inventory-item`，`entityType` 为 `external.service`、`external.database` 或 `appliance`，并提供 `displayName`。OneUptime 会为你计算身份键，这些条目永远不会过期。
+你也可以为 OneUptime 看不到的东西添加条目：使用 `POST /api/inventory-item`，`entityType` 为 `external.service`、`external.database` 或 `appliance`，并提供 `displayName`。OneUptime 会为你计算身份键，这些条目永远不会过期。为此，密钥需要 **Create Telemetry Service**。
 
 ## 故障排查
 
 :::details 每个请求都被拒绝并返回 402 Payment Required
 在 OneUptime Cloud 上，只有当项目处于 **Growth** 或更高套餐时，API 密钥才能工作。不会删除任何内容：项目一回到该套餐，密钥就会原样重新工作。请参阅 [低于其套餐时的 API 密钥和 SCIM](/docs/api-reference/api-reference#低于其套餐时的-api-密钥和-scim)。
+:::
+
+:::details 每个请求都返回 422 You do not have permissions
+该密钥没有任何可读取资产清单的权限。用 **稍后选择权限** 创建的密钥在获得权限之前什么也做不了：按照 [开始之前](#开始之前) 的说明，在其页面上添加 **Read Telemetry Service**。
 :::
 
 :::details 列表返回时缺少我需要的列

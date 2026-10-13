@@ -1,6 +1,6 @@
 # Inventar – Übersicht
 
-Das Inventar ist eine einzige Liste von allem, was OneUptime über Ihre Umgebung weiß: Dienste, Hosts, Container, Kubernetes-Objekte, Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen und die Dinge, die gar keine Telemetrie senden. Das meiste füllt sich von selbst aus dem, was OneUptime ohnehin beobachtet. Sie ergänzen, was das Beobachten nicht verraten kann: wofür etwas da ist, wem es gehört, wann seine Garantie ausläuft.
+Das Inventar ist eine einzige Liste von allem, was OneUptime über Ihre Umgebung weiß: Dienste, Hosts, Kubernetes-Objekte, virtuelle Maschinen, Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen und die Dinge, die gar keine Telemetrie senden. Das meiste füllt sich von selbst aus dem, was OneUptime ohnehin beobachtet. Sie ergänzen, was das Beobachten nicht verraten kann: wofür etwas da ist, wem es gehört, wann seine Garantie ausläuft.
 
 :::cards
 - [Wie Elemente ins Inventar kommen](#wie-elemente-ins-inventar-kommen): Erkannt, gespiegelt oder von Ihnen hinzugefügt.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Quelle | In der API | Woher es kommt | Wie lange es bleibt |
 | --- | --- | --- | --- |
-| **Erkannt** | `discovered` | OpenTelemetry-Ressourcenattribute, gelesen, sobald Telemetrie eintrifft: ein Dienst, Host, Pod, Container oder Prozess, der Telemetrie sendet. | Wird mit jedem Batch erneut registriert. Wird entfernt, sobald es länger als das Zeitfenster seiner Art still war (siehe unten). |
+| **Erkannt** | `discovered` | OpenTelemetry-Ressourcenattribute, gelesen, sobald Telemetrie eintrifft: ein Dienst, ein Host, ein Kubernetes-Objekt oder eine virtuelle Maschine, die Telemetrie senden. | Wird mit jedem Batch erneut registriert. Wird entfernt, sobald es länger als das Zeitfenster seiner Art still war (siehe unten). |
 | **Gespiegelt** | `inventory` | Ein Datensatz, den ein OneUptime-Poller pflegt: Netzwerkgeräte, Cloud-Ressourcen, IoT-Geräte, Serverless-Funktionen, RUM-Anwendungen, Docker-Hosts und Podman-Hosts. Wird alle 15 Minuten kopiert. | So lange wie sein Datensatz. Löschen Sie den Datensatz, verschwindet das Element mit ihm. |
 | **Von Ihnen hinzugefügt** | `manual` | Von Ihnen hinzugefügt, für etwas, das OneUptime nicht sehen kann: eine Drittanbieter-API, eine vom Anbieter verwaltete Datenbank, eine Appliance im Rack. | Bis Sie es löschen. Nichts lässt es ablaufen. |
 
@@ -40,15 +40,15 @@ Ein erkanntes Element hat einen Herzschlag. Jedes Mal, wenn Telemetrie für es e
 | **Neueste** | Innerhalb des letzten Tages gesehen. |
 | **Veraltet** | Seit mehr als einem Tag nicht gesehen. Die Seite **Verstummt** listet diese auf. |
 
-Alle drei Stunden entfernt OneUptime die erkannten Elemente, die länger als das Zeitfenster ihrer Art still waren. Gespiegelte Elemente und die von Ihnen hinzugefügten werden auf diese Weise nie entfernt.
+Alle drei Stunden entfernt OneUptime die erkannten Elemente, die länger als das Zeitfenster ihrer Art still waren, auch archivierte, und ihre Werte benutzerdefinierter Felder gehen mit ihnen. Gespiegelte Elemente und die von Ihnen hinzugefügten werden auf diese Weise nie entfernt.
 
 | Art des Elements | Entfernt nach so langer Zeit ohne Telemetrie |
 | --- | --- |
-| Pods, Deployments, Dienstinstanzen, Container, Prozesse, Proxmox-Gäste und virtuelle VMware-Maschinen | 1 Tag |
+| Pods, Deployments, Proxmox-Gäste und virtuelle VMware-Maschinen | 1 Tag |
 | Kubernetes-Knoten und -Namespaces, Proxmox-Knoten, VMware-Hosts, -Cluster und -Datastores sowie die Datenbanken und entfernten Dienste, die Ihre Traces aufrufen | 7 Tage |
-| Dienste, Hosts, Kubernetes-, Proxmox- und Ceph-Cluster, Speicher-Arrays, vCenters, Docker-Swarm-Cluster und Telemetrie-SDKs | 30 Tage |
+| Dienste, Hosts, Kubernetes-, Proxmox- und Ceph-Cluster, Speicher-Arrays, vCenters und Docker-Swarm-Cluster | 30 Tage |
 
-Eine Beziehung zwischen zwei Elementen wird entfernt, sobald sie 30 Tage lang nicht erneut gesehen wurde.
+Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lang nicht erneut gesehen wurde.
 
 ## Sich zurechtfinden
 
@@ -127,11 +127,10 @@ OneUptime verknüpft Elemente mit gerichteten Beziehungen, sobald es sie beobach
 
 | Beziehung | Zum Beispiel |
 | --- | --- |
-| `runs-on` | Ein Pod läuft auf einem Knoten; ein Prozess läuft auf einem Host. |
+| `runs-on` | Ein Pod läuft auf einem Knoten; eine virtuelle Maschine läuft auf ihrem Host. |
 | `member-of` | Ein Pod, Knoten oder Namespace ist Mitglied eines Clusters. |
 | `hosted-on` | Ein Dienst wird auf einem Host gehostet. |
-| `part-of` | Ein Container ist Teil eines Pods; ein Prozess ist Teil eines Containers. |
-| `instance-of` | Eine Dienstinstanz ist eine Instanz eines Dienstes. |
+| `part-of` | Ein Pod ist Teil seines Deployments. |
 | `depends-on` | Ein Dienst ruft einen anderen Dienst auf, erkannt an den Spans, die zwischen ihnen wechseln. |
 
 ## Nächste Schritte

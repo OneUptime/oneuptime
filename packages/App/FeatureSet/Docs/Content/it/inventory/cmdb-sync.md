@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Su un'installazione self-hosted, usa il tuo indirizzo di OneUptime al posto di `https://oneuptime.com`. La risposta è `{ "data": [...], "count": ... }`, dove `count` è quanti elementi corrispondono in totale. Scorri le pagine aumentando `skip` del tuo `limit` finché non li hai tutti; `limit` arriva fino a 10.000.
+Su un'installazione self-hosted, usa il tuo indirizzo di OneUptime al posto di `https://oneuptime.com`. La risposta è `{ "data": [...], "count": ... }`, dove `count` è quanti elementi corrispondono in totale. Scorri le pagine aumentando `skip` del tuo `limit` finché non li hai tutti; `limit` arriva fino a 10.000. Le date e gli ID diversi da `_id` tornano incapsulati, come `{ "_type": "DateTime", "value": "..." }` e `{ "_type": "ObjectID", "value": "..." }`: leggili da `value`.
 
 ### Solo i dispositivi di rete
 
@@ -222,18 +222,22 @@ Le date in `customFields` sono stringhe ISO-8601 in UTC, e l'esportazione CSV le
 
 Non c'è un feed delle modifiche. Interroga l'endpoint di elenco all'intervallo che preferisci e confronta su `entityKey`. `lastSeenAt` dice quando un elemento è stato osservato l'ultima volta, ed è di solito il modo meno costoso per individuare ciò che è diventato silenzioso dall'ultima esecuzione.
 
-Un elemento che scompare tra due esecuzioni è scaduto (un elemento scoperto rimasto in silenzio oltre la sua finestra) oppure ha visto eliminare il suo record di origine. Un elemento che porta valori di campi personalizzati viene archiviato invece che eliminato, quindi interroga con `"isArchived": true` per vedere ciò che è stato dismesso senza perdere i dati di asset collegati.
+Un elemento che scompare tra due esecuzioni è scaduto (un elemento scoperto rimasto in silenzio oltre la sua finestra) oppure ha visto eliminare il suo record di origine. Un elemento replicato che porta valori di campi personalizzati viene archiviato invece che eliminato quando il suo record scompare, quindi interroga con `"isArchived": true` per vedere ciò che è stato dismesso senza perdere i dati di asset collegati.
 
 ## Riscrivere
 
 Gli stessi endpoint accettano scritture, quindi una sincronizzazione può inviare valori in `customFields`: per esempio il tag dell'asset che il tuo CMDB gestisce già, apposto sull'elemento OneUptime corrispondente. Per questo la chiave ha bisogno di **Edit Telemetry Service**.
 
-Puoi anche aggiungere elementi per cose che OneUptime non può vedere, con `POST /api/inventory-item`, un `entityType` tra `external.service`, `external.database` o `appliance`, e un `displayName`. OneUptime ricava la chiave d'identità per te, e quegli elementi non scadono mai.
+Puoi anche aggiungere elementi per cose che OneUptime non può vedere, con `POST /api/inventory-item`, un `entityType` tra `external.service`, `external.database` o `appliance`, e un `displayName`. OneUptime ricava la chiave d'identità per te, e quegli elementi non scadono mai. Per questo la chiave ha bisogno di **Create Telemetry Service**.
 
 ## Risoluzione dei problemi
 
 :::details Ogni richiesta viene rifiutata con 402 Payment Required
 Su OneUptime Cloud, le chiavi API funzionano solo finché il progetto è sul piano **Growth** o superiore. Niente viene eliminato: la chiave torna a funzionare così com'è appena il progetto torna sul piano. Vedi [Chiavi API e SCIM sotto il loro piano](/docs/api-reference/api-reference#chiavi-api-e-scim-sotto-il-loro-piano).
+:::
+
+:::details Ogni richiesta risponde 422 You do not have permissions
+La chiave non ha alcuna autorizzazione che legga l'inventario. Una chiave creata con **Scegli le autorizzazioni più tardi** non può fare nulla finché non ne riceve una: aggiungi **Read Telemetry Service** sulla sua pagina, come in [Prima di iniziare](#prima-di-iniziare).
 :::
 
 :::details L'elenco torna senza le colonne che mi servono

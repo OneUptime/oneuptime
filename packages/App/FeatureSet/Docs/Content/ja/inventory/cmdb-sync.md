@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-セルフホストのインストールでは、`https://oneuptime.com` の代わりに自分の OneUptime のアドレスを使います。応答は `{ "data": [...], "count": ... }` で、`count` は一致する項目の総数です。すべて取得するまで、`skip` を `limit` ずつ増やしてページを送ります。`limit` は最大 10,000 です。
+セルフホストのインストールでは、`https://oneuptime.com` の代わりに自分の OneUptime のアドレスを使います。応答は `{ "data": [...], "count": ... }` で、`count` は一致する項目の総数です。すべて取得するまで、`skip` を `limit` ずつ増やしてページを送ります。`limit` は最大 10,000 です。日付と `_id` 以外の ID は、`{ "_type": "DateTime", "value": "..." }` や `{ "_type": "ObjectID", "value": "..." }` のように包まれて返るので、`value` から読み取ってください。
 
 ### ネットワークデバイスだけ
 
@@ -222,18 +222,22 @@ CMDB がすでにハードウェア識別子をキーにしているなら、`ho
 
 変更フィードはありません。都合のよい間隔で一覧のエンドポイントをポーリングし、`entityKey` で比較します。`lastSeenAt` は項目が最後に観測された日時を示し、前回の実行以降に沈黙したものを見つけるには、たいていこれが最も手軽な方法です。
 
-実行の間に消えた項目は、期限切れになった (期間を超えて沈黙した検出済み項目) か、元のレコードが削除されたかのどちらかです。カスタムフィールドの値を持つ項目は削除されずにアーカイブされるため、`"isArchived": true` で問い合わせると、関連する資産データを失わずに廃止されたものを確認できます。
+実行の間に消えた項目は、期限切れになった (期間を超えて沈黙した検出済み項目) か、元のレコードが削除されたかのどちらかです。カスタムフィールドの値を持つ反映済みの項目は、元のレコードがなくなると削除されずにアーカイブされるため、`"isArchived": true` で問い合わせると、関連する資産データを失わずに廃止されたものを確認できます。
 
 ## 書き戻し
 
 同じエンドポイントは書き込みも受け付けるため、同期で `customFields` に値を送れます。たとえば、CMDB がすでに管理している資産タグを、対応する OneUptime の項目に付与できます。それにはキーに **Edit Telemetry Service** が必要です。
 
-OneUptime から見えないものの項目も、`POST /api/inventory-item` で追加できます。`entityType` に `external.service`、`external.database`、`appliance` のいずれかを、そして `displayName` を指定します。識別キーは OneUptime が計算し、これらの項目が期限切れになることはありません。
+OneUptime から見えないものの項目も、`POST /api/inventory-item` で追加できます。`entityType` に `external.service`、`external.database`、`appliance` のいずれかを、そして `displayName` を指定します。識別キーは OneUptime が計算し、これらの項目が期限切れになることはありません。これには **Create Telemetry Service** を持つキーが必要です。
 
 ## トラブルシューティング
 
 :::details すべてのリクエストが 402 Payment Required で拒否される
 OneUptime Cloud では、API キーはプロジェクトが **Growth** 以上のプランにある間だけ機能します。何も削除されません。プロジェクトがプランに戻れば、キーはそのまま再び機能します。[プラン未満の API キーと SCIM](/docs/api-reference/api-reference#プラン未満の-api-キーと-scim) を参照してください。
+:::
+
+:::details すべてのリクエストが 422 You do not have permissions を返す
+キーにインベントリを読み取る権限がありません。**権限は後で選択** で作成したキーは、権限を得るまで何もできません。[始める前に](#始める前に) のとおり、キーのページで **Read Telemetry Service** を追加してください。
 :::
 
 :::details 必要な列がないまま一覧が返ってくる

@@ -1,6 +1,6 @@
 # Panoramica dell'inventario
 
-L'inventario è un unico elenco di tutto ciò che OneUptime sa della tua infrastruttura: servizi, host, container, oggetti Kubernetes, dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless e le cose che non inviano alcuna telemetria. Quasi tutto si compila da solo a partire da ciò che OneUptime già osserva. Tu aggiungi ciò che l'osservazione non può dirgli: a cosa serve una cosa, di chi è, quando scade la sua garanzia.
+L'inventario è un unico elenco di tutto ciò che OneUptime sa della tua infrastruttura: servizi, host, oggetti Kubernetes, macchine virtuali, dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless e le cose che non inviano alcuna telemetria. Quasi tutto si compila da solo a partire da ciò che OneUptime già osserva. Tu aggiungi ciò che l'osservazione non può dirgli: a cosa serve una cosa, di chi è, quando scade la sua garanzia.
 
 :::cards
 - [Come gli elementi entrano nell'inventario](#come-gli-elementi-entrano-nellinventario): Scoperti, replicati o aggiunti da te.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Fonte | Nell'API | Da dove viene | Quanto resta |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un pod, un container o un processo che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
+| **Discovered** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un oggetto Kubernetes o una macchina virtuale che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
 | **Mirrored** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker e host Podman. Copiato ogni 15 minuti. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
 | **Added by you** | `manual` | Aggiunto da te, per qualcosa che OneUptime non può vedere: un'API di terze parti, un database gestito da un fornitore, un'appliance in un rack. | Finché non lo elimini. Niente lo fa scadere. |
 
@@ -40,15 +40,15 @@ Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la
 | **Recent** | Visto nell'ultimo giorno. |
 | **Stale** | Non visto da più di un giorno. La pagina **Gone Quiet** li elenca. |
 
-Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a lungo della finestra del loro tipo. Gli elementi replicati e quelli che hai aggiunto non vengono mai rimossi in questo modo.
+Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a lungo della finestra del loro tipo, archiviati compresi, e i loro valori dei campi personalizzati se ne vanno con loro. Gli elementi replicati e quelli che hai aggiunto non vengono mai rimossi in questo modo.
 
 | Tipo di elemento | Rimosso dopo questo tempo senza telemetria |
 | --- | --- |
-| Pod, deployment, istanze di servizio, container, processi, guest Proxmox e macchine virtuali VMware | 1 giorno |
+| Pod, deployment, guest Proxmox e macchine virtuali VMware | 1 giorno |
 | Nodi e namespace Kubernetes, nodi Proxmox, host, cluster e datastore VMware, e i database e i servizi remoti chiamati dalle tue tracce | 7 giorni |
-| Servizi, host, cluster Kubernetes, Proxmox e Ceph, array di storage, vCenters, cluster Docker Swarm e SDK di telemetria | 30 giorni |
+| Servizi, host, cluster Kubernetes, Proxmox e Ceph, array di storage, vCenters e cluster Docker Swarm | 30 giorni |
 
-Una relazione tra due elementi viene rimossa quando non viene rivista per 30 giorni.
+Una relazione che OneUptime ha scoperto viene rimossa quando non viene rivista per 30 giorni.
 
 ## Orientarsi
 
@@ -127,11 +127,10 @@ OneUptime collega gli elementi con relazioni orientate man mano che le osserva. 
 
 | Relazione | Per esempio |
 | --- | --- |
-| `runs-on` | Un pod gira su un nodo; un processo gira su un host. |
+| `runs-on` | Un pod gira su un nodo; una macchina virtuale gira sul suo host. |
 | `member-of` | Un pod, un nodo o un namespace è membro di un cluster. |
 | `hosted-on` | Un servizio è ospitato su un host. |
-| `part-of` | Un container fa parte di un pod; un processo fa parte di un container. |
-| `instance-of` | Un'istanza di servizio è un'istanza di un servizio. |
+| `part-of` | Un pod fa parte del suo deployment. |
 | `depends-on` | Un servizio ne chiama un altro, secondo gli span che passano dall'uno all'altro. |
 
 ## Passaggi successivi

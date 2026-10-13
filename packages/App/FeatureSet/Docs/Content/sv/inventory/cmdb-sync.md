@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-På en egendriven installation använder du din egen OneUptime-adress i stället för `https://oneuptime.com`. Svaret är `{ "data": [...], "count": ... }`, där `count` är hur många objekt som matchar totalt. Bläddra genom att öka `skip` med din `limit` tills du har alla; `limit` går upp till 10 000.
+På en egendriven installation använder du din egen OneUptime-adress i stället för `https://oneuptime.com`. Svaret är `{ "data": [...], "count": ... }`, där `count` är hur många objekt som matchar totalt. Bläddra genom att öka `skip` med din `limit` tills du har alla; `limit` går upp till 10 000. Datum och id:n utöver `_id` kommer inslagna, som `{ "_type": "DateTime", "value": "..." }` och `{ "_type": "ObjectID", "value": "..." }`: läs dem från `value`.
 
 ### Bara nätverksenheterna
 
@@ -222,18 +222,22 @@ Datum i `customFields` är ISO-8601-strängar i UTC, och CSV-exporten skriver de
 
 Det finns inget ändringsflöde. Polla listslutpunkten med det intervall som passar dig, och jämför på `entityKey`. `lastSeenAt` talar om när ett objekt senast observerades, vilket oftast är det billigaste sättet att upptäcka det som har tystnat sedan din senaste körning.
 
-Ett objekt som försvinner mellan två körningar har antingen löpt ut (ett upptäckt objekt som var tyst längre än sitt fönster) eller fått sin egen post raderad. Ett objekt som bär värden i anpassade fält arkiveras i stället för att raderas, så fråga med `"isArchived": true` för att se vad som har fasats ut utan att förlora de tillgångsdata som hör till det.
+Ett objekt som försvinner mellan två körningar har antingen löpt ut (ett upptäckt objekt som var tyst längre än sitt fönster) eller fått sin egen post raderad. Ett speglat objekt som bär värden i anpassade fält arkiveras i stället för att raderas när dess post försvinner, så fråga med `"isArchived": true` för att se vad som har fasats ut utan att förlora de tillgångsdata som hör till det.
 
 ## Skriv tillbaka
 
 Samma slutpunkter tar emot skrivningar, så en synkronisering kan skicka in värden i `customFields`: till exempel den tillgångsetikett som din CMDB redan äger, stämplad på det motsvarande OneUptime-objektet. Nyckeln behöver **Edit Telemetry Service** för det.
 
-Du kan också lägga till objekt för saker som OneUptime inte kan se, med `POST /api/inventory-item`, en `entityType` av `external.service`, `external.database` eller `appliance` och ett `displayName`. OneUptime räknar ut identitetsnyckeln åt dig, och de objekten löper aldrig ut.
+Du kan också lägga till objekt för saker som OneUptime inte kan se, med `POST /api/inventory-item`, en `entityType` av `external.service`, `external.database` eller `appliance` och ett `displayName`. OneUptime räknar ut identitetsnyckeln åt dig, och de objekten löper aldrig ut. Nyckeln behöver **Create Telemetry Service** för det.
 
 ## Felsökning
 
 :::details Varje begäran nekas med 402 Payment Required
 I OneUptime Cloud fungerar API-nycklar bara medan projektet har planen **Growth** eller högre. Inget raderas: nyckeln fungerar igen som den är så snart projektet är tillbaka på planen. Se [API-nycklar och SCIM under sin plan](/docs/api-reference/api-reference#api-nycklar-och-scim-under-sin-plan).
+:::
+
+:::details Varje begäran besvaras med 422 You do not have permissions
+Nyckeln har ingen behörighet som läser inventariet. En nyckel som skapats med **Välj behörigheter senare** kan ingenting förrän den får en: lägg till **Read Telemetry Service** på dess sida, som i [Innan du börjar](#innan-du-börjar).
 :::
 
 :::details Listan kommer tillbaka utan de kolumner jag behöver

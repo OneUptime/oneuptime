@@ -89,17 +89,36 @@ Una lista o un recuento acepta una `query`. Un campo con un valor coincide con e
 | `Includes` | Cualquiera de los valores de `value` |
 | `IsNull`, `NotNull` | Ningún valor, o cualquier valor |
 
-`select` nombra los campos que se devuelven, y `_id` siempre vuelve. `sort` los ordena, `ASC` o `DESC`. Una lista devuelve 10 registros salvo que fijes `limit`, hasta 10 000, y `skip` se salta antes esa cantidad: sigue aumentando `skip` en `limit` hasta tener `count` de ellos. Añade `?output-type=csv` a una solicitud de lista para obtener CSV en lugar de JSON.
+`select` nombra los campos que se devuelven, y `_id` siempre vuelve. `sort` los ordena, `ASC` o `DESC`; sin orden, los más recientes van primero. Una lista devuelve 10 registros salvo que fijes `limit`, hasta 10 000, y `skip` se salta antes esa cantidad: sigue aumentando `skip` en `limit` hasta tener `count` de ellos. Añade `?output-type=csv` a una solicitud de lista para obtener CSV en lugar de JSON.
+
+Por ejemplo, los monitores cuyo nombre contiene «checkout», creados desde el inicio de 2026, los más recientes primero:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Las fechas y los ID que no son `_id` vuelven envueltos, como `{ "_type": "DateTime", "value": "..." }` y `{ "_type": "ObjectID", "value": "..." }`: léelos de `value`.
 
 ### Códigos de estado
 
 | Código | Qué significa | Más información |
 | --- | --- | --- |
 | `200` | Ha salido bien. Una lista o un recuento responde con los registros que puedes leer, ninguno si no hay. | [Leer un registro por su ID](#leer-un-registro-por-su-id) |
-| `400` | La solicitud es incorrecta: la clave de API no es válida, un valor no está permitido, un campo no se puede escribir, un registro que nombra no es tuyo, o cambia varios proyectos a la vez. El mensaje nombra el campo. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
+| `400` | La solicitud es incorrecta: la clave de API no es válida, un valor no está permitido, un campo no se puede escribir, un registro que nombra no es tuyo, o cambia varios proyectos a la vez. El mensaje dice qué está mal. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
 | `402` | El plan del proyecto no incluye lo que usa la solicitud. El mensaje nombra el plan. | [Funciones que tu plan no incluye](#funciones-que-tu-plan-no-incluye) |
 | `404` | El registro no existe, está en otro proyecto o es uno que no puedes leer: la misma respuesta en cada caso. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
-| `422` | No puedes hacer esto: puedes leer el registro pero no cambiarlo, o las etiquetas de un permiso lo dejan fuera. El mensaje dice por qué. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
+| `422` | No puedes hacer esto: la clave de API no tiene ningún permiso para este tipo de registro, puedes leer el registro pero no cambiarlo, o las etiquetas de un permiso lo dejan fuera. El mensaje dice por qué. | [Cambiar o eliminar un registro que no puedes leer](#cambiar-o-eliminar-un-registro-que-no-puedes-leer) |
 | `500` | Algo falló en el servidor. Cuando no se puede escribir el propietario de un registro nuevo, el registro se vuelve a quitar, así que la creación se puede reintentar. | [Los registros que nombra una solicitud](#los-registros-que-nombra-una-solicitud) |
 
 ## Los planes y la API
@@ -315,6 +334,10 @@ La cabecera `ApiKey` está vacía, no es una clave o nombra una clave que ha cad
 
 :::details Cada solicitud responde 402 Payment Required
 En OneUptime Cloud, las claves de API solo funcionan mientras el proyecto está en el plan **Growth** o superior. Las claves se conservan y vuelven a funcionar tal cual en cuanto el proyecto vuelve al plan: consulta [Claves de API y SCIM por debajo de su plan](#claves-de-api-y-scim-por-debajo-de-su-plan).
+:::
+
+:::details Cada solicitud responde 422 You do not have permissions
+La clave de API no tiene ningún permiso para ese tipo de registro. Una clave creada con **Elegir los permisos más tarde** no puede hacer nada hasta que recibe uno: ábrela en **Ajustes del proyecto → Avanzado → Claves de API** y haz clic en **Añadir rol** o **Añadir permiso**. El mensaje nombra los permisos que dejarían pasar la solicitud.
 :::
 
 :::details Un registro que veo en el panel responde 404

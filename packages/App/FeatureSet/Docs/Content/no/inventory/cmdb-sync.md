@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-På en selvdriftet installasjon bruker du din egen OneUptime-adresse i stedet for `https://oneuptime.com`. Svaret er `{ "data": [...], "count": ... }`, der `count` er hvor mange elementer som passer totalt. Bla ved å øke `skip` med `limit`, til du har alle; `limit` går opp til 10 000.
+På en selvdriftet installasjon bruker du din egen OneUptime-adresse i stedet for `https://oneuptime.com`. Svaret er `{ "data": [...], "count": ... }`, der `count` er hvor mange elementer som passer totalt. Bla ved å øke `skip` med `limit`, til du har alle; `limit` går opp til 10 000. Datoer og ID-er utenom `_id` kommer pakket inn, som `{ "_type": "DateTime", "value": "..." }` og `{ "_type": "ObjectID", "value": "..." }`: les dem fra `value`.
 
 ### Bare nettverksenhetene
 
@@ -222,18 +222,22 @@ Datoer i `customFields` er ISO-8601-strenger i UTC, og CSV-eksporten skriver dem
 
 Det finnes ingen endringsstrøm. Poll listeendepunktet med det intervallet som passer deg, og sammenlign på `entityKey`. `lastSeenAt` forteller når et element sist ble observert, noe som vanligvis er den billigste måten å oppdage det som har blitt stille siden forrige kjøring.
 
-Et element som forsvinner mellom to kjøringer, har enten utløpt (et oppdaget element som var stille lenger enn vinduet sitt), eller fått den egne posten slettet. Et element som har verdier i egendefinerte felt, arkiveres i stedet for å slettes, så spør med `"isArchived": true` for å se hva som er faset ut uten å miste eiendelsdataene knyttet til det.
+Et element som forsvinner mellom to kjøringer, har enten utløpt (et oppdaget element som var stille lenger enn vinduet sitt), eller fått den egne posten slettet. Et speilet element som har verdier i egendefinerte felt, arkiveres i stedet for å slettes når posten forsvinner, så spør med `"isArchived": true` for å se hva som er faset ut uten å miste eiendelsdataene knyttet til det.
 
 ## Skriv tilbake
 
 De samme endepunktene tar imot skriving, så en synkronisering kan sende verdier inn i `customFields`: for eksempel eiendelsmerket CMDB-en din allerede eier, stemplet på det tilsvarende OneUptime-elementet. Nøkkelen trenger **Edit Telemetry Service** til det.
 
-Du kan også legge til elementer for ting OneUptime ikke kan se, med `POST /api/inventory-item`, en `entityType` av `external.service`, `external.database` eller `appliance` og et `displayName`. OneUptime regner ut identitetsnøkkelen for deg, og de elementene utløper aldri.
+Du kan også legge til elementer for ting OneUptime ikke kan se, med `POST /api/inventory-item`, en `entityType` av `external.service`, `external.database` eller `appliance` og et `displayName`. OneUptime regner ut identitetsnøkkelen for deg, og de elementene utløper aldri. Nøkkelen trenger **Create Telemetry Service** for det.
 
 ## Feilsøking
 
 :::details Hver forespørsel avvises med 402 Payment Required
 I OneUptime Cloud fungerer API-nøkler bare mens prosjektet er på abonnementet **Growth** eller høyere. Ingenting slettes: nøkkelen fungerer igjen som den er så snart prosjektet er tilbake på abonnementet. Se [API-nøkler og SCIM under abonnementet sitt](/docs/api-reference/api-reference#api-nøkler-og-scim-under-abonnementet-sitt).
+:::
+
+:::details Hver forespørsel svarer 422 You do not have permissions
+Nøkkelen har ingen tillatelse som leser inventaret. En nøkkel opprettet med **Velg tillatelser senere** kan ingenting før den får en: legg til **Read Telemetry Service** på siden dens, som i [Før du begynner](#før-du-begynner).
 :::
 
 :::details Listen kommer tilbake uten kolonnene jeg trenger

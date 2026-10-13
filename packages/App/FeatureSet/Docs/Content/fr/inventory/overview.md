@@ -1,6 +1,6 @@
 # Vue d'ensemble de l'inventaire
 
-L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : services, hôtes, conteneurs, objets Kubernetes, équipements réseau, ressources cloud, appareils IoT, fonctions serverless, et même ce qui n'envoie aucune télémétrie. L'essentiel se remplit tout seul à partir de ce que OneUptime surveille déjà. Vous ajoutez ce que la surveillance ne peut pas lui dire : à quoi sert une chose, à qui elle appartient, quand sa garantie expire.
+L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : services, hôtes, objets Kubernetes, machines virtuelles, équipements réseau, ressources cloud, appareils IoT, fonctions serverless, et même ce qui n'envoie aucune télémétrie. L'essentiel se remplit tout seul à partir de ce que OneUptime surveille déjà. Vous ajoutez ce que la surveillance ne peut pas lui dire : à quoi sert une chose, à qui elle appartient, quand sa garantie expire.
 
 :::cards
 - [Comment les éléments arrivent dans l'inventaire](#comment-les-éléments-arrivent-dans-linventaire): Découverts, répliqués ou ajoutés par vous.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Source | Dans l'API | D'où elle vient | Combien de temps elle reste |
 | --- | --- | --- | --- |
-| **Découvert** | `discovered` | Les attributs de ressource OpenTelemetry, lus à l'arrivée de la télémétrie : un service, un hôte, un pod, un conteneur ou un processus qui envoie de la télémétrie. | Réenregistré à chaque lot. Retiré une fois resté silencieux plus longtemps que la fenêtre de son type (voir plus bas). |
+| **Découvert** | `discovered` | Les attributs de ressource OpenTelemetry, lus à l'arrivée de la télémétrie : un service, un hôte, un objet Kubernetes ou une machine virtuelle qui envoie de la télémétrie. | Réenregistré à chaque lot. Retiré une fois resté silencieux plus longtemps que la fenêtre de son type (voir plus bas). |
 | **Répliqué** | `inventory` | Un enregistrement qu'une sonde de OneUptime tient à jour : équipements réseau, ressources cloud, appareils IoT, fonctions serverless, applications RUM, hôtes Docker et hôtes Podman. Copié toutes les 15 minutes. | Aussi longtemps que son enregistrement. Supprimez l'enregistrement, et l'élément part avec lui. |
 | **Ajouté par vous** | `manual` | Ajouté par vous, pour quelque chose que OneUptime ne peut pas voir : une API tierce, une base de données gérée par un fournisseur, une appliance dans une baie. | Jusqu'à ce que vous le supprimiez. Rien ne le fait expirer. |
 
@@ -40,15 +40,15 @@ Un élément découvert a un battement de cœur. Chaque fois que de la télémé
 | **Recent** | Vu au cours de la dernière journée. |
 | **Stale** | Pas vu depuis plus d'une journée. La page **Devenu silencieux** les liste. |
 
-Toutes les trois heures, OneUptime retire les éléments découverts restés silencieux plus longtemps que la fenêtre de leur type. Les éléments répliqués et ceux que vous avez ajoutés ne sont jamais retirés de cette façon.
+Toutes les trois heures, OneUptime retire les éléments découverts restés silencieux plus longtemps que la fenêtre de leur type, archivés compris, et leurs valeurs de champs personnalisés partent avec eux. Les éléments répliqués et ceux que vous avez ajoutés ne sont jamais retirés de cette façon.
 
 | Type d'élément | Retiré après ce délai sans télémétrie |
 | --- | --- |
-| Pods, déploiements, instances de service, conteneurs, processus, invités Proxmox et machines virtuelles VMware | 1 jour |
+| Pods, déploiements, invités Proxmox et machines virtuelles VMware | 1 jour |
 | Nœuds et espaces de noms Kubernetes, nœuds Proxmox, hôtes, clusters et datastores VMware, ainsi que les bases de données et services distants que vos traces appellent | 7 jours |
-| Services, hôtes, clusters Kubernetes, Proxmox et Ceph, baies de stockage, vCenters, clusters Docker Swarm et SDK de télémétrie | 30 jours |
+| Services, hôtes, clusters Kubernetes, Proxmox et Ceph, baies de stockage, vCenters et clusters Docker Swarm | 30 jours |
 
-Une relation entre deux éléments est retirée dès qu'elle n'a pas été revue pendant 30 jours.
+Une relation que OneUptime a découverte est retirée dès qu'elle n'a pas été revue pendant 30 jours.
 
 ## S'y retrouver
 
@@ -127,11 +127,10 @@ OneUptime relie les éléments par des relations orientées à mesure qu'il les 
 
 | Relation | Par exemple |
 | --- | --- |
-| `runs-on` | Un pod tourne sur un nœud ; un processus tourne sur un hôte. |
+| `runs-on` | Un pod tourne sur un nœud ; une machine virtuelle tourne sur son hôte. |
 | `member-of` | Un pod, un nœud ou un espace de noms est membre d'un cluster. |
 | `hosted-on` | Un service est hébergé sur un hôte. |
-| `part-of` | Un conteneur fait partie d'un pod ; un processus fait partie d'un conteneur. |
-| `instance-of` | Une instance de service est une instance d'un service. |
+| `part-of` | Un pod fait partie de son déploiement. |
 | `depends-on` | Un service en appelle un autre, d'après les spans qui passent de l'un à l'autre. |
 
 ## Prochaines étapes

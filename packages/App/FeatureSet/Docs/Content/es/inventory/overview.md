@@ -1,6 +1,6 @@
 # Visión general del inventario
 
-El inventario es una sola lista de todo lo que OneUptime sabe de tu infraestructura: servicios, hosts, contenedores, objetos de Kubernetes, dispositivos de red, recursos en la nube, dispositivos IoT, funciones serverless y las cosas que no envían ninguna telemetría. Casi todo se rellena solo a partir de lo que OneUptime ya vigila. Tú añades lo que vigilar no puede decirle: para qué sirve algo, de quién es, cuándo vence su garantía.
+El inventario es una sola lista de todo lo que OneUptime sabe de tu infraestructura: servicios, hosts, objetos de Kubernetes, máquinas virtuales, dispositivos de red, recursos en la nube, dispositivos IoT, funciones serverless y las cosas que no envían ninguna telemetría. Casi todo se rellena solo a partir de lo que OneUptime ya vigila. Tú añades lo que vigilar no puede decirle: para qué sirve algo, de quién es, cuándo vence su garantía.
 
 :::cards
 - [Cómo llegan los elementos al inventario](#cómo-llegan-los-elementos-al-inventario): Descubiertos, replicados o añadidos por ti.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Origen | En la API | De dónde viene | Cuánto tiempo se queda |
 | --- | --- | --- | --- |
-| **Descubierto** | `discovered` | Atributos de recurso de OpenTelemetry, leídos al llegar la telemetría: un servicio, host, pod, contenedor o proceso que envía telemetría. | Se vuelve a registrar con cada lote. Se elimina cuando lleva más tiempo en silencio que la ventana de su tipo (ver más abajo). |
+| **Descubierto** | `discovered` | Atributos de recurso de OpenTelemetry, leídos al llegar la telemetría: un servicio, host, objeto de Kubernetes o máquina virtual que envía telemetría. | Se vuelve a registrar con cada lote. Se elimina cuando lleva más tiempo en silencio que la ventana de su tipo (ver más abajo). |
 | **Replicado** | `inventory` | Un registro que mantiene un sondeo de OneUptime: dispositivos de red, recursos en la nube, dispositivos IoT, funciones serverless, aplicaciones RUM, hosts Docker y hosts Podman. Se copia cada 15 minutos. | Mientras exista su registro. Elimina el registro y el elemento se va con él. |
 | **Añadido por ti** | `manual` | Añadido por ti, para algo que OneUptime no puede ver: una API de terceros, una base de datos gestionada por un proveedor, un appliance en un rack. | Hasta que lo elimines. Nada lo hace caducar. |
 
@@ -40,15 +40,15 @@ Un elemento descubierto tiene latido. Cada vez que llega telemetría para él, s
 | **Recientes** | Visto durante el último día. |
 | **Obsoleto** | Sin ver desde hace más de un día. La página **Sin actividad** los muestra. |
 
-Cada tres horas, OneUptime elimina los elementos descubiertos que llevan más tiempo en silencio que la ventana de su tipo. Los elementos replicados y los que añadiste nunca se eliminan de esta forma.
+Cada tres horas, OneUptime elimina los elementos descubiertos que llevan más tiempo en silencio que la ventana de su tipo, también los archivados, y sus valores de campos personalizados se van con ellos. Los elementos replicados y los que añadiste nunca se eliminan de esta forma.
 
 | Tipo de elemento | Se elimina tras este tiempo sin telemetría |
 | --- | --- |
-| Pods, despliegues, instancias de servicio, contenedores, procesos, invitados de Proxmox y máquinas virtuales de VMware | 1 día |
+| Pods, despliegues, invitados de Proxmox y máquinas virtuales de VMware | 1 día |
 | Nodos y espacios de nombres de Kubernetes, nodos de Proxmox, hosts, clústeres y almacenes de datos de VMware, y las bases de datos y servicios remotos a los que llaman tus trazas | 7 días |
-| Servicios, hosts, clústeres de Kubernetes, Proxmox y Ceph, cabinas de almacenamiento, vCenters, clústeres de Docker Swarm y SDK de telemetría | 30 días |
+| Servicios, hosts, clústeres de Kubernetes, Proxmox y Ceph, cabinas de almacenamiento, vCenters y clústeres de Docker Swarm | 30 días |
 
-Una relación entre dos elementos se elimina cuando no se ha vuelto a ver durante 30 días.
+Una relación que OneUptime descubrió se elimina cuando no se ha vuelto a ver durante 30 días.
 
 ## Orientarse
 
@@ -127,11 +127,10 @@ OneUptime enlaza los elementos con relaciones dirigidas a medida que las observa
 
 | Relación | Por ejemplo |
 | --- | --- |
-| `runs-on` | Un pod se ejecuta en un nodo; un proceso se ejecuta en un host. |
+| `runs-on` | Un pod se ejecuta en un nodo; una máquina virtual se ejecuta en su host. |
 | `member-of` | Un pod, nodo o espacio de nombres es miembro de un clúster. |
 | `hosted-on` | Un servicio está alojado en un host. |
-| `part-of` | Un contenedor forma parte de un pod; un proceso forma parte de un contenedor. |
-| `instance-of` | Una instancia de servicio es una instancia de un servicio. |
+| `part-of` | Un pod forma parte de su despliegue. |
 | `depends-on` | Un servicio llama a otro, según los spans que pasan de uno a otro. |
 
 ## Próximos pasos

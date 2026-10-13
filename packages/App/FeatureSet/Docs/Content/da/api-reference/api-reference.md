@@ -89,17 +89,36 @@ En liste eller en optælling tager en `query`. Et felt med en værdi matcher den
 | `Includes` | En hvilken som helst af værdierne i `value` |
 | `IsNull`, `NotNull` | Ingen værdi, eller en hvilken som helst værdi |
 
-`select` nævner de felter, der skal returneres, og `_id` kommer altid med. `sort` ordner dem, `ASC` eller `DESC`. En liste returnerer 10 poster, medmindre du sætter `limit`, op til 10.000, og `skip` springer først så mange over: bliv ved med at hæve `skip` med `limit`, indtil du har `count` af dem. Tilføj `?output-type=csv` til en listeforespørgsel for at få CSV i stedet for JSON.
+`select` nævner de felter, der skal returneres, og `_id` kommer altid med. `sort` ordner dem, `ASC` eller `DESC`; uden sortering kommer de nyeste først. En liste returnerer 10 poster, medmindre du sætter `limit`, op til 10.000, og `skip` springer først så mange over: bliv ved med at hæve `skip` med `limit`, indtil du har `count` af dem. Tilføj `?output-type=csv` til en listeforespørgsel for at få CSV i stedet for JSON.
+
+For eksempel de monitorer, hvis navn indeholder »checkout«, oprettet siden starten af 2026, de nyeste først:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Datoer og id'er ud over `_id` kommer pakket ind, som `{ "_type": "DateTime", "value": "..." }` og `{ "_type": "ObjectID", "value": "..." }`: læs dem fra `value`.
 
 ### Statuskoder
 
 | Kode | Hvad den betyder | Læs mere |
 | --- | --- | --- |
 | `200` | Den gik igennem. En liste eller en optælling svarer med de poster, du må læse, ingen når der ikke er nogen. | [Læs én post ud fra dens ID](#læs-én-post-ud-fra-dens-id) |
-| `400` | Forespørgslen er forkert: API-nøglen er ugyldig, en værdi er ikke tilladt, et felt kan ikke skrives, en nævnt post er ikke din, eller den ændrer flere projekter på én gang. Beskeden nævner feltet. | [Poster, som en forespørgsel nævner](#poster-som-en-forespørgsel-nævner) |
+| `400` | Forespørgslen er forkert: API-nøglen er ugyldig, en værdi er ikke tilladt, et felt kan ikke skrives, en nævnt post er ikke din, eller den ændrer flere projekter på én gang. Beskeden siger, hvad der er galt. | [Poster, som en forespørgsel nævner](#poster-som-en-forespørgsel-nævner) |
 | `402` | Projektets abonnement indeholder ikke det, forespørgslen bruger. Beskeden nævner abonnementet. | [Funktioner, dit abonnement ikke indeholder](#funktioner-dit-abonnement-ikke-indeholder) |
 | `404` | Posten findes ikke, ligger i et andet projekt eller er en, du ikke må læse: samme svar i hvert tilfælde. | [Ændre eller slette en post, du ikke må læse](#ændre-eller-slette-en-post-du-ikke-må-læse) |
-| `422` | Du må ikke gøre dette: du må læse posten, men ikke ændre den, eller en tilladelses etiketter udelukker den. Beskeden siger hvorfor. | [Ændre eller slette en post, du ikke må læse](#ændre-eller-slette-en-post-du-ikke-må-læse) |
+| `422` | Du må ikke gøre dette: API-nøglen har ingen tilladelse til denne slags post, du må læse posten, men ikke ændre den, eller en tilladelses etiketter udelukker den. Beskeden siger hvorfor. | [Ændre eller slette en post, du ikke må læse](#ændre-eller-slette-en-post-du-ikke-må-læse) |
 | `500` | Noget fejlede på serveren. Når ejeren af en ny post ikke kan skrives, fjernes posten igen, så oprettelsen kan prøves igen. | [Poster, som en forespørgsel nævner](#poster-som-en-forespørgsel-nævner) |
 
 ## Abonnementer og API'et
@@ -315,6 +334,10 @@ Headeren `ApiKey` er tom, er ikke en nøgle eller nævner en nøgle, der er udl�
 
 :::details Hver forespørgsel svarer 402 Payment Required
 I OneUptime Cloud virker API-nøgler kun, mens projektet er på abonnementet **Growth** eller derover. Nøglerne bevares og virker igen, som de er, så snart projektet er tilbage på abonnementet: se [API-nøgler og SCIM under deres abonnement](#api-nøgler-og-scim-under-deres-abonnement).
+:::
+
+:::details Hver forespørgsel svarer 422 You do not have permissions
+API-nøglen har ingen tilladelse til den slags post. En nøgle oprettet med **Vælg tilladelser senere** kan intet, før den får en: åbn den under **Projektindstillinger → Avanceret → API-nøgler**, og klik derefter på **Tilføj rolle** eller **Tilføj tilladelse**. Beskeden nævner de tilladelser, der ville lade forespørgslen komme igennem.
 :::
 
 :::details En post, jeg kan se i dashboardet, svarer 404

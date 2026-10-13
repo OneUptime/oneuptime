@@ -89,17 +89,36 @@ Un elenco o un conteggio accetta una `query`. Un campo con un valore corrisponde
 | `Includes` | Uno qualsiasi dei valori in `value` |
 | `IsNull`, `NotNull` | Nessun valore, o un valore qualsiasi |
 
-`select` nomina i campi da restituire, e `_id` torna sempre. `sort` li ordina, `ASC` o `DESC`. Un elenco restituisce 10 record se non imposti `limit`, fino a 10.000, e `skip` ne salta prima altrettanti: continua ad aumentare `skip` di `limit` finché non ne hai `count`. Aggiungi `?output-type=csv` a una richiesta di elenco per avere CSV invece di JSON.
+`select` nomina i campi da restituire, e `_id` torna sempre. `sort` li ordina, `ASC` o `DESC`; senza ordinamento, i più recenti vengono per primi. Un elenco restituisce 10 record se non imposti `limit`, fino a 10.000, e `skip` ne salta prima altrettanti: continua ad aumentare `skip` di `limit` finché non ne hai `count`. Aggiungi `?output-type=csv` a una richiesta di elenco per avere CSV invece di JSON.
+
+Per esempio, i monitor il cui nome contiene «checkout», creati dall'inizio del 2026, i più recenti per primi:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Le date e gli ID diversi da `_id` tornano incapsulati, come `{ "_type": "DateTime", "value": "..." }` e `{ "_type": "ObjectID", "value": "..." }`: leggili da `value`.
 
 ### Codici di stato
 
 | Codice | Cosa significa | Per saperne di più |
 | --- | --- | --- |
 | `200` | È andata a buon fine. Un elenco o un conteggio risponde con i record che puoi leggere, nessuno se non ce ne sono. | [Leggere un record dal suo ID](#leggere-un-record-dal-suo-id) |
-| `400` | La richiesta è sbagliata: la chiave API non è valida, un valore non è consentito, un campo non può essere scritto, un record nominato non è tuo, oppure modifica più progetti insieme. Il messaggio nomina il campo. | [I record che una richiesta nomina](#i-record-che-una-richiesta-nomina) |
+| `400` | La richiesta è sbagliata: la chiave API non è valida, un valore non è consentito, un campo non può essere scritto, un record nominato non è tuo, oppure modifica più progetti insieme. Il messaggio dice cosa non va. | [I record che una richiesta nomina](#i-record-che-una-richiesta-nomina) |
 | `402` | Il piano del progetto non include ciò che la richiesta usa. Il messaggio nomina il piano. | [Funzionalità che il tuo piano non include](#funzionalità-che-il-tuo-piano-non-include) |
 | `404` | Il record non esiste, è in un altro progetto o è uno che non puoi leggere: la stessa risposta in ogni caso. | [Modificare o eliminare un record che non puoi leggere](#modificare-o-eliminare-un-record-che-non-puoi-leggere) |
-| `422` | Non puoi farlo: puoi leggere il record ma non modificarlo, oppure le etichette di un'autorizzazione lo escludono. Il messaggio dice perché. | [Modificare o eliminare un record che non puoi leggere](#modificare-o-eliminare-un-record-che-non-puoi-leggere) |
+| `422` | Non puoi farlo: la chiave API non ha alcuna autorizzazione per questo tipo di record, puoi leggere il record ma non modificarlo, oppure le etichette di un'autorizzazione lo escludono. Il messaggio dice perché. | [Modificare o eliminare un record che non puoi leggere](#modificare-o-eliminare-un-record-che-non-puoi-leggere) |
 | `500` | Qualcosa è andato storto sul server. Quando il proprietario di un nuovo record non può essere scritto, il record viene rimosso, quindi la creazione si può ritentare. | [I record che una richiesta nomina](#i-record-che-una-richiesta-nomina) |
 
 ## I piani e l'API
@@ -315,6 +334,10 @@ L'intestazione `ApiKey` è vuota, non è una chiave, oppure nomina una chiave sc
 
 :::details Ogni richiesta risponde 402 Payment Required
 Su OneUptime Cloud, le chiavi API funzionano solo finché il progetto è sul piano **Growth** o superiore. Le chiavi vengono conservate e tornano a funzionare così come sono appena il progetto torna sul piano: vedi [Chiavi API e SCIM sotto il loro piano](#chiavi-api-e-scim-sotto-il-loro-piano).
+:::
+
+:::details Ogni richiesta risponde 422 You do not have permissions
+La chiave API non ha alcuna autorizzazione per quel tipo di record. Una chiave creata con **Scegli le autorizzazioni più tardi** non può fare nulla finché non ne riceve una: aprila in **Impostazioni del progetto → Avanzato → Chiavi API**, poi fai clic su **Aggiungi ruolo** o **Aggiungi autorizzazione**. Il messaggio nomina le autorizzazioni che farebbero passare la richiesta.
 :::
 
 :::details Un record che vedo nella dashboard risponde 404

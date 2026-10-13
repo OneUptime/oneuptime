@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Verwenden Sie bei einer selbst gehosteten Installation Ihre eigene OneUptime-Adresse anstelle von `https://oneuptime.com`. Die Antwort ist `{ "data": [...], "count": ... }`, wobei `count` angibt, wie viele Elemente insgesamt passen. Blättern Sie, indem Sie `skip` um Ihr `limit` erhöhen, bis Sie alle haben; `limit` reicht bis 10.000.
+Verwenden Sie bei einer selbst gehosteten Installation Ihre eigene OneUptime-Adresse anstelle von `https://oneuptime.com`. Die Antwort ist `{ "data": [...], "count": ... }`, wobei `count` angibt, wie viele Elemente insgesamt passen. Blättern Sie, indem Sie `skip` um Ihr `limit` erhöhen, bis Sie alle haben; `limit` reicht bis 10.000. Datumswerte und IDs außer `_id` kommen verpackt zurück, als `{ "_type": "DateTime", "value": "..." }` und `{ "_type": "ObjectID", "value": "..." }`: Lesen Sie sie aus `value`.
 
 ### Nur die Netzwerkgeräte
 
@@ -222,18 +222,22 @@ Datumswerte in `customFields` sind ISO-8601-Zeichenketten in UTC, und der CSV-Ex
 
 Es gibt keinen Änderungs-Feed. Fragen Sie den Listen-Endpunkt in einem Intervall ab, das Ihnen passt, und vergleichen Sie über `entityKey`. `lastSeenAt` sagt, wann ein Element zuletzt beobachtet wurde, was meist der günstigste Weg ist, zu sehen, was seit Ihrem letzten Lauf verstummt ist.
 
-Ein Element, das zwischen zwei Läufen verschwindet, ist entweder abgelaufen (ein erkanntes Element, das länger als sein Zeitfenster still war), oder sein zugehöriger Datensatz wurde gelöscht. Ein Element, das Werte benutzerdefinierter Felder trägt, wird archiviert statt gelöscht, also fragen Sie mit `"isArchived": true` ab, um zu sehen, was ausgemustert wurde, ohne die daran hängenden Asset-Daten zu verlieren.
+Ein Element, das zwischen zwei Läufen verschwindet, ist entweder abgelaufen (ein erkanntes Element, das länger als sein Zeitfenster still war), oder sein zugehöriger Datensatz wurde gelöscht. Ein gespiegeltes Element, das Werte benutzerdefinierter Felder trägt, wird archiviert statt gelöscht, wenn sein Datensatz verschwindet, also fragen Sie mit `"isArchived": true` ab, um zu sehen, was ausgemustert wurde, ohne die daran hängenden Asset-Daten zu verlieren.
 
 ## Zurückschreiben
 
 Dieselben Endpunkte nehmen Schreibzugriffe an, sodass eine Synchronisation Werte in `customFields` schreiben kann: etwa das Asset-Tag, das Ihre CMDB bereits führt, auf das passende OneUptime-Element geprägt. Der Schlüssel braucht dafür **Edit Telemetry Service**.
 
-Sie können auch Elemente für Dinge hinzufügen, die OneUptime nicht sehen kann, mit `POST /api/inventory-item`, einem `entityType` von `external.service`, `external.database` oder `appliance` und einem `displayName`. OneUptime ermittelt den Identitätsschlüssel für Sie, und diese Elemente laufen nie ab.
+Sie können auch Elemente für Dinge hinzufügen, die OneUptime nicht sehen kann, mit `POST /api/inventory-item`, einem `entityType` von `external.service`, `external.database` oder `appliance` und einem `displayName`. OneUptime ermittelt den Identitätsschlüssel für Sie, und diese Elemente laufen nie ab. Der Schlüssel braucht dafür **Create Telemetry Service**.
 
 ## Fehlerbehebung
 
 :::details Jede Anfrage wird mit 402 Payment Required abgelehnt
 In OneUptime Cloud funktionieren API-Schlüssel nur, solange das Projekt im Tarif **Growth** oder höher ist. Nichts wird gelöscht: Der Schlüssel funktioniert wieder so, wie er ist, sobald das Projekt wieder im Tarif ist. Siehe [API-Schlüssel und SCIM unterhalb ihres Tarifs](/docs/api-reference/api-reference#api-schlüssel-und-scim-unterhalb-ihres-tarifs).
+:::
+
+:::details Jede Anfrage antwortet mit 422 You do not have permissions
+Der Schlüssel hat keine Berechtigung, die das Inventar liest. Ein mit **Berechtigungen später wählen** angelegter Schlüssel kann nichts, bis er eine bekommt: Fügen Sie auf seiner Seite **Read Telemetry Service** hinzu, wie unter [Bevor Sie beginnen](#bevor-sie-beginnen).
 :::
 
 :::details Die Liste kommt ohne die Spalten zurück, die ich brauche

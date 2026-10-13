@@ -89,17 +89,36 @@ Uma lista ou uma contagem recebe uma `query`. Um campo com um valor corresponde 
 | `Includes` | Qualquer um dos valores em `value` |
 | `IsNull`, `NotNull` | Nenhum valor, ou qualquer valor |
 
-`select` cita os campos a devolver, e `_id` sempre volta. `sort` os ordena, `ASC` ou `DESC`. Uma lista devolve 10 registros, a menos que você defina `limit`, até 10.000, e `skip` pula essa quantidade antes: continue aumentando `skip` por `limit` até ter `count` deles. Adicione `?output-type=csv` a uma requisição de lista para receber CSV em vez de JSON.
+`select` cita os campos a devolver, e `_id` sempre volta. `sort` os ordena, `ASC` ou `DESC`; sem ordenação, os mais recentes vêm primeiro. Uma lista devolve 10 registros, a menos que você defina `limit`, até 10.000, e `skip` pula essa quantidade antes: continue aumentando `skip` por `limit` até ter `count` deles. Adicione `?output-type=csv` a uma requisição de lista para receber CSV em vez de JSON.
+
+Por exemplo, os monitores cujo nome contém “checkout”, criados desde o início de 2026, os mais recentes primeiro:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Datas e IDs que não sejam `_id` voltam embrulhados, como `{ "_type": "DateTime", "value": "..." }` e `{ "_type": "ObjectID", "value": "..." }`: leia-os de `value`.
 
 ### Códigos de status
 
 | Código | O que significa | Saiba mais |
 | --- | --- | --- |
 | `200` | Deu certo. Uma lista ou uma contagem responde com os registros que você pode ler, nenhum quando não há. | [Ler um registro pelo seu ID](#ler-um-registro-pelo-seu-id) |
-| `400` | A requisição está errada: a chave de API é inválida, um valor não é permitido, um campo não pode ser gravado, um registro citado não é seu, ou ela altera vários projetos de uma vez. A mensagem cita o campo. | [Os registros que uma requisição cita](#os-registros-que-uma-requisição-cita) |
+| `400` | A requisição está errada: a chave de API é inválida, um valor não é permitido, um campo não pode ser gravado, um registro citado não é seu, ou ela altera vários projetos de uma vez. A mensagem diz o que está errado. | [Os registros que uma requisição cita](#os-registros-que-uma-requisição-cita) |
 | `402` | O plano do projeto não inclui o que a requisição usa. A mensagem cita o plano. | [Recursos que o seu plano não inclui](#recursos-que-o-seu-plano-não-inclui) |
 | `404` | O registro não existe, está em outro projeto ou é um que você não pode ler: a mesma resposta em cada caso. | [Alterar ou excluir um registro que você não pode ler](#alterar-ou-excluir-um-registro-que-você-não-pode-ler) |
-| `422` | Você não pode fazer isso: pode ler o registro mas não alterá-lo, ou os rótulos de uma permissão o deixam de fora. A mensagem diz por quê. | [Alterar ou excluir um registro que você não pode ler](#alterar-ou-excluir-um-registro-que-você-não-pode-ler) |
+| `422` | Você não pode fazer isso: a chave de API não tem permissão para esse tipo de registro, você pode ler o registro mas não alterá-lo, ou os rótulos de uma permissão o deixam de fora. A mensagem diz por quê. | [Alterar ou excluir um registro que você não pode ler](#alterar-ou-excluir-um-registro-que-você-não-pode-ler) |
 | `500` | Algo falhou no servidor. Quando o proprietário de um novo registro não pode ser gravado, o registro é removido de novo, então a criação pode ser tentada outra vez. | [Os registros que uma requisição cita](#os-registros-que-uma-requisição-cita) |
 
 ## Os planos e a API
@@ -315,6 +334,10 @@ O cabeçalho `ApiKey` está vazio, não é uma chave ou cita uma chave que expir
 
 :::details Toda requisição responde 402 Payment Required
 No OneUptime Cloud, as chaves de API só funcionam enquanto o projeto está no plano **Growth** ou superior. As chaves são mantidas e voltam a funcionar como estão assim que o projeto volta ao plano: veja [Chaves de API e SCIM abaixo do plano](#chaves-de-api-e-scim-abaixo-do-plano).
+:::
+
+:::details Toda requisição responde 422 You do not have permissions
+A chave de API não tem permissão para esse tipo de registro. Uma chave criada com **Escolher as permissões depois** não pode fazer nada até receber uma: abra-a em **Configurações do projeto → Avançado → Chaves de API** e clique em **Adicionar função** ou **Adicionar permissão**. A mensagem cita as permissões que deixariam a requisição passar.
 :::
 
 :::details Um registro que vejo no painel responde 404

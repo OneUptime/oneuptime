@@ -1,6 +1,6 @@
 # Inventaris – Overzicht
 
-De inventaris is één lijst van alles wat OneUptime over je omgeving weet: services, hosts, containers, Kubernetes-objecten, netwerkapparaten, cloudresources, IoT-apparaten, serverless functies en de dingen die helemaal geen telemetrie sturen. Het meeste vult zichzelf in vanuit wat OneUptime al bekijkt. Jij voegt toe wat kijken niet kan vertellen: waar iets voor is, van wie het is, wanneer de garantie afloopt.
+De inventaris is één lijst van alles wat OneUptime over je omgeving weet: services, hosts, Kubernetes-objecten, virtuele machines, netwerkapparaten, cloudresources, IoT-apparaten, serverless functies en de dingen die helemaal geen telemetrie sturen. Het meeste vult zichzelf in vanuit wat OneUptime al bekijkt. Jij voegt toe wat kijken niet kan vertellen: waar iets voor is, van wie het is, wanneer de garantie afloopt.
 
 :::cards
 - [Hoe items in de inventaris komen](#hoe-items-in-de-inventaris-komen): Ontdekt, gespiegeld of door jou toegevoegd.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Bron | In de API | Waar het vandaan komt | Hoe lang het blijft |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry-resourceattributen, gelezen zodra telemetrie binnenkomt: een service, host, pod, container of proces dat telemetrie stuurt. | Wordt bij elke batch opnieuw geregistreerd. Wordt verwijderd zodra het langer stil is dan het venster van zijn soort (zie hieronder). |
+| **Discovered** | `discovered` | OpenTelemetry-resourceattributen, gelezen zodra telemetrie binnenkomt: een service, host, Kubernetes-object of virtuele machine die telemetrie stuurt. | Wordt bij elke batch opnieuw geregistreerd. Wordt verwijderd zodra het langer stil is dan het venster van zijn soort (zie hieronder). |
 | **Mirrored** | `inventory` | Een record dat een poller van OneUptime bijhoudt: netwerkapparaten, cloudresources, IoT-apparaten, serverless functies, RUM-applicaties, Docker-hosts en Podman-hosts. Elke 15 minuten gekopieerd. | Zolang het record bestaat. Verwijder het record en het item gaat mee. |
 | **Added by you** | `manual` | Door jou toegevoegd, voor iets wat OneUptime niet kan zien: een API van een derde partij, een database die een leverancier beheert, een appliance in een rack. | Tot je het verwijdert. Niets laat het verlopen. |
 
@@ -40,15 +40,15 @@ Een ontdekt item heeft een hartslag. Elke keer dat er telemetrie voor binnenkomt
 | **Recent** | Gezien binnen de laatste dag. |
 | **Stale** | Al meer dan een dag niet gezien. De pagina **Gone Quiet** toont ze. |
 
-Elke drie uur verwijdert OneUptime de ontdekte items die langer stil zijn dan het venster van hun soort. Gespiegelde items en de items die jij hebt toegevoegd worden nooit op deze manier verwijderd.
+Elke drie uur verwijdert OneUptime de ontdekte items die langer stil zijn dan het venster van hun soort, gearchiveerde inbegrepen, en hun waarden van aangepaste velden gaan mee. Gespiegelde items en de items die jij hebt toegevoegd worden nooit op deze manier verwijderd.
 
 | Soort item | Verwijderd na zo lang zonder telemetrie |
 | --- | --- |
-| Pods, deployments, service-instanties, containers, processen, Proxmox-gasten en virtuele VMware-machines | 1 dag |
+| Pods, deployments, Proxmox-gasten en virtuele VMware-machines | 1 dag |
 | Kubernetes-nodes en -namespaces, Proxmox-nodes, VMware-hosts, -clusters en -datastores, en de databases en externe services die je traces aanroepen | 7 dagen |
-| Services, hosts, Kubernetes-, Proxmox- en Ceph-clusters, storage-arrays, vCenters, Docker Swarm-clusters en telemetrie-SDK's | 30 dagen |
+| Services, hosts, Kubernetes-, Proxmox- en Ceph-clusters, storage-arrays, vCenters en Docker Swarm-clusters | 30 dagen |
 
-Een relatie tussen twee items wordt verwijderd zodra die 30 dagen niet opnieuw is gezien.
+Een relatie die OneUptime heeft ontdekt, wordt verwijderd zodra die 30 dagen niet opnieuw is gezien.
 
 ## Je weg vinden
 
@@ -127,11 +127,10 @@ OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Invent
 
 | Relatie | Bijvoorbeeld |
 | --- | --- |
-| `runs-on` | Een pod draait op een node; een proces draait op een host. |
+| `runs-on` | Een pod draait op een node; een virtuele machine draait op haar host. |
 | `member-of` | Een pod, node of namespace is lid van een cluster. |
 | `hosted-on` | Een service wordt gehost op een host. |
-| `part-of` | Een container is deel van een pod; een proces is deel van een container. |
-| `instance-of` | Een service-instantie is een instantie van een service. |
+| `part-of` | Een pod is deel van zijn deployment. |
 | `depends-on` | Een service roept een andere aan, volgens de spans die tussen de twee overgaan. |
 
 ## Volgende stappen

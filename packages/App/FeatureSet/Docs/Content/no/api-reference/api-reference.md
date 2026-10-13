@@ -89,17 +89,36 @@ En liste eller en telling tar en `query`. Et felt med en verdi matcher den verdi
 | `Includes` | En av verdiene i `value` |
 | `IsNull`, `NotNull` | Ingen verdi, eller en hvilken som helst verdi |
 
-`select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
+`select` nevner feltene som skal returneres, og `_id` kommer alltid med. `sort` ordner dem, `ASC` eller `DESC`; uten sortering kommer de nyeste først. En liste returnerer 10 poster med mindre du setter `limit`, opptil 10 000, og `skip` hopper først over så mange: fortsett å øke `skip` med `limit` til du har `count` av dem. Legg til `?output-type=csv` i en listeforespørsel for å få CSV i stedet for JSON.
+
+For eksempel monitorene der navnet inneholder «checkout», opprettet siden starten av 2026, de nyeste først:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Datoer og ID-er utenom `_id` kommer pakket inn, som `{ "_type": "DateTime", "value": "..." }` og `{ "_type": "ObjectID", "value": "..." }`: les dem fra `value`.
 
 ### Statuskoder
 
 | Kode | Hva den betyr | Les mer |
 | --- | --- | --- |
 | `200` | Den gikk gjennom. En liste eller en telling svarer med postene du får lese, ingen når det ikke finnes noen. | [Les én post ut fra ID-en](#les-én-post-ut-fra-id-en) |
-| `400` | Forespørselen er feil: API-nøkkelen er ugyldig, en verdi er ikke tillatt, et felt kan ikke skrives, en nevnt post er ikke din, eller den endrer flere prosjekter samtidig. Meldingen nevner feltet. | [Poster en forespørsel nevner](#poster-en-forespørsel-nevner) |
+| `400` | Forespørselen er feil: API-nøkkelen er ugyldig, en verdi er ikke tillatt, et felt kan ikke skrives, en nevnt post er ikke din, eller den endrer flere prosjekter samtidig. Meldingen sier hva som er galt. | [Poster en forespørsel nevner](#poster-en-forespørsel-nevner) |
 | `402` | Prosjektets abonnement inneholder ikke det forespørselen bruker. Meldingen nevner abonnementet. | [Funksjoner abonnementet ditt ikke inneholder](#funksjoner-abonnementet-ditt-ikke-inneholder) |
 | `404` | Posten finnes ikke, ligger i et annet prosjekt eller er en du ikke får lese: samme svar i hvert tilfelle. | [Endre eller slette en post du ikke får lese](#endre-eller-slette-en-post-du-ikke-får-lese) |
-| `422` | Du får ikke gjøre dette: du får lese posten, men ikke endre den, eller etikettene til en tillatelse utelukker den. Meldingen sier hvorfor. | [Endre eller slette en post du ikke får lese](#endre-eller-slette-en-post-du-ikke-får-lese) |
+| `422` | Du får ikke gjøre dette: API-nøkkelen har ingen tillatelse for denne typen post, du får lese posten, men ikke endre den, eller etikettene til en tillatelse utelukker den. Meldingen sier hvorfor. | [Endre eller slette en post du ikke får lese](#endre-eller-slette-en-post-du-ikke-får-lese) |
 | `500` | Noe feilet på serveren. Når eieren av en ny post ikke kan skrives, fjernes posten igjen, så opprettelsen kan prøves på nytt. | [Poster en forespørsel nevner](#poster-en-forespørsel-nevner) |
 
 ## Abonnementer og API-et
@@ -315,6 +334,10 @@ Headeren `ApiKey` er tom, er ikke en nøkkel, eller nevner en nøkkel som har ut
 
 :::details Hver forespørsel svarer 402 Payment Required
 I OneUptime Cloud fungerer API-nøkler bare mens prosjektet er på abonnementet **Growth** eller høyere. Nøklene beholdes og fungerer igjen slik de er så snart prosjektet er tilbake på abonnementet: se [API-nøkler og SCIM under abonnementet sitt](#api-nøkler-og-scim-under-abonnementet-sitt).
+:::
+
+:::details Hver forespørsel svarer 422 You do not have permissions
+API-nøkkelen har ingen tillatelse for den typen post. En nøkkel opprettet med **Velg tillatelser senere** kan ingenting før den får en: åpne den under **Prosjektinnstillinger → Avansert → API-nøkler**, og klikk deretter på **Legg til rolle** eller **Legg til tillatelse**. Meldingen nevner tillatelsene som ville sluppet forespørselen gjennom.
 :::
 
 :::details En post jeg ser i dashbordet, svarer 404

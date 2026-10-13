@@ -1,6 +1,6 @@
 # Inventarie – Översikt
 
-Inventariet är en enda lista över allt OneUptime vet om din miljö: tjänster, värdar, containrar, Kubernetes-objekt, nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner och de saker som inte skickar någon telemetri alls. Det mesta fyller sig självt utifrån det OneUptime redan bevakar. Du lägger till det som bevakning inte kan berätta: vad en sak är till för, vem som äger den, när garantin går ut.
+Inventariet är en enda lista över allt OneUptime vet om din miljö: tjänster, värdar, Kubernetes-objekt, virtuella maskiner, nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner och de saker som inte skickar någon telemetri alls. Det mesta fyller sig självt utifrån det OneUptime redan bevakar. Du lägger till det som bevakning inte kan berätta: vad en sak är till för, vem som äger den, när garantin går ut.
 
 :::cards
 - [Så hamnar objekt i inventariet](#så-hamnar-objekt-i-inventariet): Upptäckta, speglade eller tillagda av dig.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Källa | I API:t | Var det kommer ifrån | Hur länge det stannar |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, värd, pod, container eller process som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
+| **Discovered** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, en värd, ett Kubernetes-objekt eller en virtuell maskin som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
 | **Mirrored** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar och Podman-värdar. Kopieras var 15:e minut. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
 | **Added by you** | `manual` | Tillagt av dig, för något OneUptime inte kan se: ett API från tredje part, en databas som en leverantör sköter, en appliance i ett rack. | Tills du raderar det. Inget får det att löpa ut. |
 
@@ -40,15 +40,15 @@ Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för de
 | **Recent** | Sett under det senaste dygnet. |
 | **Stale** | Inte sett på mer än ett dygn. Sidan **Gone Quiet** listar dem. |
 
-Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta längre än fönstret för sin typ. Speglade objekt och de du har lagt till tas aldrig bort på det här sättet.
+Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta längre än fönstret för sin typ, även de arkiverade, och deras värden i anpassade fält försvinner med dem. Speglade objekt och de du har lagt till tas aldrig bort på det här sättet.
 
 | Typ av objekt | Tas bort efter så här lång tid utan telemetri |
 | --- | --- |
-| Poddar, deployments, tjänsteinstanser, containrar, processer, Proxmox-gäster och virtuella VMware-maskiner | 1 dag |
+| Poddar, deployments, Proxmox-gäster och virtuella VMware-maskiner | 1 dag |
 | Kubernetes-noder och -namnrymder, Proxmox-noder, VMware-värdar, -kluster och -datalager, samt de databaser och fjärrtjänster som dina traces anropar | 7 dagar |
-| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, lagringsarrayer, vCenters, Docker Swarm-kluster och telemetri-SDK:er | 30 dagar |
+| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, lagringsarrayer, vCenters och Docker Swarm-kluster | 30 dagar |
 
-En relation mellan två objekt tas bort när den inte har setts igen på 30 dagar.
+En relation som OneUptime har upptäckt tas bort när den inte har setts igen på 30 dagar.
 
 ## Hitta rätt
 
@@ -127,11 +127,10 @@ OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **
 
 | Relation | Till exempel |
 | --- | --- |
-| `runs-on` | En pod körs på en nod; en process körs på en värd. |
+| `runs-on` | En pod körs på en nod; en virtuell maskin körs på sin värd. |
 | `member-of` | En pod, nod eller namnrymd är medlem i ett kluster. |
 | `hosted-on` | En tjänst körs på en värd. |
-| `part-of` | En container är en del av en pod; en process är en del av en container. |
-| `instance-of` | En tjänsteinstans är en instans av en tjänst. |
+| `part-of` | En pod är en del av sin deployment. |
 | `depends-on` | En tjänst anropar en annan, utifrån de spans som går mellan dem. |
 
 ## Nästa steg

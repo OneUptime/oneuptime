@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Sur une installation auto-hébergée, utilisez votre propre adresse OneUptime à la place de `https://oneuptime.com`. La réponse est `{ "data": [...], "count": ... }`, où `count` indique combien d'éléments correspondent au total. Parcourez les pages en augmentant `skip` de votre `limit` jusqu'à les avoir tous ; `limit` va jusqu'à 10 000.
+Sur une installation auto-hébergée, utilisez votre propre adresse OneUptime à la place de `https://oneuptime.com`. La réponse est `{ "data": [...], "count": ... }`, où `count` indique combien d'éléments correspondent au total. Parcourez les pages en augmentant `skip` de votre `limit` jusqu'à les avoir tous ; `limit` va jusqu'à 10 000. Les dates et les identifiants autres que `_id` reviennent enveloppés, sous la forme `{ "_type": "DateTime", "value": "..." }` et `{ "_type": "ObjectID", "value": "..." }` : lisez-les dans `value`.
 
 ### Seulement les équipements réseau
 
@@ -222,18 +222,22 @@ Les dates de `customFields` sont des chaînes ISO-8601 en UTC, et l'export CSV l
 
 Il n'y a pas de flux de changements. Interrogez le point de terminaison de liste à l'intervalle qui vous convient, et comparez sur `entityKey`. `lastSeenAt` indique quand un élément a été observé pour la dernière fois, ce qui est généralement le moyen le moins coûteux de repérer ce qui est devenu silencieux depuis votre dernière exécution.
 
-Un élément qui disparaît entre deux exécutions a soit expiré (un élément découvert resté silencieux au-delà de sa fenêtre), soit vu son enregistrement d'origine supprimé. Un élément qui porte des valeurs de champs personnalisés est archivé plutôt que supprimé, donc interrogez avec `"isArchived": true` pour voir ce qui a été retiré sans perdre les données d'actif qui y sont rattachées.
+Un élément qui disparaît entre deux exécutions a soit expiré (un élément découvert resté silencieux au-delà de sa fenêtre), soit vu son enregistrement d'origine supprimé. Un élément répliqué qui porte des valeurs de champs personnalisés est archivé plutôt que supprimé quand son enregistrement disparaît, donc interrogez avec `"isArchived": true` pour voir ce qui a été retiré sans perdre les données d'actif qui y sont rattachées.
 
 ## Réécrire
 
 Les mêmes points de terminaison acceptent les écritures, si bien qu'une synchronisation peut pousser des valeurs dans `customFields` : par exemple l'étiquette d'actif que votre CMDB gère déjà, apposée sur l'élément OneUptime correspondant. La clé a besoin pour cela de **Edit Telemetry Service**.
 
-Vous pouvez aussi ajouter des éléments pour des choses que OneUptime ne peut pas voir, avec `POST /api/inventory-item`, un `entityType` parmi `external.service`, `external.database` ou `appliance`, et un `displayName`. OneUptime calcule la clé d'identité pour vous, et ces éléments n'expirent jamais.
+Vous pouvez aussi ajouter des éléments pour des choses que OneUptime ne peut pas voir, avec `POST /api/inventory-item`, un `entityType` parmi `external.service`, `external.database` ou `appliance`, et un `displayName`. OneUptime calcule la clé d'identité pour vous, et ces éléments n'expirent jamais. La clé a besoin de **Create Telemetry Service** pour cela.
 
 ## Dépannage
 
 :::details Chaque requête est refusée avec 402 Payment Required
 Sur OneUptime Cloud, les clés API ne fonctionnent que tant que le projet est sur l'offre **Growth** ou supérieure. Rien n'est supprimé : la clé refonctionne telle quelle dès que le projet revient sur l'offre. Voir [Clés API et SCIM sous leur offre](/docs/api-reference/api-reference#clés-api-et-scim-sous-leur-offre).
+:::
+
+:::details Chaque requête répond 422 You do not have permissions
+La clé n'a aucune autorisation qui lit l'inventaire. Une clé créée avec **Choisir les autorisations plus tard** ne peut rien faire tant qu'elle n'en a pas reçu : ajoutez **Read Telemetry Service** sur sa page, comme dans [Avant de commencer](#avant-de-commencer).
 :::
 
 :::details La liste revient sans les colonnes dont j'ai besoin

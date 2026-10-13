@@ -89,17 +89,36 @@ Eine Liste oder eine Zählung nimmt eine `query`. Ein Feld mit einem Wert passt 
 | `Includes` | Einen der Werte in `value` |
 | `IsNull`, `NotNull` | Keinen Wert oder einen beliebigen Wert |
 
-`select` nennt die Felder, die zurückkommen sollen, und `_id` kommt immer zurück. `sort` ordnet sie, `ASC` oder `DESC`. Eine Liste gibt 10 Datensätze zurück, solange Sie kein `limit` setzen, bis zu 10.000, und `skip` überspringt zuerst so viele: Erhöhen Sie `skip` immer weiter um `limit`, bis Sie `count` davon haben. Hängen Sie `?output-type=csv` an eine Listenanfrage an, um CSV statt JSON zu erhalten.
+`select` nennt die Felder, die zurückkommen sollen, und `_id` kommt immer zurück. `sort` ordnet sie, `ASC` oder `DESC`; ohne Sortierung kommen die neuesten zuerst. Eine Liste gibt 10 Datensätze zurück, solange Sie kein `limit` setzen, bis zu 10.000, und `skip` überspringt zuerst so viele: Erhöhen Sie `skip` immer weiter um `limit`, bis Sie `count` davon haben. Hängen Sie `?output-type=csv` an eine Listenanfrage an, um CSV statt JSON zu erhalten.
+
+Zum Beispiel die Monitore, deren Name „checkout“ enthält und die seit Anfang 2026 angelegt wurden, die neuesten zuerst:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Datumswerte und IDs außer `_id` kommen verpackt zurück, als `{ "_type": "DateTime", "value": "..." }` und `{ "_type": "ObjectID", "value": "..." }`: Lesen Sie sie aus `value`.
 
 ### Statuscodes
 
 | Code | Bedeutung | Mehr dazu |
 | --- | --- | --- |
 | `200` | Sie ist durchgegangen. Eine Liste oder eine Zählung antwortet mit den Datensätzen, die Sie lesen dürfen, ohne Datensätze, wenn es keine gibt. | [Einen Datensatz über seine ID lesen](#einen-datensatz-über-seine-id-lesen) |
-| `400` | Die Anfrage ist falsch: Der API-Schlüssel ist ungültig, ein Wert ist nicht erlaubt, ein Feld kann nicht geschrieben werden, ein genannter Datensatz ist nicht Ihrer, oder sie ändert mehrere Projekte auf einmal. Die Meldung nennt das Feld. | [Datensätze, die eine Anfrage nennt](#datensätze-die-eine-anfrage-nennt) |
+| `400` | Die Anfrage ist falsch: Der API-Schlüssel ist ungültig, ein Wert ist nicht erlaubt, ein Feld kann nicht geschrieben werden, ein genannter Datensatz ist nicht Ihrer, oder sie ändert mehrere Projekte auf einmal. Die Meldung sagt, was falsch ist. | [Datensätze, die eine Anfrage nennt](#datensätze-die-eine-anfrage-nennt) |
 | `402` | Der Tarif des Projekts enthält nicht, was die Anfrage nutzt. Die Meldung nennt den Tarif. | [Funktionen, die Ihr Tarif nicht enthält](#funktionen-die-ihr-tarif-nicht-enthält) |
 | `404` | Der Datensatz existiert nicht, liegt in einem anderen Projekt oder ist einer, den Sie nicht lesen dürfen: dieselbe Antwort für jeden Fall. | [Einen Datensatz ändern oder löschen, den Sie nicht lesen dürfen](#einen-datensatz-ändern-oder-löschen-den-sie-nicht-lesen-dürfen) |
-| `422` | Sie dürfen das nicht tun: Sie dürfen den Datensatz lesen, aber nicht ändern, oder die Labels einer Berechtigung schließen ihn aus. Die Meldung sagt, warum. | [Einen Datensatz ändern oder löschen, den Sie nicht lesen dürfen](#einen-datensatz-ändern-oder-löschen-den-sie-nicht-lesen-dürfen) |
+| `422` | Sie dürfen das nicht tun: Der API-Schlüssel hat keine Berechtigung für diese Art von Datensatz, Sie dürfen den Datensatz lesen, aber nicht ändern, oder die Labels einer Berechtigung schließen ihn aus. Die Meldung sagt, warum. | [Einen Datensatz ändern oder löschen, den Sie nicht lesen dürfen](#einen-datensatz-ändern-oder-löschen-den-sie-nicht-lesen-dürfen) |
 | `500` | Auf dem Server ist etwas fehlgeschlagen. Wenn der Eigentümer eines neuen Datensatzes nicht geschrieben werden kann, wird der Datensatz wieder entfernt, sodass das Anlegen erneut versucht werden kann. | [Datensätze, die eine Anfrage nennt](#datensätze-die-eine-anfrage-nennt) |
 
 ## Tarife und die API
@@ -315,6 +334,10 @@ Der Header `ApiKey` ist leer, ist kein Schlüssel oder nennt einen Schlüssel, d
 
 :::details Jede Anfrage antwortet mit 402 Payment Required
 In OneUptime Cloud funktionieren API-Schlüssel nur, solange das Projekt im Tarif **Growth** oder höher ist. Die Schlüssel bleiben erhalten und funktionieren wieder so, wie sie sind, sobald das Projekt wieder im Tarif ist: siehe [API-Schlüssel und SCIM unterhalb ihres Tarifs](#api-schlüssel-und-scim-unterhalb-ihres-tarifs).
+:::
+
+:::details Jede Anfrage antwortet mit 422 You do not have permissions
+Der API-Schlüssel hat keine Berechtigung für diese Art von Datensatz. Ein mit **Berechtigungen später wählen** angelegter Schlüssel kann nichts, bis er eine bekommt: Öffnen Sie ihn unter **Projekteinstellungen → Erweitert → API-Schlüssel** und klicken Sie dann auf **Rolle hinzufügen** oder **Berechtigung hinzufügen**. Die Meldung nennt die Berechtigungen, mit denen die Anfrage durchkäme.
 :::
 
 :::details Ein Datensatz, den ich im Dashboard sehe, antwortet mit 404

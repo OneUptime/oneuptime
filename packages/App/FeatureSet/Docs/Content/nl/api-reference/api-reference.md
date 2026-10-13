@@ -89,17 +89,36 @@ Een lijst of een telling neemt een `query`. Een veld met een waarde komt overeen
 | `Includes` | Een van de waarden in `value` |
 | `IsNull`, `NotNull` | Geen waarde, of een willekeurige waarde |
 
-`select` noemt de velden die terugkomen, en `_id` komt altijd terug. `sort` ordent ze, `ASC` of `DESC`. Een lijst geeft 10 records terug tenzij je `limit` instelt, tot 10.000, en `skip` slaat er eerst zoveel over: blijf `skip` met `limit` verhogen tot je er `count` hebt. Voeg `?output-type=csv` toe aan een lijstverzoek voor CSV in plaats van JSON.
+`select` noemt de velden die terugkomen, en `_id` komt altijd terug. `sort` ordent ze, `ASC` of `DESC`; zonder sortering komen de nieuwste eerst. Een lijst geeft 10 records terug tenzij je `limit` instelt, tot 10.000, en `skip` slaat er eerst zoveel over: blijf `skip` met `limit` verhogen tot je er `count` hebt. Voeg `?output-type=csv` toe aan een lijstverzoek voor CSV in plaats van JSON.
+
+Bijvoorbeeld de monitors waarvan de naam „checkout” bevat, gemaakt sinds het begin van 2026, de nieuwste eerst:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Datums en ID's behalve `_id` komen verpakt terug, als `{ "_type": "DateTime", "value": "..." }` en `{ "_type": "ObjectID", "value": "..." }`: lees ze uit `value`.
 
 ### Statuscodes
 
 | Code | Wat het betekent | Meer lezen |
 | --- | --- | --- |
 | `200` | Het is gelukt. Een lijst of een telling antwoordt met de records die je mag lezen, geen als er geen zijn. | [Eén record lezen via zijn ID](#eén-record-lezen-via-zijn-id) |
-| `400` | Het verzoek klopt niet: de API-sleutel is ongeldig, een waarde is niet toegestaan, een veld kan niet worden geschreven, een genoemd record is niet van jou, of het wijzigt meerdere projecten tegelijk. De melding noemt het veld. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
+| `400` | Het verzoek klopt niet: de API-sleutel is ongeldig, een waarde is niet toegestaan, een veld kan niet worden geschreven, een genoemd record is niet van jou, of het wijzigt meerdere projecten tegelijk. De melding zegt wat er mis is. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
 | `402` | Het abonnement van het project bevat niet wat het verzoek gebruikt. De melding noemt het abonnement. | [Functies die je abonnement niet bevat](#functies-die-je-abonnement-niet-bevat) |
 | `404` | Het record bestaat niet, staat in een ander project, of is er een die je niet mag lezen: hetzelfde antwoord in elk geval. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
-| `422` | Je mag dit niet: je mag het record lezen maar niet wijzigen, of de labels van een machtiging sluiten het uit. De melding zegt waarom. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
+| `422` | Je mag dit niet: de API-sleutel heeft geen machtiging voor dit soort record, je mag het record lezen maar niet wijzigen, of de labels van een machtiging sluiten het uit. De melding zegt waarom. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
 | `500` | Er ging iets mis op de server. Als de eigenaar van een nieuw record niet kan worden geschreven, wordt het record weer verwijderd, zodat je het aanmaken opnieuw kunt proberen. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
 
 ## Abonnementen en de API
@@ -315,6 +334,10 @@ De header `ApiKey` is leeg, is geen sleutel, of noemt een sleutel die is verlope
 
 :::details Elk verzoek antwoordt 402 Payment Required
 In OneUptime Cloud werken API-sleutels alleen zolang het project op het abonnement **Growth** of hoger zit. De sleutels blijven bewaard en werken weer zoals ze zijn zodra het project terug is op het abonnement: zie [API-sleutels en SCIM onder hun abonnement](#api-sleutels-en-scim-onder-hun-abonnement).
+:::
+
+:::details Elk verzoek antwoordt 422 You do not have permissions
+De API-sleutel heeft geen machtiging voor dat soort record. Een sleutel die met **Machtigingen later kiezen** is gemaakt, kan niets tot hij er een krijgt: open hem onder **Projectinstellingen → Geavanceerd → API-sleutels** en klik dan op **Rol toevoegen** of **Machtiging toevoegen**. De melding noemt de machtigingen waarmee het verzoek wel door zou komen.
 :::
 
 :::details Een record dat ik in het dashboard zie, antwoordt 404

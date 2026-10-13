@@ -89,17 +89,36 @@ Une liste ou un comptage prend une `query`. Un champ avec une valeur correspond 
 | `Includes` | L'une des valeurs de `value` |
 | `IsNull`, `NotNull` | Aucune valeur, ou n'importe quelle valeur |
 
-`select` nomme les champs à renvoyer, et `_id` revient toujours. `sort` les ordonne, `ASC` ou `DESC`. Une liste renvoie 10 enregistrements tant que vous ne fixez pas `limit`, jusqu'à 10 000, et `skip` en saute d'abord autant : augmentez `skip` de `limit` jusqu'à en avoir `count`. Ajoutez `?output-type=csv` à une requête de liste pour du CSV au lieu de JSON.
+`select` nomme les champs à renvoyer, et `_id` revient toujours. `sort` les ordonne, `ASC` ou `DESC` ; sans tri, les plus récents viennent en premier. Une liste renvoie 10 enregistrements tant que vous ne fixez pas `limit`, jusqu'à 10 000, et `skip` en saute d'abord autant : augmentez `skip` de `limit` jusqu'à en avoir `count`. Ajoutez `?output-type=csv` à une requête de liste pour du CSV au lieu de JSON.
+
+Par exemple, les moniteurs dont le nom contient « checkout », créés depuis le début de 2026, les plus récents en premier :
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Les dates et les identifiants autres que `_id` reviennent enveloppés, sous la forme `{ "_type": "DateTime", "value": "..." }` et `{ "_type": "ObjectID", "value": "..." }` : lisez-les dans `value`.
 
 ### Codes d'état
 
 | Code | Ce qu'il signifie | Pour en savoir plus |
 | --- | --- | --- |
 | `200` | La requête est passée. Une liste ou un comptage répond avec les enregistrements que vous pouvez lire, aucun quand il n'y en a pas. | [Lire un enregistrement par son ID](#lire-un-enregistrement-par-son-id) |
-| `400` | La requête est incorrecte : la clé API est invalide, une valeur n'est pas autorisée, un champ ne peut pas être écrit, un enregistrement nommé n'est pas à vous, ou elle modifie plusieurs projets à la fois. Le message nomme le champ. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
+| `400` | La requête est incorrecte : la clé API est invalide, une valeur n'est pas autorisée, un champ ne peut pas être écrit, un enregistrement nommé n'est pas à vous, ou elle modifie plusieurs projets à la fois. Le message dit ce qui ne va pas. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
 | `402` | L'offre du projet n'inclut pas ce que la requête utilise. Le message nomme l'offre. | [Fonctionnalités que votre offre n'inclut pas](#fonctionnalités-que-votre-offre-ninclut-pas) |
 | `404` | L'enregistrement n'existe pas, se trouve dans un autre projet, ou vous n'avez pas le droit de le lire : la même réponse dans chaque cas. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
-| `422` | Vous n'avez pas le droit de faire cela : vous pouvez lire l'enregistrement mais pas le modifier, ou les étiquettes d'une autorisation l'excluent. Le message dit pourquoi. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
+| `422` | Vous n'avez pas le droit de faire cela : la clé API n'a aucune autorisation pour ce type d'enregistrement, vous pouvez lire l'enregistrement mais pas le modifier, ou les étiquettes d'une autorisation l'excluent. Le message dit pourquoi. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
 | `500` | Quelque chose a échoué côté serveur. Quand le propriétaire d'un nouvel enregistrement ne peut pas être écrit, l'enregistrement est retiré, donc la création peut être retentée. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
 
 ## Les offres et l'API
@@ -315,6 +334,10 @@ L'en-tête `ApiKey` est vide, n'est pas une clé, ou nomme une clé qui a expir�
 
 :::details Chaque requête répond 402 Payment Required
 Sur OneUptime Cloud, les clés API ne fonctionnent que tant que le projet est sur l'offre **Growth** ou supérieure. Les clés sont conservées, et refonctionnent telles quelles dès que le projet revient sur l'offre : voir [Clés API et SCIM sous leur offre](#clés-api-et-scim-sous-leur-offre).
+:::
+
+:::details Chaque requête répond 422 You do not have permissions
+La clé API n'a aucune autorisation pour ce type d'enregistrement. Une clé créée avec **Choisir les autorisations plus tard** ne peut rien faire tant qu'elle n'en a pas reçu : ouvrez-la dans **Paramètres du projet → Avancé → Clés API**, puis cliquez sur **Ajouter un rôle** ou **Ajouter une permission**. Le message nomme les autorisations qui laisseraient passer la requête.
 :::
 
 :::details Un enregistrement que je vois dans le tableau de bord répond 404

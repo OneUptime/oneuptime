@@ -1,6 +1,6 @@
 # Inventar – Oversikt
 
-Inventaret er én liste over alt OneUptime vet om miljøet ditt: tjenester, verter, containere, Kubernetes-objekter, nettverksenheter, skyressurser, IoT-enheter, serverløse funksjoner og de tingene som ikke sender telemetri i det hele tatt. Det meste fyller seg selv ut fra det OneUptime allerede følger med på. Du legger til det overvåking ikke kan fortelle: hva en ting er til, hvem som eier den, når garantien går ut.
+Inventaret er én liste over alt OneUptime vet om miljøet ditt: tjenester, verter, Kubernetes-objekter, virtuelle maskiner, nettverksenheter, skyressurser, IoT-enheter, serverløse funksjoner og de tingene som ikke sender telemetri i det hele tatt. Det meste fyller seg selv ut fra det OneUptime allerede følger med på. Du legger til det overvåking ikke kan fortelle: hva en ting er til, hvem som eier den, når garantien går ut.
 
 :::cards
 - [Slik kommer elementer inn i inventaret](#slik-kommer-elementer-inn-i-inventaret): Oppdaget, speilet eller lagt til av deg.
@@ -24,7 +24,7 @@ flowchart TB
 
 | Kilde | I API-et | Hvor det kommer fra | Hvor lenge det blir |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry-ressursattributter, lest etter hvert som telemetri kommer inn: en tjeneste, vert, pod, container eller prosess som sender telemetri. | Registreres på nytt med hver batch. Fjernes når det har vært stille lenger enn vinduet for typen sin (se nedenfor). |
+| **Discovered** | `discovered` | OpenTelemetry-ressursattributter, lest etter hvert som telemetri kommer inn: en tjeneste, en vert, et Kubernetes-objekt eller en virtuell maskin som sender telemetri. | Registreres på nytt med hver batch. Fjernes når det har vært stille lenger enn vinduet for typen sin (se nedenfor). |
 | **Mirrored** | `inventory` | En post som en OneUptime-poller vedlikeholder: nettverksenheter, skyressurser, IoT-enheter, serverløse funksjoner, RUM-applikasjoner, Docker-verter og Podman-verter. Kopieres hvert 15. minutt. | Så lenge posten finnes. Slett posten, og elementet forsvinner med den. |
 | **Added by you** | `manual` | Lagt til av deg, for noe OneUptime ikke kan se: et tredjeparts-API, en database som en leverandør administrerer, en appliance i et rack. | Til du sletter det. Ingenting får det til å utløpe. |
 
@@ -40,15 +40,15 @@ Et oppdaget element har et hjerteslag. Hver gang det kommer telemetri for det, f
 | **Recent** | Sett i løpet av det siste døgnet. |
 | **Stale** | Ikke sett på mer enn et døgn. Siden **Gone Quiet** viser dem. |
 
-Hver tredje time fjerner OneUptime de oppdagede elementene som har vært stille lenger enn vinduet for typen sin. Speilede elementer og de du har lagt til, fjernes aldri på denne måten.
+Hver tredje time fjerner OneUptime de oppdagede elementene som har vært stille lenger enn vinduet for typen sin, også de arkiverte, og verdiene deres i egendefinerte felt forsvinner med dem. Speilede elementer og de du har lagt til, fjernes aldri på denne måten.
 
 | Type element | Fjernes etter så lang tid uten telemetri |
 | --- | --- |
-| Pods, deployments, tjenesteinstanser, containere, prosesser, Proxmox-gjester og virtuelle VMware-maskiner | 1 dag |
+| Pods, deployments, Proxmox-gjester og virtuelle VMware-maskiner | 1 dag |
 | Kubernetes-noder og -navnerom, Proxmox-noder, VMware-verter, -klynger og -datalagre, og databasene og de eksterne tjenestene tracene dine kaller | 7 dager |
-| Tjenester, verter, Kubernetes-, Proxmox- og Ceph-klynger, lagringsarrayer, vCenters, Docker Swarm-klynger og telemetri-SDK-er | 30 dager |
+| Tjenester, verter, Kubernetes-, Proxmox- og Ceph-klynger, lagringsarrayer, vCenters og Docker Swarm-klynger | 30 dager |
 
-En relasjon mellom to elementer fjernes når den ikke er sett igjen på 30 dager.
+En relasjon OneUptime har oppdaget, fjernes når den ikke er sett igjen på 30 dager.
 
 ## Finn frem
 
@@ -127,11 +127,10 @@ OneUptime kobler elementer sammen med rettede relasjoner etter hvert som det obs
 
 | Relasjon | For eksempel |
 | --- | --- |
-| `runs-on` | En pod kjører på en node; en prosess kjører på en vert. |
+| `runs-on` | En pod kjører på en node; en virtuell maskin kjører på verten sin. |
 | `member-of` | En pod, node eller et navnerom er medlem av en klynge. |
 | `hosted-on` | En tjeneste driftes på en vert. |
-| `part-of` | En container er en del av en pod; en prosess er en del av en container. |
-| `instance-of` | En tjenesteinstans er en instans av en tjeneste. |
+| `part-of` | En pod er en del av deploymenten sin. |
 | `depends-on` | En tjeneste kaller en annen, ut fra spanene som går mellom dem. |
 
 ## Neste steg

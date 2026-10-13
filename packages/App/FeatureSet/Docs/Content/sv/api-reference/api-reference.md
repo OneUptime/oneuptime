@@ -89,17 +89,36 @@ En lista eller en räkning tar en `query`. Ett fält med ett värde matchar det 
 | `Includes` | Något av värdena i `value` |
 | `IsNull`, `NotNull` | Inget värde, eller vilket värde som helst |
 
-`select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
+`select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
+
+Till exempel de monitorer vars namn innehåller ”checkout”, skapade sedan början av 2026, de nyaste först:
+
+```bash
+curl -X POST 'https://oneuptime.com/api/monitor/get-list' \
+  -H "ApiKey: $ONEUPTIME_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": {
+      "name": { "_type": "Search", "value": "checkout" },
+      "createdAt": { "_type": "GreaterThan", "value": "2026-01-01T00:00:00.000Z" }
+    },
+    "select": { "name": true, "createdAt": true },
+    "sort": { "createdAt": "DESC" },
+    "limit": 100
+  }'
+```
+
+Datum och id:n utöver `_id` kommer inslagna, som `{ "_type": "DateTime", "value": "..." }` och `{ "_type": "ObjectID", "value": "..." }`: läs dem från `value`.
 
 ### Statuskoder
 
 | Kod | Vad den betyder | Läs mer |
 | --- | --- | --- |
 | `200` | Den gick igenom. En lista eller en räkning svarar med de poster du får läsa, inga när det inte finns några. | [Läsa en post via dess ID](#läsa-en-post-via-dess-id) |
-| `400` | Begäran är felaktig: API-nyckeln är ogiltig, ett värde är inte tillåtet, ett fält kan inte skrivas, en post som den namnger är inte din, eller den ändrar flera projekt på en gång. Meddelandet namnger fältet. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
+| `400` | Begäran är felaktig: API-nyckeln är ogiltig, ett värde är inte tillåtet, ett fält kan inte skrivas, en post som den namnger är inte din, eller den ändrar flera projekt på en gång. Meddelandet säger vad som är fel. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
 | `402` | Projektets plan omfattar inte det som begäran använder. Meddelandet namnger planen. | [Funktioner som din plan inte omfattar](#funktioner-som-din-plan-inte-omfattar) |
 | `404` | Posten finns inte, ligger i ett annat projekt eller är en som du inte får läsa: samma svar för var och en. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
-| `422` | Du får inte göra detta: du får läsa posten men inte ändra den, eller så utesluter en behörighets etiketter den. Meddelandet säger varför. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
+| `422` | Du får inte göra detta: API-nyckeln har ingen behörighet för den här sortens post, du får läsa posten men inte ändra den, eller så utesluter en behörighets etiketter den. Meddelandet säger varför. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
 | `500` | Något misslyckades på servern. När ägaren till en ny post inte kan skrivas tas posten bort igen, så att skapandet kan försökas igen. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
 
 ## Planer och API:t
@@ -315,6 +334,10 @@ Huvudet `ApiKey` är tomt, är inte en nyckel, eller namnger en nyckel som har u
 
 :::details Varje begäran besvaras med 402 Payment Required
 I OneUptime Cloud fungerar API-nycklar bara medan projektet har planen **Growth** eller högre. Nycklarna behålls och fungerar igen som de är när projektet är tillbaka på planen: se [API-nycklar och SCIM under sin plan](#api-nycklar-och-scim-under-sin-plan).
+:::
+
+:::details Varje begäran besvaras med 422 You do not have permissions
+API-nyckeln har ingen behörighet för den sortens post. En nyckel som skapats med **Välj behörigheter senare** kan ingenting förrän den får en: öppna den under **Projektinställningar → Avancerad → API-nycklar** och klicka sedan på **Lägg till roll** eller **Lägg till behörighet**. Meddelandet namnger de behörigheter som skulle släppa igenom begäran.
 :::
 
 :::details En post som jag ser i instrumentpanelen besvaras med 404

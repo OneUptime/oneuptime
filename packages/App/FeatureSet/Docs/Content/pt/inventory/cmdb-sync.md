@@ -98,7 +98,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Em uma instalação auto-hospedada, use o seu próprio endereço do OneUptime no lugar de `https://oneuptime.com`. A resposta é `{ "data": [...], "count": ... }`, em que `count` é quantos itens correspondem no total. Pagine aumentando `skip` pelo seu `limit` até ter todos; `limit` vai até 10.000.
+Em uma instalação auto-hospedada, use o seu próprio endereço do OneUptime no lugar de `https://oneuptime.com`. A resposta é `{ "data": [...], "count": ... }`, em que `count` é quantos itens correspondem no total. Pagine aumentando `skip` pelo seu `limit` até ter todos; `limit` vai até 10.000. Datas e IDs que não sejam `_id` voltam embrulhados, como `{ "_type": "DateTime", "value": "..." }` e `{ "_type": "ObjectID", "value": "..." }`: leia-os de `value`.
 
 ### Só os dispositivos de rede
 
@@ -222,18 +222,22 @@ As datas em `customFields` são strings ISO-8601 em UTC, e a exportação CSV as
 
 Não há um feed de mudanças. Consulte o endpoint de lista no intervalo que preferir e compare por `entityKey`. `lastSeenAt` diz quando um item foi observado pela última vez, o que costuma ser a forma mais barata de perceber o que ficou em silêncio desde a sua última execução.
 
-Um item que desaparece entre execuções expirou (um item descoberto que ficou em silêncio além da sua janela) ou teve o seu registro de origem excluído. Um item que tem valores de campos personalizados é arquivado em vez de excluído, então consulte com `"isArchived": true` para ver o que foi desativado sem perder os dados de ativo ligados a ele.
+Um item que desaparece entre execuções expirou (um item descoberto que ficou em silêncio além da sua janela) ou teve o seu registro de origem excluído. Um item espelhado que tem valores de campos personalizados é arquivado em vez de excluído quando o seu registro some, então consulte com `"isArchived": true` para ver o que foi desativado sem perder os dados de ativo ligados a ele.
 
 ## Gravar de volta
 
 Os mesmos endpoints aceitam gravações, então uma sincronização pode enviar valores para `customFields`: por exemplo, a etiqueta de ativo que o seu CMDB já mantém, carimbada no item correspondente do OneUptime. A chave precisa de **Edit Telemetry Service** para isso.
 
-Você também pode adicionar itens para coisas que o OneUptime não vê, com `POST /api/inventory-item`, um `entityType` de `external.service`, `external.database` ou `appliance` e um `displayName`. O OneUptime calcula a chave de identidade para você, e esses itens nunca expiram.
+Você também pode adicionar itens para coisas que o OneUptime não vê, com `POST /api/inventory-item`, um `entityType` de `external.service`, `external.database` ou `appliance` e um `displayName`. O OneUptime calcula a chave de identidade para você, e esses itens nunca expiram. A chave precisa de **Create Telemetry Service** para isso.
 
 ## Solução de problemas
 
 :::details Toda requisição é recusada com 402 Payment Required
 No OneUptime Cloud, as chaves de API só funcionam enquanto o projeto está no plano **Growth** ou superior. Nada é excluído: a chave volta a funcionar como está assim que o projeto volta ao plano. Veja [Chaves de API e SCIM abaixo do plano](/docs/api-reference/api-reference#chaves-de-api-e-scim-abaixo-do-plano).
+:::
+
+:::details Toda requisição responde 422 You do not have permissions
+A chave não tem nenhuma permissão que leia o inventário. Uma chave criada com **Escolher as permissões depois** não pode fazer nada até receber uma: adicione **Read Telemetry Service** na página dela, como em [Antes de começar](#antes-de-começar).
 :::
 
 :::details A lista volta sem as colunas de que preciso
