@@ -10,6 +10,7 @@
   "scripts": {
     "start": "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require ts-node/register Index.ts",
     "compile": "tsc",
+    "build:css": "node -r ts-node/register/transpile-only Scripts/BuildTailwindCss.ts",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
@@ -30,9 +31,12 @@
     "@types/jest": "^29.5.11",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^26.1.1",
+    "autoprefixer": "^10.6.1",
     "jest": "^28.1.0",
     "jsdom": "^26.1.0",
     "nodemon": "^3.1.14",
+    "postcss": "^8.5.28",
+    "tailwindcss": "3.4.5",
     "ts-jest": "^28.0.8",
     "typescript": "^5.9.3"
   },

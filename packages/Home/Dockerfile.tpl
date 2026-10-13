@@ -99,11 +99,19 @@ COPY --chown=1000:1000 ./packages/Home /usr/src/app
 RUN npm run compile
 # Give node ownership of /usr/src itself (non-recursive — instant) so it can
 # create and own the blog clone below. Common/node_modules stay root-owned.
-RUN chown 1000:1000 /usr/src
+# Likewise /usr/src/app/build, which the compile above created as root, so the
+# Tailwind build below can write build/tailwind into it.
+RUN mkdir -p /usr/src/app/build && chown 1000:1000 /usr/src /usr/src/app/build
 USER node
 # Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
 # write into it — avoids a recursive chown of the blog's ~100k files.
 RUN cd /usr/src && git clone https://github.com/oneuptime/blog
+# The marketing site's Tailwind CSS (Scripts/BuildTailwindCss.ts): one
+# content-hashed stylesheet that every page links, instead of the Play CDN
+# runtime building the CSS in each visitor's browser. It reads the class
+# attributes in the blog's posts as well as the views, so it runs after the
+# clone, and --require-blog fails the build if the blog is not there.
+RUN npm run build:css -- --require-blog
 # Per-build metadata last so the heavy layers above stay cacheable across commits
 # and across the community + enterprise build passes.
 ARG GIT_SHA
