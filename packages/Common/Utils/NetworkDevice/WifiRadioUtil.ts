@@ -445,21 +445,6 @@ export default class WifiRadioUtil {
   }
 
   /*
-   * Whether a stored SSID row holds a network the access point runs for
-   * itself (WifiInternalNetwork). A walk does not store these; a snapshot
-   * stored before it stopped can still hold them, until the next walk.
-   */
-  public static isInternalNetworkRow(row: SnmpTableSnapshotRow): boolean {
-    return (
-      WifiInternalNetworkUtil.getKind(
-        (columnOid: string): string | number | null | undefined => {
-          return row.cells?.[columnOid]?.raw;
-        },
-      ) !== undefined
-    );
-  }
-
-  /*
    * Channel, frequency and band, from whatever the channel column holds: a
    * channel number, or - from controllers that report it there - the
    * frequency in MHz.

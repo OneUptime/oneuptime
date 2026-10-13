@@ -719,27 +719,30 @@ describe("WifiRadioUtil and the networks an access point runs for itself", () =>
     expect(WifiRadioUtil.getTablesState(summary)).toBe(WifiTablesState.NoRows);
   });
 
-  it("tells a stored row of UniFi's own by its cells", () => {
-    const ssids: SnmpTableSnapshot = unifiStoredBeforeTheFix(STORED_VAPS).find(
+  it("lists exactly the stored rows a walk would store now", () => {
+    const snapshots: Array<SnmpTableSnapshot> =
+      unifiStoredBeforeTheFix(STORED_VAPS);
+    const ssids: SnmpTableSnapshot = snapshots.find(
       (snapshot: SnmpTableSnapshot): boolean => {
         return snapshot.key === "wifi_ssids";
       },
     )!;
 
+    // UniFi's own networks are rows 1, 3 and 4 of the five stored.
     expect(
-      ssids.rows.map((row: SnmpTableSnapshotRow): boolean => {
-        return WifiRadioUtil.isInternalNetworkRow(row);
-      }),
-    ).toEqual([true, false, true, true, false]);
-  });
+      SnmpTableListUtil.listedRows(ssids).map(
+        (row: SnmpTableSnapshotRow): string => {
+          return row.index;
+        },
+      ),
+    ).toEqual(["2", "5"]);
 
-  it("tells nothing from a row that has no cells", () => {
     expect(
-      WifiRadioUtil.isInternalNetworkRow({
-        index: "1",
-        label: "Lab",
-        cells: undefined as unknown as SnmpTableSnapshotRow["cells"],
-      }),
-    ).toBe(false);
+      WifiRadioUtil.getSummary(snapshots).ssids.map(
+        (ssid: WifiSsidView): string => {
+          return ssid.name;
+        },
+      ),
+    ).toEqual(["Warehouse / 2.4 GHz", "Warehouse / 5 GHz"]);
   });
 });
