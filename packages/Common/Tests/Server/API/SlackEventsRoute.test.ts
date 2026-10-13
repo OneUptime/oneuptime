@@ -1228,6 +1228,59 @@ describe("a conversation with OneUptime AI: the thread under a question asked at
     expect((await untilWrites(6)).slice(4)).toEqual(aiAnswer(OPS, asked.ts));
   });
 
+  test("somebody not connected replying in her conversation, with no mention: not answered at all - not even asked to connect", async () => {
+    const threadTs: string = await aliceAsks();
+
+    await say({
+      user: CAROL,
+      text: "is this related to the outage this morning?",
+      threadTs: threadTs,
+      parentUserId: ALICE,
+    });
+
+    await untilLogged(NOT_IN_A_CONVERSATION);
+    expect(writes()).toHaveLength(2);
+    expect(assistantCalls).toHaveLength(1);
+  });
+
+  test("…who @mentions OneUptime there is asked to connect in that thread, once: her replies there are not prompted again; once she has connected, they are answered with no mention", async () => {
+    const threadTs: string = await aliceAsks();
+
+    await say({
+      user: CAROL,
+      text: `<@${ONEUPTIME}> is this related to the outage this morning?`,
+      threadTs: threadTs,
+      parentUserId: ALICE,
+    });
+
+    const posted: Array<SlackCall> = await untilWrites(3);
+    await expectEphemeralPrompt(posted[2]!, {
+      user: CAROL,
+      channel: OPS,
+      threadTs: threadTs,
+    });
+
+    await say({
+      user: CAROL,
+      text: "hello?",
+      threadTs: threadTs,
+      parentUserId: ALICE,
+    });
+    await untilLogged(ASKED_ALREADY);
+    expect(writes()).toHaveLength(3);
+
+    linked.set(CAROL, BOB_ID);
+    await say({
+      user: CAROL,
+      text: "is this related to the outage this morning?",
+      threadTs: threadTs,
+      parentUserId: ALICE,
+    });
+
+    expect((await untilWrites(5)).slice(3)).toEqual(aiAnswer(OPS, threadTs));
+    expect(assistantCalls).toHaveLength(2);
+  });
+
   test("a reply in her conversation that mentions a colleague is for the colleague: not answered", async () => {
     const threadTs: string = await aliceAsks();
     // Her question's own message event, a mention answered as such.

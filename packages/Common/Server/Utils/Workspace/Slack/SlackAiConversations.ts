@@ -29,7 +29,9 @@ import { SlackAnswerPlace } from "./Actions/Answer";
  *     it. A conversation is the thread under a question somebody asked
  *     OneUptime at the top of a channel. Who asked it is in it, and so is
  *     whoever mentions OneUptime in that thread since, for a week after
- *     their last message there (OPEN_FOR_SECONDS).
+ *     their last message there (OPEN_FOR_SECONDS). The thread of one of
+ *     OneUptime's own messages - a notification's - never is one: there,
+ *     OneUptime is mentioned each time.
  *
  * Anything else is not answered - channel chatter, a reply in the thread of
  * one of OneUptime's own messages, a reply in a conversation somebody else
@@ -83,11 +85,15 @@ export interface SlackThreadMessage {
   subtype?: string | undefined;
 }
 
-// A thread of a channel, and somebody writing in it.
-export interface SlackThreadPerson {
+// A thread of a channel: the ts of its first message.
+export interface SlackThread {
   teamId: string;
   channelId: string;
   threadTs: string;
+}
+
+// A thread of a channel, and somebody writing in it.
+export interface SlackThreadPerson extends SlackThread {
   userId: string;
 }
 
@@ -100,7 +106,10 @@ const MENTION_PATTERN: RegExp =
 
 const CHANNEL_TYPES: Array<string> = ["channel", "group", "mpim"];
 
+// Who is in which conversation.
 const NAMESPACE: string = "slack-ai-conversation";
+// Which threads are conversations.
+const THREAD_NAMESPACE: string = "slack-ai-conversation-thread";
 
 export default class SlackAiConversations {
   // A week after somebody's last message in it, a conversation is closed to them.
@@ -263,31 +272,41 @@ export default class SlackAiConversations {
    */
   @CaptureSpan()
   public static async isIn(person: SlackThreadPerson): Promise<boolean> {
-    try {
-      return Boolean(
-        await GlobalCache.getString(
-          NAMESPACE,
-          SlackAiConversations.getKey(person),
-        ),
-      );
-    } catch (err) {
-      logger.debug(
-        "Could not read whether a Slack thread is a conversation with OneUptime AI; its reply is not answered.",
-      );
-      logger.debug(err);
-      return false;
-    }
+    return await SlackAiConversations.isKept(
+      NAMESPACE,
+      SlackAiConversations.getKey(person),
+    );
   }
 
   /*
-   * Puts somebody in the conversation with OneUptime AI in a thread, for a
-   * week from now: who asks a question at the top of a channel, who
-   * mentions OneUptime in such a thread, and again with each follow-up.
-   * Never throws: without it, they mention OneUptime to ask again.
+   * Whether a thread is a conversation with OneUptime AI, as remembered: an
+   * @mention there puts its author in it. Never throws: a cache that cannot
+   * be read answers no.
    */
   @CaptureSpan()
-  public static async join(person: SlackThreadPerson): Promise<void> {
+  public static async isConversation(thread: SlackThread): Promise<boolean> {
+    return await SlackAiConversations.isKept(
+      THREAD_NAMESPACE,
+      SlackAiConversations.getThreadKey(thread),
+    );
+  }
+
+  /*
+   * Remembers a thread as a conversation with OneUptime AI, and somebody as
+   * in it, for a week from now: who asks a question at the top of a
+   * channel, who mentions OneUptime in that thread since, and again with
+   * each follow-up. Never throws: without it, they mention OneUptime to ask
+   * again.
+   */
+  @CaptureSpan()
+  public static async remember(person: SlackThreadPerson): Promise<void> {
     try {
+      await GlobalCache.setString(
+        THREAD_NAMESPACE,
+        SlackAiConversations.getThreadKey(person),
+        "1",
+        { expiresInSeconds: SlackAiConversations.OPEN_FOR_SECONDS },
+      );
       await GlobalCache.setString(
         NAMESPACE,
         SlackAiConversations.getKey(person),
@@ -342,18 +361,43 @@ export default class SlackAiConversations {
     );
   }
 
+  private static async isKept(
+    namespace: string,
+    key: string,
+  ): Promise<boolean> {
+    try {
+      return Boolean(await GlobalCache.getString(namespace, key));
+    } catch (err) {
+      logger.debug(
+        "Could not read whether a Slack thread is a conversation with OneUptime AI; its reply is not answered.",
+      );
+      logger.debug(err);
+      return false;
+    }
+  }
+
   // Who, in which thread: a digest, so a read of the cache names nobody.
   private static getKey(person: SlackThreadPerson): string {
+    return SlackAiConversations.digest([
+      person.teamId,
+      person.channelId,
+      person.threadTs,
+      person.userId,
+    ]);
+  }
+
+  private static getThreadKey(thread: SlackThread): string {
+    return SlackAiConversations.digest([
+      thread.teamId,
+      thread.channelId,
+      thread.threadTs,
+    ]);
+  }
+
+  private static digest(parts: Array<string>): string {
     return crypto
       .createHash("sha256")
-      .update(
-        JSON.stringify([
-          person.teamId,
-          person.channelId,
-          person.threadTs,
-          person.userId,
-        ]),
-      )
+      .update(JSON.stringify(parts))
       .digest("hex");
   }
 

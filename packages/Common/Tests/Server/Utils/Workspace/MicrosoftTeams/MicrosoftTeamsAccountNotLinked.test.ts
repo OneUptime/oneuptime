@@ -1137,6 +1137,18 @@ describe("what a Teams user without a linked account is told (the real lookup; o
     let aiEnabledSpy: SpyInstance<typeof AIService.isProjectAIEnabled>;
 
     beforeEach((): void => {
+      /*
+       * A question is answered with a prompt once in a conversation while its
+       * Connect button works (#4768): each test asks in the same chat, afresh.
+       */
+      (
+        jest.requireMock(
+          "../../../../../Server/Infrastructure/GlobalCache",
+        ) as {
+          default: { store: Map<string, unknown> };
+        }
+      ).default.store.clear();
+
       // Recording the chat reads the database; it is not what this is about.
       jest
         .spyOn(
@@ -1187,6 +1199,33 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         expect(errorLog).not.toHaveBeenCalled();
       },
     );
+
+    /*
+     * #4768: asked once in a conversation, not on every question there. The
+     * card with its Connect button stays in the chat; a second one under each
+     * question would bury the conversation.
+     */
+    test("a second question in the same chat while the Connect button works: no second card; a question after it expired: a new one", async (): Promise<void> => {
+      stubLinkTable(null);
+
+      const first: FakeTurn = await ask();
+      await expectConnectPrompt(first.replies, ASK_PROMPT);
+
+      const second: FakeTurn = await ask();
+      expect(second.replies).toEqual([]);
+      expect(debugLog).toHaveBeenCalledWith(
+        "Not answered: the Teams user was asked to connect their account in this conversation already",
+        { projectId: PROJECT_ID.toString() },
+      );
+
+      const realNow: number = Date.now();
+      jest.spyOn(Date, "now").mockReturnValue(realNow + 31 * 60 * 1000);
+
+      const third: FakeTurn = await ask();
+      await expectConnectPrompt(third.replies, ASK_PROMPT);
+      expect(memberPropsSpy).not.toHaveBeenCalled();
+      expect(aiEnabledSpy).not.toHaveBeenCalled();
+    });
 
     test("without a dashboard URL the reply still says where to connect the account, and to ask again", async (): Promise<void> => {
       stubLinkTable(null);

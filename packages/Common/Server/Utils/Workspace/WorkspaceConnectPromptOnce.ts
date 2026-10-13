@@ -3,7 +3,6 @@ import GlobalCache from "../../Infrastructure/GlobalCache";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import WorkspaceConnectRequest from "./WorkspaceConnectRequest";
 
 /*
  * ONE CONNECT PROMPT A CONVERSATION.
@@ -52,9 +51,13 @@ export interface WorkspaceConnectPromptClaim {
 const NAMESPACE: string = "workspace-connect-prompt";
 
 export default class WorkspaceConnectPromptOnce {
-  // As long as the Connect button a prompt carries works.
-  public static readonly ASKED_FOR_SECONDS: number =
-    WorkspaceConnectRequest.EXPIRES_IN_SECONDS;
+  /*
+   * As long as the Connect button a prompt carries works: thirty minutes,
+   * WorkspaceConnectRequest.EXPIRES_IN_SECONDS (a test holds the two equal).
+   * Not read from it: this module is imported while that one may be still
+   * loading.
+   */
+  public static readonly ASKED_FOR_SECONDS: number = 30 * 60;
 
   /*
    * The prompt of a conversation, for the person: a claim when they are to

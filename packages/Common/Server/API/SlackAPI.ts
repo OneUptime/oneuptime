@@ -101,6 +101,7 @@ import SlackAiConversations, {
   SlackMessage,
   SlackMessageKind,
   SlackThreadMessage,
+  SlackThreadPerson,
 } from "../Utils/Workspace/Slack/SlackAiConversations";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
@@ -1860,18 +1861,24 @@ export default class SlackAPI {
     /*
      * A question at the top of a channel starts a conversation with
      * OneUptime AI in the thread under it, which its asker may reply in
-     * without mentioning OneUptime again; each follow-up keeps it open.
+     * without mentioning OneUptime again. An @mention in that thread puts
+     * its author in it too, and each follow-up keeps it open. The thread of
+     * a notification is never one.
      */
+    const thread: SlackThreadPerson = {
+      teamId: message.teamId,
+      channelId: slackChannelId,
+      threadTs: threadTs,
+      userId: message.userId,
+    };
+
     if (
-      (message.kind === SlackMessageKind.Mention && !message.threadTs) ||
-      message.kind === SlackMessageKind.ThreadReply
+      message.kind === SlackMessageKind.ThreadReply ||
+      (message.kind === SlackMessageKind.Mention &&
+        (!message.threadTs ||
+          (await SlackAiConversations.isConversation(thread))))
     ) {
-      await SlackAiConversations.join({
-        teamId: message.teamId,
-        channelId: slackChannelId,
-        threadTs: threadTs,
-        userId: message.userId,
-      });
+      await SlackAiConversations.remember(thread);
     }
 
     /*
@@ -1982,9 +1989,10 @@ export default class SlackAPI {
    * What was said before a question, so a follow-up is answered in context:
    * the thread it is in, or the direct message's recent messages; nothing
    * for a question at the top of a channel. An @mention in a conversation
-   * with OneUptime AI puts its author in it (SlackAiConversations.join).
-   * Slack not answering is no reason to leave the question unanswered: it
-   * is answered without them.
+   * with OneUptime AI started before OneUptime remembered them - its first
+   * message a person's question to OneUptime - remembers it, and puts its
+   * author in it (SlackAiConversations.remember). Slack not answering is no
+   * reason to leave the question unanswered: it is answered without them.
    */
   private static async getConversationHistory(data: {
     req: ExpressRequest;
@@ -2051,7 +2059,7 @@ export default class SlackAPI {
           botUserId: data.botUserId,
         })
       ) {
-        await SlackAiConversations.join({
+        await SlackAiConversations.remember({
           teamId: message.teamId,
           channelId: message.channelId,
           threadTs: message.threadTs,

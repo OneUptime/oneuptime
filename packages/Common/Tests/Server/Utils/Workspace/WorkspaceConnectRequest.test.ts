@@ -12,6 +12,7 @@ import WorkspaceConnectRequest, {
   WorkspacePendingActionKind,
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import WorkspaceConnectPromptOnce from "../../../../Server/Utils/Workspace/WorkspaceConnectPromptOnce";
 import URL from "../../../../Types/API/URL";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -107,6 +108,17 @@ describe("WorkspaceConnectRequest.create", () => {
     expect(WorkspaceConnectRequest.EXPIRES_IN_SECONDS).toBe(30 * 60);
     expect(entry.expiresAt - before).toBeGreaterThanOrEqual(30 * 60 * 1000);
     expect(entry.expiresAt - before).toBeLessThan(30 * 60 * 1000 + 5000);
+  });
+
+  /*
+   * A message to OneUptime from an account not connected is prompted once in
+   * a conversation while that prompt's Connect button works (#4768): no
+   * longer, or a person would be left with an expired button and no new one.
+   */
+  test("is as long as a conversation goes without a second Connect prompt", () => {
+    expect(WorkspaceConnectPromptOnce.ASKED_FOR_SECONDS).toBe(
+      WorkspaceConnectRequest.EXPIRES_IN_SECONDS,
+    );
   });
 
   test("gives every press a token of its own", async () => {
