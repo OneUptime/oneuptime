@@ -409,10 +409,12 @@ export interface OnCallShift {
 
 /**
  * A substitution: `overrideUser`'s pages go to `routeAlertsToUser` between
- * `startsAt` and `endsAt`. `onCallDutyPolicy` is null for a project-wide
- * override, which is the kind the app creates - covering somebody for one
- * policy while leaving them paged by the rest is not what "cover for me"
- * means to the person asking for it.
+ * `startsAt` and `endsAt` - or, when `routeAlertsToUser` is null, a skip:
+ * nobody is named, and each of their turns goes to the next person in the
+ * rotation. `onCallDutyPolicy` is null for a project-wide override, which is
+ * the kind the app creates - covering somebody for one policy while leaving
+ * them paged by the rest is not what "cover for me" means to the person
+ * asking for it.
  */
 export interface OnCallOverrideItem {
   _id: string;

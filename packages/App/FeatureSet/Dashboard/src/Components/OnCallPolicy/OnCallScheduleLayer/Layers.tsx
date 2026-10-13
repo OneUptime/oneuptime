@@ -2,6 +2,7 @@ import { getCoverageWindowEnd } from "./CoverageWindow";
 import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
+import SkipLayerUserModal from "./SkipLayerUserModal";
 import {
   ScheduleOverrideResolution,
   useScheduleUserOverrides,
@@ -17,7 +18,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
 import {
   buildNewScheduleLayer,
   getNewLayerName,
@@ -103,6 +105,19 @@ const Layers: FunctionComponent<ComponentProps> = (
 
   const [showCannotDeleteOnlyLayerError, setShowCannotDeleteOnlyLayerError] =
     React.useState<boolean>(false);
+
+  /*
+   * "Skip until..." on a person in a layer: who the dialog is for, while it
+   * is open. Each override saved from it bumps the refresh key, so the cards,
+   * the coverage banner and the final schedule read the overrides again.
+   */
+  const [personToSkip, setPersonToSkip] = React.useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+
+  const [overrideRefreshKey, setOverrideRefreshKey] =
+    React.useState<number>(0);
 
   const hasInitialized: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
@@ -509,72 +524,6 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The schedule's coverage over the shared window, computed with exactly the
-   * same LayerUtil + ScheduleShiftUtil pipeline the preview at the bottom of the
-   * page uses, so the two can never disagree.
-   *
-   * Expanding every layer's rotation across the window and merging the layers by
-   * priority is the most expensive thing this component does — hundreds of
-   * milliseconds for a daily rotation, and it scales super-linearly with the
-   * window. Memoized so it runs when the schedule actually changes rather than
-   * on every render (expanding a layer card, opening a modal, a timezone save
-   * rolling back), which would otherwise block the main thread each time.
-   *
-   * `now` is deliberately captured inside the memo: the window only needs to be
-   * accurate to the current edit, and re-anchoring it on a clock tick would
-   * throw away the cached result every second.
-   */
-  const coverageSummary: {
-    coverage: ScheduleCoverageState;
-    windowLabel: string;
-  } = useMemo(() => {
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const windowEnd: Date = getCoverageWindowEnd(now);
-
-    const layerProps: Array<LayerProps> = layers.map(
-      (layer: OnCallDutyPolicyScheduleLayer): LayerProps => {
-        const layerId: string = layer.id?.toString() || "";
-        return {
-          users: (layerUsers[layerId] || [])
-            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-              return layerUser.user!;
-            })
-            .filter(Boolean),
-          startDateTimeOfLayer: layer.startsAt!,
-          handOffTime: layer.handOffTime!,
-          rotation: layer.rotation!,
-          restrictionTimes: layer.restrictionTimes!,
-          timezone: scheduleTimezone,
-        };
-      },
-    );
-
-    const assignedUserCount: number = layerProps.reduce(
-      (total: number, layerProp: LayerProps) => {
-        return total + layerProp.users.length;
-      },
-      0,
-    );
-
-    return {
-      coverage: ScheduleShiftUtil.getCoverageState({
-        layerCount: layers.length,
-        assignedUserCount,
-        shifts: ScheduleShiftUtil.groupEventsIntoShifts(
-          new LayerUtil().getMultiLayerEvents({
-            calendarStartDate: now,
-            calendarEndDate: windowEnd,
-            layers: layerProps,
-          }),
-        ),
-        now,
-        windowEnd,
-      }),
-      windowLabel: formatWindowSpan(now, windowEnd),
-    };
-  }, [layers, layerUsers, scheduleTimezone]);
-
-  /*
    * Every user on any layer of this schedule. Overrides for anyone else cannot
    * affect what this page shows.
    */
@@ -630,7 +579,87 @@ const Layers: FunctionComponent<ComponentProps> = (
       scheduleUserIds,
       windowStart: overrideWindow.start,
       windowEnd: overrideWindow.end,
+      refreshKey: overrideRefreshKey,
     });
+
+  /*
+   * The schedule's coverage over the shared window, computed with exactly the
+   * same resolution (ScheduleResolution) and ScheduleShiftUtil pipeline the
+   * preview at the bottom of the page uses, so the two can never disagree -
+   * time away included: everybody in a layer away at once leaves that layer
+   * with nobody on call, and a gap the banner names when no layer below
+   * covers it.
+   *
+   * Expanding every layer's rotation across the window and merging the layers by
+   * priority is the most expensive thing this component does — hundreds of
+   * milliseconds for a daily rotation, and it scales super-linearly with the
+   * window. Memoized so it runs when the schedule actually changes rather than
+   * on every render (expanding a layer card, opening a modal, a timezone save
+   * rolling back), which would otherwise block the main thread each time.
+   *
+   * `now` is deliberately captured inside the memo: the window only needs to be
+   * accurate to the current edit, and re-anchoring it on a clock tick would
+   * throw away the cached result every second.
+   */
+  const coverageSummary: {
+    coverage: ScheduleCoverageState;
+    windowLabel: string;
+  } = useMemo(() => {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const windowEnd: Date = getCoverageWindowEnd(now);
+
+    const layerProps: Array<LayerProps> = layers.map(
+      (layer: OnCallDutyPolicyScheduleLayer): LayerProps => {
+        const layerId: string = layer.id?.toString() || "";
+        return {
+          users: (layerUsers[layerId] || [])
+            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+              return layerUser.user!;
+            })
+            .filter(Boolean),
+          startDateTimeOfLayer: layer.startsAt!,
+          handOffTime: layer.handOffTime!,
+          rotation: layer.rotation!,
+          restrictionTimes: layer.restrictionTimes!,
+          timezone: scheduleTimezone,
+        };
+      },
+    );
+
+    const assignedUserCount: number = layerProps.reduce(
+      (total: number, layerProp: LayerProps) => {
+        return total + layerProp.users.length;
+      },
+      0,
+    );
+
+    return {
+      coverage: ScheduleShiftUtil.getCoverageState({
+        layerCount: layers.length,
+        assignedUserCount,
+        shifts: ScheduleShiftUtil.groupEventsIntoShifts(
+          ScheduleResolution.resolve({
+            calendarStartDate: now,
+            calendarEndDate: windowEnd,
+            layers: layerProps,
+            overrides: overrideResolution.records,
+            currentOnCallDutyPolicyId:
+              overrideResolution.policyContextId || undefined,
+          }).events,
+        ),
+        now,
+        windowEnd,
+      }),
+      windowLabel: formatWindowSpan(now, windowEnd),
+    };
+  }, [
+    layers,
+    layerUsers,
+    scheduleTimezone,
+    overrideResolution.records,
+    overrideResolution.policyContextId,
+  ]);
+
 
   /*
    * A compact statement of the schedule's coverage, rendered above the layer
@@ -885,6 +914,9 @@ const Layers: FunctionComponent<ComponentProps> = (
               ) => {
                 updateLayerUsers(layerId, users);
               }}
+              onSkipUser={(person: { userId: string; name: string }) => {
+                setPersonToSkip(person);
+              }}
             />
           );
         })}
@@ -927,9 +959,26 @@ const Layers: FunctionComponent<ComponentProps> = (
             allLayerUsers={layerUsers}
             timezone={scheduleTimezone}
             onCallDutyPolicyScheduleId={props.onCallDutyPolicyScheduleId}
+            overridesRefreshKey={overrideRefreshKey}
           />
         </Card>
       </div>
+
+      {personToSkip && (
+        <SkipLayerUserModal
+          userId={personToSkip.userId}
+          name={personToSkip.name}
+          onClose={() => {
+            setPersonToSkip(null);
+          }}
+          onSkipped={() => {
+            setPersonToSkip(null);
+            setOverrideRefreshKey((key: number) => {
+              return key + 1;
+            });
+          }}
+        />
+      )}
 
       {layerToDelete && (
         <ConfirmModal

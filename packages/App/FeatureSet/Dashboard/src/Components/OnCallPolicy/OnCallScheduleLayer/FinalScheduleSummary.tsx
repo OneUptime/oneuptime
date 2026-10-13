@@ -154,20 +154,31 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
       originalName: string;
       scope: { kind: OverrideScopeKind; label: string; detail: string };
       coveringLabel: string;
+      isSkip: boolean;
     } = describeShiftOverride({
       override: shift.override,
       userInfoById: props.userById,
       policyNameById: props.policyNameById || {},
     });
 
+    /*
+     * A skip says so: nobody was named, the person away is skipped and this
+     * one is next in the rotation - and the window is their time away.
+     */
     return (
       <div
         data-testid={testId}
+        data-skip={described.isSkip ? "true" : "false"}
         className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-white/70 px-2 py-1.5 text-xs ring-1 ring-inset ring-indigo-200"
       >
         <span className="inline-flex items-center gap-1 font-semibold text-indigo-700">
-          <Icon icon={IconProp.ArrowUturnRight} className="h-3.5 w-3.5" />
-          {translator.translateText("Override")}
+          <Icon
+            icon={
+              described.isSkip ? IconProp.Forward : IconProp.ArrowUturnRight
+            }
+            className="h-3.5 w-3.5"
+          />
+          {translator.translateText(described.isSkip ? "Skipped" : "Override")}
         </span>
         <span className="text-gray-700">{described.coveringLabel}</span>
         <span
@@ -182,7 +193,11 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
         </span>
         <span className="basis-full text-[11px] text-gray-500">
           <TranslatedSentence
-            template="Override runs {{start}} {{arrow}} {{end}}"
+            template={
+              described.isSkip
+                ? "Away {{start}} {{arrow}} {{end}}"
+                : "Override runs {{start}} {{arrow}} {{end}}"
+            }
             values={{
               start: formatShiftInstant(
                 shift.override.overrideStartsAt,

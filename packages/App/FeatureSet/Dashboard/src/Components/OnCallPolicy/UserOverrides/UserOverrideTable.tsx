@@ -1,8 +1,11 @@
 import ProjectUserElement from "../../../Components/User/ProjectUserElement";
 import {
+  USER_OVERRIDE_ROTATION_COVERS_TEXT,
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
 } from "./UserOverrideForm";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -41,7 +44,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  *
  * Each row reads as the override does: who is away, who covers, from when,
  * until when. Adding one asks the same four things, with you as the person
- * away and now as the start (UserOverrideForm.ts).
+ * away and now as the start (UserOverrideForm.ts). An override with nobody
+ * named to cover is a skip, and its row says the rotation covers: "Next
+ * person in the rotation".
  *
  * "Get cover" on an upcoming shift (User Settings > Calendar Feed) opens
  * this page with the shift's window in its address: Add User Override opens
@@ -126,7 +131,23 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             <ProjectUserElement user={item["routeAlertsToUser"] as User} />
           );
         }
-        return <p>{translator.translateText("No user.")}</p>;
+
+        /*
+         * Nobody named: the person away is skipped, and the next person in
+         * each of their rotations takes the turn.
+         */
+        return (
+          <span
+            data-testid="user-override-rotation-covers"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-600"
+          >
+            <Icon
+              icon={IconProp.Refresh}
+              className="h-4 w-4 flex-shrink-0 text-gray-400"
+            />
+            {translator.translateText(USER_OVERRIDE_ROTATION_COVERS_TEXT)}
+          </span>
+        );
       },
     },
     {
@@ -241,8 +262,8 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "On-Call Policy User Overrides"
             : "Global User Overrides",
           description: props.onCallDutyPolicyId
-            ? "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
-            : "While someone is away, an override sends their pages from every on-call policy to the person who covers. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+            ? "While someone is away, an override sends their pages from this policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
+            : "While someone is away, an override sends their pages from every on-call policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on one policy only, add the override on that policy's User Overrides page.",
         }}
         formFields={formFields}
         noItemsMessage={

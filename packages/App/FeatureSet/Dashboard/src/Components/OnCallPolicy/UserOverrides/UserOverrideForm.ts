@@ -267,6 +267,12 @@ export const getUserOverrideFormFields: <TEntity>(
 ): Array<Field<TEntity>> => {
   const currentUserId: string | null = readPersonId(options?.currentUserId);
 
+  /*
+   * Who "Who is away?" starts as: the person it was opened for, or else you.
+   */
+  const awayUserId: string | null =
+    readPersonId(options?.awayUserId) || currentUserId;
+
   return [
     {
       field: { overrideUserId: true } as SelectFormFields<TEntity>,
@@ -275,9 +281,7 @@ export const getUserOverrideFormFields: <TEntity>(
       fieldType: FormFieldSchemaType.PeoplePicker,
       peoplePicker: getUserOverrideAwayPickerConfig(),
       required: true,
-      defaultValue: options?.awayUserId
-        ? readPersonId(options.awayUserId) || undefined
-        : currentUserId || undefined,
+      defaultValue: awayUserId || undefined,
       customValidation: (values: FormValues<TEntity>): string | null => {
         return getUserOverrideAwayError(values);
       },

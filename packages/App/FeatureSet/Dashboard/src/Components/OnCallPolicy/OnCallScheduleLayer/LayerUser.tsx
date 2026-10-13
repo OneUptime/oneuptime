@@ -1,5 +1,10 @@
 import AddLayerUserModal from "./AddLayerUserModal";
+import { formatShiftInstant } from "./LayerSummary";
+import { LayerUserAway, getLayerUserAway } from "./LayerUserAway";
 import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
+import OneUptimeDate from "Common/Types/Date";
+import { UserOverrideRecord } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -40,7 +45,76 @@ import ObjectID from "Common/Types/ObjectID";
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
   onUpdateUsers: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  /*
+   * The user overrides that apply to this schedule (./ScheduleOverrides): a
+   * person away now, or soon, says so on their row.
+   */
+  overrides?: Array<UserOverrideRecord> | undefined;
+  // Names of the people overrides name to cover, by user id.
+  coverNameById?: Record<string, string> | undefined;
+  // The schedule's timezone: the away times are shown in it.
+  timezone?: string | undefined;
+  /*
+   * "Skip until..." on a person's row: opens time away for them with the
+   * rotation covering (SkipLayerUserModal). Left out, it is not offered.
+   */
+  onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
 }
+
+/*
+ * "Away until Fri, Mar 6, 12:00 PM" beside a person's name while a user
+ * override is in force for them - "Away from ..." when one is booked - so a
+ * reader of the rotation knows why somebody else has their turn. Its tooltip
+ * says who does: the next person in the rotation, or the person named.
+ */
+const LayerUserAwayBadge: FunctionComponent<{
+  away: LayerUserAway;
+  coverName: string | null;
+  timezone?: string | undefined;
+}> = (props: {
+  away: LayerUserAway;
+  coverName: string | null;
+  timezone?: string | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const label: string = props.away.isNow
+    ? translator.translateTemplate("Away until {{time}}", {
+        time: formatShiftInstant(props.away.endsAt, props.timezone),
+      })
+    : translator.translateTemplate("Away from {{time}}", {
+        time: formatShiftInstant(props.away.startsAt, props.timezone),
+      });
+
+  const who: string = props.away.isSkip
+    ? translator.translateTemplate(
+        "Each of their turns goes to the next person in the rotation who is not away.",
+      )
+    : translator.translateTemplate("{{name}} covers for them.", {
+        name: props.coverName || translator.translateTemplate("Someone else"),
+      });
+
+  return (
+    <Tooltip text={who}>
+      <span
+        data-testid={
+          props.away.isNow ? "layer-user-away-now" : "layer-user-away-soon"
+        }
+        className={`inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+          props.away.isNow
+            ? "bg-amber-50 text-amber-800 ring-amber-200"
+            : "bg-gray-50 text-gray-600 ring-gray-200"
+        }`}
+      >
+        <Icon
+          icon={props.away.isSkip ? IconProp.Forward : IconProp.ArrowUturnRight}
+          className="h-3 w-3 flex-shrink-0"
+        />
+        <span className="truncate">{label}</span>
+      </span>
+    </Tooltip>
+  );
+};
 
 /*
  * The line under a layer user's name: their email - or, once they have left
@@ -265,6 +339,16 @@ const LayerUser: FunctionComponent<ComponentProps> = (
     const email: string = user?.email?.toString() || "";
     const rowId: string = layerUser.id?.toString() || `${userId}-${index}`;
     const isDeleting: boolean = deletingUserIds.has(rowId);
+    const displayName: string =
+      name || email || translator.translateTemplate("Unknown user");
+
+    const away: LayerUserAway | null = user?.id
+      ? getLayerUserAway({
+          userId: user.id.toString(),
+          overrides: props.overrides || [],
+          now: OneUptimeDate.getCurrentDate(),
+        })
+      : null;
 
     return (
       <div
@@ -292,11 +376,48 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-gray-900">
-            {name || email || translator.translateText("Unknown user")}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="min-w-0 truncate text-sm font-medium text-gray-900">
+              {displayName}
+            </span>
+            {away && (
+              <LayerUserAwayBadge
+                away={away}
+                coverName={
+                  away.coverUserId
+                    ? props.coverNameById?.[away.coverUserId] || null
+                    : null
+                }
+                timezone={props.timezone}
+              />
+            )}
           </div>
           <LayerUserDetailLine userId={user?.id} name={name} email={email} />
         </div>
+
+        {props.onSkipUser && user?.id && (
+          <button
+            type="button"
+            data-testid="layer-user-skip-button"
+            aria-label={translator.translateTemplate(
+              "Skip {{name}} until a date",
+              { name: displayName },
+            )}
+            disabled={isBusy}
+            onClick={() => {
+              props.onSkipUser?.({
+                userId: user.id!.toString(),
+                name: displayName,
+              });
+            }}
+            className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon icon={IconProp.Forward} className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {translator.translateText("Skip until…")}
+            </span>
+          </button>
+        )}
 
         <button
           type="button"

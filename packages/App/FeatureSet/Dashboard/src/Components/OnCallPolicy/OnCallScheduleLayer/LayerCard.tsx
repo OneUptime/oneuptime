@@ -7,6 +7,7 @@ import {
 } from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
 import LayerUser from "./LayerUser";
+import { isEveryoneInLayerAway } from "./LayerUserAway";
 import {
   getColorForUserId,
   getUserAvatarStyle,
@@ -64,6 +65,11 @@ export interface ComponentProps {
   onDeleteLayer: () => void;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
   onUsersChange: (users: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  /*
+   * "Skip until..." on a person in this layer (SkipLayerUserModal, opened by
+   * the page). Left out, the people list does not offer it.
+   */
+  onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
 }
 
 interface SummaryChipProps {
@@ -231,6 +237,27 @@ const LayerCard: FunctionComponent<ComponentProps> = (
   const isCurrentUserSubstitute: boolean = Boolean(
     currentAndNext.current && !layerUserIds.has(currentAndNext.current.userId),
   );
+
+  /*
+   * Nobody on call, because everybody in the layer is away: say so, rather
+   * than leave the reader to guess - the layers below it decide meanwhile.
+   */
+  const isEveryoneAway: boolean =
+    !currentAndNext.current &&
+    isEveryoneInLayerAway({
+      userIds: Array.from(layerUserIds),
+      overrides: props.overrides,
+      now: preview.now,
+    });
+
+  // The names of the people overrides name to cover, for the away badges.
+  const coverNameById: Record<string, string> = {};
+  for (const userId in props.overrideUserInfo) {
+    const info: OverrideUserInfo | undefined = props.overrideUserInfo[userId];
+    if (info) {
+      coverNameById[userId] = info.name || info.email;
+    }
+  }
 
   /*
    * "Covering for Alice Nakamura" when the shift carries the override that put
@@ -442,11 +469,18 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 )}
               </span>
             ) : (
-              <span className="text-amber-700">
+              <span
+                data-testid={
+                  isEveryoneAway ? "layer-card-everyone-away" : undefined
+                }
+                className="text-amber-700"
+              >
                 {translator.translateText(
                   userCount === 0
                     ? "No users assigned - this layer never puts anyone on call"
-                    : "No one on call in this layer right now",
+                    : isEveryoneAway
+                      ? "Everyone in this layer is away right now"
+                      : "No one on call in this layer right now",
                 )}
               </span>
             )}
@@ -581,7 +615,14 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 "On-call duty rotates through these users top to bottom. Drag the handle to reorder.",
               )}
             </p>
-            <LayerUser layer={layer} onUpdateUsers={props.onUsersChange} />
+            <LayerUser
+              layer={layer}
+              onUpdateUsers={props.onUsersChange}
+              overrides={props.overrides}
+              coverNameById={coverNameById}
+              timezone={props.timezone}
+              onSkipUser={props.onSkipUser}
+            />
           </div>
 
           <div className="border-t border-gray-200 pt-5">
