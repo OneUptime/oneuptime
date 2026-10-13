@@ -1,92 +1,128 @@
-# Variabili e filtri
+# Variabili e filtri della dashboard
 
-Una variabile trasforma una singola dashboard in un template. Aggiungi una variabile `service` alla tua dashboard e gli stessi grafici vengono ridisegnati per `checkout`, `payments` o `search` — chi guarda sceglie da un menu a tendina in cima invece che tu costruisca tre dashboard quasi identiche.
+Una variabile è un selettore nella barra degli strumenti della dashboard. Aggiungi una variabile `service` e gli stessi grafici mostrano `checkout`, `payments` o `search`: chi guarda sceglie dalla barra degli strumenti, invece di dover costruire tu tre dashboard quasi identiche.
 
-## Tipi di variabile
+:::cards
+- [Aggiungere una variabile](#aggiungere-una-variabile): Dalle un nome, scegli da dove arrivano i suoi valori, salva.
+- [Origini delle variabili](#origini-delle-variabili): Telemetry Attribute, Project Labels, Custom List e Text Input.
+- [Come i widget usano una variabile](#come-i-widget-usano-una-variabile): Quali widget seguono quali variabili.
+- [Link che conservano la selezione](#link-che-conservano-la-selezione): Invia un link che si apre sullo stesso servizio.
+:::
 
-Aggiungi le variabili sotto **Dashboard → Impostazioni → Variabili**. Ogni variabile ha un nome (usato come `{{name}}` nei tuoi widget), un'etichetta opzionale e un tipo.
+## Come funziona una variabile
 
-### Custom List
+Definisci le variabili mentre modifichi la dashboard, e vengono salvate con essa. In modalità di lettura, ognuna è un selettore nella barra degli strumenti. Quando chi guarda sceglie un valore, ogni widget che segue la variabile rilegge i suoi dati, e il link della pagina conserva la scelta.
 
-Un menu a tendina statico. Digiti tu stesso le opzioni.
+```mermaid title="Dalla definizione di una variabile alla scelta di chi guarda"
+flowchart TB
+    A["Modifica: Variabili,<br/>poi Aggiungi variabile"] --> B["Salva variabili,<br/>poi Salva modifiche"]
+    B --> C["Lettura: un selettore<br/>nella barra degli<br/>strumenti"]
+    C --> D["Chi guarda sceglie<br/>un valore"]
+    D --> E["I widget che seguono<br/>la variabile rileggono"]
+    D --> F["Il link della pagina<br/>conserva la scelta"]
+```
 
-Usalo quando: le scelte sono poche e fisse. `environment` con valori `prod, staging, dev`. `region` con valori `us-east-1, eu-west-1, ap-south-1`.
+## Aggiungere una variabile
 
-### Query
+:::steps
+### Aprire la finestra delle variabili
 
-Le opzioni provengono da una query sui tuoi dati.
+Apri la dashboard, scegli **⋯ → Edit Dashboard** e fai clic su **Variabili** nella barra degli strumenti. La finestra **Variabili della dashboard** elenca le variabili della dashboard; il pulsante nella barra degli strumenti le conta.
 
-Usalo quando: le scelte cambiano nel tempo e vuoi che il menu a tendina si aggiorni. "Ogni ID cliente visto nelle ultime 24 ore." La query viene eseguita sui dati del tuo progetto e i risultati diventano il menu a tendina.
+### Aggiungerne una
 
-### Text Input
+Fai clic su **Aggiungi variabile**. Una nuova variabile legge un attributo di telemetria; scegli un'altra **Origine** se ti serve.
 
-Un campo di testo libero. Cio che chi guarda digita viene utilizzato.
+### Compilarla
 
-Usalo quando: vuoi che la dashboard funzioni come uno strumento di ricerca. Filtra per indirizzo IP, ID richiesta o qualsiasi altro valore libero.
+Dalle un **Nome**, che usano i widget e i link, come `service`: lettere, cifre e trattini bassi, che inizi con una lettera o un trattino basso, e diverso dagli altri nomi della dashboard. Aggiungi un'**Etichetta** per la barra degli strumenti se vuoi, un valore **Predefinito** da cui partire, e spunta **Allow multi-select** per permettere di scegliere più valori.
+
+### Salvarla
+
+Fai clic su **Salva variabili**, poi su **Salva modifiche** nella barra degli strumenti. Il selettore della variabile compare nella barra degli strumenti quando la dashboard torna in modalità di lettura.
+:::
+
+Per cambiare o rimuovere una variabile in seguito, riapri la finestra: cambia i suoi campi, oppure fai clic sul cestino accanto.
+
+## Origini delle variabili
+
+L'**Origine** decide da dove arrivano i valori di una variabile, e quali widget la seguono.
+
+| Origine | Da dove arrivano i suoi valori | Selezione multipla |
+| --- | --- | --- |
+| Telemetry Attribute | I valori di una chiave di attributo nelle tue metriche, come `service.name` | Sì |
+| Project Labels | Le etichette del progetto che consenti, da 1 a 1000 | Sì |
+| Custom List | Valori che scrivi tu, separati da virgole, come `prod, staging` | Sì |
+| Text Input | Qualsiasi cosa scriva chi guarda | No |
 
 ### Telemetry Attribute
 
-Le opzioni sono i valori distinti di un attributo nella tua telemetria sull'intervallo temporale della dashboard.
+Imposta la **Chiave attributo**, come `service.name`, `host.name` o `k8s.namespace.name`; il campo suggerisce le chiavi presenti nella tua telemetria. Il selettore offre fino a 100 valori di quella chiave, letti dalle tue metriche dell'ultimo giorno, quindi un nuovo servizio vi compare senza che tu debba modificare la dashboard.
 
-Configura la **chiave dell'attributo** (per esempio, `service.name`, `host.name`, `k8s.cluster.name`). Il menu a tendina si riempie con ogni valore distinto visto nei tuoi log, metriche e trace.
+È l'origine più comune, perché non ha bisogno di un elenco proprio: i valori sono quelli che già invii.
 
-Usalo quando: le scelte corrispondono ai tag che gia invii con la tua telemetria. E il tipo piu comune perche si aggiorna automaticamente — quando rilasci un nuovo servizio taggato `service.name = inventory`, quel nome appare nel menu a tendina senza che tu modifichi la dashboard.
+### Project Labels
 
-## Selezione multipla
+Scegli etichette di progetto esistenti da offrire come menu a tendina della dashboard. Per esempio, crea una variabile chiamata `UNIT`, imposta la sua origine su **Project Labels** e scegli le etichette `0660` e `0661`.
 
-Ogni variabile puo permettere selezioni multiple. Quando attiva, chi guarda puo selezionare uno o piu valori; la dashboard filtra in base a uno qualsiasi di essi.
+La dashboard salva gli ID e i nomi visualizzati delle etichette scelte. Il filtro usa gli ID, quindi rinominare un'etichetta del progetto non rompe il suo collegamento. I nomi visualizzati vengono salvati con la dashboard; riseleziona un'etichetta rinominata nell'editor delle variabili per aggiornarne il nome visualizzato. Le dashboard pubbliche mostrano queste stesse scelte salvate.
 
-Usa la selezione multipla quando: vuoi confrontare "checkout e payments insieme" senza uscire dalla dashboard. Evitala quando i calcoli non hanno senso sui valori selezionati (per esempio, fare la media delle medie).
+In un widget **Elenco monitor**, apri **Filtri → Label Variable** e seleziona `UNIT`. Scegliendo `0660` vengono mostrati i monitor che hanno quell'etichetta. Gli altri widget non sono interessati, a meno che non supportino e colleghino esplicitamente la variabile: la **SLO List** ha la stessa impostazione **Label Variable**.
 
-## Valori predefiniti
+I filtri fissi del widget restano attivi. Per esempio, con un'etichetta fissa `network` e `UNIT` impostata su `0660`, un monitor deve avere entrambe le etichette. Più unità selezionate corrispondono a una qualsiasi di esse. Scegliere **Tutti** rimuove solo la condizione della variabile, e mantiene i filtri fissi su etichetta, stato e tipo di monitor.
 
-Ogni variabile puo avere un valore predefinito. La dashboard viene renderizzata con il valore predefinito finche chi guarda non lo cambia. Per le dashboard pubbliche, il valore predefinito e cio che i visitatori vedono per primo.
+Una variabile mancante o una selezione fuori dalle sue scelte configurate mostra un errore. Un'etichetta scelta senza monitor corrispondenti mostra l'elenco vuoto. Rimuovi esplicitamente il collegamento del widget quando non serve più.
 
-## Come usare una variabile in un widget
+### Custom List e Text Input
 
-Ovunque un widget accetti un filtro — il `WHERE` di una metrica, il filtro di un elenco, la corrispondenza di attributi di un log stream — puoi usare `{{variable_name}}`.
+Una Custom List offre i valori che scrivi, separati da virgole. Un Text Input permette a chi guarda di scrivere qualsiasi valore, come un indirizzo IP o un ID di richiesta. Nessuna delle due filtra un widget da sola: i loro valori vanno dove scrivi `{{name}}` (vedi sotto).
 
-Per esempio, un grafico filtrato per servizio:
+Una variabile Query di una dashboard più vecchia viene conservata e mostra una casella di testo nella barra degli strumenti: OneUptime non carica più i suoi valori da una query.
 
+## Selezione multipla e valori predefiniti
+
+Con **Allow multi-select** spuntato, chi guarda sceglie uno o più valori, e i widget mostrano uno qualsiasi di essi. Una selezione vuota significa **Tutti**, e una variabile a selezione multipla parte sempre da **Tutti**, quindi il suo valore **Predefinito** è disattivato.
+
+Una variabile a selezione singola parte dal suo valore **Predefinito**, oppure da **Tutti** quando non ne ha. **Tutti** rimuove il filtro della variabile, quindi i widget mostrano tutto.
+
+Usa la selezione multipla per confrontare "checkout e payments insieme" senza lasciare la dashboard. Evitala dove i numeri non si sommano tra i valori, come in una media di medie.
+
+## Come i widget usano una variabile
+
+Ogni origine raggiunge i widget a modo suo:
+
+- Le variabili **Telemetry Attribute** filtrano i widget senza nulla da impostare su di essi: ogni grafico, valore, indicatore e tabella di metriche; il **Log Chart**, il **Flusso di log**, il **Trace Chart** e la **Trace Table**; e gli elenchi dell'infrastruttura le cui risorse hanno l'attributo, come `host.name` negli elenchi degli host e `k8s.namespace.name` negli elenchi di Kubernetes. Il grafico di una metrica senza l'attributo non mostra dati mentre è scelto un valore: scegli **Tutti** per rivederlo. L'**Elenco delle tracce** e gli elenchi di incidenti e avvisi non le seguono.
+- Le variabili **Project Labels** filtrano un **Elenco monitor** o una **SLO List** la cui **Label Variable** le nomina.
+- **Qualsiasi variabile** può essere scritta in un testo come `{{name}}`: in un [widget HTML](/docs/dashboards/widgets#html), nella query di una [fonte di dati esterna](/docs/dashboards/data-sources), e nel titolo di un **Elenco monitor** o di una **SLO List**. Un titolo come `{{UNIT}} NETWORK` mostra `0660 NETWORK`, `0660, 0661 NETWORK` o `All NETWORK`. Un titolo controlla solo il testo visualizzato; configura **Label Variable** per filtrare la query dei monitor.
+
+Il [widget SLO](/docs/dashboards/widgets#slo) può seguire una variabile Telemetry Attribute sulla chiave `sloName`, così chi guarda sceglie quale SLO mostra.
+
+## Link che conservano la selezione
+
+Il link della pagina porta la scelta di ogni variabile come `?var-<name>=<value>`, con più valori separati da virgole, quindi un link che copi si apre con la stessa selezione, compreso un **Tutti** esplicito. Un link come questo si apre sul servizio payments:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
-service.name = '{{service}}'
-```
 
-Quando il menu a tendina e impostato su `checkout`, il grafico filtra sul servizio checkout. Quando chi guarda passa a `payments`, il grafico viene ridisegnato per payments.
+Il link porta solo le variabili. L'intervallo di tempo parte dall'ultima ora a ogni visita, quindi di' alle persone a cui lo invii quale tratto guardare, oppure ingrandisci una volta che l'hanno aperto.
 
-Per le variabili **Telemetry Attribute**, OneUptime sa a quale attributo si riferisce la variabile e applica il filtro a ogni widget che usa lo stesso attributo — non devi modificare ogni widget a mano.
+## Un esempio: una dashboard per ogni servizio
 
-## Intervallo temporale
+Una dashboard di servizio di solito ha:
 
-L'intestazione della dashboard ha un intervallo temporale globale. Ogni widget di metrica esegue la query rispetto a questa finestra. Opzioni:
+1. Una variabile `service`, origine Telemetry Attribute, chiave di attributo `service.name`, con il tuo servizio più trafficato come valore predefinito. Lascia la selezione multipla disattivata, così i grafici mostrano un servizio alla volta.
+2. Una variabile `namespace`, origine Telemetry Attribute, chiave di attributo `k8s.namespace.name`, con la selezione multipla attiva per confrontare i namespace.
+3. Una variabile `environment`, origine Custom List, valori `prod, staging`, usata come `{{environment}}` nella query di una fonte di dati.
+4. Widget che leggono quegli attributi: grafici e valori delle metriche del servizio, un flusso di log e un elenco dei pod di Kubernetes.
 
-- **Preset** — ultima ora, 24 ore, 7 giorni, 30 giorni, 90 giorni (a seconda della tua retention dei dati).
-- **Personalizzato** — scegli un'ora di inizio e di fine.
+Il risultato: una dashboard per ogni servizio, con tre selettori in alto.
 
-L'intervallo temporale fa parte dell'URL della dashboard — condividere l'URL condivide la finestra. Utile durante un incidente: blocca l'intervallo temporale su "10:00–10:30 UTC di oggi" e incolla il link nel canale dell'incidente.
+## Passaggi successivi
 
-## Intervallo di refresh
-
-Accanto all'intervallo temporale, scegli con quale frequenza i widget rieseguono la query:
-
-- **Off** — i widget eseguono la query una sola volta al caricamento della pagina.
-- **5s / 10s / 30s / 1m / 5m / 15m** — auto-refresh.
-
-L'auto-refresh va bene per uno schermo a muro o per una vista live durante un incidente. Lascialo disattivato quando stai indagando, cosi la vista resta ferma mentre la esamini.
-
-## Mettendoli insieme
-
-Una dashboard templatizzata per servizio ha tipicamente:
-
-1. Una variabile `service` di tipo **Telemetry Attribute** per `service.name`. Default: il tuo servizio piu osservato. Selezione multipla disattivata (cosi i grafici mostrano sempre uno alla volta).
-2. Una variabile `environment` di tipo **Custom List**. Default: `prod`.
-3. Una variabile `cluster` di tipo **Telemetry Attribute** per `k8s.cluster.name`. Selezione multipla attivata (cosi puoi confrontare tra cluster).
-4. Widget che fanno riferimento a queste variabili nei propri filtri.
-
-Il risultato: una dashboard, ogni servizio coperto, tre menu a tendina in cima.
-
-## Letture successive
-
-- [Widget](/docs/dashboards/widgets) — come ciascun widget usa un filtro.
-- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing) — variabili e link condivisi.
-- [Creazione di una dashboard](/docs/dashboards/authoring) — la meccanica del canvas.
+:::cards
+- [Widget della dashboard](/docs/dashboards/widgets): Quali widget seguono quali variabili.
+- [Fonti di dati esterne](/docs/dashboards/data-sources): Metti una variabile in una query PromQL o SQL.
+- [Condivisione e dashboard pubbliche](/docs/dashboards/sharing): Le variabili su una dashboard pubblica.
+- [Creare una dashboard](/docs/dashboards/authoring): La modalità di modifica, il salvataggio e l'intervallo di tempo.
+:::

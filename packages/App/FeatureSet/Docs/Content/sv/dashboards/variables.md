@@ -1,92 +1,128 @@
-# Variabler & filter
+# Instrumentpanelsvariabler & filter
 
-En variabel förvandlar en enskild instrumentpanel till en mall. Lägg till en `service`-variabel i din instrumentpanel och samma diagram renderas om för `checkout`, `payments` eller `search` — tittare väljer från en rullgardinsmeny högst upp istället för att du bygger tre nästan identiska instrumentpaneler.
+En variabel är en väljare i instrumentpanelens verktygsfält. Lägg till en variabel `service` så visar samma diagram `checkout`, `payments` eller `search`: tittarna väljer i verktygsfältet i stället för att du bygger tre nästan likadana instrumentpaneler.
 
-## Variabeltyper
+:::cards
+- [Lägg till en variabel](#lägg-till-en-variabel): Namnge den, välj var dess värden kommer ifrån och spara.
+- [Variabelkällor](#variabelkällor): Telemetry Attribute, Project Labels, Custom List och Text Input.
+- [Hur widgetar använder en variabel](#hur-widgetar-använder-en-variabel): Vilka widgetar som följer vilka variabler.
+- [Länkar som behåller urvalet](#länkar-som-behåller-urvalet): Skicka en länk som öppnas på samma tjänst.
+:::
 
-Lägg till variabler under **Instrumentpanel → Inställningar → Variabler**. Varje variabel har ett namn (används som `{{name}}` i dina widgetar), en valfri etikett och en typ.
+## Så fungerar en variabel
 
-### Custom List
+Du definierar variabler medan du redigerar instrumentpanelen, och de sparas med den. I visningsläge är var och en en väljare i verktygsfältet. När en tittare väljer ett värde läser varje widget som följer variabeln sin data igen, och sidans länk behåller valet.
 
-En statisk rullgardinsmeny. Du skriver alternativen själv.
+```mermaid title="Från att definiera en variabel till en tittares val"
+flowchart TB
+    A["Redigering: Variabler,<br/>sedan Lägg till<br/>variabel"] --> B["Spara variabler,<br/>sedan Spara ändringar"]
+    B --> C["Visning: en väljare<br/>i verktygsfältet"]
+    C --> D["En tittare väljer<br/>ett värde"]
+    D --> E["Widgetarna som följer<br/>variabeln läser igen"]
+    D --> F["Sidans länk<br/>behåller valet"]
+```
 
-Använd den när: valen är få och fasta. `environment` med värdena `prod, staging, dev`. `region` med värdena `us-east-1, eu-west-1, ap-south-1`.
+## Lägg till en variabel
 
-### Query
+:::steps
+### Öppna variabeldialogen
 
-Alternativen kommer från en fråga mot din data.
+Öppna instrumentpanelen, välj **⋯ → Edit Dashboard** och klicka på **Variabler** i verktygsfältet. Dialogrutan **Instrumentpanelsvariabler** listar instrumentpanelens variabler; knappen i verktygsfältet räknar dem.
 
-Använd den när: valen ändras över tid och du vill att rullgardinsmenyn ska hänga med. "Varje kund-ID som setts de senaste 24 timmarna." Frågan körs mot ditt projekts data och resultaten blir rullgardinsmenyn.
+### Lägg till en
 
-### Text Input
+Klicka på **Lägg till variabel**. En ny variabel läser ett telemetriattribut; välj en annan **Källa** om du behöver.
 
-Ett fritt textfält. Vad tittaren än skriver används.
+### Fyll i den
 
-Använd den när: du vill att instrumentpanelen ska fungera som ett sökverktyg. Filtrera efter IP-adress, request-ID eller något annat fritt värde.
+Ge den ett **Namn**, som widgetar och länkar använder, till exempel `service`: bokstäver, siffror och understreck, som börjar med en bokstav eller ett understreck och skiljer sig från instrumentpanelens andra namn. Lägg till en **Etikett** för verktygsfältet om du vill, ett **Standard**-värde att börja på, och markera **Allow multi-select** för att låta tittarna välja flera värden.
+
+### Spara den
+
+Klicka på **Spara variabler** och sedan på **Spara ändringar** i verktygsfältet. Variabelns väljare visas i verktygsfältet när instrumentpanelen är tillbaka i visningsläge.
+:::
+
+För att ändra eller ta bort en variabel senare öppnar du dialogrutan igen: ändra dess fält, eller klicka på papperskorgen bredvid den.
+
+## Variabelkällor
+
+**Källa** avgör var en variabels värden kommer ifrån, och vilka widgetar som följer den.
+
+| Källa | Var värdena kommer ifrån | Flerval |
+| --- | --- | --- |
+| Telemetry Attribute | Värdena för en attributnyckel i dina mätvärden, till exempel `service.name` | Ja |
+| Project Labels | Projektetiketterna som du tillåter, från 1 till 1 000 | Ja |
+| Custom List | Värden som du skriver, åtskilda med kommatecken, till exempel `prod, staging` | Ja |
+| Text Input | Det som tittaren skriver | Nej |
 
 ### Telemetry Attribute
 
-Alternativen är de unika värdena av ett attribut i din telemetri över instrumentpanelens tidsintervall.
+Ange **Attributnyckel**, till exempel `service.name`, `host.name` eller `k8s.namespace.name`; fältet föreslår nycklarna som din telemetri har. Väljaren erbjuder upp till 100 värden för den nyckeln, lästa från dina mätvärden från det senaste dygnet, så en ny tjänst dyker upp i den utan att du redigerar instrumentpanelen.
 
-Konfigurera **attributnyckeln** (till exempel `service.name`, `host.name`, `k8s.cluster.name`). Rullgardinsmenyn fylls med varje unikt värde som setts i dina loggar, mätvärden och traces.
+Det här är den vanligaste källan, eftersom den inte behöver någon egen lista: värdena är de som du redan skickar.
 
-Använd den när: valen matchar taggarna du redan skickar med din telemetri. Detta är den vanligaste typen eftersom den uppdateras automatiskt — när du skeppar en ny tjänst taggad `service.name = inventory` dyker det namnet upp i rullgardinsmenyn utan att du redigerar instrumentpanelen.
+### Project Labels
 
-## Multi-select
+Välj befintliga projektetiketter att erbjuda som en rullgardinslista på instrumentpanelen. Skapa till exempel en variabel med namnet `UNIT`, sätt dess källa till **Project Labels** och välj etiketterna `0660` och `0661`.
 
-Varje variabel kan tillåta flera val. När det är på kan tittaren välja ett eller flera värden; instrumentpanelen filtrerar till något av dem.
+Instrumentpanelen sparar de valda etiketternas id:n och visningsnamn. Filtreringen använder id:na, så att byta namn på en projektetikett bryter inte dess koppling. Visningsnamnen sparas med instrumentpanelen; välj en omdöpt etikett igen i variabelredigeraren för att uppdatera dess visade namn. Offentliga instrumentpaneler visar samma sparade val.
 
-Använd multi-select när: du vill jämföra "checkout och payments tillsammans" utan att lämna instrumentpanelen. Undvik det när matematiken inte fungerar över valda värden (till exempel medelvärde av medelvärden).
+I en widget **Övervakningslista** öppnar du **Filter → Label Variable** och väljer `UNIT`. När du väljer `0660` visas nu övervakarna som har den etiketten. Andra widgetar påverkas inte, om de inte uttryckligen stöder och kopplar variabeln: **SLO List** har samma inställning **Label Variable**.
 
-## Standardvärden
+Fasta widgetfilter fortsätter att gälla. Med en fast etikett `network` och `UNIT` satt till `0660` måste en övervakare till exempel ha båda etiketterna. Flera valda enheter matchar vilken som helst av de valda enheterna. Att välja **Alla** tar bara bort variabelns villkor och behåller de fasta filtren för etikett, status och övervakartyp.
 
-Varje variabel kan ha ett standardvärde. Instrumentpanelen renderas med standardvärdet tills tittaren ändrar det. För offentliga instrumentpaneler är standardvärdet vad besökare ser först.
+En saknad variabel eller ett val utanför dess konfigurerade alternativ visar ett fel. En vald etikett utan matchande övervakare visar den tomma listan. Ta uttryckligen bort widgetens koppling när den inte längre behövs.
 
-## Hur du använder en variabel i en widget
+### Custom List och Text Input
 
-Var som helst en widget tar ett filter — ett mätvärdes `WHERE`, en listas filter, en loggströms attributmatchning — kan du använda `{{variable_name}}`.
+En Custom List erbjuder värdena som du skriver, åtskilda med kommatecken. En Text Input låter tittaren skriva vilket värde som helst, till exempel en IP-adress eller ett förfrågnings-id. Ingen av dem filtrerar en widget på egen hand: deras värden hamnar där du skriver `{{name}}` (se nedan).
 
-Till exempel ett diagram filtrerat efter tjänst:
+En Query-variabel från en äldre instrumentpanel behålls och visar en textruta i verktygsfältet: OneUptime läser inte längre in dess värden från en fråga.
 
+## Flerval och standardvärden
+
+Med **Allow multi-select** markerat väljer tittarna ett eller flera värden, och widgetarna visar vilket som helst av dem. Ett tomt urval betyder **Alla**, och en flervalsvariabel börjar alltid på **Alla**, så dess **Standard** är nedtonad.
+
+En enkelvalsvariabel börjar på sin **Standard**, eller på **Alla** när den inte har någon. **Alla** tar bort variabelns filter, så att widgetarna visar allt.
+
+Använd flerval för att jämföra "checkout och payments tillsammans" utan att lämna instrumentpanelen. Undvik det där talen inte går att lägga ihop mellan värden, till exempel ett medelvärde av medelvärden.
+
+## Hur widgetar använder en variabel
+
+Varje källa når widgetarna på sitt eget sätt:
+
+- Variabler av typen **Telemetry Attribute** filtrerar widgetar utan att du behöver ställa in något på dem: varje mätvärdesdiagram, värde, mätare och tabell; **Log Chart**, **Loggström**, **Trace Chart** och **Trace Table**; och infrastrukturlistorna vars resurser har attributet, till exempel `host.name` på värdlistor och `k8s.namespace.name` på Kubernetes-listor. Ett diagram över ett mätvärde utan attributet visar ingen data medan ett värde är valt: välj **Alla** för att se det igen. **Spårlista** och incident- och larmlistorna följer dem inte.
+- Variabler av typen **Project Labels** filtrerar en **Övervakningslista** eller en **SLO List** vars **Label Variable** namnger dem.
+- **Vilken variabel som helst** kan skrivas in i text som `{{name}}`: i en [HTML-widget](/docs/dashboards/widgets#html), i frågan till en [extern datakälla](/docs/dashboards/data-sources), och i titeln på en **Övervakningslista** eller en **SLO List**. En titel som `{{UNIT}} NETWORK` visar `0660 NETWORK`, `0660, 0661 NETWORK` eller `All NETWORK`. En titel styr bara den visade texten; konfigurera **Label Variable** för att filtrera övervakarfrågan.
+
+[SLO-widgeten](/docs/dashboards/widgets#slo) kan följa en Telemetry Attribute-variabel på nyckeln `sloName`, så att tittarna väljer vilket SLO den visar.
+
+## Länkar som behåller urvalet
+
+Sidans länk bär varje variabels val som `?var-<name>=<value>`, med flera värden åtskilda med kommatecken, så en länk som du kopierar öppnas med samma urval, även ett uttryckligt **Alla**. En länk som den här öppnas på tjänsten payments:
+
+```text title="A dashboard link with a variable"
+https://oneuptime.com/dashboard/<project-id>/dashboards/<dashboard-id>?var-service=payments
 ```
-service.name = '{{service}}'
-```
 
-När rullgardinsmenyn är inställd på `checkout` filtrerar diagrammet till checkout-tjänsten. När tittaren byter till `payments` renderas diagrammet om för payments.
+Länken bär bara variablerna. Tidsintervallet börjar på den senaste timmen vid varje besök, så tala om för dem du skickar den till vilken tidsperiod de ska titta på, eller zooma in när de har öppnat den.
 
-För **Telemetry Attribute**-variabler vet OneUptime vilket attribut variabeln mappar till och tillämpar filtret på varje widget som använder samma attribut — du behöver inte redigera varje widget för hand.
+## Ett exempel: en instrumentpanel för varje tjänst
 
-## Tidsintervall
+En tjänstepanel har oftast:
 
-Instrumentpanelens sidhuvud har ett globalt tidsintervall. Varje mätvärdeswidget frågar mot detta fönster. Alternativ:
+1. En variabel `service`, källa Telemetry Attribute, attributnyckel `service.name`, med din mest trafikerade tjänst som standard. Låt flerval vara av, så att diagrammen visar en tjänst i taget.
+2. En variabel `namespace`, källa Telemetry Attribute, attributnyckel `k8s.namespace.name`, med flerval på för att jämföra namnrymder.
+3. En variabel `environment`, källa Custom List, värden `prod, staging`, använd som `{{environment}}` i en datakällas fråga.
+4. Widgetar som läser de attributen: diagram och värden för tjänstens mätvärden, en loggström och en lista över Kubernetes-poddar.
 
-- **Förinställningar** — senaste timmen, 24 timmar, 7 dagar, 30 dagar, 90 dagar (beroende på din datakvarhållning).
-- **Anpassat** — välj en start- och sluttid.
+Resultatet: en instrumentpanel för varje tjänst, med tre väljare överst.
 
-Tidsintervallet är en del av instrumentpanelens URL — att dela URL:en delar fönstret. Användbart under en incident: fäst tidsintervallet till "10:00–10:30 UTC idag" och klistra in länken i incidentkanalen.
+## Nästa steg
 
-## Uppdateringsintervall
-
-Bredvid tidsintervallet, välj hur ofta widgetar frågar om data:
-
-- **Av** — widgetar frågar en gång när sidan laddas.
-- **5s / 10s / 30s / 1m / 5m / 15m** — automatisk uppdatering.
-
-Automatisk uppdatering är bra för en vägghängd skärm eller en live-incidentvy. Lämna den av när du felsöker så att vyn ligger stilla medan du tittar.
-
-## Sätta ihop det
-
-En tjänstemallad instrumentpanel har vanligtvis:
-
-1. En `service`-variabel av typen **Telemetry Attribute** för `service.name`. Standard: din mest bevakade tjänst. Multi-select av (så att diagrammen alltid visar en åt gången).
-2. En `environment`-variabel av typen **Custom List**. Standard: `prod`.
-3. En `cluster`-variabel av typen **Telemetry Attribute** för `k8s.cluster.name`. Multi-select på (så att du kan jämföra över kluster).
-4. Widgetar som refererar till dessa variabler i sina filter.
-
-Resultatet: en instrumentpanel, varje tjänst täckt, tre rullgardinsmenyer högst upp.
-
-## Läs vidare
-
-- [Widgetar](/docs/dashboards/widgets) — hur varje widget använder ett filter.
-- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — variabler och delade länkar.
-- [Skapa en instrumentpanel](/docs/dashboards/authoring) — arbetsytans mekanik.
+:::cards
+- [Instrumentpanels-widgetar](/docs/dashboards/widgets): Vilka widgetar som följer vilka variabler.
+- [Externa datakällor](/docs/dashboards/data-sources): Sätt in en variabel i en PromQL- eller SQL-fråga.
+- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing): Variabler på en offentlig instrumentpanel.
+- [Skapa en instrumentpanel](/docs/dashboards/authoring): Redigeringsläge, sparande och tidsintervallet.
+:::

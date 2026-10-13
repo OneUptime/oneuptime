@@ -1,82 +1,105 @@
 # Visão geral dos painéis
 
-Painéis transformam os dados que o OneUptime já está coletando — métricas, logs, traces, incidentes, monitores, recursos do Kubernetes, hosts — em uma única página que alguém pode olhar e entender o que está acontecendo.
+Um painel é uma página de widgets que você mesmo organiza: gráficos das suas métricas, logs e traces, listas de incidentes, alertas e monitores, seus SLOs e sua infraestrutura, e até dados de sistemas fora do OneUptime. Crie um para a tela do plantão, para a checagem matinal de uma equipe ou como página para os seus clientes, e compartilhe-o com o seu projeto ou com qualquer pessoa que tenha o link.
 
-Coloque um gráfico de latência de requisição ao lado de uma lista de incidentes abertos, ao lado de um indicador de CPU, ao lado de um parágrafo de contexto. Salve. Compartilhe o link.
+:::cards
+- [Como um painel funciona](#como-um-painel-funciona): De onde vêm os dados dele, e quem o vê.
+- [Encontre seus painéis](#encontre-seus-painéis): A lista Painéis e as páginas de cada painel.
+- [Crie seu primeiro painel](#crie-seu-primeiro-painel): De um modelo a uma página compartilhada em cinco passos.
+- [Um exemplo: um painel de plantão](#um-exemplo-um-painel-de-plantão): Uma página que serve para todos os serviços.
+:::
+
+## Como um painel funciona
+
+Cada widget lê de uma fonte, dentro do intervalo de tempo do painel e filtrado pelas suas variáveis. Todos que abrem o painel veem os mesmos widgets: sua equipe quando entra, e os visitantes pelo link público dele depois que você o compartilha.
+
+```mermaid title="Dos seus dados às pessoas que os leem"
+flowchart TB
+    S["Seus dados: telemetria,<br/>monitores, incidentes,<br/>SLOs, infraestrutura,<br/>outros sistemas"] --> W["Widgets: gráficos,<br/>números, listas,<br/>mapas e texto"]
+    W --> D["Um painel: seu intervalo<br/>de tempo, variáveis e<br/>atualização automática"]
+    D --> M["Sua equipe,<br/>conectada"]
+    D --> P["Qualquer pessoa com<br/>o link, depois que<br/>você o compartilha"]
+```
+
+| Termo | O que significa |
+| --- | --- |
+| Painel | Uma página: um nome, uma grade de widgets, um intervalo de tempo, variáveis e uma configuração de atualização automática. |
+| Widget | Um bloco da grade: um gráfico, um número, uma lista, um mapa, um relógio ou um bloco de texto. |
+| Variável | Um seletor na barra de ferramentas que restringe cada widget compatível a um serviço, host ou cliente. |
+| Intervalo de tempo | A janela que todos os gráficos e números leem. Começa na última hora toda vez que o painel é aberto. |
+| Atualização automática | Com que frequência os widgets leem seus dados de novo: desligada, ou em intervalos de 5 segundos a 15 minutos. |
+| Leitura e edição | Um painel abre para leitura. Editá-lo é uma etapa à parte, que termina salvando ou descartando suas alterações. |
 
 ## Para que servem os painéis
 
-- **Uma página "está tudo OK?"** — para o plantão, uma reunião diária da equipe ou uma TV na parede.
-- **Identificar conexões** — um pico de CPU ao mesmo tempo que um aumento de latência e um incidente aberto fica muito mais fácil de notar em uma única página do que em três abas.
-- **Investigar** — quando você está depurando, um painel que você monta na hora vale mais do que executar dez consultas uma de cada vez.
-- **Compartilhar externamente** — uma página de desempenho voltada ao cliente, uma página de status para parceiros, um painel público para um projeto de código aberto.
+- **Uma página de "está tudo bem?"** para quem está de plantão, para a reunião diária de uma equipe ou para uma tela na parede.
+- **Ver as conexões**: um pico de CPU ao lado de um aumento de latência e de um incidente aberto fica óbvio numa página só, e passa despercebido espalhado por três.
+- **Investigar**: coloque lado a lado os gráficos que você vive reabrindo, e arraste sobre um pico para ler todos os widgets naquele momento.
+- **Compartilhar fora da equipe**: uma página de desempenho para um cliente ou parceiro, protegida por uma senha ou por uma lista de IPs permitidos, se quiser.
 
-## O que você pode colocar em um painel
+## Encontre seus painéis
 
-- **Gráficos** para tendências ao longo do tempo — latência, erros, vazão.
-- **Indicadores de valor único** — taxa de erro atual, CPU, incidentes abertos.
-- **Tabelas** para detalhamentos — top 10 hosts mais barulhentos, contagem de erros por serviço.
-- **Blocos de texto** para títulos, contexto e links para runbooks.
-- **Listas ao vivo** de incidentes, alertas, monitores, logs, traces, recursos do Kubernetes, recursos do Docker e hosts.
+Abra **Produtos → Painéis**. A lista **Painéis** mostra os painéis do projeto com suas descrições, rótulos e proprietários. Pesquise por nome ou descrição, restrinja a lista com os filtros **Proprietário** e **Rótulos**, ou selecione vários painéis para mudar seus rótulos ou proprietários, arquivá-los ou exportá-los como JSON.
 
-Veja [Widgets](/docs/dashboards/widgets) para a lista completa e o que cada um mostra.
+O menu lateral da lista tem as páginas que cuidam de todos os seus painéis:
 
-## Termos-chave
+| Página | O que você faz nela |
+| --- | --- |
+| **Painéis** | Os painéis do projeto. Crie um, ou traga painéis com **Import JSON**. |
+| **Configurações → Regras de proprietário** | Adicionar proprietários aos novos painéis automaticamente. |
+| **Configurações → Regras de Rótulos** | Adicionar rótulos aos novos painéis automaticamente. |
+| **Configurações → Data Sources** | Conectar Prometheus, bancos de dados SQL, ClickHouse, Loki, Elasticsearch ou uma API REST. |
+| **Avançado → Arquivado** | Os painéis que você arquivou. Desarquive-os daqui. |
 
-| Termo                  | Significado                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Painel**             | A página inteira — um nome, uma grade de widgets, controles de intervalo de tempo e uma lista de variáveis.        |
-| **Widget**             | Um bloco na página — um gráfico, um número, uma lista, um parágrafo.                                               |
-| **Variável**           | Um dropdown no topo que filtra todos os widgets de uma vez (cluster, serviço, cliente, ambiente).                  |
-| **Intervalo de tempo** | A janela de tempo usada por todos os gráficos e números. Defina uma vez no topo da página.                         |
-| **Atualizar**          | Com que frequência os widgets reconsultam os dados. Desligado, a cada poucos segundos, a cada poucos minutos.      |
-| **Modo**               | Pode ser **Editar** (arrastar widgets pela página) ou **Visualizar** (somente leitura, como os visitantes veem).   |
+Abra um painel, e o menu lateral dele tem estas páginas. Toda seção, exceto **Básico**, começa recolhida: clique no título dela para abri-la.
 
-## Onde encontrar os painéis
+| Página | O que você faz nela |
+| --- | --- |
+| **Painel** | O próprio painel. Leia-o, ou edite-o pelo menu **⋯** dele. |
+| **Visão geral** | O nome, a descrição e os rótulos dele. |
+| **Compartilhamento** | Quem pode vê-lo, o link público dele e uma lista de IPs permitidos em Mais configurações. |
+| **Proprietários** | Os usuários e as equipes a que ele pertence. |
+| **Marca** | Título da página, descrição, logotipo e favicon do painel público. |
+| **Domínios personalizados** | Hospedar o painel público no seu próprio domínio. |
+| **Configurações** | Duplicar, exportar ou arquivar o painel. |
+| **Registros de auditoria** | Cada alteração feita no painel, e quem a fez. |
+| **Excluir** | Excluir o painel de vez. |
 
-Abra **Painéis** na navegação à esquerda.
+## Crie seu primeiro painel
 
-| Página                     | O que você faz nela                                                                     |
-| -------------------------- | --------------------------------------------------------------------------------------- |
-| **Painéis**                | Sua lista de painéis. Crie um novo, busque ou filtre por etiqueta.                      |
-| **Painel → Visualizar**    | O canvas. Alterne entre **Editar** e **Visualizar** no cabeçalho.                       |
-| **Painel → Visão geral**   | Descrição, donos e etiquetas.                                                           |
-| **Painel → Configurações** | Compartilhamento público, senha, lista de IPs permitidos, domínio personalizado, marca. |
-| **Painel → Proprietários** | Usuários e equipes com acesso explícito.                                                |
-| **Painel → Excluir**       | Remove o painel.                                                                        |
+:::steps
+1. **Crie** — escolha um modelo, ou **Blank Dashboard**. Um modelo preenche o nome e abre com os widgets dele; um painel em branco abre vazio, com **Adicionar widget** na tela.
+2. **Adicione widgets** — escolha um widget no catálogo, defina nas configurações dele o que ele lê, depois arraste-o para o lugar e redimensione-o.
+3. **Adicione variáveis, se precisar** — uma variável `service`, por exemplo, permite que um só painel mostre qualquer serviço.
+4. **Salve** — clique em **Salvar alterações**. Nada do que você muda durante a edição é mantido até você fazer isso.
+5. **(Opcional) Compartilhe publicamente** — escolha **⋯ → Partilhar** no painel e decida quem pode vê-lo: qualquer pessoa com o link, ou qualquer pessoa com o link e uma senha.
+:::
 
-## Construindo um painel
+[Criar um painel](/docs/dashboards/authoring) mostra cada passo em detalhe.
 
-1. **Crie** — escolha um modelo, ou **Blank Dashboard**. Um modelo preenche o nome e abre com seus widgets; um painel em branco abre vazio, com **Adicionar widget** no canvas.
-2. **Adicione widgets** — escolha um tipo de widget, configure seus dados, arraste para onde quiser.
-3. **(Opcional) Adicione variáveis** — por exemplo, um dropdown `service` para que o mesmo painel funcione para todos os serviços.
-4. **Defina o intervalo de tempo** — os padrões já servem; ajuste depois.
-5. **(Opcional) Compartilhe publicamente** — vire o interruptor em Configurações, adicione uma senha ou lista de IPs se necessário.
-6. **(Opcional) Domínio personalizado** — hospede o painel em `status.seu-dominio.com`.
+## Um exemplo: um painel de plantão
 
-## Um exemplo rápido
+O objetivo: uma página para o serviço de checkout, com a latência, a taxa de erros, os incidentes abertos e os logs mais recentes dele, que funcione também para qualquer outro serviço.
 
-Objetivo: uma página de plantão para o serviço de checkout com latência, taxa de erro, incidentes abertos e uma lista ao vivo de logs.
+1. Crie um **Blank Dashboard** chamado "Plantão do checkout".
+2. Clique em **Adicionar widget** e adicione um **Gráfico** da sua métrica de latência de requisições, agregada como P95.
+3. Ao lado, adicione um **Valor** da sua taxa de erros, com um limite de aviso de 1 e um limite crítico de 5.
+4. Abaixo, adicione uma **Lista de incidentes** filtrada para incidentes não resolvidos, e um **Fluxo de registros** com os logs do serviço.
+5. Abra **Variáveis**, adicione uma variável chamada `service` com a origem Telemetry Attribute e a chave de atributo `service.name`, e dê a ela o padrão `checkout`.
+6. Clique em **Salvar alterações**. Escolha `payments` no seletor `service` da barra de ferramentas: o gráfico, o valor e o fluxo de registros passam para o serviço payments, e a lista de incidentes continua mostrando todos os incidentes não resolvidos.
 
-1. Crie um **Blank Dashboard** chamado "Checkout on-call."
-2. Adicione uma variável `service`. Defina o padrão como `checkout`.
-3. Adicione um widget de **Gráfico** com a latência P95, filtrado pela variável `service`.
-4. Ao lado, adicione um widget de **Valor** para taxa de erro, com aviso em 1% e crítico em 5%.
-5. Abaixo, adicione um widget de **Lista de incidentes** para incidentes com a etiqueta `checkout`.
-6. Embaixo, um widget de **Fluxo de registros** mostrando logs do mesmo serviço.
-7. Salve. Mude o dropdown para `payments` — o mesmo painel agora mostra o serviço de pagamentos.
+## Como os painéis se encaixam no resto do OneUptime
 
-## Como os painéis se encaixam no restante do OneUptime
+- **Monitores e telemetria** são de onde vêm os dados. Cada métrica, log e trace que você envia pode ir para um widget.
+- **Incidentes e alertas** aparecem nos widgets **Lista de incidentes** e **Lista de alertas**. Um painel só os mostra: você trabalha neles nas páginas deles.
+- **Páginas de status** dizem aos seus clientes se o seu serviço está no ar. Os painéis mostram em detalhe como ele se comporta. Os dois trabalham lado a lado.
+- **Workflows** agem sobre o que acontece. Os painéis são onde você lê isso.
 
-- **Monitores e telemetria** são as fontes de dados. Toda métrica, log e trace que você coleta pode ser consultada em um widget.
-- **Incidentes e alertas** aparecem nos widgets **Lista de incidentes** e **Lista de alertas**. Os painéis são somente leitura para esses — crie e atualize-os em outros lugares.
-- **Páginas de status** são para comunicação voltada ao cliente ("o sistema está no ar?"). Os painéis são para olhar como o sistema está se comportando em detalhes. Os dois funcionam juntos, não se substituem.
-- **Fluxos de trabalho** são como o OneUptime age. Painéis são como você lê o que está acontecendo.
+## Próximos passos
 
-## O que ler em seguida
-
-- [Criando um Painel](/docs/dashboards/authoring) — usando o canvas, editando widgets.
-- [Widgets](/docs/dashboards/widgets) — a lista completa de widgets.
-- [Variáveis e Filtros](/docs/dashboards/variables) — fazendo um painel funcionar para muitos serviços ou clientes.
-- [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing) — URLs públicas, senhas, lista de IPs, domínios personalizados.
-- [Configuração e Permissões](/docs/dashboards/configuration) — donos, etiquetas, controle de acesso.
+:::cards
+- [Criar um painel](/docs/dashboards/authoring): Crie um painel, edite-o e salve suas alterações.
+- [Widgets de painel](/docs/dashboards/widgets): Cada widget, e qual escolher.
+- [Variáveis e filtros de painel](/docs/dashboards/variables): Um painel para cada serviço, host ou cliente.
+- [Compartilhamento e painéis públicos](/docs/dashboards/sharing): Links públicos, senhas, listas de IPs permitidos e domínios personalizados.
+:::
