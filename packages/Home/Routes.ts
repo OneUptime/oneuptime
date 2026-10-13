@@ -53,6 +53,7 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { redirectLegacyUrl } from "./Utils/LegacyRedirects";
 import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
@@ -2128,6 +2129,14 @@ const HomeFeatureSet: FeatureSet = {
         },
       }),
     );
+
+    /*
+     * Addresses earlier versions of the site published move permanently to
+     * the pages that replaced them (Utils/LegacyRedirects.ts). Here, after
+     * every route and the static files, so a retired address can never
+     * shadow anything the site still serves.
+     */
+    app.use(redirectLegacyUrl);
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
       return NotFoundUtil.renderNotFound(res);
