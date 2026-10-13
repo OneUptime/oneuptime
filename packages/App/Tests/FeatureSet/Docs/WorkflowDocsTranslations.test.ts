@@ -154,6 +154,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Channel",
     "Port",
     "Username",
+    // What the SMSEagle steps return.
+    "Message ID",
     // Send Email.
     "From Email",
     "To Email",
