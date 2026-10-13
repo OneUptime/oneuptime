@@ -11,13 +11,20 @@ import { isExpoPushDeviceType } from "Common/Types/PushNotification/ExpoPushDevi
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { TableEmptyStateActionStyle } from "Common/UI/Components/Table/TableEmptyState";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, VAPID_PUBLIC_KEY } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import React, { ReactElement, useState } from "react";
 import ObjectID from "Common/Types/ObjectID";
@@ -43,10 +50,70 @@ import {
   setThisBrowserDeviceId,
   waitForActiveServiceWorker,
 } from "./BrowserPushRegistration";
+import {
+  CriticalAlertDeviceState,
+  PUSH_DEVICE_PLATFORM_LABELS,
+  PushDevicePlatform,
+  getCriticalAlertDeviceState,
+  getPushDevicePlatform,
+} from "./PushDeviceCriticalAlerts";
+import PushDeviceCriticalAlertStatus from "./PushDeviceCriticalAlertStatus";
+import PushDeviceCriticalAlertSteps from "./PushDeviceCriticalAlertSteps";
 
 interface RegisteredBrowser {
   deviceId: string;
   alreadyRegistered: boolean;
+}
+
+// A device's Critical Alerts cell in a CSV export, in English.
+const CRITICAL_ALERT_EXPORT_TEXT: Record<CriticalAlertDeviceState, string> = {
+  [CriticalAlertDeviceState.On]: translationKey("On"),
+  [CriticalAlertDeviceState.Off]: translationKey("Off"),
+  [CriticalAlertDeviceState.NotAvailable]: translationKey(
+    "Not available in browsers",
+  ),
+  [CriticalAlertDeviceState.NotReceiving]: translationKey(
+    "Not receiving notifications",
+  ),
+};
+
+// The device a dialog of this card is about: its steps, or its test.
+export interface ShownPushDevice {
+  deviceName: string;
+  platform: PushDevicePlatform;
+  isCriticalAlertEnabled: boolean;
+}
+
+/*
+ * What a test notification does on the device it went to, said once it is
+ * on its way. A phone with critical alerts on is sent a critical test - it
+ * rings through silent mode as a page would (UserPushAPI's
+ * test-notification route) - and any other phone an ordinary one, which a
+ * silenced phone keeps quiet. A browser shows it only where the site may
+ * show notifications.
+ */
+export function getTestNotificationSentDescription(
+  translator: Translator,
+  device: ShownPushDevice,
+): string {
+  if (device.platform === PushDevicePlatform.Browser) {
+    return translator.translateTemplate(
+      "Sent to {{deviceName}}. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.",
+      { deviceName: device.deviceName },
+    );
+  }
+
+  if (device.isCriticalAlertEnabled) {
+    return translator.translateTemplate(
+      "Sent to {{deviceName}} as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
+      { deviceName: device.deviceName },
+    );
+  }
+
+  return translator.translateTemplate(
+    "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+    { deviceName: device.deviceName },
+  );
 }
 
 const SUBSCRIPTION_NOT_RENEWED_MESSAGE: string =
@@ -150,10 +217,50 @@ const Push: () => JSX.Element = (): ReactElement => {
   const [testNotificationError, setTestNotificationError] =
     useState<string>("");
 
-  const [
-    showTestNotificationSuccessModal,
-    setShowTestNotificationSuccessModal,
-  ] = useState<boolean>(false);
+  // The device a test notification just went to, while the card says so.
+  const [testedDevice, setTestedDevice] = useState<ShownPushDevice | null>(
+    null,
+  );
+
+  // The device whose critical alert steps are open.
+  const [stepsDevice, setStepsDevice] = useState<ShownPushDevice | null>(null);
+
+  /*
+   * Whether a phone is listed. A browser row only offers the way to get
+   * critical alerts on a phone while there is none: once there is, that is
+   * where they are turned on, and the link would only repeat itself.
+   */
+  const [isPhoneListed, setIsPhoneListed] = useState<boolean>(false);
+
+  const translator: Translator = useTranslator();
+
+  const toShownDevice: (item: UserPush) => ShownPushDevice = (
+    item: UserPush,
+  ): ShownPushDevice => {
+    return {
+      deviceName: item.deviceName || "",
+      platform: getPushDevicePlatform(item.deviceType),
+      isCriticalAlertEnabled: Boolean(item.isCriticalAlertEnabled),
+    };
+  };
+
+  // The way to a phone with critical alerts: the app, for whoever has none.
+  const showGetTheAppSteps: () => void = (): void => {
+    setStepsDevice({
+      deviceName: "",
+      platform: PushDevicePlatform.Browser,
+      isCriticalAlertEnabled: false,
+    });
+  };
+
+  /*
+   * Closing the steps reads the list again: whoever followed them on the
+   * phone meanwhile sees the device's new state without reloading.
+   */
+  const closeSteps: () => void = (): void => {
+    setStepsDevice(null);
+    setRefreshToggle(ObjectID.generate().toString());
+  };
 
   const openRegisterDeviceModal: () => void = (): void => {
     const problem: BrowserPushProblem | null = getProblemBeforeAsking();
@@ -325,7 +432,11 @@ const Push: () => JSX.Element = (): ReactElement => {
       }
 
       setRegisteredBrowser(null);
-      setShowTestNotificationSuccessModal(true);
+      setTestedDevice({
+        deviceName: deviceName,
+        platform: PushDevicePlatform.Browser,
+        isCriticalAlertEnabled: false,
+      });
     };
 
   /*
@@ -358,6 +469,16 @@ const Push: () => JSX.Element = (): ReactElement => {
           isVerified: true,
           deviceType: true,
         }}
+        onFetchSuccess={(devices: Array<UserPush>) => {
+          setIsPhoneListed(
+            devices.some((item: UserPush): boolean => {
+              return (
+                getPushDevicePlatform(item.deviceType) !==
+                PushDevicePlatform.Browser
+              );
+            }),
+          );
+        }}
         actionButtons={[
           {
             title: "Test Notification",
@@ -379,7 +500,7 @@ const Push: () => JSX.Element = (): ReactElement => {
                 return;
               }
 
-              setShowTestNotificationSuccessModal(true);
+              setTestedDevice(toShownDevice(item));
             },
           },
           deleteGuard.deleteActionButton,
@@ -392,7 +513,7 @@ const Push: () => JSX.Element = (): ReactElement => {
         cardProps={{
           title: "Push Notification Devices",
           description:
-            "Manage devices that will receive push notifications for this project. Push notifications work on modern web browsers.",
+            "Phones signed in to the OneUptime On-Call app, and browsers you register here, get push notifications for this project.",
           buttons: [
             {
               title: "Register Device",
@@ -404,9 +525,27 @@ const Push: () => JSX.Element = (): ReactElement => {
             },
           ],
         }}
-        noItemsMessage={
-          "No devices registered. Click 'Register Device' to enable push notifications on this device."
-        }
+        /*
+         * The card's description says what the list is for, and the empty
+         * state offers both ways onto it: Register Device for this browser
+         * (the card's button, which the empty state repeats), and the app
+         * for a phone.
+         */
+        emptyState={{
+          title: "No devices yet",
+          icon: IconProp.DevicePhoneMobile,
+          actions: [
+            {
+              title: "Get the mobile app",
+              icon: IconProp.DevicePhoneMobile,
+              style: TableEmptyStateActionStyle.Link,
+              dataTestId: "push-devices-empty-get-app",
+              onClick: () => {
+                showGetTheAppSteps();
+              },
+            },
+          ],
+        }}
         formFields={[]} // No manual form fields since we auto-detect everything
         showRefreshButton={true}
         filters={[]} // No filters
@@ -417,65 +556,138 @@ const Push: () => JSX.Element = (): ReactElement => {
             },
             title: "Device",
             type: FieldType.Element,
+            isNotCustomizable: true,
+            wrapContent: true,
             getElement: (item: UserPush): ReactElement => {
               const isThisBrowser: boolean =
                 Boolean(thisBrowserDeviceId) &&
                 item._id?.toString() === thisBrowserDeviceId;
 
+              const platform: PushDevicePlatform = getPushDevicePlatform(
+                item.deviceType,
+              );
+
               return (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span>{item.deviceName}</span>
-                  {isThisBrowser ? (
-                    <Pill
-                      text="This browser"
-                      color={Blue500}
-                      size={PillSize.Small}
-                      isMinimal={true}
-                    />
-                  ) : (
-                    <></>
-                  )}
+                <div
+                  className="flex min-w-0 items-start gap-3"
+                  data-testid="push-device"
+                  data-platform={platform}
+                >
                   {/*
-                   * Its push subscription is gone - or, for a phone, Expo
-                   * said its push token is - and nothing is sent to it
-                   * (UserPushService.markWebPushSubscriptionAsGone,
-                   * markExpoPushTokenAsGone). The list used to show it like
-                   * any other device. A phone comes back when its app is
-                   * opened, which registers it again.
+                   * What kind of device it is, at a glance: a phone with the
+                   * app, or a browser. The line under the name says it in
+                   * words, which a phone's model name ("SM-S918B") does not.
                    */}
-                  {item.isVerified === false ? (
-                    <Pill
-                      text="Not receiving notifications"
-                      color={Red500}
-                      size={PillSize.Small}
-                      tooltip={
-                        isExpoPushDeviceType(item.deviceType)
-                          ? "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again."
-                          : "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to."
+                  <div
+                    aria-hidden="true"
+                    className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200"
+                  >
+                    <Icon
+                      icon={
+                        platform === PushDevicePlatform.Browser
+                          ? IconProp.ComputerDesktop
+                          : IconProp.DevicePhoneMobile
                       }
+                      className="h-4 w-4"
                     />
-                  ) : (
-                    <></>
-                  )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium text-gray-900">
+                        {item.deviceName}
+                      </span>
+                      {isThisBrowser ? (
+                        <Pill
+                          text="This browser"
+                          color={Blue500}
+                          size={PillSize.Small}
+                          isMinimal={true}
+                        />
+                      ) : (
+                        <></>
+                      )}
+                      {/*
+                       * Its push subscription is gone - or, for a phone, Expo
+                       * said its push token is - and nothing is sent to it
+                       * (UserPushService.markWebPushSubscriptionAsGone,
+                       * markExpoPushTokenAsGone). The list used to show it
+                       * like any other device. A phone comes back when its
+                       * app is opened, which registers it again.
+                       */}
+                      {item.isVerified === false ? (
+                        <Pill
+                          text="Not receiving notifications"
+                          color={Red500}
+                          size={PillSize.Small}
+                          tooltip={
+                            isExpoPushDeviceType(item.deviceType)
+                              ? "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again."
+                              : "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to."
+                          }
+                        />
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                    <p
+                      className="mt-0.5 text-xs text-gray-500"
+                      data-testid="push-device-platform"
+                    >
+                      {translator.translateText(
+                        PUSH_DEVICE_PLATFORM_LABELS[platform],
+                      )}
+                    </p>
+                  </div>
                 </div>
               );
             },
           },
+          /*
+           * A state of the device, set in the OneUptime On-Call app on it:
+           * drawn as a status (PushDeviceCriticalAlertStatus) with, while it
+           * is off, the way to turn it on - never as a checkmark that reads
+           * like a switch this card could flip.
+           */
           {
             field: {
               isCriticalAlertEnabled: true,
             },
             title: "Critical Alerts",
-            description:
+            headerTooltip:
               "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
-              createdAt: true,
+            type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
+            // The words the cell shows, not a raw true or false.
+            getExportValue: (item: UserPush): string => {
+              const text: string =
+                CRITICAL_ALERT_EXPORT_TEXT[getCriticalAlertDeviceState(item)];
+
+              return translator.translateText(text) || text;
             },
-            title: "Registered At",
-            type: FieldType.DateTime,
+            getElement: (item: UserPush): ReactElement => {
+              const state: CriticalAlertDeviceState =
+                getCriticalAlertDeviceState(item);
+
+              const canShowSteps: boolean =
+                state === CriticalAlertDeviceState.Off ||
+                (state === CriticalAlertDeviceState.NotAvailable &&
+                  !isPhoneListed);
+
+              return (
+                <PushDeviceCriticalAlertStatus
+                  state={state}
+                  deviceName={item.deviceName || ""}
+                  onShowSteps={
+                    canShowSteps
+                      ? () => {
+                          setStepsDevice(toShownDevice(item));
+                        }
+                      : undefined
+                  }
+                />
+              );
+            },
           },
         ]}
       />
@@ -548,15 +760,28 @@ const Push: () => JSX.Element = (): ReactElement => {
         <></>
       )}
 
-      {showTestNotificationSuccessModal ? (
+      {testedDevice ? (
         <ConfirmModal
-          title="Test Notification Sent Successfully"
-          description="A test notification has been sent to your device. If you don't see it, please check that notifications are enabled for this browser and that your device is not in Do Not Disturb mode."
+          title="Test Notification Sent"
+          description={getTestNotificationSentDescription(
+            translator,
+            testedDevice,
+          )}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText="Close"
           onSubmit={() => {
-            setShowTestNotificationSuccessModal(false);
+            setTestedDevice(null);
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {stepsDevice ? (
+        <PushDeviceCriticalAlertSteps
+          deviceName={stepsDevice.deviceName}
+          platform={stepsDevice.platform}
+          onClose={closeSteps}
         />
       ) : (
         <></>

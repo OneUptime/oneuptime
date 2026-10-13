@@ -37,6 +37,11 @@
  *   POST /__fixture/push-service/replace   the push service replaces this browser's subscription
  *   POST /__fixture/push-service/drop      the push service drops it
  *   POST /__fixture/push-service/gone      a send to it came back 410: its devices stop being verified
+ *   POST /__fixture/devices                replace the devices listed, e.g. phones with critical
+ *                                          alerts on and off ({ devices: [...] }, as GET state lists them)
+ *
+ * The page is the Dashboard's look too: Theme.css, Inter and the dark theme
+ * (?theme=dark), as App/FeatureSet/Dashboard/views/index.ejs sets them up.
  */
 const fs = require("fs");
 const crypto = require("crypto");
@@ -98,6 +103,17 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+// Production imports Theme.css from src/Index.tsx; serve the same file.
+const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
+/*
+ * The font production ships, at the path index.ejs loads it from (served
+ * below from the Dashboard's public folder), so the card is measured and
+ * drawn in Inter.
+ */
+const interFontPath = "/dashboard/assets/fonts/InterVariable.woff2";
+const fontFace = `@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('${interFontPath}') format('woff2') tech('variations'),url('${interFontPath}') format('woff2-variations')}`;
+// The tailwind.config index.ejs sets: class-based dark mode, and Inter.
+const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};`;
 
 // The <script> after "PWA Service Worker" in index.ejs, as is.
 function readIndexServiceWorkerScript() {
@@ -114,7 +130,7 @@ function readIndexServiceWorkerScript() {
   return source.slice(start, end);
 }
 
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Push registration</title><script>window.process={env:{HOST:"127.0.0.1:${port}",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development",VAPID_PUBLIC_KEY:"${VAPID_PUBLIC_KEY}"}};window.global=window;</script><script src="/tailwind.js"></script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script><script>${readIndexServiceWorkerScript()}</script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Push registration</title><script>window.process={env:{HOST:"127.0.0.1:${port}",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development",VAPID_PUBLIC_KEY:"${VAPID_PUBLIC_KEY}"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>${fontFace}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}body{margin:0;background:#f9fafb}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script><script>${readIndexServiceWorkerScript()}</script></body></html>`;
 
 let state;
 let serviceWorkerRevision = 0;
@@ -133,7 +149,9 @@ function reset() {
         id: PHONE_DEVICE_ID,
         deviceName: "iPhone 14 Pro Max",
         deviceToken: "ExponentPushToken[fixture-phone]",
+        deviceType: "ios",
         isVerified: true,
+        isCriticalAlertEnabled: false,
         createdAt: "2026-09-10T12:33:00.000Z",
       },
     ],
@@ -394,7 +412,9 @@ function register(body) {
     id: id,
     deviceName: body.deviceName,
     deviceToken: body.deviceToken,
+    deviceType: body.deviceType,
     isVerified: true,
+    isCriticalAlertEnabled: false,
     createdAt: new Date().toISOString(),
   });
 
@@ -421,6 +441,7 @@ const CONTENT_TYPES = {
   ".json": "application/json",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
 };
 
 async function main() {
@@ -555,6 +576,31 @@ async function main() {
       return;
     }
 
+    /*
+     * The devices the person has, as the app and the browsers registered
+     * them: a phone's critical alerts are switched on in the app, never
+     * here, so a test sets them the way the phone would have.
+     */
+    if (url.pathname === "/__fixture/devices" && request.method === "POST") {
+      const body = JSON.parse((await readBody(request)) || "{}");
+      state.devices = (body.devices || []).map((device, index) => {
+        return {
+          id:
+            device.id ||
+            `40000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+          deviceName: device.deviceName,
+          deviceToken:
+            device.deviceToken || `ExponentPushToken[fixture-${index}]`,
+          deviceType: device.deviceType,
+          isVerified: device.isVerified !== false,
+          isCriticalAlertEnabled: device.isCriticalAlertEnabled === true,
+          createdAt: device.createdAt || "2026-09-10T12:33:00.000Z",
+        };
+      });
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
     if (
       url.pathname === "/__fixture/sw-revision" &&
       request.method === "POST"
@@ -598,6 +644,11 @@ async function main() {
 
     if (url.pathname === "/tailwind.js") {
       serveFile(response, tailwind, "application/javascript");
+      return;
+    }
+
+    if (url.pathname === "/theme.css") {
+      serveFile(response, theme, "text/css");
       return;
     }
 

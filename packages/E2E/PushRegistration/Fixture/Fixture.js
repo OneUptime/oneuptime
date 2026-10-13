@@ -61,7 +61,8 @@ ModelAPI.getList = async (options) => {
     const device = new UserPush();
     device._id = stored.id;
     device.deviceName = stored.deviceName;
-    device.isCriticalAlertEnabled = false;
+    device.deviceType = stored.deviceType;
+    device.isCriticalAlertEnabled = stored.isCriticalAlertEnabled === true;
     device.isVerified = stored.isVerified !== false;
     device.createdAt = new Date(stored.createdAt);
     return device;

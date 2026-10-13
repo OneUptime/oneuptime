@@ -394,7 +394,7 @@ test("the registered dialog sends a test notification to the device it just regi
     .click();
 
   await expect(page.getByTestId("modal-title")).toHaveText(
-    "Test Notification Sent Successfully",
+    "Test Notification Sent",
   );
 
   const state: FixtureState = await fixtureState(request);
