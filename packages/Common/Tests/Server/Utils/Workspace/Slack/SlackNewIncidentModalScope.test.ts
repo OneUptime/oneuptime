@@ -428,11 +428,27 @@ describe("/incident and its form need a connected account of a current member", 
   }
 
   test.each([
-    { name: "/incident", request: slashCommand },
-    { name: "the New Incident form's submit", request: formSubmission },
+    /*
+     * An app created from an older manifest still has /incident: run again
+     * what the app has.
+     */
+    { name: "/incident", request: slashCommand, again: "/incident" },
+    /*
+     * A form's submission names no command: run again the one every app
+     * has from now on.
+     */
+    {
+      name: "the New Incident form's submit",
+      request: formSubmission,
+      again: "/oneuptime incident",
+    },
   ])(
     "$name from a Slack user who never connected an account: refused, and asked in the channel to connect it, with a Connect button",
-    async (row: { name: string; request: () => ExpressRequest }) => {
+    async (row: {
+      name: string;
+      request: () => ExpressRequest;
+      again: string;
+    }) => {
       mockConnectedWorkspace(null);
 
       const result: SlackRequest = await SlackAuthAction.isAuthorized({
@@ -458,7 +474,7 @@ describe("/incident and its form need a connected account of a current member", 
       expect(answers[0]).toMatchObject({
         channelId: "C0CHANNEL",
         userId: slackUserId,
-        text: "🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **/incident** again.",
+        text: `🔗 **Connect your Slack account to declare an incident.** It takes one click. Then run **${row.again}** again.`,
       });
 
       const url: globalThis.URL = new globalThis.URL(

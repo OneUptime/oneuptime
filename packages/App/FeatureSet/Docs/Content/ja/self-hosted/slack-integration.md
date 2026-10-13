@@ -143,9 +143,8 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 
 | 機能 | 内容 | ルート |
 | --- | --- | --- |
-| `/incident` と **Create New Incident** ショートカット | Slack からインシデントを宣言する | `POST /api/slack/interactive` |
-| `/maintenance` と **Create Scheduled Event** ショートカット | Slack からメンテナンスを予定する | `POST /api/slack/interactive` |
-| `/oneuptime` | ログ、トレース、メトリクス、インシデント、モニターについて OneUptime AI に質問する | `POST /api/slack/command` |
+| `/oneuptime` | インシデントの宣言、メンテナンスの予定、オンコール担当者の確認、OneUptime AI への質問。`/oneuptime help` ですべてのコマンドを一覧表示します | `POST /api/slack/command` |
+| **Create New Incident** と **Create Scheduled Event** ショートカット | Slack のショートカットからインシデントを宣言する、またはメンテナンスを予定する | `POST /api/slack/interactive` |
 | OneUptime のメッセージにあるボタンとフォーム | 確認、解決、メモの追加、状態の変更、オンコールポリシーの実行 | `POST /api/slack/interactive` と `POST /api/slack/options-load` |
 | イベント | メンション、メッセージ、リアクション、ピン留め。たとえばメッセージをメモとして保存する | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 インシデントやアラートの説明には、たとえば合成モニターのスクリーンショットを含められます ( [スクリーンショットを表示する](/docs/monitor/incident-alert-templating#スクリーンショットを表示する) を参照)。OneUptime はそれぞれをプライベートファイルとしてワークスペースにアップロードして Slack のメッセージに表示するため、ボットスコープ `files:write` が必要です。生成されるマニフェストにはこれが含まれています。
 
 古いマニフェストから Slack アプリを作成した場合は、 **OAuth & Permissions > Bot Token Scopes** に `files:write` を追加します (または現在のマニフェストからアプリを更新します)。続いて **プロジェクト設定 > ワークスペース > Slack** でもう一度 **Slack で接続** を選択し、新しいスコープを付与します。それまでは、各スクリーンショットは代替テキストとして表示されます。
+
+### 古いマニフェストから作成したアプリ
+
+以前の OneUptime マニフェストから作成した Slack アプリは、`/incident` と `/maintenance` を独自のコマンドとして登録しており、他のアプリの同名コマンドと競合することがあります。これらは引き続き動作し、`/oneuptime incident` と `/oneuptime maintenance` と同じフォームを開きます。`/oneuptime` に置き換えるには、サーバーが生成するマニフェストからアプリを更新します。[api.slack.com/apps](https://api.slack.com/apps) でアプリの **App Manifest** を開き、マニフェストを貼り付けて保存します。スコープは変わらないため、アプリを再インストールする必要はありません。
 
 ## セルフホスト環境のネットワークアクセス
 
@@ -172,7 +175,7 @@ Slack アプリの **Event Subscriptions** で、リクエスト URL を検証�
 | メソッドとパス | 用途 |
 | --- | --- |
 | `POST /api/slack/events` | Events API の検証、リアクション、ピン留め、メンション、メッセージ |
-| `POST /api/slack/interactive` | ボタン、ショートカット、モーダルの送信、`/incident` と `/maintenance` |
+| `POST /api/slack/interactive` | ボタン、ショートカット、モーダルの送信、古いアプリの `/incident` と `/maintenance` |
 | `POST /api/slack/options-load` | インタラクティブメニューの選択肢のリクエスト |
 | `POST /api/slack/command` | `/oneuptime` コマンド |
 
