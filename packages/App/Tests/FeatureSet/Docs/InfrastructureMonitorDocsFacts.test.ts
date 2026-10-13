@@ -2540,9 +2540,14 @@ describe(`${SERVER}`, () => {
     expect(form).toContain(
       'title={"Evaluate this criteria over a period of time"}',
     );
-    expect(form).toContain('<FieldLabelElement title="Evaluate" />');
-    expect(form).toContain(
-      '<FieldLabelElement title="For the last (in minutes)" />',
+    // The window's two labels, each drawn with a description under it.
+    expect(form).toMatch(
+      new RegExp('<FieldLabelElement\\s+title="Evaluate"\\s+description='),
+    );
+    expect(form).toMatch(
+      new RegExp(
+        '<FieldLabelElement\\s+title="For the last \\(in minutes\\)"\\s+description=',
+      ),
     );
     expect(page).toContain(
       "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value)",
