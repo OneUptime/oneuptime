@@ -1173,6 +1173,11 @@ const LoginPage: () => JSX.Element = () => {
                     className={`h-4 w-4 shrink-0${
                       isPasskeyLoading ? " animate-spin" : ""
                     }`}
+                    data-testid={
+                      isPasskeyLoading
+                        ? "passkey-login-spinner"
+                        : "passkey-login-fingerprint"
+                    }
                   />
                   <span>
                     {t(

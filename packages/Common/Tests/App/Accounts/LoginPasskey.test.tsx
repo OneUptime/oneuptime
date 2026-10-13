@@ -15,6 +15,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
@@ -34,11 +35,22 @@ import { JSONObject } from "../../../Types/JSON";
 import WebAuthnTestUtil, {
   authenticationOptions,
 } from "../../Utils/WebAuthnTestUtil";
-import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
+import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
+import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
+import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 
 // A filled button - what a primary button looks like, whatever its colour.
 const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
+
+// Any background, border or shadow: what would make the option a panel or a button.
+const SURFACE_CLASS: RegExp = /(^|\s)(bg-|border|shadow|ring-1\b)/;
+
+// The menu the help names, as the Dashboard draws it.
+const PASSKEY_MENU_PATH: string = "User Profile → Security → Passkeys";
+
+const NOT_COMPLETED: string = english.login.passkey.notCompleted;
+const CANCELLED: string = english.login.passkey.cancelled;
 
 /*
  * These tests expect the SSO choice next to the password and passkey ones,
@@ -94,6 +106,50 @@ const clickPasskey: () => Promise<void> = async (): Promise<void> => {
   });
 };
 
+const cancelPrompt: () => Promise<void> = async (): Promise<void> => {
+  await act(async () => {
+    await userEvent.click(screen.getByTestId("cancel-passkey-login"));
+  });
+};
+
+// Whether `later` comes after `earlier` in the document.
+const comesAfter: (later: Element, earlier: Element) => boolean = (
+  later: Element,
+  earlier: Element,
+): boolean => {
+  return Boolean(
+    earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+};
+
+const ssoLink: () => HTMLElement = (): HTMLElement => {
+  return screen.getByText(english.login.useSso).closest("a") as HTMLElement;
+};
+
+// A pending promise and the function that settles it.
+const pendingCredential: () => {
+  settle: () => void;
+  get: SpyInstance<typeof navigator.credentials.get>;
+} = () => {
+  let finish: ((value: Credential | null) => void) | undefined;
+  const get: SpyInstance<typeof navigator.credentials.get> = jest
+    .spyOn(navigator.credentials, "get")
+    .mockImplementationOnce(() => {
+      return new Promise<Credential | null>(
+        (resolve: (value: Credential | null) => void) => {
+          finish = resolve;
+        },
+      );
+    });
+
+  return {
+    get,
+    settle: (): void => {
+      finish?.(WebAuthnTestUtil.credential());
+    },
+  };
+};
+
 describe("Passwordless passkey login", () => {
   beforeEach(() => {
     posted = [];
@@ -128,9 +184,10 @@ describe("Passwordless passkey login", () => {
       );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup();
     jest.restoreAllMocks();
+    await i18n.changeLanguage("en");
   });
 
   test("offers a passkey on the initial screen alongside password and SSO", async () => {
@@ -146,28 +203,130 @@ describe("Passwordless passkey login", () => {
     expect(posted).toHaveLength(0);
   });
 
-  /*
-   * The page offers two ways in and used to draw both as filled indigo
-   * buttons - two primary buttons asking for two things at once. The password
-   * form's "Login" is the page's one primary button; the passkey option keeps
-   * its tinted panel at the top, with a plain button.
-   */
-  test("has one primary button, the password form's, and a plain passkey button", async () => {
-    renderPage();
-    await screen.findByTestId("email");
+  describe("the page leads with the password form, and the passkey is a quiet option under it", () => {
+    test("the email, the password and Login come first; the passkey option is the last way in, under the SSO link", async () => {
+      renderPage();
+      const email: HTMLElement = await screen.findByTestId("email");
+      const password: HTMLElement = screen.getByTestId("password");
+      const signIn: HTMLElement = screen.getByTestId("Login");
+      const passkey: HTMLElement = screen.getByTestId("passkey-login");
 
-    const passkey: HTMLElement = screen.getByTestId("passkey-login");
-    const signIn: HTMLElement = screen.getByTestId("Login");
-    const filled: Array<HTMLElement> = screen
-      .getAllByRole("button")
-      .filter((button: HTMLElement) => {
-        return FILLED_BUTTON_CLASS.test(button.className);
+      expect(comesAfter(password, email)).toBe(true);
+      expect(comesAfter(signIn, password)).toBe(true);
+      expect(comesAfter(ssoLink(), signIn)).toBe(true);
+      expect(comesAfter(passkey, ssoLink())).toBe(true);
+
+      // Nothing about passkeys is drawn above the form.
+      const card: HTMLElement = screen.getByTestId("passkey-option")
+        .parentElement as HTMLElement;
+      const beforeForm: Array<Element> = Array.from(
+        card.querySelectorAll("*"),
+      ).filter((element: Element) => {
+        return comesAfter(email, element) && !element.contains(email);
       });
+      expect(
+        beforeForm.some((element: Element) => {
+          return (element.textContent || "").toLowerCase().includes("passkey");
+        }),
+      ).toBe(false);
+    });
 
-    expect(passkey).toHaveClass("bg-white");
-    expect(passkey).not.toHaveClass("bg-indigo-600");
-    expect(signIn).toHaveClass("bg-indigo-600");
-    expect(filled).toEqual([signIn]);
+    /*
+     * The page used to draw "Sign in with a passkey" and "Login" both filled;
+     * then the passkey kept a full-width outlined button in a tinted panel.
+     * Login is the page's one filled button, and the passkey option has no
+     * surface of its own: no background, border or shadow - the weight of
+     * the SSO link above it.
+     */
+    test("has one filled button, Login, and draws the passkey option at the weight of the SSO link", async () => {
+      renderPage();
+      await screen.findByTestId("email");
+
+      const passkey: HTMLElement = screen.getByTestId("passkey-login");
+      const signIn: HTMLElement = screen.getByTestId("Login");
+      const filled: Array<HTMLElement> = screen
+        .getAllByRole("button")
+        .filter((button: HTMLElement) => {
+          return FILLED_BUTTON_CLASS.test(button.className);
+        });
+
+      expect(signIn).toHaveClass("bg-indigo-600");
+      expect(filled).toEqual([signIn]);
+
+      expect(SURFACE_CLASS.test(passkey.className)).toBe(false);
+      expect(passkey).not.toHaveClass("w-full");
+      expect(passkey).toHaveClass("text-indigo-500");
+      expect(
+        ssoLink().querySelector(".text-indigo-500.text-sm"),
+      ).not.toBeNull();
+      expect(screen.getByTestId("passkey-option")).toHaveClass("text-sm");
+    });
+
+    test("the passkey option draws a fingerprint, and a spinner while an attempt runs", async () => {
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      renderPage();
+      const passkey: HTMLElement = screen.getByTestId("passkey-login");
+
+      expect(
+        within(passkey).getByTestId("passkey-login-fingerprint"),
+      ).toBeInTheDocument();
+      expect(
+        within(passkey).queryByTestId("passkey-login-spinner"),
+      ).not.toBeInTheDocument();
+
+      await clickPasskey();
+      expect(within(passkey).getByTestId("passkey-login-spinner")).toHaveClass(
+        "animate-spin",
+      );
+      expect(
+        within(passkey).queryByTestId("passkey-login-fingerprint"),
+      ).not.toBeInTheDocument();
+
+      await act(async () => {
+        prompt.settle();
+      });
+    });
+
+    test("the tinted panel, its heading and description, and the divider over the form are gone", async () => {
+      const { container } = render(
+        <MemoryRouter>
+          <LoginPage />
+        </MemoryRouter>,
+      );
+      await screen.findByTestId("email");
+
+      for (const retired of [
+        "Use a saved passkey",
+        "Use your fingerprint, face, or device PIN.",
+        "or sign in with a password",
+      ]) {
+        expect(screen.queryByText(retired)).not.toBeInTheDocument();
+      }
+      expect(container.querySelector("#passkey-heading")).toBeNull();
+      expect(container.querySelector("section")).toBeNull();
+      expect(
+        screen.getAllByRole("heading").map((heading: HTMLElement) => {
+          return heading.textContent;
+        }),
+      ).toEqual(["Sign in to your account"]);
+    });
+
+    test("the subtitle leads with the password and ends with the passkey", async () => {
+      renderPage();
+      const subtitle: HTMLElement = await screen.findByText(
+        "Use your password, your organization’s SSO, or a passkey.",
+      );
+
+      expect(subtitle.textContent!.indexOf("password")).toBeLessThan(
+        subtitle.textContent!.indexOf("passkey"),
+      );
+      expect(subtitle).toHaveClass("text-balance");
+      expect(
+        screen.queryByText(
+          "Use a passkey, password, or your organization’s SSO.",
+        ),
+      ).not.toBeInTheDocument();
+    });
   });
 
   test("signs in without email or password and uses normal user/token finalization", async () => {
@@ -205,6 +364,28 @@ describe("Passwordless passkey login", () => {
     expect(UiAnalytics.capture).toHaveBeenCalledWith("accounts/login");
   });
 
+  /*
+   * An account whose only way in is a passkey (no password it knows, no SSO)
+   * still gets in from the quiet option: the form above it is never touched
+   * and never submitted.
+   */
+  test("an account with only a passkey signs in from the option under the form without touching the form", async () => {
+    jest.spyOn(ModelAPI, "createOrUpdate");
+    renderPage();
+    await clickPasskey();
+
+    expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+    expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
+    expect(screen.getByTestId("email")).toHaveValue("");
+    expect(screen.getByTestId("password")).toHaveValue("");
+    expect(screen.queryByText("Email is required.")).not.toBeInTheDocument();
+    expect(
+      posted.map((request: PostedRequest) => {
+        return request.url.slice(request.url.lastIndexOf("/"));
+      }),
+    ).toEqual(["/passkey-login-options", "/passkey-login"]);
+  });
+
   test("keeps password fallback available after cancellation and supports a fresh retry", async () => {
     const get: SpyInstance<typeof navigator.credentials.get> = jest.spyOn(
       navigator.credentials,
@@ -213,11 +394,10 @@ describe("Passwordless passkey login", () => {
     get.mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
     renderPage();
     await clickPasskey();
+    expect(screen.getByText(NOT_COMPLETED)).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Passkey sign-in was canceled or timed out. Try again, or sign in with your password.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "Try passkey again" }),
+    ).toHaveFocus();
     expect(screen.getByTestId("password")).toBeEnabled();
     expect(LoginUtil.login).not.toHaveBeenCalled();
     expect(posted).toHaveLength(1);
@@ -241,39 +421,269 @@ describe("Passwordless passkey login", () => {
     ).toBeInTheDocument();
   });
 
-  test("reports an unsupported browser without making a challenge request", async () => {
-    Object.defineProperty(window, "PublicKeyCredential", { value: undefined });
-    renderPage();
-    expect(screen.getByTestId("passkey-login")).toBeDisabled();
-    expect(
-      screen.getByText(/Passkeys aren’t available in this browser/),
-    ).toBeInTheDocument();
-    expect(posted).toHaveLength(0);
-    expect(await screen.findByTestId("password")).toBeEnabled();
-  });
-
-  test("explains setup without hiding the password or SSO choices", async () => {
-    renderPage();
-    expect(await screen.findByTestId("email")).not.toHaveFocus();
-    await act(async () => {
-      await userEvent.click(screen.getByText("New to passkeys?"));
+  describe("a browser that cannot use passkeys", () => {
+    test("keeps the option, enabled, and says nothing about it until it is clicked", async () => {
+      Object.defineProperty(window, "PublicKeyCredential", {
+        configurable: true,
+        value: undefined,
+      });
+      renderPage();
+      expect(await screen.findByTestId("password")).toBeEnabled();
+      expect(
+        screen.getByRole("button", { name: "Sign in with a passkey" }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByText(english.login.passkey.unsupported),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(english.login.passkey.insecure),
+      ).not.toBeInTheDocument();
+      expect(posted).toHaveLength(0);
     });
-    expect(
-      screen.getByText(/then open User Profile/).closest("details"),
-    ).toHaveAttribute("open");
-    expect(screen.getByTestId("email")).toBeEnabled();
-    expect(screen.getByText("Use single sign-on (SSO) instead")).toBeVisible();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(posted).toHaveLength(0);
+
+    test("says why when the option is clicked, and asks the server for nothing", async () => {
+      Object.defineProperty(window, "PublicKeyCredential", {
+        configurable: true,
+        value: undefined,
+      });
+      const get: SpyInstance<typeof navigator.credentials.get> = jest.spyOn(
+        navigator.credentials,
+        "get",
+      );
+      renderPage();
+      await clickPasskey();
+
+      expect(screen.getByRole("status")).toHaveTextContent(
+        english.login.passkey.unsupported,
+      );
+      expect(posted).toHaveLength(0);
+      expect(get).not.toHaveBeenCalled();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.getByTestId("password")).toBeEnabled();
+      expect(screen.getByTestId("passkey-login")).toHaveFocus();
+    });
+
+    test("names HTTPS when the page is not served over a secure connection", async () => {
+      Object.defineProperty(window, "isSecureContext", {
+        configurable: true,
+        value: false,
+      });
+      renderPage();
+      expect(
+        screen.queryByText(english.login.passkey.insecure),
+      ).not.toBeInTheDocument();
+      await clickPasskey();
+
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Passkeys need a secure connection (HTTPS). You can still sign in with your password or SSO.",
+      );
+      expect(posted).toHaveLength(0);
+      expect(await screen.findByTestId("password")).toBeEnabled();
+    });
+
+    test("offers neither 'Try passkey again' nor setup help there, since neither can work", async () => {
+      Object.defineProperty(window, "isSecureContext", {
+        configurable: true,
+        value: false,
+      });
+      renderPage();
+      await clickPasskey();
+      await clickPasskey();
+
+      expect(
+        screen.getByRole("button", { name: "Sign in with a passkey" }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole("button", { name: "Try passkey again" }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("passkey-help")).not.toBeInTheDocument();
+      expect(posted).toHaveLength(0);
+    });
+
+    test("the password form still signs in", async () => {
+      Object.defineProperty(window, "PublicKeyCredential", {
+        configurable: true,
+        value: undefined,
+      });
+      jest
+        .spyOn(ModelAPI, "createOrUpdate")
+        .mockImplementation(async (): Promise<ModelAPIHttpResponse<User>> => {
+          const response: ModelAPIHttpResponse<User> =
+            new ModelAPIHttpResponse<User>(200, USER_JSON, {});
+          response.miscData = { token: "password-session" };
+          return response;
+        });
+      renderPage();
+      await clickPasskey();
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+      await user.type(await screen.findByTestId("email"), "ada@example.com");
+      await user.type(screen.getByTestId("password"), "correct-password");
+      await act(async () => {
+        await user.click(screen.getByTestId("Login"));
+      });
+
+      expect(LoginUtil.login).toHaveBeenCalledWith({
+        user: expect.any(User),
+        token: "password-session",
+      });
+      expect(posted).toHaveLength(0);
+    });
   });
 
-  test("explains HTTPS requirements before an unsupported attempt", async () => {
-    Object.defineProperty(window, "isSecureContext", { value: false });
+  describe("'New to passkeys?' is help for an attempt that did not sign in", () => {
+    test("is not on the page before any attempt", async () => {
+      renderPage();
+      await screen.findByTestId("email");
+
+      expect(
+        screen.queryByText(english.login.passkey.helpTitle),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("passkey-help")).not.toBeInTheDocument();
+      expect(screen.queryByText(/User Profile/)).not.toBeInTheDocument();
+    });
+
+    test("appears folded after a prompt that was dismissed or timed out, and says what a passkey is and where to add one", async () => {
+      jest
+        .spyOn(navigator.credentials, "get")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      renderPage();
+      await clickPasskey();
+
+      const help: HTMLElement = screen.getByTestId("passkey-help");
+      expect(help.tagName).toBe("DETAILS");
+      expect(help).not.toHaveAttribute("open");
+      expect(comesAfter(help, screen.getByText(NOT_COMPLETED))).toBe(true);
+
+      await act(async () => {
+        await userEvent.click(screen.getByText("New to passkeys?"));
+      });
+
+      expect(help).toHaveAttribute("open");
+      expect(help).toHaveTextContent(
+        "A passkey lets you sign in with your fingerprint, face, or device PIN instead of a password.",
+      );
+      expect(help).toHaveTextContent(
+        `To add one, sign in with your password or SSO, then open ${PASSKEY_MENU_PATH}.`,
+      );
+      expect(help).not.toHaveTextContent("Two Factor Auth");
+      expect(screen.getByTestId("email")).toBeEnabled();
+      expect(
+        screen.getByText("Use single sign-on (SSO) instead"),
+      ).toBeVisible();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    test("appears after the page's own Cancel", async () => {
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      renderPage();
+      await clickPasskey();
+      expect(screen.queryByTestId("passkey-help")).not.toBeInTheDocument();
+
+      await cancelPrompt();
+
+      expect(screen.getByRole("status")).toHaveTextContent(CANCELLED);
+      expect(screen.getByTestId("passkey-help")).toBeInTheDocument();
+      await act(async () => {
+        prompt.settle();
+      });
+    });
+
+    test("appears after an error, under the error", async () => {
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(
+            200,
+            { options: authenticationOptions },
+            {},
+          ),
+        )
+        .mockRejectedValueOnce(
+          new Error(
+            "This passkey is no longer registered. Please sign in with your password.",
+          ),
+        );
+      renderPage();
+      await clickPasskey();
+
+      const alert: HTMLElement = screen.getByRole("alert");
+      expect(alert).toHaveTextContent(/no longer registered/);
+      expect(comesAfter(screen.getByTestId("passkey-help"), alert)).toBe(true);
+    });
+
+    test("goes away while another attempt runs, and Cancel takes its place", async () => {
+      jest
+        .spyOn(navigator.credentials, "get")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      renderPage();
+      await clickPasskey();
+      expect(screen.getByTestId("passkey-help")).toBeInTheDocument();
+
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      await clickPasskey();
+
+      expect(screen.queryByTestId("passkey-help")).not.toBeInTheDocument();
+      expect(screen.getByTestId("cancel-passkey-login")).toBeInTheDocument();
+      await act(async () => {
+        prompt.settle();
+      });
+      expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+    });
+
+    test("is cleared with the passkey messages when the password form is submitted", async () => {
+      jest
+        .spyOn(navigator.credentials, "get")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      jest
+        .spyOn(ModelAPI, "createOrUpdate")
+        .mockRejectedValue(new Error("Invalid email or password."));
+      renderPage();
+      await clickPasskey();
+      expect(screen.getByText(NOT_COMPLETED)).toBeInTheDocument();
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+      await user.type(screen.getByTestId("email"), "ada@example.com");
+      await user.type(screen.getByTestId("password"), "wrong-password");
+      await act(async () => {
+        await user.click(screen.getByTestId("Login"));
+      });
+
+      expect(screen.queryByText(NOT_COMPLETED)).not.toBeInTheDocument();
+      expect(screen.queryByTestId("passkey-help")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Sign in with a passkey" }),
+      ).toBeEnabled();
+    });
+  });
+
+  test("the option, its messages and its help are in the visitor's language: German", async () => {
+    await i18n.changeLanguage("de");
+    jest
+      .spyOn(navigator.credentials, "get")
+      .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
     renderPage();
-    expect(screen.getByTestId("passkey-login")).toBeDisabled();
-    expect(screen.getByText(/Passkeys need a secure connection/)).toBeVisible();
-    expect(await screen.findByTestId("password")).toBeEnabled();
-    expect(posted).toHaveLength(0);
+
+    expect(await screen.findByText(german.login.subtitle)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: german.login.passkey.signIn }),
+    ).toBeEnabled();
+    await clickPasskey();
+
+    expect(screen.getByText(german.login.passkey.notCompleted)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: german.login.passkey.tryAgain }),
+    ).toBeEnabled();
+    await act(async () => {
+      await userEvent.click(screen.getByText(german.login.passkey.helpTitle));
+    });
+    expect(screen.getByTestId("passkey-help")).toHaveTextContent(
+      "Benutzerprofil → Sicherheit → Passkeys",
+    );
+    expect(german.login.passkey.signIn).not.toBe(english.login.passkey.signIn);
   });
 
   test("canceling the browser prompt restores focus and discards a late credential", async () => {
@@ -292,9 +702,10 @@ describe("Passwordless passkey login", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Follow the prompt from your browser or password manager.",
     );
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("cancel-passkey-login"));
-    });
+    expect(
+      screen.getByRole("button", { name: "Check your device" }),
+    ).toBeDisabled();
+    await cancelPrompt();
     expect(get.mock.calls[0]![0]!.signal!.aborted).toBe(true);
     expect(screen.getByRole("status")).toHaveTextContent(
       "Passkey sign-in canceled.",
@@ -309,6 +720,67 @@ describe("Passwordless passkey login", () => {
     });
     expect(LoginUtil.login).toHaveBeenCalledTimes(1);
     expect(posted).toHaveLength(3);
+  });
+
+  /*
+   * While the browser's own prompt is open, the page says so in a line of
+   * its own; while preparing and verifying, the option's label already says
+   * it, so the same words are there for screen readers only.
+   */
+  test("shows the device prompt line, and keeps the other stages' words for screen readers", async () => {
+    let finishOptions: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+    jest.spyOn(API, "post").mockImplementationOnce(() => {
+      return new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          finishOptions = resolve;
+        },
+      );
+    });
+    const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+    renderPage();
+    await clickPasskey();
+
+    const preparing: HTMLElement = within(screen.getByRole("status")).getByText(
+      "Getting your passkey ready…",
+    );
+    expect(preparing).toHaveClass("sr-only");
+    expect(
+      screen.getByRole("button", { name: "Getting your passkey ready…" }),
+    ).toBeDisabled();
+
+    await act(async () => {
+      finishOptions!(
+        new HTTPResponse<JSONObject>(
+          200,
+          { options: authenticationOptions },
+          {},
+        ),
+      );
+    });
+
+    const waiting: HTMLElement = within(screen.getByRole("status")).getByText(
+      "Follow the prompt from your browser or password manager.",
+    );
+    expect(waiting).not.toHaveClass("sr-only");
+    await act(async () => {
+      prompt.settle();
+    });
+  });
+
+  test("Cancel is a readable button, not the faint secondary link", async () => {
+    const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+    renderPage();
+    await clickPasskey();
+
+    const cancel: HTMLElement = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveAttribute("data-testid", "cancel-passkey-login");
+    expect(cancel).toHaveAttribute("type", "button");
+    expect(cancel).toHaveClass("text-gray-500");
+    expect(cancel).not.toHaveClass("text-gray-400");
+    await cancelPrompt();
+    await act(async () => {
+      prompt.settle();
+    });
   });
 
   test("canceling preparation aborts the request and cannot overwrite a newer attempt", async () => {
@@ -329,9 +801,7 @@ describe("Passwordless passkey login", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Getting your passkey ready",
     );
-    await act(async () => {
-      await userEvent.click(screen.getByTestId("cancel-passkey-login"));
-    });
+    await cancelPrompt();
     expect(
       jest.mocked(API.post).mock.calls[0]![0].options!.signal!.aborted,
     ).toBe(true);
@@ -435,6 +905,9 @@ describe("Passwordless passkey login", () => {
     ).toBeInTheDocument();
     expect(LoginUtil.login).not.toHaveBeenCalled();
     expect(screen.getByTestId("passkey-login")).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Try passkey again" }),
+    ).toBeInTheDocument();
   });
 
   test("handles an HTTP error response from the options endpoint", async () => {
@@ -456,6 +929,7 @@ describe("Passwordless passkey login", () => {
     expect(LoginUtil.login).not.toHaveBeenCalled();
     expect(get).not.toHaveBeenCalled();
     expect(screen.getByTestId("passkey-login")).toBeEnabled();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
   test("permits only one ceremony and disables password submission while the authenticator is open", async () => {
@@ -476,11 +950,48 @@ describe("Passwordless passkey login", () => {
     });
     expect(screen.getByTestId("passkey-login")).toBeDisabled();
     expect(screen.getByTestId("password")).toBeDisabled();
+    expect(screen.getByTestId("Login")).toBeDisabled();
     expect(posted).toHaveLength(1);
     await act(async () => {
       finish!(WebAuthnTestUtil.credential());
     });
     expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+  });
+
+  test("a password sign-in in flight disables the passkey option until it answers", async () => {
+    let answer: ((value: ModelAPIHttpResponse<User>) => void) | undefined;
+    jest.spyOn(ModelAPI, "createOrUpdate").mockImplementation(() => {
+      return new Promise<ModelAPIHttpResponse<User>>(
+        (resolve: (value: ModelAPIHttpResponse<User>) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+    renderPage();
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+      delay: null,
+    });
+    await user.type(await screen.findByTestId("email"), "ada@example.com");
+    await user.type(screen.getByTestId("password"), "correct-password");
+    await act(async () => {
+      await user.click(screen.getByTestId("Login"));
+    });
+
+    expect(screen.getByTestId("passkey-login")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("passkey-login"));
+    expect(posted).toHaveLength(0);
+
+    await act(async () => {
+      const response: ModelAPIHttpResponse<User> =
+        new ModelAPIHttpResponse<User>(200, USER_JSON, {});
+      response.miscData = { token: "password-session" };
+      answer!(response);
+    });
+    expect(LoginUtil.login).toHaveBeenCalledWith({
+      user: expect.any(User),
+      token: "password-session",
+    });
+    expect(posted).toHaveLength(0);
   });
 
   test("keeps the password sign-in flow working after passkey cancellation", async () => {
@@ -509,6 +1020,14 @@ describe("Passwordless passkey login", () => {
       user: expect.any(User),
       token: "password-session",
     });
+  });
+
+  test("the SSO link stays a link to the SSO page under the form", async () => {
+    renderPage();
+    await screen.findByTestId("email");
+
+    expect(ssoLink()).toHaveAttribute("href", "/accounts/sso");
+    expect(comesAfter(ssoLink(), screen.getByTestId("Login"))).toBe(true);
   });
 
   test("preserves password plus security key MFA after introducing passkeys", async () => {
@@ -556,6 +1075,7 @@ describe("Passwordless passkey login", () => {
       await user.click(screen.getByTestId("Login"));
     });
     expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("passkey-option")).not.toBeInTheDocument();
     await act(async () => {
       await user.click(await screen.findByText("Personal security key"));
     });

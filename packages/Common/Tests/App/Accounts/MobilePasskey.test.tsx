@@ -212,6 +212,26 @@ describe("Mobile passkey browser page", () => {
     expect(API.post).not.toHaveBeenCalled();
   });
 
+  /*
+   * The setup help used to send people to "User Profile → Passkeys & Two
+   * Factor Auth", a page the Dashboard no longer has. It names the menu the
+   * Dashboard draws, as the sign-in page's "New to passkeys?" does.
+   */
+  test("'New to passkeys?' names the Dashboard's Security → Passkeys page", () => {
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByText("New to passkeys?"));
+
+    const help: HTMLElement = screen
+      .getByText("New to passkeys?")
+      .closest("details") as HTMLElement;
+    expect(help).toHaveAttribute("open");
+    expect(help).toHaveTextContent(
+      "Create a passkey in the web dashboard, under User Profile → Security → Passkeys.",
+    );
+    expect(help).not.toHaveTextContent("Two Factor Auth");
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
   test("binds the browser challenge to PKCE and returns a code without local login", async () => {
     render(<MobilePasskeyPage />);
     fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));

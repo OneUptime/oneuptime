@@ -4,15 +4,15 @@ OneUptime supports signing in with a passkey without entering an email address o
 
 ## Set up a passkey
 
-Sign in to the web dashboard and open **User Profile → Passkeys & Two Factor Auth → Add Passkey**. Give it a recognizable name, choose **Create Passkey**, and follow your device's prompt. Save any recovery codes OneUptime offers before continuing. To use the passkey from your phone, save it with a device or password manager available on that phone.
+Sign in to the web dashboard, open **User Profile → Security → Passkeys** and choose **Add Passkey**. Give it a recognizable name, choose **Create Passkey**, and follow your device's prompt. Save any recovery codes OneUptime offers before continuing. To use the passkey from your phone, save it with a device or password manager available on that phone.
 
 You can rename or remove a passkey from the same profile page and see when it was added. If you dismiss your device's registration prompt, the setup dialog keeps the name you entered so you can retry. An existing security key registered for two factor authentication may still require your password; use **Add Passkey** to create a credential for passwordless sign-in.
 
 ## Sign in on the website
 
-On the login page, choose **Sign in with a passkey** and select the passkey for your account. The page shows when it is waiting for your device and when it is completing sign-in. Choose **Cancel** while the device prompt is open to try again or use your password. If you are new to passkeys, expand **New to passkeys?** for setup instructions.
+The login page leads with the email and password form. Under it, after **Use single sign-on (SSO) instead**, choose **Sign in with a passkey** and select the passkey for your account. The page shows when it is waiting for your device and when it is completing sign-in. Choose **Cancel** while the device prompt is open to try again or use your password. When an attempt is canceled, times out or fails, **New to passkeys?** appears under it: it says what a passkey is and where to add one.
 
-Web passkeys require HTTPS, or localhost during development, and a browser that supports WebAuthn. The login page explains when passkeys are unavailable. Password and SSO sign-in remain available.
+Web passkeys require HTTPS, or localhost during development, and a browser that supports WebAuthn. Where they are unavailable, choosing **Sign in with a passkey** explains why instead of starting an attempt. Password and SSO sign-in remain available.
 
 ## Sign in on iOS or Android
 
