@@ -1,80 +1,120 @@
-# Konfiguration & behörigheter
+# Instrumentpanelskonfiguration & behörigheter
 
-Den här sidan täcker de inställningar och åtkomstkontroller som är värda att känna till när du har en instrumentpanel du vill behålla.
+När du har en instrumentpanel som är värd att behålla går den här sidan igenom vem som får läsa och ändra den, hur ägare och etiketter organiserar dina instrumentpaneler, och hur du kopierar, exporterar, arkiverar och tar bort en.
+
+:::cards
+- [Vem som får göra vad](#vem-som-får-göra-vad): Behörigheterna bakom varje åtgärd, och vem som har dem.
+- [Ägare](#ägare): Användarna och teamen som en instrumentpanel tillhör.
+- [Duplicera en instrumentpanel](#duplicera-en-instrumentpanel): En säker kopia, numrerad åt dig.
+- [Arkivera en instrumentpanel](#arkivera-en-instrumentpanel): Lägg undan en instrumentpanel utan att ta bort den.
+:::
+
+## Vem som får göra vad
+
+Instrumentpaneler följer ditt projekts [behörigheter](/docs/permissions/index). Varje åtgärd kräver en av de här, som du får genom ett team:
+
+| För att | Krävs |
+| --- | --- |
+| Läsa instrumentpaneler | `ReadDashboard`, eller en projektroll: Project Owner, Project Admin, Project Member, Viewer eller en Settings-roll |
+| Skapa instrumentpaneler | `CreateDashboard`, Project Owner eller Project Admin |
+| Ändra en instrumentpanel: dess widgetar, variabler, delning och varumärke, och arkivera den | `EditDashboard`, Project Owner eller Project Admin |
+| Ta bort en instrumentpanel | `DeleteDashboard`, Project Owner eller Project Admin |
+| Lägga till och ta bort ägare | Behörigheterna för instrumentpanelsägare, Project Owner, Project Admin eller Project Member |
+| Lägga till och ändra anpassade domäner | Behörigheterna för instrumentpanelsdomäner, Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member |
+| Skapa ägarregler och etikettregler | Behörigheterna för regler, Project Owner eller Project Admin |
+
+En Project Member läser alltså alla instrumentpaneler, men behöver `CreateDashboard` och `EditDashboard` för att bygga dem. Läsning, redigering och borttagning kan var och en begränsas till de instrumentpaneler som ett team äger, eller till instrumentpaneler med vissa etiketter: se [Omfattning: hur långt en tillåten behörighet når](/docs/permissions/index#omfattning-hur-långt-en-tillåten-behörighet-når).
+
+Tilldela dem på ett teams sida **Behörigheter**: öppna **Produkter → Team** och välj teamet.
+
+Vem som kan se en instrumentpanel utanför projektet är en separat fråga, som besvaras på dess sida **Delning**: se [Åtkomst till offentliga instrumentpaneler](#åtkomst-till-offentliga-instrumentpaneler).
 
 ## Ägare
 
-En instrumentpanels **ägare** är användare och team som du har gett explicit åtkomst till (utöver deras projektomfattande roll).
+En instrumentpanels **ägare** är användarna och teamen som den tillhör. Lägg till dem på instrumentpanelens sida **Ägare**, eller markera flera instrumentpaneler i listan **Instrumentpaneler** och lägg till ägare på alla på en gång.
 
-Under **Instrumentpanel → Ägare**:
+Ägare begränsar åtkomsten när du ber om det: en teambehörighet som är avgränsad till instrumentpanelerna som teamet äger når bara de instrumentpaneler som har det teamet, eller personen som agerar, som ägare. Ägarskap i sig ger ingenting.
 
-- Lägg till en **user owner** för att ge en person extra åtkomst till denna instrumentpanel.
-- Lägg till en **team owner** för att ge samma sak till varje medlem i ett team.
-
-Använd ägare när den projektomfattande läsrollen är för bred — till exempel en instrumentpanel med kunddetaljer som endast bör vara synlig för kundframgångsteamet.
+Listan **Instrumentpaneler** visar varje instrumentpanels ägare, och dess filter **Ägare** hittar instrumentpanelerna som en person eller ett team äger.
 
 ## Etiketter
 
-Etiketter är taggar för att organisera instrumentpaneler. Tillämpa dem under **Instrumentpanel → Översikt**.
+Etiketter är taggar för att organisera instrumentpaneler. Lägg till dem på instrumentpanelens sida **Översikt**, där du också redigerar dess namn och beskrivning, eller på flera instrumentpaneler samtidigt från listan **Instrumentpaneler**.
 
 Vanliga mönster:
 
-- **Per team**: `team:platform`, `team:checkout`, `team:growth`.
-- **Per miljö**: `env:prod`, `env:staging`.
-- **Per syfte**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
+- **Efter team**: `team:platform`, `team:checkout`, `team:growth`.
+- **Efter miljö**: `env:prod`, `env:staging`.
+- **Efter syfte**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-Listan **Instrumentpaneler** låter dig filtrera på etikett, vilket är det snabbaste sättet att hitta en instrumentpanel i ett projekt som har samlat på sig många av dem.
+Filtret **Etiketter** på listan **Instrumentpaneler** är det snabbaste sättet att hitta en instrumentpanel i ett projekt som har samlat på sig många. Etiketter begränsar också behörigheter: en teambehörighet som är begränsad till vissa etiketter når bara de instrumentpaneler som har någon av dem.
 
-## Behörigheter
+## Ägar- och etikettregler
 
-Instrumentpaneler fungerar med ditt projekts rollbaserade åtkomstkontroll. De relevanta behörigheterna:
+I stället för att lägga till ägare och etiketter för hand kan du låta regler göra det. Under **Inställningar** i sidomenyn för **Instrumentpaneler** lägger **Ägarregler** till ägare och **Etikettregler** etiketter på varje ny instrumentpanel som matchar dem: efter etiketterna den redan har, eller efter ett mönster i dess namn eller beskrivning. [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) förklarar hur regler matchar, och hur du kör en på de instrumentpaneler du redan har.
 
-| Behörighet           | Vad den tillåter                             |
-| -------------------- | -------------------------------------------- |
-| **Create Dashboard** | Skapa nya instrumentpaneler.                 |
-| **Read Dashboard**   | Visa instrumentpaneler (i privat läge).      |
-| **Edit Dashboard**   | Ändra widgetar, variabler och inställningar. |
-| **Delete Dashboard** | Radera en instrumentpanel.                   |
+## Åtkomst till offentliga instrumentpaneler
 
-Det finns matchande behörigheter för instrumentpanelägare och anpassade domäner, så att du kan ge "hantera ägare" utan att ge "redigera instrumentpanelen."
+Vem som kan se en instrumentpanel utanför projektet är ett enda val på dess sida **Delning** (även **⋯ → Dela** på själva instrumentpanelen; se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing)):
 
-Tilldela dessa på projektroller under **Produkter → Team → Behörigheter**.
+1. **Bara personer i det här projektet** (standard): instrumentpanelen har ingen offentlig länk; dess offentliga adress visar en sida med "hittades inte".
+2. **Alla med länken**: alla som har den offentliga länken kan se den, utan att logga in.
+3. **Alla med länken och ett lösenord**: besökare anger ett lösenord innan instrumentpanelen visas.
 
-## Åtkomst för offentliga instrumentpaneler
-
-När du gör en instrumentpanel offentlig (se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing)), styr tre inställningar vem som kan se den:
-
-1. **Public Dashboard**-växel — om av returnerar den offentliga URL:en 404.
-2. **Huvudlösenord** — om inställt anger besökare ett lösenord innan instrumentpanelen visas.
-3. **IP-vitlista** (Scale-plan) — om inställt avvisas förfrågningar från andra IP:er.
-
-Du kan kombinera alla dessa. Den mest låsta kombinationen är "Public på, lösenord inställt, IP-tillåtslista aktiv" — användbart för partnerportaler där du vill ha alla tre lagren.
-
-## Datakvarhållning
-
-Instrumentpaneler i sig själva förfaller inte. Datan de visar följer ditt projekts kvarhållningsinställningar — mätvärden, loggar och traces är frågbara så länge din plan behåller dem. En widget riktad mot "de senaste 90 dagarna" på en plan som behåller 30 dagar visar vad som fortfarande finns lagrat.
+Under **Fler inställningar** på samma sida avvisar **IP-tillåtelselista** (planen Scale) förfrågningar till den offentliga länken från alla IP-adresser som inte finns med. Den mest låsta offentliga uppsättningen är **Alla med länken och ett lösenord** med en IP-tillåtelselista: användbart för partnerportaler där du vill ha båda lagren.
 
 ## Duplicera en instrumentpanel
 
-För att kopiera en instrumentpanel, öppna den och gå till **Inställningar → Duplicate Dashboard**. Kopians namn är redan ifyllt: instrumentpanelens namn, numrerat förbi de namn projektet redan har ("Checkout API" kopieras som "Checkout API 2", och en kopia av den som "Checkout API 3"). Ändra det om du vill, klicka på **Duplicate Dashboard**, så öppnas kopian. Den har instrumentpanelens widgetar, variabler, beskrivning och etiketter. Varumärke och anpassade domäner stannar hos originalet, och offentlig delning börjar alltid av så att du kan bestämma om du vill slå på den.
+För att kopiera en instrumentpanel öppnar du den, går till dess sida **Inställningar** och klickar på **Duplicera Instrumentpanel**. Kopians namn fylls i åt dig: instrumentpanelens namn, numrerat förbi de namn som projektet redan har ("Checkout API" kopieras som "Checkout API 2", och en kopia av den som "Checkout API 3"). Ändra det om du vill, bekräfta med **Duplicera Instrumentpanel**, så öppnas kopian. Den har instrumentpanelens widgetar, variabler, beskrivning och etiketter. Varumärke och anpassade domäner stannar hos originalet, och offentlig delning börjar alltid avstängd, så att du kan bestämma om den ska slås på.
 
-Detta är rätt drag när du vill forka en mall (som "vår jourinstrumentpanel") till en tjänstespecifik kopia.
+Det är rätt drag när du vill förgrena en mall (som "vår jourpanel") till en kopia för en viss tjänst.
 
-## Radera en instrumentpanel
+## Exportera och importera
 
-Under **Instrumentpanel → Ta bort**. Detta kan inte ångras — instrumentpanelens layout och alla anpassade domäner som är kopplade till den tas bort. Din telemetridata påverkas inte.
+En instrumentpanel reser som JSON:
 
-Om instrumentpanelen är offentlig på en anpassad domän slutar URL:en svara så snart du raderar den. Flytta domänen till en annan instrumentpanel först om du vill behålla URL:en fungerande.
+- **Exportera Instrumentpanel**, på instrumentpanelens sida **Inställningar**, laddar ned den som en JSON-fil. För att exportera flera markerar du dem i listan **Instrumentpaneler** och väljer **Export JSON**.
+- **Import JSON**, ovanför listan **Instrumentpaneler**, skapar instrumentpaneler från en sådan fil, i det här projektet eller ett annat.
 
-## Säkerhetskopiering
+En export innehåller instrumentpanelens egna inställningar, bland annat dess widgetar och variabler. Dess ägare och etiketter utelämnas, och widgetar som pekar på det här projektets resurser, till exempel ett SLO eller en datakälla, kan behöva att de väljs om i ett annat projekt.
 
-Om du kör OneUptime självhostat är en vanlig databassäkerhetskopiering tillräcklig — instrumentpanelens konfiguration sparas tillsammans med resten av ditt projekt.
+## Arkivera en instrumentpanel
 
-På OneUptime Cloud hanteras säkerhetskopiering åt dig. Om du vill ha din egen kopia kan du läsa instrumentpanelen via [OneUptime API](/docs/api-reference/api-reference).
+Arkivera en instrumentpanel som du inte använder längre men vill behålla. En arkiverad instrumentpanel försvinner från listan **Instrumentpaneler** och, om den är offentlig, slutar dess offentliga länk att fungera: dess URL och anpassade domäner svarar "Dashboard not found". Dess widgetar, variabler, varumärke, domäner och offentliga inställningar behålls alla, så när du avarkiverar den är den precis som den var, offentlig länk inräknad.
 
-## Läs vidare
+```mermaid title="Arkivering behåller allt; borttagning tar bort det"
+flowchart TB
+    A["I listan<br/>Instrumentpaneler,<br/>länken fungerar"] -->|"Arkivera"| R["Arkiverad: borta<br/>från listan, offentlig<br/>länk avstängd"]
+    R -->|"Avarkivera"| A
+    A -->|"Ta bort"| X["Borta, tillsammans<br/>med dess anpassade<br/>domäner"]
+    R -->|"Ta bort"| X
+```
 
-- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing) — kontroller i offentligt läge.
-- [Variabler & filter](/docs/dashboards/variables) — mallning.
-- [Widgetar](/docs/dashboards/widgets) — widget-katalogen.
-- [Översikt över instrumentpaneler](/docs/dashboards/index) — det stora hela.
+För att arkivera en instrumentpanel öppnar du den, går till dess sida **Inställningar** och klickar på **Arkivera**. För att arkivera flera markerar du dem i listan **Instrumentpaneler** och väljer **Arkivera**. För att hämta tillbaka en öppnar du **Instrumentpaneler → Avancerad → Arkiverad**, markerar den och väljer **Avarkivera**, eller öppnar den och klickar på **Avarkivera** i banderollen överst på dess sidor.
+
+Arkivering är det omkastbara alternativet till borttagning: ta till det först när du är osäker.
+
+## Ta bort en instrumentpanel
+
+Öppna instrumentpanelens sida **Ta bort**. Borttagning kan inte ångras: instrumentpanelen, dess widgetar och variabler och alla anpassade domäner som är kopplade till den tas bort. Din telemetri påverkas inte.
+
+Om instrumentpanelen är offentlig på en anpassad domän slutar adressen att svara så snart du tar bort den. För att fortsätta leverera adressen lägger du till domänen på en annan instrumentpanel efter att du har tagit bort den här: en domän tillhör en instrumentpanel åt gången.
+
+## Granskningsloggar
+
+Instrumentpanelens sida **Granskningsloggar** listar varje ändring som gjorts på instrumentpanelen, och vem som gjorde den. Granskningsloggar ingår i Enterprise-planen och [Enterprise Edition](/docs/self-hosted/enterprise).
+
+## Datalagring och säkerhetskopior
+
+Instrumentpaneler i sig går inte ut. Datan de visar följer projektets lagringsinställningar: med tidsintervallet satt till de senaste 3 månaderna visar ett projekt som behåller sina loggar i 15 dagar de senaste 15 dagarna av dem.
+
+Om du driftar OneUptime själv räcker en regelbunden säkerhetskopia av databasen: en instrumentpanels konfiguration lagras med resten av ditt projekt. På OneUptime Cloud sköts säkerhetskopiorna åt dig. För att få en egen kopia exporterar du instrumentpanelen som JSON, eller läser den via [OneUptimes API](/docs/api-reference/api-reference).
+
+## Nästa steg
+
+:::cards
+- [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing): Offentliga länkar, lösenord, IP-tillåtelselistor och anpassade domäner.
+- [Användare, team och behörigheter](/docs/permissions/index): Team, roller, omfattningar och blockeringar.
+- [Instrumentpanelsvariabler & filter](/docs/dashboards/variables): En instrumentpanel för varje tjänst.
+- [Översikt över instrumentpaneler](/docs/dashboards/index): Den stora bilden.
+:::
