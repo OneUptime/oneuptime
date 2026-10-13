@@ -8041,7 +8041,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     variables: [
       SMSEAGLE_URL,
       SMSEAGLE_ACCESS_TOKEN,
-
       {
         name: "smsEaglePhoneNumber",
         title: "Phone Number",
@@ -8116,7 +8115,6 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     variables: [
       SMSEAGLE_URL,
       SMSEAGLE_ACCESS_TOKEN,
-
       {
         name: "smsEaglePhoneNumber",
         title: "Phone Number",
