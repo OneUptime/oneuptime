@@ -8,6 +8,7 @@ Una programación de guardia decide quién está de guardia en cada momento. Las
 :::cards
 - [Quiénes se turnan](#quiénes-se-turnan): Crea una programación con su primera rotación.
 - [Capas](#capas): Apila rotaciones, limita las horas de guardia y añade cobertura de respaldo.
+- [Cuando alguien está ausente](#cuando-alguien-está-ausente): Omitir a alguien en la rotación hasta que vuelva.
 - [API y Terraform](#crear-programaciones-con-la-api-o-terraform): Crea programaciones y sus rotaciones como código.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 Para cambiar qué capa va primero, usa **Subir capa (mayor prioridad)** o **Bajar capa (menor prioridad)** en el menú de una capa.
 
 Cada persona conserva un mismo color en todas partes, para que puedas seguirla de un vistazo: en cada capa, en la programación final y sus sustituciones, y en la **Cronología de la programación**.
+
+## Cuando alguien está ausente
+
+Cuando alguien se va de vacaciones, omítelo hasta que vuelva. En la página **Capas** de la programación, despliega una capa y haz clic en **Omitir hasta…** junto a su nombre. Se abre el formulario de ausencias con esa persona en **¿Quién está ausente?**, **Siguiente persona de la rotación** en **¿Quién cubre?** y **Empieza** desde ahora: pon en **Finaliza** cuándo vuelve y guárdalo.
+
+Mientras está ausente:
+
+- Cada uno de sus turnos pasa a la siguiente persona de la capa que no esté ausente, en cada programación en la que esté. Los turnos de los demás no se mueven, y los suyos vuelven a ser suyos en cuanto vuelve.
+- Si todos en una capa están ausentes, la capa no tiene a nadie de guardia y las capas de debajo toman el relevo. La capa muestra **Todos en esta capa están ausentes ahora mismo**.
+- Las reglas de escalado que la avisan directamente, o a través de un equipo, la omiten. La ejecución de la política indica que está ausente y hasta cuándo.
+- Su fila en la capa indica hasta cuándo está ausente, y la programación final y la **Cronología de la programación** muestran quién tiene cada uno de sus turnos.
+
+Si eliges a alguien en **¿Quién cubre?**, esa persona recibe todos sus avisos, de cada programación y cada política, en lugar de que la rotación se quede con sus turnos.
+
+Una ausencia añadida así se aplica a todas las políticas de guardia. Aparece en **Guardia** > **Sustituciones de usuarios**, donde puedes eliminarla para que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está.
+
+Con la API, una sustitución de usuario (`/api/on-call-duty-policy-user-override`) creada sin `routeAlertsToUserId` omite a la persona de `overrideUserId` desde `startsAt` hasta `endsAt`.
 
 ## Crear programaciones con la API o Terraform
 

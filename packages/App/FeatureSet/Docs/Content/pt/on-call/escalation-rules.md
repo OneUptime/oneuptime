@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Os métodos de notificação dela"]
 ```
 
-Uma substituição de usuário em vigor para uma pessoa envia os acionamentos dela para quem a cobre.
+Uma substituição de usuário em vigor para uma pessoa envia os acionamentos dela para quem a cobre. Uma que não nomeia ninguém para cobrir pula a pessoa: ela não é acionada, a execução da política informa que ela está ausente e até quando, e em um agendamento de plantão cada um dos turnos dela vai para a próxima pessoa da rotação.
 
 Toda mensagem é uma que o provedor aceita, então um acionamento sempre sai. Isto é o que cada canal leva:
 

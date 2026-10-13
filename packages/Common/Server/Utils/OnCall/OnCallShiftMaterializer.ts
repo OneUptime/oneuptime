@@ -754,6 +754,11 @@ export default class OnCallShiftMaterializer {
             overrideStartsAt: shift.override.overrideStartsAt.toISOString(),
             overrideEndsAt: shift.override.overrideEndsAt.toISOString(),
             onCallDutyPolicyId: shift.override.onCallDutyPolicyId ?? null,
+            /*
+             * Only for a skip, so a named cover's shift hashes as it always
+             * did and no calendar event changes for existing overrides.
+             */
+            ...(shift.override.isSkip ? { isSkip: true } : {}),
           }
         : null,
       policyVariantOf: shift.policyVariantOf
@@ -844,17 +849,26 @@ export default class OnCallShiftMaterializer {
         overrideEndsAt: new Date(shift.override.overrideEndsAt.getTime()),
       };
 
-      const policyId: string | null =
-        OnCallShiftMaterializer.findOverridePolicyId(resolved.overrides, {
-          originalUserId: shift.override.originalUserId,
-          substituteUserId: shift.userId,
-          startsAt: shift.override.overrideStartsAt,
-          endsAt: shift.override.overrideEndsAt,
-          preferredPolicyId: data.policyVariant?.policyId,
-        });
+      /*
+       * A skip names no substitute to match its record by; the segment
+       * carries the scope of the skip that handed it on.
+       */
+      const policyId: string | null = shift.override.isSkip
+        ? shift.override.onCallDutyPolicyId || null
+        : OnCallShiftMaterializer.findOverridePolicyId(resolved.overrides, {
+            originalUserId: shift.override.originalUserId,
+            substituteUserId: shift.userId,
+            startsAt: shift.override.overrideStartsAt,
+            endsAt: shift.override.overrideEndsAt,
+            preferredPolicyId: data.policyVariant?.policyId,
+          });
 
       if (policyId) {
         override.onCallDutyPolicyId = policyId;
+      }
+
+      if (shift.override.isSkip) {
+        override.isSkip = true;
       }
 
       base.override = override;

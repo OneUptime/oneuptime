@@ -8,6 +8,7 @@ En vaktplan bestemmer hvem som har vakt til enhver tid. Folk bytter på i den: h
 :::cards
 - [Hvem som bytter på](#hvem-som-bytter-på): Opprett en vaktplan med den første rotasjonen.
 - [Lag](#lag): Stable rotasjoner, begrens vakttimene og legg til reservedekning.
+- [Når noen er borte](#når-noen-er-borte): Hopp over noen i rotasjonen til de er tilbake.
 - [API og Terraform](#opprett-vaktplaner-med-api-et-eller-terraform): Opprett vaktplaner og rotasjonene deres som kode.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 For å endre hvilket lag som kommer først, bruker du **Move layer up (higher priority)** eller **Move layer down (lower priority)** i menyen til et lag.
 
 Hver person beholder én farge overalt, så du kan følge personen med et blikk: i hvert lag, i den endelige vaktplanen og overstyringene i den, og på **Tidslinje for vaktplaner**.
+
+## Når noen er borte
+
+Når noen drar på ferie, hopper du over dem til de er tilbake. Utvid et lag på vaktplanens side **Lag**, og klikk på **Hopp over til…** ved siden av navnet deres. Det åpner skjemaet for fravær med dem under **Hvem er borte?**, **Neste person i rotasjonen** under **Hvem dekker?** og **Starter** fra nå: sett **Slutter** til når de er tilbake, og lagre.
+
+Mens de er borte:
+
+- Hver av vaktene deres går til neste person i laget som ikke er borte, i alle vaktplaner de er med i. Ingen andres vakter flytter seg, og deres egne er deres igjen så snart de er tilbake.
+- Hvis alle i et lag er borte, har laget ingen på vakt, og lagene under tar over. Laget viser **Alle i dette laget er borte akkurat nå**.
+- Eskaleringsregler som varsler dem direkte eller gjennom et team, hopper over dem. Kjøringen av retningslinjen viser at de er borte, og til når.
+- Raden deres i laget viser når de er tilbake, og den endelige vaktplanen og **Tidslinje for vaktplaner** viser hvem som har hver av vaktene deres.
+
+Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle retningslinjer, i stedet for at rotasjonen tar vaktene deres.
+
+Fravær som legges til på denne måten, gjelder for alle vaktretningslinjer. Det står under **Vakttjeneste** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én retningslinje legger du til overstyringen på den retningslinjens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er.
+
+Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
 ## Opprett vaktplaner med API-et eller Terraform
 

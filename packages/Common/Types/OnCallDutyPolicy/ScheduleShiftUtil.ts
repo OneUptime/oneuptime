@@ -65,6 +65,17 @@ export type ShiftGroupKeyFunction = (event: CalendarEvent) => string;
 export interface GroupEventsIntoShiftsOptions {
   mergeAcrossGaps?: boolean | undefined;
   /*
+   * With mergeAcrossGaps: bridge a gap only between two segments of the SAME
+   * rotation turn (the period LayerUtil stamps, ROTATION_PERIOD_START_KEY).
+   * Off-hours inside one turn are what mergeAcrossGaps is for; a gap between
+   * two different turns of one person is not off-hours - it is the turns of
+   * everybody in between gone, because they were all away and the skip pass
+   * had nobody to hand them to (UserOverrideUtil.applySkipsToLayerEvents).
+   * Touching segments still merge as they always did, and segments that do
+   * not carry a period (hand-built events) bridge gaps as before.
+   */
+  bridgeGapsWithinTurnOnly?: boolean | undefined;
+  /*
    * Defaults to the on-call user id (event.title), which is what every
    * schedule summary in the dashboard wants: "Alice, Mon 09:00 -> Fri 17:00"
    * regardless of which layer or override put her there.
@@ -177,8 +188,14 @@ export default class ScheduleShiftUtil {
         return 0;
       });
 
+    const bridgeGapsWithinTurnOnly: boolean = Boolean(
+      options?.bridgeGapsWithinTurnOnly,
+    );
+
     const shifts: Array<OnCallShift> = [];
     let lastKey: string | null = null;
+    // The rotation turn of the last segment folded in (see the option above).
+    let lastPeriod: number | undefined = undefined;
 
     for (const event of sorted) {
       const userId: string = event.title;
@@ -205,11 +222,23 @@ export default class ScheduleShiftUtil {
        * shift. Accumulate each merged segment's own duration into coverageSeconds
        * so a turn merged across off-hours reports its real active time on call.
        */
-      if (last && sameUser && (mergeAcrossGaps || isContiguous)) {
+      const period: number | undefined = bridgeGapsWithinTurnOnly
+        ? ScheduleShiftUtil.getEventRotationPeriodStart(event)
+        : undefined;
+
+      const mayBridgeGap: boolean =
+        mergeAcrossGaps &&
+        (!bridgeGapsWithinTurnOnly ||
+          period === undefined ||
+          lastPeriod === undefined ||
+          period === lastPeriod);
+
+      if (last && sameUser && (mayBridgeGap || isContiguous)) {
         if (OneUptimeDate.isAfter(event.end, last.end)) {
           last.end = event.end;
         }
         last.coverageSeconds += eventSeconds;
+        lastPeriod = period;
         continue;
       }
 
@@ -245,6 +274,7 @@ export default class ScheduleShiftUtil {
 
       shifts.push(shift);
       lastKey = key;
+      lastPeriod = period;
     }
 
     return shifts;

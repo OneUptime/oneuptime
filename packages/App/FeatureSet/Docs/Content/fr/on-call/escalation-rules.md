@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Ses méthodes de notification"]
 ```
 
-Un remplacement d'utilisateur en vigueur pour une personne envoie ses alertes à la personne qui la remplace.
+Un remplacement d'utilisateur en vigueur pour une personne envoie ses alertes à la personne qui la remplace. Un remplacement qui ne désigne personne pour la remplacer lui fait passer son tour : elle ne reçoit pas d'alerte, l'exécution de la politique indique qu'elle est absente et jusqu'à quand, et dans un planning d'astreinte chacun de ses tours revient à la personne suivante de la rotation.
 
 Chaque message est accepté par son fournisseur, de sorte qu'une alerte part toujours. Voici ce que chaque canal transporte :
 

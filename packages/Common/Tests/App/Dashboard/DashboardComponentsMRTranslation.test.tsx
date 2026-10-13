@@ -387,6 +387,7 @@ describe("user overrides in German", () => {
           originalName: "Alex Chen",
           substituteUserId: USER_SAM,
           substituteName: "Sam Doe",
+          isSkip: false,
           startsAt: new Date(NOW.getTime() + index * DAY_MS),
           endsAt: new Date(NOW.getTime() + (index + 1) * DAY_MS),
           scope: describeOverrideScope({}),

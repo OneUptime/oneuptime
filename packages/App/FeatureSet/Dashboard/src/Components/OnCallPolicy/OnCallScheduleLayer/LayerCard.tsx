@@ -7,6 +7,7 @@ import {
 } from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
 import LayerUser from "./LayerUser";
+import { isEveryoneInLayerAway } from "./LayerUserAway";
 import {
   getColorForUserId,
   getUserAvatarStyle,
@@ -64,6 +65,11 @@ export interface ComponentProps {
   onDeleteLayer: () => void;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
   onUsersChange: (users: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  /*
+   * "Skip until..." on a person in this layer (SkipLayerUserModal, opened by
+   * the page). Left out, the people list does not offer it.
+   */
+  onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
 }
 
 interface SummaryChipProps {
@@ -231,6 +237,27 @@ const LayerCard: FunctionComponent<ComponentProps> = (
   const isCurrentUserSubstitute: boolean = Boolean(
     currentAndNext.current && !layerUserIds.has(currentAndNext.current.userId),
   );
+
+  /*
+   * Nobody on call, because everybody in the layer is away: say so, rather
+   * than leave the reader to guess - the layers below it decide meanwhile.
+   */
+  const isEveryoneAway: boolean =
+    !currentAndNext.current &&
+    isEveryoneInLayerAway({
+      userIds: Array.from(layerUserIds),
+      overrides: props.overrides,
+      now: preview.now,
+    });
+
+  // The names of the people overrides name to cover, for the away badges.
+  const coverNameById: Record<string, string> = {};
+  for (const userId in props.overrideUserInfo) {
+    const info: OverrideUserInfo | undefined = props.overrideUserInfo[userId];
+    if (info) {
+      coverNameById[userId] = info.name || info.email;
+    }
+  }
 
   /*
    * "Covering for Alice Nakamura" when the shift carries the override that put
@@ -409,51 +436,76 @@ const LayerCard: FunctionComponent<ComponentProps> = (
            * Rendered even with no users assigned — that is precisely the case
            * where this layer can never put anybody on call, so suppressing the
            * line there (as this used to) hid the most important state it has.
+           *
+           * On a phone the line wraps: the dot stays with the first line of
+           * what it marks (it was left on a line of its own), and "Up next"
+           * takes a line of its own rather than starting with a dangling "·".
            */}
           <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
             <span
-              className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-              style={{
-                backgroundColor: currentAndNext.current
-                  ? getColorForUserId(currentAndNext.current.userId)
-                  : "#d1d5db",
-              }}
-            />
-            {currentAndNext.current ? (
-              <span>
-                <TranslatedSentence
-                  template="{{name}} on call now"
-                  slots={{
-                    name: (
-                      <span className="font-semibold text-gray-700">
-                        {nameById[currentAndNext.current.userId] ||
-                          translator.translateText("Unknown user")}
-                      </span>
-                    ),
-                  }}
-                />
-                {coveringLabel && (
-                  <span
-                    data-testid="layer-card-covering"
-                    className="ml-1 font-medium text-indigo-600"
-                  >
-                    ({coveringLabel.toLowerCase()})
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span className="text-amber-700">
-                {translator.translateText(
-                  userCount === 0
-                    ? "No users assigned - this layer never puts anyone on call"
-                    : "No one on call in this layer right now",
-                )}
-              </span>
-            )}
+              data-testid="layer-card-live-status"
+              className="inline-flex min-w-0 max-w-full items-start gap-1.5"
+            >
+              <span
+                className="mt-1 inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: currentAndNext.current
+                    ? getColorForUserId(currentAndNext.current.userId)
+                    : "#d1d5db",
+                }}
+              />
+              {currentAndNext.current ? (
+                <span>
+                  <TranslatedSentence
+                    template="{{name}} on call now"
+                    slots={{
+                      name: (
+                        <span className="font-semibold text-gray-700">
+                          {nameById[currentAndNext.current.userId] ||
+                            translator.translateText("Unknown user")}
+                        </span>
+                      ),
+                    }}
+                  />
+                  {/*
+                   * As the label is written: lowercasing it turned the name it
+                   * holds into "alex kim", and a German noun into a misspelling.
+                   */}
+                  {coveringLabel && (
+                    <span
+                      data-testid="layer-card-covering"
+                      className="ml-1 font-medium text-indigo-600"
+                    >
+                      ({coveringLabel})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span
+                  data-testid={
+                    isEveryoneAway ? "layer-card-everyone-away" : undefined
+                  }
+                  className="text-amber-700"
+                >
+                  {translator.translateText(
+                    userCount === 0
+                      ? "No users assigned - this layer never puts anyone on call"
+                      : isEveryoneAway
+                        ? "Everyone in this layer is away right now"
+                        : "No one on call in this layer right now",
+                  )}
+                </span>
+              )}
+            </span>
             {currentAndNext.next && (
               <>
-                <span className="text-gray-300">&middot;</span>
-                <span>
+                <span className="max-sm:hidden text-gray-300 sm:inline">
+                  &middot;
+                </span>
+                <span
+                  data-testid="layer-card-up-next"
+                  className="basis-full sm:basis-auto"
+                >
                   <TranslatedSentence
                     template="Up next {{name}} {{when}}"
                     values={{
@@ -581,7 +633,14 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 "On-call duty rotates through these users top to bottom. Drag the handle to reorder.",
               )}
             </p>
-            <LayerUser layer={layer} onUpdateUsers={props.onUsersChange} />
+            <LayerUser
+              layer={layer}
+              onUpdateUsers={props.onUsersChange}
+              overrides={props.overrides}
+              coverNameById={coverNameById}
+              timezone={props.timezone}
+              onSkipUser={props.onSkipUser}
+            />
           </div>
 
           <div className="border-t border-gray-200 pt-5">

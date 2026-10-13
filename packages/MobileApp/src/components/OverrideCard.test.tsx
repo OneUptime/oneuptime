@@ -63,6 +63,38 @@ describe("OverrideCard direction", () => {
     expect(screen.getByText("Your pages go to Priya")).toBeTruthy();
   });
 
+  test("an override that names nobody to cover reads as a skip, from either side", async (): Promise<void> => {
+    await render(
+      <OverrideCard
+        override={override({ routeAlertsToUser: null })}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+      />,
+    );
+
+    expect(
+      screen.getByText("Your turns go to the next person in the rotation"),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Nobody/)).toBeNull();
+
+    await render(
+      <OverrideCard
+        override={override({
+          overrideUser: { _id: TEAMMATE, name: "Priya" },
+          routeAlertsToUser: null,
+        })}
+        state="upcoming"
+        currentUserId={ME}
+        now={NOW}
+      />,
+    );
+
+    expect(
+      screen.getByText("Priya's turns go to the next person in the rotation"),
+    ).toBeTruthy();
+  });
+
   test('reads as "X\'s pages go to you" when the reader is the cover', async (): Promise<void> => {
     await render(
       <OverrideCard
@@ -100,7 +132,7 @@ describe("OverrideCard direction", () => {
       <OverrideCard
         override={override({
           overrideUser: { _id: "user-a", email: "priya@example.com" },
-          routeAlertsToUser: null,
+          routeAlertsToUser: { _id: "user-b" },
         })}
         state="active"
         currentUserId={ME}
@@ -109,7 +141,7 @@ describe("OverrideCard direction", () => {
     );
 
     expect(
-      screen.getByText("priya@example.com's pages go to Nobody"),
+      screen.getByText("priya@example.com's pages go to Unnamed user"),
     ).toBeTruthy();
   });
 });

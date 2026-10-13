@@ -340,4 +340,32 @@ describe("the Escalation Rules docs page", () => {
       "Terraform's escalation rule resource still takes a name",
     );
   });
+
+  /*
+   * A user override with nobody named to cover skips the person (task
+   * oncall-skip-user-until): the escalation does not page them, and its log
+   * says they are away and until when.
+   */
+  it("says a user override that names nobody to cover skips the person, as the escalation does", () => {
+    const escalation: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "Common/Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
+      ),
+      "utf8",
+    );
+    const awayMessage: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "Common/Types/OnCallDutyPolicy/AwayTimelineMessage.ts",
+      ),
+      "utf8",
+    );
+
+    expect(escalation).toContain("getAwayTimelineMessage(");
+    expect(awayMessage).toContain('"Skipped because this user is away until "');
+    expect(PAGE).toContain(
+      "One that names nobody to cover skips them: they are not paged, the policy's run says they are away and until when, and in an on-call schedule each of their turns goes to the next person in the rotation.",
+    );
+  });
 });
