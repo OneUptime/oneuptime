@@ -167,7 +167,7 @@ describe("SMSEagle MakeCall - sending", () => {
 });
 
 describe("SMSEagle MakeCall - the device URL is checked first", () => {
-  test("checks the URL against SSRF, allowing private-network targets", async () => {
+  test("checks the URL against SSRF, as the API steps do", async () => {
     apiPostMock.mockResolvedValue(queued(1));
 
     await new MakeCall().run(makeArgs(), makeOptions());
@@ -303,6 +303,17 @@ describe("SMSEagle MakeCall - SMSEagle errors go to the error port", () => {
     expect(result.returnValues["error"]).toBe("Modem not ready");
   });
 
+  test("a 200 with no result in it is still an error", async () => {
+    apiPostMock.mockResolvedValue(new HTTPResponse<JSONObject>(200, [], {}));
+
+    const result: RunReturnType = await new MakeCall().run(
+      makeArgs(),
+      makeOptions(),
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(result.returnValues["error"]).toBe("SMSEagle API Error.");
+  });
   test("a device that cannot be reached goes to the error port with the reason", async () => {
     apiPostMock.mockRejectedValue(
       new APIException(
