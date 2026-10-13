@@ -168,28 +168,16 @@
     };
 </script>
 
+<%# The partial loads the Google Tag Manager container once consent allows it. -%>
 <%- include('../../Common/Server/Views/Partials/AnalyticsConsent', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 
-<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
-<!-- Google Tag Manager -->
-<script>(function (w, d, s, l, i) {
-        w[l] = w[l] || []; w[l].push({
-            'gtm.start':
-                new Date().getTime(), event: 'gtm.js'
-        }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-                'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
-<!-- End Google Tag Manager -->
-<% } %>
-
 <!--
-    Deferred analytics - PostHog loads after page render to improve LCP. Until
-    it lands the stub queues capture calls, so nothing in the product has to
-    know whether the library is there. Loading is not gated on the cookie
-    banner (Common/Server/Views/Partials/AnalyticsConsent.ejs).
+    Deferred analytics - PostHog loads after page render to improve LCP, and
+    only once measurement is allowed (Common/Server/Views/Partials/
+    AnalyticsConsent.ejs). Until it lands the stub queues capture calls, so
+    nothing in the page has to know whether the library is there.
 -->
 <script>
     // PostHog stub - capture calls are queued until the library loads
@@ -203,11 +191,22 @@
         var started = false;
 
         function initPostHog() {
-            if (started) { return; }
+            /*
+             * Asked again when the browser is idle: a visitor can refuse in
+             * the moment between scheduling this and it running.
+             */
+            if (started || !window.oneUptimeConsent.isAllowed()) { return; }
             started = true;
 
             !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
             posthog.init('phc_lrbfSHsDc1YOhfbabPI8ncLCKz8eqeGdmu0O6IRKaz1', { api_host: 'https://eu.posthog.com', autocapture: false });
+
+            /*
+             * Loaded means allowed. A refusal on an earlier visit opted this
+             * browser out, and PostHog remembers that on its own, so it is
+             * lifted here - silently, without an opt-in event.
+             */
+            posthog.opt_in_capturing({ captureEventName: false });
         }
 
         function initWhenIdle() {
@@ -220,13 +219,31 @@
         }
 
         /*
-         * Unconditional. PostHog used to wait for the banner; it no longer
-         * does — see the top of
-         * Common/Server/Views/Partials/AnalyticsConsent.ejs for the decision
-         * and its consequences. The stub above still queues capture calls
-         * until the library is in, so nothing is lost in the meantime.
+         * Only once measurement is allowed: now, or when the visitor accepts.
+         * The stub above queues capture calls until then, and they are sent
+         * only if the library does load.
          */
-        initWhenIdle();
+        window.oneUptimeConsent.whenAllowed(initWhenIdle);
+
+        /*
+         * An answer on this page takes effect on this page: a refusal stops a
+         * running PostHog at once, and accepting after a refusal starts it
+         * again.
+         */
+        window.oneUptimeConsent.onChange(function (allowed) {
+            if (!started) {
+                if (allowed) {
+                    initWhenIdle();
+                }
+                return;
+            }
+
+            if (allowed) {
+                window.posthog.opt_in_capturing({ captureEventName: false });
+            } else {
+                window.posthog.opt_out_capturing();
+            }
+        });
     })();
 </script>
 

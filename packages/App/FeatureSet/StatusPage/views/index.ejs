@@ -120,26 +120,15 @@
     <script src="/status-page/assets/js/tailwind-3.4.5.js"></script>
     <title><%= typeof title !== 'undefined' ? title : 'Status Page' %></title>
 
-    
-    <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
-        <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){if(w.__ONEUPTIME_STATUS_PAGE_LOGIN_HANDOFF_PENDING__||w.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__){return;}w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-PKQD5WH');</script>
-  <!-- End Google Tag Manager -->
-    <% } %>
-
-   
+    <%#
+      A status page belongs to OneUptime's customer, and its visitors are not
+      OneUptime's to measure: no Google tag, no advertising pixel, no product
+      analytics - on a custom domain or at /status-page/:id alike. A customer
+      who wants analytics adds their own tag with the page's custom JavaScript.
+    -%>
+    <%- include('../../../../Common/Server/Views/Partials/NoProductAnalytics') -%>
   </head>
   <body class="h-full bg-gray-50">
-    <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
-    <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
-    <% } %>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/status-page/dist/Index.js"></script>
