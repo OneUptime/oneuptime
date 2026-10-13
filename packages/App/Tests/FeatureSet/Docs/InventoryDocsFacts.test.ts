@@ -176,6 +176,8 @@ const CUSTOM_FIELDS_PAGE_BASE: string = `${DASHBOARD_APP}/Pages/Settings/Base/Cu
 const CUSTOM_FIELD_OPTIONS: string = `${DASHBOARD_APP}/Components/CustomFields/CustomFieldOptionsField.tsx`;
 const COLOR_PICKER: string =
   "Common/UI/Components/Forms/Fields/ColorPicker.tsx";
+const OPTIONS_EDITOR: string =
+  "Common/UI/Components/CustomFields/DropdownOptionsInput.tsx";
 const CUSTOM_FIELD_COLUMNS: string =
   "Common/UI/Components/ModelTable/CustomFieldColumns.tsx";
 const ENTITY_REGISTRY: string =
@@ -1200,6 +1202,18 @@ describe("Inventory Custom Fields", () => {
     );
     expect(page).toContain(
       "add its options under **Dropdown Options**. Each option can carry a colour, used the same way in the table cell and in the filter chip: pick one of the named colours, **No color**, or **Custom color** for an exact colour code.",
+    );
+
+    // The options field edits its list with the option editor, dragged by a handle.
+    const editor: string = readSource(OPTIONS_EDITOR);
+
+    expect(options).toContain(
+      'import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";',
+    );
+    expect(editor).toContain('import DragHandle from "../Table/DragHandle";');
+    expect(editor).toContain("const onDragEnd: OnDragEndFn");
+    expect(page).toContain(
+      "Drag an option by its handle to change where it is listed.",
     );
   });
 
