@@ -139,8 +139,21 @@ describe("Legal routes", () => {
   /*
    * /legal rendered the Terms of Service under a second URL, so search
    * engines saw two copies of one document. It redirects to /legal/terms
-   * permanently, which is still what every link to /legal shows.
+   * permanently, which is still what every link to /legal shows. Each
+   * document hands legal.ejs its own SEO entry rather than leaving the
+   * request middleware to derive one from the path, so /Legal/DPA and
+   * /legal/dpa/ still name /legal/dpa as canonical.
    */
+  const legalPaths: Array<string> = [
+    ...new Set<string>(
+      [...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  ];
+
   test("/legal permanently redirects to the terms it always showed", () => {
     expect(hasGetRoute("/legal")).toBe(true);
     expect(redirectTargetOf("/legal")).toBe("/legal/terms");
@@ -173,6 +186,36 @@ describe("Legal routes", () => {
       expect([pagePath, urls.includes("/legal")]).toEqual([pagePath, false]);
     }
   });
+
+  test("every legal document is registered once", () => {
+    const declarations: Array<string> = [
+      ...routesSource.matchAll(/app\.get\(\s*"(\/legal\/[^"]+)"/g),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(legalPaths.length).toBe(29);
+    expect(declarations.length).toBe(legalPaths.length);
+  });
+
+  test.each(legalPaths)(
+    "%s renders its own section with its own SEO entry",
+    (legalPath: string) => {
+      const body: string = bodyOfGetRoute(legalPath)!;
+      const section: string = legalPath.replace("/legal/", "");
+
+      expect(body).toContain(`${"${ViewsPath}"}/legal.ejs`);
+      expect(body).toContain(`section: "${section}"`);
+      expect(body).toMatch(
+        new RegExp(`getSEOForPath\\(\\s*"${legalPath}",\\s*res\\.locals`),
+      );
+
+      const seo: PageSEOData | undefined = PageSEOConfig[legalPath];
+
+      expect(seo).toBeDefined();
+      expect(seo!.canonicalPath).toBe(legalPath);
+    },
+  );
 });
 
 describe("Nostr identity route", () => {

@@ -1375,6 +1375,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "terms",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/terms", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1387,6 +1388,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "privacy",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/privacy", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1401,6 +1403,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "code-of-conduct",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/code-of-conduct",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1414,6 +1420,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "contact",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/contact", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1428,6 +1435,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "subprocessors",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/subprocessors",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1441,6 +1452,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1453,6 +1465,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "ccpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/ccpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1465,6 +1478,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "cookies",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/cookies", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1477,6 +1491,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "hipaa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/hipaa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1489,6 +1504,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dmca",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dmca", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1501,6 +1517,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "pci",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/pci", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1515,6 +1532,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27001",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27001",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1530,6 +1551,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27017",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27017",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1545,36 +1570,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27018",
           requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27017",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27017",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27018",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27018",
-          requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27018",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1588,6 +1587,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-2",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-2", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1600,6 +1600,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-3",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-3", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1612,6 +1613,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "vpat",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/vpat", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1626,6 +1628,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "data-residency",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/data-residency",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1639,6 +1645,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gdpr",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gdpr", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1653,6 +1660,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "21-cfr-part-11",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/21-cfr-part-11",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1666,6 +1677,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gamp-5",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gamp-5", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1678,6 +1690,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "annex-11",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/annex-11", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1690,6 +1703,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "iso-9001",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/iso-9001", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1704,6 +1718,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "gxp-cloud",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/gxp-cloud",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1717,6 +1735,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "csa-star",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/csa-star", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1729,6 +1748,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "fedramp",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/fedramp", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1741,6 +1761,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "sla",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/sla", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1753,6 +1774,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "security",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/security", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1767,6 +1789,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "deprecation-policy",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/deprecation-policy",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );

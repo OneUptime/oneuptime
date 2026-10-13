@@ -1,7 +1,17 @@
 /*
  * Page-specific SEO metadata configuration for OneUptime landing pages
  * This provides structured data for search engines and AI agents
+ *
+ * Every routed template writes its <title> and meta description from here
+ * (`seo.title`, `seo.description`), and head-social.ejs writes the same two
+ * strings into the Open Graph and Twitter tags, so a page reads the same in
+ * search results and in a link preview. Titles stay within 60 characters,
+ * about what a search result shows before it cuts the line off, and every
+ * page but the homepage puts the brand last; Tests/PageTitles.test.ts holds
+ * every page to both.
  */
+
+import ProductCompare, { Product } from "./ProductCompare";
 
 export interface BreadcrumbItem {
   name: string;
@@ -67,6 +77,31 @@ export const createDefaultSEO: (
   };
 };
 
+// A legal or compliance document rendered by legal.ejs.
+const legalDocumentSEO: (
+  canonicalPath: string,
+  name: string,
+  title: string,
+  description: string,
+) => PageSEOData = (
+  canonicalPath: string,
+  name: string,
+  title: string,
+  description: string,
+): PageSEOData => {
+  return {
+    title,
+    description,
+    canonicalPath,
+    twitterCard: "summary",
+    pageType: "legal",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name, url: canonicalPath },
+    ],
+  };
+};
+
 // Page-specific SEO configurations
 export const PageSEOConfig: Record<string, PageSEOData> = {
   // Homepage
@@ -83,8 +118,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
 
   // Compare index
   "/compare": {
-    title:
-      "OneUptime vs Alternatives | Compare Monitoring, On-Call & Status Page Tools",
+    title: "Compare Monitoring, On-Call & Status Page Tools | OneUptime",
     description:
       "Compare OneUptime with PagerDuty, Datadog, Grafana, Opsgenie, Statuspage and 25+ other tools. See features, pricing, and why teams consolidate monitoring, on-call, incidents, and status pages onto one open-source platform.",
     canonicalPath: "/compare",
@@ -130,7 +164,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/monitoring": {
-    title: "Uptime Monitoring | Website, API, Server Monitoring | OneUptime",
+    title: "Uptime Monitoring for Websites, APIs & Servers | OneUptime",
     description:
       "Monitor websites, APIs, servers, and any resource in real-time. Get instant alerts when things go wrong. Supports HTTP, TCP, UDP, DNS, SSL, ping monitoring. Open source.",
     canonicalPath: "/product/monitoring",
@@ -162,8 +196,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/incident-management": {
-    title:
-      "Incident Management Software | Resolve Incidents Faster | OneUptime",
+    title: "Incident Management Software | Resolve Faster | OneUptime",
     description:
       "Streamline incident response with OneUptime. Track incidents, collaborate in real-time, conduct postmortems, and improve MTTR. Integrates with Slack, PagerDuty, and more. Open source.",
     canonicalPath: "/product/incident-management",
@@ -195,8 +228,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/on-call": {
-    title:
-      "On-Call Management & Alerting | Schedules & Escalations | OneUptime",
+    title: "On-Call Management | Schedules & Escalations | OneUptime",
     description:
       "On-call scheduling, alerting, and escalation policies. Alert the right people at the right time via SMS, phone, email, Slack. Rotation schedules and override support. Open source.",
     canonicalPath: "/product/on-call",
@@ -292,7 +324,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/runbooks": {
-    title: "Runbooks | Automated Incident Response Procedures | OneUptime",
+    title: "Runbook Automation for Incident Response | OneUptime",
     description:
       "Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, bash, and AI steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.",
     canonicalPath: "/product/runbooks",
@@ -358,7 +390,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/tool/mcp-server": {
-    title: "MCP Server | Model Context Protocol for AI Agents | OneUptime",
+    title: "MCP Server | Model Context Protocol for AI | OneUptime",
     description:
       "Connect AI agents and LLMs to your OneUptime observability data via Model Context Protocol (MCP). Query incidents, monitors, logs, metrics, and traces directly from your AI tools.",
     canonicalPath: "/tool/mcp-server",
@@ -456,8 +488,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/kubernetes": {
-    title:
-      "Kubernetes Observability | Monitor Clusters, Pods & Nodes | OneUptime",
+    title: "Kubernetes Monitoring | Clusters, Pods & Nodes | OneUptime",
     description:
       "Complete Kubernetes observability with real-time cluster monitoring, pod health tracking, node metrics, and automated alerting. OpenTelemetry native. Open source.",
     canonicalPath: "/product/kubernetes",
@@ -491,8 +522,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/docker": {
-    title:
-      "Docker Observability | Monitor Hosts, Containers & Images | OneUptime",
+    title: "Docker Monitoring | Hosts, Containers & Images | OneUptime",
     description:
       "Complete Docker observability with real-time host monitoring, container health tracking, image insights, and automated alerting. OpenTelemetry native. Open source.",
     canonicalPath: "/product/docker",
@@ -526,8 +556,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/podman": {
-    title:
-      "Podman Observability | Monitor Hosts, Containers & Images | OneUptime",
+    title: "Podman Monitoring | Hosts, Containers & Images | OneUptime",
     description:
       "Complete Podman observability with real-time host monitoring, container health tracking, image insights, and automated alerting. Daemonless and rootless-capable. OpenTelemetry native. Open source.",
     canonicalPath: "/product/podman",
@@ -561,7 +590,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/host": {
-    title: "Host Observability | Server Metrics, Processes & Logs | OneUptime",
+    title: "Host & Server Monitoring | Metrics & Processes | OneUptime",
     description:
       "Auto-discover hosts from any OpenTelemetry collector. Live CPU, memory, disk, filesystem, network, and per-process telemetry — plus logs and traces correlated to the same host. Open source.",
     canonicalPath: "/product/host",
@@ -595,7 +624,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/proxmox": {
-    title: "Proxmox Monitoring | Nodes, VMs, Storage & Backups | OneUptime",
+    title: "Proxmox Monitoring | VMs, Storage & Backups | OneUptime",
     description:
       "Monitor Proxmox VE clusters end to end: node and guest health, storage usage, backup coverage, and replication alerting. One agent per cluster, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/proxmox",
@@ -629,8 +658,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/vmware": {
-    title:
-      "VMware Monitoring | vCenter, ESXi Hosts, VMs & Datastores | OneUptime",
+    title: "VMware Monitoring | vCenter, ESXi Hosts & VMs | OneUptime",
     description:
       "Monitor VMware vSphere end to end: ESXi host and virtual machine health, datastore capacity, CPU ready, memory ballooning, cluster and vSAN alerting. One read-only agent per vCenter, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/vmware",
@@ -665,8 +693,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/ai-observability": {
-    title:
-      "AI / LLM Observability | Tokens, Cost, Traces & Prompts | OneUptime",
+    title: "AI & LLM Observability | Tokens, Cost & Traces | OneUptime",
     description:
       "Observe LLM and AI-agent apps with OpenTelemetry: per-call traces, token usage, cost, latency, errors, and full prompts and completions. Works with OpenLLMetry, OpenInference and native OTel. Open source.",
     canonicalPath: "/product/ai-observability",
@@ -700,8 +727,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/ceph": {
-    title:
-      "Ceph Monitoring | Cluster Health, OSDs, Pools & Capacity | OneUptime",
+    title: "Ceph Monitoring | Cluster Health, OSDs & Pools | OneUptime",
     description:
       "Monitor Ceph clusters without bolting Grafana onto the dashboard: health drill-downs, OSD and PG state, pool capacity with growth forecasts, and alerting with on-call built in. Open source.",
     canonicalPath: "/product/ceph",
@@ -735,8 +761,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/docker-swarm": {
-    title:
-      "Docker Swarm Monitoring | Nodes, Services, Tasks & Stacks | OneUptime",
+    title: "Docker Swarm Monitoring | Nodes & Services | OneUptime",
     description:
       "Monitor Docker Swarm clusters end to end: manager and worker node health, services and their task replicas, stacks, overlay networks, secrets, configs, and volumes. One agent on a manager node, usage-based pricing, 10-minute setup. Open source.",
     canonicalPath: "/product/docker-swarm",
@@ -771,8 +796,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/iot": {
-    title:
-      "IoT Device Monitoring | Fleets, Sensors, Battery & Signal | OneUptime",
+    title: "IoT Device Monitoring | Fleets, Battery & Signal | OneUptime",
     description:
       "Monitor your entire IoT fleet from one dashboard: per-device health, battery, signal strength, temperature, and connectivity alerting. Standard OpenTelemetry, no proprietary agent, usage-based pricing. Open source.",
     canonicalPath: "/product/iot",
@@ -806,8 +830,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/network-monitoring": {
-    title:
-      "Network Device Monitoring | SNMP Switches, Routers & Firewalls | OneUptime",
+    title: "Network Monitoring | SNMP Switches & Routers | OneUptime",
     description:
       "Agentless SNMP monitoring for switches, routers, and firewalls: device and interface health, LLDP topology maps, probe latency matrix, subnet discovery, and vendor alert packs — wired to on-call. Open source.",
     canonicalPath: "/product/network-monitoring",
@@ -872,7 +895,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/topology": {
-    title: "Topology | Service Map, Infrastructure & Network Maps | OneUptime",
+    title: "Service Map & Topology | Infrastructure Maps | OneUptime",
     description:
       "Automatic topology maps built from your telemetry: a service map drawn from traces with live traffic and latency, a nested infrastructure map, and a live network map. Active incidents overlay on every node. Open source.",
     canonicalPath: "/product/topology",
@@ -906,8 +929,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/security-events": {
-    title:
-      "Security Events | SIEM Signals, OCSF & Sigma Detection Rules | OneUptime",
+    title: "Security Events | SIEM, OCSF & Sigma Rules | OneUptime",
     description:
       "Send security events from any source to one endpoint. They are normalized to OCSF, stored beside your logs, metrics and traces, matched by Sigma detection rules, enriched against your own STIX/TAXII threat-intel feeds, and turned into alerts that page your existing on-call rotation. Open source.",
     canonicalPath: "/product/security-events",
@@ -946,7 +968,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/services": {
-    title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
+    title: "Service Catalog | Own & Monitor Every Service | OneUptime",
     description:
       "A single catalog of every service you run. Assign owners, group by labels, and connect each service to its logs, traces, metrics, and incidents. Open source.",
     canonicalPath: "/product/services",
@@ -979,8 +1001,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/databases": {
-    title:
-      "Database Monitoring | PostgreSQL, MySQL, Redis, MongoDB & More | OneUptime",
+    title: "Database Monitoring | PostgreSQL, MySQL & Redis | OneUptime",
     description:
       "Every database your applications query, discovered from traces, Kubernetes and Docker: query latency and errors, the services calling it, engine metrics from a config-only OpenTelemetry agent, and ready-made alerts. Open source.",
     canonicalPath: "/product/databases",
@@ -1015,8 +1036,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/queues": {
-    title:
-      "Message Queue Monitoring | Kafka, RabbitMQ, SQS, Pub/Sub & More | OneUptime",
+    title: "Message Queue Monitoring | Kafka, RabbitMQ, SQS | OneUptime",
     description:
       "Every queue, topic and subscription your applications use, discovered from OpenTelemetry traces and broker metrics: producers and consumers, backlog, consumer lag and dead letters, with alerts wired to on-call. Open source.",
     canonicalPath: "/product/queues",
@@ -1051,8 +1071,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/profiles": {
-    title:
-      "Continuous Profiling | CPU, Memory & Allocation Profiling | OneUptime",
+    title: "Continuous Profiling | CPU & Memory Profiling | OneUptime",
     description:
       "Continuous profiling for production applications. CPU, memory, and allocation profiling with flamegraphs, function-level analysis, and diff comparison. OpenTelemetry native. Open source.",
     canonicalPath: "/product/profiles",
@@ -1086,7 +1105,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/scheduled-maintenance": {
-    title: "Scheduled Maintenance | Plan & Communicate Downtime | OneUptime",
+    title: "Scheduled Maintenance | Communicate Downtime | OneUptime",
     description:
       "Plan, schedule, and communicate maintenance windows to your users. Notify subscribers automatically, update status pages in real-time. Open source maintenance management.",
     canonicalPath: "/product/scheduled-maintenance",
@@ -1217,7 +1236,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/serverless": {
-    title: "Serverless Observability | AWS Lambda & Functions | OneUptime",
+    title: "Serverless Monitoring | AWS Lambda & Functions | OneUptime",
     description:
       "Monitor AWS Lambda, Google Cloud Functions, Azure Functions, and Cloudflare Workers with OpenTelemetry. Invocations, cold starts, duration, errors, and per-invocation traces. Open source.",
     canonicalPath: "/product/serverless",
@@ -1287,7 +1306,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/rum": {
-    title: "Real User Monitoring (RUM) | Web Vitals & Sessions | OneUptime",
+    title: "Real User Monitoring (RUM) | Core Web Vitals | OneUptime",
     description:
       "Real User Monitoring for browser and mobile apps with the OpenTelemetry Web SDK. Core Web Vitals, page views, JavaScript errors, and real user sessions correlated with backend traces. Open source.",
     canonicalPath: "/product/rum",
@@ -1321,11 +1340,15 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
-  // Pricing
+  /*
+   * Pricing. The prices quoted here are the Growth plan's monthly price in
+   * Utils/Pricing.ts and the telemetry rate the page publishes;
+   * Tests/PageTitles.test.ts fails when they drift apart.
+   */
   "/pricing": {
-    title: "Pricing | Free Tier & Paid Plans | OneUptime",
+    title: "Pricing: Free Plan, Paid Plans From $22/User | OneUptime",
     description:
-      "OneUptime pricing starts free. Get status pages, monitoring, incident management, and more. Transparent pricing with no hidden fees. Enterprise plans available.",
+      "OneUptime pricing: start free with no credit card, paid plans from $22 per user per month, and telemetry at $0.10 per GB ingested. Compare every plan.",
     canonicalPath: "/pricing",
     twitterCard: "summary_large_image",
     pageType: "pricing",
@@ -1337,9 +1360,9 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
 
   // Enterprise
   "/enterprise/overview": {
-    title: "Enterprise | Self-Hosted & Cloud | OneUptime",
+    title: "Enterprise Observability | Self-Hosted & Cloud | OneUptime",
     description:
-      "OneUptime for enterprise. Self-hosted deployment, SSO/SAML, advanced security, SLA guarantees, dedicated support. SOC 2, HIPAA, GDPR compliant.",
+      "Enterprise-grade monitoring, incident management, and observability platform. SOC 2 Type II attested, HIPAA compliant, with a 99.95% uptime target on Enterprise plans and dedicated support.",
     canonicalPath: "/enterprise/overview",
     twitterCard: "summary_large_image",
     pageType: "enterprise",
@@ -1350,8 +1373,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/enterprise/self-hosted": {
-    title:
-      "Self-Hosted OneUptime | Deployment, Architecture & Support | OneUptime",
+    title: "Self-Hosted Deployment, Architecture & Support | OneUptime",
     description:
       "Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability and disaster recovery, upgrade responsibility, air-gapped operation, the Enterprise Edition, data residency, and support boundaries.",
     canonicalPath: "/enterprise/self-hosted",
@@ -1384,7 +1406,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/enterprise/demo": {
-    title: "Request Demo | See OneUptime in Action | OneUptime",
+    title: "Request a Demo | See the Platform in Action | OneUptime",
     description:
       "Schedule a personalized demo of OneUptime. See how our observability platform can help your team monitor, respond, and resolve issues faster.",
     canonicalPath: "/enterprise/demo",
@@ -1412,7 +1434,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/trust": {
-    title: "Trust Center | Security, Compliance & Governed Claims | OneUptime",
+    title: "Trust Center | Security, Compliance & Privacy | OneUptime",
     description:
       "OneUptime's canonical trust center. Certifications and attestations with the evidence behind each one, security architecture, privacy practices, and a governed claims matrix covering service levels, support, compliance, encryption, deployment, migration, scale, discounts, and contract terms.",
     canonicalPath: "/trust",
@@ -1465,85 +1487,196 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   /*
-   * Legal pages. /legal redirects to /legal/terms (Routes.ts), so each trail
+   * Legal and compliance documents, all rendered by legal.ejs. Each one has
+   * its own title and description: they used to share "OneUptime | Legal
+   * Center" and one generic description, so search results showed thirty
+   * identical lines to buyers looking for "oneuptime soc 2" or "oneuptime
+   * dpa". The descriptions say what the claims matrix (Utils/Claims.ts) says
+   * and no more. /legal redirects to /legal/terms (Routes.ts), so each trail
    * is Home > document.
    */
-  "/legal/terms": {
-    title: "Terms of Service | OneUptime",
-    description: "OneUptime terms of service and conditions of use.",
-    canonicalPath: "/legal/terms",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "Terms of Service", url: "/legal/terms" },
-    ],
-  },
 
-  "/legal/privacy": {
-    title: "Privacy Policy | OneUptime",
-    description:
-      "OneUptime privacy policy. Learn how we collect, use, and protect your data.",
-    canonicalPath: "/legal/privacy",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "Privacy Policy", url: "/legal/privacy" },
-    ],
-  },
+  // Core policies
+  "/legal/terms": legalDocumentSEO(
+    "/legal/terms",
+    "Terms of Service",
+    "Terms of Service | OneUptime",
+    "The terms for using OneUptime's website and hosted product: your data and account, notice of changes, our liability, and how disputes are resolved.",
+  ),
+  "/legal/privacy": legalDocumentSEO(
+    "/legal/privacy",
+    "Privacy Policy",
+    "Privacy Policy | OneUptime",
+    "How OneUptime collects, uses, stores and protects personal data, how long we keep it, and your rights over it under the GDPR and UK GDPR.",
+  ),
+  "/legal/code-of-conduct": legalDocumentSEO(
+    "/legal/code-of-conduct",
+    "Code of Conduct",
+    "Code of Conduct | OneUptime",
+    "The values and standards every employee, contractor and representative acting on OneUptime's behalf is expected to uphold.",
+  ),
+  "/legal/sla": legalDocumentSEO(
+    "/legal/sla",
+    "Service Level Agreement",
+    "Service Level Agreement (SLA) | OneUptime",
+    "OneUptime's SLA: a 99.9% monthly uptime target on paid plans, 99.95% on Enterprise plans with a signed order form, and service credits if we miss it.",
+  ),
+  "/legal/security": legalDocumentSEO(
+    "/legal/security",
+    "Security",
+    "Security Practices & Safeguards | OneUptime",
+    "The administrative, technical and physical safeguards OneUptime uses to protect your data, and how to report a security vulnerability to us.",
+  ),
+  "/legal/deprecation-policy": legalDocumentSEO(
+    "/legal/deprecation-policy",
+    "Deprecation Policy",
+    "Deprecation Policy | OneUptime",
+    "How OneUptime changes and retires APIs, features and integrations: at least 12 months' notice for breaking API changes and 6 months for feature removals.",
+  ),
 
-  "/legal/cookies": {
-    title: "Cookie Policy | OneUptime",
-    description:
-      "OneUptime cookie policy. Learn what cookies we use, why we use them, and how to control them.",
-    canonicalPath: "/legal/cookies",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "Cookie Policy", url: "/legal/cookies" },
-    ],
-  },
+  // Privacy and data
+  "/legal/gdpr": legalDocumentSEO(
+    "/legal/gdpr",
+    "GDPR",
+    "GDPR Compliance | OneUptime",
+    "OneUptime is GDPR compliant as a processor, with a Data Processing Agreement, Standard Contractual Clauses and EU data residency available.",
+  ),
+  "/legal/ccpa": legalDocumentSEO(
+    "/legal/ccpa",
+    "CCPA",
+    "CCPA & CPRA Compliance | OneUptime",
+    "How OneUptime complies with the California Consumer Privacy Act and CPRA, and honours consumer privacy rights for all of its customers.",
+  ),
+  "/legal/hipaa": legalDocumentSEO(
+    "/legal/hipaa",
+    "HIPAA",
+    "HIPAA Compliance & BAA | OneUptime",
+    "OneUptime is HIPAA compliant as a business associate. Covered entities sign a Business Associate Agreement with us before any PHI is processed.",
+  ),
+  "/legal/data-residency": legalDocumentSEO(
+    "/legal/data-residency",
+    "Data Residency",
+    "Data Residency | OneUptime",
+    "OneUptime Enterprise customers choose the region their data is stored in, on AWS, Azure, GCP or on-premises, to meet data residency requirements.",
+  ),
+  "/legal/subprocessors": legalDocumentSEO(
+    "/legal/subprocessors",
+    "Subprocessors",
+    "Subprocessors | OneUptime",
+    "The third-party subprocessors OneUptime engages to deliver its services, with the identity, location and role of each one.",
+  ),
+  "/legal/dpa": legalDocumentSEO(
+    "/legal/dpa",
+    "Data Processing Agreement",
+    "Data Processing Agreement (DPA) | OneUptime",
+    "OneUptime's Data Processing Agreement: how HackerBay, Inc. processes personal data on your behalf as a processor under data protection laws.",
+  ),
+  "/legal/cookies": legalDocumentSEO(
+    "/legal/cookies",
+    "Cookie Policy",
+    "Cookie Policy | OneUptime",
+    "Which cookies and similar technologies OneUptime uses on its website and products, why we use them, and how you can control them.",
+  ),
 
-  "/legal/gdpr": {
-    title: "GDPR Compliance | OneUptime",
-    description:
-      "OneUptime GDPR compliance information. We are committed to protecting EU citizen data rights.",
-    canonicalPath: "/legal/gdpr",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "GDPR", url: "/legal/gdpr" },
-    ],
-  },
+  // Security and compliance certifications
+  "/legal/iso-27001": legalDocumentSEO(
+    "/legal/iso-27001",
+    "ISO/IEC 27001",
+    "ISO/IEC 27001 Certification | OneUptime",
+    "OneUptime Cloud is run under an ISO/IEC 27001 certified information security management system. The certificate and its scope are available on request.",
+  ),
+  "/legal/iso-27017": legalDocumentSEO(
+    "/legal/iso-27017",
+    "ISO/IEC 27017",
+    "ISO/IEC 27017 Cloud Security Controls | OneUptime",
+    "OneUptime's ISO/IEC 27017 cloud-services security controls, audited alongside its ISO/IEC 27001 certification. Certificate available on request.",
+  ),
+  "/legal/iso-27018": legalDocumentSEO(
+    "/legal/iso-27018",
+    "ISO/IEC 27018",
+    "ISO/IEC 27018 Cloud PII Protection | OneUptime",
+    "OneUptime's ISO/IEC 27018 controls for protecting personally identifiable information in public clouds, audited alongside ISO/IEC 27001.",
+  ),
+  "/legal/soc-2": legalDocumentSEO(
+    "/legal/soc-2",
+    "SOC 2",
+    "SOC 2 Type II Report | OneUptime",
+    "OneUptime's SOC 2 Type II report covers security, availability and confidentiality and is renewed annually. Request the full report under NDA.",
+  ),
+  "/legal/soc-3": legalDocumentSEO(
+    "/legal/soc-3",
+    "SOC 3",
+    "SOC 3 Report | OneUptime",
+    "OneUptime's SOC 3 report, the general-use summary of its SOC 2 examination, which can be shared without an NDA. Request a copy from our team.",
+  ),
+  "/legal/pci": legalDocumentSEO(
+    "/legal/pci",
+    "PCI DSS",
+    "PCI DSS Compliance | OneUptime",
+    "OneUptime's PCI DSS compliance is validated by a Qualified Security Assessor, with a signed Attestation of Compliance available on request.",
+  ),
+  "/legal/21-cfr-part-11": legalDocumentSEO(
+    "/legal/21-cfr-part-11",
+    "21 CFR Part 11",
+    "21 CFR Part 11 Electronic Records | OneUptime",
+    "OneUptime's controls that support FDA 21 CFR Part 11 electronic records and signatures, with documentation for validating your own system.",
+  ),
+  "/legal/gamp-5": legalDocumentSEO(
+    "/legal/gamp-5",
+    "GAMP 5",
+    "GAMP 5 Category 4 Software | OneUptime",
+    "OneUptime is a GAMP 5 Category 4 configurable product, aligned with GAMP 5, with validation documentation to support your risk-based validation.",
+  ),
+  "/legal/annex-11": legalDocumentSEO(
+    "/legal/annex-11",
+    "EU GMP Annex 11",
+    "EU GMP Annex 11 Computerised Systems | OneUptime",
+    "How OneUptime aligns with EU GMP Annex 11 for computerised systems, and the documentation we supply so you can qualify it for GMP-regulated use.",
+  ),
+  "/legal/iso-9001": legalDocumentSEO(
+    "/legal/iso-9001",
+    "ISO 9001",
+    "ISO 9001 Quality Management | OneUptime",
+    "OneUptime is ISO 9001 certified for its quality management system, covering how we build and operate the service. Certificate available on request.",
+  ),
+  "/legal/gxp-cloud": legalDocumentSEO(
+    "/legal/gxp-cloud",
+    "GxP Cloud Compliance",
+    "GxP Cloud Qualification | OneUptime",
+    "OneUptime's GxP Cloud Qualification Package helps regulated life sciences customers qualify our cloud-hosted platform for GxP environments.",
+  ),
+  "/legal/csa-star": legalDocumentSEO(
+    "/legal/csa-star",
+    "CSA STAR",
+    "CSA STAR Level 2 Certification | OneUptime",
+    "OneUptime is CSA STAR Level 2 certified against the Cloud Controls Matrix, with its CAIQ published to the STAR registry for security reviews.",
+  ),
+  "/legal/fedramp": legalDocumentSEO(
+    "/legal/fedramp",
+    "FedRAMP",
+    "FedRAMP Authorization Status | OneUptime",
+    "FedRAMP Moderate authorization for OneUptime Cloud is in progress and not yet granted. Self-hosted deployments fall under your own ATO instead.",
+  ),
+  "/legal/vpat": legalDocumentSEO(
+    "/legal/vpat",
+    "VPAT (Accessibility)",
+    "VPAT & Accessibility Conformance Report | OneUptime",
+    "OneUptime's VPAT: an Accessibility Conformance Report for the OneUptime web application against WCAG 2.2 Level AA and EN 301 549.",
+  ),
 
-  "/legal/soc-2": {
-    title: "SOC 2 Compliance | OneUptime",
-    description:
-      "OneUptime SOC 2 Type II compliance. Our security controls are audited annually.",
-    canonicalPath: "/legal/soc-2",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "SOC 2", url: "/legal/soc-2" },
-    ],
-  },
-
-  "/legal/hipaa": {
-    title: "HIPAA Compliance | OneUptime",
-    description:
-      "OneUptime HIPAA compliance for healthcare organizations. We sign BAAs for enterprise customers.",
-    canonicalPath: "/legal/hipaa",
-    twitterCard: "summary",
-    pageType: "legal",
-    breadcrumbs: [
-      { name: "Home", url: "/" },
-      { name: "HIPAA", url: "/legal/hipaa" },
-    ],
-  },
+  // Other
+  "/legal/dmca": legalDocumentSEO(
+    "/legal/dmca",
+    "DMCA",
+    "DMCA Copyright Policy | OneUptime",
+    "How to send OneUptime's copyright agent a DMCA notice about material on a OneUptime service that you believe infringes your copyright.",
+  ),
+  "/legal/contact": legalDocumentSEO(
+    "/legal/contact",
+    "Contact",
+    "Legal & Privacy Contact | OneUptime",
+    "Contact HackerBay, Inc., the company behind OneUptime, about legal, privacy and data protection matters, with our registered address and email contacts.",
+  ),
 
   // Teams (Solutions)
   "/solutions/devops": {
@@ -1561,7 +1694,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/solutions/sre": {
-    title: "SRE Tools & Platform | Site Reliability Engineering | OneUptime",
+    title: "SRE Platform | Site Reliability Engineering | OneUptime",
     description:
       "Complete SRE platform with SLOs, error budgets, incident management, and on-call scheduling. Track reliability metrics and reduce toil. Open source.",
     canonicalPath: "/solutions/sre",
@@ -1599,6 +1732,70 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       { name: "Home", url: "/" },
       { name: "Solutions", url: "/#solutions" },
       { name: "Developers", url: "/solutions/developers" },
+    ],
+  },
+
+  /*
+   * These four pages were routed with no entry here, so they fell back to the
+   * site-wide "OneUptime | Complete Observability Platform" in their social
+   * cards and structured data. Their copy is the copy their templates carried.
+   */
+  "/solutions/incident-response": {
+    title: "Incident Response | Detect & Resolve Faster | OneUptime",
+    description:
+      "Streamline your incident response with automated detection, intelligent routing, and collaborative tools. Reduce MTTR and keep your services running.",
+    canonicalPath: "/solutions/incident-response",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "Incident Response", url: "/solutions/incident-response" },
+    ],
+  },
+
+  "/solutions/uptime-monitoring": {
+    title: "Uptime Monitoring & Real-Time Downtime Alerts | OneUptime",
+    description:
+      "Monitor your websites, APIs, and services from probes you place where your users are. Get instant alerts when downtime occurs. 99.95% uptime target on Enterprise plans.",
+    canonicalPath: "/solutions/uptime-monitoring",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "Uptime Monitoring", url: "/solutions/uptime-monitoring" },
+    ],
+  },
+
+  "/solutions/observability": {
+    title: "Full-Stack Observability in One Platform | OneUptime",
+    description:
+      "Complete observability platform combining logs, metrics, and traces. Get full visibility into your systems with correlated data and AI-powered insights.",
+    canonicalPath: "/solutions/observability",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      { name: "Observability", url: "/solutions/observability" },
+    ],
+  },
+
+  "/solutions/status-communication": {
+    title: "Incident Communication | Keep Customers Informed | OneUptime",
+    description:
+      "Beautiful, customizable status pages that keep your customers informed. Public and private status pages with automatic updates and subscriber notifications.",
+    canonicalPath: "/solutions/status-communication",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Solutions", url: "/#solutions" },
+      {
+        name: "Status Communication",
+        url: "/solutions/status-communication",
+      },
     ],
   },
 
@@ -1674,7 +1871,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/industries/government": {
-    title: "Government IT Monitoring | FedRAMP Ready | OneUptime",
+    title: "Government IT Monitoring | Self-Hosted & Secure | OneUptime",
     description:
       "Secure observability platform for government agencies. Self-hosted deployment, data residency controls, and compliance-ready. Monitor critical public services.",
     canonicalPath: "/industries/government",
@@ -1688,6 +1885,57 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 };
 
+/*
+ * Titles of the comparison pages, /compare/<slug>, by slug. Each leads with
+ * the phrase buyers search ("PagerDuty alternative") and ends with the brand.
+ * The template used to append "Alternative - OneUptime | Open Source | 2026
+ * Comparison" to the competitor's full name, 84 characters for Better Stack,
+ * and search results cut it off before the part that sells the page.
+ */
+export const ComparePageTitles: Record<string, string> = {
+  pagerduty: "PagerDuty Alternative: Open-Source On-Call | OneUptime",
+  "statuspage.io":
+    "Statuspage Alternative: Open-Source Status Pages | OneUptime",
+  pingdom: "Pingdom Alternative: Open-Source Monitoring | OneUptime",
+  datadog: "Datadog Alternative: Open-Source Observability | OneUptime",
+  newrelic: "New Relic Alternative: Open-Source Observability | OneUptime",
+  "better-uptime": "Better Uptime Alternative (Better Stack) | OneUptime",
+  "uptime-robot": "UptimeRobot Alternative: Open-Source Monitoring | OneUptime",
+  checkly: "Checkly Alternative: Synthetic & API Monitoring | OneUptime",
+  "incident.io": "incident.io Alternative with Built-In Monitoring | OneUptime",
+  signoz: "SigNoz Alternative with On-Call & Status Pages | OneUptime",
+  opsgenie: "Opsgenie Alternative: Open-Source On-Call | OneUptime",
+  squadcast: "Squadcast Alternative: Open-Source On-Call | OneUptime",
+  firehydrant: "FireHydrant Alternative with Built-In Monitoring | OneUptime",
+  rootly: "Rootly Alternative with Built-In Monitoring | OneUptime",
+  xmatters: "xMatters Alternative: Open-Source On-Call | OneUptime",
+  grafana: "Grafana Alternative: All-in-One Observability | OneUptime",
+  dynatrace: "Dynatrace Alternative: Open-Source Observability | OneUptime",
+  splunk: "Splunk Alternative: Open-Source Observability | OneUptime",
+  sentry: "Sentry Alternative: Open-Source Error Tracking | OneUptime",
+  appdynamics: "AppDynamics Alternative: Open-Source APM | OneUptime",
+  elastic: "Elastic Observability Alternative: Open Source | OneUptime",
+  site24x7: "Site24x7 Alternative: Open-Source Monitoring | OneUptime",
+  cronitor: "Cronitor Alternative: Cron & Uptime Monitoring | OneUptime",
+  "healthchecks-io":
+    "Healthchecks.io Alternative: Cron Job Monitoring | OneUptime",
+  instatus: "Instatus Alternative: Open-Source Status Pages | OneUptime",
+  freshping: "Freshping Alternative: Open-Source Monitoring | OneUptime",
+  prometheus: "Prometheus Alternative: Metrics, Logs & Traces | OneUptime",
+  zabbix: "Zabbix Alternative: Modern Monitoring & On-Call | OneUptime",
+  nagios: "Nagios Alternative: Modern Monitoring & On-Call | OneUptime",
+};
+
+// "healthchecks-io" -> "Healthchecks Io", for a slug no comparison exists for.
+const nameFromSlug: (slug: string) => string = (slug: string): string => {
+  return slug
+    .split("-")
+    .map((word: string) => {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+};
+
 // Helper to get SEO data for a path, with fallback
 export const getPageSEO: (path: string) => PageSEOData = (
   path: string,
@@ -1697,18 +1945,23 @@ export const getPageSEO: (path: string) => PageSEOData = (
     return PageSEOConfig[path];
   }
 
-  // For compare pages, create dynamic SEO
+  // Comparison pages: the competitor's real name comes from ProductCompare.
   if (path.startsWith("/compare/")) {
-    const product: string = path.replace("/compare/", "");
+    const slug: string = path.replace("/compare/", "");
+    const product: Product | undefined = ProductCompare(slug);
     const productName: string = product
-      .split("-")
-      .map((word: string) => {
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      })
-      .join(" ");
+      ? product.productName
+      : nameFromSlug(slug);
+    const title: string = Object.prototype.hasOwnProperty.call(
+      ComparePageTitles,
+      slug,
+    )
+      ? ComparePageTitles[slug]!
+      : `${productName} Alternative | OneUptime`;
+
     return {
-      title: `OneUptime vs ${productName} | Comparison | OneUptime`,
-      description: `Compare OneUptime with ${productName}. See features, pricing, and why teams choose OneUptime as their observability platform.`,
+      title,
+      description: `${productName} vs OneUptime: compare features, pricing and migration. Monitoring, status pages, incidents and on-call in one open-source platform.`,
       canonicalPath: path,
       twitterCard: "summary_large_image",
       pageType: "compare",
@@ -1720,7 +1973,10 @@ export const getPageSEO: (path: string) => PageSEOData = (
     };
   }
 
-  // For legal subpages not explicitly defined
+  /*
+   * A legal path with no entry above. Every routed legal document has its own
+   * entry; this only names the rest, which render the not-found page.
+   */
   if (path.startsWith("/legal/")) {
     const section: string = path.replace("/legal/", "");
     const sectionName: string = section
