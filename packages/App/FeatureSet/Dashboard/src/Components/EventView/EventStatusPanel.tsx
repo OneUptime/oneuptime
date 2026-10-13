@@ -47,6 +47,23 @@ export interface EventPanelAction {
   onClick: () => void;
   isDisabled?: boolean | undefined;
   tooltip?: string | undefined;
+  /*
+   * An action that goes somewhere else - Open in Slack - is a link: it opens
+   * in a new tab, and can be copied or opened with the browser's own
+   * gestures. Its tooltip, when it has one, says where it goes.
+   */
+  href?: string | undefined;
+  /*
+   * Choices under the button instead of one action: Open in Slack for a
+   * record with two Slack channels lists both.
+   */
+  menuItems?: Array<EventPanelMenuItem> | undefined;
+}
+
+export interface EventPanelMenuItem {
+  id: string;
+  label: string;
+  onClick: () => void;
 }
 
 /*
@@ -239,6 +256,72 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const translatedActionLabel: string =
       translateString(action.label) || action.label;
+
+    if (action.menuItems && action.menuItems.length > 0 && !props.isDisabled) {
+      return (
+        <MoreMenu
+          key={action.id}
+          text={translatedActionLabel}
+          dataTestId={action.id}
+          elementToBeShownInsteadOfButton={
+            <span className="inline-flex items-center gap-2">
+              {action.icon && (
+                <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+              )}
+              <span className="truncate">{translatedActionLabel}</span>
+              <Icon
+                icon={IconProp.ChevronDown}
+                className="h-3.5 w-3.5 shrink-0 text-gray-400"
+              />
+            </span>
+          }
+          triggerClassName={`${actionBaseClassName} ${neutralActionClassName} cursor-pointer`}
+        >
+          {action.menuItems.map((item: EventPanelMenuItem) => {
+            return (
+              <MoreMenuItem
+                key={item.id}
+                text={item.label}
+                onClick={item.onClick}
+              />
+            );
+          })}
+        </MoreMenu>
+      );
+    }
+
+    if (action.href && !props.isDisabled && !action.isDisabled) {
+      const translatedLinkTooltip: string | undefined = action.tooltip
+        ? translateString(action.tooltip) || action.tooltip
+        : undefined;
+
+      const link: ReactElement = (
+        <a
+          key={action.id}
+          id={action.id}
+          href={action.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${actionBaseClassName} ${neutralActionClassName}`}
+        >
+          {action.icon && (
+            <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+          )}
+          <span className="truncate">{translatedActionLabel}</span>
+        </a>
+      );
+
+      if (!translatedLinkTooltip) {
+        return link;
+      }
+
+      return (
+        <Tooltip key={action.id} text={translatedLinkTooltip}>
+          {link}
+        </Tooltip>
+      );
+    }
+
     const translatedTooltip: string | undefined = action.tooltip
       ? translateString(action.tooltip) || action.tooltip
       : undefined;
