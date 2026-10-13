@@ -1,4 +1,5 @@
 import URL from "../../../../../Types/API/URL";
+import { JSONObject } from "../../../../../Types/JSON";
 import {
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
@@ -52,6 +53,13 @@ export interface SlackAnswerPlace {
   responseUrl?: string | undefined;
   // A shortcut's: opens a modal, for three seconds.
   triggerId?: string | undefined;
+  /*
+   * The person's direct messages with the app, when they wrote to it there.
+   * Not a channel to answer in with a message only they see: they are
+   * answered by the app's own message there, the last of the ways above.
+   * Kept as the way back to it from the page a Connect button opens.
+   */
+  slackDirectMessageChannelId?: string | undefined;
 }
 
 // How an answer reached the person (for the log and the tests).
@@ -200,6 +208,22 @@ export default class SlackActionAnswer {
     }
 
     return SlackAnswerDelivery.None;
+  }
+
+  /*
+   * An answer as the HTTP response to a slash command itself: Slack shows
+   * it at once, only to the person who ran the command ("Only visible to
+   * you"), with no request of its own - for an answer that reads nothing
+   * first, such as the commands' help (SlackCommandActions).
+   */
+  public static getCommandResponse(answer: WorkspaceAnswer): JSONObject {
+    return {
+      response_type: "ephemeral",
+      text: SlackUtil.getNotificationText(answer.text),
+      blocks: SlackUtil.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: SlackActionAnswer.getMessageBlocks({ answer: answer }),
+      }),
+    };
   }
 
   /*

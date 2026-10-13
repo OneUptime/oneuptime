@@ -402,6 +402,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What Change State offers.",
     "Where you are answered.",
     "If your Slack account is not connected.",
+    // What OneUptime AI answers in Slack: the rule's two halves.
+    "In your own conversation, just reply.",
+    "In any other thread, mention OneUptime.",
   ],
   [TEAMS]: [
     "The project's connection",

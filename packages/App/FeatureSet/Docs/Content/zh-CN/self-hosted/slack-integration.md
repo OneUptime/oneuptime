@@ -143,9 +143,8 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 
 | 功能 | 作用 | 路由 |
 | --- | --- | --- |
-| `/incident` 和 **Create New Incident** 快捷方式 | 在 Slack 中声明事件 | `POST /api/slack/interactive` |
-| `/maintenance` 和 **Create Scheduled Event** 快捷方式 | 在 Slack 中安排维护 | `POST /api/slack/interactive` |
-| `/oneuptime` | 向 OneUptime AI 询问你的日志、追踪、指标、事件和监控器 | `POST /api/slack/command` |
+| `/oneuptime` | 声明事件、安排维护、查看谁在值班以及询问 OneUptime AI；`/oneuptime help` 会列出所有命令 | `POST /api/slack/command` |
+| **Create New Incident** 和 **Create Scheduled Event** 快捷方式 | 通过 Slack 的快捷方式声明事件或安排维护 | `POST /api/slack/interactive` |
 | OneUptime 消息中的按钮和表单 | 确认、解决、添加备注、更改状态、运行值班策略 | `POST /api/slack/interactive` 和 `POST /api/slack/options-load` |
 | 事件 | 提及、消息、表情回应和置顶，例如把一条消息保存为备注 | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 事件和告警的描述可以包含截图，例如合成监控器的截图（请参阅 [显示截图](/docs/monitor/incident-alert-templating#显示截图)）。OneUptime 会把每张截图作为私有文件上传到你的工作区，从而在 Slack 消息中显示它们，这需要机器人权限范围 `files:write`。生成的清单包含它。
 
 如果你的 Slack 应用是用较旧的清单创建的，请在 **OAuth & Permissions > Bot Token Scopes** 下添加 `files:write`（或用当前清单更新应用）。然后在 **项目设置 > 工作区 > Slack** 中再次选择 **Connect with Slack**，以授予新的权限范围。在此之前，每张截图都会显示为其替代文本。
+
+### 用较旧清单创建的应用
+
+用较早的 OneUptime 清单创建的 Slack 应用会把 `/incident` 和 `/maintenance` 注册为独立的命令，它们可能与其他应用的同名命令冲突。它们仍然可用，并打开与 `/oneuptime incident` 和 `/oneuptime maintenance` 相同的表单。要用 `/oneuptime` 替换它们，请用你的服务器生成的清单更新应用：在 [api.slack.com/apps](https://api.slack.com/apps) 中打开应用的 **App Manifest**，粘贴清单并保存。权限范围保持不变，因此无需重新安装应用。
 
 ## 自托管部署的网络访问
 
@@ -172,7 +175,7 @@ OneUptime 恢复运行后，**项目设置 > 工作区 > Slack** 会显示 **Con
 | 方法和路径 | 用途 |
 | --- | --- |
 | `POST /api/slack/events` | Events API 验证、表情回应、置顶、提及和消息 |
-| `POST /api/slack/interactive` | 按钮、快捷方式、模态框提交、`/incident` 和 `/maintenance` |
+| `POST /api/slack/interactive` | 按钮、快捷方式、模态框提交，以及旧应用的 `/incident` 和 `/maintenance` |
 | `POST /api/slack/options-load` | 交互式菜单的选项请求 |
 | `POST /api/slack/command` | `/oneuptime` 命令 |
 

@@ -145,17 +145,18 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 | Meddelande | Vad boten gör |
 | --- | --- |
 | `help` | Visar vad den kan göra. |
-| `ask <question>`, eller vilken fråga som helst på vanligt språk | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer, till exempel "vilka monitorer är nere just nu?". Svar läser bara. |
-| `create incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
-| `create maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
+| `incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
+| `maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
+| `oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
+| `ask [question]`, eller vilken fråga som helst på vanligt språk | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer, till exempel "vilka monitorer är nere just nu?". Svar läser bara. |
 | `show active incidents`, `show active alerts` | Visar det som är öppet nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Visar kommande, eller pågående, underhållshändelser. |
 
-Att fråga OneUptime AI kräver att AI är påslaget för projektet. Se [Fråga AI](/docs/ai/ask-ai).
+Förutom `show`-listorna är detta orden som följer efter `/oneuptime` i Slack; `create incident` och `create maintenance` fungerar fortfarande också. Att fråga OneUptime AI kräver att ditt eget Microsoft Teams-konto är anslutet och att AI är påslaget för projektet. Om ditt konto inte är anslutet ber boten dig en gång i varje tråd eller chatt att ansluta det, med knappen **Connect Microsoft Teams account**. Se [Fråga AI](/docs/ai/ask-ai).
 
 ## Skapa incidenter och underhåll från Microsoft Teams
 
-Att skriva `create incident` eller `create maintenance` till OneUptime-boten öppnar ett formulär för den person som skrev det, i en personlig chatt, en kanal eller en gruppchatt. Det fylls i som den personen: som det OneUptime-konto som personens Microsoft Teams-konto är anslutet till (se [Anslut Microsoft Teams](#anslut-microsoft-teams)), med det kontots behörigheter i projektet. Den som inte har sitt konto anslutet, eller vars OneUptime-konto inte längre är medlem i projektet, får veta vad som ska göras i ett svar som nämner personen, i stället för formuläret.
+Att skriva `incident` eller `maintenance` till OneUptime-boten öppnar ett formulär för den person som skrev det, i en personlig chatt, en kanal eller en gruppchatt. Det fylls i som den personen: som det OneUptime-konto som personens Microsoft Teams-konto är anslutet till (se [Anslut Microsoft Teams](#anslut-microsoft-teams)), med det kontots behörigheter i projektet. Den som inte har sitt konto anslutet, eller vars OneUptime-konto inte längre är medlem i projektet, får veta vad som ska göras i ett svar som nämner personen, i stället för formuläret.
 
 - **Vem som får använda dem.** De som får deklarera en incident eller skapa en schemalagd underhållshändelse i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** och **Incident Member** för en incident (**Create Incident** i en anpassad roll), och **Scheduled Maintenance Admin** och **Scheduled Maintenance Member** för en händelse (**Create Scheduled Maintenance**). Alla andra får veta det, och får inget formulär.
 - **Vad ett formulär erbjuder.** Varje lista — allvarlighetsgrader, monitorer, monitorstatusar, jourpolicyer och etiketter — innehåller det som personen som bad om det får läsa, precis som samma lista i OneUptime, och kortets "not shown"-noteringar räknar bara dessa: med en roll som är begränsad till vissa etiketter, de monitorer och jourpolicyer som har de etiketterna. En lista som personen inte får läsa alls utelämnas. Arkiverade jourpolicyer erbjuds aldrig.

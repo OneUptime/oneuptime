@@ -411,10 +411,10 @@ export default class WorkspaceActionAnswers {
   }
 
   /*
-   * "press Add Note again", "run /incident again", "ask your question
-   * again", with the button or command in bold. A command is run in Slack
-   * (a slash command) and typed to the bot in Microsoft Teams: "type create
-   * incident again".
+   * "press Add Note again", "run /oneuptime incident again", "ask your
+   * question again", with the button or command in bold. A command is run
+   * in Slack (a slash command) and typed to the bot in Microsoft Teams:
+   * "type incident again".
    */
   public static getAgainPhrase(
     again: WorkspaceConnectRequestAgain,

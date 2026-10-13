@@ -444,6 +444,79 @@ describe("a press OneUptime cannot finish for them", () => {
     expect(authorize).not.toHaveBeenCalled();
   });
 
+  /*
+   * A question to OneUptime AI - an @mention, a direct message - has no
+   * button to press again: the chat says to ask it again, and so does the
+   * settings page, which used to say "press the button again" (#4768).
+   */
+  test.each([
+    [
+      WorkspaceType.Slack,
+      {
+        markdown:
+          "✅ **Your Slack account is connected to OneUptime.** Now ask your question again.",
+        text: "Your Slack account is connected to OneUptime. Now ask your question again.",
+      },
+    ],
+    [
+      WorkspaceType.MicrosoftTeams,
+      {
+        markdown:
+          "✅ **Your Microsoft Teams account is connected to OneUptime.** Now ask your question again.",
+        text: "Your Microsoft Teams account is connected to OneUptime. Now ask your question again.",
+      },
+    ],
+  ])(
+    "a question asked in %s: connected, and told to ask it again - in the chat, and on the page",
+    async (
+      workspaceType: WorkspaceType,
+      answer: { markdown: string; text: string },
+    ) => {
+      const result: WorkspaceConnectCompletionResult =
+        await WorkspaceConnectCompletion.complete({
+          request: request({
+            workspaceType: workspaceType,
+            purpose: "ask OneUptime AI",
+            pendingAction: undefined,
+            again: { kind: WorkspaceConnectRequestAgainKind.Question },
+          }),
+          userId: USER_ID,
+        });
+
+      expect(result).toEqual({
+        outcome: ConnectRequestOutcome.AskAgain,
+        answer: answer,
+      });
+      // The question is not asked for them: nothing is read as the member.
+      expect(memberProps).not.toHaveBeenCalled();
+      expect(authorize).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a command: connected, and told to run it again", async () => {
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: request({
+          purpose: "declare an incident",
+          pendingAction: undefined,
+          again: {
+            kind: WorkspaceConnectRequestAgainKind.Command,
+            label: "/oneuptime incident",
+          },
+        }),
+        userId: USER_ID,
+      });
+
+    expect(result).toEqual({
+      outcome: ConnectRequestOutcome.PressAgain,
+      answer: {
+        markdown:
+          "✅ **Your Slack account is connected to OneUptime.** Now run **/oneuptime incident** again.",
+        text: "Your Slack account is connected to OneUptime. Now run /oneuptime incident again.",
+      },
+    });
+  });
+
   test("anything else: connected, and nothing more to say", async () => {
     const result: WorkspaceConnectCompletionResult =
       await WorkspaceConnectCompletion.complete({
@@ -461,6 +534,52 @@ describe("a press OneUptime cannot finish for them", () => {
         text: "Your Slack account is connected to OneUptime",
       },
     });
+  });
+});
+
+describe("WorkspaceConnectCompletion.getAgainOutcome: what the settings page says to do again", () => {
+  test("a question is asked again, whatever else it carries", () => {
+    expect(
+      WorkspaceConnectCompletion.getAgainOutcome({
+        kind: WorkspaceConnectRequestAgainKind.Question,
+      }),
+    ).toBe(ConnectRequestOutcome.AskAgain);
+    expect(
+      WorkspaceConnectCompletion.getAgainOutcome({
+        kind: WorkspaceConnectRequestAgainKind.Question,
+        label: "which monitors are down?",
+      }),
+    ).toBe(ConnectRequestOutcome.AskAgain);
+  });
+
+  test.each([
+    [WorkspaceConnectRequestAgainKind.Button, "Add Note"],
+    [WorkspaceConnectRequestAgainKind.Button, undefined],
+    [WorkspaceConnectRequestAgainKind.Command, "/oneuptime incident"],
+    [WorkspaceConnectRequestAgainKind.Command, undefined],
+  ])(
+    "a %s (%s) is pressed again",
+    (kind: WorkspaceConnectRequestAgainKind, label: string | undefined) => {
+      expect(
+        WorkspaceConnectCompletion.getAgainOutcome(
+          label ? { kind: kind, label: label } : { kind: kind },
+        ),
+      ).toBe(ConnectRequestOutcome.PressAgain);
+    },
+  );
+
+  test("nothing to do again: the chat has the whole answer", () => {
+    expect(WorkspaceConnectCompletion.getAgainOutcome(undefined)).toBe(
+      ConnectRequestOutcome.Answered,
+    );
+  });
+
+  test("every kind of thing to do again has an outcome the page has a sentence for", () => {
+    for (const kind of Object.values(WorkspaceConnectRequestAgainKind)) {
+      expect(Object.values(ConnectRequestOutcome)).toContain(
+        WorkspaceConnectCompletion.getAgainOutcome({ kind: kind }),
+      );
+    }
   });
 });
 

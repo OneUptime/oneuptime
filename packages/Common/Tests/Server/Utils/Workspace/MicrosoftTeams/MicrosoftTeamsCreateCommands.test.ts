@@ -63,6 +63,7 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import { WorkspaceCommandName } from "../../../../../Server/Utils/Workspace/WorkspaceCommands";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -210,7 +211,8 @@ const INCIDENT: CommandProfile = {
   form: {
     what: "an incident",
     dashboardRoute: "/incidents/create",
-    command: "create incident",
+    // Typed again as the word Slack's /oneuptime takes too.
+    command: WorkspaceCommandName.Incident,
     lists: "monitors, labels and on-call policies",
   },
   createLink: CREATE_INCIDENT_LINK,
@@ -230,9 +232,9 @@ const INCIDENT: CommandProfile = {
     senderUnknown:
       "Sorry, I couldn't tell who sent this message, so I can't open the form to create an incident. Please try again.",
     connectPrompt:
-      "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **create incident** again.",
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **incident** again.",
     connectPromptWithoutLink:
-      "🔗 **Connect your Microsoft Teams account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create incident** again.",
+      "🔗 **Connect your Microsoft Teams account to declare an incident.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **incident** again.",
     senderCheckFailed:
       "Sorry, I couldn't open the form to create an incident because OneUptime could not check your account just now. Please try again in a minute.",
     listsUnreadable: `Sorry, I couldn't open the form to create an incident because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_INCIDENT_LINK}`,
@@ -251,7 +253,8 @@ const MAINTENANCE: CommandProfile = {
   form: {
     what: "a scheduled maintenance event",
     dashboardRoute: "/scheduled-maintenance-events/create",
-    command: "create maintenance",
+    // Typed again as the word Slack's /oneuptime takes too.
+    command: WorkspaceCommandName.Maintenance,
     lists: "monitors and labels",
   },
   createLink: CREATE_MAINTENANCE_LINK,
@@ -266,9 +269,9 @@ const MAINTENANCE: CommandProfile = {
     senderUnknown:
       "Sorry, I couldn't tell who sent this message, so I can't open the form to create a scheduled maintenance event. Please try again.",
     connectPrompt:
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **create maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **maintenance** again.",
     connectPromptWithoutLink:
-      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **create maintenance** again.",
+      "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **maintenance** again.",
     senderCheckFailed:
       "Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not check your account just now. Please try again in a minute.",
     listsUnreadable: `Sorry, I couldn't open the form to create a scheduled maintenance event because OneUptime could not load the lists it needs just now. Please try again in a minute, or create it in OneUptime instead: ${CREATE_MAINTENANCE_LINK}`,
@@ -720,9 +723,10 @@ async function expectConnectLink(
   expect(request!.projectId.toString()).toBe(PROJECT_ID.toString());
   expect(request!.workspaceUserId).toBe(AAD_OBJECT_ID);
   expect(request!.pendingAction).toBeUndefined();
+  // Typed again as the word Slack's /oneuptime takes too.
   expect(request!.again).toEqual({
     kind: WorkspaceConnectRequestAgainKind.Command,
-    label: profile.command,
+    label: profile.form.command,
   });
 }
 

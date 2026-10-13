@@ -201,7 +201,8 @@ What follows from the rule:
   stored attribution. A visitor for whom measurement is not allowed has
   leftovers from earlier visits removed on every page.
 - The product's own PostHog (`ANALYTICS_KEY`) does not start for a visitor who
-  pressed "Reject all".
+  pressed "Reject all", or who has not answered and whose browser sends Global
+  Privacy Control.
 
 Status pages and public dashboards load none of this: they belong to
 OneUptime's customers, and their visitors are not OneUptime's to measure.
@@ -209,6 +210,31 @@ OneUptime's customers, and their visitors are not OneUptime's to measure.
 `packages/Home/Tests/AttributionCapture.test.ts` and
 `packages/Common/Tests/Server/Views/AnalyticsConsentPartial.test.ts` pin each
 of these behaviours, so a change in either direction has to be explicit.
+
+## Google Analytics in the product
+
+Sign-up and the dashboard load Google Analytics alone, so
+`packages/Common/Utils/Analytics.ts` talks to it directly:
+
+- **Key events.** The revenue funnel's events (`RevenueEventName`) are sent
+  with the parameters the Tag Manager key-event tag forwards
+  (`GoogleAnalyticsEventParameters`), and nothing else.
+- **`purchase`.** Each paid conversion is also sent as GA4's `purchase`, so
+  Google Analytics' revenue reports and Google Ads' return on ad spend have
+  something to count: a project created on a paid plan, and a free project
+  moving to a paid plan. A move between paid tiers is expansion and is not a
+  purchase; custom pricing has no amount and sends none. `transaction_id` is
+  the server's marketing event ID for the same conversion
+  (`subscription_started:{projectId}`, `subscription_upgraded:{projectId}:{time}`;
+  see `marketing-event-webhooks.md`), `value` the monthly recurring revenue
+  after the change, and the plan is the one item.
+- **`user_id`.** Every signed-in dashboard page sets `user_id` to the internal
+  user ID, never an email address, so one person's sessions join up across
+  devices.
+
+All three wait for consent like everything else: gtag holds the calls until
+Google Analytics loads, and on a self-hosted install there is no Google tag to
+send them to.
 
 ## Deliberately not implemented
 

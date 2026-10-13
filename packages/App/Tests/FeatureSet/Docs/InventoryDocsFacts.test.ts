@@ -9,7 +9,7 @@ interface MockCapturedJob {
  * The Workers jobs register themselves through RunCron when they are
  * imported, and export nothing: the Cron util is replaced by a recorder, so
  * a test reads each job's schedule and runs its handler, as the jobs' own
- * suites (App/Tests/Workers/Jobs/TelemetryEntity) do.
+ * suites (App/Tests/Workers/Jobs/TelemetryEntity/) do.
  */
 const mockCapturedJobs: Record<string, MockCapturedJob> = {};
 

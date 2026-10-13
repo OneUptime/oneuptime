@@ -5,7 +5,7 @@ Koble OneUptime til Slack for å publisere hendelser, varsler, episoder, planlag
 :::cards
 - [Koble til Slack](#koble-til-slack): Installer OneUptime i workspacet ditt, og koble deretter til din egen konto.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
-- [Opprett hendelser og vedlikehold fra Slack](#opprett-hendelser-og-vedlikehold-fra-slack): `/incident` og `/maintenance`, som deg selv.
+- [Kommandoen /oneuptime](#kommandoen-oneuptime): Erklær hendelser, planlegg vedlikehold, se hvem som har vakt, og spør AI.
 - [Handle på hendelser, varsler og begivenheter fra Slack](#handle-på-hendelser-varsler-og-begivenheter-fra-slack): Knappene i meldingene fra OneUptime.
 :::
 
@@ -125,13 +125,36 @@ Reager på en melding i kanalen til en hendelse, et varsel, en episode eller en 
 
 Notatet lagres som deg, med dine tillatelser, så din egen Slack-konto må være koblet til. En melding lagres bare én gang, uansett hvor mange som reagerer.
 
+## Kommandoen /oneuptime
+
+OneUptime har én kommando i Slack, `/oneuptime`. Ordet du skriver etter den, sier hva som skal skje; alt annet etter den er et spørsmål til OneUptime AI.
+
+| Kommando | Hva den gjør |
+| --- | --- |
+| `/oneuptime help` | Viser kommandoene, med eksempler. |
+| `/oneuptime incident [title]` | Åpner hendelsesskjemaet med tittelen fylt ut. |
+| `/oneuptime maintenance [title]` | Åpner skjemaet for planlagt vedlikehold med tittelen fylt ut. |
+| `/oneuptime oncall` | Viser hvem som har vakt akkurat nå i hver vaktplan du kan se, til når, og hvem som er neste. |
+| `/oneuptime ask [question]`, eller et hvilket som helst spørsmål | OneUptime AI svarer om logger, traces, målinger, hendelser og monitorer. |
+
+Svarene på `help` og `oncall` er meldinger bare du ser, under kommandoen. Et første ord som ligner en feilstavet kommando, som `incidnet`, får kommandoen det ligner, ikke et svar fra OneUptime AI. Skjemaene for hendelser og vedlikehold handler som deg: se [Opprett hendelser og vedlikehold fra Slack](#opprett-hendelser-og-vedlikehold-fra-slack).
+
+> [!NOTE]
+> `/oneuptime incident` og `/oneuptime maintenance` erstatter `/incident` og `/maintenance`, som kunne kollidere med kommandoer med samme navn i andre Slack-apper. En Slack-app som er opprettet fra et tidligere manifest, beholder dem, og de åpner de samme skjemaene, til appen blir oppdatert: se [Apper opprettet fra et eldre manifest](/docs/self-hosted/slack-integration#apper-opprettet-fra-et-eldre-manifest).
+
 ## Spør OneUptime AI fra Slack
 
-Spør om logger, traces, målinger, hendelser og monitorer på vanlig språk. Nevn OneUptime med @ i en kanal, eller send den en direktemelding, så svarer den i tråden; svar der for å spørre om mer. `/oneuptime ask which monitors are down?` publiserer svaret i kanalen. Begge krever at din egen Slack-konto er koblet til, og at AI er slått på for prosjektet. Svar i Slack leser bare: bruk knappene for å endre noe. Se [Spør AI](/docs/ai/ask-ai).
+Spør om logger, traces, målinger, hendelser og monitorer på vanlig språk. Nevn OneUptime med @ i en kanal, eller send den en direktemelding, så svarer den i tråden. `/oneuptime ask which monitors are down?` publiserer svaret i kanalen. Begge krever at din egen Slack-konto er koblet til, og at AI er slått på for prosjektet. Svar i Slack leser bare: bruk knappene for å endre noe. Se [Spør AI](/docs/ai/ask-ai).
+
+OneUptime svarer bare på det som er rettet til den.
+
+- **I din egen samtale svarer du bare.** Et spørsmål du stiller i en kanal, ikke i en tråd, starter en samtale i tråden under det: svar der for å spørre om mer uten å nevne OneUptime igjen, og alle andre blir med ved å nevne den.
+- **I alle andre tråder nevner du OneUptime.** Under en hendelses melding, for eksempel, nevner du den hver gang: det folk skriver til hverandre der, får ikke noe svar.
+- **Hvis Slack-kontoen din ikke er koblet til.** OneUptime ber deg én gang i hver samtale om å koble den til, i en melding bare du ser, med en knapp **Connect Slack account**.
 
 ## Opprett hendelser og vedlikehold fra Slack
 
-`/incident` og `/maintenance` åpner et skjema som du fyller ut og sender inn som deg selv: som OneUptime-kontoen Slack-kontoen din er koblet til (se [Koble til Slack](#koble-til-slack)), med den kontoens tillatelser i prosjektet. Hvis Slack-kontoen din ikke er koblet til, eller OneUptime-kontoen din ikke lenger er medlem av prosjektet, sier OneUptime hva du skal gjøre der du kjørte kommandoen, i en melding bare du ser, og ingen skjemaer åpnes. Snarveiene **Create New Incident** og **Create Scheduled Event** åpner de samme skjemaene.
+`/oneuptime incident` og `/oneuptime maintenance` åpner et skjema som du fyller ut og sender inn som deg selv: som OneUptime-kontoen Slack-kontoen din er koblet til (se [Koble til Slack](#koble-til-slack)), med den kontoens tillatelser i prosjektet. Hvis Slack-kontoen din ikke er koblet til, eller OneUptime-kontoen din ikke lenger er medlem av prosjektet, sier OneUptime hva du skal gjøre der du kjørte kommandoen, i en melding bare du ser, og ingen skjemaer åpnes. Snarveiene **Create New Incident** og **Create Scheduled Event** åpner de samme skjemaene.
 
 - **Hvem som kan bruke dem.** De som kan opprette en hendelse eller en planlagt vedlikeholdsbegivenhet i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member** for en hendelse (**Create Incident** i en egendefinert rolle), og **Scheduled Maintenance Admin** og **Scheduled Maintenance Member** for en begivenhet (**Create Scheduled Maintenance**). Alle andre får beskjed om det der de kjørte den, og ingen skjemaer åpnes.
 - **Hva et skjema tilbyr.** Hver liste — alvorlighetsgrader, monitorer, monitorstatuser, vaktpolicyer og etiketter — inneholder det du har lov til å lese, slik som den samme listen i OneUptime: med en rolle som er begrenset til noen etiketter, monitorene og vaktpolicyene som har de etikettene. En liste du ikke kan lese i det hele tatt, utelates fra skjemaet. Arkiverte vaktpolicyer tilbys aldri.
@@ -169,6 +192,10 @@ Når Slack sender deg tilbake uten en tilkobling, sier siden du startet fra **Sl
 
 :::details En knapp eller kommando sier at Slack-kontoen min ikke er koblet til
 Trykk på **Connect Slack account** i det svaret for å koble den til i ett trinn, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Slack** med **Connect my account with Slack**. Hvis du ikke lenger er medlem av prosjektet, sier OneUptime det i stedet, og handler ikke på noe for deg.
+:::
+
+:::details OneUptime svarer ikke på et svar i en tråd
+Et svar som ikke nevner OneUptime, blir bare besvart i din egen samtale med OneUptime AI: tråden under et spørsmål du stilte den i en kanal. I alle andre tråder, som den under en hendelses melding, nevner du OneUptime med @. Hvis Slack-kontoen din ikke er koblet til, ber OneUptime deg om å koble den til én gang i hver samtale, ikke ved hver melding: trykk på **Connect Slack account** i den meldingen, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Slack**. Se [Spør OneUptime AI fra Slack](#spør-oneuptime-ai-fra-slack).
 :::
 
 :::details Varsler kommer frem, men knapper og kommandoer gjør ingenting

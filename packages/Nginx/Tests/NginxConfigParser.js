@@ -146,23 +146,26 @@ function locationRegexSource(spec) {
 }
 
 /**
- * nginx picks a location for a URI by: longest matching `^~` or plain prefix
- * first, but a matching regex location (`~` / `~*`, tried in file order) wins
- * over any plain prefix match. This mirrors that well enough to assert which
- * of our own blocks a given request path lands in.
+ * nginx picks a location for a URI in this order:
+ *
+ *   1. an `=` location naming exactly the URI is chosen, and the search ends;
+ *   2. otherwise the longest matching prefix (plain or `^~`) is remembered,
+ *      and if that prefix is a `^~` location it is chosen without trying any
+ *      regex;
+ *   3. otherwise the regex locations (`~` / `~*`) are tried in file order and
+ *      the first that matches wins, over any prefix;
+ *   4. otherwise the remembered prefix is chosen.
+ *
+ * This mirrors that well enough to assert which of our own blocks a given
+ * request path lands in.
  */
 function resolveLocation(locations, uri) {
   for (const location of locations) {
-    const caseInsensitive = location.spec.startsWith("~*");
-    const caseSensitive = !caseInsensitive && location.spec.startsWith("~");
-
-    if (!caseInsensitive && !caseSensitive) {
+    if (!location.spec.startsWith("=")) {
       continue;
     }
 
-    const expression = locationRegexSource(location.spec);
-
-    if (new RegExp(expression, caseInsensitive ? "i" : "").test(uri)) {
+    if (location.spec.replace(/^=\s*/, "").trim() === uri) {
       return location;
     }
   }
@@ -171,7 +174,7 @@ function resolveLocation(locations, uri) {
   let bestPrefixLength = -1;
 
   for (const location of locations) {
-    if (location.spec.startsWith("~")) {
+    if (location.spec.startsWith("~") || location.spec.startsWith("=")) {
       continue;
     }
 
@@ -184,6 +187,25 @@ function resolveLocation(locations, uri) {
     if (prefix.length > bestPrefixLength) {
       best = location;
       bestPrefixLength = prefix.length;
+    }
+  }
+
+  if (best && best.spec.startsWith("^~")) {
+    return best;
+  }
+
+  for (const location of locations) {
+    const caseInsensitive = location.spec.startsWith("~*");
+    const caseSensitive = !caseInsensitive && location.spec.startsWith("~");
+
+    if (!caseInsensitive && !caseSensitive) {
+      continue;
+    }
+
+    const expression = locationRegexSource(location.spec);
+
+    if (new RegExp(expression, caseInsensitive ? "i" : "").test(uri)) {
+      return location;
     }
   }
 

@@ -314,13 +314,15 @@ describe("public note form on an incident that notified subscribers", () => {
   });
 });
 
-describe("why the dashboard seeds the notify flag as an initial value", () => {
+describe("the notify flag's default reaches the server on its own", () => {
   /*
-   * Documents the form behaviour the dashboard works around. If this starts
-   * failing because BasicForm now applies a false default, the initialValues
-   * seeding in the public note and state change forms is no longer needed.
+   * BasicForm used to apply only a truthy default, so a false default left
+   * the value unset and the key never reached the server: the dashboard
+   * seeds the flag as an initial value for that reason. BasicForm now applies
+   * a default of false too (#4773), so the default alone sends what the box
+   * shows, and the seeding only repeats it.
    */
-  test("a false default alone leaves the box unticked but sends no notify flag, leaving the choice to the server", async () => {
+  test("a false default alone leaves the box unticked and sends false", async () => {
     await renderNoteForm({ notifyByDefault: false, seedInitialValue: false });
 
     expect(notifyCheckbox()).not.toBeChecked();
@@ -328,8 +330,8 @@ describe("why the dashboard seeds the notify flag as an initial value", () => {
     await writeNote();
     const payload: JSONObject = await submit();
 
-    expect(payload[NOTIFY_FIELD]).toBeUndefined();
-    expect(Object.keys(payload)).not.toContain(NOTIFY_FIELD);
+    expect(Object.keys(payload)).toContain(NOTIFY_FIELD);
+    expect(payload[NOTIFY_FIELD]).toBe(false);
     expect(payload["note"]).toBe(NOTE_TEXT);
   });
 

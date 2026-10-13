@@ -2211,16 +2211,33 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
     command: string;
     // What the sender is asked to connect their account for.
     purpose: string;
+    /*
+     * The command they are told to type again: the word Slack's /oneuptime
+     * takes too, however they typed it.
+     */
+    again: string;
   };
 
   test.each<NotLinkedCase>([
     {
       command: "create incident",
       purpose: "declare an incident",
+      again: "incident",
     },
     {
       command: "create maintenance",
       purpose: "create a scheduled maintenance event",
+      again: "maintenance",
+    },
+    {
+      command: "incident Checkout is down",
+      purpose: "declare an incident",
+      again: "incident",
+    },
+    {
+      command: "Maintenance Database upgrade",
+      purpose: "create a scheduled maintenance event",
+      again: "maintenance",
     },
   ])(
     "'$command' from a Teams user with no connected account: one reply, mentioning them, with a one-click Connect button and the command to type again; no form",
@@ -2251,7 +2268,7 @@ describe("'create incident' (#4111): one form Teams accepts, one answer, HTTP 20
       expect(view.bubbles).toHaveLength(1);
       // master: a line of text naming nobody, then "try again".
       expect(answerOf(view.bubbles[0]!)).toBe(
-        `🔗 **Connect your Microsoft Teams account to ${notLinked.purpose}.** It takes one click. Then type **${notLinked.command}** again.`,
+        `🔗 **Connect your Microsoft Teams account to ${notLinked.purpose}.** It takes one click. Then type **${notLinked.again}** again.`,
       );
       expectOneClickConnect(view.bubbles[0]);
       // The link looked for was this sender's, in this project.
@@ -2512,11 +2529,9 @@ describe("who is checked before the form (#4111 review): the sender of a persona
         }),
       ).toEqual([["card", sharedChat.conversationId]]);
       expect(answerOf(view.bubbles[0]!)).toBe(
-        `🔗 **Connect your Microsoft Teams account to ${
-          sharedChat.command === "create incident"
-            ? "declare an incident"
-            : "create a scheduled maintenance event"
-        }.** It takes one click. Then type **${sharedChat.command}** again.`,
+        sharedChat.command === "create incident"
+          ? "🔗 **Connect your Microsoft Teams account to declare an incident.** It takes one click. Then type **incident** again."
+          : "🔗 **Connect your Microsoft Teams account to create a scheduled maintenance event.** It takes one click. Then type **maintenance** again.",
       );
       expectOneClickConnect(view.bubbles[0]);
       expect(
@@ -2851,11 +2866,14 @@ describe("controls: commands that always worked still answer once with HTTP 200"
 
     expect(view.httpStatuses).toEqual([200]);
     expect(view.bubbles).toHaveLength(1);
-    const reply: string = textOf(view.bubbles[0]);
-    expect(reply).toMatch(/^Hello! I'm the OneUptime bot/);
+    // A card that mentions whoever asked: the words Slack's /oneuptime takes.
+    const reply: string = answerOf(view.bubbles[0]!);
+    expect(reply.split("\n")[0]).toBe(
+      "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
+    );
     // Both create commands take the form's title after them.
     expect(reply).toContain(
-      "\n- **create incident [title]** - Create a new incident\n- **create maintenance [title]** - Create a new scheduled maintenance event\n",
+      "\n- **incident [title]**: declare an incident\n- **maintenance [title]**: schedule maintenance\n",
     );
   });
 
@@ -3019,7 +3037,7 @@ describe("never a 500: whatever fails, Teams gets HTTP 200 and the user one answ
      * error itself, which keeps its stack.
      */
     expect(loggedErrors).toEqual([
-      `Microsoft Teams message ${activityId} ("create incident") failed: Error: simulated database outage`,
+      `Microsoft Teams message ${activityId} ("incident") failed: Error: simulated database outage`,
       "Error: simulated database outage",
     ]);
     // The project was never resolved, so the log cannot name one.

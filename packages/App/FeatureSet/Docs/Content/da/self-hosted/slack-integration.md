@@ -143,9 +143,8 @@ Manifestet opsætter disse funktioner. Hver af dem når din server via den viste
 
 | Funktion | Hvad den gør | Rute |
 | --- | --- | --- |
-| `/incident` og genvejen **Create New Incident** | Erklær en hændelse fra Slack | `POST /api/slack/interactive` |
-| `/maintenance` og genvejen **Create Scheduled Event** | Planlæg vedligeholdelse fra Slack | `POST /api/slack/interactive` |
-| `/oneuptime` | Spørg OneUptime AI om dine logs, traces, metrikker, hændelser og monitorer | `POST /api/slack/command` |
+| `/oneuptime` | Erklær en hændelse, planlæg vedligeholdelse, se hvem der har vagt, og spørg OneUptime AI; `/oneuptime help` viser alle kommandoer | `POST /api/slack/command` |
+| Genvejene **Create New Incident** og **Create Scheduled Event** | Erklær en hændelse eller planlæg vedligeholdelse fra Slacks genveje | `POST /api/slack/interactive` |
 | Knapper og formularer i OneUptime-beskeder | Kvittér, løs, tilføj en note, skift tilstand, kør en vagtpolitik | `POST /api/slack/interactive` og `POST /api/slack/options-load` |
 | Events | Omtaler, beskeder, reaktioner og fastgørelser, for eksempel for at gemme en besked som note | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ Manifestet opsætter disse funktioner. Hver af dem når din server via den viste
 Beskrivelser af hændelser og alarmer kan indeholde skærmbilleder, for eksempel fra en syntetisk monitor (se [Vis et skærmbillede](/docs/monitor/incident-alert-templating#vis-et-skærmbillede)). OneUptime viser dem i Slack-beskeder ved at uploade hvert enkelt til dit arbejdsområde som en privat fil, hvilket kræver bot-scopet `files:write`. Det genererede manifest indeholder det.
 
 Hvis du har oprettet din Slack-app ud fra et ældre manifest, så tilføj `files:write` under **OAuth & Permissions > Bot Token Scopes** (eller opdatér appen ud fra det aktuelle manifest). Vælg derefter **Connect with Slack** igen under **Projektindstillinger > Arbejdsområde > Slack**, så det nye scope bliver givet. Indtil da vises hvert skærmbillede som sin alternative tekst.
+
+### Apps oprettet ud fra et ældre manifest
+
+En Slack-app, der er oprettet ud fra et tidligere OneUptime-manifest, registrerer `/incident` og `/maintenance` som egne kommandoer, og de kan støde sammen med andre apps' kommandoer med samme navn. De virker stadig og åbner de samme formularer som `/oneuptime incident` og `/oneuptime maintenance`. For at erstatte dem med `/oneuptime` skal du opdatere appen ud fra det manifest, din server genererer: på [api.slack.com/apps](https://api.slack.com/apps) åbner du appens **App Manifest**, indsætter manifestet og gemmer. Scopes er de samme, så appen skal ikke installeres igen.
 
 ## Netværksadgang for selvhostede installationer
 
@@ -172,7 +175,7 @@ Videresend disse callbacks til OneUptime gennem dens ingress:
 | Metode og sti | Formål |
 | --- | --- |
 | `POST /api/slack/events` | Verificering af Events API, reaktioner, fastgørelser, omtaler og beskeder |
-| `POST /api/slack/interactive` | Knapper, genveje, indsendte modaler, `/incident` og `/maintenance` |
+| `POST /api/slack/interactive` | Knapper, genveje, indsendte modaler og en ældre apps `/incident` og `/maintenance` |
 | `POST /api/slack/options-load` | Anmodninger om valgmuligheder i interaktive menuer |
 | `POST /api/slack/command` | Kommandoen `/oneuptime` |
 
