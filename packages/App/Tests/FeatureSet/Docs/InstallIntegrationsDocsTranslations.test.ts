@@ -166,8 +166,12 @@ const EXTERNAL_CONSOLE_LABELS: Record<string, Array<string>> = {
     "Create New Incident",
     "Create Scheduled Event",
     "OAuth & Permissions > Bot Token Scopes",
+    // The button the app answers a press from an unconnected account with.
+    "Connect Slack account",
   ],
   [TEAMS]: [
+    // The button the bot answers a press from an unconnected account with.
+    "Connect Microsoft Teams account",
     "App registrations",
     "New registration",
     "Name:",
@@ -324,6 +328,7 @@ const CONNECT_CODES: Record<string, ConnectQuotes> = {
       ConnectCallbackError.NotAMember,
       ConnectCallbackError.SlackNotInstalled,
       ConnectCallbackError.SlackOtherWorkspace,
+      ConnectCallbackError.SlackOtherAccount,
       ConnectCallbackError.Cancelled,
       ConnectCallbackError.NotConfigured,
       ConnectCallbackError.CouldNotFinish,
@@ -337,6 +342,7 @@ const CONNECT_CODES: Record<string, ConnectQuotes> = {
       ConnectCallbackError.NotAMember,
       ConnectCallbackError.TeamsOtherTenant,
       ConnectCallbackError.TeamsNoTeams,
+      ConnectCallbackError.TeamsOtherAccount,
       ConnectCallbackError.Cancelled,
       ConnectCallbackError.NotConfigured,
       ConnectCallbackError.CouldNotFinish,

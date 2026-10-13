@@ -124,7 +124,7 @@ In **Project Settings > Workspace > Slack**, select **Connect with Slack** and a
 
 ### Connect your own Slack account
 
-Buttons, forms and commands act as the OneUptime user linked to the Slack account that uses them. Each person opens **User Settings > Workspace > Slack** and selects **Connect my account with Slack**. Someone who has not connected an account gets a direct message from the app asking them to.
+Buttons, forms and commands act as the OneUptime user linked to the Slack account that uses them. Each person opens **User Settings > Workspace > Slack** and selects **Connect my account with Slack**. Someone who has not connected an account is answered where they pressed with a **Connect Slack account** button, which connects it in one step.
 :::
 
 ## Environment variables
@@ -228,6 +228,7 @@ When Slack sends you back and the connection was not made, the Slack page you st
 | **"You are no longer a member of this project."** | Connecting your own Slack account needs you to be a member of the project when Slack sends you back. |
 | **"This project is not connected to a Slack workspace yet."** | Install OneUptime in Slack from **Project Settings > Workspace > Slack** first, then connect your own account. |
 | **"You signed in to a different Slack workspace from the one this project is connected to."** | Connect your account while signed in to the Slack workspace the project is installed in. |
+| **"You signed in to Slack as someone other than the person who pressed Connect in Slack, so nothing was connected."** | A **Connect Slack account** button works only for the Slack account that pressed it. Sign in to Slack as yourself, or ask the person who pressed it to press it. |
 | **"The connection was cancelled, so nothing was changed."** | The request was not allowed in Slack. Start again and allow it. |
 | **"Slack is not set up on this OneUptime server."** | Set `SLACK_APP_CLIENT_ID` and `SLACK_APP_CLIENT_SECRET` (see [Environment variables](#environment-variables)) and restart OneUptime. |
 | **"OneUptime could not finish connecting. Please try again."** | Slack answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the Slack app's settings. |
@@ -243,7 +244,7 @@ Notifications are outbound, so they work without inbound access. Buttons, shortc
 :::
 
 :::details The app says my Slack account is not connected to OneUptime
-Buttons, forms and commands need your Slack account linked to your OneUptime user. Open **User Settings > Workspace > Slack** and select **Connect my account with Slack**. If you were removed from the project, the app says so instead, and actions from Slack are refused.
+Buttons, forms and commands need your Slack account linked to your OneUptime user. Press **Connect Slack account** in the app's answer, or open **User Settings > Workspace > Slack** and select **Connect my account with Slack**. If you were removed from the project, the app says so instead, and actions from Slack are refused.
 :::
 
 :::details Screenshots show up as text

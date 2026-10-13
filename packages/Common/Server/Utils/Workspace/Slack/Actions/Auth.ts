@@ -3,7 +3,6 @@ import WorkspaceProjectAuthToken, {
 } from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import ObjectID from "../../../../../Types/ObjectID";
-import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import { ExpressRequest } from "../../../Express";
 import SlackUtil from "../Slack";
@@ -15,10 +14,40 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import Dictionary from "../../../../../Types/Dictionary";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import SlackModalMetadata, {
+  SlackModalMetadataValue,
+} from "../SlackModalMetadata";
+import SlackActionAnswer, {
+  SlackAnswerDelivery,
+  SlackAnswerPlace,
+} from "./Answer";
+import SlackConnectPrompt from "./ConnectPrompt";
+import { SLACK_ID_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
+
+// The forms whose value is the channel they were opened in.
+const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
+  SlackActionType.SubmitNewIncident,
+  SlackActionType.SubmitNewScheduledMaintenance,
+];
 
 export interface SlackAction {
   actionValue?: string | undefined;
   actionType?: SlackActionType | undefined;
+}
+
+// Why a press is not acted on, for SlackAuthAction.answerRefusal to say.
+export enum SlackAuthRefusalReason {
+  // The Slack account is not connected to a OneUptime user in the project.
+  NotConnected = "NotConnected",
+  // It is, but that user is no longer a member of the project.
+  NotAMember = "NotAMember",
+}
+
+export interface SlackAuthRefusal {
+  reason: SlackAuthRefusalReason;
+  projectId: ObjectID;
+  // The press that was refused: what the answer is about.
+  action: SlackAction;
 }
 
 export interface SlackRequest {
@@ -28,11 +57,24 @@ export interface SlackRequest {
   projectAuthToken?: string | undefined;
   userAuthToken?: string | undefined;
   botUserId?: string | undefined;
+  // The Slack workspace the press was made in.
+  slackTeamId?: string | undefined;
+  /*
+   * The channel the press was made in - for a form's submission, the one
+   * the form was opened from (SlackModalMetadata).
+   */
   slackChannelId?: string | undefined;
+  // The thread the press was made in, when it was in one.
+  slackThreadTs?: string | undefined;
   slackMessageId?: string | undefined;
   slackUserFullName?: string | undefined;
   slackUserId?: string | undefined;
   slackUsername?: string | undefined;
+  /*
+   * Where Slack takes an answer to the press, only for the person who
+   * pressed (buttons and slash commands): see SlackActionAnswer.
+   */
+  responseUrl?: string | undefined;
   actions?: SlackAction[] | undefined;
   triggerId?: string | undefined;
   payloadType?: string | undefined;
@@ -40,6 +82,8 @@ export interface SlackRequest {
   viewValues?:
     | Dictionary<string | number | Array<string | number> | Date>
     | undefined;
+  // Why the press is not acted on, when it is not (isAuthorized false).
+  refusal?: SlackAuthRefusal | undefined;
 }
 
 /*
@@ -50,6 +94,11 @@ export interface SlackRequest {
  * (/incident and its form), so an incident is never created by nobody, and
  * its form lists only what its member may read. No project setting lets
  * anyone in the workspace declare without connecting an account.
+ *
+ * A link button opens its link in the browser, and Slack reports the click
+ * too: such a report needs nothing but an acknowledgement, never a "connect
+ * your account" answer. Every View button of a message, the incident's
+ * call, and the Connect button of such an answer are links.
  */
 const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: Array<SlackActionType> =
   [
@@ -58,17 +107,48 @@ const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: 
     // Alerts
     SlackActionType.ViewAlert,
 
+    // Episodes
+    SlackActionType.ViewIncidentEpisode,
+    SlackActionType.ViewAlertEpisode,
+
     // scheduled maintenance
     SlackActionType.ViewScheduledMaintenance,
+
+    // Monitors and on-call policies
+    SlackActionType.ViewMonitor,
+    SlackActionType.ViewOnCallPolicy,
 
     /*
      * Anyone in the channel joins the incident's call: it is a link, and
      * the meeting decides who gets in.
      */
     SlackActionType.JoinVideoCall,
+
+    // The Connect button itself: a link to connect the account.
+    SlackActionType.ConnectSlackAccount,
   ];
 
 export default class SlackAuthAction {
+  // Whether a press of `actionType` needs a connected account.
+  public static requiresConnectedAccount(
+    actionType: SlackActionType | undefined,
+  ): boolean {
+    return (
+      Boolean(actionType) &&
+      !slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime.includes(
+        actionType!,
+      )
+    );
+  }
+
+  /*
+   * Reads a Slack request - a button, a form's submission, a shortcut or a
+   * slash command - and who made it: the project the Slack workspace is
+   * connected to, and the OneUptime member the Slack account is connected
+   * to. Says nothing to anybody: a press that is refused comes back with
+   * isAuthorized false and why (refusal), and the caller answers Slack
+   * first, then the person (answerRefusal), where they pressed.
+   */
   @CaptureSpan()
   public static async isAuthorized(data: {
     req: ExpressRequest;
@@ -124,6 +204,24 @@ export default class SlackAuthAction {
     const slackMessageId: string | undefined = (
       (payload as JSONObject)?.["message"] as JSONObject
     )?.["ts"] as string;
+
+    /*
+     * A button on a message in a thread: Slack names the thread on the
+     * press's container (and on the message).
+     */
+    let slackThreadTs: string | undefined =
+      (((payload as JSONObject)?.["container"] as JSONObject | undefined)?.[
+        "thread_ts"
+      ] as string | undefined) ||
+      (((payload as JSONObject)?.["message"] as JSONObject | undefined)?.[
+        "thread_ts"
+      ] as string | undefined) ||
+      undefined;
+
+    const responseUrl: string | undefined =
+      typeof payload["response_url"] === "string"
+        ? (payload["response_url"] as string)
+        : undefined;
 
     const slackUserFullName: string | undefined = (
       (payload as JSONObject)?.["user"] as JSONObject
@@ -236,13 +334,44 @@ export default class SlackAuthAction {
         view: view,
       });
 
+      /*
+       * The view's private metadata: the value its form carries (the
+       * record's id), and where the form was opened, so its submission is
+       * answered there (SlackModalMetadata).
+       */
+      const metadata: SlackModalMetadataValue = SlackModalMetadata.read(
+        view["private_metadata"],
+      );
+
+      if (!slackChannelId && metadata.origin.channelId) {
+        slackChannelId = metadata.origin.channelId;
+      }
+
+      if (!slackThreadTs && metadata.origin.threadTs) {
+        slackThreadTs = metadata.origin.threadTs;
+      }
+
+      /*
+       * The New Incident and New Scheduled Maintenance forms carry the
+       * channel they were opened in as their value - bare, in a form opened
+       * before forms carried where they were opened.
+       */
+      if (
+        !slackChannelId &&
+        NEW_RECORD_FORMS.includes(view["callback_id"] as SlackActionType) &&
+        metadata.value &&
+        SLACK_ID_PATTERN.test(metadata.value)
+      ) {
+        slackChannelId = metadata.value;
+      }
+
       // add actionId and actionValue
 
       const action: SlackAction = {
         // view callbackId
         actionType: view["callback_id"] as SlackActionType,
         // private metadata
-        actionValue: view["private_metadata"]?.toString(),
+        actionValue: metadata.value,
       };
 
       actions.push(action);
@@ -269,38 +398,6 @@ export default class SlackAuthAction {
       actions.push(action);
     }
 
-    // check if all the actions are authed.
-    if (!userId) {
-      for (const action of actions) {
-        if (
-          action.actionType &&
-          !slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime.includes(
-            action.actionType,
-          )
-        ) {
-          const markdwonPayload: WorkspacePayloadMarkdown = {
-            _type: "WorkspacePayloadMarkdown",
-            text: isRemovedFromProject
-              ? mdText`@${slackUsername}, ${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`.toString()
-              : mdText`@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `.toString(),
-          };
-
-          await SlackUtil.sendDirectMessageToUser({
-            authToken: projectAuth.authToken!,
-            workspaceUserId: slackUserId,
-            messageBlocks: [markdwonPayload],
-          });
-
-          // clear response.
-          logger.debug("User auth not found. Returning unauthorized.");
-
-          return {
-            isAuthorized: false,
-          };
-        }
-      }
-    }
-
     const slackRequest: SlackRequest = {
       isAuthorized: true,
       slackUserId: slackUserId,
@@ -310,20 +407,104 @@ export default class SlackAuthAction {
       projectAuthToken: projectAuth.authToken!,
       userAuthToken: userId ? userAuth?.authToken : undefined,
       botUserId: botUserId,
+      slackTeamId: slackTeamId,
       slackChannelId: slackChannelId,
+      slackThreadTs: slackThreadTs,
       slackUsername: slackUsername,
       slackMessageId: slackMessageId,
       slackUserFullName: slackUserFullName,
+      responseUrl: responseUrl,
       actions: actions,
       triggerId: triggerId,
       view: view,
       viewValues: viewValues,
     };
 
+    // check if all the actions are authed.
+    if (!userId) {
+      for (const action of actions) {
+        if (SlackAuthAction.requiresConnectedAccount(action.actionType)) {
+          logger.debug(
+            isRemovedFromProject
+              ? "Slack user is no longer a project member. Returning unauthorized."
+              : "Slack user has not connected a OneUptime account. Returning unauthorized.",
+            { projectId: projectId.toString() },
+          );
+
+          slackRequest.isAuthorized = false;
+          slackRequest.refusal = {
+            reason: isRemovedFromProject
+              ? SlackAuthRefusalReason.NotAMember
+              : SlackAuthRefusalReason.NotConnected,
+            projectId: projectId,
+            action: action,
+          };
+
+          return slackRequest;
+        }
+      }
+    }
+
     logger.debug("Slack request authorized successfully", {
       projectId: projectId.toString(),
     });
 
     return slackRequest;
+  }
+
+  /*
+   * Tells the person a refused press is about why, where they pressed
+   * (SlackActionAnswer) - never in a direct message they will not see:
+   *
+   *   - a Slack account not connected yet: what they pressed, and a Connect
+   *     button that connects it and then finishes the press for them
+   *     (SlackConnectPrompt);
+   *   - one connected to somebody who has left the project: that their
+   *     account is not a member, and to ask an admin.
+   *
+   * Called once Slack has been answered. Never throws.
+   */
+  @CaptureSpan()
+  public static async answerRefusal(
+    slackRequest: SlackRequest,
+  ): Promise<SlackAnswerDelivery> {
+    const refusal: SlackAuthRefusal | undefined = slackRequest.refusal;
+
+    const place: SlackAnswerPlace | null =
+      SlackActionAnswer.getPlace(slackRequest);
+
+    if (!refusal || !place) {
+      return SlackAnswerDelivery.None;
+    }
+
+    try {
+      if (refusal.reason === SlackAuthRefusalReason.NotAMember) {
+        return await SlackActionAnswer.answer({
+          place: place,
+          answer: {
+            markdown:
+              mdText`${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`.toString(),
+            text: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+          },
+        });
+      }
+
+      return await SlackConnectPrompt.prompt({
+        projectId: refusal.projectId,
+        place: place,
+        slackTeamId: slackRequest.slackTeamId,
+        description: SlackConnectPrompt.describe({
+          actionType: refusal.action.actionType,
+          actionValue: refusal.action.actionValue,
+          payloadType: slackRequest.payloadType,
+        }),
+      });
+    } catch (err) {
+      logger.error("Could not answer a refused Slack press.", {
+        projectId: refusal.projectId.toString(),
+      });
+      logger.error(err, { projectId: refusal.projectId.toString() });
+      return SlackAnswerDelivery.None;
+    }
   }
 }

@@ -13,6 +13,11 @@ export interface WorkspaceMessagePayloadButton {
   value: string; // Button value.
   actionId: string; // Button action id.
   url?: URL | undefined; // Button url.
+  /*
+   * The one button a message asks the reader to press: Slack draws it
+   * filled ("primary"), Microsoft Teams as its positive action.
+   */
+  isPrimary?: boolean | undefined;
 }
 
 export interface WorkspacePayloadHeader extends WorkspaceMessageBlock {

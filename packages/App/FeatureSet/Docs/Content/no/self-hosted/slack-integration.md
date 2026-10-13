@@ -124,7 +124,7 @@ Velg **Connect with Slack** under **Prosjektinnstillinger > Arbeidsområde > Sla
 
 ### Koble til din egen Slack-konto
 
-Knapper, skjemaer og kommandoer handler som OneUptime-brukeren som er knyttet til Slack-kontoen som bruker dem. Hver person åpner **Brukerinnstillinger > Arbeidsområde > Slack** og velger **Connect my account with Slack**. Den som ikke har koblet til en konto, får en direktemelding fra appen som ber om det.
+Knapper, skjemaer og kommandoer handler som OneUptime-brukeren som er knyttet til Slack-kontoen som bruker dem. Hver person åpner **Brukerinnstillinger > Arbeidsområde > Slack** og velger **Connect my account with Slack**. Den som ikke har koblet til en konto, får der de trykket et svar med en knapp **Connect Slack account**, som kobler den til i ett trinn.
 :::
 
 ## Miljøvariabler
@@ -228,6 +228,7 @@ Når Slack sender deg tilbake og tilkoblingen ikke ble opprettet, viser Slack-si
 | **"Du er ikke lenger medlem av dette prosjektet."** | For å koble til din egen Slack-konto må du være medlem av prosjektet når Slack sender deg tilbake. |
 | **"Dette prosjektet er ennå ikke koblet til et Slack-arbeidsområde."** | Installer først OneUptime i Slack fra **Prosjektinnstillinger > Arbeidsområde > Slack**, og koble deretter til din egen konto. |
 | **"Du logget på et annet Slack-arbeidsområde enn det dette prosjektet er koblet til."** | Koble til kontoen din mens du er logget på Slack-arbeidsområdet prosjektet er installert i. |
+| **"Du logget på Slack som en annen enn personen som trykket på tilkoblingsknappen i Slack, så ingenting ble koblet til."** | En knapp **Connect Slack account** virker bare for Slack-kontoen som trykket på den. Logg på Slack som deg selv, eller be personen som trykket på den, om å trykke på den. |
 | **"Tilkoblingen ble avbrutt, så ingenting ble endret."** | Forespørselen ble ikke tillatt i Slack. Start på nytt, og tillat den. |
 | **"Slack er ikke satt opp på denne OneUptime-serveren."** | Angi `SLACK_APP_CLIENT_ID` og `SLACK_APP_CLIENT_SECRET` (se [Miljøvariabler](#miljøvariabler)), og start OneUptime på nytt. |
 | **"OneUptime kunne ikke fullføre tilkoblingen. Prøv igjen."** | Slack svarte med en feil, eller en forespørsel eller en skriving mislyktes under fullføringen. OneUptime-serverens logg sier hvilken. Prøv igjen; hvis det fortsetter, sjekker du loggen og innstillingene til Slack-appen. |
@@ -243,7 +244,7 @@ Varsler er utgående og fungerer derfor uten innkommende tilgang. Knapper, snarv
 :::
 
 :::details Appen sier at Slack-kontoen min ikke er koblet til OneUptime
-Knapper, skjemaer og kommandoer trenger at Slack-kontoen din er knyttet til OneUptime-brukeren din. Åpne **Brukerinnstillinger > Arbeidsområde > Slack**, og velg **Connect my account with Slack**. Hvis du er fjernet fra prosjektet, sier appen det i stedet, og handlinger fra Slack avvises.
+Knapper, skjemaer og kommandoer trenger at Slack-kontoen din er knyttet til OneUptime-brukeren din. Trykk på **Connect Slack account** i appens svar, eller åpne **Brukerinnstillinger > Arbeidsområde > Slack**, og velg **Connect my account with Slack**. Hvis du er fjernet fra prosjektet, sier appen det i stedet, og handlinger fra Slack avvises.
 :::
 
 :::details Skjermbilder vises som tekst

@@ -124,7 +124,7 @@ Wählen Sie unter **Projekteinstellungen > Arbeitsbereich > Slack** die Option *
 
 ### Ihr eigenes Slack-Konto verbinden
 
-Schaltflächen, Formulare und Befehle handeln als der OneUptime-Benutzer, der mit dem Slack-Konto verknüpft ist, das sie verwendet. Jede Person öffnet **Benutzereinstellungen > Arbeitsbereich > Slack** und wählt **Connect my account with Slack**. Wer kein Konto verbunden hat, bekommt von der App eine Direktnachricht mit der Bitte, das zu tun.
+Schaltflächen, Formulare und Befehle handeln als der OneUptime-Benutzer, der mit dem Slack-Konto verknüpft ist, das sie verwendet. Jede Person öffnet **Benutzereinstellungen > Arbeitsbereich > Slack** und wählt **Connect my account with Slack**. Wer kein Konto verbunden hat, bekommt dort, wo er gedrückt hat, eine Antwort mit einer Schaltfläche **Connect Slack account**, die es in einem Schritt verbindet.
 :::
 
 ## Umgebungsvariablen
@@ -228,6 +228,7 @@ Wenn Slack Sie zurückschickt und die Verbindung nicht zustande gekommen ist, ze
 | **"Sie sind kein Mitglied dieses Projekts mehr."** | Um Ihr eigenes Slack-Konto zu verbinden, müssen Sie Mitglied des Projekts sein, wenn Slack Sie zurückschickt. |
 | **"Dieses Projekt ist noch mit keinem Slack-Arbeitsbereich verbunden."** | Installieren Sie OneUptime zuerst unter **Projekteinstellungen > Arbeitsbereich > Slack** in Slack und verbinden Sie dann Ihr eigenes Konto. |
 | **"Sie haben sich bei einem anderen Slack-Arbeitsbereich angemeldet als dem, mit dem dieses Projekt verbunden ist."** | Verbinden Sie Ihr Konto, während Sie bei dem Slack-Arbeitsbereich angemeldet sind, in dem das Projekt installiert ist. |
+| **"Sie haben sich bei Slack als eine andere Person angemeldet als die, die in Slack die Schaltfläche zum Verbinden gedrückt hat, daher wurde nichts verbunden."** | Eine Schaltfläche **Connect Slack account** funktioniert nur für das Slack-Konto, das sie gedrückt hat. Melden Sie sich bei Slack als Sie selbst an, oder bitten Sie die Person, die sie gedrückt hat, sie zu drücken. |
 | **"Die Verbindung wurde abgebrochen, daher wurde nichts geändert."** | Die Anfrage wurde in Slack nicht zugelassen. Beginnen Sie erneut und lassen Sie sie zu. |
 | **"Slack ist auf diesem OneUptime-Server nicht eingerichtet."** | Setzen Sie `SLACK_APP_CLIENT_ID` und `SLACK_APP_CLIENT_SECRET` (siehe [Umgebungsvariablen](#umgebungsvariablen)) und starten Sie OneUptime neu. |
 | **"OneUptime konnte die Verbindung nicht abschließen. Bitte versuchen Sie es erneut."** | Slack hat mit einem Fehler geantwortet, oder eine Anfrage oder ein Schreibvorgang ist beim Abschließen fehlgeschlagen. Das Log des OneUptime-Servers sagt, was davon. Versuchen Sie es erneut; passiert es weiterhin, prüfen Sie das Log und die Einstellungen der Slack-App. |
@@ -243,7 +244,7 @@ Benachrichtigungen sind ausgehend und funktionieren daher ohne eingehenden Zugri
 :::
 
 :::details Die App sagt, mein Slack-Konto sei nicht mit OneUptime verbunden
-Schaltflächen, Formulare und Befehle brauchen Ihr Slack-Konto, verknüpft mit Ihrem OneUptime-Benutzer. Öffnen Sie **Benutzereinstellungen > Arbeitsbereich > Slack** und wählen Sie **Connect my account with Slack**. Wurden Sie aus dem Projekt entfernt, sagt die App stattdessen das, und Aktionen aus Slack werden abgelehnt.
+Schaltflächen, Formulare und Befehle brauchen Ihr Slack-Konto, verknüpft mit Ihrem OneUptime-Benutzer. Drücken Sie in der Antwort der App **Connect Slack account**, oder öffnen Sie **Benutzereinstellungen > Arbeitsbereich > Slack** und wählen Sie **Connect my account with Slack**. Wurden Sie aus dem Projekt entfernt, sagt die App stattdessen das, und Aktionen aus Slack werden abgelehnt.
 :::
 
 :::details Screenshots erscheinen als Text

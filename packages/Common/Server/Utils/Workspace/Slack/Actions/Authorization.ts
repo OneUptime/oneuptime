@@ -3,7 +3,6 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
-import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceActionAuthorization, {
@@ -13,14 +12,27 @@ import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventRecord,
 } from "../../WorkspaceMemberActions";
-import SlackUtil from "../Slack";
 import { SlackRequest } from "./Auth";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import ObjectID from "../../../../../Types/ObjectID";
+import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 
+/*
+ * Who pressed, and where: the member they act as, and the channel, thread
+ * and response_url their answer goes to (SlackActionAnswer).
+ */
 export type SlackActionRequester = Pick<
   SlackRequest,
-  "userId" | "projectId" | "projectAuthToken" | "slackUserId" | "slackUsername"
+  | "userId"
+  | "projectId"
+  | "projectAuthToken"
+  | "slackUserId"
+  | "slackUsername"
+  | "slackChannelId"
+  | "slackThreadTs"
+  | "responseUrl"
+  | "triggerId"
+  | "payloadType"
 >;
 
 // A Slack user who may press a button on a record, and the record as they read it.
@@ -32,9 +44,9 @@ export interface SlackAuthorizedEvent {
 export default class SlackActionAuthorization {
   /*
    * Runs WorkspaceActionAuthorization.authorize for the Slack user behind a
-   * request. When they may not act, tells them why in a direct message and
-   * returns null: the caller must stop without writing anything. Slack has
-   * already been answered by then, so a DM is the only way left to reach them.
+   * request. When they may not act, tells them why where they pressed
+   * (sendRefusal) and returns null: the caller must stop without writing
+   * anything.
    */
   @CaptureSpan()
   public static async authorize(data: {
@@ -43,7 +55,7 @@ export default class SlackActionAuthorization {
     action: string;
     resources?: Array<WorkspaceActionResource> | undefined;
   }): Promise<DatabaseCommonInteractionProps | null> {
-    return await this.refuseInDirectMessage({
+    return await this.refuseInPlace({
       requester: data.requester,
       action: data.action,
       run: async (
@@ -75,7 +87,7 @@ export default class SlackActionAuthorization {
     event: WorkspaceEvent;
     resources?: Array<WorkspaceActionResource> | undefined;
   }): Promise<SlackAuthorizedEvent | null> {
-    return await this.refuseInDirectMessage({
+    return await this.refuseInPlace({
       requester: data.requester,
       action: data.action,
       run: async (
@@ -104,9 +116,9 @@ export default class SlackActionAuthorization {
 
   /*
    * A check of the Slack user behind a request; a refusal of it is told to
-   * them in a direct message, and null comes back.
+   * them where they pressed, and null comes back.
    */
-  private static async refuseInDirectMessage<T>(data: {
+  private static async refuseInPlace<T>(data: {
     requester: SlackActionRequester;
     action: string;
     run: (userId: ObjectID, projectId: ObjectID) => Promise<T>;
@@ -146,9 +158,8 @@ export default class SlackActionAuthorization {
    * permission they lack, a plan the project is not on, a record they may
    * not name (answered like one that is not there), a value that is not
    * valid. Such a refusal is written for whoever made the request; it is
-   * told to them in a direct message, as `Could not <action>: <reason>`,
-   * and null comes back - Slack has been answered already, so a DM is the
-   * only way left to reach them. Anything else is thrown.
+   * told to them where they pressed, as `Could not <action>: <reason>`,
+   * and null comes back. Anything else is thrown.
    */
   @CaptureSpan()
   public static async runForRequester<T>(data: {
@@ -182,40 +193,35 @@ export default class SlackActionAuthorization {
     }
   }
 
+  /*
+   * Tells the person why a press was refused, where they pressed: only they
+   * see it, in the channel and thread they pressed in (SlackActionAnswer),
+   * so it is not addressed to them by name.
+   */
   @CaptureSpan()
   public static async sendRefusal(data: {
     requester: SlackActionRequester;
     message: string;
   }): Promise<void> {
-    const { requester } = data;
+    const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
+      data.requester,
+    );
 
-    if (!requester.projectAuthToken || !requester.slackUserId) {
+    if (!place) {
       return;
     }
 
     /*
      * The refusal is text - it can name a label, a record or a person - so
-     * it is placed as text, as the name before it is.
+     * it is placed as text. The refusal stands whether or not Slack takes
+     * the answer (answer never throws).
      */
-    const markdownPayload: WorkspacePayloadMarkdown = {
-      _type: "WorkspacePayloadMarkdown",
-      text: requester.slackUsername
-        ? mdText`@${requester.slackUsername}, ${data.message}`.toString()
-        : mdText`${data.message}`.toString(),
-    };
-
-    try {
-      await SlackUtil.sendDirectMessageToUser({
-        authToken: requester.projectAuthToken,
-        workspaceUserId: requester.slackUserId,
-        messageBlocks: [markdownPayload],
-      });
-    } catch (err) {
-      // The refusal stands whether or not Slack delivered the explanation.
-      logger.error("Error sending Slack authorization refusal:", {
-        projectId: requester.projectId?.toString(),
-      });
-      logger.error(err);
-    }
+    await SlackActionAnswer.answer({
+      place: place,
+      answer: {
+        markdown: mdText`${data.message}`.toString(),
+        text: data.message,
+      },
+    });
   }
 }

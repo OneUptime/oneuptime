@@ -44,6 +44,7 @@ const GUIDES: Array<Guide> = [
       ConnectCallbackError.Cancelled,
       ConnectCallbackError.SlackNotInstalled,
       ConnectCallbackError.SlackOtherWorkspace,
+      ConnectCallbackError.SlackOtherAccount,
     ],
   },
   {
@@ -55,6 +56,7 @@ const GUIDES: Array<Guide> = [
       ConnectCallbackError.Cancelled,
       ConnectCallbackError.TeamsOtherTenant,
       ConnectCallbackError.TeamsNoTeams,
+      ConnectCallbackError.TeamsOtherAccount,
     ],
   },
   {
