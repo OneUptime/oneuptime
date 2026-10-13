@@ -188,7 +188,7 @@ Os monitores criados antes de o OneUptime mudar esses padrões mantêm os crité
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Is Online**, **Código de status da resposta** e **Tempo de resposta (em ms)**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Is Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Response Header**, **Response Header Value**, **JavaScript Expression** e **Is Request Timeout**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
@@ -197,6 +197,10 @@ Os monitores criados antes de o OneUptime mudar esses padrões mantêm os crité
 | **Any Value** | Pelo menos uma verificação na janela atende à condição. |
 
 **All Values** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Any Value** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
+
+Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Is Request Timeout**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **All Values** ou **Any Value**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **All Values**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
+
+Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 
 **Se não houver dados** decide o que acontece enquanto a janela não consegue sustentar o critério:
 
@@ -214,6 +218,8 @@ Os monitores criados antes de o OneUptime mudar esses padrões mantêm os crité
 | Offline quando a verificação de saúde relata um problema | **Corpo da Resposta** | **Not Contains** | `"status":"ok"` |
 | O mesmo, lido do JSON analisado | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
 | Aceitar apenas `201` de um `POST` | **Código de status da resposta** | **Equal To** | `201` |
+
+Para atravessar uma reinicialização, ative **Avaliar este critério durante um período de tempo** no filtro do corpo da resposta e escolha **All Values** em 15 minutos.
 
 ## Solução de problemas
 

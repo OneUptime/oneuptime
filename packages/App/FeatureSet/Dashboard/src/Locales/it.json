@@ -18731,7 +18731,7 @@
   "What runs where in your infrastructure?": "What runs where in your infrastructure?",
   "What scheduled maintenance is coming up or currently ongoing?": "What scheduled maintenance is coming up or currently ongoing?",
   "What should I do right now?": "What should I do right now?",
-  "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?": "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?",
+  "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?": "Cosa deve succedere finché la finestra non ha ancora abbastanza dati, per esempio con un monitor appena avviato o con uno i cui controlli non vengono più registrati?",
   "What should the AI analyze, summarize or decide? Its response becomes this step's output.": "What should the AI analyze, summarize or decide? Its response becomes this step's output.",
   "What should this workflow be called?": "Come vuoi chiamare questo flusso di lavoro?",
   "What stands out": "What stands out",
@@ -20603,8 +20603,8 @@
   "{{count}} Invitations Pending": "{{count}} Invitations Pending",
   "{{count}} Invitations Pending_one": "{{count}} Invitation Pending",
   "{{count}} Kubernetes": "{{count}} Kubernetes",
-  "{{count}} Minutes": "{{count}} Minutes",
-  "{{count}} Minutes_one": "{{count}} Minute",
+  "{{count}} Minutes": "{{count}} minuti",
+  "{{count}} Minutes_one": "{{count}} minuto",
   "{{count}} Monitors": "{{count}} Monitors",
   "{{count}} Monitors_one": "{{count}} Monitor",
   "{{count}} OIDs": "{{count}} OIDs",
@@ -28149,5 +28149,8 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime ti ha risposto in {{workspace}}, dove hai premuto il pulsante.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime è installato nell'area di lavoro Slack {{team}}. Collega lì il tuo account per riconoscere gli incidenti e ricevere i messaggi a tuo nome, in Slack.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Questo pulsante di collegamento è già stato usato. Torna su {{workspace}} e premi di nuovo il pulsante.",
-  "Your {{workspace}} account is already connected": "Il tuo account {{workspace}} è già collegato"
+  "Your {{workspace}} account is already connected": "Il tuo account {{workspace}} è già collegato",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values corrisponde solo quando ogni controllo nella finestra ha corrisposto. Any Value corrisponde non appena un controllo ha corrisposto.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Media, Somma, Maximum Value e Minimum Value confrontano un solo valore per l'intera finestra. All Values richiede che ogni controllo soddisfi la condizione, Any Value ne basta uno.",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Scegli una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli. Un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti."
 }

@@ -174,7 +174,7 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Codice di stato della risposta** e **Tempo di risposta (in ms)**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Response Header**, **Response Header Value**, **JavaScript Expression** e **Is Request Timeout**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
@@ -183,6 +183,10 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 | **Any Value** | Almeno un controllo nella finestra soddisfa la condizione. |
 
 **All Values** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Any Value** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+
+Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Is Request Timeout** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **All Values** o **Any Value**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **All Values**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
+
+Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli: un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti.
 
 **Se nessun dato** decide cosa succede finché la finestra non può sostenere il criterio:
 
@@ -200,6 +204,8 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 | Individuare una pagina di errore servita con `200` | **Corpo della Risposta** | **Not Contains** | `Welcome` |
 | Controllare che sia presente un'intestazione del CDN | **Response Header** | **Contiene** | `x-cache` |
 | Accettare solo `200` come sano | **Codice di stato della risposta** | **Equal To** | `200` |
+
+Per superare un riavvio, attivate **Valuta questo criterio su un periodo di tempo** per il filtro del corpo della risposta e scegliete **All Values** su 15 minuti.
 
 ## Risoluzione dei problemi
 

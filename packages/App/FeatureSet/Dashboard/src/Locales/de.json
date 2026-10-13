@@ -20603,7 +20603,7 @@
   "{{count}} Invitations Pending": "{{count}} Invitations Pending",
   "{{count}} Invitations Pending_one": "{{count}} Invitation Pending",
   "{{count}} Kubernetes": "{{count}} Kubernetes",
-  "{{count}} Minutes": "{{count}} Minutes",
+  "{{count}} Minutes": "{{count}} Minuten",
   "{{count}} Minutes_one": "{{count}} Minute",
   "{{count}} Monitors": "{{count}} Monitors",
   "{{count}} Monitors_one": "{{count}} Monitor",
@@ -28149,5 +28149,8 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime hat Ihnen in {{workspace}} geantwortet, dort, wo Sie die Schaltfläche gedrückt haben.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime ist im Slack-Arbeitsbereich {{team}} installiert. Verbinden Sie dort Ihr Konto, um Vorfälle in Ihrem eigenen Namen zu bestätigen und Nachrichten in Slack zu erhalten.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Diese Schaltfläche zum Verbinden wurde bereits verwendet. Gehen Sie zurück zu {{workspace}} und drücken Sie die Schaltfläche erneut.",
-  "Your {{workspace}} account is already connected": "Ihr {{workspace}}-Konto ist bereits verbunden"
+  "Your {{workspace}} account is already connected": "Ihr {{workspace}}-Konto ist bereits verbunden",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values trifft nur zu, wenn jede Prüfung im Zeitfenster zutraf. Any Value trifft zu, sobald eine Prüfung zutraf.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Durchschnitt, Summe, Maximum Value und Minimum Value vergleichen einen einzigen Wert für das ganze Zeitfenster. All Values verlangt, dass jede Prüfung die Bedingung erfüllt, Any Value nur eine.",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Wählen Sie das Zeitfenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält. Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Zeitfenster nur eine Prüfung."
 }

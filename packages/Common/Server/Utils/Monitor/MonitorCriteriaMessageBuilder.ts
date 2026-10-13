@@ -71,7 +71,10 @@ export default class MonitorCriteriaMessageBuilder {
     const expectation: string | null =
       MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
         input.criteriaFilter,
-        metricDisplay,
+        {
+          ...metricDisplay,
+          monitorType: input.monitor.monitorType,
+        },
       );
 
     const observation: string | null =

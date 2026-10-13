@@ -351,6 +351,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           monitorCriteria={
             props.monitorStep?.data?.monitorCriteria as MonitorCriteria
           }
+          monitorType={props.monitorType}
         />
       </div>
     </div>

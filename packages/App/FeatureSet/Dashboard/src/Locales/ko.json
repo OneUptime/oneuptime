@@ -18731,7 +18731,7 @@
   "What runs where in your infrastructure?": "What runs where in your infrastructure?",
   "What scheduled maintenance is coming up or currently ongoing?": "What scheduled maintenance is coming up or currently ongoing?",
   "What should I do right now?": "What should I do right now?",
-  "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?": "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?",
+  "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?": "방금 시작된 모니터나 검사 기록이 멈춘 모니터처럼 기간에 아직 데이터가 충분하지 않을 때는 어떻게 처리해야 하나요?",
   "What should the AI analyze, summarize or decide? Its response becomes this step's output.": "What should the AI analyze, summarize or decide? Its response becomes this step's output.",
   "What should this workflow be called?": "이 워크플로의 이름은 무엇으로 할까요?",
   "What stands out": "What stands out",
@@ -20603,8 +20603,8 @@
   "{{count}} Invitations Pending": "{{count}} Invitations Pending",
   "{{count}} Invitations Pending_one": "{{count}} Invitation Pending",
   "{{count}} Kubernetes": "{{count}} Kubernetes",
-  "{{count}} Minutes": "{{count}} Minutes",
-  "{{count}} Minutes_one": "{{count}} Minute",
+  "{{count}} Minutes": "{{count}}분",
+  "{{count}} Minutes_one": "{{count}}분",
   "{{count}} Monitors": "{{count}} Monitors",
   "{{count}} Monitors_one": "{{count}} Monitor",
   "{{count}} OIDs": "{{count}} OIDs",
@@ -28149,5 +28149,8 @@
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime이 버튼을 누른 {{workspace}}의 그 자리에서 답했습니다.",
   "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime이 Slack 워크스페이스 {{team}}에 설치되어 있습니다. 그곳에서 계정을 연결하면 Slack에서 본인으로 인시던트를 인지하고 메시지를 받을 수 있습니다.",
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "이 연결 버튼은 이미 사용되었습니다. {{workspace}}(으)로 돌아가 버튼을 다시 누르세요.",
-  "Your {{workspace}} account is already connected": "{{workspace}} 계정이 이미 연결되어 있습니다"
+  "Your {{workspace}} account is already connected": "{{workspace}} 계정이 이미 연결되어 있습니다",
+  "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values는 기간 내 모든 검사가 일치했을 때만 일치합니다. Any Value는 검사 하나가 일치하는 즉시 일치합니다.",
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "평균, 합계, Maximum Value, Minimum Value는 기간 전체에 대해 하나의 값을 비교합니다. All Values는 모든 검사가 조건을 충족해야 하고, Any Value는 하나만 충족하면 됩니다.",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "기간을 모니터링 간격보다 길게 설정해 여러 검사가 포함되도록 하세요. 5분마다 검사하는 모니터는 5분 기간에 검사가 한 번만 있습니다."
 }
