@@ -272,7 +272,7 @@ describe("the other pages that name the switch", () => {
     );
     expect(fa).not.toContain("به‌طور پیش‌فرض خاموش و مستقل");
     expect(fa).toContain(
-      "زیر **Fix new incidents automatically** در **Incidents > AI > Settings** و زیر **Fix new alerts automatically** در **Alerts > AI > Settings** قرار دارد",
+      "زیر **اصلاح خودکار حوادث تازه** در **حوادث** > **هوش مصنوعی** > **تنظیمات** و زیر **اصلاح خودکار هشدارهای تازه** در **هشدارها** > **هوش مصنوعی** > **تنظیمات** قرار دارد",
     );
   });
 });

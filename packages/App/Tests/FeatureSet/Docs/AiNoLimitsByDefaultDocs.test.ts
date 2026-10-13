@@ -318,9 +318,10 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
   fa: {
     file: path.join(CONTENT_DIR, "fa/ai/ai-sre.md"),
     costControlsHeading: "## کنترل‌های هزینه",
-    where: "Incidents یا Alerts > AI > Settings",
+    where:
+      "در **حوادث** > **هوش مصنوعی** > **تنظیمات** و **هشدارها** > **هوش مصنوعی** > **تنظیمات**",
     remediation:
-      "زیر **More settings** در **Incidents > AI > Settings** و **Alerts > AI > Settings**",
+      "زیر **تنظیمات بیشتر** در **حوادث** > **هوش مصنوعی** > **تنظیمات** و **هشدارها** > **هوش مصنوعی** > **تنظیمات**",
     oldDefaults: [
       "دو رده شدت بالای",
       "پیش‌فرض **۳۰ دقیقه**",
