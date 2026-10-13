@@ -171,7 +171,14 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.DevicePhoneMobile} className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gray-900">
+              {/*
+               * Wrapped, never cut short: the end of a long name ("... work
+               * phone") is often what tells two phones apart.
+               */}
+              <p
+                className="break-words text-sm font-medium text-gray-900"
+                data-testid="critical-alert-steps-device-name"
+              >
                 {props.deviceName}
               </p>
               <p className="text-xs text-gray-500">

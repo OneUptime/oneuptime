@@ -1414,6 +1414,49 @@ test.describe("critical alerts in the device list", () => {
     await screenshot(page, "critical-alerts-get-the-app-synthetic");
   });
 
+  test("on a phone, the steps show a long device name whole: the end of it is what tells two phones apart", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    const longName: string =
+      "Galaxy S24 Ultra (work phone, second SIM for on-call rotations)";
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seed(request, [{ ...GALAXY, deviceName: longName }]);
+    await open(page);
+
+    await page
+      .locator("[data-testid='critical-alert-status'][data-state='off']")
+      .getByTestId("critical-alert-steps-link")
+      .click();
+
+    const name: Locator = dialog(page).getByTestId(
+      "critical-alert-steps-device-name",
+    );
+
+    await expect(name).toHaveText(longName);
+
+    // Wrapped onto more lines, not clipped with an ellipsis.
+    const box: { clipped: boolean; lines: number } = await name.evaluate(
+      (element: Element): { clipped: boolean; lines: number } => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return {
+          clipped: element.scrollWidth > element.clientWidth,
+          lines: Math.round(
+            element.getBoundingClientRect().height /
+              parseFloat(style.lineHeight),
+          ),
+        };
+      },
+    );
+
+    expect(box.clipped).toBe(false);
+    expect(box.lines).toBeGreaterThan(1);
+  });
+
   test("a test to a phone with critical alerts off leads to how to turn them on, on that phone", async ({
     page,
     request,

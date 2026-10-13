@@ -403,8 +403,10 @@ describe("the steps follow what the app does on each platform", () => {
       connect.indexOf("sign in"),
     );
 
-    // ...and the address is this Dashboard's API origin: its host, as the
-    // API's own URL is built (Common/UI/Config's APP_API_URL).
+    /*
+     * ...and the address is this Dashboard's API origin: its host, as the
+     * API's own URL is built (Common/UI/Config's APP_API_URL).
+     */
     const helper: string = read(
       REPOSITORY,
       "packages",

@@ -801,6 +801,26 @@ describe("How to turn on: the steps on that phone, as its app asks", () => {
     }
   });
 
+  test("a long device name is shown whole in the steps, wrapped, never cut short", async () => {
+    const longName: string =
+      "Galaxy S24 Ultra (work phone, second SIM for on-call rotations)";
+
+    devices = [
+      device({ id: GALAXY_ID, name: longName, type: PushDeviceType.Android }),
+    ];
+
+    render(<PushMethods />);
+
+    const modal: HTMLElement = await openStepsFor(longName);
+    const name: HTMLElement = within(modal).getByTestId(
+      "critical-alert-steps-device-name",
+    );
+
+    expect(name.textContent).toBe(longName);
+    expect(name).not.toHaveClass("truncate");
+    expect(name).toHaveClass("break-words");
+  });
+
   test("the steps are numbered in order, and the numbers are not read out on top of the list", async () => {
     render(<PushMethods />);
 

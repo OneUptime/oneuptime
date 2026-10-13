@@ -84,9 +84,12 @@ OneUptime On-Call app sets, drawn as a status and never as a control:
   Android phone allows Do Not Disturb access and turns the switch on again;
 - closing the steps reads the list again, so a phone turned on meanwhile reads
   On;
-- a browser alone is offered the mobile app, with both stores; an empty list
-  offers this browser and the app;
+- a browser alone is offered the mobile app, with both stores, and the steps
+  name the address the app connects to (this server's); an empty list offers
+  this browser and the app;
 - a test to a phone with critical alerts on says it went as a critical alert;
+  one to a phone with them off offers "How to turn on", which opens that
+  phone's steps;
 - at 390px in the dark theme the list and the steps fit the screen, in the dark
   theme's colours;
 - in German at 390px the steps are German, and the app's own labels stay as
