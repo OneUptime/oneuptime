@@ -16,7 +16,10 @@ import FeedContent, {
   FeedSkeleton,
 } from "../../../UI/Components/Feed/FeedContent";
 import { UseFeedItemsResult } from "../../../UI/Components/Feed/useFeedItems";
-import { FeedItemProps } from "../../../UI/Components/Feed/FeedItem";
+import {
+  FEED_ENTRY_GRID_CLASS_NAME,
+  FeedItemProps,
+} from "../../../UI/Components/Feed/FeedItem";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../../Types/Icon/IconProp";
 import { Blue500 } from "../../../Types/BrandColors";
@@ -177,5 +180,32 @@ describe("FeedContent", () => {
     const skeleton: HTMLElement = screen.getByTestId("feed-skeleton");
 
     expect(skeleton.querySelectorAll(".rounded-full").length).toBe(3);
+  });
+
+  test("the skeleton's rows have the entries' own columns, so the feed does not shift when it lands", () => {
+    const { container } = render(<FeedSkeleton />);
+    const rowClasses: Array<string> = Array.from(
+      container.querySelectorAll('[aria-hidden="true"] > .grid'),
+    ).map((row: Element) => {
+      return row.className;
+    });
+
+    expect(rowClasses).toHaveLength(3);
+    for (const className of rowClasses) {
+      for (const columnClass of FEED_ENTRY_GRID_CLASS_NAME.split(" ")) {
+        expect(className.split(" ")).toContain(columnClass);
+      }
+    }
+  });
+
+  test("the time column is wide enough for the longest 'N min. ago' a Dashboard language writes", () => {
+    /*
+     * "for 24 min siden" (Norwegian) and "24 min. geleden" (Dutch) are 95px
+     * in the Dashboard's Inter at 12px; at 5.5rem (88px) they ran into the
+     * rail.
+     */
+    expect(FEED_ENTRY_GRID_CLASS_NAME).toContain(
+      "sm:grid-cols-[6.25rem_1.75rem_minmax(0,1fr)]",
+    );
   });
 });

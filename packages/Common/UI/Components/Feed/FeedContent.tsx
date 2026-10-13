@@ -4,6 +4,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Feed from "./Feed";
+import { FEED_ENTRY_GRID_CLASS_NAME } from "./FeedItem";
 import { UseFeedItemsResult } from "./useFeedItems";
 
 export interface ComponentProps {
@@ -43,10 +44,7 @@ export const FeedSkeleton: FunctionComponent = (): ReactElement => {
             index: number,
           ) => {
             return (
-              <div
-                key={index}
-                className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 pb-6 sm:grid-cols-[5.5rem_1.75rem_minmax(0,1fr)]"
-              >
+              <div key={index} className={`${FEED_ENTRY_GRID_CLASS_NAME} pb-6`}>
                 <div className="col-start-2 row-start-1 pb-1 sm:col-start-1 sm:flex sm:justify-end sm:pt-1">
                   <div className="h-3 w-14 rounded bg-gray-100"></div>
                 </div>

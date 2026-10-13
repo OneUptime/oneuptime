@@ -104,6 +104,7 @@ Query parameters, parsed once per page load:
 | `?fail=`         | comma separated: `evidence`, `verdict`, `create-fix-task`, `investigation`, `conversation` (the thread cannot be loaded), `conversation-send` (a question is refused: "AI is turned off for this project…"), `resend` (the subscriber notifications of #1042 and #58 are Failed and the retry is refused), `channel-links` (the record's Slack / Teams channels cannot be read)                                     |
 | `?channels=`     | the record's own chat channels, as `GET /workspace-channel-link/<type>/<id>` answers them for the header's Open in Slack / Open in Microsoft Teams: comma separated `slack` (one Slack channel), `slack2` (a second Slack channel, so Open in Slack becomes a menu) and `teams` (one Teams channel). None by default: no button. The links are built by the real `WorkspaceChannelLink` rules                       |
 | `?resources=`    | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
+| `?feed=`         | `oncall-run`: incident #1042's on-call run in full, as the run writes its feed entries now (who it paged, a rule that reached nobody, who acknowledged): four on-call entries within a minute, which the feed folds into the newest of them                                                                                                                                                                         |
 | `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?role=`         | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
 | `?clusters=`     | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
@@ -129,7 +130,7 @@ Query parameters, parsed once per page load:
   rating, rolled back with a failed save, already there with `?verdict=`, beside the heading
   at 1440px, wrapped under it at 390px and at 768px with View full report moved to the bottom
   row, on the alert page too) and the muted summary of a rejected report; the feed's compact
-  AI item and its More Information modal.
+  AI item and its full report unfolding in place under it.
 - **Investigation details**: evidence, activity and usage share one section below the report
   that starts collapsed. Its header names what the run did (queries, steps) and the read-only
   guarantee; tokens and the model sit inside. The Evidence checked and Activity tabs switch by
@@ -226,7 +227,12 @@ Query parameters, parsed once per page load:
   first, with "N min. ago" for the last hour, a time said once per minute, and a `<time>` with
   the instant; an entry led by who did it, its leading emoji gone and the rail's icon in its
   place; the time above the entry on a phone; the AI entry's full report unfolding in place
-  under Show the full report, and folding again under Hide details.
+  under Show the full report, and folding again under Hide details; what someone wrote (a note,
+  the AI's root cause) in a card under the sentence that introduces it, light and dark, while
+  what happened stays a sentence; a maintenance event's created entry read as "Jordan Patel
+  created Scheduled Maintenance #58"; and with `?feed=oncall-run` the run folded into its
+  newest entry, unfolding in place by keyboard with Show fewer under its last entry, focus
+  moving to the first entry it unfolded and back to Show 3 more when it folds again.
 - **Open in Slack / Microsoft Teams**: no button without a channel (the page still asks, for
   its record); with `?channels=slack` a link in the hero opening in a new tab without an opener,
   the channel named when pointed at; with `teams` a link on teams.microsoft.com with its team;

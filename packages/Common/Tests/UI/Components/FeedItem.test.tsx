@@ -383,6 +383,23 @@ describe("what somebody wrote", () => {
     );
   });
 
+  test("a long link or token wraps inside the entry instead of running out of its card", () => {
+    renderEntry({
+      item: item({
+        user: nitin(),
+        isNote: true,
+        textInMarkdown: `📄 posted **private note** for this [Incident INC-8](${LINK}):\n\nhttps://grafana.example.com/d/${"x".repeat(200)}`,
+      }),
+    });
+
+    // overflow-wrap: break-word on the column every part of the entry is in.
+    const content: HTMLElement = screen.getByTestId("feed-entry-content");
+
+    expect(content.className.split(" ")).toContain("break-words");
+    expect(content.className.split(" ")).toContain("min-w-0");
+    expect(content).toContainElement(screen.getByTestId("feed-entry-body"));
+  });
+
   test("an entry that is not a note has no card", () => {
     renderEntry({
       item: item({

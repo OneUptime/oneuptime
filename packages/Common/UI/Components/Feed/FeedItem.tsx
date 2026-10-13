@@ -92,6 +92,16 @@ export interface ComponentProps {
   onFocusTaken?: (() => void) | undefined;
 }
 
+/*
+ * The columns of a feed entry: on a phone the rail and the entry, from sm
+ * the time, the rail and the entry. The time column is as wide as the
+ * longest "N min. ago" the Dashboard's languages write ("for 24 min siden",
+ * "24 min. geleden"), so none runs into the rail. FeedSkeleton draws the
+ * same columns.
+ */
+export const FEED_ENTRY_GRID_CLASS_NAME: string =
+  "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[6.25rem_1.75rem_minmax(0,1fr)]";
+
 const DEFAULT_DETAILS_LABEL: string = translationKey("Show details");
 const HIDE_DETAILS_LABEL: string = translationKey("Hide details");
 
@@ -375,7 +385,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
     <li
       ref={entryRef}
       tabIndex={props.entry.isFirstInFold ? -1 : undefined}
-      className="relative grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 rounded-lg pb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:grid-cols-[5.5rem_1.75rem_minmax(0,1fr)]"
+      className={`relative ${FEED_ENTRY_GRID_CLASS_NAME} rounded-lg pb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
       data-testid="feed-entry"
       data-event-type={item.eventType}
       data-in-burst={props.entry.isInBurst ? "true" : undefined}
@@ -386,7 +396,10 @@ const FeedItem: FunctionComponent<ComponentProps> = (
        * break-words: a long link or token pasted into a note wraps inside
        * the entry, instead of running out of its card on a phone.
        */}
-      <div className="col-start-2 row-start-2 min-w-0 break-words pt-1 sm:col-start-3 sm:row-start-1">
+      <div
+        className="col-start-2 row-start-2 min-w-0 break-words pt-1 sm:col-start-3 sm:row-start-1"
+        data-testid="feed-entry-content"
+      >
         {getLead()}
         {noteParts && noteParts.intro && (
           <div
