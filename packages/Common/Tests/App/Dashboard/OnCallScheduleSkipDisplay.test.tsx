@@ -491,7 +491,9 @@ describe("the hand-off rows and the overrides card, from their inputs", () => {
 
   function meta(isSkip: boolean): OverrideEventMeta {
     return {
+      isOverride: true,
       originalUserId: ALICE_ID,
+      overrideUserId: CAROL_ID,
       overrideStartsAt: hoursFromNow(10),
       overrideEndsAt: hoursFromNow(20),
       onCallDutyPolicyId: null,
