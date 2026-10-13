@@ -71,8 +71,20 @@ export const MENU_ITEM_SELECTOR: string =
 // Matches the mt-2 / mb-2 gap the in-place menu keeps from its trigger.
 const PORTALED_MENU_GAP_PX: number = 8;
 const PORTALED_MENU_VIEWPORT_PADDING_PX: number = 8;
-// w-56, for the first measurement before the menu has a width of its own.
+// w-56, for a measurement that finds no width at all (no layout: jsdom).
 const PORTALED_MENU_FALLBACK_WIDTH_PX: number = 224;
+
+/*
+ * The portalled menu's width, w-56's, set on the element itself. Its first
+ * measurement places it, and the Tailwind runtime the dashboards load writes
+ * the rule for a class the page has not used yet only after that: a menu
+ * measured without it took the width of its widest content - a locked
+ * item's reason, read to screen readers from a span its sr-only rule had
+ * not hidden yet, is a whole sentence - found no room to hang left of its
+ * trigger, opened at the left edge of the screen, and jumped back under its
+ * trigger a frame later. A tooltip shown in that frame stayed at the left.
+ */
+export const PORTALED_MENU_WIDTH: string = "14rem";
 
 /*
  * Exactly one of left / right is set, and exactly one of top / bottom. Right
@@ -729,6 +741,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
           isMenuPortaled
             ? {
                 position: "fixed",
+                width: PORTALED_MENU_WIDTH,
                 top: portaledMenuPosition?.top,
                 bottom: portaledMenuPosition?.bottom,
                 left: portaledMenuPosition ? portaledMenuPosition.left : 0,
