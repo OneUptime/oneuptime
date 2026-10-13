@@ -91,7 +91,7 @@ const CEF_START: RegExp = /^CEF:\d+\|/;
 
 const UNSAFE_KEY_CHARACTER: RegExp = /[^A-Za-z0-9_.-]/g;
 
-const BYTE_ORDER_MARK: RegExp = /^﻿/;
+const BYTE_ORDER_MARK: RegExp = /^\uFEFF/;
 
 export function getSyslogHeaderFormat(
   parsed: Pick<ParsedSyslogMessage, "version" | "timestamp" | "hostname">,

@@ -490,9 +490,7 @@ describe("bounds", () => {
     ).attributes;
 
     // The extension pairs, the six header fields, the parser and the vendor.
-    expect(Object.keys(cef).length).toBeLessThanOrEqual(
-      MAX_CEF_EXTENSIONS + 8,
-    );
+    expect(Object.keys(cef).length).toBeLessThanOrEqual(MAX_CEF_EXTENSIONS + 8);
   });
 
   it("reads only the start of a very long line", () => {

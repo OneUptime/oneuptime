@@ -86,9 +86,7 @@ function describeSamples(
         }
 
         if (sample.expect.attributes) {
-          expect(normalized.attributes).toMatchObject(
-            sample.expect.attributes,
-          );
+          expect(normalized.attributes).toMatchObject(sample.expect.attributes);
         }
 
         for (const key of sample.expect.absent || []) {
@@ -212,9 +210,10 @@ describe("telling the vendors apart", () => {
         ? null
         : sample.expect.parserId;
 
-      expect({ name: sample.name, parserId: line?.normalized.parserId }).toEqual(
-        { name: sample.name, parserId: expected },
-      );
+      expect({
+        name: sample.name,
+        parserId: line?.normalized.parserId,
+      }).toEqual({ name: sample.name, parserId: expected });
     }
   });
 

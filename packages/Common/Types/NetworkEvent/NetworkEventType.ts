@@ -320,9 +320,7 @@ export const NETWORK_EVENT_DEFINITIONS: ReadonlyArray<NetworkEventDefinition> =
 
 const DEFINITIONS_BY_TYPE: Map<string, NetworkEventDefinition> = new Map(
   NETWORK_EVENT_DEFINITIONS.map(
-    (
-      definition: NetworkEventDefinition,
-    ): [string, NetworkEventDefinition] => {
+    (definition: NetworkEventDefinition): [string, NetworkEventDefinition] => {
       return [definition.type, definition];
     },
   ),

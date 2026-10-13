@@ -70,8 +70,7 @@ const linux: SyslogVendorParser = {
   },
 
   extract: (context: SyslogParseContext): SyslogVendorExtraction => {
-    const read: { program: string; text: string } | null =
-      readProgram(context);
+    const read: { program: string; text: string } | null = readProgram(context);
 
     if (!read) {
       return { fields: {}, text: "" };

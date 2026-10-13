@@ -382,7 +382,9 @@ const cisco: SyslogVendorParser = {
      */
     {
       event: NetworkEventType.HardwareFanFailed,
-      when: { mnemonic: /FAN\w{0,20}(?:BAD|FAIL|FAULT)|(?:BAD|FAIL|FAULT)\w{0,20}FAN/ },
+      when: {
+        mnemonic: /FAN\w{0,20}(?:BAD|FAIL|FAULT)|(?:BAD|FAIL|FAULT)\w{0,20}FAN/,
+      },
     },
     {
       event: NetworkEventType.HardwareFanOk,

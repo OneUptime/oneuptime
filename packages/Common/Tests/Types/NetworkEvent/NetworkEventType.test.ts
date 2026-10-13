@@ -235,9 +235,7 @@ describe("problems and what ends them", () => {
     expect(NetworkEventTypeUtil.getClearedProblem("interface.up")).toBe(
       "interface.down",
     );
-    expect(
-      NetworkEventTypeUtil.getClearedProblem("interface.down"),
-    ).toBeNull();
+    expect(NetworkEventTypeUtil.getClearedProblem("interface.down")).toBeNull();
     expect(NetworkEventTypeUtil.getClearedProblem("device.reboot")).toBeNull();
     expect(NetworkEventTypeUtil.getClearedProblem("nothing")).toBeNull();
     expect(NetworkEventTypeUtil.getClearedProblem(undefined)).toBeNull();

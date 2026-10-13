@@ -121,7 +121,9 @@ export interface SyslogEventRule {
   // And the device's words must match this, when given.
   text?: RegExp | undefined;
   // The attributes to store with the event.
-  set?: Partial<Record<NetworkEventAttribute, SyslogRuleValueSource>> | undefined;
+  set?:
+    | Partial<Record<NetworkEventAttribute, SyslogRuleValueSource>>
+    | undefined;
 }
 
 export interface SyslogVendorParser {
@@ -150,9 +152,7 @@ export interface SyslogVendorParser {
    * Whether a message has this product's shape, for a device already
    * known to be this maker's. Only for formats without a mark of their own.
    */
-  detectForKnownVendor?:
-    | ((context: SyslogParseContext) => boolean)
-    | undefined;
+  detectForKnownVendor?: ((context: SyslogParseContext) => boolean) | undefined;
   extract: (context: SyslogParseContext) => SyslogVendorExtraction;
   // Which messages are which events. The first rule that matches wins.
   rules: Array<SyslogEventRule>;
@@ -307,9 +307,9 @@ export function matchEventRule(
 
     const attributes: Partial<Record<NetworkEventAttribute, string>> = {};
 
-    for (const attribute of Object.keys(rule.set || {}) as Array<
-      NetworkEventAttribute
-    >) {
+    for (const attribute of Object.keys(
+      rule.set || {},
+    ) as Array<NetworkEventAttribute>) {
       const value: string = resolveValue(
         rule.set![attribute]!,
         extraction.fields,

@@ -190,9 +190,9 @@ describe("parseCef - the header", () => {
   });
 
   it("reads an escaped backslash as one backslash", () => {
-    expect(
-      parse("CEF:0|Vendor|Product|1.0|7|path C:\\\\logs|5|").name,
-    ).toBe("path C:\\logs");
+    expect(parse("CEF:0|Vendor|Product|1.0|7|path C:\\\\logs|5|").name).toBe(
+      "path C:\\logs",
+    );
   });
 
   it("an escaped backslash before a pipe does not escape the pipe", () => {
@@ -405,9 +405,7 @@ describe("parseCef - limits", () => {
       `CEF:0|Vendor|Product|1.0|7|Name|5|msg=${value}`,
     );
 
-    expect(parsed.extensions["msg"]).toBe(
-      "m".repeat(MAX_CEF_VALUE_LENGTH - 1),
-    );
+    expect(parsed.extensions["msg"]).toBe("m".repeat(MAX_CEF_VALUE_LENGTH - 1));
   });
 
   it("reads only the first MAX_CEF_INPUT_LENGTH characters of the message", () => {

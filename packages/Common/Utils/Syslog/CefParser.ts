@@ -380,7 +380,9 @@ export function parseCef(text: unknown): ParsedCef | null {
     name: header[5]!,
     severity: header[6]!,
     extensions:
-      extensionStart === -1 ? {} : parseExtensions(message.slice(extensionStart)),
+      extensionStart === -1
+        ? {}
+        : parseExtensions(message.slice(extensionStart)),
   };
 }
 

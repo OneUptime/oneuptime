@@ -98,7 +98,9 @@ describe("a CEF message behind a syslog header", () => {
     "CEF:0|MikroTik|hAP ax^2|7.25beta5|10|system,error,critical|High|dvchost=MikroTik msg=login failure";
 
   it("is the message, after the host name", () => {
-    const parsed: ParsedSyslogMessage = parse(`Oct  2 17:36:35 MikroTik ${CEF}`);
+    const parsed: ParsedSyslogMessage = parse(
+      `Oct  2 17:36:35 MikroTik ${CEF}`,
+    );
 
     expect(parsed.hostname).toBe("MikroTik");
     expect(parsed.appName).toBeUndefined();

@@ -14,10 +14,7 @@ import {
   findCefStart,
   parseCef,
 } from "./CefParser";
-import {
-  ParsedSyslogMessage,
-  parseSyslogMessage,
-} from "./SyslogMessageParser";
+import { ParsedSyslogMessage, parseSyslogMessage } from "./SyslogMessageParser";
 import { SYSLOG_VENDOR_PARSERS } from "./SyslogVendorCatalog";
 import {
   MAX_VENDOR_TEXT_LENGTH,
@@ -438,9 +435,9 @@ export default class SyslogEventNormalizer {
         attributes[NetworkEventAttribute.Domain] = NETWORK_EVENT_DOMAIN;
         attributes[NetworkEventAttribute.Name] = match.event;
 
-        for (const key of Object.keys(match.attributes) as Array<
-          NetworkEventAttribute
-        >) {
+        for (const key of Object.keys(
+          match.attributes,
+        ) as Array<NetworkEventAttribute>) {
           attributes[key] = match.attributes[key]!;
         }
 

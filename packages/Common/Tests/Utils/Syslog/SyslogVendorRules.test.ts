@@ -60,9 +60,9 @@ function patternsOf(rule: SyslogEventRule): Array<RegExp> {
     patterns.push(rule.text);
   }
 
-  for (const condition of Object.values(rule.when || {}) as Array<
-    SyslogRuleFieldCondition
-  >) {
+  for (const condition of Object.values(
+    rule.when || {},
+  ) as Array<SyslogRuleFieldCondition>) {
     if (condition instanceof RegExp) {
       patterns.push(condition);
     }
