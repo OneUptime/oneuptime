@@ -449,6 +449,8 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
             text: `Could not save the message as a note: ${refusal.message}`,
           },
         ],
+        // A direct message notifies: its notification says what it is.
+        text: `Could not save the message as a note: ${refusal.message}`,
       });
       expect(threadReplySpy).not.toHaveBeenCalled();
     },
