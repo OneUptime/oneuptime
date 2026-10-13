@@ -6,6 +6,7 @@ import {
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CustomFieldMappingSourceResource from "Common/Types/CustomField/CustomFieldMappingSourceResource";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -232,7 +233,10 @@ describe("the incident custom field docs describe the simple form", () => {
 /*
  * The same change elsewhere: an LLM provider's Set as Default and Additional
  * Parameters left a wizard step of their own for a collapsed Advanced
- * section, and its docs say where they are now.
+ * section, and its docs say where they are now. The AI pages name the
+ * Dashboard as each language's Dashboard draws it, Persian included
+ * (AiDocsTranslations), so the fold and its fields are read in the page's
+ * language.
  */
 describe("the LLM provider docs say what is under More fields", () => {
   test.each(LANGUAGES)("%s", (language: string) => {
@@ -240,15 +244,23 @@ describe("the LLM provider docs say what is under More fields", () => {
       path.join(CONTENT_DIR, language, "ai", "llm-provider.md"),
       "utf8",
     );
+    const fold: string = drawnDashboardLabel(
+      language,
+      MORE_FIELDS_SECTION_TITLE,
+    );
 
     const bullet: string | undefined = markdown
       .split("\n")
       .find((line: string): boolean => {
-        return line.startsWith(`- **${MORE_FIELDS_SECTION_TITLE}**`);
+        return line.startsWith(`- **${fold}**`);
       });
 
     expect(bullet).toBeDefined();
-    expect(bullet).toContain("**Set as Default**");
-    expect(bullet).toContain("**Additional Parameters**");
+    expect(bullet).toContain(
+      `**${drawnDashboardLabel(language, "Set as Default")}**`,
+    );
+    expect(bullet).toContain(
+      `**${drawnDashboardLabel(language, "Additional Parameters")}**`,
+    );
   });
 });

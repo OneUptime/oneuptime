@@ -112,6 +112,32 @@ export const PLANNING_NOT_AUDIT_COPY: string =
   "This calendar is for planning. For hours on call and fairness, use the On-Call Time Log report.";
 
 /*
+ * What a link's status panel says before any calendar app has read the
+ * link, in its first two days: nothing is wrong yet, and the one app that
+ * can take hours is named, so a reader who subscribed in Google Calendar a
+ * minute ago does not conclude the link is broken.
+ */
+export const WAITING_FOR_FIRST_SYNC_COPY: string = translationKey(
+  "No calendar app has fetched this link yet. Most apps do within minutes of subscribing; Google Calendar can take a few hours.",
+);
+
+/*
+ * Two days on, still never read. The same question the status line has
+ * always asked, now the status itself.
+ */
+export const NOTHING_FETCHED_COPY: string = translationKey(
+  "Nothing has fetched this link yet. Is this server reachable from where your calendar app runs?",
+);
+
+export const PERSONAL_NEEDS_REGENERATION_COPY: string = translationKey(
+  "The stored link can no longer be read, usually because the server's encryption secret changed. Subscribers keep working, but the link cannot be shown until you regenerate it.",
+);
+
+export const SHARED_NEEDS_REGENERATION_COPY: string = translationKey(
+  "The stored link can no longer be read, usually because the server's encryption secret changed. Subscribers keep working, but the link cannot be shown until an editor regenerates it.",
+);
+
+/*
  * What regeneration actually does, stated the way the server behaves: a fetch
  * on the rotated-out token inside its 30-day grace is answered with an EMPTY
  * calendar (spec 2.1), not with the old shifts. Saying the old link "keeps
@@ -340,6 +366,145 @@ export const shouldShowNothingFetchedHint: ShouldShowNothingFetchedHintFunction 
 
     return hours >= NOTHING_FETCHED_HINT_AFTER_HOURS;
   };
+
+/*
+ * Where a link stands, as the status panel's pill names it. One value per
+ * question a reader comes back with - is it on, has my calendar app read it,
+ * can it still be shown - in the order the panel asks them: a link that
+ * cannot be read or is off says so before anything about fetches.
+ *
+ * The labels are the mobile app's, where the two say the same thing
+ * (OnCallCalendarFeedScreen's status pill): "Active", "Waiting for first
+ * sync", "Needs regeneration". A disabled link is "Disabled", as the web's
+ * own Disable / Enable say.
+ */
+export enum FeedHealth {
+  // Read by a calendar app at least once, and on.
+  Active = "active",
+  // On, and not read yet: made less than two days ago.
+  WaitingForFirstSync = "waiting-for-first-sync",
+  // On, and not read in the two days since it was made.
+  NotFetched = "not-fetched",
+  // Off: subscribers are served an empty calendar.
+  Disabled = "disabled",
+  // The stored link cannot be decrypted, so it cannot be shown.
+  NeedsRegeneration = "needs-regeneration",
+}
+
+export const FEED_HEALTH_LABELS: Record<FeedHealth, string> = {
+  [FeedHealth.Active]: translationKey("Active"),
+  [FeedHealth.WaitingForFirstSync]: translationKey("Waiting for first sync"),
+  [FeedHealth.NotFetched]: translationKey("Not fetched yet"),
+  [FeedHealth.Disabled]: translationKey("Disabled"),
+  [FeedHealth.NeedsRegeneration]: translationKey("Needs regeneration"),
+};
+
+type GetFeedHealthFunction = (status: FeedStatus, now: Date) => FeedHealth;
+
+export const getFeedHealth: GetFeedHealthFunction = (
+  status: FeedStatus,
+  now: Date,
+): FeedHealth => {
+  if (status.needsRegeneration) {
+    return FeedHealth.NeedsRegeneration;
+  }
+
+  if (!status.isEnabled) {
+    return FeedHealth.Disabled;
+  }
+
+  if (status.lastFetchedAt || status.fetchCount > 0) {
+    return FeedHealth.Active;
+  }
+
+  if (shouldShowNothingFetchedHint(status, now)) {
+    return FeedHealth.NotFetched;
+  }
+
+  return FeedHealth.WaitingForFirstSync;
+};
+
+/*
+ * The client the server names when it cannot tell which app fetched the link
+ * (classifyCalendarClient). "Last fetched 5 minutes ago by Other" says
+ * nothing a plain "Last fetched 5 minutes ago" does not.
+ */
+export const UNKNOWN_CALENDAR_CLIENT: string = "Other";
+
+// The app the server says last read the link, or null when it cannot say.
+export const getFeedClientName: (
+  client: string | null | undefined,
+) => string | null = (client: string | null | undefined): string | null => {
+  const name: string = (client || "").trim();
+
+  if (!name || name === UNKNOWN_CALENDAR_CLIENT) {
+    return null;
+  }
+
+  return name;
+};
+
+// Google Calendar, as classifyCalendarClient names it.
+export const GOOGLE_CALENDAR_CLIENT: string = "Google Calendar";
+
+/*
+ * The refresh note is for people whose link Google Calendar reads: it is the
+ * one app that takes hours, and the one people decide is broken. A reader on
+ * Apple Calendar is not told about Google's schedule.
+ */
+export const isFetchedByGoogleCalendar: (status: FeedStatus) => boolean = (
+  status: FeedStatus,
+): boolean => {
+  return getFeedClientName(status.lastFetchedClient) === GOOGLE_CALENDAR_CLIENT;
+};
+
+/*
+ * The link as the page shows it while it is hidden: the host it lives on,
+ * then dots where the secret is, ending in the same four characters the
+ * status names ("link ending in …k3Qx"). The host is not the secret - the
+ * token is - and showing it lets a self-hosted reader see at a glance which
+ * server their calendar app will be pointed at. Nothing of the token but
+ * those four characters, which the page already shows, is ever in it, and
+ * the scheme is left off so more of the host fits.
+ */
+const MASK_LENGTH: number = 10;
+export const MASK_CHARACTER: string = "•";
+
+/*
+ * The two halves are drawn apart: the address may be cut short on a narrow
+ * screen, the dots and the four characters never are - they are what tells
+ * one link from another.
+ */
+export interface MaskedFeedLink {
+  // "oneuptime.example.com/", or "" when the link cannot be parsed.
+  address: string;
+  // "••••••••••k3Qx".
+  secret: string;
+}
+
+export const maskFeedLink: (
+  httpsUrl: string,
+  tokenHint: string | null | undefined,
+) => MaskedFeedLink = (
+  httpsUrl: string,
+  tokenHint: string | null | undefined,
+): MaskedFeedLink => {
+  const dots: string = MASK_CHARACTER.repeat(MASK_LENGTH);
+  const hint: string = (tokenHint || "").trim();
+  const secret: string = `${dots}${hint}`;
+
+  try {
+    const host: string = new URL(httpsUrl).host;
+
+    if (!host) {
+      return { address: "", secret: secret };
+    }
+
+    return { address: `${host}/`, secret: secret };
+  } catch {
+    return { address: "", secret: secret };
+  }
+};
 
 export interface ReminderPreset {
   minutes: number;

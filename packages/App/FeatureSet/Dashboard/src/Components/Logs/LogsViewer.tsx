@@ -49,6 +49,7 @@ import {
   getLogsQueryValues,
 } from "./LogsFacetFilters";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
+import { leaveSavedViewDefaultOutUnlessTicked } from "Common/Utils/Telemetry/SavedViewDefault";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
@@ -2534,7 +2535,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             savedView.sortField = sortField;
             savedView.sortOrder = sortOrder;
             savedView.pageSize = pageSize;
-            return savedView;
+            // Unticked, the service decides: a project's first view is its default.
+            return leaveSavedViewDefaultOutUnlessTicked(savedView);
           }}
           onSuccess={async (savedView: LogSavedView) => {
             setShowCreateSavedViewModal(false);

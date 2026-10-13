@@ -17,6 +17,10 @@ import WorkspaceMemberActions, {
 import WorkspaceCommands, {
   WorkspaceCommandName,
 } from "../../WorkspaceCommands";
+import WorkspaceConnectPromptOnce, {
+  WorkspaceConnectPromptClaim,
+  WorkspaceConversationPerson,
+} from "../../WorkspaceConnectPromptOnce";
 import SlackActionType from "./ActionTypes";
 import SlackActionAnswer, {
   SlackAnswerDelivery,
@@ -393,6 +397,7 @@ export default class SlackConnectPrompt {
           channelId: data.place.slackChannelId,
           threadTs: data.place.slackThreadTs,
           responseUrl: data.place.responseUrl,
+          directMessageChannelId: data.place.slackDirectMessageChannelId,
         },
       });
 
@@ -409,6 +414,46 @@ export default class SlackConnectPrompt {
       answer: answer,
       connectUrl: link.url,
     });
+  }
+
+  /*
+   * A question to OneUptime AI in a message - an @mention, a direct
+   * message, a reply in a conversation with OneUptime AI - from a Slack
+   * account not connected yet: prompted as `prompt` does, once in the
+   * conversation (a thread, a direct message), and not again there while
+   * the Connect button it carries works (WorkspaceConnectPromptOnce). How
+   * the prompt was delivered - None when it could not be, and the next
+   * message there is prompted - or null when they were asked there already.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async promptOnce(data: {
+    projectId: ObjectID;
+    place: SlackAnswerPlace;
+    slackTeamId?: string | undefined;
+    description: SlackPressDescription;
+    // The conversation, and who is asking in it.
+    conversation: WorkspaceConversationPerson;
+  }): Promise<SlackAnswerDelivery | null> {
+    const claim: WorkspaceConnectPromptClaim | null =
+      await WorkspaceConnectPromptOnce.claim(data.conversation);
+
+    if (!claim) {
+      return null;
+    }
+
+    const delivery: SlackAnswerDelivery = await SlackConnectPrompt.prompt({
+      projectId: data.projectId,
+      place: data.place,
+      slackTeamId: data.slackTeamId,
+      description: data.description,
+    });
+
+    if (delivery === SlackAnswerDelivery.None) {
+      await claim.release();
+    }
+
+    return delivery;
   }
 
   // "add a note to this incident", "change the state of this alert".

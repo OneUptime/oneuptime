@@ -12,6 +12,10 @@ import LLMService from "Common/Server/Utils/LLM/LLMService";
 import logger from "Common/Server/Utils/Logger";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
+import {
+  GLOBAL_LLM_PROVIDERS_PAGE,
+  drawnAdminPath,
+} from "./DocsAdminDashboard";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import dns from "dns";
 import fs from "fs";
@@ -59,14 +63,6 @@ const BASE_URL_FORMS: Array<string> = [
 // Where the Admin Dashboard lists Global LLM Providers, and its labels.
 const ADMIN_LLM_PROVIDERS_PAGE: string =
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index.tsx";
-const ADMIN_DASHBOARD_LOCALES_DIR: string = path.join(
-  PACKAGES_ROOT,
-  "App/FeatureSet/AdminDashboard/src/Locales",
-);
-
-// The guides quote the dashboards in English in these languages.
-const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
-
 /*
  * The Additional Parameters every language's guide shows for Ollama: the
  * num_ctx LLMService's context window error recommends.
@@ -111,25 +107,6 @@ const jsYaml: JsYamlModule = require(
 
 function readPage(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
-}
-
-// What the Admin Dashboard draws for a label, by its key, in that language.
-function adminDashboardLabel(language: string, key: string): string {
-  const locale: string = ENGLISH_LABEL_LANGUAGES.includes(language)
-    ? "en"
-    : language;
-  let label: unknown = JSON.parse(
-    fs.readFileSync(
-      path.join(ADMIN_DASHBOARD_LOCALES_DIR, `${locale}.json`),
-      "utf8",
-    ),
-  );
-
-  for (const part of key.split(".")) {
-    label = (label as JSONObject | undefined)?.[part];
-  }
-
-  return typeof label === "string" ? label : "";
 }
 
 /*
@@ -483,14 +460,10 @@ describe("the guide's account of the Global LLM Provider exemption is LLMService
             line.includes("`fc00::/7`")
           );
         });
-      const globalProvidersPage: string = [
-        adminDashboardLabel(language, "breadcrumbs.settings"),
-        adminDashboardLabel(language, "breadcrumbs.globalLlmProviders"),
-      ]
-        .map((label: string): string => {
-          return `**${label}**`;
-        })
-        .join(" > ");
+      const globalProvidersPage: string = drawnAdminPath(
+        language,
+        GLOBAL_LLM_PROVIDERS_PAGE,
+      );
       const steps: string = manualVllmSteps(markdown);
 
       expect(switchParagraphs).toHaveLength(1);

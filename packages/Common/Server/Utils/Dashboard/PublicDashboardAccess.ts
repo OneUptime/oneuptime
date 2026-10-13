@@ -21,7 +21,9 @@ import Select from "../../Types/Database/Select";
  * (Types/Dashboard/DashboardAccess), plus the two things the link adds to
  * it: an archived dashboard's link answers nobody, and the IP allowlist
  * (the ipWhitelist column) limits it to the addresses it names, password or
- * not. The checks run in this order, and the first that applies decides:
+ * not. A dashboard of a project a master admin blocked is handed in as none
+ * at all (DashboardService.withoutBlockedProject). The checks run in this
+ * order, and the first that applies decides:
  *
  *   no such dashboard, archived, or only people in the project  NotFound
  *   the IP allowlist does not name the visitor's address          Forbidden
@@ -104,9 +106,14 @@ export const getPublicDashboardAddressBlockedMessage: (
   return `Your IP address ${clientIp} is blocked from accessing this dashboard.`;
 };
 
-// The columns the decision reads, and nothing it does not.
+/*
+ * The columns the decision reads, and nothing it does not - and the project,
+ * which DashboardService reads to answer a dashboard of a blocked project as
+ * one that does not exist (withoutBlockedProject). None of them is ever sent.
+ */
 export const PUBLIC_DASHBOARD_ACCESS_SELECT: Select<Dashboard> = {
   _id: true,
+  projectId: true,
   isPublicDashboard: true,
   ipWhitelist: true,
   enableMasterPassword: true,

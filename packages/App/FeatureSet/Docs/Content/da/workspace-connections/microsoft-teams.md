@@ -152,7 +152,7 @@ Skriv til botten i en personlig chat, eller nævn OneUptime med @ i en kanal ell
 | `show active incidents`, `show active alerts` | Viser, hvad der er åbent nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Viser kommende, eller igangværende, vedligeholdelsesbegivenheder. |
 
-Bortset fra `show`-listerne er det de ord, der følger efter `/oneuptime` i Slack; `create incident` og `create maintenance` virker også stadig. At spørge OneUptime AI kræver, at AI er slået til for projektet. Se [Spørg AI](/docs/ai/ask-ai).
+Bortset fra `show`-listerne er det de ord, der følger efter `/oneuptime` i Slack; `create incident` og `create maintenance` virker også stadig. At spørge OneUptime AI kræver, at din egen Microsoft Teams-konto er forbundet, og at AI er slået til for projektet. Hvis din ikke er forbundet, beder botten dig én gang i hver tråd eller chat om at forbinde den, med en knap **Connect Microsoft Teams account**. Se [Spørg AI](/docs/ai/ask-ai).
 
 ## Opret hændelser og vedligeholdelse fra Microsoft Teams
 

@@ -425,7 +425,7 @@ Database Agent의 `docker-compose.yml`은 **데이터베이스 AI 에이전트**
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 데이터베이스의 인시던트와 알림을 조사하며, 데이터베이스의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - PostgreSQL, MySQL(과 MariaDB, Percona Server), Redis(와 Valkey, KeyDB, Dragonfly), MongoDB를 지원합니다. SQL Server, Oracle, Elasticsearch / OpenSearch, Memcached에서는 아무것도 실행하지 않으며, 데이터베이스의 **AI → AI 에이전트** 페이지에 그렇게 표시합니다.
 - Collector가 보고하는 데이터베이스(`DATABASE_SERVER_ID`, 또는 `DATABASE_SYSTEM`, `DATABASE_SERVER_ADDRESS`, `DATABASE_SERVER_PORT`)로 등록되며, 같은 `.env`에 있는 Collector의 모니터링 로그인으로 `DATABASE_ENDPOINT`에 연결합니다. **로그인이 넘을 수 없는 한계입니다**: 모니터링 로그인은 읽기 외에는 아무것도 할 수 없습니다.
-- `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 **읽기 전용**입니다. 수정에는 다른 세션에 신호를 보낼 수 있는 AI 에이전트 전용 로그인(PostgreSQL의 `pg_signal_backend`, MySQL 8의 `CONNECTION_ADMIN` 권한, Redis ACL 사용자의 `+client|kill`, MongoDB의 `killop` 작업)이 필요하며, 이를 같은 `.env`에 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`로 설정해 Collector의 로그인은 읽기 전용으로 남겨 둡니다(권한은 에이전트의 README에, 다른 리소스의 권한은 [자격 증명과 최소 권한](/docs/ai/infrastructure-ai-agents#credentials-and-least-privilege)에 있습니다). 자신의 세션은 절대 종료하지 않습니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 **읽기 전용**입니다. 수정에는 다른 세션에 신호를 보낼 수 있는 AI 에이전트 전용 로그인(PostgreSQL의 `pg_signal_backend`, MySQL 8의 `CONNECTION_ADMIN` 권한, Redis ACL 사용자의 `+client|kill`, MongoDB의 `killop` 작업)이 필요하며, 이를 같은 `.env`에 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`로 설정해 Collector의 로그인은 읽기 전용으로 남겨 둡니다(권한은 에이전트의 README에, 다른 리소스의 권한은 [자격 증명과 최소 권한](/docs/ai/infrastructure-ai-agents#자격-증명과-최소-권한)에 있습니다). 자신의 세션은 절대 종료하지 않습니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - UID 1000으로 capabilities 없이 실행됩니다. OneUptime AI를 쓰지 않는다면 `oneuptime-database-ai-agent` 서비스를 `docker-compose.yml`에서 삭제하세요.
 
 전용 변수는 같은 `.env`에 있습니다(compose 파일은 이를 AI 에이전트에만 전달합니다. 하나를 바꾼 뒤에는 `docker compose up -d`를 실행하세요):
@@ -444,7 +444,7 @@ Database Agent의 `docker-compose.yml`은 **데이터베이스 AI 에이전트**
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Collector의 ID | AI 에이전트를 Collector와 다른 데이터베이스로 등록합니다. OneUptime에서의 ID 또는 `<engine>\|<address>:<port>`를 씁니다. 비워 두세요 |
 | `LOG_LEVEL` | `info` | AI 에이전트의 로그 수준: `debug`, `info`, `warn`, `error` |
 
-실행할 수 있는 작업, 수정이 작동하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#database-servers).
+실행할 수 있는 작업, 수정이 작동하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#데이터베이스-서버).
 
 ## Kubernetes
 

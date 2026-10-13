@@ -33,24 +33,21 @@
   "login": {
     "passkey": {
       "signIn": "使用通行密钥登录",
-      "description": "使用指纹、面容或设备 PIN 码。",
-      "passwordAlternative": "或使用密码登录",
       "inProgress": "使用密码前，请完成或取消通行密钥登录。",
-      "title": "使用已保存的通行密钥",
       "helpTitle": "初次使用通行密钥？",
-      "help": "先使用密码或 SSO 登录，然后打开用户资料 → 通行密钥和双重身份验证，创建您的第一个通行密钥。",
+      "help": "通行密钥让您用指纹、面容或设备 PIN 码登录，无需密码。要添加通行密钥，请先使用密码或 SSO 登录，然后打开用户配置 → 安全 → Passkeys。",
       "preparing": "正在准备通行密钥…",
       "waiting": "请查看您的设备",
       "waitingDescription": "按照浏览器或密码管理器的提示操作。",
       "verifying": "正在登录…",
-      "cancelled": "已取消通行密钥登录。您可以重试或使用密码。",
-      "notCompleted": "通行密钥登录已取消或超时。请重试或使用密码登录。",
+      "cancelled": "已取消通行密钥登录。",
+      "notCompleted": "通行密钥登录已取消或超时。",
       "unsupported": "此浏览器不支持通行密钥。您仍可使用密码或 SSO 登录。",
       "insecure": "通行密钥需要安全连接（HTTPS）。您仍可使用密码或 SSO 登录。",
       "tryAgain": "重试通行密钥"
     },
     "title": "登录您的账户",
-    "subtitle": "使用通行密钥、密码或组织的单点登录（SSO）。",
+    "subtitle": "使用密码、组织的单点登录（SSO）或通行密钥。",
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
     "useSso": "改用单点登录（SSO）",
@@ -205,11 +202,12 @@
     "returnDescription": "确认后，你将返回移动应用。",
     "invalid": "请从 OneUptime 移动应用开始登录。此请求缺失或无效。",
     "insecure": "通行密钥需要 HTTPS。请返回应用并检查服务器地址。",
+    "unsupported": "此浏览器不支持通行密钥。请返回应用，使用密码或 SSO 登录。",
     "failed": "无法完成登录。请返回应用重试。",
     "complete": "通行密钥已验证。请返回应用完成登录。",
     "returnToApp": "返回应用",
     "cancel": "取消并返回应用",
-    "setup": "在网页控制台的“用户资料 → 通行密钥和双重身份验证”中创建通行密钥。"
+    "setup": "在网页控制台的“用户配置 → 安全 → Passkeys”中创建通行密钥。"
   },
   "mcpAuthorize": {
     "title": "连接 MCP 客户端",

@@ -62,6 +62,16 @@ export interface ToolImportReadContext {
   requestTimeoutInMs?: number | undefined;
   // Told what the adapter reads next, for the progress line on the page.
   onProgress?: ((kind: ToolImportResourceKind) => Promise<void>) | undefined;
+  /*
+   * The tool's ids of the status page subscribers earlier imports brought
+   * over that the project still has
+   * (ToolImportProjectStateReader.readImportedSubscriberIds). A page can
+   * have more subscribers than one read collects, and nothing else an
+   * import brings names one, so a read can pass over these without
+   * collecting or counting them, and each import reads the next ones (as
+   * the Atlassian Statuspage adapter does). Not given: none.
+   */
+  importedSubscriberIds?: ReadonlySet<string> | undefined;
 }
 
 export interface ToolImportAdapter {

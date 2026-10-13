@@ -7,6 +7,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import DashboardLabelRuleEngineService from "./DashboardLabelRuleEngineService";
 import DashboardOwnerRuleEngineService from "./DashboardOwnerRuleEngineService";
 import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectService from "./ProjectService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
@@ -192,11 +193,11 @@ export class Service extends ProjectReferencesService<Model> {
    * already loaded with at least PUBLIC_DASHBOARD_ACCESS_SELECT, for the
    * visitor making this request. A refusal by the IP allowlist is logged.
    */
-  public decidePublicAccess(data: {
+  public async decidePublicAccess(data: {
     dashboard: Model | null;
     dashboardId: ObjectID;
     req: ExpressRequest;
-  }): PublicDashboardAccessResult {
+  }): Promise<PublicDashboardAccessResult> {
     const visitor: PublicDashboardVisitor = this.getPublicDashboardVisitor({
       dashboardId: data.dashboardId,
       req: data.req,
@@ -204,7 +205,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const result: PublicDashboardAccessResult =
       PublicDashboardAccessPolicy.decide({
-        dashboard: data.dashboard,
+        dashboard: await this.withoutBlockedProject(data.dashboard),
         visitor,
       });
 
@@ -236,7 +237,7 @@ export class Service extends ProjectReferencesService<Model> {
     dashboardId: ObjectID;
     req: ExpressRequest;
   }): Promise<PublicDashboardAccessResult> {
-    return this.decidePublicAccess({
+    return await this.decidePublicAccess({
       dashboard: await this.findPublicAccessColumns(data.dashboardId),
       dashboardId: data.dashboardId,
       req: data.req,
@@ -253,9 +254,46 @@ export class Service extends ProjectReferencesService<Model> {
     dashboardId: ObjectID;
   }): Promise<PublicDashboardAccessResult> {
     return PublicDashboardAccessPolicy.decide({
-      dashboard: await this.findPublicAccessColumns(data.dashboardId),
+      dashboard: await this.withoutBlockedProject(
+        await this.findPublicAccessColumns(data.dashboardId),
+      ),
       visitor: UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
     });
+  }
+
+  /*
+   * The dashboard as its public link may see it: none at all when a master
+   * admin blocked its project. The decision then answers as it answers a
+   * dashboard that does not exist (NotFound) - on every public route, since
+   * every one of them is decided here - and unblocking the project puts the
+   * link back as it was. The project's blocked flag is cached per server
+   * (ProjectService.isProjectBlocked), so a dashboard's many widget requests
+   * read nothing more.
+   *
+   * The dashboard must be loaded with its projectId, as
+   * PUBLIC_DASHBOARD_ACCESS_SELECT loads it. A lookup that fails lets the
+   * dashboard through, as it was before blocking existed: a fault in a check
+   * that is there for abuse must not take every public dashboard down.
+   */
+  private async withoutBlockedProject(
+    dashboard: Model | null,
+  ): Promise<Model | null> {
+    if (!dashboard?.projectId) {
+      return dashboard;
+    }
+
+    try {
+      if (await ProjectService.isProjectBlocked(dashboard.projectId)) {
+        return null;
+      }
+    } catch (err) {
+      logger.error(
+        `Could not tell whether the project of dashboard ${dashboard.id?.toString()} is blocked; its public link answers as usual.`,
+      );
+      logger.error(err);
+    }
+
+    return dashboard;
   }
 
   /*

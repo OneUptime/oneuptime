@@ -175,6 +175,7 @@ jobs:
               test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
+              test-calendar-feed-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -321,4 +322,6 @@ jobs:
             output/playwright/llm-provider-test-ui/*.png
             output/playwright/llm-provider-test-ui/test-results
             output/playwright/pagination-ui/test-results
+            output/playwright/calendar-feed-ui/*.png
+            output/playwright/calendar-feed-ui/test-results
           retention-days: 7

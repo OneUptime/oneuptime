@@ -145,11 +145,11 @@ describe("PageSEOConfig", () => {
 
 describe("the VMware product page entry", () => {
   /*
-   * /product/vmware is the marketing surface for the VMware product. The
-   * template hard-codes its own <title> and meta description, and PageSEO is
-   * what feeds the canonical tag, OG tags, breadcrumb JSON-LD, llms.txt and
-   * products.json — so the entry has to exist with the product shape and the
-   * exact breadcrumb trail, not merely pass the generic checks above.
+   * /product/vmware is the marketing surface for the VMware product. PageSEO
+   * is what feeds its <title>, meta description, canonical tag, OG tags,
+   * breadcrumb JSON-LD, llms.txt and products.json — so the entry has to
+   * exist with the product shape and the exact breadcrumb trail, not merely
+   * pass the generic checks above.
    */
   const seo: PageSEOData | undefined = PageSEOConfig["/product/vmware"];
 
@@ -205,9 +205,8 @@ describe("the VMware product page entry", () => {
 describe("the Databases product page entry", () => {
   /*
    * /product/databases is the marketing surface for the Databases product.
-   * Its template hard-codes the same <title> and description, and this entry
-   * is what feeds the canonical tag, OG tags, breadcrumb JSON-LD, llms.txt
-   * and products.json.
+   * This entry is what feeds its <title>, meta description, canonical tag,
+   * OG tags, breadcrumb JSON-LD, llms.txt and products.json.
    */
   const seo: PageSEOData | undefined = PageSEOConfig["/product/databases"];
 
@@ -229,8 +228,15 @@ describe("the Databases product page entry", () => {
   test("names the engines people search for, and where the data comes from", () => {
     expect(seo!.title).toMatch(/^Database Monitoring \|/);
     expect(seo!.title).toMatch(/\| OneUptime$/);
-    for (const engine of ["PostgreSQL", "MySQL", "Redis", "MongoDB"]) {
+    /*
+     * Three engines fit in a title search results show whole; the rest are
+     * named in the feature list.
+     */
+    for (const engine of ["PostgreSQL", "MySQL", "Redis"]) {
       expect(seo!.title).toContain(engine);
+    }
+    for (const engine of ["MongoDB", "MariaDB", "SQL Server", "Oracle"]) {
+      expect(seo!.softwareApplication!.features.join(" | ")).toContain(engine);
     }
     for (const source of ["traces", "Kubernetes", "OpenTelemetry"]) {
       expect(seo!.description).toContain(source);
@@ -254,10 +260,9 @@ describe("the Databases product page entry", () => {
 
 describe("the Queues product page entry", () => {
   /*
-   * /product/queues is the marketing surface for the Queues product. Its
-   * template hard-codes the same <title> and description, and this entry is
-   * what feeds the canonical tag, OG tags, breadcrumb JSON-LD, llms.txt and
-   * products.json.
+   * /product/queues is the marketing surface for the Queues product. This
+   * entry is what feeds its <title>, meta description, canonical tag, OG
+   * tags, breadcrumb JSON-LD, llms.txt and products.json.
    */
   const seo: PageSEOData | undefined = PageSEOConfig["/product/queues"];
 
@@ -279,8 +284,12 @@ describe("the Queues product page entry", () => {
   test("names the brokers people search for, and where the data comes from", () => {
     expect(seo!.title).toMatch(/^Message Queue Monitoring \|/);
     expect(seo!.title).toMatch(/\| OneUptime$/);
-    for (const broker of ["Kafka", "RabbitMQ", "SQS", "Pub/Sub"]) {
+    // Three brokers fit in the title; the rest are in the feature list.
+    for (const broker of ["Kafka", "RabbitMQ", "SQS"]) {
       expect(seo!.title).toContain(broker);
+    }
+    for (const broker of ["Pub/Sub", "Azure Service Bus", "NATS"]) {
+      expect(seo!.softwareApplication!.features.join(" | ")).toContain(broker);
     }
     for (const source of ["OpenTelemetry traces", "broker metrics"]) {
       expect(seo!.description).toContain(source);

@@ -236,7 +236,7 @@ AI 에이전트의 Ceph 클라이언트를 만들었다면 관리 노드에서 `
 
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 알림을 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - **전용 Ceph 클라이언트가 넘을 수 없는 한계입니다.** `client.oneuptime-ai`로 연결하며, 클러스터의 최소 `ceph.conf`와 그 클라이언트의 키링을 `docker-compose.yml` 옆의 `ceph/` 폴더에 둡니다(`/etc/ceph`에 읽기 전용으로 마운트). 읽기 caps만 있으면 실행하는 어떤 것도 클러스터를 바꿀 수 없습니다. 새로 설치할 때 `install.sh`가 클라이언트를 만들어 주겠다고 제안하며, 다시 실행할 때는 절대 만들지 않습니다. admin 키링은 절대 그 폴더에 두지 마세요.
-- `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하고 클라이언트에 수정에 필요한 caps를 주지 않는 한 **읽기 전용**입니다(필요한 caps는 에이전트의 README에 있습니다). `ONEUPTIME_AI_WRITE_TARGETS`(예: `osd.*,cluster`)는 수정이 건드릴 수 있는 범위를 제한합니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하고 클라이언트에 수정에 필요한 caps를 주지 않는 한 **읽기 전용**입니다(필요한 caps는 에이전트의 README에 있습니다). `ONEUPTIME_AI_WRITE_TARGETS`(예: `osd.*,cluster`)는 수정이 건드릴 수 있는 범위를 제한합니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - 모니터(TCP 3300과 6789), mgr 및 OSD 데몬(TCP 6800–7300)으로 나가는 연결을 맺고, UID 1000으로 capabilities 없이 실행되며, `auth`, `config-key`, `tell`이나 데이터를 삭제하는 어떤 것도 실행하지 않습니다. OneUptime AI를 사용하지 않는다면 `docker-compose.yml`에서 `oneuptime-ceph-ai-agent` 서비스를 삭제하세요.
 
 클라이언트를 직접 만들려면 Ceph 관리 노드의 에이전트 폴더에서 다음을 실행하세요(에이전트의 머신이 다른 머신이라면 두 파일을 그 머신의 `ceph/` 폴더로 복사하세요):
@@ -250,7 +250,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-실행할 수 있는 명령, 수정이 동작하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).
+실행할 수 있는 명령, 수정이 동작하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-클러스터).
 
 ## 문제 해결
 

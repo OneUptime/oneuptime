@@ -236,7 +236,7 @@ docker compose down
 
 - **AI 调查默认开启。** 代理连接后，OneUptime AI 会用它来调查该集群上的事件和警报，集群的 **概览** 会显示代理的状态。要停止，请在代理运行的位置设置 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理页面上 **AI 可以执行的操作** 下的 **更改** 会显示方法），或者不安装代理。
 - **它自己的 Ceph 客户端就是硬性边界。** 它以 `client.oneuptime-ai` 身份连接，使用集群的最小 `ceph.conf` 和该客户端的密钥环，二者放在 `docker-compose.yml` 旁边的 `ceph/` 文件夹中（以只读方式挂载到 `/etc/ceph`）。只有读取 caps 时，它运行的任何命令都无法更改集群。全新安装时，`install.sh` 会提议创建该客户端；再次运行时绝不会创建。切勿把 admin 密钥环放进该文件夹。
-- 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true` 并为客户端授予修复所需的 caps（代理的 README 列出了这些 caps），否则它是 **只读** 的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `osd.*,cluster`）限制修复可以触及的范围。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[AI 可以执行的操作，由代理设定](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)）。
+- 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true` 并为客户端授予修复所需的 caps（代理的 README 列出了这些 caps），否则它是 **只读** 的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `osd.*,cluster`）限制修复可以触及的范围。同一个 `.env` 中的 `ONEUPTIME_AI_FIXES` 决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[AI 可以执行的操作，由代理设定](/docs/ai/infrastructure-ai-agents#ai-可以做什么由代理设置)）。
 - 它向外连接到监视器（TCP 3300 和 6789）以及 mgr 和 OSD 守护进程（TCP 6800–7300），以 UID 1000 运行且不带任何 capabilities，绝不运行 `auth`、`config-key`、`tell` 或任何删除数据的命令。如果你不使用 OneUptime AI，请从 `docker-compose.yml` 中删除 `oneuptime-ceph-ai-agent` 服务。
 
 要手动创建该客户端，请在 Ceph 管理节点上、代理的文件夹中运行以下命令（如果代理在另一台机器上，请把这两个文件复制到那台机器的 `ceph/` 文件夹中）：
@@ -250,7 +250,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters)。
+它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-集群)。
 
 ## 故障排查
 

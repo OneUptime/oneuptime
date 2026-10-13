@@ -1,4 +1,8 @@
-import { FixtureApi, json } from "./ToolImportFixtureTransport";
+import {
+  ToolImportHttpRequest,
+  ToolImportHttpResponse,
+} from "../../../../Server/Utils/ToolImport/ToolImportHttpClient";
+import { FixtureAnswer, FixtureApi, json } from "./ToolImportFixtureTransport";
 
 /*
  * An Atlassian Statuspage organization in REST API v1's documented shapes
@@ -195,6 +199,27 @@ export function statuspageSubscribers(
       components: [],
     };
   });
+}
+
+/*
+ * A list as Statuspage pages it: the page asked for (the first when no
+ * number is given, counting from 0), as many records as `per_page` or
+ * `limit` asks for, and an empty page past the end.
+ */
+export function statuspagePaged(
+  records: Array<Record<string, unknown>>,
+): FixtureAnswer {
+  return (
+    _request: ToolImportHttpRequest,
+    url: URL,
+  ): ToolImportHttpResponse => {
+    const size: number = Number(
+      url.searchParams.get("per_page") || url.searchParams.get("limit"),
+    );
+    const from: number = Number(url.searchParams.get("page") || "0") * size;
+
+    return json(records.slice(from, from + size));
+  };
 }
 
 export function statuspageError(message: string): unknown {

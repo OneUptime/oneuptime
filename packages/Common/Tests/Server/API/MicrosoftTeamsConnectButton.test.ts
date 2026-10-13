@@ -432,6 +432,37 @@ describe("a Connect button in Microsoft Teams", () => {
     expect(response.location).toBe(`${settingsPage()}?pressed=again`);
   });
 
+  /*
+   * A question to OneUptime AI - typed in a chat with the bot, or after
+   * @OneUptime - is not a press: the conversation says to ask it again, and
+   * so does the page, which used to say "press the button again" (#4768).
+   */
+  test("a question: connected, told in the conversation to ask it again, and the page says to ask", async () => {
+    const token: string = await press({
+      purpose: "ask OneUptime AI",
+      pendingAction: undefined,
+      again: { kind: WorkspaceConnectRequestAgainKind.Question },
+    });
+
+    const response: ProbeResponse = await comeBack(await signIn(token));
+
+    expect(refreshUserAuth).toHaveBeenCalledTimes(1);
+    expect(sendCard).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (sendCard.mock.calls[0]![0] as { card: JSONObject }).card[
+          "body"
+        ] as Array<JSONObject>
+      )[0]!["text"],
+    ).toBe(
+      "<at>Nitin</at> ✅ **Your Microsoft Teams account is connected to OneUptime.** Now ask your question again.",
+    );
+    expect((sendCard.mock.calls[0]![0] as { summary: string }).summary).toBe(
+      "Your Microsoft Teams account is connected to OneUptime. Now ask your question again.",
+    );
+    expect(response.location).toBe(`${settingsPage()}?pressed=ask`);
+  });
+
   test("another Microsoft account than the one that pressed: refused, nothing connected, nothing answered, and the press kept", async () => {
     const token: string = await press();
     const complete: jest.SpyInstance = jest.spyOn(

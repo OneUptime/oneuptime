@@ -152,7 +152,7 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 | `show active incidents`, `show active alerts` | 지금 열려 있는 것을 나열합니다. |
 | `show scheduled maintenance`, `show ongoing maintenance` | 예정된, 또는 진행 중인 유지 관리 이벤트를 나열합니다. |
 
-`show` 목록을 제외하면 Slack 에서 `/oneuptime` 뒤에 오는 단어와 같습니다. `create incident` 와 `create maintenance` 도 계속 작동합니다. OneUptime AI 에게 질문하려면 프로젝트에서 AI 가 켜져 있어야 합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+`show` 목록을 제외하면 Slack 에서 `/oneuptime` 뒤에 오는 단어와 같습니다. `create incident` 와 `create maintenance` 도 계속 작동합니다. OneUptime AI 에게 질문하려면 자신의 Microsoft Teams 계정이 연결되어 있고 프로젝트에서 AI 가 켜져 있어야 합니다. 계정이 연결되어 있지 않으면 봇은 스레드나 채팅마다 한 번, **Connect Microsoft Teams account** 버튼으로 연결을 요청합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
 
 ## Microsoft Teams 에서 인시던트와 유지 관리 만들기
 
