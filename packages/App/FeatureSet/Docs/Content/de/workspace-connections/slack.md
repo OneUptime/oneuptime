@@ -146,7 +146,11 @@ Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter
 
 Fragen Sie in natürlicher Sprache nach Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. Erwähnen Sie OneUptime in einem Kanal mit @ oder schicken Sie eine Direktnachricht, und die Antwort kommt im Thread. `/oneuptime ask which monitors are down?` postet seine Antwort im Kanal. Beides braucht Ihr verbundenes Slack-Konto und eingeschaltete KI für das Projekt. Antworten in Slack lesen nur: Um etwas zu ändern, nutzen Sie die Schaltflächen. Siehe [KI fragen](/docs/ai/ask-ai).
 
-OneUptime antwortet nur auf das, was an OneUptime gerichtet ist. Eine Frage, die Sie in einem Kanal stellen, nicht in einem Thread, beginnt ein Gespräch im Thread darunter: Antworten Sie dort, um weiterzufragen, ohne OneUptime erneut zu erwähnen; alle anderen steigen ein, indem sie OneUptime erwähnen. In jedem anderen Thread, etwa dem unter der Nachricht eines Vorfalls, erwähnen Sie OneUptime jedes Mal; was Personen dort einander schreiben, bekommt keine Antwort. Ist Ihr Slack-Konto nicht verbunden, bittet OneUptime Sie einmal pro Gespräch, es zu verbinden, in einer Nachricht, die nur Sie sehen, mit einer Schaltfläche **Connect Slack account**.
+OneUptime antwortet nur auf das, was an OneUptime gerichtet ist.
+
+- **In Ihrem eigenen Gespräch antworten Sie einfach.** Eine Frage, die Sie in einem Kanal stellen, nicht in einem Thread, beginnt ein Gespräch im Thread darunter: Antworten Sie dort, um weiterzufragen, ohne OneUptime erneut zu erwähnen; alle anderen steigen ein, indem sie OneUptime erwähnen.
+- **In jedem anderen Thread erwähnen Sie OneUptime.** Unter der Nachricht eines Vorfalls zum Beispiel erwähnen Sie OneUptime jedes Mal: Was Personen dort einander schreiben, bekommt keine Antwort.
+- **Wenn Ihr Slack-Konto nicht verbunden ist.** OneUptime bittet Sie einmal pro Gespräch, es zu verbinden, in einer Nachricht, die nur Sie sehen, mit einer Schaltfläche **Connect Slack account**.
 
 ## Vorfälle und Wartungen aus Slack erstellen
 
@@ -188,6 +192,10 @@ Schickt Slack Sie ohne Verbindung zurück, sagt die Seite, auf der Sie begonnen 
 
 :::details Eine Schaltfläche oder ein Befehl sagt, mein Slack-Konto sei nicht verbunden
 Drücken Sie in dieser Antwort **Connect Slack account**, um es in einem Schritt zu verbinden, oder verknüpfen Sie es unter **Benutzereinstellungen** > **Arbeitsbereich** > **Slack** mit **Connect my account with Slack**. Sind Sie kein Mitglied des Projekts mehr, sagt OneUptime das stattdessen und handelt für Sie in nichts.
+:::
+
+:::details OneUptime antwortet nicht auf eine Antwort in einem Thread
+Eine Antwort ohne Erwähnung wird nur in Ihrem eigenen Gespräch mit OneUptime AI beantwortet: im Thread unter einer Frage, die Sie in einem Kanal gestellt haben. In jedem anderen Thread, etwa dem unter der Nachricht eines Vorfalls, erwähnen Sie OneUptime mit @. Ist Ihr Slack-Konto nicht verbunden, bittet OneUptime Sie einmal pro Gespräch, es zu verbinden, nicht bei jeder Nachricht: Drücken Sie in dieser Nachricht **Connect Slack account**, oder verknüpfen Sie es unter **Benutzereinstellungen** > **Arbeitsbereich** > **Slack**. Siehe [OneUptime AI aus Slack fragen](#oneuptime-ai-aus-slack-fragen).
 :::
 
 :::details Benachrichtigungen kommen an, aber Schaltflächen und Befehle tun nichts

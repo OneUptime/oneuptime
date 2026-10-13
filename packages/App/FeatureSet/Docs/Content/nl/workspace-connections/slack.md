@@ -146,7 +146,11 @@ De antwoorden op `help` en `oncall` zijn berichten die alleen jij ziet, onder he
 
 Stel in gewone taal vragen over je logs, traces, metrieken, incidenten en monitoren. Noem OneUptime met @ in een kanaal, of stuur het een direct bericht, en het antwoordt in de thread. `/oneuptime ask which monitors are down?` plaatst het antwoord in het kanaal. Beide vereisen dat je eigen Slack-account gekoppeld is en dat AI voor het project aanstaat. Antwoorden in Slack lezen alleen: gebruik de knoppen om iets te wijzigen. Zie [AI vragen](/docs/ai/ask-ai).
 
-OneUptime antwoordt alleen op wat aan OneUptime gericht is. Een vraag die je in een kanaal stelt, niet in een thread, begint een gesprek in de thread eronder: antwoord daar om meer te vragen zonder OneUptime opnieuw te noemen, en iedereen anders doet mee door OneUptime te noemen. In elke andere thread, zoals die onder het bericht van een incident, noem je OneUptime elke keer; wat mensen daar aan elkaar schrijven, krijgt geen antwoord. Is je Slack-account niet gekoppeld, dan vraagt OneUptime je één keer per gesprek om het te koppelen, in een bericht dat alleen jij ziet, met een knop **Connect Slack account**.
+OneUptime antwoordt alleen op wat aan OneUptime gericht is.
+
+- **In je eigen gesprek antwoord je gewoon.** Een vraag die je in een kanaal stelt, niet in een thread, begint een gesprek in de thread eronder: antwoord daar om meer te vragen zonder OneUptime opnieuw te noemen, en iedereen anders doet mee door OneUptime te noemen.
+- **In elke andere thread noem je OneUptime.** Onder het bericht van een incident bijvoorbeeld noem je OneUptime elke keer: wat mensen daar aan elkaar schrijven, krijgt geen antwoord.
+- **Als je Slack-account niet gekoppeld is.** OneUptime vraagt je één keer per gesprek om het te koppelen, in een bericht dat alleen jij ziet, met een knop **Connect Slack account**.
 
 ## Incidenten en onderhoud aanmaken vanuit Slack
 
@@ -188,6 +192,10 @@ Als Slack je zonder koppeling terugstuurt, zegt de pagina waarop je begon **Slac
 
 :::details Een knop of commando zegt dat mijn Slack-account niet gekoppeld is
 Druk in dat antwoord op **Connect Slack account** om het in één stap te koppelen, of koppel het onder **Gebruikersinstellingen** > **Werkruimte** > **Slack** met **Connect my account with Slack**. Als je geen lid meer bent van het project, zegt OneUptime dat in plaats daarvan, en handelt het nergens op voor jou.
+:::
+
+:::details OneUptime antwoordt niet op een antwoord in een thread
+Een antwoord waarin je OneUptime niet noemt, wordt alleen beantwoord in je eigen gesprek met OneUptime AI: de thread onder een vraag die je het in een kanaal stelde. In elke andere thread, zoals die onder het bericht van een incident, noem je OneUptime met @. Is je Slack-account niet gekoppeld, dan vraagt OneUptime je één keer per gesprek om het te koppelen, niet bij elk bericht: druk in dat bericht op **Connect Slack account**, of koppel het onder **Gebruikersinstellingen** > **Werkruimte** > **Slack**. Zie [OneUptime AI vragen vanuit Slack](#oneuptime-ai-vragen-vanuit-slack).
 :::
 
 :::details Meldingen komen aan, maar knoppen en commando's doen niets

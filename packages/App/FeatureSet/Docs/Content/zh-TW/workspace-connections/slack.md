@@ -146,7 +146,11 @@ OneUptime 在 Slack 中只有一個指令：`/oneuptime`。在它後面輸入的
 
 用日常語言詢問有關記錄、追蹤、指標、事件和監測器的問題。在頻道中 @提及 OneUptime，或傳送私人訊息給它，它會在討論串中回答。 `/oneuptime ask which monitors are down?` 會將答案發布到頻道中。兩種方式都需要連接您自己的 Slack 帳戶，並為專案開啟 AI。Slack 中的回答只讀取資料：要變更內容，請使用按鈕。請參閱 [詢問 AI](/docs/ai/ask-ai)。
 
-OneUptime 只回答傳給它的內容。在頻道中（而不是在討論串中）提出的問題，會在其下方的討論串中開始一段對話：在那裡回覆即可繼續提問，無需再次提及 OneUptime；其他人提及它即可加入對話。在其他任何討論串中，例如事件訊息下方的討論串，請每次都提及 OneUptime；人們在那裡互相傳送的內容不會得到回答。如果您的 Slack 帳戶未連接，OneUptime 會在每段對話中請您連接一次，以只有您看得到的訊息，並附上一個 **Connect Slack account** 按鈕。
+OneUptime 只回答傳給它的內容。
+
+- **在您自己的對話中，直接回覆即可。** 在頻道中（而不是在討論串中）提出的問題，會在其下方的討論串中開始一段對話：在那裡回覆即可繼續提問，無需再次提及 OneUptime；其他人提及它即可加入對話。
+- **在其他任何討論串中，請提及 OneUptime。** 例如在事件訊息下方的討論串中，請每次都提及它：人們在那裡互相傳送的內容不會得到回答。
+- **如果您的 Slack 帳戶未連接。** OneUptime 會在每段對話中請您連接一次，以只有您看得到的訊息，並附上一個 **Connect Slack account** 按鈕。
 
 ## 從 Slack 建立事件和維護
 
@@ -188,6 +192,10 @@ OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以
 
 :::details 按鈕或指令提示我的 Slack 帳戶未連接
 在該回覆中按 **Connect Slack account** 即可一步連接，或在 **使用者設定** > **工作區** > **Slack** 中透過 **Connect my account with Slack** 連結它。如果您已不再是專案成員，OneUptime 會改為告知這一點，並且不會替您執行任何操作。
+:::
+
+:::details OneUptime 不回答討論串中的回覆
+沒有提及的回覆，只有在您自己與 OneUptime AI 的對話中才會得到回答：也就是您在頻道中向它提出的問題下方的討論串。在其他任何討論串中，例如事件訊息下方的討論串，請 @提及 OneUptime。如果您的 Slack 帳戶未連接，OneUptime 只會在每段對話中請您連接一次，而不是每則訊息都提示：在該訊息中按 **Connect Slack account**，或在 **使用者設定** > **工作區** > **Slack** 中連結它。請參閱 [從 Slack 詢問 OneUptime AI](#從-slack-詢問-oneuptime-ai)。
 :::
 
 :::details 通知能送達，但按鈕和指令沒有反應
