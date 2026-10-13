@@ -144,7 +144,9 @@ OneUptime 在 Slack 中只有一个命令：`/oneuptime`。在它后面输入的
 
 ## 从 Slack 询问 OneUptime AI
 
-用日常语言询问有关日志、追踪、指标、事件和监视器的问题。在频道中 @提及 OneUptime，或向它发送私信，它会在消息串中回答；在那里回复即可继续提问。 `/oneuptime ask which monitors are down?` 会将答案发布到频道中。两种方式都需要连接您自己的 Slack 账户，并为项目开启 AI。Slack 中的回答只读取数据：要更改内容，请使用按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
+用日常语言询问有关日志、追踪、指标、事件和监视器的问题。在频道中 @提及 OneUptime，或向它发送私信，它会在消息串中回答。 `/oneuptime ask which monitors are down?` 会将答案发布到频道中。两种方式都需要连接您自己的 Slack 账户，并为项目开启 AI。Slack 中的回答只读取数据：要更改内容，请使用按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
+
+OneUptime 只回答发给它的内容。在频道中（而不是在消息串中）提出的问题，会在其下方的消息串中开始一段对话：在那里回复即可继续提问，无需再次提及 OneUptime；其他人提及它即可加入对话。在其他任何消息串中，例如事件消息下方的消息串，请每次都提及 OneUptime；人们在那里互相发送的内容不会得到回答。如果您的 Slack 账户未连接，OneUptime 会在每段对话中请您连接一次，以只有您能看到的消息，并附带一个 **Connect Slack account** 按钮。
 
 ## 从 Slack 创建事件和维护
 

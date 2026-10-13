@@ -144,7 +144,9 @@ The answers to `help` and `oncall` are messages only you see, under the command.
 
 ## Asking OneUptime AI from Slack
 
-Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread; reply there to ask more. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).
+Ask about your logs, traces, metrics, incidents and monitors in plain language. @mention OneUptime in a channel, or send it a direct message, and it answers in the thread. `/oneuptime ask which monitors are down?` posts its answer in the channel. Either needs your own Slack account connected, and AI turned on for the project. Answers in Slack only read: to change something, use the buttons. See [Ask AI](/docs/ai/ask-ai).
+
+OneUptime answers only what is addressed to it. A question you ask in a channel, not in a thread, starts a conversation in the thread under it: reply there to ask more without mentioning OneUptime again, and anyone else joins in by mentioning it. In any other thread, such as the one under an incident's message, mention OneUptime each time; what people write to each other there gets no answer. If your Slack account is not connected, OneUptime asks you once in each conversation to connect it, in a message only you see, with a **Connect Slack account** button.
 
 ## Creating incidents and maintenance from Slack
 

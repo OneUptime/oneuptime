@@ -17,6 +17,8 @@ import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
   WorkspaceCommandDefinition,
 } from "Common/Server/Utils/Workspace/WorkspaceCommands";
+import WorkspaceConnectPromptOnce from "Common/Server/Utils/Workspace/WorkspaceConnectPromptOnce";
+import WorkspaceConnectRequest from "Common/Server/Utils/Workspace/WorkspaceConnectRequest";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -895,6 +897,47 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     );
     expect(markdown).toContain(
       "@mention OneUptime in a channel, or send it a direct message, and it answers in the thread",
+    );
+
+    /*
+     * A reply in a conversation with OneUptime AI needs no mention: the app
+     * hears its channels' messages for that, and answers only what is
+     * addressed to it - never people talking under a notification (#4768).
+     */
+    expect(manifest.settings.event_subscriptions.bot_events).toEqual(
+      expect.arrayContaining([
+        "message.channels",
+        "message.groups",
+        "message.mpim",
+      ]),
+    );
+    expect(markdown).toContain(
+      "OneUptime answers only what is addressed to it. A question you ask in a channel, not in a thread, starts a conversation in the thread under it: reply there to ask more without mentioning OneUptime again",
+    );
+    expect(markdown).toContain(
+      "In any other thread, such as the one under an incident's message, mention OneUptime each time; what people write to each other there gets no answer.",
+    );
+  });
+
+  it("says a question from an account not connected is asked to connect once in a conversation, for as long as its Connect button works", () => {
+    // Asked again once the button it was given has expired, with a new one.
+    expect(WorkspaceConnectPromptOnce.ASKED_FOR_SECONDS).toBe(
+      WorkspaceConnectRequest.EXPIRES_IN_SECONDS,
+    );
+
+    const minutes: number = WorkspaceConnectRequest.EXPIRES_IN_SECONDS / 60;
+
+    expect(englishPage(SLACK)).toContain(
+      "If your Slack account is not connected, OneUptime asks you once in each conversation to connect it, in a message only you see, with a **Connect Slack account** button.",
+    );
+    expect(englishPage(SLACK)).toContain(
+      `The button works once, for ${minutes} minutes`,
+    );
+    expect(englishPage(TEAMS)).toContain(
+      "Asking OneUptime AI needs your own Microsoft Teams account connected, and AI turned on for the project. If yours is not connected, the bot asks you once in each thread or chat to connect it, with a **Connect Microsoft Teams account** button.",
+    );
+    expect(englishPage(TEAMS)).toContain(
+      `The button works once, for ${minutes} minutes`,
     );
   });
 

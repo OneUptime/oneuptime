@@ -144,7 +144,9 @@ Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter
 
 ## OneUptime AI aus Slack fragen
 
-Fragen Sie in natürlicher Sprache nach Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. Erwähnen Sie OneUptime in einem Kanal mit @ oder schicken Sie eine Direktnachricht, und die Antwort kommt im Thread; antworten Sie dort, um weiterzufragen. `/oneuptime ask which monitors are down?` postet seine Antwort im Kanal. Beides braucht Ihr verbundenes Slack-Konto und eingeschaltete KI für das Projekt. Antworten in Slack lesen nur: Um etwas zu ändern, nutzen Sie die Schaltflächen. Siehe [KI fragen](/docs/ai/ask-ai).
+Fragen Sie in natürlicher Sprache nach Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. Erwähnen Sie OneUptime in einem Kanal mit @ oder schicken Sie eine Direktnachricht, und die Antwort kommt im Thread. `/oneuptime ask which monitors are down?` postet seine Antwort im Kanal. Beides braucht Ihr verbundenes Slack-Konto und eingeschaltete KI für das Projekt. Antworten in Slack lesen nur: Um etwas zu ändern, nutzen Sie die Schaltflächen. Siehe [KI fragen](/docs/ai/ask-ai).
+
+OneUptime antwortet nur auf das, was an OneUptime gerichtet ist. Eine Frage, die Sie in einem Kanal stellen, nicht in einem Thread, beginnt ein Gespräch im Thread darunter: Antworten Sie dort, um weiterzufragen, ohne OneUptime erneut zu erwähnen; alle anderen steigen ein, indem sie OneUptime erwähnen. In jedem anderen Thread, etwa dem unter der Nachricht eines Vorfalls, erwähnen Sie OneUptime jedes Mal; was Personen dort einander schreiben, bekommt keine Antwort. Ist Ihr Slack-Konto nicht verbunden, bittet OneUptime Sie einmal pro Gespräch, es zu verbinden, in einer Nachricht, die nur Sie sehen, mit einer Schaltfläche **Connect Slack account**.
 
 ## Vorfälle und Wartungen aus Slack erstellen
 

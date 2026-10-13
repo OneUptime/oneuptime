@@ -144,7 +144,9 @@ Las respuestas a `help` y `oncall` son mensajes que solo ves tú, debajo del com
 
 ## Preguntar a OneUptime AI desde Slack
 
-Pregunta por tus registros, trazas, métricas, incidentes y monitores en lenguaje natural. Menciona a OneUptime con @ en un canal, o envíale un mensaje directo, y responde en el hilo; responde allí para seguir preguntando. `/oneuptime ask which monitors are down?` publica su respuesta en el canal. Ambos requieren tu propia cuenta de Slack conectada y la IA activada para el proyecto. Las respuestas en Slack solo leen: para cambiar algo, usa los botones. Consulta [Preguntar a la IA](/docs/ai/ask-ai).
+Pregunta por tus registros, trazas, métricas, incidentes y monitores en lenguaje natural. Menciona a OneUptime con @ en un canal, o envíale un mensaje directo, y responde en el hilo. `/oneuptime ask which monitors are down?` publica su respuesta en el canal. Ambos requieren tu propia cuenta de Slack conectada y la IA activada para el proyecto. Las respuestas en Slack solo leen: para cambiar algo, usa los botones. Consulta [Preguntar a la IA](/docs/ai/ask-ai).
+
+OneUptime solo responde a lo que va dirigido a él. Una pregunta que haces en un canal, no en un hilo, inicia una conversación en el hilo que queda debajo: responde allí para seguir preguntando sin volver a mencionar a OneUptime, y cualquier otra persona se une mencionándolo. En cualquier otro hilo, como el que queda debajo del mensaje de un incidente, menciona a OneUptime cada vez; lo que las personas se escriben entre sí allí no recibe respuesta. Si tu cuenta de Slack no está conectada, OneUptime te pide una vez en cada conversación que la conectes, en un mensaje que solo tú ves, con un botón **Connect Slack account**.
 
 ## Crear incidentes y mantenimientos desde Slack
 

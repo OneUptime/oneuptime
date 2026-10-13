@@ -152,7 +152,7 @@ flowchart TB
 | `show active incidents`、 `show active alerts` | 列出当前未关闭的内容。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 列出即将进行或正在进行的维护活动。 |
 
-除 `show` 列表外，这些就是 Slack 中 `/oneuptime` 后面的词；`create incident` 和 `create maintenance` 仍然可以使用。询问 OneUptime AI 需要为项目开启 AI。请参阅 [询问 AI](/docs/ai/ask-ai)。
+除 `show` 列表外，这些就是 Slack 中 `/oneuptime` 后面的词；`create incident` 和 `create maintenance` 仍然可以使用。询问 OneUptime AI 需要连接您自己的 Microsoft Teams 账户，并为项目开启 AI。如果您的账户未连接，机器人会在每个话题或聊天中请您连接一次，并附带一个 **Connect Microsoft Teams account** 按钮。请参阅 [询问 AI](/docs/ai/ask-ai)。
 
 ## 从 Microsoft Teams 创建事件和维护
 
