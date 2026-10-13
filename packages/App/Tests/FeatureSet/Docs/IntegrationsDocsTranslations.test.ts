@@ -386,6 +386,11 @@ function untranslatedLines(language: string, page: string): Array<string> {
   const english: Array<string> = englishPage(page).split("\n");
   const translated: Array<string> = readPage(language, page).split("\n");
   const found: Array<string> = [];
+  const drawnBolds: Array<string> = englishBoldDrawings(language, page).map(
+    (drawing: [string, string]): string => {
+      return drawing[1];
+    },
+  );
   let inFence: boolean = false;
 
   english.forEach((line: string, index: number): void => {
@@ -405,6 +410,11 @@ function untranslatedLines(language: string, page: string): Array<string> {
 
     for (const kept of keptBold(page)) {
       text = text.split(kept).join(" ");
+    }
+
+    // A label this language's Dashboard draws in English is drawn so here too.
+    for (const drawn of drawnBolds) {
+      text = text.split(drawn).join(" ");
     }
 
     for (const name of NAMES_LONGEST_FIRST) {
