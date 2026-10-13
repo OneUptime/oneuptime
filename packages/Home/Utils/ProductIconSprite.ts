@@ -45,8 +45,41 @@ export const ProductIconSpriteRoutePattern: RegExp = new RegExp(
   `^/img/product-icons\\.[0-9a-f]{${HASH_LENGTH}}\\.svg$`,
 );
 
-const HTML_COMMENT: RegExp = /<!--[\s\S]*?-->/g;
+const COMMENT_OPEN: string = "<!--";
+const COMMENT_CLOSE: string = "-->";
 const SPACE_BETWEEN_TAGS: RegExp = />\s+</g;
+
+/*
+ * A drawing with its HTML comments taken out, until none is left. Taking
+ * one out can bring a "<!" before it and a "--" after it together into a
+ * new "<!--" ("<!<!-- a -->-- b -->"), so the search goes on from just
+ * before where it was. A comment that never closes takes the rest of the
+ * drawing with it, as it does in a browser.
+ */
+const withoutHtmlComments: (drawing: string) => string = (
+  drawing: string,
+): string => {
+  let rest: string = drawing;
+  let open: number = rest.indexOf(COMMENT_OPEN);
+
+  while (open !== -1) {
+    const close: number = rest.indexOf(
+      COMMENT_CLOSE,
+      open + COMMENT_OPEN.length,
+    );
+
+    rest =
+      close === -1
+        ? rest.slice(0, open)
+        : rest.slice(0, open) + rest.slice(close + COMMENT_CLOSE.length);
+    open = rest.indexOf(
+      COMMENT_OPEN,
+      Math.max(0, open - (COMMENT_OPEN.length - 1)),
+    );
+  }
+
+  return rest;
+};
 
 export interface ProductIconSprite {
   // product-icons.<hash>.svg
@@ -68,9 +101,7 @@ export const getIconDrawing: (rendered: string) => string = (
     throw new Error("An icon partial has to draw one <svg>");
   }
 
-  return rendered
-    .slice(openEnd + 1, close)
-    .replace(HTML_COMMENT, "")
+  return withoutHtmlComments(rendered.slice(openEnd + 1, close))
     .replace(SPACE_BETWEEN_TAGS, "><")
     .trim();
 };
