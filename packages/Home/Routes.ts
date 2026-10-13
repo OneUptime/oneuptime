@@ -18,12 +18,8 @@ import {
 import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 // Removed unused imports after dynamic sitemap refactor
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
@@ -57,6 +53,7 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
@@ -561,32 +558,12 @@ const HomeFeatureSet: FeatureSet = {
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
-        let contributors: Array<JSONObject> = [];
-
-        let hasMoreContributors: boolean = true;
-
-        let pageNumber: number = 1;
-
-        while (hasMoreContributors) {
-          const response: HTTPResponse<Array<JSONObject>> | HTTPErrorResponse =
-            await API.get<Array<JSONObject>>({
-              url: URL.fromString(
-                "https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" +
-                  pageNumber,
-              ),
-            });
-          pageNumber++;
-          if ((response.data as Array<JSONObject>).length < 30) {
-            hasMoreContributors = false;
-          }
-
-          contributors = contributors.concat(
-            response.data as Array<JSONObject>,
-          );
-        }
-
-        //cache it.
-        gitHubContributors = [...contributors];
+        /*
+         * Bounded and never throws (Utils/GitHubContributors.ts): when GitHub
+         * refuses, the page renders with what arrived, or with none, and the
+         * next visit asks again. A list that arrived is kept.
+         */
+        gitHubContributors = await fetchGitHubContributors();
       }
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
