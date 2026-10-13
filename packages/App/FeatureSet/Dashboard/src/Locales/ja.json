@@ -14150,7 +14150,6 @@
   "On-call duty rotates through these users top to bottom. Drag the handle to reorder.": "オンコールの担当は、これらのユーザーの間を上から順に回ります。ハンドルをドラッグして並べ替えてください。",
   "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap below is dropped rather than delivered on another channel.": "このプロジェクトではオンコール通知のフォールバックがオフになっているため、通知ルールがない場合は呼び出しが遅れるのではなく、まったく届きません。下の空白はすべて、別のチャネルで配信されることなく破棄されます。",
   "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap listed below is dropped rather than delivered on another channel.": "このプロジェクトではオンコール通知のフォールバックがオフになっているため、通知ルールがない場合は呼び出しが遅れるのではなく、まったく届きません。下に挙げた空白はすべて、別のチャネルで配信されることなく破棄されます。",
-  "On-call pages to this device override silent mode and Do Not Disturb. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "このデバイスへのオンコールの呼び出しは、サイレントモードとおやすみモードより優先されます。OneUptime On-Call モバイルアプリからオンにします。ブラウザーではデバイスの着信音の設定を上書きできません。",
   "On-call policies to execute when this rule creates an alert.": "このルールでアラートが作成されたときに実行するオンコールポリシー。",
   "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.": "このルールでインシデントが宣言されたときに実行するオンコールポリシー。アラートのポリシーとは別にしてあるため、それぞれ異なるエスカレーションにできます。",
   "On-call policies to fire when an episode is created by this rule.": "このルールでエピソードが作成されたときに発火するオンコールポリシー。",
@@ -28160,5 +28159,6 @@
   "Rings even when the phone is on silent or in Do Not Disturb.": "Rings even when the phone is on silent or in Do Not Disturb.",
   "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.": "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.",
   "Standard": "Standard",
-  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded."
+  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "このデバイスへのオンコールの呼び出しは、サイレントモードとおやすみモードより優先されます (「Standard」に設定したオンコールルールからの呼び出しを除く)。OneUptime On-Call モバイルアプリからオンにします。ブラウザーではデバイスの着信音の設定を上書きできません。"
 }

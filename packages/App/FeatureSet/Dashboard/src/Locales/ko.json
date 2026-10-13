@@ -14150,7 +14150,6 @@
   "On-call duty rotates through these users top to bottom. Drag the handle to reorder.": "On-call duty rotates through these users top to bottom. Drag the handle to reorder.",
   "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap below is dropped rather than delivered on another channel.": "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap below is dropped rather than delivered on another channel.",
   "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap listed below is dropped rather than delivered on another channel.": "On-call notification fallback is switched off for this project, so a missing notification rule is not a late page — it is no page at all. Every gap listed below is dropped rather than delivered on another channel.",
-  "On-call pages to this device override silent mode and Do Not Disturb. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "On-call pages to this device override silent mode and Do Not Disturb. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
   "On-call policies to execute when this rule creates an alert.": "On-call policies to execute when this rule creates an alert.",
   "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.": "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
   "On-call policies to fire when an episode is created by this rule.": "On-call policies to fire when an episode is created by this rule.",
@@ -28160,5 +28159,6 @@
   "Rings even when the phone is on silent or in Do Not Disturb.": "Rings even when the phone is on silent or in Do Not Disturb.",
   "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.": "Rings like a standard push until Critical On-Call Alerts is turned on in the OneUptime On-Call app on this phone.",
   "Standard": "Standard",
-  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded."
+  "This rule cannot be changed until the page is reloaded.": "This rule cannot be changed until the page is reloaded.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer."
 }
