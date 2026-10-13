@@ -123,7 +123,16 @@ describe("what the picker leads with", () => {
       ACTIONS.otherBuiltInGroups.map((group: PickerBuiltInGroup): string => {
         return group.name;
       }),
-    ).toEqual(["AI", "API", "Telegram", "IRC", "Mattermost", "JSON", "Utils"]);
+    ).toEqual([
+      "On-Call",
+      "AI",
+      "API",
+      "Telegram",
+      "IRC",
+      "Mattermost",
+      "JSON",
+      "Utils",
+    ]);
 
     const others: Array<string> = ACTIONS.otherBuiltInGroups.flatMap(
       (group: PickerBuiltInGroup): Array<string> => {
@@ -132,6 +141,10 @@ describe("what the picker leads with", () => {
     );
 
     expect(others).toEqual([
+      "Page Users",
+      "Page a Team",
+      "Page Whoever Is On Call",
+      "Page an On-Call Policy",
       "Generate Text with AI",
       "API Put (JSON)",
       "API Patch (JSON)",

@@ -1,5 +1,6 @@
 import IconProp from "../Icon/IconProp";
 import { JSONObject } from "../JSON";
+import { parseTemplateExpressions } from "./TemplateSyntax";
 
 export enum ComponentInputType {
   Text = "Text",
@@ -211,6 +212,15 @@ export interface Argument {
   placeholder?: string | undefined;
 }
 
+// A setting whose value comes from an earlier step or a variable: {{...}}.
+const holdsTemplateExpression: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return (
+    typeof value === "string" && parseTemplateExpressions(value).length > 0
+  );
+};
+
 export type IsArgumentShownFunction = (
   argument: Argument,
   values: JSONObject | undefined | null,
@@ -219,6 +229,15 @@ export type IsArgumentShownFunction = (
 /**
  * Whether a setting is part of the step as its other settings stand now
  * (Argument.shownWhen). One with no such rule always is.
+ *
+ * The other setting's value is compared without case and without the space
+ * around it, the way the step reads it when it runs: a workflow written by
+ * hand that says "Incident" shows the settings of "incident".
+ *
+ * While the other setting takes its value from an earlier step, what it
+ * comes to is known only when the step runs - so every setting that could
+ * go with it is part of the step, and none of them is required
+ * (isArgumentRequired): the step says what it lacks when it runs.
  */
 export const isArgumentShown: IsArgumentShownFunction = (
   argument: Argument,
@@ -240,13 +259,19 @@ export const isArgumentShown: IsArgumentShownFunction = (
     return false;
   }
 
-  const normalized: string = other.trim();
+  const normalized: string = other.trim().toLowerCase();
 
   if (normalized === "") {
     return Boolean(rule.includesEmpty);
   }
 
-  return rule.values.includes(normalized);
+  if (holdsTemplateExpression(other)) {
+    return true;
+  }
+
+  return rule.values.some((value: string): boolean => {
+    return value.toLowerCase() === normalized;
+  });
 };
 
 export type GetArgumentChoiceFunction = (
@@ -258,6 +283,9 @@ export type GetArgumentChoiceFunction = (
  * The choice a Choice setting holds: the one whose value is stored, or its
  * first while nothing is. Null for a stored value that is none of its
  * choices, and for a setting with no choices.
+ *
+ * Compared without case and without the space around it, the way the step
+ * reads the setting when it runs.
  */
 export const getArgumentChoice: GetArgumentChoiceFunction = (
   argument: Argument,
@@ -277,9 +305,11 @@ export const getArgumentChoice: GetArgumentChoiceFunction = (
     return null;
   }
 
+  const normalized: string = value.trim().toLowerCase();
+
   return (
     choices.find((choice: ArgumentChoice): boolean => {
-      return choice.value === value.trim();
+      return choice.value.toLowerCase() === normalized;
     }) || null
   );
 };
@@ -303,6 +333,17 @@ export const isArgumentRequired: IsArgumentRequiredFunction = (
 
   // A setting that is not part of the step now has nothing to fill in.
   if (!isArgumentShown(argument, values)) {
+    return false;
+  }
+
+  /*
+   * Shown because the setting it goes with takes its value from an earlier
+   * step: whether the step reads this one is known only when it runs.
+   */
+  if (
+    argument.shownWhen &&
+    holdsTemplateExpression(values?.[argument.shownWhen.argumentId])
+  ) {
     return false;
   }
 

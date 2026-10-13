@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
@@ -16,7 +17,10 @@ import ObjectID from "../../../Types/ObjectID";
 import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
-import { translationKey } from "../../Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 import {
   PeoplePickerKind,
   PeoplePickerOption,
@@ -474,6 +478,141 @@ const getSchedulesByIds: (
   });
 };
 
+/*
+ * On-call policies: a pick runs the policy's own escalation rules. An
+ * archived policy pages no one, so it is not offered - but one picked before
+ * it was archived is still shown, and says so, so it can be seen and taken
+ * out.
+ */
+export const ON_CALL_POLICY_GROUP_TITLE: string =
+  translationKey("On-call policies");
+export const ON_CALL_POLICY_TAG: string = translationKey("Policy");
+export const UNKNOWN_ON_CALL_POLICY_NAME: string =
+  translationKey("Unknown policy");
+export const ARCHIVED_ON_CALL_POLICY_NAME: string = translationKey(
+  "{{policyName}} (archived)",
+);
+
+const policyToOption: (
+  policy: BaseModel | undefined,
+) => PeoplePickerOption | null = (
+  policy: BaseModel | undefined,
+): PeoplePickerOption | null => {
+  if (!policy) {
+    return null;
+  }
+
+  const record: Record<string, unknown> = policy as unknown as Record<
+    string,
+    unknown
+  >;
+  const id: string = readString(record["_id"]);
+
+  if (!id) {
+    return null;
+  }
+
+  const name: string = readString(record["name"]);
+
+  if (!name) {
+    return {
+      kind: PeoplePickerKind.OnCallPolicy,
+      id: id,
+      name: UNKNOWN_ON_CALL_POLICY_NAME,
+    };
+  }
+
+  return {
+    kind: PeoplePickerKind.OnCallPolicy,
+    id: id,
+    name:
+      record["isArchived"] === true
+        ? translateTemplate(ARCHIVED_ON_CALL_POLICY_NAME, {
+            policyName: name,
+          })
+        : name,
+  };
+};
+
+/*
+ * Every plan can read its on-call policies, so there is no plan to ask
+ * about before listing them. Should the server refuse the list for the plan
+ * all the same (402), that reads as none to pick, as it does for schedules,
+ * rather than as a search list that fails.
+ */
+const listPolicies: (data: {
+  query: Record<string, unknown>;
+  limit: number;
+}) => Promise<Array<PeoplePickerOption>> = async (data: {
+  query: Record<string, unknown>;
+  limit: number;
+}): Promise<Array<PeoplePickerOption>> => {
+  let result: ListResult<OnCallDutyPolicy>;
+
+  try {
+    result = await ModelAPI.getList<OnCallDutyPolicy>({
+      modelType: OnCallDutyPolicy,
+      query: data.query as Query<OnCallDutyPolicy>,
+      limit: data.limit,
+      skip: 0,
+      select: { _id: true, name: true, isArchived: true },
+      sort: { name: SortOrder.Ascending },
+    });
+  } catch (error) {
+    if (isPaymentRequiredError(error)) {
+      return [];
+    }
+
+    throw error;
+  }
+
+  return result.data
+    .map((policy: OnCallDutyPolicy): PeoplePickerOption | null => {
+      return policyToOption(policy);
+    })
+    .filter((option: PeoplePickerOption | null): boolean => {
+      return Boolean(option);
+    }) as Array<PeoplePickerOption>;
+};
+
+const searchPolicies: (
+  data: PeoplePickerSearchData,
+) => Promise<Array<PeoplePickerOption>> = async (
+  data: PeoplePickerSearchData,
+): Promise<Array<PeoplePickerOption>> => {
+  const searchText: string = data.searchText.trim();
+  // The policies the On-Call Policies page lists: those not archived.
+  const query: Record<string, unknown> = {
+    projectId: data.projectId,
+    isArchived: false,
+  };
+
+  if (searchText) {
+    query["name"] = new Search(searchText);
+  }
+
+  return await listPolicies({ query: query, limit: data.limit });
+};
+
+const getPoliciesByIds: (
+  data: PeoplePickerLookupData,
+) => Promise<Array<PeoplePickerOption>> = async (
+  data: PeoplePickerLookupData,
+): Promise<Array<PeoplePickerOption>> => {
+  if (data.ids.length === 0) {
+    return [];
+  }
+
+  // Archived or not: a pick made before a policy was archived is still named.
+  return await listPolicies({
+    query: {
+      projectId: data.projectId,
+      _id: new Includes(data.ids),
+    },
+    limit: LIMIT_PER_PROJECT,
+  });
+};
+
 export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
   PeoplePickerKind,
   PeoplePickerKindDefinition
@@ -526,6 +665,22 @@ export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
     },
     search: searchSchedules,
     getByIds: getSchedulesByIds,
+  },
+  [PeoplePickerKind.OnCallPolicy]: {
+    kind: PeoplePickerKind.OnCallPolicy,
+    groupTitle: ON_CALL_POLICY_GROUP_TITLE,
+    tag: ON_CALL_POLICY_TAG,
+    unknownName: UNKNOWN_ON_CALL_POLICY_NAME,
+    avatar: { type: "icon", icon: IconProp.Call },
+    relationSelect: {
+      _id: true,
+      name: true,
+    },
+    fromModel: (model: BaseModel): PeoplePickerOption | null => {
+      return policyToOption(model);
+    },
+    search: searchPolicies,
+    getByIds: getPoliciesByIds,
   },
 };
 

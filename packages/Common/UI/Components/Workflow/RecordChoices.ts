@@ -1,5 +1,6 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
@@ -16,18 +17,22 @@ import {
 /*
  * THE SETTINGS WHOSE VALUE IS ONE OF THE PROJECT'S RECORDS, PICKED FROM A LIST.
  *
- * Execute Workflow's Workflow and Create One Incident's Incident Template are
- * dropdowns of the project's records, listed through the API as the person
- * editing the workflow: a record they may not read is not offered, and
- * where they may read none - or their plan includes none - the list is
- * empty. Each type names the model it lists, the column a record is called
- * by in the list, and whether the workflow being edited is left out (a
- * workflow cannot run itself).
+ * Execute Workflow's Workflow, Create One Incident's Incident Template and a
+ * Page step's Severity are dropdowns of the project's records, listed
+ * through the API as the person editing the workflow: a record they may not
+ * read is not offered, and where they may read none - or their plan includes
+ * none - the list is empty. Each type names the model it lists, the column a
+ * record is called by in the list, the column the list is in order of when
+ * that is not its name (severities run from the most severe down), and
+ * whether the workflow being edited is left out (a workflow cannot run
+ * itself).
  */
 
 export interface RecordChoiceSource {
   modelType: { new (): BaseModel };
   labelColumn: string;
+  // The column the list is sorted by, ascending. Default: labelColumn.
+  sortColumn?: string | undefined;
   excludesCurrentWorkflow: boolean;
 }
 
@@ -40,6 +45,13 @@ const SOURCES: Partial<Record<ComponentInputType, RecordChoiceSource>> = {
   [ComponentInputType.IncidentTemplateSelect]: {
     modelType: IncidentTemplate,
     labelColumn: "templateName",
+    excludesCurrentWorkflow: false,
+  },
+  [ComponentInputType.AlertSeveritySelect]: {
+    modelType: AlertSeverity,
+    labelColumn: "name",
+    // The project's own order: the most severe first.
+    sortColumn: "order",
     excludesCurrentWorkflow: false,
   },
 };
@@ -80,9 +92,9 @@ type LoadRecordChoicesFunction = (data: {
 }) => Promise<Array<DropdownOption>>;
 
 /*
- * The options of one record-choice setting: the records by name, in name
- * order, each one's value its ID. A record with no name is listed by its
- * ID rather than left out.
+ * The options of one record-choice setting: the records by name, in the
+ * source's order (their names', unless it says otherwise), each one's value
+ * its ID. A record with no name is listed by its ID rather than left out.
  */
 export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
   type: ComponentInputType;
@@ -104,7 +116,7 @@ export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
       [source.labelColumn]: true,
     } as Select<BaseModel>,
     sort: {
-      [source.labelColumn]: SortOrder.Ascending,
+      [source.sortColumn || source.labelColumn]: SortOrder.Ascending,
     } as Sort<BaseModel>,
   });
 

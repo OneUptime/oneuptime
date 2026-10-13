@@ -13,6 +13,8 @@
  *                         on the canvas, connected to nothing yet
  * ?scenario=switch-full   a Switch / Case holding every case a step can
  *                         (25, named like severities), Default to log-1
+ * ?scenario=page...       the Page steps, and the project their settings
+ *                         pick people from (PageScenarios.js)
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -35,6 +37,7 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CreateWorkflowModal from "../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
+import { getPageScenario, installPageProject } from "./PageScenarios";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -158,6 +161,15 @@ if (scenario === "empty") {
       targetHandle: "in",
     },
   ];
+}
+
+// The Page steps' scenarios bring their own graph and their own project.
+const pageScenario = getPageScenario(scenario, step, edge);
+
+if (pageScenario) {
+  initialNodes = pageScenario.nodes;
+  initialEdges = pageScenario.edges;
+  installPageProject(params);
 }
 
 // What the builder hands its page to save, for the spec to read.

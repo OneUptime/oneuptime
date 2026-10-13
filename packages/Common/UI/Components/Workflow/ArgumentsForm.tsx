@@ -10,7 +10,10 @@ import {
 } from "../Forms/Types/Field";
 import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import FormValues from "../Forms/Types/FormValues";
+import ChoiceSettingField from "./Choice/ChoiceSettingField";
 import ConditionEditor from "./Condition/ConditionEditor";
+import RecordListField from "./RecordList/RecordListField";
+import { getRecordListKind } from "./RecordList/RecordListKinds";
 import SwitchEditor from "./Switch/SwitchEditor";
 import { OutputConnections } from "./Switch/SwitchModel";
 import CronScheduleField from "./CronScheduleField";
@@ -51,10 +54,12 @@ import {
   ComponentInputType,
   NodeDataProp,
   isArgumentRequired,
+  isArgumentShown,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { DropdownOption } from "../Dropdown/Dropdown";
+import { PeoplePickerKind } from "../PeoplePicker/PeoplePickerTypes";
 import {
   getRecordChoiceSource,
   getRecordChoiceTypes,
@@ -531,6 +536,62 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       };
     }
 
+    /*
+     * Who a Page step pages: the project's people, teams, on-call schedules
+     * or on-call policies, picked by name, and any values from earlier
+     * steps beside them (RecordList/RecordListField).
+     */
+    const recordListKind: PeoplePickerKind | null = getRecordListKind(arg.type);
+
+    if (control === ArgumentControl.RecordList && recordListKind) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <RecordListField
+              kind={recordListKind}
+              value={(values as JSONObject)[arg.id]}
+              onChange={(value: Array<string>) => {
+                void customProps.onChange?.(value);
+              }}
+              ariaLabelledby={customProps.ariaLabelledby}
+              error={customProps.error}
+              dataTestId={`workflow-argument-${arg.id}`}
+              onBlur={customProps.onBlur}
+            />
+          );
+        },
+      };
+    }
+
+    /*
+     * A choice of a few answers - what a Page step's page is about - with
+     * every answer and what it means on the page (Choice/ChoiceSettingField).
+     */
+    if (control === ArgumentControl.ChoiceRows && (arg.choices || []).length) {
+      return {
+        fieldType: FormFieldSchemaType.CustomComponent,
+        getCustomElement: (
+          values: FormValues<JSONObject>,
+          customProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <ChoiceSettingField
+              argument={arg}
+              value={(values as JSONObject)[arg.id]}
+              onChange={(value: string) => {
+                void customProps.onChange?.(value);
+              }}
+              dataTestId={`workflow-argument-${arg.id}`}
+            />
+          );
+        },
+      };
+    }
+
     const singleKind: ValueSingleFieldKind | undefined =
       SINGLE_FIELD_KINDS[control];
 
@@ -837,29 +898,53 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
                   const isAdvanced: boolean = isCollapsibleAdvanced(arg);
 
+                  /*
+                   * A choice is always made - an empty one is its first
+                   * answer - so it is neither "required" nor "optional":
+                   * its help says only what it is for.
+                   */
+                  const isChoice: boolean =
+                    arg.type === ComponentInputType.Choice &&
+                    (arg.choices || []).length > 0;
+
                   return {
                     title: `${arg.name}`,
                     collapsibleSection: isAdvanced
                       ? moreFieldsSection
                       : undefined,
-                    description: describeArgument(
-                      translator,
-                      arg,
-                      component.arguments,
-                    ),
+                    description: isChoice
+                      ? translator.translateText(arg.description)
+                      : describeArgument(translator, arg, component.arguments),
+                    hideOptionalLabel: isChoice ? true : undefined,
+                    /*
+                     * A setting that goes with one answer of another - a
+                     * Page step's Title, with "A new alert" - is on the form
+                     * only while that answer is the one chosen.
+                     */
+                    showIf: arg.shownWhen
+                      ? (values: FormValues<JSONObject>): boolean => {
+                          return isArgumentShown(arg, values as JSONObject);
+                        }
+                      : undefined,
                     field: {
                       [arg.id]: true,
                     },
                     /*
                      * A setting another one can make unnecessary - Create One
                      * Incident's JSON Object, once an Incident Template is
-                     * picked - is required only while that one does not.
+                     * picked - is required only while that one does not. So
+                     * is a setting that goes with one answer of another: it
+                     * is required while that answer is the one chosen.
                      */
-                    required: arg.notRequiredWhen
-                      ? (values: FormValues<JSONObject>): boolean => {
-                          return isArgumentRequired(arg, values as JSONObject);
-                        }
-                      : arg.required,
+                    required:
+                      arg.notRequiredWhen || arg.shownWhen
+                        ? (values: FormValues<JSONObject>): boolean => {
+                            return isArgumentRequired(
+                              arg,
+                              values as JSONObject,
+                            );
+                          }
+                        : arg.required,
                     placeholder: arg.placeholder,
                     /*
                      * Some argument types are read back with JSON5 rather than

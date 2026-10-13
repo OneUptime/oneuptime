@@ -34,6 +34,7 @@ import OnCallComponents, {
 import {
   PAGE_ARGUMENT_IDS,
   PageAbout,
+  readPageAbout,
 } from "../../../../Types/Workflow/Components/OnCallPageSettings";
 import { describe, expect, test } from "@jest/globals";
 
@@ -478,6 +479,76 @@ describe("a setting shown only while another says so", () => {
     expect(isArgumentShown(rule, { kind: " a " })).toBe(true);
   });
 
+  test("the value is compared without case, as the step reads it when it runs", () => {
+    expect(isArgumentShown(rule, { kind: "A" })).toBe(true);
+    expect(isArgumentShown(rule, { kind: " B " })).toBe(true);
+    expect(isArgumentShown(rule, { kind: "C" })).toBe(false);
+
+    const capitalised: Argument = {
+      ...rule,
+      shownWhen: { argumentId: "kind", values: ["Alpha"] },
+    };
+
+    expect(isArgumentShown(capitalised, { kind: "alpha" })).toBe(true);
+    expect(isArgumentShown(capitalised, { kind: "ALPHA" })).toBe(true);
+  });
+
+  test("while the other setting takes its value from an earlier step, every setting that could go with it is shown - and none is required", () => {
+    for (const fromStep of [
+      "{{local.variables.kind}}",
+      " {{local.components.manual-1.returnValues.value.kind}} ",
+      "kind-{{local.variables.kind}}",
+    ]) {
+      expect(isArgumentShown(rule, { kind: fromStep })).toBe(true);
+      // What it comes to is known only when the step runs.
+      expect(isArgumentRequired(rule, { kind: fromStep })).toBe(false);
+    }
+
+    // Text that only looks like one is text: it names no value.
+    expect(isArgumentShown(rule, { kind: "{{" })).toBe(false);
+    expect(isArgumentShown(rule, { kind: "{a}" })).toBe(false);
+  });
+
+  test("a Page step whose Page About comes from an earlier step shows the settings of all three answers, none required", () => {
+    const users: ComponentMetadata = step(ComponentID.PageUsers);
+    const values: JSONObject = { about: "{{local.variables.about}}" };
+
+    expect(
+      users.arguments
+        .filter((setting: Argument): boolean => {
+          return isArgumentShown(setting, values);
+        })
+        .map((setting: Argument): string => {
+          return setting.name;
+        }),
+    ).toEqual([
+      "Users",
+      "Page About",
+      "Title",
+      "Message",
+      "Incident ID",
+      "Alert ID",
+      "Severity",
+    ]);
+
+    expect(
+      users.arguments
+        .filter((setting: Argument): boolean => {
+          return isArgumentRequired(setting, values);
+        })
+        .map((setting: Argument): string => {
+          return setting.name;
+        }),
+      // Who to page goes with no answer: it is always required.
+    ).toEqual(["Users"]);
+  });
+
+  test("a value that is not text shows nothing", () => {
+    expect(isArgumentShown(rule, { kind: 1 })).toBe(false);
+    expect(isArgumentShown(rule, { kind: ["a"] })).toBe(false);
+    expect(isArgumentShown(rule, { kind: { a: 1 } })).toBe(false);
+  });
+
   test("is not shown while the other setting is empty, unless it says so", () => {
     expect(isArgumentShown(rule, {})).toBe(false);
     expect(isArgumentShown(rule, null)).toBe(false);
@@ -527,6 +598,42 @@ describe("the choice a Choice setting holds", () => {
   test("the one that is stored", () => {
     expect(getArgumentChoice(about, "incident")?.label).toBe("An incident");
     expect(getArgumentChoice(about, " alert ")?.label).toBe("An alert");
+  });
+
+  test("whatever case it was written in: the settings read it as the step does when it runs", () => {
+    for (const stored of Object.values(PageAbout)) {
+      for (const written of [
+        stored,
+        stored.toUpperCase(),
+        ` ${stored.charAt(0).toUpperCase()}${stored.slice(1)} `,
+      ]) {
+        // The settings form, the checks and the step agree.
+        expect(getArgumentChoice(about, written)?.value).toBe(stored);
+        expect(readPageAbout(written)).toBe(stored);
+      }
+    }
+  });
+
+  test("and the settings that go with a choice are shown for it, whatever case it was written in", () => {
+    const users: ComponentMetadata = step(ComponentID.PageUsers);
+
+    for (const written of ["incident", "Incident", " INCIDENT "]) {
+      const values: JSONObject = { about: written };
+
+      expect(
+        users.arguments
+          .filter((setting: Argument): boolean => {
+            return isArgumentShown(setting, values);
+          })
+          .map((setting: Argument): string => {
+            return setting.name;
+          }),
+      ).toEqual(["Users", "Page About", "Incident ID"]);
+      expect(isArgumentRequired(argument(users, "incident-id"), values)).toBe(
+        true,
+      );
+      expect(isArgumentRequired(argument(users, "title"), values)).toBe(false);
+    }
   });
 
   test("its first, while nothing is stored", () => {

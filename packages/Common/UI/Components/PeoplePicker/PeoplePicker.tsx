@@ -94,6 +94,18 @@ export interface ComponentProps {
    * nothing is: "Next person in the rotation".
    */
   whenNobodyPicked?: PeoplePickerNobodyPicked | undefined;
+  /*
+   * More chips, drawn after the picks in the same row: what the field holds
+   * that is not a pick - in a workflow step, a value from an earlier step.
+   * They count as something picked: whenNobodyPicked is not said beside
+   * them.
+   */
+  extraChips?: Array<ReactElement> | undefined;
+  /*
+   * A control of the caller's own at the end of the row, after every chip:
+   * a workflow step's { } button.
+   */
+  trailing?: ReactElement | undefined;
 }
 
 // The button of a single-pick picker once something is picked.
@@ -312,7 +324,11 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
   const nobodyPicked: PeoplePickerNobodyPicked | undefined =
     props.whenNobodyPicked;
 
-  if (nobodyPicked && picks.length === 0) {
+  const extraChips: Array<ReactElement> = props.extraChips || [];
+
+  chips.push(...extraChips);
+
+  if (nobodyPicked && picks.length === 0 && extraChips.length === 0) {
     const nobodyPickedText: string =
       translateString(nobodyPicked.text) || nobodyPicked.text;
 
@@ -346,6 +362,7 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
          * added after it. One pick: what is picked first, then "Change".
          */}
         {props.isSinglePick ? [...chips, button] : [button, ...chips]}
+        {props.trailing}
       </div>
 
       {lookup.error && (
