@@ -1218,6 +1218,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             ).data
           }
           isTestRun={Boolean(props.runsAreTestRuns)}
+          // A record trigger's record is looked up in this workflow's project.
+          workflowId={props.workflowId}
           onClose={() => {
             setShowRunModal(false);
           }}
