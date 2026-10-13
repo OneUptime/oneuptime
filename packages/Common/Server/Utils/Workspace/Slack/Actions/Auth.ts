@@ -23,6 +23,7 @@ import SlackActionAnswer, {
 } from "./Answer";
 import SlackConnectPrompt from "./ConnectPrompt";
 import { SLACK_ID_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
+import SlackCommandParser from "../SlackCommandParser";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
@@ -33,6 +34,13 @@ const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
 export interface SlackAction {
   actionValue?: string | undefined;
   actionType?: SlackActionType | undefined;
+  /*
+   * For a slash command: how it was typed, without what followed it -
+   * "/oneuptime incident", or an older app's "/incident" - for an answer
+   * that asks to run it again (SlackConnectPrompt). A button, a form or a
+   * shortcut has none.
+   */
+  command?: string | undefined;
 }
 
 // Why a press is not acted on, for SlackAuthAction.answerRefusal to say.
@@ -91,9 +99,10 @@ export interface SlackRequest {
  * member of the project: open links. Everything that reads or writes the
  * project's records acts as the member the Slack account is connected to,
  * with that member's own permissions - declaring an incident included
- * (/incident and its form), so an incident is never created by nobody, and
- * its form lists only what its member may read. No project setting lets
- * anyone in the workspace declare without connecting an account.
+ * (/oneuptime incident and its form), so an incident is never created by
+ * nobody, and its form lists only what its member may read. No project
+ * setting lets anyone in the workspace declare without connecting an
+ * account.
  *
  * A link button opens its link in the browser, and Slack reports the click
  * too: such a report needs nothing but an acknowledgement, never a "connect
@@ -385,17 +394,20 @@ export default class SlackAuthAction {
       actions.push(action);
     }
 
-    const command: string | undefined = payload["command"] as string;
-    const commandText: string | undefined = payload["text"] as string;
-
-    // add command to actions.
-    if (command) {
-      const action: SlackAction = {
-        actionType: command as SlackActionType,
-        actionValue: commandText,
-      };
-
-      actions.push(action);
+    /*
+     * A slash command: /oneuptime and its words, or an older app's
+     * /incident or /maintenance (SlackCommandParser), as the action it asks
+     * for - the New Incident form with its title, say.
+     */
+    if (payload["command"]) {
+      actions.push(
+        SlackCommandParser.getAction(
+          SlackCommandParser.read({
+            command: payload["command"],
+            text: payload["text"],
+          }),
+        ),
+      );
     }
 
     const slackRequest: SlackRequest = {
@@ -497,6 +509,7 @@ export default class SlackAuthAction {
           actionType: refusal.action.actionType,
           actionValue: refusal.action.actionValue,
           payloadType: slackRequest.payloadType,
+          command: refusal.action.command,
         }),
       });
     } catch (err) {

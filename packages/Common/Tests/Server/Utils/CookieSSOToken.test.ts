@@ -11,9 +11,10 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * Tests for the SSO-provider discriminator that CookieUtil.getSSOToken stamps
- * onto a per-project SSO token. These run real JWT signing (no mocks): the JWT
- * secret falls back to EncryptionSecret = "secret" when ENCRYPTION_SECRET is
- * unset (see Common/Server/EnvironmentConfig.ts), so no env setup is required.
+ * onto a per-project SSO token. These run real JWT signing (no mocks): the
+ * key is TokenSigningKey - ENCRYPTION_SECRET when it is set, and otherwise a
+ * random key of this process's own, never a value the repository ships - so
+ * no env setup is required.
  */
 describe("CookieUtil.getSSOToken - SSO provider discriminator", () => {
   const buildUser: () => User = (): User => {

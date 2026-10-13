@@ -24,7 +24,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 import BaseAPI from "../../../Server/API/BaseAPI";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import DashboardService from "../../../Server/Services/DashboardService";
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
@@ -98,7 +98,7 @@ const STALE_ACCESS_TOKEN: string = jwt.sign(
     isGlobalLogin: true,
     sessionId: "44444444-4444-4444-8444-444444444444",
   },
-  `${EncryptionSecret.toString()}-before-rotation`,
+  `${TokenSigningKey.get()}-before-rotation`,
   { expiresIn: 15 * 60 },
 );
 

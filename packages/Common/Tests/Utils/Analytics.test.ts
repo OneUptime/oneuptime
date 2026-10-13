@@ -1,12 +1,19 @@
 import Email from "../../Types/Email";
 import { JSONObject } from "../../Types/JSON";
-import Analytics from "../../Utils/Analytics";
+import Analytics, {
+  COOKIE_CONSENT_STORAGE_KEY,
+  PurchaseData,
+} from "../../Utils/Analytics";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import posthog from "posthog-js";
 import {
+  GoogleAnalyticsEventParameters,
   REVENUE_EVENT_SCHEMA_VERSION,
   RevenueEventName,
   RevenueFunnelStage,
+  isRevenueEventName,
 } from "../../Types/Analytics/RevenueEvent";
 
 jest.mock("posthog-js", () => {
@@ -292,5 +299,599 @@ describe("Analytics dataLayer (GA4) branch", () => {
       analytics.capture("accounts/login");
     }).not.toThrow();
     expect(posthog.capture).toHaveBeenCalledWith("accounts/login", undefined);
+  });
+});
+
+/*
+ * Product analytics (PostHog) and the pages and visitors it must leave alone.
+ * The server-rendered page tells Analytics about both on window: status pages,
+ * public dashboards and the admin console set
+ * oneUptimeProductAnalyticsDisabled (Common/Server/Views/Partials/
+ * NoProductAnalytics.ejs), and the consent partial exposes the visitor's
+ * answer as oneUptimeConsent.
+ */
+describe("when product analytics may start", () => {
+  const measurementWindow: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return window as unknown as Record<string, unknown>;
+  };
+
+  const sendGlobalPrivacyControl: () => void = (): void => {
+    Object.defineProperty(window.navigator, "globalPrivacyControl", {
+      configurable: true,
+      value: true,
+    });
+  };
+
+  afterEach(() => {
+    delete measurementWindow()["oneUptimeProductAnalyticsDisabled"];
+    delete measurementWindow()["oneUptimeConsent"];
+    delete (window.navigator as unknown as Record<string, unknown>)[
+      "globalPrivacyControl"
+    ];
+    window.localStorage.clear();
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+  });
+
+  it("starts on an ordinary product page", () => {
+    expect(Analytics.isProductAnalyticsAllowed()).toBe(true);
+    expect(new Analytics(apiHost, apiKey).isInitialized).toBe(true);
+  });
+
+  it("never starts on a page that measures nothing for OneUptime", () => {
+    measurementWindow()["oneUptimeProductAnalyticsDisabled"] = true;
+
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    expect(posthog.init).not.toHaveBeenCalled();
+    expect(analytics.isInitialized).toBe(false);
+
+    analytics.capture("Page View: Status Page");
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it('does not start for a visitor who pressed "Reject all"', () => {
+    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, "false");
+
+    expect(new Analytics(apiHost, apiKey).isInitialized).toBe(false);
+    expect(posthog.init).not.toHaveBeenCalled();
+  });
+
+  it('starts for a visitor who pressed "Accept all"', () => {
+    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, "true");
+
+    expect(new Analytics(apiHost, apiKey).isInitialized).toBe(true);
+  });
+
+  it.each([
+    ["denied", false],
+    ["granted", true],
+    ["unset", true],
+  ])(
+    "asks the page's consent helper when it has one (%s)",
+    (state: string, expected: boolean) => {
+      // The helper wins over storage: it also knows an answer storage refused.
+      window.localStorage.setItem(
+        COOKIE_CONSENT_STORAGE_KEY,
+        expected ? "false" : "true",
+      );
+      measurementWindow()["oneUptimeConsent"] = {
+        state: (): string => {
+          return state;
+        },
+      };
+
+      expect(Analytics.isProductAnalyticsAllowed()).toBe(expected);
+    },
+  );
+
+  it("does not start for an unanswered visitor whose browser sends Global Privacy Control", () => {
+    sendGlobalPrivacyControl();
+
+    expect(new Analytics(apiHost, apiKey).isInitialized).toBe(false);
+  });
+
+  it("lets an acceptance outrank Global Privacy Control", () => {
+    sendGlobalPrivacyControl();
+    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, "true");
+
+    expect(new Analytics(apiHost, apiKey).isInitialized).toBe(true);
+  });
+
+  it("treats storage it cannot read as no answer at all", () => {
+    jest
+      .spyOn(Object.getPrototypeOf(window.localStorage), "getItem")
+      .mockImplementation(() => {
+        throw new Error("storage disabled");
+      });
+
+    expect(Analytics.isProductAnalyticsAllowed()).toBe(true);
+  });
+
+  it("uses the storage key the cookie banner writes", () => {
+    const partial: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "Server",
+        "Views",
+        "Partials",
+        "AnalyticsConsent.ejs",
+      ),
+      "utf8",
+    );
+
+    expect(partial).toContain(
+      `var STORAGE_KEY = '${COOKIE_CONSENT_STORAGE_KEY}';`,
+    );
+  });
+});
+
+/*
+ * Sign-up and the dashboard load Google Analytics alone, with no Tag Manager
+ * container to read the dataLayer. Analytics sends the funnel's key events to
+ * it directly - those, and nothing else, with the agreed parameters only.
+ */
+describe("Analytics with Google Analytics and no container", () => {
+  let gtag: jest.Mock;
+  let dataLayer: Array<JSONObject>;
+
+  const measurementWindow: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return window as unknown as Record<string, unknown>;
+  };
+
+  beforeEach(() => {
+    gtag = jest.fn();
+    dataLayer = [];
+    measurementWindow()["oneUptimeGoogleTagMode"] = "analytics-only";
+    measurementWindow()["gtag"] = gtag;
+    measurementWindow()["dataLayer"] = dataLayer;
+  });
+
+  afterEach(() => {
+    delete measurementWindow()["oneUptimeGoogleTagMode"];
+    delete measurementWindow()["gtag"];
+    delete measurementWindow()["dataLayer"];
+    jest.clearAllMocks();
+  });
+
+  it("sends a key event with only the agreed parameters", () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    analytics.captureRevenueEvent(RevenueEventName.SubscriptionStarted, {
+      funnel_stage: RevenueFunnelStage.Revenue,
+      plan: "growth",
+      value: 120,
+      currency: "USD",
+      is_paid_conversion: true,
+      project_id: "project-123",
+      // Never to Google: who the customer is, and anything not flat.
+      email: "owner@example.com",
+      company: "Acme",
+      seats: { used: 3 },
+    });
+
+    expect(gtag).toHaveBeenCalledTimes(1);
+    expect(gtag).toHaveBeenCalledWith(
+      "event",
+      RevenueEventName.SubscriptionStarted,
+      {
+        funnel_stage: RevenueFunnelStage.Revenue,
+        plan: "growth",
+        value: 120,
+        currency: "USD",
+        is_paid_conversion: true,
+        project_id: "project-123",
+        event_schema_version: REVENUE_EVENT_SCHEMA_VERSION,
+      },
+    );
+  });
+
+  it("sends every key event under its own name", () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    for (const eventName of Object.values(RevenueEventName)) {
+      analytics.captureRevenueEvent(eventName, {
+        funnel_stage: RevenueFunnelStage.Activation,
+      });
+    }
+
+    expect(
+      gtag.mock.calls.map((call: Array<unknown>) => {
+        return call[1];
+      }),
+    ).toEqual(Object.values(RevenueEventName));
+  });
+
+  it("sends Google nothing that is not a key event", () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    analytics.capture("Page View: Project > Home");
+    analytics.capture("FORM SUBMIT: Register", { email: "a@example.com" });
+
+    expect(gtag).not.toHaveBeenCalled();
+  });
+
+  it("leaves the dataLayer alone, since no container reads it", () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    analytics.capture("dashboard/home");
+    analytics.captureRevenueEvent(RevenueEventName.MonitorCreated, {
+      funnel_stage: RevenueFunnelStage.Activation,
+    });
+
+    expect(dataLayer).toEqual([]);
+  });
+
+  it("still gives PostHog every event, under its original name", () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    analytics.capture("Page View: Project > Home");
+
+    expect(posthog.capture).toHaveBeenCalledWith(
+      "Page View: Project > Home",
+      undefined,
+    );
+  });
+
+  it("does nothing when the page loaded no tag (a self-hosted install)", () => {
+    delete measurementWindow()["gtag"];
+
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    expect(() => {
+      analytics.captureRevenueEvent(RevenueEventName.SignupCompleted, {
+        funnel_stage: RevenueFunnelStage.Signup,
+      });
+    }).not.toThrow();
+    expect(dataLayer).toEqual([]);
+  });
+});
+
+describe("Analytics.toGoogleAnalyticsParameters", () => {
+  it("keeps the agreed parameters with plain values", () => {
+    expect(
+      Analytics.toGoogleAnalyticsParameters({
+        value: 0,
+        currency: "EUR",
+        is_paid_conversion: false,
+        booking_kind: "enterprise_demo",
+        user_id: "user-1",
+      }),
+    ).toEqual({
+      value: 0,
+      currency: "EUR",
+      is_paid_conversion: false,
+      booking_kind: "enterprise_demo",
+    });
+  });
+
+  it("drops objects, arrays and nulls even under an agreed name", () => {
+    expect(
+      Analytics.toGoogleAnalyticsParameters({
+        plan: { name: "growth" },
+        project_id: ["a", "b"],
+        currency: null,
+      }),
+    ).toEqual({});
+  });
+
+  it("is empty for an event with no data", () => {
+    expect(Analytics.toGoogleAnalyticsParameters(undefined)).toEqual({});
+  });
+
+  /*
+   * Docs/analytics/gtm-key-events.json is the container's key event tag. An
+   * event has to report the same in Google Analytics whether it went through
+   * that tag (the website) or straight to Google Analytics (the product).
+   */
+  describe("matches the container's key event tag", () => {
+    const container: JSONObject = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "Docs",
+          "analytics",
+          "gtm-key-events.json",
+        ),
+        "utf8",
+      ),
+    ) as JSONObject;
+    const version: JSONObject = container["containerVersion"] as JSONObject;
+
+    it("forwards exactly the same parameters", () => {
+      const tag: JSONObject = (version["tag"] as Array<JSONObject>)[0]!;
+      const table: JSONObject = (tag["parameter"] as Array<JSONObject>).find(
+        (parameter: JSONObject) => {
+          return parameter["key"] === "eventSettingsTable";
+        },
+      )!;
+      const forwarded: Array<string> = (table["list"] as Array<JSONObject>).map(
+        (row: JSONObject) => {
+          return (row["map"] as Array<JSONObject>).find((entry: JSONObject) => {
+            return entry["key"] === "parameter";
+          })!["value"] as string;
+        },
+      );
+
+      expect([...forwarded].sort()).toEqual(
+        [...GoogleAnalyticsEventParameters].sort(),
+      );
+    });
+
+    it("treats every revenue event as a key event", () => {
+      const trigger: JSONObject = (version["trigger"] as Array<JSONObject>)[0]!;
+      const filter: JSONObject = (
+        trigger["customEventFilter"] as Array<JSONObject>
+      )[0]!;
+      const pattern: string = (filter["parameter"] as Array<JSONObject>).find(
+        (parameter: JSONObject) => {
+          return parameter["key"] === "arg1";
+        },
+      )!["value"] as string;
+
+      for (const eventName of Object.values(RevenueEventName)) {
+        expect([eventName, new RegExp(pattern).test(eventName)]).toEqual([
+          eventName,
+          true,
+        ]);
+      }
+    });
+  });
+});
+
+describe("isRevenueEventName", () => {
+  it("knows every revenue event", () => {
+    for (const eventName of Object.values(RevenueEventName)) {
+      expect(isRevenueEventName(eventName)).toBe(true);
+    }
+  });
+
+  it.each(["Page View: Project > Home", "signup", "SIGN_UP", "", "page_view"])(
+    "does not count %j",
+    (eventName: string) => {
+      expect(isRevenueEventName(eventName)).toBe(false);
+    },
+  );
+});
+
+/*
+ * Google Analytics' user_id and purchase, both sent only where the page loaded
+ * Google Analytics itself (sign-up and the dashboard).
+ */
+describe("Analytics' user_id and purchase for Google Analytics", () => {
+  let gtag: jest.Mock;
+
+  const measurementWindow: () => Record<string, unknown> = (): Record<
+    string,
+    unknown
+  > => {
+    return window as unknown as Record<string, unknown>;
+  };
+
+  const PURCHASE: PurchaseData = {
+    transactionId: "subscription_started:project-1",
+    value: 49,
+    currency: "USD",
+    plan: "Growth",
+  };
+
+  beforeEach(() => {
+    gtag = jest.fn();
+    measurementWindow()["oneUptimeGoogleTagMode"] = "analytics-only";
+    measurementWindow()["gtag"] = gtag;
+  });
+
+  afterEach(() => {
+    delete measurementWindow()["oneUptimeGoogleTagMode"];
+    delete measurementWindow()["gtag"];
+    jest.clearAllMocks();
+  });
+
+  describe("setGoogleAnalyticsUserId", () => {
+    it("sets user_id to the internal user ID", () => {
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+
+      expect(gtag).toHaveBeenCalledTimes(1);
+      expect(gtag).toHaveBeenCalledWith("set", { user_id: "user-123" });
+    });
+
+    it("sets nothing for an empty ID", () => {
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("");
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it("sets nothing on a page that loads the Tag Manager container instead", () => {
+      measurementWindow()["oneUptimeGoogleTagMode"] = "tag-manager";
+
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it("does nothing where no Google tag was loaded (a self-hosted install)", () => {
+      delete measurementWindow()["gtag"];
+
+      expect(() => {
+        new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+      }).not.toThrow();
+    });
+
+    it("never hands PostHog the ID", () => {
+      new Analytics(apiHost, apiKey).setGoogleAnalyticsUserId("user-123");
+
+      expect(posthog.identify).not.toHaveBeenCalled();
+      expect(posthog.capture).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("capturePurchase", () => {
+    it("sends GA4's purchase event with its transaction, value, currency and plan", () => {
+      new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+
+      expect(gtag).toHaveBeenCalledTimes(1);
+      expect(gtag).toHaveBeenCalledWith("event", "purchase", {
+        transaction_id: "subscription_started:project-1",
+        value: 49,
+        currency: "USD",
+        items: [
+          {
+            item_id: "Growth",
+            item_name: "Growth",
+            price: 49,
+            quantity: 1,
+          },
+        ],
+      });
+    });
+
+    it("leaves PostHog to the subscription event it already has", () => {
+      new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+
+      expect(posthog.capture).not.toHaveBeenCalled();
+    });
+
+    it("sends nothing on a page that loads the Tag Manager container instead", () => {
+      measurementWindow()["oneUptimeGoogleTagMode"] = "tag-manager";
+
+      new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+
+      expect(gtag).not.toHaveBeenCalled();
+    });
+
+    it("does nothing where no Google tag was loaded (a self-hosted install)", () => {
+      delete measurementWindow()["gtag"];
+
+      expect(() => {
+        new Analytics(apiHost, apiKey).capturePurchase(PURCHASE);
+      }).not.toThrow();
+    });
+  });
+
+  describe("purchaseForNewProject", () => {
+    it("uses the server's event ID for the same conversion", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "project-1",
+          planName: "Growth",
+          monthlyAmountInUSD: 49,
+        }),
+      ).toEqual(PURCHASE);
+    });
+
+    it("is none for custom pricing, which has no amount", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "project-1",
+          planName: "Enterprise",
+          monthlyAmountInUSD: null,
+        }),
+      ).toBeNull();
+    });
+
+    it("is none without a project ID to name it by", () => {
+      expect(
+        Analytics.purchaseForNewProject({
+          projectId: "",
+          planName: "Growth",
+          monthlyAmountInUSD: 49,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("purchaseForPlanChange", () => {
+    const CHANGED_AT: Date = new Date("2026-10-13T09:30:00.000Z");
+
+    it("is a free project becoming a paying one, valued at the new MRR", () => {
+      expect(
+        Analytics.purchaseForPlanChange({
+          projectId: "project-1",
+          planName: "Scale",
+          isPaidConversion: true,
+          monthlyAmountInUSD: 99,
+          seats: 10,
+          changedAt: CHANGED_AT,
+        }),
+      ).toEqual({
+        transactionId:
+          "subscription_upgraded:project-1:2026-10-13T09:30:00.000Z",
+        value: 990,
+        currency: "USD",
+        plan: "Scale",
+      });
+    });
+
+    it("tells two upgrades of one project apart", () => {
+      const first: PurchaseData | null = Analytics.purchaseForPlanChange({
+        projectId: "project-1",
+        planName: "Growth",
+        isPaidConversion: true,
+        monthlyAmountInUSD: 22,
+        seats: 1,
+        changedAt: CHANGED_AT,
+      });
+      const second: PurchaseData | null = Analytics.purchaseForPlanChange({
+        projectId: "project-1",
+        planName: "Growth",
+        isPaidConversion: true,
+        monthlyAmountInUSD: 22,
+        seats: 1,
+        changedAt: new Date("2026-11-02T10:00:00.000Z"),
+      });
+
+      expect(first?.transactionId).not.toBe(second?.transactionId);
+    });
+
+    it("is none for a move between paid tiers, which is expansion", () => {
+      expect(
+        Analytics.purchaseForPlanChange({
+          projectId: "project-1",
+          planName: "Scale",
+          isPaidConversion: false,
+          monthlyAmountInUSD: 99,
+          seats: 10,
+          changedAt: CHANGED_AT,
+        }),
+      ).toBeNull();
+    });
+
+    it("is none for custom pricing, which has no amount", () => {
+      expect(
+        Analytics.purchaseForPlanChange({
+          projectId: "project-1",
+          planName: "Enterprise",
+          isPaidConversion: true,
+          monthlyAmountInUSD: null,
+          seats: 10,
+          changedAt: CHANGED_AT,
+        }),
+      ).toBeNull();
+    });
+
+    it("keeps transaction IDs within GA4's 100-character parameter limit", () => {
+      const purchase: PurchaseData | null = Analytics.purchaseForPlanChange({
+        projectId: "0195f2c1-7a4e-7c3b-9f0e-2d8a6b5c4e3f",
+        planName: "Scale",
+        isPaidConversion: true,
+        monthlyAmountInUSD: 99,
+        seats: 1,
+        changedAt: CHANGED_AT,
+      });
+
+      expect(purchase?.transactionId.length).toBeLessThanOrEqual(100);
+    });
   });
 });

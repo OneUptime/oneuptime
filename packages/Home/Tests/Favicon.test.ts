@@ -80,9 +80,8 @@ describe("Home favicon", () => {
 
   test("the template rendered instead of being inspected as raw EJS", () => {
     expect(head).not.toContain("<%");
-    expect(head).toContain(
-      '<link rel="canonical" href="https://oneuptime.com">',
-    );
+    // The feed link is built from homeUrl, so it only appears once rendered.
+    expect(head).toContain('href="https://oneuptime.com/blog/rss.xml"');
   });
 
   test("the Home fallback files exist", () => {

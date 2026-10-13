@@ -21,14 +21,18 @@ import {
  * - handleBotMessageActivity never rejects. Whatever fails, the user gets
  *   exactly one reply, and it names the activity id, which the error log line
  *   names too, so an administrator can find what went wrong. That line names
- *   the command ("create incident", "ask", or "a 43-character question"),
+ *   the command ("incident", "ask", or "a 43-character question"),
  *   never the text, which can carry what does not belong in an error log; the
  *   error itself follows it, with its stack, unless it is a Bot Framework
  *   HTTP error, whose status and code the line already gives.
- * - "create incident <title>" and "create maintenance <title>" go to
- *   MicrosoftTeamsCreateCommands with the title as the user typed it, and the
- *   help lists them that way; help, the "show ..." commands and "ask" are
- *   routed as before.
+ * - "incident <title>" and "maintenance <title>" - the words Slack's
+ *   /oneuptime takes, read for both chats by WorkspaceCommands - and "create
+ *   incident <title>" and "create maintenance <title>", as Teams took them
+ *   before, go to MicrosoftTeamsCreateCommands with the title as the user
+ *   typed it; "oncall" goes to MicrosoftTeamsCommands; help is a reply that
+ *   mentions whoever asked, listing every command, and a command misspelt
+ *   gets it too, with the command it looks like; the "show ..." commands and
+ *   "ask" are routed as before.
  * - A redelivered activity (same conversation, same id) is dropped, also when
  *   Teams retries a slow first delivery that is still being handled: the id
  *   is claimed before the work, not after it. The claim is kept in this
@@ -96,6 +100,16 @@ import MicrosoftTeamsUtil, {
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import MicrosoftTeamsActivityDeduplicator from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCreateCommands";
+import MicrosoftTeamsCommands from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsActionAnswer, {
+  MicrosoftTeamsMention,
+} from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
+import { MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
+import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
+import {
+  WorkspaceCommandMisspelling,
+  WorkspaceCommandName,
+} from "../../../../Server/Utils/Workspace/WorkspaceCommands";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_TEXT_MESSAGE_BUDGET_IN_BYTES,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageSize";
@@ -208,7 +222,6 @@ interface MicrosoftTeamsUtilInternals {
     projectId: ObjectID;
     question: string;
   }) => Promise<void>;
-  getHelpMessage: () => string;
   getActiveIncidentsMessage: ShowReplyBuilder;
   getScheduledMaintenanceMessage: ShowReplyBuilder;
   getOngoingMaintenanceMessage: ShowReplyBuilder;
@@ -218,8 +231,41 @@ interface MicrosoftTeamsUtilInternals {
 const internals: MicrosoftTeamsUtilInternals =
   MicrosoftTeamsUtil as unknown as MicrosoftTeamsUtilInternals;
 
-// The answer to "help", as the bot builds it.
-const HELP_TEXT: string = internals.getHelpMessage();
+// Who the messages here are from, as a reply mentions them.
+const SENDER_MENTION: MicrosoftTeamsMention = {
+  id: "29:1Hk8-teams-user",
+  name: "Alice Admin",
+};
+
+// The help, as Microsoft Teams shows it.
+const HELP_ANSWER: WorkspaceAnswer = MicrosoftTeamsCommands.getHelpAnswer();
+
+/*
+ * The answer to "help", as the bot sends it: a card that mentions whoever
+ * asked (MicrosoftTeamsActionAnswer), listing the commands Slack's
+ * /oneuptime takes and Teams' own lists - and, after a command misspelt,
+ * one short answer instead: the command it looks like.
+ */
+function helpReply(misspelt?: WorkspaceCommandMisspelling): Partial<Activity> {
+  const answer: WorkspaceAnswer = misspelt
+    ? MicrosoftTeamsCommands.getMisspellingAnswer(misspelt)
+    : MicrosoftTeamsCommands.getHelpAnswer();
+
+  return {
+    attachments: [
+      {
+        contentType: MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE,
+        content: MicrosoftTeamsActionAnswer.buildCard({
+          answer: answer,
+          mention: SENDER_MENTION,
+        }),
+      },
+    ],
+    summary: answer.text,
+  };
+}
+
+const HELP_REPLY: Partial<Activity> = helpReply();
 
 type CreateCommandInput = Parameters<
   typeof MicrosoftTeamsCreateCommands.handleCreateIncidentCommand
@@ -249,6 +295,7 @@ interface Stubs {
   createMaintenance: SpyInstance<
     typeof MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand
   >;
+  onCall: SpyInstance<typeof MicrosoftTeamsCommands.handleOnCallCommand>;
   askAssistant: SpyInstance<
     MicrosoftTeamsUtilInternals["answerObservabilityQuestion"]
   >;
@@ -300,6 +347,9 @@ beforeEach(() => {
         "handleCreateScheduledMaintenanceCommand",
       )
       .mockResolvedValue(undefined),
+    onCall: jest
+      .spyOn(MicrosoftTeamsCommands, "handleOnCallCommand")
+      .mockResolvedValue(undefined),
     askAssistant: jest
       .spyOn(internals, "answerObservabilityQuestion")
       .mockResolvedValue(undefined),
@@ -324,13 +374,14 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// No "show ..." builder, create command or AI question ran.
+// No "show ..." builder, create command, oncall or AI question ran.
 function expectNoCommandRan(): void {
   for (const builderName of SHOW_REPLY_BUILDER_NAMES) {
     expect(stubs.showReplies[builderName]).not.toHaveBeenCalled();
   }
   expect(stubs.createIncident).not.toHaveBeenCalled();
   expect(stubs.createMaintenance).not.toHaveBeenCalled();
+  expect(stubs.onCall).not.toHaveBeenCalled();
   expect(stubs.askAssistant).not.toHaveBeenCalled();
 }
 
@@ -792,9 +843,29 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
 
     // Named by its command, not by the title typed after it.
     expectFailureLogged(errorLog, {
-      line: `Microsoft Teams message ${idOf(activity)} ("create incident") failed: Error: simulated database outage`,
+      line: `Microsoft Teams message ${idOf(activity)} ("incident") failed: Error: simulated database outage`,
       error: outage,
       // The project was not known yet.
+      attributes: { projectId: undefined },
+    });
+    expect(errorLogText(errorLog)).not.toContain("Database Is Down");
+  });
+
+  test("a misspelt command that fails is logged as the command it looks like - never as help, never by what was typed", async () => {
+    const outage: Error = new Error("simulated database outage");
+    stubs.resolveTenant.mockRejectedValue(outage);
+    const errorLog: SpyInstance<typeof logger.error> = silenceErrorLog();
+    const activity: JSONObject = personalMessage("incidnet Database Is Down");
+    const turn: FakeTurn = buildTurn({ activity: activity });
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: activity,
+      turnContext: turn.turnContext,
+    });
+
+    expectFailureLogged(errorLog, {
+      line: `Microsoft Teams message ${idOf(activity)} ("misspelt incident") failed: Error: simulated database outage`,
+      error: outage,
       attributes: { projectId: undefined },
     });
     expect(errorLogText(errorLog)).not.toContain("Database Is Down");
@@ -837,7 +908,7 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
 
   test("Teams refuses the answer itself (413): the user gets the one error reply instead, and nothing is thrown", async () => {
     const errorLog: SpyInstance<typeof logger.error> = silenceErrorLog();
-    const activity: JSONObject = personalMessage("help");
+    const activity: JSONObject = personalMessage("show active incidents");
     const turn: FakeTurn = buildTurn({
       activity: activity,
       send: "refuse-first",
@@ -851,7 +922,7 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
     ).resolves.toBeUndefined();
 
     expect(turn.attempted).toEqual([
-      HELP_TEXT,
+      CANNED_SHOW_REPLIES.getActiveIncidentsMessage,
       MicrosoftTeamsUtil.getUnexpectedErrorMessage(activity),
     ]);
     expect(turn.delivered).toEqual([
@@ -860,9 +931,31 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
     // A Bot Framework error is one line: its status and code say it all.
     expect(errorLogCalls(errorLog)).toStrictEqual([
       [
-        `Microsoft Teams message ${idOf(activity)} ("help") failed: RestError 413 MessageSizeTooBig: Message size too large.`,
+        `Microsoft Teams message ${idOf(activity)} ("show active incidents") failed: RestError 413 MessageSizeTooBig: Message size too large.`,
         { projectId: PROJECT_ID.toString() },
       ],
+    ]);
+  });
+
+  test("Teams refuses the help card: it is sent once, as well as Teams allows - logged, nothing thrown, no second reply", async () => {
+    const errorLog: SpyInstance<typeof logger.error> = silenceErrorLog();
+    const activity: JSONObject = personalMessage("help");
+    const turn: FakeTurn = buildTurn({
+      activity: activity,
+      send: "refuse-first",
+    });
+
+    await expect(
+      MicrosoftTeamsUtil.handleBotMessageActivity({
+        activity: activity,
+        turnContext: turn.turnContext,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(turn.attempted).toEqual([HELP_REPLY]);
+    expect(turn.delivered).toEqual([]);
+    expect(loggedErrorLines(errorLog)).toEqual([
+      "Could not send a Microsoft Teams reply: RestError 413 MessageSizeTooBig: Message size too large.",
     ]);
   });
 
@@ -913,7 +1006,7 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
     // Logged once, for the first delivery only.
     expect(errorLogCalls(errorLog)).toStrictEqual([
       [
-        `Microsoft Teams message ${idOf(activity)} ("create incident") failed: RestError 413 MessageSizeTooBig: Message size too large.`,
+        `Microsoft Teams message ${idOf(activity)} ("incident") failed: RestError 413 MessageSizeTooBig: Message size too large.`,
         { projectId: PROJECT_ID.toString() },
       ],
     ]);
@@ -999,7 +1092,7 @@ describe("handleBotMessageActivity never rejects: one reply, never a rethrow (#4
 
       const turn: FakeTurn = await deliver(activity);
 
-      expect(turn.attempted).toEqual([HELP_TEXT]);
+      expect(turn.attempted).toEqual([HELP_REPLY]);
       expect(loggedErrorLines(errorLog)).toContain(
         `Error capturing Microsoft Teams ${backfill} from bot activity:`,
       );
@@ -1035,7 +1128,7 @@ describe("a failed message is logged by the command it is, never by its text", (
           "create incident Payroll export leaks alice@example.com",
         );
       },
-      label: '"create incident"',
+      label: '"incident"',
       fail: (failure: Error): void => {
         stubs.createIncident.mockRejectedValue(failure);
       },
@@ -1048,7 +1141,7 @@ describe("a failed message is logged by the command it is, never by its text", (
           "Create Maintenance Rotate the key alice@example.com leaked",
         );
       },
-      label: '"create maintenance"',
+      label: '"maintenance"',
       fail: (failure: Error): void => {
         stubs.createMaintenance.mockRejectedValue(failure);
       },
@@ -1330,6 +1423,153 @@ describe("'create incident' and 'create maintenance' go to MicrosoftTeamsCreateC
   );
 });
 
+describe("the words Slack's /oneuptime takes: incident, maintenance and oncall, typed to the bot", () => {
+  test("'incident Database Is Down' in a personal chat opens the incident form with the title", async () => {
+    const activity: JSONObject = personalMessage("incident Database Is Down");
+
+    const turn: FakeTurn = await deliver(activity);
+
+    expect(stubs.createIncident).toHaveBeenCalledTimes(1);
+    expect(stubs.createIncident).toHaveBeenCalledWith({
+      turnContext: turn.turnContext,
+      activity: activity,
+      projectId: PROJECT_ID,
+      initialTitle: "Database Is Down",
+    });
+    expect(stubs.createMaintenance).not.toHaveBeenCalled();
+    expect(stubs.askAssistant).not.toHaveBeenCalled();
+    expect(turn.attempted).toEqual([]);
+  });
+
+  test("'@OneUptime maintenance Patch Tuesday' in a group chat opens the maintenance form with the title", async () => {
+    const activity: JSONObject = groupChatMention("maintenance Patch Tuesday");
+
+    const turn: FakeTurn = await deliver(activity);
+
+    expect(stubs.createMaintenance).toHaveBeenCalledTimes(1);
+    expect(stubs.createMaintenance).toHaveBeenCalledWith({
+      turnContext: turn.turnContext,
+      activity: activity,
+      projectId: PROJECT_ID,
+      initialTitle: "Patch Tuesday",
+    });
+    expect(stubs.createIncident).not.toHaveBeenCalled();
+  });
+
+  test("'@OneUptime incident Checkout is slow' in a team channel", async () => {
+    const activity: JSONObject = channelMessage({
+      text: "incident Checkout is slow",
+      mention: "the bot",
+      id: nextActivityId(),
+    });
+
+    await deliver(activity);
+
+    expect(stubs.createIncident).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        initialTitle: "Checkout is slow",
+      }),
+    );
+  });
+
+  test.each([
+    ["INCIDENT   Disk   full on DB-01  ", "Disk full on DB-01"],
+    ["Incident: Checkout is slow", "Checkout is slow"],
+    ["incident", ""],
+  ])(
+    "%j: the command in any case, the title on one line",
+    async (text: string, title: string) => {
+      await deliver(personalMessage(text));
+
+      expect(stubs.createIncident).toHaveBeenCalledTimes(1);
+      expect(stubs.createIncident).toHaveBeenCalledWith(
+        expect.objectContaining({ initialTitle: title }),
+      );
+    },
+  );
+
+  test.each(["oncall", "OnCall", "on-call", "on call", "oncall?"])(
+    "%j: who is on call, answered by MicrosoftTeamsCommands",
+    async (text: string) => {
+      const activity: JSONObject = personalMessage(text);
+
+      const turn: FakeTurn = await deliver(activity);
+
+      expect(stubs.onCall).toHaveBeenCalledTimes(1);
+      expect(stubs.onCall).toHaveBeenCalledWith({
+        turnContext: turn.turnContext,
+        activity: activity,
+        projectId: PROJECT_ID,
+      });
+      expect(stubs.askAssistant).not.toHaveBeenCalled();
+      // The command answers for itself; the message handler adds nothing.
+      expect(turn.attempted).toEqual([]);
+    },
+  );
+
+  test("'oncall for the database team?' is a question for the AI assistant, as typed", async () => {
+    const activity: JSONObject = personalMessage(
+      "oncall for the database team?",
+    );
+
+    const turn: FakeTurn = await deliver(activity);
+
+    expect(stubs.onCall).not.toHaveBeenCalled();
+    expect(stubs.askAssistant).toHaveBeenCalledWith({
+      activity: activity,
+      turnContext: turn.turnContext,
+      projectId: PROJECT_ID,
+      question: "oncall for the database team?",
+    });
+  });
+
+  test.each([
+    [
+      "incidnet Database Is Down",
+      {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: "Database Is Down",
+      },
+    ],
+    [
+      "maintenence",
+      {
+        word: "maintenence",
+        command: WorkspaceCommandName.Maintenance,
+        text: "",
+      },
+    ],
+    [
+      "oncal",
+      { word: "oncal", command: WorkspaceCommandName.OnCall, text: "" },
+    ],
+  ])(
+    "%j - a command misspelt - gets the command it looks like, in one short reply; nothing runs, and AI is not asked",
+    async (text: string, misspelt: WorkspaceCommandMisspelling) => {
+      const turn: FakeTurn = await deliver(personalMessage(text));
+
+      expect(turn.attempted).toEqual([helpReply(misspelt)]);
+      expectNoCommandRan();
+    },
+  );
+
+  test("the misspelt command's answer is the command it looks like, and how to ask AI instead - not the whole help", () => {
+    const answer: WorkspaceAnswer = MicrosoftTeamsCommands.getMisspellingAnswer(
+      {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: "Database Is Down",
+      },
+    );
+
+    expect(answer.markdown).toBe(
+      "🤔 **incidnet** is not a command. Did you mean **incident Database Is Down**? To ask OneUptime AI instead, start with **ask**.",
+    );
+  });
+});
+
 describe("help, 'show ...' and 'ask' are routed as before", () => {
   const HELP_REQUESTS: Array<[string, () => JSONObject]> = [
     [
@@ -1363,18 +1603,26 @@ describe("help, 'show ...' and 'ask' are routed as before", () => {
     async (_request: string, buildActivity: () => JSONObject) => {
       const turn: FakeTurn = await deliver(buildActivity());
 
-      expect(turn.attempted).toEqual([HELP_TEXT]);
-      expect(HELP_TEXT).toContain("Available Commands");
+      expect(turn.attempted).toEqual([HELP_REPLY]);
       expectNoCommandRan();
     },
   );
 
-  test("the help says both create commands take a title, as the router reads them", () => {
-    expect(HELP_TEXT).toContain(
-      "\n- **create incident [title]** - Create a new incident\n",
+  test("the help says incident and maintenance take a title, as the router reads them, and lists Teams' own lists", () => {
+    expect(HELP_ANSWER.markdown).toContain(
+      "\n- **incident [title]**: declare an incident\n",
     );
-    expect(HELP_TEXT).toContain(
-      "\n- **create maintenance [title]** - Create a new scheduled maintenance event\n",
+    expect(HELP_ANSWER.markdown).toContain(
+      "\n- **maintenance [title]**: schedule maintenance\n",
+    );
+    expect(HELP_ANSWER.markdown).toContain(
+      "\n- **oncall**: see who is on call right now\n",
+    );
+    expect(HELP_ANSWER.markdown).toContain(
+      "\n- **show active incidents**, **show active alerts**: list what is open right now\n",
+    );
+    expect(HELP_ANSWER.markdown).toContain(
+      "\n- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance\n",
     );
   });
 
@@ -1439,7 +1687,7 @@ describe("help, 'show ...' and 'ask' are routed as before", () => {
   test("a bare 'ask': the help text, and the assistant is not asked anything", async () => {
     const turn: FakeTurn = await deliver(personalMessage("ask"));
 
-    expect(turn.attempted).toEqual([HELP_TEXT]);
+    expect(turn.attempted).toEqual([HELP_REPLY]);
     expectNoCommandRan();
   });
 });
@@ -1509,7 +1757,7 @@ describe("a redelivered activity is handled once (#4111's second bubble)", () =>
     const first: FakeTurn = await deliver(activity);
     const redelivery: FakeTurn = await deliver(activity);
 
-    expect(first.delivered).toEqual([HELP_TEXT]);
+    expect(first.delivered).toEqual([HELP_REPLY]);
     expect(redelivery.attempted).toEqual([]);
   });
 
@@ -1650,7 +1898,7 @@ describe("a redelivered activity is handled once (#4111's second bubble)", () =>
       turns.map((turn: FakeTurn) => {
         return turn.delivered;
       }),
-    ).toEqual([[HELP_TEXT], [HELP_TEXT], [HELP_TEXT]]);
+    ).toEqual([[HELP_REPLY], [HELP_REPLY], [HELP_REPLY]]);
   });
 
   test("a card submit (value.action) delivered twice runs handleBotInvokeActivity once", async () => {
@@ -1767,7 +2015,7 @@ describe("a redelivered activity is handled once (#4111's second bubble)", () =>
 
       expect(stubs.claim).toHaveBeenCalledTimes(1);
       expect(stubs.claim).toHaveBeenCalledWith(mentioned);
-      expect(answered.delivered).toEqual([HELP_TEXT]);
+      expect(answered.delivered).toEqual([HELP_REPLY]);
     },
   );
 

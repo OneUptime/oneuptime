@@ -89,6 +89,8 @@ Créer une règle passe par quatre étapes :
 
 Un canal que la règle crée prend le nom de **New Microsoft Teams Channel Name** suivi du numéro de l'enregistrement, par exemple `oneuptime-incident-42`, et seul un canal créé reçoit les personnes que la règle invite. Un incident, une alerte ou un épisode privé reçoit un canal privé. Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux et conversations.
 
+Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Microsoft Teams** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, dans l'application Microsoft Teams ou dans le navigateur. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a des canaux à la fois dans Slack et dans Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux et conversations existants où vos règles publient ne sont pas proposés.
+
 Les canaux et les conversations restent lisibles : chaque événement est publié une seule fois, et le premier état d'un enregistrement figure dans la carte qui annonce l'enregistrement, pas dans une carte à part. Une exécution d'une politique d'astreinte est une seule carte, modifiée au fil de l'escalade : qui a été alerté, combien de fois et comment, qui ne l'a pas été et pourquoi, et qui l'a pris en compte. Une nouvelle carte n'est publiée que lorsque quelqu'un doit agir : une règle d'escalade n'a atteint personne, ou l'exécution s'est terminée sans que personne ne le prenne en compte. Le fait que les propriétaires de l'enregistrement ou les abonnés de la page de statut ont été prévenus reste dans son fil d'activité dans OneUptime.
 
 **Paramètres du projet** > **Espace de travail** > **Microsoft Teams** liste les canaux que OneUptime voit dans vos équipes, et les conversations auxquelles il a été ajouté, avec **Envoyer le test** à côté de chacun. Une conversation apparaît dès que l'application OneUptime y est ajoutée dans Microsoft Teams ; **Refresh Chats** récupère les nouvelles conversations et leurs noms actuels.
@@ -143,17 +145,18 @@ La note est enregistrée en votre nom, avec vos autorisations, donc votre propre
 | Message | Ce que fait le bot |
 | --- | --- |
 | `help` | Liste ce qu'il sait faire. |
-| `ask <question>`, ou toute question en langage courant | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs, par exemple "Quels moniteurs sont en panne en ce moment ?". Les réponses ne font que lire. |
-| `create incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
-| `create maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
+| `incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
+| `maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
+| `oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
+| `ask [question]`, ou toute question en langage courant | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs, par exemple "Quels moniteurs sont en panne en ce moment ?". Les réponses ne font que lire. |
 | `show active incidents`, `show active alerts` | Liste ce qui est ouvert maintenant. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Liste les événements de maintenance à venir, ou en cours. |
 
-Interroger OneUptime AI demande l'IA activée pour le projet. Voir [Demander à l'IA](/docs/ai/ask-ai).
+Hormis les listes `show`, ce sont les mots qui suivent `/oneuptime` dans Slack ; `create incident` et `create maintenance` fonctionnent toujours. Interroger OneUptime AI demande l'IA activée pour le projet. Voir [Demander à l'IA](/docs/ai/ask-ai).
 
 ## Créer des incidents et des maintenances depuis Microsoft Teams
 
-Écrire `create incident` ou `create maintenance` au bot OneUptime ouvre un formulaire pour la personne qui l'a écrit, dans une conversation personnelle, un canal ou une conversation de groupe indifféremment. Il est rempli au nom de cette personne : en tant que compte OneUptime auquel son compte Microsoft Teams est connecté (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)), avec les autorisations de ce compte dans le projet. Une personne dont le compte n'est pas connecté, ou dont le compte OneUptime n'est plus membre du projet, apprend quoi faire dans une réponse qui la mentionne, au lieu de recevoir le formulaire.
+Écrire `incident` ou `maintenance` au bot OneUptime ouvre un formulaire pour la personne qui l'a écrit, dans une conversation personnelle, un canal ou une conversation de groupe indifféremment. Il est rempli au nom de cette personne : en tant que compte OneUptime auquel son compte Microsoft Teams est connecté (voir [Connecter Microsoft Teams](#connecter-microsoft-teams)), avec les autorisations de ce compte dans le projet. Une personne dont le compte n'est pas connecté, ou dont le compte OneUptime n'est plus membre du projet, apprend quoi faire dans une réponse qui la mentionne, au lieu de recevoir le formulaire.
 
 - **Qui peut les utiliser.** Les personnes qui peuvent déclarer un incident ou créer un événement de maintenance planifiée dans OneUptime : **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** et **Incident Member** pour un incident (**Create Incident** dans un rôle personnalisé), et **Scheduled Maintenance Admin** et **Scheduled Maintenance Member** pour un événement (**Create Scheduled Maintenance**). Tous les autres en sont informés, et ne reçoivent pas de formulaire.
 - **Ce qu'un formulaire propose.** Chaque liste — gravités, moniteurs, états de moniteur, politiques d'astreinte et étiquettes — contient ce que la personne qui l'a demandé peut lire, comme la même liste dans OneUptime, et les notes "not shown" de la carte ne comptent que ceux-là : avec un rôle limité à certaines étiquettes, les moniteurs et politiques d'astreinte portant ces étiquettes. Une liste qu'elle ne peut pas lire du tout est retirée. Les politiques d'astreinte archivées ne sont jamais proposées.

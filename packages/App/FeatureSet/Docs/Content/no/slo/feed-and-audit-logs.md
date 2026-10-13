@@ -23,7 +23,7 @@ flowchart LR
 
 ## Feeden til SLO-et
 
-Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Recent activity** i **Oversikt** til SLO-et. Elementene lenker til SLO-et, monitorene, varslene og hendelsene de nevner, og de fleste har en seksjon **More Information** med tallene eller de gamle og nye verdiene.
+Feeden ligger på siden **Feed** til SLO-et, og de nyeste elementene under **Recent activity** i **Oversikt** til SLO-et. Elementene lenker til SLO-et, monitorene, varslene og hendelsene de nevner, og de fleste har detaljer med tallene eller de gamle og nye verdiene, som **Vis detaljer** bretter ut under elementet.
 
 | Hendelse | Publiseres når |
 | --- | --- |

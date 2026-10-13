@@ -387,10 +387,10 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
     expect(emailEnvelope.subject).toBe("[New Incident #12] - Checkout is down");
 
     /*
-     * The dashboard link is NOT part of this fix: one call for the feed text
-     * plus two per owner (vars + push payload), exactly as before.
+     * The dashboard link: two per owner (vars + push payload). The feed
+     * entry no longer links to the incident whose feed it is in.
      */
-    expect(incidentService.getIncidentLinkInDashboard).toHaveBeenCalledTimes(7);
+    expect(incidentService.getIncidentLinkInDashboard).toHaveBeenCalledTimes(6);
 
     expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
   });
@@ -475,8 +475,8 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
         }
       ).moreInformationInMarkdown,
     ).toBe(
-      "**Notified**: Owner user-2 (user-2@acme.test)\n" +
-        "**Notified**: Owner user-3 (user-3@acme.test)\n",
+      "- Owner user-2 (user-2@acme.test)\n" +
+        "- Owner user-3 (user-3@acme.test)\n",
     );
   });
 

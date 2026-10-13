@@ -73,7 +73,7 @@ export enum WorkspaceConnectRequestAgainKind {
 
 export interface WorkspaceConnectRequestAgain {
   kind: WorkspaceConnectRequestAgainKind;
-  // The button's title, or the command: "Add Note", "/incident".
+  // The button's title, or the command: "Add Note", "/oneuptime incident".
   label?: string | undefined;
 }
 

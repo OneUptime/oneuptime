@@ -32,24 +32,10 @@
     ],
     "slash_commands": [
       {
-        "command": "/incident",
-        "url": "{{SERVER_URL}}/api/slack/interactive",
-        "description": "Create a new Incident in OneUptime",
-        "usage_hint": "[incident title]",
-        "should_escape": false
-      },
-      {
-        "command": "/maintenance",
-        "url": "{{SERVER_URL}}/api/slack/interactive",
-        "description": "Create a new Scheduled Maintenance in OneUptime",
-        "usage_hint": "[maintenance title]",
-        "should_escape": false
-      },
-      {
         "command": "/oneuptime",
         "url": "{{SERVER_URL}}/api/slack/command",
-        "description": "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
-        "usage_hint": "ask which monitors are down?",
+        "description": "Declare an incident, schedule maintenance, see who is on call or ask OneUptime AI",
+        "usage_hint": "incident [title] | maintenance [title] | oncall | ask [question] | help",
         "should_escape": false
       }
     ]

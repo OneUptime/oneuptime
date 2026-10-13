@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -30,25 +30,22 @@ import ObjectID from "Common/Types/ObjectID";
  *
  * WHY IT IS NOT A JWT
  *
- * JSONWebToken.decode accepts any JWT signed with EncryptionSecret that carries
+ * JSONWebToken.decode accepts any JWT signed with TokenSigningKey that carries
  * a valid `email` as a full user session. A resend token minted as such a JWT
  * would therefore be a session for an unverified account -- exactly what signup
  * refuses to issue. So this is a different format ("v1.<payload>.<signature>",
  * which no JWT parser accepts) signed with a different key: an HMAC key derived
- * from EncryptionSecret under a label used for nothing else, so a signature
+ * from TokenSigningKey under a label used for nothing else, so a signature
  * made here verifies nowhere else and no signature made elsewhere verifies
  * here.
  *
- * ON AN INSECURE EncryptionSecret
+ * ON AN INSTALLATION WHOSE ENCRYPTION_SECRET IS A SHIPPED PLACEHOLDER
  *
- * Deliberately NOT gated on IsEncryptionSecretInsecure. With a secret that is
- * public in the repository an attacker can already forge a full-session JWT for
- * any address, which is a far better prize than a forged resend token -- and a
- * forged resend token still only mails the stored address of an account whose
- * stored address it names, under the same per-account caps as a genuine one.
- * Disabling the feature would add no protection and would hide it from exactly
- * the environments (development, the end-to-end stack) that run with the
- * placeholder and need to exercise it.
+ * Not gated on IsEncryptionSecretInsecure, because it does not need to be:
+ * TokenSigningKey is never a value this repository ships. Such an installation
+ * signs with a random key of its own, so nobody can mint a resend token there
+ * either, and the environments that run with the placeholder (development, the
+ * end-to-end stack) still exercise the feature.
  */
 
 export const VERIFICATION_EMAIL_RESEND_TOKEN_EXPIRY_IN_SECONDS: number =
@@ -250,10 +247,7 @@ export default class VerificationEmailResendToken {
    * stale one. It is one extra HMAC over a short string.
    */
   private static sign(payloadB64: string): string {
-    const key: Buffer = crypto
-      .createHmac("sha256", EncryptionSecret.toString())
-      .update(KEY_DERIVATION_LABEL)
-      .digest();
+    const key: Buffer = TokenSigningKey.deriveKey(KEY_DERIVATION_LABEL);
 
     return crypto
       .createHmac("sha256", key)

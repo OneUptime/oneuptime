@@ -3,11 +3,11 @@
 An offline harness for the real monitor overview page, its Monitoring Logs page, and Create
 Monitor:
 
-| Page | Route (from `RouteMap`) | Production components |
-|---|---|---|
-| Monitor overview | `MONITOR_VIEW` `/dashboard/:projectId/monitors/:id` | `Pages/Monitor/View/{Layout,Index}` and every card they mount (`Components/Monitor/Overview/*`, `SummaryView/Summary`, `MonitorFeed`, `EmbeddedMetricCard`, `OverviewCustomFields`, `DependencySuppressionWarning`) |
-| Monitoring Logs | `MONITOR_VIEW_LOGS` `/dashboard/:projectId/monitors/:id/logs` | `Pages/Monitor/View/{Layout,Logs}`: the real `AnalyticsModelTable` over `MonitorLog`, and the View Summary modal (`SummaryView/SummaryInfo`) |
-| Create Monitor | `MONITOR_CREATE` `/dashboard/:projectId/monitors/create` | `Pages/Monitor/Create`: the real `ModelForm`, the monitor type picker (`CardSelect`'s catalog layout), the criteria step (`Form/Monitor/MonitorSteps`) and Probes & Interval |
+| Page             | Route (from `RouteMap`)                                       | Production components                                                                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monitor overview | `MONITOR_VIEW` `/dashboard/:projectId/monitors/:id`           | `Pages/Monitor/View/{Layout,Index}` and every card they mount (`Components/Monitor/Overview/*`, `SummaryView/Summary`, `MonitorFeed`, `EmbeddedMetricCard`, `OverviewCustomFields`, `DependencySuppressionWarning`) |
+| Monitoring Logs  | `MONITOR_VIEW_LOGS` `/dashboard/:projectId/monitors/:id/logs` | `Pages/Monitor/View/{Layout,Logs}`: the real `AnalyticsModelTable` over `MonitorLog`, and the View Summary modal (`SummaryView/SummaryInfo`)                                                                        |
+| Create Monitor   | `MONITOR_CREATE` `/dashboard/:projectId/monitors/create`      | `Pages/Monitor/Create`: the real `ModelForm`, the monitor type picker (`CardSelect`'s catalog layout), the criteria step (`Form/Monitor/MonitorSteps`) and Probes & Interval                                        |
 
 `Fixture/server.js` bundles the production layout (ModelPage, side menu) and page with
 esbuild, serves them with the same Tailwind build, `tailwind.config` and `Theme.css`
@@ -29,17 +29,17 @@ to `2026-09-21T12:00:00Z`, and the spec fixes the browser clock to the same inst
 
 One monitor per supported type, each on its own id (`70000000-0000-4000-8000-00000000000N`):
 
-| `?type=` | N | Monitor | Notes |
-|---|---|---|---|
-| `api` (default) | 1 | Checkout API | 3 probes, `*/5` cadence, minimum probe agreement 2 |
-| `website` | 2 | Storefront | 3 probes |
-| `ssl` | 3 | Storefront TLS certificate | certificate expires in 23 days |
-| `incoming-request` | 4 | Nightly billing export | 30-minute missing-request criterion, last request 7 minutes ago |
-| `incoming-email` | 5 | Payroll run confirmation | last email 2 hours ago |
-| `server` | 6 | orders-db primary host | agent report 38 seconds ago, CPU 37%, memory 62% |
-| `kubernetes` | 7 | Production cluster (eu-west-1) | two criteria steps, evaluated every minute |
-| `network-device` | 8 | Core switch sw-core-01 | device `85000000-…-000000000001`, no owners |
-| `manual` | 9 | Payment provider | no steps |
+| `?type=`           | N   | Monitor                        | Notes                                                           |
+| ------------------ | --- | ------------------------------ | --------------------------------------------------------------- |
+| `api` (default)    | 1   | Checkout API                   | 3 probes, `*/5` cadence, minimum probe agreement 2              |
+| `website`          | 2   | Storefront                     | 3 probes                                                        |
+| `ssl`              | 3   | Storefront TLS certificate     | certificate expires in 23 days                                  |
+| `incoming-request` | 4   | Nightly billing export         | 30-minute missing-request criterion, last request 7 minutes ago |
+| `incoming-email`   | 5   | Payroll run confirmation       | last email 2 hours ago                                          |
+| `server`           | 6   | orders-db primary host         | agent report 38 seconds ago, CPU 37%, memory 62%                |
+| `kubernetes`       | 7   | Production cluster (eu-west-1) | two criteria steps, evaluated every minute                      |
+| `network-device`   | 8   | Core switch sw-core-01         | device `85000000-…-000000000001`, no owners                     |
+| `manual`           | 9   | Payment provider               | no steps                                                        |
 
 - **Status history** comes from one list of status changes per monitor. The same list feeds
   the `MonitorStatusTimeline` rows and `GET /monitor/uptime-summary/:id`, which the fixture
@@ -81,15 +81,15 @@ Query parameters, parsed once per page load. `?state=`, `?history=` and `?fail=`
 monitor chosen with `?type=`; every other monitor keeps the defaults, so following a link to
 another monitor lands on a plain, healthy one.
 
-| Parameter | Values |
-|---|---|
-| `?type=` | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual` |
-| `?state=` | comma separated. The status: `operational` (default), `offline` (for 12 minutes), `degraded` (for 25 minutes). Plus any of: `disabled`, `maintenance`, `no-probes`, `probes-off`, `disconnected` (every probe), `one-disconnected` (Singapore went offline 3 days ago, and its last result and next check stayed there; the other two probes report on time), `stale` (last results 38 minutes old; for `kubernetes`, the worker still stamps the monitor every minute but the newest evaluation in `MonitorLog` is 14 minutes old), `awaiting` (created 2 minutes ago, nothing received). `disabled,probes-off` is a disabled monitor whose probes are all switched off. |
-| `?history=` | `full` (default, created in March), `new` (created 12 days ago), `flapping` (an outage every 6h40m for three months) |
-| `?role=` | `owner` (default, ProjectOwner), `viewer`, `monitor-viewer`, `read-project-monitor`. Reads of a model the role cannot read are refused the way the API refuses them, and so is a select that names a column the role cannot read (the secret keys). |
-| `?fail=` | comma separated: `uptime-summary` (the first request fails), `incidents` (every Incident list), `probes` (every MonitorProbe list), `monitor` (the first overview read of the Monitor row; the layout's and header's reads succeed), `refresh-status` (every request) |
-| `?nav=1` | links to every fixture monitor in the header, to move between monitors on the same, still-mounted route |
-| `?theme=` | `dark` adds `html.dark` |
+| Parameter   | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?type=`    | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `?state=`   | comma separated. The status: `operational` (default), `offline` (for 12 minutes), `degraded` (for 25 minutes). Plus any of: `disabled`, `maintenance`, `no-probes`, `probes-off`, `disconnected` (every probe), `one-disconnected` (Singapore went offline 3 days ago, and its last result and next check stayed there; the other two probes report on time), `stale` (last results 38 minutes old; for `kubernetes`, the worker still stamps the monitor every minute but the newest evaluation in `MonitorLog` is 14 minutes old), `awaiting` (created 2 minutes ago, nothing received). `disabled,probes-off` is a disabled monitor whose probes are all switched off. |
+| `?history=` | `full` (default, created in March), `new` (created 12 days ago), `flapping` (an outage every 6h40m for three months)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `?role=`    | `owner` (default, ProjectOwner), `viewer`, `monitor-viewer`, `read-project-monitor`. Reads of a model the role cannot read are refused the way the API refuses them, and so is a select that names a column the role cannot read (the secret keys).                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `?fail=`    | comma separated: `uptime-summary` (the first request fails), `incidents` (every Incident list), `probes` (every MonitorProbe list), `monitor` (the first overview read of the Monitor row; the layout's and header's reads succeed), `refresh-status` (every request)                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `?nav=1`    | links to every fixture monitor in the header, to move between monitors on the same, still-mounted route                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `?theme=`   | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## What the spec covers
 
@@ -182,7 +182,9 @@ npm run test-monitor-overview-ui
 ```
 
 Playwright reuses a server already listening on port 4223 outside CI. If one from another
-checkout might be running, stop it first or run with `CI=1`.
+checkout might be running, give this run a port of its own (the config, `server.js` and the
+specs' network fence all read it):
+`MONITOR_OVERVIEW_FIXTURE_PORT=4720 CI=1 npm run test-monitor-overview-ui`.
 
 Screenshots land in `output/playwright/monitor-overview-ui/`, named `*-synthetic.png`
 because every record in them is fabricated.

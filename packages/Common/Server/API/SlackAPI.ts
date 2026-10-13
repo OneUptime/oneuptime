@@ -96,6 +96,8 @@ import SlackActionAnswer, {
   SlackAnswerPlace,
 } from "../Utils/Workspace/Slack/Actions/Answer";
 import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
+import SlackCommandActions from "../Utils/Workspace/Slack/Actions/Command";
+import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -1862,11 +1864,11 @@ export default class SlackAPI {
     );
 
     /*
-     * Slash command endpoint: `/oneuptime ask <question>` (or bare
-     * `/oneuptime <question>`). Slack posts an application/x-www-form-urlencoded
-     * body and expects a 200 within 3 seconds. We acknowledge instantly with an
-     * ephemeral message, then run the assistant detached and POST the final
-     * answer back to the command's response_url.
+     * The /oneuptime command and every word after it - incident,
+     * maintenance, oncall, ask, help (SlackCommandActions). Slack posts an
+     * application/x-www-form-urlencoded body and expects a 200 within three
+     * seconds. A question for OneUptime AI is acknowledged at once and
+     * answered at the command's response_url (answerQuestionCommand).
      */
     router.post(
       "/slack/command",
@@ -1877,150 +1879,17 @@ export default class SlackAPI {
           getLogAttributesFromRequest(req as any),
         );
 
-        const body: JSONObject = req.body;
-
-        const slackTeamId: string = (body["team_id"] as string) || "";
-        const slackUserId: string = (body["user_id"] as string) || "";
-        const responseUrl: string = (body["response_url"] as string) || "";
-
-        /*
-         * Slack sends everything after the command word in `text`. We also
-         * accept a leading "ask" keyword (e.g. `/oneuptime ask <question>`).
-         */
-        const askPrefixRegex: RegExp = /^ask\s+/i;
-        let questionText: string = ((body["text"] as string) || "").trim();
-        if (askPrefixRegex.test(questionText)) {
-          questionText = questionText.replace(askPrefixRegex, "").trim();
-        }
-
-        // Empty command -> ephemeral usage help.
-        if (!questionText) {
-          return Response.sendJsonObjectResponse(req, res, {
-            response_type: "ephemeral",
-            text: "Usage: `/oneuptime ask which monitors are down?` — ask OneUptime AI about your logs, traces, metrics, incidents and monitors.",
-          });
-        }
-
-        /*
-         * Acknowledge instantly so Slack does not time out. The real answer is
-         * delivered to response_url below.
-         */
-        Response.sendJsonObjectResponse(req, res, {
-          response_type: "ephemeral",
-          text: "On it… :hourglass_flowing_sand:",
+        return await SlackCommandActions.handleCommand({
+          req: req,
+          res: res,
+          askQuestion: async (question: string): Promise<void> => {
+            return await SlackAPI.answerQuestionCommand({
+              req: req,
+              res: res,
+              question: question,
+            });
+          },
         });
-
-        // Detached work (fire-and-forget). Ack has already been sent.
-        (async (): Promise<void> => {
-          const context:
-            | {
-                projectId: ObjectID;
-                projectAuthToken: string;
-                botUserId: string | undefined;
-                userId: ObjectID | undefined;
-              }
-            | undefined = await SlackAPI.resolveSlackAiOpsContext({
-            slackTeamId: slackTeamId,
-            slackUserId: slackUserId,
-          });
-
-          if (!context) {
-            // Workspace not connected — tell the user ephemerally.
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: "This Slack workspace is not connected to any OneUptime project.",
-              },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
-            });
-            return;
-          }
-
-          if (!context.userId) {
-            /*
-             * A Slack account not connected to OneUptime: asked to connect
-             * it where the command was run, with the Connect button, and to
-             * ask again once it is.
-             */
-            await SlackConnectPrompt.prompt({
-              projectId: context.projectId,
-              slackTeamId: slackTeamId,
-              place: {
-                projectAuthToken: context.projectAuthToken,
-                slackUserId: slackUserId,
-                slackChannelId: (body["channel_id"] as string) || undefined,
-                responseUrl: responseUrl,
-              },
-              description: SlackConnectPrompt.describeQuestion(),
-            });
-            return;
-          }
-
-          /*
-           * The project's AI kill switch. Ephemeral, like every other refusal
-           * on this slash-command path — the person who typed the command is
-           * the only one who needs to know the switch is off.
-           */
-          if (!(await AIService.isProjectAIEnabled(context.projectId))) {
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: SlackAPI.getAiDisabledMessage(),
-              },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
-            });
-            return;
-          }
-
-          // The project's own daily AI limits: refused the same way.
-          const dailyLimitRefusal: string | null =
-            await SlackAPI.getDailyLimitRefusal(context.projectId);
-
-          if (dailyLimitRefusal) {
-            await API.post({
-              url: URL.fromString(responseUrl),
-              data: {
-                response_type: "ephemeral",
-                text: dailyLimitRefusal,
-              },
-              headers: {
-                ["Content-Type"]: "application/json",
-              },
-            });
-            return;
-          }
-
-          const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
-            projectId: context.projectId,
-            userId: context.userId,
-            question: questionText,
-          });
-
-          await API.post({
-            url: URL.fromString(responseUrl),
-            data: {
-              response_type: "in_channel",
-              text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
-            },
-            headers: {
-              ["Content-Type"]: "application/json",
-            },
-          });
-        })().catch((err: Error) => {
-          logger.error(
-            "Error handling Slack slash command:",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.error(err, getLogAttributesFromRequest(req as any));
-        });
-
-        return;
       },
     );
 
@@ -2037,6 +1906,167 @@ export default class SlackAPI {
     );
 
     return router;
+  }
+
+  /*
+   * `/oneuptime ask <question>`, or `/oneuptime <question>`: acknowledged at
+   * once with a message only the asker sees, then answered by the
+   * assistant, detached, at the command's response_url - in the channel.
+   */
+  private static async answerQuestionCommand(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    question: string;
+  }): Promise<void> {
+    const { req, res } = data;
+    const body: JSONObject = req.body;
+
+    const slackTeamId: string = (body["team_id"] as string) || "";
+    const slackUserId: string = (body["user_id"] as string) || "";
+    const responseUrl: string = (body["response_url"] as string) || "";
+    const questionText: string = data.question;
+
+    // The command as this workspace runs it, for "run /oneuptime help".
+    const helpCommand: string = `${WorkspaceCommands.getSlackCommand(
+      body["command"] as string | undefined,
+    )} help`;
+
+    /*
+     * Acknowledge instantly so Slack does not time out. The real answer is
+     * delivered to response_url below.
+     */
+    Response.sendJsonObjectResponse(req, res, {
+      response_type: "ephemeral",
+      text: "On it… :hourglass_flowing_sand:",
+    });
+
+    // Detached work (fire-and-forget). Ack has already been sent.
+    (async (): Promise<void> => {
+      const context:
+        | {
+            projectId: ObjectID;
+            projectAuthToken: string;
+            botUserId: string | undefined;
+            userId: ObjectID | undefined;
+          }
+        | undefined = await SlackAPI.resolveSlackAiOpsContext({
+        slackTeamId: slackTeamId,
+        slackUserId: slackUserId,
+      });
+
+      if (!context) {
+        // Workspace not connected — tell the user ephemerally.
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackUtil.getNotificationText(
+              SlackCommandActions.getNotConnectedAnswer().text,
+            ),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      if (!context.userId) {
+        /*
+         * A Slack account not connected to OneUptime: asked to connect
+         * it where the command was run, with the Connect button, and to
+         * ask again once it is.
+         */
+        await SlackConnectPrompt.prompt({
+          projectId: context.projectId,
+          slackTeamId: slackTeamId,
+          place: {
+            projectAuthToken: context.projectAuthToken,
+            slackUserId: slackUserId,
+            slackChannelId: (body["channel_id"] as string) || undefined,
+            responseUrl: responseUrl,
+          },
+          description: SlackConnectPrompt.describeQuestion(),
+        });
+        return;
+      }
+
+      /*
+       * The project's AI kill switch. Ephemeral, like every other refusal
+       * on this slash-command path — the person who typed the command is
+       * the only one who needs to know the switch is off. /oneuptime does
+       * more than ask AI, so the refusal says where the rest is.
+       */
+      if (!(await AIService.isProjectAIEnabled(context.projectId))) {
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackAPI.withHelpPointer(
+              SlackAPI.getAiDisabledMessage(),
+              helpCommand,
+            ),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      // The project's own daily AI limits: refused the same way.
+      const dailyLimitRefusal: string | null =
+        await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+      if (dailyLimitRefusal) {
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackAPI.withHelpPointer(dailyLimitRefusal, helpCommand),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      const answerMarkdown: string = await SlackAPI.getAiOpsAnswerMarkdown({
+        projectId: context.projectId,
+        userId: context.userId,
+        question: questionText,
+      });
+
+      await API.post({
+        url: URL.fromString(responseUrl),
+        data: {
+          response_type: "in_channel",
+          text: SlackUtil.convertMarkdownToSlackRichText(answerMarkdown),
+        },
+        headers: {
+          ["Content-Type"]: "application/json",
+        },
+      });
+    })().catch((err: Error) => {
+      logger.error(
+        "Error handling Slack slash command:",
+        getLogAttributesFromRequest(req as any),
+      );
+      logger.error(err, getLogAttributesFromRequest(req as any));
+    });
+  }
+
+  /*
+   * A refusal of a question, and where the commands that need no AI are -
+   * "... Run `/oneuptime help` to see the other commands." - as Slack text.
+   */
+  public static withHelpPointer(refusal: string, helpCommand: string): string {
+    return SlackUtil.convertMarkdownToSlackRichText(
+      mdText`${refusal} Run ${FeedMarkdown.code(
+        helpCommand,
+      )} to see the other commands.`.toString(),
+    );
   }
 
   /*

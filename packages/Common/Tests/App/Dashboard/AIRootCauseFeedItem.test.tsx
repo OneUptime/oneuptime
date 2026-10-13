@@ -13,8 +13,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * End to end through the real Feed and FeedItem: an AI investigation in the
  * incident or alert feed shows only the compact summary and root cause, and
- * "More Information" opens the whole report. Both renders stay in safeMode,
- * because every word of the report is model-authored.
+ * "Show the full report" unfolds the whole report in place, under the entry.
+ * Both renders stay in safeMode, because every word of the report is
+ * model-authored.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -110,14 +111,37 @@ const REPORT: string = [
   "*Investigated automatically by OneUptime AI — read-only, 10 queries run across your own telemetry using claude-sonnet-4-5. This is an AI-generated first pass; verify before acting.*",
 ].join("\n");
 
-const COMPACT_TEXT: string = [
-  "**OneUptime AI posted a root cause analysis**",
+/*
+ * The compact item: its first line introduces what the AI wrote, which is
+ * set apart in a note's card under it.
+ */
+const COMPACT_INTRO: string = "**OneUptime AI posted a root cause analysis**";
+const COMPACT_NOTE: string = [
   "checkout-api p95 passed 2s because its pool was cut to 10.",
   "**Most likely root cause:** Release 2026.09.14-2 set `max=10`, so requests queued for a connection.",
 ].join("\n\n");
 
-const ENGINEER_ROOT_CAUSE: string =
-  "## Root cause\n\nAn engineer found a configuration regression.";
+const ENGINEER_ROOT_CAUSE_HEADING: string = "## Root cause";
+const ENGINEER_ROOT_CAUSE_TEXT: string =
+  "An engineer found a configuration regression.";
+const ENGINEER_ROOT_CAUSE: string = `${ENGINEER_ROOT_CAUSE_HEADING}\n\n${ENGINEER_ROOT_CAUSE_TEXT}`;
+
+/*
+ * An engineer's root cause, as the feed draws it: its heading, then what
+ * they wrote in a note's card - never in safe mode, nothing to unfold.
+ */
+function expectEngineerRootCause(): void {
+  for (const text of [ENGINEER_ROOT_CAUSE_HEADING, ENGINEER_ROOT_CAUSE_TEXT]) {
+    expect(viewerCallsWithText(text).length).toBeGreaterThan(0);
+    viewerCallsWithText(text).forEach((props: MarkdownViewerProps): void => {
+      expect(props.safeMode).toBe(false);
+    });
+  }
+  expect(screen.getByTestId("feed-entry-body").textContent).toBe(
+    ENGINEER_ROOT_CAUSE_TEXT,
+  );
+  expect(screen.queryByTestId("feed-entry-details-toggle")).toBeNull();
+}
 
 function listResult<T>(data: Array<T>): ListResult<T> {
   return { data, count: data.length, skip: 0, limit: 100 };
@@ -173,34 +197,45 @@ function viewerCallsWithText(text: string): Array<MarkdownViewerProps> {
     });
 }
 
-async function expectCompactItemWithFullReportBehindMoreInformation(): Promise<void> {
+async function expectCompactItemWithFullReportUnfolding(): Promise<void> {
   expect(
     await screen.findByText(/OneUptime AI posted a root cause analysis/),
   ).toBeVisible();
 
   /* The feed body: compact, safe, and nothing of the full report yet. */
-  const compactCalls: Array<MarkdownViewerProps> =
-    viewerCallsWithText(COMPACT_TEXT);
-  expect(compactCalls.length).toBeGreaterThan(0);
-  compactCalls.forEach((props: MarkdownViewerProps): void => {
-    expect(props.safeMode).toBe(true);
-  });
+  for (const text of [COMPACT_INTRO, COMPACT_NOTE]) {
+    const compactCalls: Array<MarkdownViewerProps> = viewerCallsWithText(text);
+    expect(compactCalls.length).toBeGreaterThan(0);
+    compactCalls.forEach((props: MarkdownViewerProps): void => {
+      expect(props.safeMode).toBe(true);
+    });
+  }
+  // What the AI wrote is in the note's card, its introduction outside it.
+  expect(screen.getByTestId("feed-entry-intro").textContent).toBe(
+    COMPACT_INTRO,
+  );
+  expect(screen.getByTestId("feed-entry-body")).toHaveAttribute(
+    "data-note",
+    "true",
+  );
+  expect(screen.getByTestId("feed-entry-body").textContent).toBe(COMPACT_NOTE);
   expect(viewerCallsWithText(REPORT)).toHaveLength(0);
   expect(screen.queryByText(/Evidence checked/)).toBeNull();
   expect(screen.queryByText(/\[C\d+\]/)).toBeNull();
+  expect(screen.queryByTestId("feed-entry-details")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Show the full report" }));
+
+  /* Unfolded in place - no dialog - and still safe. */
   expect(screen.queryByRole("dialog")).toBeNull();
-
-  fireEvent.click(screen.getByRole("button", { name: "More Information" }));
-
-  /* More Information: the whole report, still safe. */
-  const dialog: HTMLElement = screen.getByRole("dialog");
-  expect(dialog).toBeVisible();
+  const details: HTMLElement = screen.getByTestId("feed-entry-details");
+  expect(details).toBeVisible();
   const reportCalls: Array<MarkdownViewerProps> = viewerCallsWithText(REPORT);
   expect(reportCalls.length).toBeGreaterThan(0);
   reportCalls.forEach((props: MarkdownViewerProps): void => {
     expect(props.safeMode).toBe(true);
   });
-  const reportViewer: HTMLElement = within(dialog).getByTestId("markdown");
+  const reportViewer: HTMLElement = within(details).getByTestId("markdown");
   expect(reportViewer.textContent).toBe(REPORT);
   expect(reportViewer).toHaveAttribute("data-safe-mode", "true");
 }
@@ -212,7 +247,7 @@ afterEach(() => {
 });
 
 describe("AI root-cause feed items through the real feed", () => {
-  test("incident feed: compact AI item, full report in More Information, both in safe mode", async () => {
+  test("incident feed: compact AI item, the full report unfolding in place, both in safe mode", async () => {
     getListMock.mockResolvedValueOnce(
       listResult<IncidentFeed>([
         incidentItem("d4d4d4d4-d4d4-4d4d-8d4d-d4d4d4d4d4d4", REPORT, AI_RUN_ID),
@@ -221,10 +256,10 @@ describe("AI root-cause feed items through the real feed", () => {
 
     render(<IncidentFeedElement incidentId={INCIDENT_ID} refreshToken={0} />);
 
-    await expectCompactItemWithFullReportBehindMoreInformation();
+    await expectCompactItemWithFullReportUnfolding();
   });
 
-  test("alert feed: compact AI item, full report in More Information, both in safe mode", async () => {
+  test("alert feed: compact AI item, the full report unfolding in place, both in safe mode", async () => {
     getListMock.mockResolvedValueOnce(
       listResult<AlertFeed>([
         alertItem("d5d5d5d5-d5d5-4d5d-8d5d-d5d5d5d5d5d5", REPORT, AI_RUN_ID),
@@ -233,10 +268,10 @@ describe("AI root-cause feed items through the real feed", () => {
 
     render(<AlertFeedElement alertId={ALERT_ID} refreshToken={0} />);
 
-    await expectCompactItemWithFullReportBehindMoreInformation();
+    await expectCompactItemWithFullReportUnfolding();
   });
 
-  test("an engineer's root cause keeps its text, its normal markdown and no More Information", async () => {
+  test("an engineer's root cause keeps its text, its normal markdown and no details to unfold", async () => {
     getListMock.mockResolvedValueOnce(
       listResult<IncidentFeed>([
         incidentItem(
@@ -251,15 +286,7 @@ describe("AI root-cause feed items through the real feed", () => {
     );
 
     expect(await screen.findByText(/configuration regression/)).toBeVisible();
-    viewerCallsWithText(ENGINEER_ROOT_CAUSE).forEach(
-      (props: MarkdownViewerProps): void => {
-        expect(props.safeMode).toBe(false);
-      },
-    );
-    expect(viewerCallsWithText(ENGINEER_ROOT_CAUSE).length).toBeGreaterThan(0);
-    expect(
-      screen.queryByRole("button", { name: "More Information" }),
-    ).toBeNull();
+    expectEngineerRootCause();
 
     incidentView.unmount();
     markdownViewerMock.mockReset();
@@ -272,14 +299,6 @@ describe("AI root-cause feed items through the real feed", () => {
     render(<AlertFeedElement alertId={ALERT_ID} refreshToken={0} />);
 
     expect(await screen.findByText(/configuration regression/)).toBeVisible();
-    expect(viewerCallsWithText(ENGINEER_ROOT_CAUSE).length).toBeGreaterThan(0);
-    viewerCallsWithText(ENGINEER_ROOT_CAUSE).forEach(
-      (props: MarkdownViewerProps): void => {
-        expect(props.safeMode).toBe(false);
-      },
-    );
-    expect(
-      screen.queryByRole("button", { name: "More Information" }),
-    ).toBeNull();
+    expectEngineerRootCause();
   });
 });

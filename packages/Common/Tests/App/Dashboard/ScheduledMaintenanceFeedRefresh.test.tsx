@@ -110,7 +110,7 @@ import ScheduledMaintenanceFeed, {
   ScheduledMaintenanceFeedEventType,
 } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
@@ -145,7 +145,7 @@ const EVENT_ID: string = "55555555-5555-4555-8555-555555555555";
 const POSTED_AT: Date = new Date("2026-09-14T18:00:00.000Z");
 
 function listResult<T>(data: Array<T>): ListResult<T> {
-  return { data: data, count: data.length, skip: 0, limit: DEFAULT_LIMIT };
+  return { data: data, count: data.length, skip: 0, limit: FEED_PAGE_SIZE };
 }
 
 function feedItem(
@@ -226,7 +226,7 @@ describe("ScheduledMaintenanceFeedElement refresh", () => {
     expect(request.modelType).toBe(ScheduledMaintenanceFeed);
     expect(request.query["scheduledMaintenanceId"]?.toString()).toBe(EVENT_ID);
     expect(request.skip).toBe(0);
-    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.limit).toBe(FEED_PAGE_SIZE);
     expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
     expect(request.select).toEqual(
       expect.objectContaining({
@@ -309,7 +309,7 @@ describe("ScheduledMaintenanceFeedElement refresh", () => {
 
       expect(request.sort).toEqual({ postedAt: SortOrder.Ascending });
       expect(request.skip).toBe(0);
-      expect(request.limit).toBe(DEFAULT_LIMIT);
+      expect(request.limit).toBe(FEED_PAGE_SIZE);
     }
   });
 
@@ -361,7 +361,7 @@ describe("scheduled maintenance feed icons", () => {
       getScheduledMaintenanceFeedIcon(
         ScheduledMaintenanceFeedEventType.OwnerRuleExecuted,
       ),
-    ).toBe(IconProp.User);
+    ).toBe(IconProp.UserGroup);
     expect(
       getScheduledMaintenanceFeedIcon(
         ScheduledMaintenanceFeedEventType.LabelRuleExecuted,
@@ -369,31 +369,36 @@ describe("scheduled maintenance feed icons", () => {
     ).toBe(IconProp.Tag);
   });
 
-  test("keeps the existing icons", () => {
-    expect(SCHEDULED_MAINTENANCE_FEED_ICONS).toEqual(
-      expect.objectContaining({
-        [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated]:
-          IconProp.Alert,
-        [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged]:
-          IconProp.ArrowCircleRight,
-        [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated]:
-          IconProp.Edit,
-        [ScheduledMaintenanceFeedEventType.OwnerNotificationSent]:
-          IconProp.Bell,
-        [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
-          IconProp.Notification,
-        [ScheduledMaintenanceFeedEventType.PublicNote]: IconProp.Announcement,
-        [ScheduledMaintenanceFeedEventType.PrivateNote]: IconProp.Lock,
-        [ScheduledMaintenanceFeedEventType.OwnerUserAdded]: IconProp.User,
-        [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]: IconProp.Team,
-        [ScheduledMaintenanceFeedEventType.RemediationNotes]: IconProp.Wrench,
-        [ScheduledMaintenanceFeedEventType.RootCause]: IconProp.Cube,
-        [ScheduledMaintenanceFeedEventType.OwnerUserRemoved]: IconProp.Close,
-        [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]: IconProp.Close,
-        [ScheduledMaintenanceFeedEventType.OnCallNotification]: IconProp.Alert,
-        [ScheduledMaintenanceFeedEventType.OnCallPolicy]: IconProp.Call,
-      }),
-    );
+  /*
+   * Every kind of entry looks the same in every feed (FeedEntryKind): a note
+   * is a note, an owner added is a person with a plus, a page is a phone.
+   */
+  test("draws each event with the icon of its kind, shared with every other feed", () => {
+    expect(SCHEDULED_MAINTENANCE_FEED_ICONS).toEqual({
+      [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated]:
+        IconProp.Calendar,
+      [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged]:
+        IconProp.ArrowCircleRight,
+      [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated]:
+        IconProp.PencilSquare,
+      [ScheduledMaintenanceFeedEventType.OwnerNotificationSent]: IconProp.Bell,
+      [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
+        IconProp.Notification,
+      [ScheduledMaintenanceFeedEventType.PublicNote]: IconProp.Announcement,
+      [ScheduledMaintenanceFeedEventType.PrivateNote]: IconProp.Lock,
+      [ScheduledMaintenanceFeedEventType.OwnerUserAdded]: IconProp.UserPlus,
+      [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]: IconProp.UserGroup,
+      [ScheduledMaintenanceFeedEventType.RemediationNotes]: IconProp.Wrench,
+      [ScheduledMaintenanceFeedEventType.RootCause]: IconProp.LightBulb,
+      [ScheduledMaintenanceFeedEventType.OwnerUserRemoved]: IconProp.UserMinus,
+      [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]: IconProp.UserMinus,
+      [ScheduledMaintenanceFeedEventType.OnCallNotification]:
+        IconProp.PhoneArrowUpRight,
+      [ScheduledMaintenanceFeedEventType.OnCallPolicy]:
+        IconProp.PhoneArrowUpRight,
+      [ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]: IconProp.UserGroup,
+      [ScheduledMaintenanceFeedEventType.LabelRuleExecuted]: IconProp.Tag,
+    });
   });
 
   test("falls back to a circle for a missing or unknown type", () => {
@@ -420,7 +425,7 @@ describe("scheduled maintenance feed icons", () => {
       lastRenderedItems().map((item: RenderedFeedItem): IconProp => {
         return item.icon;
       }),
-    ).toEqual([IconProp.Tag, IconProp.User]);
+    ).toEqual([IconProp.Tag, IconProp.UserGroup]);
   });
 });
 
