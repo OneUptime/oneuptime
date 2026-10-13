@@ -45,6 +45,7 @@ import {
   ExpressResponse,
   createExpressApp,
 } from "Common/Server/Utils/Express";
+import BlogTag from "../Utils/BlogTag";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
@@ -775,6 +776,7 @@ describe("head-basic.ejs and the end of <head>", () => {
       blackLogo: false,
       requestDemoCta: false,
       blogPost: blogPostWith(htmlBody),
+      blogTagPath: BlogTag.getPagePathOfTag,
       enableGoogleTagManager: false,
       seo: { fullCanonicalUrl: "https://oneuptime.com/blog/post/x/view" },
       tailwindStylesheetHref: STYLESHEET_HREF,

@@ -6,6 +6,7 @@ import ProductCompare, {
 import { getSelfHostedContent } from "../../Utils/SelfHosted";
 import { getPageSEO, PageSEOData } from "../../Utils/PageSEO";
 import type { BlogPost, BlogPostContributor } from "../../Utils/BlogPost";
+import BlogTag from "../../Utils/BlogTag";
 import {
   RuntimeBrowsers,
   TailwindInputCss,
@@ -266,6 +267,7 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         blackLogo: false,
         section: "terms",
         requestDemoCta: false,
+        seo: seoFor("/legal/terms"),
       };
     },
   },
@@ -300,6 +302,7 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPost,
+        blogTagPath: BlogTag.getPagePathOfTag,
         enableGoogleTagManager: false,
         seo: { fullCanonicalUrl: blogPost.blogUrl },
       };

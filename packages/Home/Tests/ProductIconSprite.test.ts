@@ -15,6 +15,7 @@ import {
   listFiles,
   renderMarketingPage,
   renderView,
+  seoFor,
 } from "./Helpers/TailwindPages";
 import {
   ExpressApplication,
@@ -22,6 +23,7 @@ import {
   ExpressResponse,
   createExpressApp,
 } from "Common/Server/Utils/Express";
+import BlogTag from "../Utils/BlogTag";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
@@ -345,6 +347,7 @@ describe("where the sprite is used", () => {
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPostWith(htmlBody),
+        blogTagPath: BlogTag.getPagePathOfTag,
         enableGoogleTagManager: false,
         seo: { fullCanonicalUrl: "https://oneuptime.com/blog/post/x/view" },
         productIconSpriteHref: SPRITE_HREF,
@@ -371,6 +374,7 @@ describe("where the sprite is used", () => {
   test("a product page's hero badge stays inline", async () => {
     const html: string = await renderView("topology.ejs", {
       enableGoogleTagManager: false,
+      seo: seoFor("/product/topology"),
       productIconSpriteHref: SPRITE_HREF,
     });
     const document: Document = new JSDOM(html).window.document;
