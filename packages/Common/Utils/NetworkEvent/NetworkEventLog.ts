@@ -4,6 +4,7 @@ import NetworkEventAttribute, {
 } from "../../Types/NetworkEvent/NetworkEventAttribute";
 import {
   NetworkEventDefinition,
+  NetworkEventKind,
   NetworkEventTypeUtil,
 } from "../../Types/NetworkEvent/NetworkEventType";
 
@@ -16,7 +17,8 @@ import {
  *
  * Three more say what a search, a monitor or a list most often asks of it:
  *
- *   - `event.kind`: problem, recovery or info;
+ *   - `event.kind`: problem, recovery or info. Always there, and always
+ *     one of the three, so a list narrowed to a kind misses no event;
  *   - `event.category`: interface, vpn, ha, hardware, ...;
  *   - `event.device`: which device, in words - its name in OneUptime, else
  *     the name it gives itself, else its address. Always there, so a
@@ -31,6 +33,8 @@ import {
  * a vendor no parser knows a built-in name ("interface.down") gets the
  * built-in event whole.
  */
+
+const EVENT_KINDS: ReadonlyArray<string> = Object.values(NetworkEventKind);
 
 type Attributes = Record<string, unknown>;
 
@@ -97,7 +101,10 @@ export function getNetworkEventClassAttributes(
  *     there - another product's - is never replaced, and such a log is not
  *     touched at all.
  *   - `event.kind` and `event.category` are set to what a built-in name
- *     says they are. A project's own name keeps whatever it has.
+ *     says they are. A project's own name keeps the category it has, and
+ *     the kind it has when that is one of the three (a pipeline may say
+ *     its event is a problem); with no kind, or one that is none of them,
+ *     it is "info": something happened, and nothing here knows more.
  *   - `event.device` is set to the device given, when the log has none.
  *
  * Calling it again changes nothing: ingest calls it before a project's
@@ -145,6 +152,16 @@ export function markNetworkEvent(
       attributes[key] = classAttributes[key];
       hasChanged = true;
     }
+  }
+
+  // Every event has a kind: a project's own, with none it can use, is info.
+  const kind: unknown = has(attributes, NetworkEventAttribute.Kind)
+    ? attributes[NetworkEventAttribute.Kind]
+    : undefined;
+
+  if (typeof kind !== "string" || !EVENT_KINDS.includes(kind)) {
+    attributes[NetworkEventAttribute.Kind] = NetworkEventKind.Info;
+    hasChanged = true;
   }
 
   const device: string =

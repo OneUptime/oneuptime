@@ -88,9 +88,81 @@ describe("markNetworkEvent", () => {
     expect(attributes).toEqual({
       "event.name": "ups.on_battery",
       "event.domain": "network",
+      // Something happened; nothing here knows whether it is a problem.
+      "event.kind": "info",
       "event.device": "Rack UPS",
       "networkDevice.id": "d1",
     });
+  });
+
+  test("every event has a kind, one of the three: a list narrowed to a kind misses none", () => {
+    // A pipeline may say what its own event is.
+    for (const kind of Object.values(NetworkEventKind)) {
+      const attributes: Record<string, unknown> = {
+        "event.name": "ups.on_battery",
+        "event.kind": kind,
+      };
+
+      markNetworkEvent(attributes);
+
+      expect(attributes["event.kind"]).toBe(kind);
+    }
+
+    // Anything else it wrote there is not a kind.
+    for (const kind of [
+      "catastrophe",
+      "Problem",
+      "PROBLEM",
+      " problem",
+      "",
+      null,
+      undefined,
+      0,
+      1,
+      true,
+      ["problem"],
+      { kind: "problem" },
+    ]) {
+      const attributes: Record<string, unknown> = {
+        "event.name": "ups.on_battery",
+        "event.kind": kind,
+      };
+
+      expect({ kind: kind, marked: markNetworkEvent(attributes) }).toEqual({
+        kind: kind,
+        marked: true,
+      });
+      expect({ kind: kind, stored: attributes["event.kind"] }).toEqual({
+        kind: kind,
+        stored: "info",
+      });
+    }
+
+    // A kind the object only inherits is not the log's.
+    const inherited: Record<string, unknown> = Object.create({
+      "event.kind": "problem",
+    }) as Record<string, unknown>;
+    inherited["event.name"] = "ups.on_battery";
+
+    markNetworkEvent(inherited);
+
+    expect(Object.prototype.hasOwnProperty.call(inherited, "event.kind")).toBe(
+      true,
+    );
+    expect(inherited["event.kind"]).toBe("info");
+  });
+
+  test("a project's own event marked twice is marked once", () => {
+    const attributes: Record<string, unknown> = {
+      "event.name": "ups.on_battery",
+    };
+
+    expect(markNetworkEvent(attributes, { device: "Rack UPS" })).toBe(true);
+
+    const before: string = JSON.stringify(attributes);
+
+    expect(markNetworkEvent(attributes, { device: "Rack UPS" })).toBe(false);
+    expect(JSON.stringify(attributes)).toBe(before);
   });
 
   test("a pipeline that gives a line a built-in name gets the built-in event whole", () => {

@@ -1178,7 +1178,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "logResolvedByAttributes",
-        title: "Resolved By",
+        title: "Resolved by Attributes",
         description:
           "A group's alert or incident stays open until a log with these attributes arrives for that group.",
         valueType: MonitorStepViewValueType.DictionaryOfStrings,

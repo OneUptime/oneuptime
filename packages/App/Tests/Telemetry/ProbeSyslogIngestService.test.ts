@@ -1217,6 +1217,9 @@ describe("drop filters, scrub rules and pipelines", () => {
     expect(attributes["ups.ups_name"]).toBe("rack-1");
     expect(attributes["event.name"]).toBe("ups.on_battery");
     expect(attributes["event.domain"]).toBe("network");
+    // Every event has a kind, so a list narrowed to a kind misses none.
+    expect(attributes["event.kind"]).toBe("info");
+    expect(attributes["event.device"]).toBe("Core Switch");
     expect((row["attributeKeys"] as Array<string>).slice().sort()).toEqual(
       Object.keys(attributes).sort(),
     );

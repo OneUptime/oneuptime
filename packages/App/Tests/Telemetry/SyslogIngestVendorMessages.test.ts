@@ -646,6 +646,8 @@ describe("an event a project names in a pipeline", () => {
 
     expect(attributesOf(row)["event.name"]).toBe("ups.on_battery");
     expect(attributesOf(row)["event.domain"]).toBe("network");
+    // Every event has a kind, so a list narrowed to a kind misses none.
+    expect(attributesOf(row)["event.kind"]).toBe("info");
     expect((row["attributeKeys"] as Array<string>).slice().sort()).toEqual(
       Object.keys(attributesOf(row)).sort(),
     );
@@ -660,5 +662,7 @@ describe("an event a project names in a pipeline", () => {
 
     expect(attributes["event.name"]).toBe("ups.on_battery");
     expect(Object.keys(attributes)).not.toContain("event.domain");
+    expect(Object.keys(attributes)).not.toContain("event.kind");
+    expect(Object.keys(attributes)).not.toContain("event.device");
   });
 });

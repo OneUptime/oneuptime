@@ -109,8 +109,8 @@ function criteriaOf(prefill: JSONObject): Array<MonitorCriteriaInstance> {
 function prefillFor(
   alertId: string,
   options: {
-    seeds?: NetworkEventMonitorSeedIds;
-    device?: { id: string; name: string } | null;
+    seeds?: NetworkEventMonitorSeedIds | undefined;
+    device?: { id: string; name: string } | null | undefined;
   } = {},
 ): JSONObject {
   const prefill: JSONObject | null = buildNetworkEventMonitorPrefill({

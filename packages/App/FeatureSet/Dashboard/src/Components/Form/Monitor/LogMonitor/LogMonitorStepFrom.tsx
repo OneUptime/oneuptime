@@ -189,7 +189,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               resolvedByAttributes: true,
             },
             fieldType: FormFieldSchemaType.Dictionary,
-            title: "Resolve a Group When a Log Has These Attributes",
+            title: "Resolved by Attributes",
             description:
               "Optional. A group's alert or incident then stays open until a log with these attributes arrives for the same group - for example event.name = interface.up on a monitor that counts interface.down. Leave empty to resolve a group when its logs stop.",
             jsonKeysForDictionary: props.attributeKeys,

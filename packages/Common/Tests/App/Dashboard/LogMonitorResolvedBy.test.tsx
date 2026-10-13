@@ -59,7 +59,8 @@ import MonitorStepLogMonitor, {
 } from "../../../Types/Monitor/MonitorStepLogMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 
-const FIELD_TITLE: string = "Resolve a Group When a Log Has These Attributes";
+// The same words as the row on the monitor's page: one name for the setting.
+const FIELD_TITLE: string = "Resolved by Attributes";
 
 afterEach(() => {
   cleanup();
@@ -383,7 +384,7 @@ describe("a Logs monitor's own page", () => {
       }),
     );
 
-    expect(row?.title).toBe("Resolved By");
+    expect(row?.title).toBe(FIELD_TITLE);
     expect(row?.value).toEqual({ "event.name": "interface.up" });
     expect(row?.description).toBe(
       "A group's alert or incident stays open until a log with these attributes arrives for that group.",

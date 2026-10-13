@@ -7,8 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  RenderResult,
+  cleanup,
+  render as renderBare,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -424,6 +430,15 @@ const neverSettles: NeverSettlesFunction = (): Promise<unknown> => {
   return new Promise(() => {});
 };
 
+/*
+ * Under a router, as every page is in the app: a page may link to another
+ * (the network device's Logs page links to its Events page). The router
+ * draws nothing of its own, so a page's root element is still the first.
+ */
+function render(ui: React.ReactElement): RenderResult {
+  return renderBare(ui, { wrapper: MemoryRouter });
+}
+
 beforeEach(() => {
   getItemMock.mockReset();
   logsViewerMock.mockReset();
@@ -556,9 +571,15 @@ describe("NetworkDevice Logs keeps its setup guide below the bare viewer", () =>
       NETWORK_DEVICE_GUIDE_TITLE,
     );
 
-    expect(guide).toHaveTextContent("PROBE_SYSLOG_RECEIVER_ENABLED=true");
     expect(guide).toHaveTextContent("UDP port 162");
-    expect(guide).toHaveTextContent("UDP port 5140");
+    expect(guide).toHaveTextContent("on port 5140, over UDP and TCP");
+    // The syslog receiver is on by default (#4728): no switch to explain.
+    expect(guide).not.toHaveTextContent("PROBE_SYSLOG_RECEIVER_ENABLED");
+    expect(guide).not.toHaveTextContent("off by default");
+    // What is read out of the messages is one click away.
+    expect(guide).toHaveTextContent(
+      "is on this device's Events page, with each vendor's set-up steps.",
+    );
   });
 
   test("a failed name lookup still renders the bare viewer and the guide", async () => {
