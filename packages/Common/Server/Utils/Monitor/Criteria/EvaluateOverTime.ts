@@ -487,8 +487,11 @@ export default class EvaluateOverTime {
    * infer it from the data: the widest gap actually observed between
    * consecutive samples is the longest wait the window has demonstrated, so
    * it is the safest estimate of the cadence.
+   *
+   * Public so a filter judged from its match history can say how long its
+   * checks have covered, counting time the way the coverage rule does.
    */
-  private static getSamplingIntervalInSeconds(data: {
+  public static getSamplingIntervalInSeconds(data: {
     monitoringInterval?: string | undefined;
     sortedSampleTimes: Array<number>;
   }): number | null {

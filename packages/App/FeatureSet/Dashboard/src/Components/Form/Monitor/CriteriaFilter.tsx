@@ -1315,7 +1315,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   </div>
 
                   <div className="mt-1">
-                    <FieldLabelElement title="For the last (in minutes)" />
+                    <FieldLabelElement
+                      title="For the last (in minutes)"
+                      description="Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window."
+                    />
                     <Dropdown
                       value={evaluateOverTimeMinutesValue}
                       options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}

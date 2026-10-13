@@ -28147,5 +28147,6 @@
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "この接続ボタンはすでに使用されています。{{workspace}} に戻って、もう一度ボタンを押してください。",
   "Your {{workspace}} account is already connected": "{{workspace}} アカウントはすでに接続されています",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values は、時間枠内のすべてのチェックが一致した場合にのみ一致します。Any Value は、1 回でもチェックが一致した時点で一致します。",
-  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "平均、合計、Maximum Value、Minimum Value は時間枠全体で 1 つの値を比較します。All Values はすべてのチェックが条件を満たす必要があり、Any Value は 1 回で十分です。"
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "平均、合計、Maximum Value、Minimum Value は時間枠全体で 1 つの値を比較します。All Values はすべてのチェックが条件を満たす必要があり、Any Value は 1 回で十分です。",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "時間枠は監視間隔より長くして、複数のチェックが入るようにしてください。5 分ごとにチェックされるモニターでは、5 分の時間枠に入るチェックは 1 回だけです。"
 }

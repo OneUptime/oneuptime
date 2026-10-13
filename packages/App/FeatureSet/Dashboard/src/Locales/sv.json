@@ -28147,5 +28147,6 @@
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Den här anslutningsknappen har redan använts. Gå tillbaka till {{workspace}} och tryck på knappen igen.",
   "Your {{workspace}} account is already connected": "Ditt {{workspace}}-konto är redan anslutet",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values matchar bara när varje kontroll i fönstret matchade. Any Value matchar så snart en kontroll gjorde det.",
-  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Genomsnitt, Summa, Maximum Value och Minimum Value jämför ett enda värde för hela fönstret. All Values kräver att varje kontroll uppfyller villkoret, Any Value bara en."
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Genomsnitt, Summa, Maximum Value och Minimum Value jämför ett enda värde för hela fönstret. All Values kräver att varje kontroll uppfyller villkoret, Any Value bara en.",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller. En monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter."
 }

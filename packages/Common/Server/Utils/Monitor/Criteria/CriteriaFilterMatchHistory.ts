@@ -366,17 +366,11 @@ export default class CriteriaFilterMatchHistory {
     });
 
     if (!isCovered) {
-      const oldestCheckAt: Date = checks.reduce(
-        (oldest: Date, check: RecordedCheck) => {
-          return check.at.getTime() < oldest.getTime() ? check.at : oldest;
-        },
-        data.check.at,
-      );
-
-      const soFar: string = `${filterLabel} has matched on every check for ${CriteriaFilterMatchHistory.describeElapsed(
+      const soFar: string = `${filterLabel} has matched on every check for ${CriteriaFilterMatchHistory.describeCoveredTime(
         {
-          from: oldestCheckAt,
-          to: now,
+          checks: checks,
+          now: now,
+          monitoringInterval: data.monitoringInterval,
         },
       )} (${CriteriaFilterMatchHistory.countChecks(checkCount)})`;
 
@@ -505,10 +499,39 @@ export default class CriteriaFilterMatchHistory {
     return count === 1 ? "1 check" : `${count} checks`;
   }
 
-  private static describeElapsed(data: { from: Date; to: Date }): string {
-    const minutes: number = Math.floor(
-      (data.to.getTime() - data.from.getTime()) / MILLISECONDS_IN_A_MINUTE,
-    );
+  /*
+   * How much time the checks have covered so far, counted the way the
+   * coverage rule counts it (EvaluateOverTime.isWindowCovered): each check
+   * stands for the interval before it. Five checks a minute apart cover five
+   * minutes, which is when a five minute window is met - so "matched for 4
+   * minutes" is never followed, one check later, by "matched over the last 5
+   * minutes" as if a minute had gone missing.
+   */
+  private static describeCoveredTime(data: {
+    checks: Array<RecordedCheck>;
+    now: Date;
+    monitoringInterval?: string | undefined;
+  }): string {
+    const sortedCheckTimes: Array<number> = data.checks
+      .map((check: RecordedCheck) => {
+        return check.at.getTime();
+      })
+      .sort((a: number, b: number) => {
+        return a - b;
+      });
+
+    const intervalInSeconds: number | null =
+      EvaluateOverTime.getSamplingIntervalInSeconds({
+        monitoringInterval: data.monitoringInterval,
+        sortedSampleTimes: sortedCheckTimes,
+      });
+
+    const coveredMs: number =
+      data.now.getTime() -
+      (sortedCheckTimes[0] ?? data.now.getTime()) +
+      (intervalInSeconds || 0) * 1000;
+
+    const minutes: number = Math.floor(coveredMs / MILLISECONDS_IN_A_MINUTE);
 
     if (minutes < 1) {
       return "less than a minute";

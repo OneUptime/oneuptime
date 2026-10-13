@@ -28147,5 +28147,6 @@
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "此连接按钮已被使用。请返回 {{workspace}}，再按一次该按钮。",
   "Your {{workspace}} account is already connected": "您的 {{workspace}} 账户已经连接",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values 仅在时间窗口内的每次检查都匹配时才匹配。Any Value 只要有一次检查匹配就会匹配。",
-  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "平均值、总和、Maximum Value 和 Minimum Value 对整个时间窗口比较一个数值。All Values 要求每次检查都满足条件，Any Value 只需一次。"
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "平均值、总和、Maximum Value 和 Minimum Value 对整个时间窗口比较一个数值。All Values 要求每次检查都满足条件，Any Value 只需一次。",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "请让时间窗口长于监控间隔，使其包含多次检查。每 5 分钟检查一次的监视器，在任意 5 分钟的时间窗口内只有一次检查。"
 }

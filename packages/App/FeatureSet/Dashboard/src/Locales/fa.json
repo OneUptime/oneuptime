@@ -28147,5 +28147,6 @@
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "این دکمهٔ اتصال قبلاً استفاده شده است. به {{workspace}} برگردید و دوباره دکمه را بزنید.",
   "Your {{workspace}} account is already connected": "حساب {{workspace}} شما از قبل وصل است",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values فقط زمانی برقرار است که همه بررسی‌های بازه برقرار بوده باشند. Any Value به محض برقرار شدن یک بررسی برقرار می‌شود.",
-  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "میانگین، جمع، Maximum Value و Minimum Value یک عدد را برای کل بازه مقایسه می‌کنند. All Values لازم دارد که هر بررسی شرط را برآورده کند و Any Value فقط یکی."
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "میانگین، جمع، Maximum Value و Minimum Value یک عدد را برای کل بازه مقایسه می‌کنند. All Values لازم دارد که هر بررسی شرط را برآورده کند و Any Value فقط یکی.",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "بازه را طولانی‌تر از فاصله پایش انتخاب کنید تا چند بررسی در آن بگنجد. مانیتوری که هر ۵ دقیقه بررسی می‌شود، در هر بازه ۵ دقیقه‌ای فقط یک بررسی دارد."
 }

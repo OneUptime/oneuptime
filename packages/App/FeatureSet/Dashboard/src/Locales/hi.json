@@ -28147,5 +28147,6 @@
   "This Connect button was used already. Go back to {{workspace}} and press the button again.": "यह कनेक्ट बटन पहले ही इस्तेमाल हो चुका है। {{workspace}} पर वापस जाएँ और बटन फिर से दबाएँ।",
   "Your {{workspace}} account is already connected": "आपका {{workspace}} खाता पहले से कनेक्ट है",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values तभी मेल खाता है जब विंडो की हर जाँच मेल खाई हो। Any Value जैसे ही कोई एक जाँच मेल खाती है, मेल खा जाता है।",
-  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "औसत, योग, Maximum Value और Minimum Value पूरी विंडो के लिए एक ही आंकड़े की तुलना करते हैं। All Values के लिए हर जाँच को शर्त पूरी करनी होती है, Any Value के लिए सिर्फ़ एक को।"
+  "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "औसत, योग, Maximum Value और Minimum Value पूरी विंडो के लिए एक ही आंकड़े की तुलना करते हैं। All Values के लिए हर जाँच को शर्त पूरी करनी होती है, Any Value के लिए सिर्फ़ एक को।",
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "विंडो को मॉनिटरिंग अंतराल से लंबा रखें, ताकि उसमें कई जाँचें आएँ। जो मॉनिटर हर 5 मिनट में जाँचा जाता है, उसकी किसी भी 5 मिनट की विंडो में सिर्फ़ एक जाँच होती है।"
 }
