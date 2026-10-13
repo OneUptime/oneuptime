@@ -191,8 +191,9 @@ jobs:
               test-pencil-button-ui
               test-color-picker-ui
           # Navigation Search runs here since the Workflow Builder suite
-          # gained its field list and Run panel specs (about four minutes
-          # more in group 2): it keeps each group well under the job's cap.
+          # gained its field list, Run panel and value availability specs
+          # (about five minutes more in group 2): it keeps each group well
+          # under the job's cap.
           - group: 3
             browsers: chromium firefox
             suites: >-
