@@ -488,6 +488,49 @@ describe("a message that names a network device of the project", () => {
   });
 });
 
+describe("which device an event is about, in words", () => {
+  const LINK_DOWN_FROM: (host: string) => string = (host: string): string => {
+    return `<187>Oct 13 10:11:09 ${host} 45: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down`;
+  };
+
+  test("is the device's name in OneUptime, when the message names one", async () => {
+    const attributes: Record<string, unknown> = await attributesOfLine(
+      LINK_DOWN_FROM("core-sw1"),
+    );
+
+    expect(attributes["event.device"]).toBe("Core Switch");
+    expect(attributes["event.kind"]).toBe("problem");
+    expect(attributes["event.category"]).toBe("interface");
+  });
+
+  test("else the name the sender gives itself", async () => {
+    expect(
+      (await attributesOfLine(LINK_DOWN_FROM("edge-sw9")))["event.device"],
+    ).toBe("edge-sw9");
+  });
+
+  test("and is left out when the line names nobody: there is no address to fall back to here", async () => {
+    const attributes: Record<string, unknown> = await attributesOfLine(
+      "<187>%LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down",
+    );
+
+    expect(attributes["event.name"]).toBe("interface.down");
+    expect(Object.keys(attributes)).not.toContain("event.device");
+  });
+
+  test("a log that is no network event says nothing of it", async () => {
+    for (const line of [
+      "<134>Oct 13 10:11:09 web-01 nginx: GET /health 200",
+      // An event's name, without being a network event.
+      "<38>Oct 13 10:11:09 web-01 sshd[4321]: Failed password for root from 192.0.2.10 port 51234 ssh2",
+    ]) {
+      expect(Object.keys(await attributesOfLine(line))).not.toContain(
+        "event.device",
+      );
+    }
+  });
+});
+
 describe("a line a server writes as well as an access point", () => {
   const SSHD_FAILED: string =
     "sshd[4321]: Failed password for root from 192.0.2.10 port 51234 ssh2";

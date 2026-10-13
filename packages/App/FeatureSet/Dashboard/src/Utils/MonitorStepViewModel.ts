@@ -1177,6 +1177,15 @@ export default class MonitorStepViewModel {
         placeholder: "Not grouped",
       }),
       optional({
+        key: "logResolvedByAttributes",
+        title: "Resolved By",
+        description:
+          "A group's alert or incident stays open until a log with these attributes arrives for that group.",
+        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        value: MonitorStepLogMonitorUtil.getResolvedByAttributes(logMonitor),
+        placeholder: "When the group's logs stop",
+      }),
+      optional({
         key: "logEntityKeys",
         title: "Inventory Items",
         description: "Hosts, pods or containers this monitor is scoped to.",

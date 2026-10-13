@@ -41,6 +41,14 @@ function trap(
   return { trapOid: trapOid, varbinds: varbinds };
 }
 
+// A restart, as every syslog line for one is stored too.
+const REBOOT: Record<string, string> = {
+  "event.domain": "network",
+  "event.name": "device.reboot",
+  "event.kind": "problem",
+  "event.category": "device",
+};
+
 // What RFC 2863 requires of a link trap: the index and the two statuses.
 function linkVarbinds(index: number): Array<SnmpTrapVarbind> {
   return [
@@ -55,19 +63,20 @@ describe("the standard traps", () => {
     expect(getSnmpTrapEventAttributes(trap(LINK_DOWN))).toEqual({
       "event.domain": "network",
       "event.name": "interface.down",
+      "event.kind": "problem",
+      "event.category": "interface",
     });
     expect(getSnmpTrapEventAttributes(trap(LINK_UP))).toEqual({
       "event.domain": "network",
       "event.name": "interface.up",
+      "event.kind": "recovery",
+      "event.category": "interface",
     });
   });
 
   test("coldStart and warmStart are both device.reboot: the device came back up either way", () => {
     for (const oid of [COLD_START, WARM_START]) {
-      expect(getSnmpTrapEventAttributes(trap(oid))).toEqual({
-        "event.domain": "network",
-        "event.name": "device.reboot",
-      });
+      expect(getSnmpTrapEventAttributes(trap(oid))).toEqual(REBOOT);
     }
   });
 
@@ -141,6 +150,8 @@ describe("the interface a link trap is about", () => {
     ).toEqual({
       "event.domain": "network",
       "event.name": "interface.down",
+      "event.kind": "problem",
+      "event.category": "interface",
       "network.interface.name": "Gi1/0/1",
     });
   });
@@ -199,7 +210,7 @@ describe("the interface a link trap is about", () => {
           trap(LINK_DOWN, [{ oid: "1.3.6.1.2.1.1.3.0", value: "12345" }]),
         ),
       ),
-    ).toEqual(["event.domain", "event.name"]);
+    ).toEqual(["event.domain", "event.name", "event.kind", "event.category"]);
   });
 
   test("a reboot has no interface, whatever its varbinds or the caller say", () => {
@@ -208,7 +219,7 @@ describe("the interface a link trap is about", () => {
         trap(COLD_START, [{ oid: `${IF_NAME}.7`, value: "ether7" }]),
         { interfaceName: "ether7" },
       ),
-    ).toEqual({ "event.domain": "network", "event.name": "device.reboot" });
+    ).toEqual(REBOOT);
   });
 
   test("varbind OIDs with a leading dot and padded values are read the same", () => {
@@ -282,7 +293,12 @@ describe("the interface a link trap is about", () => {
         trapOid: LINK_DOWN,
         varbinds: "not a list" as never,
       }),
-    ).toEqual({ "event.domain": "network", "event.name": "interface.down" });
+    ).toEqual({
+      "event.domain": "network",
+      "event.name": "interface.down",
+      "event.kind": "problem",
+      "event.category": "interface",
+    });
   });
 });
 

@@ -159,6 +159,9 @@ describe("a link trap", () => {
     expect(attributes).toEqual({
       "event.domain": "network",
       "event.name": "interface.down",
+      "event.kind": "problem",
+      "event.category": "interface",
+      "event.device": "Core Switch",
       "network.interface.name": "GigabitEthernet1/0/1",
       "oneuptime.service.id": SERVICE.toString(),
       "oneuptime.service.name": "Core Switch",
@@ -281,6 +284,33 @@ describe("a varbind cannot stand in for what ingest sets", () => {
   });
 });
 
+describe("which device a trap that is an event is about", () => {
+  test("is the device's name, on every standard trap", async () => {
+    for (const oid of [LINK_DOWN, LINK_UP, COLD_START, WARM_START]) {
+      expect(
+        (await write(trap(oid, linkVarbinds(10101))))["event.device"],
+      ).toBe("Core Switch");
+    }
+  });
+
+  test("a trap that is no event says nothing of it", async () => {
+    expect(
+      Object.keys(await write(trap(AUTHENTICATION_FAILURE))),
+    ).not.toContain("event.device");
+  });
+
+  test("linkDown and linkUp carry the kind a monitor resolves on", async () => {
+    expect(await write(trap(LINK_DOWN, linkVarbinds(10101)))).toMatchObject({
+      "event.kind": "problem",
+      "event.category": "interface",
+    });
+    expect(await write(trap(LINK_UP, linkVarbinds(10101)))).toMatchObject({
+      "event.kind": "recovery",
+      "event.category": "interface",
+    });
+  });
+});
+
 describe("a trap from an address that is no device", () => {
   test("is the same event, kept for the project and marked as from no device; no interface is looked up", async () => {
     await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
@@ -300,6 +330,8 @@ describe("a trap from an address that is no device", () => {
     expect(attributes["network.interface.name"]).toBe("ifIndex 10101");
     expect(attributes["snmpTrap.unmatched"]).toBe(true);
     expect(attributes["oneuptime.service.name"]).toBe("network-devices");
+    // Known by its address until it is added.
+    expect(attributes["event.device"]).toBe("10.0.0.2");
     expect(Object.keys(attributes)).not.toContain("networkDevice.id");
     expect(findInterface).not.toHaveBeenCalled();
   });

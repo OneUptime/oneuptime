@@ -21,6 +21,17 @@ enum NetworkEventAttribute {
   Name = "event.name",
   // The device's own words for it, without its header and field names.
   Message = "event.message",
+  // problem, recovery or info (NetworkEventKind). Built-in events only.
+  Kind = "event.kind",
+  // interface, vpn, ha, ... (NetworkEventCategory). Built-in events only.
+  Category = "event.category",
+  /*
+   * Which device, in words: its name in OneUptime, else the name it gives
+   * itself, else its address. On every network event, so one can be told
+   * from another's - and grouped by - whether or not the device has been
+   * added to OneUptime.
+   */
+  Device = "event.device",
 
   // What it happened to.
   InterfaceName = "network.interface.name",

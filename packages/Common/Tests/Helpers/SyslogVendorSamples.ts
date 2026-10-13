@@ -379,6 +379,20 @@ export const SOPHOS_SAMPLES: Array<SyslogVendorSample> = [
     },
   },
   {
+    name: "sophos interface up",
+    source: SOPHOS_GUIDE,
+    kind: "composed",
+    line: 'device="SFW" date=2017-01-31 time=18:14:02 timezone="IST" device_name="CR750iNG-XP" device_id=C44310050024-P29PUA log_id=063611617813 log_type="Event" log_component="Interface" log_subtype="System" priority=Notice message="Interface Port2 is Up"',
+    expect: {
+      parserId: "sophos-firewall",
+      eventName: "interface.up",
+      attributes: {
+        "network.interface.name": "Port2",
+        "event.message": "Interface Port2 is Up",
+      },
+    },
+  },
+  {
     name: "sophos primary link up",
     source: SOPHOS_GUIDE,
     kind: "composed",
@@ -710,6 +724,17 @@ export const FORTINET_SAMPLES: Array<SyslogVendorSample> = [
       eventName: "interface.down",
       attributes: { "network.interface.name": "port2" },
       identity: { hostname: "FG100-HQ", serialNumber: "FG100E4Q17000001" },
+    },
+  },
+  {
+    name: "fortigate interface up, the same interface back",
+    source: FORTINET_REFERENCE,
+    kind: "composed",
+    line: 'date=2024-01-01 time=10:03:00 devname="FG100-HQ" devid="FG100E4Q17000001" eventtime=1704103380 tz="+0000" logid="0100020099" type="event" subtype="system" level="notice" vd="root" logdesc="Interface status changed" action="interface-stat-change" status="UP" msg="Link monitor: Interface port2 was turned up"',
+    expect: {
+      parserId: "fortinet-fortigate",
+      eventName: "interface.up",
+      attributes: { "network.interface.name": "port2" },
     },
   },
   {
@@ -1867,6 +1892,17 @@ export const MIKROTIK_SAMPLES: Array<SyslogVendorSample> = [
     },
   },
   {
+    name: "routeros interface link down, the same interface as the link up",
+    source: MIKROTIK_LOG,
+    kind: "composed",
+    line: "interface,info ether2 link down",
+    expect: {
+      parserId: "mikrotik-routeros",
+      eventName: "interface.down",
+      attributes: { "network.interface.name": "ether2" },
+    },
+  },
+  {
     name: "routeros router rebooted",
     source: MIKROTIK_LOG,
     kind: "verbatim",
@@ -2290,6 +2326,17 @@ export const LINUX_SAMPLES: Array<SyslogVendorSample> = [
       parserId: "linux",
       eventName: "interface.up",
       attributes: { "network.interface.name": "eth1" },
+    },
+  },
+  {
+    name: "kernel network driver link up, the same interface back",
+    source: LINUX_PROGRAMS,
+    kind: "composed",
+    line: "<6>Oct 13 10:15:22 gw-1 kernel: [1244.567890] e1000e: eth0 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: Rx/Tx",
+    expect: {
+      parserId: "linux",
+      eventName: "interface.up",
+      attributes: { "network.interface.name": "eth0" },
     },
   },
   {

@@ -3,6 +3,7 @@ import NetworkEventAttribute, {
   NETWORK_EVENT_DOMAIN,
 } from "../../Types/NetworkEvent/NetworkEventAttribute";
 import NetworkEventType from "../../Types/NetworkEvent/NetworkEventType";
+import { getNetworkEventClassAttributes } from "../NetworkEvent/NetworkEventLog";
 import SyslogAttribute from "../../Types/Syslog/SyslogAttribute";
 import {
   MAX_KEY_VALUE_INPUT_LENGTH,
@@ -434,6 +435,7 @@ export default class SyslogEventNormalizer {
         result.ruleIndex = match.ruleIndex;
         attributes[NetworkEventAttribute.Domain] = NETWORK_EVENT_DOMAIN;
         attributes[NetworkEventAttribute.Name] = match.event;
+        Object.assign(attributes, getNetworkEventClassAttributes(match.event));
 
         for (const key of Object.keys(
           match.attributes,

@@ -382,6 +382,9 @@ describe("a vendor's line from a device the probe polls", () => {
       "cisco.mnemonic": "UPDOWN",
       "event.domain": "network",
       "event.name": "interface.down",
+      "event.kind": "problem",
+      "event.category": "interface",
+      "event.device": "Core Switch",
       "event.message": "Interface GigabitEthernet0/1, changed state to down",
       "network.interface.name": "GigabitEthernet0/1",
     });
@@ -739,6 +742,174 @@ describe("a controller's message about a device it manages", () => {
     expect(attributes["networkDevice.id"]).toBe(CONSOLE.toString());
     expect(attributes["event.name"]).toBe("device.offline");
     expect(Object.keys(attributes)).not.toContain("syslog.relay.id");
+  });
+});
+
+describe("which device an event is about, in words", () => {
+  const UNIFI_DEVICE_OFFLINE: string =
+    "<12>Oct 13 10:11:09 udm-pro CEF:0|Ubiquiti|UniFi Network|9.3.33|3|Device Offline|5|UNIFIhost=Office UDM Pro UNIFIdeviceName=Lobby AP UNIFIdeviceMac=d8:b3:70:fb:fc:dd msg=Lobby AP went offline.";
+
+  async function eventDeviceOf(
+    line: string,
+    sourceIpAddress: string,
+  ): Promise<unknown> {
+    insertedRows = [];
+
+    await ingest([fromProbe(line, sourceIpAddress)]);
+
+    return attributesOf(onlyRow())["event.device"];
+  }
+
+  test("is the device's name in OneUptime", async () => {
+    expect(await eventDeviceOf(CISCO_LINK_DOWN, SWITCH_ADDRESS)).toBe(
+      "Core Switch",
+    );
+  });
+
+  test("is the managed device's name, not its controller's, when a controller passes the message on", async () => {
+    expect(await eventDeviceOf(UNIFI_DEVICE_OFFLINE, CONSOLE_ADDRESS)).toBe(
+      "Lobby AP",
+    );
+  });
+
+  test("from an address that is no device: the name the sender gives itself", async () => {
+    expect(await eventDeviceOf(STRANGER_LINK_DOWN, STRANGER_ADDRESS)).toBe(
+      "unknown-sw",
+    );
+  });
+
+  test("...and its address, when it gives itself none", async () => {
+    expect(
+      await eventDeviceOf(
+        "<187>%LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down",
+        STRANGER_ADDRESS,
+      ),
+    ).toBe(STRANGER_ADDRESS);
+  });
+
+  test("...and the device a controller names, when the project does not have that device either", async () => {
+    // The console is no device here, and neither is the AP it reports on.
+    projectDevices = [];
+    probeDevicesByAddress = {};
+
+    expect(await eventDeviceOf(UNIFI_DEVICE_OFFLINE, CONSOLE_ADDRESS)).toBe(
+      "Lobby AP",
+    );
+  });
+
+  test("a device with no name is known by the name it gives itself", async () => {
+    const nameless: NetworkDevice = device({
+      id: ObjectID.generate(),
+      name: "",
+      hostname: "10.0.0.50",
+    });
+
+    projectDevices.push(nameless);
+    probeDevicesByAddress["10.0.0.50"] = [nameless];
+
+    expect(
+      await eventDeviceOf(
+        "<187>Oct 13 10:11:09 closet-sw 45: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down",
+        "10.0.0.50",
+      ),
+    ).toBe("closet-sw");
+  });
+
+  test("a log that is no event says nothing of it", async () => {
+    expect(
+      await eventDeviceOf(
+        "<134>Oct 13 10:11:09 core-sw1 dhcpd: DHCPACK on 10.0.0.77",
+        SWITCH_ADDRESS,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("an event a pipeline names gets it too", async () => {
+    loadPipelines.mockResolvedValue(
+      pipelineWith([
+        {
+          processorType: LogPipelineProcessorType.CategoryProcessor,
+          configuration: {
+            targetKey: "event.name",
+            categories: [{ name: "ups.on_battery", filterQuery: "" }],
+          },
+        },
+      ]) as never,
+    );
+
+    expect(
+      await eventDeviceOf("<132>UPS rack-1 is on battery", SWITCH_ADDRESS),
+    ).toBe("Core Switch");
+  });
+
+  test("a pipeline that gives a line a built-in name gets the built-in event whole", async () => {
+    // A vendor no parser knows: a project's own pattern reads it.
+    loadPipelines.mockResolvedValue(
+      pipelineWith([
+        {
+          processorType: LogPipelineProcessorType.GrokParser,
+          configuration: {
+            source: "body",
+            pattern: "SNMP_TRAP_LINK_DOWN: ifName %{NOTSPACE:ifname}",
+            targetPrefix: "juniper",
+          },
+        },
+        {
+          processorType: LogPipelineProcessorType.AttributeRemapper,
+          configuration: {
+            sourceKey: "juniper.ifname",
+            targetKey: "network.interface.name",
+            preserveSource: true,
+            overrideOnConflict: true,
+          },
+        },
+        {
+          processorType: LogPipelineProcessorType.CategoryProcessor,
+          configuration: {
+            targetKey: "event.name",
+            categories: [
+              {
+                name: "interface.down",
+                filterQuery: "body LIKE 'SNMP_TRAP_LINK_DOWN'",
+              },
+            ],
+          },
+        },
+      ]) as never,
+    );
+
+    await ingest([
+      fromProbe(
+        "<28>Oct 13 10:11:09 edge-1 mib2d[1234]: SNMP_TRAP_LINK_DOWN: ifName xe-0/0/1",
+        SWITCH_ADDRESS,
+      ),
+    ]);
+
+    expect(attributesOf(onlyRow())).toMatchObject({
+      "event.domain": "network",
+      "event.name": "interface.down",
+      "event.kind": "problem",
+      "event.category": "interface",
+      "event.device": "Core Switch",
+      "network.interface.name": "xe-0/0/1",
+    });
+  });
+
+  test("nothing a line says can name the device: ingest's word stands", async () => {
+    await ingest([
+      fromProbe(
+        '<30>log_type="Event" log_component="IPSec" log_subtype="System" status="Terminated" event.device="Somebody Else" event.kind="recovery" event.category="hardware"',
+        SWITCH_ADDRESS,
+      ),
+    ]);
+
+    const attributes: Record<string, unknown> = attributesOf(onlyRow());
+
+    expect(attributes["event.name"]).toBe("vpn.tunnel_down");
+    expect(attributes["event.device"]).toBe("Core Switch");
+    expect(attributes["event.kind"]).toBe("problem");
+    expect(attributes["event.category"]).toBe("vpn");
+    expect(attributes["sophos.event.device"]).toBe("Somebody Else");
   });
 });
 
@@ -1248,10 +1419,26 @@ describe("a batch", () => {
       new Set(
         downs.map((row: JSONObject): string => {
           return [
-            attributesOf(row)["networkDevice.name"],
+            attributesOf(row)["event.device"],
             attributesOf(row)["network.interface.name"],
           ].join("|");
         }),
+      ),
+    ).toEqual(new Set(["Core Switch|GigabitEthernet0/1"]));
+
+    // ...and on the events that resolve them.
+    expect(
+      new Set(
+        insertedRows
+          .filter((row: JSONObject): boolean => {
+            return attributesOf(row)["event.name"] === "interface.up";
+          })
+          .map((row: JSONObject): string => {
+            return [
+              attributesOf(row)["event.device"],
+              attributesOf(row)["network.interface.name"],
+            ].join("|");
+          }),
       ),
     ).toEqual(new Set(["Core Switch|GigabitEthernet0/1"]));
   });

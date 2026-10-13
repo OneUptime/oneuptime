@@ -8,6 +8,7 @@ import {
   getSnmpTrapEventAttributes,
   getSnmpTrapInterfaceIndex,
 } from "Common/Utils/NetworkEvent/SnmpTrapEvent";
+import { markNetworkEvent } from "Common/Utils/NetworkEvent/NetworkEventLog";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
@@ -227,6 +228,11 @@ export default class SnmpTrapLogWriter {
     if (data.device?.name) {
       attributes["networkDevice.name"] = data.device.name;
     }
+
+    // Which device a trap that is an event is about: its name, else its address.
+    markNetworkEvent(attributes as JSONObject, {
+      device: data.device?.name?.trim() || snmpTrap.sourceIpAddress,
+    });
 
     /*
      * Varbinds land as a JSON attribute (queryable, bounded) and the body

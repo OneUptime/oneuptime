@@ -41,7 +41,10 @@ import {
 } from "../Utils/SyslogParser";
 import NetworkEventAttribute from "Common/Types/NetworkEvent/NetworkEventAttribute";
 import SyslogAttribute from "Common/Types/Syslog/SyslogAttribute";
-import { markNetworkEvent } from "Common/Utils/NetworkEvent/NetworkEventLog";
+import {
+  getNetworkEventName,
+  markNetworkEvent,
+} from "Common/Utils/NetworkEvent/NetworkEventLog";
 import SyslogEventNormalizer, {
   NormalizedSyslogMessage,
 } from "Common/Utils/Syslog/SyslogEventNormalizer";
@@ -247,6 +250,24 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             }),
           };
 
+          /*
+           * Which device an event is about, in words: its name here, else
+           * the name it gives itself. Only on what already is a network
+           * event: a server's sshd line carries an event's name without
+           * being one (see readVendorMessage), and must stay that way.
+           */
+          const eventDevice: string =
+            read.device?.device.name ||
+            read.normalized.identity.hostname ||
+            read.normalized.headerHostname ||
+            "";
+
+          if (getNetworkEventName(attributes as JSONObject) !== null) {
+            markNetworkEvent(attributes as JSONObject, {
+              device: eventDevice,
+            });
+          }
+
           const retentionDays: number = resolveTelemetryRetentionInDays({
             pillar: "logs",
             bucketKey: severityInfo.text,
@@ -311,7 +332,9 @@ export default class SyslogIngestService extends OtelIngestBaseService {
            */
           if (
             read.device &&
-            markNetworkEvent(logRow["attributes"] as JSONObject | undefined)
+            markNetworkEvent(logRow["attributes"] as JSONObject | undefined, {
+              device: eventDevice,
+            })
           ) {
             logRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(
               logRow["attributes"] as JSONObject,

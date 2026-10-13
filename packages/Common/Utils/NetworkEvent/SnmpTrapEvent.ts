@@ -6,6 +6,7 @@ import NetworkEventAttribute, {
   NETWORK_EVENT_DOMAIN,
 } from "../../Types/NetworkEvent/NetworkEventAttribute";
 import NetworkEventType from "../../Types/NetworkEvent/NetworkEventType";
+import { getNetworkEventClassAttributes } from "./NetworkEventLog";
 
 /*
  * THE STANDARD SNMP TRAPS, AS NETWORK EVENTS.
@@ -151,6 +152,7 @@ export function getSnmpTrapEventAttributes(
   const attributes: Record<string, string> = {
     [NetworkEventAttribute.Domain]: NETWORK_EVENT_DOMAIN,
     [NetworkEventAttribute.Name]: event,
+    ...getNetworkEventClassAttributes(event),
   };
 
   if (

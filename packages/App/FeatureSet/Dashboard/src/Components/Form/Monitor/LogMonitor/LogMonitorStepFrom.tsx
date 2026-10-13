@@ -1,4 +1,6 @@
-import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepLogMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -174,6 +176,35 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
                     customElementProps.onChange?.(groupByAttributes);
                   }}
                 />
+              );
+            },
+          },
+          /*
+           * Only there once the monitor is grouped: it says how a GROUP
+           * is resolved, and a monitor with no groups has nothing for it
+           * to act on. What was entered is kept while Group By is empty.
+           */
+          {
+            field: {
+              resolvedByAttributes: true,
+            },
+            fieldType: FormFieldSchemaType.Dictionary,
+            title: "Resolve a Group When a Log Has These Attributes",
+            description:
+              "Optional. A group's alert or incident then stays open until a log with these attributes arrives for the same group - for example event.name = interface.up on a monitor that counts interface.down. Leave empty to resolve a group when its logs stop.",
+            jsonKeysForDictionary: props.attributeKeys,
+            isLoadingDictionaryKeys: props.isLoadingAttributeKeys,
+            dictionaryValueSuggestions: props.attributeValueSuggestions,
+            loadingDictionaryValueKeys: props.loadingAttributeValueKeys,
+            onDictionaryKeySelected: props.onAttributeKeySelected,
+            hideOptionalLabel: true,
+            showIf: (values: FormValues<MonitorStepLogMonitor>): boolean => {
+              return (
+                MonitorStepLogMonitorUtil.getGroupByAttributes({
+                  groupByAttributes: values.groupByAttributes as
+                    | Array<string>
+                    | undefined,
+                }).length > 0
               );
             },
           },

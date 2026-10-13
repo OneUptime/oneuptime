@@ -15,6 +15,7 @@ import SyslogMessage, {
   MAX_SYSLOG_RAW_LENGTH,
 } from "Common/Types/Syslog/SyslogMessage";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import NetworkEventAttribute from "Common/Types/NetworkEvent/NetworkEventAttribute";
 import { markNetworkEvent } from "Common/Utils/NetworkEvent/NetworkEventLog";
 import SyslogEventNormalizer, {
   NormalizedSyslogMessage,
@@ -560,6 +561,20 @@ export default class ProbeSyslogIngestService {
         deviceTime: logTime.deviceTime,
       });
 
+    /*
+     * Which device an event is about, in words: its name here, else the
+     * name it gives itself, else its address. Set on every event, so one
+     * device's can be told from another's - and alerted on apart - before
+     * the device has been added.
+     */
+    const eventDevice: string =
+      data.device?.name ||
+      data.normalized.identity.hostname ||
+      data.normalized.headerHostname ||
+      read.sourceIpAddress;
+
+    markNetworkEvent(attributes as JSONObject, { device: eventDevice });
+
     const retentionDays: number = resolveTelemetryRetentionInDays({
       pillar: "logs",
       bucketKey: severityInfo.text,
@@ -635,7 +650,7 @@ export default class ProbeSyslogIngestService {
       | JSONObject
       | undefined;
 
-    if (markNetworkEvent(finalAttributes)) {
+    if (markNetworkEvent(finalAttributes, { device: eventDevice })) {
       logRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(finalAttributes);
     }
 
@@ -720,6 +735,7 @@ export default class ProbeSyslogIngestService {
     for (const key of [
       "networkDevice.id",
       "networkDevice.name",
+      NetworkEventAttribute.Device,
       SyslogAttribute.MatchedBy,
       SyslogAttribute.RelayId,
       SyslogAttribute.RelayName,
