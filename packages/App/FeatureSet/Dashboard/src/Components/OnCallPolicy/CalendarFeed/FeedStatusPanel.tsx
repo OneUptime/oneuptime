@@ -128,6 +128,14 @@ export const FEED_HEALTH_TONES: Record<FeedHealth, HealthTone> = {
   },
 };
 
+/*
+ * The pill's shape. It never grows wider than the panel: "Väntar på första
+ * synkroniseringen" is wider than the panel of a 320px phone, and wraps
+ * inside the pill there rather than pushing the page sideways.
+ */
+export const FEED_HEALTH_PILL_CLASS_NAME: string =
+  "inline-flex max-w-full flex-none items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset";
+
 export interface FeedHealthPillProps {
   health: FeedHealth;
   idPrefix: string;
@@ -141,7 +149,7 @@ export const FeedHealthPill: FunctionComponent<FeedHealthPillProps> = (
 
   return (
     <span
-      className={`inline-flex flex-none items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${tone.pill}`}
+      className={`${FEED_HEALTH_PILL_CLASS_NAME} ${tone.pill}`}
       data-testid={`${props.idPrefix}-status-pill`}
       data-health={props.health}
     >

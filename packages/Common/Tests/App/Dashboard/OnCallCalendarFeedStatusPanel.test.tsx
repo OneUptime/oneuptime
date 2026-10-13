@@ -66,6 +66,7 @@ jest.mock("react-i18next", () => {
 });
 
 import FeedStatusPanel, {
+  FEED_HEALTH_PILL_CLASS_NAME,
   FEED_HEALTH_TONES,
   FEED_STATUS_SENTENCE_CLASS_NAME,
   FeedHealthPill,
@@ -323,6 +324,23 @@ describe("FeedStatusPanel", () => {
           FEED_STATUS_SENTENCE_CLASS_NAME,
         );
       }
+    });
+
+    /*
+     * A long label ("Väntar på första synkroniseringen") is wider than the
+     * panel on a 320px phone: the pill keeps to the panel's width and wraps
+     * inside, rather than pushing the page sideways.
+     */
+    test("the pill is never wider than the panel", () => {
+      renderPanel(status());
+
+      const classes: Array<string> = pill().className.split(" ");
+
+      for (const token of FEED_HEALTH_PILL_CLASS_NAME.split(" ")) {
+        expect(classes).toContain(token);
+      }
+
+      expect(classes).toContain("max-w-full");
     });
 
     test("the exact time is there on hover", () => {
