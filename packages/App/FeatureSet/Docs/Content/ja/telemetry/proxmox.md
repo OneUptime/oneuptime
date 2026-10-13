@@ -328,11 +328,11 @@ docker compose down
 
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってこのクラスターのインシデントやアラートを調査し、クラスターの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、エージェントを省きます。
 - 越えられない限界は API トークンです。調査には Collector の PVEAuditor トークン (`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`) を使い、これは読み取りしかできません。独自のエクスポーターを実行していて `.env` にトークンがない場合は、追加してください。修正には、ゲストの電源を操作できる AI エージェント専用のトークン (`VM.PowerMgmt`。たとえば `/vms` または 1 つのプールに対する `PVEVMUser` ロール) が必要で、`ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET` として設定します。
-- `ONEUPTIME_AI_ALLOW_WRITES=true` を設定しない限り、読み取り専用です。`ONEUPTIME_AI_WRITE_TARGETS` (`100,101` のような VMID と、ノードのサービスには `<node>/<service>`) で、修正が変更してよい対象を制限します。エージェントがこのクラスターのゲスト内で動いている場合は、そのゲストの VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する、AI に許可する操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))。
+- `ONEUPTIME_AI_ALLOW_WRITES=true` を設定しない限り、読み取り専用です。`ONEUPTIME_AI_WRITE_TARGETS` (`100,101` のような VMID と、ノードのサービスには `<node>/<service>`) で、修正が変更してよい対象を制限します。エージェントがこのクラスターのゲスト内で動いている場合は、そのゲストの VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する、AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
 - エクスポーターと同じく、`PVE_VERIFY_SSL=true` を設定するか、`PVE_CA_FILE` をクラスターの CA (`/etc/pve/pve-root-ca.pem`。コンテナにマウントします) に向けない限り、API の自己署名証明書を検証しません。
 - UID 1000 で、ケーパビリティなし、読み取り専用のルートファイルシステムで実行され、`/access` を読み取ることも、コンソールを開くことも、設定を変更することもありません。OneUptime AI を使わない場合は、`docker-compose.yml` から `oneuptime-proxmox-ai-agent` サービスを削除してください。
 
-実行できるコマンド、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-clusters) を参照してください。修正用トークンを作成するための正確な `pveum` コマンドは、エージェントの README にあります。
+実行できるコマンド、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#proxmox-クラスター) を参照してください。修正用トークンを作成するための正確な `pveum` コマンドは、エージェントの README にあります。
 
 ## トラブルシューティング
 
