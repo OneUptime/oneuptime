@@ -329,6 +329,7 @@ const PROSE_LEADS: Array<string> = [
   "Probes and AI agents are read only by members of their project.",
   "An update or a delete names its project.",
   "A database statement the app stops waiting for is cancelled.",
+  "A placeholder `ENCRYPTION_SECRET` no longer signs sign-in tokens.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
