@@ -1659,7 +1659,7 @@ export default class DashboardAPI extends BaseAPI<
            * a visitor its IP allowlist refuses tries no password.
            */
           const access: PublicDashboardAccessResult =
-            DashboardService.decidePublicAccess({
+            await DashboardService.decidePublicAccess({
               dashboard,
               dashboardId,
               req,
