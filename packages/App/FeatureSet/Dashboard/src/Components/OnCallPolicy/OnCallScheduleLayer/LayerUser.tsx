@@ -419,7 +419,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
             className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon icon={IconProp.Forward} className="h-4 w-4" />
-            <span className="hidden sm:inline">
+            <span className="max-sm:hidden sm:inline">
               {translator.translateText("Skip until…")}
             </span>
           </button>

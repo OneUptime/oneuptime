@@ -499,7 +499,9 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             </span>
             {currentAndNext.next && (
               <>
-                <span className="hidden text-gray-300 sm:inline">&middot;</span>
+                <span className="max-sm:hidden text-gray-300 sm:inline">
+                  &middot;
+                </span>
                 <span
                   data-testid="layer-card-up-next"
                   className="basis-full sm:basis-auto"

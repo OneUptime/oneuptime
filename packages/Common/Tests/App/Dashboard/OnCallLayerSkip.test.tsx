@@ -564,7 +564,7 @@ describe("the layer card's 'on call now' line", () => {
     const separator: HTMLElement = upNext.previousElementSibling as HTMLElement;
     expect(separator.textContent).toBe("·");
     expect(separator.className.split(" ")).toEqual(
-      expect.arrayContaining(["hidden", "sm:inline"]),
+      expect.arrayContaining(["max-sm:hidden", "sm:inline"]),
     );
   });
 
