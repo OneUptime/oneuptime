@@ -1082,7 +1082,8 @@ const LoginPage: () => JSX.Element = () => {
                * nothing when clicked reads as broken, and a link that leaves
                * the page while the server is finishing the sign-in would
                * throw that sign-in away. Cancel, outside the form, brings it
-               * back.
+               * back. (The keyboard can still reach the form's two links, as
+               * it always could: a fieldset does not disable links.)
                */}
               <fieldset
                 disabled={isPasskeyLoading}
