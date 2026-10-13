@@ -4,6 +4,7 @@ import OnCallPolicyView from "../OnCallPolicy";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
+import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -11,6 +12,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -93,6 +95,25 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
               />
             );
           }
+
+          /*
+           * People paged with no on-call policy behind the page - a
+           * workflow's Page step. The row says so, and what started it,
+           * where another row names its policy.
+           */
+          if (isOnCallDirectPage(item)) {
+            return (
+              <DirectPageLabel
+                workflowName={item.triggeredByWorkflowName}
+                startedBy={
+                  item.triggeredByUser ? (
+                    <UserElement user={item.triggeredByUser} />
+                  ) : undefined
+                }
+              />
+            );
+          }
+
           return <p>{translator.translateText("No on-call policy.")}</p>;
         },
       },
@@ -281,11 +302,18 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "On-Call Policy Logs",
           description:
-            "Each time an on-call policy ran: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
+            "Each time an on-call policy ran or people were paged directly: what triggered it and who acknowledged it. Open one to see every notification it sent and whether it was delivered.",
         }}
         selectMoreFields={{
           statusMessage: true,
+          // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
+          // What started a direct page: a workflow, or a person.
+          triggeredByWorkflowName: true,
+          triggeredByUser: {
+            name: true,
+            email: true,
+          },
           triggeredByAlert: {
             title: true,
           },

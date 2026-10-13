@@ -58,6 +58,8 @@ import ComponentMetadata, {
   NodeDataProp,
   Port,
   ReturnValue,
+  isArgumentRequired,
+  isRecordListInputType,
 } from "../../../Types/Workflow/Component";
 import { JSONObject, JSONValue, ObjectType } from "../../../Types/JSON";
 import { getComponentOutPorts } from "../../../Types/Workflow/ComponentOutPorts";
@@ -70,6 +72,7 @@ import {
   LintGraphNode,
   WorkflowLintIssue,
   WorkflowLintResult,
+  WorkflowLintRule,
   WorkflowLintSeverity,
   lintWorkflowGraph,
 } from "../../../UI/Components/Workflow/GraphLint";
@@ -115,6 +118,16 @@ const findMetadata: FindMetadataFunction = (
   return registry.find((component: ComponentMetadata) => {
     return component.id === metadataId;
   });
+};
+
+/*
+ * Who a Page step pages: the one required setting a template leaves empty,
+ * for whoever creates the workflow to pick from their own project.
+ */
+type IsWhoToPageFunction = (argument: Argument) => boolean;
+
+const isWhoToPage: IsWhoToPageFunction = (argument: Argument): boolean => {
+  return isRecordListInputType(argument.type);
 };
 
 let idCounter: number = 0;
@@ -205,6 +218,45 @@ const hydrate: HydrateFunction = (
   );
 
   return { nodes: nodes, edges: edges };
+};
+
+/*
+ * What the builder's checks say of a template, but for the one thing a
+ * paging template leaves for its user: who a Page step pages, which they
+ * pick in the builder (isWhoToPage). Everything else is the template's to
+ * get right.
+ */
+type LintIssuesBesidesWhoToPageFunction = (
+  templateId: string,
+  result: WorkflowLintResult,
+) => Array<WorkflowLintIssue>;
+
+const lintIssuesBesidesWhoToPage: LintIssuesBesidesWhoToPageFunction = (
+  templateId: string,
+  result: WorkflowLintResult,
+): Array<WorkflowLintIssue> => {
+  const spec: TemplateSpec = specOf(templateId);
+
+  return result.issues.filter((issue: WorkflowLintIssue): boolean => {
+    if (issue.rule !== WorkflowLintRule.MissingRequiredArgument) {
+      return true;
+    }
+
+    const node: TemplateNodeSpec | undefined = spec.nodes.find(
+      (candidate: TemplateNodeSpec): boolean => {
+        return candidate.componentId === issue.componentId;
+      },
+    );
+    const argument: Argument | undefined = node
+      ? findMetadata(node.metadataId)?.arguments.find(
+          (candidate: Argument): boolean => {
+            return candidate.id === issue.argumentId;
+          },
+        )
+      : undefined;
+
+    return !(argument && isWhoToPage(argument));
+  });
 };
 
 /** Every string an argument holds, including strings nested inside JSON objects. */
@@ -1449,6 +1501,16 @@ describe.each(
     }
   });
 
+  /*
+   * Required as the step is set up: a Page step about an incident needs its
+   * Incident ID, and no title.
+   *
+   * One setting is the template's user's to fill in, and no template's: who
+   * a Page step pages - people, teams, schedules or policies of their own
+   * project, picked by name (isWhoToPage). The workflow is created switched
+   * off and opens in the builder, where the step says "Click to set up".
+   * "the paging templates" below holds those templates to exactly that.
+   */
   test("every required argument is filled in", () => {
     for (const node of specOf(templateId).nodes) {
       const metadata: ComponentMetadata = findMetadata(
@@ -1456,7 +1518,10 @@ describe.each(
       ) as ComponentMetadata;
 
       for (const argument of metadata.arguments) {
-        if (!argument.required) {
+        if (
+          !isArgumentRequired(argument, node.args as JSONObject | undefined) ||
+          isWhoToPage(argument)
+        ) {
           continue;
         }
 
@@ -1895,14 +1960,20 @@ describe.each(
     }
   });
 
+  /*
+   * But for the one thing a paging template leaves for its user: who to
+   * page, which the builder asks for with "Click to set up" (see "every
+   * required argument is filled in").
+   */
   test("passes the builder's own graph checks with no errors", () => {
     const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
 
-    const errors: Array<WorkflowLintIssue> = result.issues.filter(
-      (issue: WorkflowLintIssue) => {
-        return issue.severity === WorkflowLintSeverity.Error;
-      },
-    );
+    const errors: Array<WorkflowLintIssue> = lintIssuesBesidesWhoToPage(
+      templateId,
+      result,
+    ).filter((issue: WorkflowLintIssue) => {
+      return issue.severity === WorkflowLintSeverity.Error;
+    });
 
     expect(
       errors.map((issue: WorkflowLintIssue) => {
@@ -1920,9 +1991,11 @@ describe.each(
     const result: WorkflowLintResult = lintWorkflowGraph(hydrate(templateId));
 
     expect(
-      result.issues.map((issue: WorkflowLintIssue) => {
-        return issue.message;
-      }),
+      lintIssuesBesidesWhoToPage(templateId, result).map(
+        (issue: WorkflowLintIssue) => {
+          return issue.message;
+        },
+      ),
     ).toEqual([]);
   });
 

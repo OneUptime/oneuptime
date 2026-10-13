@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28197,
-    "untranslated": 16965
+    "keys": 28284,
+    "untranslated": 16959
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -24,6 +24,7 @@
     "kubectl set image deployment/web * -n web",
     "{{count}} B",
     "{{count}} KB",
-    "{{count}} MB"
+    "{{count}} MB",
+    "{{count}} team"
   ]
 }

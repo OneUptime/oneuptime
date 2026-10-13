@@ -823,6 +823,118 @@ describe("the Page steps", () => {
       );
     });
 
+    /*
+     * The runner leaves a value it cannot find exactly as it was written. A
+     * webhook that sent no title leaves the Title holding its own reference,
+     * and paged as it stands that is an alert named
+     * "{{local.components.webhook-1.returnValues.request-body.title}}" and a
+     * phone call that reads it out. It came to nothing, so it is read as
+     * nothing.
+     */
+    const TITLE_FROM_WEBHOOK: string =
+      "{{local.components.webhook-1.returnValues.request-body.title}}";
+    const MESSAGE_FROM_WEBHOOK: string =
+      "{{local.components.webhook-1.returnValues.request-body.message}}";
+
+    test("the title's value was not found, and came through as it was written: Error, and nobody is paged with a reference for a title", async () => {
+      const { ran, fixture } = await runResolved(
+        { title: TITLE_FROM_WEBHOOK },
+        { title: TITLE_FROM_WEBHOOK },
+      );
+
+      expect(pageCall).not.toHaveBeenCalled();
+      expect(fixture.onError).not.toHaveBeenCalled();
+      expect(ran.executePort?.id).toBe("error");
+      expect(ran.returnValues["error"]).toBe(
+        "Nobody was paged. Title came out empty when the step ran, and a page about a new alert needs a title.",
+      );
+    });
+
+    test("the same with space around it, as a setting may be saved", async () => {
+      const { ran } = await runResolved(
+        { title: ` ${TITLE_FROM_WEBHOOK} ` },
+        { title: TITLE_FROM_WEBHOOK },
+      );
+
+      expect(pageCall).not.toHaveBeenCalled();
+      expect(ran.executePort?.id).toBe("error");
+    });
+
+    test("the message's value was not found: the page goes out without a message", async () => {
+      const { ran } = await runResolved(
+        { message: MESSAGE_FROM_WEBHOOK },
+        { message: MESSAGE_FROM_WEBHOOK },
+      );
+
+      expect(ran.executePort?.id).toBe("success");
+      expect(asked().about.newAlert).toEqual({ title: "Payments are failing" });
+    });
+
+    test("a title that was found is the title, whatever it says - text that looks like a reference too", async () => {
+      // Another tool sent this as its title. It is what the setting came to, not what it held.
+      const { ran } = await runResolved(
+        { title: TITLE_FROM_WEBHOOK },
+        { title: "{{local.variables.secret}} is down" },
+      );
+
+      expect(ran.executePort?.id).toBe("success");
+      expect(asked().about.newAlert?.title).toBe(
+        "{{local.variables.secret}} is down",
+      );
+    });
+
+    test("a title partly filled in is kept: something was found for it", async () => {
+      const { ran } = await runResolved(
+        {
+          title: `Disk full on {{local.variables.host}}: ${TITLE_FROM_WEBHOOK}`,
+        },
+        { title: `Disk full on db-1: ${TITLE_FROM_WEBHOOK}` },
+      );
+
+      expect(ran.executePort?.id).toBe("success");
+      expect(asked().about.newAlert?.title).toBe(
+        `Disk full on db-1: ${TITLE_FROM_WEBHOOK}`,
+      );
+    });
+
+    test("a title typed into the step is never mistaken for one that was not found", async () => {
+      const { ran } = await runResolved(
+        { title: "Payments are failing" },
+        { title: "Payments are failing" },
+      );
+
+      expect(ran.executePort?.id).toBe("success");
+      expect(asked().about.newAlert?.title).toBe("Payments are failing");
+    });
+
+    test("a step run with nothing to compare with - no settings as they were saved - pages with what it was handed", async () => {
+      const ran: RunReturnType = await run(
+        USERS,
+        settings(USERS, { title: TITLE_FROM_WEBHOOK }),
+        makeOptions(),
+      );
+
+      expect(ran.executePort?.id).toBe("success");
+      expect(asked().about.newAlert?.title).toBe(TITLE_FROM_WEBHOOK);
+    });
+
+    test("only a title and a message are read this way: the settings handed in are not changed", () => {
+      const args: JSONObject = {
+        users: [JANE],
+        title: TITLE_FROM_WEBHOOK,
+        message: MESSAGE_FROM_WEBHOOK,
+        "incident-id": "{{local.components.trigger.returnValues.model._id}}",
+      };
+      const before: string = JSON.stringify(args);
+
+      expect(Page.withoutUnresolvedText(args, { ...args })).toEqual({
+        users: [JANE],
+        "incident-id": "{{local.components.trigger.returnValues.model._id}}",
+      });
+      expect(JSON.stringify(args)).toBe(before);
+      expect(Page.withoutUnresolvedText(args, undefined)).toBe(args);
+    });
+
     test.each<[string, JSONValue, string]>([
       [
         "nothing",

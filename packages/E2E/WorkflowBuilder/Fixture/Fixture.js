@@ -15,6 +15,8 @@
  *                         (25, named like severities), Default to log-1
  * ?scenario=page...       the Page steps, and the project their settings
  *                         pick people from (PageScenarios.js)
+ * ?page=direct-page       what the on-call logs say of a page with no
+ *                         policy behind it (PageScenarios.js)
  *
  * ?page=create-workflow   the Workflows page's Create Workflow button and the
  *                         real "Create a workflow" dialog it opens, with the
@@ -37,7 +39,11 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import CreateWorkflowModal from "../../../App/FeatureSet/Dashboard/src/Components/Workflow/CreateWorkflowModal";
-import { getPageScenario, installPageProject } from "./PageScenarios";
+import {
+  DirectPageLogsPage,
+  getPageScenario,
+  installPageProject,
+} from "./PageScenarios";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -317,6 +323,8 @@ function CreateWorkflowPage() {
 if (fixturePage === "create-workflow") {
   installServerStandIns();
   createRoot(document.getElementById("root")).render(<CreateWorkflowPage />);
+} else if (fixturePage === "direct-page") {
+  createRoot(document.getElementById("root")).render(<DirectPageLogsPage />);
 } else {
   createRoot(document.getElementById("root")).render(<App />);
 }

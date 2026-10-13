@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28197,
-    "untranslated": 17026
+    "keys": 28284,
+    "untranslated": 17020
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -39,6 +39,7 @@
     "Transceivers",
     "VMware vCenter",
     "Website",
+    "Workflow: {{workflowName}}",
     "agent {{version}}",
     "cluster",
     "host",
@@ -50,6 +51,8 @@
     "{{count}} MB",
     "{{count}} alarm",
     "{{count}} product",
+    "{{count}} team",
+    "{{count}} teams",
     "{{field}} is {{value}}",
     "{{tokens}} tokens"
   ]

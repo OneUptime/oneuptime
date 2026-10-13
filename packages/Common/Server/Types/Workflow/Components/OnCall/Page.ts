@@ -159,7 +159,9 @@ export default class Page extends ComponentCode {
     let request: PageStepRequest;
 
     try {
-      request = this.getRequest(args);
+      request = this.getRequest(
+        Page.withoutUnresolvedText(args, options.configuredArguments),
+      );
     } catch (err) {
       return takeError(this.getErrorMessage(err));
     }
@@ -284,6 +286,52 @@ export default class Page extends ComponentCode {
     }
 
     return null;
+  }
+
+  /*
+   * The settings without a title or a message that came to nothing.
+   *
+   * The runner leaves a value it cannot find exactly as it was written: a
+   * Title of {{local.components.webhook-1.returnValues.request-body.title}}
+   * stays that text when the request had no title. Paged as it stands, it
+   * would wake somebody with a reference for a title and leave an alert
+   * named after one. It came to nothing, so it is read as nothing: a title
+   * is then missing, which the step says on its Error output, and a message
+   * is simply left out.
+   *
+   * Told by what the setting held before the run: it holds a value from an
+   * earlier step, and it came through the run unchanged. Text another tool
+   * sent that only looks like a reference is not what the setting held, and
+   * is kept as the text it is.
+   */
+  public static withoutUnresolvedText(
+    args: JSONObject,
+    configured: JSONObject | undefined,
+  ): JSONObject {
+    if (!configured) {
+      return args;
+    }
+
+    const settled: JSONObject = { ...args };
+
+    for (const argumentId of [
+      PAGE_ARGUMENT_IDS.title,
+      PAGE_ARGUMENT_IDS.message,
+    ]) {
+      const before: JSONValue | undefined = configured[argumentId];
+      const after: JSONValue | undefined = args[argumentId];
+
+      if (
+        typeof before === "string" &&
+        typeof after === "string" &&
+        holdsPageSettingReference(before) &&
+        after.trim() === before.trim()
+      ) {
+        delete settled[argumentId];
+      }
+    }
+
+    return settled;
   }
 
   /*

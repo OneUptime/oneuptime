@@ -166,7 +166,10 @@ export default function OnCallPageCard({
               style={{ marginTop: 2 }}
             />
             <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
-              {page.policyName || "On-call policy unavailable"}
+              {page.policyName ||
+                (page.isDirectPage
+                  ? "Direct page"
+                  : "On-call policy unavailable")}
             </AppText>
           </View>
         </View>
