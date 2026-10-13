@@ -11,6 +11,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -51,7 +52,7 @@ const REGISTERED_PATHS: Array<string> = [
 // The source of the route registered for `routePath`, up to the next route.
 function bodyOfGetRoute(routePath: string): string | null {
   const match: RegExpExecArray | null = new RegExp(
-    `app\\.get\\(\\s*"${routePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
+    `app\\.get\\(\\s*"${escapeRegExp(routePath)}"`,
   ).exec(routesSource);
 
   if (!match) {
