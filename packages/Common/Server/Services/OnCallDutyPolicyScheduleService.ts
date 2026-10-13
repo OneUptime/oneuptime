@@ -2480,11 +2480,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
     const truncated: boolean = expansion.truncated;
 
-    const hasEvents: boolean = expansion.layers.some(
-      (layer: ExpandedLayer) => {
-        return layer.events.length > 0;
-      },
-    );
+    const hasEvents: boolean = expansion.layers.some((layer: ExpandedLayer) => {
+      return layer.events.length > 0;
+    });
 
     const scheduleUserIdSet: Set<string> = new Set<string>(
       data.scheduleUserIds.map((id: ObjectID) => {
@@ -3436,11 +3434,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       calendarEndDate: data.windowEnd,
     });
 
-    const hasEvents: boolean = expansion.layers.some(
-      (layer: ExpandedLayer) => {
-        return layer.events.length > 0;
-      },
-    );
+    const hasEvents: boolean = expansion.layers.some((layer: ExpandedLayer) => {
+      return layer.events.length > 0;
+    });
 
     const overrides: Array<UserOverrideRecord> =
       data.projectId && hasEvents

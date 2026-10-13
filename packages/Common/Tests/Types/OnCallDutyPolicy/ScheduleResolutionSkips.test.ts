@@ -163,9 +163,7 @@ describe("With nobody skipped, the resolution is what it always was", () => {
       describeEvents(
         resolve({
           layers: [ABCD],
-          overrides: [
-            away({ who: "X", from: WEEK_START, until: WEEK_END }),
-          ],
+          overrides: [away({ who: "X", from: WEEK_START, until: WEEK_END })],
         }),
       ),
     ).toEqual(describeEvents(resolveTheOldWay({ layers: [ABCD] })));
@@ -226,8 +224,8 @@ describe("The engine says whose turn each event is, only when asked", () => {
      * engine; a turn index it cannot read would hand the turn of the second
      * of two places in a list to whoever follows the first.
      */
-    const events: Array<CalendarEvent> = UserOverrideUtil.applySkipsToLayerEvents(
-      {
+    const events: Array<CalendarEvent> =
+      UserOverrideUtil.applySkipsToLayerEvents({
         events: [
           {
             id: 1,
@@ -240,8 +238,7 @@ describe("The engine says whose turn each event is, only when asked", () => {
         ],
         userIds: ["A", "B", "A", "C"],
         overrides: [away({ who: "A", from: WEEK_START, until: WEEK_END })],
-      },
-    );
+      });
 
     expect(describeEvents(events)).toEqual([
       "C 03-04 09:00:00 -> 03-05 09:00:00 (skip for A)",
@@ -673,7 +670,11 @@ describe("The same person twice in a rotation", () => {
         resolve({
           layers: [layer({ people: ["A", "B", "A", "C"] })],
           overrides: [
-            away({ who: "A", from: "2026-03-01 00:00", until: "2026-03-08 00:00" }),
+            away({
+              who: "A",
+              from: "2026-03-01 00:00",
+              until: "2026-03-08 00:00",
+            }),
           ],
           until: "2026-03-07 09:00",
         }),
@@ -1007,16 +1008,21 @@ describe("A skip and a named cover at the same time: which one decides", () => {
   });
 
   test("precedence, in full: policy cover, policy skip, global cover, global skip", () => {
-    const record: (cover: string | undefined, policy: string | undefined) => UserOverrideRecord =
-      (cover: string | undefined, policy: string | undefined): UserOverrideRecord => {
-        return away({
-          who: "B",
-          from: WEEK_START,
-          until: WEEK_END,
-          cover,
-          policy,
-        });
-      };
+    const record: (
+      cover: string | undefined,
+      policy: string | undefined,
+    ) => UserOverrideRecord = (
+      cover: string | undefined,
+      policy: string | undefined,
+    ): UserOverrideRecord => {
+      return away({
+        who: "B",
+        from: WEEK_START,
+        until: WEEK_END,
+        cover,
+        policy,
+      });
+    };
 
     expect(UserOverrideUtil.getPrecedence(record("Z", "P"))).toBe(0);
     expect(UserOverrideUtil.getPrecedence(record(undefined, "P"))).toBe(1);
@@ -1201,10 +1207,7 @@ describe("One expansion, several policy contexts", () => {
 
   test("resolving leaves the expansion as it was", () => {
     const expanded: ExpandedLayers = ScheduleResolution.expand({
-      layers: [
-        ABCD,
-        layer({ people: ["E", "F"], every: EventInterval.Week }),
-      ],
+      layers: [ABCD, layer({ people: ["E", "F"], every: EventInterval.Week })],
       calendarStartDate: at(WEEK_START),
       calendarEndDate: at(WEEK_END),
     });
@@ -1296,9 +1299,7 @@ describe("Invariants over a seeded sweep of schedules and time away", () => {
       const record: UserOverrideRecord = {
         overrideUserId: POOL[random(POOL.length)]!,
         startsAt: new Date(SWEEP_START.getTime() + startHour * 3600000),
-        endsAt: new Date(
-          SWEEP_START.getTime() + (startHour + hours) * 3600000,
-        ),
+        endsAt: new Date(SWEEP_START.getTime() + (startHour + hours) * 3600000),
         onCallDutyPolicyId: random(3) === 0 ? "P" : null,
       };
 

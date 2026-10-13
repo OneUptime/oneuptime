@@ -456,30 +456,30 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * which apply overrides only once (audit F5). So schedule targets never
      * come through here.
      */
-    const resolveAlertRecipient: (
+    const resolveAlertRecipient: (userId: ObjectID) => Promise<{
+      recipientUserId: ObjectID;
+      awayUntil: Date | null;
+    }> = async (
       userId: ObjectID,
-    ) => Promise<{ recipientUserId: ObjectID; awayUntil: Date | null }> =
-      async (
-        userId: ObjectID,
-      ): Promise<{ recipientUserId: ObjectID; awayUntil: Date | null }> => {
-        if (options.onCallPolicyId) {
-          const away: AwayOverride | null = await this.getAwayOverride({
-            userId,
-            onCallDutyPolicyId: options.onCallPolicyId,
-            projectId: options.projectId,
-          });
+    ): Promise<{ recipientUserId: ObjectID; awayUntil: Date | null }> => {
+      if (options.onCallPolicyId) {
+        const away: AwayOverride | null = await this.getAwayOverride({
+          userId,
+          onCallDutyPolicyId: options.onCallPolicyId,
+          projectId: options.projectId,
+        });
 
-          if (away?.coverUserId) {
-            return { recipientUserId: away.coverUserId, awayUntil: null };
-          }
-
-          if (away) {
-            return { recipientUserId: userId, awayUntil: away.endsAt };
-          }
+        if (away?.coverUserId) {
+          return { recipientUserId: away.coverUserId, awayUntil: null };
         }
 
-        return { recipientUserId: userId, awayUntil: null };
-      };
+        if (away) {
+          return { recipientUserId: userId, awayUntil: away.endsAt };
+        }
+      }
+
+      return { recipientUserId: userId, awayUntil: null };
+    };
 
     const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction =
       async (

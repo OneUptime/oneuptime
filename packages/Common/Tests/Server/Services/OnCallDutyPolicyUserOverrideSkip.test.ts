@@ -897,7 +897,10 @@ describe("An escalation rule that names somebody away does not page them", () =>
           },
         );
       jest
-        .spyOn(UserNotificationRuleService, "startUserNotificationRulesExecution")
+        .spyOn(
+          UserNotificationRuleService,
+          "startUserNotificationRulesExecution",
+        )
         .mockImplementation(
           async (
             userId: ObjectID,
@@ -949,9 +952,11 @@ describe("An escalation rule that names somebody away does not page them", () =>
 
       await runRule({ teams: [{ id: TEAM, members: [ALEX, SAM] }] });
 
-      expect(paged.map((page: { userId: string }) => {
-        return page.userId;
-      })).toEqual([SAM]);
+      expect(
+        paged.map((page: { userId: string }) => {
+          return page.userId;
+        }),
+      ).toEqual([SAM]);
       expect(awayLines()[0]!.userBelongsToTeamId?.toString()).toBe(TEAM);
     });
 
@@ -1099,9 +1104,7 @@ describe("Calendar feeds, my shifts, reminders and the timeline say who has the 
       },
     );
 
-    expect(description).toContain(
-      "Skipped: Alex Kim is away from",
-    );
+    expect(description).toContain("Skipped: Alex Kim is away from");
     expect(description).toContain(
       "so the next person in the rotation has this turn (global override)",
     );
@@ -1184,11 +1187,11 @@ describe("Calendar feeds, my shifts, reminders and the timeline say who has the 
     expect(
       (
         (
-          ((parsed["schedules"] as Array<JSONObject>)[0]!["shifts"] as Array<
-            JSONObject
-          >)[0]!["override"] as JSONObject
-        )["isSkip"]
-      ),
+          (parsed["schedules"] as Array<JSONObject>)[0]![
+            "shifts"
+          ] as Array<JSONObject>
+        )[0]!["override"] as JSONObject
+      )["isSkip"],
     ).toBe(true);
   });
 });
