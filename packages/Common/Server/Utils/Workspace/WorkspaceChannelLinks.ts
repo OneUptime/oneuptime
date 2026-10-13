@@ -211,12 +211,18 @@ export default class WorkspaceChannelLinks {
     projectId: ObjectID;
     channels: Array<NotificationRuleWorkspaceChannel>;
   }): Promise<Array<WorkspaceChannelLink>> {
-    const hasSlack: boolean = data.channels.some(
+    // A stored list is JSON: an entry that is not a channel is skipped.
+    const channels: Array<NotificationRuleWorkspaceChannel> =
+      data.channels.filter((channel: NotificationRuleWorkspaceChannel) => {
+        return Boolean(channel) && typeof channel === "object";
+      });
+
+    const hasSlack: boolean = channels.some(
       (channel: NotificationRuleWorkspaceChannel) => {
         return channel.workspaceType === WorkspaceType.Slack;
       },
     );
-    const hasTeams: boolean = data.channels.some(
+    const hasTeams: boolean = channels.some(
       (channel: NotificationRuleWorkspaceChannel) => {
         return channel.workspaceType === WorkspaceType.MicrosoftTeams;
       },
@@ -236,8 +242,8 @@ export default class WorkspaceChannelLinks {
       WorkspaceType.Slack,
       WorkspaceType.MicrosoftTeams,
     ]) {
-      for (const channel of data.channels) {
-        if (!channel || channel.workspaceType !== workspaceType) {
+      for (const channel of channels) {
+        if (channel.workspaceType !== workspaceType) {
           continue;
         }
 
