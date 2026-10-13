@@ -227,6 +227,16 @@ export default class ProbeSyslogIngestService {
             continue;
           }
 
+          /*
+           * An open port hears more than syslog. Text with no priority
+           * that no vendor parser knows, from an address that is no
+           * device, has nothing that says it is a log: it is not kept.
+           */
+          if (!read.hasPriority && !normalized.parserId) {
+            result.droppedUnmatched++;
+            continue;
+          }
+
           const row: JSONObject | null =
             await ProbeSyslogIngestService.buildLogRow({
               read: read,

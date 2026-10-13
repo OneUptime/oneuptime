@@ -596,6 +596,49 @@ describe("a message from an address that is no device", () => {
     expect(attributes["event.name"]).toBe("interface.down");
   });
 
+  test("text with no priority that no parser knows is not kept: an open port hears more than syslog", async () => {
+    const result: ProbeSyslogIngestResult = await ingest([
+      fromProbe("GET / HTTP/1.1", STRANGER_ADDRESS),
+      fromProbe("hello from a port scanner", STRANGER_ADDRESS),
+    ]);
+
+    expect(result).toMatchObject({
+      written: 0,
+      keptUnmatched: 0,
+      droppedUnmatched: 2,
+    });
+    expect(insertJsonRows).not.toHaveBeenCalled();
+  });
+
+  test("...but a line with no priority in a vendor's format is kept: RouterOS sends its default format that way", async () => {
+    const result: ProbeSyslogIngestResult = await ingest([
+      fromProbe(
+        "system,error,critical login failure for user guest from 192.168.88.17 via ssh",
+        STRANGER_ADDRESS,
+      ),
+    ]);
+
+    expect(result).toMatchObject({ written: 1, keptUnmatched: 1 });
+    expect(attributesOf(onlyRow())["syslog.unmatched"]).toBe(true);
+    expect(attributesOf(onlyRow())["syslog.vendor"]).toBe("MikroTik");
+  });
+
+  test("...and so is any line with a priority, whoever wrote it", async () => {
+    const result: ProbeSyslogIngestResult = await ingest([
+      fromProbe("<13>something no parser knows", STRANGER_ADDRESS),
+    ]);
+
+    expect(result).toMatchObject({ written: 1, keptUnmatched: 1 });
+  });
+
+  test("from a device, text with no priority is kept like anything else the device sends", async () => {
+    const result: ProbeSyslogIngestResult = await ingest([
+      fromProbe("the fan sounds odd", SWITCH_ADDRESS),
+    ]);
+
+    expect(result).toMatchObject({ written: 1, droppedUnmatched: 0 });
+  });
+
   test("is dropped on a global probe, which has no project to keep it for", async () => {
     probeProjectId = null;
 

@@ -5,18 +5,40 @@ import {
   PROBE_SYSLOG_RECEIVER_PORT,
 } from "../Config";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
+import SyslogStreamFramer from "../Utils/Syslog/SyslogStreamFramer";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
-import SyslogMessage from "Common/Types/Syslog/SyslogMessage";
+import SyslogMessage, {
+  MAX_SYSLOG_RAW_LENGTH,
+} from "Common/Types/Syslog/SyslogMessage";
 import OneUptimeDate from "Common/Types/Date";
 import API from "Common/Utils/API";
+import SyslogEventNormalizer from "Common/Utils/Syslog/SyslogEventNormalizer";
+import {
+  ParsedSyslogMessage,
+  parseSyslogMessage,
+} from "Common/Utils/Syslog/SyslogMessageParser";
+import {
+  DEFAULT_SYSLOG_FACILITY,
+  DEFAULT_SYSLOG_SEVERITY,
+} from "Common/Utils/Syslog/SyslogSeverity";
 import logger from "Common/Server/Utils/Logger";
 import dgram from "dgram";
+import net from "net";
 
 /*
+ * THE PROBE'S SYSLOG RECEIVER.
+ *
+ * Network devices are pointed at the probe; the probe hears their syslog
+ * on one port - over UDP (one datagram, one message) and over TCP (RFC
+ * 6587, see SyslogStreamFramer) - and forwards it to the OneUptime
+ * instance in batches. The instance works out which device a message is
+ * from, what its vendor's format says and whether it is an event; the
+ * probe only has to deliver the line as the device wrote it.
+ *
  * Syslog volume is far higher than SNMP traps, so messages are buffered and
- * flushed to the ingest endpoint in batches — every FLUSH_INTERVAL_MS or
+ * flushed to the ingest endpoint in batches - every FLUSH_INTERVAL_MS or
  * once FLUSH_BATCH_SIZE messages accumulate, whichever comes first.
  * Per-message POSTs would not keep up.
  */
@@ -25,29 +47,61 @@ const FLUSH_BATCH_SIZE: number = 100;
 
 /*
  * Hard cap on buffered messages. If the ingest endpoint is unreachable (or a
- * forward hangs), incoming datagrams would otherwise grow the buffer without
+ * forward hangs), incoming messages would otherwise grow the buffer without
  * bound; past this many messages the oldest are dropped. Syslog is lossy by
- * design (UDP), so shedding old messages under back-pressure is correct.
+ * design, so shedding old messages under back-pressure is correct.
  */
 const MAX_BUFFERED_MESSAGES: number = FLUSH_BATCH_SIZE * 50;
+
+/*
+ * ...and on the text they hold. A message is usually a few hundred
+ * characters, but a sender may fill a whole datagram with one, and five
+ * thousand of those is more memory than a probe should spend on a buffer.
+ */
+const MAX_BUFFERED_CHARACTERS: number = 32 * 1024 * 1024;
 
 // Give a stuck forward a bounded lifetime so isFlushing can never wedge.
 const FLUSH_REQUEST_TIMEOUT_MS: number = 30000;
 
-// Header fields extracted from an RFC 5424 / RFC 3164 message body.
-interface ParsedSyslogBody {
-  timestamp: Date | undefined;
-  hostname: string | undefined;
-  appName: string | undefined;
-  message: string;
+/*
+ * TCP connections held open at once, per address family. A device keeps
+ * one connection for as long as it is up, so this is how many devices can
+ * send over TCP to one probe; UDP has no such limit.
+ */
+const MAX_TCP_CONNECTIONS: number = 512;
+
+/*
+ * A device that is switched off never closes its connection. Keep-alive
+ * probes find the ones nobody is at the other end of, so they do not use
+ * up the connections above; a device that is merely quiet stays connected.
+ */
+const TCP_KEEP_ALIVE_INITIAL_DELAY_MS: number = 60000;
+
+// Characters that mark binary data rather than a line of text.
+const TAB: number = 0x09;
+const FIRST_PRINTABLE: number = 0x20;
+const DELETE: number = 0x7f;
+const REPLACEMENT_CHARACTER: number = 0xfffd;
+
+const LETTER_OR_DIGIT: RegExp = /[A-Za-z0-9]/;
+
+// An IPv4 address a dual-stack socket reports as "::ffff:10.0.0.2".
+const IPV4_MAPPED_PREFIX: string = "::ffff:";
+
+// A message, and the reading of its header it was built from.
+interface ReadSyslogLine {
+  message: SyslogMessage;
+  parsed: ParsedSyslogMessage;
 }
 
 export default class SyslogReceiver {
   private static forwardedThisMinute: number = 0;
   private static minuteWindowStartedAt: number = 0;
   private static droppedThisMinute: number = 0;
+  private static eventsKeptPastLimitThisMinute: number = 0;
 
   private static buffer: Array<SyslogMessage> = [];
+  private static bufferedCharacters: number = 0;
   private static isFlushing: boolean = false;
 
   public static start(): void {
@@ -67,6 +121,10 @@ export default class SyslogReceiver {
      * reception continues unaffected.
      */
     SyslogReceiver.startSocket("udp6");
+
+    // The same port over TCP, for devices and relays that send it that way.
+    SyslogReceiver.startTcpServer("IPv4");
+    SyslogReceiver.startTcpServer("IPv6");
 
     setInterval(() => {
       SyslogReceiver.flush().catch((err: Error) => {
@@ -165,37 +223,198 @@ export default class SyslogReceiver {
     }
   }
 
+  /*
+   * The TCP listener, on the same port number as the UDP one. As there:
+   * IPv4 is the primary, IPv6 is best effort, and a listener that cannot
+   * bind says so once and leaves everything else running - UDP syslog
+   * included.
+   */
+  private static startTcpServer(family: "IPv4" | "IPv6"): void {
+    let hasLoggedBindFailure: boolean = false;
+
+    try {
+      const server: net.Server = net.createServer((socket: net.Socket) => {
+        SyslogReceiver.handleConnection(socket);
+      });
+
+      server.maxConnections = MAX_TCP_CONNECTIONS;
+
+      server.on("error", (error: Error) => {
+        const errorCode: string | undefined = (error as NodeJS.ErrnoException)
+          .code;
+
+        if (hasLoggedBindFailure) {
+          return;
+        }
+
+        hasLoggedBindFailure = true;
+
+        if (family === "IPv6") {
+          logger.warn(
+            `Syslog receiver could not listen on IPv6 TCP port ${PROBE_SYSLOG_RECEIVER_PORT} (${errorCode}); ` +
+              `this host may not have IPv6. Syslog over TCP is still received over IPv4.`,
+          );
+          return;
+        }
+
+        logger.error(
+          `Syslog receiver could not listen on TCP port ${PROBE_SYSLOG_RECEIVER_PORT} (${errorCode}). ` +
+            `Syslog sent over TCP will not be received; syslog over UDP and monitoring checks are unaffected. ` +
+            `Fix: set PROBE_SYSLOG_RECEIVER_PORT to a free port above 1024, ` +
+            `or set PROBE_SYSLOG_RECEIVER_ENABLED=false to silence this.`,
+        );
+      });
+
+      server.listen({
+        port: PROBE_SYSLOG_RECEIVER_PORT,
+        host: family === "IPv6" ? "::" : "0.0.0.0",
+        // As with UDP: [::] must not also claim the IPv4 port.
+        ipv6Only: family === "IPv6",
+      });
+
+      logger.info(
+        `Syslog receiver starting on ${family} TCP port ${PROBE_SYSLOG_RECEIVER_PORT}`,
+      );
+    } catch (err) {
+      if (family === "IPv6") {
+        logger.warn(
+          `Could not start syslog receiver IPv6 TCP listener on port ${PROBE_SYSLOG_RECEIVER_PORT}: ${err}. Continuing with IPv4 only.`,
+        );
+        return;
+      }
+
+      logger.error(
+        `Could not start syslog receiver TCP listener on port ${PROBE_SYSLOG_RECEIVER_PORT}: ${err}`,
+      );
+    }
+  }
+
+  /*
+   * One device's TCP connection: its bytes are cut into messages, and each
+   * message is handled like a datagram from the same address. The probe
+   * never writes to the connection - syslog has nothing to say back.
+   */
+  public static handleConnection(connection: net.Socket): void {
+    const sourceIpAddress: string = SyslogReceiver.toSourceIpAddress(
+      connection.remoteAddress,
+    );
+
+    if (!sourceIpAddress) {
+      // Closed before it could be read: nobody to attribute anything to.
+      connection.destroy();
+      return;
+    }
+
+    const framer: SyslogStreamFramer = new SyslogStreamFramer();
+
+    connection.setKeepAlive(true, TCP_KEEP_ALIVE_INITIAL_DELAY_MS);
+
+    const handleLines: (lines: Array<string>) => void = (
+      lines: Array<string>,
+    ): void => {
+      for (const line of lines) {
+        try {
+          SyslogReceiver.handleLine(line, sourceIpAddress);
+        } catch (err) {
+          logger.debug(`Syslog receiver message error: ${err}`);
+        }
+      }
+    };
+
+    connection.on("data", (chunk: Buffer | string): void => {
+      handleLines(
+        framer.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk),
+      );
+
+      if (framer.isBroken) {
+        logger.debug(
+          `Syslog receiver closed a TCP connection from ${sourceIpAddress}: what it sent is not syslog.`,
+        );
+        connection.destroy();
+      }
+    });
+
+    connection.on("end", (): void => {
+      handleLines(framer.end());
+    });
+
+    // A reset connection is routine (a device rebooting): nothing to do.
+    connection.on("error", (error: Error): void => {
+      logger.debug(
+        `Syslog receiver TCP connection error (${sourceIpAddress}): ${error}`,
+      );
+    });
+  }
+
+  // The sender's address as a device's address is written.
+  private static toSourceIpAddress(address: string | undefined): string {
+    let value: string = (address || "").trim();
+
+    if (value.toLowerCase().startsWith(IPV4_MAPPED_PREFIX)) {
+      const mapped: string = value.slice(IPV4_MAPPED_PREFIX.length);
+
+      if (net.isIPv4(mapped)) {
+        value = mapped;
+      }
+    }
+
+    // "fe80::1%eth0": the interface it arrived on is not part of the address.
+    const zoneIndex: number = value.indexOf("%");
+
+    return zoneIndex === -1 ? value : value.slice(0, zoneIndex);
+  }
+
   private static handleDatagram(
     datagram: Buffer,
     sourceIpAddress: string,
   ): void {
-    const parsed: SyslogMessage | null = SyslogReceiver.parseMessage(
-      datagram.toString("utf8"),
+    SyslogReceiver.handleLine(datagram.toString("utf8"), sourceIpAddress);
+  }
+
+  // One message, however it arrived.
+  private static handleLine(line: string, sourceIpAddress: string): void {
+    const read: ReadSyslogLine | null = SyslogReceiver.readLine(
+      line,
       sourceIpAddress,
       OneUptimeDate.getCurrentDate(),
     );
 
-    if (!parsed) {
+    if (!read) {
       logger.debug(
         `Syslog receiver skipped malformed message from ${sourceIpAddress}`,
       );
       return;
     }
 
-    if (!SyslogReceiver.consumeRateLimitSlot()) {
+    if (!SyslogReceiver.consumeRateLimitSlot(read.parsed)) {
       return;
     }
 
-    SyslogReceiver.buffer.push(parsed);
+    SyslogReceiver.buffer.push(read.message);
+    SyslogReceiver.bufferedCharacters += SyslogReceiver.sizeOf(read.message);
 
     /*
      * Shed the oldest messages if the buffer has outgrown its cap (server
      * unreachable / forward hung), to bound memory.
      */
-    if (SyslogReceiver.buffer.length > MAX_BUFFERED_MESSAGES) {
-      const overflow: number =
-        SyslogReceiver.buffer.length - MAX_BUFFERED_MESSAGES;
-      SyslogReceiver.buffer.splice(0, overflow);
+    let overflow: number = 0;
+
+    while (
+      SyslogReceiver.buffer.length > MAX_BUFFERED_MESSAGES ||
+      (SyslogReceiver.bufferedCharacters > MAX_BUFFERED_CHARACTERS &&
+        SyslogReceiver.buffer.length > 1)
+    ) {
+      const shed: SyslogMessage | undefined = SyslogReceiver.buffer.shift();
+
+      if (!shed) {
+        break;
+      }
+
+      SyslogReceiver.bufferedCharacters -= SyslogReceiver.sizeOf(shed);
+      overflow++;
+    }
+
+    if (overflow > 0) {
       logger.warn(
         `Syslog receiver buffer exceeded ${MAX_BUFFERED_MESSAGES} messages; dropped ${overflow} oldest message(s) (ingest may be unreachable).`,
       );
@@ -208,194 +427,133 @@ export default class SyslogReceiver {
     }
   }
 
+  // The characters a buffered message holds on to.
+  private static sizeOf(message: SyslogMessage): number {
+    return message.message.length + (message.raw?.length || 0);
+  }
+
   /*
-   * Parses a raw syslog datagram in RFC 5424
-   * ("<PRI>1 TIMESTAMP HOSTNAME APP-NAME PROCID MSGID SD MSG") or RFC 3164
-   * ("<PRI>Mmm dd hh:mm:ss host tag: msg") format. A message without a
-   * valid <PRI> prefix (priority 0-191) is considered malformed and returns
-   * null. A message with a valid <PRI> but an unrecognized body is kept
-   * with the whole body as the message text — devices routinely emit
-   * slightly non-conformant syslog and dropping it would lose data.
+   * Reads one message as a device sent it: RFC 5424
+   * ("<PRI>1 TIMESTAMP HOSTNAME APP-NAME PROCID MSGID SD MSG"), RFC 3164
+   * ("<PRI>Mmm dd hh:mm:ss host tag: msg"), or neither. The header is read
+   * by the reader the OneUptime instance uses too (SyslogMessageParser), so
+   * the two never disagree about what a line says; the line itself goes
+   * along as `raw`, which is what the instance's vendor parsers read.
+   *
+   * Devices routinely send syslog that is slightly off, and dropping it
+   * would lose data:
+   *
+   *   - A valid <PRI> and an unreadable header: kept, with everything after
+   *     the priority as the message.
+   *   - No <PRI> at all: kept when it is a line of text, as user.notice -
+   *     what RFC 3164 has a relay assume. RouterOS sends its default and
+   *     CEF formats this way.
+   *
+   * What is not a message returns null: nothing at all, a priority that
+   * cannot be one ("<192>", "<abc>"), and bytes that are not text.
    */
   public static parseMessage(
     raw: string,
     sourceIpAddress: string,
     receivedAt: Date,
   ): SyslogMessage | null {
-    const trimmed: string = (raw || "").trim();
+    return (
+      SyslogReceiver.readLine(raw, sourceIpAddress, receivedAt)?.message || null
+    );
+  }
 
-    if (!trimmed) {
+  private static readLine(
+    raw: string,
+    sourceIpAddress: string,
+    receivedAt: Date,
+  ): ReadSyslogLine | null {
+    const line: string = SyslogReceiver.withoutPadding(raw).slice(
+      0,
+      MAX_SYSLOG_RAW_LENGTH,
+    );
+
+    if (!line) {
       return null;
     }
 
-    const priorityMatch: RegExpMatchArray | null =
-      trimmed.match(/^<(\d{1,3})>/);
+    const parsed: ParsedSyslogMessage | null = parseSyslogMessage(line);
 
-    if (!priorityMatch) {
+    if (!parsed) {
       return null;
     }
 
-    const priority: number = parseInt(priorityMatch[1]!, 10);
-
-    // Valid PRI is 0-191 (facility 0-23, severity 0-7).
-    if (isNaN(priority) || priority > 191) {
+    if (parsed.priority === undefined) {
+      // "<abc>...": where a priority goes, and it is not one.
+      if (line.startsWith("<") || !SyslogReceiver.isLineOfText(line)) {
+        return null;
+      }
+    } else if (
+      isNaN(parsed.priority) ||
+      parsed.priority > 191 ||
+      parsed.facility === undefined ||
+      parsed.severity === undefined
+    ) {
+      // Valid PRI is 0-191 (facility 0-23, severity 0-7).
       return null;
     }
 
-    const facility: number = Math.floor(priority / 8);
-    const severity: number = priority % 8;
-    const body: string = trimmed.slice(priorityMatch[0]!.length);
-
-    const base: SyslogMessage = {
+    const message: SyslogMessage = {
       sourceIpAddress: sourceIpAddress,
-      facility: facility,
-      severity: severity,
-      timestamp: receivedAt,
-      message: body.trim(),
+      facility: parsed.facility ?? DEFAULT_SYSLOG_FACILITY,
+      severity: parsed.severity ?? DEFAULT_SYSLOG_SEVERITY,
+      timestamp: parsed.timestamp || receivedAt,
+      message: parsed.message,
       receivedAt: receivedAt,
+      raw: parsed.raw,
     };
 
-    const parsedBody: ParsedSyslogBody | null =
-      SyslogReceiver.parseRfc5424Body(body) ||
-      SyslogReceiver.parseRfc3164Body(body);
-
-    if (parsedBody) {
-      return {
-        ...base,
-        timestamp: parsedBody.timestamp || receivedAt,
-        hostname: parsedBody.hostname,
-        appName: parsedBody.appName,
-        message: parsedBody.message,
-      };
+    if (parsed.hostname) {
+      message.hostname = parsed.hostname;
     }
 
-    // Unrecognized body — keep the whole body with the receive time.
-    return base;
+    if (parsed.appName) {
+      message.appName = parsed.appName;
+    }
+
+    return { message: message, parsed: parsed };
   }
 
-  private static parseRfc5424Body(body: string): ParsedSyslogBody | null {
-    /*
-     * VERSION SP TIMESTAMP SP HOSTNAME SP APP-NAME SP PROCID SP MSGID SP
-     * STRUCTURED-DATA [SP MSG] — nil values are "-".
-     */
-    const match: RegExpMatchArray | null = body.match(
-      /^(\d{1,2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*([\s\S]*)$/,
-    );
+  // Without the white space and NULs some senders pad a message with.
+  private static withoutPadding(raw: string): string {
+    let end: number = (raw || "").length;
 
-    if (!match) {
-      return null;
+    while (end > 0 && raw.charCodeAt(end - 1) === 0) {
+      end--;
     }
 
-    const timestampToken: string = match[2]!;
-    const hostnameToken: string = match[3]!;
-    const appNameToken: string = match[4]!;
-
-    const timestamp: Date | undefined =
-      timestampToken !== "-"
-        ? OneUptimeDate.parseRfc5424Timestamp(timestampToken)
-        : undefined;
-
-    const hostname: string | undefined =
-      hostnameToken !== "-" ? hostnameToken : undefined;
-
-    const appName: string | undefined =
-      appNameToken !== "-" ? appNameToken : undefined;
-
-    const structuredDataAndMessage: string = (match[7] || "").trimStart();
-    let message: string = structuredDataAndMessage;
-
-    if (structuredDataAndMessage.startsWith("-")) {
-      message = structuredDataAndMessage.slice(1).trimStart();
-    } else if (structuredDataAndMessage.startsWith("[")) {
-      message = SyslogReceiver.stripStructuredData(structuredDataAndMessage);
-    }
-
-    return {
-      timestamp: timestamp,
-      hostname: hostname,
-      appName: appName,
-      message: SyslogReceiver.stripBom(message),
-    };
-  }
-
-  private static parseRfc3164Body(body: string): ParsedSyslogBody | null {
-    // "Mmm dd hh:mm:ss host tag: msg"
-    const match: RegExpMatchArray | null = body.match(
-      /^([A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(\S+)\s+([\s\S]*)$/,
-    );
-
-    if (!match) {
-      return null;
-    }
-
-    const timestamp: Date | undefined = OneUptimeDate.parseRfc3164Timestamp(
-      match[1]!,
-    );
-
-    const hostname: string = match[2]!;
-    const rest: string = match[3] || "";
-
-    let appName: string | undefined = undefined;
-    let message: string = rest.trim();
-
-    // "tag: message" — the tag may carry a pid suffix: "sshd[1234]".
-    const tagMatch: RegExpMatchArray | null = rest.match(
-      /^([A-Za-z0-9_./-]+)(\[\w+\])?:\s*([\s\S]*)$/,
-    );
-
-    if (tagMatch) {
-      appName = tagMatch[1];
-      message = (tagMatch[3] || "").trim();
-    }
-
-    return {
-      timestamp: timestamp,
-      hostname: hostname,
-      appName: appName,
-      message: message,
-    };
+    return (raw || "").slice(0, end).trim();
   }
 
   /*
-   * Skips past an RFC 5424 STRUCTURED-DATA block (one or more balanced
-   * [sd-id param="value" ...] elements) and returns the trailing MSG part.
-   * Bracket characters inside quoted param values are rare enough in
-   * network-device syslog that a depth counter is sufficient for phase 1.
+   * A line without a priority is taken only when it reads as text: it has
+   * a letter or a digit, and no control characters and nothing that was
+   * not valid UTF-8. An open UDP port hears other things than syslog
+   * (scanners, a device pointed at the wrong port), and those are not
+   * logs.
    */
-  private static stripStructuredData(value: string): string {
-    let depth: number = 0;
+  private static isLineOfText(line: string): boolean {
+    if (!LETTER_OR_DIGIT.test(line)) {
+      return false;
+    }
 
-    for (let i: number = 0; i < value.length; i++) {
-      const char: string = value[i]!;
+    for (let index: number = 0; index < line.length; index++) {
+      const code: number = line.charCodeAt(index);
 
-      if (char === "[") {
-        depth++;
-      } else if (char === "]") {
-        depth--;
-
-        if (depth === 0) {
-          let peekIndex: number = i + 1;
-
-          while (peekIndex < value.length && value[peekIndex] === " ") {
-            peekIndex++;
-          }
-
-          if (value[peekIndex] === "[") {
-            i = peekIndex - 1;
-            continue;
-          }
-
-          return value.slice(i + 1).trimStart();
-        }
+      if (
+        (code < FIRST_PRINTABLE && code !== TAB) ||
+        code === DELETE ||
+        code === REPLACEMENT_CHARACTER
+      ) {
+        return false;
       }
     }
 
-    // Unterminated structured data — no message part.
-    return "";
-  }
-
-  private static stripBom(value: string): string {
-    return value.replace(/^\uFEFF/, "");
+    return true;
   }
 
   private static async flush(): Promise<void> {
@@ -411,6 +569,14 @@ export default class SyslogReceiver {
           0,
           FLUSH_BATCH_SIZE,
         );
+
+        for (const message of batch) {
+          SyslogReceiver.bufferedCharacters -= SyslogReceiver.sizeOf(message);
+        }
+
+        if (SyslogReceiver.buffer.length === 0) {
+          SyslogReceiver.bufferedCharacters = 0;
+        }
 
         try {
           /*
@@ -450,28 +616,63 @@ export default class SyslogReceiver {
     }
   }
 
-  private static consumeRateLimitSlot(): boolean {
+  /*
+   * The rate limit, with one exception to it.
+   *
+   * A firewall that logs every connection sends thousands of lines a
+   * minute, and a limit that sheds whatever comes next would shed the one
+   * line that matters - the link that just went down - as readily as the
+   * ten thousand that do not. So past the limit the probe still forwards
+   * what it recognises as a network event, on an allowance of the same
+   * size; everything else is dropped until the minute is over.
+   *
+   * Under the limit nothing is inspected: a line is only read for its
+   * event when the alternative is dropping it.
+   */
+  private static consumeRateLimitSlot(parsed: ParsedSyslogMessage): boolean {
     const now: number = Date.now();
 
     if (now - SyslogReceiver.minuteWindowStartedAt >= 60000) {
       if (SyslogReceiver.droppedThisMinute > 0) {
         logger.warn(
-          `Syslog receiver dropped ${SyslogReceiver.droppedThisMinute} messages in the last minute (rate limit: ${PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE}/min)`,
+          `Syslog receiver dropped ${SyslogReceiver.droppedThisMinute} messages in the last minute (rate limit: ${PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE}/min)` +
+            (SyslogReceiver.eventsKeptPastLimitThisMinute > 0
+              ? `; forwarded ${SyslogReceiver.eventsKeptPastLimitThisMinute} past the limit because they are network events`
+              : ""),
         );
       }
       SyslogReceiver.minuteWindowStartedAt = now;
       SyslogReceiver.forwardedThisMinute = 0;
       SyslogReceiver.droppedThisMinute = 0;
+      SyslogReceiver.eventsKeptPastLimitThisMinute = 0;
     }
 
     if (
-      SyslogReceiver.forwardedThisMinute >= PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE
+      SyslogReceiver.forwardedThisMinute < PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE
     ) {
-      SyslogReceiver.droppedThisMinute++;
-      return false;
+      SyslogReceiver.forwardedThisMinute++;
+      return true;
     }
 
-    SyslogReceiver.forwardedThisMinute++;
-    return true;
+    if (
+      SyslogReceiver.eventsKeptPastLimitThisMinute <
+        PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE &&
+      SyslogReceiver.isNetworkEvent(parsed)
+    ) {
+      SyslogReceiver.eventsKeptPastLimitThisMinute++;
+      return true;
+    }
+
+    SyslogReceiver.droppedThisMinute++;
+    return false;
+  }
+
+  // Whether a vendor parser reads the line as something that happened.
+  private static isNetworkEvent(parsed: ParsedSyslogMessage): boolean {
+    try {
+      return Boolean(SyslogEventNormalizer.normalizeParsed(parsed).eventName);
+    } catch {
+      return false;
+    }
   }
 }
