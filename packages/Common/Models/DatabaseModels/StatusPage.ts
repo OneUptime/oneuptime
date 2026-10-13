@@ -2100,6 +2100,61 @@ export default class StatusPage extends BaseModel {
     ],
   })
   @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Sign Readers Out After (Hours)",
+    description:
+      "How long, in hours, a private user stays signed in to this private status page after signing in, however active they are - with a password, SSO or OIDC. When the time is up they sign in again. Applies to readers signed in now too. A whole number from 1 to 8760; empty for no limit, where a reader stays signed in while they open the page at least once every 30 days.",
+    example: 12,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  /*
+   * A ceiling on every private user's session, counted from its sign-in
+   * (Types/StatusPage/PrivateUserSessionLength): with SSO, readers go back
+   * to the identity provider at least this often, so Entra or Okta decides
+   * afresh rather than only at the first sign-in. Session hardening for
+   * single sign-on, sold with it on Scale; no limit - empty, its default -
+   * works on every plan (Types/Billing/PlanGatedColumnDefault).
+   */
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public privateUserSessionLengthInHours?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "smtpConfigId",
     type: TableColumnType.Entity,
     modelType: ProjectSmtpConfig,

@@ -16467,7 +16467,7 @@
   "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.": "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.",
   "Session replay recordings": "Session replay recordings",
   "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.": "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-  "Sessions": "Sessions",
+  "Sessions": "Sessioner",
   "Sessions Deleted": "Sessions Deleted",
   "Sessions analysed": "Sessions analysed",
   "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.": "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.",
@@ -28152,5 +28152,18 @@
   "Your {{workspace}} account is already connected": "Din {{workspace}}-konto er allerede forbundet",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values passer kun, når hver kontrol i vinduet passede. Any Value passer, så snart én kontrol gjorde det.",
   "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Gennemsnit, Sum, Maximum Value og Minimum Value sammenligner ét tal for hele vinduet. All Values kræver, at hver kontrol opfylder betingelsen, Any Value kun én.",
-  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Gør vinduet længere end overvågningsintervallet, så det rummer flere kontroller. En monitor, der kontrolleres hvert 5. minut, har kun én kontrol i et vindue på 5 minutter."
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Gør vinduet længere end overvågningsintervallet, så det rummer flere kontroller. En monitor, der kontrolleres hvert 5. minut, har kun én kontrol i et vindue på 5 minutter.",
+  "12 hours": "12 timer",
+  "14 days": "14 dage",
+  "3 days": "3 dage",
+  "30 days": "30 dage",
+  "4 hours": "4 timer",
+  "7 days": "7 dage",
+  "8 hours": "8 timer",
+  "How long readers stay signed in to this status page after they sign in.": "Hvor længe besøgende forbliver logget ind på denne statusside, efter de har logget ind.",
+  "Sign Readers Out After (Hours)": "Log besøgende ud efter (timer)",
+  "Sign readers out after": "Log besøgende ud efter",
+  "{{hours}} hours": "{{hours}} timer",
+  "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.": "Besøgende logger ind igen så længe efter, at de loggede ind, uanset hvor aktive de er. Med SSO eller OIDC tjekker din identitetsudbyder dem så igen. Det gælder også besøgende, der er logget ind nu.",
+  "Readers stay signed in as long as they open the page at least once every 30 days.": "Besøgende forbliver logget ind, så længe de åbner siden mindst én gang hver 30. dag."
 }

@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import { getIpAllowlistFoldedItem } from "../../../Components/IpAllowlist/IpAllowlistCopy";
 import StatusPageAccessCard from "../../../Components/StatusPage/StatusPageAccessCard";
+import StatusPageSessionLengthCard from "../../../Components/StatusPage/StatusPageSessionLengthCard";
 import StatusPageAccessCopy, {
   getIpAllowlistEntries,
   getIpAllowlistProblem,
@@ -35,7 +36,8 @@ import React, {
  * Status Pages -> a page -> Security -> Access (the old "Authentication
  * Settings", at the same address): who can see the page, as one choice -
  * anyone with the link, only people who sign in, or anyone with the
- * password (StatusPageAccessCard). The IP allowlist, which applies whoever
+ * password (StatusPageAccessCard) - then how long readers stay signed in
+ * (StatusPageSessionLengthCard). The IP allowlist, which applies whoever
  * the page is open to and which few pages need, is folded under Advanced,
  * which says "Configured" while the server enforces it.
  */
@@ -58,6 +60,8 @@ const StatusPageAccess: FunctionComponent<
   return (
     <Fragment>
       <StatusPageAccessCard statusPageId={modelId} />
+
+      <StatusPageSessionLengthCard statusPageId={modelId} />
 
       <AdvancedPageSection
         description={StatusPageAccessCopy.advancedDescription}

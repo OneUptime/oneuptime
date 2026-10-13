@@ -16467,7 +16467,7 @@
   "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.": "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.",
   "Session replay recordings": "Session replay recordings",
   "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.": "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-  "Sessions": "Sessions",
+  "Sessions": "सत्र",
   "Sessions Deleted": "Sessions Deleted",
   "Sessions analysed": "Sessions analysed",
   "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.": "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.",
@@ -28152,5 +28152,18 @@
   "Your {{workspace}} account is already connected": "आपका {{workspace}} खाता पहले से कनेक्ट है",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values तभी मेल खाता है जब विंडो की हर जाँच मेल खाई हो। Any Value जैसे ही कोई एक जाँच मेल खाती है, मेल खा जाता है।",
   "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "औसत, योग, Maximum Value और Minimum Value पूरी विंडो के लिए एक ही आंकड़े की तुलना करते हैं। All Values के लिए हर जाँच को शर्त पूरी करनी होती है, Any Value के लिए सिर्फ़ एक को।",
-  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "विंडो को मॉनिटरिंग अंतराल से लंबा रखें, ताकि उसमें कई जाँचें आएँ। जो मॉनिटर हर 5 मिनट में जाँचा जाता है, उसकी किसी भी 5 मिनट की विंडो में सिर्फ़ एक जाँच होती है।"
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "विंडो को मॉनिटरिंग अंतराल से लंबा रखें, ताकि उसमें कई जाँचें आएँ। जो मॉनिटर हर 5 मिनट में जाँचा जाता है, उसकी किसी भी 5 मिनट की विंडो में सिर्फ़ एक जाँच होती है।",
+  "12 hours": "12 घंटे",
+  "14 days": "14 दिन",
+  "3 days": "3 दिन",
+  "30 days": "30 दिन",
+  "4 hours": "4 घंटे",
+  "7 days": "7 दिन",
+  "8 hours": "8 घंटे",
+  "How long readers stay signed in to this status page after they sign in.": "विज़िटर साइन इन करने के बाद कितनी देर तक इस स्थिति पृष्ठ पर साइन इन रहते हैं।",
+  "Sign Readers Out After (Hours)": "इतने समय बाद विज़िटर को साइन आउट करें (घंटे)",
+  "Sign readers out after": "इतने समय बाद विज़िटर को साइन आउट करें",
+  "{{hours}} hours": "{{hours}} घंटे",
+  "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.": "विज़िटर चाहे कितने भी सक्रिय हों, साइन इन करने के इतने समय बाद उन्हें फिर से साइन इन करना होता है। SSO या OIDC के साथ, तब आपका पहचान प्रदाता उनकी फिर से जाँच करता है। यह अभी साइन इन किए हुए विज़िटर पर भी लागू होता है।",
+  "Readers stay signed in as long as they open the page at least once every 30 days.": "विज़िटर तब तक साइन इन रहते हैं, जब तक वे हर 30 दिन में कम से कम एक बार पृष्ठ खोलते हैं।"
 }

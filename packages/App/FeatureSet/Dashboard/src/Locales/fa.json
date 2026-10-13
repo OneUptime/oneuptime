@@ -16467,7 +16467,7 @@
   "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.": "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.",
   "Session replay recordings": "Session replay recordings",
   "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.": "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-  "Sessions": "Sessions",
+  "Sessions": "نشست‌ها",
   "Sessions Deleted": "Sessions Deleted",
   "Sessions analysed": "Sessions analysed",
   "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.": "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.",
@@ -28152,5 +28152,18 @@
   "Your {{workspace}} account is already connected": "حساب {{workspace}} شما از قبل وصل است",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values فقط زمانی برقرار است که همه بررسی‌های بازه برقرار بوده باشند. Any Value به محض برقرار شدن یک بررسی برقرار می‌شود.",
   "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "میانگین، جمع، Maximum Value و Minimum Value یک عدد را برای کل بازه مقایسه می‌کنند. All Values لازم دارد که هر بررسی شرط را برآورده کند و Any Value فقط یکی.",
-  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "بازه را طولانی‌تر از فاصله پایش انتخاب کنید تا چند بررسی در آن بگنجد. مانیتوری که هر ۵ دقیقه بررسی می‌شود، در هر بازه ۵ دقیقه‌ای فقط یک بررسی دارد."
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "بازه را طولانی‌تر از فاصله پایش انتخاب کنید تا چند بررسی در آن بگنجد. مانیتوری که هر ۵ دقیقه بررسی می‌شود، در هر بازه ۵ دقیقه‌ای فقط یک بررسی دارد.",
+  "12 hours": "۱۲ ساعت",
+  "14 days": "۱۴ روز",
+  "3 days": "۳ روز",
+  "30 days": "۳۰ روز",
+  "4 hours": "۴ ساعت",
+  "7 days": "۷ روز",
+  "8 hours": "۸ ساعت",
+  "How long readers stay signed in to this status page after they sign in.": "بازدیدکنندگان پس از ورود، چه مدت در این صفحه وضعیت وارد شده باقی می‌مانند.",
+  "Sign Readers Out After (Hours)": "خارج کردن بازدیدکنندگان پس از (ساعت)",
+  "Sign readers out after": "خارج کردن بازدیدکنندگان پس از",
+  "{{hours}} hours": "{{hours}} ساعت",
+  "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.": "بازدیدکنندگان، هر قدر هم فعال باشند، این مدت پس از ورود دوباره وارد می‌شوند. با SSO یا OIDC، ارائه‌دهنده هویت شما در آن زمان دوباره آن‌ها را بررسی می‌کند. این برای بازدیدکنندگانی که اکنون وارد شده‌اند هم اعمال می‌شود.",
+  "Readers stay signed in as long as they open the page at least once every 30 days.": "بازدیدکنندگان تا زمانی که دست‌کم هر ۳۰ روز یک بار صفحه را باز کنند، وارد شده باقی می‌مانند."
 }

@@ -16467,7 +16467,7 @@
   "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.": "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.",
   "Session replay recordings": "Session replay recordings",
   "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.": "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-  "Sessions": "Sessions",
+  "Sessions": "Sessões",
   "Sessions Deleted": "Sessions Deleted",
   "Sessions analysed": "Sessions analysed",
   "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.": "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.",
@@ -28152,5 +28152,18 @@
   "Your {{workspace}} account is already connected": "Sua conta do {{workspace}} já está conectada",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values só corresponde quando todas as verificações da janela corresponderam. Any Value corresponde assim que uma verificação correspondeu.",
   "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Média, Soma, Maximum Value e Minimum Value comparam um único valor para toda a janela. All Values exige que todas as verificações cumpram a condição, Any Value apenas uma.",
-  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Escolha uma janela mais longa que o intervalo de monitoramento para que ela contenha várias verificações. Um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos."
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Escolha uma janela mais longa que o intervalo de monitoramento para que ela contenha várias verificações. Um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.",
+  "12 hours": "12 horas",
+  "14 days": "14 dias",
+  "3 days": "3 dias",
+  "30 days": "30 dias",
+  "4 hours": "4 horas",
+  "7 days": "7 dias",
+  "8 hours": "8 horas",
+  "How long readers stay signed in to this status page after they sign in.": "Por quanto tempo os visitantes continuam conectados a esta página de status depois de entrar.",
+  "Sign Readers Out After (Hours)": "Desconectar os visitantes após (horas)",
+  "Sign readers out after": "Desconectar os visitantes após",
+  "{{hours}} hours": "{{hours}} horas",
+  "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.": "Os visitantes entram de novo quando passa esse tempo desde que entraram, por mais ativos que estejam. Com SSO ou OIDC, seu provedor de identidade os verifica de novo nesse momento. Isso também vale para os visitantes conectados agora.",
+  "Readers stay signed in as long as they open the page at least once every 30 days.": "Os visitantes continuam conectados enquanto abrirem a página pelo menos uma vez a cada 30 dias."
 }

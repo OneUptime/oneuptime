@@ -16467,7 +16467,7 @@
   "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.": "Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up.",
   "Session replay recordings": "Session replay recordings",
   "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.": "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-  "Sessions": "Sessions",
+  "Sessions": "세션",
   "Sessions Deleted": "Sessions Deleted",
   "Sessions analysed": "Sessions analysed",
   "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.": "Sessions are capped at the maximum recording duration; the recorder stopped at the cap. Everything up to that point plays normally.",
@@ -28152,5 +28152,18 @@
   "Your {{workspace}} account is already connected": "{{workspace}} 계정이 이미 연결되어 있습니다",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values는 기간 내 모든 검사가 일치했을 때만 일치합니다. Any Value는 검사 하나가 일치하는 즉시 일치합니다.",
   "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "평균, 합계, Maximum Value, Minimum Value는 기간 전체에 대해 하나의 값을 비교합니다. All Values는 모든 검사가 조건을 충족해야 하고, Any Value는 하나만 충족하면 됩니다.",
-  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "기간을 모니터링 간격보다 길게 설정해 여러 검사가 포함되도록 하세요. 5분마다 검사하는 모니터는 5분 기간에 검사가 한 번만 있습니다."
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "기간을 모니터링 간격보다 길게 설정해 여러 검사가 포함되도록 하세요. 5분마다 검사하는 모니터는 5분 기간에 검사가 한 번만 있습니다.",
+  "12 hours": "12시간",
+  "14 days": "14일",
+  "3 days": "3일",
+  "30 days": "30일",
+  "4 hours": "4시간",
+  "7 days": "7일",
+  "8 hours": "8시간",
+  "How long readers stay signed in to this status page after they sign in.": "방문자가 로그인한 후 이 상태 페이지에 로그인 상태로 머무는 시간입니다.",
+  "Sign Readers Out After (Hours)": "방문자 자동 로그아웃 시간 (시간)",
+  "Sign readers out after": "방문자 자동 로그아웃 시간",
+  "{{hours}} hours": "{{hours}}시간",
+  "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.": "방문자는 얼마나 활발하게 사용하든 로그인한 후 이 시간이 지나면 다시 로그인합니다. SSO 또는 OIDC를 사용하는 경우 그때 ID 공급자가 다시 확인합니다. 지금 로그인되어 있는 방문자에게도 적용됩니다.",
+  "Readers stay signed in as long as they open the page at least once every 30 days.": "방문자는 30일에 한 번 이상 페이지를 여는 동안 로그인 상태로 유지됩니다."
 }

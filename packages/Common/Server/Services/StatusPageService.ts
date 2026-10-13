@@ -95,6 +95,10 @@ import {
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
 import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
+import {
+  getPrivateUserSessionLengthProblem,
+  PRIVATE_USER_SESSION_LENGTH_COLUMN,
+} from "../../Types/StatusPage/PrivateUserSessionLength";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -228,6 +232,23 @@ export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
   _id: true,
   projectId: true,
   onlyShowScopedIncidents: true,
+};
+
+/*
+ * Refuses a status page write holding a value no reader of it can use
+ * (checkCreateBeforeReferences, checkUpdateBeforeReferences).
+ */
+export const assertStatusPageWriteValues: (
+  data: Record<string, unknown>,
+) => void = (data: Record<string, unknown>): void => {
+  const sessionLengthProblem: string | null =
+    getPrivateUserSessionLengthProblem(
+      data[PRIVATE_USER_SESSION_LENGTH_COLUMN],
+    );
+
+  if (sessionLengthProblem) {
+    throw new BadDataException(sessionLengthProblem);
+  }
 };
 
 export class Service extends ProjectReferencesService<StatusPage> {
@@ -438,6 +459,28 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return statusPage.subscriberEmailNotificationFooterText;
     }
     return this.getDefaultEmailFooterText();
+  }
+
+  /*
+   * What a write may hold, answered before anything is looked up
+   * (ProjectReferencesService runs these first, in the base hooks): Sign
+   * Readers Out After is a whole number of hours in range, or nothing for
+   * no limit (Types/StatusPage/PrivateUserSessionLength).
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<void> {
+    assertStatusPageWriteValues(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<StatusPage>,
+  ): Promise<void> {
+    assertStatusPageWriteValues(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
   }
 
   @CaptureSpan()
@@ -956,6 +999,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
           masterPassword: true,
           isArchived: true,
           requireSsoForLogin: true,
+          privateUserSessionLengthInHours: true,
         },
       });
 
@@ -1049,7 +1093,9 @@ export class Service extends ProjectReferencesService<StatusPage> {
              * The same read asks whether the session's sign-in still counts:
              * the SSO provider that signed it in still vouches for it, or -
              * for a session no provider signed in - the page does not
-             * require SSO (StatusPagePrivateUserSessionService.addSignInRule).
+             * require SSO; and that it began within the page's Sign Readers
+             * Out After, when it has one
+             * (StatusPagePrivateUserSessionService.addSignInRule).
              */
             const session: StatusPagePrivateUserSession | null =
               await StatusPagePrivateUserSessionService.addSignInRule(
@@ -1071,7 +1117,11 @@ export class Service extends ProjectReferencesService<StatusPage> {
                   .andWhere("session.refreshTokenExpiresAt > :now", {
                     now: OneUptimeDate.getCurrentDate(),
                   }),
-                { requiresSso: Boolean(statusPage.requireSsoForLogin) },
+                {
+                  requiresSso: Boolean(statusPage.requireSsoForLogin),
+                  sessionLengthInHours:
+                    statusPage.privateUserSessionLengthInHours,
+                },
               ).getOne();
 
             if (

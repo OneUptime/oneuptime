@@ -28152,5 +28152,18 @@
   "Your {{workspace}} account is already connected": "Votre compte {{workspace}} est déjà connecté",
   "All Values matches only when every check in the window matched. Any Value matches as soon as one check did.": "All Values ne correspond que si chaque vérification de la fenêtre a correspondu. Any Value correspond dès qu'une vérification a correspondu.",
   "Average, Sum, Maximum Value and Minimum Value compare one figure for the whole window. All Values needs every check to meet the condition, Any Value just one.": "Moyenne, Somme, Maximum Value et Minimum Value comparent une seule valeur pour toute la fenêtre. All Values exige que chaque vérification remplisse la condition, Any Value une seule.",
-  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Choisissez une fenêtre plus longue que l'intervalle de surveillance pour qu'elle contienne plusieurs vérifications. Un moniteur vérifié toutes les 5 minutes n'a qu'une vérification dans une fenêtre de 5 minutes."
+  "Make the window longer than the monitoring interval so it holds several checks. A monitor checked every 5 minutes has one check in any 5-minute window.": "Choisissez une fenêtre plus longue que l'intervalle de surveillance pour qu'elle contienne plusieurs vérifications. Un moniteur vérifié toutes les 5 minutes n'a qu'une vérification dans une fenêtre de 5 minutes.",
+  "12 hours": "12 heures",
+  "14 days": "14 jours",
+  "3 days": "3 jours",
+  "30 days": "30 jours",
+  "4 hours": "4 heures",
+  "7 days": "7 jours",
+  "8 hours": "8 heures",
+  "How long readers stay signed in to this status page after they sign in.": "Combien de temps les visiteurs restent connectés à cette page de statut après s'être connectés.",
+  "Sign Readers Out After (Hours)": "Déconnecter les visiteurs après (heures)",
+  "Sign readers out after": "Déconnecter les visiteurs après",
+  "{{hours}} hours": "{{hours}} heures",
+  "Readers sign in again this long after they signed in, however active they are. With SSO or OIDC, your identity provider checks them again then. This applies to readers who are signed in now.": "Les visiteurs se reconnectent ce délai après leur connexion, quelle que soit leur activité. Avec le SSO ou OIDC, votre fournisseur d'identité les vérifie alors à nouveau. Cela s'applique aussi aux visiteurs connectés en ce moment.",
+  "Readers stay signed in as long as they open the page at least once every 30 days.": "Les visiteurs restent connectés tant qu'ils ouvrent la page au moins une fois tous les 30 jours."
 }
