@@ -1174,8 +1174,8 @@ test.describe("critical alerts in the device list", () => {
 
   async function listReads(page: Page): Promise<number> {
     return await page.evaluate((): number => {
-      return (window as Window & { __fixture: { listReads: number } }).__fixture
-        .listReads;
+      return (window as unknown as { __fixture: { listReads: number } })
+        .__fixture.listReads;
     });
   }
 
