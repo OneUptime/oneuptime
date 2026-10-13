@@ -1,118 +1,178 @@
-# 整合
+# 整合總覽
 
-OneUptime 透過 **[Workflows](/docs/workflows/index)**（內建的自動化引擎）連接您的團隊已在使用的工具——Zabbix、Jira、PagerDuty、Slack 以及更多。不需要另外安裝任何外掛。您在拖放式畫布上把整合串接起來，只要有事情發生它就會執行。
+OneUptime 可以與你的團隊已經在用的工具配合使用。警示工具在 OneUptime 中建立事件，OneUptime 則在其他工具中建立工單、呼叫待命人員並發送聊天訊息。有些工具透過表單連接，有些透過現成的工作流程範本連接。其他任何帶有 Webhook 或 API 的工具，都可以透過你自己建置的工作流程連接。
 
-本頁說明每個整合所使用的兩種模式。一旦您理解了它們，幾乎任何東西都能連接到 OneUptime，甚至包括在這裡沒有專屬頁面的工具。
+:::cards
+- [選擇連接方式](#選擇連接方式): 四種連接方式，以及各自的適用場景。
+- [目錄](#目錄): 所有有指南的工具，按用途分組。
+- [建置你自己的整合](#建置你自己的整合): 適用於任何其他工具的傳入和傳出模式。
+- [妥善保管憑證](#妥善保管憑證): 密鑰變數，以及每個工具需要的標頭。
+:::
 
-## 兩種模式
+## 整合的運作方式
 
-每個整合都會以兩個方向之一移動資料（許多整合兩者都會用到）。
+每個整合都在一個方向或兩個方向上傳遞資料。**傳入** 時，另一個工具告訴 OneUptime 出了問題，OneUptime 建立事件或警示並呼叫待命團隊。**傳出** 時，OneUptime 中發生了某件事，工作流程把它告訴另一個工具：建立工單、呼叫某人或發布訊息。
 
-### 入站（Inbound）—— 另一個工具將資料送進 OneUptime
-
-當外部系統需要_在 OneUptime 中建立或更新某些東西_時使用這種模式——通常是在它偵測到問題時開立一個事件（incident）或一個警示（alert）。
-
-1. 建立一個以 **[Webhook 觸發器](/docs/workflows/triggers#webhook)** 開始的工作流程。OneUptime 會給您一個唯一的 URL。
-2. 在另一個工具中，設定一個 webhook／通知動作，使其在有事情發生時 POST 到該 URL。
-3. 在工作流程中，讀取傳入的酬載（payload），並使用 **Create Incident**（或 Create Alert）元件來記錄它。
-
-```text
-Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
+```mermaid title="傳入與傳出"
+flowchart TB
+    tool["警示工具或<br/>安全工具"] -->|"傳入"| record["事件或警示，<br/>呼叫待命人員"]
+    record -->|"傳出"| workflow["工作流程，例如<br/>On Create Incident"]
+    workflow -->|"API 呼叫<br/>或訊息"| other["工單、呼叫<br/>或聊天工具"]
+    other -.->|"Webhook 回傳"| record
 ```
 
-> **提示：** 特別是對警示工具而言，**[Incoming Request 監控](/docs/monitor/incoming-request-monitor)** 通常是比較好的入站路徑。它不必建立工作流程就能提供一個 webhook URL，為酬載中的每一則警示各開立一個事件，升級到待命政策，並在工具回報復原時逐一解決這些事件。當您需要 OneUptime 原生不支援的邏輯時，再改用工作流程。完整範例請見 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
+像 Jira 或 Dynamics 365 這樣的雙向整合會同時使用兩個方向：一個工作流程把事件傳送出去，另一個由對方工具的 Webhook 啟動的工作流程把變更帶回來。
 
-### 出站（Outbound）—— OneUptime 將資料送到另一個工具
+## 選擇連接方式
 
-當_OneUptime 中的某些東西應該出現在另一個工具中_時使用這種模式——開立一張 Jira 工單、在 PagerDuty 中呼叫某人、或張貼到 Slack。
+| 方式 | 最適合 | 範例 |
+| --- | --- | --- |
+| 內建連接 | OneUptime 自己連接的工具。只需填寫表單，無需建置任何東西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Huntress](/docs/integrations/huntress)、[安全性事件](/docs/telemetry/security-events) 連接 |
+| 工作流程範本 | 雙向保持同步的工單工具，以及聊天訊息。選擇一個範本並填寫幾項設定即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Incoming Request 監測器 | 傳送 Webhook 的警示工具。無需工作流程，每條警示對應一個事件，通知待命人員，並在警示恢復時解決。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
+| 你自己建置的工作流程 | 任何帶有 Webhook 或 REST API 的工具，以及你自己的任何邏輯。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
-1. 建立一個以 **[OneUptime 事件觸發器](/docs/workflows/triggers#oneuptime-event-triggers)** 開始的工作流程——例如 **Incident → On Create**。
-2. 加入一個 **[API 元件](/docs/workflows/components#api)**，以事件的詳細資訊呼叫另一個工具的 REST API。
-3. 將任何 API 金鑰儲存為 **祕密[全域變數](/docs/workflows/variables#global-variables)**，讓它們永遠不會出現在工作流程或其記錄檔中。
-
-```text
-OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
-```
+從表格頂部開始看：越靠上的方式，需要維護的東西越少。
 
 ## 目錄
 
-| 工具                                                                  | 方向           | 功能說明                                                             |
-| --------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------- |
-| [Zabbix](/docs/integrations/zabbix)                                   | 入站           | 將 Zabbix 問題轉換為 OneUptime 事件（並在復原時解決它們）。          |
-| [Jira](/docs/integrations/jira)                                       | 出站（＋入站） | 為每個事件開立一個 Jira issue；並將狀態同步回來。                    |
-| [PagerDuty](/docs/integrations/pagerduty)                             | 出站（＋入站） | 從 OneUptime 事件觸發並解決 PagerDuty 事件。                         |
-| [Opsgenie](/docs/integrations/opsgenie)                               | 出站（＋入站） | 建立並關閉 Opsgenie 警示。                                           |
-| [ServiceNow](/docs/integrations/servicenow)                           | 出站（＋入站） | 從 OneUptime 開立 ServiceNow 事件。                                  |
-| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | 出站（＋入站） | 從 OneUptime 事件開立並解決 Dynamics 365 Case。                      |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站           | 將 Alertmanager 通知轉換為事件。                                     |
-| [Grafana](/docs/integrations/grafana)                                 | 入站           | 將 Grafana 警示轉換為事件。                                          |
-| [Datadog](/docs/integrations/datadog)                                 | 入站           | 將 Datadog 監控警示轉換為事件。                                      |
-| [Huntress](/docs/integrations/huntress)                               | 入站                   | 為 Huntress 事件報告呼叫待命人員，並在報告關閉時解決事件。 |
-| [GitHub](/docs/integrations/github)                                   | 出站           | 為事件開立一個 GitHub issue。                                        |
-| [GitLab](/docs/integrations/gitlab)                                   | 出站           | 為事件開立一個 GitLab issue。                                        |
-| [Discord](/docs/integrations/discord)                                 | 出站           | 將事件更新張貼到 Discord 頻道。                                      |
-| [Telegram](/docs/integrations/telegram)                               | 出站           | 將事件更新傳送到 Telegram 聊天。                                     |
-| [IRC](/docs/integrations/irc)                                         | 出站           | 將事件更新張貼到 IRC 頻道。                                          |
-| [Slack](/docs/workspace-connections/slack)                            | 雙向           | 原生的工作區連線——頻道、警示與待命（on-call）。                      |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 雙向           | 原生的工作區連線。                                                   |
+### 監控與警示工具
 
-> **Slack 與 Microsoft Teams** 擁有更深入的原生連線，超越了工作流程的範圍——自動建立事件頻道、雙向動作以及待命通知。對於這些功能，請使用 [Slack](/docs/workspace-connections/slack) 與 [Microsoft Teams](/docs/workspace-connections/microsoft-teams) 工作區連線，而不是建立一個工作流程。
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [Zabbix](/docs/integrations/zabbix) | 傳入 | 把 Zabbix 問題轉為事件，並在 Zabbix 恢復時解決它們。 |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 傳入 | 把 Alertmanager 通知轉為事件。 |
+| [Grafana](/docs/integrations/grafana) | 傳入 | 把 Grafana 警示轉為事件。 |
+| [Datadog](/docs/integrations/datadog) | 傳入 | 把 Datadog 監控警示轉為事件。 |
 
-## 處理祕密資訊
+### 安全工具
 
-絕對不要將 API 金鑰或權杖直接貼進區塊中。請改用以下方式：
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [Huntress](/docs/integrations/huntress) | 傳入 | 針對 Huntress 事件報告呼叫待命人員，並在報告關閉時解決事件。 |
+| [Google SecOps](/docs/integrations/google-secops) | 傳入 | 把 Google SecOps 偵測結果匯入安全性事件。 |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 傳入 | 把 Microsoft Sentinel 事件匯入安全性事件。 |
+| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | 傳入 | 把 Microsoft Defender XDR 警示匯入安全性事件。 |
+| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | 傳入 | 把 CrowdStrike Falcon 警示匯入安全性事件。 |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | 傳入 | 把 Splunk 重要事件（notable event）匯入安全性事件。 |
+| [Elastic Security](/docs/integrations/elastic-security) | 傳入 | 把 Elastic Security 偵測警示匯入安全性事件。 |
+| [AWS Security Hub](/docs/integrations/aws-security-hub) | 傳入 | 把 AWS Security Hub 發現結果匯入安全性事件。 |
+| [Okta 系統日誌](/docs/integrations/okta) | 傳入 | 把 Okta 登入、帳戶變更和威脅偵測匯入安全性事件。 |
 
-1. 前往 **工作流程 → 全域變數**。
-2. 建立一個變數——例如 `JIRA_AUTH`——並開啟 **Secret**。
-3. 在任何地方以 `{{global.variables.JIRA_AUTH}}` 引用它。
+### 工單與 IT 服務管理
 
-祕密變數在您儲存後會在 UI 中隱藏，並會從執行記錄檔中清除。請參閱 [Variables](/docs/workflows/variables#global-variables)。
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [Jira](/docs/integrations/jira) | 雙向 | 為每個事件或警示建立一個 Jira 問題，並把狀態變更和留言同步回來。 |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) | 雙向 | 為每個事件或警示建立一個 Dynamics 365 案例，並把狀態變更和備註同步回來。 |
+| [ServiceNow](/docs/integrations/servicenow) | 傳出 | 為每個 OneUptime 事件建立一個 ServiceNow 事件，並隨該事件一起解決。 |
+| [GitHub](/docs/integrations/github) | 傳出 | 為事件建立一個 GitHub issue。 |
+| [GitLab](/docs/integrations/gitlab) | 傳出 | 為事件建立一個 GitLab issue。 |
 
-## 驗證速查表
+### 呼叫工具
 
-大多數出站整合在 API 區塊上都需要一個 `Authorization` 標頭。常見的形式如下：
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [PagerDuty](/docs/integrations/pagerduty) | 傳出 | 為每個 OneUptime 事件觸發一個 PagerDuty 事件，並隨該事件一起解決。 |
+| [Opsgenie](/docs/integrations/opsgenie) | 傳出 | 為每個 OneUptime 事件建立一個 Opsgenie 警示，並隨該事件一起關閉。 |
 
-| 機制                         | 標頭值                                             | 使用的工具                          |
-| --------------------------- | -------------------------------------------------- | ----------------------------------- |
-| Bearer token                | `Bearer {{global.variables.TOKEN}}`                | GitHub、許多現代 API                |
-| Basic auth                  | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud、ServiceNow              |
-| API key 標頭                | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
-| Token 放在主體中             | JSON 主體中的 `routing_key` 欄位                    | PagerDuty Events API                |
-| Private token 標頭           | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
-| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365（Dataverse） |
+### 聊天工具
 
-對於 Basic auth，請將 `username:password`（或 `email:api_token`）以 base64 編碼**一次**，然後將結果儲存為祕密。在 macOS/Linux 上：
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [Slack](/docs/workspace-connections/slack) | 雙向 | 內建連接：事件頻道、從 Slack 執行操作，以及待命。 |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | 雙向 | 內建連接：事件頻道、從 Teams 執行操作，以及待命。 |
+| [Mattermost](/docs/workflows/components#mattermost) | 傳出 | 把事件更新發布到 Mattermost 頻道。 |
+| [Discord](/docs/integrations/discord) | 傳出 | 把事件更新發布到 Discord 頻道。 |
+| [Telegram](/docs/integrations/telegram) | 傳出 | 把事件更新發送到 Telegram 聊天。 |
+| [IRC](/docs/integrations/irc) | 傳出 | 把事件更新發布到 IRC 頻道。 |
+
+> [!TIP]
+> Slack 和 Microsoft Teams 也有工作流程步驟。事件頻道和待命請使用內建連接；如果只需要在頻道裡發一條訊息，請使用工作流程步驟。
+
+## 從其他工具移轉
+
+如果要離開其他待命、正常運作時間監控或狀態頁工具，請把團隊移轉過來，而不是把兩者連接起來。**專案設定 → 從其他工具匯入** 會用 API 金鑰讀取你的帳戶，顯示它找到的內容，並建立你勾選的項目。每個工具都有一份指南：
+
+- 待命和事件工具：[Opsgenie](/docs/moving-to-oneuptime/opsgenie)、[PagerDuty](/docs/moving-to-oneuptime/pagerduty)、[incident.io](/docs/moving-to-oneuptime/incident-io)、[Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) 和 [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall)。
+- 正常運作時間和狀態頁工具：[UptimeRobot](/docs/moving-to-oneuptime/uptimerobot)、[Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage)、[Better Stack](/docs/moving-to-oneuptime/better-stack)、[Pingdom](/docs/moving-to-oneuptime/pingdom)、[StatusCake](/docs/moving-to-oneuptime/statuscake) 和 [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma)。
+
+## 建置你自己的整合
+
+沒有指南的工具也符合兩種模式之一。如果它能傳送 Webhook，就使用傳入模式；如果它有 REST API，就使用傳出模式。兩者都是工作流程：請參閱 [工作流程概觀](/docs/workflows/index) 開始使用。
+
+### 傳入：另一個工具把資料傳送到 OneUptime
+
+對於警示工具，先從 [Incoming Request 監測器](/docs/monitor/incoming-request-monitor#接收其他系統的警示) 開始：它為每條警示建立一個事件，並在恢復時解決，無需建置任何東西。需要自己的邏輯時，再建置工作流程：
+
+:::steps
+1. 開啟 **工作流程**，點選 **建立工作流程**，然後點選 **從零開始**。為工作流程命名，然後點選 **建立工作流程**。
+2. 點選虛線的 **Choose what starts this workflow** 區塊，選擇 **Webhook**。點選該觸發器，然後點選 **複製 URL**。
+3. 在另一個工具中，把它的 Webhook 以 `POST` 請求傳送到該 URL，並帶上 `Content-Type: application/json`。
+4. 新增處理它的區塊。這些區塊透過 `{{local.components.webhook-1.returnValues.request-body.status}}` 這樣的引用讀取請求：用 **If / Else** 區塊檢查某個欄位，再用 **Create One Incident** 宣告事件。
+5. 在 **建構器** 頂部開啟 **已啟用**，從另一個工具傳送一次測試，然後開啟 **日誌 → 執行記錄** 檢視收到了什麼。
+:::
+
+URL 是唯一的憑證，所以要像對待密碼一樣對待它。請參閱 [Webhook](/docs/workflows/triggers#webhook)。
+
+### 傳出：OneUptime 把資料傳送到另一個工具
+
+:::steps
+1. 按照[下文](#妥善保管憑證)所示，把該工具的 API 金鑰儲存為一個密鑰全域變數。
+2. 建立一個工作流程，點選虛線區塊並選擇一個事件觸發器，例如 **On Create Incident**。在它的 **Select Fields** 中勾選要傳送的欄位，例如 `title` 和 `description`。
+3. 點選 **新增元件**，新增一個 **API Post (JSON)** 區塊。把觸發器的 **Success** 點連接到它。
+4. 填寫它的 **URL**，在 **Request Headers** 中填入 `Authorization` 標頭，在 **Request Body** 中填入事件的欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。
+5. 點選 **執行工作流程**，輸入某個事件的 **事件 ID**，然後執行。測試執行會真的傳送請求。然後開啟 **已啟用**。
+:::
+
+如果工具需要先轉換資料格式，就在兩者之間新增一個 [Run Custom JavaScript](/docs/workflows/components#custom-code) 區塊。Zendesk、New Relic、AWS（透過 SNS）、StatusCake 以及其他各種工具都是同樣的做法：只有 URL 和請求內文不同。
+
+## 妥善保管憑證
+
+永遠不要把 API 金鑰或權杖貼上到區塊中。把它儲存一次，作為密鑰全域變數：
+
+:::steps
+1. 前往 **工作流程 → 全域變數**，點選 **建立工作流程 變數**。
+2. 為它命名，例如 `JIRA_AUTH`，然後點選 **下一步**。
+3. 把金鑰貼上到 **內容** 中，開啟 **密鑰**，然後點選 **建立工作流程 變數**。
+:::
+
+任何區塊都可以用 `{{global.variables.JIRA_AUTH}}` 讀取它。變數的內容儲存後就無法再讀回，密鑰變數在執行日誌中會被替換為 `[REDACTED]`。對於會過期的權杖，例如 Microsoft Entra ID 的權杖，[OAuth 2.0 變數](/docs/workflows/variables#oauth-20-變數會自動重新整理的權杖) 會自行取得新權杖。請參閱 [工作流程變數](/docs/workflows/variables#全域變數)。
+
+### 驗證速查表
+
+大多數傳出整合把金鑰放在標頭中。常見形式如下：
+
+| 方案 | 要傳送的內容 | 使用者 |
+| --- | --- | --- |
+| Bearer 權杖 | `Authorization: Bearer {{global.variables.TOKEN}}` | GitHub，以及大多數現代 API |
+| Basic 驗證 | `Authorization: Basic {{global.variables.BASE64_USER_PASS}}` | Jira Cloud、ServiceNow |
+| API 金鑰標頭 | `Authorization: GenieKey {{global.variables.OPSGENIE_KEY}}` | Opsgenie |
+| 私有權杖標頭 | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab |
+| 請求內文中的金鑰 | JSON 請求內文中的 `routing_key` | PagerDuty Events API |
+| OAuth 2.0 用戶端憑證 | 來自 OAuth 2.0 變數的 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}` | Microsoft Dynamics 365 |
+
+對於 Basic 驗證，把 `username:password` 或 `email:api_token` 編碼一次，然後把結果儲存為金鑰。在 macOS 或 Linux 上：
 
 ```bash
-printf '%s' 'you@example.com:your_api_token' | base64
+printf '%s' 'you@example.com:your_api_token' | base64 | tr -d '\n'
 ```
 
-## 沒看到您的工具？
+請使用 `printf`，不要用 `echo`：`echo` 會新增一個換行符，它會和其餘內容一起被編碼，從而破壞憑證。`tr` 讓較長的結果保持在一行。
 
-幾乎任何工具都符合上述兩種模式之一：
+## 自行託管安裝
 
-- 如果該工具能在有事情發生時**送出 webhook**，請使用**入站**模式——如果它是警示工具，就將它的 webhook 指向 [Incoming Request 監控](/docs/monitor/incoming-request-monitor)；如果您需要自訂邏輯，則指向 OneUptime Webhook 觸發器。
-- 如果該工具有 **REST API**，請使用**出站**模式——從一個 **API 元件**呼叫它。
-- 如果您需要在兩者之間重新調整資料的形狀，請放入一個 **[Custom Code](/docs/workflows/components#custom-code)** 區塊。
+自行託管的 OneUptime 從你的網路呼叫其他工具，其他工具則從它們的網路呼叫它：
 
-這涵蓋了長尾的工具——Zendesk、AWS CloudWatch（透過 SNS）、New Relic、Splunk、StatusCake 等等。做法是相同的；只有 URL 和酬載會不同。
+- **傳出：** 除非管理員允許，否則發往私有網路位址的工作流程請求會被拒絕。請參閱 [對外網路存取](/docs/workflows/configuration#對外網路存取)。
+- **傳入：** 工具的 Webhook 必須能透過 HTTPS 存取你的 OneUptime，因此雲端工具需要一個可以呼叫的公開位址。
+- **內建整合** 各有一份設定指南：[Slack](/docs/self-hosted/slack-integration)、[Microsoft Teams](/docs/self-hosted/microsoft-teams-integration)、[GitHub](/docs/self-hosted/github-integration)、[Twilio](/docs/self-hosted/twilio-integration)、[SendGrid 傳入郵件](/docs/self-hosted/sendgrid-inbound-email) 和 [推播通知](/docs/self-hosted/push-notifications)。
 
-## 接下來閱讀什麼
+## 後續步驟
 
-- [Workflows Overview](/docs/workflows/index) —— 自動化引擎的運作方式。
-- [Triggers](/docs/workflows/triggers) —— Webhook 與 OneUptime 事件觸發器的詳細說明。
-- [Components](/docs/workflows/components) —— API、Webhook 與資料元件。
-- [Variables](/docs/workflows/variables) —— 祕密資訊以及在區塊之間傳遞資料。
-- [Incoming Request 監控](/docs/monitor/incoming-request-monitor) —— 面向警示工具、不需工作流程的入站路徑。
-- [Zabbix](/docs/integrations/zabbix)、[Jira](/docs/integrations/jira) 與 [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) —— 完整的實作範例。
-
-## 自架部署的網路存取
-
-網路需求現已記錄在各整合的設定指南中。請選擇您的整合：
-
-- [GitHub 整合](/docs/self-hosted/github-integration)
-- [SendGrid 收件電子郵件整合](/docs/self-hosted/sendgrid-inbound-email)
-- [Slack 整合](/docs/self-hosted/slack-integration)
-- [Microsoft Teams 整合](/docs/self-hosted/microsoft-teams-integration)
-- [Twilio 簡訊與語音整合](/docs/self-hosted/twilio-integration)
-- [推播通知](/docs/self-hosted/push-notifications)
+:::cards
+- [工作流程概觀](/docs/workflows/index): 工作流程如何執行，以及如何建置你的第一個工作流程。
+- [傳入請求監控](/docs/monitor/incoming-request-monitor): 無需工作流程即可接收任何工具的警示。
+- [Jira](/docs/integrations/jira): 一個完整的雙向整合，從範本開始。
+- [工作流程變數](/docs/workflows/variables): 在區塊之間傳遞資料，並讓金鑰不出現在區塊中。
+:::
