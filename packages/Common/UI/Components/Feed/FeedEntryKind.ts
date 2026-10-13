@@ -99,6 +99,12 @@ export interface FeedEntryKind {
   icon: IconProp;
   tone: FeedTone;
   burst?: FeedBurstKind | undefined;
+  /*
+   * The words of the toggle that unfolds the entry's details, where "Show
+   * details" is not the most telling - "Show who was notified". A key the
+   * Dashboard's locale files translate.
+   */
+  moreText?: string | undefined;
 }
 
 /*
@@ -157,6 +163,7 @@ export const SHARED_FEED_ENTRY_KINDS: {
     icon: IconProp.Bell,
     tone: FeedTone.Neutral,
     burst: FeedBurstKind.OwnerNotification,
+    moreText: "Show who was notified",
   },
   SubscriberNotificationSent: {
     icon: IconProp.Notification,

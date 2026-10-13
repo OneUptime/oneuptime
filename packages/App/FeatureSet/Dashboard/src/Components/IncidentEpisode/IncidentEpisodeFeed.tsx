@@ -114,6 +114,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
       }),
       icon: kind.icon,
       burstKind: kind.burst,
+      detailsLabel: kind.moreText,
       eventType: episodeFeed.incidentEpisodeFeedEventType,
     };
   };

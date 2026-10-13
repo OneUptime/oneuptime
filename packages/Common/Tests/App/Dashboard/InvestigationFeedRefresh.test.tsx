@@ -65,7 +65,7 @@ import IncidentFeed, {
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
 interface RenderedFeedItem {
@@ -386,7 +386,7 @@ describe("investigation reports in incident and alert feeds", () => {
     expect(request.modelType).toBe(IncidentFeed);
     expect(request.query).toEqual({ incidentId: INCIDENT_ID });
     expect(request.skip).toBe(0);
-    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.limit).toBe(FEED_PAGE_SIZE);
     expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
     expect(request.select).toEqual(
       expect.objectContaining({
@@ -441,7 +441,7 @@ describe("investigation reports in incident and alert feeds", () => {
     expect(request.modelType).toBe(AlertFeed);
     expect(request.query).toEqual({ alertId: ALERT_ID });
     expect(request.skip).toBe(0);
-    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.limit).toBe(FEED_PAGE_SIZE);
     expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
     expect(request.select).toEqual(
       expect.objectContaining({
@@ -617,7 +617,7 @@ describe("investigation reports in incident and alert feeds", () => {
     expect(await screen.findByText(/configuration regression/)).toBeVisible();
     expect(lastRenderedFeedProps().items[0]).toEqual(
       expect.objectContaining({
-        icon: IconProp.Cube,
+        icon: IconProp.LightBulb,
         safeMode: false,
       }),
     );
@@ -631,7 +631,7 @@ describe("investigation reports in incident and alert feeds", () => {
     expect(await screen.findByText(/configuration regression/)).toBeVisible();
     expect(lastRenderedFeedProps().items[0]).toEqual(
       expect.objectContaining({
-        icon: IconProp.Cube,
+        icon: IconProp.LightBulb,
         safeMode: false,
       }),
     );
@@ -644,7 +644,7 @@ describe("investigation reports in incident and alert feeds", () => {
 });
 
 describe("AI root-cause items in incident and alert feeds", () => {
-  test("a structured incident report becomes a compact item with the full report behind More Information", async () => {
+  test("a structured incident report becomes a compact item with the full report under Show the full report", async () => {
     getListMock.mockResolvedValueOnce(
       listResult<IncidentFeed>([
         structuredIncidentAnalysisItem(),
@@ -679,7 +679,7 @@ describe("AI root-cause items in incident and alert feeds", () => {
       expect.objectContaining({
         textInMarkdown: ORDINARY_ROOT_CAUSE,
         moreTextInMarkdown: "",
-        icon: IconProp.Cube,
+        icon: IconProp.LightBulb,
         safeMode: false,
       }),
     );
@@ -693,7 +693,7 @@ describe("AI root-cause items in incident and alert feeds", () => {
     );
   });
 
-  test("a structured alert report becomes a compact item with the full report behind More Information", async () => {
+  test("a structured alert report becomes a compact item with the full report under Show the full report", async () => {
     getListMock.mockResolvedValueOnce(
       listResult<AlertFeed>([
         structuredAlertAnalysisItem(),
@@ -724,7 +724,7 @@ describe("AI root-cause items in incident and alert feeds", () => {
       expect.objectContaining({
         textInMarkdown: ORDINARY_ROOT_CAUSE,
         moreTextInMarkdown: "",
-        icon: IconProp.Cube,
+        icon: IconProp.LightBulb,
         safeMode: false,
       }),
     );
@@ -779,7 +779,7 @@ describe("AI root-cause items in incident and alert feeds", () => {
     );
   });
 
-  test("an unstructured AI report is shown as posted, with no More Information", async () => {
+  test("an unstructured AI report is shown as posted, with no details to unfold", async () => {
     getListMock.mockResolvedValueOnce(
       listResult<IncidentFeed>([incidentAnalysisItem()]) as never,
     );
@@ -812,7 +812,7 @@ describe("AI root-cause items in incident and alert feeds", () => {
     );
   });
 
-  test("an AI item that already has More Information keeps it and its full report text", async () => {
+  test("an AI item that already has details keeps them and its full report text", async () => {
     const incidentItem: IncidentFeed = structuredIncidentAnalysisItem();
     incidentItem.moreInformationInMarkdown = "Existing incident details";
     getListMock.mockResolvedValueOnce(

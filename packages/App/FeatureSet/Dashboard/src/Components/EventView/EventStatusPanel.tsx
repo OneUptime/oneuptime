@@ -258,9 +258,17 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
       translateString(action.label) || action.label;
 
     if (action.menuItems && action.menuItems.length > 0 && !props.isDisabled) {
+      /*
+       * The menu's own wrapper is what the row lays out, so it grows on a
+       * phone the way the other buttons do (flex-auto), and the button
+       * fills it.
+       */
       return (
-        <MoreMenu
+        <div
           key={action.id}
+          className="flex min-w-[7rem] max-w-full flex-auto sm:max-w-64 sm:flex-none [&>div]:w-full"
+        >
+        <MoreMenu
           text={translatedActionLabel}
           dataTestId={action.id}
           elementToBeShownInsteadOfButton={
@@ -275,7 +283,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
               />
             </span>
           }
-          triggerClassName={`${actionBaseClassName} ${neutralActionClassName} cursor-pointer`}
+          triggerClassName={`${actionBaseClassName} ${neutralActionClassName} w-full cursor-pointer`}
         >
           {action.menuItems.map((item: EventPanelMenuItem) => {
             return (
@@ -287,6 +295,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             );
           })}
         </MoreMenu>
+        </div>
       );
     }
 

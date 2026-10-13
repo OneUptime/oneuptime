@@ -90,21 +90,20 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 /*
  * The real Feed stays - its More button and empty-feed message are part of
- * what is under test. Only the item, which renders markdown, is replaced by
+ * what is under test. Only the entry, which renders markdown, is replaced by
  * one that shows its text and names its icon.
  */
 jest.mock("../../../UI/Components/Feed/FeedItem", () => {
   return {
     __esModule: true,
     default: (props: {
-      textInMarkdown: string;
-      icon: string;
+      entry: { item: { textInMarkdown: string; icon: string } };
     }): React.ReactElement => {
-      mockPaintedItemTexts.push(props.textInMarkdown);
+      mockPaintedItemTexts.push(props.entry.item.textInMarkdown);
       return React.createElement(
         "li",
-        { "data-testid": "feed-item", "data-icon": props.icon },
-        props.textInMarkdown,
+        { "data-testid": "feed-item", "data-icon": props.entry.item.icon },
+        props.entry.item.textInMarkdown,
       );
     },
   };
@@ -197,7 +196,7 @@ import OnCallDutyPolicyFeed, {
 } from "../../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import { FEED_PAGE_SIZE } from "../../../UI/Components/Feed/FeedOptions";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -245,7 +244,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "monitor",
     iconFn: getMonitorFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this monitor.",
+      "Nothing has happened to this monitor yet.",
     hasActionsMenu: false,
   },
   {
@@ -261,7 +260,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "incident",
     iconFn: getIncidentFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this incident.",
+      "Nothing has happened to this incident yet.",
     hasActionsMenu: true,
   },
   {
@@ -277,7 +276,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "alert",
     iconFn: getAlertFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this alert.",
+      "Nothing has happened to this alert yet.",
     hasActionsMenu: true,
   },
   {
@@ -293,7 +292,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "incident-episode",
     iconFn: getIncidentEpisodeFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this episode.",
+      "Nothing has happened to this episode yet.",
     hasActionsMenu: true,
   },
   {
@@ -309,7 +308,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "alert-episode",
     iconFn: getAlertEpisodeFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this episode.",
+      "Nothing has happened to this episode yet.",
     hasActionsMenu: true,
   },
   {
@@ -327,7 +326,7 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "scheduled-maintenance",
     iconFn: getScheduledMaintenanceFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this scheduled maintenance.",
+      "Nothing has happened to this scheduled maintenance event yet.",
     hasActionsMenu: true,
   },
   {
@@ -343,13 +342,13 @@ const FEED_CASES: Array<FeedCase> = [
     storageKey: "on-call-policy",
     iconFn: getOnCallDutyPolicyFeedEventIcon,
     noItemsMessage:
-      "Looks like there are no items in this feed for this onCallDutyPolicy.",
+      "Nothing has happened to this on-call policy yet.",
     hasActionsMenu: false,
   },
 ];
 
 // Enough rows on the server that More stays available after one click.
-const SERVER_ROW_COUNT: number = 25;
+const SERVER_ROW_COUNT: number = FEED_PAGE_SIZE * 2 + 5;
 
 /*
  * The ⋯ More button of the feed's header: the card-header button a table has,
@@ -514,7 +513,12 @@ const buildPage: BuildPage = (
           feedCase,
           eventTypes[index % eventTypes.length]!,
           text,
-          new Date(Date.UTC(2026, 8, 1, 0, index)),
+          /*
+           * Ten minutes apart: this suite is about which rows are asked for
+           * and drawn, so no two of a kind arrive close enough to fold into
+           * one entry (FeedTimeline's bursts have suites of their own).
+           */
+          new Date(Date.UTC(2026, 8, 1, 0, index * 10)),
         );
       },
     ),
@@ -745,7 +749,7 @@ const getMoreButtonIcon: GetMoreButtonIcon = (): string | null => {
 type ClickMore = () => void;
 
 const clickMore: ClickMore = (): void => {
-  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  fireEvent.click(screen.getByTestId("feed-more-button"));
 };
 
 type IsBefore = (first: Element, second: Element) => boolean;
@@ -901,7 +905,7 @@ describe("the first request", () => {
 
       const request: FeedListRequest = getRequest(0);
 
-      expectWindow(feedCase, request, SortOrder.Descending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Descending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
       expect(request.query[feedCase.eventTypeColumn]).toBeUndefined();
       // The event type drives each item's icon, so it is always read.
@@ -1017,7 +1021,12 @@ describe("the event type checklist", () => {
             feedCase,
             eventType,
             `fixture-${eventType}`,
-            new Date(Date.UTC(2026, 8, 1, 0, index)),
+            /*
+           * Ten minutes apart: this suite is about which rows are asked for
+           * and drawn, so no two of a kind arrive close enough to fold into
+           * one entry (FeedTimeline's bursts have suites of their own).
+           */
+          new Date(Date.UTC(2026, 8, 1, 0, index * 10)),
           );
         },
       );
@@ -1110,7 +1119,7 @@ describe("Oldest first", () => {
 
       const request: FeedListRequest = getRequest(1);
 
-      expectWindow(feedCase, request, SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Ascending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
       expect(getCheckedSortOrder()).toBe("Oldest first");
       // A reversed feed is not a filtered one: no filter box.
@@ -1131,7 +1140,7 @@ describe("Oldest first", () => {
       const remounted: RenderResult = renderFeedCase(feedCase);
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, getRequest(2));
 
       // Going back to the default forgets the choice rather than storing it.
@@ -1142,7 +1151,7 @@ describe("Oldest first", () => {
         feedCase,
         getRequest(3),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expect(window.localStorage.getItem(storageKey)).toBeNull();
 
@@ -1154,7 +1163,7 @@ describe("Oldest first", () => {
         feedCase,
         getRequest(4),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
     },
   );
@@ -1183,7 +1192,7 @@ describe("ticking event types", () => {
         feedCase,
         getRequest(1),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, getRequest(1), [enumLater]);
       expect(getFilterBoxTitle()).toBe(
@@ -1199,7 +1208,7 @@ describe("ticking event types", () => {
         feedCase,
         getRequest(2),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, getRequest(2), [enumEarlier, enumLater]);
       expect(getEventTypeCheckbox(enumEarlier)).toBeChecked();
@@ -1326,7 +1335,7 @@ describe("Clear Filters", () => {
 
       const request: FeedListRequest = getRequest(3);
 
-      expectWindow(feedCase, request, SortOrder.Descending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Descending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
       expect(getFilterBoxTitle()).toBeNull();
 
@@ -1379,7 +1388,7 @@ describe("the window after More", () => {
       await waitForRequestCount(1);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts("DESC:all", DEFAULT_LIMIT),
+          getViewTexts("DESC:all", FEED_PAGE_SIZE),
         );
       });
 
@@ -1390,12 +1399,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(1),
         SortOrder.Descending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectUnfilteredQuery(feedCase, getRequest(1));
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts("DESC:all", DEFAULT_LIMIT * 2),
+          getViewTexts("DESC:all", FEED_PAGE_SIZE * 2),
         );
       });
 
@@ -1407,12 +1416,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(2),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`DESC:${eventType}`, DEFAULT_LIMIT),
+          getViewTexts(`DESC:${eventType}`, FEED_PAGE_SIZE),
         );
       });
 
@@ -1424,12 +1433,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(3),
         SortOrder.Descending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectFilteredQuery(feedCase, getRequest(3), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`DESC:${eventType}`, DEFAULT_LIMIT * 2),
+          getViewTexts(`DESC:${eventType}`, FEED_PAGE_SIZE * 2),
         );
       });
 
@@ -1437,11 +1446,11 @@ describe("the window after More", () => {
       chooseSortOrder("Oldest first");
       await waitForRequestCount(5);
 
-      expectWindow(feedCase, getRequest(4), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, getRequest(4), SortOrder.Ascending, FEED_PAGE_SIZE);
       expectFilteredQuery(feedCase, getRequest(4), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`ASC:${eventType}`, DEFAULT_LIMIT),
+          getViewTexts(`ASC:${eventType}`, FEED_PAGE_SIZE),
         );
       });
 
@@ -1453,12 +1462,12 @@ describe("the window after More", () => {
         feedCase,
         getRequest(5),
         SortOrder.Ascending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectFilteredQuery(feedCase, getRequest(5), [eventType]);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts(`ASC:${eventType}`, DEFAULT_LIMIT * 2),
+          getViewTexts(`ASC:${eventType}`, FEED_PAGE_SIZE * 2),
         );
       });
     },
@@ -1499,7 +1508,7 @@ describe("slow responses for a previous view", () => {
         feedCase,
         pending[2]!.request,
         SortOrder.Ascending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectFilteredQuery(feedCase, pending[2]!.request, [eventType]);
 
@@ -1510,7 +1519,7 @@ describe("slow responses for a previous view", () => {
 
       const currentTexts: Array<string> = getViewTexts(
         `ASC:${eventType}`,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
 
       expect(getRenderedItemTexts()).toEqual(currentTexts);
@@ -1541,7 +1550,7 @@ describe("slow responses for a previous view", () => {
         request: FeedListRequest,
       ): Promise<FeedPageResponse> => {
         if (
-          request.limit > DEFAULT_LIMIT &&
+          request.limit > FEED_PAGE_SIZE &&
           !getRequestedEventTypes(feedCase, request)
         ) {
           return holdRequests(pendingMore)(request);
@@ -1554,7 +1563,7 @@ describe("slow responses for a previous view", () => {
       await waitForRequestCount(1);
       await waitFor((): void => {
         expect(getRenderedItemTexts()).toEqual(
-          getViewTexts("DESC:all", DEFAULT_LIMIT),
+          getViewTexts("DESC:all", FEED_PAGE_SIZE),
         );
       });
 
@@ -1568,7 +1577,7 @@ describe("slow responses for a previous view", () => {
 
       const filteredTexts: Array<string> = getViewTexts(
         `DESC:${eventType}`,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
 
       await waitFor((): void => {
@@ -1582,7 +1591,7 @@ describe("slow responses for a previous view", () => {
 
       expect(getRenderedItemTexts()).toEqual(filteredTexts);
       expect(mockPaintedItemTexts).not.toContain(
-        `DESC:all#${DEFAULT_LIMIT + 1}`,
+        `DESC:all#${FEED_PAGE_SIZE + 1}`,
       );
 
       // The filtered view can still be widened.
@@ -1593,7 +1602,7 @@ describe("slow responses for a previous view", () => {
         feedCase,
         getRequest(3),
         SortOrder.Descending,
-        DEFAULT_LIMIT * 2,
+        FEED_PAGE_SIZE * 2,
       );
       expectFilteredQuery(feedCase, getRequest(3), [eventType]);
     },
@@ -1614,7 +1623,7 @@ describe("a later visit", () => {
       toggleEventType(eventType);
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, FEED_PAGE_SIZE);
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
 
       view.unmount();
@@ -1623,7 +1632,7 @@ describe("a later visit", () => {
 
       const request: FeedListRequest = getRequest(3);
 
-      expectWindow(feedCase, request, SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, request, SortOrder.Ascending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, request);
 
       expect(getFilterBoxTitle()).toBeNull();
@@ -1658,7 +1667,7 @@ describe("a later visit", () => {
         feedCase,
         getRequest(0),
         SortOrder.Descending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
 
       view.unmount();
@@ -1670,7 +1679,7 @@ describe("a later visit", () => {
       renderFeedCase(feedCase);
       await waitForRequestCount(2);
 
-      expectWindow(feedCase, getRequest(1), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, getRequest(1), SortOrder.Ascending, FEED_PAGE_SIZE);
       expectUnfilteredQuery(feedCase, getRequest(1));
     },
   );
@@ -1696,7 +1705,7 @@ describe("moving to another resource", () => {
       chooseSortOrder("Oldest first");
       await waitForRequestCount(3);
 
-      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, getRequest(2), SortOrder.Ascending, FEED_PAGE_SIZE);
       expectFilteredQuery(feedCase, getRequest(2), [eventType]);
       expect(getFilterBoxTitle()).toBe(
         `Showing 1 of ${feedCase.enumValues.length} event types`,
@@ -1720,7 +1729,7 @@ describe("moving to another resource", () => {
         feedCase,
         firstRequestForOther,
         SortOrder.Ascending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectUnfilteredQuery(feedCase, firstRequestForOther, otherResourceId);
 
@@ -1754,7 +1763,7 @@ describe("moving to another resource", () => {
         feedCase,
         requestOnReturn,
         SortOrder.Ascending,
-        DEFAULT_LIMIT,
+        FEED_PAGE_SIZE,
       );
       expectUnfilteredQuery(feedCase, requestOnReturn);
       expect(getFilterBoxTitle()).toBeNull();
@@ -1828,7 +1837,7 @@ describe("the ⋯ button", () => {
       );
       await waitForRequestCount(4);
 
-      expectWindow(feedCase, getRequest(3), SortOrder.Ascending, DEFAULT_LIMIT);
+      expectWindow(feedCase, getRequest(3), SortOrder.Ascending, FEED_PAGE_SIZE);
       expectFilteredQuery(feedCase, getRequest(3), [eventType]);
       expect(screen.queryByRole("menu")).toBeNull();
     },

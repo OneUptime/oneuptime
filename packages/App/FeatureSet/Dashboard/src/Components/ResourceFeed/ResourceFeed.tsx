@@ -187,6 +187,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       color: getFeedEntryColor({ kind: kind, rowColor: feed.displayColor }),
       icon: kind.icon,
       burstKind: kind.burst,
+      detailsLabel: kind.moreText,
       eventType: eventType || undefined,
     };
   };

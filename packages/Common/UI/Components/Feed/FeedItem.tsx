@@ -203,6 +203,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
         <span
           className="absolute -bottom-5 top-8 w-px bg-gray-200"
           aria-hidden="true"
+          data-testid="feed-entry-line"
         ></span>
       )}
       <span
@@ -224,11 +225,11 @@ const FeedItem: FunctionComponent<ComponentProps> = (
     if (hasAuthorLine) {
       return (
         <div
-          className="flex flex-wrap items-center gap-x-1 text-sm text-gray-700"
+          className="text-sm leading-6 text-gray-700"
           data-testid="feed-entry-author"
         >
           <Avatar user={item.user} />
-          {authorNameElement}
+          {authorNameElement}{" "}
           <span className="text-gray-500">{item.authorDetail}</span>
         </div>
       );

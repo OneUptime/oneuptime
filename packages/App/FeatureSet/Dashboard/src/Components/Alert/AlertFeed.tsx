@@ -181,7 +181,9 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       icon: kind.icon,
       burstKind: kind.burst,
       eventType: alertFeed.alertFeedEventType,
-      detailsLabel: isAIInvestigation ? AI_REPORT_DETAILS_LABEL : undefined,
+      detailsLabel: isAIInvestigation
+        ? AI_REPORT_DETAILS_LABEL
+        : kind.moreText,
       safeMode: isAIInvestigation,
     };
   };

@@ -145,6 +145,7 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         }),
         icon: kind.icon,
         burstKind: kind.burst,
+        detailsLabel: kind.moreText,
         eventType: onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType,
       };
     };

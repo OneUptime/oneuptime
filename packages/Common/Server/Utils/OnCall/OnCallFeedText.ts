@@ -79,10 +79,17 @@ const hasMarkdown: HasMarkdownFunction = (
   return Boolean(value && value.toString().trim().length > 0);
 };
 
-const getPolicy: (policyLink: MarkdownText) => MarkdownText = (
+// "On-call policy **PolicyX**", or "on-call policy ..." inside a sentence.
+const getPolicy: (
   policyLink: MarkdownText,
+  options?: { isInSentence?: boolean | undefined } | undefined,
+) => MarkdownText = (
+  policyLink: MarkdownText,
+  options?: { isInSentence?: boolean | undefined } | undefined,
 ): MarkdownText => {
-  return mdText`On-call policy **${policyLink}**`;
+  return options?.isInSentence
+    ? mdText`on-call policy **${policyLink}**`
+    : mdText`On-call policy **${policyLink}**`;
 };
 
 const getRuleName: (ruleName: string | undefined) => string = (
@@ -159,7 +166,10 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
 
   switch (input.status) {
     case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
-      return mdText`${recipient} acknowledged the page from ${policy} at ${rule}.`;
+      return mdText`${recipient} acknowledged the page from ${getPolicy(
+        input.policyLink,
+        { isInSentence: true },
+      )} at ${rule}.`;
     case OnCallDutyExecutionLogTimelineStatus.Error:
       return mdText`${policy} could not page ${recipient} at ${rule}.`;
     case OnCallDutyExecutionLogTimelineStatus.Skipped:
