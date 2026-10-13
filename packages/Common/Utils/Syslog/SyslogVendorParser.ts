@@ -130,7 +130,10 @@ export interface SyslogVendorParser {
   id: SyslogParserId;
   // The maker, as people write it: "Sophos", "Extreme Networks".
   vendor: string;
-  // The product line whose messages this reads.
+  /*
+   * The product line whose messages this reads, as the docs list it: names
+   * only, with commas between them, so the same text reads in any language.
+   */
   product: string;
   // The format, in a few words, for the docs and the parser list.
   format: string;

@@ -50,7 +50,7 @@ const AOS_CX_SEVERITY_LEVELS: Record<string, number> = {
 const arubaAosCx: SyslogVendorParser = {
   id: SyslogParserId.ArubaAosCx,
   vendor: "HPE Aruba Networking",
-  product: "AOS-CX switches",
+  product: "AOS-CX",
   format: "Event|ID|LOG_SEVERITY|role|slot|text",
   attributePrefix: "aruba",
   vendorKeywords: ["aruba", "hpe", "hewlett"],

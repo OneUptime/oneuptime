@@ -76,7 +76,7 @@ function readDevice(extensions: Record<string, string>): SyslogDeviceIdentity {
 const ubiquitiUniFi: SyslogVendorParser = {
   id: SyslogParserId.UbiquitiUniFi,
   vendor: "Ubiquiti",
-  product: "UniFi Network (consoles and controllers)",
+  product: "UniFi Network",
   format: "CEF",
   attributePrefix: "",
   vendorKeywords: ["ubiquiti", "unifi"],

@@ -56,7 +56,7 @@ const WHO: Partial<Record<NetworkEventAttribute, SyslogRuleValueSource>> = {
 const sophosFirewall: SyslogVendorParser = {
   id: SyslogParserId.SophosFirewall,
   vendor: "Sophos",
-  product: "Sophos Firewall (SFOS, XG and XGS)",
+  product: "Sophos Firewall (SFOS, XG, XGS)",
   format: "key=value",
   attributePrefix: "sophos",
   vendorKeywords: ["sophos"],

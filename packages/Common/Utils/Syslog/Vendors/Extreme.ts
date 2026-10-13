@@ -57,7 +57,7 @@ const EXOS_SEVERITY_LEVELS: Record<string, number> = {
 const extremeExos: SyslogVendorParser = {
   id: SyslogParserId.ExtremeExos,
   vendor: "Extreme Networks",
-  product: "ExtremeXOS and Switch Engine",
+  product: "ExtremeXOS, Switch Engine",
   format: "<Severity:Component.Condition>",
   attributePrefix: "extreme",
   vendorKeywords: ["extreme"],
@@ -240,7 +240,7 @@ const VOSS_SEVERITY_LEVELS: Record<string, number> = {
 const extremeVoss: SyslogVendorParser = {
   id: SyslogParserId.ExtremeVoss,
   vendor: "Extreme Networks",
-  product: "Fabric Engine and VOSS",
+  product: "Fabric Engine, VOSS",
   format: "[time] event-code VRF module SEVERITY",
   attributePrefix: "extreme",
   vendorKeywords: ["extreme"],

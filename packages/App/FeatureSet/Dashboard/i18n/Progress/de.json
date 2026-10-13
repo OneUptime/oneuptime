@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 28448,
+    "keys": 28443,
     "untranslated": 4718
   },
   "sameAsEnglish": [
@@ -374,7 +374,6 @@
     "Rotation",
     "Router",
     "Router Discovery - Region 1100",
-    "Routing",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -427,7 +426,6 @@
     "Sudan",
     "Suriname",
     "Switch",
-    "Switching",
     "System",
     "TTL",
     "TX",

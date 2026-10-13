@@ -1,6 +1,5 @@
 import NetworkEventAlertsModal from "./NetworkEventAlertsModal";
 import {
-  NETWORK_EVENT_CATEGORY_TITLES,
   NETWORK_EVENT_KIND_TITLES,
   NetworkEventCopy,
   getNetworkEventCopy,
@@ -45,11 +44,7 @@ import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import NetworkEventAttribute from "Common/Types/NetworkEvent/NetworkEventAttribute";
-import {
-  NetworkEventCategory,
-  NetworkEventKind,
-} from "Common/Types/NetworkEvent/NetworkEventType";
+import { NetworkEventKind } from "Common/Types/NetworkEvent/NetworkEventType";
 import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -148,7 +143,7 @@ const KIND_FILTER_LABELS: {
   all: translationKey("All"),
   problems: translationKey("Problems"),
   recoveries: translationKey("Recoveries"),
-  information: translationKey("Information"),
+  information: translationKey("Informational"),
 };
 
 // The names of what an event's details list, looked up where they are drawn.
@@ -156,14 +151,12 @@ const FACT_LABELS: {
   when: string;
   device: string;
   kind: string;
-  category: string;
   reportedAs: string;
   sentFrom: string;
 } = {
   when: translationKey("When"),
   device: translationKey("Device"),
   kind: translationKey("Kind"),
-  category: translationKey("Category"),
   reportedAs: translationKey("Reported as"),
   sentFrom: translationKey("Sent from"),
 };
@@ -339,9 +332,6 @@ export const NetworkEventDetails: FunctionComponent<{
   const translator: Translator = useTranslator();
   const row: NetworkEventRow = props.row;
   const copy: NetworkEventCopy | null = getNetworkEventCopy(row.name);
-  const category: string = row.attributes[NetworkEventAttribute.Category] || "";
-  const categoryTitle: string | undefined =
-    NETWORK_EVENT_CATEGORY_TITLES[category as NetworkEventCategory];
 
   const facts: Array<{ label: string; value: ReactElement | string }> = [];
 
@@ -379,13 +369,6 @@ export const NetworkEventDetails: FunctionComponent<{
     label: FACT_LABELS.kind,
     value: translator.translateText(NETWORK_EVENT_KIND_TITLES[row.kind]) || "",
   });
-
-  if (categoryTitle) {
-    facts.push({
-      label: FACT_LABELS.category,
-      value: translator.translateText(categoryTitle) || "",
-    });
-  }
 
   facts.push({
     label: FACT_LABELS.reportedAs,

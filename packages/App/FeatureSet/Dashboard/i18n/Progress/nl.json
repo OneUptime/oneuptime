@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28448,
-    "untranslated": 17005
+    "keys": 28443,
+    "untranslated": 17010
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -41,7 +41,6 @@
     "Service:",
     "Status",
     "Stratum",
-    "Switching",
     "Team",
     "Tool",
     "Transceivers",

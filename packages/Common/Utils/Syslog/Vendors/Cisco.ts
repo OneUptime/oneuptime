@@ -60,7 +60,7 @@ function readSystemMessage(text: string): CiscoSystemMessage | null {
 const cisco: SyslogVendorParser = {
   id: SyslogParserId.Cisco,
   vendor: "Cisco",
-  product: "IOS, IOS XE, NX-OS and ASA",
+  product: "IOS, IOS XE, NX-OS, ASA",
   format: "%FACILITY-SEVERITY-MNEMONIC",
   attributePrefix: "cisco",
   vendorKeywords: ["cisco"],

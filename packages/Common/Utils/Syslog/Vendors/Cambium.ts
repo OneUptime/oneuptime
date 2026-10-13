@@ -83,7 +83,7 @@ function readMnemonic(context: SyslogParseContext): {
 const cambiumEnterpriseWifi: SyslogVendorParser = {
   id: SyslogParserId.CambiumEnterpriseWifi,
   vendor: "Cambium Networks",
-  product: "Enterprise Wi-Fi access points (cnPilot, XV, XE, XH)",
+  product: "Enterprise Wi-Fi (cnPilot, XV, XE, XH)",
   format: "MODULE-SEVERITY-EVENT",
   attributePrefix: "cambium",
   vendorKeywords: ["cambium"],

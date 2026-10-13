@@ -1,5 +1,4 @@
 import NetworkEventType, {
-  NetworkEventCategory,
   NetworkEventKind,
   NetworkEventTypeUtil,
 } from "Common/Types/NetworkEvent/NetworkEventType";
@@ -203,23 +202,11 @@ export const NETWORK_EVENT_COPY: Record<NetworkEventType, NetworkEventCopy> = {
 export const NETWORK_EVENT_KIND_TITLES: Record<NetworkEventKind, string> = {
   [NetworkEventKind.Problem]: translationKey("Problem"),
   [NetworkEventKind.Recovery]: translationKey("Recovery"),
-  [NetworkEventKind.Info]: translationKey("Information"),
-};
-
-export const NETWORK_EVENT_CATEGORY_TITLES: Record<
-  NetworkEventCategory,
-  string
-> = {
-  [NetworkEventCategory.Interface]: translationKey("Interfaces"),
-  [NetworkEventCategory.Device]: translationKey("Devices"),
-  [NetworkEventCategory.HighAvailability]: translationKey("High availability"),
-  [NetworkEventCategory.Vpn]: translationKey("VPN"),
-  [NetworkEventCategory.Routing]: translationKey("Routing"),
-  [NetworkEventCategory.Wan]: translationKey("WAN"),
-  [NetworkEventCategory.Hardware]: translationKey("Hardware"),
-  [NetworkEventCategory.Switching]: translationKey("Switching"),
-  [NetworkEventCategory.Security]: translationKey("Sign-ins"),
-  [NetworkEventCategory.Wireless]: translationKey("Wi-Fi"),
+  /*
+   * Not "Information": that is the log severity's label, a key of its own
+   * that the docs of every language name as their Dashboard draws it.
+   */
+  [NetworkEventKind.Info]: translationKey("Informational"),
 };
 
 /*

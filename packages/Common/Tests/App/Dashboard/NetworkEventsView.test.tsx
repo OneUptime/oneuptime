@@ -647,7 +647,7 @@ describe("the network's Events page", () => {
     expect(row).toHaveTextContent("Problem");
     expect(rowNamed("interface.up")).toHaveTextContent("Recovery");
     expect(rowNamed("wireless.client_connected")).toHaveTextContent(
-      "Information",
+      "Informational",
     );
   });
 
@@ -719,7 +719,7 @@ describe("the network's Events page", () => {
     expect(kindButton("All 6")).toHaveAttribute("aria-checked", "true");
     expect(kindButton("Problems 3")).toHaveAttribute("aria-checked", "false");
     expect(kindButton("Recoveries 1")).toBeInTheDocument();
-    expect(kindButton("Information 2")).toBeInTheDocument();
+    expect(kindButton("Informational 2")).toBeInTheDocument();
   });
 
   test("Problems narrows the list to problems - and the other buttons still say how many they hold", async () => {
@@ -744,7 +744,7 @@ describe("the network's Events page", () => {
     expect(kindButton("Problems 3")).toHaveAttribute("aria-checked", "true");
     expect(kindButton("All 6")).toHaveAttribute("aria-checked", "false");
     expect(kindButton("Recoveries 1")).toBeInTheDocument();
-    expect(kindButton("Information 2")).toBeInTheDocument();
+    expect(kindButton("Informational 2")).toBeInTheDocument();
     expect(query().get("kind")).toBe("problem");
 
     fireEvent.click(kindButton("All 6"));
@@ -754,10 +754,10 @@ describe("the network's Events page", () => {
     expect(query().get("kind")).toBeNull();
   });
 
-  test("Information lists a project's own events too: every event has a kind", async () => {
+  test("Informational lists a project's own events too: every event has a kind", async () => {
     await renderView(NETWORK);
 
-    fireEvent.click(kindButton("Information 2"));
+    fireEvent.click(kindButton("Informational 2"));
     await flush();
 
     expect(rowNames()).toEqual(["wireless.client_connected", "ups.on_battery"]);
@@ -1019,7 +1019,6 @@ describe("what a device said, word for word", () => {
       "DeviceCore Switch",
       "InterfaceGigabitEthernet0/1",
       "KindProblem",
-      "CategoryInterfaces",
       "Reported asSyslog, Cisco format",
       "Sent from10.0.0.2",
     ]);
@@ -1119,14 +1118,11 @@ describe("what a device said, word for word", () => {
         return fact.textContent || "";
       });
 
-    /*
-     * No category of the vocabulary's: the row is left out, not left
-     * empty. And no vendor's format to name.
-     */
+    // No vendor's format to name.
     expect(facts.slice(1)).toEqual([
       "DeviceRack UPS",
       "Componentrack-1",
-      "KindInformation",
+      "KindInformational",
       "Reported asSyslog",
       "Sent from10.0.7.7",
     ]);

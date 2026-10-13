@@ -21,7 +21,10 @@ enum NetworkEventAttribute {
   Name = "event.name",
   // The device's own words for it, without its header and field names.
   Message = "event.message",
-  // problem, recovery or info (NetworkEventKind). Built-in events only.
+  /*
+   * problem, recovery or info (NetworkEventKind). A project's own event
+   * that gives itself none of the three is info.
+   */
   Kind = "event.kind",
   // interface, vpn, ha, ... (NetworkEventCategory). Built-in events only.
   Category = "event.category",
