@@ -86,7 +86,10 @@ const PAGES_NAMING_THE_PATH: ReadonlyArray<[string, string]> = [
     "fa/rum/applications.md",
     drawnPath("fa", ["Real User Monitoring", "Advanced", "Archived"]),
   ],
-  ["fa/inventory/overview.md", "**Inventory → Advanced → Archived**"],
+  [
+    "fa/inventory/overview.md",
+    drawnPath("fa", ["Inventory", "Advanced", "Archived"]),
+  ],
 ];
 
 describe("docs send readers to Archived through Advanced", () => {
