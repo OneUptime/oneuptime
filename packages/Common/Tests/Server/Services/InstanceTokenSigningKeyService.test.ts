@@ -188,7 +188,10 @@ describe("an installation whose ENCRYPTION_SECRET is shipped", () => {
   const BROKEN_ROWS: Array<[string, Array<Record<string, unknown>>]> = [
     ["no row at all", []],
     ["an empty key", [{ signingKey: "" }]],
-    ["a shipped placeholder", [{ signingKey: "please-change-this-to-random-value" }]],
+    [
+      "a shipped placeholder",
+      [{ signingKey: "please-change-this-to-random-value" }],
+    ],
     ["a short key", [{ signingKey: "ab".repeat(16) }]],
     ["a key that is not hex", [{ signingKey: "zz".repeat(32) }]],
     ["no key column", [{ somethingElse: "ab".repeat(32) }]],

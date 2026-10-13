@@ -162,8 +162,7 @@ describePostgres("The installation's token signing key on Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["TOKEN_SIGNING_KEY_TEST_DATABASE_HOST"] || "localhost",
+      host: process.env["TOKEN_SIGNING_KEY_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["TOKEN_SIGNING_KEY_TEST_DATABASE_PORT"] || "5400",
       ),
@@ -207,8 +206,7 @@ describePostgres("The installation's token signing key on Postgres", () => {
       "please-change-this-to-random-value",
     );
 
-    const rows: Array<{ _id: string; signingKey: string }> =
-      await storedRows();
+    const rows: Array<{ _id: string; signingKey: string }> = await storedRows();
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!._id).toBe(ZERO_ID);
@@ -233,9 +231,7 @@ describePostgres("The installation's token signing key on Postgres", () => {
 
     // Several fresh installations, each with 25 processes racing to store.
     for (let round: number = 0; round < 5; round++) {
-      await database.query(
-        `DELETE FROM "${schema}"."InstanceTokenSigningKey"`,
-      );
+      await database.query(`DELETE FROM "${schema}"."InstanceTokenSigningKey"`);
 
       const keys: Array<string> = await Promise.all(
         Array.from({ length: 25 }, () => {

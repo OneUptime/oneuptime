@@ -170,9 +170,9 @@ describe("ENCRYPTION_SECRET is read only to protect stored data", () => {
   });
 
   test("only EnvironmentConfig reads the ENCRYPTION_SECRET variable itself", () => {
-    expect(productFilesWhoseCodeMatches(ENCRYPTION_SECRET_VARIABLE_READ)).toEqual(
-      ["packages/Common/Server/EnvironmentConfig.ts"],
-    );
+    expect(
+      productFilesWhoseCodeMatches(ENCRYPTION_SECRET_VARIABLE_READ),
+    ).toEqual(["packages/Common/Server/EnvironmentConfig.ts"]);
   });
 
   test("the guard reads ee/ too when it is checked out", () => {
@@ -220,9 +220,10 @@ describe("what a request presents is signed with TokenSigningKey", () => {
         relativePath,
         rs256: true,
       });
-      expect({ relativePath, verifies: code.includes("jwt.verify(") }).toEqual(
-        { relativePath, verifies: false },
-      );
+      expect({ relativePath, verifies: code.includes("jwt.verify(") }).toEqual({
+        relativePath,
+        verifies: false,
+      });
       expect(code).not.toMatch(TOKEN_SIGNING_KEY_USE);
     }
   });

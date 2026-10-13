@@ -46,11 +46,11 @@ export function readExampleEnvEncryptionSecret(): string {
 }
 
 export const SHIPPED_ENCRYPTION_SECRETS: Array<ShippedEncryptionSecret> = [
-  { label: "unset, so the code falls back to \"secret\"", value: undefined },
+  { label: 'unset, so the code falls back to "secret"', value: undefined },
   { label: "set to an empty string by compose", value: "" },
   { label: "blank", value: "   " },
-  { label: "the code's fallback \"secret\"", value: "secret" },
-  { label: "\"secret\" padded with spaces", value: " secret " },
+  { label: 'the code\'s fallback "secret"', value: "secret" },
+  { label: '"secret" padded with spaces', value: " secret " },
   {
     label: "the placeholder config.example.env ships",
     value: "please-change-this-to-random-value",

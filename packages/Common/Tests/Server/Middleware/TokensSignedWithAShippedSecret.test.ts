@@ -15,6 +15,7 @@ import {
   test,
 } from "@jest/globals";
 import crypto from "crypto";
+import type { Mock } from "jest-mock";
 import jwt from "jsonwebtoken";
 
 /*
@@ -82,12 +83,15 @@ interface Server {
  * The server as it boots with this ENCRYPTION_SECRET: every module loaded
  * afresh, and only what the middleware reads from the datastores stubbed.
  */
-async function serverWith(encryptionSecret: string | undefined): Promise<Server> {
+async function serverWith(
+  encryptionSecret: string | undefined,
+): Promise<Server> {
   setEncryptionSecret(encryptionSecret);
   jest.resetModules();
 
-  const config: { EncryptionSecret: { toString: () => string } } =
-    await import("../../../Server/EnvironmentConfig");
+  const config: { EncryptionSecret: { toString: () => string } } = await import(
+    "../../../Server/EnvironmentConfig"
+  );
   const UserService: AnyClass = (
     await import("../../../Server/Services/UserService")
   ).default;
@@ -123,9 +127,7 @@ async function serverWith(encryptionSecret: string | undefined): Promise<Server>
   ): void => {
     sentErrors.push(error);
   }) as never);
-  jest
-    .spyOn(Response, "sendXmlResponse")
-    .mockResolvedValue(undefined as never);
+  jest.spyOn(Response, "sendXmlResponse").mockResolvedValue(undefined as never);
 
   return {
     encryptionSecret: config.EncryptionSecret.toString(),
@@ -135,8 +137,9 @@ async function serverWith(encryptionSecret: string | undefined): Promise<Server>
     MasterAdminAuthorization: (
       await import("../../../Server/Middleware/MasterAdminAuthorization")
     ).default,
-    UserMiddleware: (await import("../../../Server/Middleware/UserAuthorization"))
-      .default,
+    UserMiddleware: (
+      await import("../../../Server/Middleware/UserAuthorization")
+    ).default,
     BearerTokenAuthorization: (
       await import("../../../Server/Middleware/BearerTokenAuthorization")
     ).default,
@@ -228,6 +231,8 @@ function cookieRequest(cookies: Record<string, string>): Request {
   };
 }
 
+type NextFunction = (error?: unknown) => void;
+
 interface MiddlewareRun {
   nextCalls: Array<Array<unknown>>;
   sentErrors: Array<Exception>;
@@ -239,7 +244,7 @@ async function run(
   req: Request,
 ): Promise<MiddlewareRun> {
   server.sentErrors.length = 0;
-  const next: jest.Mock = jest.fn();
+  const next: Mock<NextFunction> = jest.fn<NextFunction>();
 
   await middleware(req, { set: jest.fn() }, next);
 
@@ -384,7 +389,9 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
         );
 
         expectRefusedAsSignedOut(result);
-        expect(result.sentErrors[0]?.message).toBe(INVALID_ACCESS_TOKEN_MESSAGE);
+        expect(result.sentErrors[0]?.message).toBe(
+          INVALID_ACCESS_TOKEN_MESSAGE,
+        );
         expect(req.userType).not.toBe(server.UserType["MasterAdmin"]);
         expect(req.userAuthorization).toBeUndefined();
       }
@@ -618,7 +625,10 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
         ).toBeNull();
         expect(
           server.McpOAuthSignedToken.verify({
-            purpose: { keyDerivationLabel: AUTHORIZATION_REQUEST_LABEL, maxLength: 6000 },
+            purpose: {
+              keyDerivationLabel: AUTHORIZATION_REQUEST_LABEL,
+              maxLength: 6000,
+            },
             token: signMcpToken({
               key,
               label: AUTHORIZATION_REQUEST_LABEL,
@@ -659,7 +669,9 @@ describe("an installation whose operator set ENCRYPTION_SECRET", () => {
       await run(
         server,
         server.MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
-        bearerRequest(signWith(OPERATOR_ENCRYPTION_SECRET, masterAdminClaims())),
+        bearerRequest(
+          signWith(OPERATOR_ENCRYPTION_SECRET, masterAdminClaims()),
+        ),
       ),
     );
   });

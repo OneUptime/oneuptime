@@ -91,7 +91,9 @@ function secretsAnchor(language: string): string {
     heading: true,
   });
 
-  return slugifyMarkdownHeading((heading as string).replace(HEADING_MARKER, ""));
+  return slugifyMarkdownHeading(
+    (heading as string).replace(HEADING_MARKER, ""),
+  );
 }
 
 function linkTargets(text: string): Array<string> {
@@ -117,9 +119,9 @@ describe("the English upgrade note on sign-in tokens", () => {
         return item.includes(NOTE_LEAD);
       }),
     ).toHaveLength(1);
-    expect(ENGLISH_ITEMS[NOTE_INDEX - 1]!.startsWith(`- ${PREVIOUS_LEAD}`)).toBe(
-      true,
-    );
+    expect(
+      ENGLISH_ITEMS[NOTE_INDEX - 1]!.startsWith(`- ${PREVIOUS_LEAD}`),
+    ).toBe(true);
     expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
       true,
     );
@@ -171,7 +173,9 @@ describe("the English upgrade note on sign-in tokens", () => {
 describe.each(TRANSLATIONS)(
   "the %s upgrade note on sign-in tokens",
   (language: string) => {
-    const note: string = flattened(otherChangesItems(language)[NOTE_INDEX] || "");
+    const note: string = flattened(
+      otherChangesItems(language)[NOTE_INDEX] || "",
+    );
 
     it("is in the English note's place, under a lead of its own", () => {
       expect(note.startsWith("- **")).toBe(true);

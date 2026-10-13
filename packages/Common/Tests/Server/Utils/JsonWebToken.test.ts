@@ -61,10 +61,7 @@ describe("JSONWebToken", () => {
      * so the caller sees a decode failure rather than an empty identity.
      */
     test("should refuse a token whose payload is a bare string, not claims", () => {
-      const token: string = jwt.sign(
-        "just-a-string",
-        TokenSigningKey.get(),
-      );
+      const token: string = jwt.sign("just-a-string", TokenSigningKey.get());
 
       expect(() => {
         return JSONWebToken.decodeJsonPayload(token);
@@ -72,10 +69,7 @@ describe("JSONWebToken", () => {
     });
 
     test("should refuse a bare-string payload through decode() too", () => {
-      const token: string = jwt.sign(
-        "just-a-string",
-        TokenSigningKey.get(),
-      );
+      const token: string = jwt.sign("just-a-string", TokenSigningKey.get());
 
       expect(() => {
         return JSONWebToken.decode(token);

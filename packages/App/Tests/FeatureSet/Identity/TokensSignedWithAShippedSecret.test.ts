@@ -79,8 +79,9 @@ async function identityWith(
   setEncryptionSecret(encryptionSecret);
   jest.resetModules();
 
-  const config: { EncryptionSecret: { toString: () => string } } =
-    await import("Common/Server/EnvironmentConfig");
+  const config: { EncryptionSecret: { toString: () => string } } = await import(
+    "Common/Server/EnvironmentConfig"
+  );
   const confirmationModule: {
     default: ConfirmationClass;
     ProjectSsoKind: Record<string, string>;
@@ -161,9 +162,13 @@ function confirmationSignedWith(key: string, kind: string): string {
   return crypto
     .createHmac("sha256", key)
     .update(
-      [CONFIRMATION_PURPOSE, CONFIRMATION_TOKEN, kind, PROJECT_ID, PROVIDER_ID].join(
-        ":",
-      ),
+      [
+        CONFIRMATION_PURPOSE,
+        CONFIRMATION_TOKEN,
+        kind,
+        PROJECT_ID,
+        PROVIDER_ID,
+      ].join(":"),
     )
     .digest("hex");
 }
@@ -200,7 +205,9 @@ describe.each(SHIPPED_ENCRYPTION_SECRETS)(
 
       expect(token).not.toBeNull();
       expect(
-        identity().ResendToken.verify(token as string)?.userId.toString(),
+        identity()
+          .ResendToken.verify(token as string)
+          ?.userId.toString(),
       ).toBe(USER_ID);
     });
 

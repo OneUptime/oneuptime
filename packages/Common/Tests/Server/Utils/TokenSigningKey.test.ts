@@ -147,9 +147,10 @@ describe("an installation whose operator set ENCRYPTION_SECRET", () => {
     const server: Installation = await installation(OPERATOR_ENCRYPTION_SECRET);
 
     for (const shipped of server.insecureValues) {
-      expect({ shipped, verifies: verifies(server, signSession(shipped)) }).toEqual(
-        { shipped, verifies: false },
-      );
+      expect({
+        shipped,
+        verifies: verifies(server, signSession(shipped)),
+      }).toEqual({ shipped, verifies: false });
     }
   });
 });

@@ -29,7 +29,8 @@ import ts from "typescript";
 const APP_ROOT: string = path.join(__dirname, "../..");
 const INDEX_PATH: string = path.join(APP_ROOT, "Index.ts");
 
-const LOAD_CALLEE: string = "InstanceTokenSigningKeyService.loadTokenSigningKey";
+const LOAD_CALLEE: string =
+  "InstanceTokenSigningKeyService.loadTokenSigningKey";
 const LOAD_CALL: string = `await ${LOAD_CALLEE}();`;
 const SERVICE_IMPORT: string =
   'import InstanceTokenSigningKeyService from "Common/Server/Services/InstanceTokenSigningKeyService";';
@@ -161,7 +162,9 @@ function loadPlacement(source: string): LoadPlacement | null {
       return ts.SyntaxKind[ancestor.kind];
     }),
     functionName:
-      node && ts.isArrowFunction(node) && declaration &&
+      node &&
+      ts.isArrowFunction(node) &&
+      declaration &&
       ts.isVariableDeclaration(declaration)
         ? declaration.name.getText(sourceFile)
         : null,
