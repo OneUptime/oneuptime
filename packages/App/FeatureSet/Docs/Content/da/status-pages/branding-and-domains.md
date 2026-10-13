@@ -92,7 +92,7 @@ Hvor mange dage diagrammet dækker, angives ikke her. Det er **Oppetidshistorik*
 
 OneUptime leveres med sytten sprog: engelsk, tysk, fransk, spansk, italiensk, portugisisk, nederlandsk, dansk, norsk, svensk, russisk, japansk, koreansk, kinesisk (forenklet), kinesisk (traditionelt), hindi og persisk.
 
-**Indeksering i søgemaskiner.** Én kontakt, **Tillad søgemaskiner at indeksere denne statusside**, afgør, om Google, Bing og andre søgemaskiner må vise siden. Den er slået til som standard. Der er ingen knap **Rediger**: kontakten gemmes i det øjeblik, du slår den om. Slå den fra, så serveres siden med `noindex, nofollow` (et robots-metatag og en header `X-Robots-Tag`); alle med linket kan stadig åbne den. Søgemaskiner kan være et par uger om at fjerne en side, de allerede har indekseret.
+**Indeksering i søgemaskiner.** Én kontakt, **Tillad søgemaskiner at indeksere denne statusside**, afgør, om Google, Bing og andre søgemaskiner må vise siden. Den er slået til som standard. Der er ingen knap **Rediger**: kontakten gemmes i det øjeblik, du slår den om. Slå den fra, så serveres siden med `noindex, nofollow` (et robots-metatag og en header `X-Robots-Tag`); alle med linket kan stadig åbne den. Søgemaskiner kan være et par uger om at fjerne en side, de allerede har indekseret. Kontakten gælder kun siden på dens brugerdefinerede domæner. Dens forhåndsvisnings-URL serveres altid med `noindex, nofollow`, så en statusside først vises i søgeresultater, når den har et brugerdefineret domæne.
 
 > [!TIP]
 > Slå **Tillad søgemaskiner at indeksere denne statusside** fra, mens en side kun er intern eller stadig ved at blive sat op, så en halvfærdig side ikke begynder at rangere på dit varemærke.

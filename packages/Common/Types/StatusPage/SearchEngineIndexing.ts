@@ -1,9 +1,10 @@
 /*
  * Search engine indexing for status pages.
  *
- * A status page is indexable unless its owner turned indexing off
- * (StatusPage.enableSearchEngineIndexing, which defaults to true). The
- * opt-out is carried to crawlers two ways:
+ * A status page is indexable only on a custom domain, and only if its owner
+ * left indexing on (StatusPage.enableSearchEngineIndexing, which defaults to
+ * true). Its preview URL is never indexable; see isSearchEngineIndexingAllowed.
+ * A page that is not indexable is marked for crawlers two ways:
  *
  *   - <meta name="robots" content="noindex, nofollow"> in the server-rendered
  *     index.ejs, which is in the HTML before the JS bundle loads
@@ -58,4 +59,42 @@ export function isSearchEngineIndexingEnabled(value: unknown): boolean {
   }
 
   return true;
+}
+
+/*
+ * Every status page can be opened at /status-page/:statusPageId on the
+ * OneUptime host - its preview URL - whether or not it also has a custom
+ * domain. On a custom domain it is served from the root of that domain.
+ */
+const STATUS_PAGE_PREVIEW_PATH_SEGMENT: string = "/status-page/";
+
+export function isStatusPagePreviewPath(path: string): boolean {
+  return path.includes(STATUS_PAGE_PREVIEW_PATH_SEGMENT);
+}
+
+/**
+ * Whether search engines may index a status page at the URL it was requested
+ * on: only on a custom domain, and only if the owner left indexing on.
+ *
+ * The preview URL is never indexable. Every status page has one from the
+ * moment it is created, on the OneUptime host rather than on a domain set up
+ * for that page, so indexing preview URLs let anyone who could create a status
+ * page publish pages into search results under that host - on OneUptime's
+ * cloud, spam sites did. It also put a second copy of every page with a custom
+ * domain into search, competing with the real one. A page that should appear
+ * in search results needs a custom domain.
+ *
+ * The owner's flag is read with isSearchEngineIndexingEnabled, so on a
+ * custom domain anything but an explicit off is still indexable. Pass
+ * undefined when the page could not be looked up.
+ */
+export function isSearchEngineIndexingAllowed(data: {
+  path: string;
+  indexingFlag: unknown;
+}): boolean {
+  if (isStatusPagePreviewPath(data.path)) {
+    return false;
+  }
+
+  return isSearchEngineIndexingEnabled(data.indexingFlag);
 }
