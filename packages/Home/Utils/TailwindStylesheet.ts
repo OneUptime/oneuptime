@@ -19,7 +19,11 @@ import path from "path";
  *
  * When there is no build (`npm run dev` never runs one), the pages load the
  * Tailwind Play CDN runtime instead, exactly as they did before the build
- * existed - see Views/head-basic.ejs.
+ * existed - see Views/head-basic.ejs. The server looks once, when it starts,
+ * and logs which it found. A build made by hand on a development machine
+ * (to see the production CSS) is used until it is deleted - delete
+ * build/tailwind, or run `npm test`, which clears build/, and restart, to
+ * go back to the runtime that picks up every class as it is written.
  */
 
 export const TailwindStylesheetDirectory: string = path.join(
