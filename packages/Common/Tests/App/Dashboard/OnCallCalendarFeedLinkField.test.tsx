@@ -47,6 +47,11 @@ jest.mock("react-i18next", () => {
 
 import FeedLinkField, {
   COPIED_FEEDBACK_MILLISECONDS,
+  MASKED_ADDRESS_CLASS_NAME,
+  MASKED_DOTS_CLASS_NAME,
+  MASKED_HINT_CLASS_NAME,
+  MASKED_LINK_CLASS_NAME,
+  MASKED_SECRET_CLASS_NAME,
   SWAPPING_LABEL_HIDDEN_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/FeedLinkField";
 import { MASK_CHARACTER } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
@@ -230,19 +235,62 @@ describe("FeedLinkField", () => {
       ]);
     });
 
-    test("the host may be cut short; the dots and the four characters never are", () => {
+    /*
+     * Short of room - a phone, a language whose "Copy link" is long - the
+     * hidden link gives way in order: the host first (it shrinks a thousand
+     * times faster), then the dots, from their left; the four characters
+     * stay whole. The field clips what does not fit, so nothing is drawn
+     * over the Show button: in German at 390px the dots kept their width
+     * and ran under it.
+     */
+    test("short of room the host gives way first, then the dots; the four characters never do", () => {
       renderField();
 
+      const masked: HTMLElement = screen.getByTestId("feed-link-masked");
       const [address, secret] = Array.from(
-        screen
-          .getByTestId("feed-link-masked")
-          .querySelectorAll("span[aria-hidden='true']"),
+        masked.querySelectorAll("span[aria-hidden='true']"),
       ) as Array<HTMLElement>;
+      const tokensOf: (className: string) => Array<string> = (
+        className: string,
+      ): Array<string> => {
+        return className.split(" ");
+      };
 
-      expect(address!.className).toContain("truncate");
-      expect(address!.className).toContain("min-w-0");
-      expect(secret!.className).toContain("flex-none");
-      expect(secret!.className).not.toContain("truncate");
+      expect(masked.className).toBe(MASKED_LINK_CLASS_NAME);
+      expect(tokensOf(MASKED_LINK_CLASS_NAME)).toEqual(
+        expect.arrayContaining(["min-w-0", "flex-1", "overflow-hidden"]),
+      );
+      // The text area around it clips too, lock and all.
+      expect(tokensOf(masked.parentElement!.className)).toEqual(
+        expect.arrayContaining(["min-w-0", "overflow-hidden"]),
+      );
+
+      expect(address!.className).toBe(MASKED_ADDRESS_CLASS_NAME);
+      expect(tokensOf(MASKED_ADDRESS_CLASS_NAME)).toEqual(
+        expect.arrayContaining(["min-w-0", "truncate", "shrink-[1000]"]),
+      );
+
+      expect(secret!.className).toBe(MASKED_SECRET_CLASS_NAME);
+      expect(tokensOf(MASKED_SECRET_CLASS_NAME)).toContain("min-w-0");
+      expect(tokensOf(MASKED_SECRET_CLASS_NAME)).not.toContain("flex-none");
+
+      expect(screen.getByTestId("feed-link-mask-dots").className).toBe(
+        MASKED_DOTS_CLASS_NAME,
+      );
+      expect(tokensOf(MASKED_DOTS_CLASS_NAME)).toEqual(
+        expect.arrayContaining([
+          "min-w-0",
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "[direction:rtl]",
+        ]),
+      );
+
+      expect(screen.getByTestId("feed-link-mask-hint").className).toBe(
+        MASKED_HINT_CLASS_NAME,
+      );
+      expect(tokensOf(MASKED_HINT_CLASS_NAME)).toContain("flex-none");
+      expect(tokensOf(MASKED_HINT_CLASS_NAME)).not.toContain("truncate");
     });
   });
 

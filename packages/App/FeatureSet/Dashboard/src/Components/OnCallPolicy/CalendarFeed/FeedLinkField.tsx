@@ -44,6 +44,34 @@ export interface ComponentProps {
 // How long "Copied!" stays on the button.
 export const COPIED_FEEDBACK_MILLISECONDS: number = 2000;
 
+/*
+ * The hidden link gives way, in order, when the field is short of room - a
+ * phone, a language whose "Copy link" is long ("Скопировать ссылку"): first
+ * the host is cut short, then the dots are, from their left; the four
+ * characters that tell this link from another stay whole. Nothing is ever
+ * drawn over the Show button beside it: the dots used to keep their width
+ * and run under it in German at 390px.
+ */
+export const MASKED_LINK_CLASS_NAME: string =
+  "relative flex min-w-0 flex-1 items-center overflow-hidden py-2 font-mono text-sm text-gray-500 select-none";
+
+// The host gives way first: it shrinks a thousand times faster.
+export const MASKED_ADDRESS_CLASS_NAME: string =
+  "min-w-0 shrink-[1000] truncate font-mono";
+
+export const MASKED_SECRET_CLASS_NAME: string =
+  "flex min-w-0 items-center font-mono";
+
+/*
+ * Then the dots, clipped from their left (they are all alike, so the cut
+ * edge sits away from the four characters, not against them).
+ */
+export const MASKED_DOTS_CLASS_NAME: string =
+  "min-w-0 overflow-hidden whitespace-nowrap font-mono text-gray-400 [direction:rtl]";
+
+export const MASKED_HINT_CLASS_NAME: string =
+  "flex-none font-mono text-gray-500";
+
 type CopyState = "idle" | "copied" | "blocked";
 
 /*
@@ -167,7 +195,7 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
         className="flex w-full min-w-0 items-stretch rounded-md border border-gray-300 bg-white shadow-sm"
         data-testid={`${props.idPrefix}-copy`}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2 pl-3 pr-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden pl-3 pr-2">
           <Icon
             icon={IconProp.Lock}
             className="h-4 w-4 flex-none text-gray-400"
@@ -188,28 +216,28 @@ const FeedLinkField: FunctionComponent<ComponentProps> = (
             />
           ) : (
             <div
-              className="relative flex min-w-0 flex-1 items-center py-2 font-mono text-sm text-gray-500 select-none"
+              className={MASKED_LINK_CLASS_NAME}
               data-testid={`${props.idPrefix}-link-masked`}
             >
               <span className="sr-only">
                 {translator.translateText("Calendar link, hidden")}
               </span>
-              <span className="min-w-0 truncate font-mono" aria-hidden="true">
-                {masked.address}
-              </span>
               {/*
                * Every span says font-mono itself: the Dashboard sets its font
                * on every element (index.ejs), which beats inheriting it.
                */}
-              <span className="flex-none font-mono" aria-hidden="true">
+              <span className={MASKED_ADDRESS_CLASS_NAME} aria-hidden="true">
+                {masked.address}
+              </span>
+              <span className={MASKED_SECRET_CLASS_NAME} aria-hidden="true">
                 <span
-                  className="font-mono text-gray-400"
+                  className={MASKED_DOTS_CLASS_NAME}
                   data-testid={`${props.idPrefix}-link-mask-dots`}
                 >
                   {maskDots}
                 </span>
                 <span
-                  className="font-mono text-gray-500"
+                  className={MASKED_HINT_CLASS_NAME}
                   data-testid={`${props.idPrefix}-link-mask-hint`}
                 >
                   {maskHint}

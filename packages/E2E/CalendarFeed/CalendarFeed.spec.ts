@@ -824,6 +824,49 @@ test.describe("German", () => {
 
     expect(Math.abs((await box(copy)).width - before.width)).toBeLessThan(0.5);
   });
+
+  /*
+   * "Link kopieren" leaves the hidden link little room on a phone. The
+   * host gives way, then the dots; the last four characters stay whole,
+   * and nothing runs under the Show button - the dots used to keep their
+   * width and did.
+   */
+  test("on a phone the hidden link gives way before the buttons: nothing runs under Show", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [390, 360]) {
+      await open(page, "state=google&lang=de", width);
+
+      const masked: Box = await box(
+        page.getByTestId("personal-calendar-feed-link-masked"),
+      );
+      const hint: Box = await box(
+        page.getByTestId("personal-calendar-feed-link-mask-hint"),
+      );
+      const reveal: Box = await box(
+        page.getByTestId("personal-calendar-feed-reveal"),
+      );
+
+      expect({ width, hintEnd: hint.x + hint.width <= reveal.x }).toEqual({
+        width,
+        hintEnd: true,
+      });
+      expect({
+        width,
+        hintInside:
+          hint.x >= masked.x &&
+          hint.x + hint.width <= masked.x + masked.width + 0.5,
+      }).toEqual({ width, hintInside: true });
+      const token: string = await tokenOf(page, "personal");
+
+      await expect(
+        page.getByTestId("personal-calendar-feed-link-mask-hint"),
+      ).toHaveText(token.slice(-4));
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    }
+  });
 });
 
 test.describe("the shared links", () => {
