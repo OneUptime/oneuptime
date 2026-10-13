@@ -81,6 +81,9 @@ const AICopilot: LazyRoutes = lazy(() => {
 const Sso: LazyRoutes = lazy(() => {
   return import("./Pages/Onboarding/SSO");
 });
+const HomeActiveIncidents: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/ActiveIncidents");
+});
 const NotOperationalMonitors: LazyRoutes = lazy(() => {
   return import("./Pages/Home/NotOperationalMonitors");
 });
@@ -594,6 +597,15 @@ const App: () => JSX.Element = () => {
                     pageRoute={RouteMap[PageMap.HOME] as Route}
                     projects={projects}
                     isLoadingProjects={isLoading}
+                  />
+                }
+              />
+              <PageRoute
+                path={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS]?.toString() || ""}
+                element={
+                  <HomeActiveIncidents
+                    {...commonPageProps}
+                    pageRoute={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route}
                   />
                 }
               />

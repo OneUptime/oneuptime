@@ -37,6 +37,8 @@ import React, {
 
 export interface ComponentProps {
   projectId: ObjectID;
+  // Passed to the card, e.g. to drop its margin inside a spaced layout.
+  className?: string | undefined;
 }
 
 interface GettingStartedTask {
@@ -276,6 +278,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
+      className={props.className}
       title="Welcome to OneUptime 👋"
       description="A few quick steps and your project will be up and running. Pick up where you left off anytime."
       rightElement={

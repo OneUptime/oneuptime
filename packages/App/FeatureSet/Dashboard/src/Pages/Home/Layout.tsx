@@ -32,6 +32,20 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
   }> = [
     {
       route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
+      ),
+      presentation: {
+        title: "Active Incidents",
+        breadcrumb: {
+          title: "Active Incidents",
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
+          ),
+        },
+      },
+    },
+    {
+      route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route,
       ),
       presentation: { title: "Active Alerts" },

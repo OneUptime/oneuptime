@@ -86,4 +86,18 @@ export default class ScheduledMaintenanceStateUtil {
       states: await this.getScheduledMaintenanceStates(projectId),
     });
   }
+
+  /*
+   * The states an event waits for its Starts At in: the scheduled state,
+   * and every state of the project's own placed after Scheduled and before
+   * Ongoing, such as "Confirmed" - the events Home lists as coming up, as
+   * the status pages list them as upcoming.
+   */
+  public static async getWaitingToStartScheduledMaintenanceStates(
+    projectId: ObjectID,
+  ): Promise<Array<ScheduledMaintenanceState>> {
+    return ScheduledMaintenanceStartUtil.getWaitingToStartStates({
+      states: await this.getScheduledMaintenanceStates(projectId),
+    });
+  }
 }

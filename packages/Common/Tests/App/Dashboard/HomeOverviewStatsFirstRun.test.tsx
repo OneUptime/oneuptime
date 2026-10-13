@@ -18,25 +18,29 @@ import {
 import * as fs from "fs";
 import * as path from "path";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The overview tiles on Home, as a brand-new project sees them.
+ * The five numbers under Home's health headline (OverviewStats), as a
+ * brand-new project and a busy one see them.
  *
  * They used to read "Inoperational monitors 0 - All operational" and "SLOs at
  * risk 0 - Budgets healthy" before anything existed, as though monitors and
- * SLOs were watching and had found nothing wrong. The two tiles now also count
- * what exists, and with nothing to count they say "No monitors yet" / "No SLOs
- * yet" and open the list where one is created (Monitors, SLOs).
+ * SLOs were watching and had found nothing wrong. The strip also counts what
+ * exists, and with nothing to count it says "No monitors yet" / "No SLOs
+ * yet" and opens the list where one is created (Monitors, SLOs).
  *
- * The real component is mounted. ModelAPI.count is answered by a small
- * in-memory evaluator of the very query objects the component builds, so a
- * test about "archived SLOs are not set up" checks the query's meaning, not
- * just its shape. The unresolved incident and alert states come through the
- * real IncidentStateUtil / AlertStateUtil, and the in-progress scheduled
- * maintenance states through the real ScheduledMaintenanceStateUtil, over a
- * stubbed ModelListCache. react-i18next is answered from the REAL locale
- * files.
+ * The strip reads Home's one parallel batch (HomeOverviewData, through the
+ * real useHomeOverview hook), drawn in the real ProjectHealthCard. Each open
+ * kind is one list request - its rows AND its total - and the two set-up
+ * totals are counts. ModelAPI is answered by a small in-memory evaluator of
+ * the very query objects the batch builds, so a test about "archived SLOs are
+ * not set up" checks the query's meaning, not just its shape. The unresolved
+ * incident and alert states come through the real IncidentStateUtil /
+ * AlertStateUtil, and the in-progress scheduled maintenance states through
+ * the real ScheduledMaintenanceStateUtil, over a stubbed ModelListCache.
+ * react-i18next is answered from the REAL locale files.
  */
 
 const LOCALES_DIR: string = path.join(
@@ -68,9 +72,9 @@ function lookupNested(data: LocaleData, key: string): string | undefined {
   return typeof cursor === "string" ? cursor : undefined;
 }
 
-const navigateMock: MockFunction = getJestMockFunction();
 const countMock: MockFunction = getJestMockFunction();
-const listMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
+const cacheListMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -92,7 +96,9 @@ jest.mock("react-i18next", () => {
             (typeof options === "string" ? options : key)
           );
         },
-        i18n: { language: "en" },
+        i18n: {
+          language: activeLocale === DE ? "de" : "en",
+        },
       };
     },
   };
@@ -105,6 +111,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       count: (...args: Array<unknown>) => {
         return countMock(...args);
       },
+      getList: (...args: Array<unknown>) => {
+        return getListMock(...args);
+      },
     },
   };
 });
@@ -114,18 +123,7 @@ jest.mock("../../../UI/Utils/ModelListCache", () => {
     __esModule: true,
     default: {
       getList: (...args: Array<unknown>) => {
-        return listMock(...args);
-      },
-    },
-  };
-});
-
-jest.mock("../../../UI/Utils/Navigation", () => {
-  return {
-    __esModule: true,
-    default: {
-      navigate: (...args: Array<unknown>) => {
-        return navigateMock(...args);
+        return cacheListMock(...args);
       },
     },
   };
@@ -143,10 +141,19 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-import OverviewStats, {
+import {
+  getHomeCounts,
+  HOME_ATTENTION_LIST_LIMIT,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
+import {
   NO_MONITORS_YET_LABEL,
   NO_SLOS_YET_LABEL,
+  STAT_TILE_KEYS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/OverviewStats";
+import ProjectHealthCard from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ProjectHealthCard";
+import useHomeOverview, {
+  UseHomeOverviewResult,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/UseHomeOverview";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -163,6 +170,8 @@ import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 
 const PROJECT_ID: string = "65f00000000000000000cccc";
 let currentProjectId: ObjectID | null = null;
+
+const NOW: Date = new Date("2026-10-13T12:00:00.000Z");
 
 // Incident and alert states in their workflow order: two open, then resolved.
 const OPEN_STATE_ID: string = "65f000000000000000000001";
@@ -252,14 +261,25 @@ function scheduledMaintenanceStateRows(): Array<ScheduledMaintenanceStateRow> {
 let smStateRows: Array<ScheduledMaintenanceStateRow> =
   scheduledMaintenanceStateRows();
 
-// What the project holds. Every count is evaluated against this.
+interface MonitorRow {
+  isOperational: boolean;
+  isArchived?: boolean | undefined;
+}
+
+interface SloRow {
+  isEnabled: boolean;
+  isArchived: boolean;
+  status: SloStatus;
+}
+
+// What the project holds. Every list and count is evaluated against this.
 interface Dataset {
   incidentStateIds: Array<string>;
   alertStateIds: Array<string>;
-  monitors: Array<{ isOperational: boolean }>;
+  monitors: Array<MonitorRow>;
   // Each event's current state.
   maintenanceStateIds: Array<string>;
-  slos: Array<{ isEnabled: boolean; isArchived: boolean; status: SloStatus }>;
+  slos: Array<SloRow>;
 }
 
 function emptyProject(): Dataset {
@@ -274,7 +294,7 @@ function emptyProject(): Dataset {
 
 let dataset: Dataset = emptyProject();
 
-type CountKind =
+type RequestKind =
   | "activeIncidents"
   | "activeAlerts"
   | "notOperationalMonitors"
@@ -283,12 +303,22 @@ type CountKind =
   | "slosAtRisk"
   | "totalSlos";
 
-interface CountRequest {
+interface ModelRequest {
   modelType: unknown;
   query: Record<string, unknown>;
+  select?: Record<string, unknown> | undefined;
+  sort?: Record<string, unknown> | undefined;
+  limit?: number | undefined;
+  skip?: number | undefined;
 }
 
-function kindOf(request: CountRequest): CountKind {
+interface RecordedRequest {
+  kind: RequestKind;
+  type: "list" | "count";
+  request: ModelRequest;
+}
+
+function kindOf(request: ModelRequest): RequestKind {
   const query: Record<string, unknown> = request.query;
 
   if (request.modelType === Incident) {
@@ -309,7 +339,7 @@ function kindOf(request: CountRequest): CountKind {
     return "sloStatus" in query ? "slosAtRisk" : "totalSlos";
   }
   throw new Error(
-    `Unexpected count on ${String((request.modelType as { name?: string })?.name)}`,
+    `Unexpected request on ${String((request.modelType as { name?: string })?.name)}`,
   );
 }
 
@@ -321,8 +351,8 @@ function idsIn(value: unknown): Array<string> {
   );
 }
 
-// Answers a count the way the database would, from `dataset`.
-function evaluate(request: CountRequest): number {
+// Answers a request the way the database would, from `dataset`.
+function evaluate(request: ModelRequest): number {
   const query: Record<string, unknown> = request.query;
 
   expect(String(query["projectId"])).toBe(PROJECT_ID);
@@ -344,12 +374,23 @@ function evaluate(request: CountRequest): number {
       const wanted: boolean = (
         query["currentMonitorStatus"] as { isOperationalState: boolean }
       ).isOperationalState;
-      return dataset.monitors.filter((monitor: { isOperational: boolean }) => {
+      return dataset.monitors.filter((monitor: MonitorRow): boolean => {
+        if (
+          "isArchived" in query &&
+          Boolean(monitor.isArchived) !== query["isArchived"]
+        ) {
+          return false;
+        }
         return monitor.isOperational === wanted;
       }).length;
     }
     case "totalMonitors":
-      return dataset.monitors.length;
+      return dataset.monitors.filter((monitor: MonitorRow): boolean => {
+        return (
+          !("isArchived" in query) ||
+          Boolean(monitor.isArchived) === query["isArchived"]
+        );
+      }).length;
     case "ongoingMaintenance": {
       const inProgress: Array<string> = idsIn(
         query["currentScheduledMaintenanceStateId"],
@@ -360,50 +401,103 @@ function evaluate(request: CountRequest): number {
     }
     case "slosAtRisk":
     case "totalSlos":
-      return dataset.slos.filter(
-        (slo: {
-          isEnabled: boolean;
-          isArchived: boolean;
-          status: SloStatus;
-        }): boolean => {
-          if ("isEnabled" in query && slo.isEnabled !== query["isEnabled"]) {
-            return false;
-          }
-          if ("isArchived" in query && slo.isArchived !== query["isArchived"]) {
-            return false;
-          }
-          if (
-            "sloStatus" in query &&
-            !idsIn(query["sloStatus"]).includes(slo.status)
-          ) {
-            return false;
-          }
-          return true;
-        },
-      ).length;
+      return dataset.slos.filter((slo: SloRow): boolean => {
+        if ("isEnabled" in query && slo.isEnabled !== query["isEnabled"]) {
+          return false;
+        }
+        if ("isArchived" in query && slo.isArchived !== query["isArchived"]) {
+          return false;
+        }
+        if (
+          "sloStatus" in query &&
+          !idsIn(query["sloStatus"]).includes(slo.status)
+        ) {
+          return false;
+        }
+        return true;
+      }).length;
   }
 }
 
-let countRequests: Array<CountRequest> = [];
+let requests: Array<RecordedRequest> = [];
+
+// A list's answer: as many rows as it may hold, and the total that matches.
+function listAnswer(request: ModelRequest): {
+  data: Array<{ _id: string }>;
+  count: number;
+  skip: number;
+  limit: number;
+} {
+  const count: number = evaluate(request);
+  const limit: number = request.limit || 10;
+  const shown: number = Math.min(count, limit);
+
+  return {
+    data: Array.from({ length: shown }, (_unused: unknown, index: number) => {
+      return { _id: `65f0000000000000000a${String(index).padStart(4, "0")}` };
+    }),
+    count,
+    skip: 0,
+    limit,
+  };
+}
 
 function answerFromDataset(): void {
+  getListMock.mockImplementation((...args: Array<unknown>) => {
+    const request: ModelRequest = args[0] as ModelRequest;
+    requests.push({ kind: kindOf(request), type: "list", request });
+    return Promise.resolve(listAnswer(request));
+  });
   countMock.mockImplementation((...args: Array<unknown>) => {
-    const request: CountRequest = args[0] as CountRequest;
-    countRequests.push(request);
+    const request: ModelRequest = args[0] as ModelRequest;
+    requests.push({ kind: kindOf(request), type: "count", request });
     return Promise.resolve(evaluate(request));
   });
 }
 
-function requestsOf(kind: CountKind): Array<CountRequest> {
-  return countRequests.filter((request: CountRequest): boolean => {
-    return kindOf(request) === kind;
+function requestsOf(kind: RequestKind): Array<RecordedRequest> {
+  return requests.filter((recorded: RecordedRequest): boolean => {
+    return recorded.kind === kind;
+  });
+}
+
+function onlyRequestOf(kind: RequestKind): ModelRequest {
+  const matching: Array<RecordedRequest> = requestsOf(kind);
+  expect(matching).toHaveLength(1);
+  return matching[0]!.request;
+}
+
+const harnessProjectId: ObjectID = new ObjectID(PROJECT_ID);
+
+// The batch and the card, wired the way Home wires them.
+function Harness(): React.ReactElement {
+  const overview: UseHomeOverviewResult = useHomeOverview(harnessProjectId);
+
+  return (
+    <ProjectHealthCard
+      counts={overview.data ? getHomeCounts(overview.data) : null}
+      isLoading={overview.isLoading}
+      isRefreshing={overview.isRefreshing}
+      error={overview.error}
+      loadedAt={overview.loadedAt}
+      now={NOW}
+      onRefresh={overview.refresh}
+    />
+  );
+}
+
+async function mountHarness(): Promise<void> {
+  await act(async () => {
+    render(
+      <MemoryRouter>
+        <Harness />
+      </MemoryRouter>,
+    );
   });
 }
 
 async function renderStats(): Promise<void> {
-  await act(async () => {
-    render(<OverviewStats projectId={new ObjectID(PROJECT_ID)} />);
-  });
+  await mountHarness();
   await waitFor(() => {
     expect(
       screen.getByTestId("home-stat-not-operational-monitors-status"),
@@ -411,28 +505,21 @@ async function renderStats(): Promise<void> {
   });
 }
 
-const TILE_KEYS: Array<string> = [
-  "active-incidents",
-  "active-alerts",
-  "not-operational-monitors",
-  "ongoing-maintenance",
-  "slos-needing-attention",
-];
-
 function statusOf(key: string): HTMLElement {
   return screen.getByTestId(`home-stat-${key}-status`);
 }
 
 function tileOf(key: string): HTMLElement {
-  return screen
-    .getByTestId(`home-stat-${key}`)
-    .closest('[role="button"]') as HTMLElement;
+  return screen.getByTestId(`home-stat-${key}-tile`);
 }
 
-function clickTile(key: string): string {
-  fireEvent.click(tileOf(key));
-  expect(navigateMock).toHaveBeenCalledTimes(1);
-  return String(navigateMock.mock.calls[0]![0]);
+// Where a cell opens: every cell is a link.
+function hrefOf(key: string): string {
+  const link: HTMLAnchorElement | null = screen
+    .getByTestId(`home-stat-${key}`)
+    .closest("a");
+  expect(link).not.toBeNull();
+  return link!.getAttribute("href") || "";
 }
 
 function routeOf(pageMap: PageMap): string {
@@ -442,7 +529,7 @@ function routeOf(pageMap: PageMap): string {
 function sloRow(
   status: SloStatus,
   overrides: { isEnabled?: boolean; isArchived?: boolean } = {},
-): { isEnabled: boolean; isArchived: boolean; status: SloStatus } {
+): SloRow {
   return {
     isEnabled: overrides.isEnabled ?? true,
     isArchived: overrides.isArchived ?? false,
@@ -450,14 +537,8 @@ function sloRow(
   };
 }
 
-beforeEach(() => {
-  activeLocale = EN;
-  currentProjectId = new ObjectID(PROJECT_ID);
-  dataset = emptyProject();
-  smStateRows = scheduledMaintenanceStateRows();
-  countRequests = [];
-  answerFromDataset();
-  listMock.mockImplementation((...args: Array<unknown>) => {
+function answerStateLists(): void {
+  cacheListMock.mockImplementation((...args: Array<unknown>) => {
     const request: { modelType: unknown } = args[0] as { modelType: unknown };
     if (request.modelType === ScheduledMaintenanceState) {
       return Promise.resolve({
@@ -481,13 +562,23 @@ beforeEach(() => {
       limit: rows.length,
     });
   });
+}
+
+beforeEach(() => {
+  activeLocale = EN;
+  currentProjectId = new ObjectID(PROJECT_ID);
+  dataset = emptyProject();
+  smStateRows = scheduledMaintenanceStateRows();
+  requests = [];
+  answerFromDataset();
+  answerStateLists();
 });
 
 afterEach(() => {
   cleanup();
-  navigateMock.mockReset();
   countMock.mockReset();
-  listMock.mockReset();
+  getListMock.mockReset();
+  cacheListMock.mockReset();
 });
 
 describe("a brand-new project", () => {
@@ -525,10 +616,11 @@ describe("a brand-new project", () => {
     for (const key of ["not-operational-monitors", "slos-needing-attention"]) {
       expect(statusOf(key)).toHaveClass("text-gray-500");
       expect(statusOf(key)).not.toHaveClass("text-emerald-600");
+      expect(tileOf(key)).toHaveAttribute("data-tone", "not-set-up");
     }
   });
 
-  test("the tiles that are true with nothing set up keep their reading", async () => {
+  test("the cells that are true with nothing set up keep their reading", async () => {
     await renderStats();
 
     expect(statusOf("active-incidents")).toHaveTextContent("All clear");
@@ -540,21 +632,22 @@ describe("a brand-new project", () => {
       "ongoing-maintenance",
     ]) {
       expect(statusOf(key)).toHaveClass("text-emerald-600");
+      expect(tileOf(key)).toHaveAttribute("data-tone", "all-clear");
     }
   });
 
-  test("every tile still shows its count, zero here", async () => {
+  test("every cell still shows its count, zero here", async () => {
     await renderStats();
 
-    for (const key of TILE_KEYS) {
+    for (const key of STAT_TILE_KEYS) {
       expect(screen.getByTestId(`home-stat-${key}`)).toHaveTextContent("0");
     }
   });
 
-  test("the monitors tile opens the Monitors list, where Create Monitor is", async () => {
+  test("the monitors cell opens the Monitors list, where Create Monitor is", async () => {
     await renderStats();
 
-    const route: string = clickTile("not-operational-monitors");
+    const route: string = hrefOf("not-operational-monitors");
 
     expect(route).toBe(routeOf(PageMap.MONITORS));
     /*
@@ -565,29 +658,29 @@ describe("a brand-new project", () => {
     expect(route).not.toBe(routeOf(PageMap.HOME_NOT_OPERATIONAL_MONITORS));
   });
 
-  test("the SLO tile opens the SLOs page, where one is created", async () => {
+  test("the SLO cell opens the SLOs page, where one is created", async () => {
     await renderStats();
 
-    expect(clickTile("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
+    expect(hrefOf("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
   });
 
-  test("the other tiles open their usual pages", async () => {
+  test("the other cells open their lists, Active Incidents its own page now", async () => {
     await renderStats();
 
-    expect(clickTile("active-incidents")).toBe(routeOf(PageMap.HOME));
-    navigateMock.mockReset();
-    expect(clickTile("active-alerts")).toBe(
-      routeOf(PageMap.HOME_ACTIVE_ALERTS),
+    expect(hrefOf("active-incidents")).toBe(
+      routeOf(PageMap.HOME_ACTIVE_INCIDENTS),
     );
-    navigateMock.mockReset();
-    expect(clickTile("ongoing-maintenance")).toBe(
+    // Home itself is the overview, not the incidents list.
+    expect(hrefOf("active-incidents")).not.toBe(routeOf(PageMap.HOME));
+    expect(hrefOf("active-alerts")).toBe(routeOf(PageMap.HOME_ACTIVE_ALERTS));
+    expect(hrefOf("ongoing-maintenance")).toBe(
       routeOf(PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS),
     );
   });
 });
 
 describe("a project with monitors", () => {
-  test("none failing: all operational, and the tile opens the not operational list", async () => {
+  test("none failing: all operational, and the cell opens the not operational list", async () => {
     dataset.monitors = [
       { isOperational: true },
       { isOperational: true },
@@ -601,7 +694,7 @@ describe("a project with monitors", () => {
     expect(statusOf("not-operational-monitors")).toHaveClass(
       "text-emerald-600",
     );
-    expect(clickTile("not-operational-monitors")).toBe(
+    expect(hrefOf("not-operational-monitors")).toBe(
       routeOf(PageMap.HOME_NOT_OPERATIONAL_MONITORS),
     );
   });
@@ -621,12 +714,27 @@ describe("a project with monitors", () => {
       "Needs attention",
     );
     expect(statusOf("not-operational-monitors")).toHaveClass("text-red-600");
-    expect(clickTile("not-operational-monitors")).toBe(
+    expect(hrefOf("not-operational-monitors")).toBe(
       routeOf(PageMap.HOME_NOT_OPERATIONAL_MONITORS),
     );
   });
 
-  test("the SLO tile is judged on its own: monitors but no SLOs", async () => {
+  test("an archived monitor's frozen Offline is not counted, nor is it set up", async () => {
+    dataset.monitors = [
+      { isOperational: false, isArchived: true },
+      { isOperational: true, isArchived: true },
+    ];
+    await renderStats();
+
+    expect(
+      screen.getByTestId("home-stat-not-operational-monitors"),
+    ).toHaveTextContent("0");
+    expect(statusOf("not-operational-monitors")).toHaveTextContent(
+      "No monitors yet",
+    );
+  });
+
+  test("the SLO cell is judged on its own: monitors but no SLOs", async () => {
     dataset.monitors = [{ isOperational: true }];
     await renderStats();
 
@@ -638,14 +746,14 @@ describe("a project with monitors", () => {
 });
 
 describe("a project with SLOs", () => {
-  test("none at risk: budgets healthy, and the tile opens SLOs", async () => {
+  test("none at risk: budgets healthy, and the cell opens SLOs", async () => {
     dataset.slos = [sloRow(SloStatus.Healthy), sloRow(SloStatus.Healthy)];
     await renderStats();
 
     expect(statusOf("slos-needing-attention")).toHaveTextContent(
       "Budgets healthy",
     );
-    expect(clickTile("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
+    expect(hrefOf("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
   });
 
   test("at risk or exhausted: budget burning, with the count", async () => {
@@ -685,7 +793,7 @@ describe("a project with SLOs", () => {
     await renderStats();
 
     expect(statusOf("slos-needing-attention")).toHaveTextContent("No SLOs yet");
-    expect(clickTile("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
+    expect(hrefOf("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
   });
 });
 
@@ -708,6 +816,21 @@ describe("incidents, alerts and maintenance", () => {
       "1",
     );
     expect(statusOf("active-alerts")).toHaveTextContent("Needs attention");
+  });
+
+  test("a count above what a list holds is the total, not the rows read", async () => {
+    // Nine open incidents: the list reads five, the cell says nine.
+    dataset.incidentStateIds = Array.from({ length: 9 }, () => {
+      return OPEN_STATE_ID;
+    });
+    await renderStats();
+
+    expect(screen.getByTestId("home-stat-active-incidents")).toHaveTextContent(
+      "9",
+    );
+    expect(onlyRequestOf("activeIncidents").limit).toBe(
+      HOME_ATTENTION_LIST_LIMIT,
+    );
   });
 
   test("ongoing maintenance is in progress", async () => {
@@ -776,35 +899,33 @@ describe("incidents, alerts and maintenance", () => {
   });
 });
 
-describe("the ongoing maintenance count", () => {
+describe("the ongoing maintenance read", () => {
   test("asks for events by the in-progress state ids, not by the ongoing flag", async () => {
     await renderStats();
 
-    const [request]: Array<CountRequest> = requestsOf("ongoingMaintenance");
-    expect(requestsOf("ongoingMaintenance")).toHaveLength(1);
-    expect(Object.keys(request!.query).sort()).toEqual([
+    const request: ModelRequest = onlyRequestOf("ongoingMaintenance");
+    expect(Object.keys(request.query).sort()).toEqual([
       "currentScheduledMaintenanceStateId",
       "projectId",
     ]);
-    expect(request!.query["currentScheduledMaintenanceStateId"]).toBeInstanceOf(
+    expect(request.query["currentScheduledMaintenanceStateId"]).toBeInstanceOf(
       Includes,
     );
     expect(
-      idsIn(request!.query["currentScheduledMaintenanceStateId"]).sort(),
+      idsIn(request.query["currentScheduledMaintenanceStateId"]).sort(),
     ).toEqual([SM_ONGOING_STATE_ID, SM_VERIFYING_STATE_ID].sort());
   });
 
   test("the project's states are read once, through the list cache, for this project", async () => {
     await renderStats();
 
-    const smListRequests: Array<Array<unknown>> = listMock.mock.calls.filter(
-      (call: Array<unknown>): boolean => {
+    const smListRequests: Array<Array<unknown>> =
+      cacheListMock.mock.calls.filter((call: Array<unknown>): boolean => {
         return (
           (call[0] as { modelType: unknown }).modelType ===
           ScheduledMaintenanceState
         );
-      },
-    );
+      });
     expect(smListRequests).toHaveLength(1);
     const request: {
       query: Record<string, unknown>;
@@ -837,15 +958,15 @@ describe("the ongoing maintenance count", () => {
     await renderStats();
 
     expect(requestsOf("ongoingMaintenance")).toHaveLength(0);
-    expect(countRequests).toHaveLength(6);
+    expect(requests).toHaveLength(6);
     expect(
       screen.getByTestId("home-stat-ongoing-maintenance"),
     ).toHaveTextContent("0");
     expect(statusOf("ongoing-maintenance")).toHaveTextContent("None ongoing");
   });
 
-  test("a failed read of the states hides the whole row, like a failed count", async () => {
-    listMock.mockImplementation((...args: Array<unknown>) => {
+  test("a failed read of the states shows the card's error, not a strip of zeros", async () => {
+    cacheListMock.mockImplementation((...args: Array<unknown>) => {
       const request: { modelType: unknown } = args[0] as {
         modelType: unknown;
       };
@@ -861,28 +982,33 @@ describe("the ongoing maintenance count", () => {
       });
     });
 
-    await act(async () => {
-      render(<OverviewStats projectId={new ObjectID(PROJECT_ID)} />);
-    });
+    await mountHarness();
 
     await waitFor(() => {
-      expect(countRequests.length).toBeGreaterThanOrEqual(6);
+      expect(screen.getByTestId("home-project-health")).toHaveAttribute(
+        "data-health",
+        "error",
+      );
     });
-    await waitFor(() => {
-      expect(screen.queryByTestId("home-overview-stats")).toBeNull();
-    });
+    expect(screen.queryByTestId("home-overview-stats")).toBeNull();
   });
 });
 
-describe("the requests behind the tiles", () => {
-  test("exactly seven counts per load", async () => {
+describe("the requests behind the strip", () => {
+  test("five lists and two counts per load", async () => {
+    dataset.maintenanceStateIds = [SM_ONGOING_STATE_ID];
     await renderStats();
 
-    expect(countRequests).toHaveLength(7);
+    expect(requests).toHaveLength(7);
     expect(
-      countRequests.map(kindOf).sort((a: string, b: string) => {
-        return a.localeCompare(b);
-      }),
+      requests
+        .filter((recorded: RecordedRequest): boolean => {
+          return recorded.type === "list";
+        })
+        .map((recorded: RecordedRequest): string => {
+          return recorded.kind;
+        })
+        .sort(),
     ).toEqual(
       [
         "activeAlerts",
@@ -890,85 +1016,107 @@ describe("the requests behind the tiles", () => {
         "notOperationalMonitors",
         "ongoingMaintenance",
         "slosAtRisk",
-        "totalMonitors",
-        "totalSlos",
-      ].sort((a: string, b: string) => {
-        return a.localeCompare(b);
-      }),
+      ].sort(),
     );
+    expect(
+      requests
+        .filter((recorded: RecordedRequest): boolean => {
+          return recorded.type === "count";
+        })
+        .map((recorded: RecordedRequest): string => {
+          return recorded.kind;
+        })
+        .sort(),
+    ).toEqual(["totalMonitors", "totalSlos"]);
+  });
+
+  test("every list reads the first few rows only", async () => {
+    await renderStats();
+
+    for (const recorded of requests) {
+      if (recorded.type === "list") {
+        expect({ kind: recorded.kind, limit: recorded.request.limit }).toEqual(
+          { kind: recorded.kind, limit: HOME_ATTENTION_LIST_LIMIT },
+        );
+        expect(recorded.request.skip).toBe(0);
+      }
+    }
   });
 
   test("the monitor total counts every monitor that is not archived, whatever its state", async () => {
     await renderStats();
 
     /*
-     * Archived monitors are gone from the Monitors list the tile opens, so a
+     * Archived monitors are gone from the Monitors list the cell opens, so a
      * project whose monitors are all archived reads as "no monitors yet",
-     * the same as the SLO tile does for archived SLOs.
+     * the same as the SLO cell does for archived SLOs.
      */
-    const [request]: Array<CountRequest> = requestsOf("totalMonitors");
-    expect(requestsOf("totalMonitors")).toHaveLength(1);
-    expect(Object.keys(request!.query).sort()).toEqual([
+    const request: ModelRequest = onlyRequestOf("totalMonitors");
+    expect(Object.keys(request.query).sort()).toEqual([
       "isArchived",
       "projectId",
     ]);
-    expect(request!.query["isArchived"]).toBe(false);
-    expect(String(request!.query["projectId"])).toBe(PROJECT_ID);
+    expect(request.query["isArchived"]).toBe(false);
+    expect(String(request.query["projectId"])).toBe(PROJECT_ID);
   });
 
-  test("the not-operational count leaves archived monitors out: their status is frozen", async () => {
+  test("the not-operational list leaves archived monitors out: their status is frozen", async () => {
     await renderStats();
 
-    const [request]: Array<CountRequest> = requestsOf("notOperationalMonitors");
-    expect(requestsOf("notOperationalMonitors")).toHaveLength(1);
-    expect(request!.query["isArchived"]).toBe(false);
+    expect(onlyRequestOf("notOperationalMonitors").query["isArchived"]).toBe(
+      false,
+    );
   });
 
   test("the SLO total is every SLO that is not archived, enabled or not", async () => {
     await renderStats();
 
-    const [request]: Array<CountRequest> = requestsOf("totalSlos");
-    expect(requestsOf("totalSlos")).toHaveLength(1);
-    expect(Object.keys(request!.query).sort()).toEqual([
+    const request: ModelRequest = onlyRequestOf("totalSlos");
+    expect(Object.keys(request.query).sort()).toEqual([
       "isArchived",
       "projectId",
     ]);
-    expect(request!.query["isArchived"]).toBe(false);
-    expect("isEnabled" in request!.query).toBe(false);
+    expect(request.query["isArchived"]).toBe(false);
+    expect("isEnabled" in request.query).toBe(false);
   });
 
-  test("the at-risk count is unchanged: enabled, not archived, at risk or exhausted", async () => {
+  test("the at-risk list is enabled, not archived, at risk or exhausted", async () => {
     await renderStats();
 
-    const [request]: Array<CountRequest> = requestsOf("slosAtRisk");
-    expect(request!.query["isEnabled"]).toBe(true);
-    expect(request!.query["isArchived"]).toBe(false);
-    expect(idsIn(request!.query["sloStatus"]).sort()).toEqual(
+    const request: ModelRequest = onlyRequestOf("slosAtRisk");
+    expect(request.query["isEnabled"]).toBe(true);
+    expect(request.query["isArchived"]).toBe(false);
+    expect(idsIn(request.query["sloStatus"]).sort()).toEqual(
       [SloStatus.AtRisk, SloStatus.BudgetExhausted].sort(),
     );
   });
 
   test("all seven go out together: none waits for another to answer", async () => {
-    const pending: Array<{ request: CountRequest; resolve: () => void }> = [];
+    const pending: Array<() => void> = [];
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ModelRequest = args[0] as ModelRequest;
+      requests.push({ kind: kindOf(request), type: "list", request });
+      return new Promise((resolve: (value: unknown) => void) => {
+        pending.push((): void => {
+          resolve(listAnswer(request));
+        });
+      });
+    });
     countMock.mockImplementation((...args: Array<unknown>) => {
-      const request: CountRequest = args[0] as CountRequest;
-      countRequests.push(request);
-      return new Promise<number>((resolve: (value: number) => void) => {
-        pending.push({
-          request,
-          resolve: (): void => {
-            resolve(evaluate(request));
-          },
+      const request: ModelRequest = args[0] as ModelRequest;
+      requests.push({ kind: kindOf(request), type: "count", request });
+      return new Promise((resolve: (value: unknown) => void) => {
+        pending.push((): void => {
+          resolve(evaluate(request));
         });
       });
     });
     dataset.monitors = [{ isOperational: false }];
+    dataset.maintenanceStateIds = [SM_ONGOING_STATE_ID];
 
-    await act(async () => {
-      render(<OverviewStats projectId={new ObjectID(PROJECT_ID)} />);
-    });
+    await mountHarness();
 
-    // Every count is in flight before a single one has been answered.
+    // Every read is in flight before a single one has been answered.
     await waitFor(() => {
       expect(pending).toHaveLength(7);
     });
@@ -978,8 +1126,8 @@ describe("the requests behind the tiles", () => {
 
     // Answered in the reverse of the order they were asked.
     await act(async () => {
-      for (const entry of [...pending].reverse()) {
-        entry.resolve();
+      for (const resolve of [...pending].reverse()) {
+        resolve();
       }
     });
 
@@ -989,7 +1137,7 @@ describe("the requests behind the tiles", () => {
       );
     });
     expect(statusOf("slos-needing-attention")).toHaveTextContent("No SLOs yet");
-    expect(countRequests).toHaveLength(7);
+    expect(requests).toHaveLength(7);
   });
 
   test.each([
@@ -1000,34 +1148,60 @@ describe("the requests behind the tiles", () => {
     "ongoingMaintenance",
     "slosAtRisk",
     "totalSlos",
-  ] as Array<CountKind>)(
-    "a failed %s count hides the whole row",
-    async (failing: CountKind) => {
-      countMock.mockImplementation((...args: Array<unknown>) => {
-        const request: CountRequest = args[0] as CountRequest;
-        countRequests.push(request);
-        if (kindOf(request) === failing) {
-          return Promise.reject(new Error("count failed"));
-        }
-        return Promise.resolve(evaluate(request));
+  ] as Array<RequestKind>)(
+    "a failed %s read shows the card's error with Try again, and Try again loads it",
+    async (failing: RequestKind) => {
+      let isFailing: boolean = true;
+      dataset.maintenanceStateIds = [SM_ONGOING_STATE_ID];
+      const answerOrFail: (
+        type: "list" | "count",
+      ) => (...args: Array<unknown>) => Promise<unknown> = (
+        type: "list" | "count",
+      ): ((...args: Array<unknown>) => Promise<unknown>) => {
+        return (...args: Array<unknown>): Promise<unknown> => {
+          const request: ModelRequest = args[0] as ModelRequest;
+          requests.push({ kind: kindOf(request), type, request });
+          if (isFailing && kindOf(request) === failing) {
+            return Promise.reject(new Error("read failed"));
+          }
+          return Promise.resolve(
+            type === "list" ? listAnswer(request) : evaluate(request),
+          );
+        };
+      };
+      getListMock.mockImplementation(answerOrFail("list"));
+      countMock.mockImplementation(answerOrFail("count"));
+
+      await mountHarness();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("home-project-health")).toHaveAttribute(
+          "data-health",
+          "error",
+        );
       });
+      // Not a row of zeros that would read as "all clear".
+      expect(screen.queryByTestId("home-overview-stats")).toBeNull();
+      expect(screen.getByTestId("home-health-error")).toHaveTextContent(
+        "read failed",
+      );
+
+      isFailing = false;
 
       await act(async () => {
-        render(<OverviewStats projectId={new ObjectID(PROJECT_ID)} />);
+        fireEvent.click(screen.getByTestId("home-health-try-again"));
       });
 
       await waitFor(() => {
-        expect(countRequests.length).toBeGreaterThanOrEqual(7);
+        expect(screen.getByTestId("home-overview-stats")).toBeInTheDocument();
       });
-      await waitFor(() => {
-        expect(screen.queryByTestId("home-overview-stats")).toBeNull();
-      });
+      expect(statusOf("ongoing-maintenance")).toHaveTextContent("In progress");
     },
   );
 });
 
 describe("the wording", () => {
-  test("the monitors tile is titled Not operational monitors", async () => {
+  test("the monitors cell is titled Not operational monitors", async () => {
     await renderStats();
 
     expect(tileOf("not-operational-monitors")).toHaveTextContent(
@@ -1035,34 +1209,51 @@ describe("the wording", () => {
     );
   });
 
-  test("nothing on the row says Inoperational", async () => {
+  test("nothing on the strip says Inoperational", async () => {
     dataset.monitors = [{ isOperational: false }];
-    const { container } = render(
-      <OverviewStats projectId={new ObjectID(PROJECT_ID)} />,
-    );
-    await waitFor(() => {
-      expect(statusOf("not-operational-monitors")).toBeInTheDocument();
-    });
+    await renderStats();
 
-    expect(container.textContent || "").not.toMatch(/inoperational/i);
+    expect(
+      screen.getByTestId("home-overview-stats").textContent || "",
+    ).not.toMatch(/inoperational/i);
   });
 
-  test("the tiles are in the same order as before", async () => {
+  test("the cells are in the same order as before", async () => {
     await renderStats();
 
     const keys: Array<string> = screen
-      .getAllByTestId(/^home-stat-[a-z-]+$/)
+      .getAllByTestId(/^home-stat-[a-z-]+-tile$/)
       .map((element: HTMLElement): string => {
-        return element.getAttribute("data-testid") || "";
-      })
-      .filter((testId: string): boolean => {
-        return !testId.endsWith("-status");
-      })
-      .map((testId: string): string => {
-        return testId.replace("home-stat-", "");
+        return (element.getAttribute("data-testid") || "")
+          .replace("home-stat-", "")
+          .replace(/-tile$/, "");
       });
 
-    expect(keys).toEqual(TILE_KEYS);
+    expect(keys).toEqual([
+      "active-incidents",
+      "active-alerts",
+      "not-operational-monitors",
+      "ongoing-maintenance",
+      "slos-needing-attention",
+    ]);
+    expect(STAT_TILE_KEYS).toEqual(keys);
+  });
+
+  test("while the batch loads, every cell shows its title over a placeholder", async () => {
+    getListMock.mockImplementation(() => {
+      return new Promise(() => {
+        // never answered
+      });
+    });
+
+    await mountHarness();
+
+    for (const key of STAT_TILE_KEYS) {
+      expect(
+        screen.getByTestId(`home-stat-${key}-loading`),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByTestId("home-stat-active-incidents")).toBeNull();
   });
 });
 
@@ -1082,7 +1273,7 @@ describe("in German", () => {
     return value as string;
   }
 
-  test("every tile title is the de.json translation", async () => {
+  test("every cell title is the de.json translation", async () => {
     activeLocale = DE;
     await renderStats();
 
