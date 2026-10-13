@@ -489,7 +489,7 @@ OneUptime AI 調查來自 Network Device 監測器的事件或警示時，會從
 
 ### 裝置身分
 
-首次遍歷成功後，OneUptime 會讀取 SNMPv2 系統群組，並在裝置支援時讀取 ENTITY-MIB，然後填寫裝置記錄：系統名稱、描述、位置、聯絡人、運作時間、廠商、型號、序號和韌體版本。廠商的企業 OID（`sysObjectID`）是裝置的指紋：它標示廠商並選出相符的廠商範本。同樣的資訊會與其他所有資產一起出現在[資產清單](/docs/inventory/cmdb-sync#network-device-asset-attributes)中。
+首次遍歷成功後，OneUptime 會讀取 SNMPv2 系統群組，並在裝置支援時讀取 ENTITY-MIB，然後填寫裝置記錄：系統名稱、描述、位置、聯絡人、運作時間、廠商、型號、序號和韌體版本。廠商的企業 OID（`sysObjectID`）是裝置的指紋：它標示廠商並選出相符的廠商範本。同樣的資訊會與其他所有資產一起出現在[資產清單](/docs/inventory/cmdb-sync#網路裝置資產屬性)中。
 
 僅 Ping 裝置會保留你或探索掃描為它指定的名稱和位址：沒有 SNMP 代理程式可以詢問更好的資訊。
 

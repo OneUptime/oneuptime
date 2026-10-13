@@ -489,7 +489,7 @@ Une investigation de OneUptime AI sur un incident ou une alerte d'un moniteur É
 
 ### Identité de l'équipement
 
-Après le premier parcours réussi, OneUptime lit le groupe système SNMPv2 et, si l'équipement le prend en charge, ENTITY-MIB, et remplit la fiche de l'équipement : nom système, description, emplacement, contact, durée de fonctionnement, constructeur, modèle, numéro de série et version du firmware. L'OID d'entreprise du constructeur (`sysObjectID`) est l'empreinte de l'équipement : il nomme le constructeur et choisit le modèle constructeur correspondant. Les mêmes informations apparaissent dans l'[inventaire](/docs/inventory/cmdb-sync#network-device-asset-attributes) avec tous vos autres actifs.
+Après le premier parcours réussi, OneUptime lit le groupe système SNMPv2 et, si l'équipement le prend en charge, ENTITY-MIB, et remplit la fiche de l'équipement : nom système, description, emplacement, contact, durée de fonctionnement, constructeur, modèle, numéro de série et version du firmware. L'OID d'entreprise du constructeur (`sysObjectID`) est l'empreinte de l'équipement : il nomme le constructeur et choisit le modèle constructeur correspondant. Les mêmes informations apparaissent dans l'[inventaire](/docs/inventory/cmdb-sync#attributs-dactif-des-équipements-réseau) avec tous vos autres actifs.
 
 Un équipement seulement pingué garde le nom et l'adresse que vous, ou une analyse de découverte, lui avez donnés : il n'y a pas d'agent SNMP à qui demander mieux.
 

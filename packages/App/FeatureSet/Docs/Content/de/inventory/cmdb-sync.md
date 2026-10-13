@@ -18,7 +18,7 @@ flowchart TB
     J["Ihr Synchronisationsjob,<br/>nach Zeitplan"] -->|"POST get-list<br/>mit einem API-Schlüssel"| O["OneUptime-Inventar"]
     O -->|"Elemente als JSON oder<br/>CSV, Seite für Seite"| M["Jedes Element über<br/>seinen entityKey zuordnen"]
     M --> C["CMDB-Zeilen anlegen,<br/>aktualisieren oder<br/>stilllegen"]
-    C -.->|"Optional: benutzerdefinierte<br/>Felder zurückschreiben"| O
+    C -.->|"Optional:<br/>benutzerdefinierte Felder<br/>zurückschreiben"| O
 ```
 
 ## Was Sie abrufen können

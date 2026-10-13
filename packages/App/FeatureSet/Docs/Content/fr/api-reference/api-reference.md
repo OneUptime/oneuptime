@@ -19,7 +19,7 @@ L'API est organisée selon REST : méthodes et codes d'état HTTP standard, JSON
 flowchart TB
     R["Une requête avec<br/>un en-tête ApiKey"] --> K["La clé API est-elle<br/>valide ? Sinon : 400"]
     K --> P["Le projet a-t-il<br/>l'offre ? Sinon : 402"]
-    P --> A["La clé a-t-elle le droit ?<br/>Sinon : 404 ou 422"]
+    P --> A["La clé a-t-elle<br/>le droit ? Sinon :<br/>404 ou 422"]
     A --> V["Chaque enregistrement<br/>nommé est-il à vous ?<br/>Sinon : 400"]
     V --> OK["La réponse, avec 200"]
 ```

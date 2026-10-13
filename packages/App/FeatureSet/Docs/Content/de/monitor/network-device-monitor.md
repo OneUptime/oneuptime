@@ -489,7 +489,7 @@ Eine Untersuchung durch OneUptime AI zu einem Vorfall oder einer Warnung eines N
 
 ### Geräteidentität
 
-Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#network-device-asset-attributes) neben jedem anderen Asset.
+Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#asset-attribute-von-netzwerkgeräten) neben jedem anderen Asset.
 
 Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein Erkennungsscan ihm gegeben haben: Es gibt keinen SNMP-Agenten, den man nach etwas Besserem fragen könnte.
 

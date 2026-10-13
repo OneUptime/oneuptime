@@ -146,8 +146,8 @@ const WHOLE_LABEL_SET: Set<string> = new Set<string>(
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [INVENTORY_OVERVIEW]: 26,
-  [INVENTORY_CUSTOM_FIELDS]: 22,
-  [CMDB_SYNC]: 26,
+  [INVENTORY_CUSTOM_FIELDS]: 21,
+  [CMDB_SYNC]: 25,
   [API_REFERENCE]: 24,
 };
 

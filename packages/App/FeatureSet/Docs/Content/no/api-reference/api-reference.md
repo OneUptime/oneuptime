@@ -19,7 +19,7 @@ API-et er bygget etter REST: standard HTTP-metoder og -statuskoder, JSON inn og 
 flowchart TB
     R["En forespørsel med<br/>en ApiKey-header"] --> K["Er API-nøkkelen gyldig?<br/>Hvis ikke: 400"]
     K --> P["Har prosjektet<br/>abonnementet?<br/>Hvis ikke: 402"]
-    P --> A["Får nøkkelen gjøre dette?<br/>Hvis ikke: 404 eller 422"]
+    P --> A["Får nøkkelen<br/>gjøre dette? Hvis<br/>ikke: 404 eller 422"]
     A --> V["Er hver nevnt post din?<br/>Hvis ikke: 400"]
     V --> OK["Svaret, med 200"]
 ```
