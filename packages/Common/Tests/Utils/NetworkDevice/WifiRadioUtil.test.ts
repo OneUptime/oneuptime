@@ -1044,6 +1044,18 @@ describe("WifiRadioUtil.hasReadSsidTable", () => {
     expect(WifiRadioUtil.hasReadSsidTable(snapshots)).toBe(false);
   });
 
+  it("is false when the SSID table's walk was cut short: its SSIDs may be past the rows it kept", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiWalk([]).map(
+      (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+        return snapshot.key === "wifi_ssids"
+          ? { ...snapshot, isTruncated: true }
+          : snapshot;
+      },
+    );
+
+    expect(WifiRadioUtil.hasReadSsidTable(snapshots)).toBe(false);
+  });
+
   it("is false for a device that walks no SSID table, or nothing at all", () => {
     const radiosOnly: Array<SnmpTableSnapshot> = unifiWalk([]).filter(
       (snapshot: SnmpTableSnapshot): boolean => {
@@ -1110,7 +1122,11 @@ describe("the client total of an access point that broadcasts no SSID", () => {
     expect(summary.totalClients).toBe(0);
   });
 
-  it("is 0 from the walk before a failed one, when that walk read only UniFi's own networks", () => {
+  it("is unknown while the SSID walk fails, even after a walk that read only UniFi's own networks", () => {
+    /*
+     * The tab's warning speaks for the radio table, so a claim drawn from a
+     * failing SSID table could stand for days unflagged: none is made.
+     */
     const snapshots: Array<SnmpTableSnapshot> = unifiWalk(
       OWN_NETWORKS_ONLY,
     ).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
@@ -1119,14 +1135,17 @@ describe("the client total of an access point that broadcasts no SSID", () => {
         : snapshot;
     });
 
-    expect(WifiRadioUtil.getSummary(snapshots).totalClients).toBe(0);
+    const summary: WifiSummary = WifiRadioUtil.getSummary(snapshots);
+
+    expect(summary).not.toHaveProperty("ownNetworksOnly");
+    expect(summary.totalClients).toBeUndefined();
   });
 
   it("is unknown when the walk read no row at all: the table may be missing, or hidden by the SNMP view", () => {
     const summary: WifiSummary = WifiRadioUtil.getSummary(unifiWalk([]));
 
     expect(summary.ssids).toEqual([]);
-    expect(summary.leftOutSsidRows).toBeUndefined();
+    expect(summary).not.toHaveProperty("ownNetworksOnly");
     expect(summary.totalClients).toBeUndefined();
   });
 
@@ -1160,8 +1179,41 @@ describe("the client total of an access point that broadcasts no SSID", () => {
 
     const summary: WifiSummary = WifiRadioUtil.getSummary(snapshots);
 
-    expect(summary.leftOutSsidRows).toBe(3);
+    expect(summary.ownNetworksOnly).toBe(true);
     expect(summary.totalClients).toBeUndefined();
+  });
+
+  it("is unknown when one SSID table read only UniFi's own networks and another read nothing", () => {
+    const ownOnly: SnmpTableSnapshot = ssidSnapshotOfWalk(
+      unifiWalk(OWN_NETWORKS_ONLY),
+    );
+    const readNothing: SnmpTableSnapshot = {
+      ...ssidSnapshotOfWalk(unifiWalk([])),
+      key: "wifi_ssids_second",
+    };
+
+    const summary: WifiSummary = WifiRadioUtil.getSummary([
+      ...unifiWalk([]).filter((snapshot: SnmpTableSnapshot): boolean => {
+        return snapshot.kind === SnmpTableKind.WifiRadio;
+      }),
+      ownOnly,
+      readNothing,
+    ]);
+
+    expect(summary).not.toHaveProperty("ownNetworksOnly");
+    expect(summary.totalClients).toBeUndefined();
+  });
+
+  it("is unknown when the SSID table's walk was cut short", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiWalk(
+      OWN_NETWORKS_ONLY,
+    ).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+      return snapshot.key === "wifi_ssids"
+        ? { ...snapshot, isTruncated: true }
+        : snapshot;
+    });
+
+    expect(WifiRadioUtil.getSummary(snapshots).totalClients).toBeUndefined();
   });
 
   it("is the SSIDs' as before when the access point lists any", () => {
@@ -1171,51 +1223,72 @@ describe("the client total of an access point that broadcasts no SSID", () => {
   });
 });
 
+// The SSIDs table of a walk.
+function ssidSnapshotOfWalk(
+  snapshots: Array<SnmpTableSnapshot>,
+): SnmpTableSnapshot {
+  return snapshots.find((snapshot: SnmpTableSnapshot): boolean => {
+    return snapshot.key === "wifi_ssids";
+  })!;
+}
+
 /*
  * What tells an access point that broadcasts no SSID from a walk that read
- * nothing: the rows the SSID tables read that are no SSID, whether a walk
- * left them out or they were stored before walks did.
+ * nothing it could judge: every SSID table read in full holds only the
+ * device's own networks (SnmpTableListUtil.showsOnlyOwnNetworks).
  */
-describe("WifiSummary.leftOutSsidRows", () => {
-  it("counts what a walk left out: UniFi's adoption network on both bands and its mesh link", () => {
-    const summary: WifiSummary = WifiRadioUtil.getSummary(unifiWalk(BUSY_VAPS));
-
-    expect(summary.ssids).toHaveLength(4);
-    expect(summary.leftOutSsidRows).toBe(3);
-  });
-
-  it("counts the same from a snapshot stored before #4730", () => {
-    expect(
-      WifiRadioUtil.getSummary(unifiStoredBeforeTheFix(STORED_VAPS))
-        .leftOutSsidRows,
-    ).toBe(3);
-  });
-
-  it("counts a stored interface that names no network, as the walk would", () => {
-    const snapshots: Array<SnmpTableSnapshot> = unifiStoredBeforeTheFix([
-      ...STORED_VAPS,
-      { index: "6", essid: "N/A", radio: "na", stations: 0, usage: "user" },
-    ]);
-
-    expect(WifiRadioUtil.getSummary(snapshots).leftOutSsidRows).toBe(4);
-  });
-
-  it("is not set when every row read is an SSID, or none was read", () => {
-    const networksOnly: WifiSummary = WifiRadioUtil.getSummary(
+describe("WifiSummary.ownNetworksOnly", () => {
+  it("is set for an access point whose only networks are UniFi's own", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
       unifiWalk(
         BUSY_VAPS.filter((vap: WalkedVap): boolean => {
-          return vap.essid.startsWith("Shop");
+          return !vap.essid.startsWith("Shop");
         }),
       ),
     );
 
-    expect(networksOnly.ssids).toHaveLength(4);
-    expect(networksOnly).not.toHaveProperty("leftOutSsidRows");
-    expect(WifiRadioUtil.getSummary(unifiWalk([]))).not.toHaveProperty(
-      "leftOutSsidRows",
+    expect(summary.ssids).toEqual([]);
+    expect(summary.ownNetworksOnly).toBe(true);
+  });
+
+  it("is set the same from a snapshot stored before #4730", () => {
+    expect(
+      WifiRadioUtil.getSummary(
+        unifiStoredBeforeTheFix(
+          STORED_VAPS.filter((vap: StoredVap): boolean => {
+            return vap.essid !== "Warehouse";
+          }),
+        ),
+      ).ownNetworksOnly,
+    ).toBe(true);
+  });
+
+  it("is not set when any SSID is listed, when the walk read no row, or with no SSID table", () => {
+    expect(WifiRadioUtil.getSummary(unifiWalk(BUSY_VAPS))).not.toHaveProperty(
+      "ownNetworksOnly",
     );
-    expect(WifiRadioUtil.getSummary(cambiumSnapshots())).not.toHaveProperty(
-      "leftOutSsidRows",
+    expect(WifiRadioUtil.getSummary(unifiWalk([]))).not.toHaveProperty(
+      "ownNetworksOnly",
+    );
+    expect(
+      WifiRadioUtil.getSummary(
+        unifiWalk([]).filter((snapshot: SnmpTableSnapshot): boolean => {
+          return snapshot.kind !== SnmpTableKind.WifiSsid;
+        }),
+      ),
+    ).not.toHaveProperty("ownNetworksOnly");
+  });
+
+  it("is not set when a stored row's SSID column held nothing: that row may be a network", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiStoredBeforeTheFix([
+      ...STORED_VAPS.filter((vap: StoredVap): boolean => {
+        return vap.essid !== "Warehouse";
+      }),
+      { index: "6", essid: "", radio: "na", stations: 4, usage: "user" },
+    ]);
+
+    expect(WifiRadioUtil.getSummary(snapshots)).not.toHaveProperty(
+      "ownNetworksOnly",
     );
   });
 });

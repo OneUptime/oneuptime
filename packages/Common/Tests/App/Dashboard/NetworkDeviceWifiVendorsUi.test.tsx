@@ -736,7 +736,12 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
     expect(tileValue("Clients")).toBe("—");
   });
 
-  test("says the device reports no SSIDs from the walk before a failed one, when that walk read only UniFi's own networks", async () => {
+  test("claims nothing about SSIDs while the SSID walk fails, even after one that read only UniFi's own networks", async () => {
+    /*
+     * The tab's warning speaks for the radio table: a claim drawn from a
+     * failing SSID table could stand unflagged for days. The SNMP Tables
+     * page says the walk failed, and what the walk before it read.
+     */
     deviceRow = deviceWith({
       snmpTableSnapshot: walk("ubiquiti-unifi-ap", onlyUniFisOwnNetworks()).map(
         (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
@@ -750,13 +755,11 @@ describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
     renderWiFi();
 
     await waitFor(() => {
-      expect(screen.getByTestId("wifi-no-ssids")).toBeInTheDocument();
+      expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("wifi-no-ssids")).toHaveTextContent(
-      OWN_NETWORKS_ONLY_LINE,
-    );
-    expect(tileValue("Clients")).toBe("0");
+    expect(screen.queryByTestId("wifi-no-ssids")).not.toBeInTheDocument();
+    expect(tileValue("Clients")).toBe("—");
   });
 
   test("says nothing of SSIDs when the SSID table's last walk failed and nothing earlier was read", async () => {

@@ -6,6 +6,7 @@ import {
   SnmpTableSnapshotColumn,
   SnmpTableSnapshotRow,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import OneUptimeDate from "Common/Types/Date";
 import { FIRST_PROBE_VERSION_WITH_SNMP_TABLES } from "Common/Types/Probe/ProbeCapability";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -90,14 +91,12 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
   const leftOutRowCount: number = snapshot.leftOutRowCount || 0;
 
   /*
-   * An SSID table whose rows were all left out: the device answered with
+   * An SSID table whose rows were all the device's own: it answered with
    * rows, and none is a network people join. Saying "the device returned no
    * rows - check the SNMP view" would send its owner the wrong way.
    */
   const ownNetworksOnly: boolean =
-    snapshot.kind === SnmpTableKind.WifiSsid &&
-    snapshot.rows.length === 0 &&
-    leftOutRowCount > 0;
+    SnmpTableListUtil.showsOnlyOwnNetworks(snapshot);
 
   /*
    * Why the last walk read nothing, in the words that fit what is left:
@@ -220,10 +219,12 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                 "The device reports no SSIDs. Networks it runs for itself, such as a wireless mesh link, are not listed.",
               )}
             </p>
-          ) : failureText ? (
+          ) : failureText || snapshot.isTruncated ? (
             /*
              * Nothing was read, so nothing was returned: the alert above
              * says why, and "the device returned no rows" would be wrong.
+             * So would it for a walk cut short before a row it keeps: the
+             * note below says more rows exist.
              */
             <></>
           ) : (

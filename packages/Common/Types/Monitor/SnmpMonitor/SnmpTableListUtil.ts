@@ -15,7 +15,7 @@ import {
   SnmpTableValueType,
   SnmpTableWalkRequest,
 } from "./SnmpTable";
-import WifiInternalNetworkUtil from "./WifiInternalNetwork";
+import WifiInternalNetworkUtil, { WifiRowReading } from "./WifiInternalNetwork";
 
 /*
  * The one place that decides which SNMP tables a device walks and how a
@@ -724,28 +724,44 @@ export default class SnmpTableListUtil {
        * In a table whose name columns name more than it has (see
        * SnmpTableDefinition.skipNameOnlyRows), the rows that hold nothing
        * but a name are left out - after they have named their children. So
-       * are an SSID table's rows that are no network people join, and the
-       * snapshot says how many: an access point that broadcasts no SSID is
-       * not a walk that read nothing.
+       * are an SSID table's rows that are no network people join.
        */
-      let leftOutRowCount: number = 0;
-
-      const rows: Array<SnmpTableSnapshotRow> = resultRows
-        .filter((row: SnmpTableResultRow) => {
+      const candidateRows: Array<SnmpTableResultRow> = resultRows.filter(
+        (row: SnmpTableResultRow) => {
           return (
             !table.skipNameOnlyRows ||
             SnmpTableListUtil.holdsOwnValue(row, columnsByOid)
           );
-        })
-        .filter((row: SnmpTableResultRow) => {
-          const isListed: boolean = SnmpTableListUtil.isListedRow(table, row);
+        },
+      );
 
-          if (!isListed) {
-            leftOutRowCount++;
-          }
+      const listedRows: Array<SnmpTableResultRow> = candidateRows.filter(
+        (row: SnmpTableResultRow) => {
+          return SnmpTableListUtil.isListedRow(table, row);
+        },
+      );
 
-          return isListed;
-        })
+      /*
+       * The snapshot counts the rows it leaves out, and those of them whose
+       * SSID column held nothing (WifiInternalNetworkUtil.isReportedRow), so
+       * a view can tell an access point that broadcasts no SSID from a walk
+       * that read nothing it could judge.
+       */
+      const listed: Set<SnmpTableResultRow> = new Set(listedRows);
+
+      const leftOutRows: Array<SnmpTableResultRow> = candidateRows.filter(
+        (row: SnmpTableResultRow) => {
+          return !listed.has(row);
+        },
+      );
+
+      const blankRowCount: number = leftOutRows.filter(
+        (row: SnmpTableResultRow) => {
+          return !SnmpTableListUtil.isReportedRow(table, row);
+        },
+      ).length;
+
+      const rows: Array<SnmpTableSnapshotRow> = listedRows
         .map((row: SnmpTableResultRow) => {
           return SnmpTableListUtil.buildRow(
             table,
@@ -779,8 +795,12 @@ export default class SnmpTableListUtil {
         rows: rows,
       };
 
-      if (leftOutRowCount > 0) {
-        snapshot.leftOutRowCount = leftOutRowCount;
+      if (leftOutRows.length > 0) {
+        snapshot.leftOutRowCount = leftOutRows.length;
+      }
+
+      if (blankRowCount > 0) {
+        snapshot.blankRowCount = blankRowCount;
       }
 
       if (result.isTruncated) {
@@ -869,6 +889,33 @@ export default class SnmpTableListUtil {
       return true;
     }
 
+    return WifiInternalNetworkUtil.isJoinableNetwork(
+      SnmpTableListUtil.readWalkedSsidRow(table, row),
+    );
+  }
+
+  /*
+   * Whether a walked row an SSID table leaves out tells of something the
+   * device has there, rather than of an SSID column that held nothing
+   * (SnmpTableSnapshot.blankRowCount).
+   */
+  private static isReportedRow(
+    table: SnmpTableDefinition,
+    row: SnmpTableResultRow,
+  ): boolean {
+    return (
+      SnmpTableListUtil.parseKind(table.kind) === SnmpTableKind.WifiSsid &&
+      WifiInternalNetworkUtil.isReportedRow(
+        SnmpTableListUtil.readWalkedSsidRow(table, row),
+      )
+    );
+  }
+
+  // A walked row as the SSID rules read it: the SSID it names, and its values.
+  private static readWalkedSsidRow(
+    table: SnmpTableDefinition,
+    row: SnmpTableResultRow,
+  ): WifiRowReading {
     const values: Record<string, string | number | null> = row.values || {};
 
     const ssidColumn: SnmpTableColumn | undefined = table.columns.find(
@@ -877,7 +924,7 @@ export default class SnmpTableListUtil {
       },
     );
 
-    return WifiInternalNetworkUtil.isJoinableNetwork({
+    return {
       ssid: ssidColumn
         ? SnmpTableListUtil.buildCell(
             ssidColumn,
@@ -887,14 +934,14 @@ export default class SnmpTableListUtil {
       read: (columnOid: string): string | number | null | undefined => {
         return values[columnOid];
       },
-    });
+    };
   }
 
   /*
    * Stored snapshots as a walk stores them now. What a walk leaves out of a
    * table (isListedRow) is left out of rows a walk stored before it did -
    * which the device keeps until a walk replaces them - and counted in
-   * leftOutRowCount, as a walk counts them. The views that read stored rows
+   * leftOutRowCount as a walk counts them. The views that read stored rows
    * (the Wi-Fi tab, the SNMP Tables tab, a criteria's row picker) read them
    * through this, and a failed walk stores the rows it keeps through it
    * (withFailureOf). A snapshot nothing is left out of is returned as it is.
@@ -904,19 +951,52 @@ export default class SnmpTableListUtil {
   ): Array<SnmpTableSnapshot> {
     return (snapshots || []).map(
       (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
-        const rows: Array<SnmpTableSnapshotRow> =
-          SnmpTableListUtil.listedRows(snapshot);
-        const leftOut: number = (snapshot.rows || []).length - rows.length;
-
-        return leftOut === 0
-          ? snapshot
-          : {
-              ...snapshot,
-              rows: rows,
-              leftOutRowCount: (snapshot.leftOutRowCount || 0) + leftOut,
-            };
+        return SnmpTableListUtil.withListedRowsOf(snapshot);
       },
     );
+  }
+
+  // One stored snapshot as a walk stores it now (see withListedRows).
+  public static withListedRowsOf(
+    snapshot: SnmpTableSnapshot,
+  ): SnmpTableSnapshot {
+    const storedRows: Array<SnmpTableSnapshotRow> = snapshot.rows || [];
+    const rows: Array<SnmpTableSnapshotRow> =
+      SnmpTableListUtil.listedRows(snapshot);
+
+    if (rows.length === storedRows.length) {
+      return snapshot;
+    }
+
+    const listed: Set<SnmpTableSnapshotRow> = new Set(rows);
+    const ssidColumn: SnmpTableSnapshotColumn | undefined =
+      SnmpTableListUtil.findSsidColumn(snapshot);
+
+    const leftOutRows: Array<SnmpTableSnapshotRow> = storedRows.filter(
+      (row: SnmpTableSnapshotRow) => {
+        return !listed.has(row);
+      },
+    );
+
+    const blankRowCount: number =
+      (snapshot.blankRowCount || 0) +
+      leftOutRows.filter((row: SnmpTableSnapshotRow) => {
+        return !WifiInternalNetworkUtil.isReportedRow(
+          SnmpTableListUtil.readStoredSsidRow(ssidColumn, row),
+        );
+      }).length;
+
+    const read: SnmpTableSnapshot = {
+      ...snapshot,
+      rows: rows,
+      leftOutRowCount: (snapshot.leftOutRowCount || 0) + leftOutRows.length,
+    };
+
+    if (blankRowCount > 0) {
+      read.blankRowCount = blankRowCount;
+    }
+
+    return read;
   }
 
   // A stored snapshot's rows that a walk would store now (see withListedRows).
@@ -929,22 +1009,66 @@ export default class SnmpTableListUtil {
       return rows;
     }
 
-    const ssidColumn: SnmpTableSnapshotColumn | undefined = (
-      snapshot.columns || []
-    ).find((column: SnmpTableSnapshotColumn) => {
-      return column.role === SnmpTableColumnRole.Ssid;
-    });
+    const ssidColumn: SnmpTableSnapshotColumn | undefined =
+      SnmpTableListUtil.findSsidColumn(snapshot);
 
     return rows.filter((row: SnmpTableSnapshotRow) => {
-      const cells: Record<string, SnmpTableSnapshotCell> = row.cells || {};
-
-      return WifiInternalNetworkUtil.isJoinableNetwork({
-        ssid: ssidColumn ? cells[ssidColumn.oid]?.display || "" : undefined,
-        read: (columnOid: string): string | number | null | undefined => {
-          return cells[columnOid]?.raw;
-        },
-      });
+      return WifiInternalNetworkUtil.isJoinableNetwork(
+        SnmpTableListUtil.readStoredSsidRow(ssidColumn, row),
+      );
     });
+  }
+
+  /*
+   * Whether a stored SSID table shows the device broadcasts no SSID: it
+   * lists none, its walk was not cut short, and every row it read is
+   * something of the device's own - a network it runs for itself (UniFi's
+   * mesh link and adoption network), an interface that names none. A table
+   * that read no row tells nothing of the kind (the device may not
+   * implement it, or the SNMP view may hide it), nor does one with a row
+   * whose SSID column held nothing (the column may be mistyped). A failed
+   * walk does not change what the rows it kept show; a view says when they
+   * are old.
+   */
+  public static showsOnlyOwnNetworks(snapshot: SnmpTableSnapshot): boolean {
+    if (
+      SnmpTableListUtil.parseKind(snapshot.kind) !== SnmpTableKind.WifiSsid ||
+      snapshot.isTruncated
+    ) {
+      return false;
+    }
+
+    const read: SnmpTableSnapshot =
+      SnmpTableListUtil.withListedRowsOf(snapshot);
+
+    return (
+      read.rows.length === 0 &&
+      (read.leftOutRowCount || 0) > 0 &&
+      !read.blankRowCount
+    );
+  }
+
+  private static findSsidColumn(
+    snapshot: SnmpTableSnapshot,
+  ): SnmpTableSnapshotColumn | undefined {
+    return (snapshot.columns || []).find((column: SnmpTableSnapshotColumn) => {
+      return column.role === SnmpTableColumnRole.Ssid;
+    });
+  }
+
+  // A stored row as the SSID rules read it: the SSID it shows, and its raw values.
+  private static readStoredSsidRow(
+    ssidColumn: SnmpTableSnapshotColumn | undefined,
+    row: SnmpTableSnapshotRow,
+  ): WifiRowReading {
+    const cells: Record<string, SnmpTableSnapshotCell> = row.cells || {};
+
+    return {
+      ssid: ssidColumn ? cells[ssidColumn.oid]?.display || "" : undefined,
+      read: (columnOid: string): string | number | null | undefined => {
+        return cells[columnOid]?.raw;
+      },
+    };
   }
 
   // Whether a walked row holds a value of one of the table's own columns.
@@ -1191,7 +1315,7 @@ export default class SnmpTableListUtil {
    * The stored rows, marked with this walk's failure. The reason travels
    * with the cause it explains: a stored reason never outlives the failure
    * it was given for. The rows kept are the ones a walk stores now
-   * (withListedRows), so rows stored before a walk left them out - an SSID
+   * (withListedRowsOf), so rows stored before a walk left them out - an SSID
    * table's UniFi mesh link, say - are gone after the next poll, walked or
    * not, for every reader of the column.
    */
@@ -1199,11 +1323,8 @@ export default class SnmpTableListUtil {
     previous: SnmpTableSnapshot,
     current: SnmpTableSnapshot,
   ): SnmpTableSnapshot {
-    const kept: SnmpTableSnapshot =
-      SnmpTableListUtil.withListedRows([previous])[0] || previous;
-
     const marked: SnmpTableSnapshot = {
-      ...kept,
+      ...SnmpTableListUtil.withListedRowsOf(previous),
       failureCause: current.failureCause,
     };
 

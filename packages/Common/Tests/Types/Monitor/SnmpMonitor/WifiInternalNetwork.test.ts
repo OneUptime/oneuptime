@@ -392,6 +392,60 @@ describe("WifiInternalNetworkUtil.isJoinableNetwork", () => {
   });
 });
 
+/*
+ * Of the rows an SSID table leaves out, the ones that still tell of
+ * something the device has there - so a table of them alone shows an access
+ * point that broadcasts no SSID - and the ones that tell nothing.
+ */
+describe("WifiInternalNetworkUtil.isReportedRow", () => {
+  it("is a network the access point runs for itself, by its name or by its MIB columns", () => {
+    expect(
+      WifiInternalNetworkUtil.isReportedRow({
+        ssid: MESH_LINK_ESSID,
+        read: unifiVap({ [UNIFI_VAP_ESSID_OID]: MESH_LINK_ESSID }),
+      }),
+    ).toBe(true);
+    expect(
+      WifiInternalNetworkUtil.isReportedRow({
+        ssid: undefined,
+        read: reader({ [EXTREME_WLAN_SERVICE_TYPE_OID]: 6 }),
+      }),
+    ).toBe(true);
+  });
+
+  it("is an interface whose SSID column names none", () => {
+    for (const name of ["N/A", "n/a", "-", "--"]) {
+      expect({
+        name,
+        reported: WifiInternalNetworkUtil.isReportedRow({
+          ssid: name,
+          read: reader({}),
+        }),
+      }).toEqual({ name, reported: true });
+    }
+  });
+
+  it("is not a row whose SSID column held nothing: the column may be missing, mistyped or hidden", () => {
+    for (const blank of ["", "   "]) {
+      expect(
+        WifiInternalNetworkUtil.isReportedRow({
+          ssid: blank,
+          read: reader({ [UNIFI_VAP_USAGE_OID]: "user" }),
+        }),
+      ).toBe(false);
+    }
+  });
+
+  it("is not a row of a table with no SSID column that no rule marks", () => {
+    expect(
+      WifiInternalNetworkUtil.isReportedRow({
+        ssid: undefined,
+        read: reader({ [EXTREME_WLAN_SERVICE_TYPE_OID]: 0 }),
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("the rules", () => {
   it("each say how they match exactly one way", () => {
     for (const rule of WIFI_INTERNAL_NETWORK_RULES) {

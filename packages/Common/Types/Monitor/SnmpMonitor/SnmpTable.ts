@@ -260,11 +260,19 @@ export interface SnmpTableSnapshot {
   rows: Array<SnmpTableSnapshotRow>;
   /*
    * How many rows the walk read and left out, when it left any out: an SSID
-   * table's networks the access point runs for itself and interfaces that
-   * broadcast none (SnmpTableListUtil.isListedRow). It tells an access point
-   * that broadcasts no SSID from a walk that read nothing at all.
+   * table's networks the access point runs for itself, interfaces that name
+   * none ("N/A") and rows whose SSID column held nothing
+   * (SnmpTableListUtil.isListedRow). It tells an access point that
+   * broadcasts no SSID from a walk that read nothing at all.
    */
   leftOutRowCount?: number | undefined;
+  /*
+   * Of those, the rows whose SSID column held nothing and that are no
+   * network of the device's own, when there are any. The column may be
+   * missing, mistyped or hidden by the SNMP view, so the table shows
+   * nothing about what the device broadcasts.
+   */
+  blankRowCount?: number | undefined;
   isTruncated?: boolean | undefined;
   failureCause?: string | undefined;
   // Set beside failureCause when the reason is one the views explain.

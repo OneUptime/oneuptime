@@ -338,6 +338,43 @@ describe("SnmpTableSnapshotCard", () => {
     );
   });
 
+  test("an SSID table cut short before any network says only that more rows exist", () => {
+    renderInRouter(
+      <SnmpTableSnapshotCard
+        snapshot={{ ...unifiSsids(UNIFI_OWN_NETWORKS), isTruncated: true }}
+      />,
+    );
+
+    // The networks may be past the rows it kept: neither claim is made.
+    expect(
+      screen.queryByTestId("snmp-table-wifi_ssids-no-rows"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/More rows exist than this table keeps/),
+    ).toBeInTheDocument();
+  });
+
+  test("an SSID column that read nothing - a mistyped OID - gets the hint to check the columns", () => {
+    const UNIFI_RADIO_BAND: string = `${UNIFI_VAP_ENTRY}.9`;
+
+    // Rows with a band and clients, and nothing in the SSID column.
+    const ssids: SnmpTableSnapshot = unifiSsids([
+      { index: "1", values: { [UNIFI_RADIO_BAND]: "ng" } },
+      { index: "2", values: { [UNIFI_RADIO_BAND]: "na" } },
+    ]);
+
+    expect(ssids.rows).toEqual([]);
+    expect(ssids.blankRowCount).toBe(2);
+
+    renderInRouter(<SnmpTableSnapshotCard snapshot={ssids} />);
+
+    expect(
+      screen.getByTestId("snmp-table-wifi_ssids-no-rows").textContent,
+    ).toBe(
+      "The device returned no rows for this table. Check that it implements these columns, and that the SNMP view your credentials use includes them.",
+    );
+  });
+
   test("an SSID table whose walk failed with nothing read says only why", () => {
     renderInRouter(
       <SnmpTableSnapshotCard

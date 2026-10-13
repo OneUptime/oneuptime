@@ -316,13 +316,13 @@ const NetworkDeviceWiFi: FunctionComponent<
 
   /*
    * The SSIDs card lists the SSIDs or, as the Radios card does, says the
-   * device has none: an access point whose only networks are its own
-   * (UniFi's mesh link and adoption network) broadcasts no SSID, and a walk
-   * that read the SSID table and found no row reported none. A table that
-   * was never read says nothing here.
+   * device has none, by what its last walk read in full: an access point
+   * whose only networks are its own (UniFi's mesh link and adoption
+   * network) broadcasts no SSID, and a walk that found no row reported none.
+   * A table whose last walk failed or was cut short says nothing here; the
+   * SNMP Tables page says why.
    */
-  const ownNetworksOnly: boolean =
-    summary.ssids.length === 0 && Boolean(summary.leftOutSsidRows);
+  const ownNetworksOnly: boolean = Boolean(summary.ownNetworksOnly);
 
   const showsSsidsCard: boolean =
     summary.ssids.length > 0 ||

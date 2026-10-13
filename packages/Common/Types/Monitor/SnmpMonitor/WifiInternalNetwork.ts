@@ -158,6 +158,15 @@ export type WifiRowValueReader = (
   columnOid: string,
 ) => string | number | null | undefined;
 
+/*
+ * A row of an SSID table as the rules read it: the SSID it names (undefined
+ * when the table has no SSID column) and its raw values by column OID.
+ */
+export interface WifiRowReading {
+  ssid: string | undefined;
+  read: WifiRowValueReader;
+}
+
 export default class WifiInternalNetworkUtil {
   /*
    * The kind of network an access point runs for itself that a row of an
@@ -186,10 +195,7 @@ export default class WifiInternalNetworkUtil {
    * when the table has an SSID column (`ssid` is undefined when it has
    * none), and it is no network the access point runs for itself.
    */
-  public static isJoinableNetwork(data: {
-    ssid: string | undefined;
-    read: WifiRowValueReader;
-  }): boolean {
+  public static isJoinableNetwork(data: WifiRowReading): boolean {
     if (
       data.ssid !== undefined &&
       !WifiInternalNetworkUtil.isNetworkName(data.ssid)
@@ -198,6 +204,21 @@ export default class WifiInternalNetworkUtil {
     }
 
     return WifiInternalNetworkUtil.getKind(data.read) === undefined;
+  }
+
+  /*
+   * Whether a row that is no network people join still tells of something
+   * the device has there: a network it runs for itself, or an SSID column
+   * that names none ("N/A"). A row whose SSID column holds nothing tells
+   * nothing - the device may not have that column, or a mistyped OID or the
+   * SNMP view may hide it - so it does not say the access point broadcasts
+   * no SSID.
+   */
+  public static isReportedRow(data: WifiRowReading): boolean {
+    return (
+      (data.ssid !== undefined && data.ssid.trim().length > 0) ||
+      WifiInternalNetworkUtil.getKind(data.read) !== undefined
+    );
   }
 
   private static matches(

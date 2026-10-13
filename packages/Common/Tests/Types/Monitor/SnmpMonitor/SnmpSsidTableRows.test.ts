@@ -182,13 +182,31 @@ describe("an SSID table, as a walk stores it", () => {
     expect(snapshot.failureCause).toBeUndefined();
     // An access point that broadcasts no SSID, not a walk that read nothing.
     expect(snapshot.leftOutRowCount).toBe(2);
+    expect(snapshot).not.toHaveProperty("blankRowCount");
+    expect(SnmpTableListUtil.showsOnlyOwnNetworks(snapshot)).toBe(true);
   });
 
   it("counts the rows it leaves out: the views tell an access point that broadcasts no SSID from a walk that read nothing", () => {
-    // Two of UniFi's own networks and a slot that names none.
-    expect(materializeOne(unifiVapTable(), unifiWalk()).leftOutRowCount).toBe(
-      3,
+    /*
+     * Two of UniFi's own networks and the slot whose SSID column holds
+     * nothing are left out - and that slot is blank: it tells nothing.
+     */
+    const walked: SnmpTableSnapshot = materializeOne(
+      unifiVapTable(),
+      unifiWalk(),
     );
+
+    expect(walked.leftOutRowCount).toBe(3);
+    expect(walked.blankRowCount).toBe(1);
+
+    // An interface whose SSID column names none ("N/A") is no blank row.
+    const interfaces: SnmpTableSnapshot = materializeOne(unifiVapTable(), {
+      key: "wifi_ssids",
+      rows: [vap("1", "N/A"), vap("2", "-")],
+    });
+
+    expect(interfaces.leftOutRowCount).toBe(2);
+    expect(interfaces).not.toHaveProperty("blankRowCount");
 
     // A walk that read no row, or only networks, counts none.
     expect(
@@ -208,6 +226,32 @@ describe("an SSID table, as a walk stores it", () => {
         unifiWalk(),
       ),
     ).not.toHaveProperty("leftOutRowCount");
+  });
+
+  it("counts no row whose SSID column read nothing: a mistyped column OID is no access point that broadcasts no SSID", () => {
+    // The SSID column walks a column the device does not have.
+    const mistyped: SnmpTableDefinition = unifiVapTable({
+      columns: unifiVapTable().columns.map(
+        (column: SnmpTableColumn): SnmpTableColumn => {
+          return column.role === SnmpTableColumnRole.Ssid
+            ? { ...column, oid: `${UNIFI_VAP_ENTRY_OID}.66` }
+            : column;
+        },
+      ),
+    });
+
+    const snapshot: SnmpTableSnapshot = materializeOne(mistyped, unifiWalk());
+
+    /*
+     * No row names a network, so none is stored. UniFi's own two are still
+     * told apart by their usage and name, but Shop, Shop-Guest and the empty
+     * slot hold nothing in the SSID column: the table shows nothing about
+     * what the access point broadcasts.
+     */
+    expect(snapshot.rows).toEqual([]);
+    expect(snapshot.leftOutRowCount).toBe(5);
+    expect(snapshot.blankRowCount).toBe(3);
+    expect(SnmpTableListUtil.showsOnlyOwnNetworks(snapshot)).toBe(false);
   });
 
   it("leaves a failed walk's table as it was: no rows, and why", () => {
@@ -399,11 +443,18 @@ describe("SnmpTableListUtil.withListedRows - stored snapshots, read as a walk st
     ])[0]!;
 
     // It counts the rows it leaves out, as a walk does ...
-    expect(read.leftOutRowCount).toBeGreaterThan(0);
+    expect(read.leftOutRowCount).toBe(3);
     expect(read.leftOutRowCount).toBe(stored.rows.length - read.rows.length);
+    // ... the empty slot among them as blank ...
+    expect(read.blankRowCount).toBe(1);
 
     // ... and keeps everything else as it was.
-    expect({ ...read, rows: [], leftOutRowCount: undefined }).toEqual({
+    expect({
+      ...read,
+      rows: [],
+      leftOutRowCount: undefined,
+      blankRowCount: undefined,
+    }).toEqual({
       ...stored,
       rows: [],
     });
@@ -595,6 +646,106 @@ describe("SnmpTableListUtil.mergeWithPrevious - a poll that reads no SSID table"
     expect(merged.rows).toHaveLength(5);
     expect(merged).not.toHaveProperty("leftOutRowCount");
     expect(merged.failureCause).toBe("Request timed out");
+  });
+});
+
+/*
+ * The one rule every view reads "this access point broadcasts no SSID" by:
+ * the SNMP Tables card, the Wi-Fi tab's SSIDs card and its Clients tile.
+ */
+describe("SnmpTableListUtil.showsOnlyOwnNetworks", () => {
+  const OWN_NETWORKS: Array<SnmpTableResultRow> = [
+    vap("1", "element-9d2c4f0a7be13685"),
+    vap("3", "vwire-17b0e3d95ca4f286", "downlink", 1),
+  ];
+
+  function walked(rows: Array<SnmpTableResultRow>): SnmpTableSnapshot {
+    return materializeOne(unifiVapTable(), { key: "wifi_ssids", rows: rows });
+  }
+
+  it("is true when every row the walk read is a network the access point runs for itself", () => {
+    expect(SnmpTableListUtil.showsOnlyOwnNetworks(walked(OWN_NETWORKS))).toBe(
+      true,
+    );
+  });
+
+  it("is true for a snapshot stored before #4730 that holds only those", () => {
+    const stored: SnmpTableSnapshot = {
+      ...materializeOne(
+        { ...unifiVapTable(), kind: SnmpTableKind.Generic },
+        { key: "wifi_ssids", rows: OWN_NETWORKS },
+      ),
+      kind: SnmpTableKind.WifiSsid,
+    };
+
+    expect(stored.rows).toHaveLength(2);
+    expect(SnmpTableListUtil.showsOnlyOwnNetworks(stored)).toBe(true);
+  });
+
+  it("is true for an access point whose interfaces name none", () => {
+    expect(
+      SnmpTableListUtil.showsOnlyOwnNetworks(
+        walked([vap("1", "N/A"), vap("2", "N/A")]),
+      ),
+    ).toBe(true);
+  });
+
+  it("is false when the walk read no row: the device may not implement the table, or the SNMP view may hide it", () => {
+    expect(SnmpTableListUtil.showsOnlyOwnNetworks(walked([]))).toBe(false);
+  });
+
+  it("is false when the table lists a network", () => {
+    expect(
+      SnmpTableListUtil.showsOnlyOwnNetworks(
+        walked([...OWN_NETWORKS, vap("2", "Shop")]),
+      ),
+    ).toBe(false);
+  });
+
+  it("is false when a row's SSID column held nothing: that row may be a network", () => {
+    expect(
+      SnmpTableListUtil.showsOnlyOwnNetworks(
+        walked([...OWN_NETWORKS, vap("5", "")]),
+      ),
+    ).toBe(false);
+  });
+
+  it("is false for a walk cut short: the networks may come after the rows it kept", () => {
+    expect(
+      SnmpTableListUtil.showsOnlyOwnNetworks(
+        materializeOne(unifiVapTable(), {
+          key: "wifi_ssids",
+          rows: OWN_NETWORKS,
+          isTruncated: true,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("is false for a table of any other kind", () => {
+    expect(
+      SnmpTableListUtil.showsOnlyOwnNetworks({
+        ...walked(OWN_NETWORKS),
+        kind: SnmpTableKind.Generic,
+      }),
+    ).toBe(false);
+  });
+
+  it("stays true through a failed walk that keeps those rows: the views say they are old", () => {
+    const merged: SnmpTableSnapshot = SnmpTableListUtil.mergeWithPrevious({
+      current: [
+        materializeOne(unifiVapTable(), {
+          key: "wifi_ssids",
+          rows: [],
+          failureCause: "Request timed out",
+        }),
+      ],
+      previous: [walked(OWN_NETWORKS)],
+      definedKeys: ["wifi_ssids"],
+    })[0]!;
+
+    expect(merged.failureCause).toBe("Request timed out");
+    expect(SnmpTableListUtil.showsOnlyOwnNetworks(merged)).toBe(true);
   });
 });
 
