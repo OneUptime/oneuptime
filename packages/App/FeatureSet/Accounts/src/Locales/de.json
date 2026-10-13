@@ -202,6 +202,7 @@
     "returnDescription": "Nach Ihrer Bestätigung kehren Sie zur mobilen App zurück.",
     "invalid": "Starten Sie die Anmeldung in der mobilen OneUptime-App. Diese Anfrage fehlt oder ist ungültig.",
     "insecure": "Passkeys erfordern HTTPS. Kehren Sie zur App zurück und prüfen Sie die Serveradresse.",
+    "unsupported": "Passkeys sind in diesem Browser nicht verfügbar. Kehren Sie zur App zurück und melden Sie sich mit Ihrem Passwort oder SSO an.",
     "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Kehren Sie zur App zurück und versuchen Sie es erneut.",
     "complete": "Ihr Passkey wurde bestätigt. Kehren Sie zur App zurück, um die Anmeldung abzuschließen.",
     "returnToApp": "Zurück zur App",

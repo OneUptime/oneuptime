@@ -202,6 +202,7 @@
     "returnDescription": "确认后，你将返回移动应用。",
     "invalid": "请从 OneUptime 移动应用开始登录。此请求缺失或无效。",
     "insecure": "通行密钥需要 HTTPS。请返回应用并检查服务器地址。",
+    "unsupported": "此浏览器不支持通行密钥。请返回应用，使用密码或 SSO 登录。",
     "failed": "无法完成登录。请返回应用重试。",
     "complete": "通行密钥已验证。请返回应用完成登录。",
     "returnToApp": "返回应用",

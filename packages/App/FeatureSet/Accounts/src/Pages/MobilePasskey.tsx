@@ -239,8 +239,14 @@ const MobilePasskeyPage: () => JSX.Element = () => {
                 </p>
               )}
               {!supported && (
+                /*
+                 * This page's own sentence, not the sign-in page's: that
+                 * one ends "you can still sign in with your password or
+                 * SSO", and there is neither here. The way on is back in
+                 * the app.
+                 */
                 <p className="mt-3 text-sm leading-6 text-gray-600">
-                  {t("login.passkey.unsupported")}
+                  {t("mobilePasskey.unsupported")}
                 </p>
               )}
               <details className="mt-5 text-sm text-gray-600">

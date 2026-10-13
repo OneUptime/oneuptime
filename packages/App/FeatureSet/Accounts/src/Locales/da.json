@@ -202,6 +202,7 @@
     "returnDescription": "Når du har godkendt, vender du tilbage til mobilappen.",
     "invalid": "Start login fra OneUptime-mobilappen. Denne anmodning mangler eller er ugyldig.",
     "insecure": "Adgangsnøgler kræver HTTPS. Vend tilbage til appen, og kontrollér serveradressen.",
+    "unsupported": "Adgangsnøgler er ikke tilgængelige i denne browser. Vend tilbage til appen, og log ind med din adgangskode eller SSO.",
     "failed": "Login kunne ikke fuldføres. Vend tilbage til appen, og prøv igen.",
     "complete": "Din adgangsnøgle er bekræftet. Vend tilbage til appen for at fuldføre login.",
     "returnToApp": "Tilbage til appen",

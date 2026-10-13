@@ -202,6 +202,7 @@
     "returnDescription": "After you approve, you’ll return to the mobile app.",
     "invalid": "Start sign-in from the OneUptime mobile app. This request is missing or invalid.",
     "insecure": "Passkeys require HTTPS. Return to the app and check your server address.",
+    "unsupported": "Passkeys aren’t available in this browser. Return to the app and sign in with your password or SSO.",
     "failed": "Sign-in could not be completed. Return to the app and try again.",
     "complete": "Your passkey was verified. Return to the app to finish signing in.",
     "returnToApp": "Return to app",

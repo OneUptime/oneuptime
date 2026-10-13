@@ -78,6 +78,44 @@ const BACKUP_CODE_OFFER_SKIPPED_KEY: string = "backup-code-offer-skipped-at";
 
 type PasskeyStage = "idle" | "preparing" | "prompt" | "verifying";
 
+/*
+ * What the passkey option says, and what the status line under it says, at
+ * each stage of an attempt. Only the device prompt has a line of its own; at
+ * the other stages the status line repeats the option, for screen readers.
+ */
+const PASSKEY_STAGE_TEXT: Record<
+  Exclude<PasskeyStage, "idle">,
+  { option: string; status: string }
+> = {
+  preparing: {
+    option: "login.passkey.preparing",
+    status: "login.passkey.preparing",
+  },
+  prompt: {
+    option: "login.passkey.waiting",
+    status: "login.passkey.waitingDescription",
+  },
+  verifying: {
+    option: "login.passkey.verifying",
+    status: "login.passkey.verifying",
+  },
+};
+
+/*
+ * What an attempt that did not start, or did not sign in, says under the
+ * option. Kept as its translation key, not its words, so the notice follows
+ * the footer's language switcher like the rest of the page.
+ */
+type PasskeyNotice =
+  | "login.passkey.notCompleted"
+  | "login.passkey.cancelled"
+  | "login.passkey.unsupported"
+  | "login.passkey.insecure";
+
+// The focus ring of the page's link-weight controls.
+const QUIET_CONTROL_FOCUS: string =
+  "rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
 interface PasskeyAttempt {
   controller: AbortController;
   canCancel: boolean;
@@ -128,7 +166,8 @@ const LoginPage: () => JSX.Element = () => {
   const [isPasswordLoading, setIsPasswordLoading] =
     React.useState<boolean>(false);
   const [passkeyError, setPasskeyError] = React.useState<string>("");
-  const [passkeyNotice, setPasskeyNotice] = React.useState<string>("");
+  const [passkeyNotice, setPasskeyNotice] =
+    React.useState<PasskeyNotice | null>(null);
   const passkeyInProgress: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
   const passkeyAttempt: React.MutableRefObject<PasskeyAttempt | null> =
@@ -441,11 +480,9 @@ const LoginPage: () => JSX.Element = () => {
       if (!isPasskeySupported) {
         setPasskeyError("");
         setPasskeyNotice(
-          t(
-            window.isSecureContext === false
-              ? "login.passkey.insecure"
-              : "login.passkey.unsupported",
-          ),
+          window.isSecureContext === false
+            ? "login.passkey.insecure"
+            : "login.passkey.unsupported",
         );
         return;
       }
@@ -458,7 +495,7 @@ const LoginPage: () => JSX.Element = () => {
       passkeyAttempt.current = attempt;
       setPasskeyStage("preparing");
       setPasskeyError("");
-      setPasskeyNotice("");
+      setPasskeyNotice(null);
 
       try {
         WebAuthn.ensureSupported();
@@ -523,7 +560,7 @@ const LoginPage: () => JSX.Element = () => {
           error instanceof Error &&
           (error.name === "NotAllowedError" || error.name === "AbortError")
         ) {
-          setPasskeyNotice(t("login.passkey.notCompleted"));
+          setPasskeyNotice("login.passkey.notCompleted");
         } else {
           setPasskeyError(WebAuthn.getErrorMessage(error, "sign-in"));
         }
@@ -546,8 +583,19 @@ const LoginPage: () => JSX.Element = () => {
     attempt.controller.abort();
     passkeyInProgress.current = false;
     setPasskeyStage("idle");
-    setPasskeyNotice(t("login.passkey.cancelled"));
+    setPasskeyNotice("login.passkey.cancelled");
   };
+
+  const passkeyStageText: { option: string; status: string } | null =
+    passkeyStage === "idle" ? null : PASSKEY_STAGE_TEXT[passkeyStage];
+
+  /*
+   * A browser that cannot use passkeys has said so (see signInWithPasskey).
+   * From then on the option is drawn as unavailable, and says so to a screen
+   * reader, instead of looking like something to click again.
+   */
+  const isPasskeyUnavailable: boolean =
+    !isPasskeySupported && Boolean(passkeyNotice);
 
   type ReadBackupCodesFunction = (miscData: JSONObject) => Array<string>;
 
@@ -1028,12 +1076,15 @@ const LoginPage: () => JSX.Element = () => {
                * single sign-on link (see the passkey option below).
                *
                * While a passkey attempt runs, the form is disabled - its
-               * Login could not start a second sign-in - and looks it: a
-               * bright Login that does nothing when clicked reads as broken.
+               * Login could not start a second sign-in - and its fields and
+               * button look it: a bright Login that does nothing when clicked
+               * reads as broken. Only they fade. The links in the form
+               * (forgot password, single sign-on) still work during an
+               * attempt, so they keep their colour.
                */}
               <fieldset
                 disabled={isPasskeyLoading}
-                className="transition-opacity disabled:opacity-50 motion-reduce:transition-none"
+                className="[&:disabled_button]:pointer-events-none [&:disabled_button]:opacity-50 [&:disabled_input]:opacity-50"
               >
                 <ModelForm<User>
                   modelType={User}
@@ -1050,7 +1101,7 @@ const LoginPage: () => JSX.Element = () => {
                       throw new Error(t("login.passkey.inProgress"));
                     }
                     setPasskeyError("");
-                    setPasskeyNotice("");
+                    setPasskeyNotice(null);
                     if (isCaptchaEnabled) {
                       const captchaToken: string | undefined = (
                         miscDataProps["captchaToken"] as string | undefined
@@ -1171,7 +1222,8 @@ const LoginPage: () => JSX.Element = () => {
                * not served over HTTPS) still shows the option, and says why
                * it cannot work here when it is clicked: somebody whose only
                * way in is a passkey learns to switch browsers, and nobody
-               * else reads a sentence about it on every visit.
+               * else reads a sentence about it on every visit. Once it has
+               * said so, it is drawn as unavailable (isPasskeyUnavailable).
                */}
               <div
                 className="mt-3 text-center text-sm"
@@ -1182,10 +1234,21 @@ const LoginPage: () => JSX.Element = () => {
                   id="passkey-login"
                   data-testid="passkey-login"
                   disabled={isPasskeyLoading || isPasswordLoading}
+                  /*
+                   * Not `disabled`: the option keeps the focus it was given
+                   * when it explained itself.
+                   */
+                  aria-disabled={isPasskeyUnavailable || undefined}
                   onClick={() => {
-                    void signInWithPasskey();
+                    if (!isPasskeyUnavailable) {
+                      void signInWithPasskey();
+                    }
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-sm text-indigo-500 enabled:hover:text-indigo-900 enabled:hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-default disabled:text-gray-500"
+                  className={`inline-flex items-center justify-center gap-1.5 ${QUIET_CONTROL_FOCUS} ${
+                    isPasskeyUnavailable
+                      ? "cursor-default text-gray-500"
+                      : "text-indigo-500 enabled:hover:text-indigo-900 enabled:hover:underline disabled:cursor-default disabled:text-gray-500"
+                  }`}
                 >
                   <Icon
                     icon={
@@ -1202,21 +1265,16 @@ const LoginPage: () => JSX.Element = () => {
                   />
                   <span>
                     {t(
-                      passkeyStage === "preparing"
-                        ? "login.passkey.preparing"
-                        : passkeyStage === "prompt"
-                          ? "login.passkey.waiting"
-                          : passkeyStage === "verifying"
-                            ? "login.passkey.verifying"
-                            : isPasskeySupported &&
-                                (passkeyError || passkeyNotice)
-                              ? "login.passkey.tryAgain"
-                              : "login.passkey.signIn",
+                      passkeyStageText
+                        ? passkeyStageText.option
+                        : isPasskeySupported && (passkeyError || passkeyNotice)
+                          ? "login.passkey.tryAgain"
+                          : "login.passkey.signIn",
                     )}
                   </span>
                 </button>
                 <div role="status" aria-live="polite" aria-atomic="true">
-                  {isPasskeyLoading && (
+                  {passkeyStageText && (
                     /*
                      * Only the device prompt needs a line of its own; while
                      * preparing and verifying, the button already says the
@@ -1229,13 +1287,7 @@ const LoginPage: () => JSX.Element = () => {
                           : "sr-only"
                       }
                     >
-                      {t(
-                        passkeyStage === "prompt"
-                          ? "login.passkey.waitingDescription"
-                          : passkeyStage === "verifying"
-                            ? "login.passkey.verifying"
-                            : "login.passkey.preparing",
-                      )}
+                      {t(passkeyStageText.status)}
                     </p>
                   )}
                   {passkeyNotice && (
@@ -1243,7 +1295,7 @@ const LoginPage: () => JSX.Element = () => {
                       className="mt-2 text-balance text-gray-600"
                       data-testid="passkey-notice"
                     >
-                      {passkeyNotice}
+                      {t(passkeyNotice)}
                     </p>
                   )}
                 </div>
@@ -1253,7 +1305,7 @@ const LoginPage: () => JSX.Element = () => {
                     type="button"
                     data-testid="cancel-passkey-login"
                     onClick={cancelPasskeySignIn}
-                    className="mt-2 rounded-sm text-gray-500 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                    className={`mt-2 text-gray-500 hover:text-gray-700 hover:underline ${QUIET_CONTROL_FOCUS}`}
                   >
                     {t("common.cancel")}
                   </button>
@@ -1278,7 +1330,9 @@ const LoginPage: () => JSX.Element = () => {
                       className="mt-2 text-gray-600"
                       data-testid="passkey-help"
                     >
-                      <summary className="mx-auto w-fit cursor-pointer rounded-sm text-indigo-500 hover:text-indigo-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                      <summary
+                        className={`mx-auto w-fit cursor-pointer text-indigo-500 hover:text-indigo-900 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                      >
                         {t("login.passkey.helpTitle")}
                       </summary>
                       <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">

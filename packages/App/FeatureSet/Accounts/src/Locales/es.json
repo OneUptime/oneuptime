@@ -202,6 +202,7 @@
     "returnDescription": "Después de confirmar, volverás a la aplicación móvil.",
     "invalid": "Inicia sesión desde la aplicación móvil de OneUptime. Esta solicitud no existe o no es válida.",
     "insecure": "Las claves de acceso requieren HTTPS. Vuelve a la aplicación y comprueba la dirección del servidor.",
+    "unsupported": "Las claves de acceso no están disponibles en este navegador. Vuelve a la aplicación e inicia sesión con tu contraseña o SSO.",
     "failed": "No se pudo completar el inicio de sesión. Vuelve a la aplicación e inténtalo de nuevo.",
     "complete": "Se ha verificado tu clave de acceso. Vuelve a la aplicación para completar el inicio de sesión.",
     "returnToApp": "Volver a la aplicación",

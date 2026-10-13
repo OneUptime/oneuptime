@@ -202,6 +202,7 @@
     "returnDescription": "Após confirmar, você voltará ao aplicativo móvel.",
     "invalid": "Inicie o acesso pelo aplicativo móvel do OneUptime. Esta solicitação está ausente ou é inválida.",
     "insecure": "As chaves de acesso exigem HTTPS. Volte ao aplicativo e confira o endereço do servidor.",
+    "unsupported": "As chaves de acesso não estão disponíveis neste navegador. Volte ao aplicativo e entre com sua senha ou SSO.",
     "failed": "Não foi possível concluir o acesso. Volte ao aplicativo e tente novamente.",
     "complete": "Sua chave de acesso foi verificada. Volte ao aplicativo para concluir o acesso.",
     "returnToApp": "Voltar ao aplicativo",

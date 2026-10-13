@@ -20,7 +20,9 @@ import path from "path";
  *  - a canceled or timed-out attempt says what happened in one sentence:
  *    "Try passkey again" is drawn right above the notice and the password
  *    form above that, and the mobile hand-off page, which shows the same
- *    notices, has no password form at all.
+ *    notices, has no password form at all;
+ *  - where that hand-off page cannot use passkeys, it sends the person back
+ *    to the app, as its other messages do, not to a form it does not have.
  */
 
 const FEATURE_SETS: string = path.resolve(
@@ -119,6 +121,56 @@ const ATTEMPT_NOTICES: Array<string> = [
   "login.passkey.notCompleted",
   "login.passkey.cancelled",
 ];
+
+// A text's sentences, each with the mark that ends it.
+const sentencesOf: (text: string) => Array<string> = (
+  text: string,
+): Array<string> => {
+  const sentences: Array<string> = [];
+  let current: string = "";
+
+  for (const character of Array.from(text)) {
+    current += character;
+    if (SENTENCE_ENDS.includes(character)) {
+      sentences.push(current.trim());
+      current = "";
+    }
+  }
+  if (current.trim()) {
+    sentences.push(current.trim());
+  }
+
+  return sentences;
+};
+
+/*
+ * What two texts start with in common, in whole words where the script
+ * separates words with spaces: two different words can start alike.
+ */
+const sharedStart: (first: string, second: string) => string = (
+  first: string,
+  second: string,
+): string => {
+  const one: Array<string> = Array.from(first);
+  const other: Array<string> = Array.from(second);
+  let length: number = 0;
+
+  while (
+    length < one.length &&
+    length < other.length &&
+    one[length] === other[length]
+  ) {
+    length++;
+  }
+
+  const shared: string = one.slice(0, length).join("");
+  const endsInsideAWord: boolean =
+    length < one.length && one[length] !== " " && !shared.endsWith(" ");
+
+  return endsInsideAWord && shared.includes(" ")
+    ? shared.slice(0, shared.lastIndexOf(" ") + 1)
+    : shared;
+};
 
 // The keys the retired tinted panel drew, and nothing else did.
 const RETIRED_KEYS: Array<string> = [
@@ -367,6 +419,69 @@ describe("Sign-in passkey copy in every Accounts language", () => {
       ),
     ).toBe(2);
     expect(sentences("Passkey sign-in canceled.")).toBe(1);
+  });
+
+  /*
+   * The mobile app's browser hand-off page has no password form and no SSO
+   * link. Where it cannot use passkeys it used to show the sign-in page's
+   * sentence, "...You can still sign in with your password or SSO". Its own
+   * sentence says the same first thing, then sends the person back to the
+   * app, in the words its other messages use for that.
+   */
+  test.each(LANGUAGES)(
+    "%s: where the hand-off page cannot use passkeys, it sends the person back to the app",
+    (language: string) => {
+      const locale: Json = accounts(language);
+      const signInPage: Array<string> = sentencesOf(
+        valueAt(locale, "login.passkey.unsupported"),
+      );
+      const handOff: Array<string> = sentencesOf(
+        valueAt(locale, "mobilePasskey.unsupported"),
+      );
+      // How this language's hand-off messages say "Return to the app and".
+      const backToTheApp: string = sharedStart(
+        sentencesOf(valueAt(locale, "mobilePasskey.insecure"))[1] || "",
+        sentencesOf(valueAt(locale, "mobilePasskey.failed"))[1] || "",
+      ).trim();
+
+      expect(signInPage).toHaveLength(2);
+      expect(backToTheApp.length).toBeGreaterThanOrEqual(4);
+      expect({
+        language,
+        handOff,
+        sentences: handOff.length,
+        saysTheSameFirstThing: handOff[0] === signInPage[0],
+        thenSendsBackToTheApp: (handOff[1] || "").startsWith(backToTheApp),
+        namesSso: (handOff[1] || "").includes("SSO"),
+        isItsOwnSentence: handOff[1] !== signInPage[1],
+      }).toEqual({
+        language,
+        handOff,
+        sentences: 2,
+        saysTheSameFirstThing: true,
+        thenSendsBackToTheApp: true,
+        namesSso: true,
+        isItsOwnSentence: true,
+      });
+    },
+  );
+
+  test("the hand-off page reads its own 'not available' sentence, and the sign-in page keeps the other", () => {
+    const handOffPage: string = fs.readFileSync(
+      path.join(ACCOUNTS_SRC, "Pages", "MobilePasskey.tsx"),
+      "utf8",
+    );
+    const signInPage: string = fs.readFileSync(
+      path.join(ACCOUNTS_SRC, "Pages", "Login.tsx"),
+      "utf8",
+    );
+
+    expect(handOffPage).toContain('t("mobilePasskey.unsupported")');
+    expect(handOffPage).not.toContain('"login.passkey.unsupported"');
+    expect(signInPage).toContain('"login.passkey.unsupported"');
+    expect(valueAt(accounts("en"), "mobilePasskey.unsupported")).toBe(
+      "Passkeys aren’t available in this browser. Return to the app and sign in with your password or SSO.",
+    );
   });
 
   test.each(LANGUAGES)(

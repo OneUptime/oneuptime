@@ -202,6 +202,7 @@
     "returnDescription": "Après confirmation, vous reviendrez dans l’application mobile.",
     "invalid": "Lancez la connexion depuis l’application mobile OneUptime. Cette demande est absente ou invalide.",
     "insecure": "Les clés d’accès nécessitent HTTPS. Revenez dans l’application et vérifiez l’adresse du serveur.",
+    "unsupported": "Les clés d’accès ne sont pas disponibles dans ce navigateur. Revenez dans l’application et connectez-vous avec votre mot de passe ou le SSO.",
     "failed": "La connexion n’a pas pu aboutir. Revenez dans l’application et réessayez.",
     "complete": "Votre clé d’accès a été vérifiée. Revenez dans l’application pour terminer la connexion.",
     "returnToApp": "Revenir dans l’application",

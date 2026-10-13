@@ -586,15 +586,27 @@ test.describe("Passkey account lifecycle", () => {
         page.getByRole("button", { name: "Check your device", exact: true }),
       ).toBeVisible();
       /*
-       * While the attempt runs, the password form is disabled and drawn
-       * faded, so its Login does not look clickable; the passkey option and
-       * its Cancel, outside the form, are not.
+       * While the attempt runs, the password form is disabled, and its
+       * fields and Login are drawn faded so Login does not look clickable.
+       * Only they fade: the form's links still work, so the form as a whole
+       * keeps its strength, and the passkey option and its Cancel are
+       * outside the form.
        */
       const passwordForm: Locator = page
         .locator("fieldset")
         .filter({ has: page.getByTestId("email") });
       await expect(page.getByTestId("email")).toBeDisabled();
-      await expect(passwordForm).toHaveCSS("opacity", "0.5");
+      await expect(page.getByTestId("Login")).toBeDisabled();
+      await expect(page.getByTestId("email")).toHaveCSS("opacity", "0.5");
+      await expect(page.getByTestId("password")).toHaveCSS("opacity", "0.5");
+      await expect(page.getByTestId("Login")).toHaveCSS("opacity", "0.5");
+      await expect(passwordForm).toHaveCSS("opacity", "1");
+      await expect(
+        page.getByRole("link", {
+          name: "Use single sign-on (SSO) instead",
+          exact: true,
+        }),
+      ).toHaveCSS("opacity", "1");
       await expect(page.getByTestId("passkey-option")).toHaveCSS(
         "opacity",
         "1",
@@ -604,7 +616,8 @@ test.describe("Passkey account lifecycle", () => {
         page.getByText("Passkey sign-in canceled.", { exact: true }),
       ).toBeVisible();
       await expect(page.getByTestId("email")).toBeEnabled();
-      await expect(passwordForm).toHaveCSS("opacity", "1");
+      await expect(page.getByTestId("email")).toHaveCSS("opacity", "1");
+      await expect(page.getByTestId("Login")).toHaveCSS("opacity", "1");
       await expect(
         page.getByText("New to passkeys?", { exact: true }),
       ).toBeVisible();
@@ -666,7 +679,12 @@ test.describe("Passkey account lifecycle", () => {
           { exact: true },
         ),
       ).toBeVisible();
-      await expect(option).toBeEnabled();
+      /*
+       * Having said it cannot work here, the option is unavailable to a
+       * screen reader and drawn grey, and keeps the focus it was given.
+       */
+      await expect(option).toHaveAttribute("aria-disabled", "true");
+      await expect(option).toBeFocused();
       await expect(
         other.getByText("New to passkeys?", { exact: true }),
       ).toHaveCount(0);

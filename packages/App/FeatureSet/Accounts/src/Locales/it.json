@@ -202,6 +202,7 @@
     "returnDescription": "Dopo la conferma, tornerai all’app mobile.",
     "invalid": "Avvia l’accesso dall’app mobile OneUptime. La richiesta è assente o non valida.",
     "insecure": "Le passkey richiedono HTTPS. Torna all’app e controlla l’indirizzo del server.",
+    "unsupported": "Le passkey non sono disponibili in questo browser. Torna all’app e accedi con la password o l’SSO.",
     "failed": "Impossibile completare l’accesso. Torna all’app e riprova.",
     "complete": "La tua passkey è stata verificata. Torna all’app per completare l’accesso.",
     "returnToApp": "Torna all’app",

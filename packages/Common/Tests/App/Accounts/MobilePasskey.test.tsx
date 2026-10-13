@@ -307,11 +307,20 @@ describe("Mobile passkey browser page", () => {
       configurable: true,
       value: undefined,
     });
-    render(<MobilePasskeyPage />);
+    const { container } = render(<MobilePasskeyPage />);
     expect(screen.getByTestId("mobile-passkey-sign-in")).toBeDisabled();
+    /*
+     * This page's own sentence. The sign-in page's ends "You can still sign
+     * in with your password or SSO", and this page has neither: the way on
+     * is back in the app.
+     */
     expect(
-      screen.getByText(/Passkeys aren’t available in this browser/),
+      screen.getByText(
+        "Passkeys aren’t available in this browser. Return to the app and sign in with your password or SSO.",
+      ),
     ).toBeVisible();
+    expect(screen.queryByText(/You can still sign in/)).not.toBeInTheDocument();
+    expect(container.querySelector('input[type="password"]')).toBeNull();
     expect(API.post).not.toHaveBeenCalled();
   });
 

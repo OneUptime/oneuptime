@@ -463,6 +463,57 @@ describe("Passwordless passkey login", () => {
       expect(screen.getByTestId("passkey-login")).toHaveFocus();
     });
 
+    /*
+     * Once the option has said it cannot work here, it stops looking like
+     * something to click again: grey, no hover, and unavailable to a screen
+     * reader. aria-disabled rather than disabled, so it keeps the focus it
+     * had when it explained itself. Until then it looks like any other link.
+     */
+    test("is drawn as unavailable once it has explained itself, and not before", async () => {
+      Object.defineProperty(window, "PublicKeyCredential", {
+        configurable: true,
+        value: undefined,
+      });
+      renderPage();
+      const option: HTMLElement = screen.getByTestId("passkey-login");
+
+      expect(option).not.toHaveAttribute("aria-disabled");
+      expect(option).toHaveClass("text-indigo-500");
+      expect(option).not.toHaveClass("text-gray-500");
+
+      await clickPasskey();
+
+      expect(option).toHaveAttribute("aria-disabled", "true");
+      expect(option).not.toBeDisabled();
+      expect(option).toHaveFocus();
+      expect(option).toHaveClass("text-gray-500", "cursor-default");
+      expect(option).not.toHaveClass("text-indigo-500");
+      expect(option.className).not.toContain("hover:");
+      expect(option).toHaveTextContent("Sign in with a passkey");
+      expect(
+        within(option).getByTestId("passkey-login-fingerprint"),
+      ).toBeInTheDocument();
+
+      // A second click changes nothing and asks the server for nothing.
+      await clickPasskey();
+      expect(screen.getAllByTestId("passkey-notice")).toHaveLength(1);
+      expect(posted).toHaveLength(0);
+    });
+
+    test("a browser that can use passkeys never draws the option as unavailable", async () => {
+      jest
+        .spyOn(navigator.credentials, "get")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      renderPage();
+      await clickPasskey();
+
+      const option: HTMLElement = screen.getByTestId("passkey-login");
+      expect(screen.getByTestId("passkey-notice")).toBeInTheDocument();
+      expect(option).not.toHaveAttribute("aria-disabled");
+      expect(option).toHaveClass("text-indigo-500");
+      expect(option).toBeEnabled();
+    });
+
     test("names HTTPS when the page is not served over a secure connection", async () => {
       Object.defineProperty(window, "isSecureContext", {
         configurable: true,
@@ -774,12 +825,14 @@ describe("Passwordless passkey login", () => {
     });
 
     /*
-     * While an attempt runs, the form cannot start a second sign-in; it is
-     * disabled, and drawn faded so its Login does not look clickable. The
-     * passkey option, its prompt line and its Cancel stay outside it, at
-     * full strength.
+     * While an attempt runs, the form cannot start a second sign-in. It is
+     * disabled, and its fields and Login are drawn faded, so Login does not
+     * look clickable. Only they fade: the links in the form (forgot
+     * password, single sign-on) still work during an attempt and keep their
+     * colour, and the passkey option, its prompt line and its Cancel are
+     * outside the form altogether.
      */
-    test("the form is disabled, and drawn faded, while an attempt runs", async () => {
+    test("the form is disabled, and its fields and Login drawn faded, while an attempt runs", async () => {
       const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
       renderPage();
       const form: HTMLElement = (await screen.findByTestId("email")).closest(
@@ -788,12 +841,28 @@ describe("Passwordless passkey login", () => {
 
       expect(form).toBeEnabled();
       expect(form).toHaveClass(
-        "disabled:opacity-50",
-        "transition-opacity",
-        "motion-reduce:transition-none",
+        "[&:disabled_input]:opacity-50",
+        "[&:disabled_button]:opacity-50",
+        "[&:disabled_button]:pointer-events-none",
       );
+      // Nothing fades the form as a whole, which would take its links along.
+      expect(
+        form.className.split(" ").filter((name: string) => {
+          return name.includes("opacity") && !name.startsWith("[&:disabled_");
+        }),
+      ).toEqual([]);
       expect(form.contains(screen.getByTestId("passkey-option"))).toBe(false);
       expect(form.contains(screen.getByTestId("Login"))).toBe(true);
+      // What the fade reaches, and what it leaves alone.
+      expect(screen.getByTestId("email").tagName).toBe("INPUT");
+      expect(screen.getByTestId("password").tagName).toBe("INPUT");
+      expect(screen.getByTestId("Login").tagName).toBe("BUTTON");
+      expect(ssoLink().tagName).toBe("A");
+      expect(form.contains(ssoLink())).toBe(true);
+      expect(
+        (screen.getByText("Forgot password?").closest("a") as HTMLElement)
+          .tagName,
+      ).toBe("A");
 
       await clickPasskey();
 
@@ -815,6 +884,77 @@ describe("Passwordless passkey login", () => {
       await act(async () => {
         prompt.settle();
       });
+    });
+  });
+
+  /*
+   * The footer's language switcher changes the language without a reload.
+   * A notice is kept as its translation key, so it changes with the page;
+   * kept as words, it stayed in the language it was first shown in.
+   */
+  describe("a notice follows the language switcher", () => {
+    test("after a dismissed prompt", async () => {
+      jest
+        .spyOn(navigator.credentials, "get")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      renderPage();
+      await clickPasskey();
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        english.login.passkey.notCompleted,
+      );
+
+      await act(async () => {
+        await i18n.changeLanguage("de");
+      });
+
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        german.login.passkey.notCompleted,
+      );
+      expect(
+        screen.getByRole("button", { name: german.login.passkey.tryAgain }),
+      ).toBeEnabled();
+    });
+
+    test("after the page's Cancel", async () => {
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      renderPage();
+      await clickPasskey();
+      await cancelPrompt();
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(CANCELLED);
+
+      await act(async () => {
+        await i18n.changeLanguage("de");
+      });
+
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        german.login.passkey.cancelled,
+      );
+      await act(async () => {
+        prompt.settle();
+      });
+    });
+
+    test("in a browser that cannot use passkeys", async () => {
+      Object.defineProperty(window, "isSecureContext", {
+        configurable: true,
+        value: false,
+      });
+      renderPage();
+      await clickPasskey();
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        english.login.passkey.insecure,
+      );
+
+      await act(async () => {
+        await i18n.changeLanguage("de");
+      });
+
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        german.login.passkey.insecure,
+      );
+      expect(german.login.passkey.insecure).not.toBe(
+        english.login.passkey.insecure,
+      );
     });
   });
 
