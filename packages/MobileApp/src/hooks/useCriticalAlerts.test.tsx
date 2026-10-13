@@ -949,3 +949,115 @@ describe("useCriticalAlerts where the platform cannot support it", () => {
     expect(result.current.isSupported).toBe(false);
   });
 });
+
+describe("useCriticalAlerts on Android answers for the alarm the responder chose", () => {
+  /*
+   * Each alarm sound pages on a channel of its own. The switch says whether
+   * pages will ring through Do Not Disturb, so it has to read the chosen
+   * sound's channel: the system sound's channel bypassing tells a responder
+   * who picked the klaxon nothing about the klaxon.
+   */
+  let android: FakeAndroidNotificationChannels;
+  let addListenerSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    setPlatform("android");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockClear();
+    serverSpy().mockResolvedValue(undefined as never);
+
+    android = new FakeAndroidNotificationChannels();
+    android.install();
+    jest.spyOn(Linking, "sendIntent").mockResolvedValue(undefined as never);
+    addListenerSpy = jest.spyOn(AppState, "addEventListener");
+
+    await setupNotificationChannels();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function cameBackToTheApp(): Promise<void> {
+    const handler: (state: string) => void = addListenerSpy.mock
+      .calls[0]![1] as (state: string) => void;
+
+    await act(async () => {
+      handler("active");
+    });
+  }
+
+  test("with the klaxon chosen, a klaxon channel Android will not let through keeps the switch off", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    await AsyncStorage.setItem("oneuptime_critical_alert_sound", "klaxon");
+    android.userChangesChannel("oncall_critical_klaxon", {
+      sound: "content://ringtone",
+    });
+
+    const { result } = await renderCriticalAlerts();
+
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    // The system sound's channel is through; the klaxon's is not.
+    expect(android.stored(NotificationChannelId.CRITICAL)?.bypassDnd).toBe(
+      true,
+    );
+    expect(result.current.isPermissionGranted).toBe(false);
+    expect(result.current.isEnabled).toBe(false);
+  });
+
+  test("with the siren chosen and access granted, the switch comes back on by itself", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    await AsyncStorage.setItem("oneuptime_critical_alert_sound", "siren");
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isEnabled).toBe(false);
+
+    android.grantDoNotDisturbAccess();
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    expect(android.stored("oncall_critical_siren")?.bypassDnd).toBe(true);
+  });
+
+  test("turning it on with an alarm chosen checks that alarm's channel before telling the server", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alert_sound", "rising");
+    android.grantDoNotDisturbAccess();
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(serverSpy()).toHaveBeenCalledWith({
+      deviceToken: DEVICE_TOKEN,
+      isEnabled: true,
+    });
+    expect(result.current.isEnabled).toBe(true);
+    expect(android.stored("oncall_critical_rising")?.bypassDnd).toBe(true);
+  });
+
+  test("a chosen alarm whose channel the responder switched off is refused, without a word to the server", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alert_sound", "digital");
+    android.grantDoNotDisturbAccess();
+
+    const { result } = await renderCriticalAlerts();
+
+    android.userChangesChannel("oncall_critical_digital", { bypassDnd: false });
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.error).not.toBe("");
+  });
+});
