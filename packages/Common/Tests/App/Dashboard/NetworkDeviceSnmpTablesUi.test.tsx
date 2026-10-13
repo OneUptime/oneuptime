@@ -77,6 +77,7 @@ import {
   SnmpTableDefinition,
   SnmpTableKind,
   SnmpTableSnapshot,
+  SnmpTableValueType,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
@@ -144,6 +145,40 @@ function cambiumRadios(): Array<SnmpTableSnapshot> {
   });
 }
 
+const UNIFI_VAP_ENTRY: string = "1.3.6.1.4.1.41112.1.6.1.2.1";
+
+function unifiVap(
+  index: string,
+  essid: string,
+  radio: string,
+  usage: string,
+): { index: string; values: Record<string, string | number> } {
+  return {
+    index: index,
+    values: {
+      [`${UNIFI_VAP_ENTRY}.6`]: essid,
+      [`${UNIFI_VAP_ENTRY}.9`]: radio,
+      [`${UNIFI_VAP_ENTRY}.8`]: 0,
+      [`${UNIFI_VAP_ENTRY}.23`]: usage,
+    },
+  };
+}
+
+// A UniFi access point's SSIDs table, as a walk stores it now.
+function unifiSsids(
+  rows: Array<{ index: string; values: Record<string, string | number> }>,
+): SnmpTableSnapshot {
+  return SnmpTableListUtil.materialize({
+    tables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!.filter(
+      (table: SnmpTableDefinition): boolean => {
+        return table.key === "wifi_ssids";
+      },
+    ),
+    collectedAt: new Date(),
+    results: [{ key: "wifi_ssids", rows: rows }],
+  })[0]!;
+}
+
 function renderInRouter(element: React.ReactElement): void {
   render(<MemoryRouter>{element}</MemoryRouter>);
 }
@@ -199,6 +234,118 @@ describe("SnmpTableSnapshotCard", () => {
     expect(
       screen.getByText(/The device returned no rows for this table/),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("snmp-table-ipsec_tunnels-no-rows"),
+    ).toHaveTextContent("Check that it implements these columns");
+  });
+
+  /*
+   * An SSID table keeps only the networks people join (#4730), so an empty
+   * one may well have been walked with rows - UniFi's mesh link and adoption
+   * network. "The device returned no rows" would be untrue, and "check the
+   * SNMP view" alone would send its owner the wrong way.
+   */
+  test("says an SSID table with no rows reported no SSIDs, and what is left out", () => {
+    const ssids: SnmpTableSnapshot = unifiSsids([
+      unifiVap("1", "element-60d2f9a4b1c8e375", "ng", "user"),
+      unifiVap("2", "element-60d2f9a4b1c8e375", "na", "user"),
+      unifiVap("3", "vwire-8a3e5c0f2d7b4196", "na", "downlink"),
+    ]);
+
+    // The walk read three VAPs; none of them is a network people join.
+    expect(ssids.rows).toEqual([]);
+
+    renderInRouter(<SnmpTableSnapshotCard snapshot={ssids} />);
+
+    const empty: HTMLElement = screen.getByTestId(
+      "snmp-table-wifi_ssids-no-rows",
+    );
+
+    expect(empty).toHaveTextContent(
+      "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed. If it broadcasts SSIDs, check that the SNMP view your credentials use includes this table.",
+    );
+    expect(empty).not.toHaveTextContent("The device returned no rows");
+    expect(screen.getByText(/One row per SSID\./)).toBeInTheDocument();
+  });
+
+  test("an SSID table whose walk failed with nothing read says only why", () => {
+    renderInRouter(
+      <SnmpTableSnapshotCard
+        snapshot={{ ...unifiSsids([]), failureCause: "Request timed out" }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("snmp-table-wifi_ssids-failure"),
+    ).toHaveTextContent("Request timed out");
+    expect(
+      screen.queryByTestId("snmp-table-wifi_ssids-no-rows"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("keeps short values on one line, and lets row names and long text wrap", () => {
+    const snapshot: SnmpTableSnapshot = SnmpTableListUtil.materialize({
+      tables: [
+        {
+          key: "tunnels",
+          name: "Tunnels",
+          rowLabelColumnOids: ["1.3.6.1.4.1.9.9.1.1"],
+          columns: [
+            {
+              oid: "1.3.6.1.4.1.9.9.1.2",
+              name: "Band",
+              valueType: SnmpTableValueType.Text,
+            },
+            {
+              oid: "1.3.6.1.4.1.9.9.1.3",
+              name: "Description",
+              valueType: SnmpTableValueType.Text,
+            },
+          ],
+        },
+      ],
+      collectedAt: new Date(),
+      results: [
+        {
+          key: "tunnels",
+          rows: [
+            {
+              index: "1",
+              values: {
+                "1.3.6.1.4.1.9.9.1.1": "Branch office in Frankfurt / tunnel 1",
+                "1.3.6.1.4.1.9.9.1.2": "2.4 GHz",
+                "1.3.6.1.4.1.9.9.1.3":
+                  "Backup path through the second provider, used when the first is down",
+              },
+            },
+          ],
+        },
+      ],
+    })[0]!;
+
+    renderInRouter(<SnmpTableSnapshotCard snapshot={snapshot} />);
+
+    const table: HTMLElement = screen.getByTestId("snmp-table-tunnels");
+
+    for (const header of Array.from(table.querySelectorAll("th"))) {
+      expect(header).toHaveClass("whitespace-nowrap");
+    }
+
+    const [label, band, description] = Array.from(
+      table.querySelectorAll("tbody td"),
+    );
+
+    expect(label).toHaveTextContent("Branch office in Frankfurt / tunnel 1");
+    expect(label).toHaveClass("min-w-[10rem]");
+    expect(label).toHaveClass("[overflow-wrap:anywhere]");
+    expect(label).not.toHaveClass("whitespace-nowrap");
+
+    expect(band).toHaveTextContent("2.4 GHz");
+    expect(band).toHaveClass("whitespace-nowrap");
+
+    expect(description).toHaveTextContent("Backup path through");
+    expect(description).toHaveClass("min-w-[12rem]");
+    expect(description).not.toHaveClass("whitespace-nowrap");
   });
 });
 
@@ -310,6 +457,64 @@ describe("SNMP Tables tab", () => {
     expect(screen.getByText("DEMO / 5 GHz")).toBeInTheDocument();
 
     const card: HTMLElement = screen.getByTestId("snmp-table-wifi_ssids");
+    expect(card).not.toHaveTextContent("element-");
+    expect(card).not.toHaveTextContent("vwire-");
+  });
+
+  test("says a stored SSIDs table of UniFi's own networks alone holds no SSIDs, rather than that the device returned no rows", async () => {
+    const unifiTables: Array<SnmpTableDefinition> =
+      SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!;
+    const ssidsTable: SnmpTableDefinition = unifiTables.find(
+      (table: SnmpTableDefinition): boolean => {
+        return table.key === "wifi_ssids";
+      },
+    )!;
+
+    // What a walk before the fix stored: three VAPs, none a network of yours.
+    const stored: SnmpTableSnapshot = {
+      ...SnmpTableListUtil.materialize({
+        tables: [{ ...ssidsTable, kind: SnmpTableKind.Generic }],
+        collectedAt: new Date(),
+        results: [
+          {
+            key: "wifi_ssids",
+            rows: [
+              unifiVap("1", "element-60d2f9a4b1c8e375", "ng", "user"),
+              unifiVap("2", "element-60d2f9a4b1c8e375", "na", "user"),
+              unifiVap("3", "vwire-8a3e5c0f2d7b4196", "na", "downlink"),
+            ],
+          },
+        ],
+      })[0]!,
+      kind: SnmpTableKind.WifiSsid,
+    };
+
+    expect(stored.rows).toHaveLength(3);
+
+    const device: NetworkDevice = new NetworkDevice();
+    device.snmpTables = unifiTables;
+    device.snmpTableSnapshot = [stored];
+    deviceRow = device;
+
+    renderInRouter(
+      <NetworkDeviceTables
+        pageRoute={pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("snmp-table-wifi_ssids-no-rows"),
+      ).toBeInTheDocument();
+    });
+
+    const card: HTMLElement = screen.getByTestId("snmp-table-wifi_ssids");
+    expect(card).toHaveTextContent(
+      "The device reported no SSIDs on its last walk.",
+    );
+    expect(card).not.toHaveTextContent("The device returned no rows");
     expect(card).not.toHaveTextContent("element-");
     expect(card).not.toHaveTextContent("vwire-");
   });

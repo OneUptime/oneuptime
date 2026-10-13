@@ -21,6 +21,14 @@ export interface ComponentProps {
 // A value that already carries its unit, such as "80MHz" or "45%".
 const ENDS_WITH_UNIT: RegExp = /[a-z%]$/i;
 
+/*
+ * Values up to this long stay on one line - "2.4 GHz", "20 dBm" or "active"
+ * never stack over two - and a narrow screen scrolls the table sideways.
+ * Longer text (a description, a version string) wraps in a column of its
+ * own width.
+ */
+const ONE_LINE_VALUE_LENGTH: number = 24;
+
 // What each table kind is, in a few words, for the card's description.
 const KIND_DESCRIPTIONS: Record<SnmpTableKind, string> = {
   [SnmpTableKind.Generic]: translationKey("Rows walked from the device."),
@@ -114,6 +122,21 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
 
   const failureText: string | undefined = getFailureText();
 
+  /*
+   * What a table whose walk read no rows says. An SSID table keeps only the
+   * networks people join, so a device whose only networks are its own
+   * (UniFi's mesh link and adoption network) did answer with rows: "check
+   * the SNMP view" alone would send its owner the wrong way.
+   */
+  const noRowsText: string | undefined =
+    snapshot.kind === SnmpTableKind.WifiSsid
+      ? translator.translateText(
+          "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed. If it broadcasts SSIDs, check that the SNMP view your credentials use includes this table.",
+        )
+      : translator.translateText(
+          "The device returned no rows for this table. Check that it implements these columns, and that the SNMP view your credentials use includes them.",
+        );
+
   type RenderCellFunction = (
     column: SnmpTableSnapshotColumn,
     cell: SnmpTableSnapshotCell | undefined,
@@ -192,10 +215,11 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
              */
             <></>
           ) : (
-            <p className="py-6 text-center text-sm text-gray-500">
-              {translator.translateText(
-                "The device returned no rows for this table. Check that it implements these columns, and that the SNMP view your credentials use includes them.",
-              )}
+            <p
+              className="py-6 text-center text-sm text-gray-500"
+              data-testid={`snmp-table-${snapshot.key}-no-rows`}
+            >
+              {noRowsText}
             </p>
           )
         ) : (
@@ -203,7 +227,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
                 <tr>
-                  <th className="py-2 pr-4 text-left font-medium text-gray-500">
+                  <th className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500">
                     {translator.translateText("Row")}
                   </th>
                   {snapshot.columns.map(
@@ -212,7 +236,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                         <th
                           key={column.oid}
                           title={column.oid}
-                          className="py-2 pr-4 text-left font-medium text-gray-500"
+                          className="whitespace-nowrap py-2 pr-4 text-left font-medium text-gray-500"
                         >
                           {column.name}
                         </th>
@@ -227,7 +251,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                     return (
                       <tr key={row.index}>
                         <td
-                          className="py-2 pr-4 font-medium text-gray-900"
+                          className="min-w-[10rem] py-2 pr-4 font-medium text-gray-900 [overflow-wrap:anywhere]"
                           title={translator.translateTemplate(
                             "Row index {{index}}",
                             { index: row.index },
@@ -237,9 +261,20 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
                         </td>
                         {snapshot.columns.map(
                           (column: SnmpTableSnapshotColumn): ReactElement => {
+                            const cell: SnmpTableSnapshotCell | undefined =
+                              row.cells[column.oid];
+
                             return (
-                              <td key={column.oid} className="py-2 pr-4">
-                                {renderCell(column, row.cells[column.oid])}
+                              <td
+                                key={column.oid}
+                                className={`py-2 pr-4 ${
+                                  (cell?.display || "").length >
+                                  ONE_LINE_VALUE_LENGTH
+                                    ? "min-w-[12rem]"
+                                    : "whitespace-nowrap"
+                                }`}
+                              >
+                                {renderCell(column, cell)}
                               </td>
                             );
                           },

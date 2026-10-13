@@ -122,12 +122,18 @@ interface WifiTableProps<T> {
   columns: Array<WifiColumn<T>>;
   getKey: (row: T) => string;
   getName: (row: T) => string;
+  /*
+   * Let a long name wrap. For SSIDs: names people chose, up to 32
+   * characters, in a table of two short columns.
+   */
+  wrapNames?: boolean | undefined;
 }
 
 /*
- * A Wi-Fi table: the name first, then the columns. Cells do not wrap, so a
- * narrow screen scrolls the table sideways rather than stacking "5 GHz"
- * over two lines.
+ * A Wi-Fi table: the name first, then the columns. Cells do not wrap, so
+ * "5 GHz" never stacks over two lines and a narrow screen scrolls the table
+ * sideways - except an SSID, which wraps (at 8rem or wider), so on a phone
+ * a long SSID takes two lines and its band and clients stay on screen.
  */
 function WifiTable<T>(props: WifiTableProps<T>): ReactElement {
   const translator: Translator = useTranslator();
@@ -158,7 +164,13 @@ function WifiTable<T>(props: WifiTableProps<T>): ReactElement {
           {props.rows.map((row: T, position: number): ReactElement => {
             return (
               <tr key={`${position}-${props.getKey(row)}`}>
-                <td className="whitespace-nowrap py-2 pr-4 font-medium text-gray-900">
+                <td
+                  className={`py-2 pr-4 font-medium text-gray-900 ${
+                    props.wrapNames
+                      ? "min-w-[8rem] [overflow-wrap:anywhere]"
+                      : "whitespace-nowrap"
+                  }`}
+                >
                   {props.getName(row)}
                 </td>
                 {props.columns.map((column: WifiColumn<T>): ReactElement => {
@@ -301,6 +313,12 @@ const NetworkDeviceWiFi: FunctionComponent<
       return radio.isOn !== false;
     },
   ).length;
+
+  /*
+   * The SSIDs card lists the SSIDs, or - as the Radios card does - says the
+   * device reported none, when its last walk read the SSID table.
+   */
+  const hasReadSsidTable: boolean = WifiRadioUtil.hasReadSsidTable(snapshots);
 
   const tiles: Array<{ title: string; value: string }> = [
     ...(summary.accessPoints.length > 0
@@ -494,11 +512,14 @@ const NetworkDeviceWiFi: FunctionComponent<
         <></>
       )}
 
+      {/*
+       * Small tiles, side by side on a phone too - three in a row, or two by
+       * two with the access points - so the lists start on the first screen.
+       * A title that does not fit wraps, and the values stay level.
+       */}
       <div
-        className={`mb-5 grid gap-4 ${
-          tiles.length > 3
-            ? "grid-cols-2 lg:grid-cols-4"
-            : "grid-cols-1 sm:grid-cols-3"
+        className={`mb-5 grid gap-3 sm:gap-4 ${
+          tiles.length > 3 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3"
         }`}
         data-testid="wifi-tiles"
       >
@@ -506,9 +527,9 @@ const NetworkDeviceWiFi: FunctionComponent<
           return (
             <div
               key={tile.title}
-              className="rounded-lg border border-gray-200 bg-white px-4 py-3"
+              className="flex flex-col justify-between rounded-lg border border-gray-200 bg-white px-3 py-3 sm:px-4"
             >
-              <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <div className="break-words text-xs font-medium uppercase tracking-wide text-gray-500">
                 {tile.title}
               </div>
               <div className="mt-1 text-2xl font-semibold text-gray-900">
@@ -576,7 +597,7 @@ const NetworkDeviceWiFi: FunctionComponent<
         )}
       </Card>
 
-      {summary.ssids.length > 0 ? (
+      {summary.ssids.length > 0 || hasReadSsidTable ? (
         <Card
           title="SSIDs"
           description={
@@ -585,18 +606,27 @@ const NetworkDeviceWiFi: FunctionComponent<
               : "Every SSID the access point broadcasts, and who is on it."
           }
         >
-          <WifiTable
-            testId="wifi-ssids"
-            nameTitle={translationKey("SSID")}
-            rows={summary.ssids}
-            columns={ssidColumns}
-            getKey={(ssid: WifiSsidView): string => {
-              return ssid.name;
-            }}
-            getName={(ssid: WifiSsidView): string => {
-              return ssid.ssid;
-            }}
-          />
+          {summary.ssids.length > 0 ? (
+            <WifiTable
+              testId="wifi-ssids"
+              nameTitle={translationKey("SSID")}
+              rows={summary.ssids}
+              columns={ssidColumns}
+              wrapNames={true}
+              getKey={(ssid: WifiSsidView): string => {
+                return ssid.name;
+              }}
+              getName={(ssid: WifiSsidView): string => {
+                return ssid.ssid;
+              }}
+            />
+          ) : (
+            <p className="text-sm text-gray-500" data-testid="wifi-no-ssids">
+              {translator.translateText(
+                "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed.",
+              )}
+            </p>
+          )}
         </Card>
       ) : (
         <></>

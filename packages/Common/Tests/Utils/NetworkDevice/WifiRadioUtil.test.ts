@@ -746,3 +746,323 @@ describe("WifiRadioUtil and the networks an access point runs for itself", () =>
     ).toEqual(["Warehouse / 2.4 GHz", "Warehouse / 5 GHz"]);
   });
 });
+
+/*
+ * A UniFi access point's walk as it is stored now: its VAP table read with
+ * today's template, so UniFi's own networks are left out at ingest.
+ */
+interface WalkedVap {
+  index: string;
+  essid: string;
+  radio: string;
+  stations: number;
+  usage: string;
+}
+
+function unifiWalk(vaps: Array<WalkedVap>): Array<SnmpTableSnapshot> {
+  return SnmpTableListUtil.materialize({
+    tables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!,
+    results: [
+      {
+        key: "wifi_radios",
+        rows: [
+          { index: "1", values: { [`${UNIFI_RADIO_ENTRY}.3`]: "ng" } },
+          { index: "2", values: { [`${UNIFI_RADIO_ENTRY}.3`]: "na" } },
+        ],
+      },
+      {
+        key: "wifi_ssids",
+        rows: vaps.map((vap: WalkedVap) => {
+          return {
+            index: vap.index,
+            values: {
+              [`${UNIFI_VAP_ENTRY}.6`]: vap.essid,
+              [`${UNIFI_VAP_ENTRY}.9`]: vap.radio,
+              [`${UNIFI_VAP_ENTRY}.4`]: vap.radio === "ng" ? 6 : 149,
+              [`${UNIFI_VAP_ENTRY}.8`]: vap.stations,
+              [`${UNIFI_VAP_ENTRY}.21`]: 20,
+              [`${UNIFI_VAP_ENTRY}.23`]: vap.usage,
+            },
+          };
+        }),
+      },
+    ],
+    collectedAt: new Date("2026-10-13T08:00:00.000Z"),
+  });
+}
+
+// A busy access point's VAPs, radio by radio, as UniFi numbers them.
+const BUSY_VAPS: Array<WalkedVap> = [
+  {
+    index: "1",
+    essid: "element-5e0c3b7a91d42f68",
+    radio: "ng",
+    stations: 0,
+    usage: "user",
+  },
+  { index: "2", essid: "Shop", radio: "ng", stations: 7, usage: "user" },
+  { index: "3", essid: "Shop-Guest", radio: "ng", stations: 3, usage: "guest" },
+  {
+    index: "4",
+    essid: "element-5e0c3b7a91d42f68",
+    radio: "na",
+    stations: 0,
+    usage: "user",
+  },
+  {
+    index: "5",
+    essid: "vwire-93f1d6a2c07b4e58",
+    radio: "na",
+    stations: 1,
+    usage: "downlink",
+  },
+  { index: "6", essid: "Shop", radio: "na", stations: 12, usage: "user" },
+  { index: "7", essid: "Shop-Guest", radio: "na", stations: 0, usage: "guest" },
+];
+
+function bandsOf(ssids: Array<WifiSsidView>): Array<string> {
+  return ssids.map((ssid: WifiSsidView): string => {
+    return `${ssid.ssid}|${ssid.band || "-"}`;
+  });
+}
+
+function ssidView(
+  name: string,
+  band?: WifiBand | undefined,
+  label?: string | undefined,
+): WifiSsidView {
+  const view: WifiSsidView = {
+    name: label || `${name} / ${band || "?"}`,
+    ssid: name,
+  };
+
+  if (band) {
+    view.band = band;
+  }
+
+  return view;
+}
+
+describe("WifiRadioUtil.groupByNetwork", () => {
+  it("puts each network's bands together, networks in the order the device first lists them", () => {
+    expect(
+      bandsOf(
+        WifiRadioUtil.groupByNetwork([
+          ssidView("Shop", WifiBand.Band2_4GHz),
+          ssidView("Guest", WifiBand.Band2_4GHz),
+          ssidView("Shop", WifiBand.Band5GHz),
+          ssidView("Guest", WifiBand.Band5GHz),
+        ]),
+      ),
+    ).toEqual(["Shop|2.4 GHz", "Shop|5 GHz", "Guest|2.4 GHz", "Guest|5 GHz"]);
+  });
+
+  it("lists a network's lowest band first, whatever order the radios were walked in", () => {
+    expect(
+      bandsOf(
+        WifiRadioUtil.groupByNetwork([
+          ssidView("Office", WifiBand.Band6GHz),
+          ssidView("Office", WifiBand.Band5GHz),
+          ssidView("Office", WifiBand.Band2_4GHz),
+        ]),
+      ),
+    ).toEqual(["Office|2.4 GHz", "Office|5 GHz", "Office|6 GHz"]);
+  });
+
+  it("lists a row with no one band after the network's bands, and keeps the device's order otherwise", () => {
+    const grouped: Array<WifiSsidView> = WifiRadioUtil.groupByNetwork([
+      ssidView("Corp", undefined, "Corp / 5GHz,6GHz"),
+      ssidView("Corp", WifiBand.Band5GHz, "Corp / ap-1"),
+      ssidView("Corp", WifiBand.Band5GHz, "Corp / ap-2"),
+    ]);
+
+    expect(
+      grouped.map((ssid: WifiSsidView): string => {
+        return ssid.name;
+      }),
+    ).toEqual(["Corp / ap-1", "Corp / ap-2", "Corp / 5GHz,6GHz"]);
+  });
+
+  it("tells networks apart by their exact name: an SSID is case-sensitive", () => {
+    expect(
+      bandsOf(
+        WifiRadioUtil.groupByNetwork([
+          ssidView("Shop", WifiBand.Band2_4GHz),
+          ssidView("shop", WifiBand.Band2_4GHz),
+          ssidView("Shop", WifiBand.Band5GHz),
+        ]),
+      ),
+    ).toEqual(["Shop|2.4 GHz", "Shop|5 GHz", "shop|2.4 GHz"]);
+  });
+
+  it("leaves a list of one row per network as the device listed it", () => {
+    const controller: Array<WifiSsidView> = [
+      ssidView("Staff"),
+      ssidView("Partner"),
+      ssidView("Guest"),
+    ];
+
+    expect(WifiRadioUtil.groupByNetwork(controller)).toEqual(controller);
+    expect(WifiRadioUtil.groupByNetwork([])).toEqual([]);
+  });
+
+  it("only reorders: every row comes back once, as it was, and the input is untouched", () => {
+    const rows: Array<WifiSsidView> = [
+      ssidView("B", WifiBand.Band5GHz),
+      ssidView("A", WifiBand.Band2_4GHz),
+      ssidView("B", WifiBand.Band2_4GHz),
+      ssidView("C"),
+      ssidView("A", WifiBand.Band6GHz),
+    ];
+    const before: Array<WifiSsidView> = [...rows];
+
+    const grouped: Array<WifiSsidView> = WifiRadioUtil.groupByNetwork(rows);
+
+    expect(grouped).toHaveLength(rows.length);
+
+    for (const row of rows) {
+      expect(
+        grouped.filter((candidate: WifiSsidView): boolean => {
+          return candidate === row;
+        }),
+      ).toHaveLength(1);
+    }
+
+    expect(rows).toEqual(before);
+    expect(bandsOf(grouped)).toEqual([
+      "B|2.4 GHz",
+      "B|5 GHz",
+      "A|2.4 GHz",
+      "A|6 GHz",
+      "C|-",
+    ]);
+  });
+});
+
+describe("the SSIDs of a table kept per radio, on the Wi-Fi tab", () => {
+  it("list each network's bands together, and none of UniFi's own networks", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(unifiWalk(BUSY_VAPS));
+
+    expect(
+      summary.ssids.map((ssid: WifiSsidView): string => {
+        return `${ssid.ssid}|${ssid.band}|${ssid.clients}`;
+      }),
+    ).toEqual([
+      "Shop|2.4 GHz|7",
+      "Shop|5 GHz|12",
+      "Shop-Guest|2.4 GHz|3",
+      "Shop-Guest|5 GHz|0",
+    ]);
+  });
+
+  it("read the same from a snapshot stored before #4730", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      unifiStoredBeforeTheFix(
+        BUSY_VAPS.map((vap: WalkedVap): StoredVap => {
+          return {
+            index: vap.index,
+            essid: vap.essid,
+            radio: vap.radio,
+            stations: vap.stations,
+            usage: vap.usage,
+          };
+        }),
+      ),
+    );
+
+    expect(bandsOf(summary.ssids)).toEqual([
+      "Shop|2.4 GHz",
+      "Shop|5 GHz",
+      "Shop-Guest|2.4 GHz",
+      "Shop-Guest|5 GHz",
+    ]);
+  });
+
+  it("still fill each radio in from the networks on its band, and count no meshed access point", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(unifiWalk(BUSY_VAPS));
+
+    expect(
+      summary.radios.map((radio: WifiRadioView): Array<unknown> => {
+        return [radio.band, radio.channel, radio.txPowerDbm, radio.clients];
+      }),
+    ).toEqual([
+      [WifiBand.Band2_4GHz, 6, 20, 10],
+      [WifiBand.Band5GHz, 149, 20, 12],
+    ]);
+    expect(summary.totalClients).toBe(22);
+  });
+});
+
+describe("WifiRadioUtil.hasReadSsidTable", () => {
+  function ssidSnapshotOf(
+    snapshots: Array<SnmpTableSnapshot>,
+  ): SnmpTableSnapshot {
+    return snapshots.find((snapshot: SnmpTableSnapshot): boolean => {
+      return snapshot.key === "wifi_ssids";
+    })!;
+  }
+
+  it("is true for an access point whose only networks are UniFi's own: it reported no SSID", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiWalk(
+      BUSY_VAPS.filter((vap: WalkedVap): boolean => {
+        return !vap.essid.startsWith("Shop");
+      }),
+    );
+
+    expect(ssidSnapshotOf(snapshots).rows).toEqual([]);
+    expect(WifiRadioUtil.getSummary(snapshots).ssids).toEqual([]);
+    expect(WifiRadioUtil.hasReadSsidTable(snapshots)).toBe(true);
+  });
+
+  it("is true for a stored snapshot whose rows are all UniFi's own networks", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiStoredBeforeTheFix(
+      STORED_VAPS.filter((vap: StoredVap): boolean => {
+        return vap.essid !== "Warehouse";
+      }),
+    );
+
+    expect(ssidSnapshotOf(snapshots).rows).toHaveLength(3);
+    expect(WifiRadioUtil.getSummary(snapshots).ssids).toEqual([]);
+    expect(WifiRadioUtil.hasReadSsidTable(snapshots)).toBe(true);
+  });
+
+  it("is true for an SSID table that lists networks", () => {
+    expect(WifiRadioUtil.hasReadSsidTable(unifiWalk(BUSY_VAPS))).toBe(true);
+  });
+
+  it("is false when the SSID table's last walk failed: that tells nothing of its SSIDs", () => {
+    const snapshots: Array<SnmpTableSnapshot> = unifiWalk([]).map(
+      (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+        return snapshot.key === "wifi_ssids"
+          ? { ...snapshot, failureCause: "Request timed out" }
+          : snapshot;
+      },
+    );
+
+    expect(WifiRadioUtil.hasReadSsidTable(snapshots)).toBe(false);
+  });
+
+  it("is false for a device that walks no SSID table, or nothing at all", () => {
+    const radiosOnly: Array<SnmpTableSnapshot> = unifiWalk([]).filter(
+      (snapshot: SnmpTableSnapshot): boolean => {
+        return snapshot.kind !== SnmpTableKind.WifiSsid;
+      },
+    );
+
+    expect(radiosOnly.length).toBeGreaterThan(0);
+    expect(WifiRadioUtil.hasReadSsidTable(radiosOnly)).toBe(false);
+    expect(WifiRadioUtil.hasReadSsidTable([])).toBe(false);
+    expect(WifiRadioUtil.hasReadSsidTable(undefined)).toBe(false);
+  });
+
+  it("is true when one of two SSID tables was read", () => {
+    const read: SnmpTableSnapshot = ssidSnapshotOf(unifiWalk(BUSY_VAPS));
+
+    expect(
+      WifiRadioUtil.hasReadSsidTable([
+        { ...read, key: "wifi_ssids_failed", failureCause: "No response" },
+        read,
+      ]),
+    ).toBe(true);
+  });
+});

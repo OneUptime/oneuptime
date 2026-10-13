@@ -1006,7 +1006,7 @@ const UBIQUITI_UNIFI_AP: SnmpVendorTemplate = {
       key: "wifi_ssids",
       name: "SSIDs",
       description:
-        "unifiVapTable - one row per SSID on each radio, with that radio's channel and transmit power. UniFi's own hidden networks are VAPs too, and are left out (WifiInternalNetwork): its wireless mesh link (vwire-..., usage downlink, interface vwire...) and its device adoption network (element-...).",
+        "unifiVapTable - one row per SSID on each radio, with that radio's channel and transmit power. UniFi's own hidden networks are VAPs too, and are left out: its wireless mesh link (vwire-..., usage downlink, interface vwire...) and its device adoption network (element-...).",
       kind: SnmpTableKind.WifiSsid,
       rowLabelColumnOids: [
         "1.3.6.1.4.1.41112.1.6.1.2.1.6",
@@ -1733,7 +1733,7 @@ const EXTREME_WIRELESS_CONTROLLER: SnmpVendorTemplate = {
       key: "wifi_ssids",
       name: "WLANs",
       description:
-        "wlanTable and wlanStatsTable - one row per WLAN service, with its SSID and clients. WDS and mesh services carry traffic between access points rather than clients' networks, and are left out (WifiInternalNetwork).",
+        "wlanTable and wlanStatsTable - one row per WLAN service, with its SSID and clients. WDS and mesh services carry traffic between access points rather than clients' networks, and are left out.",
       kind: SnmpTableKind.WifiSsid,
       rowLabelColumnOids: ["1.3.6.1.4.1.4329.15.3.3.4.4.1.4"],
       columns: [

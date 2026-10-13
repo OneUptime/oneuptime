@@ -461,14 +461,16 @@ function issue4730(): Array<SnmpTableSnapshot> {
  * What the walks before the fix stored: every VAP under the SSID kind - a
  * table of no SSID kind keeps every row, as every walk did then.
  */
-function issue4730StoredBeforeTheFix(): Array<SnmpTableSnapshot> {
+function issue4730StoredBeforeTheFix(
+  results: Array<SnmpTableResult> = issue4730Results(),
+): Array<SnmpTableSnapshot> {
   return SnmpTableListUtil.materialize({
     tables: SnmpVendorTemplateUtil.getById("ubiquiti-unifi-ap")!.tables!.map(
       (table: SnmpTableDefinition): SnmpTableDefinition => {
         return { ...table, kind: SnmpTableKind.Generic };
       },
     ),
-    results: issue4730Results(),
+    results: results,
     collectedAt: new Date(),
   }).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
     return {
@@ -588,6 +590,248 @@ describe("the Wi-Fi tab of the UniFi access point in issue #4730", () => {
     expect(card).not.toHaveTextContent("element-");
     expect(card).not.toHaveTextContent("vwire");
     expect(screen.getByText(/One row per SSID\./)).toBeInTheDocument();
+  });
+});
+
+/*
+ * The UI review of #4730. An access point can broadcast none of the
+ * customer's networks and still run UniFi's own (an access point used as a
+ * mesh uplink, or one no WLAN is assigned to): its SSIDs card says so,
+ * rather than vanishing under an "SSIDs 0" tile. A table kept per radio
+ * lists one network's bands together. And on a phone the tiles sit side by
+ * side and an SSID's band and clients stay on screen.
+ */
+const NO_SSIDS_LINE: string =
+  "The device reported no SSIDs on its last walk. Networks it runs for itself, such as a wireless mesh link, are not listed.";
+
+// The #4730 access point with DEMO turned off: only UniFi's own networks.
+function onlyUniFisOwnNetworks(): Array<SnmpTableResult> {
+  return issue4730Results().map((result: SnmpTableResult): SnmpTableResult => {
+    return result.key === "wifi_ssids"
+      ? {
+          ...result,
+          rows: result.rows.filter(
+            (row: SnmpTableResult["rows"][number]): boolean => {
+              return row.values[`${UNIFI_VAP}.6`] !== "DEMO";
+            },
+          ),
+        }
+      : result;
+  });
+}
+
+// A busy access point: two networks on both bands, listed radio by radio.
+function busyAccessPoint(): Array<SnmpTableSnapshot> {
+  const vap: (
+    index: string,
+    essid: string,
+    radio: string,
+    stations: number,
+  ) => SnmpTableResult["rows"][number] = (
+    index: string,
+    essid: string,
+    radio: string,
+    stations: number,
+  ): SnmpTableResult["rows"][number] => {
+    return {
+      index: index,
+      values: {
+        [`${UNIFI_VAP}.6`]: essid,
+        [`${UNIFI_VAP}.9`]: radio,
+        [`${UNIFI_VAP}.8`]: stations,
+        [`${UNIFI_VAP}.23`]: "user",
+      },
+    };
+  };
+
+  return walk("ubiquiti-unifi-ap", [
+    issue4730Results()[0]!,
+    {
+      key: "wifi_ssids",
+      rows: [
+        vap("1", ISSUE_4730_ADOPTION, "ng", 0),
+        vap("2", "Shop", "ng", 7),
+        vap("3", "Shop-Guest", "ng", 3),
+        vap("4", "Shop", "na", 12),
+        vap("5", "Shop-Guest", "na", 0),
+      ],
+    },
+  ]);
+}
+
+describe("the Wi-Fi tab's SSIDs card and layout (#4730 UI review)", () => {
+  test.each([
+    [
+      "stored before the fix",
+      (): Array<SnmpTableSnapshot> => {
+        return issue4730StoredBeforeTheFix(onlyUniFisOwnNetworks());
+      },
+    ],
+    [
+      "stored by the next walk",
+      (): Array<SnmpTableSnapshot> => {
+        return walk("ubiquiti-unifi-ap", onlyUniFisOwnNetworks());
+      },
+    ],
+  ])(
+    "says the device reported no SSIDs when its only networks are UniFi's own, from a snapshot %s",
+    async (_when: string, snapshots: () => Array<SnmpTableSnapshot>) => {
+      deviceRow = deviceWith({ snmpTableSnapshot: snapshots() });
+
+      renderWiFi();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("wifi-no-ssids")).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId("wifi-no-ssids")).toHaveTextContent(
+        NO_SSIDS_LINE,
+      );
+      // The card keeps its place under the radios, with what it lists.
+      expect(
+        screen.getByText(
+          "Every SSID the access point broadcasts, and who is on it.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId("wifi-ssids")).not.toBeInTheDocument();
+      expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
+      expect(tileValue("SSIDs")).toBe("0");
+
+      expect(document.body).not.toHaveTextContent("element-");
+      expect(document.body).not.toHaveTextContent("vwire-");
+    },
+  );
+
+  test("says nothing of SSIDs when the SSID table's last walk failed and nothing earlier was read", async () => {
+    deviceRow = deviceWith({
+      snmpTableSnapshot: issue4730().map(
+        (snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+          return snapshot.key === "wifi_ssids"
+            ? { ...snapshot, rows: [], failureCause: "Request timed out" }
+            : snapshot;
+        },
+      ),
+    });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId("wifi-no-ssids")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("wifi-ssids")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Every SSID the access point broadcasts, and who is on it.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("lists each network's bands together, not radio by radio as UniFi numbers them", async () => {
+    deviceRow = deviceWith({ snmpTableSnapshot: busyAccessPoint() });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-ssids")).toBeInTheDocument();
+    });
+
+    const rows: Array<HTMLElement> = within(
+      screen.getByTestId("wifi-ssids"),
+    ).getAllByRole("row");
+
+    expect(
+      rows.slice(1).map((row: HTMLElement): string => {
+        return Array.from(row.querySelectorAll("td"))
+          .map((cell: HTMLTableCellElement): string => {
+            return cell.textContent || "";
+          })
+          .join("|");
+      }),
+    ).toEqual([
+      "Shop|2.4 GHz|7",
+      "Shop|5 GHz|12",
+      "Shop-Guest|2.4 GHz|3",
+      "Shop-Guest|5 GHz|0",
+    ]);
+    expect(tileValue("SSIDs")).toBe("4");
+    expect(tileValue("Clients")).toBe("22");
+  });
+
+  test("keeps three tiles side by side on a phone, and four two by two", async () => {
+    deviceRow = deviceWith({ snmpTableSnapshot: issue4730() });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-tiles")).toBeInTheDocument();
+    });
+
+    // No breakpoint: three across from the narrowest screen up.
+    expect(screen.getByTestId("wifi-tiles")).toHaveClass("grid-cols-3");
+    expect(screen.getByTestId("wifi-tiles")).not.toHaveClass("grid-cols-1");
+    expect(screen.getByTestId("wifi-tiles").children).toHaveLength(3);
+
+    cleanup();
+    deviceRow = deviceWith({ snmpTableSnapshot: arubaInstant() });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-tiles")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("wifi-tiles").children).toHaveLength(4);
+    expect(screen.getByTestId("wifi-tiles")).toHaveClass("grid-cols-2");
+    expect(screen.getByTestId("wifi-tiles")).toHaveClass("lg:grid-cols-4");
+  });
+
+  test("lets a long SSID wrap, while its band and clients stay on one line", async () => {
+    deviceRow = deviceWith({ snmpTableSnapshot: issue4730() });
+
+    renderWiFi();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("wifi-ssids")).toBeInTheDocument();
+    });
+
+    const table: HTMLElement = screen.getByTestId("wifi-ssids");
+
+    for (const header of Array.from(table.querySelectorAll("th"))) {
+      expect(header).toHaveClass("whitespace-nowrap");
+    }
+
+    const bodyRows: Array<HTMLTableRowElement> = Array.from(
+      table.querySelectorAll("tbody tr"),
+    );
+
+    expect(bodyRows).toHaveLength(2);
+
+    for (const row of bodyRows) {
+      const [name, ...values] = Array.from(row.querySelectorAll("td"));
+
+      // The SSID wraps, anywhere if it must, in a column at least 8rem wide.
+      expect(name).not.toHaveClass("whitespace-nowrap");
+      expect(name).toHaveClass("min-w-[8rem]");
+      expect(name).toHaveClass("[overflow-wrap:anywhere]");
+
+      // "2.4 GHz" and the client count never stack over two lines.
+      expect(values.length).toBeGreaterThan(0);
+      for (const value of values) {
+        expect(value).toHaveClass("whitespace-nowrap");
+      }
+    }
+
+    /*
+     * A radio's name ("2.4 GHz / wifi0", "Lobby-AP410C:radio1") stays on one
+     * line: its table has more columns than a phone fits and scrolls anyway.
+     */
+    for (const cell of Array.from(
+      screen.getByTestId("wifi-radios").querySelectorAll("td"),
+    )) {
+      expect(cell).toHaveClass("whitespace-nowrap");
+    }
   });
 });
 

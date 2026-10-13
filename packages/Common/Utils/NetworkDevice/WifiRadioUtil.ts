@@ -42,6 +42,10 @@ import WifiInternalNetworkUtil from "../../Types/Monitor/SnmpMonitor/WifiInterna
  *   - A band that names several bands ("2.4GHz,5GHz", "5 GHz & 6 GHz") is no
  *     one band: an SSID that every radio broadcasts shows the text as the
  *     device wrote it, rather than the first band named in it.
+ *   - A network's rows are listed together, lowest band first, in the order
+ *     the device first lists each network: a table kept per radio (UniFi,
+ *     IQ Engine) lists every network on one band before the next band, which
+ *     scatters one network's bands down the list.
  */
 
 // How vendors write the band: "2.4GHz", "2,4 GHz", "2G", "5 GHz", "6E" ...
@@ -60,6 +64,13 @@ export enum WifiBand {
   Band5GHz = "5 GHz",
   Band6GHz = "6 GHz",
 }
+
+// The bands from the lowest, the order a network's rows are listed in.
+const BANDS_FROM_LOWEST: Array<WifiBand> = [
+  WifiBand.Band2_4GHz,
+  WifiBand.Band5GHz,
+  WifiBand.Band6GHz,
+];
 
 export interface WifiAccessPointView {
   name: string;
@@ -149,6 +160,20 @@ export default class WifiRadioUtil {
     });
   }
 
+  /*
+   * Whether the device's last walk read an SSID table, so that listing no
+   * SSID means the device reported none - an access point whose only
+   * networks are its own (UniFi's mesh link and adoption network) among
+   * them. A table whose last walk failed tells nothing of the kind.
+   */
+  public static hasReadSsidTable(
+    snapshots: Array<SnmpTableSnapshot> | undefined,
+  ): boolean {
+    return (snapshots || []).some((snapshot: SnmpTableSnapshot) => {
+      return snapshot.kind === SnmpTableKind.WifiSsid && !snapshot.failureCause;
+    });
+  }
+
   public static getSummary(
     snapshots: Array<SnmpTableSnapshot> | undefined,
   ): WifiSummary {
@@ -183,18 +208,20 @@ export default class WifiRadioUtil {
       return radio.clients !== undefined;
     });
 
-    const ssids: Array<WifiSsidView> = ssidTables
-      .flatMap((snapshot: SnmpTableSnapshot) => {
-        // A snapshot stored before a walk left these rows out still holds them.
-        return SnmpTableListUtil.listedRows(snapshot).map(
-          (row: SnmpTableSnapshotRow) => {
-            return WifiRadioUtil.toSsid(snapshot, row);
-          },
-        );
-      })
-      .filter((ssid: WifiSsidView) => {
-        return WifiRadioUtil.isNetworkName(ssid.ssid);
-      });
+    const ssids: Array<WifiSsidView> = WifiRadioUtil.groupByNetwork(
+      ssidTables
+        .flatMap((snapshot: SnmpTableSnapshot) => {
+          // A snapshot stored before a walk left these rows out still holds them.
+          return SnmpTableListUtil.listedRows(snapshot).map(
+            (row: SnmpTableSnapshotRow) => {
+              return WifiRadioUtil.toSsid(snapshot, row);
+            },
+          );
+        })
+        .filter((ssid: WifiSsidView) => {
+          return WifiRadioUtil.isNetworkName(ssid.ssid);
+        }),
+    );
 
     WifiRadioUtil.fillRadiosFromSsids(radios, ssids);
 
@@ -442,6 +469,54 @@ export default class WifiRadioUtil {
   // Whether an SSID cell names a network clients can join.
   public static isNetworkName(name: string | undefined): boolean {
     return WifiInternalNetworkUtil.isNetworkName(name);
+  }
+
+  /*
+   * The SSID rows with each network's rows together: networks in the order
+   * the device first lists them, a network's rows from its lowest band up
+   * (a row with no one band last), rows otherwise as the device listed them.
+   * "Shop 2.4 GHz, Guest 2.4 GHz, Shop 5 GHz, Guest 5 GHz" - a table kept
+   * per radio - reads "Shop 2.4 GHz, Shop 5 GHz, Guest 2.4 GHz, Guest 5 GHz".
+   * SSIDs are case-sensitive, so "Shop" and "shop" are two networks.
+   */
+  public static groupByNetwork(
+    ssids: Array<WifiSsidView>,
+  ): Array<WifiSsidView> {
+    const firstPositions: Map<string, number> = new Map();
+
+    ssids.forEach((ssid: WifiSsidView, position: number) => {
+      if (!firstPositions.has(ssid.ssid)) {
+        firstPositions.set(ssid.ssid, position);
+      }
+    });
+
+    const bandRank: (band: WifiBand | undefined) => number = (
+      band: WifiBand | undefined,
+    ): number => {
+      const rank: number = band ? BANDS_FROM_LOWEST.indexOf(band) : -1;
+      return rank === -1 ? BANDS_FROM_LOWEST.length : rank;
+    };
+
+    return ssids
+      .map((ssid: WifiSsidView, position: number) => {
+        return { ssid: ssid, position: position };
+      })
+      .sort(
+        (
+          a: { ssid: WifiSsidView; position: number },
+          b: { ssid: WifiSsidView; position: number },
+        ): number => {
+          return (
+            (firstPositions.get(a.ssid.ssid) || 0) -
+              (firstPositions.get(b.ssid.ssid) || 0) ||
+            bandRank(a.ssid.band) - bandRank(b.ssid.band) ||
+            a.position - b.position
+          );
+        },
+      )
+      .map((entry: { ssid: WifiSsidView; position: number }) => {
+        return entry.ssid;
+      });
   }
 
   /*
