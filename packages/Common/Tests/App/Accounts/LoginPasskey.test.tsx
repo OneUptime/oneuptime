@@ -660,6 +660,164 @@ describe("Passwordless passkey login", () => {
     });
   });
 
+  describe("what an attempt says, and how the page looks while it runs", () => {
+    /*
+     * A dismissed or timed-out prompt, or the page's Cancel, says what
+     * happened in one sentence. The next step is drawn around it: "Try
+     * passkey again" right above, the password form above that. The notices
+     * used to add "Try again, or sign in with your password", repeating both.
+     */
+    test("a dismissed or timed-out prompt says what happened, in one sentence, under 'Try passkey again'", async () => {
+      jest
+        .spyOn(navigator.credentials, "get")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      renderPage();
+      await clickPasskey();
+
+      const notice: HTMLElement = screen.getByTestId("passkey-notice");
+      expect(notice.textContent).toBe(
+        "Passkey sign-in was canceled or timed out.",
+      );
+      expect(notice).toHaveClass("text-balance");
+      expect(notice.textContent!.toLowerCase()).not.toContain("password");
+      expect(notice.textContent!.toLowerCase()).not.toContain("try again");
+      expect(
+        comesAfter(
+          notice,
+          screen.getByRole("button", { name: "Try passkey again" }),
+        ),
+      ).toBe(true);
+    });
+
+    test("the page's Cancel says only that the attempt was canceled", async () => {
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      renderPage();
+      await clickPasskey();
+      await cancelPrompt();
+
+      expect(screen.getByTestId("passkey-notice").textContent).toBe(
+        "Passkey sign-in canceled.",
+      );
+      expect(
+        screen.getByRole("button", { name: "Try passkey again" }),
+      ).toHaveFocus();
+      await act(async () => {
+        prompt.settle();
+      });
+    });
+
+    /*
+     * A passkey error is the same alert the form shows for a wrong password
+     * at the top of the card: one look for "that did not work", wherever it
+     * happened. It used to be a smaller red box of its own.
+     */
+    test("an error is the same alert the form shows for a wrong password", async () => {
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(
+            200,
+            { options: authenticationOptions },
+            {},
+          ),
+        )
+        .mockRejectedValueOnce(
+          new Error(
+            "This passkey is no longer registered. Please sign in with your password.",
+          ),
+        );
+      jest
+        .spyOn(ModelAPI, "createOrUpdate")
+        .mockRejectedValue(new Error("Invalid email or password."));
+      renderPage();
+      await clickPasskey();
+
+      const passkeyAlert: HTMLElement = screen.getByTestId("passkey-error");
+      expect(passkeyAlert).toHaveAttribute("role", "alert");
+      expect(passkeyAlert).toHaveTextContent(
+        "This passkey is no longer registered. Please sign in with your password.",
+      );
+      expect(passkeyAlert).toHaveClass("alert", "text-start");
+      expect(
+        comesAfter(passkeyAlert, screen.getByTestId("passkey-login")),
+      ).toBe(true);
+      // Everything but the spacing and alignment it has under the option.
+      const surface: (alert: HTMLElement) => Array<string> = (
+        alert: HTMLElement,
+      ): Array<string> => {
+        return alert.className
+          .split(" ")
+          .filter((name: string) => {
+            return name && name !== "mt-3" && name !== "text-start";
+          })
+          .sort();
+      };
+      const passkeySurface: Array<string> = surface(passkeyAlert);
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+      await user.type(screen.getByTestId("email"), "ada@example.com");
+      await user.type(screen.getByTestId("password"), "wrong-password");
+      await act(async () => {
+        await user.click(screen.getByTestId("Login"));
+      });
+
+      // Submitting the form clears the passkey's messages.
+      expect(screen.queryByTestId("passkey-error")).not.toBeInTheDocument();
+      const formAlert: HTMLElement = screen.getByRole("alert");
+      expect(formAlert).toHaveTextContent("Invalid email or password.");
+      expect(surface(formAlert)).toEqual(passkeySurface);
+      expect(passkeySurface).toEqual(
+        expect.arrayContaining(["border-red-200", "bg-red-50", "text-red-800"]),
+      );
+    });
+
+    /*
+     * While an attempt runs, the form cannot start a second sign-in; it is
+     * disabled, and drawn faded so its Login does not look clickable. The
+     * passkey option, its prompt line and its Cancel stay outside it, at
+     * full strength.
+     */
+    test("the form is disabled, and drawn faded, while an attempt runs", async () => {
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      renderPage();
+      const form: HTMLElement = (await screen.findByTestId("email")).closest(
+        "fieldset",
+      ) as HTMLElement;
+
+      expect(form).toBeEnabled();
+      expect(form).toHaveClass(
+        "disabled:opacity-50",
+        "transition-opacity",
+        "motion-reduce:transition-none",
+      );
+      expect(form.contains(screen.getByTestId("passkey-option"))).toBe(false);
+      expect(form.contains(screen.getByTestId("Login"))).toBe(true);
+
+      await clickPasskey();
+
+      expect(form).toBeDisabled();
+      expect(screen.getByTestId("email")).toBeDisabled();
+      expect(screen.getByTestId("Login")).toBeDisabled();
+      expect(screen.getByTestId("cancel-passkey-login")).toBeEnabled();
+      expect(
+        within(screen.getByRole("status")).getByText(
+          "Follow the prompt from your browser or password manager.",
+        ),
+      ).toHaveClass("text-balance");
+
+      await cancelPrompt();
+
+      expect(form).toBeEnabled();
+      expect(screen.getByTestId("email")).toBeEnabled();
+      expect(screen.getByTestId("Login")).toBeEnabled();
+      await act(async () => {
+        prompt.settle();
+      });
+    });
+  });
+
   test("the option, its messages and its help are in the visitor's language: German", async () => {
     await i18n.changeLanguage("de");
     jest

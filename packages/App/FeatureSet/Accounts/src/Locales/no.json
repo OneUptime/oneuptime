@@ -40,8 +40,8 @@
       "waiting": "Se på enheten din",
       "waitingDescription": "Følg instruksjonene fra nettleseren eller passordbehandleren.",
       "verifying": "Logger deg inn…",
-      "cancelled": "Innlogging med passnøkkel ble avbrutt. Prøv igjen, eller bruk passordet ditt.",
-      "notCompleted": "Innlogging med passnøkkel ble avbrutt eller tidsavbrutt. Prøv igjen, eller logg inn med passordet ditt.",
+      "cancelled": "Innlogging med passnøkkel ble avbrutt.",
+      "notCompleted": "Innlogging med passnøkkel ble avbrutt eller tidsavbrutt.",
       "unsupported": "Passnøkler er ikke tilgjengelige i denne nettleseren. Du kan fortsatt logge inn med passord eller SSO.",
       "insecure": "Passnøkler krever en sikker tilkobling (HTTPS). Du kan fortsatt logge inn med passord eller SSO.",
       "tryAgain": "Prøv passnøkkelen igjen"

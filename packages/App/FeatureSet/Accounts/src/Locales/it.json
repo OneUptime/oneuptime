@@ -40,8 +40,8 @@
       "waiting": "Controlla il dispositivo",
       "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
       "verifying": "Accesso in corso…",
-      "cancelled": "L’accesso con passkey è stato annullato. Puoi riprovare o usare la password.",
-      "notCompleted": "L’accesso con passkey è stato annullato o è scaduto. Riprova oppure accedi con la password.",
+      "cancelled": "L’accesso con passkey è stato annullato.",
+      "notCompleted": "L’accesso con passkey è stato annullato o è scaduto.",
       "unsupported": "Le passkey non sono disponibili in questo browser. Puoi comunque accedere con la password o l’SSO.",
       "insecure": "Le passkey richiedono una connessione sicura (HTTPS). Puoi comunque accedere con la password o l’SSO.",
       "tryAgain": "Riprova con la passkey"

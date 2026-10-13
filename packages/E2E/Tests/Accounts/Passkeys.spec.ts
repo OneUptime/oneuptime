@@ -546,10 +546,14 @@ test.describe("Passkey account lifecycle", () => {
       };
     });
     await page.getByTestId("passkey-login").click();
+    /*
+     * One sentence: "Try passkey again" right above it, and the password
+     * form above that, are the next steps.
+     */
     await expect(
-      page.getByText(
-        "Passkey sign-in was canceled or timed out. Try again, or sign in with your password.",
-      ),
+      page.getByText("Passkey sign-in was canceled or timed out.", {
+        exact: true,
+      }),
     ).toBeVisible();
     await expectSignedOut();
     await expect(
@@ -581,13 +585,26 @@ test.describe("Passkey account lifecycle", () => {
       await expect(
         page.getByRole("button", { name: "Check your device", exact: true }),
       ).toBeVisible();
+      /*
+       * While the attempt runs, the password form is disabled and drawn
+       * faded, so its Login does not look clickable; the passkey option and
+       * its Cancel, outside the form, are not.
+       */
+      const passwordForm: Locator = page
+        .locator("fieldset")
+        .filter({ has: page.getByTestId("email") });
+      await expect(page.getByTestId("email")).toBeDisabled();
+      await expect(passwordForm).toHaveCSS("opacity", "0.5");
+      await expect(page.getByTestId("passkey-option")).toHaveCSS(
+        "opacity",
+        "1",
+      );
       await page.getByTestId("cancel-passkey-login").click();
       await expect(
-        page.getByText(
-          "Passkey sign-in canceled. You can try again or use your password.",
-          { exact: true },
-        ),
+        page.getByText("Passkey sign-in canceled.", { exact: true }),
       ).toBeVisible();
+      await expect(page.getByTestId("email")).toBeEnabled();
+      await expect(passwordForm).toHaveCSS("opacity", "1");
       await expect(
         page.getByText("New to passkeys?", { exact: true }),
       ).toBeVisible();
@@ -913,10 +930,7 @@ test.describe("Passkey account lifecycle", () => {
           })
           .click();
         await expect(
-          page.getByText(
-            "Passkey sign-in canceled. You can try again or use your password.",
-            { exact: true },
-          ),
+          page.getByText("Passkey sign-in canceled.", { exact: true }),
         ).toBeVisible();
         await expect(page.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
         await page.waitForFunction(() => {

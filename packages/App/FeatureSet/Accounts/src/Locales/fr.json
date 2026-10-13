@@ -40,8 +40,8 @@
       "waiting": "Consultez votre appareil",
       "waitingDescription": "Suivez les instructions de votre navigateur ou gestionnaire de mots de passe.",
       "verifying": "Connexion en cours…",
-      "cancelled": "La connexion par clé d’accès a été annulée. Réessayez ou utilisez votre mot de passe.",
-      "notCompleted": "La connexion par clé d’accès a été annulée ou a expiré. Réessayez ou connectez-vous avec votre mot de passe.",
+      "cancelled": "La connexion par clé d’accès a été annulée.",
+      "notCompleted": "La connexion par clé d’accès a été annulée ou a expiré.",
       "unsupported": "Les clés d’accès ne sont pas disponibles dans ce navigateur. Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
       "insecure": "Les clés d’accès nécessitent une connexion sécurisée (HTTPS). Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
       "tryAgain": "Réessayer avec une clé d’accès"

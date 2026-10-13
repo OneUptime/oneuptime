@@ -40,8 +40,8 @@
       "waiting": "Confira seu dispositivo",
       "waitingDescription": "Siga as instruções do navegador ou gerenciador de senhas.",
       "verifying": "Entrando…",
-      "cancelled": "O acesso com chave de acesso foi cancelado. Tente novamente ou use sua senha.",
-      "notCompleted": "O acesso com chave de acesso foi cancelado ou expirou. Tente novamente ou entre com sua senha.",
+      "cancelled": "O acesso com chave de acesso foi cancelado.",
+      "notCompleted": "O acesso com chave de acesso foi cancelado ou expirou.",
       "unsupported": "As chaves de acesso não estão disponíveis neste navegador. Você ainda pode entrar com sua senha ou SSO.",
       "insecure": "As chaves de acesso precisam de uma conexão segura (HTTPS). Você ainda pode entrar com sua senha ou SSO.",
       "tryAgain": "Tentar novamente com chave de acesso"

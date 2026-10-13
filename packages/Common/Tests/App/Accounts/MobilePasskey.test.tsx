@@ -232,6 +232,32 @@ describe("Mobile passkey browser page", () => {
     expect(API.post).not.toHaveBeenCalled();
   });
 
+  /*
+   * This page shows the sign-in page's notices. They used to end with "Try
+   * again, or sign in with your password" - advice a page with no password
+   * form cannot follow. They say what happened; the page's own button, now
+   * "Try passkey again", is the next step.
+   */
+  test("a dismissed prompt says what happened, without pointing at a password form the page does not have", async () => {
+    jest
+      .spyOn(navigator.credentials, "get")
+      .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+    const { container } = render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+
+    const notice: HTMLElement = await screen.findByText(
+      "Passkey sign-in was canceled or timed out.",
+    );
+    expect(notice).toBeVisible();
+    expect(notice.textContent!.toLowerCase()).not.toContain("password");
+    expect(container.querySelector('input[type="password"]')).toBeNull();
+    await waitFor(() => {
+      return expect(
+        screen.getByTestId("mobile-passkey-sign-in"),
+      ).toHaveTextContent("Try passkey again");
+    });
+  });
+
   test("binds the browser challenge to PKCE and returns a code without local login", async () => {
     render(<MobilePasskeyPage />);
     fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));

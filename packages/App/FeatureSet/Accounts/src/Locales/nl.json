@@ -40,8 +40,8 @@
       "waiting": "Kijk op je apparaat",
       "waitingDescription": "Volg de aanwijzingen van je browser of wachtwoordmanager.",
       "verifying": "Je wordt aangemeld…",
-      "cancelled": "Aanmelden met een passkey is geannuleerd. Probeer het opnieuw of gebruik je wachtwoord.",
-      "notCompleted": "Aanmelden met een passkey is geannuleerd of verlopen. Probeer het opnieuw of meld je aan met je wachtwoord.",
+      "cancelled": "Aanmelden met een passkey is geannuleerd.",
+      "notCompleted": "Aanmelden met een passkey is geannuleerd of verlopen.",
       "unsupported": "Passkeys zijn niet beschikbaar in deze browser. Je kunt je nog steeds aanmelden met je wachtwoord of SSO.",
       "insecure": "Passkeys vereisen een beveiligde verbinding (HTTPS). Je kunt je nog steeds aanmelden met je wachtwoord of SSO.",
       "tryAgain": "Passkey opnieuw proberen"

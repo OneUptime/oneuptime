@@ -49,6 +49,7 @@ import WebAuthn from "Common/UI/Utils/WebAuthn";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
 
@@ -99,7 +100,28 @@ const LoginPage: () => JSX.Element = () => {
     }
   }, []);
 
+  /*
+   * The email and password the sign-in form last submitted, kept for the
+   * two-factor steps, which send them again. Never what the form shows or
+   * locks: see formStartValues.
+   */
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+
+  /*
+   * What the sign-in form starts with: the address a link opened the page
+   * with (?email=), if any. The Email field stays editable, before an
+   * attempt and after one. It used to turn read-only as soon as
+   * `initialValues` held an email - and every attempt stores what it
+   * submitted there, so a wrong password locked a mistyped address in place
+   * until the page was reloaded. A link's address never reached the field
+   * either: it was locked, and empty.
+   */
+  const [formStartValues] = React.useState<JSONObject | undefined>(
+    (): JSONObject | undefined => {
+      const email: string | null = Navigation.getQueryStringByName("email");
+      return email ? { email: email } : undefined;
+    },
+  );
   const [passkeyStage, setPasskeyStage] = React.useState<PasskeyStage>("idle");
   const isPasskeyLoading: boolean = passkeyStage !== "idle";
   const [isPasskeySupported] = React.useState<boolean>(WebAuthn.isSupported);
@@ -277,7 +299,6 @@ const LoginPage: () => JSX.Element = () => {
       fieldType: FormFieldSchemaType.Email,
       placeholder: "jeff@example.com",
       required: true,
-      disabled: Boolean(initialValues && initialValues["email"]),
       title: t("common.email"),
       dataTestId: "email",
       disableSpellCheck: true,
@@ -336,14 +357,6 @@ const LoginPage: () => JSX.Element = () => {
       },
     ]);
   }
-
-  useAsyncEffect(async () => {
-    if (Navigation.getQueryStringByName("email")) {
-      setInitialValues({
-        email: Navigation.getQueryStringByName("email"),
-      });
-    }
-  }, []);
 
   useAsyncEffect(async () => {
     if (selectedWebAuthn) {
@@ -1013,13 +1026,21 @@ const LoginPage: () => JSX.Element = () => {
                * pushed the form people came for below the fold on a phone.
                * They are now a quiet option under it, at the weight of the
                * single sign-on link (see the passkey option below).
+               *
+               * While a passkey attempt runs, the form is disabled - its
+               * Login could not start a second sign-in - and looks it: a
+               * bright Login that does nothing when clicked reads as broken.
                */}
-              <fieldset disabled={isPasskeyLoading}>
+              <fieldset
+                disabled={isPasskeyLoading}
+                className="transition-opacity disabled:opacity-50 motion-reduce:transition-none"
+              >
                 <ModelForm<User>
                   modelType={User}
                   id="login-form"
                   name="Login"
                   disableAutofocus={true}
+                  initialValues={formStartValues}
                   fields={loginFields}
                   createOrUpdateApiUrl={apiUrl}
                   formType={FormType.Create}
@@ -1204,7 +1225,7 @@ const LoginPage: () => JSX.Element = () => {
                     <p
                       className={
                         passkeyStage === "prompt"
-                          ? "mt-2 text-gray-600"
+                          ? "mt-2 text-balance text-gray-600"
                           : "sr-only"
                       }
                     >
@@ -1219,7 +1240,7 @@ const LoginPage: () => JSX.Element = () => {
                   )}
                   {passkeyNotice && (
                     <p
-                      className="mt-2 text-gray-600"
+                      className="mt-2 text-balance text-gray-600"
                       data-testid="passkey-notice"
                     >
                       {passkeyNotice}
@@ -1238,12 +1259,17 @@ const LoginPage: () => JSX.Element = () => {
                   </button>
                 )}
                 {passkeyError && (
-                  <div
-                    role="alert"
-                    className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-start text-red-800"
-                  >
-                    {passkeyError}
-                  </div>
+                  /*
+                   * The same alert the form shows at the top of the card for
+                   * a wrong password: one look for "that did not work",
+                   * wherever it happened.
+                   */
+                  <Alert
+                    type={AlertType.DANGER}
+                    title={passkeyError}
+                    className="mt-3 text-start"
+                    dataTestId="passkey-error"
+                  />
                 )}
                 {isPasskeySupported &&
                   !isPasskeyLoading &&

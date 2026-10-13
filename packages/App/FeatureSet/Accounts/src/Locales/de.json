@@ -40,8 +40,8 @@
       "waiting": "Prüfen Sie Ihr Gerät",
       "waitingDescription": "Folgen Sie der Aufforderung Ihres Browsers oder Passwortmanagers.",
       "verifying": "Sie werden angemeldet…",
-      "cancelled": "Die Passkey-Anmeldung wurde abgebrochen. Versuchen Sie es erneut oder verwenden Sie Ihr Passwort.",
-      "notCompleted": "Die Passkey-Anmeldung wurde abgebrochen oder ist abgelaufen. Versuchen Sie es erneut oder melden Sie sich mit Ihrem Passwort an.",
+      "cancelled": "Die Passkey-Anmeldung wurde abgebrochen.",
+      "notCompleted": "Die Passkey-Anmeldung wurde abgebrochen oder ist abgelaufen.",
       "unsupported": "Passkeys sind in diesem Browser nicht verfügbar. Sie können sich weiterhin mit Ihrem Passwort oder SSO anmelden.",
       "insecure": "Passkeys benötigen eine sichere Verbindung (HTTPS). Sie können sich weiterhin mit Ihrem Passwort oder SSO anmelden.",
       "tryAgain": "Passkey erneut versuchen"

@@ -43,8 +43,8 @@
       "waiting": "Check your device",
       "waitingDescription": "Follow the prompt from your browser or password manager.",
       "verifying": "Signing you in…",
-      "cancelled": "Passkey sign-in canceled. You can try again or use your password.",
-      "notCompleted": "Passkey sign-in was canceled or timed out. Try again, or sign in with your password.",
+      "cancelled": "Passkey sign-in canceled.",
+      "notCompleted": "Passkey sign-in was canceled or timed out.",
       "unsupported": "Passkeys aren’t available in this browser. You can still sign in with your password or SSO.",
       "insecure": "Passkeys need a secure connection (HTTPS). You can still sign in with your password or SSO.",
       "tryAgain": "Try passkey again"

@@ -16,7 +16,11 @@ import path from "path";
  *    Auth", a page the Dashboard no longer has; the mobile app's browser
  *    hand-off page (mobilePasskey.setup) names the same menu;
  *  - the keys only the retired passkey panel used are gone, and every
- *    login.passkey key left is one a page reads.
+ *    login.passkey key left is one a page reads;
+ *  - a canceled or timed-out attempt says what happened in one sentence:
+ *    "Try passkey again" is drawn right above the notice and the password
+ *    form above that, and the mobile hand-off page, which shows the same
+ *    notices, has no password form at all.
  */
 
 const FEATURE_SETS: string = path.resolve(
@@ -106,6 +110,15 @@ const PASSKEY_WORD: Record<string, string> = {
   hi: "पासकी",
   fa: "کلید عبور",
 };
+
+// What ends a sentence in these languages' notices.
+const SENTENCE_ENDS: Array<string> = [".", "!", "?", "。", "।", "؟"];
+
+// The notices a passkey attempt that did not sign in shows.
+const ATTEMPT_NOTICES: Array<string> = [
+  "login.passkey.notCompleted",
+  "login.passkey.cancelled",
+];
 
 // The keys the retired tinted panel drew, and nothing else did.
 const RETIRED_KEYS: Array<string> = [
@@ -297,6 +310,63 @@ describe("Sign-in passkey copy in every Accounts language", () => {
     expect(valueAt(english, "mobilePasskey.setup")).toBe(
       "Create a passkey in the web dashboard, under User Profile → Security → Passkeys.",
     );
+  });
+
+  test.each(LANGUAGES)(
+    "%s: a canceled or timed-out attempt says what happened, in one sentence",
+    (language: string) => {
+      const locale: Json = accounts(language);
+
+      for (const key of ATTEMPT_NOTICES) {
+        const notice: string = valueAt(locale, key);
+        const characters: Array<string> = Array.from(notice);
+
+        expect({
+          language,
+          key,
+          notice,
+          sentences: characters.filter((character: string) => {
+            return SENTENCE_ENDS.includes(character);
+          }).length,
+          endsWithASentenceEnd: SENTENCE_ENDS.includes(
+            characters[characters.length - 1] || "",
+          ),
+          namesThePassword: notice
+            .toLowerCase()
+            .includes(PASSWORD_WORD[language]!.toLowerCase()),
+        }).toEqual({
+          language,
+          key,
+          notice,
+          sentences: 1,
+          endsWithASentenceEnd: true,
+          namesThePassword: false,
+        });
+      }
+    },
+  );
+
+  test("the one-sentence check counts the sentences of a notice (positive control)", () => {
+    const sentences: (text: string) => number = (text: string): number => {
+      return Array.from(text).filter((character: string) => {
+        return SENTENCE_ENDS.includes(character);
+      }).length;
+    };
+
+    expect(
+      sentences(
+        "Passkey sign-in was canceled or timed out. Try again, or sign in with your password.",
+      ),
+    ).toBe(2);
+    expect(sentences("通行密钥登录已取消或超时。请重试或使用密码登录。")).toBe(
+      2,
+    );
+    expect(
+      sentences(
+        "पासकी से साइन इन रद्द हो गया या समय समाप्त हो गया। दोबारा कोशिश करें या अपने पासवर्ड से साइन इन करें।",
+      ),
+    ).toBe(2);
+    expect(sentences("Passkey sign-in canceled.")).toBe(1);
   });
 
   test.each(LANGUAGES)(
