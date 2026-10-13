@@ -141,6 +141,8 @@ const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 // A word of four Latin letters or more: what an untranslated line is made of.
 const LATIN_WORD: RegExp = /[A-Za-z]{4,}/g;
 const FENCE_LINE: RegExp = /^\s*```/;
+// A component's opening, ":::details": its name is no word of prose.
+const COMPONENT_OPENING: RegExp = /^:::[a-z]+/;
 const LEFT_NAVIGATION: RegExp = /left nav/i;
 const CAPTIONED_DIAGRAM: RegExp = /title="[^"]+"/;
 const OWN_SECTION_CARD: RegExp = /^- \[[^\]]+\]\(#[^)]+\): /;
@@ -376,7 +378,9 @@ function linksByLine(markdown: string): Array<string> {
 /*
  * The prose lines of a translation that are still the English line in their
  * place: three or more Latin words of four letters, once code, link targets,
- * names and the bold words a page keeps in English are taken out.
+ * a component's name, the names a page keeps in English and the products'
+ * names are taken out. A troubleshooting entry titled with an HTTP status,
+ * "429 Too Many Requests", is the status, as every language writes it.
  */
 function untranslatedLines(language: string, page: string): Array<string> {
   const english: Array<string> = englishPage(page).split("\n");
@@ -395,6 +399,7 @@ function untranslatedLines(language: string, page: string): Array<string> {
     }
 
     let text: string = line
+      .replace(COMPONENT_OPENING, " ")
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 

@@ -370,7 +370,7 @@ Each half of a two-way sync needs one system to hold the other's id. Keep the in
 "labels": ["oneuptime", "oneuptime-incident-{{local.components.incident-on-create-1.returnValues.model._id}}"]
 ```
 
-A Jira admin can add a short text custom field instead, such as *OneUptime Incident ID*, and you set it as `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. It is simpler to read back than a label.
+A Jira admin can add a short text custom field instead, named OneUptime Incident ID for example, and you set it as `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. It is simpler to read back than a label.
 
 To give everyone in Jira a way back, add an **API Post (JSON)** block after `create-issue` that posts a remote link to `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
