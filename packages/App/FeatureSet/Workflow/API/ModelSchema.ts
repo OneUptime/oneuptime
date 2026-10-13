@@ -28,6 +28,13 @@ interface ColumnDescriptor {
   isRelation: boolean;
   relatedTableName?: string | undefined;
   relatedColumns?: Array<ColumnDescriptor> | undefined;
+  /*
+   * For a relation to one record (Incident's Current Incident State), the
+   * column that holds that record's ID (currentIncidentStateId). An update
+   * changes that column, never the relation, so an On Update trigger's
+   * Fields to watch names it in the relation's place.
+   */
+  relationIdColumn?: string | undefined;
   /** Whether a create must supply this column. Mirrors @TableColumn required. */
   required: boolean;
   /**
@@ -283,6 +290,14 @@ const describeColumns: (
           : undefined,
       placeholder: column.placeholder,
     };
+
+    if (
+      column.type === TableColumnType.Entity &&
+      column.manyToOneRelationColumn &&
+      columns[column.manyToOneRelationColumn]
+    ) {
+      descriptor.relationIdColumn = column.manyToOneRelationColumn;
+    }
 
     if (isRelation && column.modelType) {
       const RelatedModel: ModelConstructor =

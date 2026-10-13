@@ -825,6 +825,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
      */
     const newStepArguments: JSONObject | null = getNewStepArguments(
       componentMetadata.id,
+      componentMetadata.tableName,
     );
 
     if (newStepArguments) {
