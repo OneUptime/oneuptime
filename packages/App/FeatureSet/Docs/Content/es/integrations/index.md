@@ -1,118 +1,178 @@
-# Integraciones
+# Descripción general de integraciones
 
-OneUptime se conecta con las herramientas que tu equipo ya utiliza —Zabbix, Jira, PagerDuty, Slack y muchas más— a través de **[Workflows](/docs/workflows/index)**, el motor de automatización integrado. No hay ningún plugin adicional que instalar. Conectas una integración en un lienzo de arrastrar y soltar, y se ejecuta cada vez que ocurre algo.
+OneUptime funciona con las herramientas que tu equipo ya usa. Las herramientas de alertas abren incidentes en él, y él abre tickets, avisos de guardia y mensajes de chat en otras herramientas. Algunas herramientas se conectan desde un formulario y otras desde una plantilla de flujo de trabajo lista para usar. Cualquier otra herramienta con un webhook o una API se conecta mediante un flujo de trabajo que construyes tú.
 
-Esta página explica los dos patrones que usa cada integración. Una vez que los entiendas, podrás conectar OneUptime con casi cualquier cosa, incluso con herramientas que no tienen su propia página aquí.
+:::cards
+- [Elegir cómo conectar](#elegir-cómo-conectar): Las cuatro formas de integrarse y cuándo usar cada una.
+- [Catálogo](#catálogo): Cada herramienta con una guía, agrupada por lo que hace.
+- [Construir tu propia integración](#construir-tu-propia-integración): Los patrones de entrada y de salida, para cualquier otra herramienta.
+- [Proteger las credenciales](#proteger-las-credenciales): Las variables secretas y las cabeceras que espera cada herramienta.
+:::
 
-## Los dos patrones
+## Cómo funcionan las integraciones
 
-Cada integración mueve datos en una de dos direcciones (y muchas usan ambas).
+Cada integración mueve datos en un sentido o en ambos. **De entrada**: otra herramienta avisa a OneUptime de que algo va mal, y OneUptime abre un incidente o una alerta y avisa al equipo de guardia. **De salida**: algo ocurre en OneUptime, y un flujo de trabajo avisa a otra herramienta: crea un ticket, avisa a alguien o publica un mensaje.
 
-### Entrante — otra herramienta envía datos a OneUptime
-
-Úsalo cuando un sistema externo necesita _crear o actualizar algo en OneUptime_ — normalmente abrir un incidente o una alerta cuando detecta un problema.
-
-1. Construye un workflow que comience con un **[disparador Webhook](/docs/workflows/triggers#webhook)**. OneUptime te proporciona una URL única.
-2. En la otra herramienta, configura una acción de webhook o notificación que haga un POST a esa URL cuando ocurra algo.
-3. En el workflow, lee la carga útil entrante y usa un componente **Create Incident** (o Create Alert) para registrarla.
-
-```text
-Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
+```mermaid title="De entrada y de salida"
+flowchart TB
+    tool["Herramienta de<br/>alertas o seguridad"] -->|"de entrada"| record["Incidente o alerta,<br/>guardia avisada"]
+    record -->|"de salida"| workflow["Flujo de trabajo,<br/>como On Create Incident"]
+    workflow -->|"llamada a API<br/>o mensaje"| other["Herramienta de tickets,<br/>avisos o chat"]
+    other -.->|"webhook de vuelta"| record
 ```
 
-> **Consejo:** Para las herramientas de alertado en concreto, un **[monitor de Incoming Request](/docs/monitor/incoming-request-monitor)** suele ser el mejor camino entrante. Te da una URL de webhook sin construir un workflow, abre un incidente por cada alerta de la carga útil, escala a una política de guardia y resuelve cada incidente cuando la herramienta informa de su recuperación. Recurre a un workflow cuando necesites lógica que OneUptime no hace de forma nativa. Consulta [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) para ver un ejemplo completo.
+Una integración bidireccional, como Jira o Dynamics 365, usa los dos sentidos: un flujo de trabajo envía el incidente hacia fuera, y otro, iniciado por el webhook de la otra herramienta, trae los cambios de vuelta.
 
-### Saliente — OneUptime envía datos a otra herramienta
+## Elegir cómo conectar
 
-Úsalo cuando _algo en OneUptime deba aparecer en otra herramienta_ — abrir un ticket en Jira, notificar a alguien en PagerDuty, publicar en Slack.
+| Forma | Ideal para | Ejemplos |
+| --- | --- | --- |
+| Una conexión integrada | Herramientas a las que OneUptime se conecta por sí mismo. Rellenas un formulario y no hay nada que construir. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), las conexiones de [Eventos de seguridad](/docs/telemetry/security-events) |
+| Una plantilla de flujo de trabajo | Herramientas de tickets, sincronizadas en ambos sentidos, y mensajes de chat. Eliges una plantilla y rellenas unos pocos ajustes. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Un monitor de solicitudes entrantes | Herramientas de alertas que envían un webhook. Obtienes un incidente por alerta, avisado a la guardia y resuelto cuando la alerta se recupera, sin flujo de trabajo. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Un flujo de trabajo que construyes tú | Cualquier herramienta con un webhook o una API REST, y cualquier lógica propia. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
-1. Construye un workflow que comience con un **[disparador de evento de OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — por ejemplo **Incident → On Create**.
-2. Añade un **[componente API](/docs/workflows/components#api)** que llame a la API REST de la otra herramienta con los detalles del incidente.
-3. Guarda cualquier clave de API como **[variables globales](/docs/workflows/variables#global-variables) secretas** para que nunca aparezcan en el workflow ni en sus registros.
-
-```text
-OneUptime Incident → On Create  ──►  API component  ──►  Jira / PagerDuty / ServiceNow / GitHub
-```
+Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay que mantener.
 
 ## Catálogo
 
-| Herramienta                                                           | Dirección             | Qué hace                                                                                      |
-| --------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
-| [Zabbix](/docs/integrations/zabbix)                                   | Entrante              | Convierte los problemas de Zabbix en incidentes de OneUptime (y los resuelve al recuperarse). |
-| [Jira](/docs/integrations/jira)                                       | Saliente (+ entrante) | Abre un issue de Jira por cada incidente; sincroniza el estado de vuelta.                     |
-| [PagerDuty](/docs/integrations/pagerduty)                             | Saliente (+ entrante) | Activa y resuelve eventos de PagerDuty desde incidentes de OneUptime.                         |
-| [Opsgenie](/docs/integrations/opsgenie)                               | Saliente (+ entrante) | Crea y cierra alertas de Opsgenie.                                                            |
-| [ServiceNow](/docs/integrations/servicenow)                           | Saliente (+ entrante) | Abre incidentes de ServiceNow desde OneUptime.                                                |
-| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Saliente (+ entrante) | Abre y resuelve Cases de Dynamics 365 desde incidentes de OneUptime.                          |
-| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Entrante              | Convierte notificaciones de Alertmanager en incidentes.                                       |
-| [Grafana](/docs/integrations/grafana)                                 | Entrante              | Convierte alertas de Grafana en incidentes.                                                   |
-| [Datadog](/docs/integrations/datadog)                                 | Entrante              | Convierte alertas de monitores de Datadog en incidentes.                                      |
-| [Huntress](/docs/integrations/huntress)                               | Entrante             | Avisa a la guardia por los informes de incidente de Huntress y resuelve el incidente cuando se cierra el informe. |
-| [GitHub](/docs/integrations/github)                                   | Saliente              | Abre un issue de GitHub para un incidente.                                                    |
-| [GitLab](/docs/integrations/gitlab)                                   | Saliente              | Abre un issue de GitLab para un incidente.                                                    |
-| [Discord](/docs/integrations/discord)                                 | Saliente              | Publica actualizaciones de incidentes en un canal de Discord.                                 |
-| [Telegram](/docs/integrations/telegram)                               | Saliente              | Envía actualizaciones de incidentes a un chat de Telegram.                                    |
-| [IRC](/docs/integrations/irc)                                         | Saliente              | Publica actualizaciones de incidentes en un canal de IRC.                                     |
-| [Slack](/docs/workspace-connections/slack)                            | Ambas                 | Conexión de espacio de trabajo nativa — canales, alertas y guardia.                           |
-| [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Ambas                 | Conexión de espacio de trabajo nativa.                                                        |
+### Herramientas de monitorización y alertas
 
-> **Slack y Microsoft Teams** tienen una conexión nativa más profunda que va más allá de los workflows — canales de incidentes automáticos, acciones bidireccionales y notificaciones de guardia. Usa las conexiones de espacio de trabajo de [Slack](/docs/workspace-connections/slack) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams) para eso, en lugar de crear un workflow.
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [Zabbix](/docs/integrations/zabbix) | De entrada | Convierte los problemas de Zabbix en incidentes y los resuelve cuando Zabbix se recupera. |
+| [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | De entrada | Convierte las notificaciones de Alertmanager en incidentes. |
+| [Grafana](/docs/integrations/grafana) | De entrada | Convierte las alertas de Grafana en incidentes. |
+| [Datadog](/docs/integrations/datadog) | De entrada | Convierte las alertas de los monitores de Datadog en incidentes. |
 
-## Gestión de secretos
+### Herramientas de seguridad
 
-Nunca pegues una clave de API o un token directamente en un bloque. En su lugar:
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [Huntress](/docs/integrations/huntress) | De entrada | Avisa a la guardia de los informes de incidentes de Huntress y resuelve el incidente cuando el informe se cierra. |
+| [Google SecOps](/docs/integrations/google-secops) | De entrada | Trae las detecciones de Google SecOps a Eventos de seguridad. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | De entrada | Trae los incidentes de Microsoft Sentinel a Eventos de seguridad. |
+| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | De entrada | Trae las alertas de Microsoft Defender XDR a Eventos de seguridad. |
+| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | De entrada | Trae las alertas de CrowdStrike Falcon a Eventos de seguridad. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | De entrada | Trae los eventos notables de Splunk a Eventos de seguridad. |
+| [Elastic Security](/docs/integrations/elastic-security) | De entrada | Trae las alertas de detección de Elastic Security a Eventos de seguridad. |
+| [AWS Security Hub](/docs/integrations/aws-security-hub) | De entrada | Trae los hallazgos de AWS Security Hub a Eventos de seguridad. |
+| [Registro del sistema de Okta](/docs/integrations/okta) | De entrada | Trae los inicios de sesión, los cambios de cuenta y las detecciones de amenazas de Okta a Eventos de seguridad. |
 
-1. Ve a **Flujos de trabajo → Variables Globales**.
-2. Crea una variable —por ejemplo `JIRA_AUTH`— y activa **Secret**.
-3. Referénciala en cualquier lugar con `{{global.variables.JIRA_AUTH}}`.
+### Tickets y gestión de servicios de TI
 
-Las variables secretas se ocultan en la interfaz una vez guardadas y se eliminan de los registros de ejecución. Consulta [Variables](/docs/workflows/variables#global-variables).
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [Jira](/docs/integrations/jira) | Ambos | Abre una incidencia de Jira por cada incidente o alerta, y trae de vuelta los cambios de estado y los comentarios. |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) | Ambos | Abre un caso de Dynamics 365 por cada incidente o alerta, y trae de vuelta los cambios de estado y las notas. |
+| [ServiceNow](/docs/integrations/servicenow) | De salida | Abre un incidente de ServiceNow por cada incidente de OneUptime y lo resuelve con el incidente. |
+| [GitHub](/docs/integrations/github) | De salida | Abre una issue de GitHub para un incidente. |
+| [GitLab](/docs/integrations/gitlab) | De salida | Abre una issue de GitLab para un incidente. |
 
-## Guía de autenticación rápida
+### Herramientas de avisos
 
-La mayoría de las integraciones salientes necesitan una cabecera `Authorization` en el bloque API. Las formas más comunes:
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [PagerDuty](/docs/integrations/pagerduty) | De salida | Dispara un incidente de PagerDuty por cada incidente de OneUptime y lo resuelve con el incidente. |
+| [Opsgenie](/docs/integrations/opsgenie) | De salida | Crea una alerta de Opsgenie por cada incidente de OneUptime y la cierra con el incidente. |
 
-| Esquema                       | Valor de la cabecera                               | Usado por                           |
-| ----------------------------- | -------------------------------------------------- | ----------------------------------- |
-| Token Bearer                  | `Bearer {{global.variables.TOKEN}}`                | GitHub, muchas API modernas         |
-| Auth básica                   | `Basic {{global.variables.BASE64_USER_PASS}}`      | Jira Cloud, ServiceNow              |
-| Cabecera de clave de API      | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
-| Token en el cuerpo            | campo `routing_key` en el cuerpo JSON              | Events API de PagerDuty             |
-| Cabecera de token privado     | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
-| Client credentials de OAuth 2.0 | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
+### Herramientas de chat
 
-Para la autenticación básica, codifica en base64 `username:password` (o `email:api_token`) **una sola vez** y guarda el resultado como secreto. En macOS/Linux:
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [Slack](/docs/workspace-connections/slack) | Ambos | Una conexión integrada: canales de incidentes, acciones desde Slack y guardias. |
+| [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | Ambos | Una conexión integrada: canales de incidentes, acciones desde Teams y guardias. |
+| [Mattermost](/docs/workflows/components#mattermost) | De salida | Publica las novedades de los incidentes en un canal de Mattermost. |
+| [Discord](/docs/integrations/discord) | De salida | Publica las novedades de los incidentes en un canal de Discord. |
+| [Telegram](/docs/integrations/telegram) | De salida | Envía las novedades de los incidentes a un chat de Telegram. |
+| [IRC](/docs/integrations/irc) | De salida | Publica las novedades de los incidentes en un canal de IRC. |
+
+> [!TIP]
+> Slack y Microsoft Teams también tienen pasos de flujo de trabajo. Usa la conexión integrada para los canales de incidentes y las guardias, y un paso de flujo de trabajo cuando solo necesites un mensaje en un canal.
+
+## Migrar desde otra herramienta
+
+Para dejar otra herramienta de guardias, de disponibilidad o de páginas de estado, trae a tu equipo en lugar de conectar las dos. **Ajustes del proyecto → Importar desde otra herramienta** lee tu cuenta con una clave de API, te muestra lo que encontró y crea lo que marques. Cada herramienta tiene una guía:
+
+- Herramientas de guardias e incidentes: [Opsgenie](/docs/moving-to-oneuptime/opsgenie), [PagerDuty](/docs/moving-to-oneuptime/pagerduty), [incident.io](/docs/moving-to-oneuptime/incident-io), [Splunk On-Call](/docs/moving-to-oneuptime/splunk-on-call) y [Grafana OnCall](/docs/moving-to-oneuptime/grafana-oncall).
+- Herramientas de disponibilidad y de páginas de estado: [UptimeRobot](/docs/moving-to-oneuptime/uptimerobot), [Atlassian Statuspage](/docs/moving-to-oneuptime/atlassian-statuspage), [Better Stack](/docs/moving-to-oneuptime/better-stack), [Pingdom](/docs/moving-to-oneuptime/pingdom), [StatusCake](/docs/moving-to-oneuptime/statuscake) y [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma).
+
+## Construir tu propia integración
+
+Una herramienta sin guía encaja igualmente en uno de dos patrones. Si puede enviar un webhook, usa el patrón de entrada. Si tiene una API REST, usa el patrón de salida. Ambos son flujos de trabajo: consulta [Visión general de los flujos de trabajo](/docs/workflows/index) para empezar.
+
+### De entrada: otra herramienta envía datos a OneUptime
+
+Para una herramienta de alertas, empieza con un [monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor#recibir-alertas-de-otro-sistema): abre un incidente por alerta y lo resuelve con la recuperación, sin nada que construir. Construye un flujo de trabajo cuando necesites una lógica propia:
+
+:::steps
+1. Abre **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **Empezar desde cero**. Ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
+2. Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Webhook**. Haz clic en el disparador y luego en **Copiar URL**.
+3. En la otra herramienta, envía su webhook a esa URL como `POST` con `Content-Type: application/json`.
+4. Añade los bloques que actúan sobre él. Leen la solicitud con referencias como `{{local.components.webhook-1.returnValues.request-body.status}}`: un bloque **If / Else** para comprobar un campo y luego **Create One Incident** para declarar un incidente.
+5. Activa **Habilitado** en la parte superior del **Constructor**, envía una prueba desde la otra herramienta y abre **Registros → Ejecuciones** para ver lo que llegó.
+:::
+
+La URL es la única credencial, así que trátala como una contraseña. Consulta [Webhook](/docs/workflows/triggers#webhook).
+
+### De salida: OneUptime envía datos a otra herramienta
+
+:::steps
+1. Guarda la clave de API de la herramienta como variable global secreta, como se muestra [más abajo](#proteger-las-credenciales).
+2. Crea un flujo de trabajo, haz clic en el bloque discontinuo y elige un disparador de evento, como **On Create Incident**. En sus **Select Fields**, marca los campos que quieres enviar, como `title` y `description`.
+3. Haz clic en **Añadir componente** y añade un bloque **API Post (JSON)**. Conecta a él el punto **Success** del disparador.
+4. Rellena su **URL**, sus **Request Headers** con la cabecera `Authorization` y su **Request Body** con los campos del incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
+5. Haz clic en **Ejecutar flujo de trabajo**, introduce el **ID del incidente** de un incidente y ejecútalo. Una ejecución de prueba envía de verdad la solicitud. Después, activa **Habilitado**.
+:::
+
+Cuando la herramienta necesita los datos con otra forma, añade un bloque [Run Custom JavaScript](/docs/workflows/components#custom-code) entre los dos. La receta es la misma para Zendesk, New Relic, AWS (a través de SNS), StatusCake y todas las demás: solo cambian la URL y el cuerpo.
+
+## Proteger las credenciales
+
+Nunca pegues una clave de API ni un token en un bloque. Guárdalo una vez como variable global secreta:
+
+:::steps
+1. Ve a **Flujos de trabajo → Variables globales** y haz clic en **Crear Variable del flujo de trabajo**.
+2. Ponle un nombre, como `JIRA_AUTH`, y haz clic en **Siguiente**.
+3. Pega la clave en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
+:::
+
+Cualquier bloque la lee como `{{global.variables.JIRA_AUTH}}`. El contenido de una variable no se puede volver a leer una vez guardado, y el de una variable secreta se sustituye por `[REDACTED]` en los registros de ejecución. Para los tokens que caducan, como los de Microsoft Entra ID, una [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-tokens-que-se-renuevan-solos) obtiene uno nuevo por sí sola. Consulta [Variables de flujo de trabajo](/docs/workflows/variables#variables-globales).
+
+### Chuleta de autenticación
+
+La mayoría de las integraciones de salida ponen la clave en una cabecera de la solicitud. Las formas habituales:
+
+| Esquema | Qué enviar | Lo usa |
+| --- | --- | --- |
+| Token Bearer | `Authorization: Bearer {{global.variables.TOKEN}}` | GitHub y la mayoría de las API modernas |
+| Autenticación Basic | `Authorization: Basic {{global.variables.BASE64_USER_PASS}}` | Jira Cloud, ServiceNow |
+| Cabecera de clave de API | `Authorization: GenieKey {{global.variables.OPSGENIE_KEY}}` | Opsgenie |
+| Cabecera de token privado | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab |
+| Clave en el cuerpo | `routing_key` en el cuerpo JSON | Events API de PagerDuty |
+| Credenciales de cliente OAuth 2.0 | `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`, de una variable OAuth 2.0 | Microsoft Dynamics 365 |
+
+Para la autenticación Basic, codifica `username:password`, o `email:api_token`, una vez, y guarda el resultado como secreto. En macOS o Linux:
 
 ```bash
-printf '%s' 'you@example.com:your_api_token' | base64
+printf '%s' 'you@example.com:your_api_token' | base64 | tr -d '\n'
 ```
 
-## ¿No ves tu herramienta?
+Usa `printf`, no `echo`: `echo` añade un salto de línea, que se codifica con el resto y estropea las credenciales. `tr` mantiene un resultado largo en una sola línea.
 
-Casi cualquier herramienta encaja en uno de los dos patrones anteriores:
+## Instalaciones autoalojadas
 
-- Si la herramienta puede **enviar un webhook** cuando ocurre algo, usa el patrón **entrante** — apunta su webhook a un [monitor de Incoming Request](/docs/monitor/incoming-request-monitor) si es una herramienta de alertado, o a un disparador Webhook de OneUptime si necesitas lógica personalizada.
-- Si la herramienta tiene una **API REST**, usa el patrón **saliente** — llámala desde un **componente API**.
-- Si necesitas transformar datos entre los dos, añade un bloque **[Custom Code](/docs/workflows/components#custom-code)**.
+Un OneUptime autoalojado llama a otras herramientas desde tu red, y otras herramientas lo llaman desde la suya:
 
-Eso cubre la larga cola — Zendesk, AWS CloudWatch (vía SNS), New Relic, Splunk, StatusCake, etc. La receta es la misma; solo cambian la URL y la carga útil.
+- **De salida:** las solicitudes de los flujos de trabajo a direcciones de red privada se rechazan salvo que un administrador las permita. Consulta [Acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).
+- **De entrada:** los webhooks de una herramienta deben llegar a tu OneUptime por HTTPS, así que una herramienta en la nube necesita una dirección pública a la que llamar.
+- **Las integraciones integradas** tienen cada una una guía de configuración: [Slack](/docs/self-hosted/slack-integration), [Microsoft Teams](/docs/self-hosted/microsoft-teams-integration), [GitHub](/docs/self-hosted/github-integration), [Twilio](/docs/self-hosted/twilio-integration), [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email) y [Push Notifications](/docs/self-hosted/push-notifications).
 
-## Dónde seguir leyendo
+## Próximos pasos
 
-- [Resumen de Workflows](/docs/workflows/index) — cómo funciona el motor de automatización.
-- [Disparadores](/docs/workflows/triggers) — disparadores Webhook y de eventos de OneUptime en detalle.
-- [Componentes](/docs/workflows/components) — los componentes API, Webhook y de datos.
-- [Variables](/docs/workflows/variables) — secretos y paso de datos entre bloques.
-- [Monitor de Incoming Request](/docs/monitor/incoming-request-monitor) — el camino entrante sin workflows para herramientas de alertado.
-- [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) y [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — ejemplos completos y detallados.
-
-## Acceso a la red para despliegues autoalojados
-
-Los requisitos de red se documentan ahora en la guía de configuración de cada integración. Seleccione su integración:
-
-- [Integración con GitHub](/docs/self-hosted/github-integration)
-- [Integración de correo electrónico entrante con SendGrid](/docs/self-hosted/sendgrid-inbound-email)
-- [Integración con Slack](/docs/self-hosted/slack-integration)
-- [Integración con Microsoft Teams](/docs/self-hosted/microsoft-teams-integration)
-- [Integración de Twilio para SMS y llamadas de voz](/docs/self-hosted/twilio-integration)
-- [Notificaciones push](/docs/self-hosted/push-notifications)
+:::cards
+- [Visión general de los flujos de trabajo](/docs/workflows/index): Cómo se ejecutan los flujos de trabajo y cómo construir el primero.
+- [Monitor de solicitudes entrantes](/docs/monitor/incoming-request-monitor): Recibe alertas de cualquier herramienta sin flujo de trabajo.
+- [Jira](/docs/integrations/jira): Una integración bidireccional completa, a partir de plantillas.
+- [Variables de flujo de trabajo](/docs/workflows/variables): Pasa datos entre bloques y mantén los secretos fuera de ellos.
+:::
