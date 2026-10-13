@@ -23,6 +23,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
+import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 
 export class Service extends DatabaseService<Model> {
@@ -147,6 +148,20 @@ export class Service extends DatabaseService<Model> {
     const isDirectPage: boolean = isOnCallDirectPage(
       onCallDutyPolicyExecutionLogTimeline,
     );
+
+    /*
+     * A person a direct page names a second time - a member of two of its
+     * teams, on call in two of its schedules - was paged the first time:
+     * "did not page Jane" under "paged Jane" would read as a page that
+     * failed. The line stays on the run's own page.
+     */
+    if (
+      isDirectPage &&
+      onCallDutyPolicyExecutionLogTimeline.statusMessage ===
+        ALREADY_PAGED_TIMELINE_MESSAGE
+    ) {
+      return;
+    }
 
     if (
       isDirectPage ||

@@ -27,6 +27,7 @@ import {
   PageAbout,
   PageIdList,
   hasPageSettingValue,
+  holdsPageSettingReference,
   readPageAbout,
   readPageIdList,
   readPageRecordId,
@@ -376,6 +377,54 @@ describe("whether a setting holds anything", () => {
     ]) {
       expect(hasPageSettingValue(value as JSONValue)).toBe(true);
     }
+  });
+});
+
+describe("whether a saved setting takes its value from an earlier step", () => {
+  test("it does when it holds a {{value}}, alone or inside other text", () => {
+    for (const value of [
+      "{{local.components.trigger.returnValues.model._id}}",
+      "  {{local.variables.about}}  ",
+      "Page about {{local.variables.what}}",
+      "{{local.variables.a}} {{local.variables.b}}",
+      ["a fixed entry", "{{local.components.find.returnValues.owners}}"],
+      [["{{global.variables.team}}"]],
+    ]) {
+      expect(holdsPageSettingReference(value as JSONValue)).toBe(true);
+    }
+  });
+
+  test("it does not when it holds only what was typed or picked", () => {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "incident",
+      "new-alert",
+      A,
+      "{ not a value }",
+      "{{",
+      "}}",
+      [A, B],
+      [],
+      7,
+      true,
+      { about: "{{local.variables.about}}" },
+    ]) {
+      expect(holdsPageSettingReference(value as JSONValue)).toBe(false);
+    }
+  });
+
+  test("such a setting is one that holds something", () => {
+    expect(
+      hasPageSettingValue(
+        "{{local.components.trigger.returnValues.model._id}}",
+      ),
+    ).toBe(true);
+  });
+
+  test("and what it holds is not one of Page About's choices until the step runs", () => {
+    expect(readPageAbout("{{local.variables.about}}")).toBeNull();
   });
 });
 

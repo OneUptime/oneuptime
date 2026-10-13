@@ -7,15 +7,20 @@
  */
 
 import ObjectID from "../../../Types/ObjectID";
+import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
   MAX_ON_CALL_DIRECT_PAGE_TARGETS,
+  ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES,
   ON_CALL_DIRECT_PAGE_EMPTY_TEAM_TIMELINE_MESSAGE,
+  ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE,
   ON_CALL_DIRECT_PAGE_NOBODY_PAGED_MESSAGE,
   ON_CALL_DIRECT_PAGE_NOBODY_TO_PAGE_TIMELINE_MESSAGE,
+  ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
   ON_CALL_POLICY_REQUIRED_MESSAGE,
   OnCallDirectPageTargets,
   countOnCallDirectPageTargets,
   getOnCallDirectPagePagingMessage,
+  hasOnCallDirectPageWaitedForAcknowledgement,
   isOnCallDirectPage,
 } from "../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { describe, expect, test } from "@jest/globals";
@@ -122,6 +127,95 @@ describe("the words a direct page's run is given", () => {
     ]) {
       expect(message.indexOf("Skipped because ")).toBe(0);
       expect(message.charAt(message.length - 1)).toBe(".");
+    }
+  });
+});
+
+describe("how long a direct page waits for somebody to acknowledge", () => {
+  const STARTED: Date = new Date("2026-10-08T17:15:00.000Z");
+
+  function waited(minutes: number, seconds: number = 0): boolean {
+    return hasOnCallDirectPageWaitedForAcknowledgement({
+      pagingStartedAt: STARTED,
+      at: new Date(STARTED.getTime() + (minutes * 60 + seconds) * 1000),
+    });
+  }
+
+  test("as long as a new escalation rule waits before the next level: thirty minutes", () => {
+    expect(ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES).toBe(
+      DEFAULT_ESCALATE_AFTER_IN_MINUTES,
+    );
+    expect(ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES).toBe(30);
+  });
+
+  test("it has not waited before then", () => {
+    expect(waited(0)).toBe(false);
+    expect(waited(1)).toBe(false);
+    expect(waited(29)).toBe(false);
+    expect(waited(29, 59)).toBe(false);
+  });
+
+  test("it has waited from the thirtieth minute on", () => {
+    expect(waited(30)).toBe(true);
+    expect(waited(30, 1)).toBe(true);
+    expect(waited(600)).toBe(true);
+  });
+
+  test("a moment before the paging started is not a wait", () => {
+    expect(waited(-5)).toBe(false);
+  });
+
+  test("a start that cannot be read counts as waited: nothing holds a run open for good", () => {
+    const at: Date = new Date("2026-10-08T17:15:00.000Z");
+
+    expect(
+      hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: undefined,
+        at: at,
+      }),
+    ).toBe(true);
+    expect(
+      hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: null,
+        at: at,
+      }),
+    ).toBe(true);
+    expect(
+      hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: new Date("not a date"),
+        at: at,
+      }),
+    ).toBe(true);
+  });
+
+  test("a start read back as text is read as the date it is", () => {
+    expect(
+      hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: "2026-10-08T17:15:00.000Z" as unknown as Date,
+        at: new Date("2026-10-08T17:30:00.000Z"),
+      }),
+    ).toBe(false);
+    expect(
+      hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: "2026-10-08T17:15:00.000Z" as unknown as Date,
+        at: new Date("2026-10-08T17:45:00.000Z"),
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("what a direct page that stood still is told", () => {
+  test("that its paging timed out - with no policy to name", () => {
+    expect(ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE).toBe("Paging timed out.");
+    expect(ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE).toBe(
+      "Paging never started and was timed out.",
+    );
+
+    for (const message of [
+      ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE,
+      ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE,
+    ]) {
+      expect(message.toLowerCase()).not.toContain("policy");
     }
   });
 });

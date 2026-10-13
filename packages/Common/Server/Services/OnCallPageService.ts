@@ -14,6 +14,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import { formatAwayUntil } from "../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
@@ -222,6 +223,13 @@ export const ON_CALL_PAGE_RECORD_SETUP_POLL_INTERVAL_IN_MS: number = 500;
 // How many of the people paged a summary names before "and N others".
 const MAX_NAMES_IN_SUMMARY: number = 5;
 
+/*
+ * What somebody who may start on-call runs, and may not page people directly,
+ * is told first (assertCallerMayPageDirectly). Why follows it.
+ */
+export const ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE: string =
+  "Paging people, teams or on-call schedules directly takes access to every on-call policy of the project.";
+
 export class Service {
   @CaptureSpan()
   public async page(request: OnCallPageRequest): Promise<OnCallPageResult> {
@@ -241,6 +249,10 @@ export class Service {
       props,
       DatabaseRequestType.Create,
     );
+
+    if (this.namesDirectTargets(request.targets)) {
+      await this.assertCallerMayPageDirectly(request);
+    }
 
     const targets: ResolvedTargets = await this.resolveTargets(request);
 
@@ -447,11 +459,73 @@ export class Service {
     }
   }
 
+  // Whether a request names anybody to page with no policy behind the page.
+  private namesDirectTargets(targets: OnCallPageTargets): boolean {
+    return (
+      (targets.userIds?.length || 0) +
+        (targets.userEmails?.length || 0) +
+        (targets.teamIds?.length || 0) +
+        (targets.onCallScheduleIds?.length || 0) >
+      0
+    );
+  }
+
+  /*
+   * MAY THE CALLER PAGE PEOPLE WITH NO POLICY BEHIND THE PAGE.
+   *
+   * A direct page is a run that names no on-call policy. OneUptime writes
+   * that run itself - the run's own service refuses one from anybody else -
+   * so before it does, the caller is asked exactly what creating the run
+   * themselves would ask of them (DatabaseService.checkCallerMayCreate): the
+   * permission to start on-call runs, each column of one, and - as the run
+   * belongs to no policy - a read of on-call policies that reaches the whole
+   * project and a permission to start runs that is not limited to some
+   * labels or to what they own.
+   *
+   * So somebody allowed to start only the on-call policies under one team's
+   * label cannot page whoever they like by leaving the policy out. An
+   * on-call policy named in the page is started as the caller, and held to
+   * its own labels and owners as it always is (startPolicy).
+   *
+   * Asked before anything the caller named is read, like the check above.
+   * The refusal says what it is about in a sentence of its own, then why in
+   * the words the permission check gave.
+   */
+  private async assertCallerMayPageDirectly(
+    request: OnCallPageRequest,
+  ): Promise<void> {
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+
+    run.projectId = request.projectId;
+    run.userNotificationEventType = request.about.incidentId
+      ? UserNotificationEventType.IncidentCreated
+      : UserNotificationEventType.AlertCreated;
+
+    try {
+      await OnCallDutyPolicyExecutionLogService.checkCallerMayCreate({
+        data: run,
+        props: request.props,
+      });
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(
+          `${ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE} ${err.message}`,
+        );
+      }
+
+      throw err;
+    }
+  }
+
   /*
    * Everything the caller named, read as the caller reads it: a team, a
    * schedule or a policy they may not read is not found, exactly as one
    * that is not there. People are held to the project's members - nobody
    * else is ever paged on its behalf - by id or by email address.
+   *
+   * An id that is not an id at all - a name, half a line - is answered as
+   * one nobody has, without being asked of the database.
    */
   private async resolveTargets(
     request: OnCallPageRequest,
@@ -462,7 +536,8 @@ export class Service {
 
     // ---- people -------------------------------------------------------------
 
-    const userIds: Array<ObjectID> = this.unique(request.targets.userIds);
+    const namedUserIds: Array<ObjectID> = this.unique(request.targets.userIds);
+    const userIds: Array<ObjectID> = namedUserIds.filter(this.isReadableId);
     const userEmails: Array<string> = Array.from(
       new Set<string>(
         (request.targets.userEmails || [])
@@ -545,10 +620,10 @@ export class Service {
       }
     };
 
-    for (const userId of userIds) {
+    for (const userId of namedUserIds) {
       const user: User | undefined = usersById.find(
         (candidate: User): boolean => {
-          return candidate.id?.toString() === userId.toString();
+          return this.isSameId(candidate.id, userId);
         },
       );
 
@@ -585,12 +660,13 @@ export class Service {
     // ---- teams, schedules and policies ------------------------------------
 
     const teamIds: Array<ObjectID> = this.unique(request.targets.teamIds);
+    const readableTeamIds: Array<ObjectID> = teamIds.filter(this.isReadableId);
 
     const teamsFound: Array<Team> =
-      teamIds.length > 0
+      readableTeamIds.length > 0
         ? await TeamService.findBy({
             query: {
-              _id: QueryHelper.any(teamIds),
+              _id: QueryHelper.any(readableTeamIds),
               projectId: projectId,
             },
             select: {
@@ -608,7 +684,7 @@ export class Service {
     for (const teamId of teamIds) {
       const team: Team | undefined = teamsFound.find(
         (candidate: Team): boolean => {
-          return candidate.id?.toString() === teamId.toString();
+          return this.isSameId(candidate.id, teamId);
         },
       );
 
@@ -624,11 +700,15 @@ export class Service {
       request.targets.onCallScheduleIds,
     );
 
+    const readableScheduleIds: Array<ObjectID> = scheduleIds.filter(
+      this.isReadableId,
+    );
+
     const schedulesFound: Array<OnCallDutyPolicySchedule> =
-      scheduleIds.length > 0
+      readableScheduleIds.length > 0
         ? await OnCallDutyPolicyScheduleService.findBy({
             query: {
-              _id: QueryHelper.any(scheduleIds),
+              _id: QueryHelper.any(readableScheduleIds),
               projectId: projectId,
             },
             select: {
@@ -646,7 +726,7 @@ export class Service {
     for (const scheduleId of scheduleIds) {
       const schedule: OnCallDutyPolicySchedule | undefined =
         schedulesFound.find((candidate: OnCallDutyPolicySchedule): boolean => {
-          return candidate.id?.toString() === scheduleId.toString();
+          return this.isSameId(candidate.id, scheduleId);
         });
 
       if (!schedule?.id) {
@@ -666,11 +746,15 @@ export class Service {
       request.targets.onCallDutyPolicyIds,
     );
 
+    const readablePolicyIds: Array<ObjectID> = policyIds.filter(
+      this.isReadableId,
+    );
+
     const policiesFound: Array<OnCallDutyPolicy> =
-      policyIds.length > 0
+      readablePolicyIds.length > 0
         ? await OnCallDutyPolicyService.findBy({
             query: {
-              _id: QueryHelper.any(policyIds),
+              _id: QueryHelper.any(readablePolicyIds),
               projectId: projectId,
             },
             select: {
@@ -689,7 +773,7 @@ export class Service {
     for (const policyId of policyIds) {
       const policy: OnCallDutyPolicy | undefined = policiesFound.find(
         (candidate: OnCallDutyPolicy): boolean => {
-          return candidate.id?.toString() === policyId.toString();
+          return this.isSameId(candidate.id, policyId);
         },
       );
 
@@ -734,19 +818,23 @@ export class Service {
     const props: DatabaseCommonInteractionProps = request.props;
 
     if (request.about.incidentId) {
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: request.about.incidentId,
-          projectId: projectId,
-        },
-        select: {
-          _id: true,
-          title: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-        },
-        props: props,
-      });
+      const incident: Incident | null = this.isReadableId(
+        request.about.incidentId,
+      )
+        ? await IncidentService.findOneBy({
+            query: {
+              _id: request.about.incidentId,
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+              title: true,
+              incidentNumber: true,
+              incidentNumberWithPrefix: true,
+            },
+            props: props,
+          })
+        : null;
 
       if (!incident?.id) {
         throw new BadDataException(
@@ -768,19 +856,21 @@ export class Service {
     }
 
     if (request.about.alertId) {
-      const alert: Alert | null = await AlertService.findOneBy({
-        query: {
-          _id: request.about.alertId,
-          projectId: projectId,
-        },
-        select: {
-          _id: true,
-          title: true,
-          alertNumber: true,
-          alertNumberWithPrefix: true,
-        },
-        props: props,
-      });
+      const alert: Alert | null = this.isReadableId(request.about.alertId)
+        ? await AlertService.findOneBy({
+            query: {
+              _id: request.about.alertId,
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+              title: true,
+              alertNumber: true,
+              alertNumberWithPrefix: true,
+            },
+            props: props,
+          })
+        : null;
 
       if (!alert?.id) {
         throw new BadDataException(
@@ -836,6 +926,36 @@ export class Service {
     const props: DatabaseCommonInteractionProps = data.request.props;
 
     let alertSeverityId: ObjectID | undefined = data.newAlert.alertSeverityId;
+
+    /*
+     * A severity the page names is one of the project's own, or the page is
+     * told so in the words every other id it names is answered in - before
+     * an alert is created that nobody would then be paged about.
+     */
+    if (alertSeverityId) {
+      const namedSeverity: AlertSeverity | null = this.isReadableId(
+        alertSeverityId,
+      )
+        ? await AlertSeverityService.findOneBy({
+            query: {
+              _id: alertSeverityId,
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : null;
+
+      if (!namedSeverity?.id) {
+        throw new BadDataException(
+          `Nobody was paged. No alert severity has the ID ${alertSeverityId.toString()}.`,
+        );
+      }
+    }
 
     if (!alertSeverityId) {
       const severity: AlertSeverity | null =
@@ -931,7 +1051,7 @@ export class Service {
       return;
     }
 
-    const startedAt: number = Date.now();
+    const startedAt: number = OneUptimeDate.getCurrentDate().getTime();
 
     try {
       const createdAt: Date | null = await this.getRecordCreatedAt(data.record);
@@ -945,7 +1065,8 @@ export class Service {
       }
 
       while (!(await this.hasCreatedFeedEntry(data.record))) {
-        const waitedInMs: number = Date.now() - startedAt;
+        const waitedInMs: number =
+          OneUptimeDate.getCurrentDate().getTime() - startedAt;
 
         if (waitedInMs >= data.maxWaitInMs) {
           logger.debug(
@@ -1130,7 +1251,7 @@ export class Service {
       }
 
       return users.find((user: User): boolean => {
-        return user.id?.toString() === userId.toString();
+        return this.isSameId(user.id, userId);
       });
     };
 
@@ -1159,7 +1280,7 @@ export class Service {
 
       return (
         list.find((target: NamedTarget): boolean => {
-          return target.id.toString() === id.toString();
+          return this.isSameId(target.id, id);
         })?.name || null
       );
     };
@@ -1287,6 +1408,31 @@ export class Service {
     return last === "." || last === "!" || last === "?"
       ? trimmed
       : `${trimmed}.`;
+  }
+
+  /*
+   * Whether an id can be one of a record's at all. One that cannot - a
+   * name, a line cut short - is not asked of the database, which would
+   * answer with an error about its type rather than with "not found".
+   */
+  private isReadableId: (id: ObjectID) => boolean = (id: ObjectID): boolean => {
+    return ObjectID.isValidUUID(id.toString());
+  };
+
+  /*
+   * Whether two ids name the same record. The database reads an id whatever
+   * its case and hands it back in lower case, so an id named in upper case
+   * is found - and is the record that was found.
+   */
+  private isSameId(
+    a: ObjectID | null | undefined,
+    b: ObjectID | null | undefined,
+  ): boolean {
+    if (!a || !b) {
+      return false;
+    }
+
+    return a.toString().toLowerCase() === b.toString().toLowerCase();
   }
 
   // Each id once, in the order it was named.

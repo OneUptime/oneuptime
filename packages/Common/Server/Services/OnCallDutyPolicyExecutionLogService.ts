@@ -47,8 +47,10 @@ import {
   OnCallDirectPageTargets,
   countOnCallDirectPageTargets,
   getOnCallDirectPagePagingMessage,
+  hasOnCallDirectPageWaitedForAcknowledgement,
   isOnCallDirectPage,
 } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import OneUptimeDate from "../../Types/Date";
 
 /*
  * Who started a direct page, for its run to record: the person, or the
@@ -395,6 +397,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Slack and Microsoft Teams message goes on saying people are being paged
    * while they are.
    *
+   * It stays open for a while after paging started in any case
+   * (ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES): somebody whose one
+   * rule is an SMS sent at once has had their whole page a minute in, and
+   * "nobody acknowledged" then would be said before anybody could have.
+   *
    * A record that is acknowledged or resolved ends the run before this is
    * asked (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions, as for a
    * policy's run), so a page that ends here ended with nobody on it: the
@@ -402,9 +409,24 @@ export class Service extends ProjectReferencesService<Model> {
    * that went through every rule is given.
    */
   @CaptureSpan()
-  public async endDirectPageIfItsPagesAreOver(
-    executionLogId: ObjectID,
-  ): Promise<boolean> {
+  public async endDirectPageIfItsPagesAreOver(data: {
+    executionLogId: ObjectID;
+    // When its paging started: when the run recorded it, or when the run was created.
+    pagingStartedAt: Date | null | undefined;
+    // The moment to ask about. Now, when left out.
+    at?: Date | undefined;
+  }): Promise<boolean> {
+    const executionLogId: ObjectID = data.executionLogId;
+
+    if (
+      !hasOnCallDirectPageWaitedForAcknowledgement({
+        pagingStartedAt: data.pagingStartedAt,
+        at: data.at || OneUptimeDate.getCurrentDate(),
+      })
+    ) {
+      return false;
+    }
+
     const pagesStillOut: PositiveNumber = await UserOnCallLogService.countBy({
       query: {
         onCallDutyPolicyExecutionLogId: executionLogId,

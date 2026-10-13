@@ -1,5 +1,6 @@
 import { JSONObject, JSONValue, ObjectType } from "../../JSON";
 import ObjectID from "../../ObjectID";
+import { parseTemplateExpressions } from "../TemplateSyntax";
 
 /*
  * HOW A PAGE STEP'S SETTINGS ARE STORED AND READ.
@@ -107,6 +108,28 @@ export function readPageAbout(value: unknown): PageAbout | null {
       return about === normalized;
     }) || null
   );
+}
+
+/*
+ * Whether a setting, as it is saved, takes its value from an earlier step
+ * or a variable: it holds a {{value}}. What that comes to is known only
+ * when the step runs, so a saved setting that holds one cannot be judged
+ * before then - not as empty, and not as a wrong choice.
+ */
+export function holdsPageSettingReference(
+  value: JSONValue | undefined,
+): boolean {
+  if (typeof value === "string") {
+    return parseTemplateExpressions(value).length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((item: JSONValue): boolean => {
+      return holdsPageSettingReference(item);
+    });
+  }
+
+  return false;
 }
 
 // A who-to-page setting, taken apart.

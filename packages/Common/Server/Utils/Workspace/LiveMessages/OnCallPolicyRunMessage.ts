@@ -44,6 +44,7 @@ import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
+import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
@@ -57,10 +58,6 @@ import OnCallPolicyRunMessageView, {
   OnCallPolicyRunRule,
 } from "./OnCallPolicyRunMessageView";
 import WorkspaceLiveMessages from "./WorkspaceLiveMessages";
-
-// What the timeline says when a rule paged somebody twice: not worth a line.
-const ALREADY_NOTIFIED_TIMELINE_MESSAGE: string =
-  "Skipped because notification sent to this user already.";
 
 // "Skipped because ..." at the start of a timeline message, and its full stop.
 const SKIPPED_BECAUSE_PREFIX: RegExp = /^skipped because\s+/i;
@@ -859,7 +856,7 @@ export default class OnCallPolicyRunMessage {
            * Paged by this rule already, through another of its targets: the
            * same person, counted where they were first paged.
            */
-          if (step.statusMessage === ALREADY_NOTIFIED_TIMELINE_MESSAGE) {
+          if (step.statusMessage === ALREADY_PAGED_TIMELINE_MESSAGE) {
             continue;
           }
 

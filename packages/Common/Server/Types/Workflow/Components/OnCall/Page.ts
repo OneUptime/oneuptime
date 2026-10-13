@@ -22,6 +22,7 @@ import {
   PageAbout,
   PageIdList,
   hasPageSettingValue,
+  holdsPageSettingReference,
   readPageAbout,
   readPageIdList,
   readPageRecordId,
@@ -249,6 +250,16 @@ export default class Page extends ComponentCode {
 
     if (!hasPageSettingValue(configured[target.argumentId])) {
       return `${this.getArgumentName(target.argumentId)} is empty, so this step has nobody to page. Open the step and choose who to page.`;
+    }
+
+    /*
+     * What the page is about is a choice. Saved as a value from an earlier
+     * step, it is whatever that comes to when the step runs: nothing to
+     * judge here, and the settings that go with each choice cannot be asked
+     * for either.
+     */
+    if (holdsPageSettingReference(configured[PAGE_ARGUMENT_IDS.about])) {
+      return null;
     }
 
     const about: PageAbout | null = readPageAbout(

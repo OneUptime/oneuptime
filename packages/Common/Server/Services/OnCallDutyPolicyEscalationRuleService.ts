@@ -43,6 +43,7 @@ import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import UserOverrideUtil, {
   UserOverrideRecord,
 } from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
+import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { getAwayTimelineMessage } from "../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
   ON_CALL_DIRECT_PAGE_EMPTY_TEAM_TIMELINE_MESSAGE,
@@ -1262,8 +1263,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         });
       } else {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
-        log.statusMessage =
-          "Skipped because notification sent to this user already.";
+        log.statusMessage = ALREADY_PAGED_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.alertSentToUserId = pagedUserId;
 
