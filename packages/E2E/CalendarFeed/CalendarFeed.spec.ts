@@ -976,6 +976,35 @@ test.describe("the empty state", () => {
   });
 
   /*
+   * On a phone the panel's badge sits above its text, so the text and the
+   * button have the panel's whole width: "Generate calendar link" is one
+   * line, not two, and starts where the text does.
+   */
+  test("on a phone the panel stacks: badge, text, then a one-line Generate calendar link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "state=empty", 390);
+
+    const icon: Box = await box(
+      page.getByTestId("personal-calendar-feed-empty-icon"),
+    );
+    const title: Box = await box(
+      page.getByTestId("personal-calendar-feed-empty-title"),
+    );
+    const generate: Box = await box(
+      page.getByTestId("personal-calendar-feed-generate"),
+    );
+
+    expect(title.y).toBeGreaterThan(icon.y + icon.height);
+    expect(Math.abs(generate.x - title.x)).toBeLessThanOrEqual(1);
+    // One line of 14px text in a 38px button, not two.
+    expect(generate.height).toBeLessThan(48);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  });
+
+  /*
    * The shared link's empty panel has its button in the same place: Publish
    * shared link starts the panel's text column - for an editor, and locked,
    * saying why, for a reader - not a dialog footer's margin in from it.
