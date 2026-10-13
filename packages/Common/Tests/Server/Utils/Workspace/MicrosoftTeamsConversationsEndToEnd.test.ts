@@ -75,6 +75,7 @@ import MicrosoftTeamsAuthAction, {
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Auth";
 import MicrosoftTeamsIncidentActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceConnectCompletion from "../../../../Server/Utils/Workspace/WorkspaceConnectCompletion";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestRecord,
@@ -88,7 +89,10 @@ import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
+import {
+  CONNECT_REQUEST_TOKEN_PATTERN,
+  ConnectRequestOutcome,
+} from "../../../../Types/Workspace/ConnectCallback";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -456,6 +460,10 @@ async function expectAskPrompt(
     purpose: "ask OneUptime AI",
     again: { kind: WorkspaceConnectRequestAgainKind.Question },
   });
+  // Her settings page says to ask again: no button asked the question.
+  expect(WorkspaceConnectCompletion.getAgainOutcome(request?.again)).toBe(
+    ConnectRequestOutcome.AskAgain,
+  );
 
   return request;
 }
@@ -699,6 +707,52 @@ describe("@mentions, and personal chats, are answered", () => {
 
     expect(delivery.posts).toHaveLength(2);
     expect(askAssistant).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * An answer ends with what it was read from. A source that gave one row
+   * was written "(1 rows)".
+   */
+  test("the answer ends with its sources, each with its rows counted as the language counts them: 2 rows, 1 row", async () => {
+    askAssistant.mockResolvedValue({
+      contentInMarkdown: "Two monitors are down: **API** and **Checkout**.",
+      citations: [
+        {
+          id: "C1",
+          toolName: "query_monitors",
+          label: "Monitor statuses",
+          queryArguments: {},
+          rowCount: 2,
+        },
+        {
+          id: "C2",
+          toolName: "query_deployments",
+          label: "Deployments",
+          queryArguments: {},
+          rowCount: 1,
+        },
+      ],
+      totalTokens: 10,
+      llmCallCount: 1,
+      toolCallCount: 2,
+    } as never);
+
+    const delivery: Delivery = await deliver(
+      message({
+        from: BOB,
+        text: "which monitors are down?",
+        where: { in: "personal" },
+      }),
+    );
+
+    expect(
+      delivery.posts.map((post: ConnectorPost): string => {
+        return String(post.activity["text"]);
+      }),
+    ).toEqual([
+      "Looking into it…",
+      "Two monitors are down: **API** and **Checkout**.\n\n**Sources**\n• Monitor statuses (2 rows)\n• Deployments (1 row)",
+    ]);
   });
 });
 

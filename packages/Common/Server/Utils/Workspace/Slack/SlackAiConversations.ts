@@ -241,7 +241,8 @@ export default class SlackAiConversations {
    *     only once the thread has replies, and their question has none;
    *   - in a direct message: as a message of the app's own there, which
    *     stays, where a message only they see would be gone once Slack
-   *     reloads.
+   *     reloads. The place names no channel to answer in, only the direct
+   *     messages to come back to once connected.
    */
   public static getConnectPromptPlace(data: {
     message: SlackMessage;
@@ -253,6 +254,8 @@ export default class SlackAiConversations {
     };
 
     if (data.message.kind === SlackMessageKind.DirectMessage) {
+      place.slackDirectMessageChannelId = data.message.channelId;
+
       return place;
     }
 

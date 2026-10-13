@@ -27,11 +27,15 @@ import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityA
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import logger from "../../../Server/Utils/Logger";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceConnectCompletion from "../../../Server/Utils/Workspace/WorkspaceConnectCompletion";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
   WorkspaceConnectRequestRecord,
 } from "../../../Server/Utils/Workspace/WorkspaceConnectRequest";
-import { CONNECT_REQUEST_TOKEN_PATTERN } from "../../../Types/Workspace/ConnectCallback";
+import {
+  CONNECT_REQUEST_TOKEN_PATTERN,
+  ConnectRequestOutcome,
+} from "../../../Types/Workspace/ConnectCallback";
 
 /*
  * #4768, THROUGH SLACK'S OWN EVENTS ENDPOINT.
@@ -795,6 +799,10 @@ async function expectEphemeralPrompt(
         }
       : { teamId: TEAM_ID, channelId: expected.channel },
   );
+  // And their settings page says to ask again: no button asked the question.
+  expect(WorkspaceConnectCompletion.getAgainOutcome(kept?.again)).toBe(
+    ConnectRequestOutcome.AskAgain,
+  );
 }
 
 describe("#4768: people talking under one of OneUptime's notifications are not answered", () => {
@@ -1083,6 +1091,49 @@ describe("@mentions are answered wherever they are", () => {
       "Slack AI Ops event: workspace not connected to any project.",
     );
     expect(slackCalls).toEqual([]);
+  });
+
+  /*
+   * An answer ends with what it was read from. A source that gave one row
+   * was written "(1 rows)".
+   */
+  test("the answer ends with its sources, each with its rows counted as the language counts them: 2 rows, 1 row", async () => {
+    jest.spyOn(ObservabilityAssistant, "answerQuestion").mockResolvedValue({
+      contentInMarkdown: ANSWER_MARKDOWN,
+      citations: [
+        {
+          id: "C1",
+          toolName: "query_monitors",
+          label: "Monitor statuses",
+          queryArguments: {},
+          rowCount: 2,
+        },
+        {
+          id: "C2",
+          toolName: "query_deployments",
+          label: "Deployments",
+          queryArguments: {},
+          rowCount: 1,
+        },
+      ],
+      totalTokens: 10,
+      llmCallCount: 1,
+      toolCallCount: 2,
+    } as never);
+
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> which monitors are down?`,
+    });
+
+    expect(await untilWrites(2)).toEqual([
+      threadPost(OPS, asked.ts, ACKNOWLEDGEMENT),
+      threadPost(
+        OPS,
+        asked.ts,
+        `Two monitors are down: ${ZWSP}*API*${ZWSP} and ${ZWSP}*Checkout*${ZWSP}.\n\n${ZWSP}_Sources_${ZWSP}\n• Monitor statuses (2 rows)\n• Deployments (1 row)\n`,
+      ),
+    ]);
   });
 
   test("AI turned off: the @mention is told so in its thread, and AI is not asked", async () => {
@@ -1599,8 +1650,22 @@ describe("direct messages to the app", () => {
     const kept: WorkspaceConnectRequestRecord | null = await keptRequestOf(
       posted[0]!,
     );
-    // Once connected, they are answered in the direct messages too.
-    expect(kept?.slack).toEqual({ teamId: TEAM_ID });
+    /*
+     * Once connected, they are answered in the direct messages too - by the
+     * app's own message, so the press names no channel to answer in - and
+     * the direct messages are what their settings page links back to.
+     */
+    expect(kept?.slack).toEqual({
+      teamId: TEAM_ID,
+      directMessageChannelId: "D0CAROL",
+    });
+    // And their settings page says to ask again: no button asked the question.
+    expect(kept?.again).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.Question,
+    });
+    expect(WorkspaceConnectCompletion.getAgainOutcome(kept?.again)).toBe(
+      ConnectRequestOutcome.AskAgain,
+    );
 
     await directMessage({ user: CAROL, text: "hello?" });
     await directMessage({ user: CAROL, text: "are you there?" });

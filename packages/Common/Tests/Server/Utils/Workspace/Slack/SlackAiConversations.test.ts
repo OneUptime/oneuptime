@@ -349,7 +349,7 @@ describe("where an answer goes, and what a conversation is", () => {
     ).toEqual(SlackAiConversations.getConversation(directMessage));
   });
 
-  test("getConnectPromptPlace: in the thread a reply is in; under a question at the top of a channel in the channel, since a thread with no replies shows no message only one person sees; in a direct message, as the app's own message", () => {
+  test("getConnectPromptPlace: in the thread a reply is in; under a question at the top of a channel in the channel, since a thread with no replies shows no message only one person sees; in a direct message, as the app's own message - with the direct messages to come back to, and no channel to answer in", () => {
     expect(
       SlackAiConversations.getConnectPromptPlace({
         message: reply,
@@ -376,7 +376,28 @@ describe("where an answer goes, and what a conversation is", () => {
         message: directMessage,
         projectAuthToken: "xoxb",
       }),
-    ).toEqual({ projectAuthToken: "xoxb", slackUserId: ALICE });
+    ).toEqual({
+      projectAuthToken: "xoxb",
+      slackUserId: ALICE,
+      slackDirectMessageChannelId: "D0ALICE",
+    });
+  });
+
+  test("getConnectPromptPlace: a reply in a thread of a direct message is asked in the direct messages too, never in that thread", () => {
+    const place: ReturnType<typeof SlackAiConversations.getConnectPromptPlace> =
+      SlackAiConversations.getConnectPromptPlace({
+        message: { ...directMessage, threadTs: QUESTION_TS },
+        projectAuthToken: "xoxb",
+      });
+
+    expect(place).toEqual({
+      projectAuthToken: "xoxb",
+      slackUserId: ALICE,
+      slackDirectMessageChannelId: "D0ALICE",
+    });
+    // No channel and no thread: nothing a message only they see is posted in.
+    expect(place.slackChannelId).toBeUndefined();
+    expect(place.slackThreadTs).toBeUndefined();
   });
 });
 

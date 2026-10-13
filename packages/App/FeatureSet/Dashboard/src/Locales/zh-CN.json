@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "iOS 没有询问？请从 App Store 更新 {{app}}：1.5.0 之前的版本无法接收重要警报。",
   "iPhone or iPad": "iPhone 或 iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "开启后，可在 {{alarmSoundPath}} 中选择值班呼叫的警报声。",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "打开应用，连接到 {{serverUrl}} 并登录。允许通知后，您的手机就会出现在此列表中。"
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "打开应用，连接到 {{serverUrl}} 并登录。允许通知后，您的手机就会出现在此列表中。",
+  "Go back to {{workspace}} and ask your question again.": "请返回 {{workspace}}，再问一次您的问题。"
 }

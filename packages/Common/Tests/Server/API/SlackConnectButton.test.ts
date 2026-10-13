@@ -144,6 +144,9 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const GONE: string =
   "This Connect button has expired or was already used. Press the button in Slack again.";
 
+// Slack's own: a zero-width space around a bold span it draws.
+const ZWSP: string = "\u{200B}";
+
 type Browser = Record<string, string>;
 
 interface SlackCall {
@@ -484,6 +487,161 @@ describe("a Connect button in Slack", () => {
       expect(
         new globalThis.URL(response.location!).searchParams.get("pressed"),
       ).toBe("again");
+    });
+
+    /*
+     * A question to OneUptime AI - an @mention, a direct message - is not a
+     * press: once connected, the person asks it again. Slack says so where
+     * they were asked to connect, and the page says the same - it used to
+     * say "press the button again", with no button to press (#4768).
+     */
+    test("a question asked at the top of a channel: connected, told in the channel to ask it again, and the page says to ask", async () => {
+      const token: string = await press({
+        purpose: "ask OneUptime AI",
+        pendingAction: undefined,
+        again: { kind: WorkspaceConnectRequestAgainKind.Question },
+        // Asked with no thread yet: the prompt was in the channel itself.
+        slack: { teamId: SLACK_TEAM_ID, channelId: "C0OPS" },
+      });
+
+      const response: ProbeResponse = await comeBack(await signIn(token));
+
+      expect(refreshUserAuth).toHaveBeenCalledTimes(1);
+      expect(answersPosted()).toEqual([
+        {
+          url: "https://slack.com/api/chat.postEphemeral",
+          data: {
+            channel: "C0OPS",
+            user: PRESSER,
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `✅ ${ZWSP}*Your Slack account is connected to OneUptime.*${ZWSP} Now ask your question again.\n`,
+                },
+              },
+            ],
+            text: "Your Slack account is connected to OneUptime. Now ask your question again.",
+          },
+        },
+      ]);
+
+      const location: globalThis.URL = new globalThis.URL(response.location!);
+      expect(`${location.origin}${location.pathname}`).toBe(settingsPage());
+      expect(Object.fromEntries(location.searchParams.entries())).toEqual({
+        pressed: "ask",
+        slackChannel: "C0OPS",
+        slackTeam: SLACK_TEAM_ID,
+      });
+    });
+
+    test("a question asked in a thread: told to ask it again in that thread", async () => {
+      const token: string = await press({
+        purpose: "ask OneUptime AI",
+        pendingAction: undefined,
+        again: { kind: WorkspaceConnectRequestAgainKind.Question },
+        slack: {
+          teamId: SLACK_TEAM_ID,
+          channelId: "C0OPS",
+          threadTs: "1760000000.000100",
+        },
+      });
+
+      const response: ProbeResponse = await comeBack(await signIn(token));
+
+      expect(answersPosted()).toHaveLength(1);
+      expect(answersPosted()[0]!.url).toBe(
+        "https://slack.com/api/chat.postEphemeral",
+      );
+      expect(answersPosted()[0]!.data).toMatchObject({
+        channel: "C0OPS",
+        user: PRESSER,
+        thread_ts: "1760000000.000100",
+        text: "Your Slack account is connected to OneUptime. Now ask your question again.",
+      });
+      expect(
+        new globalThis.URL(response.location!).searchParams.get("pressed"),
+      ).toBe("ask");
+    });
+
+    test("a question asked in the app's direct messages: told there to ask it again, as the app's own message, and the page says to ask - and links back to the direct messages", async () => {
+      const token: string = await press({
+        purpose: "ask OneUptime AI",
+        pendingAction: undefined,
+        again: { kind: WorkspaceConnectRequestAgainKind.Question },
+        /*
+         * A direct message names no channel to answer in: it is answered by
+         * the app's own message there. The direct messages are kept only as
+         * the way back.
+         */
+        slack: { teamId: SLACK_TEAM_ID, directMessageChannelId: "D0NITIN" },
+      });
+
+      const response: ProbeResponse = await comeBack(await signIn(token));
+
+      expect(answersPosted()).toEqual([
+        {
+          url: "https://slack.com/api/chat.postMessage",
+          data: {
+            channel: PRESSER,
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `✅ ${ZWSP}*Your Slack account is connected to OneUptime.*${ZWSP} Now ask your question again.\n`,
+                },
+              },
+            ],
+            unfurl_links: false,
+            text: "Your Slack account is connected to OneUptime. Now ask your question again.",
+          },
+        },
+      ]);
+
+      // "Back to Slack" opens the direct messages they asked in.
+      const location: globalThis.URL = new globalThis.URL(response.location!);
+      expect(`${location.origin}${location.pathname}`).toBe(settingsPage());
+      expect(Object.fromEntries(location.searchParams.entries())).toEqual({
+        pressed: "ask",
+        slackChannel: "D0NITIN",
+        slackTeam: SLACK_TEAM_ID,
+      });
+    });
+
+    test("…kept before OneUptime remembered the direct messages (no channel at all): the same answer, and no link to nowhere", async () => {
+      const token: string = await press({
+        purpose: "ask OneUptime AI",
+        pendingAction: undefined,
+        again: { kind: WorkspaceConnectRequestAgainKind.Question },
+        slack: { teamId: SLACK_TEAM_ID },
+      });
+
+      const response: ProbeResponse = await comeBack(await signIn(token));
+
+      expect(answersPosted()).toHaveLength(1);
+      expect(answersPosted()[0]!.url).toBe(
+        "https://slack.com/api/chat.postMessage",
+      );
+      expect(answersPosted()[0]!.data["channel"]).toBe(PRESSER);
+      expect(response.location).toBe(`${settingsPage()}?pressed=ask`);
+    });
+
+    test("a direct message's channel that is not an id links nowhere: the page gets no address but Slack's own ids", async () => {
+      const token: string = await press({
+        purpose: "ask OneUptime AI",
+        pendingAction: undefined,
+        again: { kind: WorkspaceConnectRequestAgainKind.Question },
+        slack: {
+          teamId: SLACK_TEAM_ID,
+          directMessageChannelId: "D0NITIN&team=T9EVIL",
+        },
+      });
+
+      const response: ProbeResponse = await comeBack(await signIn(token));
+
+      expect(response.location).toBe(`${settingsPage()}?pressed=ask`);
     });
 
     test("another Slack account than the one that pressed: refused, nothing connected, and the press kept for its own account", async () => {

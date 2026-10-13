@@ -53,6 +53,14 @@ export const PRESS_AGAIN: string = translationKey(
   "Go back to {{workspace}} and press the button again.",
 );
 
+/*
+ * A question to OneUptime AI (ConnectRequestOutcome.AskAgain): asked in a
+ * message, with no button to press again - the chat says the same.
+ */
+export const ASK_AGAIN: string = translationKey(
+  "Go back to {{workspace}} and ask your question again.",
+);
+
 export const PRESS_EXPIRED: string = translationKey(
   "The button you pressed in {{workspace}} expired before you connected. Go back to {{workspace}} and press it again.",
 );
@@ -103,6 +111,7 @@ const OUTCOME_MESSAGES: Record<ConnectRequestOutcome, string> = {
   [ConnectRequestOutcome.Done]: PRESS_DONE,
   [ConnectRequestOutcome.Answered]: PRESS_ANSWERED,
   [ConnectRequestOutcome.PressAgain]: PRESS_AGAIN,
+  [ConnectRequestOutcome.AskAgain]: ASK_AGAIN,
   [ConnectRequestOutcome.Expired]: PRESS_EXPIRED,
   [ConnectRequestOutcome.NotAnswered]: PRESS_NOT_ANSWERED,
 };

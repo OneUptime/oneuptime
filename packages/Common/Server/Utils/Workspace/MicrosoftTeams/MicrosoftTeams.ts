@@ -105,6 +105,7 @@ import {
 import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
 import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
+import WorkspaceAiAnswerSources from "../WorkspaceAiAnswerSources";
 import { WorkspaceConnectRequestAgainKind } from "../WorkspaceConnectRequest";
 import ProductBrandingText from "../../ProductBrandingText";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
@@ -152,7 +153,6 @@ import AIService, {
   ProjectAiDailyLimitStatus,
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -4322,11 +4322,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
-        const sourceLines: Array<MarkdownText> = result.citations.map(
-          (citation: AIChatCitation): MarkdownText => {
-            return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
-          },
-        );
+        const sourceLines: Array<MarkdownText> =
+          WorkspaceAiAnswerSources.getLines(result.citations);
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 

@@ -452,6 +452,55 @@ describe("SlackConnectPrompt.prompt", () => {
     expect(request!.pendingAction!.eventId.toString()).toBe(RECORD_ID);
   });
 
+  /*
+   * A question in the app's direct messages: the place names no channel to
+   * answer in, and the kept press keeps the direct messages as where the
+   * settings page's "Back to Slack" goes.
+   */
+  test("a question asked in the app's direct messages keeps the direct messages to come back to, and no channel to answer in", async () => {
+    answered.mockResolvedValue(SlackAnswerDelivery.DirectMessage);
+
+    const delivery: SlackAnswerDelivery = await SlackConnectPrompt.prompt({
+      projectId: PROJECT_ID,
+      place: {
+        projectAuthToken: "xoxb-project-token",
+        slackUserId: "U0ERIN",
+        slackDirectMessageChannelId: "D0ERIN",
+      },
+      slackTeamId: "T0TEAM",
+      description: SlackConnectPrompt.describeQuestion(),
+    });
+
+    expect(delivery).toBe(SlackAnswerDelivery.DirectMessage);
+    expect(answered).toHaveBeenCalledTimes(1);
+
+    const call: { answer: WorkspaceAnswer; connectUrl?: URL | undefined } =
+      answered.mock.calls[0]![0];
+
+    expect(call.answer).toEqual({
+      markdown:
+        "🔗 **Connect your Slack account to ask OneUptime AI.** It takes one click. Then ask your question again.",
+      text: "Connect your Slack account to ask OneUptime AI",
+    });
+
+    const request: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        new globalThis.URL(call.connectUrl!.toString()).searchParams.get(
+          "connect",
+        ),
+      );
+
+    expect(request).toMatchObject({
+      workspaceUserId: "U0ERIN",
+      purpose: "ask OneUptime AI",
+      again: { kind: WorkspaceConnectRequestAgainKind.Question },
+    });
+    expect(request!.slack).toEqual({
+      teamId: "T0TEAM",
+      directMessageChannelId: "D0ERIN",
+    });
+  });
+
   test("each press gets a Connect button of its own: two presses, two answers, two tokens", async () => {
     for (let press: number = 0; press < 2; press++) {
       await SlackConnectPrompt.prompt({

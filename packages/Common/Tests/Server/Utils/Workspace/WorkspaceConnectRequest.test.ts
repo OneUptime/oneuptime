@@ -215,6 +215,34 @@ describe("WorkspaceConnectRequest.peek and take", () => {
     expect(record!.slack).toBeUndefined();
   });
 
+  /*
+   * A question asked in the app's direct messages: there is no channel to
+   * answer in (the app's own message answers there), and the direct
+   * messages are kept as where the settings page's "Back to Slack" goes.
+   */
+  test("a question asked in the app's direct messages round-trips with the direct messages to come back to, and no channel to answer in", async () => {
+    const { token } = await WorkspaceConnectRequest.create({
+      workspaceType: WorkspaceType.Slack,
+      projectId: PROJECT_ID,
+      workspaceUserId: "U0ERIN",
+      purpose: "ask OneUptime AI",
+      again: { kind: WorkspaceConnectRequestAgainKind.Question },
+      slack: { teamId: "T0TEAM", directMessageChannelId: "D0ERIN" },
+    });
+
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.take(token);
+
+    expect(record!.again).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.Question,
+    });
+    expect(record!.slack).toEqual({
+      teamId: "T0TEAM",
+      directMessageChannelId: "D0ERIN",
+    });
+    expect(record!.slack!.channelId).toBeUndefined();
+  });
+
   test.each([
     ["nothing", undefined],
     ["an empty string", ""],
@@ -349,6 +377,23 @@ describe("a stored press that is not what create writes reads as nothing", () =>
       );
 
     expect(record!.pendingAction).toBeUndefined();
+  });
+
+  test("a Slack place's direct messages that are not text are dropped, and the rest of the place kept", async () => {
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        await storeRaw(
+          JSON.stringify({
+            ...valid(),
+            slack: {
+              teamId: "T0TEAM",
+              directMessageChannelId: { id: "D0ERIN" },
+            },
+          }),
+        ),
+      );
+
+    expect(record!.slack).toEqual({ teamId: "T0TEAM" });
   });
 
   test("a Microsoft Teams place without the Bot Connector or the conversation is dropped", async () => {

@@ -397,6 +397,7 @@ export default class SlackConnectPrompt {
           channelId: data.place.slackChannelId,
           threadTs: data.place.slackThreadTs,
           responseUrl: data.place.responseUrl,
+          directMessageChannelId: data.place.slackDirectMessageChannelId,
         },
       });
 

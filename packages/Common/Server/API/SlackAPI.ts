@@ -103,6 +103,7 @@ import SlackAiConversations, {
   SlackThreadMessage,
   SlackThreadPerson,
 } from "../Utils/Workspace/Slack/SlackAiConversations";
+import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
 import FeedMarkdown, {
@@ -247,15 +248,21 @@ export default class SlackAPI {
           : result.outcome,
     };
 
-    // Where the page's "Back to Slack" goes: the channel the press was in.
+    /*
+     * Where the page's "Back to Slack" goes: the channel the press was in,
+     * or the person's direct messages with the app when they wrote there.
+     */
+    const backTo: string | undefined =
+      request.slack?.channelId || request.slack?.directMessageChannelId;
+
     if (
+      backTo &&
       ConnectCallbackUtil.getSlackChannelLink({
-        channel: request.slack?.channelId,
+        channel: backTo,
         team: request.slack?.teamId,
       })
     ) {
-      params[CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM] =
-        request.slack!.channelId!;
+      params[CONNECT_REQUEST_SLACK_CHANNEL_QUERY_PARAM] = backTo;
       params[CONNECT_REQUEST_SLACK_TEAM_QUERY_PARAM] = request.slack!.teamId!;
     }
 
@@ -2211,11 +2218,8 @@ export default class SlackAPI {
 
     // Append a compact "Sources" footer from the server-minted citations.
     if (result.citations && result.citations.length > 0) {
-      const sourceLines: Array<MarkdownText> = result.citations.map(
-        (citation: AIChatCitation): MarkdownText => {
-          return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
-        },
-      );
+      const sourceLines: Array<MarkdownText> =
+        WorkspaceAiAnswerSources.getLines(result.citations);
 
       answerMarkdown = mdText`${answerMarkdown}\n\n*Sources*\n${FeedMarkdown.join(sourceLines, "\n")}`;
     }
