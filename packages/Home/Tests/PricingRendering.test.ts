@@ -1,5 +1,6 @@
 import { generatePricingMarkdown } from "../Utils/AIDiscovery";
 import Pricing from "../Utils/Pricing";
+import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
 import { markupAsSpaces } from "../../Common/Tests/Helpers/HtmlText";
 import path from "path";
@@ -15,11 +16,15 @@ describe("Rendered notification pricing", () => {
   let notifications: string = "";
 
   beforeAll(async () => {
+    const seo: PageSEOData = getPageSEO("/pricing");
+
+    // The locals Routes.ts hands the template, plus homeUrl.
     html = (await ejs.renderFile(
       path.join(VIEWS_ROOT, "pricing.ejs"),
       {
         pricing: Pricing,
         enableGoogleTagManager: false,
+        seo: { ...seo, fullCanonicalUrl: "https://oneuptime.com/pricing" },
         homeUrl: "https://oneuptime.com",
       },
       { views: [VIEWS_ROOT] },

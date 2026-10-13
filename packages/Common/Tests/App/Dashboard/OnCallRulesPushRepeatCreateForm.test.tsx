@@ -30,12 +30,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * Pinned here for "Repeat until acknowledged":
  *
- *   - a push rule left alone is added without repeating. A form fills a
- *     field in with its default only when that default is truthy, and the
- *     column's default is 0: the field started empty and, being required,
- *     refused every push rule until "Don't repeat" was picked by hand;
+ *   - a push rule left alone is added without repeating: the field starts
+ *     on its column's default, 0, and holds it as the "Don't repeat" option.
+ *     The form once took a 0 default for none, and the field started empty
+ *     and, being required, refused every push rule until "Don't repeat" was
+ *     picked by hand;
  *   - an interval picked is what the rule is created with, "Don't repeat"
- *     (a 0, which the form machinery reads as "nothing" in more than one
+ *     (a 0, which the form machinery once read as "nothing" in more than one
  *     place) included;
  *   - an interval picked for a push device and left behind when the method
  *     is changed to something else is not sent: the server refuses a
@@ -314,8 +315,11 @@ function repeatField(): HTMLElement | null {
   return screen.queryByRole("combobox", { name: REPEAT_FIELD_NAME });
 }
 
-// What the repeat dropdown reads: its pick, or the placeholder standing in.
-function repeatFieldText(): string {
+/*
+ * The option the repeat dropdown holds, as it draws it - not a placeholder
+ * in the same words. Null while it holds none.
+ */
+function repeatFieldPick(): string | null {
   const control: Element | null | undefined = repeatField()?.closest(
     ".ou-select__control",
   );
@@ -324,7 +328,7 @@ function repeatFieldText(): string {
     throw new Error("no repeat dropdown on the form");
   }
 
-  return control.textContent || "";
+  return control.querySelector(".ou-select__single-value")?.textContent ?? null;
 }
 
 async function pickNotifyImmediately(user: UserEvent): Promise<void> {
@@ -356,7 +360,7 @@ describe("adding a push rule through the create form", () => {
 
     // Shown for a browser too, and reading what it starts on.
     expect(repeatField()).not.toBeNull();
-    expect(repeatFieldText()).toBe("Don't repeat");
+    expect(repeatFieldPick()).toBe("Don't repeat");
 
     await pickNotifyImmediately(user);
 
@@ -375,7 +379,7 @@ describe("adding a push rule through the create form", () => {
     await pickMethod(user, IPHONE_OPTION);
     await pickOption(user, repeatField()!, "Every 5 minutes");
 
-    expect(repeatFieldText()).toBe("Every 5 minutes");
+    expect(repeatFieldPick()).toBe("Every 5 minutes");
 
     await pickNotifyImmediately(user);
 
@@ -389,9 +393,9 @@ describe("adding a push rule through the create form", () => {
 
   test("going back to Don't repeat sends 0 and reads Don't repeat", async () => {
     /*
-     * 0 is the value the form machinery most often mistakes for "nothing":
-     * a dropdown draws it as no choice, and a required field holding it must
-     * still count as answered.
+     * 0 is the value the form machinery once mistook for "nothing": a
+     * dropdown must draw it as the choice it is, and a required field
+     * holding it must still count as answered.
      */
     const user: UserEvent = await renderCreateForm();
 
@@ -399,7 +403,7 @@ describe("adding a push rule through the create form", () => {
     await pickOption(user, repeatField()!, "Every 15 minutes");
     await pickOption(user, repeatField()!, "Don't repeat");
 
-    expect(repeatFieldText()).toBe("Don't repeat");
+    expect(repeatFieldPick()).toBe("Don't repeat");
 
     await pickNotifyImmediately(user);
 

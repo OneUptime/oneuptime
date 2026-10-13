@@ -10,11 +10,13 @@ import { ATLASSIAN_STATUSPAGE_HOST } from "../../../../Types/ToolImport/ToolImpo
 import { TOOL_IMPORT_MAX_RECORDS_PER_KIND } from "../../../../Types/ToolImport/ToolImportLimits";
 import {
   makeToolImportNote,
+  ToolImportNote,
   ToolImportNoteCode,
 } from "../../../../Types/ToolImport/ToolImportNote";
 import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResourceKind";
 import {
   ImportedStatusPage,
+  ImportedStatusPageResource,
   ImportedStatusPageSubscriber,
   ToolImportSnapshot,
 } from "../../../../Types/ToolImport/ToolImportSnapshot";
@@ -29,6 +31,7 @@ import {
   STATUSPAGE_PAGES,
   statuspageApi,
   statuspageError,
+  statuspagePaged,
   statuspageSubscribers,
   WEB_APP_ID,
   WEBSITE_GROUP_ID,
@@ -41,7 +44,8 @@ import { FixtureApi, json, RecordingSleep } from "./ToolImportFixtureTransport";
  * monitors the pages show, component groups the pages' groups, confirmed
  * email subscribers subscribers - and the read itself: only
  * api.statuspage.io, the key as an OAuth header, one request a second,
- * pages counted from 0 or from 1 read the same.
+ * pages counted from 0 or from 1 read the same, and subscribers an earlier
+ * import brought over read past, so each import reads the next ones.
  */
 
 const NOW: number = Date.parse("2026-10-08T12:00:00Z");
@@ -49,6 +53,7 @@ const NOW: number = Date.parse("2026-10-08T12:00:00Z");
 function context(
   api: FixtureApi,
   sleep: RecordingSleep = new RecordingSleep({ now: NOW }),
+  importedSubscriberIds?: ReadonlySet<string>,
 ): ToolImportReadContext {
   return {
     transport: api.transport,
@@ -58,12 +63,14 @@ function context(
     },
     maxRequests: 500,
     deadlineAt: NOW + 60 * 60 * 1000,
+    importedSubscriberIds: importedSubscriberIds,
   };
 }
 
 async function read(
   api: FixtureApi = statuspageApi(),
   sleep?: RecordingSleep,
+  importedSubscriberIds?: ReadonlySet<string>,
 ): Promise<ToolImportSnapshot> {
   return await new AtlassianStatuspageAdapter().read(
     {
@@ -71,7 +78,7 @@ async function read(
       region: "",
       apiKey: STATUSPAGE_KEY,
     },
-    context(api, sleep),
+    context(api, sleep, importedSubscriberIds),
   );
 }
 
@@ -437,5 +444,157 @@ describe("AtlassianStatuspageAdapter: how it reads", () => {
       /^Atlassian Statuspage did not accept the API key\. /,
     );
     expect((failure as Error).message).not.toContain(STATUSPAGE_KEY);
+  });
+});
+
+describe("AtlassianStatuspageAdapter: subscribers an earlier import brought over", () => {
+  const LIMIT: number = TOOL_IMPORT_MAX_RECORDS_PER_KIND;
+
+  const READ_LIMIT_REACHED: ToolImportNote = makeToolImportNote(
+    ToolImportNoteCode.ReadLimitReached,
+    {
+      kind: ToolImportResourceKind.StatusPageSubscriber,
+      limit: LIMIT,
+    },
+  );
+
+  // The public page with `total` email subscribers, sub-0 on.
+  function pageWithSubscribers(total: number): FixtureApi {
+    return statuspageApi().add({
+      path: SUBSCRIBERS_PATH,
+      answers: [statuspagePaged(statuspageSubscribers(total, 0))],
+    });
+  }
+
+  function idsOf(snapshot: ToolImportSnapshot): Array<string> {
+    return (snapshot.statusPageSubscribers || []).map(
+      (subscriber: ImportedStatusPageSubscriber): string => {
+        return subscriber.sourceId;
+      },
+    );
+  }
+
+  function subscriberIds(from: number, count: number): Array<string> {
+    return statuspageSubscribers(count, from).map(
+      (subscriber: Record<string, unknown>): string => {
+        return subscriber["id"] as string;
+      },
+    );
+  }
+
+  test("are read past without being counted: each read collects the next ones, until none are left", async () => {
+    const total: number = 2 * LIMIT + 2000;
+
+    const first: ToolImportSnapshot = await read(pageWithSubscribers(total));
+
+    expect(idsOf(first)).toEqual(subscriberIds(0, LIMIT));
+    expect(first.notes).toEqual([READ_LIMIT_REACHED]);
+
+    // The first ones came over: the next read collects the ones after them.
+    const second: ToolImportSnapshot = await read(
+      pageWithSubscribers(total),
+      undefined,
+      new Set<string>(idsOf(first)),
+    );
+
+    expect(idsOf(second)).toEqual(subscriberIds(LIMIT, LIMIT));
+    expect(second.notes).toEqual([READ_LIMIT_REACHED]);
+
+    // And the one after that, the rest - reading every page to get there.
+    const api: FixtureApi = pageWithSubscribers(total);
+    const third: ToolImportSnapshot = await read(
+      api,
+      undefined,
+      new Set<string>([...idsOf(first), ...idsOf(second)]),
+    );
+
+    expect(idsOf(third)).toEqual(subscriberIds(2 * LIMIT, 2000));
+    expect(third.notes).toEqual([]);
+    expect(api.callsTo(SUBSCRIBERS_PATH)).toHaveLength(total / 100 + 1);
+  });
+
+  test("a page of them is not taken for a page that repeats; page 1 of a list counted from 1 still is", async () => {
+    const api: FixtureApi = statuspageApi()
+      .add({
+        path: SUBSCRIBERS_PATH,
+        answers: [json(statuspageSubscribers(100, 0))],
+      })
+      .add({
+        path: SUBSCRIBERS_PATH,
+        query: { page: "1" },
+        answers: [json(statuspageSubscribers(100, 0))],
+      })
+      .add({
+        path: SUBSCRIBERS_PATH,
+        query: { page: "2" },
+        answers: [json(statuspageSubscribers(100, 100))],
+      })
+      .add({
+        path: SUBSCRIBERS_PATH,
+        query: { page: "3" },
+        answers: [json(statuspageSubscribers(20, 200))],
+      });
+
+    // Every subscriber of the first page came over before.
+    const snapshot: ToolImportSnapshot = await read(
+      api,
+      undefined,
+      new Set<string>(subscriberIds(0, 100)),
+    );
+
+    expect(idsOf(snapshot)).toEqual(subscriberIds(100, 120));
+    expect(api.callsTo(SUBSCRIBERS_PATH)).toHaveLength(4);
+  });
+
+  test("only subscribers are read past: every component and group is read, however many pages they take", async () => {
+    const components: Array<Record<string, unknown>> = Array.from(
+      { length: 250 },
+      (_value: unknown, index: number): Record<string, unknown> => {
+        return {
+          id: `cmp-${index}`,
+          name: `Component ${index}`,
+          status: "operational",
+          position: index,
+          group_id: `grp-${index % 120}`,
+          showcase: true,
+          group: false,
+        };
+      },
+    );
+    const groups: Array<Record<string, unknown>> = Array.from(
+      { length: 120 },
+      (_value: unknown, index: number): Record<string, unknown> => {
+        return { id: `grp-${index}`, name: `Group ${index}`, position: index };
+      },
+    );
+    const api: FixtureApi = statuspageApi()
+      .add({
+        path: `/v1/pages/${PUBLIC_PAGE_ID}/components`,
+        answers: [statuspagePaged(components)],
+      })
+      .add({
+        path: `/v1/pages/${PUBLIC_PAGE_ID}/component-groups`,
+        answers: [statuspagePaged(groups)],
+      });
+
+    // Even ids of components and groups given as brought over are read.
+    const snapshot: ToolImportSnapshot = await read(
+      api,
+      undefined,
+      new Set<string>(["sub1", "sub3", "cmp-0", "cmp-249", "grp-0"]),
+    );
+    const page: ImportedStatusPage = pageOf(snapshot, PUBLIC_PAGE_ID);
+
+    expect(page.resources).toHaveLength(250);
+    expect(page.groups).toHaveLength(120);
+    expect(
+      page.resources.every((resource: ImportedStatusPageResource): boolean => {
+        return Boolean(resource.groupKey);
+      }),
+    ).toBe(true);
+    // The public page's 250 and the internal page's one.
+    expect(snapshot.monitors).toHaveLength(251);
+    expect(idsOf(snapshot)).toEqual(["sub2"]);
+    expect(snapshot.notes).toEqual([]);
   });
 });
