@@ -1,5 +1,6 @@
 import { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import type { BlogPost } from "../Utils/BlogPost";
+import BlogTag from "../Utils/BlogTag";
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
@@ -210,6 +211,7 @@ describe("one X account", () => {
       validationDate: "October 13, 2026",
     };
 
+    // The locals the post route (API/BlogAPI.ts) renders a post with.
     const html: string = await render(path.join("Blog", "Post.ejs"), {
       support: false,
       footerCards: true,
@@ -217,8 +219,10 @@ describe("one X account", () => {
       blackLogo: false,
       requestDemoCta: false,
       blogPost: post,
+      blogTagPath: BlogTag.getPagePathOfTag,
       enableGoogleTagManager: false,
       homeUrl: HOME_URL,
+      seo: { fullCanonicalUrl: post.blogUrl },
     });
 
     expect(metaContents(html, "twitter:site")).toEqual([X_HANDLE]);
