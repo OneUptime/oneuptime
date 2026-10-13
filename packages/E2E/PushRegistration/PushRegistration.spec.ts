@@ -1509,4 +1509,78 @@ test.describe("critical alerts in the device list", () => {
     expect(brightnessOf(light.background)).toBeGreaterThan(200);
     expect(brightnessOf(light.text)).toBeLessThan(120);
   });
+
+  test("in German, on a phone: the steps are German, the app's own labels stay as the app shows them, and nothing runs off the screen", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    const german: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+
+    // A German sentence as the dialog draws it: the app's labels in English.
+    const step: (english: string) => string = (english: string): string => {
+      return german[english]!.split("{{app}}")
+        .join("OneUptime On-Call")
+        .split("{{settings}}")
+        .join("Settings")
+        .split("{{notifications}}")
+        .join("Notifications")
+        .split("{{criticalAlerts}}")
+        .join("Critical On-Call Alerts");
+    };
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seed(request, [PIXEL, IPHONE, CHROME]);
+    await page.goto(`${ROUTE}?lang=de`);
+
+    await expect(
+      page.getByText(german["Push Notification Devices"]!, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator("[data-testid='critical-alert-status'][data-state='on']"),
+    ).toContainText(german["Rings through silent mode and Do Not Disturb"]!);
+
+    await page
+      .locator("[data-testid='critical-alert-status'][data-state='off']")
+      .getByTestId("critical-alert-steps-link")
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      german["Turn on critical alerts"]!,
+    );
+    await expect(steps(page)).toHaveText([
+      step("Open {{app}} on this iPhone or iPad and tap {{settings}}."),
+      step("Under {{notifications}}, turn on {{criticalAlerts}}."),
+      step(
+        "When iOS asks whether {{app}} may send critical alerts, tap Allow.",
+      ),
+    ]);
+    await expect(
+      dialog(page).locator("[data-testid='critical-alert-steps-list'] strong"),
+    ).toHaveText([
+      "OneUptime On-Call",
+      "Settings",
+      "Notifications",
+      "Critical On-Call Alerts",
+      "OneUptime On-Call",
+    ]);
+
+    expect(
+      await page.evaluate((): boolean => {
+        return document.documentElement.scrollWidth <= window.innerWidth;
+      }),
+    ).toBe(true);
+
+    await screenshot(page, "critical-alerts-german-phone-steps-synthetic");
+  });
 });

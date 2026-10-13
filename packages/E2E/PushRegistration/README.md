@@ -88,10 +88,13 @@ OneUptime On-Call app sets, drawn as a status and never as a control:
   offers this browser and the app;
 - a test to a phone with critical alerts on says it went as a critical alert;
 - at 390px in the dark theme the list and the steps fit the screen, in the dark
-  theme's colours.
+  theme's colours;
+- in German at 390px the steps are German, and the app's own labels stay as
+  the app shows them.
 
-The page loads Theme.css and Inter as the Dashboard does, and `?theme=dark`
-turns the dark theme on. `POST /__fixture/devices` with `{ "devices": [...] }`
+The page loads Theme.css and Inter as the Dashboard does, `?theme=dark`
+turns the dark theme on, and `?lang=de` (any Dashboard locale) reads the
+Dashboard's own locale file. `POST /__fixture/devices` with `{ "devices": [...] }`
 replaces the devices listed (`deviceName`, `deviceType` - `ios`, `android` or
 `web` - and optionally `isCriticalAlertEnabled`, `isVerified`, `deviceToken`).
 

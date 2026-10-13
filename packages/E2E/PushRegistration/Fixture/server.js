@@ -39,6 +39,7 @@
  *   POST /__fixture/push-service/gone      a send to it came back 410: its devices stop being verified
  *   POST /__fixture/devices                replace the devices listed, e.g. phones with critical
  *                                          alerts on and off ({ devices: [...] }, as GET state lists them)
+ *   GET  /__fixture/locales/<code>.json    the Dashboard's locale file, for the page's ?lang=<code>
  *
  * The page is the Dashboard's look too: Theme.css, Inter and the dark theme
  * (?theme=dark), as App/FeatureSet/Dashboard/views/index.ejs sets them up.
@@ -56,6 +57,7 @@ const {
 const repository = path.resolve(__dirname, "../../../..");
 const dashboard = path.join(repository, "packages/App/FeatureSet/Dashboard");
 const dashboardPublic = path.join(dashboard, "public");
+const dashboardLocales = path.join(dashboard, "src/Locales");
 const output = path.join(
   repository,
   "output/playwright/push-registration-ui/fixture",
@@ -649,6 +651,23 @@ async function main() {
 
     if (url.pathname === "/theme.css") {
       serveFile(response, theme, "text/css");
+      return;
+    }
+
+    // The Dashboard's locale files, for ?lang= (Fixture.js).
+    if (url.pathname.startsWith("/__fixture/locales/")) {
+      const file = path.resolve(
+        dashboardLocales,
+        url.pathname.slice("/__fixture/locales/".length),
+      );
+      if (
+        !file.startsWith(dashboardLocales + path.sep) ||
+        path.extname(file) !== ".json"
+      ) {
+        response.writeHead(404).end();
+        return;
+      }
+      serveFile(response, file, "application/json");
       return;
     }
 
