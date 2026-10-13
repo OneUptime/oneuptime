@@ -242,6 +242,8 @@ describe("SMSEagle SendSms - SMSEagle errors go to the error port", () => {
       makeOptions(),
     );
 
+    expect(result.executePort?.id).toBe("error");
+
     expect(result.returnValues["error"]).toBe(
       "to: This value should not be blank.; text: This value should not be blank.",
     );
@@ -261,7 +263,7 @@ describe("SMSEagle SendSms - SMSEagle errors go to the error port", () => {
     );
   });
 
-  test("an HTML error page is not quoted, the HTTP status is", async () => {
+  test("an error body that is not JSON names the HTTP status", async () => {
     apiPostMock.mockResolvedValue(
       new HTTPErrorResponse(
         403,
