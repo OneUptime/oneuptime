@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "Heeft iOS het niet gevraagd? Werk {{app}} bij via de App Store: versies vóór 1.5.0 kunnen geen kritieke waarschuwingen ontvangen.",
   "iPhone or iPad": "iPhone of iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "Zodra ze aan staan, kiest u het alarmgeluid voor oproepen onder {{alarmSoundPath}}.",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "Open de app, maak verbinding met {{serverUrl}} en meld u aan. Sta meldingen toe, dan verschijnt uw telefoon in deze lijst."
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "Open de app, maak verbinding met {{serverUrl}} en meld u aan. Sta meldingen toe, dan verschijnt uw telefoon in deze lijst.",
+  "Go back to {{workspace}} and ask your question again.": "Ga terug naar {{workspace}} en stel je vraag opnieuw."
 }

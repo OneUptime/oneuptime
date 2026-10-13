@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "iOS نپرسید؟ {{app}} را از App Store به‌روزرسانی کنید: نسخه‌های پیش از 1.5.0 نمی‌توانند هشدار بحرانی دریافت کنند.",
   "iPhone or iPad": "iPhone یا iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "وقتی روشن شد، صدای هشدار فراخوان‌های آنکال را از {{alarmSoundPath}} انتخاب کنید.",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "آن را باز کنید، به {{serverUrl}} وصل شوید و وارد شوید. اجازهٔ اعلان بدهید تا گوشی شما در این فهرست نمایش داده شود."
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "آن را باز کنید، به {{serverUrl}} وصل شوید و وارد شوید. اجازهٔ اعلان بدهید تا گوشی شما در این فهرست نمایش داده شود.",
+  "Go back to {{workspace}} and ask your question again.": "به {{workspace}} برگردید و دوباره پرسشتان را مطرح کنید."
 }

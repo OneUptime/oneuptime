@@ -105,6 +105,7 @@ import {
 import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
 import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
+import WorkspaceAiAnswerSources from "../WorkspaceAiAnswerSources";
 import { WorkspaceConnectRequestAgainKind } from "../WorkspaceConnectRequest";
 import ProductBrandingText from "../../ProductBrandingText";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
@@ -152,7 +153,6 @@ import AIService, {
   ProjectAiDailyLimitStatus,
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -3559,7 +3559,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         (possibleActionValue["data"] as any)?.["action"],
     );
 
-    // Only respond to card submits, direct messages and @mentions.
+    /*
+     * Only respond to card submits, direct messages and @mentions. Teams
+     * delivers the bot every message of the channels and group chats it is
+     * in (the app's ChannelMessage.Read.Group and ChatMessage.Read.Chat), so
+     * people talking to each other - under a notification card included -
+     * get no answer from it (#4768).
+     */
     if (!isCardSubmit && !isDirectMessage && !isMentioned) {
       logger.debug("Bot not mentioned in channel message, ignoring");
       return;
@@ -4158,15 +4164,29 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       /*
        * Asked to connect, mentioning them, with a Connect button - and to
        * ask again once they have: the answer is read with their permissions.
+       * Once in the conversation - a channel's thread, a chat - and not on
+       * each question they ask there while its button works: the card
+       * stays where they asked (MicrosoftTeamsConnectPrompt.promptOnce).
        */
-      await MicrosoftTeamsConnectPrompt.prompt({
-        turnContext: turnContext,
-        projectId: projectId,
-        description: {
-          purpose: `ask ${ProductBrandingText.getProductName()} AI`,
-          again: { kind: WorkspaceConnectRequestAgainKind.Question },
-        },
-      });
+      const isPrompted: boolean | null =
+        await MicrosoftTeamsConnectPrompt.promptOnce({
+          turnContext: turnContext,
+          projectId: projectId,
+          description: {
+            purpose: `ask ${ProductBrandingText.getProductName()} AI`,
+            again: { kind: WorkspaceConnectRequestAgainKind.Question },
+          },
+        });
+
+      if (isPrompted === null) {
+        logger.debug(
+          "Not answered: the Teams user was asked to connect their account in this conversation already",
+          {
+            projectId: projectId.toString(),
+          },
+        );
+      }
+
       return;
     }
 
@@ -4302,11 +4322,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
-        const sourceLines: Array<MarkdownText> = result.citations.map(
-          (citation: AIChatCitation): MarkdownText => {
-            return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
-          },
-        );
+        const sourceLines: Array<MarkdownText> =
+          WorkspaceAiAnswerSources.getLines(result.citations);
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 

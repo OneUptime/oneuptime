@@ -152,7 +152,7 @@ OneUptime ने किसी घटना, अलर्ट, एपिसोड 
 | `show active incidents`, `show active alerts` | बताता है कि अभी क्या खुला है। |
 | `show scheduled maintenance`, `show ongoing maintenance` | आने वाले, या चल रहे, रखरखाव इवेंट सूचीबद्ध करता है। |
 
-`show` सूचियों को छोड़कर, ये वही शब्द हैं जो Slack में `/oneuptime` के बाद आते हैं; `create incident` और `create maintenance` भी काम करते रहते हैं। OneUptime AI से पूछने के लिए प्रोजेक्ट के लिए AI चालू होना चाहिए। [AI से पूछें](/docs/ai/ask-ai) देखें।
+`show` सूचियों को छोड़कर, ये वही शब्द हैं जो Slack में `/oneuptime` के बाद आते हैं; `create incident` और `create maintenance` भी काम करते रहते हैं। OneUptime AI से पूछने के लिए आपका अपना Microsoft Teams खाता कनेक्ट होना और प्रोजेक्ट के लिए AI चालू होना चाहिए। अगर आपका खाता कनेक्ट नहीं है, तो बॉट हर थ्रेड या चैट में एक बार आपसे उसे कनेक्ट करने को कहता है, **Connect Microsoft Teams account** बटन के साथ। [AI से पूछें](/docs/ai/ask-ai) देखें।
 
 ## Microsoft Teams से घटनाएं और रखरखाव बनाना
 

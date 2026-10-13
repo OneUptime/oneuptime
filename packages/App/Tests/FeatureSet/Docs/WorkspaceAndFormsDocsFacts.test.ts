@@ -17,6 +17,8 @@ import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
   WorkspaceCommandDefinition,
 } from "Common/Server/Utils/Workspace/WorkspaceCommands";
+import WorkspaceConnectPromptOnce from "Common/Server/Utils/Workspace/WorkspaceConnectPromptOnce";
+import WorkspaceConnectRequest from "Common/Server/Utils/Workspace/WorkspaceConnectRequest";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -896,6 +898,89 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(markdown).toContain(
       "@mention OneUptime in a channel, or send it a direct message, and it answers in the thread",
     );
+
+    /*
+     * A reply in a conversation with OneUptime AI needs no mention: the app
+     * hears its channels' messages for that, and answers only what is
+     * addressed to it - never people talking under a notification (#4768).
+     */
+    expect(manifest.settings.event_subscriptions.bot_events).toEqual(
+      expect.arrayContaining([
+        "message.channels",
+        "message.groups",
+        "message.mpim",
+      ]),
+    );
+    const lines: Array<string> = markdown.split("\n");
+    const rule: number = lines.indexOf(
+      "OneUptime answers only what is addressed to it.",
+    );
+
+    /*
+     * The rule, then how it works as a list a reader can scan: one line was
+     * a wall of text thirteen lines long on a phone.
+     */
+    expect(rule).toBeGreaterThan(-1);
+    expect(lines.slice(rule + 1, rule + 6)).toEqual([
+      "",
+      "- **In your own conversation, just reply.** A question you ask in a channel, not in a thread, starts a conversation in the thread under it: reply there to ask more without mentioning OneUptime again, and anyone else joins in by mentioning it.",
+      "- **In any other thread, mention OneUptime.** Under an incident's message, for example, mention it each time: what people write to each other there gets no answer.",
+      "- **If your Slack account is not connected.** OneUptime asks you once in each conversation to connect it, in a message only you see, with a **Connect Slack account** button.",
+      "",
+    ]);
+    // Under the section that says how to ask, before the next one.
+    expect(
+      lines
+        .slice(0, rule)
+        .reverse()
+        .find((line: string): boolean => {
+          return line.startsWith("## ");
+        }),
+    ).toBe("## Asking OneUptime AI from Slack");
+  });
+
+  it("says a question from an account not connected is asked to connect once in a conversation, for as long as its Connect button works", () => {
+    // Asked again once the button it was given has expired, with a new one.
+    expect(WorkspaceConnectPromptOnce.ASKED_FOR_SECONDS).toBe(
+      WorkspaceConnectRequest.EXPIRES_IN_SECONDS,
+    );
+
+    const minutes: number = WorkspaceConnectRequest.EXPIRES_IN_SECONDS / 60;
+
+    expect(englishPage(SLACK)).toContain(
+      "- **If your Slack account is not connected.** OneUptime asks you once in each conversation to connect it, in a message only you see, with a **Connect Slack account** button.",
+    );
+    expect(englishPage(SLACK)).toContain(
+      `The button works once, for ${minutes} minutes`,
+    );
+    expect(englishPage(TEAMS)).toContain(
+      "Asking OneUptime AI needs your own Microsoft Teams account connected, and AI turned on for the project. If yours is not connected, the bot asks you once in each thread or chat to connect it, with a **Connect Microsoft Teams account** button.",
+    );
+    expect(englishPage(TEAMS)).toContain(
+      `The button works once, for ${minutes} minutes`,
+    );
+  });
+
+  /*
+   * Replies under a notification used to be answered; somebody whose reply
+   * gets no answer now looks under Troubleshooting. The entry says the rule
+   * again, what to do when not connected, and sends them to the section.
+   */
+  it("tells somebody whose reply in a thread got no answer why, under Troubleshooting", () => {
+    const lines: Array<string> = englishPage(SLACK).split("\n");
+    const entry: number = lines.indexOf(
+      ":::details OneUptime does not answer a reply in a thread",
+    );
+
+    expect(entry).toBeGreaterThan(lines.indexOf("## Troubleshooting"));
+    expect(entry).toBeLessThan(lines.indexOf("## Next steps"));
+    expect(lines.slice(entry + 1, entry + 3)).toEqual([
+      "A reply with no mention is answered only in your own conversation with OneUptime AI: the thread under a question you asked it in a channel. In any other thread, such as the one under an incident's message, @mention OneUptime. If your Slack account is not connected, OneUptime asks you to connect it once in a conversation, not on every message: press **Connect Slack account** in that message, or link it under **User Settings** > **Workspace** > **Slack**. See [Asking OneUptime AI from Slack](#asking-oneuptime-ai-from-slack).",
+      ":::",
+    ]);
+    // The link lands on the section that states the rule.
+    expect(lines).toContain("## Asking OneUptime AI from Slack");
+    expect(lines).toContain("OneUptime answers only what is addressed to it.");
   });
 
   it("lists the bot's commands as its help does, in Slack's words", () => {

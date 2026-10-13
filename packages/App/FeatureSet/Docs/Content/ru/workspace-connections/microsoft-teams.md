@@ -152,7 +152,7 @@ flowchart TB
 | `show active incidents`, `show active alerts` | Показывает то, что открыто сейчас. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Показывает предстоящие или текущие события обслуживания. |
 
-Кроме списков `show`, это те же слова, что идут после `/oneuptime` в Slack; `create incident` и `create maintenance` тоже по-прежнему работают. Для вопросов OneUptime AI нужен включённый для проекта ИИ. См. [Спросить ИИ](/docs/ai/ask-ai).
+Кроме списков `show`, это те же слова, что идут после `/oneuptime` в Slack; `create incident` и `create maintenance` тоже по-прежнему работают. Для вопросов OneUptime AI нужны ваша подключённая учётная запись Microsoft Teams и включённый для проекта ИИ. Если ваша учётная запись не подключена, бот один раз в каждой ветке или чате просит подключить её, с кнопкой **Connect Microsoft Teams account**. См. [Спросить ИИ](/docs/ai/ask-ai).
 
 ## Создание инцидентов и обслуживания из Microsoft Teams
 

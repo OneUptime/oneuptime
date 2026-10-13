@@ -152,7 +152,7 @@ Envie uma mensagem ao bot em um chat pessoal, ou mencione o OneUptime com @ em u
 | `show active incidents`, `show active alerts` | Lista o que está aberto agora. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Lista os eventos de manutenção futuros, ou em andamento. |
 
-Exceto as listas `show`, estas são as palavras que vêm depois de `/oneuptime` no Slack; `create incident` e `create maintenance` continuam funcionando. Perguntar ao OneUptime AI requer a IA ativada para o projeto. Consulte [Pergunte à IA](/docs/ai/ask-ai).
+Exceto as listas `show`, estas são as palavras que vêm depois de `/oneuptime` no Slack; `create incident` e `create maintenance` continuam funcionando. Perguntar ao OneUptime AI requer a sua própria conta do Microsoft Teams conectada e a IA ativada para o projeto. Se a sua não estiver conectada, o bot pede uma vez em cada thread ou chat que você a conecte, com um botão **Connect Microsoft Teams account**. Consulte [Pergunte à IA](/docs/ai/ask-ai).
 
 ## Criar incidentes e manutenções pelo Microsoft Teams
 

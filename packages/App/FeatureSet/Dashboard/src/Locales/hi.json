@@ -28284,5 +28284,6 @@
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "iOS ने नहीं पूछा? App Store से {{app}} अपडेट करें: 1.5.0 से पहले के वर्शन महत्वपूर्ण अलर्ट नहीं पा सकते।",
   "iPhone or iPad": "iPhone या iPad",
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "चालू होने के बाद, ऑन-कॉल पेज के लिए अलार्म की आवाज़ {{alarmSoundPath}} में चुनें।",
-  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "इसे खोलें, {{serverUrl}} से कनेक्ट करें और साइन इन करें। सूचनाओं की अनुमति दें, फिर आपका फ़ोन इस सूची में दिखेगा।"
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "इसे खोलें, {{serverUrl}} से कनेक्ट करें और साइन इन करें। सूचनाओं की अनुमति दें, फिर आपका फ़ोन इस सूची में दिखेगा।",
+  "Go back to {{workspace}} and ask your question again.": "{{workspace}} पर वापस जाएँ और अपना प्रश्न फिर से पूछें।"
 }
