@@ -110,7 +110,7 @@ De to skilletegnene må være forskjellige, kan ikke inneholde hverandre og kan 
 
 ### Eksempel: Sophos XGS-brannmur
 
-Når en Sophos XGS-brannmur sender syslog til en [probe](/docs/monitor/network-device-monitor), lagres hver melding som en logg for nettverksenheten, med syslog-meldingen som tekst. Slik tolker du den:
+OneUptime leser selv syslog fra Sophos og FortiGate som `sophos.*`- og `fortigate.*`-attributter (se [Nettverkshendelser](/docs/monitor/network-events)); dette eksempelet bygger det samme for hånd, slik du ville gjort for et format det ikke kjenner. Når en Sophos XGS-brannmur sender syslog til en [probe](/docs/monitor/network-device-monitor), lagres hver melding som en logg for nettverksenheten, med syslog-meldingen som tekst. Slik tolker du den:
 
 :::steps
 #### Opprett en pipeline for brannmuren
@@ -199,7 +199,7 @@ Flytter verdien fra ett attributt (**Kildenøkkel**) til et annet (**Målnøkkel
 
 ## Kategoriprosessor
 
-Vurderer en liste med regler i rekkefølge og lagrer navnet på den første regelen med samsvarende filter i et målattributt, slik at du kan finne alle "Payment Error"-logger på én gang. Sett **Målattributt** (`category` som standard), og legg deretter til **Kategoriregler**: et **Category name** og betingelsene under **When logs match**. Den første regelen som samsvarer, vinner; en logg som ikke samsvarer med noen, forblir uendret.
+Vurderer en liste med regler i rekkefølge og lagrer navnet på den første regelen med samsvarende filter i et målattributt, slik at du kan finne alle "Payment Error"-logger på én gang. Sett **Målattributt** (`category` som standard), og legg deretter til **Kategoriregler**: et **Category name** og betingelsene under **When logs match**. Den første regelen som samsvarer, vinner; en logg som ikke samsvarer med noen, forblir uendret. På loggene til en nettverksenhet gjør en regel med navn som en hendelse (`ups.on_battery`) under målattributtet `event.name` loggen til en [nettverkshendelse](/docs/monitor/network-events#dine-egne-hendelser).
 
 ## Neste trinn
 

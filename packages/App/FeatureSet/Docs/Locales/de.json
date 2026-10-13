@@ -288,6 +288,7 @@
     "Network Sites (Health Rollup & Uptime)": "Netzwerkstandorte (Integritätszusammenfassung & Verfügbarkeit)",
     "Network Vendor Guides (Sophos, Extreme, Cambium)": "Leitfäden für Netzwerkhersteller (Sophos, Extreme, Cambium)",
     "Network Traffic (NetFlow, IPFIX, sFlow)": "Netzwerkverkehr (NetFlow, IPFIX, sFlow)",
+    "Network Events (Syslog and SNMP Traps)": "Netzwerkereignisse (Syslog und SNMP-Traps)",
     "Host Monitor": "Host-Überwachung",
     "Podman Monitor": "Podman-Überwachung",
     "Proxmox Monitor": "Proxmox-Überwachung",

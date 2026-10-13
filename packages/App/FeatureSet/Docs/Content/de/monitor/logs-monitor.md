@@ -63,6 +63,7 @@ Klicken Sie auf **Monitor erstellen**. Der Monitor öffnet sich auf seiner Seite
 | **Überwachungsprotokolle für (time)** | Logs der letzten 5 Sekunden bis zu den letzten 24 Stunden. | **Letzte 1 Minute** |
 | **Protokollschweregrad** | Logs mit einem der gewählten Schweregrade. | Leer: jeder Schweregrad |
 | **Group by Attributes** | Kein Filter: zählt jede Kombination der Werte dieser Attribute getrennt. | Leer: eine Anzahl |
+| **Behoben durch Attribute** | Kein Filter: das Log, das eine Gruppe behebt. Erscheint, sobald **Group by Attributes** ein Attribut hat; siehe [Durch ein Log behoben](#durch-ein-log-behoben). | Leer: eine Gruppe wird behoben, wenn ihre Logs aufhören |
 | **Nach Telemetrie-Dienst filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Dienste. | Leer: jeder Dienst |
 | **Nach Infrastruktur-Entität filtern** (unter **Weitere Felder**) | Logs von einem der gewählten Hosts, Pods, Container und anderen Entitäten. | Leer: jede Entität |
 | **Nach Attributen filtern** (unter **Weitere Felder**) | Logs, deren Attribute jede Bedingung erfüllen. Jede Bedingung hat ihren eigenen Operator, etwa „gleich“ oder „enthält“. | Leer: keine Bedingung |
@@ -170,7 +171,21 @@ flowchart TB
 
 Die Warnung oder der Vorfall jeder Gruppe wird für sich behoben. Sobald eine Gruppe die Kriterien nicht mehr erfüllt – `HQ-Branch1` protokolliert innerhalb des Zeitfensters keine Beendigungen mehr –, wird ihre Warnung behoben, während die von `Branch2` offen bleibt, bis auch `Branch2` aufhört. Die Erholung einer Gruppe schließt nie die Warnung einer anderen.
 
-Ein Logs-Monitor sieht Ereignisse, keinen Zustand: Die Warnung einer Gruppe wird behoben, sobald diese Gruppe ein ganzes Zeitfenster lang nichts protokolliert hat, das die Kriterien erfüllt – ob der Tunnel wieder da ist oder nicht.
+Ein Logs-Monitor sieht Ereignisse, keinen Zustand: Die Warnung einer Gruppe wird behoben, sobald diese Gruppe ein ganzes Zeitfenster lang nichts protokolliert hat, das die Kriterien erfüllt – ob der Tunnel wieder da ist oder nicht, es sei denn, der Monitor nennt das Log, das seine Rückkehr meldet, wie unten beschrieben.
+
+### Durch ein Log behoben
+
+Ein Gerät, das einen Tunnel als ausgefallen meldet, meldet ihn in der Regel auch wieder als aktiv. **Behoben durch Attribute** benennt dieses Log: Ist es gesetzt, bleibt die Warnung oder der Vorfall einer Gruppe offen, bis ein Log mit diesen Attributen für dieselbe Gruppe eintrifft, statt behoben zu werden, wenn die Logs der Gruppe aufhören.
+
+Nehmen Sie einen Monitor, der Logs mit `event.name` = `vpn.tunnel_down` zählt, gruppiert nach `event.device` und `vpn.tunnel.name`, mit **Behoben durch Attribute** gesetzt auf `event.name` = `vpn.tunnel_up`. Fällt der Tunnel `HQ-Branch1` aus, öffnet das seine Warnung. Die Warnung bleibt über Nacht offen, obwohl die Firewall nichts mehr zu dem Tunnel protokolliert, und wird behoben, wenn die Firewall `HQ-Branch1` als aktiv meldet. Bricht der Tunnel erneut ab, öffnet das eine neue Warnung.
+
+- Das Feld erscheint, sobald **Group by Attributes** ein Attribut hat. Es nimmt bis zu 10 Attribute auf, und ein behebendes Log trägt sie alle.
+- Ein behebendes Log gehört zu einer Gruppe, wenn es für die Group-by-Attribute die Werte der Gruppe hat; beide Arten von Logs müssen diese Attribute also tragen.
+- Die Telemetriedienste und das Zeitfenster des Monitors gelten auch für behebende Logs. Seine Text- und Schweregradfilter nicht: Sie beschreiben das Problem.
+- Eine Gruppe, deren neuestes Log ein behebendes ist, wird geschlossen. Eine, die das Problem danach erneut protokolliert hat, bleibt offen.
+- Sie können eine Warnung weiterhin selbst beheben.
+
+[Netzwerkereignisse](/docs/monitor/network-events) legt diese Monitore für Sie an, ein Klick pro Warnung.
 
 ### Beispiel: eine Warnung pro Sophos-IPsec-Tunnel
 
