@@ -477,6 +477,11 @@ const Push: () => JSX.Element = (): ReactElement => {
       },
     });
 
+  // Whether the dialog that says a test went out also leads to the steps.
+  const canShowStepsAfterTest: boolean = Boolean(
+    testedDevice && canOfferCriticalAlertStepsAfterTest(testedDevice),
+  );
+
   return (
     <>
       <ModelTable<UserPush>
@@ -784,35 +789,33 @@ const Push: () => JSX.Element = (): ReactElement => {
        * dialog leads there - to that phone's steps - rather than leaving the
        * advice with nowhere to go. Any other device's dialog only closes.
        */}
-      {testedDevice && canOfferCriticalAlertStepsAfterTest(testedDevice) ? (
+      {testedDevice ? (
         <ConfirmModal
           title="Test Notification Sent"
           description={getTestNotificationSentDescription(
             translator,
             testedDevice,
           )}
-          submitButtonType={ButtonStyleType.PRIMARY}
-          submitButtonText="How to turn on"
+          submitButtonType={
+            canShowStepsAfterTest
+              ? ButtonStyleType.PRIMARY
+              : ButtonStyleType.NORMAL
+          }
+          submitButtonText={canShowStepsAfterTest ? "How to turn on" : "Close"}
           closeButtonText="Close"
-          onClose={() => {
-            setTestedDevice(null);
-          }}
+          onClose={
+            canShowStepsAfterTest
+              ? () => {
+                  setTestedDevice(null);
+                }
+              : undefined
+          }
           onSubmit={() => {
             setTestedDevice(null);
-            setStepsDevice(testedDevice);
-          }}
-        />
-      ) : testedDevice ? (
-        <ConfirmModal
-          title="Test Notification Sent"
-          description={getTestNotificationSentDescription(
-            translator,
-            testedDevice,
-          )}
-          submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setTestedDevice(null);
+
+            if (canShowStepsAfterTest) {
+              setStepsDevice(testedDevice);
+            }
           }}
         />
       ) : (
