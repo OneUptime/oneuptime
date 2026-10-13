@@ -135,13 +135,13 @@ const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  * column, and the docs scroll it rather than shrink it.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
-  [DASHBOARDS_INDEX]: 31,
-  [AUTHORING]: 28,
-  [WIDGETS]: 28,
-  [VARIABLES]: 28,
-  [DATA_SOURCES]: 28,
-  [SHARING]: 28,
-  [CONFIGURATION]: 30,
+  [DASHBOARDS_INDEX]: 25,
+  [AUTHORING]: 23,
+  [WIDGETS]: 23,
+  [VARIABLES]: 26,
+  [DATA_SOURCES]: 26,
+  [SHARING]: 25,
+  [CONFIGURATION]: 24,
 };
 
 /*
