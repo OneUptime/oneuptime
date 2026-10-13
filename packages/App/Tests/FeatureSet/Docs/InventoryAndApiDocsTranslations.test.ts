@@ -1126,6 +1126,10 @@ describe("the helpers, on these pages' shapes", () => {
     expect(numbersIn("100,000 connections")).toEqual(["100000"]);
     expect(numbersIn("۱۰۰٬۰۰۰ اتصال")).toEqual(["100000"]);
     expect(numbersIn("30 Minuten und 1,5")).toEqual(["1.5", "30"]);
+    // Every group of a number, however many it has, in any separator.
+    expect(numbersIn("1,000,000 rows")).toEqual(["1000000"]);
+    expect(numbersIn("1 000 000 lignes")).toEqual(["1000000"]);
+    expect(numbersIn("1.000.000 Zeilen und 2,5")).toEqual(["1000000", "2.5"]);
   });
 
   it("find an untranslated line of prose, but not a line of names or code", () => {
