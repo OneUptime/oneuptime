@@ -134,8 +134,11 @@ const HR_PROCESSOR_LOAD: string = "1.3.6.1.2.1.25.3.3.1.2";
 
 /*
  * A UAP-nanoHD: a 2.4 GHz and a 5 GHz radio, each broadcasting the office
- * SSID and the hidden mesh SSID UniFi adds ("vwire-..."), CPU numbered from
- * 196608 as Host Resources numbers it on UniFi firmware.
+ * SSID and UniFi's hidden device adoption network ("element-..."), the
+ * 5 GHz radio also a guest SSID switched off by its schedule and the
+ * wireless mesh link UniFi adds ("vwire-...", usage "downlink", interface
+ * vwire...), one meshed access point on it. CPU numbered from 196608 as
+ * Host Resources numbers it on UniFi firmware.
  */
 function unifiResults(): Array<SnmpTableResult> {
   return [
@@ -172,6 +175,7 @@ function unifiResults(): Array<SnmpTableResult> {
           values: {
             [`${UNIFI_VAP}.6`]: "Office",
             [`${UNIFI_VAP}.9`]: "ng",
+            [`${UNIFI_VAP}.7`]: "ath0",
             [`${UNIFI_VAP}.4`]: 6,
             [`${UNIFI_VAP}.8`]: 4,
             [`${UNIFI_VAP}.21`]: 23,
@@ -183,12 +187,14 @@ function unifiResults(): Array<SnmpTableResult> {
         {
           index: "2",
           values: {
-            [`${UNIFI_VAP}.6`]: "vwire-5f0e2a91c3b7d468",
+            [`${UNIFI_VAP}.6`]: "element-5f0e2a91c3b7d468",
             [`${UNIFI_VAP}.9`]: "ng",
+            [`${UNIFI_VAP}.7`]: "ath1",
             [`${UNIFI_VAP}.4`]: 6,
             [`${UNIFI_VAP}.8`]: 0,
             [`${UNIFI_VAP}.21`]: 23,
             [`${UNIFI_VAP}.22`]: 1,
+            [`${UNIFI_VAP}.23`]: "user",
           },
         },
         {
@@ -196,6 +202,7 @@ function unifiResults(): Array<SnmpTableResult> {
           values: {
             [`${UNIFI_VAP}.6`]: "Office",
             [`${UNIFI_VAP}.9`]: "na",
+            [`${UNIFI_VAP}.7`]: "ath2",
             [`${UNIFI_VAP}.4`]: 157,
             [`${UNIFI_VAP}.8`]: 14,
             [`${UNIFI_VAP}.21`]: 26,
@@ -207,12 +214,41 @@ function unifiResults(): Array<SnmpTableResult> {
         {
           index: "4",
           values: {
-            [`${UNIFI_VAP}.6`]: "vwire-5f0e2a91c3b7d468",
+            [`${UNIFI_VAP}.6`]: "Visitors",
             [`${UNIFI_VAP}.9`]: "na",
+            [`${UNIFI_VAP}.7`]: "ath3",
             [`${UNIFI_VAP}.4`]: 157,
             [`${UNIFI_VAP}.8`]: 0,
             [`${UNIFI_VAP}.21`]: 26,
             [`${UNIFI_VAP}.22`]: 2,
+            [`${UNIFI_VAP}.23`]: "guest",
+          },
+        },
+        {
+          index: "5",
+          values: {
+            [`${UNIFI_VAP}.6`]: "vwire-a3c86e0f15d2b947",
+            [`${UNIFI_VAP}.9`]: "na",
+            [`${UNIFI_VAP}.7`]: "vwire4",
+            [`${UNIFI_VAP}.4`]: 157,
+            [`${UNIFI_VAP}.8`]: 1,
+            [`${UNIFI_VAP}.21`]: 26,
+            [`${UNIFI_VAP}.3`]: 970,
+            [`${UNIFI_VAP}.22`]: 1,
+            [`${UNIFI_VAP}.23`]: "downlink",
+          },
+        },
+        {
+          index: "6",
+          values: {
+            [`${UNIFI_VAP}.6`]: "element-5f0e2a91c3b7d468",
+            [`${UNIFI_VAP}.9`]: "na",
+            [`${UNIFI_VAP}.7`]: "ath5",
+            [`${UNIFI_VAP}.4`]: 157,
+            [`${UNIFI_VAP}.8`]: 0,
+            [`${UNIFI_VAP}.21`]: 26,
+            [`${UNIFI_VAP}.22`]: 1,
+            [`${UNIFI_VAP}.23`]: "user",
           },
         },
       ],
@@ -271,10 +307,11 @@ describe("Ubiquiti UniFi access points", () => {
       utilizationPercent: 4,
     });
 
+    // The meshed access point on the mesh link is no client.
     expect(summary.totalClients).toBe(18);
   });
 
-  it("lists every SSID on every band, the mesh SSID included", () => {
+  it("lists the SSIDs people join on every band, and none UniFi runs for itself", () => {
     const summary: WifiSummary = WifiRadioUtil.getSummary(
       walk("ubiquiti-unifi-ap", unifiResults()),
     );
@@ -283,13 +320,41 @@ describe("Ubiquiti UniFi access points", () => {
       summary.ssids.map((ssid: WifiSsidView) => {
         return `${ssid.ssid}|${ssid.band}|${ssid.clients}`;
       }),
-    ).toEqual([
-      "Office|2.4 GHz|4",
-      "vwire-5f0e2a91c3b7d468|2.4 GHz|0",
-      "Office|5 GHz|14",
-      "vwire-5f0e2a91c3b7d468|5 GHz|0",
-    ]);
+    ).toEqual(["Office|2.4 GHz|4", "Office|5 GHz|14", "Visitors|5 GHz|0"]);
     expect(summary.ssids[0]!.name).toBe("Office / 2.4 GHz");
+  });
+
+  it("stores no row for the mesh link or the adoption network, so nothing counts or charts them", () => {
+    const ssids: SnmpTableSnapshot = snapshotOf(
+      walk("ubiquiti-unifi-ap", unifiResults()),
+      "wifi_ssids",
+    );
+
+    expect(labels(ssids)).toEqual([
+      "Office / 2.4 GHz",
+      "Office / 5 GHz",
+      "Visitors / 5 GHz",
+    ]);
+    expect(
+      ssids.rows.map((row: SnmpTableSnapshotRow) => {
+        return row.index;
+      }),
+    ).toEqual(["1", "3", "4"]);
+  });
+
+  it("names each SSID's interface, as the Interfaces page does", () => {
+    const ssids: SnmpTableSnapshot = snapshotOf(
+      walk("ubiquiti-unifi-ap", unifiResults()),
+      "wifi_ssids",
+    );
+
+    expect(
+      ssids.rows.map((row: SnmpTableSnapshotRow) => {
+        return row.cells[`${UNIFI_VAP}.7`]!.display;
+      }),
+    ).toEqual(["ath0", "ath2", "ath3"]);
+    // Text: "ath0" is no number to chart.
+    expect(ssids.rows[0]!.cells[`${UNIFI_VAP}.7`]!.numeric).toBeUndefined();
   });
 
   it("reads connection quality in percent, though UniFi reports tenths of one", () => {
@@ -298,14 +363,26 @@ describe("Ubiquiti UniFi access points", () => {
       "wifi_ssids",
     );
 
-    expect(ssids.rows[0]!.cells[`${UNIFI_VAP}.3`]).toEqual({
+    const rowLabelled: (label: string) => SnmpTableSnapshotRow = (
+      label: string,
+    ): SnmpTableSnapshotRow => {
+      return ssids.rows.find((row: SnmpTableSnapshotRow) => {
+        return row.label === label;
+      })!;
+    };
+
+    expect(rowLabelled("Office / 2.4 GHz").cells[`${UNIFI_VAP}.3`]).toEqual({
       raw: 789,
       display: "78.9",
       numeric: 78.9,
     });
-    expect(ssids.rows[2]!.cells[`${UNIFI_VAP}.3`]!.numeric).toBe(99.1);
+    expect(rowLabelled("Office / 5 GHz").cells[`${UNIFI_VAP}.3`]!.numeric).toBe(
+      99.1,
+    );
     // A VAP that reports no quality has none - not 0.
-    expect(ssids.rows[1]!.cells[`${UNIFI_VAP}.3`]!.numeric).toBeUndefined();
+    expect(
+      rowLabelled("Visitors / 5 GHz").cells[`${UNIFI_VAP}.3`]!.numeric,
+    ).toBeUndefined();
   });
 
   it("labels a VAP's up/down state without alerting on it - a scheduled SSID is down on purpose", () => {
@@ -326,7 +403,15 @@ describe("Ubiquiti UniFi access points", () => {
       walk("ubiquiti-unifi-ap", unifiResults()),
       "wifi_ssids",
     );
-    expect(snapshot.rows[3]!.cells[`${UNIFI_VAP}.22`]!.display).toBe("down");
+    const visitors: SnmpTableSnapshotRow | undefined = snapshot.rows.find(
+      (row: SnmpTableSnapshotRow) => {
+        return row.label === "Visitors / 5 GHz";
+      },
+    );
+
+    // Switched off by its schedule, and still a network of the customer's.
+    expect(visitors?.cells[`${UNIFI_VAP}.22`]!.display).toBe("down");
+    expect(visitors?.cells[`${UNIFI_VAP}.23`]!.display).toBe("guest");
   });
 
   it("reads CPU per core whatever Host Resources numbers the cores", () => {
@@ -373,6 +458,246 @@ describe("Ubiquiti UniFi access points", () => {
       frequencyMHz: 6135,
       clients: 2,
     });
+  });
+});
+
+/*
+ * The access point in issue #4730: a UAP-AC-Lite managed by UniFi OS
+ * Server, broadcasting one SSID - DEMO - on 2.4 and 5 GHz. Its VAP table
+ * holds, in this order, the adoption network on 2.4 GHz, DEMO, the adoption
+ * network on 5 GHz, the mesh link (5 GHz only, as UniFi meshes) and DEMO
+ * again: five rows, which the Wi-Fi tab listed as five SSIDs. Channel 6 and
+ * 149 at 20 dBm, nobody connected - as the issue's screenshot shows; the
+ * adoption and mesh networks' ids are invented in the shape UniFi gives
+ * them.
+ */
+const ISSUE_4730_ADOPTION: string = "element-4b7e19d0c2a5f863";
+const ISSUE_4730_MESH_LINK: string = "vwire-e05c7a9b318d24f6";
+
+function issue4730Vap(data: {
+  index: string;
+  essid: string;
+  radio: "ng" | "na";
+  name: string;
+  usage: string;
+}): SnmpTableResult["rows"][number] {
+  return {
+    index: data.index,
+    values: {
+      [`${UNIFI_VAP}.6`]: data.essid,
+      [`${UNIFI_VAP}.9`]: data.radio,
+      [`${UNIFI_VAP}.7`]: data.name,
+      [`${UNIFI_VAP}.4`]: data.radio === "ng" ? 6 : 149,
+      [`${UNIFI_VAP}.8`]: 0,
+      [`${UNIFI_VAP}.21`]: 20,
+      [`${UNIFI_VAP}.22`]: 1,
+      [`${UNIFI_VAP}.23`]: data.usage,
+    },
+  };
+}
+
+function issue4730Results(): Array<SnmpTableResult> {
+  return [
+    {
+      key: "wifi_radios",
+      rows: [
+        {
+          index: "1",
+          values: {
+            [`${UNIFI_RADIO}.3`]: "ng",
+            [`${UNIFI_RADIO}.2`]: "wifi0",
+            [`${UNIFI_RADIO}.6`]: 22,
+          },
+        },
+        {
+          index: "2",
+          values: {
+            [`${UNIFI_RADIO}.3`]: "na",
+            [`${UNIFI_RADIO}.2`]: "wifi1",
+            [`${UNIFI_RADIO}.6`]: 7,
+          },
+        },
+      ],
+    },
+    {
+      key: "wifi_ssids",
+      rows: [
+        issue4730Vap({
+          index: "1",
+          essid: ISSUE_4730_ADOPTION,
+          radio: "ng",
+          name: "ath0",
+          usage: "user",
+        }),
+        issue4730Vap({
+          index: "2",
+          essid: "DEMO",
+          radio: "ng",
+          name: "ath1",
+          usage: "user",
+        }),
+        issue4730Vap({
+          index: "3",
+          essid: ISSUE_4730_ADOPTION,
+          radio: "na",
+          name: "ath2",
+          usage: "user",
+        }),
+        issue4730Vap({
+          index: "4",
+          essid: ISSUE_4730_MESH_LINK,
+          radio: "na",
+          name: "vwire3",
+          usage: "downlink",
+        }),
+        issue4730Vap({
+          index: "5",
+          essid: "DEMO",
+          radio: "na",
+          name: "ath4",
+          usage: "user",
+        }),
+      ],
+    },
+  ];
+}
+
+// The template's SSID table as a device set up before #4730 stores it.
+function unifiSsidTableAsCopiedBefore4730(): SnmpTableDefinition {
+  const table: SnmpTableDefinition = tableOf("ubiquiti-unifi-ap", "wifi_ssids");
+
+  return {
+    ...table,
+    description:
+      "unifiVapTable - one row per SSID on each radio, with that radio's channel and transmit power.",
+    // No interface column: it came with the fix.
+    columns: table.columns.filter((column: SnmpTableColumn) => {
+      return column.oid !== `${UNIFI_VAP}.7`;
+    }),
+  };
+}
+
+describe("the UniFi access point in issue #4730", () => {
+  it("lists DEMO on 2.4 and 5 GHz, and nothing else", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      walk("ubiquiti-unifi-ap", issue4730Results()),
+    );
+
+    expect(
+      summary.ssids.map((ssid: WifiSsidView) => {
+        return `${ssid.ssid}|${ssid.band}|${ssid.clients}`;
+      }),
+    ).toEqual(["DEMO|2.4 GHz|0", "DEMO|5 GHz|0"]);
+  });
+
+  it("counts two SSIDs, two radios and no clients - the tiles of its Wi-Fi tab", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      walk("ubiquiti-unifi-ap", issue4730Results()),
+    );
+
+    expect(summary.ssids).toHaveLength(2);
+    expect(summary.radios).toHaveLength(2);
+    expect(summary.totalClients).toBe(0);
+  });
+
+  it("still fills each radio in from the SSID it broadcasts", () => {
+    const summary: WifiSummary = WifiRadioUtil.getSummary(
+      walk("ubiquiti-unifi-ap", issue4730Results()),
+    );
+
+    expect(
+      summary.radios.map((radio: WifiRadioView) => {
+        return [
+          radio.name,
+          radio.channel,
+          radio.frequencyMHz,
+          radio.txPowerDbm,
+          radio.clients,
+          radio.utilizationPercent,
+        ];
+      }),
+    ).toEqual([
+      ["2.4 GHz / wifi0", 6, 2437, 20, 0, 22],
+      ["5 GHz / wifi1", 149, 5745, 20, 0, 7],
+    ]);
+  });
+
+  it("stores the SSIDs table with DEMO's two rows only", () => {
+    const ssids: SnmpTableSnapshot = snapshotOf(
+      walk("ubiquiti-unifi-ap", issue4730Results()),
+      "wifi_ssids",
+    );
+
+    expect(labels(ssids)).toEqual(["DEMO / 2.4 GHz", "DEMO / 5 GHz"]);
+  });
+
+  it("leaves them out of a device that copied the template before the fix, which walks no interface", () => {
+    // What a device set up before #4730 walks: the old copy, no unifiVapName.
+    const results: Array<SnmpTableResult> = issue4730Results().map(
+      (result: SnmpTableResult) => {
+        return {
+          ...result,
+          rows: result.rows.map((row: SnmpTableResult["rows"][number]) => {
+            const values: Record<string, string | number | null> = {
+              ...row.values,
+            };
+            delete values[`${UNIFI_VAP}.7`];
+            return { index: row.index, values: values };
+          }),
+        };
+      },
+    );
+
+    const snapshots: Array<SnmpTableSnapshot> = SnmpTableListUtil.materialize({
+      tables: SnmpTableListUtil.resolveEffectiveTables({
+        templateTables: [],
+        deviceTables: [
+          tableOf("ubiquiti-unifi-ap", "wifi_radios"),
+          unifiSsidTableAsCopiedBefore4730(),
+        ],
+      }).tables,
+      results: results,
+      collectedAt: new Date("2026-10-13T08:00:00.000Z"),
+    });
+
+    expect(labels(snapshotOf(snapshots, "wifi_ssids"))).toEqual([
+      "DEMO / 2.4 GHz",
+      "DEMO / 5 GHz",
+    ]);
+    expect(WifiRadioUtil.getSummary(snapshots).ssids).toHaveLength(2);
+  });
+
+  it("leaves them out of the Wi-Fi tab of a snapshot stored before the fix, until the next walk replaces it", () => {
+    /*
+     * Before the fix the walk stored every VAP: what materialize kept for a
+     * table that leaves no row out, under the SSID kind.
+     */
+    const storedBefore: Array<SnmpTableSnapshot> =
+      SnmpTableListUtil.materialize({
+        tables: [
+          tableOf("ubiquiti-unifi-ap", "wifi_radios"),
+          {
+            ...unifiSsidTableAsCopiedBefore4730(),
+            kind: SnmpTableKind.Generic,
+          },
+        ],
+        results: issue4730Results(),
+        collectedAt: new Date("2026-10-12T08:00:00.000Z"),
+      }).map((snapshot: SnmpTableSnapshot): SnmpTableSnapshot => {
+        return snapshot.key === "wifi_ssids"
+          ? { ...snapshot, kind: SnmpTableKind.WifiSsid }
+          : snapshot;
+      });
+
+    expect(snapshotOf(storedBefore, "wifi_ssids").rows).toHaveLength(5);
+
+    const summary: WifiSummary = WifiRadioUtil.getSummary(storedBefore);
+
+    expect(
+      summary.ssids.map((ssid: WifiSsidView) => {
+        return `${ssid.ssid}|${ssid.band}`;
+      }),
+    ).toEqual(["DEMO|2.4 GHz", "DEMO|5 GHz"]);
   });
 });
 
@@ -668,7 +993,7 @@ describe("HPE Aruba Instant", () => {
     expect(accessPoints.rows[1]!.cells[`${AI_AP}.11`]!.isHealthy).toBe(false);
   });
 
-  it("lists the cluster's SSIDs with their clients", () => {
+  it("lists the cluster's SSIDs with their clients, a hidden one too", () => {
     const summary: WifiSummary = WifiRadioUtil.getSummary(
       walk("aruba-instant", arubaInstantResults()),
     );
@@ -682,6 +1007,7 @@ describe("HPE Aruba Instant", () => {
       walk("aruba-instant", arubaInstantResults()),
       "wifi_ssids",
     );
+    // Acme-Corp is hidden (aiSSIDHide): a network of the customer's all the same.
     expect(ssids.rows[1]!.cells[`${AI_SSID}.5`]!.display).toBe("yes");
     expect(ssids.rows[1]!.cells[`${AI_SSID}.3`]!.display).toBe("enabled");
   });
@@ -994,11 +1320,20 @@ describe("Extreme Networks IQ Engine (HiveOS) access points", () => {
       "Campus-Staff / wifi1.2",
     ]);
 
-    // The SNMP Tables tab still shows every interface, as walked.
+    /*
+     * The SSIDs table holds SSIDs: an interface that broadcasts none - the
+     * radios, the wired ports, a mesh backhaul, all "N/A" by the MIB - is
+     * not one of its rows, on the SNMP Tables tab or in its row count.
+     */
     expect(
-      snapshotOf(walk("extreme-iq-engine-ap", hiveosResults()), "wifi_ssids")
-        .rows,
-    ).toHaveLength(7);
+      labels(
+        snapshotOf(walk("extreme-iq-engine-ap", hiveosResults()), "wifi_ssids"),
+      ),
+    ).toEqual([
+      "Campus-Guest / wifi0.1",
+      "Campus-Air / wifi1.1",
+      "Campus-Staff / wifi1.2",
+    ]);
   });
 
   it("keeps the other interfaces ahIfName names out of the radio table", () => {
@@ -1027,7 +1362,9 @@ const IF_NAME: string = "1.3.6.1.2.1.31.1.1.1.1";
  * An ExtremeCloud IQ Controller with one access point: its radios are
  * interfaces of the controller (ifIndex 1001, 1002), named by IF-MIB's
  * ifName - which, walked as the label column, also names the controller's
- * own ports.
+ * own ports. Besides its staff WLAN it runs a WDS and a mesh service, which
+ * satellite access points associate to, and a remote service a peer
+ * controller in its mobility domain offers.
  */
 function extremeControllerResults(): Array<SnmpTableResult> {
   return [
@@ -1094,6 +1431,37 @@ function extremeControllerResults(): Array<SnmpTableResult> {
             [`${HWC_WLAN}.5`]: "Staff",
             [`${HWC_WLAN_STATS}.2`]: 10,
             [`${HWC_WLAN}.7`]: 1,
+            [`${HWC_WLAN}.3`]: 0,
+          },
+        },
+        {
+          index: "102",
+          values: {
+            [`${HWC_WLAN}.4`]: "Yard WDS",
+            [`${HWC_WLAN}.5`]: "yard-backhaul",
+            [`${HWC_WLAN_STATS}.2`]: 2,
+            [`${HWC_WLAN}.7`]: 1,
+            [`${HWC_WLAN}.3`]: 3,
+          },
+        },
+        {
+          index: "103",
+          values: {
+            [`${HWC_WLAN}.4`]: "Campus Mesh",
+            [`${HWC_WLAN}.5`]: "campus-mesh",
+            [`${HWC_WLAN_STATS}.2`]: 1,
+            [`${HWC_WLAN}.7`]: 1,
+            [`${HWC_WLAN}.3`]: 6,
+          },
+        },
+        {
+          index: "104",
+          values: {
+            [`${HWC_WLAN}.4`]: "Partner VNS",
+            [`${HWC_WLAN}.5`]: "Partner",
+            [`${HWC_WLAN_STATS}.2`]: 2,
+            [`${HWC_WLAN}.7`]: 1,
+            [`${HWC_WLAN}.3`]: 5,
           },
         },
       ],
@@ -1173,9 +1541,69 @@ describe("Extreme Networks wireless controller", () => {
 
     expect(summary.ssids).toEqual([
       { name: "Staff VNS", ssid: "Staff", clients: 10 },
+      { name: "Partner VNS", ssid: "Partner", clients: 2 },
     ]);
-    // No radio counts clients here, so the total is the WLANs'.
-    expect(summary.totalClients).toBe(10);
+    /*
+     * No radio counts clients here, so the total is the WLANs' - the
+     * satellite access points on the WDS and mesh services are no clients.
+     */
+    expect(summary.totalClients).toBe(12);
+  });
+
+  it("leaves out the WDS and mesh services, which carry traffic between access points", () => {
+    const wlans: SnmpTableSnapshot = snapshotOf(
+      walk("extreme-wireless-controller", extremeControllerResults()),
+      "wifi_ssids",
+    );
+
+    expect(labels(wlans)).toEqual(["Staff VNS", "Partner VNS"]);
+    expect(
+      wlans.rows.map((row: SnmpTableSnapshotRow) => {
+        return row.cells[`${HWC_WLAN}.3`]!.display;
+      }),
+    ).toEqual(["standard", "remote"]);
+  });
+
+  it("keeps every WLAN of a device that copied the template before it walked the service type", () => {
+    /*
+     * The rule reads wlanServiceType; a table copied before the column was
+     * added does not walk it, so it lists what it listed until the table is
+     * added again from the template.
+     */
+    const copiedBefore: SnmpTableDefinition = {
+      ...tableOf("extreme-wireless-controller", "wifi_ssids"),
+    };
+    copiedBefore.columns = copiedBefore.columns.filter(
+      (column: SnmpTableColumn) => {
+        return column.oid !== `${HWC_WLAN}.3`;
+      },
+    );
+
+    const results: Array<SnmpTableResult> = extremeControllerResults()
+      .filter((result: SnmpTableResult) => {
+        return result.key === "wifi_ssids";
+      })
+      .map((result: SnmpTableResult) => {
+        return {
+          ...result,
+          rows: result.rows.map((row: SnmpTableResult["rows"][number]) => {
+            const values: Record<string, string | number | null> = {
+              ...row.values,
+            };
+            delete values[`${HWC_WLAN}.3`];
+            return { index: row.index, values: values };
+          }),
+        };
+      });
+
+    expect(
+      labels(
+        SnmpTableListUtil.materialize({
+          tables: [copiedBefore],
+          results: results,
+        })[0]!,
+      ),
+    ).toEqual(["Staff VNS", "Yard WDS", "Campus Mesh", "Partner VNS"]);
   });
 });
 
@@ -1508,11 +1936,11 @@ describe("matching a Wi-Fi device to its template", () => {
 
 describe("the Wi-Fi tab of a device with each template, end to end", () => {
   it.each([
-    ["ubiquiti-unifi-ap", unifiResults, 0, 2, 4],
+    ["ubiquiti-unifi-ap", unifiResults, 0, 2, 3],
     ["aruba-instant", arubaInstantResults, 3, 6, 2],
     ["aruba-mobility-controller", arubaControllerResults, 1, 2, 2],
     ["extreme-iq-engine-ap", hiveosResults, 0, 2, 3],
-    ["extreme-wireless-controller", extremeControllerResults, 2, 2, 1],
+    ["extreme-wireless-controller", extremeControllerResults, 2, 2, 2],
   ])(
     "%s: access points, radios and SSIDs",
     (
