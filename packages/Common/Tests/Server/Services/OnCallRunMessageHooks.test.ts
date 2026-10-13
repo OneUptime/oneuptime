@@ -106,11 +106,8 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
       .mockResolvedValue(1);
     jest
-      .spyOn(IncidentService, "getIncidentNumber")
-      .mockResolvedValue({ number: 8, numberWithPrefix: "INC-8" });
-    jest
-      .spyOn(IncidentService, "getIncidentLinkInDashboard")
-      .mockResolvedValue(URL.fromString("https://oneuptime.test/incident"));
+      .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
+      .mockResolvedValue(URL.fromString("https://oneuptime.test/policy"));
 
     await hookOf(OnCallDutyPolicyExecutionLogService, "onCreateSuccess")(
       {
@@ -126,9 +123,9 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
     const feed: Parameters<
       typeof IncidentFeedService.createIncidentFeedItem
     >[0] = feedSpy.mock.calls[0]![0];
-    expect(feed.feedInfoInMarkdown).toContain(
-      "On Call Policy Started Executing",
-    );
+    // One sentence (OnCallFeedText): the policy started paging.
+    expect(feed.feedInfoInMarkdown).toContain("On-call policy **[PolicyX](");
+    expect(feed.feedInfoInMarkdown).toContain("started paging.");
     // REGRESSION (screenshot 5, red box): this used to be posted to Slack and Teams.
     expect(feed.workspaceNotification).toBeUndefined();
   });
@@ -208,7 +205,7 @@ describe("OnCallDutyPolicyExecutionLogService", () => {
     expect(refreshedIds()).toEqual([RUN_ID.toString()]);
     expect(feedSpy).toHaveBeenCalledTimes(1);
     expect(feedSpy.mock.calls[0]![0].feedInfoInMarkdown).toContain(
-      "On Call Policy Status Updated",
+      "is paging.",
     );
     // REGRESSION (screenshot 5, red box): "Status Updated ... Started / Executing" in chat.
     expect(feedSpy.mock.calls[0]![0].workspaceNotification).toBeUndefined();

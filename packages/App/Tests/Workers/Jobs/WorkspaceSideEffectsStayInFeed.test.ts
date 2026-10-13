@@ -6,8 +6,9 @@ import path from "path";
  *
  * After a state change, a note or a new alert, the worker jobs tell the
  * record's owners and its status page subscribers, and write a feed entry
- * saying so: "Owners have been notified about the state change", "Status
- * Page Subscribers have been notified". Those entries used to be posted to
+ * saying so: "Owners were notified that this incident is now Acknowledged"
+ * (OwnerNotificationFeedText), "Status Page Subscribers have been
+ * notified". Those entries used to be posted to
  * every Slack and Microsoft Teams channel of the record as well - right
  * under the state change or note they were about, which the channel had
  * just been told of. They are side effects of an event the channel already
@@ -75,15 +76,15 @@ describe("the notification jobs' feed entries in Slack and Microsoft Teams", () 
   test.each([
     [
       "IncidentOwners/SendStateChangeNotification.ts",
-      "Owners have been notified about the state change",
+      "OwnerNotificationFeedText.stateChanged",
     ],
     [
       "AlertOwners/SendStateChangeNotification.ts",
-      "Owners have been notified about the state change",
+      "OwnerNotificationFeedText.stateChanged",
     ],
     [
       "ScheduledMaintenanceOwners/SendStateChangeNotification.ts",
-      "Owners have been notified about the state change",
+      "OwnerNotificationFeedText.stateChanged",
     ],
     ["AlertOwners/SendCreatedResourceNotification.ts", "alertFeedText"],
   ])(
@@ -153,13 +154,26 @@ describe("the notification jobs' feed entries in Slack and Microsoft Teams", () 
   );
 
   test("no owner-notified entry anywhere in the jobs is posted to chat", () => {
-    const ownerJobs: Array<string> = [
-      "IncidentOwners",
-      "AlertOwners",
-      "ScheduledMaintenanceOwners",
-      "EpisodeOwners",
-      "MonitorOwners",
-    ];
+    /*
+     * Every owner job folder there is - incidents, alerts, both episodes,
+     * scheduled maintenance, monitors and the rest - read from the disk, so
+     * a new or renamed one cannot drop out of the sweep.
+     */
+    const ownerJobs: Array<string> = fs
+      .readdirSync(JOBS_DIR)
+      .filter((folder: string): boolean => {
+        return folder.endsWith("Owners");
+      });
+
+    expect(ownerJobs).toEqual(
+      expect.arrayContaining([
+        "IncidentOwners",
+        "AlertOwners",
+        "ScheduledMaintenanceOwners",
+        "IncidentEpisodeOwners",
+        "AlertEpisodeOwners",
+      ]),
+    );
 
     const posted: Array<string> = [];
 
