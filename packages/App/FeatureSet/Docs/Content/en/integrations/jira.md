@@ -99,27 +99,27 @@ The **Configure** step of the create wizard asks for up to five values. The tabl
 
 - **Jira Site URL** — the address you open Jira at, such as `https://your-domain.atlassian.net`. On Jira Data Center, its base URL, such as `https://jira.example.com:8443` or `https://example.com/jira`. The templates that bring Jira into OneUptime link the issue in the description or note they write, and that link always goes to this site, whatever the event says. So the field takes a site's address and nothing else: a scheme, a host, a port if there is one and, on Data Center, the path Jira runs under. It refuses the address of a page in the site, a query or a user name, and says what to type instead. A slash at the end is fine. If the variable is later emptied, the issue is named without a link.
 - **Jira API URL** — where the workflow sends its Jira requests: your site, such as `https://your-domain.atlassian.net`, with no trailing slash. With a scoped API token, which includes every service account token, use `https://api.atlassian.com/ex/jira/<cloudId>` instead. Your `cloudId` is in the JSON at `https://your-domain.atlassian.net/_edge/tenant_info`. With a classic token, this is the same address as the **Jira Site URL**, so in the templates that ask for both, the wizard fills it in from the **Jira Site URL** until you type into it.
-- **Jira API Token (base64 of email:token)** — not the token on its own, but the account's email and token encoded together, which is how Jira Cloud takes Basic auth:
-
-  1. Create a token for a dedicated Jira user, an ordinary Atlassian account used only by the integration, rather than for a person: issues and comments are attributed to the token's owner. Sign in as that user and create the token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). A classic token (**Create API token**) works with your site URL. A scoped token (**Create API token with scopes**) only works with the `api.atlassian.com` address above. The classic scopes `read:jira-work` and `write:jira-work` cover every call the templates make.
-
-     An Atlassian **service account** works too. An organization admin creates it, and its token, in [admin.atlassian.com](https://admin.atlassian.com) under **Directory → Service accounts**. That token is always scoped, so **Jira API URL** must be the `https://api.atlassian.com/ex/jira/<cloudId>` address (the **Jira Site URL** stays your site), and the email you encode is the service account's own. Give the service account the project permissions listed above, as you would any user.
-
-  2. Encode that account's email and the token:
-
-     ```bash
-     printf '%s' 'jira-bot@example.com:your_api_token' | base64 | tr -d '\n'
-     ```
-
-     Use `printf`, not `echo`: `echo` adds a newline, which is encoded with the rest, and Jira no longer accepts the credentials. On your site URL that seldom shows up as a `401` (see [Limitations](#limitations)). `tr` keeps the output on one line: GNU `base64` on Linux wraps every 76 characters, and a current token is long enough to be wrapped.
-
-  3. Paste the output into this field.
-
-  Tokens expire, a year after they are created by default. Note the date somewhere.
-
+- **Jira API Token (base64 of email:token)** — not the token on its own, but the account's email and token encoded together, which is how Jira Cloud takes Basic auth. [Create the API token](#create-the-api-token) shows how. Tokens expire, a year after they are created by default, so note the date somewhere.
 - **Jira Project Key** — the project (space) new issues are filed in: the `OPS` in `OPS-123`.
 - **Jira Issue Type** — the type of issue to create, spelled exactly as it is in that project, such as `Task`, `Bug` or `Incident`.
 - **OneUptime URL** — the address you open OneUptime at: `https://oneuptime.com`, or your own host. The issue's description links back to the incident or alert with it.
+
+### Create the API token
+
+:::steps
+1. Create a token for a dedicated Jira user, an ordinary Atlassian account used only by the integration, rather than for a person: issues and comments are attributed to the token's owner. Sign in as that user and create the token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). A classic token (**Create API token**) works with your site URL. A scoped token (**Create API token with scopes**) only works with the `api.atlassian.com` address above. The classic scopes `read:jira-work` and `write:jira-work` cover every call the templates make.
+2. Encode that account's email and the token:
+
+   ```bash
+   printf '%s' 'jira-bot@example.com:your_api_token' | base64 | tr -d '\n'
+   ```
+
+   Use `printf`, not `echo`: `echo` adds a newline, which is encoded with the rest, and Jira no longer accepts the credentials. On your site URL that seldom shows up as a `401` (see [Limitations](#limitations)). `tr` keeps the output on one line: GNU `base64` on Linux wraps every 76 characters, and a current token is long enough to be wrapped.
+
+3. Paste the output into **Jira API Token (base64 of email:token)**.
+:::
+
+An Atlassian **service account** works too. An organization admin creates it, and its token, in [admin.atlassian.com](https://admin.atlassian.com) under **Directory → Service accounts**. That token is always scoped, so **Jira API URL** must be the `https://api.atlassian.com/ex/jira/<cloudId>` address (the **Jira Site URL** stays your site), and the email you encode is the service account's own. Give the service account the project permissions listed above, as you would any user.
 
 ### Create the workflows
 

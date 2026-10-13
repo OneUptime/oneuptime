@@ -260,7 +260,7 @@ Create the token once, for every workflow, as an [OAuth 2.0 variable](/docs/work
 
 1. Go to **Workflows → Global Variables**, open the **More** menu (**⋯**) beside **Create Workflow Variable**, and choose **Create OAuth 2.0 Variable**. Name it `DYNAMICS_TOKEN`.
 2. On **Provider**, pick **Microsoft Entra ID**, replace `{tenant-id}` in the **Token URL** with your Directory (tenant) ID, and pick **Client Credentials**.
-3. On **Credentials**, enter the **Client ID** and the **Client Secret**. On **Advanced**, set **Scope** to `https://yourorg.crm.dynamics.com/.default`, then create the variable.
+3. On **Credentials**, enter the **Client ID** and the **Client Secret**. On **Advanced**, set the scope to `https://yourorg.crm.dynamics.com/.default`, then create the variable.
 
 Any block then sends `Bearer {{global.variables.DYNAMICS_TOKEN}}` in its `Authorization` header. OneUptime fetches the token, fetches a new one before it expires, and keeps it out of run logs.
 

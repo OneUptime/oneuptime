@@ -55,7 +55,7 @@ On the **Criteria** step, open the first criteria, the one that marks the monito
 - **Incident Title**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
 - **Severity**: the incident severity Zabbix problems should have.
 - **On-Call Policies**, under **On-Call**: the policies to page.
-- **Auto Resolve Incident**, under **More fields**: on. Without it, recoveries are ignored and incidents stay open.
+- **Auto Resolve Incident**, under **More fields**: leave it on, as it starts. Without it, recoveries are ignored and incidents stay open.
 
 ### Open one incident per problem
 
