@@ -1,88 +1,163 @@
-# PagerDuty Integration
+# PagerDuty
 
-जब भी OneUptime incident बनाया जाए तो एक [PagerDuty](https://www.pagerduty.com) incident trigger करें, और OneUptime resolve करने पर उसे resolve करें। उपयोगी जब PagerDuty आपके escalation और on-call schedules का मालिक हो और आप OneUptime की monitoring को उसे feed करना चाहते हों।
+OneUptime घटनाएं [PagerDuty](https://www.pagerduty.com) को भेजें। OneUptime घटना घोषित होने पर एक वर्कफ़्लो PagerDuty incident ट्रिगर करता है, और OneUptime घटना सुलझने पर दूसरा वर्कफ़्लो उसे सुलझाता है। इसे तब इस्तेमाल करें जब PagerDuty आपकी टीम को पेज करता है और OneUptime आपके सिस्टम पर नज़र रखता है।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime PagerDuty के [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
+:::cards
+- [रूटिंग कुंजी सहेजें](#रूटिंग-कुंजी-सहेजें): PagerDuty की कुंजी को अपने वर्कफ़्लो से बाहर रखें।
+- [PagerDuty incident ट्रिगर करें](#हर-घटना-के-लिए-pagerduty-incident-ट्रिगर-करें): एक वर्कफ़्लो, दो ब्लॉक।
+- [उन्हें सुलझाएं](#pagerduty-incident-सुलझाएं): दूसरा वर्कफ़्लो जो घटना की स्थिति के साथ चलता है।
+- [समस्या निवारण](#समस्या-निवारण): जब PagerDuty किसी इवेंट को अस्वीकार करता है।
+:::
 
-> OneUptime का अपना on-call और escalation built in है — [On Call](/docs/on-call/incoming-call-policy) देखें। इस इंटीग्रेशन का उपयोग केवल तब करें जब आप विशेष रूप से PagerDuty में भी events land कराना चाहते हों।
+> [!TIP]
+> OneUptime भी ऑन-कॉल नीतियों, शेड्यूल और एस्केलेशन नियमों से लोगों को पेज करता है। अपनी टीम को PagerDuty से हटाने के लिए [PagerDuty से आना](/docs/moving-to-oneuptime/pagerduty) देखें: इंपोर्ट आपके यूज़र, शेड्यूल और एस्केलेशन नीतियां ले आता है।
 
-```text
-OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  ──►  PagerDuty incident
+## यह कैसे काम करता है
+
+```mermaid title="दो वर्कफ़्लो, एक PagerDuty incident"
+flowchart TB
+    declared["घटना घोषित"] --> create["वर्कफ़्लो 1:<br/>On Create Incident"]
+    create -->|"trigger"| pd["PagerDuty incident"]
+    resolved["घटना सुलझी"] --> update["वर्कफ़्लो 2:<br/>On Update Incident"]
+    update -->|"resolve"| pd
 ```
 
-## पूर्वापेक्षाएँ
+दोनों वर्कफ़्लो PagerDuty के [Events API v2](https://developer.pagerduty.com/docs/events-api-v2/overview/) को एक ही `dedup_key` के साथ कॉल करते हैं, जो OneUptime घटना के ID से बनती है। इसी कुंजी से PagerDuty जानता है कि resolve इवेंट वही incident बंद करता है जिसे trigger इवेंट ने खोला था।
 
-- **Events API v2** integration के साथ एक PagerDuty service। PagerDuty में: **Service → Integrations → Add integration → Events API v2**। **Integration Key** कॉपी करें (इसे _routing key_ भी कहते हैं)।
-- एक OneUptime project जहाँ आप वर्कफ़्लो बना सकते हैं।
+## शुरू करने से पहले
 
-## चरण 1 — routing key store करें
+- Events API v2 इंटिग्रेशन वाली एक PagerDuty सर्विस। PagerDuty में सर्विस खोलें, फिर **Integrations**, **Add an integration** पर क्लिक करें और **Events API V2** चुनें। उसकी **Integration Key** कॉपी करें: Events API इसे routing key कहता है।
+- OneUptime में वर्कफ़्लो और ग्लोबल वेरिएबल बनाने का अधिकार। OneUptime Cloud पर वर्कफ़्लो के लिए **Growth** प्लान या उससे ऊपर चाहिए।
 
-1. **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
-2. इसे `PAGERDUTY_ROUTING_KEY` नाम दें, integration key पेस्ट करें, और **Is Secret** चालू करें।
+## रूटिंग कुंजी सहेजें
 
-## चरण 2 — "trigger" वर्कफ़्लो बनाएँ
+:::steps
+1. **वर्कफ़्लो → ग्लोबल वेरिएबल** पर जाएं और **वर्कफ़्लो वेरिएबल बनाएँ** पर क्लिक करें।
+2. इसका नाम `PAGERDUTY_ROUTING_KEY` रखें और **अगला** पर क्लिक करें।
+3. इंटिग्रेशन कुंजी को **सामग्री** में पेस्ट करें, **रहस्य** चालू करें, और **वर्कफ़्लो वेरिएबल बनाएँ** पर क्लिक करें।
+:::
 
-1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → PagerDuty` नाम दें, और **बिल्डर** खोलें।
-2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
-3. trigger से connected एक **API** ब्लॉक जोड़ें:
+सीक्रेट वेरिएबल रन लॉग में `[REDACTED]` से बदल दिया जाता है, इसलिए कुंजी किसी रन में कभी नहीं दिखती।
 
-   - **Method**: `POST`
-   - **URL**: `https://events.pagerduty.com/v2/enqueue`
-   - **Headers**: `Content-Type: application/json`
-   - **Body**:
+## हर घटना के लिए PagerDuty incident ट्रिगर करें
 
-     ```json
-     {
-       "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-       "event_action": "trigger",
-       "dedup_key": "oneuptime-{{Incident._id}}",
-       "payload": {
-         "summary": "{{Incident.title}}",
-         "source": "OneUptime",
-         "severity": "critical",
-         "custom_details": {
-           "description": "{{Incident.description}}"
-         }
-       }
-     }
-     ```
+:::steps
+### वर्कफ़्लो बनाएं
 
-   **`dedup_key`** इस PagerDuty incident को OneUptime incident से बाँधता है ताकि आप बाद में उसे resolve कर सकें। OneUptime incident id इस्तेमाल करना इसे unique और predictable रखता है।
+**वर्कफ़्लो** पर जाएं, **वर्कफ़्लो बनाएं** पर क्लिक करें, फिर **शुरू से बनाएं** पर। इसका नाम `Incidents to PagerDuty` रखें और **वर्कफ़्लो बनाएं** पर क्लिक करें।
 
-4. **सहेजें**, enable करें, और एक test incident बनाएँ। Workflow logs में `202` response का मतलब है PagerDuty ने event accept किया।
+### ट्रिगर जोड़ें
 
-## चरण 3 — OneUptime resolve पर resolve करें (अनुशंसित)
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें और **On Create Incident** चुनें। ट्रिगर पर क्लिक करें, और **Select Fields** में `title` और `description` चुनें।
 
-1. **उसी** वर्कफ़्लो में, एक दूसरा **घटना** trigger जोड़ें? नहीं — एक वर्कफ़्लो में एक trigger होता है। इसके बजाय **घटना → On Update** trigger के साथ `Resolve PagerDuty` नामक एक **दूसरा** वर्कफ़्लो बनाएँ।
-2. यह जाँचने के लिए एक **शर्तें** ब्लॉक जोड़ें कि incident अब resolved है (incident के state/`{{Incident.currentIncidentState.name}}` को अपने resolved state name से match करें)।
-3. **हाँ** से, **उसी `dedup_key`** और `event_action` `resolve` पर सेट के साथ PagerDuty के लिए एक **API** ब्लॉक जोड़ें:
+### trigger इवेंट भेजें
 
-   ```json
-   {
-     "routing_key": "{{variable.PAGERDUTY_ROUTING_KEY}}",
-     "event_action": "resolve",
-     "dedup_key": "oneuptime-{{Incident._id}}"
-   }
+**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://events.pagerduty.com/v2/enqueue` पर, और उसकी **Request Body** इस पर सेट करें:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "trigger",
+  "dedup_key": "oneuptime-{{local.components.incident-on-create-1.returnValues.model._id}}",
+  "payload": {
+    "summary": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+    "source": "OneUptime",
+    "severity": "critical",
+    "custom_details": {
+      "description": "{{local.components.incident-on-create-1.returnValues.model.description}}"
+    }
+  }
+}
+```
+
+### टेस्ट करें, फिर चालू करें
+
+**वर्कफ़्लो चलाएं** पर क्लिक करें, किसी टेस्ट घटना की **घटना ID** डालें, और चलाएं। **API Post (JSON)** चरण `"status": "success"` के साथ `202` जवाब दिखाता है, और PagerDuty एक incident खोलता है। फिर **बिल्डर** के ऊपर **सक्षम** चालू करें।
+:::
+
+ब्लॉक JSON भेजता है, इसलिए उसे `Content-Type` हेडर की ज़रूरत नहीं। PagerDuty का `severity` इनमें से एक होता है: `critical`, `error`, `warning` और `info`। हर घटना की अपनी गंभीरता भेजने के लिए [गंभीरताएं मैप करें](#गंभीरताएं-मैप-करें) देखें।
+
+## PagerDuty incident सुलझाएं
+
+एक वर्कफ़्लो में एक ही ट्रिगर होता है, इसलिए सुलझाने के लिए दूसरा वर्कफ़्लो चाहिए, जो घटना की स्थिति बदलने पर शुरू हो।
+
+:::steps
+### On Update Incident ट्रिगर जोड़ें
+
+`Resolve PagerDuty incidents` नाम का एक वर्कफ़्लो बनाएं, और उसके ट्रिगर के रूप में **On Update Incident** चुनें। **Listen on** में `currentIncidentStateId` चुनें, ताकि यह सिर्फ़ स्थिति बदलने पर चले। **Select Fields** में यह मांगें कि नई स्थिति सुलझी हुई है या नहीं:
+
+```json
+{ "_id": true, "currentIncidentState": { "isResolvedState": true } }
+```
+
+### जांचें कि घटना सुलझ गई है
+
+ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **Value to check** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **Comparison** को **is true** पर सेट करें।
+
+### resolve इवेंट भेजें
+
+**Yes** साइड के बाद एक **API Post (JSON)** ब्लॉक जोड़ें, उसी **URL** और इस **Request Body** के साथ:
+
+```json
+{
+  "routing_key": "{{global.variables.PAGERDUTY_ROUTING_KEY}}",
+  "event_action": "resolve",
+  "dedup_key": "oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}"
+}
+```
+
+### इसे चालू करें
+
+**सक्षम** चालू करें, फिर OneUptime में एक टेस्ट घटना सुलझाएं। PagerDuty अपना incident सुलझा देता है।
+:::
+
+किसी स्थिति के नाम के बजाय `isResolvedState` जांचना तब भी काम करता रहता है जब आप अपनी स्थितियों का नाम बदलते हैं। [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) देखें।
+
+## गंभीरताएं मैप करें
+
+हर घटना की गंभीरता भेजने के लिए, ट्रिगर और **API Post (JSON)** ब्लॉक के बीच एक **Run Custom JavaScript** ब्लॉक जोड़ें, और उसका जवाब बॉडी में पढ़ें।
+
+1. ट्रिगर के **Select Fields** में गंभीरता का `name` भी चुनें: `{ "incidentSeverity": { "name": true } }`।
+2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript Code** को इस पर सेट करें:
+
+   ```javascript
+   // Your incident severities, by name, to PagerDuty's.
+   const SEVERITY = {
+     "Critical Incident": "critical",
+     "Major Incident": "error",
+     "Minor Incident": "warning",
+   };
+
+   return { severity: SEVERITY[args.severity] || "info" };
    ```
 
-PagerDuty `dedup_key` से match करता है और original incident बंद करता है।
+3. अनुरोध बॉडी में `"severity"` को `"{{local.components.javascript-1.returnValues.returnValue.severity}}"` पर सेट करें।
 
-## Severity mapping (वैकल्पिक)
-
-PagerDuty का `severity` `critical`, `error`, `warning`, या `info` accept करता है। OneUptime severities से map करने के लिए, API block से पहले `{{Incident.incidentSeverity.name}}` पर **शर्तें** branches जोड़ें और हर से अलग body भेजें।
-
-## इनबाउंड (वैकल्पिक)
-
-दूसरी दिशा में जाने के लिए — PagerDuty event से OneUptime incident खोलें — एक **वेबहुक** trigger वर्कफ़्लो जोड़ें और उसके URL पर एक PagerDuty [V3 webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (या Events Orchestration) point करें, फिर **घटना बनाएं** इस्तेमाल करें। [inbound pattern](/docs/integrations/index#इनबाउंड-कोई-अन्य-टूल-oneuptime-में-डेटा-भेजता-है) देखें।
+ऊपर के नाम वे तीन गंभीरताएं हैं जिनसे नया प्रोजेक्ट शुरू होता है। अगर आपने उनके नाम बदले हैं तो अपने नाम इस्तेमाल करें।
 
 ## समस्या निवारण
 
-- **`400` with `"invalid routing key"`** — integration **Events API v2** होना चाहिए, पुराना Events API v1 या कोई अलग integration type नहीं। Key फिर से कॉपी करें।
-- **Resolve कुछ भी बंद नहीं करता** — resolve call पर `dedup_key` trigger call से बिल्कुल match होनी चाहिए।
-- **Logs में कुछ नहीं** — पुष्टि करें कि वर्कफ़्लो **सक्षम** है और trigger **On Create** पर है।
+:::details PagerDuty 400 से जवाब देता है
+जवाब की बॉडी बताती है कि PagerDuty ने क्या अस्वीकार किया, और रन का **API Post (JSON)** चरण उसे दिखाता है। आम तौर पर रूटिंग कुंजी Events API v2 इंटिग्रेशन कुंजी नहीं होती: इसे सर्विस के **Integrations** से दोबारा कॉपी करें। बिना `summary`, `source` या `severity` वाला इवेंट भी अस्वीकार होता है।
+:::
 
-## आगे क्या पढ़ें
+:::details resolve इवेंट कुछ बंद नहीं करता
+दोनों इवेंट में बिल्कुल एक जैसी `dedup_key` होनी चाहिए। जांचें कि दोनों बॉडी उसे `oneuptime-` के बाद घटना का `_id` जोड़कर बनाती हैं, और सुलझाने वाला वर्कफ़्लो चालू है।
+:::
 
-- [इंटीग्रेशन अवलोकन](/docs/integrations/index) — patterns और auth cheat sheet।
-- [On Call](/docs/on-call/incoming-call-policy) — OneUptime का built-in escalation।
-- [Opsgenie](/docs/integrations/opsgenie) — Opsgenie के लिए वही विचार।
+:::details वर्कफ़्लो कभी नहीं चलता
+जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **If / Else** ब्लॉक की **No** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
+:::
+
+:::details PagerDuty मान की जगह रेफ़रेंस दिखाता है
+जो रेफ़रेंस हल नहीं होता, वह कोष्ठकों समेत जैसा लिखा है वैसा ही भेजा जाता है। ब्लॉक का आइडेंटिफ़ायर, फ़ील्ड का नाम, और वेरिएबल का नाम जांचें, जो केस-सेंसिटिव है। रन के **चरण** टैब पर ऐसे रेफ़रेंस वाली सेटिंग **Did not resolve** से चिह्नित होती है।
+:::
+
+## अगले कदम
+
+:::cards
+- [PagerDuty से आना](/docs/moving-to-oneuptime/pagerduty): अपनी टीम, शेड्यूल और एस्केलेशन नीतियां यहां ले आएं।
+- [एस्केलेशन नियम](/docs/on-call/escalation-rules): OneUptime से ही लोगों को पेज करें।
+- [Opsgenie](/docs/integrations/opsgenie): Opsgenie के लिए वही दो वर्कफ़्लो।
+- [इंटिग्रेशन अवलोकन](/docs/integrations/index): हर इंटिग्रेशन के पीछे के पैटर्न।
+:::
