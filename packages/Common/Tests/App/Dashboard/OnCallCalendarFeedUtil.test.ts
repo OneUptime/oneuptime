@@ -11,13 +11,18 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedTypes";
 import {
   CALENDAR_FEED_DOCS_PATH,
+  FEED_HEALTH_LABELS,
+  FeedHealth,
   GOOGLE_CALENDAR_ADD_URL_PREFIX,
+  GOOGLE_CALENDAR_CLIENT,
   LEAD_TIME_DAYS_COPY,
   LEAD_TIME_HOURS_COPY,
   LEAD_TIME_MINUTES_COPY,
   LEAD_TIME_WEEKS_COPY,
   LeadTimeValidation,
+  MASK_CHARACTER,
   MY_SHIFTS_PATH,
+  MaskedFeedLink,
   NOTHING_FETCHED_HINT_AFTER_HOURS,
   ON_CALL_CALENDAR_API_PATH,
   PERSONAL_FEED_CURRENT_PATH,
@@ -28,6 +33,7 @@ import {
   REMINDER_PRESETS,
   ReminderPreset,
   ShiftDayGroup,
+  UNKNOWN_CALENDAR_CLIENT,
   UPCOMING_SHIFTS_CARD_TITLE,
   UPCOMING_SHIFTS_DAYS,
   UpcomingShiftsWindow,
@@ -35,6 +41,8 @@ import {
   applyScheduleFilter,
   buildGoogleAddUrl,
   formatLeadTime,
+  getFeedClientName,
+  getFeedHealth,
   getRotatedDaysAgo,
   getScheduleFeedCurrentPath,
   getScheduleFeedPublishPath,
@@ -43,10 +51,21 @@ import {
   groupShiftsByDay,
   interpolate,
   isCoveringShift,
+  isFetchedByGoogleCalendar,
+  maskFeedLink,
   shouldShowNothingFetchedHint,
   translateInterpolated,
   validateCustomLeadMinutes,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
+import {
+  FEED_ATTENTION_FIRST_CLASS_NAME,
+  FEED_BODY_GRID_CLASS_NAME,
+  FEED_STATUS_COLUMN_CLASS_NAME,
+  FEED_STATUS_FULL_WIDTH_CLASS_NAME,
+  FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+  getFeedStatusColumnClassName,
+  isAttentionHealth,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedLayout";
 import {
   MAX_MINUTES_BEFORE_SHIFT,
   MIN_MINUTES_BEFORE_SHIFT,
@@ -911,5 +930,231 @@ describe("translateInterpolated", () => {
         name: "Checkout",
       }),
     ).toBe("Only on policy Checkout");
+  });
+});
+
+/*
+ * Where a link stands, as the status panel's pill names it. The questions are
+ * asked in the order they matter: can the link still be shown, is it on, has
+ * an app read it, and - if not - is it early days or has it been two.
+ */
+describe("getFeedHealth", () => {
+  const rotatedAt: string = "2026-08-01T10:00:00.000Z";
+  const early: Date = new Date("2026-08-01T12:00:00.000Z");
+  const late: Date = new Date("2026-08-10T10:00:00.000Z");
+
+  test("a link an app has read is Active, however long ago it was made", () => {
+    expect(
+      getFeedHealth(
+        makeStatus({
+          rotatedAt,
+          lastFetchedAt: "2026-08-09T10:00:00.000Z",
+          fetchCount: 12,
+        }),
+        late,
+      ),
+    ).toBe(FeedHealth.Active);
+  });
+
+  test("either sign of a fetch counts: a count without a time, or a time without a count", () => {
+    expect(getFeedHealth(makeStatus({ rotatedAt, fetchCount: 1 }), late)).toBe(
+      FeedHealth.Active,
+    );
+    expect(
+      getFeedHealth(
+        makeStatus({ rotatedAt, lastFetchedAt: "2026-08-02T00:00:00.000Z" }),
+        late,
+      ),
+    ).toBe(FeedHealth.Active);
+  });
+
+  test("never read, it waits for its first sync in its first two days, then is Not fetched yet", () => {
+    expect(getFeedHealth(makeStatus({ rotatedAt }), early)).toBe(
+      FeedHealth.WaitingForFirstSync,
+    );
+    expect(getFeedHealth(makeStatus({ rotatedAt }), late)).toBe(
+      FeedHealth.NotFetched,
+    );
+  });
+
+  test("a link with no rotation time to count from keeps waiting rather than accusing", () => {
+    expect(getFeedHealth(makeStatus({ rotatedAt: null }), late)).toBe(
+      FeedHealth.WaitingForFirstSync,
+    );
+  });
+
+  test("off beats every fetch: subscribers see an empty calendar", () => {
+    expect(
+      getFeedHealth(
+        makeStatus({ isEnabled: false, fetchCount: 99, rotatedAt }),
+        late,
+      ),
+    ).toBe(FeedHealth.Disabled);
+  });
+
+  test("unreadable beats off: the link cannot even be shown", () => {
+    expect(
+      getFeedHealth(
+        makeStatus({ needsRegeneration: true, isEnabled: false }),
+        late,
+      ),
+    ).toBe(FeedHealth.NeedsRegeneration);
+  });
+
+  test("every state has a label - the mobile app's words where the two say the same thing", () => {
+    expect(FEED_HEALTH_LABELS).toEqual({
+      [FeedHealth.Active]: "Active",
+      [FeedHealth.WaitingForFirstSync]: "Waiting for first sync",
+      [FeedHealth.NotFetched]: "Not fetched yet",
+      [FeedHealth.Disabled]: "Disabled",
+      [FeedHealth.NeedsRegeneration]: "Needs regeneration",
+    });
+  });
+});
+
+describe("getFeedClientName / isFetchedByGoogleCalendar", () => {
+  test("names the app the server classified", () => {
+    for (const client of [
+      "Google Calendar",
+      "Microsoft Outlook",
+      "Apple Calendar",
+      "Thunderbird",
+      "Android app",
+      "Browser",
+      "Command line",
+    ]) {
+      expect(getFeedClientName(client)).toBe(client);
+    }
+  });
+
+  test("an app it could not classify, or none, is no app at all", () => {
+    expect(UNKNOWN_CALENDAR_CLIENT).toBe("Other");
+    expect(getFeedClientName("Other")).toBeNull();
+    expect(getFeedClientName(" Other ")).toBeNull();
+    expect(getFeedClientName("")).toBeNull();
+    expect(getFeedClientName(null)).toBeNull();
+    expect(getFeedClientName(undefined)).toBeNull();
+  });
+
+  test("Google's refresh note is for a link Google Calendar read last, and only that", () => {
+    expect(GOOGLE_CALENDAR_CLIENT).toBe("Google Calendar");
+    expect(
+      isFetchedByGoogleCalendar(
+        makeStatus({ lastFetchedClient: "Google Calendar" }),
+      ),
+    ).toBe(true);
+
+    for (const client of [
+      "Apple Calendar",
+      "Microsoft Outlook",
+      "Other",
+      null,
+    ]) {
+      expect(
+        isFetchedByGoogleCalendar(makeStatus({ lastFetchedClient: client })),
+      ).toBe(false);
+    }
+  });
+});
+
+/*
+ * The link as the page shows it while it is hidden. The token is the
+ * credential; nothing of it but the four characters the status already names
+ * may ever be in the mask.
+ */
+describe("maskFeedLink", () => {
+  const TOKEN: string = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG";
+
+  test("the host, then dots, then the four characters - no scheme, no path, no token", () => {
+    const masked: MaskedFeedLink = maskFeedLink(HTTPS_URL, "DEFG");
+
+    expect(masked).toEqual({
+      address: "oneuptime.example.com/",
+      secret: MASK_CHARACTER.repeat(10) + "DEFG",
+    });
+    expect(masked.address + masked.secret).not.toContain(TOKEN);
+    expect(masked.address + masked.secret).not.toContain("on-call-calendar");
+  });
+
+  test("a port is part of the host, and a schedule filter is not shown", () => {
+    expect(
+      maskFeedLink(
+        "http://oneuptime.lan:8080/api/on-call-calendar/user/x/shifts.ics?schedule=abc",
+        "k3Qx",
+      ).address,
+    ).toBe("oneuptime.lan:8080/");
+  });
+
+  test("without a hint the secret is dots alone; a link that cannot be parsed keeps only the dots", () => {
+    expect(maskFeedLink(HTTPS_URL, null).secret).toBe(
+      MASK_CHARACTER.repeat(10),
+    );
+    expect(maskFeedLink(HTTPS_URL, "  ").secret).toBe(
+      MASK_CHARACTER.repeat(10),
+    );
+    expect(maskFeedLink("not a url", "k3Qx")).toEqual({
+      address: "",
+      secret: MASK_CHARACTER.repeat(10) + "k3Qx",
+    });
+  });
+
+  test("the dots are bullets, one character each", () => {
+    expect(MASK_CHARACTER.codePointAt(0)).toBe(0x2022);
+    expect(MASK_CHARACTER).toHaveLength(1);
+  });
+});
+
+describe("the layout of a calendar link card's body", () => {
+  test("subscribing and the status share the row from xl up, three fifths and two", () => {
+    expect(FEED_BODY_GRID_CLASS_NAME).toBe(
+      "grid grid-cols-1 gap-6 xl:grid-cols-5",
+    );
+    expect(FEED_SUBSCRIBE_COLUMN_CLASS_NAME).toContain("xl:col-span-3");
+    expect(FEED_STATUS_COLUMN_CLASS_NAME).toContain("xl:col-span-2");
+    expect(FEED_STATUS_FULL_WIDTH_CLASS_NAME).toContain("xl:col-span-5");
+
+    // Columns may shrink below their content's width rather than overflow.
+    for (const column of [
+      FEED_SUBSCRIBE_COLUMN_CLASS_NAME,
+      FEED_STATUS_COLUMN_CLASS_NAME,
+      FEED_STATUS_FULL_WIDTH_CLASS_NAME,
+    ]) {
+      expect(column).toContain("min-w-0");
+    }
+  });
+
+  test("a state that needs attention comes first while the columns stack", () => {
+    expect(isAttentionHealth(FeedHealth.Disabled)).toBe(true);
+    expect(isAttentionHealth(FeedHealth.NeedsRegeneration)).toBe(true);
+    expect(isAttentionHealth(FeedHealth.NotFetched)).toBe(true);
+    expect(isAttentionHealth(FeedHealth.Active)).toBe(false);
+    expect(isAttentionHealth(FeedHealth.WaitingForFirstSync)).toBe(false);
+
+    expect(
+      getFeedStatusColumnClassName({
+        hasLink: true,
+        health: FeedHealth.Disabled,
+      }),
+    ).toBe(
+      FEED_STATUS_COLUMN_CLASS_NAME + " " + FEED_ATTENTION_FIRST_CLASS_NAME,
+    );
+    expect(
+      getFeedStatusColumnClassName({
+        hasLink: true,
+        health: FeedHealth.Active,
+      }),
+    ).toBe(FEED_STATUS_COLUMN_CLASS_NAME);
+    expect(FEED_ATTENTION_FIRST_CLASS_NAME).toBe("max-xl:order-first");
+  });
+
+  test("a link that cannot be shown gives the status the whole row", () => {
+    expect(
+      getFeedStatusColumnClassName({
+        hasLink: false,
+        health: FeedHealth.NeedsRegeneration,
+      }),
+    ).toBe(
+      FEED_STATUS_FULL_WIDTH_CLASS_NAME + " " + FEED_ATTENTION_FIRST_CLASS_NAME,
+    );
   });
 });
