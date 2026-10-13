@@ -433,8 +433,9 @@ describe("a docs page", () => {
       const markdownUrl: string = `/docs/as-markdown/${lang}/monitor/website-monitor`;
       const t: ReturnType<typeof makeT> = makeT(lang);
 
+      // The Markdown is never indexed, so search engines are not sent to it.
       expect(html).toContain(
-        `<a class="docs-page-action" href="${markdownUrl}" target="_blank" rel="noopener">`,
+        `<a class="docs-page-action" href="${markdownUrl}" target="_blank" rel="noopener nofollow">`,
       );
       expect(html).toContain(t("ui.viewAsMarkdown"));
       // The copy button waits for the script, which knows about the clipboard.
