@@ -61,7 +61,7 @@
           <a href="/compare/<%= compareGroups[g].items[i].slug %>" class="group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-gray-200 transition-all duration-300 hover:ring-gray-300 hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5">
             <div class="flex items-center gap-3 mb-4">
               <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                <img src="<%= compareGroups[g].items[i].iconUrl %>" alt="<%= compareGroups[g].items[i].productName %>" class="h-7 w-7 object-contain">
+                <img src="<%= compareGroups[g].items[i].iconUrl %>" alt="<%= compareGroups[g].items[i].productName %>" class="h-7 w-7 object-contain" width="28" height="28" loading="lazy" decoding="async">
               </div>
               <div class="min-w-0">
                 <p class="text-xs text-gray-400">OneUptime vs</p>
