@@ -483,9 +483,15 @@ describe("APIRequestCriteria evaluate over time", () => {
 
   describe("checks with no metric series of their own", () => {
     /*
-     * Response Body is not recorded as a metric, so an over-time flag on it
-     * cannot be honoured. It falls back to the body from this check rather
-     * than silently never matching.
+     * Response Body is not recorded as a series, so APIRequestCriteria has no
+     * window of its own to read for it: handed an over-time body filter, it
+     * judges the body from this check rather than silently never matching.
+     *
+     * That is the building block, not the whole story: on a Website or API
+     * monitor MonitorCriteriaEvaluator judges such a filter from its match
+     * history (CriteriaFilterMatchHistory, issue #4686) and asks this
+     * evaluator only about the check in hand - see
+     * MonitorCriteriaEvaluatorMatchHistory.test.ts.
      */
     test("fall back to the value from this check", async () => {
       windowSamples = [];

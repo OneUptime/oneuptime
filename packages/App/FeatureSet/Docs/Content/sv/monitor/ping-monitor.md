@@ -100,7 +100,7 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Is Online**, **Svarstid (i ms)**, **Packet Loss (in %)** och **Jitter (in ms)**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Is Online**, **Svarstid (i ms)**, **Packet Loss (in %)**, **Jitter (in ms)** och **Is Request Timeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
 
 | Aggregering | Matchar när |
 | --- | --- |
@@ -109,6 +109,10 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 | **Any Value** | Minst en kontroll i fönstret uppfyller villkoret. |
 
 **All Values** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Any Value** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
+
+**Is Request Timeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **All Values** eller **Any Value**.
+
+Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 
 **Om ingen data** avgör vad som händer så länge fönstret inte kan bära kriteriet:
 

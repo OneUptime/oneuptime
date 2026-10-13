@@ -129,7 +129,7 @@ Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad de
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)** og **Port TCP Connect Time (in ms)**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Is Online**, **Total Connection Time (DNS + TCP) (in ms)**, **Port DNS Lookup Time (in ms)**, **Port TCP Connect Time (in ms)** og **Is Request Timeout**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
@@ -138,6 +138,10 @@ Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad de
 | **Any Value** | Mindst ét tjek i vinduet opfylder betingelsen. |
 
 **All Values** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Any Value** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
+
+**Is Request Timeout** er ikke et tal, OneUptime registrerer. OneUptime registrerer derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **All Values** eller **Any Value**.
+
+Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: en monitor, der tjekkes hvert 5. minut, har kun ét tjek i et vindue på 5 minutter.
 
 **Hvis ingen data** afgør, hvad der sker, så længe vinduet ikke kan bære kriteriet:
 
