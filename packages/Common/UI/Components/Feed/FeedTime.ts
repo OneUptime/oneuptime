@@ -58,8 +58,16 @@ const FALLBACK_LANGUAGE: string = "en";
  * compiles against the ES2017 library, which does not declare it, while
  * every browser the Dashboard supports has it.
  */
+export type RelativeTimeUnit =
+  | "second"
+  | "minute"
+  | "hour"
+  | "day"
+  | "month"
+  | "year";
+
 interface RelativeTimeFormatter {
-  format: (value: number, unit: "second" | "minute" | "day") => string;
+  format: (value: number, unit: RelativeTimeUnit) => string;
 }
 
 type RelativeTimeFormatConstructor = new (
@@ -300,14 +308,21 @@ const capitalizeFirst: (text: string, locale: string) => string = (
 const relativeFormatterCache: Map<string, RelativeTimeFormatter | null> =
   new Map<string, RelativeTimeFormatter | null>();
 
+/*
+ * `numeric: "auto"` says "now" and "yesterday" where it can, which a day
+ * heading and the last hour's hint want; "always" says "1 day ago", which a
+ * sentence that already has its own words around the value wants.
+ */
 const getRelativeTimeFormatter: (
   locale: string,
   style: "long" | "short",
+  numeric?: "auto" | "always",
 ) => RelativeTimeFormatter | null = (
   locale: string,
   style: "long" | "short",
+  numeric: "auto" | "always" = "auto",
 ): RelativeTimeFormatter | null => {
-  const cacheKey: string = `${locale}|${style}`;
+  const cacheKey: string = `${locale}|${style}|${numeric}`;
 
   if (relativeFormatterCache.has(cacheKey)) {
     return relativeFormatterCache.get(cacheKey) || null;
@@ -321,7 +336,7 @@ const getRelativeTimeFormatter: (
 
     if (RelativeTimeFormat) {
       formatter = new RelativeTimeFormat(locale, {
-        numeric: "auto",
+        numeric: numeric,
         style: style,
       });
     }
@@ -427,6 +442,105 @@ export const getFeedRelativeHint: (
   return formatter
     ? formatter.format(-minutes, "minute")
     : `${minutes} min ago`;
+};
+
+/*
+ * How long ago something was, counted the way a person rounds it - and as
+ * moment's fromNow rounded it, so a status that read "a day ago" before reads
+ * "1 day ago" now: minutes up to 45, then hours up to 22, then days up to 26,
+ * then months up to 11, then years. Under a minute and a half is "1 minute",
+ * never "now": the sentences this fills ("Last fetched {{when}}") need a
+ * distance, and "0 minutes" or "now" reads oddly in most languages.
+ */
+const SECONDS_IN_MINUTE: number = 60;
+const SECONDS_IN_HOUR: number = 60 * SECONDS_IN_MINUTE;
+const SECONDS_IN_DAY: number = 24 * SECONDS_IN_HOUR;
+const SECONDS_IN_MONTH: number = 30 * SECONDS_IN_DAY;
+const SECONDS_IN_YEAR: number = 365 * SECONDS_IN_DAY;
+
+export interface TimeAgoDistance {
+  count: number;
+  unit: RelativeTimeUnit;
+}
+
+export const getFeedTimeAgoDistance: (
+  ageInSeconds: number,
+) => TimeAgoDistance = (ageInSeconds: number): TimeAgoDistance => {
+  const age: number = Math.max(0, ageInSeconds);
+
+  const inUnit: (unit: RelativeTimeUnit, seconds: number) => TimeAgoDistance = (
+    unit: RelativeTimeUnit,
+    seconds: number,
+  ): TimeAgoDistance => {
+    return { count: Math.max(1, Math.round(age / seconds)), unit: unit };
+  };
+
+  if (age < 45 * SECONDS_IN_MINUTE) {
+    return inUnit("minute", SECONDS_IN_MINUTE);
+  }
+
+  if (age < 22 * SECONDS_IN_HOUR) {
+    return inUnit("hour", SECONDS_IN_HOUR);
+  }
+
+  if (age < 26 * SECONDS_IN_DAY) {
+    return inUnit("day", SECONDS_IN_DAY);
+  }
+
+  if (age < 11 * SECONDS_IN_MONTH) {
+    return inUnit("month", SECONDS_IN_MONTH);
+  }
+
+  return inUnit("year", SECONDS_IN_YEAR);
+};
+
+const ENGLISH_UNIT_NAMES: Record<RelativeTimeUnit, [string, string]> = {
+  second: ["second", "seconds"],
+  minute: ["minute", "minutes"],
+  hour: ["hour", "hours"],
+  day: ["day", "days"],
+  month: ["month", "months"],
+  year: ["year", "years"],
+};
+
+/*
+ * "7 minutes ago", "3 hours ago", "1 day ago", "2 months ago" - how long ago
+ * an instant was, in the reader's language, at any distance. A timeline
+ * shows its entries' clock times and only hints at the last hour
+ * (getFeedRelativeHint); a status with no clock time beside it - when a
+ * calendar app last read a feed - gives the whole distance this way.
+ *
+ * An instant a little ahead of the reader's clock (the server's clock and
+ * the browser's are rarely in step) is "1 minute ago", never "in 2
+ * minutes". Undefined for an invalid date.
+ */
+export const formatFeedTimeAgo: (
+  date: Date,
+  clock: FeedClock,
+) => string | undefined = (
+  date: Date,
+  clock: FeedClock,
+): string | undefined => {
+  const ageInSeconds: number = (clock.now.getTime() - date.getTime()) / 1000;
+
+  if (Number.isNaN(ageInSeconds)) {
+    return undefined;
+  }
+
+  const distance: TimeAgoDistance = getFeedTimeAgoDistance(ageInSeconds);
+  const formatter: RelativeTimeFormatter | null = getRelativeTimeFormatter(
+    getFeedLocale(clock.language),
+    "long",
+    "always",
+  );
+
+  if (formatter) {
+    return formatter.format(-distance.count, distance.unit);
+  }
+
+  const names: [string, string] = ENGLISH_UNIT_NAMES[distance.unit];
+
+  return `${distance.count} ${distance.count === 1 ? names[0] : names[1]} ago`;
 };
 
 /*

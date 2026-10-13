@@ -109,9 +109,11 @@ export enum MicrosoftTeamsGeneralActionType {
   ViewProject = "ViewProject",
 }
 
-// Bot commands that open a form; text after them becomes the form's title.
-export const CREATE_INCIDENT_COMMAND: string = "create incident";
-export const CREATE_MAINTENANCE_COMMAND: string = "create maintenance";
+/*
+ * The words typed to the bot - "incident [title]", "oncall", "help" - are
+ * Slack's words after /oneuptime too: WorkspaceCommands reads them for both,
+ * and MicrosoftTeamsCommands has the lists only Teams has.
+ */
 
 // Activity Types from Microsoft Teams
 export enum TeamsActivityType {

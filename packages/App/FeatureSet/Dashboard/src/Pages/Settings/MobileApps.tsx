@@ -7,6 +7,13 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  APP_STORE_NAME,
+  GOOGLE_PLAY_NAME,
+  MOBILE_APP_ANDROID_URL,
+  MOBILE_APP_APK_URL,
+  MOBILE_APP_IOS_URL,
+} from "../../Utils/MobileAppStoreLinks";
 
 interface Feature {
   icon: IconProp;
@@ -92,10 +99,6 @@ const StoreBadgeEyebrow: FunctionComponent<{ text: string }> = ({
   );
 };
 
-// Store names: brand names, the same in every language.
-const APP_STORE_NAME: string = "App Store";
-const GOOGLE_PLAY_NAME: string = "Google Play";
-
 const DownloadApkLabel: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -128,13 +131,6 @@ const features: Array<Feature> = [
     description: "Face ID unlock and encrypted delivery.",
   },
 ];
-
-const IOS_URL: string =
-  "https://apps.apple.com/us/app/oneuptime-on-call/id6759615391";
-const ANDROID_URL: string =
-  "https://play.google.com/store/apps/details?id=com.oneuptime.oncall";
-const APK_URL: string =
-  "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk";
 
 const openLink: (url: string) => void = (url: string): void => {
   window.open(url, "_blank", "noopener,noreferrer");
@@ -172,7 +168,7 @@ const downloadRows: Array<DownloadRow> = [
       </>
     ),
     onClick: () => {
-      openLink(IOS_URL);
+      openLink(MOBILE_APP_IOS_URL);
     },
   },
   {
@@ -200,7 +196,7 @@ const downloadRows: Array<DownloadRow> = [
       </>
     ),
     onClick: () => {
-      openLink(ANDROID_URL);
+      openLink(MOBILE_APP_ANDROID_URL);
     },
   },
   {
@@ -218,7 +214,7 @@ const downloadRows: Array<DownloadRow> = [
       </>
     ),
     onClick: () => {
-      openLink(APK_URL);
+      openLink(MOBILE_APP_APK_URL);
     },
   },
 ];

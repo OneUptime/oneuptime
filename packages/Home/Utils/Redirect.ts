@@ -16,29 +16,32 @@ import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
  * from `req.query` on purpose: re-serialising reorders keys, normalises
  * percent-encoding and collapses repeated parameters, and the attribution
  * capture stores whatever bytes it is given.
+ *
+ * The status code is required. It used to be optional, and a caller that left
+ * it out got Express's default: a temporary 302. That is what the short
+ * aliases (/on-call, /incident-management, /status-page, ...) answered for
+ * years. A search engine keeps a 302's own address in its index and does not
+ * pass what that address has earned on to the page it points at, so every
+ * alias competed with the very page it stood in for. Each caller now says
+ * which kind of move it is: 301 for a page that has moved for good.
  */
+
+export type RedirectStatusCode = 301 | 302 | 303 | 307 | 308;
 
 export type RedirectPreservingQueryFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
   targetPath: string,
-  statusCode?: number,
+  statusCode: RedirectStatusCode,
 ) => void;
 
 export const redirectPreservingQuery: RedirectPreservingQueryFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
   targetPath: string,
-  statusCode?: number,
+  statusCode: RedirectStatusCode,
 ): void => {
-  const target: string = appendQueryFrom(req, targetPath);
-
-  if (statusCode) {
-    res.redirect(statusCode, target);
-    return;
-  }
-
-  res.redirect(target);
+  res.redirect(statusCode, appendQueryFrom(req, targetPath));
 };
 
 export type AppendQueryFromFunction = (

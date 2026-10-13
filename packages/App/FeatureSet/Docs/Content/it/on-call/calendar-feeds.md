@@ -61,7 +61,7 @@ Apri **Impostazioni utente** > **Calendario** > **Feed calendario** nel progetto
 Fai clic su **Genera link del calendario**. La scheda **Sottoscrivi i tuoi turni di reperibilità** offre ora un unico percorso di sottoscrizione:
 
 - **Aggiungi al tuo calendario**: **Google Calendar** apre Google Calendar, che chiede se aggiungere il calendario. **Calendario Apple / Outlook** apre la forma `webcal://` del link nell'app con cui il tuo computer o telefono sottoscrive: Calendario di Apple su Mac, iPhone o iPad, Outlook su Windows.
-- **Oppure copia il link**: **Copia link** copia il link `https://` per qualsiasi altra app in grado di sottoscrivere un calendario tramite URL. Il link resta nascosto nella pagina finché non fai clic per mostrarlo.
+- **Oppure copia il link**: **Copia link** copia il link `https://` per qualsiasi altra app in grado di sottoscrivere un calendario tramite URL, senza mostrarlo. Il link resta nascosto nella pagina finché non fai clic su **Mostra**.
 
 ### Sottoscrivi il link
 
@@ -78,15 +78,23 @@ Fai clic su **Modifica impostazioni** nella scheda **Impostazioni del feed calen
 | **Giorni di turni passati** | Fin dove arriva il calendario nel passato (2 per impostazione predefinita, al massimo 60). |
 | **Giorni futuri** | Fin dove arriva il calendario nel futuro (90 per impostazione predefinita, tra 7 e 180). |
 
-La riga di stato mostra quando il link è stato letto l'ultima volta, da quale app di calendario, quante volte, e gli ultimi quattro caratteri del token per distinguere i link. Se nulla ha letto il link dopo due giorni, la pagina chiede se il server è raggiungibile da Internet (vedi Risoluzione dei problemi).
+Il riquadro **Stato** accanto alle opzioni di sottoscrizione dice se il link funziona: quando è stato letto l'ultima volta e da quale app di calendario, circa quante volte, e gli ultimi quattro caratteri del token per distinguere i link. Il suo badge indica:
+
+- **Attivo**: un'app di calendario ha letto il link.
+- **In attesa della prima sincronizzazione**: nulla ha ancora letto il link. La maggior parte delle app lo fa entro pochi minuti dalla sottoscrizione; Google Calendar può impiegare qualche ora.
+- **Non ancora recuperato**: nulla ha letto il link nei due giorni da quando è stato creato, quindi la pagina chiede se il server è raggiungibile da dove gira la tua app di calendario (vedi Risoluzione dei problemi).
+- **Disabilitato**: il link serve un calendario vuoto finché non fai clic su **Attiva link**.
+- **Da rigenerare**: il link salvato non può più essere letto, di solito perché è cambiato il segreto di cifratura del server. **Rigenera link** ne crea uno nuovo.
 
 ### Gestisci il link
+
+Il resto è nel menu **⋯** della scheda. **Rigenera link** ed **Elimina link** chiedono conferma prima di agire.
 
 | Azione | Che cosa succede |
 | --- | --- |
 | **Rigenera link** | Crea un nuovo token. Ogni app sottoscritta al vecchio link smette di aggiornarsi: per 30 giorni il vecchio link serve un calendario vuoto perché quelle app svuotino la loro copia, poi risponde 404. Sottoscrivi di nuovo con il nuovo link. |
-| **Disattiva** | Mantiene il link ma serve un calendario vuoto finché non lo riattivi. |
-| **Elimina** | Rimuove il link. Le app che lo interrogano ancora ricevono 404 e continuano a mostrare ciò che hanno letto per ultimo: disattivalo prima se vuoi che si svuotino. |
+| **Disattiva link** | Mantiene il link ma serve un calendario vuoto finché non fai clic su **Attiva link**, nello stesso menu o nel riquadro **Stato**. |
+| **Elimina link** | Rimuove il link. Le app che lo interrogano ancora ricevono 404 e continuano a mostrare ciò che hanno letto per ultimo: disattivalo prima se vuoi che si svuotino. |
 
 ### Turni in arrivo e sostituzioni
 
@@ -109,7 +117,7 @@ Usa **Google Calendar** o **Calendario Apple / Outlook** in OneUptime quando la 
 
 Il pulsante **Google Calendar** apre la pagina di Google per aggiungere tramite URL, `https://calendar.google.com/calendar/r?cid=` seguito dalla forma `webcal://` del link, codificata con percentuali. Quella pagina accetta solo la forma `webcal://`: con la forma `https://`, Google risponde «Unable to add calendar. Check the URL.». **Da URL** accetta entrambe le forme.
 
-Google legge il feed **dai server di Google**, quindi il server di OneUptime deve essere raggiungibile da Internet: OneUptime Cloud lo è sempre; per un'installazione self-hosted vedi Risoluzione dei problemi. La prima lettura avviene di solito pochi minuti dopo la sottoscrizione; poi Google aggiorna circa ogni 8-24 ore, a volte meno spesso. Non c'è un pulsante di aggiornamento per i calendari sottoscritti, e Google ignora le indicazioni di aggiornamento del feed. La riga di stato della pagina del feed mostra **Ultimo recupero … da Google Calendar** appena Google ha letto il link.
+Google legge il feed **dai server di Google**, quindi il server di OneUptime deve essere raggiungibile da Internet: OneUptime Cloud lo è sempre; per un'installazione self-hosted vedi Risoluzione dei problemi. La prima lettura avviene di solito pochi minuti dopo la sottoscrizione; poi Google aggiorna circa ogni 8-24 ore, a volte meno spesso. Non c'è un pulsante di aggiornamento per i calendari sottoscritti, e Google ignora le indicazioni di aggiornamento del feed. Lo stato sulla scheda mostra **Ultimo recupero … da Google Calendar** appena Google ha letto il link.
 
 Il nome e il fuso orario del calendario vengono letti **solo alla prima sottoscrizione**: rinominare una pianificazione in seguito non rinomina il calendario in Google; rimuovilo e aggiungilo di nuovo se il nome conta. Google scarta i promemoria contenuti nei file di calendario, quindi imposta notifiche predefinite per quel calendario nelle impostazioni di Google o, meglio, usa i promemoria di OneUptime. Google ricorda un indirizzo che non è riuscito a leggere: dopo aver risolto ciò che lo impediva, aggiungi di nuovo il link con `?nocache=1` in fondo (OneUptime ignora i parametri di query sconosciuti, quindi il feed non cambia) oppure rigenera il link. L'app Google Calendar per Android e iOS non può sottoscrivere tramite URL; aggiungi il link su un computer e comparirà sul telefono.
 @tab Outlook sul web
@@ -194,7 +202,7 @@ Un link condiviso appartiene al **progetto**, non a chi l'ha copiato, e mostra i
 
 ### Feed della pianificazione
 
-Nella pagina di una pianificazione, la scheda **Sottoscrivi questo calendario turni** ha due metà: **Solo i miei turni in questo calendario turni** (il tuo link personale con un filtro di pianificazione) e **Turni di tutti in questo calendario turni (link di squadra condiviso)**. Chiunque abbia il permesso **Modifica** sulle pianificazioni può pubblicarlo con **Pubblica link condiviso**, rinnovarlo con **Rigenera link** o fermarlo con **Disattiva**; chiunque possa leggere la pianificazione può copiarlo. La scheda mostra quando il link è stato rinnovato l'ultima volta.
+Nella pagina di una pianificazione, la scheda **Sottoscrivi questo calendario turni** ha due metà: **Solo i miei turni in questo calendario turni** (il tuo link personale con un filtro di pianificazione) e **Turni di tutti in questo calendario turni (link di squadra condiviso)**. Chiunque abbia il permesso **Modifica** sulle pianificazioni può pubblicarlo con **Pubblica link condiviso** e, dal menu **⋯** della scheda, rinnovarlo con **Rigenera link** o fermarlo con **Disattiva link**; chiunque possa leggere la pianificazione può copiarlo. Lo stato della scheda mostra quando il link è stato rinnovato l'ultima volta.
 
 ### Feed del progetto
 
@@ -231,7 +239,7 @@ Il feed mostra la rotazione **così come è configurata adesso**, anche per i gi
 
 - Il token nel link è l'unica credenziale. Chiunque abbia il link vede i turni (nomi, pianificazioni, policy) finché non viene rigenerato. Non incollare i link in chat o ticket; quando un team ha bisogno di un calendario, condividi il link della pianificazione o del progetto invece del tuo personale.
 - I link sono per progetto. Un link personale trapelato espone i turni di un progetto, non di tutti i progetti di cui fai parte.
-- Rigenerare un link sposta il vecchio token in un periodo di tolleranza di 30 giorni (calendario vuoto, poi 404). **Disattiva** serve un calendario vuoto. Un link sconosciuto o scaduto risponde con un semplice 404 senza indizi. I calendari vuoti fanno svuotare la copia alle app sottoscritte; un 404 la fa conservare, per questo disattivare e rigenerare servono calendari vuoti.
+- Rigenerare un link sposta il vecchio token in un periodo di tolleranza di 30 giorni (calendario vuoto, poi 404). **Disattiva link** serve un calendario vuoto. Un link sconosciuto o scaduto risponde con un semplice 404 senza indizi. I calendari vuoti fanno svuotare la copia alle app sottoscritte; un 404 la fa conservare, per questo disattivare e rigenerare servono calendari vuoti.
 - I token sono memorizzati come hash; la copia mostrata nella pagina delle impostazioni è cifrata con `ENCRYPTION_SECRET`. Imposta questa variabile con un vero segreto su un'installazione self-hosted: il server avvisa all'avvio quando non è impostata o è ancora uno dei segnaposto forniti da questo repository (`secret`, o il `please-change-this-to-random-value` impostato da `config.example.env`). Se la cambi in seguito, la pagina propone **Rigenera link** perché la copia memorizzata non è più leggibile; il feed continua a funzionare finché non lo fai.
 - Le risposte dei feed sono contrassegnate con `Cache-Control: private`, escluse dai motori di ricerca (`X-Robots-Tag: noindex`) e soggette a limiti di frequenza per link e per indirizzo client.
 
@@ -277,7 +285,7 @@ Le versioni precedenti di OneUptime mettevano la forma `https://` del link nel p
 :::
 
 :::details Google Calendar mostra il calendario ma nessun turno
-Controlla prima la riga di stato della pagina del feed. **Ultimo recupero … da Google Calendar** significa che Google ha letto il link: apri il link in un browser e guarda che cosa serve; un calendario vuoto indica il motivo in `X-WR-CALDESC` (vedi «Il calendario è vuoto» più sotto).
+Controlla prima lo stato sulla scheda. **Ultimo recupero … da Google Calendar** significa che Google ha letto il link: apri il link in un browser e guarda che cosa serve; un calendario vuoto indica il motivo in `X-WR-CALDESC` (vedi «Il calendario è vuoto» più sotto).
 
 **Non ancora recuperato** significa che Google non è riuscito a leggerlo: da una macchina fuori dalla tua rete, `curl -sI <link>` deve rispondere subito `200` con `Content-Type: text/calendar`. Un reindirizzamento, una pagina di accesso, un firewall o un controllo anti-bot davanti a OneUptime ferma il lettore di Google; lo faceva anche un ciclo di reindirizzamenti nelle versioni precedenti di OneUptime, sulle installazioni con `PROVISION_SSL=true` il cui TLS termina prima di Nginx. Quando risponde `200`, aggiungi di nuovo il link con `?nocache=1` in fondo perché Google lo rilegga.
 :::
@@ -285,7 +293,7 @@ Controlla prima la riga di stato della pagina del feed. **Ultimo recupero … da
 :::details Nulla ha letto il link, oppure «Impossibile recuperare l'URL»
 Google Calendar, Outlook sul web, Fastmail e Proton leggono **dai propri server**, quindi l'host di OneUptime deve essere raggiungibile dall'Internet pubblico con un certificato che considerano attendibile. Un'installazione su una rete privata, dietro una VPN o con un'autorità di certificazione interna è per loro irraggiungibile, qualunque cosa incolli.
 
-Calendario di Apple, Thunderbird e Outlook classico leggono dal dispositivo, quindi funzionano ovunque il dispositivo possa aprire la dashboard, dopo aver reso attendibile il certificato su quel dispositivo se è autofirmato. La riga di stato della pagina del feed ti dice se qualcosa ha già letto il link; `curl -I` sul link da fuori dalla tua rete è il controllo più rapido:
+Calendario di Apple, Thunderbird e Outlook classico leggono dal dispositivo, quindi funzionano ovunque il dispositivo possa aprire la dashboard, dopo aver reso attendibile il certificato su quel dispositivo se è autofirmato. Lo stato sulla scheda ti dice se qualcosa ha già letto il link; `curl -I` sul link da fuori dalla tua rete è il controllo più rapido:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

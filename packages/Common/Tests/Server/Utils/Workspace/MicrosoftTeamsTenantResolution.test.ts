@@ -103,7 +103,8 @@ const TURN_CONTEXT_SERVICE_URL: string =
 const AMBIGUOUS_FRAGMENT: string = "more than one OneUptime project";
 const NOT_FOUND_FRAGMENT: string = "couldn't find your project configuration";
 const NO_TENANT_FRAGMENT: string = "couldn't identify your organization";
-const HELP_FRAGMENT: string = "Available Commands";
+// The help card's first words (WorkspaceCommands.getHelpAnswer).
+const HELP_FRAGMENT: string = "Here's what I can do.";
 
 interface CapturedFindByCall {
   query: JSONObject;

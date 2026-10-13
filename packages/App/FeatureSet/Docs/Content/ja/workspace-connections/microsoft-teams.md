@@ -145,17 +145,18 @@ OneUptime がインシデント、アラート、エピソード、定期メン�
 | メッセージ | ボットの動作 |
 | --- | --- |
 | `help` | できることの一覧を表示します。 |
-| `ask <question>`、または普段の言葉での任意の質問 | OneUptime AI が、ログ、トレース、メトリクス、インシデント、モニターについて回答します。たとえば「今ダウンしているモニターは?」です。回答は読み取るだけです。 |
-| `create incident [title]` | タイトルを入力した状態でインシデントのフォームを開きます。 |
-| `create maintenance [title]` | タイトルを入力した状態で定期メンテナンスのフォームを開きます。 |
+| `incident [title]` | タイトルを入力した状態でインシデントのフォームを開きます。 |
+| `maintenance [title]` | タイトルを入力した状態で定期メンテナンスのフォームを開きます。 |
+| `oncall` | 表示できる各オンコールスケジュールで、今オンコールの人、いつまでか、次は誰かを一覧表示します。 |
+| `ask [question]`、または普段の言葉での任意の質問 | OneUptime AI が、ログ、トレース、メトリクス、インシデント、モニターについて回答します。たとえば「今ダウンしているモニターは?」です。回答は読み取るだけです。 |
 | `show active incidents`、 `show active alerts` | 現在開いているものを一覧表示します。 |
 | `show scheduled maintenance`、 `show ongoing maintenance` | 予定されている、または進行中のメンテナンスイベントを一覧表示します。 |
 
-OneUptime AI への質問には、プロジェクトで AI がオンになっている必要があります。[AI に質問](/docs/ai/ask-ai) を参照してください。
+`show` の一覧を除き、これらは Slack で `/oneuptime` の後に続く単語です。`create incident` と `create maintenance` も引き続き使えます。OneUptime AI への質問には、プロジェクトで AI がオンになっている必要があります。[AI に質問](/docs/ai/ask-ai) を参照してください。
 
 ## Microsoft Teams からインシデントとメンテナンスを作成する
 
-OneUptime ボットに `create incident` または `create maintenance` と入力すると、個人チャット、チャネル、グループチャットのどこでも、入力した人のためのフォームが開きます。フォームはその人として入力されます。その人の Microsoft Teams アカウントが接続されている OneUptime アカウント ([Microsoft Teams を接続する](#microsoft-teams-を接続する) を参照) として、そのアカウントのプロジェクトでの権限で送信されます。アカウントが接続されていない人や、OneUptime アカウントがもうプロジェクトのメンバーでない人には、フォームの代わりに、その人をメンションした返信でどうすればよいかが伝えられます。
+OneUptime ボットに `incident` または `maintenance` と入力すると、個人チャット、チャネル、グループチャットのどこでも、入力した人のためのフォームが開きます。フォームはその人として入力されます。その人の Microsoft Teams アカウントが接続されている OneUptime アカウント ([Microsoft Teams を接続する](#microsoft-teams-を接続する) を参照) として、そのアカウントのプロジェクトでの権限で送信されます。アカウントが接続されていない人や、OneUptime アカウントがもうプロジェクトのメンバーでない人には、フォームの代わりに、その人をメンションした返信でどうすればよいかが伝えられます。
 
 - **使える人。** OneUptime でインシデントを宣言できる人、または定期メンテナンスイベントを作成できる人です。インシデントには **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member** (カスタムロールでは **Create Incident**)、イベントには **Scheduled Maintenance Admin** と **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) です。それ以外の人にはそう伝えられ、フォームは届きません。
 - **フォームが提示するもの。** 各一覧 (重大度、モニター、モニターのステータス、オンコールポリシー、ラベル) には、OneUptime の同じ一覧と同じく、フォームを求めた人が読めるものが含まれ、カードの "not shown" の注記もそれだけを数えます。一部のラベルに限定されたロールなら、それらのラベルが付いたモニターとオンコールポリシーです。まったく読めない一覧は外されます。アーカイブされたオンコールポリシーは提示されません。
