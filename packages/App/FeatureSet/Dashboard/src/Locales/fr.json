@@ -28236,9 +28236,6 @@
   "Disable link": "Désactiver le lien",
   "Enable link": "Activer le lien",
   "Hide link": "Masquer le lien",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "Lien copié.",
   "Manage link": "Gérer le lien",
   "Needs regeneration": "À régénérer",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "Ouvre Google Agenda dans un nouvel onglet",
   "Opens the calendar app on this device": "Ouvre l'application de calendrier de cet appareil",
   "Show link": "Afficher le lien",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "Ce navigateur n'a pas permis à la page de copier le lien : il est donc affiché et sélectionné ci-dessus. Copiez-le avec Ctrl+C, ou Cmd+C sur un Mac.",
   "Waiting for first sync": "En attente de la première synchronisation"
 }

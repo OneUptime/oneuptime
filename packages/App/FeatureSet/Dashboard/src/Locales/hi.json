@@ -28236,9 +28236,6 @@
   "Disable link": "लिंक अक्षम करें",
   "Enable link": "लिंक सक्षम करें",
   "Hide link": "लिंक छिपाएं",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "लिंक कॉपी हो गया।",
   "Manage link": "लिंक प्रबंधित करें",
   "Needs regeneration": "फिर से बनाना ज़रूरी है",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "Google कैलेंडर को नए टैब में खोलता है",
   "Opens the calendar app on this device": "इस डिवाइस पर कैलेंडर ऐप खोलता है",
   "Show link": "लिंक दिखाएं",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "इस ब्राउज़र ने पेज को लिंक कॉपी नहीं करने दिया, इसलिए वह ऊपर दिखाया और चुना गया है। उसे Ctrl+C से कॉपी करें, या Mac पर Cmd+C से।",
   "Waiting for first sync": "पहले सिंक की प्रतीक्षा"
 }

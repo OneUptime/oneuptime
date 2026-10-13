@@ -28236,9 +28236,6 @@
   "Disable link": "Deaktiver lenke",
   "Enable link": "Aktiver lenke",
   "Hide link": "Skjul lenke",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "Lenken er kopiert.",
   "Manage link": "Administrer lenke",
   "Needs regeneration": "Må genereres på nytt",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "Åpner Google Kalender i en ny fane",
   "Opens the calendar app on this device": "Åpner kalenderappen på denne enheten",
   "Show link": "Vis lenke",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "Denne nettleseren lot ikke siden kopiere lenken, så den vises og er merket ovenfor. Kopier den med Ctrl+C, eller Cmd+C på en Mac.",
   "Waiting for first sync": "Venter på første synkronisering"
 }

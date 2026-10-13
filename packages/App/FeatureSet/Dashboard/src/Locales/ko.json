@@ -28236,9 +28236,6 @@
   "Disable link": "링크 비활성화",
   "Enable link": "링크 활성화",
   "Hide link": "링크 숨기기",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "링크를 복사했습니다.",
   "Manage link": "링크 관리",
   "Needs regeneration": "다시 생성 필요",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "새 탭에서 Google 캘린더를 엽니다",
   "Opens the calendar app on this device": "이 기기의 캘린더 앱을 엽니다",
   "Show link": "링크 표시",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "이 브라우저에서 페이지가 링크를 복사하도록 허용하지 않아 위에 링크를 표시하고 선택해 두었습니다. Ctrl+C(Mac에서는 Cmd+C)로 복사하세요.",
   "Waiting for first sync": "첫 동기화 대기 중"
 }

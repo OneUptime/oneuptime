@@ -28236,9 +28236,6 @@
   "Disable link": "Отключить ссылку",
   "Enable link": "Включить ссылку",
   "Hide link": "Скрыть ссылку",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "Ссылка скопирована.",
   "Manage link": "Управление ссылкой",
   "Needs regeneration": "Нужно создать заново",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "Открывает Google Календарь в новой вкладке",
   "Opens the calendar app on this device": "Открывает приложение календаря на этом устройстве",
   "Show link": "Показать ссылку",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "Этот браузер не разрешил странице скопировать ссылку, поэтому она показана и выделена выше. Скопируйте её сочетанием Ctrl+C или Cmd+C на Mac.",
   "Waiting for first sync": "Ожидает первой синхронизации"
 }

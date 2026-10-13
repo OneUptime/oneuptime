@@ -28236,9 +28236,6 @@
   "Disable link": "غیرفعال کردن پیوند",
   "Enable link": "فعال کردن پیوند",
   "Hide link": "پنهان کردن پیوند",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "پیوند کپی شد.",
   "Manage link": "مدیریت پیوند",
   "Needs regeneration": "نیاز به ساخت دوباره",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "Google Calendar را در یک زبانه جدید باز می‌کند",
   "Opens the calendar app on this device": "اپلیکیشن تقویم این دستگاه را باز می‌کند",
   "Show link": "نمایش پیوند",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "این مرورگر اجازه نداد صفحه پیوند را کپی کند، بنابراین پیوند در بالا نمایش داده و انتخاب شده است. آن را با Ctrl+C، یا Cmd+C در Mac، کپی کنید.",
   "Waiting for first sync": "در انتظار نخستین همگام‌سازی"
 }

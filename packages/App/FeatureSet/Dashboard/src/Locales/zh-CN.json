@@ -28236,9 +28236,6 @@
   "Disable link": "禁用链接",
   "Enable link": "启用链接",
   "Hide link": "隐藏链接",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "链接已复制。",
   "Manage link": "管理链接",
   "Needs regeneration": "需要重新生成",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "在新标签页中打开 Google 日历",
   "Opens the calendar app on this device": "打开此设备上的日历应用",
   "Show link": "显示链接",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "此浏览器不允许页面复制链接，因此链接已显示在上方并已选中。请按 Ctrl+C 复制，在 Mac 上按 Cmd+C。",
   "Waiting for first sync": "等待首次同步"
 }

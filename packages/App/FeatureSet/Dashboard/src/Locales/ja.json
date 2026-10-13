@@ -28236,9 +28236,6 @@
   "Disable link": "リンクを無効にする",
   "Enable link": "リンクを有効にする",
   "Hide link": "リンクを非表示",
-  "Instance Token Signing Key": "Instance Token Signing Key",
-  "Instance Token Signing Keys": "Instance Token Signing Keys",
-  "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.": "Internal: the key this installation signs its tokens with when ENCRYPTION_SECRET is unset or a shipped placeholder.",
   "Link copied.": "リンクをコピーしました。",
   "Manage link": "リンクを管理",
   "Needs regeneration": "再生成が必要",
@@ -28246,7 +28243,6 @@
   "Opens Google Calendar in a new tab": "Google カレンダーを新しいタブで開きます",
   "Opens the calendar app on this device": "このデバイスのカレンダーアプリを開きます",
   "Show link": "リンクを表示",
-  "Signing Key": "Signing Key",
   "This browser did not let the page copy the link, so it is shown and selected above. Copy it with Ctrl+C, or Cmd+C on a Mac.": "このブラウザーではページからリンクをコピーできなかったため、上にリンクを表示して選択しました。Ctrl+C（Mac では Cmd+C）でコピーしてください。",
   "Waiting for first sync": "初回同期待ち"
 }
