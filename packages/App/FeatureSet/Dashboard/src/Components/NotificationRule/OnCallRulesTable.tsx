@@ -1298,15 +1298,9 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           },
           /*
            * Shown once a push method is picked - a browser included - and
-           * starting on "Don't repeat", the column's default. Changed later
-           * from the rule's row, like the level above.
-           *
-           * Started by getDefaultValue, not by the column's default: a form
-           * fills a field in with its defaultValue only when that is truthy
-           * (BasicForm), so 0 left the field empty and - required - refused
-           * every push rule until "Don't repeat" was picked by hand. And a
-           * dropdown draws 0 as no choice at all, so the placeholder says
-           * what it holds, as "Immediately" does for the delay below.
+           * starting on "Don't repeat": the column's default, which ModelForm
+           * starts a Create form's field on (CreateFormDefaults). Changed
+           * later from the rule's row, like the level above.
            */
           {
             field: {
@@ -1317,10 +1311,6 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
               "Send the push again this often until somebody acknowledges, up to 10 more times.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: PUSH_REPEAT_DROPDOWN_OPTIONS,
-            getDefaultValue: (): number => {
-              return NO_NOTIFICATION_REPEAT;
-            },
-            placeholder: "Don't repeat",
             required: true,
             doNotShowWhenEditing: true,
             showIf: (values: FormValues<UserNotificationRule>): boolean => {
