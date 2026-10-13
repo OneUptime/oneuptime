@@ -1,126 +1,166 @@
 # RUM Troubleshooting
 
-Work down this page in order. Each step rules out one layer, and the order is the one in which these actually fail.
+When a RUM application is missing, empty or **Disconnected**, work down this page in order. Each check rules out one part of the path from your app to OneUptime, in the order these problems usually happen.
 
-## 1. Is the token valid?
+:::cards
+- [Check the key](#check-the-key): The quickest check, and everything after it depends on it.
+- [Check what leaves the browser](#check-what-leaves-the-browser): The export request in your browser's developer tools.
+- [Check where the telemetry lands](#check-where-the-telemetry-lands): A RUM application, or a backend service.
+- [Session Replay problems](#session-replay-problems): A separate pipeline, with a page of its own.
+:::
 
-Check this first, because it is the cheapest check and it invalidates everything below it:
+## Where RUM telemetry stops
+
+Telemetry passes three checks on its way to a RUM application. Find the first one that fails:
+
+```mermaid title="The three checks, in order"
+flowchart TB
+    key("Does the key<br/>validate?") -->|"No"| fixkey["Fix or replace<br/>the key"]
+    key -->|"Yes"| request("Does the browser<br/>send POST<br/>/otlp/v1/traces?")
+    request -->|"Yes"| answer("Is the answer<br/>2xx?")
+    request -->|"No"| start["The SDK never<br/>started"]
+    answer -->|"No"| status["Read the status"]
+    answer -->|"Yes"| lands("Is the app under<br/>Real User Monitoring?")
+    lands -->|"Under Services"| attributes["Add browser.*<br/>or device.*<br/>attributes"]
+    lands -->|"Yes, but empty"| range["Check the time<br/>range, Clients<br/>and vitals"]
+```
+
+## Check the key
+
+Check the key first. It is the quickest check, and nothing after it works without a key OneUptime accepts:
 
 ```bash
 curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-- `200` with `"valid": true` — the token resolves to a project. Move on.
-- `401` — the token is missing, malformed, unknown or revoked. Create a new one in _Project Settings → Telemetry & APM → Ingestion Keys_.
+| Answer | What it means |
+| --- | --- |
+| `200` with `"valid": true` | OneUptime accepts the key. The answer also gives its `keyType` and its `projectId`. Move on to the next check. |
+| `401` with `"valid": false` | The key is missing, unknown, revoked, switched off or expired, and the `message` says which. Create a live key under **Project Settings → Telemetry & APM → Ingestion Keys**. |
 
-The ingest endpoints answer `401` for a bad token, which is correct per the OTLP spec (non-retryable, so compliant SDKs log it rather than retry-storming) — but that log line is easy to miss in a browser console. This endpoint gives you a direct answer.
+A web app needs a **Browser** key, and a mobile app a **Server** key: see [Browser Setup](/docs/rum/browser-setup) and [Mobile Setup](/docs/rum/mobile-setup). The export endpoints refuse a bad key with `401` too, as the OTLP specification asks, so a well-behaved SDK logs the refusal instead of retrying. That line is easy to miss in a browser console, and this check answers directly.
 
-## 2. Is anything leaving the browser?
+## Check what leaves the browser
 
-Open DevTools → Network and filter for `otlp`. You are looking for `POST /otlp/v1/traces` returning `2xx`.
+Open your browser's developer tools on the app's page, select the Network tab and filter for `otlp`. You are looking for `POST /otlp/v1/traces` answered with a `2xx` status.
 
-**No request at all.** The SDK never initialised. Nearly always one of:
+### No request at all
 
-- `telemetry.ts` is not imported first. The instrumentations patch `fetch` and `XMLHttpRequest`; anything imported before them is not traced, and if the import is tree-shaken out entirely nothing runs at all. Make it the first line of your entry point.
-- The batch processor has not flushed yet. `BatchSpanProcessor` buffers — wait ~30 seconds, or navigate, before concluding nothing is being sent.
-- A build-time environment variable resolved to `undefined`, so the exporter URL is malformed. Log it once at startup.
+The SDK never started. It is nearly always one of these:
 
-**Request blocked by CSP.** The console will say so explicitly. Add:
+- `telemetry.ts` is not the first import of your app, or your bundler dropped it. The instrumentations patch `fetch` and `XMLHttpRequest`, so a request made before the patch is not traced, and a file the bundler removed runs nothing at all.
+- The batch processor has not exported yet. `BatchSpanProcessor` waits a few seconds to fill a batch, so wait, or move to another page, before you decide nothing is sent.
+- A build-time environment variable came out as `undefined`, so the exporter's URL is broken. Log the URL once at startup.
 
-```
-connect-src 'self' https://oneuptime.com;
-```
+### The browser blocks the request
 
-**Request blocked by CORS.** The OneUptime OTLP endpoints allow any origin and the `x-oneuptime-token` header, so a genuine CORS failure here almost always means the request is not reaching OneUptime at all — a corporate proxy, an ad blocker, or a typo in the host. Check the actual request URL in the Network tab.
+- **A Content Security Policy error in the console.** Your page's policy does not allow OneUptime yet. Add it to your existing `connect-src` directive, or use your own host if you run OneUptime yourself:
 
-**`404`.** The URL is wrong. It is `/otlp/v1/traces` — the full path, including the signal. A common mistake is setting the *base* endpoint (`https://oneuptime.com/otlp`) on an exporter that expects the full signal URL, or setting the full URL on one that appends the signal itself and produces `/otlp/v1/traces/v1/traces`.
+  ```text
+  connect-src 'self' https://oneuptime.com;
+  ```
 
-**`413`.** The batch exceeded a reverse proxy's request-body limit. OneUptime's own ingress accepts up to 4 MB on `/otlp`, but a proxy you run in front of OneUptime can be stricter — ingress-nginx, for example, defaults `proxy-body-size` to 1 MB — so if you have one, raise its limit for `/otlp` as well. Either way, lowering `maxExportBatchSize` on the `BatchSpanProcessor` makes each export smaller:
+- **A CORS error.** The OTLP endpoints accept requests from any origin and allow the `x-oneuptime-token` header, so a real CORS failure almost always means the request never reached OneUptime: look for a corporate proxy, an ad blocker or a typo in the host. Check the request's URL in the Network tab.
+
+### The request gets an error status
+
+**`401`.** The key is unknown, revoked or expired. Run the [key check](#check-the-key), then use a live key.
+
+**`404`.** The URL is wrong. The trace exporter needs the full path, `/otlp/v1/traces`. A common mistake is to give the base address (`https://oneuptime.com/otlp`) to an exporter that expects the full URL, or the full URL to one that adds the path itself and ends up at `/otlp/v1/traces/v1/traces`.
+
+**`413`.** The batch was larger than a proxy allows. OneUptime's own ingress accepts up to 4 MB on `/otlp`, but a proxy you run in front of OneUptime can be stricter — ingress-nginx, for example, defaults `proxy-body-size` to 1 MB — so if you have one, raise its limit for `/otlp` as well. Either way, a smaller `maxExportBatchSize` on the `BatchSpanProcessor` makes each export smaller:
 
 ```ts
 new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 ```
 
-A browser rarely produces batches that large unless spans carry big attributes — an unbounded stack trace or a serialised response body on a span attribute is the usual cause, and trimming that is the better fix.
+A browser rarely sends batches that large unless spans carry big attributes, such as a whole stack trace or a response body. Trimming those is the better fix.
 
-**`403` with an HTML page, or an empty body.** OneUptime answers every refusal with JSON, so this one came from something in front of it — usually a web application firewall on your own domain, if you proxy OneUptime through it. OTLP/JSON is parsed by the firewall and every span attribute is checked by its injection rules, so a URL with a query string on a span is enough to be blocked; the firewall's log names the rule. Exclude the OTLP payload from inspection on the OTLP paths only — [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#your-opentelemetry-requests-are-blocked-too) shows how, and covers the replay recorder behind the same firewall.
+**`422`.** OneUptime refused the key here, and the message says why. `Origin https://app.example.com is not allowed for this browser ingestion key.` means the page's exact origin, with its scheme and any port, is missing from the key's **Allowed Origins**. `This telemetry ingestion key has been disabled.` means someone switched the key off.
 
-## 3. The data arrives, but under **Services** instead of **RUM**
+**`429`.** The key's **Requests Per Minute Limit** is used up: `Too many telemetry requests for this ingestion key. Please retry later.` A Browser key allows 6000 requests a minute for all your visitors together unless you set your own limit on the key.
 
-This is the most common report, and the usual cause is that the resource has no client attributes.
+**`403` with an HTML page, or an empty body.** OneUptime answers every refusal in JSON, so this one came from something in front of it, usually a web application firewall on your own domain, if you proxy OneUptime through it. The firewall parses OTLP/JSON and checks every span attribute against its injection rules, so a URL with a query string on a span is enough to be blocked, and the firewall's log names the rule. Exclude the OTLP payload from inspection on the OTLP paths only: [Your OpenTelemetry requests are blocked too](/docs/rum/session-replay-troubleshooting#your-opentelemetry-requests-are-blocked-too) shows how, and covers the replay recorder behind the same firewall.
 
-OneUptime classifies a batch as RUM only if the resource carries one of:
+## Check where the telemetry lands
 
-- **Browser:** `browser.platform`, `browser.language`, or a non-empty `browser.brands`
-- **Mobile:** `device.id` or `device.model.identifier` — or `device.manufacturer` on a resource that carries no `host.name` / `host.id`
+The request succeeds, but the app shows up under **Products → Services** instead of **Products → Resources → Real User Monitoring**. This is the most common report, and the cause is nearly always a resource without client attributes. OneUptime files a batch as RUM only when its resource carries one of these:
 
-Setting `service.name` alone produces a valid backend Service. The OpenTelemetry browser SDKs do **not** add `browser.*` unless you enable the browser resource detector or set the attributes yourself — see [Browser Setup](/docs/rum/browser-setup).
+| Kind | Attributes |
+| --- | --- |
+| Browser | `browser.platform`, `browser.language`, or a non-empty `browser.brands` |
+| Mobile | `device.id` or `device.model.identifier`, or `device.manufacturer` on a resource with no host identity (`host.name`, `host.id` or `k8s.node.name`) |
 
-Confirm what you are actually sending by inspecting the request payload in DevTools → Network → the OTLP request → Payload. `resourceSpans[0].resource.attributes` is the list that decides this. If `browser.*` is not in there, the SDK is not adding it, whatever the documentation of that SDK says.
+A `service.name` alone makes a backend service. The OpenTelemetry browser SDK adds no `browser.*` attributes unless you add the browser resource detector or set them yourself: see [Browser Setup](/docs/rum/browser-setup).
 
-To fix it, add the attributes and let the app be rediscovered. The Service that was already created does not convert into a RUM application — the two are separate records — so delete the stray Service once RUM telemetry starts arriving.
+To see what you actually send, open the OTLP request in the Network tab and look at its payload: `resourceSpans[0].resource.attributes` is the list that decides it. If no `browser.*` attribute is there, the SDK is not adding it, whatever its documentation says.
 
-There is one other cause. A resource whose only client attribute is `device.manufacturer`, and which also carries `host.name` or `host.id`, is read as a physical machine rather than a phone — `device.manufacturer` doubles as a host's make on its inventory item. Set `device.id` or `device.model.identifier` as well and it classifies as mobile regardless.
+Add the attributes, and the next batch creates the RUM application. The service that was created first does not turn into a RUM application, because the two are separate records, so delete it under **Products → Services** once RUM telemetry arrives.
 
-## 4. Nothing appears under the application
+> [!NOTE]
+> A resource whose only client attribute is `device.manufacturer`, and which also has a host identity, is read as a machine rather than a phone, because a host's inventory reports its make with the same attribute. Add `device.id` or `device.model.identifier`, and the batch is filed as mobile RUM whatever else it carries.
 
-The application exists but its tabs are empty.
+## The application is empty
 
-- **Check the time range.** The overview defaults to the past hour. A test batch from this morning is outside it.
-- **Wait a minute.** Ingest is queued, and `Last Seen` is throttled to one write per minute. A single test span can take up to a minute to be reflected.
-- **Check you are looking at the right project.** The token binds telemetry to a project; if you regenerated a token from a different project, the data is there, elsewhere.
+The application exists, but its pages show nothing.
 
-## 5. The Clients tab is empty
+- **Check the time range.** The overview shows the past hour by default, so a test batch from this morning is outside it.
+- **Wait a few minutes.** Ingest is queued, and **Last Seen** is refreshed every few minutes rather than on every batch.
+- **Check the project.** A key writes into its own project, so telemetry sent with another project's key is there, not here.
 
-Client rows are recorded from `browser.platform` (web) or `device.model.identifier` (mobile). Two reasons it stays empty while everything else works:
+## The Clients page is empty
 
-- **Safari and Firefox.** `browserDetector` reads the UA Client Hints API, which is Chromium-only. On other browsers it sets `browser.language` — enough to classify as RUM — but not `browser.platform`. Set `browser.platform` yourself if you want those clients listed.
-- **A mobile SDK that only sets `device.manufacturer`.** Classification works; the Clients inventory needs `device.model.identifier` specifically.
+The **Clients** page lists `browser.platform` on the web and `device.model.identifier` on mobile. Two reasons it stays empty while everything else works:
 
-## 6. Core Web Vitals say "No web vitals reported yet"
+- **Safari and Firefox.** `browserDetector` reads the UA Client Hints API, which only Chromium browsers have. Elsewhere it sets `browser.language`, which is enough to file the telemetry as RUM, but not `browser.platform`. Set `browser.platform` yourself to list those clients.
+- **A mobile SDK that sets only `device.manufacturer`.** That files the telemetry as mobile RUM, but the **Clients** page needs `device.model.identifier`.
 
-The card is populated only from metrics you emit. Check, in order:
+## Core Web Vitals show "No web vitals reported yet"
 
-1. Do you have a **metrics** pipeline at all? Traces alone will never populate this card.
-2. Is the metric name one OneUptime recognises? See [Core Web Vitals](/docs/rum/web-vitals) for the list.
-3. Does the metric appear on the application's **Metrics** tab? If yes, the export works and the issue is the name or the selected range. If no, the export is not arriving — go back to step 2 of this page.
-4. Did the page get closed before the export interval elapsed? INP and CLS are reported on page hide; with a 30-second interval a short visit can end before the flush.
+The card fills only from metrics your app sends, so traces alone never fill it. Check that you export metrics at all, that the metric names are ones OneUptime reads, and that they are on the application's **Metrics** page. [The card says "No web vitals reported yet"](/docs/rum/web-vitals#troubleshooting) goes through each check, including values lost when a visitor closes the tab before the next export.
 
-## 7. Status shows Disconnected while the app is live
+## The status says Disconnected while people use the app
 
-Status flips to *Disconnected* after 15 minutes with no telemetry. If your app genuinely has traffic:
+An application turns **Disconnected** after 15 minutes with no telemetry. If people are using the app:
 
-- A **sampler** may be dropping everything. Check you have not set an always-off or very low ratio sampler.
-- The app may only emit on specific interactions that nobody triggered in the window.
-- The token may have been revoked after deployment — re-run step 1.
+- **A sampler may drop everything.** Check that you did not set an always-off sampler, or a very low ratio.
+- **The app may send telemetry only on some interactions**, and nobody used them in that time.
+- **The key may have been revoked or switched off** after you deployed: run the [key check](#check-the-key) again.
 
-An internal or low-traffic app with no overnight visitors is legitimately disconnected. That is not a fault.
+An internal or low-traffic app with no visitors overnight is genuinely disconnected. That is not a fault.
 
-## 8. Session Replay problems
+## Session Replay problems
 
-Session replay is a separate pipeline with its own failure modes — the recorder script, the origin allowlist, consent, CSP and masking. They have their own page: [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting).
-
-Start there rather than here, and start by turning on the recorder's diagnostics, because most of its failure modes are deliberately silent:
+Session Replay is a separate pipeline with problems of its own: the recorder script, the origin allowlists, consent, the Content Security Policy and masking. [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) covers them. Start there, and start by turning on the recorder's diagnostics, because most of its failures are silent on purpose:
 
 ```js
 localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-The **Health** page (_RUM → your application → Session Replay → Health_) and the **Test your installation** panel on _Replay Policy_ check the token, the origin allowlists and the CSP from the server's side, and say why nothing is arriving when that is the case; the console tells you the half the server cannot see.
+The application's **Health** page, in its **Session Replay** section, and the **Test your installation** panel on **Replay Policy** check the key, the allowlists and the policy from the server's side, and say why nothing arrives. The browser's console tells you the half the server cannot see.
 
-Worth naming here: under the default capture trigger (`Always`) a session replay recorder posts a chunk roughly every 15 seconds **while the user is interacting** — an idle tab has nothing to send, so click or move the mouse first — and after that **no chunk requests at all** means something is wrong. If the application's capture trigger is set to `On error or frustration` instead, silence is expected — it uploads only when something goes wrong. Call `OneUptimeReplay.captureSession()` to force an upload and prove the path either way.
+Under the default policy, a recorder posts a chunk about every 15 seconds while the user is interacting with the page. An idle tab has nothing to send, so click or move the mouse first; after that, no chunk requests at all means something is wrong. If the application uploads only _On error or frustration_, silence is expected until something goes wrong. Call `OneUptimeReplay.captureSession()` to force an upload and prove the path either way.
 
-The two pipelines are independent: a working RUM application is **not** a prerequisite for the recorder to load, and a working recorder does not imply RUM telemetry is arriving. They are configured independently and can each fail alone.
+The two pipelines are independent. A working RUM application is not needed for the recorder to load, and a working recorder does not mean RUM telemetry arrives: each can fail alone.
 
 ## Still stuck
 
-Collect these before asking for help — they cut a support round trip:
+Collect these before you ask for help. They save a round trip:
 
-- The `resource.attributes` list from an actual OTLP request payload.
+- The `resource.attributes` list from a real OTLP request's payload.
 - The HTTP status of that request.
-- The exact `service.name` you are sending, and whether an application or a service with that name exists in the project.
-- Whether `/otlp/v1/validate` returns 200 for the token in the deployed build.
+- The exact `service.name` you send, and whether the project has an application or a service with that name.
+- Whether `/otlp/v1/validate` answers `200` for the key in the deployed build.
 
 Then contact support@oneuptime.com, or open an issue on [GitHub](https://github.com/OneUptime/oneuptime).
+
+## Next steps
+
+:::cards
+- [Browser Setup](/docs/rum/browser-setup): The setup these checks assume, step by step.
+- [Mobile Setup](/docs/rum/mobile-setup): The key and attributes a mobile app needs.
+- [Managing Applications](/docs/rum/applications): Names, labels, retention and status.
+- [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting): Every recorder code, and what to do about it.
+:::

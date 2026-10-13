@@ -193,7 +193,7 @@ Kör appen och använd den en stund. Den visas under **Produkter → Resurser �
 
 ## Session Replay på mobil
 
-React Native-appar kan spela in sessioner med `@oneuptime/react-native-replay`. Det spelar in det inbyggda vyträdet som en trådram, aldrig skärmbilder eller texten på skärmen, och dess inspelningar öppnas i samma spelare som webbinspelningar. Det skickar med en **Browser**-nyckel vars **Allowed Origins** anger din app som `app://` följt av dess Android-applikations-id eller iOS-bundle-id: en annan nyckel än den Server-nyckel som ditt OpenTelemetry-SDK använder. [Installera i React Native](/docs/telemetry/session-replay#install-in-react-native) går igenom hur.
+React Native-appar kan spela in sessioner med `@oneuptime/react-native-replay`. Det spelar in det inbyggda vyträdet som en trådram, aldrig skärmbilder eller texten på skärmen, och dess inspelningar öppnas i samma spelare som webbinspelningar. Det skickar med en **Browser**-nyckel vars **Allowed Origins** anger din app som `app://` följt av dess Android-applikations-id eller iOS-bundle-id: en annan nyckel än den Server-nyckel som ditt OpenTelemetry-SDK använder. [Installera i React Native](/docs/telemetry/session-replay#installation-i-react-native) går igenom hur.
 
 Inbyggda Android- och iOS-appar och de andra plattformarna har ingen sessionsinspelare: Deras sida **Session Replay** förblir tom, medan spår, loggar, mätvärden, undantag och sidan **Klienter** fungerar som vanligt.
 
