@@ -28143,5 +28143,7 @@
   "Go back to {{workspace}} and press the button again.": "{{workspace}} पर वापस जाएँ और बटन फिर से दबाएँ।",
   "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime {{workspace}} में आपको जवाब नहीं दे सका। उसकी स्थिति देखने के लिए OneUptime में रिकॉर्ड खोलें।",
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime ने आपको {{workspace}} में वहीं जवाब दिया है, जहाँ आपने बटन दबाया था।",
-  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime, Slack वर्कस्पेस {{team}} में इंस्टॉल है। वहाँ अपना खाता कनेक्ट करें, ताकि आप Slack में खुद के नाम से इंसिडेंट स्वीकार कर सकें और मैसेज पा सकें।"
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime, Slack वर्कस्पेस {{team}} में इंस्टॉल है। वहाँ अपना खाता कनेक्ट करें, ताकि आप Slack में खुद के नाम से इंसिडेंट स्वीकार कर सकें और मैसेज पा सकें।",
+  "This Connect button was used already. Go back to {{workspace}} and press the button again.": "यह कनेक्ट बटन पहले ही इस्तेमाल हो चुका है। {{workspace}} पर वापस जाएँ और बटन फिर से दबाएँ।",
+  "Your {{workspace}} account is already connected": "आपका {{workspace}} खाता पहले से कनेक्ट है"
 }

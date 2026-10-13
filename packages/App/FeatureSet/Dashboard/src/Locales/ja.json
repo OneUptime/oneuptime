@@ -28143,5 +28143,7 @@
   "Go back to {{workspace}} and press the button again.": "{{workspace}} に戻って、もう一度ボタンを押してください。",
   "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime は {{workspace}} で返信できませんでした。OneUptime でレコードを開いて、現在の状態を確認してください。",
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime は、ボタンを押した {{workspace}} の場所で返信しました。",
-  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime は Slack ワークスペース {{team}} にインストールされています。そこでアカウントを接続すると、Slack で自分としてインシデントを確認し、メッセージを受け取れます。"
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime は Slack ワークスペース {{team}} にインストールされています。そこでアカウントを接続すると、Slack で自分としてインシデントを確認し、メッセージを受け取れます。",
+  "This Connect button was used already. Go back to {{workspace}} and press the button again.": "この接続ボタンはすでに使用されています。{{workspace}} に戻って、もう一度ボタンを押してください。",
+  "Your {{workspace}} account is already connected": "{{workspace}} アカウントはすでに接続されています"
 }

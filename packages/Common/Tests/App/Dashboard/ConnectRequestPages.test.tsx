@@ -430,6 +430,27 @@ describe("the Slack page, opened from a Connect button in Slack", () => {
     ).toBeInTheDocument();
   });
 
+  test("a Connect button used already, opened by somebody connected already: nothing to connect, and no warning", async () => {
+    query["connect"] = TOKEN;
+    signInAnswer = "gone";
+    userConnected = true;
+
+    await renderSlack();
+
+    const notice: HTMLElement = screen.getByTestId("connect-request-link-gone");
+    expect(notice).toHaveTextContent("Your Slack account is already connected");
+    expect(notice).toHaveTextContent(
+      "This Connect button was used already. Go back to Slack and press the button again.",
+    );
+    expect(notice).not.toHaveTextContent("expired");
+    expect(notice).not.toHaveTextContent("connect your account here");
+    // News, not a warning.
+    expect(notice.className).toContain("bg-blue-50");
+    expect(
+      screen.getByText("Your account is already connected with Slack."),
+    ).toBeInTheDocument();
+  });
+
   test("a token that is not one starts nothing", async () => {
     query["connect"] = "../../evil?x=1";
 

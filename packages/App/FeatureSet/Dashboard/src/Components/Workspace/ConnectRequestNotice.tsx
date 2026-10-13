@@ -67,16 +67,22 @@ export interface ConnectRequestState {
   notice: ConnectRequestNoticeText | null;
   // The Slack channel the press was in, to go back to.
   backLink: string | null;
-  // The `?connect=` could not be used: its press is spent or expired.
-  linkGone: ConnectRequestNoticeText | null;
+  /*
+   * The `?connect=` could not be used: its press is spent or expired - for
+   * somebody connected already, nothing to worry about.
+   */
+  linkGone: (ConnectRequestNoticeText & { isUserConnected: boolean }) | null;
   // Why the sign-in the page started on its own could not start.
   startError: ConnectRequestNoticeText | null;
   // The token was handed to the sign-in: it is not used again.
   takeToken: () => void;
   // The page acted on `?connectAccount=`: it does not act on it again.
   takeConnectAccount: () => void;
-  // The sign-in refused the token: say so.
-  markLinkGone: () => void;
+  /*
+   * The sign-in refused the token: say so - and, for somebody connected
+   * already, that there is nothing to connect.
+   */
+  markLinkGone: (isUserConnected?: boolean) => void;
   // The sign-in could not start, for `message`: say so above the page.
   markStartFailed: (message: string) => void;
   dismiss: () => void;
@@ -121,6 +127,9 @@ export const useConnectRequest: (data: {
 
   const [isLinkGone, setIsLinkGone] = useState<boolean>(false);
 
+  const [isLinkGoneForConnectedUser, setIsLinkGoneForConnectedUser] =
+    useState<boolean>(false);
+
   const [startErrorMessage, setStartErrorMessage] = useState<string | null>(
     null,
   );
@@ -159,10 +168,14 @@ export const useConnectRequest: (data: {
     }),
     backLink: backLink,
     linkGone: isLinkGone
-      ? getConnectLinkGoneNotice({
-          provider: data.provider,
-          translator: translator,
-        })
+      ? {
+          ...getConnectLinkGoneNotice({
+            provider: data.provider,
+            translator: translator,
+            isUserConnected: isLinkGoneForConnectedUser,
+          }),
+          isUserConnected: isLinkGoneForConnectedUser,
+        }
       : null,
     startError: startErrorMessage
       ? {
@@ -179,8 +192,9 @@ export const useConnectRequest: (data: {
     takeConnectAccount: (): void => {
       setConnectAccount(false);
     },
-    markLinkGone: (): void => {
+    markLinkGone: (isUserConnected?: boolean): void => {
       setConnectToken(null);
+      setIsLinkGoneForConnectedUser(Boolean(isUserConnected));
       setIsLinkGone(true);
     },
     markStartFailed: (message: string): void => {
@@ -241,7 +255,8 @@ const ConnectRequestNotice: FunctionComponent<ComponentProps> = (
     return (
       <div className="mb-5">
         <Alert
-          type={AlertType.WARNING}
+          // Connected already: news, not a warning.
+          type={linkGone.isUserConnected ? AlertType.INFO : AlertType.WARNING}
           strongTitle={linkGone.title}
           title={linkGone.message}
           onClose={props.state.dismiss}

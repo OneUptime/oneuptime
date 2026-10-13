@@ -296,7 +296,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     if (response instanceof HTTPErrorResponse) {
       if (response.statusCode === 400) {
         setIsConnectingFromTeams(false);
-        connectRequest.markLinkGone();
+        connectRequest.markLinkGone(isUserAccountConnected);
         return;
       }
 

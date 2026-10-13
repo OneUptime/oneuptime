@@ -69,6 +69,19 @@ export const LINK_GONE_MESSAGE: string = translationKey(
   "Press the button in {{workspace}} again for a new one, or connect your account here.",
 );
 
+/*
+ * The same, for somebody whose account is connected already - a Connect
+ * button pressed a second time, its answer under it in the chat: nothing
+ * to connect, so the button in the chat is what to press.
+ */
+export const ALREADY_CONNECTED_TITLE: string = translationKey(
+  "Your {{workspace}} account is already connected",
+);
+
+export const ALREADY_CONNECTED_MESSAGE: string = translationKey(
+  "This Connect button was used already. Go back to {{workspace}} and press the button again.",
+);
+
 export const CONNECTING_TITLE: string = translationKey(
   "Connecting your {{workspace}} account…",
 );
@@ -128,16 +141,31 @@ export const getConnectRequestNotice: (data: {
 
 /*
  * What a page says when its `?connect=` can no longer be used: the press
- * behind it was spent, or waited past its thirty minutes.
+ * behind it was spent, or waited past its thirty minutes. Somebody whose
+ * account is connected already is told so, and to press the button in the
+ * chat - not to connect an account that is connected.
  */
 export const getConnectLinkGoneNotice: (data: {
   provider: ConnectProvider;
   translator: Translator;
+  isUserConnected?: boolean | undefined;
 }) => ConnectRequestNoticeText = (data: {
   provider: ConnectProvider;
   translator: Translator;
+  isUserConnected?: boolean | undefined;
 }): ConnectRequestNoticeText => {
   const workspace: string = getWorkspaceName(data.provider);
+
+  if (data.isUserConnected) {
+    return {
+      title: data.translator.translateTemplate(ALREADY_CONNECTED_TITLE, {
+        workspace: workspace,
+      }),
+      message: data.translator.translateTemplate(ALREADY_CONNECTED_MESSAGE, {
+        workspace: workspace,
+      }),
+    };
+  }
 
   return {
     title: data.translator.translateTemplate(LINK_GONE_TITLE),

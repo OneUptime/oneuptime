@@ -28143,5 +28143,7 @@
   "Go back to {{workspace}} and press the button again.": "{{workspace}}(으)로 돌아가 버튼을 다시 누르세요.",
   "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime이 {{workspace}}에서 답변하지 못했습니다. OneUptime에서 해당 항목을 열어 현재 상태를 확인하세요.",
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime이 버튼을 누른 {{workspace}}의 그 자리에서 답했습니다.",
-  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime이 Slack 워크스페이스 {{team}}에 설치되어 있습니다. 그곳에서 계정을 연결하면 Slack에서 본인으로 인시던트를 인지하고 메시지를 받을 수 있습니다."
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime이 Slack 워크스페이스 {{team}}에 설치되어 있습니다. 그곳에서 계정을 연결하면 Slack에서 본인으로 인시던트를 인지하고 메시지를 받을 수 있습니다.",
+  "This Connect button was used already. Go back to {{workspace}} and press the button again.": "이 연결 버튼은 이미 사용되었습니다. {{workspace}}(으)로 돌아가 버튼을 다시 누르세요.",
+  "Your {{workspace}} account is already connected": "{{workspace}} 계정이 이미 연결되어 있습니다"
 }

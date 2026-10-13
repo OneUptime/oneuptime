@@ -28143,5 +28143,7 @@
   "Go back to {{workspace}} and press the button again.": "Вернитесь в {{workspace}} и нажмите кнопку ещё раз.",
   "OneUptime could not answer you in {{workspace}}. Open the record in OneUptime to see where it stands.": "OneUptime не удалось ответить вам в {{workspace}}. Откройте запись в OneUptime, чтобы увидеть её состояние.",
   "OneUptime answered you in {{workspace}}, where you pressed the button.": "OneUptime ответил вам в {{workspace}}, там, где вы нажали кнопку.",
-  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime установлен в рабочем пространстве Slack {{team}}. Подключите там свой аккаунт, чтобы подтверждать инциденты и получать сообщения от своего имени в Slack."
+  "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.": "OneUptime установлен в рабочем пространстве Slack {{team}}. Подключите там свой аккаунт, чтобы подтверждать инциденты и получать сообщения от своего имени в Slack.",
+  "This Connect button was used already. Go back to {{workspace}} and press the button again.": "Эта кнопка подключения уже использована. Вернитесь в {{workspace}} и нажмите кнопку ещё раз.",
+  "Your {{workspace}} account is already connected": "Ваш аккаунт {{workspace}} уже подключён"
 }

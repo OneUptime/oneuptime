@@ -238,7 +238,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     if (response instanceof HTTPErrorResponse) {
       if (token && response.statusCode === 400) {
         setIsConnectingFromSlack(false);
-        connectRequest.markLinkGone();
+        connectRequest.markLinkGone(isUserAccountConnected);
         return;
       }
 

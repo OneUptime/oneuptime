@@ -152,6 +152,27 @@ describe("the other notices", () => {
     });
   });
 
+  test("a Connect button used already, opened by somebody connected already: nothing to connect, press the button in the chat", () => {
+    expect(
+      getConnectLinkGoneNotice({
+        provider: ConnectProvider.Slack,
+        translator: ENGLISH,
+        isUserConnected: true,
+      }),
+    ).toEqual({
+      title: "Your Slack account is already connected",
+      message:
+        "This Connect button was used already. Go back to Slack and press the button again.",
+    });
+    expect(
+      getConnectLinkGoneNotice({
+        provider: ConnectProvider.MicrosoftTeams,
+        translator: ENGLISH,
+        isUserConnected: true,
+      }).title,
+    ).toBe("Your Microsoft Teams account is already connected");
+  });
+
   test("a sign-in that could not start: the page's own title, over the server's reason", () => {
     expect(
       getNotConnectedTitle({
@@ -202,6 +223,11 @@ describe("the sentences are in every locale", () => {
 
       getConnectingNotice({ provider: provider, translator: recording });
       getConnectLinkGoneNotice({ provider: provider, translator: recording });
+      getConnectLinkGoneNotice({
+        provider: provider,
+        translator: recording,
+        isUserConnected: true,
+      });
       getNotConnectedTitle({ provider: provider, translator: recording });
     }
 
@@ -212,10 +238,11 @@ describe("the sentences are in every locale", () => {
 
   test("every outcome has a sentence, and the notices their titles", () => {
     /*
-     * 5 outcomes, 3 titles, 2 messages, "Back to Slack", and the title of a
-     * sign-in that could not start, for each chat.
+     * 5 outcomes, 3 titles, 2 messages, "Back to Slack", the title of a
+     * sign-in that could not start, for each chat, and what a Connect button
+     * used already says to somebody connected (a title and a message).
      */
-    expect(keys).toHaveLength(Object.values(ConnectRequestOutcome).length + 8);
+    expect(keys).toHaveLength(Object.values(ConnectRequestOutcome).length + 10);
   });
 
   test("en.json has every one", () => {
