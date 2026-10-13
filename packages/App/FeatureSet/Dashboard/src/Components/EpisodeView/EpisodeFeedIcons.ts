@@ -25,11 +25,17 @@ export const INCIDENT_EPISODE_FEED_KINDS: Record<
   },
   [IncidentEpisodeFeedEventType.EpisodeStateChanged]:
     SHARED_FEED_ENTRY_KINDS.StateChanged,
-  [IncidentEpisodeFeedEventType.EpisodeUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
-  [IncidentEpisodeFeedEventType.IncidentAdded]:
-    SHARED_FEED_ENTRY_KINDS.MemberAdded,
-  [IncidentEpisodeFeedEventType.IncidentRemoved]:
-    SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+  [IncidentEpisodeFeedEventType.EpisodeUpdated]:
+    SHARED_FEED_ENTRY_KINDS.Updated,
+  // A member shows its own icon, the one its own feed opens with.
+  [IncidentEpisodeFeedEventType.IncidentAdded]: {
+    ...SHARED_FEED_ENTRY_KINDS.MemberAdded,
+    icon: IconProp.Flag,
+  },
+  [IncidentEpisodeFeedEventType.IncidentRemoved]: {
+    ...SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+    icon: IconProp.Flag,
+  },
   [IncidentEpisodeFeedEventType.OwnerUserAdded]:
     SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
   [IncidentEpisodeFeedEventType.OwnerTeamAdded]:
@@ -77,9 +83,14 @@ export const ALERT_EPISODE_FEED_KINDS: Record<
   [AlertEpisodeFeedEventType.EpisodeStateChanged]:
     SHARED_FEED_ENTRY_KINDS.StateChanged,
   [AlertEpisodeFeedEventType.EpisodeUpdated]: SHARED_FEED_ENTRY_KINDS.Updated,
-  [AlertEpisodeFeedEventType.AlertAdded]: SHARED_FEED_ENTRY_KINDS.MemberAdded,
-  [AlertEpisodeFeedEventType.AlertRemoved]:
-    SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+  [AlertEpisodeFeedEventType.AlertAdded]: {
+    ...SHARED_FEED_ENTRY_KINDS.MemberAdded,
+    icon: IconProp.BellAlert,
+  },
+  [AlertEpisodeFeedEventType.AlertRemoved]: {
+    ...SHARED_FEED_ENTRY_KINDS.MemberRemoved,
+    icon: IconProp.BellAlert,
+  },
   [AlertEpisodeFeedEventType.OwnerUserAdded]:
     SHARED_FEED_ENTRY_KINDS.OwnerUserAdded,
   [AlertEpisodeFeedEventType.OwnerTeamAdded]:

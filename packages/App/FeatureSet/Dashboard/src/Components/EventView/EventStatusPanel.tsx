@@ -268,41 +268,40 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
           key={action.id}
           className="flex min-w-[7rem] max-w-full flex-auto sm:max-w-64 sm:flex-none [&>div]:w-full"
         >
-        <MoreMenu
-          text={translatedActionLabel}
-          dataTestId={action.id}
-          elementToBeShownInsteadOfButton={
-            <span className="inline-flex items-center gap-2">
-              {action.icon && (
-                <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
-              )}
-              <span className="truncate">{translatedActionLabel}</span>
-              <Icon
-                icon={IconProp.ChevronDown}
-                className="h-3.5 w-3.5 shrink-0 text-gray-400"
-              />
-            </span>
-          }
-          triggerClassName={`${actionBaseClassName} ${neutralActionClassName} w-full cursor-pointer`}
-        >
-          {action.menuItems.map((item: EventPanelMenuItem) => {
-            return (
-              <MoreMenuItem
-                key={item.id}
-                text={item.label}
-                onClick={item.onClick}
-              />
-            );
-          })}
-        </MoreMenu>
+          <MoreMenu
+            text={translatedActionLabel}
+            dataTestId={action.id}
+            elementToBeShownInsteadOfButton={
+              <span className="inline-flex items-center gap-2">
+                {action.icon && (
+                  <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+                )}
+                <span className="truncate">{translatedActionLabel}</span>
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                />
+              </span>
+            }
+            triggerClassName={`${actionBaseClassName} ${neutralActionClassName} w-full cursor-pointer`}
+          >
+            {action.menuItems.map((item: EventPanelMenuItem) => {
+              return (
+                <MoreMenuItem
+                  key={item.id}
+                  text={item.label}
+                  onClick={item.onClick}
+                />
+              );
+            })}
+          </MoreMenu>
         </div>
       );
     }
 
     if (action.href && !props.isDisabled && !action.isDisabled) {
-      const translatedLinkTooltip: string | undefined = action.tooltip
-        ? translateString(action.tooltip) || action.tooltip
-        : undefined;
+      // Where the link goes - "#incident-42" - is a name, not text to translate.
+      const linkTooltip: string | undefined = action.tooltip || undefined;
 
       const link: ReactElement = (
         <a
@@ -320,12 +319,12 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         </a>
       );
 
-      if (!translatedLinkTooltip) {
+      if (!linkTooltip) {
         return link;
       }
 
       return (
-        <Tooltip key={action.id} text={translatedLinkTooltip}>
+        <Tooltip key={action.id} text={linkTooltip}>
           {link}
         </Tooltip>
       );

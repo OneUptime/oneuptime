@@ -417,10 +417,13 @@ describe("Declare Incident in the alert header", () => {
     );
     expect(overview).not.toContain("IncidentAlert");
     expect(overview).not.toContain("DeclareIncidentFromAlert");
-    // The one header action the page adds is its video call's Join call.
+    /*
+     * The header actions the page adds are its video call's Join call and
+     * Open in Slack / Microsoft Teams - links out, not a way to declare.
+     */
     expect(countOf(dense(ALERT_OVERVIEW_PAGE), "secondaryActions=")).toBe(1);
     expect(dense(ALERT_OVERVIEW_PAGE)).toContain(
-      "secondaryActions={joinVideoCallAction?[joinVideoCallAction]:[]}",
+      "secondaryActions={[...(joinVideoCallAction?[joinVideoCallAction]:[]),...getOpenInChatActions(channelLinks),]}",
     );
   });
 
@@ -440,7 +443,10 @@ describe("EventStatusPanel secondary actions", () => {
     const code: string = dense(EVENT_STATUS_PANEL);
 
     expect(code).toContain(
-      "exportinterfaceEventPanelAction{id:string;label:string;icon?:IconProp|undefined;onClick:()=>void;isDisabled?:boolean|undefined;tooltip?:string|undefined;}",
+      "exportinterfaceEventPanelAction{id:string;label:string;icon?:IconProp|undefined;onClick:()=>void;isDisabled?:boolean|undefined;tooltip?:string|undefined;href?:string|undefined;menuItems?:Array<EventPanelMenuItem>|undefined;}",
+    );
+    expect(code).toContain(
+      "exportinterfaceEventPanelMenuItem{id:string;label:string;onClick:()=>void;}",
     );
     expect(code).toContain(
       "secondaryActions?:Array<EventPanelAction>|undefined;",

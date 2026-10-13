@@ -315,7 +315,7 @@ describe("feeds write notes with the Notes page composer", () => {
       }),
     )) {
       expect(read(feed)).toContain(
-        "onPosted: () => { refresh().catch((err: unknown) => { setError(API.getFriendlyMessage(err as Exception)); }); },",
+        "onPosted: () => { feed.refresh().catch((err: unknown) => { feed.setError(API.getFriendlyMessage(err as Exception)); }); },",
       );
     }
   });

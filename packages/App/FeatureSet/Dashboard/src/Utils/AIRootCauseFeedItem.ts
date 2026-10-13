@@ -15,7 +15,7 @@ import {
  *
  * These helpers turn a structured report into a short feed entry (a lead,
  * the Summary and the root cause, without citation markers) and move the
- * whole report behind the feed item's "More Information" button. Reports the
+ * whole report behind the feed item's "Show the full report" toggle. Reports the
  * parser cannot structure are left exactly as they were posted.
  *
  * Everything returned is still model-authored markdown: the feeds keep
@@ -389,8 +389,8 @@ function labelParagraph(label: string, body: string): string {
 /*
  * The compact feed entry for an AI root-cause report. A structured report
  * becomes a bold lead, its Summary and its labelled root cause, with citation
- * markers removed, and the full original report as More Information.
- * Anything else comes back unchanged as the text, with no More Information.
+ * markers removed, and the full original report as the entry's details.
+ * Anything else comes back unchanged as the text, with no details.
  */
 export function buildAIRootCauseFeedContent(
   markdown: string,
@@ -431,7 +431,7 @@ export function buildAIRootCauseFeedContent(
 
 /*
  * What an incident or alert feed item shows. Only AI investigation items are
- * compacted. An item that already carries its own More Information keeps it
+ * compacted. An item that already carries its own details keeps them
  * and keeps its full text too, so the report is never hidden behind a button
  * that opens something else.
  */
