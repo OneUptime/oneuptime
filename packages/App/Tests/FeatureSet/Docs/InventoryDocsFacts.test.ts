@@ -68,6 +68,7 @@ import {
 } from "./InventoryAndApiDocsPages";
 import { readPage } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { INVENTORY_ASSET_FIELD_LABELS } from "../../../FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetLabels";
 import {
   INVENTORY_SOURCE_ORDER,
@@ -214,7 +215,7 @@ const LINKED_RESOURCE_ENTRY: RegExp =
   /\[EntityType\.(\w+)\]: LinkedResourceKind\.\w+/g;
 // A string constant of a source file: `export const NAME: string = "Value";`.
 const STRING_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
-  return new RegExp(`${name}: string = "([^"]+)"`);
+  return new RegExp(`${escapeRegExp(name)}: string = "([^"]+)"`);
 };
 
 interface MenuSection {
