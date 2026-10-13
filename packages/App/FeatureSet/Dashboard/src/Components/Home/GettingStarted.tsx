@@ -360,10 +360,18 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                     {tx("Done")}
                   </span>
                 ) : (
-                  <Icon
-                    icon={IconProp.ChevronRight}
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400 transition group-hover:text-indigo-500"
-                  />
+                  /*
+                   * Grey at rest, indigo on hover - on two elements: the dark
+                   * theme paints any hovered group child that carries a
+                   * text-gray-* class near-white, which would outrank the
+                   * indigo on one element.
+                   */
+                  <span className="mt-0.5 flex-shrink-0 text-gray-400">
+                    <Icon
+                      icon={IconProp.ChevronRight}
+                      className="h-5 w-5 transition group-hover:text-indigo-500"
+                    />
+                  </span>
                 )}
               </div>
             );

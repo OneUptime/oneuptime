@@ -292,7 +292,7 @@ const HomeCommandBar: FunctionComponent<ComponentProps> = (
           {actions.declareIncident
             ? renderActionLink(
                 actions.declareIncident,
-                `${BUTTON_CLASS_NAME} border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100`,
+                `${BUTTON_CLASS_NAME} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`,
               )
             : null}
           {renderCreate()}

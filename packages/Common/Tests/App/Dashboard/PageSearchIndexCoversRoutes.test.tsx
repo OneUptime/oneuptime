@@ -72,6 +72,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.INIT_PROJECT]: "a project's address: it opens Home",
   [PageMap.WELCOME]: "the first-run welcome, shown once",
   [PageMap.PROJECT_SSO]: "the sign-in step of a project that requires SSO",
+  [PageMap.HOME_ACTIVE_INCIDENTS]:
+    "a Home tab: Incidents > Active Incidents is offered",
   [PageMap.HOME_NOT_OPERATIONAL_MONITORS]:
     "a Home tab: Monitors > Not Operational is offered",
   [PageMap.HOME_ACTIVE_ALERTS]: "a Home tab: Alerts > Active Alerts is offered",

@@ -769,8 +769,9 @@ describe("Home's overview tiles", () => {
   });
 
   test("the status line goes through the translator", () => {
-    // The tile titles are translated by InfoCard; the status line was not.
-    expect(code).toMatch(/<span>\{tx\(statusLabel\)\}<\/span>/);
+    // The titles and the status lines are both looked up where they are drawn.
+    expect(code).toMatch(/translator\.translateText\(tile\.statusLabel\)/);
+    expect(code).toMatch(/translator\.translateText\(tile\.label\)/);
   });
 });
 

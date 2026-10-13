@@ -710,22 +710,53 @@ const CHECKLIST_SOURCE: string = dashboard(
   "Components/Home/GettingStarted.tsx",
 );
 const TILES_SOURCE: string = dashboard("Components/Home/OverviewStats.tsx");
+const OVERVIEW_DATA_SOURCE: string = dashboard(
+  "Components/Home/HomeOverviewData.ts",
+);
+const HEALTH_SOURCE: string = dashboard("Components/Home/ProjectHealth.ts");
+const COMMAND_BAR_SOURCE: string = dashboard(
+  "Components/Home/HomeCommandBar.tsx",
+);
+const ATTENTION_SOURCE: string = dashboard(
+  "Components/Home/NeedsAttention.tsx",
+);
+const RESOURCES_SOURCE: string = dashboard(
+  "Components/Home/ProjectResources.tsx",
+);
+const UPCOMING_SOURCE: string = dashboard(
+  "Components/Home/UpcomingMaintenance.tsx",
+);
+const EXPLORE_SOURCE: string = dashboard("Components/Home/ExploreProducts.tsx");
 
 const TASK_TITLE: RegExp = /^ {4}title: "([^"]+)",$/gm;
 const TASK_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
 const TASK_CREATE_PAGE_MAP: RegExp =
   /createPage: \{\s*pageMap: PageMap\.(\w+),/;
 const TASK_COUNT_THRESHOLD: RegExp = /\)\) > (\d)/;
-const TILE_KEY: RegExp = /^ {6}key: "([^"]+)",$/gm;
+const TILE_KEY: RegExp = /^ {4}key: "([^"]+)",$/gm;
 const TILE_FIELD: (field: string) => RegExp = (field: string): RegExp => {
-  return new RegExp(`^ {6}${field}: "([^"]+)",$`, "m");
+  return new RegExp(`^ {4}${field}: "([^"]+)",$`, "m");
 };
-const TILE_NOT_SET_UP_LABEL: RegExp = /notSetUp: \{[^}]*label: (\w+),/;
+const TILE_NOT_SET_UP_LABEL: RegExp =
+  /notSetUp: \(counts: HomeCounts\): NotSetUpState => \{\s*return \{[^}]*label: (\w+),/;
 const STRING_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
   return new RegExp(`export const ${name}: string = "([^"]+)";`);
 };
+const TRANSLATION_KEY_CONSTANT: (name: string) => RegExp = (
+  name: string,
+): RegExp => {
+  return new RegExp(
+    `export const ${name}: string = translationKey\\(\\s*"([^"]+)",?\\s*\\);`,
+  );
+};
+const NUMBER_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
+  return new RegExp(`export const ${name}: number = (\\d+);`);
+};
 const HOW_IT_WORKS_STEP_TITLE: RegExp = /^ {4}title: "([^"]+)",$/gm;
 const KEY_SEQUENCE: RegExp = /keySequence: \[\[([^\]]+)\]\]/g;
+const QUICK_ACTION_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
+const RESOURCE_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
+const NUMBERED_ITEM: RegExp = /^\d+\. (.+)$/gm;
 
 // Each checklist task, as the component's array literal declares it.
 interface ChecklistTask {
@@ -774,8 +805,8 @@ interface HomeTile {
 function homeTiles(): Array<HomeTile> {
   const block: string = blockFrom(
     TILES_SOURCE,
-    "const tiles: Array<StatTile>",
-    "\n  ];",
+    "const STAT_TILE_DEFINITIONS: Array<StatTileDefinition>",
+    "\n];",
   );
   const starts: Array<RegExpMatchArray> = Array.from(block.matchAll(TILE_KEY));
 
@@ -808,30 +839,136 @@ function homeTiles(): Array<HomeTile> {
   });
 }
 
+function translationKeyConstant(source: string, name: string): string {
+  return (
+    source.match(TRANSLATION_KEY_CONSTANT(name)) as RegExpMatchArray
+  )[1] as string;
+}
+
+function numberConstant(source: string, name: string): number {
+  return Number(
+    (source.match(NUMBER_CONSTANT(name)) as RegExpMatchArray)[1] as string,
+  );
+}
+
 describe("Home Page & Shortcuts", () => {
   const whatHomeShows: string = sectionOf(HOME, "## What Home shows");
 
   it("lists Home from top to bottom as the page renders it", () => {
     const homePage: string = dashboard("Pages/Home/Home.tsx");
-    const checklist: number = homePage.indexOf("<GettingStarted");
-    const tiles: number = homePage.indexOf("<OverviewStats");
-    const incidents: number = homePage.indexOf("<IncidentsTable");
+    const order: Array<number> = [
+      "<HomeCommandBar",
+      "<ProjectHealthCard",
+      "<GettingStarted",
+      "<NeedsAttention",
+      "<ProjectResources",
+      "<UpcomingMaintenance",
+      "<ExploreProducts",
+    ].map((element: string): number => {
+      return homePage.indexOf(element);
+    });
 
-    expect(checklist).toBeGreaterThan(-1);
-    expect(tiles).toBeGreaterThan(checklist);
-    expect(incidents).toBeGreaterThan(tiles);
-    expect(homePage).toContain('title="Active Incidents"');
+    for (let index: number = 0; index < order.length; index++) {
+      expect(order[index]).toBeGreaterThan(-1);
+      if (index > 0) {
+        expect(order[index]).toBeGreaterThan(order[index - 1] as number);
+      }
+    }
     expect(CHECKLIST_SOURCE).toContain('title="Welcome to OneUptime 👋"');
 
-    expect(whatHomeShows).toContain(
-      "1. **Welcome to OneUptime 👋**, a checklist for a new project",
-    );
+    const items: Array<string> = Array.from(
+      whatHomeShows.matchAll(NUMBERED_ITEM),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(items).toEqual([
+      "A search box, with **Declare Incident** and **Create** beside it.",
+      "One line that says whether anything is wrong, over five numbers that count what needs attention.",
+      "**Welcome to OneUptime 👋**, a checklist for a new project, until it is done.",
+      "**Needs attention**, every problem that is open right now, by name.",
+      "**Your project**, what the project is made of, and **Upcoming maintenance** when any is scheduled.",
+      "**Explore OneUptime**, every product, one category at a time.",
+    ]);
     expect(homeTiles().length).toBe(5);
-    expect(whatHomeShows).toContain(
-      "2. Five tiles that count what needs attention.",
+  });
+
+  it("names the search box's door and the create actions as the bar draws them", () => {
+    const section: string = sectionOf(HOME, "### Search and create");
+    const declare: string = (
+      blockFrom(
+        COMMAND_BAR_SOURCE,
+        "export const DECLARE_INCIDENT_ACTION",
+        "\n};",
+      ).match(/title: translationKey\("([^"]+)"\)/) as RegExpMatchArray
+    )[1] as string;
+    const creates: Array<string> = Array.from(
+      blockFrom(
+        COMMAND_BAR_SOURCE,
+        "const CREATE_ACTIONS",
+        "\n];",
+      ).matchAll(QUICK_ACTION_TITLE),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(declare).toBe("Declare Incident");
+    expect(creates).toEqual([
+      "Create Monitor",
+      "Schedule Maintenance",
+      "Create Announcement",
+    ]);
+    expect(section).toContain(`**${declare}** opens the form`);
+    expect(section).toContain(
+      `**Create** offers ${creates
+        .slice(0, -1)
+        .map((title: string): string => {
+          return `**${title}**`;
+        })
+        .join(", ")} and **${creates[creates.length - 1]}**.`,
     );
-    expect(whatHomeShows).toContain(
-      "3. **Active Incidents**, every incident that is not resolved yet.",
+    // The bar opens the same palette as the shortcut the section names.
+    expect(COMMAND_BAR_SOURCE).toContain(
+      "GlobalEvents.dispatchEvent(EventName.COMMAND_PALETTE_TOGGLE)",
+    );
+    expect(COMMAND_BAR_SOURCE).toContain("[KeyboardKey.Mod, \"K\"]");
+    expect(section).toContain("`Mod` + `K`");
+    // Gated by the palette's own rule.
+    expect(COMMAND_BAR_SOURCE).toContain("computeCreateActionGates(");
+  });
+
+  it("names the headline's two fixed verdicts as the card says them", () => {
+    const rows: Array<Array<string>> = onlyTableOf(
+      sectionOf(HOME, "### The headline"),
+    );
+
+    expect(rows).toHaveLength(5);
+    expect(boldSpans(rows[3]![1] as string)).toEqual([
+      translationKeyConstant(HEALTH_SOURCE, "OPERATIONAL_HEADLINE"),
+    ]);
+    expect(boldSpans(rows[4]![1] as string)).toEqual([
+      translationKeyConstant(HEALTH_SOURCE, "NOT_SET_UP_HEADLINE"),
+    ]);
+    // The verdicts in the order getProjectHealth checks them.
+    const health: string = oneLine(HEALTH_SOURCE);
+    const incidents: number = health.indexOf("ProjectHealthKind.Incidents,");
+    const attention: number = health.indexOf(
+      "ProjectHealthKind.NeedsAttention,",
+    );
+    const maintenance: number = health.indexOf(
+      "ProjectHealthKind.Maintenance,",
+    );
+    const notSetUp: number = health.indexOf("ProjectHealthKind.NotSetUp,");
+    const operational: number = health.indexOf(
+      "kind: ProjectHealthKind.Operational,",
+    );
+
+    expect(incidents).toBeLessThan(attention);
+    expect(attention).toBeLessThan(maintenance);
+    expect(maintenance).toBeLessThan(notSetUp);
+    expect(notSetUp).toBeLessThan(operational);
+    expect(sectionOf(HOME, "### The headline")).toContain(
+      "**Refresh** reads it again",
     );
   });
 
@@ -924,9 +1061,9 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("describes every tile by its label, what makes it count and the words it shows", () => {
+  it("describes every number by its label, what makes it count and the words it shows", () => {
     const tiles: Array<HomeTile> = homeTiles();
-    const tileSection: string = sectionOf(HOME, "### The tiles");
+    const tileSection: string = sectionOf(HOME, "### The five numbers");
     const rows: Array<Array<string>> = onlyTableOf(tileSection);
 
     expect(tiles.length).toBe(5);
@@ -966,7 +1103,7 @@ describe("Home Page & Shortcuts", () => {
       }
     }
 
-    // Only the monitors and SLO tiles say they are not set up yet.
+    // Only the monitors and SLO numbers say they are not set up yet.
     expect(
       tiles
         .filter((tile: HomeTile): boolean => {
@@ -978,8 +1115,8 @@ describe("Home Page & Shortcuts", () => {
     ).toEqual(["not-operational-monitors", "slos-needing-attention"]);
   });
 
-  it("counts what the tiles count: archived monitors left out, turned-on SLOs at risk or out of budget", () => {
-    const counting: string = oneLine(TILES_SOURCE);
+  it("counts what the numbers count: archived monitors left out, turned-on SLOs at risk or out of budget", () => {
+    const counting: string = oneLine(OVERVIEW_DATA_SOURCE);
 
     expect(counting).toContain(
       "isArchived: false, currentMonitorStatus: { isOperationalState: false",
@@ -989,7 +1126,7 @@ describe("Home Page & Shortcuts", () => {
     expect(counting).toContain("SloStatus.BudgetExhausted");
 
     const rows: Array<Array<string>> = onlyTableOf(
-      sectionOf(HOME, "### The tiles"),
+      sectionOf(HOME, "### The five numbers"),
     );
 
     expect((rows[2] as Array<string>)[1]).toBe(
@@ -997,6 +1134,99 @@ describe("Home Page & Shortcuts", () => {
     );
     expect((rows[4] as Array<string>)[1]).toBe(
       "Turned-on SLOs that are at risk or have used up their error budget",
+    );
+  });
+
+  it("says how many of each kind Needs attention shows, and what it says when nothing is open", () => {
+    const section: string = sectionOf(HOME, "### Needs attention");
+
+    expect(numberConstant(OVERVIEW_DATA_SOURCE, "HOME_ATTENTION_LIST_LIMIT")).toBe(
+      5,
+    );
+    expect(section).toContain("Each kind shows up to five");
+    expect(section).toContain("**View all**");
+    expect(section).toContain(
+      `**${translationKeyConstant(ATTENTION_SOURCE, "ALL_CLEAR_TITLE")}**`,
+    );
+    expect(
+      translationKeyConstant(ATTENTION_SOURCE, "NEEDS_ATTENTION_TITLE"),
+    ).toBe("Needs attention");
+    // The kinds, in the order the card draws them.
+    const kinds: string = oneLine(
+      blockFrom(ATTENTION_SOURCE, "const groups: Array<AttentionGroup>", "];"),
+    );
+    const order: Array<number> = [
+      "AttentionGroupKey.Incidents",
+      "AttentionGroupKey.Alerts",
+      "AttentionGroupKey.Monitors",
+      "AttentionGroupKey.Slos",
+      "AttentionGroupKey.Maintenance",
+    ].map((key: string): number => {
+      return kinds.indexOf(key);
+    });
+    for (const index of order) {
+      expect(index).toBeGreaterThan(-1);
+    }
+    expect(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(order);
+    expect(section).toContain(
+      "the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first",
+    );
+  });
+
+  it("names Your project's resources in the card's order, and when Upcoming maintenance shows", () => {
+    const section: string = sectionOf(HOME, "### Your project");
+    const titles: Array<string> = Array.from(
+      blockFrom(
+        RESOURCES_SOURCE,
+        "export const PROJECT_RESOURCES",
+        "\n];",
+      ).matchAll(RESOURCE_TITLE),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(titles).toEqual([
+      "Monitors",
+      "Status Pages",
+      "On-Call Policies",
+      "SLOs",
+      "Services",
+      "Dashboards",
+      "Workflows",
+    ]);
+    expect(section).toContain(
+      `**Your project** counts the project's ${titles
+        .slice(0, -1)
+        .map((title: string): string => {
+          return `**${title}**`;
+        })
+        .join(", ")} and **${titles[titles.length - 1]}**`,
+    );
+    expect(oneLine(RESOURCES_SOURCE)).toContain(
+      "query: { projectId: projectId, isArchived: false }",
+    );
+    expect(section).toContain("**Set up**");
+
+    expect(numberConstant(UPCOMING_SOURCE, "UPCOMING_MAINTENANCE_LIMIT")).toBe(
+      3,
+    );
+    expect(section).toContain(
+      "**Upcoming maintenance** lists the next three scheduled maintenance windows, the soonest first. It is left out when nothing is scheduled.",
+    );
+    expect(oneLine(UPCOMING_SOURCE)).toContain(
+      'state.status === "loaded" && state.items.length === 0',
+    );
+  });
+
+  it("explores the products menu's own catalog, one category at a time", () => {
+    expect(EXPLORE_SOURCE).toContain("useDashboardNavigationItems()");
+    expect(EXPLORE_SOURCE).toContain("groupItemsByCategory(");
+    expect(sectionOf(HOME, "### Explore OneUptime")).toContain(
+      "**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials.",
     );
   });
 
@@ -1008,7 +1238,8 @@ describe("Home Page & Shortcuts", () => {
       sectionOf(HOME, "### Home's side menu"),
     );
 
-    expect(sections.length).toBe(4);
+    expect(sections.length).toBe(5);
+    expect(sections[0]).toEqual({ title: "Home", items: ["Overview"] });
 
     expect(
       rows.map((row: Array<string>): MenuSection => {

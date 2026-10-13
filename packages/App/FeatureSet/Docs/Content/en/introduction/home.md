@@ -3,7 +3,7 @@
 Home is the first page you see in a project. It tells you at a glance whether anything needs you right now, and walks a new project through its first setup. This page explains what Home shows, how to find any product, page or action in the dashboard, and the keyboard shortcuts that save you trips through menus.
 
 :::cards
-- [What Home shows](#what-home-shows): The welcome checklist, the five tiles and the active incidents.
+- [What Home shows](#what-home-shows): Whether anything is wrong, what needs you, what the project holds and every product.
 - [Finding your way around](#finding-your-way-around): The Products menu and the bars at the top of every page.
 - [Searching](#searching-for-a-page-a-setting-or-an-action): Find any page, setting or action by typing its name.
 - [Keyboard shortcuts](#keyboard-shortcuts): Go to Home, Monitors or Incidents with two keys.
@@ -11,11 +11,46 @@ Home is the first page you see in a project. It tells you at a glance whether an
 
 ## What Home shows
 
-Open **Home** in the bar at the top, or press `g` then `h` from anywhere. From top to bottom, Home shows:
+Open **Home** in the bar at the top, or press `g` then `h` from anywhere. Home is the overview of your project. From top to bottom, it shows:
 
-1. **Welcome to OneUptime 👋**, a checklist for a new project, until it is done.
-2. Five tiles that count what needs attention.
-3. **Active Incidents**, every incident that is not resolved yet.
+1. A search box, with **Declare Incident** and **Create** beside it.
+2. One line that says whether anything is wrong, over five numbers that count what needs attention.
+3. **Welcome to OneUptime 👋**, a checklist for a new project, until it is done.
+4. **Needs attention**, every problem that is open right now, by name.
+5. **Your project**, what the project is made of, and **Upcoming maintenance** when any is scheduled.
+6. **Explore OneUptime**, every product, one category at a time.
+
+### Search and create
+
+The search box opens Search, the same as `Mod` + `K`: type the name of any page, monitor, incident, alert, status page or on-call policy. See [Searching](#searching-for-a-page-a-setting-or-an-action). **Declare Incident** opens the form that declares an incident. **Create** offers **Create Monitor**, **Schedule Maintenance** and **Create Announcement**. Each one is shown only to people who are allowed to use it.
+
+### The headline
+
+The line at the top names the most urgent thing that is open, in a matching color:
+
+| When | Home says |
+| --- | --- |
+| An incident is open | How many incidents are active, in red |
+| No incident is open, but there are open alerts, monitors that are not operational or SLOs at risk | How many issues need attention, in amber |
+| Nothing is wrong and maintenance is in progress | How many maintenance events are in progress |
+| Monitors are running and nothing is open | **All systems operational** |
+| The project has no monitors yet | **Nothing is being monitored yet** |
+
+Beside it, Home says when it last read the project, and **Refresh** reads it again. When you come back to a Home tab after a minute or more, it refreshes by itself.
+
+### The five numbers
+
+Each number counts something, says whether that needs you, and opens the list behind it.
+
+| Number | What it counts | When the count is zero |
+| --- | --- | --- |
+| **Active incidents** | Incidents that are not resolved | **All clear** |
+| **Active alerts** | Alerts that are not resolved | **All clear** |
+| **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors are left out. | **All operational** |
+| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** |
+| **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** |
+
+A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
 
 ### The welcome checklist
 
@@ -41,26 +76,27 @@ flowchart TB
 
 The checklist goes away once all four steps are done. To hide it sooner, click **Dismiss**. Dismissing is remembered in this browser, for this project; everything the steps open is still in the **Products** menu.
 
-### The tiles
+### Needs attention
 
-Each tile counts something, says whether that needs you, and opens the list behind the number.
+**Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest. When nothing is open, it says **Nothing needs your attention**.
 
-| Tile | What it counts | When the count is zero |
-| --- | --- | --- |
-| **Active incidents** | Incidents that are not resolved | **All clear** |
-| **Active alerts** | Alerts that are not resolved | **All clear** |
-| **Not operational monitors** | Monitors whose status is not an operational one. Archived monitors are left out. | **All operational** |
-| **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** |
-| **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** |
+### Your project
 
-A count above zero reads **Needs attention**, or **In progress** and **Budget burning** on the maintenance and SLO tiles. A project with no monitors yet sees **No monitors yet** on the monitors tile, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two tiles then open the **Monitors** and **SLOs** lists, where you create one.
+**Your project** counts the project's **Monitors**, **Status Pages**, **On-Call Policies**, **SLOs**, **Services**, **Dashboards** and **Workflows**, leaving archived ones out. Each row opens its list. A kind the project has none of says **Set up** instead of a number.
+
+**Upcoming maintenance** lists the next three scheduled maintenance windows, the soonest first. It is left out when nothing is scheduled.
+
+### Explore OneUptime
+
+**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it.
 
 ### Home's side menu
 
-The side menu next to Home holds the same lists, each with a count:
+The side menu next to Home opens on **Overview**, this page, and holds the lists behind the numbers, each with a count:
 
 | Section | Pages |
 | --- | --- |
+| **Home** | **Overview** |
 | **Incidents** | **Active Incidents** and **Active Episodes** |
 | **Alerts** | **Active Alerts** and **Active Episodes** |
 | **Monitors** | **Not Operational** |
