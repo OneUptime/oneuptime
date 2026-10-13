@@ -279,10 +279,19 @@ async function renderModal(
 
   await within(modal).findByText("Who covers?");
 
-  // BasicForm fills in the fields' defaults in an effect of its own.
+  /*
+   * BasicForm fills in the fields' defaults in an effect of its own. The
+   * people picker then looks up the name of the person it holds, and its
+   * chip reads "Loading..." until the answer comes.
+   */
   await waitFor(() => {
     expect(timeInput(modal, "Starts").value).not.toBe("");
     expect(chipIds(picker(modal, "Who is away?"))).toEqual([ALEX]);
+    expect(
+      within(picker(modal, "Who is away?")).getByRole("button", {
+        name: "Remove Alex Chen",
+      }),
+    ).toBeInTheDocument();
   });
 
   return modal;
