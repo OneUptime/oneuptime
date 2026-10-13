@@ -23,7 +23,7 @@ flowchart LR
 
 ## The SLO feed
 
-The feed is on the SLO's **Feed** page, and its latest items are under **Recent activity** on the SLO's **Overview**. Items link to the SLO, monitors, alerts and incidents they mention, and most have a **More Information** section with the numbers or the old and new values.
+The feed is on the SLO's **Feed** page, and its latest items are under **Recent activity** on the SLO's **Overview**. Items link to the SLO, monitors, alerts and incidents they mention, and most have details with the numbers or the old and new values, which **Show details** unfolds under the item.
 
 | Event | Posted when |
 | --- | --- |

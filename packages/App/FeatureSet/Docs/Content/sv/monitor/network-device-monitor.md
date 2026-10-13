@@ -490,7 +490,7 @@ En utredning av OneUptime AI av en incident eller varning från en nätverksenhe
 
 ### Enhetsidentitet
 
-Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där enheten stöder det, ENTITY-MIB, och fyller i enhetens post: systemnamn, beskrivning, placering, kontakt, drifttid, tillverkare, modell, serienummer och firmwareversion. Tillverkarens enterprise-OID (`sysObjectID`) är enhetens fingeravtryck: den namnger tillverkaren och väljer den matchande tillverkarmallen. Samma uppgifter visas i [inventariet](/docs/inventory/cmdb-sync#network-device-asset-attributes) tillsammans med alla dina andra tillgångar.
+Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där enheten stöder det, ENTITY-MIB, och fyller i enhetens post: systemnamn, beskrivning, placering, kontakt, drifttid, tillverkare, modell, serienummer och firmwareversion. Tillverkarens enterprise-OID (`sysObjectID`) är enhetens fingeravtryck: den namnger tillverkaren och väljer den matchande tillverkarmallen. Samma uppgifter visas i [inventariet](/docs/inventory/cmdb-sync#tillgångsattribut-för-nätverksenheter) tillsammans med alla dina andra tillgångar.
 
 En enhet med bara ping behåller det namn och den adress som du, eller en discovery-skanning, gav den: det finns ingen SNMP-agent att fråga efter något bättre.
 

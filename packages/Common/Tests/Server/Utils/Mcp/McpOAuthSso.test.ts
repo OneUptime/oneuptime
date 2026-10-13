@@ -28,7 +28,7 @@ jest.mock("../../../../Server/Utils/PasswordHash", () => {
 jest.mock("../../../../Server/Utils/Logger");
 
 import User from "../../../../Models/DatabaseModels/User";
-import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../../Server/Utils/TokenSigningKey";
 import UserMiddleware from "../../../../Server/Middleware/UserAuthorization";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import GlobalOidcProjectService from "../../../../Server/Services/GlobalOidcProjectService";
@@ -175,7 +175,7 @@ const mintCustomToken: (
   options: { withoutExpiry?: boolean } = {},
 ): string => {
   if (options.withoutExpiry) {
-    return jwt.sign(payload, EncryptionSecret.toString());
+    return jwt.sign(payload, TokenSigningKey.get());
   }
 
   return JSONWebToken.signJsonPayload(payload, 30 * 24 * 60 * 60);
@@ -754,7 +754,7 @@ describe("McpOAuthSso", () => {
       test("an expired token is no evidence", async () => {
         const expired: string = jwt.sign(
           { ...projectTokenPayload(), exp: Math.floor(Date.now() / 1000) - 60 },
-          EncryptionSecret.toString(),
+          TokenSigningKey.get(),
         );
 
         await expect(

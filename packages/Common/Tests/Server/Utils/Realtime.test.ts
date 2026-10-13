@@ -1,5 +1,5 @@
 import IO, { Socket } from "../../../Server/Infrastructure/SocketIO";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
@@ -248,7 +248,7 @@ const expiredToken: () => string = (): string => {
       sessionId: SESSION_ID,
       exp: Math.floor(Date.now() / 1000) - 60,
     },
-    EncryptionSecret.toString(),
+    TokenSigningKey.get(),
   );
 };
 

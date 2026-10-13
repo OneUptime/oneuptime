@@ -64,6 +64,13 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 
 const AlertEpisodeView: FunctionComponent<
   PageComponentProps
@@ -265,6 +272,17 @@ const AlertEpisodeView: FunctionComponent<
     });
   };
 
+  // The episode's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.AlertEpisode,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new episode is created.
+    recordStartedAt:
+      loadedModelId === modelIdString
+        ? episode?.createdAt || undefined
+        : undefined,
+  });
+
   if (loadedModelId !== modelIdString) {
     return (
       <EventOverviewSkeleton statCount={4} loadingText="Loading episode" />
@@ -319,6 +337,7 @@ const AlertEpisodeView: FunctionComponent<
     <div className="space-y-5">
       <ChangeEpisodeState
         episodeId={modelId}
+        secondaryActions={getOpenInChatActions(channelLinks)}
         refreshToken={headerRefreshToken}
         onActionComplete={async () => {
           // The change also moved the member alerts; reload what shows them.

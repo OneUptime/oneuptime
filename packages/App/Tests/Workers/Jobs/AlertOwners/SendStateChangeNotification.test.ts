@@ -681,14 +681,16 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(updates[0]!.id.toString()).toBe(TIMELINE_1_ID.toString());
     expect(updates[0]!.data).toEqual({ isOwnerNotified: true });
 
-    // The feed item is unchanged, one entry per notified owner.
+    // One feed item: a sentence, and who was notified behind its details.
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
     expect(feedService.createAlertFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert AL-42](${ALERT_LINK}).**: Owners have been notified about the state change of the alert because the alert state changed to **Acknowledged**.`,
-        moreInformationInMarkdown: `**Notified:** @${USER_1_ID.toString()})\n**Notified:** @${USER_2_ID.toString()})\n**Notified:** @${USER_3_ID.toString()})\n`,
+        feedInfoInMarkdown:
+          "Owners were notified that this alert is now **Acknowledged**.",
+        // Who was notified: a list, one per line.
+        moreInformationInMarkdown: `- @${USER_1_ID.toString()}\n- @${USER_2_ID.toString()}\n- @${USER_3_ID.toString()}\n`,
         /*
          * The feed only: the alert's Slack and Microsoft Teams channels were
          * told of the state change itself, and used to get this right under

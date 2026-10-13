@@ -27,29 +27,15 @@
   <meta name="description" content="OneUptime - the complete open-source observability platform.">
   <% } %>
 
+  <%#
+    Google Analytics only - no Tag Manager container, so no advertising pixel
+    or visitor identification tool runs on sign-up. The partial loads it once
+    consent allows, and not while a sign-in token is still in the address bar.
+  -%>
   <%- include('../../../../Common/Server/Views/Partials/AnalyticsConsent', {
-    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
+    googleTagMode: 'analytics-only'
   }) -%>
-
-  <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
-  <!-- Google Tag Manager -->
-  <script>(function (w, d, s, l, i) {
-      /*
-       * Do not start the container while a single-use bearer token is still in
-       * the address bar. See Common/Server/Views/Partials/SensitiveUrlToken.ejs:
-       * the bootstrap normally removes the token before this runs, and this
-       * guard only fires when it could not.
-       */
-      if (w.__ONEUPTIME_SENSITIVE_URL_TOKEN_PENDING__) { return; }
-      w[l] = w[l] || []; w[l].push({
-        'gtm.start':
-          new Date().getTime(), event: 'gtm.js'
-      }); var f = d.getElementsByTagName(s)[0],
-        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
-  <!-- End Google Tag Manager -->
-  <% } %>
 
   <link rel="manifest" href="/accounts/assets/img/favicons/ma">
   
@@ -136,12 +122,6 @@
 </head>
 
 <body class="h-full bg-gray-50">
-  <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
-  <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
-      style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
-  <% } %>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
 

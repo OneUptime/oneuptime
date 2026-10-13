@@ -32,6 +32,7 @@ import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppT
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 /*
  * Cap the number of incidents we list inline in the email body. Anything
@@ -266,9 +267,10 @@ RunCron(
         )
       ).toString();
 
-      const episodeFeedText: string =
-        mdText`🔔 **Owner Incidents Added to Episode Notification Sent**:
-      Notification sent to owners because ${incidentCountInBatch} incident(s) were added to [Incident Episode ${episodeDisplayNumber}](${episodeViewLink}).`.toString();
+      const episodeFeedText: string = OwnerNotificationFeedText.membersAdded({
+        memberNoun: "incident",
+        count: incidentCountInBatch,
+      });
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       for (const user of owners) {
@@ -424,7 +426,13 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += mdText`**Notified**: ${user.name?.toString()} (${user.email?.toString()}) — ${incidentCountInBatch} incident(s)\n`;
+          moreEpisodeFeedInformationInMarkdown +=
+            OwnerNotificationFeedText.notifiedLineMarkdown(
+              mdText`${OwnerNotificationFeedText.nameAndEmail({
+                name: user.name?.toString(),
+                email: user.email?.toString(),
+              })}, told of ${incidentCountInBatch === 1 ? "1 incident" : `${incidentCountInBatch} incidents`}`,
+            );
         } catch (e) {
           logger.error(
             "Error in sending incident-added-to-episode batch notification",

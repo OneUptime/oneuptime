@@ -2,18 +2,17 @@
 
 <div id="cookie" class="pointer-events-none fixed inset-x-0 bottom-0 px-6 pb-6 cookie-banner" style="display:none;">
     <div class="pointer-events-auto ml-auto max-w-xl rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-900/10">
-        <p class="text-sm leading-6 text-gray-900 my-3">We use cookies to enhance your browsing experience and provide
-            personalized content. By clicking "Accept," you consent to the use of cookies.</p>
+        <p class="text-sm leading-6 text-gray-900 my-3">We use cookies the site needs to work. Analytics and advertising
+            cookies help us understand how the site is used and measure our marketing, and you choose whether we use
+            them.</p>
 
-            <p class="text-sm leading-6 text-gray-900 my-3">Our product uses both first-party and third-party cookies for session storage and for various other purposes.</p>
+        <p class="text-sm leading-6 text-gray-900 my-3">"Accept all" allows them. "Reject all" turns them off and removes
+            the ones already set. You can change your answer at any time from "Cookie settings" at the bottom of every
+            page.</p>
 
-            <p class="text-sm leading-6 text-gray-900 my-3">Please note that disabling certain cookies may affect the functionality and performance of our product.</p>
-
-            <p class="text-sm leading-6 text-gray-900 my-3">For more information about how we handle your data and cookies, please read our Privacy Policy.</p>
-
-            <p class="text-sm leading-6 text-gray-900 my-3">By continuing to use our site without changing your cookie settings, you agree to our use of cookies as
-            described above. See our <a href="/legal/terms" class="font-semibold text-gray-600">terms</a> and our <a
-                href="/legal/privacy" class="font-semibold text-gray-600">privacy policy</a> </p>
+        <p class="text-sm leading-6 text-gray-900 my-3">Read more in our <a href="/legal/cookies"
+                class="font-semibold text-gray-600">cookie policy</a> and our <a href="/legal/privacy"
+                class="font-semibold text-gray-600">privacy policy</a>.</p>
         <div class="mt-4 flex items-center gap-x-5">
             <button onclick="acceptCookies()" type="button"
                 class="rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Accept
@@ -26,27 +25,17 @@
 <!--
     The buttons here are the only thing that moves the consent state.
 
-    They used to write `cookiesAccepted` to localStorage and hide the banner,
-    and nothing anywhere read the value: Google Tag Manager, PostHog and the
-    attribution capture all ran identically whether the visitor pressed Accept,
-    pressed Reject, or never saw the banner. "Reject all" rejected nothing.
+    Both go through window.oneUptimeConsent (defined in
+    Common/Server/Views/Partials/AnalyticsConsent.ejs, before any tag loads),
+    which records the answer under 'cookiesAccepted' and acts on it on this
+    page: "Accept all" loads the tags that were waiting for it, and "Reject
+    all" tells Google tags already on the page, stops PostHog, and removes the
+    measurement cookies and stored attribution. Every later page asks the same
+    helper before it loads anything.
 
-    Both buttons go through window.oneUptimeConsent (defined in
-    Common/Server/Views/Partials/AnalyticsConsent.ejs, before the tags load),
-    which records the answer under 'cookiesAccepted'.
-
-    RECORDS IT, AND NOTHING MORE. Measurement is no longer gated on the answer:
-    Consent Mode defaults to granted and is not updated on either button,
-    attribution is stored on sight, and PostHog loads regardless. So these
-    buttons currently change nothing except which of them the banner remembers
-    you pressed. That is a deliberate decision documented at the top of
-    AnalyticsConsent.ejs and in Docs/analytics/enterprise-conversion-tracking.md
-    — but a banner offering a choice it does not honour is the thing to fix
-    next, either by re-gating or by removing the buttons.
-
-    That partial is shared with /accounts and /dashboard, so the answer given
-    here is the answer those origins honour too — they are the same origin and
-    read the same key.
+    That partial is shared with the docs, sign-up and the dashboard, so the
+    answer given here is the answer those honour too - they are the same origin
+    and read the same key.
 -->
 <script>
     function setCookieConsent(granted) {

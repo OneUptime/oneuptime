@@ -23,7 +23,7 @@ flowchart LR
 
 ## El feed del SLO
 
-El feed está en la página **Feed** del SLO, y sus últimos elementos en **Actividad reciente** de la **Vista general** del SLO. Los elementos enlazan al SLO, los monitores, las alertas y los incidentes que mencionan, y la mayoría tienen una sección **Más información** con las cifras o los valores anteriores y nuevos.
+El feed está en la página **Feed** del SLO, y sus últimos elementos en **Actividad reciente** de la **Vista general** del SLO. Los elementos enlazan al SLO, los monitores, las alertas y los incidentes que mencionan, y la mayoría tienen detalles con las cifras o los valores anteriores y nuevos, que **Mostrar detalles** despliega bajo el elemento.
 
 | Evento | Se publica cuando |
 | --- | --- |

@@ -12,7 +12,8 @@ import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEng
 import XML from "Common/Types/XML";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
-  isSearchEngineIndexingEnabled,
+  isSearchEngineIndexingAllowed,
+  isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
 
 export interface StatusPageData {
@@ -21,9 +22,10 @@ export interface StatusPageData {
   description: string;
   faviconUrl: string;
   /*
-   * False only when the owner turned indexing off. See
-   * Common/Types/StatusPage/SearchEngineIndexing.ts for why anything else -
-   * including an unreachable /seo API - reads as indexable.
+   * False on a preview URL, and on a custom domain whose owner turned
+   * indexing off. See Common/Types/StatusPage/SearchEngineIndexing.ts for
+   * why anything else - including an unreachable /seo API - reads as
+   * indexable on a custom domain.
    */
   isSearchEngineIndexingEnabled: boolean;
 }
@@ -42,7 +44,7 @@ export const getStatusPageData: (
     const path: string = req.path;
     logger.debug(`Request path: ${path}`, { service: "frontend" });
 
-    if (path && path.includes("/status-page/")) {
+    if (path && isStatusPagePreviewPath(path)) {
       statusPageIdOrDomain =
         path.split("/status-page/")[1]?.split("/")[0] || "";
       isPreview = true;
@@ -75,10 +77,9 @@ export const getStatusPageData: (
 
     /*
      * The /seo API resolves an id or a custom domain, so preview URLs
-     * (/status-page/:statusPageId) go through it too. They have to: the
-     * preview URL is the only URL a status page has until someone attaches a
-     * custom domain, so skipping the lookup here would leave the indexing
-     * opt-out working on custom domains and doing nothing for everyone else.
+     * (/status-page/:statusPageId) go through it too, for the page's title
+     * and description. A preview URL is never indexed whatever the owner's
+     * setting says, so the lookup does not decide that for it.
      */
     logger.debug(
       `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
@@ -131,9 +132,10 @@ export const getStatusPageData: (
       title,
       description,
       faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
-      isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled(
-        seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
-      ),
+      isSearchEngineIndexingEnabled: isSearchEngineIndexingAllowed({
+        path,
+        indexingFlag: seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
+      }),
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "frontend" });

@@ -31,7 +31,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -343,25 +343,24 @@ RunCron(
           eventType,
         });
 
-        moreIncidentFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
-          {
-            userId: user.id!,
-            projectId: incidentStateTimeline.projectId!,
-          },
-        )})\n`;
+        moreIncidentFeedInformationInMarkdown +=
+          OwnerNotificationFeedText.notifiedLineMarkdown(
+            await UserService.getUserMarkdownString({
+              userId: user.id!,
+              projectId: incidentStateTimeline.projectId!,
+            }),
+          );
       }
-
-      const incidentNumberDisplayValue: string =
-        incident.incidentNumberWithPrefix || "#" + incident.incidentNumber!;
-      const projectId: ObjectID = incident.projectId!;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id!,
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown:
-          mdText`🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`.toString(),
+        feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          recordNoun: "incident",
+          stateName: incidentState.name,
+        }),
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         /*
          * The feed only. That the owners were told is a side effect of the

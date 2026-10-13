@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import type { BlogPost } from "../Utils/BlogPost";
-import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ProductCompare, {
   FAQ,
   Product,
@@ -425,6 +425,175 @@ describe("every page's head: organization, breadcrumbs, web page and software", 
         });
       }
     }
+  });
+});
+
+/*
+ * Every product page used to describe OneUptime as a SoftwareApplication with
+ * a hard-coded aggregateRating of 4.8 from 150 ratings, shown nowhere on the
+ * page, and with shipping details and a merchant return policy, which describe
+ * physical goods. Google's review snippet rules require ratings to come from
+ * real reviews visible on the page, and markup like this is what the "spammy
+ * structured markup" manual action targets - an action that removes rich
+ * results across the whole site.
+ */
+describe("product pages claim nothing they cannot back up", () => {
+  const PRODUCT_PAGE_PATHS: Array<string> = Object.keys(PageSEOConfig).filter(
+    (pagePath: string): boolean => {
+      const seo: PageSEOData = PageSEOConfig[pagePath]!;
+
+      return seo.pageType === "product" && Boolean(seo.softwareApplication);
+    },
+  );
+
+  // The schema.org names that only make sense for real reviews or physical goods.
+  const FORBIDDEN_TYPES: Array<string> = [
+    "AggregateRating",
+    "Review",
+    "MerchantReturnPolicy",
+    "OfferShippingDetails",
+    "ShippingDeliveryTime",
+    "DefinedRegion",
+  ];
+
+  const FORBIDDEN_PROPERTIES: Array<string> = [
+    "aggregateRating",
+    "review",
+    "hasMerchantReturnPolicy",
+    "shippingDetails",
+  ];
+
+  // Every "@type" and every property name a value holds, however deep.
+  function typesAndPropertiesIn(value: unknown): {
+    types: Array<string>;
+    properties: Array<string>;
+  } {
+    const types: Array<string> = [];
+    const properties: Array<string> = [];
+
+    const visit: (node: unknown) => void = (node: unknown): void => {
+      if (Array.isArray(node)) {
+        node.forEach(visit);
+        return;
+      }
+
+      if (node !== null && typeof node === "object") {
+        for (const [key, child] of Object.entries(
+          node as Record<string, unknown>,
+        )) {
+          properties.push(key);
+
+          if (key === "@type" && typeof child === "string") {
+            types.push(child);
+          }
+
+          visit(child);
+        }
+      }
+    };
+
+    visit(value);
+
+    return { types, properties };
+  }
+
+  async function headFor(pagePath: string): Promise<Array<StructuredData>> {
+    const html: string = await render("head-social.ejs", {
+      homeUrl: HOME_URL,
+      seo: seoFor(pagePath),
+    });
+
+    return structuredDataIn(html);
+  }
+
+  test("there are product pages to check", () => {
+    expect(PRODUCT_PAGE_PATHS.length).toBeGreaterThan(20);
+    expect(PRODUCT_PAGE_PATHS).toContain("/product/monitoring");
+  });
+
+  test("no product page carries a rating, a review, shipping or a return policy", async () => {
+    for (const pagePath of PRODUCT_PAGE_PATHS) {
+      const found: { types: Array<string>; properties: Array<string> } =
+        typesAndPropertiesIn(await headFor(pagePath));
+
+      expect({
+        page: pagePath,
+        types: found.types.filter((type: string): boolean => {
+          return FORBIDDEN_TYPES.includes(type);
+        }),
+        properties: found.properties.filter((property: string): boolean => {
+          return FORBIDDEN_PROPERTIES.includes(property);
+        }),
+      }).toEqual({ page: pagePath, types: [], properties: [] });
+    }
+  });
+
+  test("a product page still describes the software and its free tier", async () => {
+    const software: StructuredData | undefined = (
+      await headFor("/product/monitoring")
+    ).find((item: StructuredData): boolean => {
+      return item["@type"] === "SoftwareApplication";
+    });
+
+    expect(software).toMatchObject({
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+        seller: { "@id": "https://oneuptime.com/#organization" },
+      },
+    });
+  });
+
+  test("the organization block on every page carries no return policy", async () => {
+    for (const pagePath of ["/", "/pricing", "/product/monitoring"]) {
+      const organization: StructuredData | undefined = (
+        await headFor(pagePath)
+      ).find((item: StructuredData): boolean => {
+        return item["@type"] === "Organization";
+      });
+
+      expect(organization).toBeDefined();
+      expect(organization).not.toHaveProperty("hasMerchantReturnPolicy");
+    }
+  });
+
+  test("no view writes a rating, a return policy or shipping details into structured data", () => {
+    const viewsWithClaims: Array<string> = [];
+
+    const walk: (directory: string) => void = (directory: string): void => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const fullPath: string = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+          walk(fullPath);
+          continue;
+        }
+
+        if (!entry.name.endsWith(".ejs")) {
+          continue;
+        }
+
+        const source: string = fs.readFileSync(fullPath, "utf8");
+
+        for (const claim of [
+          '"aggregateRating"',
+          '"MerchantReturnPolicy"',
+          '"hasMerchantReturnPolicy"',
+          '"shippingDetails"',
+        ]) {
+          if (source.includes(claim)) {
+            viewsWithClaims.push(
+              `${path.relative(VIEWS_ROOT, fullPath)}: ${claim}`,
+            );
+          }
+        }
+      }
+    };
+
+    walk(VIEWS_ROOT);
+
+    expect(viewsWithClaims).toEqual([]);
   });
 });
 

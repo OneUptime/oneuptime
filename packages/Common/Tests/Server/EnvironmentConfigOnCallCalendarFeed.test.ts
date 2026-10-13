@@ -342,6 +342,26 @@ describe("ENCRYPTION_SECRET boot warning", () => {
     expect(warning).not.toContain("b2f0c1e9");
   });
 
+  it("says that sign-in tokens are not signed with the shipped value", async () => {
+    /*
+     * The operator who reads this after an upgrade signed everybody out once
+     * should learn why: tokens moved to a key of the installation's own
+     * (TokenSigningKey), while the stored secrets stay on this one.
+     */
+    const config: EnvironmentConfigShape = await load({
+      ENCRYPTION_SECRET: "please-change-this-to-random-value",
+    });
+
+    const warning: string = config.EncryptionSecretWarning || "";
+
+    expect(warning).toContain(
+      "Sign-in and other tokens are not signed with it",
+    );
+    expect(warning).toContain(
+      "a random key it generated for this installation and keeps in the database",
+    );
+  });
+
   it("still exposes a usable EncryptionSecret when warning, so nothing refuses to boot", async () => {
     const config: EnvironmentConfigShape & {
       EncryptionSecret: { toString: () => string };

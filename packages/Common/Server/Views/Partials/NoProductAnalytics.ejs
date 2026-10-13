@@ -1,0 +1,13 @@
+<%#
+    For pages that measure nothing for OneUptime: status pages and public
+    dashboards, which belong to OneUptime's customers and whose visitors are
+    not OneUptime's to measure, and the admin console.
+
+    Common/Utils/Analytics.ts reads this flag before it starts product
+    analytics (PostHog), so include it in <head>, before the app's bundle.
+    These pages load no Google tag either: never include AnalyticsConsent.ejs
+    alongside it.
+-%>
+<script>
+    window.oneUptimeProductAnalyticsDisabled = true;
+</script>
