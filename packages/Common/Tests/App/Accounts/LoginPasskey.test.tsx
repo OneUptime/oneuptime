@@ -487,6 +487,7 @@ describe("Passwordless passkey login", () => {
       expect(option).not.toBeDisabled();
       expect(option).toHaveFocus();
       expect(option).toHaveClass("text-gray-500", "cursor-default");
+      expect(option).toHaveClass("focus-visible:ring-2");
       expect(option).not.toHaveClass("text-indigo-500");
       expect(option.className).not.toContain("hover:");
       expect(option).toHaveTextContent("Sign in with a passkey");
@@ -822,6 +823,39 @@ describe("Passwordless passkey login", () => {
       expect(passkeySurface).toEqual(
         expect.arrayContaining(["border-red-200", "bg-red-50", "text-red-800"]),
       );
+    });
+
+    /*
+     * The option, its Cancel and "New to passkeys?" are link-weight controls
+     * this page draws itself, not shared buttons, so the page gives them
+     * their keyboard focus ring: the same one, in every state.
+     */
+    test("the option, Cancel and 'New to passkeys?' show the same keyboard focus ring", async () => {
+      const focusRing: Array<string> = [
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+        "focus-visible:ring-offset-2",
+      ];
+      const prompt: ReturnType<typeof pendingCredential> = pendingCredential();
+      renderPage();
+      const option: HTMLElement = screen.getByTestId("passkey-login");
+
+      expect(option).toHaveClass(...focusRing);
+      await clickPasskey();
+      expect(option).toHaveClass(...focusRing);
+      expect(screen.getByTestId("cancel-passkey-login")).toHaveClass(
+        ...focusRing,
+      );
+
+      await cancelPrompt();
+      const help: HTMLElement = screen.getByText("New to passkeys?");
+      expect(help.tagName).toBe("SUMMARY");
+      expect(help).toHaveClass(...focusRing);
+      expect(option).toHaveClass(...focusRing);
+      await act(async () => {
+        prompt.settle();
+      });
     });
 
     /*
