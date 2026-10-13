@@ -30,7 +30,9 @@ import {
  *     each with a people picker - never under the columns' own titles or
  *     a dropdown of their own;
  *   - the form is the User Overrides table's, one page of four rows: Who is
- *     away?, Who covers?, Starts, Ends.
+ *     away?, Who covers?, Starts, Ends - and the same form is the one "Skip
+ *     until..." on a person in a schedule layer opens (SkipLayerUserModal),
+ *     which only ever adds one.
  *
  * The detector is pinned on inline snippets first, then run over the real
  * tree with checks that it really read it.

@@ -642,6 +642,7 @@ describe("countPeople / hasOverrides", () => {
             start: new Date("2026-09-15T00:00:00Z"),
             end: new Date("2026-09-16T00:00:00Z"),
             isPolicyScoped: false,
+            isSkip: false,
           },
         }),
       ],

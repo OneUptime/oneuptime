@@ -100,7 +100,7 @@ const LayerUserAwayBadge: FunctionComponent<{
         data-testid={
           props.away.isNow ? "layer-user-away-now" : "layer-user-away-soon"
         }
-        className={`inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+        className={`inline-flex max-w-full flex-shrink-0 items-start gap-1 rounded-xl px-2 py-0.5 text-[11px] font-medium leading-4 ring-1 ring-inset ${
           props.away.isNow
             ? "bg-amber-50 text-amber-800 ring-amber-200"
             : "bg-gray-50 text-gray-600 ring-gray-200"
@@ -108,9 +108,10 @@ const LayerUserAwayBadge: FunctionComponent<{
       >
         <Icon
           icon={props.away.isSkip ? IconProp.Forward : IconProp.ArrowUturnRight}
-          className="h-3 w-3 flex-shrink-0"
+          className="mt-0.5 h-3 w-3 flex-shrink-0"
         />
-        <span className="truncate">{label}</span>
+        {/* Wraps rather than cut off: the date is the point of it. */}
+        <span className="min-w-0">{label}</span>
       </span>
     </Tooltip>
   );

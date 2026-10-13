@@ -228,18 +228,24 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    const described: { coveringLabel: string } = describeShiftOverride({
-      override: shift.override,
-      userInfoById: props.userById,
-      policyNameById: props.policyNameById || {},
-    });
+    const described: { coveringLabel: string; isSkip: boolean } =
+      describeShiftOverride({
+        override: shift.override,
+        userInfoById: props.userById,
+        policyNameById: props.policyNameById || {},
+      });
 
+    // A skip carries the strip's skip icon: nobody was named to cover.
     return (
       <span
         data-testid="upcoming-override-pill"
+        data-skip={described.isSkip ? "true" : "false"}
         className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
       >
-        <Icon icon={IconProp.ArrowUturnRight} className="h-3 w-3" />
+        <Icon
+          icon={described.isSkip ? IconProp.Forward : IconProp.ArrowUturnRight}
+          className="h-3 w-3"
+        />
         {described.coveringLabel}
       </span>
     );

@@ -211,11 +211,18 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
    * but never across an override boundary: a turn that is partly covered is two
    * different facts about who gets paged, and merging them would leave the row
    * showing one of the two with no way to say so.
+   *
+   * Only off-hours are absorbed. A layer with no active hours has none, so a
+   * gap in it is everybody in the layer being away; and a gap between two
+   * different turns of one person is the turns in between gone the same way.
+   * Either way it stays a gap, rather than one person's "current turn" running
+   * on across the days nobody here is on call.
    */
   const turns: Array<OnCallShift> = ScheduleShiftUtil.groupEventsIntoShifts(
     props.events,
     {
-      mergeAcrossGaps: true,
+      mergeAcrossGaps: hasRestriction,
+      bridgeGapsWithinTurnOnly: true,
       groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride,
     },
   );
