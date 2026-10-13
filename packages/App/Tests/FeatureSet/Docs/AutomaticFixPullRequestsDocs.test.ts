@@ -208,7 +208,7 @@ describe("the AI SRE page", () => {
 
   it("says, for both signals, that the fix pull request opens only while fixing is on, and both start off", () => {
     expect(codeFixes).toContain(
-      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents > AI > Settings**, and under **Fix new alerts automatically** on **Alerts > AI > Settings**, and opens pull requests only while that switch is on.",
+      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings**, and under **Fix new alerts automatically** on **Alerts → AI → Settings**, and opens pull requests only while that switch is on.",
     );
     expect(codeFixes).toContain(
       "Both start **off**, for new projects too; turning fixing on turns it on, and turning fixing off turns it off.",
@@ -252,7 +252,7 @@ describe("the other pages that name the switch", () => {
     );
 
     expect(section).toContain(
-      "It is part of fixing: it sits under **Fix new incidents automatically** on **Incidents > AI > Settings** (and under **Fix new alerts automatically** on **Alerts > AI > Settings**), comes on when fixing is turned on, and opens pull requests only while fixing is on. Both start off, for new projects too.",
+      "It is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings** (and under **Fix new alerts automatically** on **Alerts → AI → Settings**), comes on when fixing is turned on, and opens pull requests only while fixing is on. Both start off, for new projects too.",
     );
     expect(section).not.toContain("set independently");
     expect(section).not.toContain("**on by default for new projects**");

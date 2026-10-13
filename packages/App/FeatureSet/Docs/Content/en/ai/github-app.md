@@ -1,8 +1,13 @@
-# Working with OneUptime from GitHub
+# GitHub App
 
-The OneUptime GitHub App is not only a connection to your code — you can talk to it in your repository, and it will do the work there.
+The OneUptime GitHub App is more than a connection to your code: you can talk to it in your repository, and it does the work there. Mention it on an issue and it opens a pull request; mention it on a pull request and it revises the branch or reviews the diff. Everything it produces is a pull request or a review for a person to read: **it never merges anything, and it never approves a pull request.**
 
-Mention it on an issue and it opens a pull request. Mention it on a pull request and it revises the branch, or reviews the diff. Add a label to an issue and it picks the issue up. Everything it produces is a pull request or a review for a human to read: **it never merges anything, and it never approves a pull request.**
+:::cards
+- [The commands](#the-commands): What to write, on an issue or a pull request.
+- [What it looks like in the thread](#what-it-looks-like-in-the-thread): One comment that follows the work.
+- [Who is allowed to command it](#who-is-allowed-to-command-it): People with write access, and nobody else.
+- [Troubleshooting](#troubleshooting): When a mention does nothing.
+:::
 
 ```text
 @oneuptime implement this                          →  a pull request that closes the issue
@@ -10,26 +15,40 @@ Mention it on an issue and it opens a pull request. Mention it on a pull request
 @oneuptime review                                  →  a code review posted on this pull request
 ```
 
-> Replace `@oneuptime` with your own app's handle. On OneUptime Cloud it is `@oneuptime`. On a self-hosted instance it is whatever you named your GitHub App, lowercased with spaces turned into hyphens — an app named "Acme AI" is mentioned as `@acme-ai`. If mentions do nothing, this is the first thing to check.
+> [!NOTE]
+> Replace `@oneuptime` with your own app's handle. On OneUptime Cloud it is `@oneuptime`. On a self-hosted instance it is whatever you named your GitHub App, lowercased, with spaces turned into hyphens: an app named "Acme AI" is mentioned as `@acme-ai`. If mentions do nothing, check this first.
+
+## How it works
+
+```mermaid title="From a mention to a pull request"
+flowchart TB
+    M["A mention, a label<br/>or an assignment"] --> W{"Does the author<br/>have write access?"}
+    W -->|"no"| N["A confused reaction,<br/>and nothing else"]
+    W -->|"yes"| K["An eyes reaction and<br/>one acknowledgement"]
+    K --> R["A Runner works the<br/>request in a clone"]
+    R --> O["The same comment, rewritten<br/>with the outcome"]
+```
+
+It is the same agent and the same Runner as [Fix Tasks](/docs/ai/ai-agent), with the same budgets; only the trigger differs.
 
 ## Before you start
 
-- The repository must be **connected to a OneUptime project** through the GitHub App. See [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) for the setup, or connect it from **Tasks → Code Repositories** on OneUptime Cloud.
-- A **Runner with the "Runs AI Code Fixes" capability** must be online — the same Runner that carries out [AI Fix Tasks](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes with a message saying no agent picked them up.
-- The GitHub App must have the **Issues: Read & write** permission and be subscribed to the webhook events listed under [What to subscribe to](#what-to-subscribe-to).
+- The repository must be **connected to a OneUptime project** through the GitHub App: connect it under **Tasks → Code Repositories** (open **Products → Code → Tasks**). A self-hosted instance needs its own GitHub App first: see [GitHub Integration](/docs/self-hosted/github-integration).
+- A Runner with **Runs AI Code Fixes** must be online: the same Runner that carries out [Fix Tasks](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes, with a message that no agent picked them up.
+- The GitHub App needs the **Issues** permission with **Read & write**, and must be subscribed to the webhook events under [What to subscribe to](#what-to-subscribe-to).
 
 ## The commands
 
-Every command starts with a mention of the app. The mention can be anywhere in the comment, and anything you write after it is passed along as your request.
+Every command starts with a mention of the app. The mention can be anywhere in the comment, and whatever you write after it is passed on as your request.
 
 ### On a pull request
 
-| Command | What happens |
-| --- | --- |
-| `@oneuptime review` | Clones the branch, reads the changed code **and the code around it**, and posts a review as a comment. Changes nothing. |
-| `@oneuptime revise this — <what you want changed>` | Clones the pull request's own branch, makes the change, and pushes new commits to that same branch. Never opens a second pull request. |
+| Command | What happens | Also understood |
+| --- | --- | --- |
+| `@oneuptime review` | Clones the branch, reads the changed code and the code around it, and posts a review as a comment. Changes nothing. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime revise this — <what you want changed>` | Clones the pull request's own branch, makes the change and pushes new commits to that branch. Never opens a second pull request. | `revise`, `please revise`, `rework`, `redo` |
 
-Anything you write after the mention that is not a recognized command is treated as a revision request, because that is almost always what it is:
+Anything you write after the mention that is not a known command is read as a revision request, because that is almost always what it is:
 
 ```text
 @oneuptime the retry loop here should back off exponentially, and the test
@@ -38,68 +57,68 @@ should cover the 429 case
 
 ### On an issue
 
-| Command | What happens |
-| --- | --- |
-| `@oneuptime implement this` | Works the issue and opens a pull request that closes it. |
-| `@oneuptime <anything else>` | Same, with your words as extra direction. |
+| Command | What happens | Also understood |
+| --- | --- | --- |
+| `@oneuptime implement this` | Works the issue and opens a pull request that closes it. | `implement`, `please implement`, `work on this`, `pick this up`, `take this` |
+| `@oneuptime <anything else>` | The same, with your words as extra direction. | — |
 
-You can also hand the app an issue **without commenting at all**:
+You can also hand the app an issue without a comment:
 
-- **Add the trigger label.** Adding the repository's trigger label — `oneuptime` by default — to an issue starts the same work. This is the most reliable way to assign work from the GitHub UI.
-- **Assign the issue to the app's bot user**, where your repository allows it. GitHub does not let an app be an assignee everywhere, which is why the label exists; if assigning does nothing, use the label.
+- **Add the trigger label.** Adding the repository's trigger label, `oneuptime` unless you changed it, to an issue starts the same work. It is the most reliable way to hand over work from GitHub's own pages.
+- **Assign the issue to the app's bot user**, where your repository allows it. GitHub does not let an app be an assignee everywhere, which is why the label exists: if assigning does nothing, use the label.
 
 ### Anywhere
 
-| Command | What happens |
-| --- | --- |
-| `@oneuptime help` | Lists the commands. A bare mention with nothing after it does the same. |
-| `@oneuptime status` | Says what it is currently working on in this thread. |
-| `@oneuptime cancel` | Stops the runs it has going on this thread. Work already pushed stays pushed. |
+| Command | What happens | Also understood |
+| --- | --- | --- |
+| `@oneuptime help` | Lists the commands. A bare mention with nothing after it does the same. | `commands`, `usage`, `what can you do` |
+| `@oneuptime status` | Says what it is working on in this thread. | `progress` |
+| `@oneuptime cancel` | Stops the runs it has going in this thread. Work already pushed stays pushed. | `stop`, `abort` |
 
 `help`, `status` and `cancel` never start an agent run, so they cost nothing.
 
 ## What it looks like in the thread
 
-One command produces **one comment**, which the app edits as the work moves — so a long-running task never turns a pull request into a status log.
+One command produces **one comment**, which the app edits as the work moves, so a long task never turns a pull request into a status log.
 
-1. It reacts 👀 on your comment, and posts an acknowledgement naming the OneUptime project the run belongs to and linking to the live run.
-2. When it finishes, that same comment is rewritten with the outcome: the pull request it opened, the commits it pushed, or an honest explanation of why it did nothing.
+1. It reacts 👀 to your comment, and posts an acknowledgement that names the OneUptime project the run belongs to and links to the live run.
+2. When it finishes, it rewrites that same comment with the outcome: the pull request it opened, the commits it pushed, or a plain explanation of why it did nothing.
 
-If it finds nothing worth changing, it says so rather than opening a speculative pull request. That is a normal outcome, not a failure — give it more direction and ask again.
+If it finds nothing worth changing, it says so rather than opening a speculative pull request. That is a normal outcome, not a failure: give it more direction and ask again.
 
 ## Who is allowed to command it
 
-**Only people with write, maintain or admin access to the repository.** OneUptime asks GitHub directly for the commenter's permission on that repository every time; it does not trust the "contributor" badge GitHub shows next to a comment, which describes past activity rather than current access.
+**Only people with write, maintain or admin access to the repository.** OneUptime asks GitHub for the commenter's permission on that repository every time; it does not trust the "contributor" badge GitHub shows beside a comment, which describes past activity rather than current access.
 
-A mention from anyone else gets a single 😕 reaction on their comment and nothing else. This is deliberate: on a public repository anyone can comment, and an app that reliably replies to strangers is an app that can be used to spam a thread.
+A mention from anyone else gets a single 😕 reaction and nothing more. This is deliberate: on a public repository anyone can comment, and an app that always replies to strangers can be used to spam a thread.
 
-It also ignores every comment written by a bot, including its own, and ignores mentions that appear inside a quote (`>`) or a code block. Between them, those two rules are what stop a reply to one of its own comments from starting it up again.
+It also ignores every comment written by a bot, its own included, and mentions inside a quote (`>`) or a code block. Together, those two rules stop a reply to one of its own comments from starting it again.
 
 ## What it will not do
 
 - **It never merges.** Nothing this app does can put code on your default branch.
-- **It never approves or requests changes.** Reviews are posted as comments, so a review from an app can never satisfy a branch protection rule.
-- **It never rewrites history.** A revision adds commits; it does not force-push. If someone else pushed to the branch first, the revision fails rather than discarding their work.
-- **It cannot revise a pull request from a fork.** A fork's branch is in a repository the installation cannot write to. It will still review one — ask it to review instead.
+- **It never approves or requests changes.** Reviews are posted as comments, so a review from the app can never satisfy a branch protection rule.
+- **It never rewrites history.** A revision adds commits; it never force-pushes. If someone else pushed to the branch first, the revision fails rather than throw their work away.
+- **It cannot revise a pull request from a fork.** A fork's branch is in a repository the installation cannot write to. It still reviews one: ask for a review instead.
 - **It never changes a pull request's title, description or target branch.** Only code.
 
 ## What it costs, and how to bound it
 
-Every command that starts work is a full agent run — a clone, up to 40 LLM calls and 100,000 output tokens, plus your repository's build and test commands if you have configured them.
+Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and your repository's build and test commands when you have set them.
 
-GitHub commands are AI work outside incidents and alerts, so no daily fix-run limit applies to them. The one limit that can apply is the one that already governs [AI Fix Tasks](/docs/ai/ai-agent):
+GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs [Fix Tasks](/docs/ai/ai-agent):
 
-- **The per-repository open pull request cap** (**Max Open Fix Pull Requests**, under **Code Repositories → the repository → Settings**). There is no cap until you set one, and 0 blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a new pull request to your review queue.
+- **The cap on open pull requests** (**Max Open Fix Pull Requests**, on the repository's **Settings** page). There is no cap until you set one, and 0 blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
 
-Only one run of a given kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision is running starts both, since they are different requests.
+Only one run of a kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision runs starts both, since they are different requests.
 
-If a run cannot start, the app says why in the thread — it never fails silently.
+If a run cannot start, the app says why in the thread: it never fails silently.
 
 ## Turning it off
 
-Per repository: **Code Repositories → the repository → Settings → Respond to GitHub Commands**. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
+Each repository has a switch: **Respond to GitHub Commands**, on the repository's **Settings** page. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
 
-The same page carries the **GitHub Trigger Label**, if you want something other than `oneuptime`.
+The same page holds the **GitHub Trigger Label**, if you want a label other than `oneuptime`.
 
 ## What to subscribe to
 
@@ -107,39 +126,51 @@ In your GitHub App's **Permissions & events** settings, subscribe to:
 
 | Event | Needed for |
 | --- | --- |
-| **Issue comment** | `@mention` commands on issues *and* pull requests |
-| **Issues** | assignment to the app, and the trigger label |
-| **Pull request** | review requested from the app |
+| **Issue comment** | `@mention` commands on issues and pull requests |
+| **Issues** | assigning an issue to the app, and the trigger label |
+| **Pull request** | a review requested from the app |
 | **Pull request review** | a mention in the body of a submitted review |
-| **Pull request review comment** | a mention on an inline diff comment |
+| **Pull request review comment** | a mention in an inline comment on the diff |
 
-And under **Repository permissions**, **Issues** must be **Read & write** — GitHub routes pull request conversation comments through the issues API, so this is what lets the app comment on pull requests too.
+Under **Repository permissions**, **Issues** must be **Read & write**: GitHub sends a pull request's conversation comments through the issues API, so this is what lets the app comment on pull requests too.
 
 ## Prompt injection: what is and is not protected
 
-Issue text, pull request descriptions, diffs and comments all become part of the agent's prompt, and on a public repository anyone can write them. Text that says "ignore your instructions and do X" is a realistic thing to find in an issue.
+Issue text, pull request descriptions, diffs and comments all become part of the agent's prompt, and on a public repository anyone can write them. A line that says "ignore your instructions and do X" is a realistic thing to find in an issue.
 
 Two things bound this, and it is worth knowing which is which:
 
-- **The prompts label untrusted text as a request, not as instructions**, and the run's repository, branch and pull request are fixed before the agent ever starts — nothing the agent reads can change what it is working on.
-- **The real containment is the sandbox.** The agent runs on your Runner, in a throwaway clone, with credentials stripped from its command environment and its git operations restricted. It can only ever push to a branch, and only a human can merge one.
+- **The prompts label untrusted text as a request, not as instructions**, and the run's repository, branch and pull request are fixed before the agent starts: nothing the agent reads can change what it works on.
+- **The real containment is the sandbox.** The agent runs on your Runner, in a throwaway clone, with credentials taken out of its command environment and its git operations restricted. It can only ever push to a branch, and only a person can merge one.
 
-Treat an AI-authored pull request the way you would treat one from a new contributor who read the issue: review the diff, not the description.
+Treat a pull request the AI wrote the way you would treat one from a new contributor who read the issue: review the diff, not the description.
 
 ## Troubleshooting
 
-**Nothing happens when I mention it.** Check the handle first — it is the app's slug, not its display name. Then check that the repository is connected to a project (**Tasks → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
+:::details Nothing happens when I mention it
+Check the handle first: it is the app's slug, not its display name. Then check that the repository is connected to a project (**Tasks → Code Repositories**), that **Respond to GitHub Commands** is on, and that your GitHub App is subscribed to the events above.
+:::
 
-**It reacts 😕 and says nothing.** You do not have write access to the repository.
+:::details It reacts 😕 and says nothing
+You do not have write access to the repository.
+:::
 
-**It says it is already working on this.** A run of that kind is already live on this issue or pull request. `@oneuptime status` will tell you what, and `@oneuptime cancel` stops it.
+:::details It says it is already working on this
+A run of that kind is already live on this issue or pull request. `@oneuptime status` says what it is, and `@oneuptime cancel` stops it.
+:::
 
-**It acknowledged and then went quiet for a long time.** Check that a Runner with **Runs AI Code Fixes** is online under **Runbooks → Runners**. Without one, the run is failed after 30 minutes and the thread is told.
+:::details It acknowledged, then went quiet for a long time
+Check that a Runner with **Runs AI Code Fixes** is online under **Runbooks → Runners**. Without one, the run fails after 30 minutes and the thread is told.
+:::
 
-**It says the pull request comes from a fork.** Revisions need a branch in this repository. Ask for a review instead, or push the branch here.
+:::details It says the pull request comes from a fork
+A revision needs a branch in this repository. Ask for a review instead, or push the branch here.
+:::
 
-## Where to read next
+## Next steps
 
-- [AI Fix Tasks](/docs/ai/ai-agent) — the same agent, triggered from an exception instead of from GitHub.
-- [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — creating and configuring the GitHub App.
-- [Runners](/docs/runbooks/agents) — the worker that carries out the runs.
+:::cards
+- [Fix Tasks](/docs/ai/ai-agent): The same agent, started from an exception, a trace or an investigation.
+- [GitHub Integration](/docs/self-hosted/github-integration): Create and configure the GitHub App on a self-hosted instance.
+- [Runners](/docs/runbooks/agents): The worker that carries out every run.
+:::

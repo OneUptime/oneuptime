@@ -186,7 +186,7 @@ describe("what the English paragraph says a test does is what it does", () => {
 
   test("a global provider is tested by a server administrator alone", () => {
     expect(testingParagraph("en")).toContain(
-      "A Global LLM Provider is tested by a server administrator, in the Admin Dashboard under **Settings** > **Global LLM Providers**.",
+      "A Global LLM Provider is tested by a server administrator, in the Admin Dashboard under **Settings → Global LLM Providers**.",
     );
     expect(LlmProviderTestAccess.GLOBAL_PROVIDER_MESSAGE).toBe(
       "Only server administrators can test a global LLM provider, from the Admin Dashboard.",

@@ -66,6 +66,15 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
    * still holds the English.
    */
   Inventory: "navbar.items.inventoryTitle",
+  /*
+   * The AI pages open Ask AI's own page and the AI Insights inbox from the
+   * menu's AI group, and fix tasks from its Code group. Most languages'
+   * menus read "Insights" or "Chat" in English where a flat label of the
+   * same text is translated.
+   */
+  Chat: "navbar.items.aiChatTitle",
+  Insights: "navbar.items.sentinelInsightsTitle",
+  Tasks: "navbar.items.aiAgentsTitle",
 };
 
 /*
@@ -74,6 +83,9 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
  */
 export const PRODUCTS_MENU_GROUP_KEYS: Readonly<Record<string, string>> = {
   Resources: "navbar.categories.resources",
+  // The groups the AI pages open their products from.
+  AI: "navbar.categories.ai",
+  Code: "navbar.categories.code",
 };
 
 // A value of a locale file by its dotted key, or null.
