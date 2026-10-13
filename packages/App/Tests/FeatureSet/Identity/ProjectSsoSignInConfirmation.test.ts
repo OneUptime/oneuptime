@@ -983,6 +983,55 @@ describe.each(FLOWS)("$name on a self-hosted install", (flow: Flow) => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
+  /*
+   * A DELIBERATE, DOCUMENTED LINE, not an oversight. On a self-hosted install
+   * there is no mailbox gate (billing is off, and many installs have no SMTP
+   * to confirm anything with), so a project's own provider signs in an
+   * ordinary account whether or not that account belongs to the project -- the
+   * single-organisation trust model the product already applies to a project's
+   * SCIM on self-hosted (ee/Server/Identity/Utils/ProjectSCIMAccountPolicy.ts:
+   * "Self-hosted installs keep accepting on arrival."). A project's just-in-
+   * time provisioning and the impersonation of an existing account are the
+   * same server step, so a self-hosted operator who runs genuinely separate
+   * tenants on one instance keeps them apart with an operator-controlled Global
+   * SSO provider or first-party sign-in, not a project's own provider. What a
+   * project provider may NEVER do -- on any edition, and whatever the account
+   * belongs to -- is confer the two cross-account escalations: an instance-wide
+   * administrator session (asserted right below) and, through SCIM, an email
+   * rewrite that would take the account over. Those are refused everywhere.
+   */
+  test("signs an ordinary account in even when it belongs to another project", async () => {
+    teamMemberCountBy.mockImplementation(
+      (data: { query: { projectId: ObjectID } }): Promise<PositiveNumber> => {
+        // A member of some OTHER project, and not of the asserting one.
+        return Promise.resolve(
+          new PositiveNumber(
+            data.query.projectId.toString() === PROJECT_ID ? 0 : 1,
+          ),
+        );
+      },
+    );
+
+    await flow.run({ isMobile: false });
+
+    expectSignedIn();
+    expect(hasConsent).not.toHaveBeenCalled();
+  });
+
+  test("refuses an administrator even when it belongs to another project", async () => {
+    // The escalation stays closed whatever else is true of the account.
+    storeUser({ isMasterAdmin: true });
+    teamMemberCountBy.mockResolvedValue(new PositiveNumber(1));
+
+    await flow.run({ isMobile: false });
+
+    expectNoSessionAndNothingProvisioned();
+    expect(render.mock.calls[0]![3]).toEqual({
+      title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
+      message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+    });
+  });
+
   test("provisions a new address verified and signs it in, as before", async () => {
     storedRow = null;
 
@@ -1763,4 +1812,73 @@ describe("the confirmation email template", () => {
     expect(templateSource).not.toMatch(/info=signInSummary/);
     expect(templateSource).not.toContain("{{{signInSummary}}}");
   });
+});
+
+/*
+ * ===========================================================================
+ * EVERY PLACE A PROJECT'S PROVIDER MINTS A USER SESSION REFUSES AN
+ * ADMINISTRATOR FIRST.
+ *
+ * The behavioural tests above drive the two callbacks as they are wired today.
+ * This reads their source directly, so a future edit cannot quietly reopen the
+ * escalation by minting a session on a path the behavioural tests do not reach
+ * -- or by dropping `isMasterAdmin` from the account lookup, which would leave
+ * the guard reading `undefined` and passing. Plain substring checks only (no
+ * regular expression built from source), so the code-scanning guards stay
+ * happy. If a THIRD project-SSO callback is ever added, add it to CALLBACKS.
+ * ===========================================================================
+ */
+
+describe("the project SSO callbacks, read as source", () => {
+  const CALLBACKS: Array<{ name: string; file: string }> = [
+    { name: "project SAML (SSO.ts)", file: "SSO.ts" },
+    { name: "project OIDC (OIDC.ts)", file: "OIDC.ts" },
+  ];
+
+  const sourceOf: (file: string) => string = (file: string): string => {
+    return fs.readFileSync(
+      nodePath.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "FeatureSet",
+        "Identity",
+        "API",
+        file,
+      ),
+      "utf8",
+    );
+  };
+
+  test.each(CALLBACKS)(
+    "$name selects isMasterAdmin on the account it is about to sign in",
+    ({ file }: { name: string; file: string }) => {
+      /*
+       * The guard reads `user.isMasterAdmin`. If the lookup stops selecting it,
+       * the field is undefined and the guard fails open, so the select is as
+       * load-bearing as the guard.
+       */
+      expect(sourceOf(file)).toContain("isMasterAdmin: true,");
+    },
+  );
+
+  test.each(CALLBACKS)(
+    "$name refuses an administrator before it ever mints a session",
+    ({ file }: { name: string; file: string }) => {
+      const source: string = sourceOf(file);
+
+      const guardAt: number = source.indexOf(
+        "mustNotSignInThroughProjectProvider",
+      );
+      const sessionAt: number = source.indexOf(
+        "UserSessionService.createSession",
+      );
+
+      expect(guardAt).toBeGreaterThan(-1);
+      expect(sessionAt).toBeGreaterThan(-1);
+      // The guard, and its refusal, come first.
+      expect(guardAt).toBeLessThan(sessionAt);
+    },
+  );
 });
