@@ -803,11 +803,11 @@ const DocsNav: NavGroup[] = [
     section: "Observability",
     links: [
       {
-        title: "Overview",
+        title: "Inventory Overview",
         url: "/docs/inventory/overview",
       },
       {
-        title: "Custom Fields",
+        title: "Inventory Custom Fields",
         url: "/docs/inventory/custom-fields",
       },
       {

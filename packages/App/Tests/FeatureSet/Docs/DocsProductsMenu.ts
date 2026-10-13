@@ -60,6 +60,12 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
    */
   Dashboards: "navbar.items.dashboardsTitle",
   Teams: "navbar.items.teamsTitle",
+  /*
+   * The Inventory pages open their product from the Resources group of the
+   * menu. The Persian menu reads "موجودی" where a flat "Inventory" label
+   * still holds the English.
+   */
+  Inventory: "navbar.items.inventoryTitle",
 };
 
 /*
