@@ -29,9 +29,10 @@ import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
  * answer within three seconds. What the text after /oneuptime asks for
  * (WorkspaceCommands):
  *
- *   help, nothing, or a command misspelt   the commands, with examples,
- *                                          answered at once, only to the
- *                                          person who ran it
+ *   help, or nothing                       the commands, answered at once,
+ *                                          only to the person who ran it
+ *   a command misspelt                     the command it looks like, at
+ *                                          once, only to that person
  *   incident [title], maintenance [title]  the New Incident or New Scheduled
  *                                          Maintenance form, with the title
  *                                          filled in, as /incident and
@@ -89,10 +90,23 @@ export default class SlackCommandActions {
       case WorkspaceCommandName.Ask:
         return await data.askQuestion(request.input.text);
       case WorkspaceCommandName.Help:
-        return SlackCommandActions.answerWithHelp({ ...data, request });
+        return SlackCommandActions.answerAtOnce({
+          ...data,
+          answer: WorkspaceCommands.getHelpAnswer({
+            workspaceType: WorkspaceType.Slack,
+            slackCommand: request.baseCommand,
+          }),
+        });
       case null:
         if (request.input.misspelt) {
-          return SlackCommandActions.answerWithHelp({ ...data, request });
+          return SlackCommandActions.answerAtOnce({
+            ...data,
+            answer: WorkspaceCommands.getMisspellingAnswer({
+              workspaceType: WorkspaceType.Slack,
+              slackCommand: request.baseCommand,
+              misspelt: request.input.misspelt,
+            }),
+          });
         }
 
         return await data.askQuestion(request.input.text);
@@ -125,22 +139,19 @@ export default class SlackCommandActions {
     });
   }
 
-  // The commands, with examples, as the HTTP response itself.
-  private static answerWithHelp(data: {
+  /*
+   * An answer that reads nothing - the help, a misspelt command's - as the
+   * HTTP response itself: at once, only to the person who ran the command.
+   */
+  private static answerAtOnce(data: {
     req: ExpressRequest;
     res: ExpressResponse;
-    request: SlackCommandRequest;
+    answer: WorkspaceAnswer;
   }): void {
     return Response.sendJsonObjectResponse(
       data.req,
       data.res,
-      SlackActionAnswer.getCommandResponse(
-        WorkspaceCommands.getHelpAnswer({
-          workspaceType: WorkspaceType.Slack,
-          slackCommand: data.request.baseCommand,
-          misspelt: data.request.input.misspelt,
-        }),
-      ),
+      SlackActionAnswer.getCommandResponse(data.answer),
     );
   }
 
@@ -245,8 +256,7 @@ export default class SlackCommandActions {
       });
       logger.error(err, { projectId: slackRequest.projectId?.toString() });
 
-      const message: string =
-        "Could not read who is on call just now. Please try again in a minute.";
+      const message: string = `${ProductBrandingText.getProductName()} couldn't read who is on call just now. Please try again in a minute.`;
 
       return {
         markdown: mdText`${message}`.toString(),

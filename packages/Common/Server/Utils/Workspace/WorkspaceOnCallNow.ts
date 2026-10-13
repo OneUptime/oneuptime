@@ -55,6 +55,13 @@ export default class WorkspaceOnCallNow {
   public static readonly MAX_SCHEDULES: number = 20;
 
   /*
+   * How many schedules a notification of the answer names - Teams shows it
+   * in the activity feed, Slack when the answer comes by direct message -
+   * before "and N more".
+   */
+  public static readonly MAX_SCHEDULES_IN_NOTIFICATION: number = 3;
+
+  /*
    * Who is on call now in each schedule `props` may read, in name order.
    * A member who may not read schedules is told so. Throws only when the
    * read fails for another reason.
@@ -140,13 +147,17 @@ export default class WorkspaceOnCallNow {
 
     const productName: string = ProductBrandingText.getProductName();
 
+    /*
+     * Said as the schedules list in OneUptime says it, which shows each
+     * person the schedules they may read too.
+     */
     if (rows.length === 0) {
       return {
         markdown: (schedulesLink
-          ? mdText`👥 **No on-call schedules yet.** There are no on-call schedules in this project that you can see. [Add one in ${productName}](${schedulesLink}) under On-Call Duty → Schedules.`
-          : mdText`👥 **No on-call schedules yet.** There are no on-call schedules in this project that you can see. Add one in ${productName} under On-Call Duty → Schedules.`
+          ? mdText`👥 **No on-call schedules yet.** [Add one in ${productName}](${schedulesLink}) under On-Call Duty → Schedules.`
+          : mdText`👥 **No on-call schedules yet.** Add one in ${productName} under On-Call Duty → Schedules.`
         ).toString(),
-        text: "There are no on-call schedules in this project that you can see",
+        text: "No on-call schedules yet",
       };
     }
 
@@ -180,7 +191,7 @@ export default class WorkspaceOnCallNow {
 
     return {
       markdown: FeedMarkdown.join(lines, "\n").toString(),
-      text: WorkspaceOnCallNow.getNotificationText(rows),
+      text: WorkspaceOnCallNow.getNotificationText(rows, isCut),
     };
   }
 
@@ -243,13 +254,28 @@ export default class WorkspaceOnCallNow {
       : mdText`**${person.name}**`;
   }
 
-  // "On call now: Simon Lee (Primary), nobody (Database)"
-  private static getNotificationText(rows: Array<ScheduleRow>): string {
-    return `On call now: ${rows
+  /*
+   * "On call now: nobody (Database), Simon Lee (Primary), Ana Ruiz
+   * (Secondary) and 4 more": the first few schedules, so a notification
+   * reads as one line - "and more" when the answer itself was cut.
+   */
+  private static getNotificationText(
+    rows: Array<ScheduleRow>,
+    isCut: boolean,
+  ): string {
+    const named: Array<string> = rows
+      .slice(0, WorkspaceOnCallNow.MAX_SCHEDULES_IN_NOTIFICATION)
       .map((row: ScheduleRow): string => {
         return `${row.current ? row.current.name : "nobody"} (${row.name})`;
-      })
-      .join(", ")}`;
+      });
+
+    const more: number = rows.length - named.length;
+
+    if (isCut) {
+      return `On call now: ${named.join(", ")} and more`;
+    }
+
+    return `On call now: ${named.join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
   }
 
   private static toPerson(user: User | undefined | null): Person | null {

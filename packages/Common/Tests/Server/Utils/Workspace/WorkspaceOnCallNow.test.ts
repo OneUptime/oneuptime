@@ -198,8 +198,27 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
         "",
         `[Open the on-call schedules in OneUptime](${SCHEDULES_LINK})`,
       ].join("\n"),
-      text: "On call now: nobody (Database), Ana Ruiz (Escalations), Simon Lee (Primary), Simon Lee (Solo), nobody (Weekend)",
+      // A notification names the first three: it reads as one line.
+      text: "On call now: nobody (Database), Ana Ruiz (Escalations), Simon Lee (Primary) and 2 more",
     });
+  });
+
+  test("a notification names every schedule when there are three at most", async () => {
+    returnSchedules([
+      schedule({ name: "Database" }),
+      schedule({ name: "Primary", current: person(SIMON, "Simon Lee") }),
+      schedule({ name: "Secondary", current: person(ANA, "Ana Ruiz") }),
+    ]);
+
+    expect((await answer()).text).toBe(
+      "On call now: nobody (Database), Simon Lee (Primary), Ana Ruiz (Secondary)",
+    );
+
+    returnSchedules([
+      schedule({ name: "Primary", current: person(SIMON, "Simon Lee") }),
+    ]);
+
+    expect((await answer()).text).toBe("On call now: Simon Lee (Primary)");
   });
 
   test("the asker is marked (you), on call or next", async () => {
@@ -311,6 +330,10 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
 
     // The heading, twenty schedules, a blank line and the note.
     expect(lines).toHaveLength(23);
+    // How many there are is not known: "and more".
+    expect((await answer()).text).toBe(
+      "On call now: Simon Lee (Schedule 01), Simon Lee (Schedule 02), Simon Lee (Schedule 03) and more",
+    );
     expect(lines[20]).toBe(
       `- [Schedule 20](${linkOf(rows[19]!)}): **Simon Lee**.`,
     );
@@ -347,10 +370,10 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
     );
   });
 
-  test("no schedule the asker may read: said so, with where to add one", async () => {
+  test("no schedule the asker may read: said so once, as the schedules list in OneUptime says it, with where to add one", async () => {
     expect(await answer()).toEqual({
-      markdown: `👥 **No on-call schedules yet.** There are no on-call schedules in this project that you can see. [Add one in OneUptime](${SCHEDULES_LINK}) under On-Call Duty → Schedules.`,
-      text: "There are no on-call schedules in this project that you can see",
+      markdown: `👥 **No on-call schedules yet.** [Add one in OneUptime](${SCHEDULES_LINK}) under On-Call Duty → Schedules.`,
+      text: "No on-call schedules yet",
     });
 
     jest
@@ -358,7 +381,7 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
       .mockRejectedValue(new Error("No host is configured."));
 
     expect((await answer()).markdown).toBe(
-      "👥 **No on-call schedules yet.** There are no on-call schedules in this project that you can see. Add one in OneUptime under On-Call Duty → Schedules.",
+      "👥 **No on-call schedules yet.** Add one in OneUptime under On-Call Duty → Schedules.",
     );
   });
 

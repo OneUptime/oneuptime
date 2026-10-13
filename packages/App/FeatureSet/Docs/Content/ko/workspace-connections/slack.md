@@ -137,7 +137,7 @@ OneUptime 의 Slack 명령은 `/oneuptime` 하나입니다. 그 뒤에 입력하
 | `/oneuptime oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
 | `/oneuptime ask [question]`, 또는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. |
 
-`help` 와 `oncall` 의 답변은 명령 아래에 나만 보이는 메시지로 표시됩니다. `incidnet` 처럼 첫 단어가 명령의 오타로 보이면, OneUptime AI 의 답변 대신 명령 목록을 받습니다. 인시던트와 유지 관리 양식은 본인으로서 동작합니다. [Slack 에서 인시던트와 유지 관리 만들기](#slack-에서-인시던트와-유지-관리-만들기) 을 참조하세요.
+`help` 와 `oncall` 의 답변은 명령 아래에 나만 보이는 메시지로 표시됩니다. `incidnet` 처럼 첫 단어가 명령의 오타로 보이면, OneUptime AI 의 답변 대신 비슷한 명령을 받습니다. 인시던트와 유지 관리 양식은 본인으로서 동작합니다. [Slack 에서 인시던트와 유지 관리 만들기](#slack-에서-인시던트와-유지-관리-만들기) 을 참조하세요.
 
 > [!NOTE]
 > `/oneuptime incident` 와 `/oneuptime maintenance` 가, 다른 Slack 앱의 같은 이름 명령과 충돌할 수 있던 `/incident` 와 `/maintenance` 를 대신합니다. 이전 매니페스트로 만든 Slack 앱은 앱이 업데이트될 때까지 이 명령을 유지하며, 같은 양식을 엽니다. [이전 매니페스트로 만든 앱](/docs/self-hosted/slack-integration#이전-매니페스트로-만든-앱) 을 참조하세요.

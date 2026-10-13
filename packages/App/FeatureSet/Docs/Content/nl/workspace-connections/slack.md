@@ -137,7 +137,7 @@ OneUptime heeft één commando in Slack, `/oneuptime`. Het woord dat je erachter
 | `/oneuptime oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
 | `/oneuptime ask [question]`, of elke vraag | OneUptime AI beantwoordt vragen over je logs, traces, metrieken, incidenten en monitoren. |
 
-De antwoorden op `help` en `oncall` zijn berichten die alleen jij ziet, onder het commando. Een eerste woord dat lijkt op een verkeerd getypt commando, zoals `incidnet`, krijgt de lijst met commando's, geen antwoord van OneUptime AI. De formulieren voor incidenten en onderhoud werken namens jou: zie [Incidenten en onderhoud aanmaken vanuit Slack](#incidenten-en-onderhoud-aanmaken-vanuit-slack).
+De antwoorden op `help` en `oncall` zijn berichten die alleen jij ziet, onder het commando. Een eerste woord dat lijkt op een verkeerd getypt commando, zoals `incidnet`, krijgt het commando waarop het lijkt, geen antwoord van OneUptime AI. De formulieren voor incidenten en onderhoud werken namens jou: zie [Incidenten en onderhoud aanmaken vanuit Slack](#incidenten-en-onderhoud-aanmaken-vanuit-slack).
 
 > [!NOTE]
 > `/oneuptime incident` en `/oneuptime maintenance` vervangen `/incident` en `/maintenance`, die konden botsen met gelijknamige commando's van andere Slack-apps. Een Slack-app die vanuit een eerder manifest is aangemaakt, houdt ze, en ze openen dezelfde formulieren, tot de app wordt bijgewerkt: zie [Apps aangemaakt vanuit een ouder manifest](/docs/self-hosted/slack-integration#apps-aangemaakt-vanuit-een-ouder-manifest).

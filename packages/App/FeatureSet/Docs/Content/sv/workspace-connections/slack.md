@@ -137,7 +137,7 @@ OneUptime har ett enda kommando i Slack, `/oneuptime`. Ordet du skriver efter de
 | `/oneuptime oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `/oneuptime ask [question]`, eller vilken fråga som helst | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer. |
 
-Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot. Ett första ord som ser ut som ett felstavat kommando, som `incidnet`, får listan med kommandon, inte ett svar från OneUptime AI. Formulären för incidenter och underhåll agerar som dig: se [Skapa incidenter och underhåll från Slack](#skapa-incidenter-och-underhåll-från-slack).
+Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot. Ett första ord som ser ut som ett felstavat kommando, som `incidnet`, får kommandot det liknar, inte ett svar från OneUptime AI. Formulären för incidenter och underhåll agerar som dig: se [Skapa incidenter och underhåll från Slack](#skapa-incidenter-och-underhåll-från-slack).
 
 > [!NOTE]
 > `/oneuptime incident` och `/oneuptime maintenance` ersätter `/incident` och `/maintenance`, som kunde krocka med kommandon med samma namn i andra Slack-appar. En Slack-app som skapats från ett tidigare manifest behåller dem, och de öppnar samma formulär, tills appen uppdateras: se [Appar skapade från ett äldre manifest](/docs/self-hosted/slack-integration#appar-skapade-från-ett-äldre-manifest).

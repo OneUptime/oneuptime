@@ -35,8 +35,9 @@ import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
  *   - Text that starts with no command is a question for OneUptime AI, as
  *     `/oneuptime <question>` always was.
  *   - A first word that is a command misspelt ("incidnet", "maintenence") is
- *     not sent to AI as a question: it is answered with the commands, and
- *     the one it looks like.
+ *     not sent to AI as a question: it is answered with the command it looks
+ *     like, ready to type again, and how to ask AI instead
+ *     (getMisspellingAnswer).
  */
 
 export enum WorkspaceCommandName {
@@ -56,7 +57,10 @@ export interface WorkspaceCommandDefinition {
   argument: string;
   // Other ways to type it, in lower case: "create incident".
   aliases: ReadonlyArray<string>;
-  // What follows the name in the help's example; empty for no example.
+  /*
+   * What may follow the name in an example: the help shows the incident
+   * command's and the question's. Empty for none.
+   */
   example: string;
 }
 
@@ -167,6 +171,9 @@ const MISSPELLING_LIMITS: ReadonlyArray<{
 // A misspelling is read only from a word this long.
 const MISSPELLING_MIN_LENGTH: number = 4;
 
+// The question the Microsoft Teams help gives as an example.
+const TEAMS_QUESTION_EXAMPLE: string = "which monitors are down right now?";
+
 // How much of what followed a misspelt command the suggestion repeats.
 const SUGGESTION_TEXT_MAX_LENGTH: number = 100;
 
@@ -186,21 +193,24 @@ export default class WorkspaceCommands {
   }
 
   /*
-   * What a command does, completing "<command>: ...". The product's name is
+   * What a command does, completing "<command>: ...": a few words, so the
+   * help reads as a list a person scans, in a chat on a phone too. Microsoft
+   * Teams' command menu and the bot's welcome card say it as a sentence, so
+   * it never points at the help around it ("these"). The product's name is
    * the one the installation goes by.
    */
   public static getSummary(name: WorkspaceCommandName): string {
     switch (name) {
       case WorkspaceCommandName.Incident:
-        return "declare an incident. Opens the form, with the title filled in";
+        return "declare an incident";
       case WorkspaceCommandName.Maintenance:
-        return "schedule a maintenance event. Opens the form, with the title filled in";
+        return "schedule maintenance";
       case WorkspaceCommandName.OnCall:
-        return "see who is on call right now, in each on-call schedule";
+        return "see who is on call right now";
       case WorkspaceCommandName.Ask:
         return `ask ${ProductBrandingText.getProductName()} AI about your logs, traces, metrics, incidents and monitors`;
       case WorkspaceCommandName.Help:
-        return "show these commands, with examples";
+        return "list every command";
     }
   }
 
@@ -288,17 +298,24 @@ export default class WorkspaceCommands {
   }
 
   /*
-   * Every command, with examples, as both chats show it - and, for text
-   * that started with a misspelt command, the one it looks like:
+   * Every command, as both chats show it: one short line each, then an
+   * example of a command and of a question.
    *
-   *   👋 Here's what /oneuptime does
-   *   • /oneuptime incident [title]: declare an incident. Opens the form,
-   *     with the title filled in. For example: /oneuptime incident Checkout
-   *     is down
-   *   • ...
+   *   👋 Here's what /oneuptime can do
+   *   • /oneuptime incident [title]: declare an incident
+   *   • /oneuptime maintenance [title]: schedule maintenance
+   *   • /oneuptime oncall: see who is on call right now
+   *   • /oneuptime ask [question]: ask OneUptime AI about your logs, ...
+   *   • /oneuptime help: list every command
+   *
+   *   For example: /oneuptime incident Checkout is down. Anything else
+   *   after /oneuptime is a question for OneUptime AI too, such as
+   *   /oneuptime which monitors are down?
    *
    * Slack writes each command as code. Microsoft Teams' cards show no code,
-   * so there each is in bold, as typed to the bot.
+   * so there each is in bold, as typed to the bot, and the help says how to
+   * reach the bot in a channel: by @mentioning it, under the name Teams
+   * shows for it (`botName`, from the message it answers).
    */
   public static getHelpAnswer(data: {
     workspaceType: WorkspaceType;
@@ -306,47 +323,81 @@ export default class WorkspaceCommands {
     slackCommand?: string | undefined;
     // Commands only this chat has, listed before help.
     extraCommands?: Array<WorkspaceExtraCommand> | undefined;
-    misspelt?: WorkspaceCommandMisspelling | undefined;
+    // The bot's name as Microsoft Teams shows it; the product's by default.
+    botName?: string | undefined;
   }): WorkspaceAnswer {
     const isSlack: boolean = data.workspaceType === WorkspaceType.Slack;
     const productName: string = ProductBrandingText.getProductName();
     const slackCommand: string = WorkspaceCommands.getSlackCommand(
       data.slackCommand,
     );
+    const botName: string = (data.botName || "").trim() || productName;
 
-    const lines: Array<MarkdownText> = [];
-    let misspeltText: string = "";
+    const incidentExample: string = `${WorkspaceCommands.getUsage({
+      workspaceType: data.workspaceType,
+      command: WorkspaceCommandName.Incident,
+      slackCommand: slackCommand,
+    })} ${WorkspaceCommands.getDefinition(WorkspaceCommandName.Incident).example}`;
 
-    if (data.misspelt) {
-      const suggestion: { typed: string; meant: string } =
-        WorkspaceCommands.getSuggestion({
-          workspaceType: data.workspaceType,
-          slackCommand: slackCommand,
-          misspelt: data.misspelt,
-        });
+    /*
+     * A question in plain language. Slack's is the one the docs and the
+     * app's usage hint have always shown after /oneuptime; Teams' the one the
+     * bot has always given (Microsoft Teams' docs quote it).
+     */
+    const question: string = isSlack
+      ? WorkspaceCommands.getDefinition(WorkspaceCommandName.Ask).example
+      : TEAMS_QUESTION_EXAMPLE;
 
-      lines.push(
-        mdText`🤔 ${WorkspaceCommands.typed(
-          data.workspaceType,
-          suggestion.typed,
-        )} is not a command. Did you mean ${WorkspaceCommands.typed(
-          data.workspaceType,
-          suggestion.meant,
-        )}?`,
-      );
-      lines.push(FeedMarkdown.empty());
-
-      misspeltText = `${suggestion.typed} is not a command. Did you mean ${suggestion.meant}? `;
-    }
-
-    lines.push(
+    const lines: Array<MarkdownText> = [
       isSlack
         ? mdText`👋 **Here's what ${WorkspaceCommands.typed(
             data.workspaceType,
             slackCommand,
-          )} does**`
-        : mdText`👋 **Here's what I can do.** In a channel or a group chat, mention @${productName} first.`,
+          )} can do**`
+        : mdText`👋 **Here's what I can do.** In a channel or a group chat, mention @${botName} first.`,
+      ...WorkspaceCommands.getCommandListLines(data),
+      FeedMarkdown.empty(),
+      isSlack
+        ? mdText`For example: ${WorkspaceCommands.typed(
+            data.workspaceType,
+            incidentExample,
+          )}. Anything else after ${WorkspaceCommands.typed(
+            data.workspaceType,
+            slackCommand,
+          )} is a question for ${productName} AI too, such as ${WorkspaceCommands.typed(
+            data.workspaceType,
+            `${slackCommand} ${question}`,
+          )}`
+        : mdText`For example: "${incidentExample}". Anything else you type is a question for ${productName} AI too, such as "${question}"`,
+    ];
+
+    const names: string = WORKSPACE_COMMANDS.map(
+      (definition: WorkspaceCommandDefinition): string => {
+        return definition.name;
+      },
+    ).join(", ");
+
+    return {
+      markdown: FeedMarkdown.join(lines, "\n").toString(),
+      text: isSlack
+        ? `Here's what ${slackCommand} can do: ${names}`
+        : `Here's what I can do: ${names}`,
+    };
+  }
+
+  /*
+   * The help's list: each command, and what it does - a chat's own commands
+   * before help. Microsoft Teams' welcome card lists the same lines.
+   */
+  public static getCommandListLines(data: {
+    workspaceType: WorkspaceType;
+    slackCommand?: string | undefined;
+    extraCommands?: Array<WorkspaceExtraCommand> | undefined;
+  }): Array<MarkdownText> {
+    const slackCommand: string = WorkspaceCommands.getSlackCommand(
+      data.slackCommand,
     );
+    const lines: Array<MarkdownText> = [];
 
     for (const definition of WORKSPACE_COMMANDS) {
       if (definition.name === WorkspaceCommandName.Help) {
@@ -357,7 +408,7 @@ export default class WorkspaceCommands {
                 return WorkspaceCommands.typed(data.workspaceType, usage);
               }),
               ", ",
-            )}: ${extra.summary}.`,
+            )}: ${extra.summary}`,
           );
         }
       }
@@ -371,42 +422,59 @@ export default class WorkspaceCommands {
       );
     }
 
-    lines.push(FeedMarkdown.empty());
-
-    lines.push(
-      isSlack
-        ? mdText`Anything else after ${WorkspaceCommands.typed(
-            data.workspaceType,
-            slackCommand,
-          )} is a question for ${productName} AI too. The **Create New Incident** and **Create Scheduled Event** shortcuts open the same forms as ${WorkspaceCommands.typed(
-            data.workspaceType,
-            `${slackCommand} incident`,
-          )} and ${WorkspaceCommands.typed(
-            data.workspaceType,
-            `${slackCommand} maintenance`,
-          )}.`
-        : mdText`Anything else you type is a question for ${productName} AI, such as "which monitors are down right now?"`,
-    );
-
-    const names: string = WORKSPACE_COMMANDS.map(
-      (definition: WorkspaceCommandDefinition): string => {
-        return definition.name;
-      },
-    ).join(", ");
-
-    return {
-      markdown: FeedMarkdown.join(lines, "\n").toString(),
-      text: isSlack
-        ? `${misspeltText}Here's what ${slackCommand} does: ${names}`
-        : `${misspeltText}Here's what I can do: ${names}`,
-    };
+    return lines;
   }
 
   /*
-   * "• /oneuptime incident [title]: declare an incident. Opens the form,
-   * with the title filled in. For example: /oneuptime incident Checkout is
-   * down"
+   * What text that starts with a command misspelt is answered with: the
+   * command it looks like, with what followed it, ready to type again - and,
+   * for a question that only started with a word like a command
+   * ("accident report from last night?"), how to ask AI instead. One short
+   * paragraph, not the whole help: the person knows what they meant.
+   *
+   *   🤔 /oneuptime incidnet is not a command. Did you mean /oneuptime
+   *   incident Checkout is down? To ask OneUptime AI instead, start with
+   *   /oneuptime ask.
    */
+  public static getMisspellingAnswer(data: {
+    workspaceType: WorkspaceType;
+    // The command a Slack workspace runs OneUptime with: "/oneuptime".
+    slackCommand?: string | undefined;
+    misspelt: WorkspaceCommandMisspelling;
+  }): WorkspaceAnswer {
+    const slackCommand: string = WorkspaceCommands.getSlackCommand(
+      data.slackCommand,
+    );
+
+    const suggestion: { typed: string; meant: string } =
+      WorkspaceCommands.getSuggestion({
+        workspaceType: data.workspaceType,
+        slackCommand: slackCommand,
+        misspelt: data.misspelt,
+      });
+
+    const ask: string = WorkspaceCommands.getUsage({
+      workspaceType: data.workspaceType,
+      command: WorkspaceCommandName.Ask,
+      slackCommand: slackCommand,
+    });
+
+    return {
+      markdown: mdText`🤔 ${WorkspaceCommands.typed(
+        data.workspaceType,
+        suggestion.typed,
+      )} is not a command. Did you mean ${WorkspaceCommands.typed(
+        data.workspaceType,
+        suggestion.meant,
+      )}? To ask ${ProductBrandingText.getProductName()} AI instead, start with ${WorkspaceCommands.typed(
+        data.workspaceType,
+        ask,
+      )}.`.toString(),
+      text: `${suggestion.typed} is not a command. Did you mean ${suggestion.meant}?`,
+    };
+  }
+
+  // "• /oneuptime incident [title]: declare an incident"
   private static getCommandLine(data: {
     workspaceType: WorkspaceType;
     slackCommand: string;
@@ -418,8 +486,6 @@ export default class WorkspaceCommands {
       slackCommand: data.slackCommand,
     });
 
-    const summary: string = WorkspaceCommands.getSummary(data.definition.name);
-
     const command: MarkdownText = data.definition.argument
       ? WorkspaceCommands.withArgument(
           data.workspaceType,
@@ -428,17 +494,9 @@ export default class WorkspaceCommands {
         )
       : WorkspaceCommands.typed(data.workspaceType, usage);
 
-    if (!data.definition.example) {
-      return mdText`- ${command}: ${summary}.`;
-    }
-
-    const example: string = `${usage} ${data.definition.example}`;
-
-    return mdText`- ${command}: ${summary}. For example: ${
-      data.workspaceType === WorkspaceType.Slack
-        ? WorkspaceCommands.typed(data.workspaceType, example)
-        : mdText`"${example}"`
-    }`;
+    return mdText`- ${command}: ${WorkspaceCommands.getSummary(
+      data.definition.name,
+    )}`;
   }
 
   /*

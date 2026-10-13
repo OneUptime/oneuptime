@@ -153,6 +153,65 @@ describe("MicrosoftTeamsCommands.getManifestCommands: what Teams suggests after 
       expect(description.endsWith(".")).toBe(true);
     }
   });
+
+  test("a command that opens a form says a title may follow it; the others say what they do", () => {
+    const descriptions: Record<string, string> = {};
+
+    for (const command of MicrosoftTeamsCommands.getManifestCommands()) {
+      descriptions[command["title"] as string] = command[
+        "description"
+      ] as string;
+    }
+
+    expect(descriptions["incident"]).toBe(
+      "Declare an incident. Type a title after it.",
+    );
+    expect(descriptions["maintenance"]).toBe(
+      "Schedule maintenance. Type a title after it.",
+    );
+    expect(descriptions["oncall"]).toBe("See who is on call right now.");
+    expect(descriptions["help"]).toBe("List every command.");
+  });
+});
+
+describe("MicrosoftTeamsCommands.getBotName: the name to @mention the bot by", () => {
+  function turnTo(recipient: unknown): TurnContext {
+    return {
+      activity: { type: "message", recipient: recipient },
+    } as unknown as TurnContext;
+  }
+
+  test("the name the message was sent to, as Teams shows the bot", () => {
+    expect(
+      MicrosoftTeamsCommands.getBotName(
+        turnTo({ id: "28:bot", name: "OneUptime" }),
+      ),
+    ).toBe("OneUptime");
+  });
+
+  test("without the characters a card's Markdown would read", () => {
+    expect(
+      MicrosoftTeamsCommands.getBotName(
+        turnTo({ id: "28:bot", name: "  One*Uptime_  [bot] " }),
+      ),
+    ).toBe("OneUptime bot");
+  });
+
+  test.each([undefined, null, {}, { id: "28:bot" }, { name: 42 }])(
+    "a message that names no bot (%j): empty, and the help names the product",
+    (recipient: unknown) => {
+      const turnContext: TurnContext = turnTo(recipient);
+
+      expect(MicrosoftTeamsCommands.getBotName(turnContext)).toBe("");
+      expect(
+        MicrosoftTeamsCommands.getHelpAnswer(
+          MicrosoftTeamsCommands.getBotName(turnContext),
+        ).markdown.split("\n")[0],
+      ).toBe(
+        "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
+      );
+    },
+  );
 });
 
 describe("MicrosoftTeamsCommands.authorizeSender, for 'oncall'", () => {
@@ -287,24 +346,40 @@ describe("the welcome card a new installation gets", () => {
     ).buildWelcomeAdaptiveCard();
   }
 
-  test("lists the commands the manifest suggests - incident, maintenance, oncall, ask, the lists, help - never 'create incident'", () => {
-    const factSet: JSONObject | undefined = (
-      welcomeCard()["body"] as Array<JSONObject>
-    ).find((element: JSONObject): boolean => {
-      return element["type"] === "FactSet";
-    });
+  test("lists the commands as the help does - what to type, and what it does - never 'create incident'", () => {
+    const texts: Array<string> = (welcomeCard()["body"] as Array<JSONObject>)
+      .filter((element: JSONObject): boolean => {
+        return element["type"] === "TextBlock";
+      })
+      .map((element: JSONObject): string => {
+        return String(element["text"]);
+      });
 
-    expect(factSet?.["facts"]).toEqual(
-      MicrosoftTeamsCommands.getManifestCommands().map(
-        (command: JSONObject): JSONObject => {
-          return {
-            title: command["title"],
-            value: command["description"],
-          };
+    const list: string = MicrosoftTeamsCommands.getCommandListMarkdown();
+
+    expect(texts).toContain(list);
+    expect(list.split("\n")).toEqual([
+      "- **incident [title]**: declare an incident",
+      "- **maintenance [title]**: schedule maintenance",
+      "- **oncall**: see who is on call right now",
+      "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+      "- **show active incidents**, **show active alerts**: list what is open right now",
+      "- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance",
+      "- **help**: list every command",
+    ]);
+    // The help card lists the same lines.
+    expect(MicrosoftTeamsCommands.getHelpAnswer().markdown).toContain(list);
+    // A list, not a two-column table: it reads on a phone too.
+    expect(
+      (welcomeCard()["body"] as Array<JSONObject>).some(
+        (element: JSONObject): boolean => {
+          return element["type"] === "FactSet";
         },
       ),
+    ).toBe(false);
+    expect(JSON.stringify(welcomeCard()).toLowerCase()).not.toContain(
+      "create incident",
     );
-    expect(JSON.stringify(welcomeCard())).not.toContain("create incident");
   });
 
   test("says how to reach the bot in a channel, and where the project connects Microsoft Teams", () => {

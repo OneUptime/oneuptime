@@ -137,7 +137,7 @@ OneUptime 在 Slack 中只有一個指令：`/oneuptime`。在它後面輸入的
 | `/oneuptime oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
 | `/oneuptime ask [question]`，或任何問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題。 |
 
-對 `help` 和 `oncall` 的回答是只有您看得到的訊息，顯示在指令下方。如果第一個詞看起來像拼錯的指令，例如 `incidnet`，您會收到指令清單，而不是 OneUptime AI 的回答。事件和維護表單以您本人的身分操作：請參閱 [從 Slack 建立事件和維護](#從-slack-建立事件和維護)。
+對 `help` 和 `oncall` 的回答是只有您看得到的訊息，顯示在指令下方。如果第一個詞看起來像拼錯的指令，例如 `incidnet`，您會收到與它相似的指令，而不是 OneUptime AI 的回答。事件和維護表單以您本人的身分操作：請參閱 [從 Slack 建立事件和維護](#從-slack-建立事件和維護)。
 
 > [!NOTE]
 > `/oneuptime incident` 和 `/oneuptime maintenance` 取代了 `/incident` 和 `/maintenance`，後兩者可能與其他 Slack 應用程式的同名指令衝突。用較早的資訊清單建立的 Slack 應用程式會保留它們，在應用程式更新之前，它們會開啟相同的表單：請參閱 [用較舊資訊清單建立的應用程式](/docs/self-hosted/slack-integration#用較舊資訊清單建立的應用程式)。

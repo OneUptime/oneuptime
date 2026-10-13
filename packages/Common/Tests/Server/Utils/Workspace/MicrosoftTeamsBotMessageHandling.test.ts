@@ -244,11 +244,12 @@ const HELP_ANSWER: WorkspaceAnswer = MicrosoftTeamsCommands.getHelpAnswer();
  * The answer to "help", as the bot sends it: a card that mentions whoever
  * asked (MicrosoftTeamsActionAnswer), listing the commands Slack's
  * /oneuptime takes and Teams' own lists - and, after a command misspelt,
- * the one it looks like.
+ * one short answer instead: the command it looks like.
  */
 function helpReply(misspelt?: WorkspaceCommandMisspelling): Partial<Activity> {
-  const answer: WorkspaceAnswer =
-    MicrosoftTeamsCommands.getHelpAnswer(misspelt);
+  const answer: WorkspaceAnswer = misspelt
+    ? MicrosoftTeamsCommands.getMisspellingAnswer(misspelt)
+    : MicrosoftTeamsCommands.getHelpAnswer();
 
   return {
     attachments: [
@@ -1525,7 +1526,7 @@ describe("the words Slack's /oneuptime takes: incident, maintenance and oncall, 
       { word: "oncal", command: WorkspaceCommandName.OnCall, text: "" },
     ],
   ])(
-    "%j - a command misspelt - gets the help, with the command it looks like; nothing runs, and AI is not asked",
+    "%j - a command misspelt - gets the command it looks like, in one short reply; nothing runs, and AI is not asked",
     async (text: string, misspelt: WorkspaceCommandMisspelling) => {
       const turn: FakeTurn = await deliver(personalMessage(text));
 
@@ -1534,15 +1535,17 @@ describe("the words Slack's /oneuptime takes: incident, maintenance and oncall, 
     },
   );
 
-  test("the misspelt command's suggestion is the first line of the help card", () => {
-    const answer: WorkspaceAnswer = MicrosoftTeamsCommands.getHelpAnswer({
-      word: "incidnet",
-      command: WorkspaceCommandName.Incident,
-      text: "Database Is Down",
-    });
+  test("the misspelt command's answer is the command it looks like, and how to ask AI instead - not the whole help", () => {
+    const answer: WorkspaceAnswer = MicrosoftTeamsCommands.getMisspellingAnswer(
+      {
+        word: "incidnet",
+        command: WorkspaceCommandName.Incident,
+        text: "Database Is Down",
+      },
+    );
 
-    expect(answer.markdown.split("\n")[0]).toBe(
-      "🤔 **incidnet** is not a command. Did you mean **incident Database Is Down**?",
+    expect(answer.markdown).toBe(
+      "🤔 **incidnet** is not a command. Did you mean **incident Database Is Down**? To ask OneUptime AI instead, start with **ask**.",
     );
   });
 });
@@ -1587,19 +1590,19 @@ describe("help, 'show ...' and 'ask' are routed as before", () => {
 
   test("the help says incident and maintenance take a title, as the router reads them, and lists Teams' own lists", () => {
     expect(HELP_ANSWER.markdown).toContain(
-      "\n- **incident [title]**: declare an incident. Opens the form, with the title filled in.",
+      "\n- **incident [title]**: declare an incident\n",
     );
     expect(HELP_ANSWER.markdown).toContain(
-      "\n- **maintenance [title]**: schedule a maintenance event. Opens the form, with the title filled in.",
+      "\n- **maintenance [title]**: schedule maintenance\n",
     );
     expect(HELP_ANSWER.markdown).toContain(
-      "\n- **oncall**: see who is on call right now, in each on-call schedule.",
+      "\n- **oncall**: see who is on call right now\n",
     );
     expect(HELP_ANSWER.markdown).toContain(
-      "\n- **show active incidents**, **show active alerts**: list what is open right now.",
+      "\n- **show active incidents**, **show active alerts**: list what is open right now\n",
     );
     expect(HELP_ANSWER.markdown).toContain(
-      "\n- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance events.",
+      "\n- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance\n",
     );
   });
 

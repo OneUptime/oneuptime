@@ -27,8 +27,9 @@ import type { AddressInfo } from "net";
  *     -> real ConnectorClient -> HTTP -> a fake Bot Connector on 127.0.0.1
  *
  * and pin what the Bot Connector is sent: the help card that mentions the
- * asker, the forms with their titles, who is on call, the Connect prompts
- * that say which word to type again, and the AI refusal that points at help.
+ * asker, the short answer to a misspelt command, the forms with their
+ * titles, who is on call, the Connect prompts that say which word to type
+ * again, and the AI refusal that points at help.
  * Only the database seams are stubbed.
  */
 
@@ -525,19 +526,30 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
 
     expect(answerOf(delivery.posts[0]).split("\n")).toEqual([
       "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
-      '- **incident [title]**: declare an incident. Opens the form, with the title filled in. For example: "incident Checkout is down"',
-      '- **maintenance [title]**: schedule a maintenance event. Opens the form, with the title filled in. For example: "maintenance Database upgrade"',
-      "- **oncall**: see who is on call right now, in each on-call schedule.",
-      '- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors. For example: "ask which monitors are down?"',
-      "- **show active incidents**, **show active alerts**: list what is open right now.",
-      "- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance events.",
-      "- **help**: show these commands, with examples.",
+      "- **incident [title]**: declare an incident",
+      "- **maintenance [title]**: schedule maintenance",
+      "- **oncall**: see who is on call right now",
+      "- **ask [question]**: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+      "- **show active incidents**, **show active alerts**: list what is open right now",
+      "- **show scheduled maintenance**, **show ongoing maintenance**: list upcoming and ongoing maintenance",
+      "- **help**: list every command",
       "",
-      'Anything else you type is a question for OneUptime AI, such as "which monitors are down right now?"',
+      'For example: "incident Checkout is down". Anything else you type is a question for OneUptime AI too, such as "which monitors are down right now?"',
     ]);
   });
 
-  test("'incidnet Checkout is down' - a command misspelt: the help card, the command it looks like first; AI is not asked", async () => {
+  test("the help names the bot as Teams shows it - the name the message was sent to - for the @mention a channel needs", async () => {
+    const activity: JSONObject = message("help", "channel");
+    activity["recipient"] = { id: BOT["id"], name: "OneUptime Staging" };
+
+    const delivery: Delivery = await deliver(activity);
+
+    expect(answerOf(delivery.posts[0]).split("\n")[0]).toBe(
+      "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime Staging first.",
+    );
+  });
+
+  test("'incidnet Checkout is down' - a command misspelt: one short reply with the command it looks like, and how to ask AI instead; AI is not asked", async () => {
     const assistant: ReturnType<typeof jest.spyOn> = jest.spyOn(
       AIService,
       "isProjectAIEnabled",
@@ -549,13 +561,29 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
 
     expect(delivery.httpStatus).toBe(200);
     expect(delivery.posts).toHaveLength(1);
-    expect(answerOf(delivery.posts[0]).split("\n")[0]).toBe(
-      "🤔 **incidnet** is not a command. Did you mean **incident Checkout is down**?",
+    expect(answerOf(delivery.posts[0])).toBe(
+      "🤔 **incidnet** is not a command. Did you mean **incident Checkout is down**? To ask OneUptime AI instead, start with **ask**.",
     );
     expect(delivery.posts[0]!.activity["summary"]).toBe(
-      "incidnet is not a command. Did you mean incident Checkout is down? Here's what I can do: incident, maintenance, oncall, ask, help",
+      "incidnet is not a command. Did you mean incident Checkout is down?",
     );
     expect(assistant).not.toHaveBeenCalled();
+  });
+
+  test("'ask incidnet Checkout is down' - the way out the reply offers - is a question for AI", async () => {
+    const enabled: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AIService, "isProjectAIEnabled")
+      .mockResolvedValue(false);
+
+    const delivery: Delivery = await deliver(
+      message("ask incidnet Checkout is down"),
+    );
+
+    expect(enabled).toHaveBeenCalledWith(projectId);
+    expect(delivery.posts).toHaveLength(1);
+    expect(delivery.posts[0]!.activity["text"]).toContain(
+      "AI features are disabled for this project.",
+    );
   });
 });
 

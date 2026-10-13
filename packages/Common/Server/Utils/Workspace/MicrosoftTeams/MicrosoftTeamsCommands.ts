@@ -5,7 +5,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -13,6 +13,7 @@ import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import WorkspaceCommands, {
   WORKSPACE_COMMANDS,
+  WorkspaceCommandDefinition,
   WorkspaceCommandMisspelling,
   WorkspaceCommandName,
   WorkspaceExtraCommand,
@@ -97,9 +98,16 @@ export const MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP: ReadonlyArray<WorkspaceExtra
         MicrosoftTeamsListCommand.ScheduledMaintenance,
         MicrosoftTeamsListCommand.OngoingMaintenance,
       ],
-      summary: "list upcoming and ongoing maintenance events",
+      summary: "list upcoming and ongoing maintenance",
     },
   ];
+
+/*
+ * What Teams takes in a manifest command (commandLists): a title of at most
+ * 32 characters, a description of at most 128.
+ */
+export const MICROSOFT_TEAMS_MANIFEST_COMMAND_TITLE_MAX_LENGTH: number = 32;
+export const MICROSOFT_TEAMS_MANIFEST_COMMAND_DESCRIPTION_MAX_LENGTH: number = 128;
 
 // What the bot is told a command needs: who sent it, connected and a member.
 export interface MicrosoftTeamsCommandSenderCheck {
@@ -130,6 +138,9 @@ export interface MicrosoftTeamsCommandSenderCheck {
     | undefined;
 }
 
+// What follows a command that opens a form (WORKSPACE_COMMANDS).
+const TITLE_ARGUMENT: string = "title";
+
 // A word, as a sentence says one: "a create command", "an oncall command".
 const STARTS_WITH_VOWEL: RegExp = /^[aeiou]/i;
 
@@ -158,7 +169,8 @@ export default class MicrosoftTeamsCommands {
    * The bot's commands as the Teams app manifest lists them (commandLists):
    * what Teams suggests once somebody types "@OneUptime". A title is what
    * Teams puts in the message when it is picked, so it is the command
-   * alone; the description says what follows it. Teams takes ten at most.
+   * alone; the description says what it does, and what to type after it.
+   * Teams takes ten at most.
    */
   public static getManifestCommands(): Array<JSONObject> {
     const commands: Array<JSONObject> = [];
@@ -168,16 +180,16 @@ export default class MicrosoftTeamsCommands {
         for (const entry of LIST_COMMAND_SPELLINGS) {
           commands.push({
             title: entry.command,
-            description: MicrosoftTeamsCommands.toSentence(entry.summary),
+            description: MicrosoftTeamsCommands.toManifestDescription([
+              MicrosoftTeamsCommands.toSentence(entry.summary),
+            ]),
           });
         }
       }
 
       commands.push({
         title: definition.name,
-        description: MicrosoftTeamsCommands.toSentence(
-          WorkspaceCommands.getSummary(definition.name),
-        ),
+        description: MicrosoftTeamsCommands.getManifestDescription(definition),
       });
     }
 
@@ -185,30 +197,86 @@ export default class MicrosoftTeamsCommands {
   }
 
   /*
-   * The commands, with examples, as a reply that mentions whoever asked -
-   * and, for text that started with a misspelt command, the one it looks
-   * like.
+   * The commands, as a reply that mentions whoever asked. A channel's
+   * readers reach the bot by @mentioning it, so the help names it as Teams
+   * shows it: the name the message was sent to.
    */
   @CaptureSpan()
   public static async replyHelp(data: {
     turnContext: TurnContext;
-    misspelt?: WorkspaceCommandMisspelling | undefined;
   }): Promise<void> {
     await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
-      answer: MicrosoftTeamsCommands.getHelpAnswer(data.misspelt),
+      answer: MicrosoftTeamsCommands.getHelpAnswer(
+        MicrosoftTeamsCommands.getBotName(data.turnContext),
+      ),
     });
   }
 
-  // The help, as Microsoft Teams shows it (WorkspaceCommands.getHelpAnswer).
-  public static getHelpAnswer(
-    misspelt?: WorkspaceCommandMisspelling | undefined,
-  ): WorkspaceAnswer {
+  /*
+   * Text that started with a command misspelt: the command it looks like,
+   * and how to ask AI instead (WorkspaceCommands.getMisspellingAnswer), as
+   * a reply that mentions whoever typed it.
+   */
+  @CaptureSpan()
+  public static async replyMisspelling(data: {
+    turnContext: TurnContext;
+    misspelt: WorkspaceCommandMisspelling;
+  }): Promise<void> {
+    await MicrosoftTeamsActionAnswer.reply({
+      turnContext: data.turnContext,
+      answer: MicrosoftTeamsCommands.getMisspellingAnswer(data.misspelt),
+    });
+  }
+
+  /*
+   * The help, as Microsoft Teams shows it (WorkspaceCommands.getHelpAnswer):
+   * `botName` is the name to @mention the bot by.
+   */
+  public static getHelpAnswer(botName?: string | undefined): WorkspaceAnswer {
     return WorkspaceCommands.getHelpAnswer({
       workspaceType: WorkspaceType.MicrosoftTeams,
       extraCommands: [...MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP],
+      botName: botName,
+    });
+  }
+
+  // A misspelt command's answer, as Microsoft Teams shows it.
+  public static getMisspellingAnswer(
+    misspelt: WorkspaceCommandMisspelling,
+  ): WorkspaceAnswer {
+    return WorkspaceCommands.getMisspellingAnswer({
+      workspaceType: WorkspaceType.MicrosoftTeams,
       misspelt: misspelt,
     });
+  }
+
+  /*
+   * The help's list of commands, as Markdown a card shows: the bot's
+   * welcome card lists the same lines as the help.
+   */
+  public static getCommandListMarkdown(): string {
+    return FeedMarkdown.join(
+      WorkspaceCommands.getCommandListLines({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        extraCommands: [...MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP],
+      }),
+      "\n",
+    ).toString();
+  }
+
+  /*
+   * The bot's name as Microsoft Teams shows it - what people @mention it
+   * by - from the message it answers; empty when the message names none.
+   */
+  public static getBotName(turnContext: TurnContext): string {
+    const name: unknown = (
+      turnContext.activity?.recipient as { name?: unknown } | undefined
+    )?.name;
+
+    return typeof name === "string"
+      ? MicrosoftTeamsActionAnswer.getMentionName(name)
+      : "";
   }
 
   /*
@@ -367,6 +435,48 @@ export default class MicrosoftTeamsCommands {
       );
       return null;
     }
+  }
+
+  /*
+   * "Declare an incident. Type a title after it.": what a command does, and
+   * what the title Teams puts in the message cannot show - that a title may
+   * follow it, to fill in the form. A question after "ask" goes without
+   * saying.
+   */
+  private static getManifestDescription(
+    definition: WorkspaceCommandDefinition,
+  ): string {
+    const sentence: string = MicrosoftTeamsCommands.toSentence(
+      WorkspaceCommands.getSummary(definition.name),
+    );
+
+    return MicrosoftTeamsCommands.toManifestDescription(
+      definition.argument === TITLE_ARGUMENT
+        ? [`${sentence} Type a title after it.`, sentence]
+        : [sentence],
+    );
+  }
+
+  /*
+   * The first of the descriptions, longest first, that Teams takes (128
+   * characters): a long product name can push the longer one past it. The
+   * last is cut when even it is too long.
+   */
+  private static toManifestDescription(descriptions: Array<string>): string {
+    for (const description of descriptions) {
+      if (
+        description.length <=
+        MICROSOFT_TEAMS_MANIFEST_COMMAND_DESCRIPTION_MAX_LENGTH
+      ) {
+        return description;
+      }
+    }
+
+    const last: string = descriptions[descriptions.length - 1] || "";
+
+    return `${last
+      .substring(0, MICROSOFT_TEAMS_MANIFEST_COMMAND_DESCRIPTION_MAX_LENGTH - 1)
+      .trimEnd()}…`;
   }
 
   // "Declare an incident.": a summary as a sentence of its own.

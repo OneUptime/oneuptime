@@ -137,7 +137,7 @@ OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie da
 | `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `/oneuptime ask [question]`, oder jede Frage | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren. |
 
-Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter dem Befehl. Ein erstes Wort, das wie ein vertippter Befehl aussieht, etwa `incidnet`, bekommt die Liste der Befehle statt einer Antwort von OneUptime AI. Die Formulare für Vorfälle und Wartungen handeln als Sie: siehe [Vorfälle und Wartungen aus Slack erstellen](#vorfälle-und-wartungen-aus-slack-erstellen).
+Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter dem Befehl. Ein erstes Wort, das wie ein vertippter Befehl aussieht, etwa `incidnet`, bekommt den Befehl, dem es ähnelt, statt einer Antwort von OneUptime AI. Die Formulare für Vorfälle und Wartungen handeln als Sie: siehe [Vorfälle und Wartungen aus Slack erstellen](#vorfälle-und-wartungen-aus-slack-erstellen).
 
 > [!NOTE]
 > `/oneuptime incident` und `/oneuptime maintenance` ersetzen `/incident` und `/maintenance`, die mit gleichnamigen Befehlen anderer Slack-Apps kollidieren konnten. Eine Slack-App, die aus einem früheren Manifest erstellt wurde, behält sie, und sie öffnen dieselben Formulare, bis die App aktualisiert wird: siehe [Apps aus einem älteren Manifest](/docs/self-hosted/slack-integration#apps-aus-einem-älteren-manifest).

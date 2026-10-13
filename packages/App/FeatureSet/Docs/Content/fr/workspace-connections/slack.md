@@ -137,7 +137,7 @@ OneUptime a une seule commande dans Slack, `/oneuptime`. Le mot que vous tapez a
 | `/oneuptime oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
 | `/oneuptime ask [question]`, ou toute question | OneUptime AI répond sur vos journaux, traces, métriques, incidents et moniteurs. |
 
-Les réponses à `help` et `oncall` sont des messages que vous seul voyez, sous la commande. Un premier mot qui ressemble à une commande mal tapée, comme `incidnet`, reçoit la liste des commandes, pas une réponse de OneUptime AI. Les formulaires d'incident et de maintenance agissent en votre nom : voir [Créer des incidents et des maintenances depuis Slack](#créer-des-incidents-et-des-maintenances-depuis-slack).
+Les réponses à `help` et `oncall` sont des messages que vous seul voyez, sous la commande. Un premier mot qui ressemble à une commande mal tapée, comme `incidnet`, reçoit la commande à laquelle il ressemble, pas une réponse de OneUptime AI. Les formulaires d'incident et de maintenance agissent en votre nom : voir [Créer des incidents et des maintenances depuis Slack](#créer-des-incidents-et-des-maintenances-depuis-slack).
 
 > [!NOTE]
 > `/oneuptime incident` et `/oneuptime maintenance` remplacent `/incident` et `/maintenance`, qui pouvaient entrer en conflit avec les commandes du même nom d'autres apps Slack. Une app Slack créée à partir d'un manifeste antérieur les garde, et elles ouvrent les mêmes formulaires, jusqu'à ce que l'app soit mise à jour : voir [Applications créées à partir d'un manifeste plus ancien](/docs/self-hosted/slack-integration#applications-créées-à-partir-dun-manifeste-plus-ancien).

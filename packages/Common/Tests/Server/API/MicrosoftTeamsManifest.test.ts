@@ -356,22 +356,24 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       ]);
     });
 
-    test("each says what it does, in a sentence of its own", () => {
+    /*
+     * A title is what Teams puts in the message when it is picked, so it is
+     * the command alone: the description says what it does, and - for a
+     * command that opens a form - that a title may follow it.
+     */
+    test("each says what it does, in a sentence of its own - and what may follow it", () => {
       expect(commandsOf(getManifest())).toEqual([
         {
           title: "incident",
-          description:
-            "Declare an incident. Opens the form, with the title filled in.",
+          description: "Declare an incident. Type a title after it.",
         },
         {
           title: "maintenance",
-          description:
-            "Schedule a maintenance event. Opens the form, with the title filled in.",
+          description: "Schedule maintenance. Type a title after it.",
         },
         {
           title: "oncall",
-          description:
-            "See who is on call right now, in each on-call schedule.",
+          description: "See who is on call right now.",
         },
         {
           title: "ask",
@@ -396,9 +398,15 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
         },
         {
           title: "help",
-          description: "Show these commands, with examples.",
+          description: "List every command.",
         },
       ]);
+    });
+
+    test("a description never points at a list around it: Teams shows each alone, in its command menu", () => {
+      for (const command of commandsOf(getManifest())) {
+        expect(command["description"] as string).not.toContain("these");
+      }
     });
 
     /*
@@ -466,6 +474,31 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
         description:
           "Ask Acme Ops AI about your logs, traces, metrics, incidents and monitors.",
       });
+    });
+
+    test("a product name long enough to push a description past Teams' 128 characters: the description is cut, so Teams still takes the package", () => {
+      jest
+        .spyOn(ProductBrandingText, "getProductName")
+        .mockReturnValue("A".repeat(80));
+
+      const ask: JSONObject | undefined = commandsOf(getManifest()).find(
+        (command: JSONObject): boolean => {
+          return command["title"] === "ask";
+        },
+      );
+      const description: string = ask?.["description"] as string;
+
+      expect(description).toHaveLength(128);
+      expect(description.startsWith(`Ask ${"A".repeat(80)} AI about`)).toBe(
+        true,
+      );
+      expect(description.endsWith("…")).toBe(true);
+
+      for (const command of commandsOf(getManifest())) {
+        expect((command["description"] as string).length).toBeLessThanOrEqual(
+          128,
+        );
+      }
     });
   });
 

@@ -3709,9 +3709,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             return;
           case WorkspaceCommandName.Ask:
           case null:
-            // A command misspelt is answered with the commands, not by AI.
+            /*
+             * A command misspelt is answered with the command it looks like,
+             * not by AI.
+             */
             if (input.misspelt) {
-              await MicrosoftTeamsCommands.replyHelp({
+              await MicrosoftTeamsCommands.replyMisspelling({
                 turnContext: data.turnContext,
                 misspelt: input.misspelt,
               });
@@ -7036,16 +7039,10 @@ All monitoring checks are passing normally.`;
           spacing: "Small",
         },
         {
-          type: "FactSet",
-          // The commands the manifest lists, as the help names them.
-          facts: MicrosoftTeamsCommands.getManifestCommands().map(
-            (command: JSONObject): JSONObject => {
-              return {
-                title: command["title"] as string,
-                value: command["description"] as string,
-              };
-            },
-          ),
+          type: "TextBlock",
+          // The help's own list: what to type, and what it does.
+          text: MicrosoftTeamsCommands.getCommandListMarkdown(),
+          wrap: true,
         },
         {
           type: "TextBlock",

@@ -137,7 +137,7 @@ OneUptime 在 Slack 中只有一个命令：`/oneuptime`。在它后面输入的
 | `/oneuptime oncall` | 列出您能看到的每个值班计划中当前由谁值班、值班到何时，以及下一位是谁。 |
 | `/oneuptime ask [question]`，或任何问题 | OneUptime AI 回答有关日志、追踪、指标、事件和监视器的问题。 |
 
-对 `help` 和 `oncall` 的回答是只有您能看到的消息，显示在命令下方。如果第一个词看起来像拼错的命令，例如 `incidnet`，您会收到命令列表，而不是 OneUptime AI 的回答。事件和维护表单以您本人的身份操作：请参阅 [从 Slack 创建事件和维护](#从-slack-创建事件和维护)。
+对 `help` 和 `oncall` 的回答是只有您能看到的消息，显示在命令下方。如果第一个词看起来像拼错的命令，例如 `incidnet`，您会收到与它相似的命令，而不是 OneUptime AI 的回答。事件和维护表单以您本人的身份操作：请参阅 [从 Slack 创建事件和维护](#从-slack-创建事件和维护)。
 
 > [!NOTE]
 > `/oneuptime incident` 和 `/oneuptime maintenance` 取代了 `/incident` 和 `/maintenance`，后两者可能与其他 Slack 应用的同名命令冲突。用较早的清单创建的 Slack 应用会保留它们，在应用更新之前，它们会打开相同的表单：请参阅 [用较旧清单创建的应用](/docs/self-hosted/slack-integration#用较旧清单创建的应用)。

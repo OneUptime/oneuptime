@@ -137,7 +137,7 @@ O OneUptime tem um único comando no Slack, `/oneuptime`. A palavra que você di
 | `/oneuptime oncall` | Lista quem está de plantão agora em cada agendamento de plantão que você pode ver, até quando, e quem é o próximo. |
 | `/oneuptime ask [question]`, ou qualquer pergunta | O OneUptime AI responde sobre seus logs, traces, métricas, incidentes e monitores. |
 
-As respostas a `help` e `oncall` são mensagens que só você vê, abaixo do comando. Uma primeira palavra que parece um comando digitado errado, como `incidnet`, recebe a lista de comandos, não uma resposta do OneUptime AI. Os formulários de incidente e de manutenção agem como você: consulte [Criar incidentes e manutenções pelo Slack](#criar-incidentes-e-manutenções-pelo-slack).
+As respostas a `help` e `oncall` são mensagens que só você vê, abaixo do comando. Uma primeira palavra que parece um comando digitado errado, como `incidnet`, recebe o comando com que se parece, não uma resposta do OneUptime AI. Os formulários de incidente e de manutenção agem como você: consulte [Criar incidentes e manutenções pelo Slack](#criar-incidentes-e-manutenções-pelo-slack).
 
 > [!NOTE]
 > `/oneuptime incident` e `/oneuptime maintenance` substituem `/incident` e `/maintenance`, que podiam conflitar com comandos de mesmo nome de outros apps do Slack. Um app do Slack criado a partir de um manifesto anterior os mantém, e eles abrem os mesmos formulários, até que o app seja atualizado: consulte [Apps criados a partir de um manifesto mais antigo](/docs/self-hosted/slack-integration#apps-criados-a-partir-de-um-manifesto-mais-antigo).

@@ -32,6 +32,7 @@ import WorkspaceProjectAuthTokenService from "../../../Server/Services/Workspace
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
+import logger from "../../../Server/Utils/Logger";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceConnectRequest, {
   WorkspaceConnectRequestAgainKind,
@@ -124,15 +125,15 @@ const PROPS: DatabaseCommonInteractionProps = {
 };
 
 const SLACK_HELP_TEXT: string = [
-  "👋 ​*Here's what `/oneuptime` does*​",
+  "👋 ​*Here's what `/oneuptime` can do*​",
   "",
-  "•   `/oneuptime incident [title]`: declare an incident. Opens the form, with the title filled in. For example: `/oneuptime incident Checkout is down`",
-  "•   `/oneuptime maintenance [title]`: schedule a maintenance event. Opens the form, with the title filled in. For example: `/oneuptime maintenance Database upgrade`",
-  "•   `/oneuptime oncall`: see who is on call right now, in each on-call schedule.",
-  "•   `/oneuptime ask [question]`: ask OneUptime AI about your logs, traces, metrics, incidents and monitors. For example: `/oneuptime ask which monitors are down?`",
-  "•   `/oneuptime help`: show these commands, with examples.",
+  "•   `/oneuptime incident [title]`: declare an incident",
+  "•   `/oneuptime maintenance [title]`: schedule maintenance",
+  "•   `/oneuptime oncall`: see who is on call right now",
+  "•   `/oneuptime ask [question]`: ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
+  "•   `/oneuptime help`: list every command",
   "",
-  "Anything else after `/oneuptime` is a question for OneUptime AI too. The ​*Create New Incident*​ and ​*Create Scheduled Event*​ shortcuts open the same forms as `/oneuptime incident` and `/oneuptime maintenance`.",
+  "For example: `/oneuptime incident Checkout is down`. Anything else after `/oneuptime` is a question for OneUptime AI too, such as `/oneuptime which monitors are down?`",
   "",
 ].join("\n");
 
@@ -476,13 +477,13 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
   }
 
   describe("help: the commands, at once, only to the person who ran it", () => {
-    test("/oneuptime help: every command with an example, as the HTTP response itself - nothing asked of Slack or AI", async () => {
+    test("/oneuptime help: every command, one short line each, as the HTTP response itself - nothing asked of Slack or AI", async () => {
       const answer: RouteAnswer = await post("help");
 
       expect(answer.status).toBe(200);
       expect(answer.body).toEqual({
         response_type: "ephemeral",
-        text: "Here's what /oneuptime does: incident, maintenance, oncall, ask, help",
+        text: "Here's what /oneuptime can do: incident, maintenance, oncall, ask, help",
         blocks: [
           {
             type: "section",
@@ -520,21 +521,33 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
       expect(WorkspaceProjectAuthTokenService.findOneBy).not.toHaveBeenCalled();
     });
 
-    test("/oneuptime incidnet Checkout is down - a command misspelt: the commands, with the one it looks like ready to run - never a question to AI", async () => {
+    test("/oneuptime incidnet Checkout is down - a command misspelt: the command it looks like, ready to run, and how to ask AI instead - one short answer, never a question to AI", async () => {
       const answer: RouteAnswer = await post("incidnet Checkout is down");
 
       expect(answer.status).toBe(200);
-      expect(answer.body?.["response_type"]).toBe("ephemeral");
-      expect(answer.body?.["text"]).toBe(
-        "/oneuptime incidnet is not a command. Did you mean /oneuptime incident Checkout is down? Here's what /oneuptime does: incident, maintenance, oncall, ask, help",
-      );
-      expect(sectionText(answer.body?.["blocks"])).toBe(
-        "🤔 `/oneuptime incidnet` is not a command. Did you mean `/oneuptime incident Checkout is down`?\n\n" +
-          SLACK_HELP_TEXT,
-      );
+      expect(answer.body).toEqual({
+        response_type: "ephemeral",
+        text: "/oneuptime incidnet is not a command. Did you mean /oneuptime incident Checkout is down?",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "🤔 `/oneuptime incidnet` is not a command. Did you mean `/oneuptime incident Checkout is down`? To ask OneUptime AI instead, start with `/oneuptime ask`.\n",
+            },
+          },
+        ],
+      });
       await slackCallsAfter(1, 30);
       expect(slackCalls).toEqual([]);
       expect(assistantQuestions).toEqual([]);
+    });
+
+    test("/oneuptime ask incidnet Checkout is down - the way out the answer offers - asks AI the question, as typed", async () => {
+      await post("ask incidnet Checkout is down");
+      await slackCallsAfter(1);
+
+      expect(assistantQuestions).toEqual(["incidnet Checkout is down"]);
     });
 
     test("a workspace that runs OneUptime with a command of its own: the help names that command", async () => {
@@ -772,9 +785,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
         const calls: Array<SlackCall> = await slackCallsAfter(1);
 
         expect(urlsOf(calls)).toEqual([RESPONSE_URL]);
-        expect(calls[0]!.data["text"]).toBe(
-          "There are no on-call schedules in this project that you can see",
-        );
+        expect(calls[0]!.data["text"]).toBe("No on-call schedules yet");
         expect(assistantQuestions).toEqual([]);
       },
     );
@@ -794,6 +805,33 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
         "Then run ​*/oneuptime oncall*​ again.",
       );
       expect(OnCallDutyPolicyScheduleService.findBy).not.toHaveBeenCalled();
+    });
+
+    test("the schedules cannot be read just now: one answer that says so where the command was run, and the failure logged", async () => {
+      const loggedErrors: Array<string> = [];
+      jest.spyOn(logger, "error").mockImplementation((line: unknown) => {
+        loggedErrors.push(String(line));
+      });
+      jest
+        .spyOn(OnCallDutyPolicyScheduleService, "findBy")
+        .mockRejectedValue(new Error("connection reset"));
+
+      await post("oncall");
+
+      const calls: Array<SlackCall> = await slackCallsAfter(1);
+
+      expect(urlsOf(calls)).toEqual([RESPONSE_URL]);
+      expect(calls[0]!.data["response_type"]).toBe("ephemeral");
+      expect(calls[0]!.data["text"]).toBe(
+        "OneUptime couldn't read who is on call just now. Please try again in a minute.",
+      );
+      expect(sectionText(calls[0]!.data["blocks"])).toBe(
+        "OneUptime couldn't read who is on call just now. Please try again in a minute.\n",
+      );
+      expect(loggedErrors).toEqual([
+        "Could not read who is on call for a Slack command.",
+        "Error: connection reset",
+      ]);
     });
 
     test("/oneuptime oncall for the database team? - with more after it - is a question for AI", async () => {
