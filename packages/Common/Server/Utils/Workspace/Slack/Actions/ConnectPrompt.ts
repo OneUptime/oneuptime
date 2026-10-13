@@ -14,6 +14,13 @@ import WorkspaceConnectRequest, {
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
+import WorkspaceCommands, {
+  WorkspaceCommandName,
+} from "../../WorkspaceCommands";
+import WorkspaceConnectPromptOnce, {
+  WorkspaceConnectPromptClaim,
+  WorkspaceConversationPerson,
+} from "../../WorkspaceConnectPromptOnce";
 import SlackActionType from "./ActionTypes";
 import SlackActionAnswer, {
   SlackAnswerDelivery,
@@ -237,30 +244,39 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
   },
 };
 
-// Creating a record: the command, and the shortcut that opens the same form.
-interface CreatePress {
+/*
+ * A command, and the shortcut that opens the same form (if one does): run
+ * again as it was typed - `/oneuptime incident`, or an older app's
+ * /incident - or as `/oneuptime <word>` when that is not known (a form's
+ * submission).
+ */
+interface CommandPress {
   purpose: string;
-  command: string;
-  shortcut: string;
+  command: WorkspaceCommandName;
+  shortcut?: string | undefined;
 }
 
-const CREATE_INCIDENT: CreatePress = {
+const CREATE_INCIDENT: CommandPress = {
   purpose: "declare an incident",
-  command: SlackActionType.NewIncident,
+  command: WorkspaceCommandName.Incident,
   shortcut: "Create New Incident",
 };
 
-const CREATE_SCHEDULED_MAINTENANCE: CreatePress = {
+const CREATE_SCHEDULED_MAINTENANCE: CommandPress = {
   purpose: "create a scheduled maintenance event",
-  command: SlackActionType.NewScheduledMaintenance,
+  command: WorkspaceCommandName.Maintenance,
   shortcut: "Create Scheduled Event",
 };
 
-const CREATE_PRESSES: Partial<Record<SlackActionType, CreatePress>> = {
+const COMMAND_PRESSES: Partial<Record<SlackActionType, CommandPress>> = {
   [SlackActionType.NewIncident]: CREATE_INCIDENT,
   [SlackActionType.SubmitNewIncident]: CREATE_INCIDENT,
   [SlackActionType.NewScheduledMaintenance]: CREATE_SCHEDULED_MAINTENANCE,
   [SlackActionType.SubmitNewScheduledMaintenance]: CREATE_SCHEDULED_MAINTENANCE,
+  [SlackActionType.ShowOnCall]: {
+    purpose: "see who is on call",
+    command: WorkspaceCommandName.OnCall,
+  },
 };
 
 export default class SlackConnectPrompt {
@@ -273,6 +289,8 @@ export default class SlackConnectPrompt {
     actionType: string | undefined;
     actionValue?: string | undefined;
     payloadType?: string | undefined;
+    // How a slash command was typed: "/oneuptime incident" (SlackAction).
+    command?: string | undefined;
   }): SlackPressDescription {
     const actionType: SlackActionType = data.actionType as SlackActionType;
 
@@ -311,20 +329,25 @@ export default class SlackConnectPrompt {
       };
     }
 
-    const create: CreatePress | undefined = CREATE_PRESSES[actionType];
+    const commandPress: CommandPress | undefined = COMMAND_PRESSES[actionType];
 
-    if (create) {
+    if (commandPress) {
       return {
-        purpose: create.purpose,
+        purpose: commandPress.purpose,
         again:
-          data.payloadType === "shortcut"
+          data.payloadType === "shortcut" && commandPress.shortcut
             ? {
                 kind: WorkspaceConnectRequestAgainKind.Button,
-                label: create.shortcut,
+                label: commandPress.shortcut,
               }
             : {
                 kind: WorkspaceConnectRequestAgainKind.Command,
-                label: create.command,
+                label:
+                  data.command ||
+                  WorkspaceCommands.getUsage({
+                    workspaceType: WorkspaceType.Slack,
+                    command: commandPress.command,
+                  }),
               },
       };
     }
@@ -374,6 +397,7 @@ export default class SlackConnectPrompt {
           channelId: data.place.slackChannelId,
           threadTs: data.place.slackThreadTs,
           responseUrl: data.place.responseUrl,
+          directMessageChannelId: data.place.slackDirectMessageChannelId,
         },
       });
 
@@ -390,6 +414,46 @@ export default class SlackConnectPrompt {
       answer: answer,
       connectUrl: link.url,
     });
+  }
+
+  /*
+   * A question to OneUptime AI in a message - an @mention, a direct
+   * message, a reply in a conversation with OneUptime AI - from a Slack
+   * account not connected yet: prompted as `prompt` does, once in the
+   * conversation (a thread, a direct message), and not again there while
+   * the Connect button it carries works (WorkspaceConnectPromptOnce). How
+   * the prompt was delivered - None when it could not be, and the next
+   * message there is prompted - or null when they were asked there already.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async promptOnce(data: {
+    projectId: ObjectID;
+    place: SlackAnswerPlace;
+    slackTeamId?: string | undefined;
+    description: SlackPressDescription;
+    // The conversation, and who is asking in it.
+    conversation: WorkspaceConversationPerson;
+  }): Promise<SlackAnswerDelivery | null> {
+    const claim: WorkspaceConnectPromptClaim | null =
+      await WorkspaceConnectPromptOnce.claim(data.conversation);
+
+    if (!claim) {
+      return null;
+    }
+
+    const delivery: SlackAnswerDelivery = await SlackConnectPrompt.prompt({
+      projectId: data.projectId,
+      place: data.place,
+      slackTeamId: data.slackTeamId,
+      description: data.description,
+    });
+
+    if (delivery === SlackAnswerDelivery.None) {
+      await claim.release();
+    }
+
+    return delivery;
   }
 
   // "add a note to this incident", "change the state of this alert".

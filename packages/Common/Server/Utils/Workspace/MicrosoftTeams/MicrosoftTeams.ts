@@ -97,8 +97,6 @@ import MicrosoftTeamsAuthAction, {
 } from "./Actions/Auth";
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
 import {
-  CREATE_INCIDENT_COMMAND,
-  CREATE_MAINTENANCE_COMMAND,
   MicrosoftTeamsActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
   MicrosoftTeamsOnCallDutyActionType,
@@ -107,6 +105,7 @@ import {
 import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsConnectPrompt from "./MicrosoftTeamsConnectPrompt";
 import { WorkspaceAnswer } from "../WorkspaceActionAnswers";
+import WorkspaceAiAnswerSources from "../WorkspaceAiAnswerSources";
 import { WorkspaceConnectRequestAgainKind } from "../WorkspaceConnectRequest";
 import ProductBrandingText from "../../ProductBrandingText";
 import MicrosoftTeamsAlertActions from "./Actions/Alert";
@@ -117,6 +116,13 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
+import MicrosoftTeamsCommands, {
+  MicrosoftTeamsListCommand,
+} from "./MicrosoftTeamsCommands";
+import WorkspaceCommands, {
+  WorkspaceCommandInput,
+  WorkspaceCommandName,
+} from "../WorkspaceCommands";
 import MicrosoftTeamsMessageSize, {
   MICROSOFT_TEAMS_INCOMING_WEBHOOK_BUDGET_IN_BYTES,
 } from "./MicrosoftTeamsMessageSize";
@@ -147,7 +153,6 @@ import AIService, {
   ProjectAiDailyLimitStatus,
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -3554,7 +3559,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         (possibleActionValue["data"] as any)?.["action"],
     );
 
-    // Only respond to card submits, direct messages and @mentions.
+    /*
+     * Only respond to card submits, direct messages and @mentions. Teams
+     * delivers the bot every message of the channels and group chats it is
+     * in (the app's ChannelMessage.Read.Group and ChatMessage.Read.Chat), so
+     * people talking to each other - under a notification card included -
+     * get no answer from it (#4768).
+     */
     if (!isCardSubmit && !isDirectMessage && !isMentioned) {
       logger.debug("Bot not mentioned in channel message, ignoring");
       return;
@@ -3602,66 +3613,30 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       .replace(/<at[^>]*>.*?<\/at>/g, "")
       .trim();
 
-    const isCreateIncidentCommand: boolean =
-      cleanText === CREATE_INCIDENT_COMMAND ||
-      cleanText.startsWith(CREATE_INCIDENT_COMMAND + " ");
-
-    const isCreateMaintenanceCommand: boolean =
-      cleanText === CREATE_MAINTENANCE_COMMAND ||
-      cleanText.startsWith(CREATE_MAINTENANCE_COMMAND + " ");
-
     /*
-     * Explicit commands are matched precisely so that natural-language
-     * questions (which may incidentally contain words like "help" or
-     * "alerts") fall through to the AI assistant instead of a canned command.
+     * Teams' own lists ("show active incidents") are matched exactly, so a
+     * question that only starts with their words - "show active incidents
+     * in eu-west-1" - goes to the AI assistant. Everything else is read as
+     * Slack reads the text after /oneuptime (WorkspaceCommands): incident,
+     * maintenance, oncall, ask or help - or a question. Explicit commands
+     * are matched precisely, so natural-language questions that merely
+     * contain a command's word ("help me find slow queries") fall through
+     * to the AI assistant.
      */
-    const isHelpCommand: boolean =
-      cleanText === "help" || cleanText === "" || cleanText === "?";
+    const listCommand: MicrosoftTeamsListCommand | null =
+      MicrosoftTeamsCommands.getListCommand(cleanText);
 
-    const isShowActiveIncidentsCommand: boolean =
-      cleanText === "show active incidents" || cleanText === "active incidents";
-
-    const isShowScheduledMaintenanceCommand: boolean =
-      cleanText === "show scheduled maintenance" ||
-      cleanText === "scheduled maintenance";
-
-    const isShowOngoingMaintenanceCommand: boolean =
-      cleanText === "show ongoing maintenance" ||
-      cleanText === "ongoing maintenance";
-
-    const isShowActiveAlertsCommand: boolean =
-      cleanText === "show active alerts" || cleanText === "active alerts";
-
-    /*
-     * "ask <question>" is an explicit prefix that always routes to the AI
-     * assistant. When present, strip the prefix and use the remainder as the
-     * question.
-     */
-    const isAskCommand: boolean =
-      cleanText === "ask" || cleanText.startsWith("ask ");
+    const input: WorkspaceCommandInput =
+      WorkspaceCommands.parse(originalQuestionText);
 
     /*
      * The command, named for log lines that must not quote the message: a
      * free-form question can carry things that do not belong in a log.
      */
-    const commandName: string | undefined = [
-      { matches: isHelpCommand, name: "help" },
-      { matches: isCreateIncidentCommand, name: CREATE_INCIDENT_COMMAND },
-      { matches: isCreateMaintenanceCommand, name: CREATE_MAINTENANCE_COMMAND },
-      { matches: isShowActiveIncidentsCommand, name: "show active incidents" },
-      {
-        matches: isShowScheduledMaintenanceCommand,
-        name: "show scheduled maintenance",
-      },
-      {
-        matches: isShowOngoingMaintenanceCommand,
-        name: "show ongoing maintenance",
-      },
-      { matches: isShowActiveAlertsCommand, name: "show active alerts" },
-      { matches: isAskCommand, name: "ask" },
-    ].find((command: { matches: boolean; name: string }) => {
-      return command.matches;
-    })?.name;
+    const commandName: string | undefined =
+      listCommand ||
+      input.command ||
+      (input.misspelt ? `misspelt ${input.misspelt.command}` : undefined);
 
     let projectId: ObjectID | undefined = undefined;
     let responseText: string = "";
@@ -3700,66 +3675,71 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
       );
 
-      if (isHelpCommand) {
-        responseText = this.getHelpMessage();
-      } else if (isCreateIncidentCommand) {
-        // "create incident <title>" opens the form with the title filled in.
-        logger.debug("Processing create incident command");
-        await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
-          turnContext: data.turnContext,
-          activity: data.activity,
-          projectId: projectId,
-          initialTitle: originalQuestionText
-            .substring(CREATE_INCIDENT_COMMAND.length)
-            .trim(),
-        });
-        return;
-      } else if (isCreateMaintenanceCommand) {
-        // "create maintenance <title>" opens the form with the title filled in.
-        logger.debug("Processing create maintenance command");
-        await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
-          {
-            turnContext: data.turnContext,
-            activity: data.activity,
-            projectId: projectId,
-            initialTitle: originalQuestionText
-              .substring(CREATE_MAINTENANCE_COMMAND.length)
-              .trim(),
-          },
-        );
-        return;
-      } else if (isShowActiveIncidentsCommand) {
-        responseText = await this.getActiveIncidentsMessage(projectId);
-      } else if (isShowScheduledMaintenanceCommand) {
-        responseText = await this.getScheduledMaintenanceMessage(projectId);
-      } else if (isShowOngoingMaintenanceCommand) {
-        responseText = await this.getOngoingMaintenanceMessage(projectId);
-      } else if (isShowActiveAlertsCommand) {
-        responseText = await this.getActiveAlertsMessage(projectId);
+      if (listCommand) {
+        responseText = await this.getListCommandMessage(listCommand, projectId);
       } else {
-        /*
-         * AI Ops: any message that is not one of the explicit commands above is
-         * treated as a natural-language question for the observability
-         * assistant. This also handles the explicit "ask <question>" prefix.
-         */
-        const question: string = isAskCommand
-          ? originalQuestionText.replace(/^ask\s*/i, "").trim()
-          : originalQuestionText;
+        switch (input.command) {
+          case WorkspaceCommandName.Help:
+            await MicrosoftTeamsCommands.replyHelp({
+              turnContext: data.turnContext,
+            });
+            return;
+          case WorkspaceCommandName.Incident:
+            // "incident <title>" opens the form with the title filled in.
+            logger.debug("Processing the incident command");
+            await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
+              turnContext: data.turnContext,
+              activity: data.activity,
+              projectId: projectId,
+              initialTitle: WorkspaceCommands.toTitle(input.text),
+            });
+            return;
+          case WorkspaceCommandName.Maintenance:
+            // "maintenance <title>" opens the form with the title filled in.
+            logger.debug("Processing the maintenance command");
+            await MicrosoftTeamsCreateCommands.handleCreateScheduledMaintenanceCommand(
+              {
+                turnContext: data.turnContext,
+                activity: data.activity,
+                projectId: projectId,
+                initialTitle: WorkspaceCommands.toTitle(input.text),
+              },
+            );
+            return;
+          case WorkspaceCommandName.OnCall:
+            await MicrosoftTeamsCommands.handleOnCallCommand({
+              turnContext: data.turnContext,
+              activity: data.activity,
+              projectId: projectId,
+            });
+            return;
+          case WorkspaceCommandName.Ask:
+          case null:
+            /*
+             * A command misspelt is answered with the command it looks like,
+             * not by AI.
+             */
+            if (input.misspelt) {
+              await MicrosoftTeamsCommands.replyMisspelling({
+                turnContext: data.turnContext,
+                misspelt: input.misspelt,
+              });
+              return;
+            }
 
-        if (!question) {
-          // Bare "ask" with no question - point the user at help.
-          responseText = this.getHelpMessage();
-          await data.turnContext.sendActivity(responseText);
-          return;
+            /*
+             * AI Ops: any message that is not one of the explicit commands
+             * above is a natural-language question for the observability
+             * assistant, as is the text after "ask".
+             */
+            await this.answerObservabilityQuestion({
+              activity: data.activity,
+              turnContext: data.turnContext,
+              projectId: projectId,
+              question: input.text,
+            });
+            return;
         }
-
-        await this.answerObservabilityQuestion({
-          activity: data.activity,
-          turnContext: data.turnContext,
-          projectId: projectId,
-          question: question,
-        });
-        return;
       }
 
       /*
@@ -3863,6 +3843,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * never treats its own "please wait" filler as a real prior turn.
    */
   private static readonly AI_OPS_ACK_TEXT: string = "Looking into it…";
+
+  /*
+   * What a question refused for AI's sake adds: the bot does more than
+   * answer questions, and its other commands need no AI.
+   */
+  private static readonly HELP_POINTER: MarkdownText = mdText`Type **help** to see the other commands.`;
 
   /*
    * AI Ops: cap on how many prior turns we feed the assistant as history. The
@@ -4178,15 +4164,29 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       /*
        * Asked to connect, mentioning them, with a Connect button - and to
        * ask again once they have: the answer is read with their permissions.
+       * Once in the conversation - a channel's thread, a chat - and not on
+       * each question they ask there while its button works: the card
+       * stays where they asked (MicrosoftTeamsConnectPrompt.promptOnce).
        */
-      await MicrosoftTeamsConnectPrompt.prompt({
-        turnContext: turnContext,
-        projectId: projectId,
-        description: {
-          purpose: `ask ${ProductBrandingText.getProductName()} AI`,
-          again: { kind: WorkspaceConnectRequestAgainKind.Question },
-        },
-      });
+      const isPrompted: boolean | null =
+        await MicrosoftTeamsConnectPrompt.promptOnce({
+          turnContext: turnContext,
+          projectId: projectId,
+          description: {
+            purpose: `ask ${ProductBrandingText.getProductName()} AI`,
+            again: { kind: WorkspaceConnectRequestAgainKind.Question },
+          },
+        });
+
+      if (isPrompted === null) {
+        logger.debug(
+          "Not answered: the Teams user was asked to connect their account in this conversation already",
+          {
+            projectId: projectId.toString(),
+          },
+        );
+      }
+
       return;
     }
 
@@ -4218,7 +4218,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug("AI Ops declined: AI is disabled for this project", {
         projectId: projectId.toString(),
       });
-      await turnContext.sendActivity(AI_DISABLED_MESSAGE);
+      await turnContext.sendActivity(
+        mdText`${AI_DISABLED_MESSAGE} ${this.HELP_POINTER}`.toString(),
+      );
       return;
     }
 
@@ -4238,7 +4240,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         },
       );
       await turnContext.sendActivity(
-        getProjectDailyLimitMessage(reachedDailyLimit),
+        mdText`${getProjectDailyLimitMessage(reachedDailyLimit)} ${this.HELP_POINTER}`.toString(),
       );
       return;
     }
@@ -4320,11 +4322,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
-        const sourceLines: Array<MarkdownText> = result.citations.map(
-          (citation: AIChatCitation): MarkdownText => {
-            return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
-          },
-        );
+        const sourceLines: Array<MarkdownText> =
+          WorkspaceAiAnswerSources.getLines(result.citations);
         replyText = mdText`${replyText}\n\n**Sources**\n${FeedMarkdown.join(sourceLines, "\n")}`;
       }
 
@@ -4373,21 +4372,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       : FeedMarkdown.join(shownNames);
   }
 
-  // Helper methods for bot commands
-  private static getHelpMessage(): string {
-    return `Hello! I'm the OneUptime bot. I can help you with the following commands:
-
-**Available Commands:**
-- **help** - Show this help message
-- **ask <question>** - Ask OneUptime AI about your logs, traces, metrics, incidents and monitors
-- **create incident [title]** - Create a new incident
-- **create maintenance [title]** - Create a new scheduled maintenance event
-- **show active incidents** - Display all currently active incidents
-- **show scheduled maintenance** - Show upcoming scheduled maintenance events
-- **show ongoing maintenance** - Display currently ongoing maintenance events
-- **show active alerts** - Display all active alerts
-
-You can also just ask me a question in plain language - for example, "which monitors are down right now?" - and I'll look into your observability data for you.`;
+  // The reply to one of Teams' own lists (MicrosoftTeamsListCommand).
+  private static async getListCommandMessage(
+    listCommand: MicrosoftTeamsListCommand,
+    projectId: ObjectID,
+  ): Promise<string> {
+    switch (listCommand) {
+      case MicrosoftTeamsListCommand.ActiveIncidents:
+        return await this.getActiveIncidentsMessage(projectId);
+      case MicrosoftTeamsListCommand.ActiveAlerts:
+        return await this.getActiveAlertsMessage(projectId);
+      case MicrosoftTeamsListCommand.ScheduledMaintenance:
+        return await this.getScheduledMaintenanceMessage(projectId);
+      case MicrosoftTeamsListCommand.OngoingMaintenance:
+        return await this.getOngoingMaintenanceMessage(projectId);
+    }
   }
 
   private static async getActiveIncidentsMessage(
@@ -7039,7 +7038,7 @@ All monitoring checks are passing normally.`;
         },
         {
           type: "TextBlock",
-          text: "1. Connect this Teams workspace to your OneUptime project from **Settings → Integrations → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
+          text: "1. Connect this Teams workspace to your OneUptime project from **Project Settings → Workspace → Microsoft Teams**.\n2. Choose which incidents, alerts, and maintenance events should sync into Teams.\n3. Try the commands below or automate workflows from the OneUptime dashboard.",
           wrap: true,
         },
         {
@@ -7051,38 +7050,16 @@ All monitoring checks are passing normally.`;
           wrap: true,
         },
         {
-          type: "FactSet",
-          facts: [
-            {
-              title: "help",
-              value: "Show quick help and useful links",
-            },
-            {
-              title: "ask",
-              value:
-                "Ask OneUptime AI about your logs, traces, metrics, incidents and monitors",
-            },
-            {
-              title: "create incident",
-              value: "Create a new incident without leaving Teams",
-            },
-            {
-              title: "create maintenance",
-              value: "Schedule or review maintenance windows",
-            },
-            {
-              title: "show active incidents",
-              value: "List all incidents that are currently open",
-            },
-            {
-              title: "show scheduled maintenance",
-              value: "Display upcoming maintenance events",
-            },
-            {
-              title: "show active alerts",
-              value: "Summarize active alerts for your project",
-            },
-          ],
+          type: "TextBlock",
+          text: "Type them in a chat with OneUptime, or after @OneUptime in a channel or a group chat. Anything else is a question for OneUptime AI.",
+          wrap: true,
+          spacing: "Small",
+        },
+        {
+          type: "TextBlock",
+          // The help's own list: what to type, and what it does.
+          text: MicrosoftTeamsCommands.getCommandListMarkdown(),
+          wrap: true,
         },
         {
           type: "TextBlock",

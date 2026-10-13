@@ -61,7 +61,8 @@ ModelAPI.getList = async (options) => {
     const device = new UserPush();
     device._id = stored.id;
     device.deviceName = stored.deviceName;
-    device.isCriticalAlertEnabled = false;
+    device.deviceType = stored.deviceType;
+    device.isCriticalAlertEnabled = stored.isCriticalAlertEnabled === true;
     device.isVerified = stored.isVerified !== false;
     device.createdAt = new Date(stored.createdAt);
     return device;
@@ -77,11 +78,29 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+/*
+ * The page in another of the Dashboard's languages, ?lang=de: its locale
+ * file, read from the Dashboard's own (Fixture/server.js serves them), as
+ * the Dashboard looks strings up - the English is the key, and the fallback.
+ */
+const language = new URLSearchParams(window.location.search).get("lang");
+const resources = { en: { translation: {} } };
+
+if (language && language !== "en") {
+  resources[language] = {
+    translation: await (
+      await fetch(`/__fixture/locales/${encodeURIComponent(language)}.json`)
+    ).json(),
+  };
+}
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language || "en",
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: resources,
   interpolation: { escapeValue: false },
+  keySeparator: false,
+  nsSeparator: false,
 });
 
 function Fixture() {

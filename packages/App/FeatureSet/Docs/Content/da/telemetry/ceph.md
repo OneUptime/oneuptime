@@ -236,7 +236,7 @@ Agentens `docker-compose.yml` kører også **Ceph-AI-agenten**, `oneuptime-ceph-
 
 - **AI-undersøgelser er slået til som standard.** Så snart agenten forbinder, undersøger OneUptime AI hændelser og advarsler på denne klynge med den, og klyngens **Oversigt** viser agentens status. For at stoppe skal du sætte `ONEUPTIME_AI_INVESTIGATION=false`, hvor agenten kører (**Skift** under **Hvad AI må gøre** på AI-agentens side viser hvordan), eller udelade agenten.
 - **Dens egen Ceph-klient er den hårde grænse.** Den forbinder som `client.oneuptime-ai`, med klyngens minimale `ceph.conf` og den klients keyring i en mappe `ceph/` ved siden af `docker-compose.yml` (monteret skrivebeskyttet på `/etc/ceph`). Med læse-caps kan intet af det, den kører, ændre klyngen. Ved en ny installation tilbyder `install.sh` at oprette klienten; at køre det igen gør det aldrig. Læg aldrig admin-keyringen i den mappe.
-- Den er **skrivebeskyttet**, medmindre du sætter `ONEUPTIME_AI_ALLOW_WRITES=true` og giver klienten caps til rettelserne (agentens README viser dem); `ONEUPTIME_AI_WRITE_TARGETS` (for eksempel `osd.*,cluster`) begrænser, hvad en rettelse må røre. `ONEUPTIME_AI_FIXES` i samme `.env` angiver, hvordan rettelser kører — `ask-for-approval` (en person godkender hver enkelt), `automatic` eller `bypass-approval` — og AI-agentens side viser det skrivebeskyttet ([Hvad AI må gøre, fastsat af agenten](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- Den er **skrivebeskyttet**, medmindre du sætter `ONEUPTIME_AI_ALLOW_WRITES=true` og giver klienten caps til rettelserne (agentens README viser dem); `ONEUPTIME_AI_WRITE_TARGETS` (for eksempel `osd.*,cluster`) begrænser, hvad en rettelse må røre. `ONEUPTIME_AI_FIXES` i samme `.env` angiver, hvordan rettelser kører — `ask-for-approval` (en person godkender hver enkelt), `automatic` eller `bypass-approval` — og AI-agentens side viser det skrivebeskyttet ([Hvad AI må gøre, fastsat af agenten](/docs/ai/infrastructure-ai-agents#hvad-ai-må-gøre-sat-af-agenten)).
 - Den forbinder udad til monitorerne (TCP 3300 og 6789) og mgr- og OSD-daemons (TCP 6800–7300), kører som UID 1000 uden capabilities og kører aldrig `auth`, `config-key`, `tell` eller noget, der sletter data. Slet tjenesten `oneuptime-ceph-ai-agent` fra `docker-compose.yml`, hvis du ikke bruger OneUptime AI.
 
 For at oprette klienten manuelt skal du køre dette på en Ceph-adminnode i agentens mappe (kopiér de to filer til mappen `ceph/` på agentens maskine, hvis det er en anden):
@@ -250,7 +250,7 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-Hvad den må køre, hvordan rettelser virker, og hvordan du fejlsøger den: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).
+Hvad den må køre, hvordan rettelser virker, og hvordan du fejlsøger den: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clustre).
 
 ## Fejlfinding
 

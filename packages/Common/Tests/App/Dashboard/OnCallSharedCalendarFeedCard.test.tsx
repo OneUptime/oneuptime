@@ -24,11 +24,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * URL sees everybody's shifts - so the assertions here are as much about WHO
  * gets a working button as about what the button does:
  *
- *   - an editor publishes / regenerates / disables;
- *   - a reader with a real-but-insufficient permission sees the same buttons
- *     disabled, with the missing permission named (issue #3306 rule);
- *   - a reader whose permission snapshot has not landed sees no accusation,
- *     just "ask an editor";
+ *   - an editor publishes, and regenerates / disables from the card's ⋯
+ *     (Manage link), or enables from the status panel;
+ *   - a reader with a real-but-insufficient permission finds the same items
+ *     in the menu locked, with the missing permission named (issue #3306
+ *     rule), and no step offered in the status panel;
+ *   - a reader whose permission snapshot has not landed sees no accusation:
+ *     no menu at all, and "ask an editor" before anything is published;
  *   - and everybody who can see the schedule may copy a published link.
  *
  * PermissionGate is exercised for real: the permission list and the master
@@ -162,6 +164,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Permission from "../../../Types/Permission";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import { FEED_PANEL_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedLayout";
 import {
   PROJECT_FEED_CURRENT_PATH,
   PROJECT_FEED_PUBLISH_PATH,
@@ -311,6 +314,17 @@ function renderScheduleCard(
   );
 }
 
+// The card's ⋯, opened: the menu that holds Regenerate and Disable / Enable.
+function openManageMenu(): HTMLElement {
+  fireEvent.click(screen.getByRole("button", { name: "Manage link" }));
+
+  return screen.getByRole("menu");
+}
+
+function menuItem(menu: HTMLElement, label: string): HTMLElement {
+  return within(menu).getByText(label).closest("button") as HTMLElement;
+}
+
 describe("getSharedFeedPaths", () => {
   test("the schedule kind uses the schedule-feed routes with the id embedded", () => {
     expect(
@@ -422,6 +436,36 @@ describe("SharedCalendarFeedCard - publishing", () => {
     ).toHaveAttribute("href", WEBCAL_URL);
   });
 
+  /*
+   * Publish starts the empty panel's text column, as the personal card's
+   * Generate calendar link does. A Button keeps a left margin for a
+   * dialog's footer from md up, which set it 12px in from the text above.
+   */
+  test("Publish lines up with the panel's text, for an editor and locked for a reader", async () => {
+    getMock.mockResolvedValue(ok(UNPUBLISHED_JSON));
+
+    const { unmount } = renderScheduleCard("Europe/Stockholm");
+
+    const working: HTMLElement = await screen.findByTestId(
+      "schedule-shared-calendar-feed-publish",
+    );
+
+    expect(working).not.toBeDisabled();
+    expect(working.className).toContain(FEED_PANEL_BUTTON_CLASS_NAME);
+    expect(FEED_PANEL_BUTTON_CLASS_NAME).toBe("md:!ml-0");
+
+    unmount();
+    permissionsForTest = READER_PERMISSIONS;
+    renderScheduleCard("Europe/Stockholm");
+
+    const locked: HTMLElement = await screen.findByTestId(
+      "schedule-shared-calendar-feed-publish",
+    );
+
+    expect(locked).toBeDisabled();
+    expect(locked.className).toContain(FEED_PANEL_BUTTON_CLASS_NAME);
+  });
+
   test("a master admin is an editor everywhere", async () => {
     isMasterAdminForTest = true;
     permissionsForTest = [];
@@ -524,7 +568,7 @@ describe("SharedCalendarFeedCard - a published link", () => {
     cleanup();
   });
 
-  test("shows the links, the rotation age, the ownership copy and the settings card", async () => {
+  test("shows the links, the status with the rotation age, the ownership footer and the settings card", async () => {
     getMock.mockResolvedValue(ok(publishedJson()));
 
     renderScheduleCard("Europe/Stockholm");
@@ -559,13 +603,63 @@ describe("SharedCalendarFeedCard - a published link", () => {
       "Shared link settings|Show coverage gaps,Minimum gap to show (minutes),Days of past shifts,Days ahead,Regenerate when someone leaves the project",
     );
 
+    // The ownership note is the card's quiet footer, after both columns.
     expect(
-      screen.getByRole("button", { name: "Regenerate link" }),
-    ).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Disable" })).not.toBeDisabled();
+      screen.getByTestId("schedule-shared-calendar-feed-active")
+        .lastElementChild,
+    ).toBe(screen.getByTestId("schedule-shared-calendar-feed-ownership"));
+
+    // An editor's ⋯ holds Regenerate link and Disable link, both live.
+    const menu: HTMLElement = openManageMenu();
+
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Regenerate link", "Disable link"]);
+    expect(menuItem(menu, "Regenerate link")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+    expect(menuItem(menu, "Disable link")).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+
+    // A shared link is never deleted from here.
+    expect(within(menu).queryByText("Delete link")).toBeNull();
   });
 
-  test("a reader may copy the link but the editor buttons are disabled and the settings read-only", async () => {
+  test("the status names the app that last read the shared link, how often, and how long ago it was minted", async () => {
+    getMock.mockResolvedValue(
+      ok(
+        publishedJson({
+          lastFetchedAt: "2026-08-31T11:20:00.000Z",
+          lastFetchedClient: "Microsoft Outlook",
+          fetchCount: 977,
+        }),
+      ),
+    );
+
+    renderScheduleCard("Europe/Stockholm");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-status-headline"),
+      ).toHaveTextContent("Last fetched 40 minutes ago by Microsoft Outlook");
+    });
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-status-line")
+        .textContent,
+    ).toBe("~977 fetches · link ending in …t34m · Last rotated 30 days ago");
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-status-pill"),
+    ).toHaveTextContent("Active");
+  });
+
+  test("a reader may copy the link but finds the editor actions locked, saying why, and the settings read-only", async () => {
     permissionsForTest = READER_PERMISSIONS;
     getMock.mockResolvedValue(ok(publishedJson()));
 
@@ -577,14 +671,43 @@ describe("SharedCalendarFeedCard - a published link", () => {
       ).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByRole("button", { name: "Regenerate link" }),
-    ).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Disable" })).toBeDisabled();
+    const menu: HTMLElement = openManageMenu();
+
+    for (const label of ["Regenerate link", "Disable link"]) {
+      const item: HTMLElement = menuItem(menu, label);
+
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      // The reason is read with the item, and it names a permission.
+      expect(item.getAttribute("aria-describedby")).toBeTruthy();
+      expect(
+        document.getElementById(item.getAttribute("aria-describedby") || ""),
+      ).toHaveTextContent("permission");
+    }
+
+    // A locked item does nothing.
+    fireEvent.click(menuItem(menu, "Regenerate link"));
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
     expect(screen.getByTestId("card-model-detail-stub")).toHaveAttribute(
       "data-editable",
       "false",
     );
+  });
+
+  test("a reader is offered no step in the status: Enable link is an editor's", async () => {
+    permissionsForTest = READER_PERMISSIONS;
+    getMock.mockResolvedValue(ok(publishedJson({ isEnabled: false })));
+
+    renderScheduleCard("Europe/Stockholm");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-disabled"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("schedule-shared-calendar-feed-enable"),
+    ).not.toBeInTheDocument();
   });
 
   test("without a permission snapshot the editor buttons are hidden, the link still copyable", async () => {
@@ -599,11 +722,9 @@ describe("SharedCalendarFeedCard - a published link", () => {
       ).toBeInTheDocument();
     });
 
+    // Nothing worth saying about who may act yet: no menu at all.
     expect(
-      screen.queryByRole("button", { name: "Regenerate link" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Disable" }),
+      screen.queryByRole("button", { name: "Manage link" }),
     ).not.toBeInTheDocument();
   });
 
@@ -620,11 +741,13 @@ describe("SharedCalendarFeedCard - a published link", () => {
 
     renderScheduleCard("Europe/Stockholm");
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Regenerate link" }),
-    );
+    await screen.findByRole("button", { name: "Manage link" });
+    fireEvent.click(menuItem(openManageMenu(), "Regenerate link"));
 
     const modal: HTMLElement = await screen.findByTestId("modal");
+    expect(
+      within(modal).getByText("Regenerate shared link?"),
+    ).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
 
     fireEvent.click(
@@ -656,14 +779,15 @@ describe("SharedCalendarFeedCard - a published link", () => {
     ).toHaveTextContent("…r0t8");
   });
 
-  test("Disable writes isEnabled=false on the schedule feed model and re-reads", async () => {
+  test("Disable link writes isEnabled=false on the schedule feed model and re-reads", async () => {
     getMock
       .mockResolvedValueOnce(ok(publishedJson()))
       .mockResolvedValueOnce(ok(publishedJson({ isEnabled: false })));
 
     renderScheduleCard("Europe/Stockholm");
 
-    fireEvent.click(await screen.findByRole("button", { name: "Disable" }));
+    await screen.findByRole("button", { name: "Manage link" });
+    fireEvent.click(menuItem(openManageMenu(), "Disable link"));
 
     await waitFor(() => {
       expect(updateByIdMock).toHaveBeenCalledTimes(1);
@@ -680,11 +804,79 @@ describe("SharedCalendarFeedCard - a published link", () => {
         screen.getByTestId("schedule-shared-calendar-feed-disabled"),
       ).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: "Enable" })).toBeInTheDocument();
-    // The link stays visible under the warning so an editor can still copy it.
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-status-pill"),
+    ).toHaveTextContent("Disabled");
+    // Enable link, in the menu and as the status's next step.
+    expect(menuItem(openManageMenu(), "Enable link")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-enable"),
+    ).toBeInTheDocument();
+    // The link stays visible beside the status so an editor can still copy it.
     expect(
       screen.getByTestId("schedule-shared-calendar-feed-links"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The re-read after an action keeps the card as it is until it answers,
+   * rather than collapsing it to the loader and back.
+   */
+  test("Disable link keeps the card in place while it re-reads", async () => {
+    let answerReRead: (value: HTTPResponse<JSONObject>) => void = () => {
+      // Replaced below, once the re-read is asked for.
+    };
+
+    getMock.mockResolvedValueOnce(ok(publishedJson())).mockReturnValueOnce(
+      new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          answerReRead = resolve;
+        },
+      ),
+    );
+
+    renderScheduleCard("Europe/Stockholm");
+
+    await screen.findByRole("button", { name: "Manage link" });
+    fireEvent.click(menuItem(openManageMenu(), "Disable link"));
+
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-links"),
+    ).toBeInTheDocument();
+
+    answerReRead(ok(publishedJson({ isEnabled: false })));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-status-pill"),
+      ).toHaveTextContent("Disabled");
+    });
+    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+  });
+
+  test("Enable link in the status writes isEnabled=true on the schedule feed model", async () => {
+    getMock
+      .mockResolvedValueOnce(ok(publishedJson({ isEnabled: false })))
+      .mockResolvedValueOnce(ok(publishedJson()));
+
+    renderScheduleCard("Europe/Stockholm");
+
+    fireEvent.click(
+      await screen.findByTestId("schedule-shared-calendar-feed-enable"),
+    );
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const call: Record<string, unknown> = updateByIdMock.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(call["modelType"]).toBe(OnCallDutyPolicyScheduleCalendarFeed);
+    expect(call["data"]).toEqual({ isEnabled: true });
   });
 
   test("the project kind writes to the project feed model and posts to the project routes", async () => {
@@ -711,7 +903,7 @@ describe("SharedCalendarFeedCard - a published link", () => {
       new ProjectOnCallCalendarFeed().tableName,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Regenerate link" }));
+    fireEvent.click(menuItem(openManageMenu(), "Regenerate link"));
     const modal: HTMLElement = await screen.findByTestId("modal");
     fireEvent.click(
       within(modal).getByRole("button", { name: "Regenerate link" }),
@@ -734,7 +926,7 @@ describe("SharedCalendarFeedCard - a published link", () => {
       ).toHaveTextContent("…pr0j");
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Disable" }));
+    fireEvent.click(menuItem(openManageMenu(), "Disable link"));
 
     await waitFor(() => {
       expect(updateByIdMock).toHaveBeenCalledTimes(1);
@@ -761,6 +953,12 @@ describe("SharedCalendarFeedCard - a published link", () => {
     expect(
       screen.queryByTestId("schedule-shared-calendar-feed-links"),
     ).not.toBeInTheDocument();
+    // An editor gets the step right there; it still confirms first.
+    fireEvent.click(
+      screen.getByTestId("schedule-shared-calendar-feed-regenerate-now"),
+    );
+    expect(await screen.findByTestId("modal")).toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   test("a 404 hides the feature; any other failure shows the message", async () => {
@@ -782,6 +980,39 @@ describe("SharedCalendarFeedCard - a published link", () => {
     await waitFor(() => {
       expect(screen.getByText("Database is away")).toBeInTheDocument();
     });
+
+    const error: HTMLElement = screen.getByTestId(
+      "schedule-shared-calendar-feed-load-error",
+    );
+
+    expect(error).toHaveTextContent("Could not load the shared calendar link.");
+    expect(error).toHaveTextContent("Try again");
+
+    // Try again reads the link again, and the card recovers.
+    getMock.mockResolvedValueOnce(ok(publishedJson()));
+    fireEvent.click(within(error).getAllByRole("button")[0]!);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-active"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test("the timezone warning joins the other notices above both columns", async () => {
+    getMock.mockResolvedValue(ok(publishedJson()));
+
+    renderScheduleCard(null);
+
+    const notices: HTMLElement = await screen.findByTestId(
+      "schedule-shared-calendar-feed-notices",
+    );
+
+    expect(
+      within(notices).getByTestId(
+        "schedule-shared-calendar-feed-timezone-warning",
+      ),
+    ).toBeInTheDocument();
   });
 });
 

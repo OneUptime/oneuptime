@@ -17,6 +17,7 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { ExpressRequest } from "Common/Server/Utils/Express";
+import { PublicPageNotFound } from "Common/Server/Utils/PublicPageNotFound";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import { getStatusPageData as getFrontendStatusPageData } from "../../FeatureSet/Frontend/Utils/StatusPage";
@@ -32,12 +33,21 @@ import {
 
 const STATUS_PAGE_ID: string = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 
-type GetStatusPageData = (req: ExpressRequest) => Promise<{
-  id: string;
-  title: string;
-  description: string;
-  isSearchEngineIndexingEnabled: boolean;
-} | null>;
+/*
+ * A page the API does not know at all answers PUBLIC_PAGE_NOT_FOUND; that is
+ * BlockedProjectStatusPageServers.test.ts. Here the API either answers or
+ * fails.
+ */
+type GetStatusPageData = (req: ExpressRequest) => Promise<
+  | {
+      id: string;
+      title: string;
+      description: string;
+      isSearchEngineIndexingEnabled: boolean;
+    }
+  | PublicPageNotFound
+  | null
+>;
 
 /*
  * The two servers are the same function twice over. Naming them here means a

@@ -143,9 +143,8 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 | Функция | Что она делает | Маршрут |
 | --- | --- | --- |
-| `/incident` и ярлык **Create New Incident** | Объявить инцидент из Slack | `POST /api/slack/interactive` |
-| `/maintenance` и ярлык **Create Scheduled Event** | Запланировать обслуживание из Slack | `POST /api/slack/interactive` |
-| `/oneuptime` | Спросить OneUptime AI о ваших логах, трассировках, метриках, инцидентах и мониторах | `POST /api/slack/command` |
+| `/oneuptime` | Объявить инцидент, запланировать обслуживание, посмотреть, кто дежурит, и спросить OneUptime AI; `/oneuptime help` показывает все команды | `POST /api/slack/command` |
+| Ярлыки **Create New Incident** и **Create Scheduled Event** | Объявить инцидент или запланировать обслуживание через ярлыки Slack | `POST /api/slack/interactive` |
 | Кнопки и формы в сообщениях OneUptime | Подтвердить, решить, добавить заметку, изменить состояние, запустить политику дежурств | `POST /api/slack/interactive` и `POST /api/slack/options-load` |
 | События | Упоминания, сообщения, реакции и закрепления, например чтобы сохранить сообщение как заметку | `POST /api/slack/events` |
 
@@ -154,6 +153,10 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 Описания инцидентов и оповещений могут содержать снимки экрана, например от синтетического монитора (см. [Показ снимка экрана](/docs/monitor/incident-alert-templating#показ-снимка-экрана)). OneUptime показывает их в сообщениях Slack, загружая каждый в ваше рабочее пространство как частный файл, для чего нужен scope бота `files:write`. Сгенерированный манифест его включает.
 
 Если вы создали приложение Slack из более старого манифеста, добавьте `files:write` в **OAuth & Permissions > Bot Token Scopes** (или обновите приложение из текущего манифеста). Затем снова выберите **Connect with Slack** в **Настройки проекта > Рабочее пространство > Slack**, чтобы новый scope был предоставлен. До тех пор каждый снимок экрана показывается своим альтернативным текстом.
+
+### Приложения, созданные по старому манифесту
+
+Приложение Slack, созданное по более раннему манифесту OneUptime, регистрирует `/incident` и `/maintenance` как собственные команды, которые могут конфликтовать с одноимёнными командами других приложений. Они продолжают работать и открывают те же формы, что `/oneuptime incident` и `/oneuptime maintenance`. Чтобы заменить их на `/oneuptime`, обновите приложение по манифесту, который создаёт ваш сервер: на [api.slack.com/apps](https://api.slack.com/apps) откройте **App Manifest** приложения, вставьте манифест и сохраните. Scope не меняются, поэтому переустанавливать приложение не нужно.
 
 ## Сетевой доступ для самостоятельно размещённых установок
 
@@ -172,7 +175,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 | Метод и путь | Назначение |
 | --- | --- |
 | `POST /api/slack/events` | Проверка Events API, реакции, закрепления, упоминания и сообщения |
-| `POST /api/slack/interactive` | Кнопки, ярлыки, отправка модальных окон, `/incident` и `/maintenance` |
+| `POST /api/slack/interactive` | Кнопки, ярлыки, отправка модальных окон, а также `/incident` и `/maintenance` старого приложения |
 | `POST /api/slack/options-load` | Запросы вариантов интерактивных меню |
 | `POST /api/slack/command` | Команда `/oneuptime` |
 

@@ -6,6 +6,10 @@ import logger, {
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import applyPublicPageNotFound, {
+  PUBLIC_PAGE_NOT_FOUND,
+  PublicPageNotFound,
+} from "Common/Server/Utils/PublicPageNotFound";
 
 /*
  * Serves an llms.txt document for a status page so that AI agents and
@@ -14,9 +18,10 @@ import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEng
  * overview JSON API).
  *
  * Access control mirrors the RSS feed (/rss): the status page is resolved
- * with getStatusPageData, which returns null (-> 404) when the page cannot
- * be resolved. Everything this document exposes (page title, feed and API
- * URLs) is already exposed by /rss.
+ * with getStatusPageData, and a page that does not exist - or is archived,
+ * or of a blocked project - or cannot be resolved gets a 404. Everything
+ * this document exposes (page title, feed and API URLs) is already exposed
+ * by /rss.
  */
 export const handleLlmsTxt: (
   req: ExpressRequest,
@@ -30,7 +35,14 @@ export const handleLlmsTxt: (
      * Get status page data (resolves the page from the host or the
      * /status-page/:statusPageId path, same as the RSS feed).
      */
-    const statusPageData: StatusPageData | null = await getStatusPageData(req);
+    const statusPageData: StatusPageData | PublicPageNotFound | null =
+      await getStatusPageData(req);
+
+    if (statusPageData === PUBLIC_PAGE_NOT_FOUND) {
+      applyPublicPageNotFound(res);
+      res.send("Status page not found");
+      return;
+    }
 
     if (!statusPageData) {
       res.status(404).send("Status page not found");

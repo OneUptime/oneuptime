@@ -1,35 +1,54 @@
-# Arbejd med OneUptime fra GitHub
+# GitHub App
 
-OneUptime GitHub App er ikke kun en forbindelse til din kode — du kan tale med den inde i dit repository, og så udfører den arbejdet der.
+OneUptime GitHub App er mere end en forbindelse til din kode: du kan tale med den i dit repositorie, og den udfører arbejdet dér. Nævn den i et issue, så åbner den en pull request; nævn den i en pull request, så reviderer den branchen eller gennemgår diffen. Alt, hvad den laver, er en pull request eller en gennemgang, som en person skal læse: **den merger aldrig noget, og den godkender aldrig en pull request.**
 
-Nævn den i et issue, og den åbner en pull request. Nævn den i en pull request, og den reviderer grenen eller gennemgår diffen. Sæt en label på et issue, og den tager issuet op. Alt, hvad den producerer, er en pull request eller et review, som et menneske skal læse: **den merger aldrig noget, og den godkender aldrig en pull request.**
+:::cards
+- [Kommandoerne](#kommandoerne): Hvad du skriver i et issue eller en pull request.
+- [Sådan ser det ud i tråden](#sådan-ser-det-ud-i-tråden): Én kommentar, der følger arbejdet.
+- [Hvem der må give den kommandoer](#hvem-der-må-give-den-kommandoer): Personer med skriveadgang og ingen andre.
+- [Fejlfinding](#fejlfinding): Når en omtale ikke gør noget.
+:::
 
 ```text
-@oneuptime implement this                          →  en pull request, der lukker issuet
-@oneuptime revise this — use exponential backoff   →  nye commits på pull requestens gren
-@oneuptime review                                  →  et kodereview postet på denne pull request
+@oneuptime implement this                          →  a pull request that closes the issue
+@oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
+@oneuptime review                                  →  a code review posted on this pull request
 ```
 
-> Udskift `@oneuptime` med din egen apps slug. På OneUptime Cloud er den `@oneuptime`. På en selvhostet instans er det det navn, du gav din GitHub App, med små bogstaver og mellemrum lavet om til bindestreger — en app, der hedder "Acme AI", nævnes som `@acme-ai`. Hvis omtaler ikke gør noget, er det det første, du skal tjekke.
+> [!NOTE]
+> Erstat `@oneuptime` med din egen apps handle. På OneUptime Cloud er det `@oneuptime`. På en selvhostet instans er det det navn, du gav din GitHub App, med små bogstaver og bindestreger i stedet for mellemrum: en app ved navn "Acme AI" nævnes som `@acme-ai`. Hvis omtaler ikke gør noget, så kontrollér dette først.
 
-## Før du går i gang
+## Sådan virker det
 
-- Repositoryet skal være **forbundet til et OneUptime-projekt** gennem GitHub Appen. Se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) for opsætningen, eller forbind det fra **Opgaver → Kode-repositorier** på OneUptime Cloud.
-- En **Runbook-agent med egenskaben "Kører AI-koderettelser"** skal være online — den samme agent, der udfører [AI-rettelsesopgaver](/docs/ai/ai-agent). Uden en bliver kommandoer taget imod og fejler så efter 30 minutter med en besked om, at ingen agent tog dem op.
-- GitHub Appen skal have tilladelsen **Issues: Læs og skriv** og abonnere på de webhook-hændelser, der står under [Hvad du skal abonnere på](#hvad-du-skal-abonnere-på).
+```mermaid title="Fra en omtale til en pull request"
+flowchart TB
+    M["En omtale, en etiket<br/>eller en tildeling"] --> W{"Har forfatteren<br/>skriveadgang?"}
+    W -->|"nej"| N["En forvirret reaktion<br/>og intet andet"]
+    W -->|"ja"| K["En øjne-reaktion og<br/>én bekræftelse"]
+    K --> R["En Runner udfører<br/>anmodningen i en klon"]
+    R --> O["Den samme kommentar,<br/>omskrevet med<br/>resultatet"]
+```
+
+Det er den samme agent og den samme Runner som ved [Rettelsesopgaver](/docs/ai/ai-agent), med de samme budgetter; kun udløseren er en anden.
+
+## Før du starter
+
+- Repositoriet skal være **forbundet til et OneUptime-projekt** via GitHub App: forbind det under **Opgaver → Koderepositorier** (åbn **Produkter → Kode → Opgaver**). En selvhostet instans skal først have sin egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration).
+- En Runner med **Kører AI-koderettelser** skal være online: den samme Runner, som udfører [Rettelsesopgaver](/docs/ai/ai-agent). Uden en bliver kommandoer accepteret og mislykkes så efter 30 minutter med en besked om, at ingen agent tog dem.
+- GitHub App skal have tilladelsen **Issues** med **Read & write** og skal abonnere på webhook-hændelserne under [Hvad der skal abonneres på](#hvad-der-skal-abonneres-på).
 
 ## Kommandoerne
 
-Alle kommandoer begynder med en omtale af appen. Omtalen må stå hvor som helst i kommentaren, og alt, hvad du skriver efter den, gives videre som din anmodning.
+Hver kommando starter med en omtale af appen. Omtalen kan stå hvor som helst i kommentaren, og alt, hvad du skriver efter den, sendes videre som din anmodning.
 
 ### På en pull request
 
-| Kommando | Hvad der sker |
-| --- | --- |
-| `@oneuptime review` | Kloner grenen, læser den ændrede kode **og koden omkring den** og poster et review som en kommentar. Ændrer ingenting. |
-| `@oneuptime revise this — <what you want changed>` | Kloner pull requestens egen gren, laver ændringen og pusher nye commits til den samme gren. Åbner aldrig endnu en pull request. |
+| Kommando | Hvad der sker | Forstås også |
+| --- | --- | --- |
+| `@oneuptime review` | Kloner branchen, læser den ændrede kode og koden omkring den og slår en gennemgang op som en kommentar. Ændrer intet. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime revise this — <what you want changed>` | Kloner pull requestens egen branch, laver ændringen og pusher nye commits til den branch. Åbner aldrig en anden pull request. | `revise`, `please revise`, `rework`, `redo` |
 
-Alt, hvad du skriver efter omtalen, og som ikke er en genkendt kommando, behandles som en anmodning om en revision, for det er næsten altid det, det er:
+Alt, hvad du skriver efter omtalen, og som ikke er en kendt kommando, læses som en anmodning om revision, fordi det næsten altid er det, det er:
 
 ```text
 @oneuptime the retry loop here should back off exponentially, and the test
@@ -38,108 +57,120 @@ should cover the 429 case
 
 ### På et issue
 
-| Kommando | Hvad der sker |
-| --- | --- |
-| `@oneuptime implement this` | Arbejder med issuet og åbner en pull request, der lukker det. |
-| `@oneuptime <anything else>` | Det samme, men med dine ord som ekstra retning. |
+| Kommando | Hvad der sker | Forstås også |
+| --- | --- | --- |
+| `@oneuptime implement this` | Arbejder på issuet og åbner en pull request, der lukker det. | `implement`, `please implement`, `work on this`, `pick this up`, `take this` |
+| `@oneuptime <anything else>` | Det samme, med dine ord som ekstra retning. | — |
 
-Du kan også overdrage et issue til appen **helt uden at kommentere**:
+Du kan også give appen et issue uden en kommentar:
 
-- **Sæt triggerlabelen på.** Sætter du repositoryets triggerlabel — `oneuptime` som standard — på et issue, sætter det det samme arbejde i gang. Det er den mest pålidelige måde at uddelegere arbejde på fra GitHubs brugerflade.
-- **Tildel issuet til appens bot-bruger**, hvor dit repository tillader det. GitHub lader ikke en app være ansvarlig alle steder, og det er derfor, labelen findes; gør en tildeling ingenting, så brug labelen.
+- **Tilføj udløseretiketten.** At tilføje repositoriets udløseretiket, `oneuptime`, medmindre du har ændret den, til et issue starter det samme arbejde. Det er den mest pålidelige måde at overdrage arbejde fra GitHubs egne sider på.
+- **Tildel issuet til appens botbruger**, hvor dit repositorie tillader det. GitHub lader ikke en app være tildelt overalt, og derfor findes etiketten: hvis tildelingen ikke gør noget, så brug etiketten.
 
-### Alle steder
+### Overalt
 
-| Kommando | Hvad der sker |
-| --- | --- |
-| `@oneuptime help` | Viser kommandoerne. En bar omtale uden noget efter gør det samme. |
-| `@oneuptime status` | Fortæller, hvad den er i gang med lige nu i denne tråd. |
-| `@oneuptime cancel` | Stopper de kørsler, den har i gang i denne tråd. Arbejde, der allerede er pushet, bliver liggende. |
+| Kommando | Hvad der sker | Forstås også |
+| --- | --- | --- |
+| `@oneuptime help` | Viser kommandoerne. En omtale uden noget efter gør det samme. | `commands`, `usage`, `what can you do` |
+| `@oneuptime status` | Fortæller, hvad den arbejder på i denne tråd. | `progress` |
+| `@oneuptime cancel` | Stopper de kørsler, den har i gang i denne tråd. Arbejde, der allerede er pushet, forbliver pushet. | `stop`, `abort` |
 
-`help`, `status` og `cancel` starter aldrig en agent-kørsel, så de koster ingenting.
+`help`, `status` og `cancel` starter aldrig en agentkørsel, så de koster intet.
 
 ## Sådan ser det ud i tråden
 
-Én kommando giver **én kommentar**, som appen redigerer, efterhånden som arbejdet skrider frem — så en langvarig opgave laver aldrig en pull request om til en statuslog.
+Én kommando giver **én kommentar**, som appen redigerer, efterhånden som arbejdet skrider frem, så en lang opgave aldrig gør en pull request til en statuslog.
 
-1. Den reagerer 👀 på din kommentar og poster en kvittering, der nævner det OneUptime-projekt, kørslen hører til, og linker til den igangværende kørsel.
-2. Når den er færdig, bliver den samme kommentar skrevet om med resultatet: den pull request, den åbnede, de commits, den pushede, eller en ærlig forklaring på, hvorfor den ikke gjorde noget.
+1. Den reagerer med 👀 på din kommentar og slår en bekræftelse op, der nævner det OneUptime-projekt, kørslen hører til, og linker til den kørende kørsel.
+2. Når den er færdig, omskriver den den samme kommentar med resultatet: den pull request, den åbnede, de commits, den pushede, eller en klar forklaring på, hvorfor den ikke gjorde noget.
 
-Finder den ikke noget, der er værd at ændre, siger den det i stedet for at åbne en spekulativ pull request. Det er et normalt udfald, ikke en fejl — giv den mere retning, og spørg igen.
+Hvis den ikke finder noget, der er værd at ændre, siger den det i stedet for at åbne en spekulativ pull request. Det er et normalt resultat, ikke en fejl: giv den mere retning og spørg igen.
 
-## Hvem må give den kommandoer
+## Hvem der må give den kommandoer
 
-**Kun folk med write-, maintain- eller admin-adgang til repositoryet.** OneUptime spørger hver eneste gang GitHub direkte om, hvilke rettigheder kommentarens forfatter har på netop det repository; den stoler ikke på det "contributor"-mærkat, GitHub viser ved siden af en kommentar, for det beskriver tidligere aktivitet frem for nuværende adgang.
+**Kun personer med write-, maintain- eller admin-adgang til repositoriet.** OneUptime spørger GitHub om kommentatorens tilladelse til det repositorie hver gang; den stoler ikke på mærket "contributor", som GitHub viser ved siden af en kommentar, for det beskriver tidligere aktivitet og ikke nuværende adgang.
 
-En omtale fra alle andre får én 😕-reaktion på kommentaren og ellers ingenting. Det er med vilje: på et offentligt repository kan hvem som helst kommentere, og en app, der pålideligt svarer fremmede, er en app, der kan bruges til at spamme en tråd.
+En omtale fra alle andre får en enkelt 😕-reaktion og intet mere. Det er med vilje: i et offentligt repositorie kan alle kommentere, og en app, der altid svarer fremmede, kan bruges til at spamme en tråd.
 
-Den ignorerer også alle kommentarer skrevet af en bot, sine egne inklusive, og den ignorerer omtaler, der står inde i et citat (`>`) eller en kodeblok. Tilsammen er det de to regler, der forhindrer, at et svar på en af dens egne kommentarer sætter den i gang igen.
+Den ignorerer også alle kommentarer skrevet af en bot, sine egne inklusive, og omtaler inde i et citat (`>`) eller en kodeblok. Tilsammen forhindrer de to regler, at et svar på en af dens egne kommentarer starter den igen.
 
 ## Hvad den ikke gør
 
-- **Den merger aldrig.** Intet af det, denne app gør, kan lægge kode på din standardgren.
-- **Den godkender aldrig og beder aldrig om ændringer.** Reviews postes som kommentarer, så et review fra en app kan aldrig opfylde en regel for grenbeskyttelse.
-- **Den skriver aldrig historik om.** En revision tilføjer commits; den force-pusher ikke. Har en anden pushet til grenen først, fejler revisionen i stedet for at kassere deres arbejde.
-- **Den kan ikke revidere en pull request fra en fork.** En forks gren ligger i et repository, som installationen ikke kan skrive til. Den kan stadig gennemgå den — bed om et review i stedet.
-- **Den ændrer aldrig en pull requests titel, beskrivelse eller målgren.** Kun kode.
+- **Den merger aldrig.** Intet, denne app gør, kan bringe kode ind på din standardbranch.
+- **Den godkender aldrig og beder aldrig om ændringer.** Gennemgange slås op som kommentarer, så en gennemgang fra appen aldrig kan opfylde en regel for branchbeskyttelse.
+- **Den omskriver aldrig historikken.** En revision tilføjer commits; den laver aldrig force-push. Hvis en anden pushede til branchen først, mislykkes revisionen i stedet for at smide vedkommendes arbejde væk.
+- **Den kan ikke revidere en pull request fra en fork.** En forks branch ligger i et repositorie, som installationen ikke kan skrive til. Den kan stadig gennemgå den: bed i stedet om en gennemgang.
+- **Den ændrer aldrig en pull requests titel, beskrivelse eller målbranch.** Kun kode.
 
-## Hvad det koster, og hvordan du sætter grænser
+## Hvad det koster, og hvordan du begrænser det
 
-Enhver kommando, der sætter arbejde i gang, er en fuld agent-kørsel — en klon, op til 40 LLM-kald og 100.000 output-tokens plus dit repositorys build- og testkommandoer, hvis du har konfigureret dem.
+Hver kommando, der starter arbejde, er en fuld agentkørsel: en klon, op til 40 LLM-kald og 100.000 output-tokens samt dit repositories build- og testkommandoer, når du har sat dem.
 
-GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelseskørsler gælder for dem. Den ene grænse, der kan gælde, er den, der i forvejen styrer [AI-rettelsesopgaver](/docs/ai/ai-agent):
+GitHub-kommandoer er AI-arbejde uden for hændelser og advarsler, så ingen daglig grænse for rettelsesopgaver gælder for dem; projektets egne daglige AI-grænser gør, når projektet sætter dem. Den eneste anden grænse er den, der allerede gælder for [Rettelsesopgaver](/docs/ai/ai-agent):
 
-- **Loftet over åbne pull requests pr. repository** (**Max Open Fix Pull Requests** under **Kode-repositorier → repositoryet → Indstillinger**). Der er intet loft, før du sætter et, og 0 blokerer AI-rettelses-pull requests på det repository. Reviews og revisioner er undtaget: ingen af dem lægger en ny pull request i din reviewkø.
+- **Loftet over åbne pull requests** (**Max Open Fix Pull Requests** på repositoriets side **Indstillinger**). Der er intet loft, før du sætter et, og 0 blokerer AI-rettelses-pull-requests i det repositorie. Gennemgange og revisioner er undtaget: ingen af dem føjer en pull request til din gennemgangskø.
 
-Der kan kun være én kørsel af en given slags i gang ad gangen pr. issue eller pull request. Spørger du to gange, får du at vide, at den allerede er i gang; beder du om et review, mens en revision kører, starter begge, for det er to forskellige anmodninger.
+Kun én kørsel af en slags er aktiv pr. issue eller pull request ad gangen. Spørger du to gange, får du at vide, at den allerede arbejder; beder du om en gennemgang, mens en revision kører, starter begge, da det er forskellige anmodninger.
 
-Kan en kørsel ikke startes, siger appen hvorfor i tråden — den fejler aldrig i stilhed.
+Hvis en kørsel ikke kan starte, siger appen hvorfor i tråden: den fejler aldrig i stilhed.
 
-## Sådan slår du det fra
+## Slå den fra
 
-Pr. repository: **Kode-repositorier → repositoryet → Indstillinger → Svar på GitHub-kommandoer**. Er den slået fra, ignorerer appen omtaler, tildelinger og triggerlabelen i det repository og fortæller den, der spørger, hvor kontakten sidder.
+Hvert repositorie har en kontakt: **Respond to GitHub Commands** på repositoriets side **Indstillinger**. Når den er slået fra, ignorerer appen omtaler, tildelinger og udløseretiketten i det repositorie og fortæller alle, der spørger, hvor kontakten er.
 
-Den samme side rummer **GitHub-triggerlabel**, hvis du vil have noget andet end `oneuptime`.
+Den samme side har **GitHub Trigger Label**, hvis du vil have en anden etiket end `oneuptime`.
 
-## Hvad du skal abonnere på
+## Hvad der skal abonneres på
 
-Under **Tilladelser og hændelser** i din GitHub Apps indstillinger skal du abonnere på:
+Abonnér under indstillingerne **Permissions & events** for din GitHub App på:
 
-| Hændelse | Nødvendig for |
+| Hændelse | Bruges til |
 | --- | --- |
-| **Issue comment** | `@mention`-kommandoer på issues *og* pull requests |
-| **Issues** | tildeling til appen og triggerlabelen |
-| **Pull request** | et review anmodet fra appen |
-| **Pull request review** | en omtale i teksten på et indsendt review |
-| **Pull request review comment** | en omtale på en inline-kommentar i diffen |
+| **Issue comment** | `@mention`-kommandoer i issues og pull requests |
+| **Issues** | tildeling af et issue til appen og udløseretiketten |
+| **Pull request** | en gennemgang, der anmodes om fra appen |
+| **Pull request review** | en omtale i teksten i en indsendt gennemgang |
+| **Pull request review comment** | en omtale i en inline-kommentar til diffen |
 
-Og under **Repository-tilladelser** skal **Issues** stå til **Læs og skriv** — GitHub leverer kommentarer i pull request-samtaler gennem issues-API'et, og det er dét, der også lader appen kommentere på pull requests.
+Under **Repository permissions** skal **Issues** stå på **Read & write**: GitHub sender en pull requests samtalekommentarer gennem issues-API'et, så det er dette, der også lader appen kommentere på pull requests.
 
 ## Prompt injection: hvad der er beskyttet, og hvad der ikke er
 
-Issue-tekst, beskrivelser af pull requests, diffs og kommentarer bliver alle sammen en del af agentens prompt, og på et offentligt repository kan hvem som helst skrive dem. Tekst i stil med "ignorér dine instruktioner og gør X" er noget, man realistisk kan finde i et issue.
+Issuetekst, pull request-beskrivelser, diffs og kommentarer bliver alle en del af agentens prompt, og i et offentligt repositorie kan alle skrive dem. En linje som "ignorer dine instruktioner og gør X" er realistisk at finde i et issue.
 
-To ting sætter grænser for det, og det er værd at vide, hvad der er hvad:
+To ting begrænser dette, og det er værd at vide, hvilken der er hvilken:
 
-- **Prompterne markerer tekst, der ikke kan stoles på, som en anmodning og ikke som instruktioner**, og kørslens repository, gren og pull request ligger fast, før agenten overhovedet går i gang — intet af det, agenten læser, kan ændre, hvad den arbejder på.
-- **Den egentlige indeslutning er sandkassen.** Agenten kører på din Runbook-agent, i en klon, der smides væk, med credentials fjernet fra sit kommandomiljø og sine git-operationer begrænset. Den kan aldrig andet end at pushe til en gren, og kun et menneske kan merge en.
+- **Promptene markerer tekst, der ikke er tillid til, som en anmodning og ikke som instruktioner**, og kørslens repositorie, branch og pull request ligger fast, før agenten starter: intet, agenten læser, kan ændre, hvad den arbejder på.
+- **Den egentlige indeslutning er sandkassen.** Agenten kører på din Runner, i en engangsklon, med legitimationsoplysninger fjernet fra dens kommandomiljø og dens git-handlinger begrænset. Den kan kun nogensinde pushe til en branch, og kun en person kan merge en.
 
-Behandl en AI-skrevet pull request, som du ville behandle en fra en ny bidragyder, der har læst issuet: gennemgå diffen, ikke beskrivelsen.
+Behandl en pull request, som AI'en skrev, som du ville behandle en fra en ny bidragyder, der har læst issuet: gennemgå diffen, ikke beskrivelsen.
 
 ## Fejlfinding
 
-**Der sker ingenting, når jeg nævner den.** Tjek først navnet, du nævner — det er appens slug, ikke dens visningsnavn. Tjek derefter, at repositoryet er forbundet til et projekt (**Opgaver → Kode-repositorier**), at **Svar på GitHub-kommandoer** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
+:::details Der sker intet, når jeg nævner den
+Kontrollér først handlet: det er appens slug, ikke dens visningsnavn. Kontrollér derefter, at repositoriet er forbundet til et projekt (**Opgaver → Koderepositorier**), at **Respond to GitHub Commands** er slået til, og at din GitHub App abonnerer på hændelserne ovenfor.
+:::
 
-**Den reagerer 😕 og siger ikke noget.** Du har ikke skriveadgang til repositoryet.
+:::details Den reagerer med 😕 og siger intet
+Du har ikke skriveadgang til repositoriet.
+:::
 
-**Den siger, at den allerede er i gang med det her.** En kørsel af den slags er allerede i gang på dette issue eller denne pull request. `@oneuptime status` fortæller dig hvad, og `@oneuptime cancel` stopper den.
+:::details Den siger, at den allerede arbejder på det
+En kørsel af den slags er allerede aktiv på dette issue eller denne pull request. `@oneuptime status` fortæller, hvad det er, og `@oneuptime cancel` stopper den.
+:::
 
-**Den kvitterede og blev så tavs i lang tid.** Tjek, at en Runbook-agent med **Kører AI-koderettelser** er online under **Runbooks → Runbook-agenter**. Uden en bliver kørslen fejlet efter 30 minutter, og tråden får besked.
+:::details Den bekræftede og blev så stille længe
+Kontrollér, at en Runner med **Kører AI-koderettelser** er online under **Runbooks → Runbook-agenter**. Uden en mislykkes kørslen efter 30 minutter, og tråden får besked.
+:::
 
-**Den siger, at pull requesten kommer fra en fork.** Revisioner kræver en gren i dette repository. Bed om et review i stedet, eller push grenen hertil.
+:::details Den siger, at pull requesten kommer fra en fork
+En revision kræver en branch i dette repositorie. Bed i stedet om en gennemgang, eller push branchen hertil.
+:::
 
-## Læs videre
+## Næste trin
 
-- [AI-rettelsesopgaver](/docs/ai/ai-agent) — den samme agent, udløst af en undtagelse i stedet for fra GitHub.
-- [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration) — sådan opretter og konfigurerer du GitHub Appen.
-- [Runbook-agenter](/docs/runbooks/agents) — den arbejder, der udfører kørslerne.
+:::cards
+- [Rettelsesopgaver](/docs/ai/ai-agent): Den samme agent, startet fra en undtagelse, et spor eller en undersøgelse.
+- [GitHub-integration](/docs/self-hosted/github-integration): Opret og konfigurer GitHub App på en selvhostet instans.
+- [Runbook-agenter](/docs/runbooks/agents): Workeren, der udfører hver kørsel.
+:::

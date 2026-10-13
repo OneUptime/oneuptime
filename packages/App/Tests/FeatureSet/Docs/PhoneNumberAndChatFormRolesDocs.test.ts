@@ -303,14 +303,16 @@ describe("Docs: Slack's and Microsoft Teams' create forms act as the member", ()
     },
   );
 
-  test("Slack: /incident and /maintenance need a connected account of a current member", () => {
-    expect(slack).toContain("`/incident` and `/maintenance`");
+  test("Slack: /oneuptime incident and /oneuptime maintenance need a connected account of a current member", () => {
+    expect(slack).toContain(
+      "`/oneuptime incident` and `/oneuptime maintenance`",
+    );
     expect(slack).toContain("If your Slack account is not connected");
     expect(slack).toContain("no longer a member of the project");
   });
 
   test("Microsoft Teams: the form is filled in as whoever asks for it, and submitted as whoever submits it", () => {
-    expect(teams).toContain("`create incident` or `create maintenance`");
+    expect(teams).toContain("Typing `incident` or `maintenance`");
     expect(teams).toContain("submitted as whoever does");
     // The bot's own words for a refused reference.
     expect(teams).toContain(

@@ -147,7 +147,7 @@ Di cosa ha bisogno il blocco, e quanto costa:
 
 - **Abilita IA** deve essere acceso, in **Impostazioni del progetto → IA → AI Features**. Su OneUptime Cloud il progetto ha bisogno anche del piano Growth o superiore e di un abbonamento pagato. Le installazioni self-hosted senza fatturazione non hanno vincoli di piano.
 - Le chiamate tramite un provider globale a pagamento usano i crediti IA del progetto.
-- Ogni chiamata conta nei [limiti giornalieri di IA del progetto](/docs/ai/ai-sre#the-projects-own-daily-limits), quando un proprietario del progetto li imposta. Una volta raggiunto un limite, il blocco prende **Error** senza contattare il modello, fino alla mezzanotte UTC.
+- Ogni chiamata conta nei [limiti giornalieri di IA del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso), quando un proprietario del progetto li imposta. Una volta raggiunto un limite, il blocco prende **Error** senza contattare il modello, fino alla mezzanotte UTC.
 
 | Limite                                                       | Valore                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |

@@ -1,34 +1,90 @@
-# AI Fix Tasks — Fix Exceptions with a Pull Request
+# Rettelsesopgaver
 
-<!-- TODO(i18n): Translate this page. English source: en/ai/ai-agent.md (rewritten for the v12 Runner merge; the previous translation described the retired standalone AI Agent). -->
+En rettelsesopgave er en pull request, som OneUptime AI skriver i din kode. Du starter en fra en undtagelse, et spor, en tjeneste eller en undersøgelse, eller OneUptime starter en af sig selv; en [Runner](/docs/runbooks/agents) kloner repositoriet, skriver ændringen på en ny branch, bygger og tester den og åbner en pull request. En person gennemgår og merger hver eneste: Runneren kan pushe branches og åbne pull requests, intet andet.
 
-OneUptime AI turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with AI**: a [Runner](/docs/runbooks/agents) picks the task up, reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
+:::cards
+- [Sådan forløber en rettelseskørsel](#sådan-forløber-en-rettelseskørsel): Fra et klik til en pull request, trin for trin.
+- [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter): Knapperne, der starter en, og hvad hver pull request gør.
+- [Før du begynder](#før-du-begynder): En model, et forbundet repositorie og en Runner.
+- [Når en rettelse mislykkes](#når-en-rettelse-mislykkes): Hvad der sker med en kørsel, der fejler, går i stå eller venter.
+:::
 
-Every pull request is reviewed and merged by a human. The Runner never merges its own changes — it can push branches and open PRs, nothing more.
+> [!TIP]
+> Du kan også starte dette fra GitHub. Nævn OneUptime GitHub App i et issue eller en pull request, så implementerer, reviderer eller gennemgår den lige dér: se [GitHub App](/docs/ai/github-app). Det er den samme agent, den samme Runner og de samme budgetter; kun udløseren er en anden.
 
-> **You can also start this from GitHub itself.** Mention the OneUptime GitHub App on an issue or a pull request and it will implement, revise or review right there — see [Working with OneUptime from GitHub](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
+## Sådan forløber en rettelseskørsel
 
-## How a fix run works
+```mermaid title="Fra et klik til en pull request"
+flowchart TB
+    S["Fix with AI eller en<br/>automatisk udløser"] --> Q["En rettelsesopgave<br/>sættes i kø"]
+    Q --> R["En Runner, der kører<br/>AI-koderettelser,<br/>tager den"]
+    R --> C["Den kloner repositoriet<br/>og laver en branch"]
+    C --> A["Kodeagenten<br/>skriver ændringen"]
+    A --> V["Setup-, build- og<br/>testkommandoer<br/>kontrollerer den"]
+    V -->|"en fejl"| A
+    V --> P["Commit, push og<br/>åbn en pull request"]
+    P --> H["En person gennemgår<br/>og merger den"]
+```
 
-1. You click **Fix with AI** on an unresolved exception.
-2. A fix task is created and picked up by an available Runner with the **Kører AI-koderettelser** capability.
-3. The Runner fetches the exception details — exception type, error message, and stack trace.
-4. It clones the linked repository into an ephemeral workspace and creates a branch (named `oneuptime-fix-exception-` followed by the first characters of the run id).
-5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The LLM calls are executed by the OneUptime server — the Runner container never holds your provider's API key — and every call is metered and logged in the AI logs.
-6. The Runner commits, pushes the branch, opens a pull request, and deletes the workspace.
+1. Du klikker på **Fix with AI** på en uløst undtagelse, eller en anden knap eller udløser starter en opgave (se [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter)).
+2. Opgaven sættes i kø, og en ledig Runner med **Kører AI-koderettelser** slået til tager den.
+3. Runneren henter opgavens kontekst. For en undtagelse er det dens type, dens meddelelse og dens stack trace.
+4. Den kloner repositoriet til sit eget arbejdsområde og laver en branch. En rettelse af en undtagelse hedder `oneuptime-fix-exception-` efterfulgt af de første tegn i kørslens id.
+5. En kodeagent, drevet af dit projekts LLM-udbyder, læser koden og skriver ændringen. OneUptime-serveren foretager LLM-kaldene, så Runneren aldrig har din udbyders API-nøgle, og hvert kald måles og vises i AI-loggene.
+6. Hvis repositoriet har kontrolkommandoer, bygger og tester Runneren ændringen, før den committer noget, og giver en fejl tilbage til kodeagenten, så den kan rette den (se [Kontrol før pull requesten](#kontrol-før-pull-requesten)).
+7. Runneren committer, pusher branchen, åbner pull requesten og sletter arbejdsområdet.
 
-The exception page shows the task's live status. The task's detail page (under **AI** > **Tasks**) keeps the full run log — including a line for every file the Runner read or wrote and every command it ran — and links to every pull request the task opened.
+Siden, opgaven blev startet fra, viser dens status live. Alle opgaver står under **Produkter → Kode → Opgaver**: åbn en for at se dens **Oversigt**, dens **Protokoller** (en linje for hver fil, Runneren læste eller skrev, og hver kommando, den kørte) og dens **Pull requests**.
 
-Each fix run is capped by server-enforced loop budgets: at most **40 LLM calls** and **100,000 output tokens** per run. A run that hits its budget finishes with a summary of the work done so far instead of looping forever. Fix runs also count against the project's daily autonomous AI token budget, if one is set.
+Hver kørsel holdes inden for budgetter, som serveren håndhæver: højst **40 LLM-kald** og **100.000 output-tokens**. En kørsel, der når et af dem, afslutter med et resumé af arbejdet indtil da i stedet for at køre i ring. Rettelseskørsler tæller også med i projektets daglige AI-grænser, når projektet har sat dem.
 
-## Prerequisites
+## Hvor rettelsesopgaver starter
 
-Three things must be in place before a fix task can run. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
+| Hvor | Klik | Pull requesten |
+| --- | --- | --- |
+| En undtagelses side **AI Assistance** | **Fix with AI** | Retter fejlen bag undtagelsen. |
+| En undtagelses side **AI Assistance** | **Generate Regression Test** | Tilføjer en test, der genskaber undtagelsen og fejler, indtil fejlen er rettet. |
+| En undtagelses side **AI Assistance** | **Improve Error Handling** | Til en forventet fejl, som ugyldigt input: fjerner brugerdata fra meddelelsen, validerer inputtet tidligere og markerer fejlen som håndteret uden at ændre adfærden. |
+| En hændelses eller advarsels kort **AI Investigation** | **Open Fix PR from this analysis** | Retter den grundlæggende årsag, som undersøgelsen offentliggjorde (se [Automatiske koderettelser fra undersøgelser](#automatiske-koderettelser-fra-undersøgelser)). |
+| Et spor | **Fix performance with AI** | Retter det langsomme mønster, der blev fundet i sporet, som N+1-forespørgsler eller et enkelt dominerende langsomt span. |
+| En tjenestes side **Protokoller** | **Improve Logging** | Gør tjenestens logs strukturerede, med den rette alvorlighed og knyttet til dens spor, uden at ændre adfærden. |
+| En tjenestes side **Spor** | **Improve Tracing** | Tilføjer spans og attributter, hvor tjenestens tracing mangler, uden at ændre adfærden. |
 
-### 1. An LLM provider
+For at åbne en undtagelses side **AI Assistance** skal du åbne undtagelsen under **Produkter → Observabilitet → Undtagelser** og vælge **AI Assistance** i dens sidemenu. En løst eller arkiveret undtagelse skal først markeres som uløst.
 
-- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Projektindstillinger** > **AI** > **LLM-udbydere** — a project-owned provider always takes precedence.
-- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a self-hosted Ollama:
+OneUptime AI starter også rettelsesopgaver af sig selv: fra en undersøgelse, der finder en kodeændring, fra en, der ender uden konklusion, fordi telemetri manglede, og fra AI-indsigter om undtagelser og langsomme spor. Hver har sin egen kontakt; se [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser).
+
+## Kontrol før pull requesten
+
+Et koderepositorie kan have op til tre kontrolkommandoer på sin side **Indstillinger** under **Koderepositorier**:
+
+| Kommando | Eksempel | Hvornår den kører |
+| --- | --- | --- |
+| **Setup Command** | `npm ci` | Først, for at installere afhængigheder. |
+| **Build Command** | `npm run build` | Efter opsætningen. |
+| **Test Command** | `npm test` | Til sidst. |
+
+Når en af dem er sat, kontrollerer hver rettelseskørsel sin ændring, før pull requesten åbnes:
+
+1. Når kodeagenten er færdig, kører kommandoerne i rækkefølge i roden af repositoriet, på Runneren, i det klonede arbejdsområde. Hver får op til 15 minutter og kører med `CI=true`, så intet venter på et input; den første fejl stopper gennemløbet.
+2. Ved en fejl går slutningen af den fejlende kommandos output tilbage til den samme kodeagent som en reparationsopgave, med besked om at rette sin egen ændring i stedet for at svække eller springe tests over, og kommandoerne kører igen. Den gør højst **2** reparationsforsøg. De deler kørslens LLM-budget, og deres ændringer lander i samme commit som rettelsen.
+3. Resultatet, bestået, fejlet eller sprunget over (ingen kommandoer sat), skrives i et Verification-afsnit i pull requestens beskrivelse og registreres på opgavens pull request.
+
+En ændring, der stadig ikke består kontrollen, smides ikke væk: pull requesten åbnes alligevel med et tydeligt markeret afsnit "Verification failed", der nævner den fejlende kommando og slutter med dens output. Arbejdet bevares, og den, der gennemgår, beslutter. Et repositorie uden kommandoer rapporteres som sprunget over i stedet for at antyde et grønt build.
+
+Kommandoerne er repositorieindstillinger, som dit team skriver, og de kører på din egen Runner: samme tillidsmodel som et runbooks Bash-trin. AI'en skriver eller ændrer dem aldrig.
+
+## Før du begynder
+
+En rettelsesopgave kræver tre ting. Undtagelsens side **AI Assistance** kontrollerer alle tre, før den tilbyder at starte, og fortæller, hvad der mangler.
+
+| Hvad | OneUptime Cloud | Selvhostet |
+| --- | --- | --- |
+| En LLM-udbyder | Intet at sætte op: et projekt uden egen udbyder bruger den globale udbyder, betalt af projektets AI-kreditter. En udbyder af din egen under **Projektindstillinger → AI → LLM-udbydere** går forud. | Sæt miljøvariablerne `GLOBAL_LLM_PROVIDER_*` én gang på serveren, eller føj en udbyder til projektet. |
+| Et repositorie forbundet via GitHub App | **Produkter → Kode → Opgaver**, derefter **Koderepositorier** og **Connect with GitHub App**. Kræver Growth-planen. | Det samme, når din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
+| En Runner, der kører AI-koderettelser | Intet at drive: OneUptimes delte Runners gør det. | Docker Compose-tjenesten `runner` eller Helm-chartets Runner (`runner.enabled`, slået til som standard) registrerer sig selv og kører AI-koderettelser. |
+
+På en selvhostet instans er den globale udbyder én blok i `config.env` (Docker Compose) eller i dine Helm-værdier. Til en selvhostet Ollama:
 
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
@@ -38,22 +94,18 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
 ```
 
-Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for all providers and the full list of environment variables.
+Enhver understøttet udbyder virker: se [LLM-udbydere](/docs/ai/llm-provider) for dem alle og hver miljøvariabel.
 
-### 2. GitHub connected through the GitHub App
+Du tilknytter ikke repositorier til tjenester. Når en opgave starter, finder OneUptime repositoriet ved at matche filstierne i undtagelsens stack trace mod dine forbundne repositorier. Når intet matcher, falder den tilbage på et repositorie, der hedder som tjenesten, og derefter på projektets eneste repositorie, når der kun er ét. Siden **AI Assistance** viser, hvilket repositorie den fandt.
 
-Connect GitHub under **Kode-repositorier** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the Runner can push through (GitLab is on the roadmap).
+### Kør din egen Runner
 
-You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved.
+Sådan kører du en Runner et andet sted, for eksempel på en maskine tæt på dine repositorier:
 
-### 3. A Runner with AI code fixes enabled
+:::steps
+### Opret Runneren
 
-- **OneUptime Cloud**: the shared Runner fleet is available automatically — there is nothing to run.
-- **Self-hosted**: the Runner container runs by default — the Docker Compose install includes the `runner` service, and the Helm chart deploys it (`runner.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and works on AI code fixes out of the box. The Runner idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
-
-To run an additional Runner elsewhere (for example on a machine closer to your repositories):
-
-1. Create a Runner under **Runbooks** > **Runbook-agenter** and use **Vis opsætningsvejledning** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
+Opret en Runner under **Runbooks → Runbook-agenter**, og klik på **Vis opsætningsvejledning** i dens række. Kommandoen indeholder Runnerens hemmelige nøgle, som kun en Project Owner, Project Admin eller Runbook Admin kan læse. Den ser sådan ud:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -63,34 +115,68 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-2. Enable **Kører AI-koderettelser** on the Runner — the capability is off by default, and the Runner adopts the change on its next heartbeat (about a minute); no restart needed.
+### Slå AI-koderettelser til
 
-Any way of running the container works (Docker Compose, Kubernetes, and so on) as long as these environment variables are set and the container can reach your OneUptime instance over HTTPS:
+Slå **Kører AI-koderettelser** til på Runneren. Den er slået fra som standard, og Runneren opfanger ændringen ved sit næste heartbeat, inden for omkring et minut; der er intet at genstarte.
 
-| Variable               | Description                                                    |
-| ---------------------- | -------------------------------------------------------------- |
-| `ONEUPTIME_RUNNER_ID`  | The Runner id from the dashboard                               |
-| `ONEUPTIME_RUNNER_KEY` | The Runner key shown when the Runner was created               |
-| `ONEUPTIME_URL`        | Your OneUptime instance URL (`https://oneuptime.com` on Cloud) |
+### Kontrollér, at den forbinder
 
-The Runner shows as connected on the **Runbooks** > **Runbook-agenter** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
+Runneren vises som forbundet på siden **Runbooks → Runbook-agenter** inden for et minut eller to. Hvis den ikke gør, så læs containerens log (`docker logs oneuptime-runner`) for en fejl med legitimationsoplysninger eller netværk.
+:::
 
-> Before OneUptime 12, AI code fixes ran on a separate **AI Agent** component (the `oneuptime/ai-agent` image with `AI_AGENT_*` variables). That component merged into the Runner — if you still run one, see the [v11 → v12 upgrade guide](/docs/installation/upgrading) for how to replace it.
+Enhver måde at køre containeren på virker (Docker Compose, Kubernetes og så videre), så længe den har disse variabler og kan nå din OneUptime-instans over HTTPS:
 
-## When a fix fails
+| Variabel | Hvad den er |
+| --- | --- |
+| `ONEUPTIME_RUNNER_ID` | Runnerens id, fra dashboardet. |
+| `ONEUPTIME_RUNNER_KEY` | Runnerens hemmelige nøgle. |
+| `ONEUPTIME_URL` | Din OneUptime-instans' adresse (`https://oneuptime.com` på OneUptime Cloud). |
 
-- **The run errors** (the fix could not be applied, the repository was unreachable, the LLM call failed): the task's error is shown on the exception page with the reason, and you can retry the fix from there. The full run log is on the task's detail page.
-- **The Runner crashes mid-run**: a run whose heartbeat goes stale for more than about ten minutes is failed with an error. It is never requeued automatically — the Runner may already have pushed a partial fix branch — but you can retry the fix from the exception page.
-- **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Kører AI-koderettelser** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
+> [!NOTE]
+> Før OneUptime 12 kørte AI-koderettelser på en separat AI Agent-komponent (imaget `oneuptime/ai-agent` med `AI_AGENT_*`-variabler). Den er gået op i Runneren: hvis du stadig kører en, fortæller [opgraderingsguiden fra v11 til v12](/docs/installation/upgrading), hvordan du erstatter den.
 
-## Privacy
+## Automatiske koderettelser fra undersøgelser
 
-The repository clone lives in an ephemeral workspace inside the Runner container and is deleted when the run finishes, whether it succeeded or failed. The Runner container never holds your LLM provider's API key — LLM calls are executed by the OneUptime server on the Runner's behalf. OneUptime does not retain your repository and does not train on your code; the task's run log keeps a short preview of each step's output (a few hundred characters) so you can audit what the Runner did, and those previews can include code snippets. Run a self-hosted Runner with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
+Når en [AI-undersøgelse](/docs/ai/ai-sre) offentliggør en årsagsanalyse på en hændelse eller en advarsel, og dens omhyggelige klassificering anbefaler en ændring i koden, tilbyder undersøgelseskortet **Open Fix PR from this analysis**: en rettelsesopgave, hvis hele kontekst er den offentliggjorte analyse. Knappen er skjult, når afhjælpningen er driftsmæssig, kun handler om infrastruktur, er ekstern, er en forventet afvisning, en brugerfejl eller uden konklusion. Egnede rettelser sker uden klikket, så længe kontakten **Åbn en pull request med en rettelse, når en undersøgelse finder en kodeændring** er slået til. Den hører til rettelse: den ligger under **Ret nye hændelser automatisk** på **Hændelser → AI → Indstillinger** (og under **Ret nye advarsler automatisk** på **Advarsler → AI → Indstillinger**), slås til, når rettelse slås til, og åbner kun pull requests, mens rettelse er slået til. Begge starter slået fra, også for nye projekter.
 
-## On the roadmap
+Mens den er slået til, sætter en undersøgelse, der ender med en sikker, underbygget grundlæggende årsag, som en kodeændring kan rette, den samme rettelsesopgave i kø, som knappen opretter. Beslutningen er en afgrænset klassificering, som serveren kontrollerer, aldrig et mønster, der matches mod analysens tekst: kun en positiv dom om en koderettelse åbner en pull request. Manglende belæg, en afhjælpning uden for koden og en mislykket klassificering ender alle med, at intet sker.
 
-Planned, but **not available today**:
+Alt andet svarer til knappen:
 
-- **GitLab support** — repository connections are currently GitHub App only.
-- **Richer telemetry context** — feeding related traces, logs, and metrics around the exception into the fix, beyond the stack trace.
-- **Verification loop** — building the project and running its tests against the fix before the pull request is opened.
+- Pull requesten åbnes klar til gennemgang, skrevet ud fra den offentliggjorte analyse, og kræver et repositorie forbundet via GitHub App og en Runner med **Kører AI-koderettelser** slået til.
+- Den tæller med i signalets daglige grænse for rettelsesopgaver (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Yderligere indstillinger** på dets AI-indstillingsside) og i repositoriets loft over åbne pull requests, når et af dem er sat. Uden at være sat begrænser ingen af dem noget.
+- Hver udløser leder først efter en rettelsesopgave, der allerede står i kø eller kører for den samme hændelse eller advarsel, så en automatisk udløser og et klik normalt bliver til én opgave, ikke to pull requests. Kontrollen er en læsning før skrivningen, ikke en lås, så to udløsere i præcis samme øjeblik stadig begge kan komme igennem.
+- Kørslen skrives af systemet, krediteres ingen, og intet merges af sig selv.
+
+## Når en rettelse mislykkes
+
+:::details Kørslen fejler
+Rettelsen kunne ikke anvendes, repositoriet kunne ikke nås, eller LLM-kaldet mislykkedes. Siden, opgaven blev startet fra, viser årsagen og tilbyder at prøve igen. Opgavens side **Protokoller** har hele kørselsloggen.
+:::
+
+:::details Runneren stopper midt i en kørsel
+En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, afsluttes med en fejl. Den sættes aldrig i kø igen af sig selv, fordi Runneren allerede kan have pushet en del af en rettelsesbranch; start den igen dér, hvor du startede den.
+:::
+
+:::details Ingen Runner tager opgaven
+En opgave, der venter mere end 30 minutter, mens ingen Runner med **Kører AI-koderettelser** er forbundet, mislykkes med en besked om at kontrollere Runneren, så den aldrig vises som i gang for evigt. Når en Runner er online, men optaget, venter opgaver i kø på deres tur.
+:::
+
+## Privatliv
+
+Klonen af dit repositorie ligger i et arbejdsområde i Runnerens container og slettes, når kørslen slutter, uanset om den lykkedes eller ej. Runneren har aldrig din LLM-udbyders API-nøgle: OneUptime-serveren foretager LLM-kaldene for den. OneUptime beholder ikke dit repositorie og træner ikke på din kode. Opgavens log beholder de første 300 tegn af hvert trins output, så du kan kontrollere, hvad Runneren gjorde, og det kan indeholde kodestykker. Kør en selvhostet Runner med din egen LLM-udbyder (lokal Ollama inklusive), og din kode forlader aldrig din infrastruktur.
+
+## På køreplanen
+
+Planlagt og **ikke tilgængeligt i dag**:
+
+- **Understøttelse af GitLab.** Repositorier forbindes kun via GitHub App.
+- **Mere telemetri i en rettelse.** At føre spor, logs og metrikker omkring en undtagelse ind i dens rettelse, ud over stack tracen.
+
+## Næste trin
+
+:::cards
+- [GitHub App](/docs/ai/github-app): Bed om en ændring, en revision eller en gennemgang direkte fra GitHub.
+- [AI SRE](/docs/ai/ai-sre): Undersøgelserne, hvis analyser rettelsesopgaver kan forvandle til pull requests.
+- [Runbook-agenter](/docs/runbooks/agents): Workeren, der udfører hver rettelseskørsel.
+:::

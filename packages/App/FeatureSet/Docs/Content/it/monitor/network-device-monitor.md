@@ -490,7 +490,7 @@ Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispos
 
 ### Identità del dispositivo
 
-Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove il dispositivo lo supporta, ENTITY-MIB, e compila la scheda del dispositivo: nome di sistema, descrizione, posizione, contatto, tempo di attività, produttore, modello, numero di serie e versione del firmware. L'OID enterprise del produttore (`sysObjectID`) è l'impronta del dispositivo: indica il produttore e sceglie il modello del produttore corrispondente. Le stesse informazioni compaiono nell'[inventario](/docs/inventory/cmdb-sync#network-device-asset-attributes) insieme a tutti gli altri asset.
+Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove il dispositivo lo supporta, ENTITY-MIB, e compila la scheda del dispositivo: nome di sistema, descrizione, posizione, contatto, tempo di attività, produttore, modello, numero di serie e versione del firmware. L'OID enterprise del produttore (`sysObjectID`) è l'impronta del dispositivo: indica il produttore e sceglie il modello del produttore corrispondente. Le stesse informazioni compaiono nell'[inventario](/docs/inventory/cmdb-sync#attributi-di-asset-dei-dispositivi-di-rete) insieme a tutti gli altri asset.
 
 Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o una scansione di rilevamento: non c'è alcun agente SNMP a cui chiedere di meglio.
 

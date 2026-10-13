@@ -102,6 +102,8 @@ const SOURCES: Record<string, string> = {
   userChip: `${DASHBOARD}/Components/User/User.tsx`,
   teamPermissionTable: `${DASHBOARD}/Components/Team/TeamPermissionTable.tsx`,
   pushCard: `${DASHBOARD}/Components/NotificationMethods/Push.tsx`,
+  pushCriticalAlertStatus: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlertStatus.tsx`,
+  pushCriticalAlerts: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlerts.ts`,
   userSettingsSideMenu: `${DASHBOARD}/Pages/UserSettings/SideMenu.tsx`,
   mobileAppJson: `${MOBILE_APP}/app.json`,
   mobileAppConfig: `${MOBILE_APP}/app.config.js`,
@@ -934,6 +936,26 @@ describe("Push Notifications, against the server, the chart and the mobile app",
 
 describe("Push Notifications: critical on-call alerts, against the server and the mobile app", () => {
   const page: string = english(PUSH);
+
+  it("says the device list shows each device's critical alerts, and how to turn them on, as the Push card draws them", () => {
+    const card: string = readSource("pushCard");
+
+    // A column of each device's state, drawn as a status...
+    expect(card).toContain('title: "Critical Alerts"');
+    expect(card).toContain("<PushDeviceCriticalAlertStatus");
+
+    // ...which, for a phone with it off, offers the steps that turn it on.
+    const status: string = readSource("pushCriticalAlertStatus");
+
+    expect(status).toContain('translator.translateText("How to turn on")');
+    expect(readSource("pushCriticalAlerts")).toContain(
+      'criticalAlertsSwitch: "Critical On-Call Alerts",',
+    );
+
+    expect(page).toContain(
+      "The same list shows whether each device has critical alerts on and, for a phone that does not, how to turn them on.",
+    );
+  });
 
   it("stores the setting per device, off by default", () => {
     const model: string = readSource("userPush");

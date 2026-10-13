@@ -12,6 +12,7 @@ import WorkspaceConnectRequest, {
   WorkspacePendingActionKind,
 } from "../../../../Server/Utils/Workspace/WorkspaceConnectRequest";
 import { WorkspaceEventType } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import WorkspaceConnectPromptOnce from "../../../../Server/Utils/Workspace/WorkspaceConnectPromptOnce";
 import URL from "../../../../Types/API/URL";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -109,6 +110,17 @@ describe("WorkspaceConnectRequest.create", () => {
     expect(entry.expiresAt - before).toBeLessThan(30 * 60 * 1000 + 5000);
   });
 
+  /*
+   * A message to OneUptime from an account not connected is prompted once in
+   * a conversation while that prompt's Connect button works (#4768): no
+   * longer, or a person would be left with an expired button and no new one.
+   */
+  test("is as long as a conversation goes without a second Connect prompt", () => {
+    expect(WorkspaceConnectPromptOnce.ASKED_FOR_SECONDS).toBe(
+      WorkspaceConnectRequest.EXPIRES_IN_SECONDS,
+    );
+  });
+
   test("gives every press a token of its own", async () => {
     const first: string = await slackAcknowledgeRequest();
     const second: string = await slackAcknowledgeRequest();
@@ -201,6 +213,34 @@ describe("WorkspaceConnectRequest.peek and take", () => {
       userName: "Nitin",
     });
     expect(record!.slack).toBeUndefined();
+  });
+
+  /*
+   * A question asked in the app's direct messages: there is no channel to
+   * answer in (the app's own message answers there), and the direct
+   * messages are kept as where the settings page's "Back to Slack" goes.
+   */
+  test("a question asked in the app's direct messages round-trips with the direct messages to come back to, and no channel to answer in", async () => {
+    const { token } = await WorkspaceConnectRequest.create({
+      workspaceType: WorkspaceType.Slack,
+      projectId: PROJECT_ID,
+      workspaceUserId: "U0ERIN",
+      purpose: "ask OneUptime AI",
+      again: { kind: WorkspaceConnectRequestAgainKind.Question },
+      slack: { teamId: "T0TEAM", directMessageChannelId: "D0ERIN" },
+    });
+
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.take(token);
+
+    expect(record!.again).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.Question,
+    });
+    expect(record!.slack).toEqual({
+      teamId: "T0TEAM",
+      directMessageChannelId: "D0ERIN",
+    });
+    expect(record!.slack!.channelId).toBeUndefined();
   });
 
   test.each([
@@ -337,6 +377,23 @@ describe("a stored press that is not what create writes reads as nothing", () =>
       );
 
     expect(record!.pendingAction).toBeUndefined();
+  });
+
+  test("a Slack place's direct messages that are not text are dropped, and the rest of the place kept", async () => {
+    const record: WorkspaceConnectRequestRecord | null =
+      await WorkspaceConnectRequest.peek(
+        await storeRaw(
+          JSON.stringify({
+            ...valid(),
+            slack: {
+              teamId: "T0TEAM",
+              directMessageChannelId: { id: "D0ERIN" },
+            },
+          }),
+        ),
+      );
+
+    expect(record!.slack).toEqual({ teamId: "T0TEAM" });
   });
 
   test("a Microsoft Teams place without the Bot Connector or the conversation is dropped", async () => {

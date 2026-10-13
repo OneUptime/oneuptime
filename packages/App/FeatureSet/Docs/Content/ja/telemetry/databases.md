@@ -425,7 +425,7 @@ Database Agent の `docker-compose.yml` は **データベース AI エージェ
 - **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってこのデータベースのインシデントやアラートを調査し、データベースの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、エージェントを省きます。
 - PostgreSQL、MySQL (と MariaDB、Percona Server)、Redis (と Valkey、KeyDB、Dragonfly)、MongoDB に対応しています。SQL Server、Oracle、Elasticsearch / OpenSearch、Memcached では何も実行せず、そのことをデータベースの **AI → AI エージェント** ページに表示します。
 - Collector が報告するデータベース (`DATABASE_SERVER_ID`、または `DATABASE_SYSTEM`、`DATABASE_SERVER_ADDRESS`、`DATABASE_SERVER_PORT`) として登録され、同じ `.env` にある Collector の監視用ログインで `DATABASE_ENDPOINT` に接続します。**ログインが越えられない上限です**。監視用ログインは読み取り以外何もできません。
-- `ONEUPTIME_AI_ALLOW_WRITES=true` を設定しない限り **読み取り専用** です。修正には、ほかのセッションにシグナルを送れる AI エージェント専用のログイン (PostgreSQL の `pg_signal_backend`、MySQL 8 の `CONNECTION_ADMIN` 権限、Redis ACL ユーザーの `+client|kill`、MongoDB の `killop` アクション) が必要です。これを同じ `.env` で `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` として設定すると、Collector のログインは読み取り専用のままになります (権限はエージェントの README に、ほかのリソースの権限は [認証情報と最小権限](/docs/ai/infrastructure-ai-agents#credentials-and-least-privilege) にあります)。自身のセッションを終了することはありません。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する AI に許可する操作](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent))。
+- `ONEUPTIME_AI_ALLOW_WRITES=true` を設定しない限り **読み取り専用** です。修正には、ほかのセッションにシグナルを送れる AI エージェント専用のログイン (PostgreSQL の `pg_signal_backend`、MySQL 8 の `CONNECTION_ADMIN` 権限、Redis ACL ユーザーの `+client|kill`、MongoDB の `killop` アクション) が必要です。これを同じ `.env` で `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` として設定すると、Collector のログインは読み取り専用のままになります (権限はエージェントの README に、ほかのリソースの権限は [認証情報と最小権限](/docs/ai/infrastructure-ai-agents#認証情報と最小権限) にあります)。自身のセッションを終了することはありません。同じ `.env` の `ONEUPTIME_AI_FIXES` で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
 - UID 1000 で capabilities なしで動作します。OneUptime AI を使わない場合は、`oneuptime-database-ai-agent` サービスを `docker-compose.yml` から削除してください。
 
 専用の変数は同じ `.env` にあります (compose ファイルはこれらを AI エージェントにだけ渡します。変更した後は `docker compose up -d` を実行してください):
@@ -444,7 +444,7 @@ Database Agent の `docker-compose.yml` は **データベース AI エージェ
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Collector の ID | AI エージェントを Collector とは別のデータベースとして登録します。OneUptime での ID または `<engine>\|<address>:<port>` を指定します。空のままにしてください |
 | `LOG_LEVEL` | `info` | AI エージェントのログレベル: `debug`、`info`、`warn`、`error` |
 
-実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#database-servers)。
+実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#データベースサーバー)。
 
 ## Kubernetes
 

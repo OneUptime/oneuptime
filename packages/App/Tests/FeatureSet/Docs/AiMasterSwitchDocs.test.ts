@@ -135,7 +135,7 @@ describe("the AI SRE page", () => {
 
   it("says where Enable AI lives, and that it is on by default", () => {
     expect(page).toContain(
-      "**Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Features > Enable AI.",
+      "**Make sure AI is enabled for the project** (it is by default): **Enable AI**, on **Project Settings → AI → AI Features**.",
     );
   });
 
@@ -146,7 +146,7 @@ describe("the AI SRE page", () => {
    */
   it("says fixes need Enable AI and the signal kind's fixing switch", () => {
     expect(page).toContain(
-      "Fixes also need two project switches. **Fix new incidents automatically** (on **Incidents > AI > Settings**) and **Fix new alerts automatically** (on **Alerts > AI > Settings**) start off: until one is on, nothing new of that kind is fixed. **Enable AI** (Project Settings > AI > AI Features) is on unless someone turned it off;",
+      "Fixes also need two project switches. **Fix new incidents automatically** (on **Incidents → AI → Settings**) and **Fix new alerts automatically** (on **Alerts → AI → Settings**) start off: until one is on, nothing new of that kind is fixed. **Enable AI** (**Project Settings → AI → AI Features**) is on unless someone turned it off;",
     );
     expect(page).toContain(
       "Fixes through a Runner need the same project switches as fixes through the AI agent: **Enable AI**, and **Fix new incidents automatically** (or alerts).",
@@ -156,7 +156,7 @@ describe("the AI SRE page", () => {
 
   it("says Enable AI off stops auto-remediation, runbook rules without AI included, and so does the fixing switch", () => {
     expect(page).toContain(
-      "Auto-remediation depends on two switches. **Fix new incidents automatically** (or alerts), off until the project turns it on: with it off, no new incident (or alert) is fixed. And **Enable AI** (Project Settings > AI > AI Features), the project's master AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.",
+      "Auto-remediation depends on two switches. **Fix new incidents automatically** (or alerts), off until the project turns it on: with it off, no new incident (or alert) is fixed. And **Enable AI** (**Project Settings → AI → AI Features**), the project's master AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.",
     );
   });
 

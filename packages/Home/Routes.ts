@@ -15,15 +15,11 @@ import {
   getBlogSitemapPageCount,
   getTagsSitemapPageCount,
 } from "./Utils/Sitemap";
-import { generateBlogRssFeed, generateTagRssFeed } from "./Utils/RssFeed";
+import { generateBlogRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 // Removed unused imports after dynamic sitemap refactor
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
@@ -57,6 +53,8 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { redirectLegacyUrl } from "./Utils/LegacyRedirects";
+import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
@@ -616,43 +614,23 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
+      redirectPreservingQuery(req, res, "/product/status-page", 301);
     });
 
     app.get("/logs-management", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/logs-management");
+      redirectPreservingQuery(req, res, "/product/logs-management", 301);
     });
 
     let gitHubContributors: Array<JSONObject> = [];
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
-        let contributors: Array<JSONObject> = [];
-
-        let hasMoreContributors: boolean = true;
-
-        let pageNumber: number = 1;
-
-        while (hasMoreContributors) {
-          const response: HTTPResponse<Array<JSONObject>> | HTTPErrorResponse =
-            await API.get<Array<JSONObject>>({
-              url: URL.fromString(
-                "https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" +
-                  pageNumber,
-              ),
-            });
-          pageNumber++;
-          if ((response.data as Array<JSONObject>).length < 30) {
-            hasMoreContributors = false;
-          }
-
-          contributors = contributors.concat(
-            response.data as Array<JSONObject>,
-          );
-        }
-
-        //cache it.
-        gitHubContributors = [...contributors];
+        /*
+         * Bounded and never throws (Utils/GitHubContributors.ts): when GitHub
+         * refuses, the page renders with what arrived, or with none, and the
+         * next visit asks again. A list that arrived is kept.
+         */
+        gitHubContributors = await fetchGitHubContributors();
       }
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -671,36 +649,16 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
-    app.get(
-      "/product/status-page",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/status-page`, {
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          footerCards: true,
-          cta: true,
-          blackLogo: false,
-          requestDemoCta: false,
-          footerCtaText:
-            "Start with Status Pages, expand into everything else. Sign up today.",
-        });
-      },
-    );
-
-    app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
-    });
-
     app.get("/workflows", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/workflows");
+      redirectPreservingQuery(req, res, "/product/workflows", 301);
     });
 
     app.get("/runbooks", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/runbooks");
+      redirectPreservingQuery(req, res, "/product/runbooks", 301);
     });
 
     app.get("/on-call", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/on-call");
+      redirectPreservingQuery(req, res, "/product/on-call", 301);
     });
 
     app.get(
@@ -1051,7 +1009,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/scheduled-maintenance",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/scheduled-maintenance");
+        redirectPreservingQuery(
+          req,
+          res,
+          "/product/scheduled-maintenance",
+          301,
+        );
       },
     );
 
@@ -1133,12 +1096,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/incident-management",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/incident-management");
+        redirectPreservingQuery(req, res, "/product/incident-management", 301);
       },
     );
 
     app.get("/ai-agent", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/ai-agent");
+      redirectPreservingQuery(req, res, "/product/ai-agent", 301);
     });
 
     app.get(
@@ -1420,16 +1383,16 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/legal.ejs`, {
-        support: false,
-        enableGoogleTagManager: GoogleTagManagerEnabled,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        section: "terms",
-        requestDemoCta: false,
-      });
+    /*
+     * /legal always rendered the Terms of Service: the same page as
+     * /legal/terms, under a second URL, so search engines saw two copies of
+     * one document. It redirects there permanently, which keeps what every
+     * link to /legal (the footer, the trust center, the product's own
+     * footers) has always shown, and leaves one URL to rank. The Legal Center
+     * header and sidebar on every legal page still list every document.
+     */
+    app.get("/legal", (req: ExpressRequest, res: ExpressResponse) => {
+      redirectPreservingQuery(req, res, "/legal/terms", 301);
     });
 
     app.get("/legal/terms", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1441,6 +1404,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "terms",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/terms", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1453,6 +1417,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "privacy",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/privacy", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1467,6 +1432,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "code-of-conduct",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/code-of-conduct",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1480,6 +1449,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "contact",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/contact", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1494,6 +1464,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "subprocessors",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/subprocessors",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1507,6 +1481,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1519,6 +1494,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "ccpa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/ccpa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1531,6 +1507,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "cookies",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/cookies", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1543,6 +1520,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "hipaa",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/hipaa", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1555,6 +1533,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "dmca",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/dmca", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1567,6 +1546,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "pci",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/pci", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1581,6 +1561,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27001",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27001",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1596,6 +1580,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27017",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27017",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1611,36 +1599,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "iso-27018",
           requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27017",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27017",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27018",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27018",
-          requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/iso-27018",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1654,6 +1616,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-2",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-2", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1666,6 +1629,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "soc-3",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/soc-3", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1678,6 +1642,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "vpat",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/vpat", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1692,6 +1657,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "data-residency",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/data-residency",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1705,6 +1674,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gdpr",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gdpr", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1719,6 +1689,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "21-cfr-part-11",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/21-cfr-part-11",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1732,6 +1706,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "gamp-5",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/gamp-5", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1744,6 +1719,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "annex-11",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/annex-11", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1756,6 +1732,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "iso-9001",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/iso-9001", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1770,6 +1747,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "gxp-cloud",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/gxp-cloud",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -1783,6 +1764,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "csa-star",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/csa-star", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1795,6 +1777,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "fedramp",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/fedramp", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1807,6 +1790,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "sla",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/sla", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1819,6 +1803,7 @@ const HomeFeatureSet: FeatureSet = {
         blackLogo: false,
         section: "security",
         requestDemoCta: false,
+        seo: getSEOForPath("/legal/security", res.locals["homeUrl"] as string),
       });
     });
 
@@ -1833,6 +1818,10 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           section: "deprecation-policy",
           requestDemoCta: false,
+          seo: getSEOForPath(
+            "/legal/deprecation-policy",
+            res.locals["homeUrl"] as string,
+          ),
         });
       },
     );
@@ -2178,26 +2167,10 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Blog RSS feed for a specific tag
-    app.get(
-      "/blog/tag/:tagName/rss.xml",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const tagName: string = req.params["tagName"] as string;
-
-          if (!tagName) {
-            return res.status(404).send("Tag not found");
-          }
-
-          const xml: string = await generateTagRssFeed(tagName);
-          res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
-          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
-          return res.send(xml);
-        } catch {
-          return res.status(500).send("Error generating RSS feed");
-        }
-      },
-    );
+    /*
+     * A tag's RSS feed, /blog/tag/:tagSlug/rss.xml, is served by API/BlogAPI.ts
+     * with the tag's page, ahead of its route for the tags' old addresses.
+     */
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
     app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -2262,6 +2235,14 @@ const HomeFeatureSet: FeatureSet = {
         },
       }),
     );
+
+    /*
+     * Addresses earlier versions of the site published move permanently to
+     * the pages that replaced them (Utils/LegacyRedirects.ts). Here, after
+     * every route and the static files, so a retired address can never
+     * shadow anything the site still serves.
+     */
+    app.use(redirectLegacyUrl);
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
       return NotFoundUtil.renderNotFound(res);

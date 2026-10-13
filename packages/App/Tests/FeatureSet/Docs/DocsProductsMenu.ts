@@ -60,6 +60,23 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
    */
   Dashboards: "navbar.items.dashboardsTitle",
   Teams: "navbar.items.teamsTitle",
+  /*
+   * The Inventory pages open their product from the Resources group of the
+   * menu. The Persian menu reads "موجودی" where a flat "Inventory" label
+   * still holds the English.
+   */
+  Inventory: "navbar.items.inventoryTitle",
+  /*
+   * The AI pages open Ask AI's own page and the AI Insights inbox from the
+   * menu's AI group, and fix tasks from its Code group. Most languages'
+   * menus read "Insights" or "Chat" in English where a flat label of the
+   * same text is translated.
+   */
+  Chat: "navbar.items.aiChatTitle",
+  Insights: "navbar.items.sentinelInsightsTitle",
+  Tasks: "navbar.items.aiAgentsTitle",
+  // Fix Tasks opens an exception from the menu's Observability group.
+  Exceptions: "navbar.items.exceptionsTitle",
 };
 
 /*
@@ -68,6 +85,10 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
  */
 export const PRODUCTS_MENU_GROUP_KEYS: Readonly<Record<string, string>> = {
   Resources: "navbar.categories.resources",
+  // The groups the AI pages open their products from.
+  AI: "navbar.categories.ai",
+  Code: "navbar.categories.code",
+  Observability: "navbar.categories.observability",
 };
 
 // A value of a locale file by its dotted key, or null.

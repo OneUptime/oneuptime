@@ -61,7 +61,7 @@ Abre **Ajustes de usuario** > **Calendario** > **Feed de calendario** en el proy
 Haz clic en **Generar enlace del calendario**. La tarjeta **Suscríbete a tus turnos de guardia** ofrece ahora un único flujo de suscripción:
 
 - **Añadir a tu calendario**: **Google Calendar** abre Google Calendar, que pregunta si quieres añadir el calendario. **Calendario de Apple / Outlook** abre la forma `webcal://` del enlace en la aplicación con la que tu ordenador o teléfono se suscribe: el Calendario de Apple en un Mac, iPhone o iPad, Outlook en Windows.
-- **O copia el enlace**: **Copiar enlace** copia el enlace `https://` para cualquier otra aplicación que pueda suscribirse a un calendario por URL. El enlace permanece oculto en la página hasta que haces clic para mostrarlo.
+- **O copia el enlace**: **Copiar enlace** copia el enlace `https://` para cualquier otra aplicación que pueda suscribirse a un calendario por URL, sin mostrarlo. El enlace permanece oculto en la página hasta que haces clic en **Mostrar**.
 
 ### Suscríbete al enlace
 
@@ -78,15 +78,23 @@ Haz clic en **Editar configuración** en la tarjeta **Configuración del feed de
 | **Días de turnos pasados** | Hasta dónde llega el calendario hacia atrás (2 por defecto, 60 como máximo). |
 | **Días hacia adelante** | Hasta dónde llega el calendario hacia adelante (90 por defecto, entre 7 y 180). |
 
-La línea de estado muestra cuándo se leyó el enlace por última vez, con qué aplicación de calendario, cuántas veces, y los cuatro últimos caracteres del token para que puedas distinguir los enlaces. Si nada ha leído el enlace al cabo de dos días, la página pregunta si el servidor es accesible desde Internet (consulta Solución de problemas).
+El panel **Estado**, junto a las opciones de suscripción, indica si el enlace funciona: cuándo se leyó por última vez y con qué aplicación de calendario, cuántas veces aproximadamente, y los cuatro últimos caracteres del token para que puedas distinguir los enlaces. Su insignia muestra:
+
+- **Activo**: una aplicación de calendario ha leído el enlace.
+- **Esperando la primera sincronización**: nada ha leído el enlace todavía. La mayoría de las aplicaciones lo hacen a los pocos minutos de suscribirte; Google Calendar puede tardar unas horas.
+- **Aún no obtenido**: nada ha leído el enlace en los dos días desde que se creó, así que la página pregunta si el servidor es accesible desde donde se ejecuta tu aplicación de calendario (consulta Solución de problemas).
+- **Deshabilitado**: el enlace sirve un calendario vacío hasta que haces clic en **Activar enlace**.
+- **Hay que regenerarlo**: el enlace guardado ya no se puede leer, normalmente porque cambió el secreto de cifrado del servidor. **Regenerar enlace** crea uno nuevo.
 
 ### Gestiona el enlace
+
+El resto está en el menú **⋯** de la tarjeta. **Regenerar enlace** y **Eliminar enlace** piden confirmación antes de actuar.
 
 | Acción | Qué ocurre |
 | --- | --- |
 | **Regenerar enlace** | Crea un token nuevo. Todas las aplicaciones suscritas al enlace antiguo dejan de actualizarse: durante 30 días el enlace antiguo sirve un calendario vacío para que esas aplicaciones vacíen su copia; después responde 404. Vuelve a suscribirte con el enlace nuevo. |
-| **Desactivar** | Conserva el enlace, pero sirve un calendario vacío hasta que lo vuelvas a activar. |
-| **Eliminar** | Elimina el enlace. Las aplicaciones que lo siguen consultando reciben 404 y siguen mostrando lo último que leyeron; desactívalo primero si quieres que se vacíen. |
+| **Desactivar enlace** | Conserva el enlace, pero sirve un calendario vacío hasta que hagas clic en **Activar enlace**, en el mismo menú o en el panel **Estado**. |
+| **Eliminar enlace** | Elimina el enlace. Las aplicaciones que lo siguen consultando reciben 404 y siguen mostrando lo último que leyeron; desactívalo primero si quieres que se vacíen. |
 
 ### Próximos turnos y cobertura
 
@@ -109,7 +117,7 @@ Usa **Google Calendar** o **Calendario de Apple / Outlook** en OneUptime cuando 
 
 El botón **Google Calendar** abre la página de Google para añadir por URL, `https://calendar.google.com/calendar/r?cid=` seguido de la forma `webcal://` del enlace, codificada con porcentajes. Esa página solo acepta la forma `webcal://`: con la forma `https://`, Google responde «Unable to add calendar. Check the URL.». **Desde URL** acepta las dos formas.
 
-Google lee el feed **desde los servidores de Google**, así que el servidor de OneUptime debe ser accesible desde Internet; OneUptime Cloud siempre lo es; para una instalación autoalojada, consulta Solución de problemas. La primera lectura suele llegar a los pocos minutos de suscribirte; después, Google actualiza aproximadamente cada 8 a 24 horas, a veces más. No hay botón de actualizar para los calendarios suscritos, y Google ignora las indicaciones de actualización del feed. La línea de estado de la página del feed dice **Última obtención … por Google Calendar** en cuanto Google ha leído el enlace.
+Google lee el feed **desde los servidores de Google**, así que el servidor de OneUptime debe ser accesible desde Internet; OneUptime Cloud siempre lo es; para una instalación autoalojada, consulta Solución de problemas. La primera lectura suele llegar a los pocos minutos de suscribirte; después, Google actualiza aproximadamente cada 8 a 24 horas, a veces más. No hay botón de actualizar para los calendarios suscritos, y Google ignora las indicaciones de actualización del feed. El estado en la tarjeta dice **Última obtención … por Google Calendar** en cuanto Google ha leído el enlace.
 
 El nombre y la zona horaria del calendario se leen **solo al suscribirse por primera vez**: renombrar una programación después no renombra el calendario en Google; quítalo y vuelve a añadirlo si el nombre importa. Google descarta los recordatorios incluidos en los archivos de calendario, así que configura notificaciones predeterminadas para ese calendario en los ajustes de Google o, mejor, usa los recordatorios de OneUptime. Google recuerda una dirección que no pudo leer: cuando hayas corregido lo que lo impedía, vuelve a añadir el enlace con `?nocache=1` al final (OneUptime ignora los parámetros de consulta desconocidos, así que el feed no cambia) o regenera el enlace. La aplicación de Google Calendar para Android e iOS no puede suscribirse por URL; añade el enlace en un ordenador y aparecerá en el teléfono.
 @tab Outlook en la web
@@ -194,7 +202,7 @@ Un enlace compartido pertenece al **proyecto**, no a quien lo copió, y muestra 
 
 ### Feed de programación
 
-En la página de una programación, la tarjeta **Suscribirse a esta programación** tiene dos mitades: **Solo mis turnos en esta programación** (tu enlace personal con un filtro de programación) y **Turnos de todos en esta programación (enlace de equipo compartido)**. Quien tenga el permiso **Editar** sobre las programaciones puede publicarlo con **Publicar enlace compartido**, renovarlo con **Regenerar enlace** o pararlo con **Desactivar**; quien pueda leer la programación puede copiarlo. La tarjeta muestra cuándo se renovó el enlace por última vez.
+En la página de una programación, la tarjeta **Suscribirse a esta programación** tiene dos mitades: **Solo mis turnos en esta programación** (tu enlace personal con un filtro de programación) y **Turnos de todos en esta programación (enlace de equipo compartido)**. Quien tenga el permiso **Editar** sobre las programaciones puede publicarlo con **Publicar enlace compartido** y, desde el menú **⋯** de la tarjeta, renovarlo con **Regenerar enlace** o pararlo con **Desactivar enlace**; quien pueda leer la programación puede copiarlo. El estado de la tarjeta muestra cuándo se renovó el enlace por última vez.
 
 ### Feed de proyecto
 
@@ -231,7 +239,7 @@ El feed muestra la rotación **tal como está configurada ahora**, también para
 
 - El token del enlace es la única credencial. Quien tenga el enlace ve los turnos —nombres, programaciones, políticas— hasta que se regenera. No pegues enlaces en salas de chat ni en tickets; cuando un equipo necesite un calendario, comparte el enlace de la programación o del proyecto en lugar del tuyo personal.
 - Los enlaces son por proyecto. Un enlace personal filtrado expone los turnos de un proyecto, no los de todos los proyectos a los que perteneces.
-- Regenerar un enlace pasa el token antiguo a un periodo de gracia de 30 días (calendario vacío y después 404). **Desactivar** sirve un calendario vacío. Un enlace desconocido o caducado responde con un simple 404 sin pistas. Los calendarios vacíos hacen que las aplicaciones suscritas vacíen su copia; un 404 hace que la conserven, por eso desactivar y regenerar sirven calendarios vacíos.
+- Regenerar un enlace pasa el token antiguo a un periodo de gracia de 30 días (calendario vacío y después 404). **Desactivar enlace** sirve un calendario vacío. Un enlace desconocido o caducado responde con un simple 404 sin pistas. Los calendarios vacíos hacen que las aplicaciones suscritas vacíen su copia; un 404 hace que la conserven, por eso desactivar y regenerar sirven calendarios vacíos.
 - Los tokens se guardan con hash; la copia que se muestra en la página de ajustes está cifrada con `ENCRYPTION_SECRET`. Configura esa variable con un secreto real en una instalación autoalojada: el servidor avisa al arrancar cuando no está definida o sigue siendo uno de los marcadores de posición que trae este repositorio (`secret`, o el `please-change-this-to-random-value` que define `config.example.env`). Si la cambias después, la página ofrece **Regenerar enlace** porque la copia guardada ya no se puede leer; el feed sigue funcionando hasta que lo hagas.
 - Las respuestas de los feeds se marcan con `Cache-Control: private`, se excluyen de los buscadores (`X-Robots-Tag: noindex`) y tienen límite de frecuencia por enlace y por dirección de cliente.
 
@@ -277,7 +285,7 @@ Las versiones antiguas de OneUptime ponían la forma `https://` del enlace en el
 :::
 
 :::details Google Calendar muestra el calendario pero ningún turno
-Comprueba primero la línea de estado de la página del feed. **Última obtención … por Google Calendar** significa que Google leyó el enlace: abre el enlace en un navegador y mira lo que sirve; un calendario vacío indica su motivo en `X-WR-CALDESC` (consulta «El calendario está vacío» más abajo).
+Comprueba primero el estado en la tarjeta. **Última obtención … por Google Calendar** significa que Google leyó el enlace: abre el enlace en un navegador y mira lo que sirve; un calendario vacío indica su motivo en `X-WR-CALDESC` (consulta «El calendario está vacío» más abajo).
 
 **Aún no obtenido** significa que Google no pudo leerlo: desde una máquina fuera de tu red, `curl -sI <link>` debe responder `200` con `Content-Type: text/calendar` de inmediato. Una redirección, una página de inicio de sesión, un cortafuegos o una comprobación antibots delante de OneUptime detiene al lector de Google; también lo hacía un bucle de redirecciones de versiones antiguas de OneUptime, en instalaciones con `PROVISION_SSL=true` cuyo TLS termina antes de Nginx. Cuando responda `200`, vuelve a añadir el enlace con `?nocache=1` al final para que Google lo lea de nuevo.
 :::
@@ -285,7 +293,7 @@ Comprueba primero la línea de estado de la página del feed. **Última obtenci�
 :::details Nada ha leído el enlace, o «No se pudo obtener la URL»
 Google Calendar, Outlook en la web, Fastmail y Proton leen **desde sus propios servidores**, así que el host de OneUptime debe ser accesible desde Internet con un certificado en el que confíen. Una instalación en una red privada, detrás de una VPN o con una autoridad de certificación interna les resulta inalcanzable, pegues lo que pegues.
 
-El Calendario de Apple, Thunderbird y Outlook clásico leen desde el dispositivo, así que funcionan dondequiera que el dispositivo pueda abrir el panel, después de confiar en el certificado en ese dispositivo si es autofirmado. La línea de estado de la página del feed te dice si algo ha leído ya el enlace; `curl -I` contra el enlace desde fuera de tu red es la comprobación más rápida:
+El Calendario de Apple, Thunderbird y Outlook clásico leen desde el dispositivo, así que funcionan dondequiera que el dispositivo pueda abrir el panel, después de confiar en el certificado en ese dispositivo si es autofirmado. El estado en la tarjeta te dice si algo ha leído ya el enlace; `curl -I` contra el enlace desde fuera de tu red es la comprobación más rápida:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

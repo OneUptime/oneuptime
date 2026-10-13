@@ -551,6 +551,8 @@ describe("what the decision reads", () => {
         "isArchived",
         "isPublicDashboard",
         "masterPassword",
+        // Whether a master admin blocked it (DashboardService.withoutBlockedProject).
+        "projectId",
       ].sort(),
     );
   });

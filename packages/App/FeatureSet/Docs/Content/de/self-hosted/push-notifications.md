@@ -105,7 +105,7 @@ Der Umfang ist bewusst eng. Nur Alarme, die eine Bereitschafts-Benachrichtigungs
 ```mermaid title="Wann ein Bereitschaftsalarm den Stummmodus durchbricht"
 flowchart TB
     Page["Ein Bereitschaftsalarm"]
-    Rule{"Steht seine Bereitschaftsregel<br/>auf „Critical alert“?"}
+    Rule{"Steht seine Bereitschaftsregel<br/>auf „Kritische Warnung“?"}
     Device{"Critical On-Call Alerts<br/>für dieses Gerät an?"}
     OS{"Erlaubt das System des<br/>Telefons kritische Warnungen?"}
     Loud["Spielt einen Ton trotz<br/>Stummmodus und Nicht stören"]
@@ -122,7 +122,7 @@ flowchart TB
 Damit ein Alarm den Stummmodus durchbricht, müssen vier Dinge zutreffen. Fehlt eines davon, wird der Alarm trotzdem zugestellt – nur leise.
 
 1. **Die Person hat es für dieses Gerät eingeschaltet.** Gespeichert pro Gerät, standardmäßig aus, in `UserPush.isCriticalAlertEnabled`. Telefon und Tablet derselben Person sind getrennte Entscheidungen.
-2. **Die Bereitschaftsregel, die den Alarm ausgelöst hat, verlangt es.** Unter **Benutzereinstellungen > Bereitschaftsregeln** steht jede Regel, die ein Telefon benachrichtigt, auf „Critical alert“ – die Voreinstellung – oder auf „Standard“, das den Toneinstellungen des Telefons folgt. So kann eine Person bei einem kritischen Vorfall geweckt und bei einem kleinen leise benachrichtigt werden. Gespeichert pro Regel in `UserNotificationRule.pushNotificationLevel`.
+2. **Die Bereitschaftsregel, die den Alarm ausgelöst hat, verlangt es.** Unter **Benutzereinstellungen > Bereitschaftsregeln** steht jede Regel, die ein Telefon benachrichtigt, auf „Kritische Warnung“ – die Voreinstellung – oder auf „Normal“, das den Toneinstellungen des Telefons folgt. So kann eine Person bei einem kritischen Vorfall geweckt und bei einem kleinen leise benachrichtigt werden. Gespeichert pro Regel in `UserNotificationRule.pushNotificationLevel`.
 3. **Der Server markiert den Alarm als kritisch.** Er sendet für iOS die kritische Sound-Payload von APNs plus `interruptionLevel: critical` und zielt für Android auf einen kritischen Benachrichtigungskanal: `oncall_critical` oder den eigenen Kanal des gewählten Alarmtons (siehe [Den Alarmton wählen](#den-alarmton-wählen)).
 4. **Das Betriebssystem erlaubt es**, und genau hier unterscheiden sich die beiden Plattformen.
 
@@ -154,7 +154,7 @@ Zwei Mechanismen wirken hier, und sie decken unterschiedliche Fälle ab:
 Android friert die Einstellungen eines Kanals ein, wenn der Kanal zum ersten Mal angelegt wird; sie lassen sich also nicht durch ein App-Update ändern – nur durch eine neue Kanal-ID.
 :::
 
-Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde.
+Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde. Dieselbe Liste zeigt für jedes Gerät, ob kritische Warnungen eingeschaltet sind, und für ein Telefon, bei dem sie aus sind, wie man sie einschaltet.
 
 ### Den Alarmton wählen
 
@@ -188,7 +188,7 @@ Eine Push-Regel kann ihren Alarm erneut senden, bis jemand ihn bestätigt. Unter
 ### Kritische Warnungen durchbrechen den Stummmodus nicht
 
 - Prüfen Sie, ob der Schalter für **dieses** Gerät an ist – die Einstellung gilt pro Gerät, und eine Neuinstallation oder ein neues, von Grund auf eingerichtetes Telefon erzeugt eine neue Geräteregistrierung (ein Telefon, das aus einem Backup des alten eingerichtet wurde, übernimmt die Registrierung des alten Telefons, sobald dieses keine Benachrichtigungen mehr empfängt, mit der Einstellung, die die App hatte)
-- Prüfen Sie die Bereitschaftsregel für diesen Schweregrad unter **Benutzereinstellungen > Bereitschaftsregeln**: Eine Push-Regel auf „Standard“ folgt den Toneinstellungen des Telefons, egal was der Schalter des Geräts sagt
+- Prüfen Sie die Bereitschaftsregel für diesen Schweregrad unter **Benutzereinstellungen > Bereitschaftsregeln**: Eine Push-Regel auf „Normal“ folgt den Toneinstellungen des Telefons, egal was der Schalter des Geräts sagt
 - **iOS**: Bestätigen Sie, dass der Build Apples Entitlement für kritische Warnungen trägt (siehe oben) und dass Critical Alerts unter iOS Settings > Notifications > OneUptime On-Call erlaubt ist
 - **Android**: Bestätigen Sie, dass die App unter Settings > Notifications > Do Not Disturb access Zugriff auf „Nicht stören“ hat
 - **Android**: Wenn Sie einen Alarmton gewählt haben, muss auch dessen eigener Benachrichtigungskanal „Nicht stören“ übersteuern dürfen; der Bildschirm Alarm sound der App sagt, wenn das nicht so ist

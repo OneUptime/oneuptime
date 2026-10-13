@@ -145,17 +145,18 @@ Skriv til botten i en personlig chat, eller nævn OneUptime med @ i en kanal ell
 | Besked | Hvad botten gør |
 | --- | --- |
 | `help` | Viser, hvad den kan. |
-| `ask <question>`, eller ethvert spørgsmål på almindeligt sprog | OneUptime AI svarer om dine logs, traces, metrikker, hændelser og monitorer, for eksempel "hvilke monitorer er nede lige nu?". Svar læser kun. |
-| `create incident [title]` | Åbner hændelsesformularen med titlen udfyldt. |
-| `create maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
+| `incident [title]` | Åbner hændelsesformularen med titlen udfyldt. |
+| `maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
+| `oncall` | Viser, hvem der har vagt lige nu i hver vagtplan, du kan se, til hvornår, og hvem der er den næste. |
+| `ask [question]`, eller ethvert spørgsmål på almindeligt sprog | OneUptime AI svarer om dine logs, traces, metrikker, hændelser og monitorer, for eksempel "hvilke monitorer er nede lige nu?". Svar læser kun. |
 | `show active incidents`, `show active alerts` | Viser, hvad der er åbent nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Viser kommende, eller igangværende, vedligeholdelsesbegivenheder. |
 
-At spørge OneUptime AI kræver, at AI er slået til for projektet. Se [Spørg AI](/docs/ai/ask-ai).
+Bortset fra `show`-listerne er det de ord, der følger efter `/oneuptime` i Slack; `create incident` og `create maintenance` virker også stadig. At spørge OneUptime AI kræver, at din egen Microsoft Teams-konto er forbundet, og at AI er slået til for projektet. Hvis din ikke er forbundet, beder botten dig én gang i hver tråd eller chat om at forbinde den, med en knap **Connect Microsoft Teams account**. Se [Spørg AI](/docs/ai/ask-ai).
 
 ## Opret hændelser og vedligeholdelse fra Microsoft Teams
 
-At skrive `create incident` eller `create maintenance` til OneUptime-botten åbner en formular for den person, der skrev det, i en personlig chat, en kanal eller en gruppechat. Den udfyldes som den person: som den OneUptime-konto, personens Microsoft Teams-konto er forbundet med (se [Forbind Microsoft Teams](#forbind-microsoft-teams)), med den kontos rettigheder i projektet. En, hvis konto ikke er forbundet, eller hvis OneUptime-konto ikke længere er medlem af projektet, får i et svar, der nævner personen, at vide, hvad der skal gøres, i stedet for formularen.
+At skrive `incident` eller `maintenance` til OneUptime-botten åbner en formular for den person, der skrev det, i en personlig chat, en kanal eller en gruppechat. Den udfyldes som den person: som den OneUptime-konto, personens Microsoft Teams-konto er forbundet med (se [Forbind Microsoft Teams](#forbind-microsoft-teams)), med den kontos rettigheder i projektet. En, hvis konto ikke er forbundet, eller hvis OneUptime-konto ikke længere er medlem af projektet, får i et svar, der nævner personen, at vide, hvad der skal gøres, i stedet for formularen.
 
 - **Hvem der må bruge dem.** De personer, der må oprette en hændelse eller en planlagt vedligeholdelsesbegivenhed i OneUptime: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member** for en hændelse (**Create Incident** i en brugerdefineret rolle), og **Scheduled Maintenance Admin** og **Scheduled Maintenance Member** for en begivenhed (**Create Scheduled Maintenance**). Alle andre får det at vide og får ingen formular.
 - **Hvad en formular tilbyder.** Hver liste — alvorligheder, monitorer, monitorstatusser, vagtpolitikker og etiketter — indeholder det, den person, der bad om den, må læse, ligesom den samme liste i OneUptime, og kortets "not shown"-bemærkninger tæller kun dem: med en rolle, der er begrænset til nogle etiketter, de monitorer og vagtpolitikker, der har de etiketter. En liste, personen slet ikke må læse, udelades. Arkiverede vagtpolitikker tilbydes aldrig.

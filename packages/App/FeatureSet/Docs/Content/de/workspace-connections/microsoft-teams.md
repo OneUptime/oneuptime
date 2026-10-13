@@ -145,17 +145,18 @@ Schreiben Sie dem Bot in einem persönlichen Chat, oder erwähnen Sie OneUptime 
 | Nachricht | Was der Bot tut |
 | --- | --- |
 | `help` | Listet, was er kann. |
-| `ask <question>`, oder jede Frage in natürlicher Sprache | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren, zum Beispiel "Welche Monitore sind gerade ausgefallen?". Antworten lesen nur. |
-| `create incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
-| `create maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
+| `incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
+| `maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
+| `oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
+| `ask [question]`, oder jede Frage in natürlicher Sprache | OneUptime AI antwortet zu Ihren Logs, Traces, Metriken, Vorfällen und Monitoren, zum Beispiel "Welche Monitore sind gerade ausgefallen?". Antworten lesen nur. |
 | `show active incidents`, `show active alerts` | Listet, was gerade offen ist. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Listet anstehende oder laufende Wartungsereignisse. |
 
-OneUptime AI zu fragen braucht eingeschaltete KI für das Projekt. Siehe [KI fragen](/docs/ai/ask-ai).
+Bis auf die `show`-Listen sind das die Wörter, die in Slack auf `/oneuptime` folgen; `create incident` und `create maintenance` funktionieren weiterhin. OneUptime AI zu fragen braucht Ihr eigenes verbundenes Microsoft Teams-Konto und eingeschaltete KI für das Projekt. Ist Ihr Konto nicht verbunden, bittet der Bot Sie einmal pro Thread oder Chat, es zu verbinden, mit einer Schaltfläche **Connect Microsoft Teams account**. Siehe [KI fragen](/docs/ai/ask-ai).
 
 ## Vorfälle und Wartungen aus Microsoft Teams erstellen
 
-`create incident` oder `create maintenance` an den OneUptime-Bot öffnet ein Formular für die Person, die es geschrieben hat, in einem persönlichen Chat, einem Kanal oder einem Gruppenchat gleichermaßen. Es wird als diese Person ausgefüllt: als das OneUptime-Konto, mit dem ihr Microsoft-Teams-Konto verbunden ist (siehe [Microsoft Teams verbinden](#microsoft-teams-verbinden)), mit dessen Berechtigungen im Projekt. Wer kein verbundenes Konto hat oder dessen OneUptime-Konto kein Mitglied des Projekts mehr ist, erfährt in einer Antwort, die ihn erwähnt, was zu tun ist, statt das Formular zu bekommen.
+`incident` oder `maintenance` an den OneUptime-Bot öffnet ein Formular für die Person, die es geschrieben hat, in einem persönlichen Chat, einem Kanal oder einem Gruppenchat gleichermaßen. Es wird als diese Person ausgefüllt: als das OneUptime-Konto, mit dem ihr Microsoft-Teams-Konto verbunden ist (siehe [Microsoft Teams verbinden](#microsoft-teams-verbinden)), mit dessen Berechtigungen im Projekt. Wer kein verbundenes Konto hat oder dessen OneUptime-Konto kein Mitglied des Projekts mehr ist, erfährt in einer Antwort, die ihn erwähnt, was zu tun ist, statt das Formular zu bekommen.
 
 - **Wer sie nutzen darf.** Die Personen, die in OneUptime einen Vorfall melden oder ein geplantes Wartungsereignis anlegen dürfen: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** und **Incident Member** für einen Vorfall (**Create Incident** in einer benutzerdefinierten Rolle), und **Scheduled Maintenance Admin** und **Scheduled Maintenance Member** für ein Ereignis (**Create Scheduled Maintenance**). Alle anderen erfahren das und bekommen kein Formular.
 - **Was ein Formular anbietet.** Jede Liste — Schweregrade, Monitore, Monitorstatus, Bereitschaftsrichtlinien und Beschriftungen — enthält, was die anfragende Person lesen darf, wie dieselbe Liste in OneUptime, und die Hinweise "not shown" der Karte zählen nur diese: bei einer auf einige Beschriftungen beschränkten Rolle die Monitore und Bereitschaftsrichtlinien mit diesen Beschriftungen. Eine Liste, die sie gar nicht lesen darf, fehlt. Archivierte Bereitschaftsrichtlinien werden nie angeboten.

@@ -571,7 +571,9 @@ describe("the AI SRE page's cluster-access section", () => {
   });
 
   it("names the cluster's AI section: the AI agent, AI Insights and AI Logs pages", () => {
-    expect(section).toContain("Kubernetes → cluster → AI");
+    expect(section).toContain(
+      "Each cluster's page has an **AI** section in its side menu",
+    );
     expect(section).toContain("- **Agent** — the cluster's **AI agent** page");
     expect(section).toContain(
       "- **Insights** — the cluster's **AI Insights** page: what OneUptime AI found out about the cluster — what keeps going wrong and why, and what to do about it (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).",
@@ -921,10 +923,10 @@ describe("the AI SRE page's cluster-access section", () => {
     );
 
     expect(fixes).toContain(
-      "**Fix new incidents automatically** (on **Incidents > AI > Settings**) and **Fix new alerts automatically** (on **Alerts > AI > Settings**) start off",
+      "**Fix new incidents automatically** (on **Incidents → AI → Settings**) and **Fix new alerts automatically** (on **Alerts → AI → Settings**) start off",
     );
     expect(fixes).toContain(
-      "**Enable AI** (Project Settings > AI > AI Features) is on unless someone turned it off",
+      "**Enable AI** (**Project Settings → AI → AI Features**) is on unless someone turned it off",
     );
     expect(runner).toContain(
       "Fixes through a Runner need the same project switches as fixes through the AI agent: **Enable AI**, and **Fix new incidents automatically** (or alerts).",
@@ -943,7 +945,7 @@ describe("the AI SRE page's cluster-access section", () => {
     );
 
     for (const expected of [
-      "Runner Credentials",
+      "**Runbooks → Runners → Credentials**",
       "**Runs AI Remediation Commands**",
       "**AI Access Runner** and **AI Access Credential**",
       "**Switch to the AI agent**",
@@ -1080,9 +1082,9 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(body).toContain("data[column] = true;");
   });
 
-  it("sends the Enable AI switch to Project Settings > AI > AI Features", () => {
+  it("sends the Enable AI switch to Project Settings → AI → AI Features", () => {
     expect(enabling).toContain(
-      "Project Settings > AI > AI Features > Enable AI",
+      "**Enable AI**, on **Project Settings → AI → AI Features**",
     );
     expect(page).not.toContain("AI Credits > Enable AI");
   });
@@ -1094,7 +1096,7 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
   it("says the Cloud global provider needs AI credits, and who adds them", () => {
     expect(enabling).toContain("the project needs AI credits");
     expect(enabling).toContain(
-      "a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**",
+      "a project owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**",
     );
     expect(enabling).not.toContain("or auto-recharge");
   });
@@ -1122,7 +1124,7 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     );
 
     expect(codeFixes).toContain(
-      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents > AI > Settings**",
+      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings**",
     );
     expect(codeFixes).toContain("Both start **off**, for new projects too");
     expect(codeFixes).not.toContain("**on by default for new projects**");

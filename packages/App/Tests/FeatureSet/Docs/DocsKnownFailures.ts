@@ -91,32 +91,6 @@ const except: (
 const EVERY_TRANSLATION_BUT_FA: Array<string> = except(EVERY_TRANSLATION, "fa");
 
 export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
-  "ai/ai-agent": {
-    sameShape: EVERY_TRANSLATION_BUT_FA,
-  },
-  "ai/ai-sre": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/ask-ai": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "ai/infrastructure-ai-agents": {
-    translated: EVERY_TRANSLATION,
-  },
-  "ai/llm-provider": {
-    codeLanguage: EN,
-  },
-  "ai/mcp-server": {
-    uniqueHeadings: EVERY_LANGUAGE,
-    codeLanguage: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
-  "api-reference/api-reference": {
-    headingLevels: EN,
-    sameShape: EVERY_TRANSLATION,
-  },
   "cli/authentication": {
     sameShape: EVERY_TRANSLATION,
   },
@@ -165,18 +139,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "integrations/zabbix": {
     pageLinks: EVERY_TRANSLATION,
-  },
-  "inventory/cmdb-sync": {
-    codeLanguage: EN,
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
-  },
-  "inventory/custom-fields": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-  },
-  "inventory/overview": {
-    translated: EVERY_TRANSLATION_BUT_FA,
-    sameShape: ["fa"],
   },
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,

@@ -10,6 +10,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import SavedViewsDropdown from "Common/UI/Components/TelemetryViewer/components/SavedViewsDropdown";
 import { SavedViewOption } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import { leaveSavedViewDefaultOutUnlessTicked } from "Common/Utils/Telemetry/SavedViewDefault";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import DeleteConfirmationMessage from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
@@ -474,7 +475,8 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
             if (additionalSaveFieldsRef.current) {
               Object.assign(item, additionalSaveFieldsRef.current);
             }
-            return item;
+            // Unticked, the service decides: a project's first view is its default.
+            return leaveSavedViewDefaultOutUnlessTicked(item);
           }}
           onSuccess={async (item: T) => {
             setShowCreateModal(false);

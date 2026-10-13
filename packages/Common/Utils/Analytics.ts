@@ -41,6 +41,18 @@ const measurementWindow: () => MeasurementWindow | null =
     return window as unknown as MeasurementWindow;
   };
 
+export interface PurchaseData {
+  /*
+   * The server's marketing event ID for the same conversion
+   * (Docs/analytics/marketing-event-webhooks.md), so the two can be joined.
+   */
+  transactionId: string;
+  // Monthly recurring revenue after the change, as the server reports it.
+  value: number;
+  currency: string;
+  plan: string;
+}
+
 // GA4 rejects event names longer than 40 characters.
 const GA4_MAX_EVENT_NAME_LENGTH: number = 40;
 
@@ -164,6 +176,111 @@ export default class Analytics {
       return;
     }
     posthog.identify(email.toString());
+  }
+
+  /**
+   * Tell Google Analytics who is signed in, so one person's sessions join up
+   * across devices: the internal user ID, never an email address. Only where
+   * the page loaded Google Analytics itself (sign-up and the dashboard); gtag
+   * holds the call until consent lets Google Analytics load.
+   */
+  public setGoogleAnalyticsUserId(userId: string): void {
+    const page: MeasurementWindow | null = measurementWindow();
+
+    if (
+      !userId ||
+      !page ||
+      page.oneUptimeGoogleTagMode !== "analytics-only" ||
+      typeof page.gtag !== "function"
+    ) {
+      return;
+    }
+
+    page.gtag("set", { user_id: userId });
+  }
+
+  /**
+   * The purchase a project created on a paid plan makes. None for custom
+   * pricing, which has no amount to report.
+   */
+  public static purchaseForNewProject(data: {
+    projectId: string;
+    planName: string;
+    monthlyAmountInUSD: number | null;
+  }): PurchaseData | null {
+    if (!data.projectId || data.monthlyAmountInUSD === null) {
+      return null;
+    }
+
+    return {
+      transactionId: `subscription_started:${data.projectId}`,
+      value: data.monthlyAmountInUSD,
+      currency: "USD",
+      plan: data.planName,
+    };
+  }
+
+  /**
+   * The purchase a plan change makes, if any: only a free project becoming a
+   * paying one. A move between paid tiers is expansion, not a purchase, and
+   * custom pricing has no amount to report. A project can upgrade more than
+   * once, so the moment of the change is part of the ID, as it is on the
+   * server's event.
+   */
+  public static purchaseForPlanChange(data: {
+    projectId: string;
+    planName: string;
+    isPaidConversion: boolean;
+    monthlyAmountInUSD: number | null;
+    seats: number;
+    changedAt: Date;
+  }): PurchaseData | null {
+    if (
+      !data.projectId ||
+      !data.isPaidConversion ||
+      data.monthlyAmountInUSD === null
+    ) {
+      return null;
+    }
+
+    return {
+      transactionId: `subscription_upgraded:${data.projectId}:${data.changedAt.toISOString()}`,
+      value: data.monthlyAmountInUSD * data.seats,
+      currency: "USD",
+      plan: data.planName,
+    };
+  }
+
+  /**
+   * A paid conversion as Google Analytics' `purchase` event, so its revenue
+   * reports and Google Ads' return on ad spend have something to count. Sent
+   * alongside the subscription event rather than instead of it, and to Google
+   * Analytics only: PostHog already has the subscription event.
+   */
+  public capturePurchase(data: PurchaseData): void {
+    const page: MeasurementWindow | null = measurementWindow();
+
+    if (
+      !page ||
+      page.oneUptimeGoogleTagMode !== "analytics-only" ||
+      typeof page.gtag !== "function"
+    ) {
+      return;
+    }
+
+    page.gtag("event", "purchase", {
+      transaction_id: data.transactionId,
+      value: data.value,
+      currency: data.currency,
+      items: [
+        {
+          item_id: data.plan,
+          item_name: data.plan,
+          price: data.value,
+          quantity: 1,
+        },
+      ],
+    });
   }
 
   public logout(): void {

@@ -425,7 +425,10 @@
 
 <!-- Legacy and compatibility -->
 <link rel="apple-touch-icon-precomposed" href="/img/favicons/apple-touch-icon.png">
-<link rel="image_src" type="image/png" href="/img/hou-wb.svg">
+<%#
+    The image_src share hint is written by head-social.ejs, beside og:image
+    and with the same image: a page's own PNG or JPG, never an SVG.
+-%>
 
 <!--
     Canonical URL: only the page's own, from seo.fullCanonicalUrl. A page that
