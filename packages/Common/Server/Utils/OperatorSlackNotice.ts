@@ -18,25 +18,32 @@ import FeedMarkdown, {
 
 /*
  * What OneUptime tells its operator's own Slack channels - the incoming
- * webhooks set with NOTIFICATION_SLACK_WEBHOOK_ON_* (EnvironmentConfig) -
- * about a project:
+ * webhooks set with NOTIFICATION_SLACK_WEBHOOK_ON_* (EnvironmentConfig):
  *
+ * - a user created, by signing up or by an invitation
+ *   (UserService.onCreateSuccess, NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER);
+ * - a project created (ProjectService.onCreateSuccess,
+ *   NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT);
+ * - its plan changed, or its subscription reactivated, and the replaced
+ *   subscriptions a plan change could not cancel (ProjectService.changePlan,
+ *   ProjectService.reactiveSubscription);
  * - its balance for SMS and calls, or its AI balance, refilled - by Auto
  *   Recharge or the Recharge button (NotificationService, AIBillingService);
  * - either balance adjusted by a master admin (ProjectService.adjustBalance);
  * - the project deleted, with the feedback its owner gave for deleting it
- *   (ProjectService.onDeleteSuccess).
+ *   (ProjectService.onDeleteSuccess, NOTIFICATION_SLACK_WEBHOOK_ON_DELETED
+ *   _PROJECT).
  *
- * Both balances post to NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE, in
- * the same words, so a refill or an adjustment of AI credits reads exactly as
- * one of SMS and call balance does.
+ * Plan changes and both balances post to NOTIFICATION_SLACK_WEBHOOK_ON
+ * _SUBSCRIPTION_UPDATE. Both balances use the same words, so a refill or an
+ * adjustment of AI credits reads exactly as one of SMS and call balance does.
  *
- * A project's name, its creator's name and the feedback a customer typed are
- * text OneUptime did not write - a project named "<!channel>" would notify the
- * whole channel - so each message is written with mdText, which places every
- * value as text, and converted to Slack's mrkdwn
- * (SlackUtil.convertMarkdownToSlackRichText), as a status page's Slack
- * messages are.
+ * A user's name and company, a project's name, its creator's name and the
+ * feedback a customer typed are text OneUptime did not write - a project or
+ * a company named "<!channel>" would notify the whole channel - so each
+ * message is written with mdText, which places every value as text, and
+ * converted to Slack's mrkdwn (SlackUtil.convertMarkdownToSlackRichText), as
+ * a status page's Slack messages are.
  */
 
 // What each balance is called in its messages: "AI Balance Refilled".
@@ -86,6 +93,34 @@ export interface ProjectDeletedNotice {
   subscriptionStatus?: string | null | undefined;
   // What the customer said when asked why they are deleting the project.
   deletionReason?: string | null | undefined;
+}
+
+export interface UserCreatedNotice {
+  // As created: their email, and the name, phone and company they gave.
+  user: User;
+}
+
+export interface ProjectCreatedNotice {
+  /*
+   * Read again once it was created: its name, its creator's name and
+   * email, and the plan and subscription status billing gave it.
+   */
+  project: Project;
+  // Where OneUptime bills, the message says which plan the project is on.
+  isBillingEnabled: boolean;
+}
+
+export interface ProjectPlanChangedNotice {
+  // Read again after the change: the plan and status it has now.
+  project: Project;
+  // Where OneUptime bills, the message says which plan the project is on.
+  isBillingEnabled: boolean;
+}
+
+export interface SubscriptionsPendingCancellationNotice {
+  projectId: ObjectID;
+  // Replaced by a plan change, not cancelled, and recorded nowhere else.
+  subscriptionIds: Array<string>;
 }
 
 export default class OperatorSlackNotice {
@@ -209,10 +244,99 @@ export default class OperatorSlackNotice {
   }
 
   /*
+   * A user created, by signing up or by an invitation: their email, and the
+   * name, phone number and company they gave - N/A for any they did not.
+   */
+  public static getUserCreatedText(data: UserCreatedNotice): string {
+    const user: User = data.user;
+
+    return this.toSlackText([
+      mdText`**New OneUptime User:**`,
+      mdText`**Email:** ${user.email?.toString() || "N/A"}`,
+      mdText`**Name:** ${user.name?.toString() || "N/A"}`,
+      mdText`**Phone:** ${user.companyPhoneNumber?.toString() || "N/A"}`,
+      mdText`**Company:** ${user.companyName || "N/A"}`,
+    ]);
+  }
+
+  /*
+   * A project created: its name, who created it when they are known, and,
+   * where OneUptime bills, the plan it is on and its subscription's status.
+   */
+  public static getProjectCreatedText(data: ProjectCreatedNotice): string {
+    const lines: Array<MarkdownText> = [
+      mdText`**Project Created:**`,
+      ...this.getProjectLines({ project: data.project }),
+    ];
+
+    const createdBy: string | null = this.describePerson({
+      name: data.project.createdOwnerName,
+      email: data.project.createdOwnerEmail,
+    });
+
+    if (createdBy) {
+      lines.push(mdText`**Created By:** ${createdBy}`);
+    }
+
+    if (data.isBillingEnabled) {
+      lines.push(...this.getPlanLines(data.project));
+    }
+
+    return this.toSlackText(lines);
+  }
+
+  /*
+   * A project's plan changed, or its subscription reactivated: the project,
+   * who created it when they are known, and, where OneUptime bills, the plan
+   * it is on now and its subscription's status.
+   */
+  public static getProjectPlanChangedText(
+    data: ProjectPlanChangedNotice,
+  ): string {
+    const lines: Array<MarkdownText> = [
+      mdText`**Project Plan Changed:**`,
+      ...this.getProjectLines({ project: data.project }),
+    ];
+
+    const createdBy: string | null = this.describePerson({
+      name: data.project.createdOwnerName,
+      email: data.project.createdOwnerEmail,
+    });
+
+    if (createdBy) {
+      lines.push(mdText`**Project Created By:** ${createdBy}`);
+    }
+
+    if (data.isBillingEnabled) {
+      lines.push(...this.getPlanLines(data.project));
+    }
+
+    return this.toSlackText(lines);
+  }
+
+  /*
+   * The subscriptions a plan change replaced but could not cancel: still
+   * open at the payment provider, and recorded against the project no more,
+   * so somebody has to cancel them by hand.
+   */
+  public static getSubscriptionsPendingCancellationText(
+    data: SubscriptionsPendingCancellationNotice,
+  ): string {
+    return this.toSlackText([
+      mdText`**Subscriptions could not be cancelled after a plan change:**`,
+      mdText`**Project ID:** ${data.projectId.toString()}`,
+      mdText`**Subscriptions still open at the payment provider:** ${FeedMarkdown.join(
+        data.subscriptionIds,
+      )}`,
+      mdText`These are no longer recorded against the project and have to be cancelled by hand.`,
+    ]);
+  }
+
+  /*
    * Posts a message to an operator's incoming webhook. Never throws: the
-   * message is a notice to the operator, and what it is about - a recharge,
-   * an adjustment, a deletion - has happened already. A message Slack did
-   * not take, or a webhook that is not one, is logged.
+   * message is a notice to the operator, and what it is about - a signup, a
+   * plan change, a recharge, a deletion - has happened already. A message
+   * Slack did not take, or a webhook that is not one, is logged.
    */
   public static async post(data: {
     webhookUrl: string;
@@ -220,10 +344,13 @@ export default class OperatorSlackNotice {
     // What the message is about, for the log line: "AI balance refill".
     about: string;
     projectId?: ObjectID | null | undefined;
+    // The user a message about a user is about, for the log line.
+    userId?: ObjectID | null | undefined;
   }): Promise<void> {
-    const logAttributes: LogAttributes = (
-      data.projectId ? { projectId: data.projectId.toString() } : {}
-    ) as LogAttributes;
+    const logAttributes: LogAttributes = {
+      ...(data.projectId ? { projectId: data.projectId.toString() } : {}),
+      ...(data.userId ? { userId: data.userId.toString() } : {}),
+    } as LogAttributes;
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -259,6 +386,16 @@ export default class OperatorSlackNotice {
     return [
       mdText`**Project Name:** ${data.project?.name || "N/A"}`,
       mdText`**Project ID:** ${projectId}`,
+    ];
+  }
+
+  // The plan a project is on and its subscription's status: "N/A" for either not known.
+  private static getPlanLines(project: Project): Array<MarkdownText> {
+    return [
+      mdText`**Plan:** ${project.planName || "N/A"}`,
+      mdText`**Subscription Status:** ${
+        project.paymentProviderSubscriptionStatus || "N/A"
+      }`,
     ];
   }
 
