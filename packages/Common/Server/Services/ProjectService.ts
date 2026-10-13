@@ -137,6 +137,7 @@ import AlertSeverityService from "./AlertSeverityService";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
 import URL from "../../Types/API/URL";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -3525,43 +3526,14 @@ These are no longer recorded against the project and have to be cancelled by han
 
     if (NotificationSlackWebhookOnDeleteProject) {
       for (const project of onDelete.carryForward) {
-        let subscriptionStatus: SubscriptionStatus | null = null;
-
-        if (IsBillingEnabled) {
-          subscriptionStatus = await BillingService.getSubscriptionStatus(
-            project.paymentProviderSubscriptionId!,
-          );
+        // As above: only a project that was really deleted is announced.
+        if (project.id && !deletedProjectIds.has(project.id.toString())) {
+          continue;
         }
 
-        let slackMessage: string = `*Project Deleted:*
-*Project Name:* ${project.name?.toString() || "N/A"}
-*Project ID:* ${project._id?.toString() || "N/A"}
-*Project Created Date:* ${project.createdAt ? new Date(project.createdAt).toUTCString() : "N/A"}
-*Project Plan Name:* ${project.planName?.toString() || "N/A"}
-`;
-
-        if (subscriptionStatus) {
-          slackMessage += `*Project Subscription Status:* ${subscriptionStatus?.toString() || "N/A"}
-`;
-        }
-
-        if (
-          project.createdByUser &&
-          project.createdByUser.name &&
-          project.createdByUser.email
-        ) {
-          slackMessage += `*Created By:* ${project?.createdByUser.name?.toString() + " (" + project.createdByUser.email.toString() + ")" || "N/A"}
-`;
-        }
-
-        SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: URL.fromString(NotificationSlackWebhookOnDeleteProject),
-          text: slackMessage,
-        }).catch((err: Error) => {
-          // log this error but do not throw it. Not important enough to stop the process.
-          logger.error(err, {
-            projectId: project?.id?.toString(),
-          } as LogAttributes);
+        await this.sendProjectDeletedSlackNotification({
+          project: project,
+          deletionReason: onDelete.deleteBy.deletionReason,
         });
       }
     }
@@ -3584,6 +3556,70 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     return onDelete;
+  }
+
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_DELETED
+   * _PROJECT) that a project was deleted, with the feedback its owner gave
+   * for deleting it (OperatorSlackNotice).
+   *
+   * The project is gone already, so nothing here may fail the delete or keep
+   * its subscription from being cancelled after it: a payment provider that
+   * does not answer leaves the status the project last had, and the message
+   * is posted in the background. The status is read before the
+   * subscription is cancelled, so it says what the customer was paying for.
+   */
+  private async sendProjectDeletedSlackNotification(data: {
+    project: Model;
+    deletionReason?: string | undefined;
+  }): Promise<void> {
+    if (!NotificationSlackWebhookOnDeleteProject) {
+      return;
+    }
+
+    const project: Model = data.project;
+
+    let subscriptionStatus: string | null =
+      project.paymentProviderSubscriptionStatus?.toString() || null;
+
+    if (IsBillingEnabled && project.paymentProviderSubscriptionId) {
+      try {
+        subscriptionStatus =
+          (
+            await BillingService.getSubscriptionStatus(
+              project.paymentProviderSubscriptionId,
+            )
+          )?.toString() || subscriptionStatus;
+      } catch (err) {
+        logger.error(
+          `Could not read the subscription status of deleted project ${project.id?.toString()} for its Slack message: ${err}`,
+          { projectId: project.id?.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    let text: string;
+
+    try {
+      text = OperatorSlackNotice.getProjectDeletedText({
+        project: project,
+        subscriptionStatus: subscriptionStatus,
+        deletionReason: data.deletionReason,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not write the Slack message for deleted project ${project.id?.toString()}: ${err}`,
+        { projectId: project.id?.toString() } as LogAttributes,
+      );
+      return;
+    }
+
+    void OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnDeleteProject,
+      text: text,
+      about: "project deletion",
+      projectId: project.id,
+    });
   }
 
   @CaptureSpan()
@@ -4479,10 +4515,112 @@ These are no longer recorded against the project and have to be cancelled by han
       }. Reason: ${reason}`,
     );
 
+    /*
+     * The operator's Slack channel hears of it as it hears of a refill, in
+     * the background: the balance has moved, and the answer to the admin
+     * does not wait on Slack.
+     */
+    this.sendBalanceAdjustedSlackNotification({
+      projectId: data.projectId,
+      balanceType: data.balanceType,
+      adjustmentType: data.adjustmentType,
+      amountInUSDCents: data.amountInUSDCents,
+      previousBalanceInUSDCents: previousBalanceInUSDCents,
+      newBalanceInUSDCents: newBalanceInUSDCents,
+      reason: reason,
+      adjustedByUserId: data.adjustedByUserId,
+    }).catch((err: Error) => {
+      logger.error(
+        `Error sending slack message for a balance adjustment: ${err}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    });
+
     return {
       previousBalanceInUSDCents: previousBalanceInUSDCents,
       newBalanceInUSDCents: newBalanceInUSDCents,
     };
+  }
+
+  /*
+   * Tells the operator's Slack channel (NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION
+   * _UPDATE, where refills of both balances go) that a master admin adjusted
+   * a balance: by how much, from what to what, who and why
+   * (OperatorSlackNotice). The project's name and the admin's are read for
+   * it; one that cannot be read is left out, and the message still goes.
+   */
+  private async sendBalanceAdjustedSlackNotification(data: {
+    projectId: ObjectID;
+    balanceType: ProjectBalanceType;
+    adjustmentType: BalanceAdjustmentType;
+    amountInUSDCents: number;
+    previousBalanceInUSDCents: number;
+    newBalanceInUSDCents: number;
+    reason: string;
+    adjustedByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+    } as LogAttributes;
+
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    }).catch((err: Error): null => {
+      logger.error(
+        `Could not read project ${data.projectId.toString()} for its balance adjustment's Slack message: ${err}`,
+        logAttributes,
+      );
+      return null;
+    });
+
+    const adjustedByUser: User | null = data.adjustedByUserId
+      ? await UserService.findOneById({
+          id: data.adjustedByUserId,
+          select: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        }).catch((err: Error): null => {
+          logger.error(
+            `Could not read the master admin who adjusted project ${data.projectId.toString()}'s balance, for its Slack message: ${err}`,
+            logAttributes,
+          );
+          return null;
+        })
+      : null;
+
+    await OperatorSlackNotice.post({
+      webhookUrl: NotificationSlackWebhookOnSubscriptionUpdate,
+      text: OperatorSlackNotice.getBalanceAdjustedText({
+        balance: data.balanceType,
+        projectId: data.projectId,
+        project: project,
+        adjustmentType: data.adjustmentType,
+        amountInUSDCents: data.amountInUSDCents,
+        previousBalanceInUSDCents: data.previousBalanceInUSDCents,
+        newBalanceInUSDCents: data.newBalanceInUSDCents,
+        reason: data.reason,
+        adjustedByUserId: data.adjustedByUserId,
+        adjustedByUser: adjustedByUser,
+      }),
+      about: `${OperatorSlackNotice.getBalanceLogName(data.balanceType)} adjustment`,
+      projectId: data.projectId,
+    });
   }
 
   private static getBalanceColumnName(
