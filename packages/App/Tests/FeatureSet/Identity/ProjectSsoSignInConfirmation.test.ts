@@ -7,6 +7,9 @@ import ConfirmationRouter, {
   SSO_SIGN_IN_CONFIRMATION_VIEW,
 } from "../../../FeatureSet/Identity/API/ProjectSsoSignInConfirmation";
 import ProjectSsoSignInConfirmation, {
+  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
+  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+  PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
   PROJECT_SSO_CONFIRMATION_EXPIRY_HOURS,
   PROJECT_SSO_CONFIRMATION_REQUIRED_ERROR,
   PROJECT_SSO_CONFIRMATION_REQUIRED_MESSAGE,
@@ -1003,7 +1006,137 @@ describe.each(FLOWS)("$name on a self-hosted install", (flow: Flow) => {
     expect(sendMail).not.toHaveBeenCalled();
     expectNoSessionAndNothingProvisioned();
   });
+
+  test("still refuses a OneUptime administrator account", async () => {
+    /*
+     * The self-hosted edition has no mailbox gate, so this is the only thing
+     * standing between a tenant provider and an administrator session here.
+     */
+    storeUser({ isMasterAdmin: true });
+
+    await flow.run({ isMobile: false });
+
+    expectNoSessionAndNothingProvisioned();
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(hasConsent).not.toHaveBeenCalled();
+  });
 });
+
+/*
+ * ===========================================================================
+ * A project's provider never signs a OneUptime administrator in -- on any
+ * edition, and whatever the mailbox gate would otherwise say. This is the
+ * escalation the consent gate does not close: self-hosted has no gate, and on
+ * the hosted service an administrator may have confirmed a project once.
+ * ===========================================================================
+ */
+
+type AdminEdition = { name: string; billingEnabled: boolean };
+
+const ADMIN_EDITIONS: Array<AdminEdition> = [
+  { name: "hosted service", billingEnabled: true },
+  { name: "self-hosted install", billingEnabled: false },
+];
+
+describe.each(FLOWS)(
+  "$name -- a OneUptime administrator account",
+  (flow: Flow) => {
+    describe.each(ADMIN_EDITIONS)("on the $name", (edition: AdminEdition) => {
+      beforeEach(() => {
+        setTestBillingEnabled(edition.billingEnabled);
+        storeUser({ isMasterAdmin: true });
+      });
+
+      test("is never signed in, and nothing is provisioned", async () => {
+        /*
+         * The critical escalation: a tenant that controls a project provider
+         * asserts an administrator's address and would otherwise mint an
+         * instance-wide administrator session.
+         */
+        const result: RunResult = await flow.run({ isMobile: false });
+
+        expect(result.nextError).toBeUndefined();
+        expect(sendErrorResponse).not.toHaveBeenCalled();
+        expectNoSessionAndNothingProvisioned();
+        expect(responseRedirect).not.toHaveBeenCalled();
+      });
+
+      test("is refused before the mailbox gate is even consulted", async () => {
+        // No consent lookup, and no confirmation email: the refusal precedes them.
+        await flow.run({ isMobile: false });
+
+        expect(hasConsent).not.toHaveBeenCalled();
+        expect(sendMail).not.toHaveBeenCalled();
+        expect(sendVerificationEmail).not.toHaveBeenCalled();
+      });
+
+      test("shows the administrator a first-party way in", async () => {
+        await flow.run({ isMobile: false });
+
+        expect(render).toHaveBeenCalledTimes(1);
+        expect(render.mock.calls[0]![2]).toBe(MESSAGE_VIEW);
+        expect(render.mock.calls[0]![3]).toEqual({
+          title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
+          message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+        });
+      });
+
+      test("tells the mobile app why on its deep link, with no tokens", async () => {
+        await flow.run({ isMobile: true });
+
+        expect(resRedirect).toHaveBeenCalledTimes(1);
+
+        const deepLink: string = resRedirect.mock.calls[0]![0] as string;
+        const params: URLSearchParams = new URLSearchParams(
+          deepLink.split("?")[1] || "",
+        );
+
+        expect(deepLink.startsWith("oneuptime://sso-callback?")).toBe(true);
+        expect(params.get("error")).toBe(
+          PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
+        );
+        expect(params.get("errorDescription")).toBe(
+          PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+        );
+        expect(params.get("accessToken")).toBeNull();
+        expect(params.get("refreshToken")).toBeNull();
+        expect(params.get("ssoToken")).toBeNull();
+        expect(render).not.toHaveBeenCalled();
+        expectNoSessionAndNothingProvisioned();
+      });
+    });
+
+    test("is refused even when it has already confirmed this project", async () => {
+      /*
+       * Consent (the hosted gate's "yes") does not open the escalation: an
+       * administrator who once confirmed a project must still not be mintable as
+       * an administrator by that project's provider.
+       */
+      setTestBillingEnabled(true);
+      storeUser({ isMasterAdmin: true });
+      hasConsent.mockResolvedValue(true);
+
+      await flow.run({ isMobile: false });
+
+      expectNoSessionAndNothingProvisioned();
+      expect(render.mock.calls[0]![3]).toEqual({
+        title: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_TITLE,
+        message: PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
+      });
+    });
+
+    test("still signs an ordinary (non-administrator) account in, as before", async () => {
+      // The rule reads only isMasterAdmin, so everyone else is unaffected.
+      setTestBillingEnabled(false);
+      storeUser({ isMasterAdmin: false });
+
+      await flow.run({ isMobile: false });
+
+      expectSignedIn();
+      expect(render).not.toHaveBeenCalled();
+    });
+  },
+);
 
 /*
  * ===========================================================================
@@ -1430,6 +1563,21 @@ describe("POST the confirmation -- links that must do nothing", () => {
     expectNothingWritten();
   });
 
+  test("refuses a OneUptime administrator account, and writes nothing", async () => {
+    /*
+     * A project provider never signs an administrator in, so its mailbox is
+     * never sent one of these links. A stale link that somehow reaches here --
+     * the account was made an administrator after the link went out -- still
+     * confers nothing: no consent, no membership, no verification.
+     */
+    storeUser({ isMasterAdmin: true });
+
+    await pressConfirm({ params: linkParams() });
+
+    expect(renderedPage().vars["title"]).toBe(INVALID_LINK_TITLE);
+    expectNothingWritten();
+  });
+
   test("refuses when the provider has been turned off since, and keeps the link", async () => {
     samlProviderFindOneBy.mockResolvedValue(null);
 
@@ -1526,6 +1674,23 @@ describe("ProjectSsoSignInConfirmation", () => {
           projectId: PROJECT_ID,
           providerId: PROVIDER_ID,
         }),
+      ).toBe(false);
+    },
+  );
+
+  test("forbids a project provider from signing an administrator in", () => {
+    expect(
+      ProjectSsoSignInConfirmation.mustNotSignInThroughProjectProvider({
+        isMasterAdmin: true,
+      }),
+    ).toBe(true);
+  });
+
+  test.each([{ isMasterAdmin: false }, { isMasterAdmin: undefined }, {}])(
+    "lets a project provider sign a non-administrator in (%p)",
+    (user: { isMasterAdmin?: boolean | undefined }) => {
+      expect(
+        ProjectSsoSignInConfirmation.mustNotSignInThroughProjectProvider(user),
       ).toBe(false);
     },
   );
