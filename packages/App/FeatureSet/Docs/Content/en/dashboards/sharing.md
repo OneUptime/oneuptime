@@ -2,6 +2,29 @@
 
 By default, a dashboard is private to your project: only people who sign in to your project can see it. You can also share it through a public link, protect that link with a password, limit it to certain IP addresses, and host it on your own domain. This page covers all four.
 
+:::cards
+- [Who can view a dashboard](#who-can-view-a-dashboard): One choice of three, with the plan each needs.
+- [Sharing with a password](#sharing-with-a-password): Share the link, then the password, with the people who should see it.
+- [IP allowlist](#ip-allowlist): Open the public link to your office or VPN only.
+- [Custom domains](#custom-domains): Serve the dashboard on your own domain, with a free certificate.
+:::
+
+## What a visitor goes through
+
+A visitor who opens a dashboard's public link meets each of these checks in turn. Project members who sign in to OneUptime see the dashboard inside the product, whatever you choose here.
+
+```mermaid title="What a visitor sees when they open the public link"
+flowchart TB
+    visit["A visitor opens<br/>the public link"] --> shared("Is the dashboard<br/>shared publicly?")
+    shared -->|"No"| missing["A not-found page"]
+    shared -->|"Yes"| allowed("Is their address on<br/>the IP allowlist?")
+    allowed -->|"Yes, or<br/>no list"| locked("Is a password<br/>required?")
+    allowed -->|"No"| denied["An Access<br/>Denied page"]
+    locked -->|"Yes"| prompt["The password<br/>prompt"]
+    prompt --> board["The dashboard"]
+    locked -->|"No"| board
+```
+
 ## Who can view a dashboard
 
 Open the dashboard and pick **⋯ → Share**, or open **Sharing** in the dashboard's side menu. The **Who can view this dashboard** card is one choice:
@@ -12,7 +35,7 @@ Open the dashboard and pick **⋯ → Share**, or open **Sharing** in the dashbo
 
 Picking a choice asks you to confirm, saying what changes for visitors, then applies at once. Picking **Anyone with the link and a password** asks for the password in the same dialog when the dashboard has none; while it is the choice, **Change Password** replaces it. While the dashboard is public, its **Public link** sits under the choice, with a button that copies it.
 
-Within the project, owners and labels control who sees what — see [Configuration & Permissions](/docs/dashboards/configuration). Someone who can see the dashboard but not edit it sees the choice, and can copy the public link, but can't change it.
+Within the project, owners and labels control who sees what — see [Dashboard Configuration & Permissions](/docs/dashboards/configuration). Someone who can see the dashboard but not edit it sees the choice, and can copy the public link, but can't change it.
 
 On OneUptime Cloud, sharing a dashboard needs the **Growth** plan: on a lower plan the two public choices show the plan they need and can't be picked. Making a dashboard private again — **Only people in this project** — works on every plan, so a dashboard left public when a trial ended, or after a move to a lower plan, can always stop being shared; the dialog says that sharing it again needs **Growth**. Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan. A dashboard created through the API or Terraform is held to the same plans: created public it needs **Growth**, and created with an IP allowlist **Scale**.
 
@@ -22,13 +45,13 @@ The choice is stored in three columns, which the API and Terraform read and writ
 
 A public dashboard:
 
-- Always opens in **View** mode. Public visitors can't edit or see the widget palette.
-- Includes the variables you've added. Visitors pick from the same dropdowns your team uses.
-- Uses the **branding** you set on the dashboard's **Branding** page — page title, description, logo, favicon.
+- Always opens for reading. Visitors can't edit it, and never see its edit controls.
+- Includes the variables you've added. Visitors pick from the same pickers your team uses, and can change the time range, zoom, turn on auto-refresh and go full screen.
+- Uses the branding you set on the dashboard's **Branding** page: page title, description, logo, favicon.
 
 Treat sharing a dashboard like publishing a webpage. Every widget on it becomes readable by anyone with the link. Look at what's on the canvas before you share it.
 
-Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself.
+Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself. A few more widgets cannot be shown without a signed-in session, and say so in their place: [On a public dashboard](/docs/dashboards/widgets#on-a-public-dashboard) lists them.
 
 ## Sharing with a password
 
@@ -55,7 +78,7 @@ Requests from any other IP are rejected with an **Access Denied** page that show
 
 ## Custom domains
 
-Out of the box, a public dashboard is served on `oneuptime.com`. To host it on your own subdomain like `dashboard.acme.com`, open **Branding → Custom Domains** in the dashboard's side menu. It works exactly like a status page's **Custom Domains** page.
+Out of the box, a public dashboard is served at its public link, on OneUptime's own address. To host it on your own subdomain like `dashboard.acme.com`, open **Branding → Custom Domains** in the dashboard's side menu. It works exactly like a status page's **Custom Domains** page.
 
 The card is titled **Custom Domains** and says what to do: point each domain's CNAME record to your installation's dashboard CNAME record, and OneUptime issues the domain's SSL certificate and renews it for you. The table has two columns, **Domain** and **Status**.
 
@@ -92,15 +115,15 @@ Until a domain is verified and its certificate is in place, its row has a **DNS 
 
 The **Status** column says where each domain is on its way to HTTPS, in one of seven states, the same as on status pages. When an order failed, the reason is on the line below.
 
-| What the Status column says                                 | What it means                                                                                                                                                                     |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Waiting for DNS: add the CNAME record.                      | The CNAME record is not found yet. Open **DNS Setup** for the record, add it at your DNS provider, then click **Check now** or wait for the 15-minute check.                      |
-| Issuing a free certificate, usually within 15 minutes.      | The record is verified, and the certificate is being ordered or written out. Nothing to do.                                                                                       |
-| Could not issue a free certificate yet. We keep trying.     | The record is verified, but ordering its certificate failed, for the reason on the line below. Fix the cause, then open **DNS Setup** and click **Check now** to order again now. |
-| Certificate expired. We keep trying to renew it.            | The domain's certificate has expired because its renewals failed. Open **DNS Setup** and click **Check now** to renew it now and see why.                                         |
-| Certificate issued, renews automatically.                   | Done. The domain serves its certificate over HTTPS, and OneUptime renews it.                                                                                                      |
-| Certificate issued, but renewing it failed. We keep trying. | The domain still serves a valid certificate, but its last renewal failed, for the reason on the line below. OneUptime tries again well before the certificate expires.            |
-| Uses your uploaded certificate.                             | The record is verified, and the domain is served with the certificate you uploaded.                                                                                               |
+| What the Status column says | What it means |
+| --- | --- |
+| Waiting for DNS: add the CNAME record. | The CNAME record is not found yet. Open **DNS Setup** for the record, add it at your DNS provider, then click **Check now** or wait for the 15-minute check. |
+| Issuing a free certificate, usually within 15 minutes. | The record is verified, and the certificate is being ordered or written out. Nothing to do. |
+| Could not issue a free certificate yet. We keep trying. | The record is verified, but ordering its certificate failed, for the reason on the line below. Fix the cause, then open **DNS Setup** and click **Check now** to order again now. |
+| Certificate expired. We keep trying to renew it. | The domain's certificate has expired because its renewals failed. Open **DNS Setup** and click **Check now** to renew it now and see why. |
+| Certificate issued, renews automatically. | Done. The domain serves its certificate over HTTPS, and OneUptime renews it. |
+| Certificate issued, but renewing it failed. We keep trying. | The domain still serves a valid certificate, but its last renewal failed, for the reason on the line below. OneUptime tries again well before the certificate expires. |
+| Uses your uploaded certificate. | The record is verified, and the domain is served with the certificate you uploaded. |
 
 If an order fails, the usual causes are a CAA record on your domain that does not allow `letsencrypt.org` and, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80.
 
@@ -120,36 +143,30 @@ Someone who can only read the domain, such as a Viewer or a Settings Viewer, sti
 
 The same goes for API keys. A key that can only read dashboard domains can't call `verify-cname`, `order-ssl` or `reissue-ssl` on `/dashboard-domain`. Give it **Read Dashboard Domain** and **Edit Dashboard Domain** if it needs to.
 
-Custom domains are useful for:
-
-- Customer-facing dashboards on your own brand.
-- Co-branded partner dashboards.
-- Public health pages with their own URL.
-
-You can attach more than one custom domain to a single dashboard if you serve the same content to multiple audiences.
+A domain belongs to one dashboard of the project at a time. You can attach more than one custom domain to a single dashboard if you serve the same content to several audiences: a customer-facing dashboard on your own brand, a co-branded partner dashboard, or a public health page with its own URL.
 
 ## Branding
 
 On the dashboard's **Branding** page, you can configure:
 
-- **Page title** — what shows in the browser tab and at the top of the page.
-- **Page description** — the description used by search engines and social previews.
-- **Logo** — upload a PNG or SVG to show in the header.
+- **Page Title** — what shows in the browser tab and at the top of the page.
+- **Page Description** — the description used by search engines and social previews.
+- **Logo** — an image shown in the public dashboard's header.
 - **Favicon** — the small icon in the browser tab.
 
 The logo and the favicon are files uploaded in the dashboard's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again." or "The favicon's file could not be found. Upload the favicon again." The public dashboard shows only images of its own project.
 
-Branding applies only when the dashboard is viewed publicly. Internal viewers always see OneUptime's branding.
+The page title and description also head the dashboard's toolbar for your team, in place of its name and description. The logo and the favicon appear only on the public dashboard.
 
 Visitors see the branding only once they may view the dashboard. Before the password is entered, a dashboard shared with a password shows only its page title and favicon, and search engines and link previews see its page title but not its page description. A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.
 
 ## Embedding
 
-You can embed a public dashboard in your own site with an iframe:
+You can embed a public dashboard in your own site with an iframe, at its public link or at one of its custom domains:
 
-```html
+```html title="embed.html"
 <iframe
-  src="https://dashboard.acme.com/view"
+  src="https://dashboard.acme.com"
   width="100%"
   height="800"
   frameborder="0"
@@ -158,14 +175,15 @@ You can embed a public dashboard in your own site with an iframe:
 
 If the dashboard is shared with a password, visitors will see the password prompt inside the iframe.
 
-## Shareable URLs
+## Sending a link
 
-The dashboard URL includes the current variable selections and time range as query parameters. Adjust the dropdowns, copy the URL, paste it in chat — the person opening the link sees the dashboard with the exact same view.
+The public link opens the dashboard on its saved defaults. To send a link that opens on a particular value, add the variable to it as `?var-<name>=<value>`, as the address bar does when a visitor picks a value; several values are separated by commas. The time range is not part of the link: every visit starts at the past hour.
 
-This is the fastest way to point a teammate at "the dashboard at the time the incident started." Pin the time range, copy, paste.
+## Next steps
 
-## Where to read next
-
-- [Configuration & Permissions](/docs/dashboards/configuration) — private-mode access control.
-- [Variables & Filters](/docs/dashboards/variables) — variables that visitors can interact with.
-- [Authoring a Dashboard](/docs/dashboards/authoring) — what goes on the canvas.
+:::cards
+- [Dashboard Configuration & Permissions](/docs/dashboards/configuration): Owners, labels and who may change the sharing.
+- [Dashboard Variables & Filters](/docs/dashboards/variables): The pickers visitors use, and links that keep a selection.
+- [Dashboard Widgets](/docs/dashboards/widgets): What each widget publishes on a public dashboard.
+- [Status Pages Overview](/docs/status-pages/index): Tell customers whether your service is up.
+:::
