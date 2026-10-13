@@ -1275,6 +1275,16 @@ API, SSO, or the Slack and Microsoft Teams apps.
   credentials OneUptime AI may use, whose write was cancelled now gives its
   lock back at once instead of holding other such changes for up to a
   minute.
+- **A placeholder `ENCRYPTION_SECRET` no longer signs sign-in tokens.** An
+  installation whose `ENCRYPTION_SECRET` is unset, `secret`, or the
+  `please-change-this-to-random-value` that `config.example.env` sets used to
+  sign its sign-in tokens with that public value. It now signs them with a
+  random key it generates on its first start and keeps in its database, so
+  after the upgrade it asks once more for the sign-ins it cannot renew by
+  itself: SSO, and the password of a status page or a dashboard. An
+  installation that set its own `ENCRYPTION_SECRET`, as
+  [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows, sees no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

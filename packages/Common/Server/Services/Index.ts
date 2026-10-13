@@ -15,6 +15,7 @@ import DataMigrationService from "./DataMigrationService";
 import MigrationFailureService from "./MigrationFailureService";
 import InstanceHealthLogService from "./InstanceHealthLogService";
 import InstanceReceivingPeriodService from "./InstanceReceivingPeriodService";
+import InstanceTokenSigningKeyService from "./InstanceTokenSigningKeyService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -514,6 +515,7 @@ const services: Array<BaseService> = [
   MigrationFailureService,
   InstanceHealthLogService,
   InstanceReceivingPeriodService,
+  InstanceTokenSigningKeyService,
   DomainService,
 
   EmailLogService,

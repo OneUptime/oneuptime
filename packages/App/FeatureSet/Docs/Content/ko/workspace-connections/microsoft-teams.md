@@ -89,6 +89,8 @@ OneUptime Cloud 에서는 **Teams 스토어 열기** 가 Microsoft Teams 스토�
 
 규칙이 만드는 채널의 이름은 **New Microsoft Teams Channel Name** 뒤에 레코드 번호를 붙인 것입니다 (예: `oneuptime-incident-42`). 규칙이 초대하는 사람을 받는 것은 생성된 채널뿐입니다. 비공개 인시던트, 경고, 에피소드에는 비공개 채널이 만들어집니다. 이후 레코드의 모든 업데이트 (상태 변경, 메모, 새 소유자) 는 레코드의 채널과 채팅에 게시됩니다.
 
+자체 채널이 있는 인시던트, 경고, 에피소드, 예정된 유지보수 이벤트는 OneUptime 페이지 헤더의 상태 버튼 옆에 **Microsoft Teams에서 열기** 가 있습니다. 이 버튼은 그 채널을 새 탭에서 Microsoft Teams 앱이나 브라우저로 엽니다. 자체 채널이 두 개인 레코드는 버튼 아래에 둘 다 나열합니다. Slack과 Microsoft Teams 모두에 채널이 있는 레코드에는 대신 **채널 열기** 버튼 하나가 있고, 모든 채널을 나열합니다. 규칙이 게시하는 기존 채널과 채팅은 제공되지 않습니다.
+
 채널과 채팅은 읽기 쉽게 유지됩니다. 각 업데이트는 한 번만 게시되고, 레코드의 첫 상태는 레코드를 알리는 카드 안에 들어가며 따로 게시되지 않습니다. 온콜 정책의 실행은 하나의 카드이며, 에스컬레이션이 진행되는 대로 편집됩니다. 누가 호출되었는지, 몇 번 어떤 방법으로 호출되었는지, 누가 호출되지 않았고 왜 그런지, 누가 확인했는지가 담깁니다. 새 카드는 누군가 조치해야 할 때만 게시됩니다. 에스컬레이션 규칙이 아무에게도 닿지 않았거나, 아무도 확인하지 않은 채 실행이 끝났을 때입니다. 레코드의 소유자나 상태 페이지 구독자에게 알렸다는 사실은 OneUptime 의 레코드 피드에 남습니다.
 
 **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 에는 OneUptime 이 팀에서 볼 수 있는 채널과 OneUptime 이 추가된 채팅이 표시되고, 각각의 옆에 **테스트 보내기** 가 있습니다. 채팅은 Microsoft Teams 에서 OneUptime 앱이 추가되면 나타나며, **Refresh Chats** 는 새 채팅과 현재 이름을 가져옵니다.
@@ -143,17 +145,18 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 | 메시지 | 봇이 하는 일 |
 | --- | --- |
 | `help` | 할 수 있는 일을 나열합니다. |
-| `ask <question>`, 또는 일상적인 말로 하는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. 예를 들어 "지금 다운된 모니터는?" 입니다. 답변은 읽기만 합니다. |
-| `create incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
-| `create maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
+| `incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
+| `maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
+| `oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
+| `ask [question]`, 또는 일상적인 말로 하는 모든 질문 | OneUptime AI 가 로그, 트레이스, 메트릭, 인시던트, 모니터에 대해 답변합니다. 예를 들어 "지금 다운된 모니터는?" 입니다. 답변은 읽기만 합니다. |
 | `show active incidents`, `show active alerts` | 지금 열려 있는 것을 나열합니다. |
 | `show scheduled maintenance`, `show ongoing maintenance` | 예정된, 또는 진행 중인 유지 관리 이벤트를 나열합니다. |
 
-OneUptime AI 에게 질문하려면 프로젝트에서 AI 가 켜져 있어야 합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
+`show` 목록을 제외하면 Slack 에서 `/oneuptime` 뒤에 오는 단어와 같습니다. `create incident` 와 `create maintenance` 도 계속 작동합니다. OneUptime AI 에게 질문하려면 프로젝트에서 AI 가 켜져 있어야 합니다. [AI에게 질문](/docs/ai/ask-ai) 을 참조하세요.
 
 ## Microsoft Teams 에서 인시던트와 유지 관리 만들기
 
-OneUptime 봇에게 `create incident` 또는 `create maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.
+OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채팅, 채널, 그룹 채팅 어디서든 입력한 사람을 위한 양식이 열립니다. 양식은 그 사람으로서 작성됩니다. 그 사람의 Microsoft Teams 계정이 연결된 OneUptime 계정 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조) 으로서, 그 계정의 프로젝트 권한으로 제출됩니다. 계정이 연결되지 않았거나 OneUptime 계정이 더 이상 프로젝트의 멤버가 아닌 사람은 양식 대신 그 사람을 멘션하는 답글로 무엇을 해야 하는지 안내를 받습니다.
 
 - **사용할 수 있는 사람.** OneUptime 에서 인시던트를 선언하거나 예정된 유지 관리 이벤트를 만들 수 있는 사람입니다. 인시던트에는 **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member** (사용자 지정 역할에서는 **Create Incident** ), 이벤트에는 **Scheduled Maintenance Admin** 과 **Scheduled Maintenance Member** ( **Create Scheduled Maintenance** ) 입니다. 그 밖의 사람에게는 그렇게 알리며 양식을 주지 않습니다.
 - **양식이 제공하는 것.** 각 목록 (심각도, 모니터, 모니터 상태, 온콜 정책, 레이블) 에는 OneUptime 의 같은 목록과 마찬가지로 양식을 요청한 사람이 읽을 수 있는 것이 들어 있으며, 카드의 "not shown" 안내도 그것만 셉니다. 일부 레이블로 제한된 역할이라면 그 레이블이 붙은 모니터와 온콜 정책입니다. 전혀 읽을 수 없는 목록은 빠집니다. 보관된 온콜 정책은 제공되지 않습니다.

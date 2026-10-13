@@ -1,5 +1,5 @@
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
-import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
@@ -22,9 +22,10 @@ jest.mock("../../../Server/Utils/Logger");
  * project binding, which is exactly what lets one token satisfy SSO
  * enforcement for every project the user belongs to.
  *
- * These tests run REAL JWT signing and verification (no mocks). The JWT secret
- * falls back to EncryptionSecret = "secret" when ENCRYPTION_SECRET is unset
- * (see Common/Server/EnvironmentConfig.ts), so no env setup is required.
+ * These tests run REAL JWT signing and verification (no mocks). The key is
+ * TokenSigningKey - ENCRYPTION_SECRET when it is set, and otherwise a random
+ * key of this process's own, never a value the repository ships - so no env
+ * setup is required.
  *
  * The happy path of UserMiddleware.doesSsoTokenForProjectExist accepting a
  * global token from the `global-sso-token` cookie and from the
@@ -417,7 +418,7 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - global token tampering", 
         ssoProviderId: ssoProviderId.toString(),
         ssoProviderType: SsoProviderType.GlobalSSO,
       },
-      `${EncryptionSecret.toString()}-not-the-real-secret`,
+      `${TokenSigningKey.get()}-not-the-real-secret`,
       { expiresIn: THIRTY_DAYS_IN_SECONDS },
     );
 

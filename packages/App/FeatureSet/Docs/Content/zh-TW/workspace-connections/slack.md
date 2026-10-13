@@ -5,7 +5,7 @@
 :::cards
 - [連接 Slack](#連接-slack): 在您的工作區中安裝 OneUptime，然後連結您自己的帳戶。
 - [通知規則](#通知規則): 決定哪些事件發布到哪裡，以及哪些事件擁有專屬頻道。
-- [從 Slack 建立事件和維護](#從-slack-建立事件和維護): 以您本人的身分使用 `/incident` 和 `/maintenance`。
+- [/oneuptime 指令](#oneuptime-指令): 宣告事件、排定維護、查看誰在待命，以及詢問 AI。
 - [從 Slack 處理事件、警示和活動](#從-slack-處理事件警示和活動): OneUptime 訊息上的按鈕。
 :::
 
@@ -76,6 +76,8 @@ flowchart TB
 
 規則建立的頻道以 **New Slack Channel Name** 加上紀錄編號命名，例如 `oneuptime-incident-42`。只有建立的頻道才會接收規則邀請的人員：紀錄的擁有者、所選的團隊和使用者，以及對於事件和警示，在被呼叫時加入的待命人員。私人事件、警示或片段會獲得私人頻道。此後紀錄的每次更新（狀態變化、備註、新擁有者）都會發布到它的頻道，以及其規則指定的現有頻道。建立時即已解決的事件、警示或片段不會獲得專屬頻道；其建立訊息仍會送到您的規則指定的頻道。請參閱 [宣告時即已確認或已解決](/docs/incidents/declaring-incidents#宣告時即已確認或已解決)。
 
+擁有專屬頻道的事件、警示、片段或排定維護事件，會在其 OneUptime 頁面標題的狀態按鈕旁顯示 **在 Slack 中開啟**。它會在新分頁中開啟該頻道，進入 Slack 應用程式或瀏覽器。擁有兩個專屬頻道的紀錄會在按鈕下列出這兩個頻道。在 Slack 和 Microsoft Teams 中都有頻道的紀錄，會改為只顯示一個 **開啟頻道** 按鈕，列出所有頻道。不會提供您的規則所發布到的現有頻道。
+
 頻道保持易讀：每次更新只發布一次，紀錄的第一個狀態寫在宣布該紀錄的訊息裡，而不是單獨發一則訊息。待命策略的一次執行就是一則訊息，隨著上報推進而被編輯：呼叫了誰、呼叫了幾次以及透過什麼方式、誰沒有被呼叫以及原因、誰確認了。只有在需要有人採取行動時才會發布新訊息：某條上報規則沒有呼叫到任何人，或者執行結束時仍沒有人確認。Slack 帳戶未連接到 OneUptime 的人無法被加入頻道；OneUptime 在每個頻道中只說一次，用一則列出所有這些人的訊息，名單變長時編輯這則訊息。把該訊息中的 **Connect Slack account** 連結傳給他們，即可一步連接帳戶。紀錄的擁有者或狀態頁面訂閱者已收到通知這件事，保留在 OneUptime 中該紀錄的動態裡。
 
 **專案設定** > **工作區** > **Slack** 列出 OneUptime 看得到的頻道，每個頻道旁邊都有 **傳送測試**。OneUptime 第一次在公開頻道發布時會自行加入。私人頻道只有在 Slack 中邀請 OneUptime 應用程式加入後，才會被列出並可以發布訊息。
@@ -123,13 +125,30 @@ flowchart TB
 
 備註以您的身分、依您的權限儲存，因此您自己的 Slack 帳戶必須已連接。無論多少人回應，一則訊息只會儲存一次。
 
+## /oneuptime 指令
+
+OneUptime 在 Slack 中只有一個指令：`/oneuptime`。在它後面輸入的詞決定要做什麼；後面的其他任何內容都是向 OneUptime AI 提出的問題。
+
+| 指令 | 作用 |
+| --- | --- |
+| `/oneuptime help` | 列出所有指令，並附範例。 |
+| `/oneuptime incident [title]` | 開啟已填好標題的事件表單。 |
+| `/oneuptime maintenance [title]` | 開啟已填好標題的排定維護表單。 |
+| `/oneuptime oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
+| `/oneuptime ask [question]`，或任何問題 | OneUptime AI 回答有關記錄、追蹤、指標、事件和監測器的問題。 |
+
+對 `help` 和 `oncall` 的回答是只有您看得到的訊息，顯示在指令下方。如果第一個詞看起來像拼錯的指令，例如 `incidnet`，您會收到與它相似的指令，而不是 OneUptime AI 的回答。事件和維護表單以您本人的身分操作：請參閱 [從 Slack 建立事件和維護](#從-slack-建立事件和維護)。
+
+> [!NOTE]
+> `/oneuptime incident` 和 `/oneuptime maintenance` 取代了 `/incident` 和 `/maintenance`，後兩者可能與其他 Slack 應用程式的同名指令衝突。用較早的資訊清單建立的 Slack 應用程式會保留它們，在應用程式更新之前，它們會開啟相同的表單：請參閱 [用較舊資訊清單建立的應用程式](/docs/self-hosted/slack-integration#用較舊資訊清單建立的應用程式)。
+
 ## 從 Slack 詢問 OneUptime AI
 
 用日常語言詢問有關記錄、追蹤、指標、事件和監測器的問題。在頻道中 @提及 OneUptime，或傳送私人訊息給它，它會在討論串中回答；在那裡回覆即可繼續提問。 `/oneuptime ask which monitors are down?` 會將答案發布到頻道中。兩種方式都需要連接您自己的 Slack 帳戶，並為專案開啟 AI。Slack 中的回答只讀取資料：要變更內容，請使用按鈕。請參閱 [詢問 AI](/docs/ai/ask-ai)。
 
 ## 從 Slack 建立事件和維護
 
-`/incident` 和 `/maintenance` 會開啟一個表單，由您以本人身分填寫並提交：也就是以您的 Slack 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Slack](#連接-slack) ），依該帳戶在專案中的權限提交。如果您的 Slack 帳戶未連接，或您的 OneUptime 帳戶已不再是專案成員，OneUptime 會在您執行命令的地方，以只有您看得到的訊息告訴您該怎麼做，並且不會開啟表單。 **Create New Incident** 和 **Create Scheduled Event** 捷徑會開啟相同的表單。
+`/oneuptime incident` 和 `/oneuptime maintenance` 會開啟一個表單，由您以本人身分填寫並提交：也就是以您的 Slack 帳戶所連接的 OneUptime 帳戶的身分（請參閱 [連接 Slack](#連接-slack) ），依該帳戶在專案中的權限提交。如果您的 Slack 帳戶未連接，或您的 OneUptime 帳戶已不再是專案成員，OneUptime 會在您執行命令的地方，以只有您看得到的訊息告訴您該怎麼做，並且不會開啟表單。 **Create New Incident** 和 **Create Scheduled Event** 捷徑會開啟相同的表單。
 
 - **誰可以使用。** 能在 OneUptime 中宣告事件或建立排定維護活動的人：對於事件，是 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member** （自訂角色中的 **Create Incident** ）；對於活動，是 **Scheduled Maintenance Admin** 和 **Scheduled Maintenance Member** （ **Create Scheduled Maintenance** ）。其他任何人都會在執行命令的地方收到告知，並且不會開啟表單。
 - **表單提供什麼。** 每個清單（嚴重程度、監測器、監測器狀態、待命策略和標籤）都包含您可以讀取的內容，與 OneUptime 中的同一清單一致：如果角色僅限於某些標籤，則為帶有這些標籤的監測器和待命策略。您完全無法讀取的清單不會出現在表單中。已封存的待命策略永遠不會提供。

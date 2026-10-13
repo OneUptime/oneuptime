@@ -61,7 +61,7 @@ Personlige feeder er per prosjekt: et andre prosjekt får en andre lenke og en a
 Klikk på **Generer kalenderlenke**. Kortet **Abonner på vaktene dine** tilbyr nå én måte å abonnere på:
 
 - **Legg til i kalenderen din**: **Google Kalender** åpner Google Kalender, som spør om kalenderen skal legges til. **Apple Kalender / Outlook** åpner lenkens `webcal://`-form i appen datamaskinen eller telefonen din abonnerer med: Apple Kalender på en Mac, iPhone eller iPad, Outlook på Windows.
-- **Eller kopier lenken**: **Kopier lenke** kopierer `https://`-lenken for alle andre apper som kan abonnere på en kalender via en URL. Lenken er skjult på siden til du klikker for å vise den.
+- **Eller kopier lenken**: **Kopier lenke** kopierer `https://`-lenken for alle andre apper som kan abonnere på en kalender via en URL, uten å vise den. Lenken er skjult på siden til du klikker på **Vis**.
 
 ### Abonner på lenken
 
@@ -78,15 +78,23 @@ Klikk på **Rediger innstillinger** på kortet **Innstillinger for kalenderfeed*
 | **Dager med tidligere vakter** | Hvor langt tilbake kalenderen går (standard 2, høyst 60). |
 | **Dager fremover** | Hvor langt frem kalenderen går (standard 90, mellom 7 og 180). |
 
-Statuslinjen viser når lenken sist ble hentet, av hvilken kalenderapp, hvor mange ganger, og de fire siste tegnene i tokenet, så du kan skille lenker fra hverandre. Har ingenting hentet lenken etter to dager, spør siden om serveren kan nås fra internett (se Feilsøking).
+Panelet **Status** ved siden av abonnementsvalgene forteller om lenken virker: når den sist ble hentet og av hvilken kalenderapp, omtrent hvor mange ganger, og de fire siste tegnene i tokenet, så du kan skille lenker fra hverandre. Merket viser:
+
+- **Aktiv**: en kalenderapp har hentet lenken.
+- **Venter på første synkronisering**: ingenting har hentet lenken ennå. De fleste apper gjør det innen noen minutter etter at du abonnerer; Google Kalender kan bruke noen timer.
+- **Ikke hentet ennå**: ingenting har hentet lenken i de to dagene siden den ble laget, så siden spør om serveren kan nås fra der kalenderappen din kjører (se Feilsøking).
+- **Deaktivert**: lenken leverer en tom kalender til du klikker på **Aktiver lenke**.
+- **Må genereres på nytt**: den lagrede lenken kan ikke lenger leses, som regel fordi serverens krypteringshemmelighet er endret. **Generer lenke på nytt** lager en ny.
 
 ### Administrer lenken
+
+Resten finner du i menyen **⋯** på kortet. **Generer lenke på nytt** og **Slett lenke** spør før de gjør noe.
 
 | Handling | Hva som skjer |
 | --- | --- |
 | **Generer lenke på nytt** | Lager et nytt token. Alle apper som abonnerer på den gamle lenken, slutter å oppdateres: i 30 dager leverer den gamle lenken en tom kalender, så de appene tømmer kopien sin, deretter svarer den 404. Abonner på nytt med den nye lenken. |
-| **Deaktiver** | Beholder lenken, men leverer en tom kalender til du aktiverer den igjen. |
-| **Slett** | Fjerner lenken. Apper som fortsatt henter den, får 404 og fortsetter å vise det de hentet sist — deaktiver først hvis du vil at de skal tømmes. |
+| **Deaktiver lenke** | Beholder lenken, men leverer en tom kalender til du klikker på **Aktiver lenke**, i samme meny eller i panelet **Status**. |
+| **Slett lenke** | Fjerner lenken. Apper som fortsatt henter den, får 404 og fortsetter å vise det de hentet sist — deaktiver først hvis du vil at de skal tømmes. |
 
 ### Kommende vakter og avløsning
 
@@ -109,7 +117,7 @@ Bruk **Google Kalender** eller **Apple Kalender / Outlook** i OneUptime der appe
 
 Knappen **Google Kalender** åpner Googles side for å legge til via URL, `https://calendar.google.com/calendar/r?cid=` etterfulgt av lenkens `webcal://`-form, prosentkodet. Den siden tar bare `webcal://`-formen: med `https://`-formen svarer Google "Unable to add calendar. Check the URL." **Fra nettadresse** tar begge formene.
 
-Google henter feeden **fra Googles servere**, så OneUptime-serveren må kunne nås fra internett — OneUptime Cloud kan alltid det; se Feilsøking for en selvdriftet installasjon. Den første hentingen skjer vanligvis innen noen minutter etter at du abonnerer; deretter oppdaterer Google omtrent hver 8. til 24. time, noen ganger sjeldnere. Det finnes ingen oppdateringsknapp for abonnerte kalendere, og Google ignorerer oppdateringshintene i feeden. Statuslinjen på feedsiden viser **Sist hentet … av Google Calendar** når Google har lest lenken.
+Google henter feeden **fra Googles servere**, så OneUptime-serveren må kunne nås fra internett — OneUptime Cloud kan alltid det; se Feilsøking for en selvdriftet installasjon. Den første hentingen skjer vanligvis innen noen minutter etter at du abonnerer; deretter oppdaterer Google omtrent hver 8. til 24. time, noen ganger sjeldnere. Det finnes ingen oppdateringsknapp for abonnerte kalendere, og Google ignorerer oppdateringshintene i feeden. Statusen på kortet viser **Sist hentet … av Google Calendar** når Google har lest lenken.
 
 Kalenderens navn og tidssone leses **bare første gang du abonnerer**: gir du en vaktplan nytt navn senere, får ikke kalenderen nytt navn i Google — fjern den og legg den til igjen hvis navnet er viktig. Google forkaster påminnelser i kalenderfiler, så angi standardvarsler for den kalenderen i innstillingene til Google, eller enda bedre: bruk OneUptimes egne påminnelser. Google husker en adresse den ikke kunne lese: når du har rettet det som stoppet den, legger du til lenken igjen med `?nocache=1` bak (OneUptime ignorerer ukjente spørringsparametere, så selve feeden er uendret), eller genererer lenken på nytt. Google Kalender-appen på Android og iOS kan ikke abonnere via URL; legg til lenken på en datamaskin, så dukker den opp på telefonen.
 @tab Outlook på nettet
@@ -194,7 +202,7 @@ En delt lenke tilhører **prosjektet**, ikke den som kopierte den, og den viser 
 
 ### Vaktplanfeed
 
-På siden til en vaktplan har kortet **Abonner på denne vaktplanen** to halvdeler: **Bare mine vakter i denne vaktplanen** (den personlige lenken din med et vaktplanfilter) og **Alles vakter i denne vaktplanen (delt teamlenke)**. Alle med tillatelsen **Rediger** på vaktplaner kan bruke **Publiser delt lenke**, fornye lenken med **Generer lenke på nytt** eller slå den av med **Deaktiver**; alle som kan lese vaktplanen, kan kopiere den. Kortet viser når lenken sist ble fornyet.
+På siden til en vaktplan har kortet **Abonner på denne vaktplanen** to halvdeler: **Bare mine vakter i denne vaktplanen** (den personlige lenken din med et vaktplanfilter) og **Alles vakter i denne vaktplanen (delt teamlenke)**. Alle med tillatelsen **Rediger** på vaktplaner kan bruke **Publiser delt lenke**, og i menyen **⋯** på kortet fornye lenken med **Generer lenke på nytt** eller slå den av med **Deaktiver lenke**; alle som kan lese vaktplanen, kan kopiere den. Statusen på kortet viser når lenken sist ble fornyet.
 
 ### Prosjektfeed
 
@@ -231,7 +239,7 @@ Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager:
 
 - Tokenet i lenken er den eneste påloggingsinformasjonen. Alle som har lenken, ser vaktene — navn, vaktplaner, retningslinjer — til den genereres på nytt. Ikke lim inn lenker i chatterom eller saker; når et team trenger en kalender, deler du vaktplan- eller prosjektlenken i stedet for din personlige.
 - Lenker er per prosjekt. En lekket personlig lenke avslører vaktene i ett prosjekt, ikke i alle prosjektene du er med i.
-- Å generere en lenke på nytt flytter det gamle tokenet inn i en karensperiode på 30 dager (tom kalender, deretter 404). **Deaktiver** leverer en tom kalender. En ukjent eller utløpt lenke gir en ren 404 uten hint. Tomme kalendere får abonnerte apper til å tømme kopien sin; en 404 får dem til å beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
+- Å generere en lenke på nytt flytter det gamle tokenet inn i en karensperiode på 30 dager (tom kalender, deretter 404). **Deaktiver lenke** leverer en tom kalender. En ukjent eller utløpt lenke gir en ren 404 uten hint. Tomme kalendere får abonnerte apper til å tømme kopien sin; en 404 får dem til å beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
 - Tokener lagres hashet; kopien som vises på innstillingssiden, er kryptert med `ENCRYPTION_SECRET`. Sett den variabelen til en ekte hemmelighet på en selvdriftet installasjon — serveren advarer ved oppstart når den ikke er satt eller fortsatt er en av plassholderne dette repositoriet leverer (`secret`, eller `please-change-this-to-random-value` som `config.example.env` setter). Endrer du den senere, tilbyr siden **Generer lenke på nytt**, fordi den lagrede kopien ikke lenger kan leses; feeden fortsetter å fungere til du gjør det.
 - Feedsvar er merket `Cache-Control: private`, utelukkes fra søkemotorer (`X-Robots-Tag: noindex`) og har en hastighetsgrense per lenke og per klientadresse.
 
@@ -277,7 +285,7 @@ Eldre versjoner av OneUptime la lenkens `https://`-form i knappen **Google Kalen
 :::
 
 :::details Google Kalender viser kalenderen, men ingen vakter
-Sjekk først statuslinjen på feedsiden. **Sist hentet … av Google Calendar** betyr at Google har lest lenken: åpne lenken i en nettleser og se hva den leverer — en tom kalender oppgir årsaken i `X-WR-CALDESC` (se "Kalenderen er tom" nedenfor).
+Sjekk først statusen på kortet. **Sist hentet … av Google Calendar** betyr at Google har lest lenken: åpne lenken i en nettleser og se hva den leverer — en tom kalender oppgir årsaken i `X-WR-CALDESC` (se "Kalenderen er tom" nedenfor).
 
 **Ikke hentet ennå** betyr at Google ikke kunne lese den: fra en maskin utenfor nettverket ditt må `curl -sI <link>` svare `200` med `Content-Type: text/calendar` med en gang. En videresending, en påloggingsside, en brannmur eller en botsjekk foran OneUptime stopper Googles henter; det gjorde også en videresendingssløyfe i eldre versjoner av OneUptime, på installasjoner med `PROVISION_SSL=true` der TLS avsluttes foran Nginx. Når den svarer `200`, legger du til lenken igjen med `?nocache=1` bak, så Google leser den på nytt.
 :::
@@ -285,7 +293,7 @@ Sjekk først statuslinjen på feedsiden. **Sist hentet … av Google Calendar** 
 :::details Ingenting har hentet lenken, eller "Kunne ikke hente nettadressen"
 Google Kalender, Outlook på nettet, Fastmail og Proton henter **fra sine egne servere**, så OneUptime-verten må kunne nås fra det offentlige internett med et sertifikat de stoler på. En installasjon på et privat nettverk, bak en VPN eller med en intern sertifiseringsinstans er utilgjengelig for dem, uansett hva du limer inn.
 
-Apple Kalender, Thunderbird og klassisk Outlook henter fra enheten, så de fungerer overalt der enheten kan åpne dashbordet — etter at sertifikatet er klarert på den enheten hvis det er selvsignert. Statuslinjen på feedsiden forteller deg om noe har hentet lenken ennå; `curl -I` mot lenken fra utenfor nettverket ditt er den raskeste sjekken:
+Apple Kalender, Thunderbird og klassisk Outlook henter fra enheten, så de fungerer overalt der enheten kan åpne dashbordet — etter at sertifikatet er klarert på den enheten hvis det er selvsignert. Statusen på kortet forteller deg om noe har hentet lenken ennå; `curl -I` mot lenken fra utenfor nettverket ditt er den raskeste sjekken:
 
 ```bash
 curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"

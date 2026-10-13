@@ -28,6 +28,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
 } from "../EventView/EventStatusPanel";
@@ -57,6 +58,11 @@ import {
 
 export interface ComponentProps {
   episodeId: ObjectID;
+  /*
+   * Header actions that are not state changes - Open in Slack / Teams -
+   * shown beside the state actions.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
   onActionComplete: () => void | Promise<void>;
   /*
    * Bump to reload the header after the episode changed somewhere else on
@@ -496,6 +502,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
+        secondaryActions={props.secondaryActions}
         moreMenuTitle={translationKey("Move episode to")}
         facts={getEpisodeHeaderFacts(
           {

@@ -62,6 +62,7 @@ import {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
+import Analytics, { PurchaseData } from "Common/Utils/Analytics";
 import {
   RevenueEventName,
   RevenueFunnelStage,
@@ -552,6 +553,9 @@ const Settings: FunctionComponent<ComponentProps> = (
           newPlanOrder !== null &&
           newPlanOrder > oldPlanOrder
         ) {
+          const isPaidConversion: boolean =
+            oldMonthlyAmountInUSD === 0 && newPlanIsPaid;
+
           // GA4/Google Ads friendly conversion event.
           UiAnalytics.captureRevenueEvent(
             RevenueEventName.SubscriptionUpgraded,
@@ -564,9 +568,24 @@ const Settings: FunctionComponent<ComponentProps> = (
                     currency: "USD",
                   }
                 : {}),
-              is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
+              is_paid_conversion: isPaidConversion,
             },
           );
+
+          const purchase: PurchaseData | null = Analytics.purchaseForPlanChange(
+            {
+              projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
+              planName: newPlan?.getName() || "",
+              isPaidConversion: isPaidConversion,
+              monthlyAmountInUSD: newMonthlyAmountInUSD,
+              seats: seats,
+              changedAt: new Date(),
+            },
+          );
+
+          if (purchase) {
+            UiAnalytics.capturePurchase(purchase);
+          }
         } else if (
           oldPlanOrder !== null &&
           newPlanOrder !== null &&

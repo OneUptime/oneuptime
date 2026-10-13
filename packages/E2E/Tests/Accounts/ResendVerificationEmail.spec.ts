@@ -25,13 +25,14 @@ import Faker from "Common/Utils/Faker";
  * ResendVerificationEmail.test.ts) mock the three things its answers turn on:
  * the Redis fence in GlobalCache, the Postgres query over the account's
  * EmailVerificationToken rows that the cooldown is computed from, and the
- * EncryptionSecret the resend token's HMAC key is derived from. This is the
- * only place all three are real at once. A token minted by the real /signup
- * is checked against the real secret; the welcome email's own row, written by
- * that same signup, has to be found by the real history query for the first
- * resend to be told to wait (signup never sets the fence, so nothing else can
- * produce that answer); and the answer is only reachable after a read of the
- * real fence, because a route that cannot reach Redis answers 503, not 200.
+ * signing key the resend token's HMAC key is derived from (TokenSigningKey).
+ * This is the only place all three are real at once. A token minted by the
+ * real /signup is checked against the real key; the welcome email's own row,
+ * written by that same signup, has to be found by the real history query for
+ * the first resend to be told to wait (signup never sets the fence, so
+ * nothing else can produce that answer); and the answer is only reachable
+ * after a read of the real fence, because a route that cannot reach Redis
+ * answers 503, not 200.
  *
  * WHAT IT DOES NOT DO
  *

@@ -1,4 +1,3 @@
-import { EncryptionSecret } from "../EnvironmentConfig";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -13,6 +12,7 @@ import User from "../../Models/DatabaseModels/User";
 import jwt from "jsonwebtoken";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import TokenSigningKey from "./TokenSigningKey";
 
 class JSONWebToken {
   @CaptureSpan()
@@ -77,12 +77,16 @@ class JSONWebToken {
     return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
   }
 
+  /*
+   * Signed with TokenSigningKey: ENCRYPTION_SECRET when the operator set one,
+   * and never a value this repository ships.
+   */
   @CaptureSpan()
   public static signJsonPayload(
     payload: JSONObject,
     expiresInSeconds: number,
   ): string {
-    return jwt.sign(payload, EncryptionSecret.toString(), {
+    return jwt.sign(payload, TokenSigningKey.get(), {
       expiresIn: expiresInSeconds,
     });
   }
@@ -101,10 +105,15 @@ class JSONWebToken {
     });
   }
 
+  /*
+   * Only a token signed with TokenSigningKey verifies. On an installation
+   * whose ENCRYPTION_SECRET is unset or a shipped placeholder, one signed
+   * with that public value does not.
+   */
   @CaptureSpan()
   public static decodeJsonPayload(token: string): JSONObject {
     const decodedToken: string = JSON.stringify(
-      jwt.verify(token, EncryptionSecret.toString()) as string,
+      jwt.verify(token, TokenSigningKey.get()) as string,
     );
     const decoded: JSONObject = JSONFunctions.parseJSONObject(decodedToken);
 

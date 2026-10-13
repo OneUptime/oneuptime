@@ -29,6 +29,14 @@ export interface FeedOptions {
 
 export const DEFAULT_FEED_SORT_ORDER: SortOrder = SortOrder.Descending;
 
+/*
+ * How many entries a feed reads at a time. Ten - the table default - was one
+ * busy minute of an incident: the first page ended before the incident was
+ * even declared. With bursts folded into one entry each, twenty-five is
+ * still a short page to read.
+ */
+export const FEED_PAGE_SIZE: number = 25;
+
 export const DEFAULT_FEED_OPTIONS: FeedOptions = {
   sortOrder: DEFAULT_FEED_SORT_ORDER,
   eventTypes: [],

@@ -223,6 +223,48 @@ export const dashboardLabel: DashboardLabelFunction = (
 const CREATE_PREFIX: string = "Create ";
 
 /*
+ * The verbs a table's create button may name (BaseModelTable's
+ * createVerb), each drawn from its own template.
+ */
+const TABLE_BUTTON_VERBS: ReadonlyArray<string> = ["Create", "Add"];
+
+/*
+ * A table's create button with any verb its table names, as the Dashboard
+ * draws it in this language: "Create API Key", or "Add Item" where the
+ * table's createVerb is "Add" (the Inventory list, an API key's
+ * permissions). Like translateCreateAction: the whole phrase when the locale
+ * words it, else the verb's template with the thing's name in it.
+ */
+export const drawnTableButton: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  const verb: string | undefined = TABLE_BUTTON_VERBS.find(
+    (candidate: string): boolean => {
+      return english.startsWith(`${candidate} `);
+    },
+  );
+
+  if (!verb) {
+    throw new Error(`Not a table's create button: ${english}`);
+  }
+
+  const locale: Record<string, unknown> = dashboardLocale(language);
+
+  return translateNamedAction(
+    createTranslator((text: string): string | undefined => {
+      const value: unknown = locale[text];
+
+      return typeof value === "string" ? value : undefined;
+    }, language),
+    {
+      template: `${verb} {{itemName}}`,
+      itemName: english.slice(verb.length + 1),
+    },
+  );
+};
+
+/*
  * A table's create button, as the Dashboard draws it in this language: a
  * ModelTable names its button "Create <its singularName>" and draws it with
  * translateCreateAction - the whole phrase when the locale words it, else

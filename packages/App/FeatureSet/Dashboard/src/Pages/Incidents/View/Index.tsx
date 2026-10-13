@@ -88,6 +88,13 @@ import useEventVideoCalls, {
   VideoCallEventKind,
 } from "../../../Components/VideoCall/useEventVideoCalls";
 import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoCallAction";
+import useRecordChannelLinks, {
+  getOpenInChatActions,
+} from "../../../Components/Workspace/useRecordChannelLinks";
+import {
+  WorkspaceChannelLink,
+  WorkspaceChannelRecordType,
+} from "Common/Types/Workspace/WorkspaceChannelLink";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import {
   getIncidentAffectedResourcesFormFields,
@@ -426,6 +433,14 @@ const IncidentView: FunctionComponent<
     eventId: modelId,
     // A rule's call arrives a moment after a new incident is created.
     eventStartedAt: incidentStartedAt,
+  });
+
+  // The incident's own Slack and Teams channels: Open in Slack / Teams.
+  const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
+    recordType: WorkspaceChannelRecordType.Incident,
+    recordId: modelId,
+    // A rule's channel arrives a moment after a new incident is created.
+    recordStartedAt: incidentStartedAt,
   });
 
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
@@ -976,7 +991,10 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault
           }
           facts={headerFacts}
-          secondaryActions={getJoinVideoCallActions(videoCalls)}
+          secondaryActions={[
+            ...getJoinVideoCallActions(videoCalls),
+            ...getOpenInChatActions(channelLinks),
+          ]}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}

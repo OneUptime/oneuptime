@@ -18,12 +18,8 @@ import {
 import { generateBlogRssFeed } from "./Utils/RssFeed";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "./Utils/PageSEO";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
 // Removed unused imports after dynamic sitemap refactor
 import { JSONObject } from "Common/Types/JSON";
-import API from "Common/Utils/API";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
@@ -57,6 +53,8 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { redirectPreservingQuery } from "./Utils/Redirect";
+import { redirectLegacyUrl } from "./Utils/LegacyRedirects";
+import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
@@ -550,43 +548,23 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
+      redirectPreservingQuery(req, res, "/product/status-page", 301);
     });
 
     app.get("/logs-management", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/logs-management");
+      redirectPreservingQuery(req, res, "/product/logs-management", 301);
     });
 
     let gitHubContributors: Array<JSONObject> = [];
 
     app.get("/about", async (_req: ExpressRequest, res: ExpressResponse) => {
       if (gitHubContributors.length === 0) {
-        let contributors: Array<JSONObject> = [];
-
-        let hasMoreContributors: boolean = true;
-
-        let pageNumber: number = 1;
-
-        while (hasMoreContributors) {
-          const response: HTTPResponse<Array<JSONObject>> | HTTPErrorResponse =
-            await API.get<Array<JSONObject>>({
-              url: URL.fromString(
-                "https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" +
-                  pageNumber,
-              ),
-            });
-          pageNumber++;
-          if ((response.data as Array<JSONObject>).length < 30) {
-            hasMoreContributors = false;
-          }
-
-          contributors = contributors.concat(
-            response.data as Array<JSONObject>,
-          );
-        }
-
-        //cache it.
-        gitHubContributors = [...contributors];
+        /*
+         * Bounded and never throws (Utils/GitHubContributors.ts): when GitHub
+         * refuses, the page renders with what arrived, or with none, and the
+         * next visit asks again. A list that arrived is kept.
+         */
+        gitHubContributors = await fetchGitHubContributors();
       }
 
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
@@ -605,36 +583,16 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
-    app.get(
-      "/product/status-page",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/status-page`, {
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          footerCards: true,
-          cta: true,
-          blackLogo: false,
-          requestDemoCta: false,
-          footerCtaText:
-            "Start with Status Pages, expand into everything else. Sign up today.",
-        });
-      },
-    );
-
-    app.get("/status-page", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/status-page");
-    });
-
     app.get("/workflows", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/workflows");
+      redirectPreservingQuery(req, res, "/product/workflows", 301);
     });
 
     app.get("/runbooks", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/runbooks");
+      redirectPreservingQuery(req, res, "/product/runbooks", 301);
     });
 
     app.get("/on-call", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/on-call");
+      redirectPreservingQuery(req, res, "/product/on-call", 301);
     });
 
     app.get(
@@ -985,7 +943,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/scheduled-maintenance",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/scheduled-maintenance");
+        redirectPreservingQuery(
+          req,
+          res,
+          "/product/scheduled-maintenance",
+          301,
+        );
       },
     );
 
@@ -1067,12 +1030,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/incident-management",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, "/product/incident-management");
+        redirectPreservingQuery(req, res, "/product/incident-management", 301);
       },
     );
 
     app.get("/ai-agent", (req: ExpressRequest, res: ExpressResponse) => {
-      redirectPreservingQuery(req, res, "/product/ai-agent");
+      redirectPreservingQuery(req, res, "/product/ai-agent", 301);
     });
 
     app.get(
@@ -1514,36 +1477,6 @@ const HomeFeatureSet: FeatureSet = {
           cta: true,
           blackLogo: false,
           section: "iso-27001",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27017",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27017",
-          requestDemoCta: false,
-        });
-      },
-    );
-
-    app.get(
-      "/legal/iso-27018",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/legal.ejs`, {
-          footerCards: true,
-          support: false,
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          cta: true,
-          blackLogo: false,
-          section: "iso-27018",
           requestDemoCta: false,
         });
       },
@@ -2180,6 +2113,14 @@ const HomeFeatureSet: FeatureSet = {
         },
       }),
     );
+
+    /*
+     * Addresses earlier versions of the site published move permanently to
+     * the pages that replaced them (Utils/LegacyRedirects.ts). Here, after
+     * every route and the static files, so a retired address can never
+     * shadow anything the site still serves.
+     */
+    app.use(redirectLegacyUrl);
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
       return NotFoundUtil.renderNotFound(res);

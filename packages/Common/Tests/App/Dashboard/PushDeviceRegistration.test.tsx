@@ -484,7 +484,7 @@ describe("registering this browser", () => {
     );
 
     await waitFor(() => {
-      expect(modalTitle()).toBe("Test Notification Sent Successfully");
+      expect(modalTitle()).toBe("Test Notification Sent");
     });
 
     expect(testNotificationUrls()).toEqual([
@@ -1059,7 +1059,7 @@ test("a row's Test Notification still sends a test to that device", async () => 
   );
 
   await waitFor(() => {
-    expect(modalTitle()).toBe("Test Notification Sent Successfully");
+    expect(modalTitle()).toBe("Test Notification Sent");
   });
 
   expect(testNotificationUrls()).toEqual([
