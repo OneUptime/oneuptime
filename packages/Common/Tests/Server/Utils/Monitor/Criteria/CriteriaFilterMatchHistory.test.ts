@@ -1,5 +1,6 @@
 import CriteriaFilterMatchHistory, {
   CriteriaFilterCheck,
+  CriteriaFilterMatchHistoryReads,
   FilterKeepingMatchHistory,
   MatchHistoryJudgement,
 } from "../../../../../Server/Utils/Monitor/Criteria/CriteriaFilterMatchHistory";
@@ -47,6 +48,7 @@ import type { SpyInstance } from "jest-mock";
 
 const NOW: Date = new Date("2026-10-13T12:00:00.000Z");
 const MINUTE_IN_MS: number = 60 * 1000;
+const SECOND_IN_MS: number = 1000;
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -55,6 +57,9 @@ const MONITOR_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 const STEP_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
+
+const PROBE_A: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const PROBE_B: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 
 // A probe that checks every minute.
 const EVERY_MINUTE: string = "* * * * *";
@@ -85,11 +90,36 @@ function anyValue(minutes: number = 5): Partial<CriteriaFilter> {
   };
 }
 
-// A stored check, `minutesAgo` before now: 1 matched, 0 did not.
-function storedCheck(input: { matched: boolean; minutesAgo: number }): Metric {
+// All Values over a window of the given length.
+function allValues(
+  minutes: number,
+  onNoDataPolicy?: NoDataPolicy,
+): Partial<CriteriaFilter> {
+  return {
+    evaluateOverTimeOptions: {
+      timeValueInMinutes: minutes,
+      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+      ...(onNoDataPolicy ? { onNoDataPolicy: onNoDataPolicy } : {}),
+    },
+  };
+}
+
+/*
+ * A stored check, `minutesAgo` before now: 1 matched, 0 did not. Written by
+ * `probeId`, or by no probe.
+ */
+function storedCheck(input: {
+  matched: boolean;
+  minutesAgo: number;
+  probeId?: ObjectID;
+}): Metric {
   const metric: Metric = new Metric();
   metric.value = input.matched ? 1 : 0;
   metric.time = new Date(NOW.getTime() - input.minutesAgo * MINUTE_IN_MS);
+  metric.attributes = {
+    [CRITERIA_FILTER_KEY_ATTRIBUTE]: FILTER_KEY,
+    ...(input.probeId ? { probeId: input.probeId.toString() } : {}),
+  };
   return metric;
 }
 
@@ -98,17 +128,17 @@ function storedCheck(input: { matched: boolean; minutesAgo: number }): Metric {
  * a minute ago: everyMinuteBefore([1, 1, 0]) is three checks, 3, 2 and 1
  * minutes ago.
  */
-function everyMinuteBefore(matched: Array<0 | 1>): Array<Metric> {
+function everyMinuteBefore(
+  matched: Array<0 | 1>,
+  probeId?: ObjectID,
+): Array<Metric> {
   return matched.map((value: 0 | 1, index: number) => {
     return storedCheck({
       matched: value === 1,
       minutesAgo: matched.length - index,
+      ...(probeId ? { probeId: probeId } : {}),
     });
   });
-}
-
-function thisCheck(matched: boolean): CriteriaFilterCheck {
-  return { filterKey: FILTER_KEY, matched: matched, at: NOW };
 }
 
 let findByCalls: Array<FindBy<Metric>> = [];
@@ -119,13 +149,26 @@ function judge(input: {
   criteriaFilter: CriteriaFilter;
   matched: boolean;
   monitoringInterval?: string | undefined;
+  probeId?: ObjectID | undefined;
+  // A stored check read back for probe agreement, made this long ago.
+  storedMinutesAgo?: number | undefined;
+  reads?: CriteriaFilterMatchHistoryReads | undefined;
 }): Promise<MatchHistoryJudgement> {
+  const check: CriteriaFilterCheck = {
+    filterKey: FILTER_KEY,
+    matched: input.matched,
+    at: new Date(NOW.getTime() - (input.storedMinutesAgo ?? 0) * MINUTE_IN_MS),
+  };
+
   return CriteriaFilterMatchHistory.judgeWindow({
     projectId: PROJECT_ID,
     monitorId: MONITOR_ID,
+    probeId: input.probeId,
     criteriaFilter: input.criteriaFilter,
-    check: thisCheck(input.matched),
+    check: check,
+    isStoredCheck: input.storedMinutesAgo !== undefined,
     monitoringInterval: input.monitoringInterval ?? EVERY_MINUTE,
+    reads: input.reads,
   });
 }
 
@@ -155,6 +198,13 @@ function stepWith(instances: Array<MonitorCriteriaInstance>): MonitorStep {
   monitorCriteria.data = { monitorCriteriaInstanceArray: instances };
   step.data!.monitorCriteria = monitorCriteria;
   return step;
+}
+
+function keyOf(criteriaFilter: CriteriaFilter): string {
+  return CriteriaFilterMatchHistory.getFilterKey({
+    monitorStepId: STEP_ID,
+    criteriaFilter: criteriaFilter,
+  });
 }
 
 describe("CriteriaFilterMatchHistory", () => {
@@ -190,12 +240,7 @@ describe("CriteriaFilterMatchHistory", () => {
 
   describe("getFilterKey", () => {
     test("is 32 hex characters", () => {
-      expect(
-        CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: bodyFilter(),
-        }),
-      ).toMatch(/^[0-9a-f]{32}$/);
+      expect(keyOf(bodyFilter())).toMatch(/^[0-9a-f]{32}$/);
     });
 
     test("does not depend on the order the filter's keys come back in", () => {
@@ -214,17 +259,7 @@ describe("CriteriaFilterMatchHistory", () => {
         }),
       ) as CriteriaFilter;
 
-      expect(
-        CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: readBack,
-        }),
-      ).toBe(
-        CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: written,
-        }),
-      );
+      expect(keyOf(readBack)).toBe(keyOf(written));
     });
 
     test("names the step as an id or as its string, alike", () => {
@@ -233,19 +268,11 @@ describe("CriteriaFilterMatchHistory", () => {
           monitorStepId: STEP_ID.toString(),
           criteriaFilter: bodyFilter(),
         }),
-      ).toBe(
-        CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: bodyFilter(),
-        }),
-      );
+      ).toBe(keyOf(bodyFilter()));
     });
 
     test("is kept when only the window, its type or its no-data setting change", () => {
-      const key: string = CriteriaFilterMatchHistory.getFilterKey({
-        monitorStepId: STEP_ID,
-        criteriaFilter: bodyFilter(),
-      });
+      const key: string = keyOf(bodyFilter());
 
       for (const changed of [
         bodyFilter({
@@ -258,31 +285,64 @@ describe("CriteriaFilterMatchHistory", () => {
         bodyFilter({ evaluateOverTime: false }),
         bodyFilter({ metricCriteriaContext: { metricName: "x" } as never }),
       ]) {
-        expect(
-          CriteriaFilterMatchHistory.getFilterKey({
-            monitorStepId: STEP_ID,
-            criteriaFilter: changed,
-          }),
-        ).toBe(key);
+        expect(keyOf(changed)).toBe(key);
       }
     });
 
+    /*
+     * A re-save of the monitor that changes nothing must not start every
+     * history over: All Values would wait a whole window again, and an
+     * outage already under way would stop being reported meanwhile.
+     */
+    test("is kept when a re-save writes empty fields differently", () => {
+      const key: string = keyOf(bodyFilter());
+
+      for (const resaved of [
+        bodyFilter({ serverMonitorOptions: null as never }),
+        bodyFilter({ metricMonitorOptions: {} as never }),
+        bodyFilter({ snmpMonitorOptions: undefined }),
+        bodyFilter({
+          customCodeMonitorOptions: { pattern: null } as never,
+        }),
+        bodyFilter({ databaseMonitorOptions: [] as never }),
+      ]) {
+        expect(keyOf(resaved)).toBe(key);
+      }
+    });
+
+    test("is kept when a value is saved as its digits", () => {
+      expect(keyOf(bodyFilter({ value: "404" }))).toBe(
+        keyOf(bodyFilter({ value: 404 })),
+      );
+    });
+
+    test("reads an empty value like no value", () => {
+      const timeout: CriteriaFilter = {
+        checkOn: CheckOn.IsRequestTimeout,
+        filterType: FilterType.True,
+        value: undefined,
+      };
+
+      expect(keyOf({ ...timeout, value: "" })).toBe(keyOf(timeout));
+      expect(keyOf({ ...timeout, value: null as never })).toBe(keyOf(timeout));
+    });
+
     test("changes with anything that changes what the filter checks", () => {
-      const key: string = CriteriaFilterMatchHistory.getFilterKey({
-        monitorStepId: STEP_ID,
-        criteriaFilter: bodyFilter(),
-      });
+      const key: string = keyOf(bodyFilter());
 
       const changedKeys: Array<string> = [
         bodyFilter({ value: "Dashboard" }),
         bodyFilter({ filterType: FilterType.Contains }),
         bodyFilter({ checkOn: CheckOn.ResponseHeader }),
+        // Case and surrounding spaces are part of what is looked for.
         bodyFilter({ value: "app title" }),
+        bodyFilter({ value: "App Title " }),
+        bodyFilter({ value: "0" }),
+        bodyFilter({
+          customCodeMonitorOptions: { pattern: "x" } as never,
+        }),
       ].map((changed: CriteriaFilter): string => {
-        return CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: changed,
-        });
+        return keyOf(changed);
       });
 
       for (const changedKey of changedKeys) {
@@ -298,12 +358,7 @@ describe("CriteriaFilterMatchHistory", () => {
           monitorStepId: ObjectID.generate(),
           criteriaFilter: bodyFilter(),
         }),
-      ).not.toBe(
-        CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: bodyFilter(),
-        }),
-      );
+      ).not.toBe(keyOf(bodyFilter()));
     });
   });
 
@@ -403,12 +458,7 @@ describe("CriteriaFilterMatchHistory", () => {
         });
 
       expect(filters).toHaveLength(1);
-      expect(filters[0]!.filterKey).toBe(
-        CriteriaFilterMatchHistory.getFilterKey({
-          monitorStepId: STEP_ID,
-          criteriaFilter: bodyFilter(),
-        }),
-      );
+      expect(filters[0]!.filterKey).toBe(keyOf(bodyFilter()));
     });
 
     test("leaves out disabled criteria", () => {
@@ -475,12 +525,11 @@ describe("CriteriaFilterMatchHistory", () => {
       > = jest
         .spyOn(MonitorMetricUtil, "saveCriteriaFilterMatches")
         .mockResolvedValue();
-      const probeId: ObjectID = ObjectID.generate();
 
       await CriteriaFilterMatchHistory.record({
         projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
-        probeId: probeId,
+        probeId: PROBE_A,
         checks: [
           { filterKey: "a", matched: true, at: NOW },
           { filterKey: "b", matched: false, at: NOW },
@@ -491,7 +540,7 @@ describe("CriteriaFilterMatchHistory", () => {
       expect(save.mock.calls[0]![0]).toEqual({
         projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
-        probeId: probeId,
+        probeId: PROBE_A,
         matches: [
           { filterKey: "a", matched: true },
           { filterKey: "b", matched: false },
@@ -524,7 +573,7 @@ describe("CriteriaFilterMatchHistory", () => {
         CriteriaFilterMatchHistory.record({
           projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
-          checks: [thisCheck(true)],
+          checks: [{ filterKey: FILTER_KEY, matched: true, at: NOW }],
         }),
       ).resolves.toBeUndefined();
 
@@ -533,7 +582,7 @@ describe("CriteriaFilterMatchHistory", () => {
   });
 
   describe("judgeWindow: All Values", () => {
-    test("is met once the text has been missing on every check of the window", async () => {
+    test("is met once the text has been missing on every check for the whole window", async () => {
       storedChecks = everyMinuteBefore([1, 1, 1, 1, 1]);
 
       const judgement: MatchHistoryJudgement = await judge({
@@ -560,12 +609,8 @@ describe("CriteriaFilterMatchHistory", () => {
       });
 
       expect(judgement.rootCause).toBeNull();
-      /*
-       * A check stands for the interval before it, as the coverage rule
-       * counts it: one check a minute covers a minute.
-       */
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 1 minute (1 check); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
       );
     });
 
@@ -579,22 +624,29 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 3 minutes (3 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks); All Values waits until it has for 5 minutes.',
       );
     });
 
-    test("is met by five checks a minute apart, which cover five minutes", async () => {
+    /*
+     * Five checks a minute apart span four minutes: the placeholder has not
+     * lasted five yet, however the checks are counted.
+     */
+    test("is not met by five checks a minute apart, which span four minutes", async () => {
       storedChecks = everyMinuteBefore([1, 1, 1, 1]);
 
-      expect(
-        (await judge({ criteriaFilter: bodyFilter(), matched: true }))
-          .rootCause,
-      ).toBe(
-        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (5 checks).',
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has for 5 minutes.',
       );
     });
 
-    test("counts the time from the checks themselves when the schedule is unknown", async () => {
+    test("measures the checks against themselves when the schedule is unknown", async () => {
       storedChecks = everyMinuteBefore([1, 1]);
 
       const judgement: MatchHistoryJudgement = await judge({
@@ -603,20 +655,7 @@ describe("CriteriaFilterMatchHistory", () => {
         monitoringInterval: "not a schedule",
       });
 
-      // The checks are a minute apart, so each still stands for a minute.
-      expect(judgement.message).toContain("for 3 minutes (3 checks)");
-    });
-
-    test("waits when the checks start part way through the window - a monitor that was paused", async () => {
-      storedChecks = [
-        storedCheck({ matched: true, minutesAgo: 2 }),
-        storedCheck({ matched: true, minutesAgo: 1 }),
-      ];
-
-      expect(
-        (await judge({ criteriaFilter: bodyFilter(), matched: true }))
-          .rootCause,
-      ).toBeNull();
+      expect(judgement.message).toContain("for 2 minutes (3 checks)");
     });
 
     test("is not met when the app came back for a single check in the window - flapping", async () => {
@@ -630,6 +669,32 @@ describe("CriteriaFilterMatchHistory", () => {
       expect(judgement.rootCause).toBeNull();
       expect(judgement.message).toBe(
         'Response Body Not Contains "App Title" matched on 5 of the 6 checks over the last 5 minutes; All Values needs every check.',
+      );
+    });
+
+    test("waits for a run that started after a check before the window that did not match", async () => {
+      storedChecks = [
+        storedCheck({ matched: false, minutesAgo: 5.5 }),
+        storedCheck({ matched: true, minutesAgo: 4.5 }),
+        storedCheck({ matched: true, minutesAgo: 3.5 }),
+        storedCheck({ matched: true, minutesAgo: 2.5 }),
+        storedCheck({ matched: true, minutesAgo: 1.5 }),
+        storedCheck({ matched: true, minutesAgo: 0.5 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.Trigger)),
+        matched: true,
+      });
+
+      /*
+       * Every check of the window matched, but the one before it did not:
+       * the placeholder has lasted four and a half minutes. That is not
+       * missing data, so even Trigger waits.
+       */
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (6 checks); All Values waits until it has for 5 minutes.',
       );
     });
 
@@ -649,7 +714,7 @@ describe("CriteriaFilterMatchHistory", () => {
       expect(findByCalls).toHaveLength(0);
     });
 
-    test("reads exactly this filter's history over exactly the window", async () => {
+    test("reads this filter's history, every probe's at once, back far enough to find where its run starts", async () => {
       storedChecks = everyMinuteBefore([1, 1, 1, 1, 1]);
 
       await judge({ criteriaFilter: bodyFilter(), matched: true });
@@ -667,11 +732,20 @@ describe("CriteriaFilterMatchHistory", () => {
 
       const time: InBetween<Date> = query["time"] as unknown as InBetween<Date>;
 
+      /*
+       * The 5 minute window, and twice the widest gap the run may cross
+       * (two and a half one-minute intervals): back to where the run of
+       * matching checks may start, and to another probe's newest check.
+       */
       expect(time.startValue).toEqual(
-        new Date(NOW.getTime() - 5 * MINUTE_IN_MS),
+        new Date(NOW.getTime() - 10 * MINUTE_IN_MS),
       );
       expect(time.endValue).toEqual(NOW);
-      expect(findByCalls[0]!.select).toEqual({ value: true, time: true });
+      expect(findByCalls[0]!.select).toEqual({
+        value: true,
+        time: true,
+        attributes: true,
+      });
       expect(findByCalls[0]!.props).toEqual({ isRoot: true });
     });
 
@@ -694,9 +768,13 @@ describe("CriteriaFilterMatchHistory", () => {
       const unreadable: Metric = new Metric();
       unreadable.time = new Date(NOW.getTime() - 3 * MINUTE_IN_MS);
 
+      const timeless: Metric = new Metric();
+      timeless.value = 1;
+
       storedChecks = [
         ...everyMinuteBefore([1, 1, 1, 1, 1]),
         unreadable,
+        timeless,
         storedCheck({ matched: false, minutesAgo: 0.5 }),
       ];
 
@@ -744,45 +822,160 @@ describe("CriteriaFilterMatchHistory", () => {
     });
   });
 
-  describe("judgeWindow: the monitor's schedule decides when the window is covered", () => {
-    test("checks every 5 minutes cover a 15 minute window with three checks", async () => {
+  describe("judgeWindow: gaps in the checks", () => {
+    /*
+     * A check whose row could not be written, a probe that was down, a
+     * monitor that was paused: nobody knows what the missing checks found,
+     * so the run of matching checks is not followed back across them.
+     */
+    test("a run is not followed back across checks that are missing - the app may have been healthy then", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 15 }),
+        storedCheck({ matched: true, minutesAgo: 14 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(allValues(15)),
+        matched: true,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check since a 14-minute gap in its checks; All Values waits until it has matched on every check for 15 minutes.',
+      );
+    });
+
+    test("a gap is missing data, so Trigger fires on it", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 15 }),
+        storedCheck({ matched: true, minutesAgo: 14 }),
+      ];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(allValues(15, NoDataPolicy.Trigger)),
+            matched: true,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check since a 14-minute gap in its checks, not yet for 15 minutes, and its If No Data setting is Trigger.',
+      );
+    });
+
+    test("a monitor that was paused waits a whole window from when it resumed", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 9 }),
+        storedCheck({ matched: true, minutesAgo: 8 }),
+        storedCheck({ matched: true, minutesAgo: 7 }),
+        storedCheck({ matched: true, minutesAgo: 2 }),
+        storedCheck({ matched: true, minutesAgo: 1 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks) since a 5-minute gap in its checks; All Values waits until it has for 5 minutes.',
+      );
+    });
+
+    test("a single missing check is bridged - one row that failed to write costs no window", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 6 }),
+        storedCheck({ matched: true, minutesAgo: 5 }),
+        storedCheck({ matched: true, minutesAgo: 4 }),
+        // 3 minutes ago is missing.
+        storedCheck({ matched: true, minutesAgo: 2 }),
+        storedCheck({ matched: true, minutesAgo: 1 }),
+      ];
+
+      expect(
+        (await judge({ criteriaFilter: bodyFilter(), matched: true }))
+          .rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (5 checks).',
+      );
+    });
+
+    test("two missing checks in a row are a gap", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 7 }),
+        storedCheck({ matched: true, minutesAgo: 6 }),
+        storedCheck({ matched: true, minutesAgo: 5 }),
+        storedCheck({ matched: true, minutesAgo: 4 }),
+        // 3 and 2 minutes ago are missing.
+        storedCheck({ matched: true, minutesAgo: 1 }),
+      ];
+
+      expect(
+        (await judge({ criteriaFilter: bodyFilter(), matched: true }))
+          .rootCause,
+      ).toBeNull();
+    });
+  });
+
+  describe("judgeWindow: the monitor's schedule", () => {
+    test("checks every 5 minutes meet a 15 minute window with four checks in a row", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 15 }),
+        storedCheck({ matched: true, minutesAgo: 10 }),
+        storedCheck({ matched: true, minutesAgo: 5 }),
+      ];
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(allValues(15)),
+        matched: true,
+        monitoringInterval: EVERY_FIVE_MINUTES,
+      });
+
+      expect(judgement.rootCause).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 15 minutes (4 checks).',
+      );
+    });
+
+    test("but not with three, which span ten minutes", async () => {
       storedChecks = [
         storedCheck({ matched: true, minutesAgo: 10 }),
         storedCheck({ matched: true, minutesAgo: 5 }),
       ];
 
       const judgement: MatchHistoryJudgement = await judge({
-        criteriaFilter: bodyFilter(anyValueAsAll(15)),
+        criteriaFilter: bodyFilter(allValues(15)),
         matched: true,
         monitoringInterval: EVERY_FIVE_MINUTES,
       });
 
-      expect(judgement.rootCause).toBe(
-        'Response Body Not Contains "App Title" matched on every check over the last 15 minutes (3 checks).',
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 10 minutes (3 checks); All Values waits until it has for 15 minutes.',
       );
     });
 
-    test("but not with two", async () => {
-      storedChecks = [storedCheck({ matched: true, minutesAgo: 5 })];
-
-      expect(
-        (
-          await judge({
-            criteriaFilter: bodyFilter(anyValueAsAll(15)),
-            matched: true,
-            monitoringInterval: EVERY_FIVE_MINUTES,
-          })
-        ).rootCause,
-      ).toBeNull();
-    });
-
     /*
-     * The trap the form's "For the last" description warns about: a window
-     * no longer than the monitoring interval holds a single check, so that
-     * check covers it - the same rule every over-time filter has.
+     * The default a ticked box gets, on the default interval of a new
+     * monitor: a window as long as the interval holds one check, and one
+     * check never lasts a window - the placeholder must still be there on
+     * the next check.
      */
-    test("a 5 minute window on a monitor checked every 5 minutes holds one check", async () => {
+    test("a 5 minute window on a monitor checked every 5 minutes waits for a second check", async () => {
       storedChecks = [];
+
+      const firstCheck: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+        monitoringInterval: EVERY_FIVE_MINUTES,
+      });
+
+      expect(firstCheck.rootCause).toBeNull();
+      expect(firstCheck.message).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
+      );
+
+      storedChecks = [storedCheck({ matched: true, minutesAgo: 5 })];
 
       expect(
         (
@@ -793,8 +986,83 @@ describe("CriteriaFilterMatchHistory", () => {
           })
         ).rootCause,
       ).toBe(
-        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (1 check).',
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (2 checks).',
       );
+    });
+
+    test("and so does a window shorter than the interval", async () => {
+      storedChecks = [];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(allValues(2)),
+            matched: true,
+            monitoringInterval: EVERY_FIVE_MINUTES,
+          })
+        ).rootCause,
+      ).toBeNull();
+
+      storedChecks = [storedCheck({ matched: true, minutesAgo: 5 })];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(allValues(2)),
+            matched: true,
+            monitoringInterval: EVERY_FIVE_MINUTES,
+          })
+        ).rootCause,
+      ).not.toBeNull();
+    });
+
+    test("a check that arrived a few seconds early still completes the window", async () => {
+      storedChecks = [
+        storedCheck({
+          matched: true,
+          minutesAgo: (5 * MINUTE_IN_MS - 10 * SECOND_IN_MS) / MINUTE_IN_MS,
+        }),
+      ];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(),
+            matched: true,
+            monitoringInterval: EVERY_FIVE_MINUTES,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (2 checks).',
+      );
+    });
+
+    test("checks a minute apart, each a few seconds off, complete the window on the sixth", async () => {
+      storedChecks = [4.85, 3.85, 2.85, 1.85, 0.85].map(
+        (minutesAgo: number): Metric => {
+          return storedCheck({ matched: true, minutesAgo: minutesAgo });
+        },
+      );
+
+      expect(
+        (await judge({ criteriaFilter: bodyFilter(), matched: true }))
+          .rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (6 checks).',
+      );
+    });
+
+    test("but not a run a whole check short", async () => {
+      storedChecks = [3.85, 2.85, 1.85, 0.85].map(
+        (minutesAgo: number): Metric => {
+          return storedCheck({ matched: true, minutesAgo: minutesAgo });
+        },
+      );
+
+      expect(
+        (await judge({ criteriaFilter: bodyFilter(), matched: true }))
+          .rootCause,
+      ).toBeNull();
     });
   });
 
@@ -803,18 +1071,27 @@ describe("CriteriaFilterMatchHistory", () => {
       storedChecks = everyMinuteBefore([1, 1]);
 
       const judgement: MatchHistoryJudgement = await judge({
-        criteriaFilter: bodyFilter({
-          evaluateOverTimeOptions: {
-            timeValueInMinutes: 5,
-            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-            onNoDataPolicy: NoDataPolicy.Trigger,
-          },
-        }),
+        criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.Trigger)),
         matched: true,
       });
 
       expect(judgement.rootCause).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 3 minutes (3 checks), not yet 5 minutes, and its If No Data setting is Trigger.',
+        'Response Body Not Contains "App Title" has matched on every check for 2 minutes (3 checks), not yet for 5 minutes, and its If No Data setting is Trigger.',
+      );
+    });
+
+    test("Trigger on the very first check", async () => {
+      storedChecks = [];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.Trigger)),
+            matched: true,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check so far, not yet for 5 minutes, and its If No Data setting is Trigger.',
       );
     });
 
@@ -824,13 +1101,7 @@ describe("CriteriaFilterMatchHistory", () => {
       expect(
         (
           await judge({
-            criteriaFilter: bodyFilter({
-              evaluateOverTimeOptions: {
-                timeValueInMinutes: 5,
-                evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                onNoDataPolicy: NoDataPolicy.Trigger,
-              },
-            }),
+            criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.Trigger)),
             matched: false,
           })
         ).rootCause,
@@ -843,13 +1114,7 @@ describe("CriteriaFilterMatchHistory", () => {
       expect(
         (
           await judge({
-            criteriaFilter: bodyFilter({
-              evaluateOverTimeOptions: {
-                timeValueInMinutes: 5,
-                evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-                onNoDataPolicy: NoDataPolicy.TreatAsZero,
-              },
-            }),
+            criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.TreatAsZero)),
             matched: true,
           })
         ).rootCause,
@@ -857,12 +1122,7 @@ describe("CriteriaFilterMatchHistory", () => {
     });
 
     test("a window with no length waits, or is met with Trigger", async () => {
-      const noWindow: CriteriaFilter = bodyFilter({
-        evaluateOverTimeOptions: {
-          timeValueInMinutes: 0,
-          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-        },
-      });
+      const noWindow: CriteriaFilter = bodyFilter(allValues(0));
 
       const ignored: MatchHistoryJudgement = await judge({
         criteriaFilter: noWindow,
@@ -918,6 +1178,22 @@ describe("CriteriaFilterMatchHistory", () => {
       );
     });
 
+    test("is not met once the match has left the window", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 6 }),
+        ...everyMinuteBefore([0, 0, 0, 0, 0]),
+      ];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(anyValue()),
+            matched: false,
+          })
+        ).rootCause,
+      ).toBeNull();
+    });
+
     test("is not met when no check of the window matched", async () => {
       storedChecks = everyMinuteBefore([0, 0, 0, 0, 0]);
 
@@ -961,6 +1237,267 @@ describe("CriteriaFilterMatchHistory", () => {
     });
   });
 
+  describe("judgeWindow: each probe by its own checks", () => {
+    /*
+     * One region is served the placeholder, another the real page. Mixed
+     * together, the healthy region's checks would keep All Values from
+     * ever holding for the region that saw the outage on every check.
+     */
+    test("a probe's window holds its own checks, not another probe's", async () => {
+      storedChecks = [
+        ...everyMinuteBefore([1, 1, 1, 1, 1], PROBE_A),
+        ...everyMinuteBefore([0, 0, 0, 0, 0], PROBE_B),
+      ];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(),
+            matched: true,
+            probeId: PROBE_A,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (6 checks).',
+      );
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(),
+            matched: true,
+            probeId: PROBE_B,
+          })
+        ).message,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on 1 of the 6 checks over the last 5 minutes; All Values needs every check.',
+      );
+    });
+
+    test("Any Value is not met for one probe by another probe's match", async () => {
+      storedChecks = [
+        storedCheck({ matched: true, minutesAgo: 1, probeId: PROBE_B }),
+        storedCheck({ matched: false, minutesAgo: 1, probeId: PROBE_A }),
+      ];
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(anyValue()),
+            matched: false,
+            probeId: PROBE_A,
+          })
+        ).rootCause,
+      ).toBeNull();
+    });
+
+    test("one probe result's reads are shared: each filter's history is read once for every probe", async () => {
+      storedChecks = [
+        ...everyMinuteBefore([1, 1, 1, 1, 1], PROBE_A),
+        ...everyMinuteBefore([1, 1, 1, 1, 1], PROBE_B),
+      ];
+
+      const reads: CriteriaFilterMatchHistoryReads =
+        new CriteriaFilterMatchHistoryReads();
+
+      for (const probeId of [PROBE_A, PROBE_B, PROBE_A]) {
+        expect(
+          (
+            await judge({
+              criteriaFilter: bodyFilter(),
+              matched: true,
+              probeId: probeId,
+              reads: reads,
+            })
+          ).rootCause,
+        ).toContain("matched on every check over the last 5 minutes");
+      }
+
+      expect(findByCalls).toHaveLength(1);
+
+      // A window of another length is another read.
+      await judge({
+        criteriaFilter: bodyFilter(allValues(15)),
+        matched: true,
+        probeId: PROBE_A,
+        reads: reads,
+      });
+
+      expect(findByCalls).toHaveLength(2);
+    });
+
+    test("a failed shared read fails every judgement that shares it, as not judged", async () => {
+      readError = new Error("ClickHouse is away");
+
+      const reads: CriteriaFilterMatchHistoryReads =
+        new CriteriaFilterMatchHistoryReads();
+
+      for (const probeId of [PROBE_A, PROBE_B]) {
+        expect(
+          (
+            await judge({
+              criteriaFilter: bodyFilter(),
+              matched: true,
+              probeId: probeId,
+              reads: reads,
+            })
+          ).rootCause,
+        ).toBeNull();
+      }
+
+      expect(findByCalls).toHaveLength(1);
+    });
+  });
+
+  /*
+   * The probe agreement pass judges every other probe's last check, read
+   * back from where it was stored. Each comes to what its probe came to
+   * itself: its own checks, up to its own newest one.
+   */
+  describe("judgeWindow: a stored check read back for probe agreement", () => {
+    test("is not counted twice when its own row is in the history", async () => {
+      storedChecks = everyMinuteBefore([1, 1, 1, 1, 1, 1], PROBE_B);
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(),
+            matched: true,
+            probeId: PROBE_B,
+            storedMinutesAgo: 1,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (6 checks).',
+      );
+    });
+
+    test("is counted when its row has not landed yet", async () => {
+      storedChecks = [6, 5, 4, 3, 2].map((minutesAgo: number): Metric => {
+        return storedCheck({
+          matched: true,
+          minutesAgo: minutesAgo,
+          probeId: PROBE_B,
+        });
+      });
+
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(),
+            matched: true,
+            probeId: PROBE_B,
+            storedMinutesAgo: 1,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (6 checks).',
+      );
+    });
+
+    test("ends the window at the probe's newest check: it does not assume the probe still sees what it saw", async () => {
+      storedChecks = [5, 4, 3, 2].map((minutesAgo: number): Metric => {
+        return storedCheck({
+          matched: true,
+          minutesAgo: minutesAgo,
+          probeId: PROBE_B,
+        });
+      });
+
+      /*
+       * The probe's checks span 4 minutes, up to its newest a minute ago.
+       * By now it may have been 5 minutes, but this probe has not seen it.
+       */
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+        probeId: PROBE_B,
+        storedMinutesAgo: 1,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (5 checks); All Values waits until it has for 5 minutes.',
+      );
+    });
+
+    test("a probe that stopped checking is judged by nothing", async () => {
+      storedChecks = [10, 9, 8].map((minutesAgo: number): Metric => {
+        return storedCheck({
+          matched: true,
+          minutesAgo: minutesAgo,
+          probeId: PROBE_B,
+        });
+      });
+
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+        probeId: PROBE_B,
+        storedMinutesAgo: 8,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(judgement.message).toBe(
+        'Response Body Not Contains "App Title" has not been checked for 8 minutes, so it was not judged over the last 5 minutes.',
+      );
+    });
+
+    test("a check from long ago is not placed in the window", async () => {
+      storedChecks = [];
+
+      const stale: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: true,
+        probeId: PROBE_B,
+        storedMinutesAgo: 40,
+      });
+
+      expect(stale.rootCause).toBeNull();
+      expect(stale.message).toBe(
+        'Response Body Not Contains "App Title" has no checks over the last 5 minutes, so it was not judged.',
+      );
+
+      // Nor does it meet Any Value, though it matched.
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(anyValue()),
+            matched: true,
+            probeId: PROBE_B,
+            storedMinutesAgo: 40,
+          })
+        ).rootCause,
+      ).toBeNull();
+
+      // With Trigger, having no checks is missing data like any other.
+      expect(
+        (
+          await judge({
+            criteriaFilter: bodyFilter(allValues(5, NoDataPolicy.Trigger)),
+            matched: true,
+            probeId: PROBE_B,
+            storedMinutesAgo: 40,
+          })
+        ).rootCause,
+      ).toBe(
+        'Response Body Not Contains "App Title" has no checks over the last 5 minutes, and its If No Data setting is Trigger.',
+      );
+    });
+
+    test("a recent one that did not match settles All Values without a read, like a check that just arrived", async () => {
+      const judgement: MatchHistoryJudgement = await judge({
+        criteriaFilter: bodyFilter(),
+        matched: false,
+        probeId: PROBE_B,
+        storedMinutesAgo: 0.5,
+      });
+
+      expect(judgement.rootCause).toBeNull();
+      expect(findByCalls).toHaveLength(0);
+    });
+  });
+
   describe("getFilterLabel", () => {
     test("quotes the text a body filter looks for", () => {
       expect(CriteriaFilterMatchHistory.getFilterLabel(bodyFilter())).toBe(
@@ -991,13 +1528,3 @@ describe("CriteriaFilterMatchHistory", () => {
     });
   });
 });
-
-// All Values over a window of the given length.
-function anyValueAsAll(minutes: number): Partial<CriteriaFilter> {
-  return {
-    evaluateOverTimeOptions: {
-      timeValueInMinutes: minutes,
-      evaluateOverTimeType: EvaluateOverTimeType.AllValues,
-    },
-  };
-}

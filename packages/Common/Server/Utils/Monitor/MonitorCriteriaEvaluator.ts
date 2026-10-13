@@ -14,6 +14,7 @@ import LogGroupCriteriaFanOut from "./LogGroupCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import CriteriaFilterMatchHistory, {
   CriteriaFilterCheck,
+  CriteriaFilterMatchHistoryReads,
   FilterKeepingMatchHistory,
   MatchHistoryJudgement,
 } from "./Criteria/CriteriaFilterMatchHistory";
@@ -200,13 +201,17 @@ interface AffectedResourceBreachPredicate {
 }
 
 /*
- * One evaluation's results for the filters that keep a match history
- * (CriteriaFilterMatchHistory), by filter key, and when the check they came
- * from was made.
+ * What one evaluation knows about the filters that keep a match history
+ * (CriteriaFilterMatchHistory): when the check was made, whether it is a
+ * stored check read back for probe agreement, the reads it shares, and -
+ * for a check that just arrived - its result for every such filter, by
+ * filter key.
  */
 interface MatchHistoryContext {
   checks: Map<string, CriteriaFilterCheck>;
   checkAt: Date;
+  isStoredCheck: boolean;
+  reads: CriteriaFilterMatchHistoryReads;
 }
 
 /*
@@ -295,6 +300,13 @@ export default class MonitorCriteriaEvaluator {
      * whose matches were written when those checks arrived.
      */
     recordMatchHistory?: boolean | undefined;
+    /*
+     * The match history reads of the probe result being handled, shared by
+     * its own evaluation and the probe agreement pass so each filter's
+     * history is read once (CriteriaFilterMatchHistoryReads). Made here when
+     * not passed.
+     */
+    matchHistoryReads?: CriteriaFilterMatchHistoryReads | undefined;
   }): Promise<ProbeApiIngestResponse> {
     const criteria: MonitorCriteria | undefined =
       input.monitorStep.data?.monitorCriteria;
@@ -303,24 +315,38 @@ export default class MonitorCriteriaEvaluator {
       return input.probeApiIngestResponse;
     }
 
+    const matchHistoryReads: CriteriaFilterMatchHistoryReads =
+      input.matchHistoryReads || new CriteriaFilterMatchHistoryReads();
+
     /*
-     * This check's result for every filter that keeps a match history, in
-     * every enabled criteria - not only the ones evaluated below. Criteria
-     * are evaluated until the first one matches, so a filter further down
-     * would otherwise have no record of the checks the app was healthy on,
-     * and a window with a healthy minute in it could still read as "every
-     * check failed" (CriteriaFilterMatchHistory).
+     * A check that just arrived is judged, up front, for every filter that
+     * keeps a match history, in every enabled criteria - not only the ones
+     * evaluated below - since all of them are written. Criteria are
+     * evaluated until the first one matches, so a filter further down would
+     * otherwise have no record of the checks the app was healthy on, and a
+     * window with a healthy minute in it could still read as "every check
+     * failed" (CriteriaFilterMatchHistory).
+     *
+     * A stored check read back for probe agreement writes nothing, so it is
+     * judged only for the filters the criteria below actually reach.
      */
-    const matchHistory: MatchHistoryContext =
-      await MonitorCriteriaEvaluator.judgeMatchHistoryFilters({
-        dataToProcess: input.dataToProcess,
-        monitorStep: input.monitorStep,
-        monitor: input.monitor,
-        probeApiIngestResponse: input.probeApiIngestResponse,
-        checkAt: input.recordMatchHistory
-          ? OneUptimeDate.getCurrentDate()
-          : MonitorCriteriaEvaluator.getStoredCheckTime(input.dataToProcess),
-      });
+    const matchHistory: MatchHistoryContext = input.recordMatchHistory
+      ? await MonitorCriteriaEvaluator.judgeMatchHistoryFilters({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          checkAt: OneUptimeDate.getCurrentDate(),
+          reads: matchHistoryReads,
+        })
+      : {
+          checks: new Map<string, CriteriaFilterCheck>(),
+          checkAt: MonitorCriteriaEvaluator.getStoredCheckTime(
+            input.dataToProcess,
+          ),
+          isStoredCheck: true,
+          reads: matchHistoryReads,
+        };
 
     /*
      * Is this monitor configured to raise one alert/incident per series
@@ -642,10 +668,13 @@ ${contextBlock}
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
     checkAt: Date;
+    reads: CriteriaFilterMatchHistoryReads;
   }): Promise<MatchHistoryContext> {
     const context: MatchHistoryContext = {
       checks: new Map<string, CriteriaFilterCheck>(),
       checkAt: input.checkAt,
+      isStoredCheck: false,
+      reads: input.reads,
     };
 
     const filters: Array<FilterKeepingMatchHistory> =
@@ -703,8 +732,9 @@ ${contextBlock}
 
   /*
    * A filter that keeps a match history, judged over its window: this
-   * check's result, from the context when processMonitorStep judged it,
-   * and the history before it.
+   * check's result - from the context when processMonitorStep judged it up
+   * front, judged here otherwise - and the history of the probe that made
+   * it.
    */
   private static async judgeFilterFromMatchHistory(input: {
     dataToProcess: DataToProcess;
@@ -738,9 +768,12 @@ ${contextBlock}
         input.monitor.projectId ||
         (input.dataToProcess as ProbeMonitorResponse).projectId,
       monitorId: input.monitor.id || input.dataToProcess.monitorId,
+      probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
       criteriaFilter: input.criteriaFilter,
       check: check,
+      isStoredCheck: input.matchHistory?.isStoredCheck,
       monitoringInterval: input.monitor.monitoringInterval,
+      reads: input.matchHistory?.reads,
     });
   }
 

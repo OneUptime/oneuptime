@@ -77,6 +77,7 @@ interface StoredRow {
   filterKey: string;
   value: number;
   time: Date;
+  probeId: string | undefined;
 }
 
 let store: Array<StoredRow> = [];
@@ -290,12 +291,13 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
       .spyOn(MetricService, "insertJsonRows")
       .mockImplementation(async (rows: Array<JSONObject>): Promise<void> => {
         for (const row of rows) {
+          const attributes: JSONObject = row["attributes"] as JSONObject;
+
           store.push({
-            filterKey: (row["attributes"] as JSONObject)[
-              CRITERIA_FILTER_KEY_ATTRIBUTE
-            ] as string,
+            filterKey: attributes[CRITERIA_FILTER_KEY_ATTRIBUTE] as string,
             value: row["value"] as number,
             time: OneUptimeDate.fromString(row["time"] as string),
+            probeId: attributes["probeId"] as string | undefined,
           });
         }
       });
@@ -328,6 +330,10 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
               const metric: Metric = new Metric();
               metric.value = row.value;
               metric.time = row.time;
+              metric.attributes = {
+                [CRITERIA_FILTER_KEY_ATTRIBUTE]: row.filterKey,
+                ...(row.probeId ? { probeId: row.probeId } : {}),
+              };
               return metric;
             });
         },
@@ -381,7 +387,8 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     const { monitor, step } = websiteMonitor();
     const probeId: ObjectID = addProbe();
 
-    for (let minute: number = 0; minute < 4; minute++) {
+    // Five checks a minute apart: four minutes of the placeholder.
+    for (let minute: number = 0; minute < 5; minute++) {
       atMinute(minute);
 
       const response: ProbeApiIngestResponse = await ingest({
@@ -399,7 +406,7 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
 
     expect(offlineIncidentRequests()).toBe(0);
 
-    atMinute(4);
+    atMinute(5);
 
     const response: ProbeApiIngestResponse = await ingest({
       monitor,
@@ -410,7 +417,7 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
 
     expect(response.criteriaMetId).toBe("offline");
     expect(response.rootCause).toContain(
-      'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (5 checks).',
+      'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (6 checks).',
     );
 
     // The offline criteria's incident is asked for now, and only now.
@@ -463,12 +470,12 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     ).toEqual([0, 1]);
   });
 
-  test("with two probes, the agreement pass re-reads the other probe's stored result and writes nothing for it", async () => {
+  test("with two probes, each is judged by its own checks, and the incident waits for both", async () => {
     const { monitor, step } = websiteMonitor();
     const firstProbe: ObjectID = addProbe();
     const secondProbe: ObjectID = addProbe();
 
-    for (let minute: number = 0; minute < 4; minute++) {
+    for (let minute: number = 0; minute < 5; minute++) {
       atMinute(minute);
 
       for (const probeId of [firstProbe, secondProbe]) {
@@ -482,26 +489,79 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     }
 
     // One row per probe result: the agreement passes added none.
-    expect(store).toHaveLength(8);
+    expect(store).toHaveLength(10);
+    expect(
+      store.filter((row: StoredRow) => {
+        return row.probeId === firstProbe.toString();
+      }),
+    ).toHaveLength(5);
 
     /*
-     * Minute 4: the first probe's own window is covered, and the second
-     * probe's stored result from minute 3, read back for agreement, is
-     * judged over the same history - both say offline.
+     * Minute 5: the first probe has seen the placeholder for five minutes.
+     * The second probe's last result, from minute 4, is judged by the
+     * second probe's own checks: four minutes so far. The probes do not
+     * agree yet, so nothing is opened.
      */
-    atMinute(4);
+    atMinute(5);
 
-    const response: ProbeApiIngestResponse = await ingest({
+    const first: ProbeApiIngestResponse = await ingest({
       monitor,
       step,
       probeId: firstProbe,
       body: PLACEHOLDER_PAGE,
     });
 
-    expect(response.criteriaMetId).toBe("offline");
-    expect(response.rootCause).toContain("Probes in Agreement");
-    expect(response.rootCause).toContain("Probe 1");
-    expect(response.rootCause).toContain("Probe 2");
-    expect(store).toHaveLength(9);
+    expect(first.criteriaMetId).toBe("offline");
+    expect(first.evaluationSummary?.events).toContainEqual(
+      expect.objectContaining({
+        type: "probe-agreement",
+        message: expect.stringContaining("Probe agreement not reached: 1/2"),
+      }),
+    );
+    expect(offlineIncidentRequests()).toBe(0);
+
+    // The second probe's own check completes its window too: both agree.
+    const second: ProbeApiIngestResponse = await ingest({
+      monitor,
+      step,
+      probeId: secondProbe,
+      body: PLACEHOLDER_PAGE,
+    });
+
+    expect(second.criteriaMetId).toBe("offline");
+    expect(second.rootCause).toContain("Probes in Agreement");
+    expect(second.rootCause).toContain("Probe 1");
+    expect(second.rootCause).toContain("Probe 2");
+    expect(offlineIncidentRequests()).toBe(1);
+    expect(store).toHaveLength(12);
+  });
+
+  test("one probe result reads each history once, for its own probe and the agreement pass", async () => {
+    const { monitor, step } = websiteMonitor();
+    const probeIds: Array<ObjectID> = [addProbe(), addProbe(), addProbe()];
+
+    for (let minute: number = 0; minute < 5; minute++) {
+      atMinute(minute);
+
+      for (const probeId of probeIds) {
+        await ingest({ monitor, step, probeId, body: PLACEHOLDER_PAGE });
+      }
+    }
+
+    atMinute(5);
+
+    const findBy: jest.SpyInstance =
+      MetricService.findBy as unknown as jest.SpyInstance;
+    findBy.mockClear();
+
+    // Its own window, and the two other probes' windows in the agreement pass.
+    await ingest({
+      monitor,
+      step,
+      probeId: probeIds[0]!,
+      body: PLACEHOLDER_PAGE,
+    });
+
+    expect(findBy).toHaveBeenCalledTimes(1);
   });
 });

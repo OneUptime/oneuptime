@@ -1,13 +1,9 @@
 import { createHash } from "crypto";
 import EvaluateOverTime from "./EvaluateOverTime";
 import MonitorMetricUtil from "../MonitorMetricUtil";
-import MetricService from "../../../Services/MetricService";
-import Query from "../../../Types/AnalyticsDatabase/Query";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
-import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -25,6 +21,7 @@ import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaIn
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import stableStringify from "../../../../Utils/StableStringify";
 
 /*
  * One check of one filter that keeps a match history: whether the filter
@@ -53,12 +50,54 @@ export interface MatchHistoryJudgement {
   message: string;
 }
 
-interface RecordedCheck {
+// A check of a filter as its history holds it, with the probe that made it.
+export interface RecordedMatch {
+  matched: boolean;
+  at: Date;
+  probeId: string | undefined;
+}
+
+interface JudgedCheck {
   matched: boolean;
   at: Date;
 }
 
+// Why a run of matching checks, followed back from the newest, stops.
+enum RunStart {
+  // The check before it did not match.
+  CheckNotMatched = "CheckNotMatched",
+  // Too long went by between it and the check before it.
+  GapInChecks = "GapInChecks",
+  // Nothing was recorded before it.
+  HistoryStart = "HistoryStart",
+}
+
 const MILLISECONDS_IN_A_MINUTE: number = 60 * 1000;
+
+/*
+ * Two checks more than two and a half monitoring intervals apart have at
+ * least two checks missing between them - the probe was down, the monitor
+ * was paused, or their rows could not be written. A run of matching checks
+ * is not followed back across such a gap: nobody knows what the missing
+ * checks found. One missing check (two intervals) is bridged, so a single
+ * row that failed to write does not cost a whole window.
+ */
+const GAP_IN_CHECKS_FACTOR: number = 2.5;
+
+/*
+ * A run of matching checks counts as reaching back over the window when it
+ * starts at most a quarter of the monitoring interval (and of the window)
+ * short of it. Checks land a few seconds off their schedule; without this, a
+ * check that arrived late would push the decision to the next check.
+ */
+const RUN_START_ALLOWANCE_FACTOR: number = 0.25;
+
+/*
+ * A stored check is stamped as it is stored, and its row is written once it
+ * has been evaluated, a moment later. A row of the same probe at or after
+ * this long before the stamp is that check's own row.
+ */
+const STORED_CHECK_ROW_ALLOWANCE_MS: number = 2000;
 
 /**
  * Evaluating a criteria filter over a period of time when nothing records
@@ -70,13 +109,17 @@ const MILLISECONDS_IN_A_MINUTE: number = 60 * 1000;
  * not. What can be recorded is whether the FILTER matched: so for every
  * filter that asks to be evaluated over time and has no series
  * (CriteriaFilterUtil.hasMatchHistory), each check writes 1 or 0 for it, and
- * the filter is then judged from that history:
+ * the filter is then judged from that history, one probe's checks at a time:
  *
- *   - All Values: the filter matched on every check, and the checks reach
- *     back over the whole window (EvaluateOverTime.isWindowCovered). Until
- *     they do, the filter waits, so the first page of a restarting app does
- *     not fire it - issue #4686, a body check that fired the moment an app
- *     answered "Application starting..." instead of its title.
+ *   - All Values: the filter has matched on every check for the whole
+ *     window. The run of matching checks is followed back from the newest
+ *     one, and must reach back to the start of the window, over no gap in
+ *     the checks (GAP_IN_CHECKS_FACTOR). Until it does the filter waits, so
+ *     a restarting app's placeholder page fires nothing until it has lasted
+ *     the window - issue #4686, a body check that fired the moment an app
+ *     answered "Application starting..." instead of its title. A single
+ *     check never lasts a window: on a monitor checked every 5 minutes, a
+ *     5 minute window takes two checks in a row.
  *   - Any Value: the filter matched on at least one check in the window.
  *
  * This check's own result is judged here from memory, not read back: rows
@@ -97,7 +140,9 @@ export default class CriteriaFilterMatchHistory {
    * the filter checks, so two identical filters share one history and a
    * filter edited to check something else starts a new one. The window and
    * the evaluation type are left out - widening the window from 5 to 10
-   * minutes does not change what any past check found.
+   * minutes does not change what any past check found - and so is anything
+   * a re-save can write differently without changing what is checked
+   * (normalizeForKey).
    */
   public static getFilterKey(data: {
     monitorStepId: ObjectID | string;
@@ -113,9 +158,10 @@ export default class CriteriaFilterMatchHistory {
 
     return createHash("sha256")
       .update(
-        CriteriaFilterMatchHistory.stableStringify({
+        stableStringify({
           monitorStepId: data.monitorStepId.toString(),
-          filter: whatItChecks,
+          filter:
+            CriteriaFilterMatchHistory.normalizeForKey(whatItChecks) || {},
         }),
         "utf8",
       )
@@ -197,9 +243,12 @@ export default class CriteriaFilterMatchHistory {
   }
 
   /**
-   * Write one check's results. Never throws: a history that could not be
-   * written makes the next windows wait longer, which is the safe way for
-   * it to fail, and must not cost the monitor this evaluation.
+   * Write one check's results. Never throws, so a history that could not be
+   * written never costs the monitor this evaluation. The check is missing
+   * from the history instead: one missing check is bridged, and two or more
+   * in a row are a gap the run of matching checks is not followed across
+   * (judgeWindow), so All Values waits a new window rather than read over
+   * checks nobody saw.
    */
   @CaptureSpan()
   public static async record(data: {
@@ -232,20 +281,44 @@ export default class CriteriaFilterMatchHistory {
   /**
    * Judge a filter over its window from its match history and this check.
    *
+   * Each probe is judged by its own checks: on a monitor checked from
+   * several probes, a placeholder page one region is served must not be
+   * diluted by the real page another region gets, and the probe agreement
+   * pass then counts the probes that agree.
+   *
+   * The window ends at the probe's newest check, so the probe agreement
+   * pass, judging another probe's stored check, comes to what that probe
+   * came to itself - it never assumes a probe still sees what it saw a
+   * minute ago. A probe whose newest check is older than a gap in its
+   * checks has no checks to judge the window by.
+   *
    * The history is read only when it can change the answer. All Values is
-   * settled by a check that did not match - nothing still to come can make
-   * every check have matched - and Any Value by a check that did. So a
-   * healthy app, whose body check does not match, costs All Values no read
-   * at all.
+   * settled by a newest check that did not match, and Any Value by one that
+   * did. So a healthy app, whose body check does not match, costs All Values
+   * no read at all.
    */
   @CaptureSpan()
   public static async judgeWindow(data: {
     projectId: ObjectID;
     monitorId: ObjectID;
+    // The probe that made the check. Each probe is judged by its own checks.
+    probeId?: ObjectID | undefined;
     criteriaFilter: CriteriaFilter;
     check: CriteriaFilterCheck;
+    /*
+     * The check was read back from where it was stored - the probe
+     * agreement pass judging another probe's last check - rather than having
+     * just arrived. Its row was written when it arrived, so it is not
+     * counted again.
+     */
+    isStoredCheck?: boolean | undefined;
     // The monitor's monitoringInterval cron: how far apart checks should be.
     monitoringInterval?: string | undefined;
+    /*
+     * The reads of the probe result being handled, shared by every filter
+     * and every probe judged for it. A one-off read when not passed.
+     */
+    reads?: CriteriaFilterMatchHistoryReads | undefined;
   }): Promise<MatchHistoryJudgement> {
     const filterLabel: string = CriteriaFilterMatchHistory.getFilterLabel(
       data.criteriaFilter,
@@ -279,32 +352,71 @@ export default class CriteriaFilterMatchHistory {
 
     const windowName: string =
       CriteriaFilterMatchHistory.getWindowName(windowInMinutes);
+    const windowMs: number = windowInMinutes * MILLISECONDS_IN_A_MINUTE;
 
-    if (isAnyValue && data.check.matched) {
+    const reads: CriteriaFilterMatchHistoryReads =
+      data.reads || new CriteriaFilterMatchHistoryReads();
+    const now: Date = reads.now;
+
+    const scheduledIntervalMs: number | null =
+      CriteriaFilterMatchHistory.toMilliseconds(
+        EvaluateOverTime.getSamplingIntervalInSeconds({
+          monitoringInterval: data.monitoringInterval,
+          sortedSampleTimes: [],
+        }),
+      );
+
+    /*
+     * The check is its probe's newest. One that just arrived settles the
+     * answer on its own; so does a stored one while it is recent, but a
+     * stale one is judged with the history, which says how stale.
+     */
+    const isRecentCheck: boolean =
+      !data.isStoredCheck ||
+      (scheduledIntervalMs !== null &&
+        now.getTime() - data.check.at.getTime() <=
+          GAP_IN_CHECKS_FACTOR * scheduledIntervalMs);
+
+    if (isRecentCheck && isAnyValue && data.check.matched) {
       const message: string = `${filterLabel} matched on this check (Any Value over the last ${windowName}).`;
 
       return { rootCause: message, message: message };
     }
 
-    if (!isAnyValue && !data.check.matched) {
+    if (isRecentCheck && !isAnyValue && !data.check.matched) {
       return {
         rootCause: null,
         message: `${filterLabel} did not match on this check, so it has not matched on every check over the last ${windowName}.`,
       };
     }
 
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const windowStart: Date = OneUptimeDate.getSomeMinutesAgo(windowInMinutes);
+    /*
+     * Back far enough for the check the run of matching checks may start
+     * from, a gap before the window, and for another probe's newest check,
+     * which may be a gap old.
+     */
+    const lookBackMs: number =
+      2 *
+      (scheduledIntervalMs === null
+        ? windowMs
+        : GAP_IN_CHECKS_FACTOR * scheduledIntervalMs);
 
-    let earlierChecks: Array<RecordedCheck> = [];
+    const readFrom: Date = new Date(now.getTime() - windowMs - lookBackMs);
+
+    let recordedMatches: Array<RecordedMatch> = [];
 
     try {
-      earlierChecks = await CriteriaFilterMatchHistory.readHistory({
-        projectId: data.projectId,
-        monitorId: data.monitorId,
-        filterKey: data.check.filterKey,
-        windowStart: windowStart,
-        windowEnd: now,
+      recordedMatches = (
+        await reads.getMatches({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          filterKey: data.check.filterKey,
+          from: readFrom,
+        })
+      ).filter((match: RecordedMatch) => {
+        return data.probeId
+          ? match.probeId === data.probeId.toString()
+          : !match.probeId;
       });
     } catch (err) {
       logger.error(
@@ -319,21 +431,90 @@ export default class CriteriaFilterMatchHistory {
       };
     }
 
-    const checks: Array<RecordedCheck> = [
-      ...earlierChecks,
-      { matched: data.check.matched, at: data.check.at },
-    ];
+    const checks: Array<JudgedCheck> = recordedMatches.map(
+      (match: RecordedMatch): JudgedCheck => {
+        return { matched: match.matched, at: match.at };
+      },
+    );
 
-    const checkCount: number = checks.length;
+    const isCheckRecorded: boolean =
+      Boolean(data.isStoredCheck) &&
+      recordedMatches.some((match: RecordedMatch) => {
+        return (
+          match.at.getTime() >=
+          data.check.at.getTime() - STORED_CHECK_ROW_ALLOWANCE_MS
+        );
+      });
 
-    const matchedCount: number = checks.filter((check: RecordedCheck) => {
+    let thisCheck: JudgedCheck | null = null;
+
+    if (!isCheckRecorded && data.check.at.getTime() >= readFrom.getTime()) {
+      thisCheck = { matched: data.check.matched, at: data.check.at };
+      checks.push(thisCheck);
+    }
+
+    checks.sort((a: JudgedCheck, b: JudgedCheck) => {
+      return a.at.getTime() - b.at.getTime();
+    });
+
+    const newestCheck: JudgedCheck | undefined = checks[checks.length - 1];
+
+    if (!newestCheck) {
+      return CriteriaFilterMatchHistory.applyNoDataPolicy({
+        criteriaFilter: data.criteriaFilter,
+        waitingMessage: `${filterLabel} has no checks over the last ${windowName}, so it was not judged.`,
+        triggeredMessage: `${filterLabel} has no checks over the last ${windowName}, and its If No Data setting is Trigger.`,
+      });
+    }
+
+    const intervalMs: number | null = CriteriaFilterMatchHistory.toMilliseconds(
+      EvaluateOverTime.getSamplingIntervalInSeconds({
+        monitoringInterval: data.monitoringInterval,
+        sortedSampleTimes: checks.map((check: JudgedCheck) => {
+          return check.at.getTime();
+        }),
+      }),
+    );
+
+    const gapInChecksMs: number | null =
+      intervalMs === null ? null : GAP_IN_CHECKS_FACTOR * intervalMs;
+
+    const sinceNewestCheckMs: number = now.getTime() - newestCheck.at.getTime();
+
+    if (gapInChecksMs !== null && sinceNewestCheckMs > gapInChecksMs) {
+      const silence: string =
+        CriteriaFilterMatchHistory.describeDuration(sinceNewestCheckMs);
+
+      return CriteriaFilterMatchHistory.applyNoDataPolicy({
+        criteriaFilter: data.criteriaFilter,
+        waitingMessage: `${filterLabel} has not been checked for ${silence}, so it was not judged over the last ${windowName}.`,
+        triggeredMessage: `${filterLabel} has not been checked for ${silence}, and its If No Data setting is Trigger.`,
+      });
+    }
+
+    const windowEndMs: number = newestCheck.at.getTime();
+    const windowStartMs: number = windowEndMs - windowMs;
+
+    const windowChecks: Array<JudgedCheck> = checks.filter(
+      (check: JudgedCheck) => {
+        return check.at.getTime() >= windowStartMs;
+      },
+    );
+
+    const checkCount: number = windowChecks.length;
+
+    const matchedCount: number = windowChecks.filter((check: JudgedCheck) => {
       return check.matched;
     }).length;
 
     if (isAnyValue) {
-      // This check did not match, so only an earlier one can meet the filter.
       if (matchedCount > 0) {
-        const message: string = `${filterLabel} matched on ${matchedCount} of the ${CriteriaFilterMatchHistory.countChecks(checkCount)} over the last ${windowName}, though not on this one.`;
+        const notOnThisOne: string =
+          newestCheck === thisCheck && !newestCheck.matched
+            ? ", though not on this one"
+            : "";
+
+        const message: string = `${filterLabel} matched on ${matchedCount} of the ${CriteriaFilterMatchHistory.countChecks(checkCount)} over the last ${windowName}${notOnThisOne}.`;
 
         return { rootCause: message, message: message };
       }
@@ -348,7 +529,6 @@ export default class CriteriaFilterMatchHistory {
       };
     }
 
-    // All Values, and this check matched.
     if (matchedCount < checkCount) {
       return {
         rootCause: null,
@@ -356,34 +536,79 @@ export default class CriteriaFilterMatchHistory {
       };
     }
 
-    const isCovered: boolean = EvaluateOverTime.isWindowCovered({
-      windowStart: windowStart,
-      windowEnd: now,
-      sampleTimes: checks.map((check: RecordedCheck) => {
-        return check.at;
-      }),
-      monitoringInterval: data.monitoringInterval,
-    });
+    /*
+     * Every check of the window matched. Follow the run of matching checks
+     * back from the newest: how long has the filter matched on every check?
+     */
+    let runStartIndex: number = checks.length - 1;
+    let runStart: RunStart = RunStart.HistoryStart;
+    let gapBeforeRunMs: number = 0;
 
-    if (!isCovered) {
-      const soFar: string = `${filterLabel} has matched on every check for ${CriteriaFilterMatchHistory.describeCoveredTime(
-        {
-          checks: checks,
-          now: now,
-          monitoringInterval: data.monitoringInterval,
-        },
-      )} (${CriteriaFilterMatchHistory.countChecks(checkCount)})`;
+    for (let index: number = checks.length - 2; index >= 0; index--) {
+      const gapMs: number =
+        checks[index + 1]!.at.getTime() - checks[index]!.at.getTime();
 
-      return CriteriaFilterMatchHistory.applyNoDataPolicy({
-        criteriaFilter: data.criteriaFilter,
-        waitingMessage: `${soFar}; All Values waits until it has for ${windowName}.`,
-        triggeredMessage: `${soFar}, not yet ${windowName}, and its If No Data setting is Trigger.`,
-      });
+      if (gapInChecksMs !== null && gapMs > gapInChecksMs) {
+        runStart = RunStart.GapInChecks;
+        gapBeforeRunMs = gapMs;
+        break;
+      }
+
+      if (!checks[index]!.matched) {
+        runStart = RunStart.CheckNotMatched;
+        break;
+      }
+
+      runStartIndex = index;
     }
 
-    const message: string = `${filterLabel} matched on every check over the last ${windowName} (${CriteriaFilterMatchHistory.countChecks(checkCount)}).`;
+    const runCheckCount: number = checks.length - runStartIndex;
+    const runLastedMs: number =
+      windowEndMs - checks[runStartIndex]!.at.getTime();
 
-    return { rootCause: message, message: message };
+    const runStartAllowanceMs: number =
+      intervalMs === null
+        ? 0
+        : RUN_START_ALLOWANCE_FACTOR * Math.min(intervalMs, windowMs);
+
+    if (runLastedMs >= windowMs - runStartAllowanceMs) {
+      const message: string = `${filterLabel} matched on every check over the last ${windowName} (${CriteriaFilterMatchHistory.countChecks(checkCount)}).`;
+
+      return { rootCause: message, message: message };
+    }
+
+    const sinceGap: string =
+      runStart === RunStart.GapInChecks
+        ? ` since a ${CriteriaFilterMatchHistory.describeGap(gapBeforeRunMs)} gap in its checks`
+        : "";
+
+    const soFar: string =
+      runCheckCount === 1
+        ? `${filterLabel} has matched on 1 check${sinceGap || " so far"}`
+        : `${filterLabel} has matched on every check for ${CriteriaFilterMatchHistory.describeDuration(
+            runLastedMs,
+          )} (${CriteriaFilterMatchHistory.countChecks(runCheckCount)})${sinceGap}`;
+
+    const waitingMessage: string =
+      runCheckCount === 1
+        ? `${soFar}; All Values waits until it has matched on every check for ${windowName}.`
+        : `${soFar}; All Values waits until it has for ${windowName}.`;
+
+    if (runStart === RunStart.CheckNotMatched) {
+      /*
+       * The check before the run did not match: the history reaches back,
+       * and says the run is younger than the window. That is no missing
+       * data, so If No Data has no say.
+       */
+      return { rootCause: null, message: waitingMessage };
+    }
+
+    // Nothing recorded before the run, or a gap: the history falls short.
+    return CriteriaFilterMatchHistory.applyNoDataPolicy({
+      criteriaFilter: data.criteriaFilter,
+      waitingMessage: waitingMessage,
+      triggeredMessage: `${soFar}, not yet for ${windowName}, and its If No Data setting is Trigger.`,
+    });
   }
 
   /*
@@ -414,6 +639,55 @@ export default class CriteriaFilterMatchHistory {
   }
 
   /*
+   * Every probe's checks of one filter from `from` to `to`. Rows that cannot
+   * be read are skipped.
+   */
+  public static async readMatches(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    filterKey: string;
+    from: Date;
+    to: Date;
+  }): Promise<Array<RecordedMatch>> {
+    const filterKeyAttribute: JSONObject = {};
+    filterKeyAttribute[CRITERIA_FILTER_KEY_ATTRIBUTE] = data.filterKey;
+
+    const rows: Array<Metric> = await EvaluateOverTime.readWindowRows({
+      projectId: data.projectId,
+      monitorId: data.monitorId,
+      metricName: CRITERIA_FILTER_MATCH_METRIC_NAME,
+      windowStart: data.from,
+      windowEnd: data.to,
+      attributes: filterKeyAttribute,
+      selectAttributes: true,
+    });
+
+    const matches: Array<RecordedMatch> = [];
+
+    for (const row of rows) {
+      if (row.value === undefined || row.value === null || !row.time) {
+        continue;
+      }
+
+      const at: Date = OneUptimeDate.fromString(row.time);
+
+      if (isNaN(at.getTime())) {
+        continue;
+      }
+
+      const probeId: unknown = row.attributes?.["probeId"];
+
+      matches.push({
+        matched: Number(row.value) === CRITERIA_FILTER_MATCHED_VALUE,
+        at: at,
+        probeId: probeId ? String(probeId) : undefined,
+      });
+    }
+
+    return matches;
+  }
+
+  /*
    * What a window that cannot back the filter yet comes to, by the filter's
    * If No Data setting. Only Trigger makes it met: Ignore waits, and Treat
    * As Zero counts the missing checks as checks the filter did not match -
@@ -438,57 +712,54 @@ export default class CriteriaFilterMatchHistory {
     return { rootCause: null, message: data.waitingMessage };
   }
 
-  private static async readHistory(data: {
-    projectId: ObjectID;
-    monitorId: ObjectID;
-    filterKey: string;
-    windowStart: Date;
-    windowEnd: Date;
-  }): Promise<Array<RecordedCheck>> {
-    const query: Query<Metric> = {
-      projectId: data.projectId,
-      time: new InBetween(data.windowStart, data.windowEnd),
-      primaryEntityId: data.monitorId,
-      name: CRITERIA_FILTER_MATCH_METRIC_NAME,
-    };
-
-    const filterKeyAttribute: JSONObject = {};
-    filterKeyAttribute[CRITERIA_FILTER_KEY_ATTRIBUTE] = data.filterKey;
-    query.attributes = filterKeyAttribute;
-
-    const rows: Array<Metric> = await MetricService.findBy({
-      query: query,
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        value: true,
-        time: true,
-      },
-    });
-
-    const checks: Array<RecordedCheck> = [];
-
-    for (const row of rows) {
-      if (row.value === undefined || row.value === null || !row.time) {
-        continue;
-      }
-
-      const at: Date = OneUptimeDate.fromString(row.time);
-
-      if (isNaN(at.getTime())) {
-        continue;
-      }
-
-      checks.push({
-        matched: Number(row.value) === CRITERIA_FILTER_MATCHED_VALUE,
-        at: at,
-      });
+  /*
+   * A filter as its key sees it. A form re-save can write the same filter
+   * differently - a field null, empty or left out, a number as its digits -
+   * without changing what it checks, and must not start its history over:
+   * empty values are dropped at every depth, and every other value is
+   * compared as its text, so 5 and "5" are one value.
+   */
+  private static normalizeForKey(value: unknown): unknown {
+    if (value === null || value === undefined) {
+      return undefined;
     }
 
-    return checks;
+    if (Array.isArray(value)) {
+      const items: Array<unknown> = value
+        .map((item: unknown): unknown => {
+          return CriteriaFilterMatchHistory.normalizeForKey(item);
+        })
+        .filter((item: unknown): boolean => {
+          return item !== undefined;
+        });
+
+      return items.length > 0 ? items : undefined;
+    }
+
+    if (typeof value === "object") {
+      const record: Record<string, unknown> = value as Record<string, unknown>;
+      const normalized: Record<string, unknown> = {};
+
+      for (const key of Object.keys(record)) {
+        const item: unknown = CriteriaFilterMatchHistory.normalizeForKey(
+          record[key],
+        );
+
+        if (item !== undefined) {
+          normalized[key] = item;
+        }
+      }
+
+      return Object.keys(normalized).length > 0 ? normalized : undefined;
+    }
+
+    const text: string = String(value);
+
+    return text.length > 0 ? text : undefined;
+  }
+
+  private static toMilliseconds(seconds: number | null): number | null {
+    return seconds === null || seconds <= 0 ? null : seconds * 1000;
   }
 
   private static getWindowName(windowInMinutes: number): string {
@@ -499,39 +770,9 @@ export default class CriteriaFilterMatchHistory {
     return count === 1 ? "1 check" : `${count} checks`;
   }
 
-  /*
-   * How much time the checks have covered so far, counted the way the
-   * coverage rule counts it (EvaluateOverTime.isWindowCovered): each check
-   * stands for the interval before it. Five checks a minute apart cover five
-   * minutes, which is when a five minute window is met - so "matched for 4
-   * minutes" is never followed, one check later, by "matched over the last 5
-   * minutes" as if a minute had gone missing.
-   */
-  private static describeCoveredTime(data: {
-    checks: Array<RecordedCheck>;
-    now: Date;
-    monitoringInterval?: string | undefined;
-  }): string {
-    const sortedCheckTimes: Array<number> = data.checks
-      .map((check: RecordedCheck) => {
-        return check.at.getTime();
-      })
-      .sort((a: number, b: number) => {
-        return a - b;
-      });
-
-    const intervalInSeconds: number | null =
-      EvaluateOverTime.getSamplingIntervalInSeconds({
-        monitoringInterval: data.monitoringInterval,
-        sortedSampleTimes: sortedCheckTimes,
-      });
-
-    const coveredMs: number =
-      data.now.getTime() -
-      (sortedCheckTimes[0] ?? data.now.getTime()) +
-      (intervalInSeconds || 0) * 1000;
-
-    const minutes: number = Math.floor(coveredMs / MILLISECONDS_IN_A_MINUTE);
+  // 3 minutes, 1 minute, less than a minute: whole minutes, rounded down.
+  private static describeDuration(milliseconds: number): string {
+    const minutes: number = Math.floor(milliseconds / MILLISECONDS_IN_A_MINUTE);
 
     if (minutes < 1) {
       return "less than a minute";
@@ -540,34 +781,70 @@ export default class CriteriaFilterMatchHistory {
     return minutes === 1 ? "1 minute" : `${minutes} minutes`;
   }
 
-  /*
-   * JSON with object keys sorted at every depth, so a filter read back from
-   * Postgres (jsonb hands keys back in its own order) keeps the key it was
-   * written under.
-   */
-  private static stableStringify(value: unknown): string {
-    if (Array.isArray(value)) {
-      return `[${value
-        .map((item: unknown): string => {
-          return CriteriaFilterMatchHistory.stableStringify(item);
-        })
-        .join(",")}]`;
+  // 13-minute, as in "a 13-minute gap"; seconds below a minute.
+  private static describeGap(milliseconds: number): string {
+    const minutes: number = Math.floor(milliseconds / MILLISECONDS_IN_A_MINUTE);
+
+    if (minutes < 1) {
+      return `${Math.max(1, Math.floor(milliseconds / 1000))}-second`;
     }
 
-    if (value !== null && typeof value === "object") {
-      const record: Record<string, unknown> = value as Record<string, unknown>;
+    return `${minutes}-minute`;
+  }
+}
 
-      return `{${Object.keys(record)
-        .filter((key: string): boolean => {
-          return record[key] !== undefined;
-        })
-        .sort()
-        .map((key: string): string => {
-          return `${JSON.stringify(key)}:${CriteriaFilterMatchHistory.stableStringify(record[key])}`;
-        })
-        .join(",")}}`;
+/**
+ * The match histories read while one probe result is handled.
+ *
+ * A probe result is judged by its own probe, and, on a monitor checked from
+ * several probes, the probe agreement pass then judges every other probe's
+ * last check. Each probe is judged by its own checks, but each filter's
+ * history is read once here, for every probe, and split up in memory -
+ * otherwise the agreement pass would read it once per probe, on every
+ * probe's every check.
+ *
+ * Everything judged through one instance is judged as of the moment it was
+ * made, which is what lets the reads be shared.
+ */
+export class CriteriaFilterMatchHistoryReads {
+  public readonly now: Date;
+
+  private readonly reads: Map<string, Promise<Array<RecordedMatch>>>;
+
+  public constructor() {
+    this.now = OneUptimeDate.getCurrentDate();
+    this.reads = new Map<string, Promise<Array<RecordedMatch>>>();
+  }
+
+  // Every probe's checks of one filter, from `from` until this instance's now.
+  public getMatches(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    filterKey: string;
+    from: Date;
+  }): Promise<Array<RecordedMatch>> {
+    const readKey: string = [
+      data.projectId.toString(),
+      data.monitorId.toString(),
+      data.filterKey,
+      data.from.getTime().toString(),
+    ].join("|");
+
+    let read: Promise<Array<RecordedMatch>> | undefined =
+      this.reads.get(readKey);
+
+    if (!read) {
+      read = CriteriaFilterMatchHistory.readMatches({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        filterKey: data.filterKey,
+        from: data.from,
+        to: this.now,
+      });
+
+      this.reads.set(readKey, read);
     }
 
-    return JSON.stringify(value === undefined ? null : value);
+    return read;
   }
 }

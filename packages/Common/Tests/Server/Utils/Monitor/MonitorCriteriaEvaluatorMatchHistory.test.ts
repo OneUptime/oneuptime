@@ -9,6 +9,7 @@ jest.mock("isolated-vm", () => {
 });
 
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import { CriteriaFilterMatchHistoryReads } from "../../../../Server/Utils/Monitor/Criteria/CriteriaFilterMatchHistory";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import MetricService from "../../../../Server/Services/MetricService";
 import FindBy from "../../../../Server/Types/AnalyticsDatabase/FindBy";
@@ -181,6 +182,7 @@ async function check(input: {
   body?: string;
   recordMatchHistory?: boolean;
   probeId?: ObjectID;
+  matchHistoryReads?: CriteriaFilterMatchHistoryReads;
 }): Promise<Check> {
   const dataToProcess: ProbeMonitorResponse = {
     projectId: input.monitor.projectId!,
@@ -215,6 +217,7 @@ async function check(input: {
       },
       evaluationSummary: summary,
       recordMatchHistory: input.recordMatchHistory ?? true,
+      matchHistoryReads: input.matchHistoryReads,
     });
 
   return {
@@ -309,6 +312,10 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
               const metric: Metric = new Metric();
               metric.value = row.value;
               metric.time = row.time;
+              metric.attributes = {
+                [CRITERIA_FILTER_KEY_ATTRIBUTE]: row.filterKey,
+                ...(row.probeId ? { probeId: row.probeId } : {}),
+              };
               return metric;
             });
         },
@@ -439,7 +446,11 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
       const monitor: Monitor = monitorOf(MonitorType.Website);
       const step: MonitorStep = customerStep();
 
-      for (let minute: number = 0; minute < 4; minute++) {
+      /*
+       * Five checks a minute apart span four minutes: the placeholder has
+       * not lasted the window yet.
+       */
+      for (let minute: number = 0; minute < 5; minute++) {
         atMinute(minute);
         expect({
           minute,
@@ -449,11 +460,8 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
         }).toEqual({ minute, criteriaMet: "Online" });
       }
 
-      /*
-       * Five checks a minute apart cover five minutes - each stands for the
-       * minute before it, the rule every over-time filter is judged by.
-       */
-      atMinute(4);
+      // The sixth, five minutes after the first, completes it.
+      atMinute(5);
       expect(
         (await check({ monitor, monitorStep: step, body: PLACEHOLDER_PAGE }))
           .criteriaMet,
@@ -484,7 +492,7 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           checkOn: CheckOn.ResponseBody,
         }),
       ).toBe(
-        'Response Body Not Contains "App Title" has matched on every check for 4 minutes (4 checks); All Values waits until it has for 5 minutes.',
+        'Response Body Not Contains "App Title" has matched on every check for 3 minutes (4 checks); All Values waits until it has for 5 minutes.',
       );
     });
 
@@ -626,65 +634,211 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
       expect(matchHistoryReads).toBe(1);
     });
 
-    test("a stored check read back for agreement is placed when it arrived, not now", async () => {
+    test("a stored check read back for agreement is judged by its own probe's checks, and counted once", async () => {
       const monitor: Monitor = monitorOf(MonitorType.Website);
       const step: MonitorStep = customerStep();
 
-      for (let minute: number = 0; minute <= 3; minute++) {
+      for (let minute: number = 0; minute <= 5; minute++) {
         atMinute(minute);
         await check({ monitor, monitorStep: step, body: PLACEHOLDER_PAGE });
       }
-
-      const arrivedAt: Date = new Date(START.getTime() + 3.5 * MINUTE_IN_MS);
 
       /*
-       * Minute 6: nothing was checked for two and a half minutes, and
-       * another probe's result that arrived at 3:30 is read back for probe
-       * agreement. Placed at 3:30, the checks stop well before now, so the
-       * window is not covered. Placed now, it would have closed the window
-       * as if the app had been checked a moment ago.
+       * Half a minute later another probe's result arrives, and the
+       * agreement pass reads back this probe's result from minute 5. Its
+       * row is in the history already: six checks, not seven.
        */
-      atMinute(6);
+      atMinute(5.5);
 
       const result: Check = await check({
         monitor,
         monitorStep: step,
         body: PLACEHOLDER_PAGE,
         recordMatchHistory: false,
-        probeId: ObjectID.generate(),
-        response: { monitoredAt: arrivedAt },
-      });
-
-      expect(result.criteriaMet).toBe("Online");
-      expect(store).toHaveLength(4);
-    });
-
-    test("a stored check that arrived just now closes the window", async () => {
-      const monitor: Monitor = monitorOf(MonitorType.Website);
-      const step: MonitorStep = customerStep();
-
-      for (let minute: number = 0; minute <= 3; minute++) {
-        atMinute(minute);
-        await check({ monitor, monitorStep: step, body: PLACEHOLDER_PAGE });
-      }
-
-      atMinute(4);
-
-      const result: Check = await check({
-        monitor,
-        monitorStep: step,
-        body: PLACEHOLDER_PAGE,
-        recordMatchHistory: false,
-        probeId: ObjectID.generate(),
-        // Stored as MonitorResource stores it: a string, hydrated back.
         response: {
-          monitoredAt:
-            OneUptimeDate.getCurrentDate().toISOString() as unknown as Date,
+          // Stored as MonitorResource stores it: a string, hydrated back.
+          monitoredAt: new Date(
+            START.getTime() + 5 * MINUTE_IN_MS,
+          ).toISOString() as unknown as Date,
         },
       });
 
       expect(result.criteriaMet).toBe("Offline");
-      expect(store).toHaveLength(4);
+      expect(result.rootCause).toContain(
+        'Response Body Not Contains "App Title" matched on every check over the last 5 minutes (6 checks).',
+      );
+      expect(store).toHaveLength(6);
+    });
+
+    test("another probe's checks are not mixed in", async () => {
+      const monitor: Monitor = monitorOf(MonitorType.Website);
+      const step: MonitorStep = customerStep();
+
+      for (let minute: number = 0; minute <= 5; minute++) {
+        atMinute(minute);
+        await check({ monitor, monitorStep: step, body: PLACEHOLDER_PAGE });
+      }
+
+      /*
+       * A second probe, which has checked once - at minute 5 - is read
+       * back for agreement. Its window holds its own single check, so it
+       * waits, however long the first probe has seen the placeholder.
+       */
+      const secondProbe: ObjectID = ObjectID.generate();
+
+      const result: Check = await check({
+        monitor,
+        monitorStep: step,
+        body: PLACEHOLDER_PAGE,
+        recordMatchHistory: false,
+        probeId: secondProbe,
+      });
+
+      expect(result.criteriaMet).toBe("Online");
+      expect(
+        filterMessage({
+          result,
+          criteriaName: "Offline",
+          checkOn: CheckOn.ResponseBody,
+        }),
+      ).toBe(
+        'Response Body Not Contains "App Title" has matched on 1 check so far; All Values waits until it has matched on every check for 5 minutes.',
+      );
+    });
+
+    test("a probe that stopped checking is not judged by the checks it made back then", async () => {
+      const monitor: Monitor = monitorOf(MonitorType.Website);
+      const step: MonitorStep = customerStep();
+
+      for (let minute: number = 0; minute <= 5; minute++) {
+        atMinute(minute);
+        await check({ monitor, monitorStep: step, body: PLACEHOLDER_PAGE });
+      }
+
+      // Its last result, from minute 5, read back at minute 12.
+      atMinute(12);
+
+      const result: Check = await check({
+        monitor,
+        monitorStep: step,
+        body: PLACEHOLDER_PAGE,
+        recordMatchHistory: false,
+        response: {
+          monitoredAt: new Date(START.getTime() + 5 * MINUTE_IN_MS),
+        },
+      });
+
+      expect(result.criteriaMet).toBe("Online");
+      expect(
+        filterMessage({
+          result,
+          criteriaName: "Offline",
+          checkOn: CheckOn.ResponseBody,
+        }),
+      ).toBe(
+        'Response Body Not Contains "App Title" has not been checked for 7 minutes, so it was not judged over the last 5 minutes.',
+      );
+    });
+
+    test("a probe's own result and the agreement pass after it read each history once", async () => {
+      const monitor: Monitor = monitorOf(MonitorType.Website);
+      const step: MonitorStep = customerStep();
+      const secondProbe: ObjectID = ObjectID.generate();
+
+      for (let minute: number = 0; minute <= 4; minute++) {
+        atMinute(minute);
+
+        for (const probeId of [PROBE_ID, secondProbe]) {
+          await check({
+            monitor,
+            monitorStep: step,
+            body: PLACEHOLDER_PAGE,
+            probeId: probeId,
+          });
+        }
+      }
+
+      atMinute(5);
+      matchHistoryReads = 0;
+
+      // One probe result, as MonitorResource handles it: one set of reads.
+      const reads: CriteriaFilterMatchHistoryReads =
+        new CriteriaFilterMatchHistoryReads();
+
+      const ownResult: Check = await check({
+        monitor,
+        monitorStep: step,
+        body: PLACEHOLDER_PAGE,
+        matchHistoryReads: reads,
+      });
+
+      const otherProbe: Check = await check({
+        monitor,
+        monitorStep: step,
+        body: PLACEHOLDER_PAGE,
+        recordMatchHistory: false,
+        probeId: secondProbe,
+        response: {
+          monitoredAt: new Date(START.getTime() + 4 * MINUTE_IN_MS),
+        },
+        matchHistoryReads: reads,
+      });
+
+      expect(ownResult.criteriaMet).toBe("Offline");
+      // The second probe has seen the placeholder for 4 minutes so far.
+      expect(otherProbe.criteriaMet).toBe("Online");
+      expect(matchHistoryReads).toBe(1);
+    });
+
+    test("the agreement pass judges only the filters its criteria reach - nothing up front", async () => {
+      const sandbox: jest.SpyInstance = jest
+        .spyOn(VMUtil, "runCodeInSandbox")
+        .mockResolvedValue({
+          returnValue: true,
+          logMessages: [],
+          capturedMetrics: [],
+        } as never);
+
+      const monitor: Monitor = monitorOf(MonitorType.API);
+      const step: MonitorStep = stepWith([
+        criteria({ name: "Offline", filters: [IS_OFFLINE] }),
+        criteria({
+          name: "Starting",
+          filters: [
+            overTime({
+              checkOn: CheckOn.JavaScriptExpression,
+              filterType: FilterType.EvaluatesToTrue,
+              value: "'{{responseBody.status}}' === 'starting'",
+            }),
+          ],
+        }),
+        criteria({ name: "Online", filters: [IS_ONLINE] }),
+      ]);
+
+      // The site is down: Offline matches before the expression is reached.
+      const storedResult: Check = await check({
+        monitor,
+        monitorStep: step,
+        response: { isOnline: false },
+        recordMatchHistory: false,
+      });
+
+      expect(storedResult.criteriaMet).toBe("Offline");
+      expect(sandbox).not.toHaveBeenCalled();
+      expect(matchHistoryReads).toBe(0);
+
+      /*
+       * The same result arriving live is judged for every filter that keeps
+       * a history, since every one of them is written.
+       */
+      await check({
+        monitor,
+        monitorStep: step,
+        response: { isOnline: false },
+      });
+
+      expect(sandbox).toHaveBeenCalledTimes(1);
+      expect(store).toHaveLength(1);
     });
 
     test("a disabled criteria writes nothing for its filters", async () => {
@@ -918,7 +1072,7 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           criteria({ name: "Alarm", filters: [overTime(checkCase.filter)] }),
         ]);
 
-        for (let minute: number = 0; minute < 4; minute++) {
+        for (let minute: number = 0; minute < 5; minute++) {
           atMinute(minute);
           expect({
             minute,
@@ -932,8 +1086,8 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           }).toEqual({ minute, criteriaMet: null });
         }
 
-        // The fifth check a minute apart covers the five minute window.
-        atMinute(4);
+        // The sixth check, five minutes after the first, lasts the window.
+        atMinute(5);
         expect(
           (
             await check({
@@ -944,7 +1098,7 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           ).criteriaMet,
         ).toBe("Alarm");
 
-        atMinute(5);
+        atMinute(6);
         expect(
           (
             await check({
@@ -955,12 +1109,12 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
           ).criteriaMet,
         ).toBeNull();
 
-        // Every check was written: four waiting, one firing, one recovered.
+        // Every check was written: five waiting, one firing, one recovered.
         expect(
           store.map((row: StoredRow) => {
             return row.value;
           }),
-        ).toEqual([1, 1, 1, 1, 1, 0]);
+        ).toEqual([1, 1, 1, 1, 1, 1, 0]);
       },
     );
 
