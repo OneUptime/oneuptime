@@ -26,7 +26,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useRef, useState } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import {
   NotificationMethodDeleteGuard,
@@ -229,8 +229,15 @@ const Push: () => JSX.Element = (): ReactElement => {
    * Whether a phone is listed. A browser row only offers the way to get
    * critical alerts on a phone while there is none: once there is, that is
    * where they are turned on, and the link would only repeat itself.
+   *
+   * A ref, read when a cell is drawn, rather than state: the table keeps
+   * the column closures it was given and swaps them in an effect, so a
+   * closure over state drew one frame of rows with the previous answer - a
+   * browser's link flashed up beside a phone. The list read sets this
+   * before the rows it read are drawn.
    */
-  const [isPhoneListed, setIsPhoneListed] = useState<boolean>(false);
+  const isPhoneListedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const translator: Translator = useTranslator();
 
@@ -470,13 +477,13 @@ const Push: () => JSX.Element = (): ReactElement => {
           deviceType: true,
         }}
         onFetchSuccess={(devices: Array<UserPush>) => {
-          setIsPhoneListed(
-            devices.some((item: UserPush): boolean => {
+          isPhoneListedRef.current = devices.some(
+            (item: UserPush): boolean => {
               return (
                 getPushDevicePlatform(item.deviceType) !==
                 PushDevicePlatform.Browser
               );
-            }),
+            },
           );
         }}
         actionButtons={[
@@ -672,7 +679,7 @@ const Push: () => JSX.Element = (): ReactElement => {
               const canShowSteps: boolean =
                 state === CriticalAlertDeviceState.Off ||
                 (state === CriticalAlertDeviceState.NotAvailable &&
-                  !isPhoneListed);
+                  !isPhoneListedRef.current);
 
               return (
                 <PushDeviceCriticalAlertStatus
