@@ -319,7 +319,7 @@ describe("the steps follow what the app does on each platform", () => {
 
   test("once it is on: the alarm is chosen in the app, and the test notification plays it", () => {
     expect(filled(CRITICAL_ALERT_ONCE_ON)).toBe(
-      "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under Settings > Notifications > Alarm sound.",
+      "Once it's on, choose the alarm sound for on-call pages under Settings > Notifications > Alarm sound.",
     );
     expect(CRITICAL_ALERT_HOW_TO_HEAR_IT).toBe(
       "To hear it, silence the phone and send it a Test Notification from this list.",
@@ -338,7 +338,7 @@ describe("the steps follow what the app does on each platform", () => {
       CRITICAL_ALERT_STEPS[PushDevicePlatform.Browser].map(filled),
     ).toEqual([
       "Install OneUptime On-Call on your phone from the App Store or Google Play.",
-      "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
+      "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.",
       "In the app, tap Settings and, under Notifications, turn on Critical On-Call Alerts. Allow what the phone asks for, then check the switch is on.",
     ]);
 
@@ -350,6 +350,79 @@ describe("the steps follow what the app does on each platform", () => {
     expect(new URL(MOBILE_APP_IOS_URL).hostname).toBe("apps.apple.com");
     expect(new URL(MOBILE_APP_IOS_URL).pathname).toBe(
       "/us/app/oneuptime-on-call/id6759615391",
+    );
+  });
+
+  /*
+   * A new install opens on "Connect your workspace", with OneUptime
+   * Cloud's address filled in. A self-hosted person who only signs in, as
+   * the steps used to say, signs in to the wrong OneUptime. So the steps
+   * say "connect to <this address>": the origin the app then checks at
+   * /api/status, which is where this Dashboard's API is served.
+   */
+  test("a browser's steps connect the app to this OneUptime first: the app's first screen asks which", () => {
+    const serverUrlScreen: string = read(
+      MOBILE_APP,
+      "src",
+      "screens",
+      "auth",
+      "ServerUrlScreen.tsx",
+    );
+    const auth: string = read(MOBILE_APP, "src", "api", "auth.ts");
+
+    expect(serverUrlScreen).toContain('title="Connect your workspace"');
+    expect(serverUrlScreen).toContain('label="Server URL"');
+    expect(serverUrlScreen).toContain('label="Connect"');
+    expect(serverUrlScreen).toContain("validateServerUrl(normalizedUrl)");
+
+    // Filled in with OneUptime Cloud's: right for Cloud, wrong for anyone else.
+    expect(serverUrlScreen).toContain("const [url, setUrl] = useState(");
+
+    const filledIn: number =
+      serverUrlScreen.indexOf("const [url, setUrl] = useState(") +
+      "const [url, setUrl] = useState(".length;
+    const filledInValue: string = JSON.parse(
+      serverUrlScreen.slice(filledIn, serverUrlScreen.indexOf(")", filledIn)),
+    ) as string;
+
+    expect(new URL(filledInValue).host).toBe("oneuptime.com");
+
+    // The app checks the address it is given at <address>/api/status.
+    const validate: string = auth.slice(
+      auth.indexOf("export async function validateServerUrl("),
+    );
+
+    expect(validate).toContain("axios.get(`${url}/api/status`");
+
+    // The step names the address, before signing in.
+    const connect: string =
+      CRITICAL_ALERT_STEPS[PushDevicePlatform.Browser][1]!;
+
+    expect(connect.indexOf("connect to {{serverUrl}}")).toBeGreaterThan(-1);
+    expect(connect.indexOf("{{serverUrl}}")).toBeLessThan(
+      connect.indexOf("sign in"),
+    );
+
+    // ...and the address is this Dashboard's API origin: its host, as the
+    // API's own URL is built (Common/UI/Config's APP_API_URL).
+    const helper: string = read(
+      REPOSITORY,
+      "packages",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Utils",
+      "MobileAppServerUrl.ts",
+    );
+    const config: string = read(COMMON, "UI", "Config.ts");
+
+    expect(helper).toContain("return `${HTTP_PROTOCOL}${HOST}`;");
+    expect(config).toContain(
+      "export const APP_HOSTNAME: Hostname = Hostname.fromString(HOST);",
+    );
+    expect(config).toContain(
+      "export const APP_API_URL: URL = new URL(\n  HTTP_PROTOCOL,\n  APP_HOSTNAME,",
     );
   });
 

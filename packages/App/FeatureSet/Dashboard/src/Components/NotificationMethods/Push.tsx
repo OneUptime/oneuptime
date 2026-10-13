@@ -116,6 +116,21 @@ export function getTestNotificationSentDescription(
   );
 }
 
+/*
+ * Whether the dialog that says a test went out also offers the steps that
+ * turn critical alerts on: only for a phone that has them off - the one the
+ * dialog tells to turn them on. A browser cannot have them, and a phone that
+ * has them is done.
+ */
+export function canOfferCriticalAlertStepsAfterTest(
+  device: ShownPushDevice,
+): boolean {
+  return (
+    device.platform !== PushDevicePlatform.Browser &&
+    !device.isCriticalAlertEnabled
+  );
+}
+
 const SUBSCRIPTION_NOT_RENEWED_MESSAGE: string =
   "This browser's push subscription could not be renewed. Reload the page and register this browser again.";
 
@@ -764,7 +779,30 @@ const Push: () => JSX.Element = (): ReactElement => {
         <></>
       )}
 
-      {testedDevice ? (
+      {/*
+       * A phone with critical alerts off is told to turn them on, so the
+       * dialog leads there - to that phone's steps - rather than leaving the
+       * advice with nowhere to go. Any other device's dialog only closes.
+       */}
+      {testedDevice && canOfferCriticalAlertStepsAfterTest(testedDevice) ? (
+        <ConfirmModal
+          title="Test Notification Sent"
+          description={getTestNotificationSentDescription(
+            translator,
+            testedDevice,
+          )}
+          submitButtonType={ButtonStyleType.PRIMARY}
+          submitButtonText="How to turn on"
+          closeButtonText="Close"
+          onClose={() => {
+            setTestedDevice(null);
+          }}
+          onSubmit={() => {
+            setTestedDevice(null);
+            setStepsDevice(testedDevice);
+          }}
+        />
+      ) : testedDevice ? (
         <ConfirmModal
           title="Test Notification Sent"
           description={getTestNotificationSentDescription(

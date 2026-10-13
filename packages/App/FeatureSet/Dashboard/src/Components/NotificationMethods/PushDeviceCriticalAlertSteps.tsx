@@ -26,6 +26,7 @@ import {
   MOBILE_APP_ANDROID_URL,
   MOBILE_APP_IOS_URL,
 } from "../../Utils/MobileAppStoreLinks";
+import { getMobileAppServerUrl } from "../../Utils/MobileAppServerUrl";
 
 /*
  * How to turn critical alerts on, for one device of the Push Notification
@@ -113,6 +114,19 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
       name: GOOGLE_PLAY_NAME,
       url: MOBILE_APP_ANDROID_URL,
     }),
+    /*
+     * What to type into the app's Server URL: code, as it is typed, and
+     * wrapped onto its own line only when it does not fit on one.
+     */
+    serverUrl: (
+      <code
+        className="break-words rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.8125rem] font-medium text-gray-900"
+        data-testid="critical-alert-steps-server-url"
+        dir="ltr"
+      >
+        {getMobileAppServerUrl()}
+      </code>
+    ),
   };
 
   // Each sentence is given only the slots it names.
@@ -207,19 +221,25 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
 
         {troubleshooting.length > 0 ? (
           <div data-testid="critical-alert-steps-troubleshooting">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {/* The dialog's title is its h3; this is a section of it. */}
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               {translator.translateText("If it doesn't turn on")}
-            </p>
+            </h4>
             <ul className="mt-2 space-y-2">
               {troubleshooting.map((template: string): ReactElement => {
                 return (
                   <li
                     key={template}
-                    className="flex gap-2 text-sm leading-5 text-gray-600"
+                    className="flex gap-2.5 text-sm leading-5 text-gray-600"
                   >
-                    <Icon
-                      icon={IconProp.ChevronRight}
-                      className="mt-1 h-3 w-3 flex-none text-gray-400"
+                    {/*
+                     * A plain bullet: a chevron here read as a link to
+                     * somewhere, and these are only things to try. Drawn in
+                     * its text colour, which the dark theme re-tints.
+                     */}
+                    <span
+                      aria-hidden="true"
+                      className="mt-2 h-1 w-1 flex-none rounded-full bg-current text-gray-400"
                     />
                     <p className="min-w-0">{sentence(template)}</p>
                   </li>

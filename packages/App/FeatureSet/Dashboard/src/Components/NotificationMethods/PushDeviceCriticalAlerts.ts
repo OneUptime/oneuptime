@@ -125,7 +125,8 @@ export const MOBILE_APP_LABELS: {
 
 /*
  * The {{placeholders}} the sentences below use. Each is drawn by the dialog
- * as it is, never translated: the app's labels in bold, the stores as links.
+ * as it is, never translated: the app's labels in bold, the stores as links,
+ * and the address the app connects to as the code it is.
  */
 export type CriticalAlertSentenceSlot =
   | "app"
@@ -134,7 +135,8 @@ export type CriticalAlertSentenceSlot =
   | "criticalAlerts"
   | "alarmSoundPath"
   | "appStore"
-  | "googlePlay";
+  | "googlePlay"
+  | "serverUrl";
 
 const TURN_ON_THE_SWITCH: string = translationKey(
   "Under {{notifications}}, turn on {{criticalAlerts}}.",
@@ -153,7 +155,11 @@ const TURN_ON_THE_SWITCH: string = translationKey(
  *             the server (the app's own test, "granting Do Not Disturb access
  *             and coming back turns critical alerts on - no restart").
  *   Browser - it cannot have them at all. The steps get the person the app,
- *             on their phone, and the setting there.
+ *             on their phone, and the setting there. The app's first screen
+ *             asks which OneUptime to connect to and fills in OneUptime
+ *             Cloud's address, so the steps name this one's
+ *             (Utils/MobileAppServerUrl): a self-hosted server's has to be
+ *             typed in, or the sign-in that follows goes to the wrong place.
  */
 export const CRITICAL_ALERT_STEPS: Record<
   PushDevicePlatform,
@@ -179,7 +185,7 @@ export const CRITICAL_ALERT_STEPS: Record<
       "Install {{app}} on your phone from the {{appStore}} or {{googlePlay}}.",
     ),
     translationKey(
-      "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
+      "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.",
     ),
     /*
      * One step for both platforms, since the phone is not known yet: allow
@@ -217,13 +223,15 @@ export const CRITICAL_ALERT_TROUBLESHOOTING: Record<
 };
 
 /*
- * What a phone does once it is on, and how to hear it. The alarm - and on an
- * iPhone how loud it plays - is chosen in the app (Settings > Notifications >
- * Alarm sound, shown once the switch is on), and the test notification plays
- * it (UserPushAPI's test-notification route).
+ * What to do once it is on: choose the alarm, and hear it. The alarm - and
+ * on an iPhone how loud it plays - is chosen in the app (Settings >
+ * Notifications > Alarm sound, shown once the switch is on), and the test
+ * notification plays it (UserPushAPI's test-notification route). What
+ * critical alerts do is the dialog's description, so it is not said again
+ * here.
  */
 export const CRITICAL_ALERT_ONCE_ON: string = translationKey(
-  "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under {{alarmSoundPath}}.",
+  "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.",
 );
 
 export const CRITICAL_ALERT_HOW_TO_HEAR_IT: string = translationKey(

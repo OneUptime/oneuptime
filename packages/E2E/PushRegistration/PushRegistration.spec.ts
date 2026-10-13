@@ -1291,12 +1291,24 @@ test.describe("critical alerts in the device list", () => {
       "Under Notifications, turn on Critical On-Call Alerts.",
       "When iOS asks whether OneUptime On-Call may send critical alerts, tap Allow.",
     ]);
+    /*
+     * What to do once it is on - not again what critical alerts do, which
+     * the description above the steps has just said.
+     */
     await expect(
-      dialog(page).getByTestId("critical-alert-steps-once-on"),
-    ).toContainText("Settings > Notifications > Alarm sound");
+      dialog(page).locator("[data-testid='critical-alert-steps-once-on'] p"),
+    ).toHaveText([
+      "Once it's on, choose the alarm sound for on-call pages under Settings > Notifications > Alarm sound.",
+      "To hear it, silence the phone and send it a Test Notification from this list.",
+    ]);
     await expect(
       dialog(page).getByTestId("critical-alert-steps-troubleshooting"),
     ).toContainText("Tapped Don't Allow?");
+    await expect(
+      dialog(page)
+        .getByTestId("critical-alert-steps-troubleshooting")
+        .getByRole("heading", { level: 4, name: "If it doesn't turn on" }),
+    ).toBeVisible();
 
     await screenshot(page, "critical-alerts-ios-steps-synthetic");
   });
@@ -1386,7 +1398,61 @@ test.describe("critical alerts in the device list", () => {
     );
     await expect(steps(page)).toHaveCount(3);
 
+    /*
+     * The app opens on "Connect your workspace" with OneUptime Cloud's
+     * address filled in: the steps name this OneUptime's, as code.
+     */
+    const origin: string = new URL(page.url()).origin;
+
+    await expect(steps(page).nth(1)).toHaveText(
+      `Open it, connect to ${origin} and sign in. Allow notifications, and your phone shows up in this list.`,
+    );
+    await expect(
+      dialog(page).getByTestId("critical-alert-steps-server-url"),
+    ).toHaveText(origin);
+
     await screenshot(page, "critical-alerts-get-the-app-synthetic");
+  });
+
+  test("a test to a phone with critical alerts off leads to how to turn them on, on that phone", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL, GALAXY]);
+    await open(page);
+
+    await row(page, "SM-S918B")
+      .getByRole("button", { name: "Test Notification" })
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Test Notification Sent",
+    );
+    await expect(page.getByTestId("confirm-modal-description")).toContainText(
+      "Turn on critical alerts to have on-call pages ring through.",
+    );
+    await expect(
+      page.getByTestId("modal-footer").getByRole("button"),
+    ).toHaveText(["Close", "How to turn on"]);
+
+    await screenshot(page, "critical-alerts-test-sent-off-synthetic");
+
+    await page
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "How to turn on" })
+      .click();
+
+    await expect(page.getByTestId("modal")).toHaveCount(1);
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Turn on critical alerts",
+    );
+    await expect(
+      dialog(page).getByTestId("critical-alert-steps-device"),
+    ).toContainText("SM-S918B");
+    await expect(steps(page)).toHaveCount(4);
   });
 
   test("no devices yet: the card offers this browser and the mobile app", async ({
@@ -1432,6 +1498,10 @@ test.describe("critical alerts in the device list", () => {
     await expect(page.getByTestId("confirm-modal-description")).toHaveText(
       "Sent to Pixel 10 as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
     );
+    // Nothing to turn on: the dialog only closes.
+    await expect(
+      page.getByTestId("modal-footer").getByRole("button"),
+    ).toHaveText(["Close"]);
   });
 
   test("on a phone, in the dark theme: the list and the steps fit the screen, in dark-theme colours", async ({

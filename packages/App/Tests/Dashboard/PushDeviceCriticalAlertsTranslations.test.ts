@@ -97,15 +97,15 @@ const CARD_STRINGS: Array<string> = [
   "Android opens Do Not Disturb access. Allow it for {{app}}.",
   "Go back to the app and turn on {{criticalAlerts}} again.",
   "Install {{app}} on your phone from the {{appStore}} or {{googlePlay}}.",
-  "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.",
   "In the app, tap {{settings}} and, under {{notifications}}, turn on {{criticalAlerts}}. Allow what the phone asks for, then check the switch is on.",
-  "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under {{alarmSoundPath}}.",
+  "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.",
   "To hear it, silence the phone and send it a Test Notification from this list.",
   "If it doesn't turn on",
   "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.",
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.",
   "The app still asks for Do Not Disturb access? Allow {{app}} in the phone's Settings > Notifications > Do Not Disturb access, then turn on {{criticalAlerts}} again.",
-  // A sent test.
+  // A sent test (its button to the steps is "How to turn on", above).
   "Test Notification Sent",
   "Sent to {{deviceName}} as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
   "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
@@ -161,6 +161,38 @@ describe("the push devices card's critical alerts, in every language", () => {
       }
     },
   );
+
+  /*
+   * Sentences the card stopped drawing: a browser's sign-in step, which
+   * did not say which OneUptime to connect the app to, and a note that
+   * said again what the steps' description had just said.
+   */
+  test("the sentences the steps no longer draw are gone from every locale", () => {
+    const retired: Array<string> = [
+      "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
+      "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under {{alarmSoundPath}}.",
+    ];
+
+    for (const language of ["en", ...LANGUAGES]) {
+      const locale: Record<string, unknown> = readLocale(language);
+
+      for (const text of retired) {
+        expect({ language, text, kept: text in locale }).toEqual({
+          language,
+          text,
+          kept: false,
+        });
+      }
+    }
+
+    for (const text of retired) {
+      expect(
+        SOURCES.some((source: string): boolean => {
+          return source.includes(JSON.stringify(text));
+        }),
+      ).toBe(false);
+    }
+  });
 
   test("Registered At is no longer drawn by the card", () => {
     const card: string = SOURCES[0]!;

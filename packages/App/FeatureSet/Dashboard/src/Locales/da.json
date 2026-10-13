@@ -28250,7 +28250,6 @@
   "No devices yet": "Ingen enheder endnu",
   "Not available in browsers": "Ikke tilgængelig i browsere",
   "Nothing reaches this device until it is registered again.": "Intet når frem til denne enhed, før den er registreret igen.",
-  "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under {{alarmSoundPath}}.": "Når det er slået til, ringer personsøgninger igennem lydløs tilstand og Forstyr ikke. Vælg den alarm, de afspiller, i appen under {{alarmSoundPath}}.",
   "Open {{app}} on this iPhone or iPad and tap {{settings}}.": "Åbn {{app}} på denne iPhone eller iPad, og tryk på {{settings}}.",
   "Open {{app}} on this phone and tap {{settings}}.": "Åbn {{app}} på denne telefon, og tryk på {{settings}}.",
   "Phones signed in to the OneUptime On-Call app, and browsers you register here, get push notifications for this project.": "Telefoner, der er logget ind i appen OneUptime On-Call, og browsere, du registrerer her, får pushnotifikationer for dette projekt.",
@@ -28258,7 +28257,6 @@
   "Sent to {{deviceName}} as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.": "Sendt til {{deviceName}} som kritisk advarsel: den ringer, selv når telefonen er på lydløs eller i Forstyr ikke, sådan som en personsøgning ville.",
   "Sent to {{deviceName}}. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.": "Sendt til {{deviceName}}. Hvis den ikke vises, så tjek, at dette websted må vise notifikationer i den browser, og at Forstyr ikke eller Fokus er slået fra på computeren.",
   "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.": "Sendt til {{deviceName}}. Den følger telefonens lydindstillinger, så en telefon på lydløs eller i Forstyr ikke forbliver stille. Slå kritiske advarsler til for at få personsøgninger til at ringe igennem.",
-  "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.": "Log ind med din OneUptime-konto, og tillad notifikationer. Din telefon vises derefter på denne liste.",
   "Signing Key": "Signing Key",
   "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.": "Trykkede du på \"Tillad ikke\"? Slå \"Kritiske meddelelser\" til i iOS Indstillinger > Notifikationer > {{app}}, og slå derefter {{criticalAlerts}} til igen i appen.",
   "Test Notification Sent": "Testnotifikation sendt",
@@ -28269,5 +28267,7 @@
   "Web browser": "Webbrowser",
   "When iOS asks whether {{app}} may send critical alerts, tap Allow.": "Når iOS spørger, om {{app}} må sende kritiske meddelelser, skal du trykke på \"Tillad\".",
   "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.": "Spurgte iOS ikke? Opdater {{app}} fra App Store: versioner før 1.5.0 kan ikke modtage kritiske advarsler.",
-  "iPhone or iPad": "iPhone eller iPad"
+  "iPhone or iPad": "iPhone eller iPad",
+  "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.": "Når det er slået til, vælger du alarmlyden for personsøgninger under {{alarmSoundPath}}.",
+  "Open it, connect to {{serverUrl}} and sign in. Allow notifications, and your phone shows up in this list.": "Åbn den, opret forbindelse til {{serverUrl}}, og log ind. Tillad notifikationer, så vises din telefon på denne liste."
 }

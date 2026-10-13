@@ -251,7 +251,10 @@ describe("the push devices card in the dark theme", () => {
         "ring-indigo-100",
         "text-gray-700",
         "text-gray-600",
+        // The fixes' bullets, drawn in their text colour (bg-current).
         "text-gray-400",
+        // The address the app connects to, as code.
+        "bg-gray-100",
       ]),
     );
 

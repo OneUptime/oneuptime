@@ -31,6 +31,7 @@ const DIALOG_SLOTS: Array<string> = [
   "alarmSoundPath",
   "appStore",
   "googlePlay",
+  "serverUrl",
 ];
 
 const PLACEHOLDER: RegExp = /\{\{\s*([^{}]+?)\s*\}\}/g;
@@ -197,6 +198,43 @@ describe("the sentences the steps are built from", () => {
     expect(
       placeholdersOf(CRITICAL_ALERT_STEPS[PushDevicePlatform.Browser][0]!),
     ).toEqual(["app", "appStore", "googlePlay"]);
+  });
+
+  test("a browser's steps name the OneUptime the app connects to, before signing in", () => {
+    const connect: string =
+      CRITICAL_ALERT_STEPS[PushDevicePlatform.Browser][1]!;
+
+    expect(placeholdersOf(connect)).toEqual(["serverUrl"]);
+    expect(connect.indexOf("{{serverUrl}}")).toBeLessThan(
+      connect.indexOf("sign in"),
+    );
+
+    // Only a browser's: a listed phone is signed in already.
+    for (const platform of [
+      PushDevicePlatform.IOS,
+      PushDevicePlatform.Android,
+    ]) {
+      for (const sentence of [
+        ...CRITICAL_ALERT_STEPS[platform],
+        ...CRITICAL_ALERT_TROUBLESHOOTING[platform],
+      ]) {
+        expect(placeholdersOf(sentence)).not.toContain("serverUrl");
+      }
+    }
+  });
+
+  test("the note after the steps says what to do next, not what critical alerts do: the dialog's description says that", () => {
+    expect(CRITICAL_ALERT_ONCE_ON).toBe(
+      "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.",
+    );
+
+    for (const sentence of [
+      CRITICAL_ALERT_ONCE_ON,
+      CRITICAL_ALERT_HOW_TO_HEAR_IT,
+    ]) {
+      expect(sentence).not.toContain("silent mode");
+      expect(sentence).not.toContain("Do Not Disturb");
+    }
   });
 
   test("a browser has nothing to troubleshoot: it never turns them on", () => {

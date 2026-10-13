@@ -94,6 +94,7 @@ import {
   MOBILE_APP_ANDROID_URL,
   MOBILE_APP_IOS_URL,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppStoreLinks";
+import { getMobileAppServerUrl } from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppServerUrl";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -697,7 +698,7 @@ describe("How to turn on: the steps on that phone, as its app asks", () => {
     );
 
     expect(onceOn).toHaveTextContent(
-      "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under Settings > Notifications > Alarm sound.",
+      "Once it's on, choose the alarm sound for on-call pages under Settings > Notifications > Alarm sound.",
     );
     expect(onceOn).toHaveTextContent(
       "To hear it, silence the phone and send it a Test Notification from this list.",
@@ -712,7 +713,13 @@ describe("How to turn on: the steps on that phone, as its app asks", () => {
       "critical-alert-steps-troubleshooting",
     );
 
-    expect(troubleshooting).toHaveTextContent("If it doesn't turn on");
+    // A section of the dialog, found as one: its title is the dialog's h3.
+    expect(
+      within(troubleshooting).getByRole("heading", {
+        level: 4,
+        name: "If it doesn't turn on",
+      }),
+    ).toBeInTheDocument();
     expect(
       Array.from(troubleshooting.querySelectorAll("li")).map(
         (item: Element): string => {
@@ -752,6 +759,46 @@ describe("How to turn on: the steps on that phone, as its app asks", () => {
     ).toEqual([
       "The app still asks for Do Not Disturb access? Allow OneUptime On-Call in the phone's Settings > Notifications > Do Not Disturb access, then turn on Critical On-Call Alerts again.",
     ]);
+  });
+
+  test("the note after the steps says what to do next, not again what the description said", async () => {
+    render(<PushMethods />);
+
+    const modal: HTMLElement = await openStepsFor("SM-S918B");
+    const description: string =
+      within(modal).getByTestId("modal-description").textContent || "";
+    const onceOn: string =
+      within(modal).getByTestId("critical-alert-steps-once-on").textContent ||
+      "";
+
+    // The description says what critical alerts do; the note does not again.
+    expect(description).toContain("silent");
+    expect(description).toContain("Do Not Disturb");
+    expect(onceOn).not.toContain("silent mode");
+    expect(onceOn).not.toContain("Do Not Disturb");
+  });
+
+  test("the fixes are a plain list: their bullets are not icons that read as links, and are not read out", async () => {
+    render(<PushMethods />);
+
+    const modal: HTMLElement = await openStepsFor("iPhone 15 Pro");
+    const items: Array<Element> = Array.from(
+      within(modal)
+        .getByTestId("critical-alert-steps-troubleshooting")
+        .querySelectorAll("li"),
+    );
+
+    expect(items).toHaveLength(2);
+
+    for (const item of items) {
+      const bullet: Element = item.firstElementChild!;
+
+      expect(bullet.tagName).toBe("SPAN");
+      expect(bullet).toHaveAttribute("aria-hidden", "true");
+      expect(bullet).toBeEmptyDOMElement();
+      // No chevron, or any other icon: a chevron reads as "go somewhere".
+      expect(item.querySelector("svg")).toBeNull();
+    }
   });
 
   test("the steps are numbered in order, and the numbers are not read out on top of the list", async () => {
@@ -882,7 +929,7 @@ describe("a browser, and nobody's phone yet", () => {
 
     expect(stepsOf(modal)).toEqual([
       "Install OneUptime On-Call on your phone from the App Store or Google Play.",
-      "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
+      `Open it, connect to ${getMobileAppServerUrl()} and sign in. Allow notifications, and your phone shows up in this list.`,
       "In the app, tap Settings and, under Notifications, turn on Critical On-Call Alerts. Allow what the phone asks for, then check the switch is on.",
     ]);
 
@@ -930,6 +977,47 @@ describe("a browser, and nobody's phone yet", () => {
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
     }
+  });
+
+  test("the app is told which OneUptime to connect to: this one's address, drawn as code, as it is typed", async () => {
+    devices = [CHROME()];
+
+    render(<PushMethods />);
+
+    fireEvent.click(
+      await within(await statusOf("Chrome on macOS")).findByTestId(
+        "critical-alert-steps-link",
+      ),
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+    const address: HTMLElement = within(modal).getByTestId(
+      "critical-alert-steps-server-url",
+    );
+
+    expect(address.tagName).toBe("CODE");
+    expect(address.textContent).toBe(getMobileAppServerUrl());
+    expect(address).toHaveAttribute("dir", "ltr");
+    // In the second step: after installing, before the switch.
+    expect(
+      within(modal)
+        .getByTestId("critical-alert-steps-list")
+        .querySelectorAll("li")[1]!,
+    ).toContainElement(address);
+    // An address the app can reach: a full origin, with nothing after it.
+    const url: URL = new URL(getMobileAppServerUrl());
+
+    expect(url.origin).toBe(getMobileAppServerUrl());
+  });
+
+  test("a phone's steps name no address: the phone is signed in already", async () => {
+    render(<PushMethods />);
+
+    const modal: HTMLElement = await openStepsFor("SM-S918B");
+
+    expect(
+      within(modal).queryByTestId("critical-alert-steps-server-url"),
+    ).toBeNull();
   });
 
   test("once a phone is listed, the browser's link goes: the phone is where they are turned on", async () => {
@@ -1035,6 +1123,88 @@ describe("a test notification says what it did on that device", () => {
     expect(await sendTestTo("iPhone 15 Pro")).toHaveTextContent(
       "Sent to iPhone 15 Pro. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
     );
+  });
+
+  // The dialog's buttons, as its footer draws them, left to right.
+  function footerButtons(): Array<string> {
+    return Array.from(
+      within(screen.getByTestId("modal-footer")).getAllByRole("button"),
+    ).map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
+  }
+
+  test("a phone with them off: the dialog that says to turn them on leads to how, for that phone", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("iPhone 15 Pro");
+
+    expect(footerButtons()).toEqual(["Close", "How to turn on"]);
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    // One dialog after the other, never both.
+    await waitFor(() => {
+      expect(screen.getAllByTestId("modal")).toHaveLength(1);
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        "Turn on critical alerts",
+      );
+    });
+    expect(
+      within(dialog()).getByTestId("critical-alert-steps-device"),
+    ).toHaveTextContent("iPhone 15 ProiPhone or iPad");
+    expect(stepsOf(dialog())).toEqual([
+      "Open OneUptime On-Call on this iPhone or iPad and tap Settings.",
+      "Under Notifications, turn on Critical On-Call Alerts.",
+      "When iOS asks whether OneUptime On-Call may send critical alerts, tap Allow.",
+    ]);
+    // Opening the steps sends nothing more than the test itself.
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("an Android phone with them off gets Android's steps from its test dialog", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("SM-S918B");
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(stepsOf(dialog())).toHaveLength(4);
+    });
+    expect(
+      within(dialog()).getByTestId("critical-alert-steps-device"),
+    ).toHaveTextContent("SM-S918BAndroid phone");
+  });
+
+  test("a phone with them off can still just close the dialog, and nothing else opens", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("iPhone 15 Pro");
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+  });
+
+  test("a phone with them on, or a browser: the dialog only closes", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("Pixel 10");
+
+    expect(footerButtons()).toEqual(["Close"]);
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+
+    await sendTestTo("Chrome on macOS");
+
+    expect(footerButtons()).toEqual(["Close"]);
   });
 
   test("a browser: shown where the site may show notifications", async () => {

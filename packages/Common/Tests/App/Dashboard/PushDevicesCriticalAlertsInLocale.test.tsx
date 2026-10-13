@@ -9,11 +9,14 @@ import * as React from "react";
 import PushDeviceCriticalAlertStatus from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlertStatus";
 import PushDeviceCriticalAlertSteps from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlertSteps";
 import {
+  CRITICAL_ALERT_HOW_TO_HEAR_IT,
+  CRITICAL_ALERT_ONCE_ON,
   CRITICAL_ALERT_STEPS,
   CriticalAlertDeviceState,
   MOBILE_APP_LABELS,
   PushDevicePlatform,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlerts";
+import { getMobileAppServerUrl } from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppServerUrl";
 
 /*
  * The push devices card's critical alerts in every language the Dashboard
@@ -91,7 +94,17 @@ function expectedStep(language: string, template: string): string {
     .split("{{appStore}}")
     .join("App Store")
     .split("{{googlePlay}}")
-    .join("Google Play");
+    .join("Google Play")
+    .split("{{serverUrl}}")
+    .join(getMobileAppServerUrl())
+    .split("{{alarmSoundPath}}")
+    .join(
+      [
+        MOBILE_APP_LABELS.settingsTab,
+        MOBILE_APP_LABELS.notificationsSection,
+        MOBILE_APP_LABELS.alarmSoundRow,
+      ].join(" > "),
+    );
 }
 
 function stepsShown(): Array<string> {
@@ -187,6 +200,76 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       expect(list.textContent).not.toContain("{{");
     },
   );
+
+  test("what to do once it is on reads in the locale, with the app's alarm path as the app draws it", async () => {
+    await inLanguage(language);
+
+    render(
+      <PushDeviceCriticalAlertSteps
+        deviceName="Pixel 10"
+        platform={PushDevicePlatform.Android}
+        onClose={() => {}}
+      />,
+    );
+
+    const note: HTMLElement = screen.getByTestId(
+      "critical-alert-steps-once-on",
+    );
+    const paragraphs: Array<string> = Array.from(
+      note.querySelectorAll("p"),
+    ).map((paragraph: Element): string => {
+      return paragraph.textContent || "";
+    });
+
+    for (const english of [
+      CRITICAL_ALERT_ONCE_ON,
+      CRITICAL_ALERT_HOW_TO_HEAR_IT,
+    ]) {
+      expect({
+        english,
+        translated: LOCALES[language]![english] !== english,
+      }).toEqual({ english, translated: true });
+    }
+
+    expect(paragraphs).toEqual([
+      expectedStep(language, CRITICAL_ALERT_ONCE_ON),
+      expectedStep(language, CRITICAL_ALERT_HOW_TO_HEAR_IT),
+    ]);
+    expect(
+      Array.from(note.querySelectorAll("strong")).map(
+        (label: Element): string => {
+          return label.textContent || "";
+        },
+      ),
+    ).toEqual([
+      MOBILE_APP_LABELS.settingsTab,
+      MOBILE_APP_LABELS.notificationsSection,
+      MOBILE_APP_LABELS.alarmSoundRow,
+    ]);
+  });
+
+  test("a browser's steps name the address the app connects to, unchanged by the locale", async () => {
+    await inLanguage(language);
+
+    render(
+      <PushDeviceCriticalAlertSteps
+        deviceName=""
+        platform={PushDevicePlatform.Browser}
+        onClose={() => {}}
+      />,
+    );
+
+    const address: HTMLElement = screen.getByTestId(
+      "critical-alert-steps-server-url",
+    );
+
+    expect(address.textContent).toBe(getMobileAppServerUrl());
+    expect(
+      screen
+        .getByTestId("critical-alert-steps-list")
+        .querySelectorAll("li")[1]!,
+    ).toContainElement(address);
+  });
 
   test("the statuses read in the locale", async () => {
     await inLanguage(language);
