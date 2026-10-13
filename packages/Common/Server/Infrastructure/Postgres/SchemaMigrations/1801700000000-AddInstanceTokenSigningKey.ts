@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * installation writes its one row, and an installation that set its own
  * ENCRYPTION_SECRET never writes it.
  */
-export class AddInstanceTokenSigningKey1801650000000
+export class AddInstanceTokenSigningKey1801700000000
   implements MigrationInterface
 {
-  public name: string = "AddInstanceTokenSigningKey1801650000000";
+  public name: string = "AddInstanceTokenSigningKey1801700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

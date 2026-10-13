@@ -425,9 +425,11 @@ describe("the form that adds a rule asks how a push should sound", () => {
       },
     );
 
+    // How often a push repeats is asked next (OnCallRulesTablePushRepeat.test.tsx).
     expect(keys).toEqual([
       "notificationMethod",
       "pushNotificationLevel",
+      "repeatEveryMinutes",
       "notifyAfterMinutes",
     ]);
 

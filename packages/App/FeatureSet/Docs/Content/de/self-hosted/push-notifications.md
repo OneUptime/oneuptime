@@ -123,7 +123,7 @@ Damit ein Alarm den Stummmodus durchbricht, müssen vier Dinge zutreffen. Fehlt 
 
 1. **Die Person hat es für dieses Gerät eingeschaltet.** Gespeichert pro Gerät, standardmäßig aus, in `UserPush.isCriticalAlertEnabled`. Telefon und Tablet derselben Person sind getrennte Entscheidungen.
 2. **Die Bereitschaftsregel, die den Alarm ausgelöst hat, verlangt es.** Unter **Benutzereinstellungen > Bereitschaftsregeln** steht jede Regel, die ein Telefon benachrichtigt, auf „Critical alert“ – die Voreinstellung – oder auf „Standard“, das den Toneinstellungen des Telefons folgt. So kann eine Person bei einem kritischen Vorfall geweckt und bei einem kleinen leise benachrichtigt werden. Gespeichert pro Regel in `UserNotificationRule.pushNotificationLevel`.
-3. **Der Server markiert den Alarm als kritisch.** Er sendet für iOS die kritische Sound-Payload von APNs plus `interruptionLevel: critical` und zielt für Android auf den Benachrichtigungskanal `oncall_critical`.
+3. **Der Server markiert den Alarm als kritisch.** Er sendet für iOS die kritische Sound-Payload von APNs plus `interruptionLevel: critical` und zielt für Android auf einen kritischen Benachrichtigungskanal: `oncall_critical` oder den eigenen Kanal des gewählten Alarmtons (siehe [Den Alarmton wählen](#den-alarmton-wählen)).
 4. **Das Betriebssystem erlaubt es**, und genau hier unterscheiden sich die beiden Plattformen.
 
 :::tabs
@@ -148,13 +148,26 @@ Android kennt keinen Genehmigungsschritt beim Hersteller, aber die Umgehung von 
 
 Zwei Mechanismen wirken hier, und sie decken unterschiedliche Fälle ab:
 
-- Der Benachrichtigungskanal `oncall_critical` fordert `bypassDnd` an, was „Nicht stören“ abdeckt und den oben beschriebenen Zugriff braucht.
-- Derselbe Kanal nutzt den Audiostream **Wecker**, der auf einem Telefon hörbar ist, dessen Klingelton nur stummgeschaltet ist. Diese Hälfte braucht gar keine Berechtigung.
+- Jeder kritische Benachrichtigungskanal – `oncall_critical` und einer für jeden Alarmton – fordert `bypassDnd` an, was „Nicht stören“ abdeckt und den oben beschriebenen Zugriff braucht.
+- Dieselben Kanäle nutzen den Audiostream **Wecker**, der auf einem Telefon hörbar ist, dessen Klingelton nur stummgeschaltet ist. Diese Hälfte braucht gar keine Berechtigung.
 
 Android friert die Einstellungen eines Kanals ein, wenn der Kanal zum ersten Mal angelegt wird; sie lassen sich also nicht durch ein App-Update ändern – nur durch eine neue Kanal-ID.
 :::
 
 Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Benachrichtigungsmethoden > Push Notifications** eine Testbenachrichtigung an das Gerät. Hat das Gerät kritische Warnungen aktiviert, wird auch der Test als kritische Warnung gesendet – schalten Sie das Telefon also zuerst stumm, dann hören Sie, ob ein echter Alarm Sie erreichen würde.
+
+### Den Alarmton wählen
+
+Ein kritischer Alarm spielt den eigenen Ton des Telefons für kritische Warnungen, es sei denn, die Person wählt einen anderen. In der App bietet **Settings > Notifications > Alarm sound**, sichtbar, sobald Critical On-Call Alerts eingeschaltet ist, fünf lautere Alarmtöne, die zum Wecken gemacht sind: Klaxon, Siren, Digital alarm, Smoke alarm und Rising alarm, der leise beginnt und immer lauter wird. Jeder lässt sich vor der Auswahl anhören. Die Wahl gehört zum Gerät und wird in `UserPush.criticalAlertSound` gespeichert, und auch die Testbenachrichtigung spielt sie ab.
+
+- **iOS**: Der Alarm nennt den Ton, und iOS spielt ihn aus der App trotz Stummmodus ab, in der Lautstärke, die auf demselben Bildschirm gewählt ist: 25 %, 50 %, 75 % oder 100 %, die Voreinstellung. Die Lautstärke wird in `UserPush.criticalAlertVolume` gespeichert.
+- **Android**: Jeder Alarmton hat einen eigenen Benachrichtigungskanal (`oncall_critical_klaxon`, `oncall_critical_siren` und so weiter), weil Android den Ton eines Kanals festlegt, wenn der Kanal angelegt wird. Der Server sendet den Alarm auf dem Kanal des gewählten Alarmtons, und er erklingt in der Weckerlautstärke des Telefons.
+
+Ein Gerät behält den Systemton, bis darauf eine Version der App läuft, die die Auswahl anbietet; so bekommt eine ältere App nie einen Alarmton geschickt, den sie nicht hat.
+
+### Einen Alarm bis zur Bestätigung wiederholen
+
+Eine Push-Regel kann ihren Alarm erneut senden, bis jemand ihn bestätigt. Unter **Benutzereinstellungen > Bereitschaftsregeln** legen Sie **Wiederholen bis zur Bestätigung** beim Hinzufügen einer Push-Regel fest oder ändern es später in der Zeile der Regel: jede Minute oder alle 2, 3, 5, 10, 15 oder 30 Minuten. Der Alarm wird in diesem Abstand erneut gesendet, höchstens 10 weitere Male, und hört auf, sobald der Vorfall, die Warnung oder die Episode bestätigt ist. Gespeichert pro Regel in `UserNotificationRule.repeatEveryMinutes`, wobei 0, die Voreinstellung, den Alarm nur einmal sendet.
 
 ## Fehlerbehebung
 
@@ -178,6 +191,7 @@ Um zu prüfen, ob es funktioniert, senden Sie unter **Benutzereinstellungen > Be
 - Prüfen Sie die Bereitschaftsregel für diesen Schweregrad unter **Benutzereinstellungen > Bereitschaftsregeln**: Eine Push-Regel auf „Standard“ folgt den Toneinstellungen des Telefons, egal was der Schalter des Geräts sagt
 - **iOS**: Bestätigen Sie, dass der Build Apples Entitlement für kritische Warnungen trägt (siehe oben) und dass Critical Alerts unter iOS Settings > Notifications > OneUptime On-Call erlaubt ist
 - **Android**: Bestätigen Sie, dass die App unter Settings > Notifications > Do Not Disturb access Zugriff auf „Nicht stören“ hat
+- **Android**: Wenn Sie einen Alarmton gewählt haben, muss auch dessen eigener Benachrichtigungskanal „Nicht stören“ übersteuern dürfen; der Bildschirm Alarm sound der App sagt, wenn das nicht so ist
 - Der Einstellungsbildschirm sagt, was davon fehlt; er liest den aktuellen Zustand vom Betriebssystem zurück, statt dem zu vertrauen, was die App zuletzt angefordert hat
 
 ### Pushes als „nicht zugestellt“ markiert

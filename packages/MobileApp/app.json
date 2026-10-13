@@ -56,7 +56,14 @@
       [
         "expo-notifications",
         {
-          "color": "#58A6FF"
+          "color": "#58A6FF",
+          "sounds": [
+            "./assets/sounds/oneuptime_klaxon.wav",
+            "./assets/sounds/oneuptime_siren.wav",
+            "./assets/sounds/oneuptime_digital.wav",
+            "./assets/sounds/oneuptime_smoke_alarm.wav",
+            "./assets/sounds/oneuptime_rising.wav"
+          ]
         }
       ],
       "expo-local-authentication",

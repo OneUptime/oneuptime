@@ -24,6 +24,16 @@ import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import { isExpoPushDeviceType } from "../../Types/PushNotification/ExpoPushDeviceType";
+import CriticalAlertSound, {
+  CRITICAL_ALERT_SOUNDS,
+  CriticalAlertSoundDefinition,
+  isCriticalAlertSound,
+} from "../../Types/PushNotification/CriticalAlertSound";
+import {
+  CRITICAL_ALERT_VOLUME_MAX_PERCENT,
+  CRITICAL_ALERT_VOLUME_MIN_PERCENT,
+  isCriticalAlertVolumePercent,
+} from "../../Types/PushNotification/CriticalAlertVolume";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
@@ -54,6 +64,67 @@ export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
   }
 
   throw new BadDataException("isEnabled must be either true or false.");
+}
+
+/*
+ * The alarm and volume a phone registers with (the app restates its stored
+ * choices on every registration, like isCriticalAlertEnabled). Read leniently:
+ * a registration is how a phone gets paged at all, so a value this server does
+ * not know - a sound added by a newer app - must not refuse it. Unknown or
+ * absent reads as "not given", and the column's default (the system's own
+ * critical sound, at full volume) applies.
+ */
+export function parseCriticalAlertSoundFromRegistration(
+  raw: unknown,
+): CriticalAlertSound | undefined {
+  return isCriticalAlertSound(raw) ? raw : undefined;
+}
+
+export function parseCriticalAlertVolumeFromRegistration(
+  raw: unknown,
+): number | undefined {
+  return isCriticalAlertVolumePercent(raw) ? raw : undefined;
+}
+
+/*
+ * On the preferences route the caller is choosing, so a value this server
+ * cannot honour is refused and named, rather than stored or quietly replaced
+ * by the default. Absent means "keep what is stored".
+ */
+export function parseCriticalAlertSoundStrict(
+  raw: unknown,
+): CriticalAlertSound | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+
+  if (!isCriticalAlertSound(raw)) {
+    throw new BadDataException(
+      `sound must be one of: ${CRITICAL_ALERT_SOUNDS.map(
+        (definition: CriticalAlertSoundDefinition): string => {
+          return definition.sound;
+        },
+      ).join(", ")}.`,
+    );
+  }
+
+  return raw;
+}
+
+export function parseCriticalAlertVolumeStrict(
+  raw: unknown,
+): number | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+
+  if (!isCriticalAlertVolumePercent(raw)) {
+    throw new BadDataException(
+      `volume must be a whole number from ${CRITICAL_ALERT_VOLUME_MIN_PERCENT} to ${CRITICAL_ALERT_VOLUME_MAX_PERCENT}.`,
+    );
+  }
+
+  return raw;
 }
 
 /*
@@ -346,6 +417,12 @@ export default class UserPushAPI extends BaseAPI<
                 isCriticalAlertEnabled: parseCriticalAlertFlag(
                   req.body.isCriticalAlertEnabled,
                 ),
+                criticalAlertSound: parseCriticalAlertSoundFromRegistration(
+                  req.body.criticalAlertSound,
+                ),
+                criticalAlertVolume: parseCriticalAlertVolumeFromRegistration(
+                  req.body.criticalAlertVolume,
+                ),
               });
 
             if (renewedDevice) {
@@ -407,6 +484,28 @@ export default class UserPushAPI extends BaseAPI<
           userPush.isCriticalAlertEnabled = parseCriticalAlertFlag(
             req.body.isCriticalAlertEnabled,
           );
+
+          /*
+           * The alarm and volume the phone chose, when it says (a reinstall,
+           * a new token, a second project). Not given, the defaults apply.
+           */
+          const criticalAlertSound: CriticalAlertSound | undefined =
+            parseCriticalAlertSoundFromRegistration(
+              req.body.criticalAlertSound,
+            );
+
+          if (criticalAlertSound) {
+            userPush.criticalAlertSound = criticalAlertSound;
+          }
+
+          const criticalAlertVolume: number | undefined =
+            parseCriticalAlertVolumeFromRegistration(
+              req.body.criticalAlertVolume,
+            );
+
+          if (criticalAlertVolume !== undefined) {
+            userPush.criticalAlertVolume = criticalAlertVolume;
+          }
 
           const savedDevice: UserPush = await this.service.create({
             data: userPush,
@@ -611,6 +710,8 @@ export default class UserPushAPI extends BaseAPI<
               isVerified: true,
               projectId: true,
               isCriticalAlertEnabled: true,
+              criticalAlertSound: true,
+              criticalAlertVolume: true,
             },
           });
 
@@ -684,6 +785,9 @@ export default class UserPushAPI extends BaseAPI<
               });
 
             testMessage.isCriticalAlert = isCriticalAlert;
+            // With the alarm and volume a real page would play.
+            testMessage.criticalAlertSound = device.criticalAlertSound;
+            testMessage.criticalAlertVolume = device.criticalAlertVolume;
 
             await PushNotificationService.sendPushNotification(
               {
@@ -778,6 +882,68 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             isCriticalAlertEnabled: isEnabled,
+            devicesUpdated: updatedCount,
+          });
+        } catch (error) {
+          return next(error);
+        }
+      },
+    );
+
+    /*
+     * Choose the alarm a handset's critical pages play, and on an iPhone how
+     * loud. Keyed on the device token and written for every project the phone
+     * is registered against, like the critical-alerts toggle above: the app
+     * knows its own push token and holds no row ids.
+     *
+     * Either may be left out to keep what is stored; a value this server
+     * cannot honour is refused, by name.
+     */
+    this.router.post(
+      `/user-push/critical-alert-preferences`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
+          if (!req.body.deviceToken) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device token is required"),
+            );
+          }
+
+          const sound: CriticalAlertSound | undefined =
+            parseCriticalAlertSoundStrict(req.body.sound);
+          const volume: number | undefined = parseCriticalAlertVolumeStrict(
+            req.body.volume,
+          );
+
+          if (sound === undefined && volume === undefined) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Give a critical alert sound, a critical alert volume, or both.",
+              ),
+            );
+          }
+
+          const updatedCount: number =
+            await this.service.setCriticalAlertPreferencesForDeviceToken({
+              userId: userId,
+              deviceToken: req.body.deviceToken,
+              sound: sound,
+              volumePercent: volume,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            success: true,
+            ...(sound !== undefined ? { criticalAlertSound: sound } : {}),
+            ...(volume !== undefined ? { criticalAlertVolume: volume } : {}),
             devicesUpdated: updatedCount,
           });
         } catch (error) {

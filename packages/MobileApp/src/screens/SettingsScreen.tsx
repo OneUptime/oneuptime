@@ -5,6 +5,7 @@ import {
   Switch,
   Pressable,
   Alert,
+  Platform,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -27,6 +28,7 @@ import {
   useCriticalAlerts,
   type CriticalAlertsState,
 } from "../hooks/useCriticalAlerts";
+import { useCriticalAlertSoundChoice } from "../hooks/useCriticalAlertSoundChoice";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
 import { useScreenPadding } from "../hooks/useScreenPadding";
@@ -36,6 +38,8 @@ import Card from "../components/Card";
 import { ListGroup, ListItem } from "../components/ListGroup";
 import ScreenIntro from "../components/ScreenIntro";
 import type { SettingsStackParamList } from "../navigation/types";
+import { getCriticalAlertSoundOption } from "../notifications/criticalAlertSounds";
+import type { CriticalAlertSoundChoice } from "../storage/preferences";
 import { getInitials } from "../utils/text";
 
 type SettingsNavigationProp = NativeStackNavigationProp<
@@ -302,6 +306,8 @@ export default function SettingsScreen(): React.JSX.Element {
     useNavigation<SettingsNavigationProp>();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
   const criticalAlerts: CriticalAlertsState = useCriticalAlerts();
+  const alarmSoundChoice: CriticalAlertSoundChoice | null =
+    useCriticalAlertSoundChoice();
   const calendarFeed: ReturnType<typeof useOnCallCalendarFeedAvailability> =
     useOnCallCalendarFeedAvailability();
   const { selectionFeedback } = useHaptics();
@@ -348,6 +354,16 @@ export default function SettingsScreen(): React.JSX.Element {
   };
 
   const initials: string = getInitials(user?.name?.trim() || user?.email);
+
+  /*
+   * The alarm the row below the switch names, and on an iPhone its volume -
+   * which only an iPhone takes from the page.
+   */
+  const alarmSoundSummary: string | undefined = alarmSoundChoice
+    ? Platform.OS === "ios"
+      ? `${getCriticalAlertSoundOption(alarmSoundChoice.sound).title} · ${alarmSoundChoice.volume}% volume`
+      : getCriticalAlertSoundOption(alarmSoundChoice.sound).title
+    : undefined;
 
   return (
     <ScrollView
@@ -457,6 +473,18 @@ export default function SettingsScreen(): React.JSX.Element {
                 />
               }
             />
+            {criticalAlerts.isEnabled ? (
+              <ListItem
+                testID="settings-row-alarm-sound"
+                title="Alarm sound"
+                value={alarmSoundSummary}
+                icon="musical-notes-outline"
+                accessibilityHint="Choose the sound critical on-call pages play on this phone."
+                onPress={() => {
+                  navigation.navigate("CriticalAlertSound");
+                }}
+              />
+            ) : null}
           </ListGroup>
           {criticalAlerts.error ? (
             <GroupFootnote
