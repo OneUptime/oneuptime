@@ -113,17 +113,8 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
     translated: EVERY_TRANSLATION_BUT_FA,
     sameShape: ["fa"],
   },
-  "integrations/index": {
-    pageLinks: EVERY_TRANSLATION,
-  },
-  "integrations/jira": {
-    sameShape: EVERY_TRANSLATION,
-  },
   "integrations/microsoft-defender-xdr": {
     translated: EVERY_TRANSLATION,
-  },
-  "integrations/microsoft-dynamics-365": {
-    sameShape: EVERY_TRANSLATION,
   },
   "integrations/microsoft-sentinel": {
     translated: EVERY_TRANSLATION,
@@ -136,9 +127,6 @@ export const DOCS_KNOWN_FAILURES: DocsKnownFailures = {
   },
   "integrations/splunk": {
     translated: EVERY_TRANSLATION,
-  },
-  "integrations/zabbix": {
-    pageLinks: EVERY_TRANSLATION,
   },
   "mobile-desktop-apps/faq-troubleshooting": {
     noRelativeLinks: EVERY_LANGUAGE,
