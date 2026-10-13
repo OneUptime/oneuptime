@@ -8,6 +8,7 @@ An on-call schedule decides who is on call at any moment. People take turns in i
 :::cards
 - [Who takes turns](#who-takes-turns): Create a schedule with its first rotation.
 - [Layers](#layers): Stack rotations, limit on-call hours and add fall-back cover.
+- [When someone is away](#when-someone-is-away): Skip someone in the rotation until they are back.
 - [API and Terraform](#creating-schedules-with-the-api-or-terraform): Create schedules and their rotations as code.
 :::
 
@@ -71,6 +72,23 @@ flowchart TB
 To change which layer comes first, use **Move layer up (higher priority)** or **Move layer down (lower priority)** in a layer's menu.
 
 Each person keeps one colour everywhere, so you can follow them at a glance: on every layer, in the final schedule and its overrides, and on the **Schedule Timeline**.
+
+## When someone is away
+
+When someone goes on holiday, skip them until they are back. On the schedule's **Layers** page, expand a layer and click **Skip until…** beside their name. It opens the form for time away with them under **Who is away?**, **Next person in the rotation** under **Who covers?** and **Starts** at now: set **Ends** to when they are back, and save it.
+
+While they are away:
+
+- Each of their turns goes to the next person in the layer who is not away, in every schedule they are in. Nobody else's turns move, and theirs are theirs again once they are back.
+- If everyone in a layer is away, the layer has nobody on call and the layers below it take over. The layer says **Everyone in this layer is away right now**.
+- Escalation rules that page them directly, or through a team, skip them. The policy's run says they are away, and until when.
+- Their row in the layer says until when they are away, and the final schedule and the **Schedule Timeline** show who has each of their turns.
+
+Pick someone under **Who covers?** instead, and that person gets all of their pages, from every schedule and every policy, rather than the rotation taking their turns.
+
+Time away added this way applies to every on-call policy. It is listed under **On-Call Duty** > **User Overrides**, where you can delete it to bring them back early. To skip someone in one policy only, add the override on that policy's **User Overrides** page and leave **Who covers?** as it is.
+
+With the API, a user override (`/api/on-call-duty-policy-user-override`) created without `routeAlertsToUserId` skips the person in `overrideUserId` from `startsAt` to `endsAt`.
 
 ## Creating schedules with the API or Terraform
 

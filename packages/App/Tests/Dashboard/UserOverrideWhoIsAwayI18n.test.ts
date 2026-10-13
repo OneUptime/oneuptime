@@ -11,6 +11,11 @@ import path from "path";
  * stays English for everyone. This pins the strings the change added - in
  * all seventeen locales, translated - the existing ones the page now leans
  * on, and that the ones only the old two-step form drew are drawn no more.
+ *
+ * "Who covers?" may be left to the rotation since task
+ * oncall-skip-user-until: until somebody is picked it reads "Next person in
+ * the rotation", and saved that way the override skips the person away. The
+ * words that said a cover was needed are retired with it.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -37,13 +42,13 @@ const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 const NEW_STRINGS: Array<string> = [
   // The two questions about people, their pickers and their checks.
   "Who is away?",
-  "Alerts that would page them go to the person who covers.",
+  "They are not paged while they are away.",
   "Choose who is away",
   "Choose who is away.",
   "Who covers?",
-  "They get those alerts until the override ends.",
-  "Choose who covers",
-  "Choose who covers.",
+  "Each of their turns goes to the next person in the rotation who is not away. Or pick someone to get all of their pages.",
+  "Next person in the rotation",
+  "Choose someone",
   "There is no one else in this project.",
   "Choose someone other than the person who is away.",
   // When the override runs.
@@ -53,8 +58,8 @@ const NEW_STRINGS: Array<string> = [
   // The overrides list and its cards, on a policy and for every policy.
   "Away",
   "Covered by",
-  "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
-  "While someone is away, an override sends their pages from every on-call policy to the person who covers. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+  "While someone is away, an override sends their pages from this policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
+  "While someone is away, an override sends their pages from every on-call policy to the person who covers - or, with nobody named, skips them, so the next person in the rotation takes each of their turns. To cover someone on one policy only, add the override on that policy's User Overrides page.",
 ];
 
 /*
@@ -62,7 +67,7 @@ const NEW_STRINGS: Array<string> = [
  * rather than from the Dashboard's code.
  */
 const MODEL_DESCRIPTION: string =
-  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.";
+  "While someone is away, a user override sends the alerts that would page them to the person who covers, for a set time. With nobody named to cover, it skips them instead: each of their turns in an on-call schedule goes to the next person in the rotation. An override on an on-call policy applies to that policy only; one without a policy applies to every on-call policy.";
 
 /*
  * Words the page draws that were there before, translated wherever they
@@ -95,6 +100,13 @@ const RETIRED_STRINGS: Array<string> = [
   "Global overrides are useful for assigning on-call duties across all policies when a user is unavailable.",
   "Overridden",
   "Alerts go here",
+  // Who covers? used to be required (task oncall-skip-user-until).
+  "Alerts that would page them go to the person who covers.",
+  "They get those alerts until the override ends.",
+  "Choose who covers",
+  "Choose who covers.",
+  "While someone is away, an override sends their pages from this policy to the person who covers. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides.",
+  "While someone is away, an override sends their pages from every on-call policy to the person who covers. To cover someone on one policy only, add the override on that policy's User Overrides page.",
 ];
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];
