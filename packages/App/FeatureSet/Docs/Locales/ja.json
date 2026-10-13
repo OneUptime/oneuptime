@@ -240,6 +240,7 @@
     "Discord": "Discord",
     "Telegram": "Telegram",
     "IRC": "IRC",
+    "SMSEagle": "SMSEagle",
     "Custom Probes": "カスタム プローブ",
     "Incoming Request Ingress": "受信リクエスト Ingress",
     "Packet Capture": "パケットキャプチャ",

@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord)                                 | Outbound             | Incidentupdates posten naar een Discord-kanaal.                               |
 | [Telegram](/docs/integrations/telegram)                               | Outbound             | Incidentupdates sturen naar een Telegram-chat.                                |
 | [IRC](/docs/integrations/irc)                                         | Outbound             | Incidentupdates posten naar een IRC-kanaal.                                   |
+| [SMSEagle](/docs/integrations/smseagle)                               | Outbound             | Sms'jes en oproepen versturen via je eigen SMSEagle-sms-gateway.              |
 | [Slack](/docs/workspace-connections/slack)                            | Beide                | Native workspace-verbinding — kanalen, alerts en oncall.                      |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Beide                | Native workspace-verbinding.                                                  |
 

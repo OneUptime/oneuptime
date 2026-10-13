@@ -239,6 +239,7 @@
     "Discord": "Discord",
     "Telegram": "Telegram",
     "IRC": "IRC",
+    "SMSEagle": "SMSEagle",
     "Custom Probes": "پراب‌های سفارشی",
     "Incoming Request Ingress": "ورودی درخواست‌های دریافتی",
     "Packet Capture": "ضبط بسته",

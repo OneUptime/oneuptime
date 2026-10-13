@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord)                                 | アウトバウンド                  | インシデントの更新を Discord チャンネルに投稿する。                               |
 | [Telegram](/docs/integrations/telegram)                               | アウトバウンド                  | インシデントの更新を Telegram チャットに送信する。                                |
 | [IRC](/docs/integrations/irc)                                         | アウトバウンド                  | インシデントの更新を IRC チャンネルに投稿する。                                    |
+| [SMSEagle](/docs/integrations/smseagle)                               | アウトバウンド                  | 自社の SMSEagle SMS ゲートウェイから SMS と電話を送る。                         |
 | [Slack](/docs/workspace-connections/slack)                            | 双方向                          | ネイティブのワークスペース接続 — チャンネル、アラート、オンコール。               |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 双方向                          | ネイティブのワークスペース接続。                                                  |
 

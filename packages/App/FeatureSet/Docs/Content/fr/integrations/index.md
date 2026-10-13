@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord)                                 | Sortant             | Publier les mises à jour d'incidents dans un canal Discord.                             |
 | [Telegram](/docs/integrations/telegram)                               | Sortant             | Envoyer les mises à jour d'incidents vers un chat Telegram.                             |
 | [IRC](/docs/integrations/irc)                                         | Sortant             | Publier les mises à jour d'incidents dans un canal IRC.                                 |
+| [SMSEagle](/docs/integrations/smseagle)                               | Sortant             | Envoyer des SMS et des appels via votre propre passerelle SMS SMSEagle.                 |
 | [Slack](/docs/workspace-connections/slack)                            | Les deux            | Connexion d'espace de travail native — canaux, alertes et astreintes.                   |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Les deux            | Connexion d'espace de travail native.                                                   |
 

@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord)                                 | Utgående                 | Poste hendelsesoppdateringer til en Discord-kanal.                                  |
 | [Telegram](/docs/integrations/telegram)                               | Utgående                 | Sende hendelsesoppdateringer til en Telegram-chat.                                  |
 | [IRC](/docs/integrations/irc)                                         | Utgående                 | Poste hendelsesoppdateringer til en IRC-kanal.                                      |
+| [SMSEagle](/docs/integrations/smseagle)                               | Utgående                 | Send SMS og anrop gjennom din egen SMSEagle-SMS-gateway.                            |
 | [Slack](/docs/workspace-connections/slack)                            | Begge                    | Innebygd arbeidsområdetilkobling — kanaler, varsler og vaktordning.                 |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | Begge                    | Innebygd arbeidsområdetilkobling.                                                   |
 

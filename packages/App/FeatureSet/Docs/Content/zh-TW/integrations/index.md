@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord)                                 | 出站           | 將事件更新張貼到 Discord 頻道。                                      |
 | [Telegram](/docs/integrations/telegram)                               | 出站           | 將事件更新傳送到 Telegram 聊天。                                     |
 | [IRC](/docs/integrations/irc)                                         | 出站           | 將事件更新張貼到 IRC 頻道。                                          |
+| [SMSEagle](/docs/integrations/smseagle)                               | 出站           | 透過你自己的 SMSEagle 簡訊閘道傳送簡訊和電話。                              |
 | [Slack](/docs/workspace-connections/slack)                            | 雙向           | 原生的工作區連線——頻道、警示與待命（on-call）。                      |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | 雙向           | 原生的工作區連線。                                                   |
 

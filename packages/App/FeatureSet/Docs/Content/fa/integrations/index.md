@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord) | خروجی | به‌روزرسانی‌های حادثه را به کانالی در Discord می‌فرستد. |
 | [Telegram](/docs/integrations/telegram) | خروجی | به‌روزرسانی‌های حادثه را به گفت‌وگویی در Telegram می‌فرستد. |
 | [IRC](/docs/integrations/irc) | خروجی | به‌روزرسانی‌های حادثه را به کانالی در IRC می‌فرستد. |
+| [SMSEagle](/docs/integrations/smseagle) | خروجی | پیامک و تماس را از طریق دروازه پیامک SMSEagle خودتان می‌فرستد. |
 | [Slack](/docs/workspace-connections/slack) | هر دو | اتصال بومی فضای کاری — کانال‌ها، هشدارها و کشیک. |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | هر دو | اتصال بومی فضای کاری. |
 

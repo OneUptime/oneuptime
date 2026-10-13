@@ -53,6 +53,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [Discord](/docs/integrations/discord)                                 | आउटबाउंड             | Discord चैनल पर incident updates पोस्ट करें।                                              |
 | [Telegram](/docs/integrations/telegram)                               | आउटबाउंड             | Telegram chat में incident updates भेजें।                                                 |
 | [IRC](/docs/integrations/irc)                                         | आउटबाउंड             | IRC चैनल पर incident updates पोस्ट करें।                                                  |
+| [SMSEagle](/docs/integrations/smseagle)                               | आउटबाउंड             | अपने SMSEagle SMS गेटवे के ज़रिए SMS और कॉल भेजें।                                        |
 | [Slack](/docs/workspace-connections/slack)                            | दोनों                | Native workspace connection — channels, alerts, और on-call।                               |
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams)        | दोनों                | Native workspace connection।                                                              |
 
