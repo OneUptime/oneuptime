@@ -5,7 +5,7 @@ import LLMProviderHTTPException from "Common/Server/Utils/LLM/LLMProviderHTTPExc
 import LlmProviderTestFailure from "Common/Server/Utils/LLM/LlmProviderTestFailure";
 import LlmType from "Common/Types/LLM/LlmType";
 import { PermissionHelper } from "Common/Types/Permission";
-import { dashboardLabel } from "./DocsDashboardLabels";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { boldSpans, strayMarkers } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -21,8 +21,10 @@ import path from "path";
  * what a test says. This holds every language's paragraph to that: the
  * permissions the server asks (LlmProviderTestAccess, the model's update
  * list) and no others, the Test button and the fields under the names that
- * language's Dashboard draws them, a failure that says what to check before
- * what the provider answered, and markers that close in every script.
+ * language's Dashboard draws them (Persian included: the AI pages name the
+ * Dashboard as each language's Dashboard draws it), a failure that says what
+ * to check before what the provider answered, and markers that close in
+ * every script.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -54,7 +56,7 @@ const TESTERS: Array<string> = PermissionHelper.getPermissionTitles(
  * tester.
  */
 function testingParagraph(language: string): string {
-  const test: string = dashboardLabel(language, "Test");
+  const test: string = drawnDashboardLabel(language, "Test");
 
   const found: Array<string> = readPage(language)
     .split("\n")
@@ -123,7 +125,7 @@ describe("who may test an LLM provider, as the server asks it", () => {
       const spans: Array<string> = boldSpans(testingParagraph(language));
 
       for (const field of FIELDS) {
-        const drawn: string = dashboardLabel(language, field);
+        const drawn: string = drawnDashboardLabel(language, field);
 
         expect({ field, drawn, named: spans.includes(drawn) }).toEqual({
           field,
